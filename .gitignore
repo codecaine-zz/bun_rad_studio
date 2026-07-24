@@ -1,0 +1,50 @@
+# Dependencies & Bun Locks
+node_modules/
+bun.lockb
+
+# Local Preview & Export Output Directories
+.rad_preview/
+exported_project/
+.build_check/
+dist/
+out/
+build/
+*.tgz
+
+# OS System & Environment Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Environment & Credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs & Debug Output
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# Caches & IDE Settings
+.cache/
+.eslintcache
+*.tsbuildinfo
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
