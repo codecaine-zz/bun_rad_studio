@@ -1266,6 +1266,53 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Category 7: Advanced Modern Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🚀 Advanced Modern Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('segmented_control')" ondragstart="onDragStart(event, 'segmented_control')" title="Segmented Control: Modern tabbed pill segment button selector">
+						<span class="palette-icon">🎛️</span>
+						<span>Segmented</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tree_view')" ondragstart="onDragStart(event, 'tree_view')" title="Tree View: Hierarchical collapsible directory/node tree explorer">
+						<span class="palette-icon">🌿</span>
+						<span>Tree View</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('avatar_group')" ondragstart="onDragStart(event, 'avatar_group')" title="Avatar Group: Stacked user profile avatars with initials & overflow badge">
+						<span class="palette-icon">👥</span>
+						<span>Avatar Group</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('stat_chart')" ondragstart="onDragStart(event, 'stat_chart')" title="Stat Chart Card: Executive KPI metric card with integrated SVG sparkline graph">
+						<span class="palette-icon">📊</span>
+						<span>Stat Chart</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('accordion')" ondragstart="onDragStart(event, 'accordion')" title="Accordion Panel: Interactive collapsible disclosure card panel">
+						<span class="palette-icon">📂</span>
+						<span>Accordion</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('breadcrumb')" ondragstart="onDragStart(event, 'breadcrumb')" title="Breadcrumb Bar: Step-by-step path navigation breadcrumb control">
+						<span class="palette-icon">📍</span>
+						<span>Breadcrumb</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('timeline')" ondragstart="onDragStart(event, 'timeline')" title="Activity Timeline: Vertical step-by-step activity/process event status timeline">
+						<span class="palette-icon">⏱️</span>
+						<span>Timeline</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('toast_card')" ondragstart="onDragStart(event, 'toast_card')" title="Notification Toast: Floating notification toast alert card with status icon & close action">
+						<span class="palette-icon">🔔</span>
+						<span>Toast Card</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('time_picker')" ondragstart="onDragStart(event, 'time_picker')" title="Time Picker: Precision clock time selection input field">
+						<span class="palette-icon">🕒</span>
+						<span>Time Picker</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('rich_select')" ondragstart="onDragStart(event, 'rich_select')" title="Searchable Combobox: Searchable dropdown select combobox with icon & arrow">
+						<span class="palette-icon">🔍</span>
+						<span>Rich Select</span>
+					</div>
+				</div>
+			</div>
 		</aside>
 
 		<!-- Center Canvas Viewport with Rulers -->
@@ -2646,12 +2693,22 @@
 			if (type === "badge" || type === "status_indicator" || type === "form_link") { defaultW = 140; defaultH = 26; }
 			if (type === "radio" || type === "switch" || type === "date" || type === "date_picker") { defaultW = 180; defaultH = 28; }
 			if (type === "rating" || type === "stepper") { defaultW = 120; defaultH = 32; }
+			if (type === "segmented_control") { defaultW = 240; defaultH = 36; }
+			if (type === "tree_view") { defaultW = 220; defaultH = 140; }
+			if (type === "avatar_group") { defaultW = 160; defaultH = 38; }
+			if (type === "stat_chart") { defaultW = 200; defaultH = 90; }
+			if (type === "accordion") { defaultW = 280; defaultH = 100; }
+			if (type === "breadcrumb") { defaultW = 260; defaultH = 32; }
+			if (type === "timeline") { defaultW = 280; defaultH = 110; }
+			if (type === "toast_card") { defaultW = 260; defaultH = 64; }
+			if (type === "time_picker") { defaultW = 150; defaultH = 36; }
+			if (type === "rich_select") { defaultW = 200; defaultH = 36; }
 
 			const themeSelect = document.getElementById("propFormTheme");
 			const activeTheme = themeSelect ? themeSelect.value : "Dark";
 			const themeColors = getThemeColors(activeTheme);
 
-			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "stepper", "tag", "metric_meter", "progress", "number", "date", "search"];
+			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select"];
 			let defaultBg = themeColors.ctrlBg;
 			if (transparentTypes.includes(type)) {
 				defaultBg = "transparent";
@@ -3596,6 +3653,73 @@
 				div.style.overflow = "hidden";
 				const dispText = text || "// code here";
 				div.innerHTML = "<div style='width:100%; height:100%; white-space:pre-wrap; word-break:break-all; font-family:monospace;'>" + dispText.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</div>";
+			} else if (type === "segmented_control") {
+				div.style.backgroundColor = ctrl.background_color || "rgba(255,255,255,0.06)";
+				div.style.borderRadius = "8px";
+				div.style.padding = "2px";
+				const items = (text || "Overview, Analytics, Reports").split(",").map(s=>s.trim());
+				div.innerHTML = "<div style='display:flex; width:100%; height:100%; gap:2px;'>" + items.map((it, idx) => `<div style='flex:1; height:100%; background:${idx===0?'var(--accent)':'transparent'}; color:${idx===0?'#fff':'inherit'}; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600;'>${it}</div>`).join('') + "</div>";
+			} else if (type === "tree_view") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "flex-start";
+				div.style.padding = "6px 8px";
+				div.style.fontSize = "11px";
+				const nodes = (text || "Project Root, 📂 src, 📄 index.ts, 📄 styles.css").split(",").map(s=>s.trim());
+				div.innerHTML = nodes.map((n, i) => `<div style='padding-left:${i===0?0:12}px; display:flex; gap:4px; opacity:${i===0?1:0.8};'><span>${i===0?'▼ 📁':'├─'}</span><span>${n}</span></div>`).join('');
+			} else if (type === "avatar_group") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const avs = (text || "JD, AS, MK, +3").split(",").map(s=>s.trim());
+				const avCols = ['#0284c7', '#7c3aed', '#059669', '#d97706', '#dc2626'];
+				div.innerHTML = "<div style='display:flex; align-items:center;'>" + avs.map((av, i) => `<div style='width:28px; height:28px; border-radius:50%; background:${av.startsWith('+')?'rgba(255,255,255,0.2)':avCols[i%avCols.length]}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; border:2px solid #0f172a; margin-left:${i===0?0:-6}px;'>${av}</div>`).join('') + "</div>";
+			} else if (type === "stat_chart") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "flex-start";
+				div.style.padding = "8px 10px";
+				div.style.borderRadius = "10px";
+				div.innerHTML = "<div style='display:flex; justify-content:space-between; width:100%; font-size:10px; opacity:0.7;'><span style='font-weight:bold; text-transform:uppercase;'>" + (text||'Revenue') + "</span><span style='color:#10b981; font-weight:bold;'>+18.4%</span></div><div style='font-size:18px; font-weight:800; color:var(--accent); margin:2px 0;'>$48,290</div><svg viewBox='0 0 100 20' style='width:100%; height:18px;'><path d='M0 16 L20 10 L40 14 L60 4 L80 8 L100 2' fill='none' stroke='var(--accent)' stroke-width='2'/></svg>";
+			} else if (type === "accordion") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.borderRadius = "8px";
+				div.style.overflow = "hidden";
+				div.innerHTML = "<div style='padding:6px 10px; background:rgba(255,255,255,0.06); font-weight:bold; font-size:11px; display:flex; justify-content:space-between;'><span>" + text + "</span><span>▼</span></div><div style='padding:6px 10px; font-size:10px; opacity:0.8;'>Accordion content panel details.</div>";
+			} else if (type === "breadcrumb") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const crumbs = (text || "Home, Projects, App Settings").split(",").map(s=>s.trim());
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:4px; font-size:11px;'>" + crumbs.map((cr, i) => `${i>0?'<span style="opacity:0.4;">›</span>':''}<span style='${i===crumbs.length-1?'font-weight:bold; color:var(--accent);':'opacity:0.7;'}'>${cr}</span>`).join('') + "</div>";
+			} else if (type === "timeline") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "flex-start";
+				div.style.gap = "6px";
+				const steps = (text || "Order Placed, Processing, In Transit, Delivered").split(",").map(s=>s.trim());
+				div.innerHTML = steps.slice(0, 3).map((st, i) => `<div style='display:flex; align-items:center; gap:8px; font-size:10px;'><span style='width:8px; height:8px; border-radius:50%; background:${i<=1?'var(--accent)':'rgba(255,255,255,0.2)'};'></span><span style='font-weight:${i<=1?'bold':'normal'}; opacity:${i<=1?1:0.6};'>${st}</span></div>`).join('');
+			} else if (type === "toast_card") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderLeft = "4px solid #10b981";
+				div.style.borderRadius = "8px";
+				div.style.padding = "6px 10px";
+				div.style.justifyContent = "space-between";
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:8px; font-size:11px;'><span>✅</span><div style='display:flex; flex-direction:column;'><span style='font-weight:bold;'>" + text + "</span><span style='font-size:9px; opacity:0.7;'>Completed successfully</span></div></div><span style='opacity:0.5; font-size:12px;'>✕</span>";
+			} else if (type === "time_picker") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "6px";
+				div.style.padding = "0 8px";
+				div.style.justifyContent = "flex-start";
+				div.style.gap = "8px";
+				div.innerHTML = "<span style='font-size:14px; opacity:0.7;'>🕒</span><span style='font-size:12px;'>09:30 AM</span>";
+			} else if (type === "rich_select") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "6px";
+				div.style.padding = "0 8px";
+				div.style.justifyContent = "space-between";
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:6px; font-size:11px;'><span style='opacity:0.6;'>🔍</span><span>" + text + "</span></div><span style='font-size:10px; opacity:0.5;'>▼</span>";
 			} else {
 				if (ctrl.background_color) div.style.backgroundColor = ctrl.background_color;
 				const fg = ctrl.font_color || "#ffffff";
@@ -5313,6 +5437,14 @@ wv.bind("backendAlert", (msg: string) => {
 					code += `      <span id="${c.id}" style={{ position: 'absolute', ${style} }} className="font-medium flex items-center">${c.text || 'Label'}</span>\n`;
 				} else if (c.control_type === 'input') {
 					code += `      <input id="${c.id}" type="text" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none focus:border-sky-400" placeholder="${c.placeholder || ''}" defaultValue="${c.text || ''}" />\n`;
+				} else if (c.control_type === 'segmented_control') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-white/10 p-1 rounded-lg flex gap-1">${(c.text || 'Overview, Analytics, Reports').split(',').map(s=>`<button className="flex-1 py-1 text-xs font-semibold rounded-md bg-sky-600 text-white">${s.trim()}</button>`).join('')}</div>\n`;
+				} else if (c.control_type === 'stat_chart') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800/80 border border-white/10 p-3 rounded-xl flex flex-col justify-between"><div className="flex justify-between text-xs opacity-70"><span>${c.text || 'Revenue'}</span><span className="text-emerald-400 font-bold">+18.4%</span></div><div className="text-xl font-extrabold text-sky-400">$48,290</div></div>\n`;
+				} else if (c.control_type === 'toast_card') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800 border-l-4 border-emerald-500 rounded-lg p-3 flex items-center justify-between shadow-xl"><span>✅ ${c.text || 'Notification'}</span></div>\n`;
+				} else if (c.control_type === 'time_picker') {
+					code += `      <input id="${c.id}" type="time" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none" defaultValue="${c.value || '09:30'}" />\n`;
 				} else {
 					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="border border-white/10 rounded-lg p-2 flex items-center">${c.text || c.id}</div>\n`;
 				}
@@ -5347,6 +5479,12 @@ wv.bind("backendAlert", (msg: string) => {
 					code += `# ${c.id}\nlbl_${c.id} = ctk.CTkLabel(root, text="${c.text || 'Label'}")\nlbl_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
 				} else if (c.control_type === 'input') {
 					code += `# ${c.id}\nentry_${c.id} = ctk.CTkEntry(root, width=${c.width}, height=${c.height}, placeholder_text="${c.placeholder || ''}")\nentry_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'segmented_control') {
+					code += `# ${c.id}\nseg_${c.id} = ctk.CTkSegmentedButton(root, values=["Overview", "Analytics", "Reports"])\nseg_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'stat_chart' || c.control_type === 'toast_card' || c.control_type === 'accordion') {
+					code += `# ${c.id}\nframe_${c.id} = ctk.CTkFrame(root, width=${c.width}, height=${c.height})\nframe_${c.id}.place(x=${c.x}, y=${c.y})\nctk.CTkLabel(frame_${c.id}, text="${c.text || c.id}").pack(padx=10, pady=10)\n\n`;
+				} else {
+					code += `# ${c.id}\nwidget_${c.id} = ctk.CTkLabel(root, text="${c.text || c.id}")\nwidget_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
 				}
 			});
 			code += `root.mainloop()\n`;

@@ -91,12 +91,70 @@ export function setControlText(controlId: string, text: string) {
     execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else el.textContent=\${escaped};}\`);
 }
 
+export function setControlValue(controlId: string, value: any) {
+    const escaped = JSON.stringify(value);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else if(el.dataset)el.dataset.value=\${escaped};}\`);
+}
+
 export function setControlEnabled(controlId: string, enabled: boolean) {
     execJS(\`const el=document.getElementById("\${controlId}");if(el){el.disabled=\${!enabled};el.style.opacity=\${enabled ? "1" : "0.55"};el.style.pointerEvents=\${enabled ? "auto" : "none"};}\`);
 }
 
 export function setControlVisible(controlId: string, visible: boolean) {
     execJS(\`const el=document.getElementById("\${controlId}");if(el){el.style.display=\${visible ? "" : "none"};}\`);
+}
+
+export function setSegmentedSelected(controlId: string, itemText: string) {
+    const escaped = JSON.stringify(itemText);
+    execJS(\`const container=document.getElementById("\${controlId}");if(container){container.querySelectorAll("button").forEach(b=>{const isSel=b.textContent.trim()===\${escaped};b.style.background=isSel?"var(--accent, #38bdf8)":"transparent";b.style.color=isSel?"#ffffff":"inherit";});}\`);
+}
+
+export function setStatChart(controlId: string, opts: { title?: string; value?: string; trend?: string }) {
+    const title = opts.title !== undefined ? JSON.stringify(opts.title) : "null";
+    const value = opts.value !== undefined ? JSON.stringify(opts.value) : "null";
+    const trend = opts.trend !== undefined ? JSON.stringify(opts.trend) : "null";
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){const tEl=c.querySelector("span");const vEl=c.querySelector("div:nth-child(2)");const trEl=c.querySelectorAll("span")[1];if(tEl&&\${title}!==null)tEl.textContent=\${title};if(vEl&&\${value}!==null)vEl.textContent=\${value};if(trEl&&\${trend}!==null)trEl.textContent=\${trend};}\`);
+}
+
+export function setToast(controlId: string, title: string, message?: string, alertType?: string) {
+    const tStr = JSON.stringify(title);
+    const mStr = message !== undefined ? JSON.stringify(message) : "null";
+    const aStr = alertType !== undefined ? JSON.stringify(alertType) : "null";
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){const tEl=c.querySelector("span:nth-child(1)");const mEl=c.querySelector("span:nth-child(2)");if(tEl&&\${tStr}!==null)tEl.textContent=\${tStr};if(mEl&&\${mStr}!==null)mEl.textContent=\${mStr};if(\${aStr}!==null){const col=\${aStr}==='error'?'#ef4444':\${aStr}==='warning'?'#f59e0b':'#10b981';c.style.borderLeftColor=col;}}\`);
+}
+
+export function setTimePickerValue(controlId: string, timeStr: string) {
+    const escaped = JSON.stringify(timeStr);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){const inp=c.querySelector("input[type=time]");if(inp)inp.value=\${escaped};}\`);
+}
+
+export function setAccordionOpen(controlId: string, open: boolean) {
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){const body=c.querySelector("div:nth-child(2)");const arrow=c.querySelector(".acc-arrow");if(body)body.style.display=\${open ? "'block'" : "'none'"};if(arrow)arrow.textContent=\${open ? "'▼'" : "'▶'"};}\`);
+}
+
+export function setTimelineSteps(controlId: string, stepsCSV: string) {
+    const escaped = JSON.stringify(stepsCSV);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const steps=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=steps.map((st,i)=>\`<div style="display:flex;align-items:center;gap:10px;font-size:11px;"><div style="width:10px;height:10px;border-radius:50%;background:\\\${i<=1?'var(--accent, #38bdf8)':'rgba(255,255,255,0.2)'};"></div><span>\\\${st}</span></div>\`).join("");}\`);
+}
+
+export function setBreadcrumbs(controlId: string, crumbsCSV: string) {
+    const escaped = JSON.stringify(crumbsCSV);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const crumbs=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=crumbs.map((cr,i)=>\`\\\${i>0?'<span style="opacity:0.4;">›</span>':''}<span style="\\\${i===crumbs.length-1?'font-weight:700;color:var(--accent,#38bdf8);':'opacity:0.7;'}">\\\${cr}</span>\`).join("");}\`);
+}
+
+export function setTreeNodes(controlId: string, nodesCSV: string) {
+    const escaped = JSON.stringify(nodesCSV);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const nodes=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=nodes.map((n,i)=>\`<div style="padding-left:\\\${i===0?0:16}px;display:flex;align-items:center;gap:6px;"><span style="opacity:0.6;">\\\${i===0?'▼ 📁':'├─'}</span><span>\\\${n}</span></div>\`).join("");}\`);
+}
+
+export function setAvatarGroup(controlId: string, avatarsCSV: string) {
+    const escaped = JSON.stringify(avatarsCSV);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const avs=\${escaped}.split(",").map(s=>s.trim());const avCols=['#0284c7','#7c3aed','#059669','#d97706','#dc2626'];c.innerHTML=avs.map((av,i)=>\`<div style="width:32px;height:32px;border-radius:50%;background:\\\${av.startsWith('+')?'rgba(255,255,255,0.2)':avCols[i%avCols.length]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid transparent;margin-left:\\\${i===0?0:-8}px;">\\\${av}</div>\`).join("");}\`);
+}
+
+export function setRichSelectText(controlId: string, text: string) {
+    const escaped = JSON.stringify(text);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){const span=c.querySelector("span:nth-child(2)");if(span)span.textContent=\${escaped};}\`);
 }
 
 // ==========================================
@@ -419,6 +477,63 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<input type="file"${id}${ev} style="display:none;">\n`;
         } else if (t === 'table') {
             controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${cbg};"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};">${['ID','Name','Value','Status'].map(h=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[1,2,3].map(r=>`<tr style="border-bottom:1px solid ${border};" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'}'" onmouseout="this.style.background=''">${['#'+r,'Item '+r,(r*100).toFixed(0),'Active'].map(cell=>`<td style="padding:8px 12px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
+        } else if (t === 'segmented_control') {
+            const items = (text || 'Overview, Analytics, Reports').split(',').map((s: string) => s.trim());
+            const sel = c.value || items[0] || '';
+            const segBg = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)';
+            const segRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items.map((item: string) => {
+                const isSel = item === sel;
+                const itemBg = isSel ? (c.background_color && c.background_color !== 'transparent' ? c.background_color : accent) : 'transparent';
+                const itemFg = isSel ? '#ffffff' : color;
+                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${itemBg}';this.style.color='${itemFg}'" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor||'pointer'};transition:all 0.15s;">${item}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'tree_view') {
+            const nodes = (text || 'Project Root, 📂 src, 📄 index.ts, 📄 styles.css').split(',').map((n: string) => n.trim());
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:8px 10px;overflow:auto;display:flex;flex-direction:column;gap:4px;font-size:12px;color:${color};">${nodes.map((node: string, idx: number) => {
+                const indent = idx === 0 ? '0px' : '16px';
+                const icon = idx === 0 ? '▼ 📁' : '├─';
+                return `<div style="padding-left:${indent};display:flex;align-items:center;gap:6px;cursor:pointer;" onmouseover="this.style.color='${accent}'" onmouseout="this.style.color='${color}'"><span style="opacity:0.6;">${icon}</span><span>${node}</span></div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'avatar_group') {
+            const avatars = (text || 'JD, AS, MK, +3').split(',').map((a: string) => a.trim());
+            const avColors = ['#0284c7', '#7c3aed', '#059669', '#d97706', '#dc2626'];
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;padding:0 4px;">${avatars.map((av: string, i: number) => {
+                const bgCol = av.startsWith('+') ? (isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)') : avColors[i % avColors.length];
+                return `<div style="width:32px;height:32px;border-radius:50%;background:${bgCol};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid ${bg};margin-left:${i === 0 ? '0' : '-8px'};box-shadow:0 2px 4px rgba(0,0,0,0.2);flex-shrink:0;" title="${av}">${av}</div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'stat_chart') {
+            const val = c.value !== undefined ? c.value : '$48,290';
+            const trend = c.trend || '+18.4%';
+            const scRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${scRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.7;text-transform:uppercase;">${text||'Monthly Revenue'}</span><span style="font-size:10px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.15);padding:2px 6px;border-radius:4px;">${trend}</span></div><div style="font-size:20px;font-weight:800;color:${color};">${val}</div><svg viewBox="0 0 100 24" style="width:100%;height:24px;overflow:visible;"><path d="M0 20 L20 14 L40 17 L60 8 L80 12 L100 2" fill="none" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/><path d="M0 20 L20 14 L40 17 L60 8 L80 12 L100 2 L100 24 L0 24 Z" fill="${accent}" opacity="0.15"/></svg></div>\n`;
+        } else if (t === 'accordion') {
+            const accRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${accRadius}overflow:hidden;display:flex;flex-direction:column;"><div onclick="const body=this.nextElementSibling;const arrow=this.querySelector('.acc-arrow');if(body.style.display==='none'){body.style.display='block';arrow.textContent='▼';}else{body.style.display='none';arrow.textContent='▶';}" style="padding:8px 12px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:12px;color:${color};display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>${text||'Accordion Section'}</span><span class="acc-arrow" style="font-size:10px;opacity:0.7;">▼</span></div><div style="padding:10px 12px;font-size:11px;color:${color};opacity:0.85;border-top:1px solid ${border};">${c.placeholder||'Collapsible accordion content panel details.'}</div></div>\n`;
+        } else if (t === 'breadcrumb') {
+            const crumbs = (text || 'Home, Projects, App Settings').split(',').map((cr: string) => cr.trim());
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:6px;font-size:11px;color:${color};">${crumbs.map((crumb: string, i: number) => {
+                const isLast = i === crumbs.length - 1;
+                const colStyle = isLast ? `font-weight:700;color:${accent};` : `opacity:0.7;cursor:pointer;`;
+                return `${i > 0 ? `<span style="opacity:0.4;">›</span>` : ''}<span style="${colStyle}">${crumb}</span>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'timeline') {
+            const steps = (text || 'Order Placed, Payment Verified, In Transit, Delivered').split(',').map((st: string) => st.trim());
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:8px;padding:6px 8px;">${steps.map((step: string, i: number) => {
+                const active = i <= 1;
+                const nodeCol = active ? accent : (isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)');
+                return `<div style="display:flex;align-items:center;gap:10px;font-size:11px;color:${color};"><div style="width:10px;height:10px;border-radius:50%;background:${nodeCol};box-shadow:${active ? `0 0 6px ${accent}` : 'none'};flex-shrink:0;"></div><span style="font-weight:${active ? '700' : 'normal'};opacity:${active ? '1' : '0.6'};">${step}</span></div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'toast_card') {
+            const tCol = c.alert_type === 'error' ? '#ef4444' : c.alert_type === 'warning' ? '#f59e0b' : c.alert_type === 'info' ? accent : '#10b981';
+            const tIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'info' ? 'ℹ️' : '✅';
+            const tRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};border-left:4px solid ${tCol};${defBorder}${tRadius}padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${tIcon}</span><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;color:${color};">${text||'Notification'}</span><span style="font-size:10px;color:${color};opacity:0.7;">${c.placeholder||'Action performed successfully.'}</span></div></div><button onclick="this.parentNode.style.display='none'" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:14px;">✕</button></div>\n`;
+        } else if (t === 'time_picker') {
+            const val = c.value || '09:30';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${val}" style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||13}px;outline:none;width:100%;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
+        } else if (t === 'rich_select') {
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};cursor:${c.cursor||'pointer'};"><div style="display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;"><span style="opacity:0.6;">🔍</span><span style="font-size:12px;opacity:0.85;">${text||'Select option...'}</span></div><span style="font-size:10px;opacity:0.5;">▼</span></div>\n`;
         } else {
             // Fallback for any other type
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
@@ -470,6 +585,45 @@ ${controls}
 <script>
   window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
   window.showSaveDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
+  window.getControlValue = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    if ("value" in el) return el.value;
+    if (el.dataset && el.dataset.value) return el.dataset.value;
+    return el.textContent ? el.textContent.trim() : null;
+  };
+  window.setControlText = function(id, text) {
+    const el = document.getElementById(id);
+    if (el) { if ("value" in el) el.value = text; else el.textContent = text; }
+  };
+  window.setControlValue = function(id, val) {
+    const el = document.getElementById(id);
+    if (el) { if ("value" in el) el.value = val; else el.textContent = val; }
+  };
+  window.setControlEnabled = function(id, enabled) {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = !enabled; el.style.opacity = enabled ? "1" : "0.55"; el.style.pointerEvents = enabled ? "auto" : "none"; }
+  };
+  window.setControlVisible = function(id, visible) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = visible ? "" : "none"; }
+  };
+  window.setStatChart = function(id, opts) {
+    const c = document.getElementById(id);
+    if (c) {
+      if (opts.title) { const t = c.querySelector("span"); if (t) t.textContent = opts.title; }
+      if (opts.value) { const v = c.querySelector("div:nth-child(2)"); if (v) v.textContent = opts.value; }
+      if (opts.trend) { const tr = c.querySelectorAll("span")[1]; if (tr) tr.textContent = opts.trend; }
+    }
+  };
+  window.setToast = function(id, title, msg, alertType) {
+    const c = document.getElementById(id);
+    if (c) {
+      if (title) { const tEl = c.querySelector("span:nth-child(1)"); if (tEl) tEl.textContent = title; }
+      if (msg) { const mEl = c.querySelector("span:nth-child(2)"); if (mEl) mEl.textContent = msg; }
+      if (alertType) { c.style.borderLeftColor = alertType==='error'?'#ef4444':alertType==='warning'?'#f59e0b':'#10b981'; }
+    }
+  };
   window.addEventListener("DOMContentLoaded", () => {
     if (window.onFormLoad) window.onFormLoad();
   });

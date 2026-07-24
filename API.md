@@ -189,6 +189,16 @@ The `event_handlers` record can map the following event names to string blocks o
 | `db_dropdown` | Data Bound Select | 220 × 44 px | Field-bound database lookup select |
 | `divider` | Separator | 300 × 4 px | Horizontal line divider |
 | `form_field` | Labelled Input | 220 × 44 px | Pre-configured label + text field pair |
+| `segmented_control` | Segmented Control | 240 × 36 px | Modern tabbed pill segment button selector |
+| `tree_view` | Tree View | 220 × 140 px | Hierarchical collapsible directory/node tree explorer |
+| `avatar_group` | Avatar Group | 160 × 38 px | Stacked user profile avatars with initials & overflow badge |
+| `stat_chart` | Stat Chart Card | 200 × 90 px | Executive KPI metric card with integrated SVG sparkline trend graph |
+| `accordion` | Accordion Panel | 280 × 100 px | Interactive collapsible disclosure card panel |
+| `breadcrumb` | Breadcrumb Bar | 260 × 32 px | Step-by-step path navigation breadcrumb control |
+| `timeline` | Activity Timeline | 280 × 110 px | Vertical step-by-step activity/process event status timeline |
+| `toast_card` | Notification Toast | 260 × 64 px | Floating notification toast alert card with status icon & close action |
+| `time_picker` | Time Picker | 150 × 36 px | Precision clock time selection input field |
+| `rich_select` | Searchable Combobox | 200 × 36 px | Searchable dropdown select combobox with icon & arrow |
 
 ### Non-Visual Tray Components
 
@@ -222,12 +232,27 @@ Auto-generated TS templates and exported projects support window lifecycle bindi
 - `onFormResize(size: { width: number, height: number })`: Triggered dynamically when the window is resized.
 - `onFormClose()`: Triggered right before the application closes / terminates.
 
-### RAD Backend Helper Utilities
-Exported TypeScript templates include built-in helper utilities for fast development:
-- `execJS(code: string)`: Safely evaluates client-side JavaScript in the webview window (`wv.eval(...)`).
-- `setControlText(id: string, text: string)`: Dynamically updates the caption, label, or value of any UI control.
-- `setControlEnabled(id: string, enabled: boolean)`: Dynamically enables or disables any UI control at runtime.
-- `setControlVisible(id: string, visible: boolean)`: Dynamically shows or hides any UI control at runtime.
+### RAD Backend & Client Helper Utilities
+Exported TypeScript templates and client scripts include built-in high-level helper functions to read, update, and manipulate all RAD controls dynamically:
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `execJS(code)` | `(code: string) => void` | Safely evaluates client-side JavaScript in the webview window (`wv.eval(...)`) |
+| `getControlValue(id)` | `(id: string) => any` | Reads current value or text of any UI control |
+| `setControlText(id, text)` | `(id: string, text: string) => void` | Dynamically updates caption, label, or text of any UI control |
+| `setControlValue(id, value)` | `(id: string, value: any) => void` | Updates input value, slider value, checkbox state, or metric |
+| `setControlEnabled(id, enabled)` | `(id: string, enabled: boolean) => void` | Dynamically enables or disables any UI control at runtime |
+| `setControlVisible(id, visible)` | `(id: string, visible: boolean) => void` | Dynamically shows or hides any UI control at runtime |
+| `setSegmentedSelected(id, text)` | `(id: string, text: string) => void` | Selects a segment button in a Segmented Control by item name |
+| `setStatChart(id, opts)` | `(id: string, opts: { title?, value?, trend? }) => void` | Updates Stat Chart KPI card title, value, and trend percentage badge |
+| `setToast(id, title, msg, alertType)` | `(id: string, title: string, msg?: string, alertType?: string) => void` | Updates Notification Toast card title, message body, and alert color |
+| `setTimePickerValue(id, timeStr)` | `(id: string, timeStr: string) => void` | Sets Time Picker value (e.g. `"09:41"`) |
+| `setAccordionOpen(id, open)` | `(id: string, open: boolean) => void` | Expands (`true`) or collapses (`false`) an Accordion section |
+| `setTimelineSteps(id, stepsCSV)` | `(id: string, stepsCSV: string) => void` | Updates Activity Timeline steps from comma-separated string |
+| `setBreadcrumbs(id, crumbsCSV)` | `(id: string, crumbsCSV: string) => void` | Updates Breadcrumb navigation items from comma-separated string |
+| `setTreeNodes(id, nodesCSV)` | `(id: string, nodesCSV: string) => void` | Updates Tree View directory nodes from comma-separated string |
+| `setAvatarGroup(id, avatarsCSV)` | `(id: string, avatarsCSV: string) => void` | Updates Avatar Group stack initials from comma-separated string |
+| `setRichSelectText(id, text)` | `(id: string, text: string) => void` | Updates Searchable Combobox display selection label |
 
 ---
 

@@ -95,7 +95,17 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
                 { id: "db_grid_1", control_type: "db_grid", x: 10, y: 100, width: 300, height: 150, text: "Dataset1" },
                 { id: "db_nav_1", control_type: "db_navigator", x: 10, y: 260, width: 300, height: 36, text: "Dataset1" },
                 { id: "db_input_1", control_type: "db_input", x: 10, y: 310, width: 200, height: 40, text: "Email" },
-                { id: "db_drop_1", control_type: "db_dropdown", x: 10, y: 360, width: 200, height: 40, text: "Category" }
+                { id: "db_drop_1", control_type: "db_dropdown", x: 10, y: 360, width: 200, height: 40, text: "Category" },
+                { id: "seg_1", control_type: "segmented_control", x: 10, y: 410, width: 240, height: 36, text: "Overview, Analytics, Reports" },
+                { id: "tree_1", control_type: "tree_view", x: 10, y: 450, width: 220, height: 140, text: "Project Root, 📂 src, 📄 index.ts" },
+                { id: "av_1", control_type: "avatar_group", x: 10, y: 600, width: 160, height: 38, text: "JD, AS, MK, +3" },
+                { id: "stat_1", control_type: "stat_chart", x: 10, y: 650, width: 200, height: 90, text: "Revenue" },
+                { id: "acc_1", control_type: "accordion", x: 10, y: 750, width: 280, height: 100, text: "Section 1" },
+                { id: "crumb_1", control_type: "breadcrumb", x: 10, y: 860, width: 260, height: 32, text: "Home, Projects, Settings" },
+                { id: "time_1", control_type: "timeline", x: 10, y: 900, width: 280, height: 110, text: "Step 1, Step 2, Step 3" },
+                { id: "toast_1", control_type: "toast_card", x: 10, y: 1020, width: 260, height: 64, text: "Saved!" },
+                { id: "tp_1", control_type: "time_picker", x: 10, y: 1090, width: 150, height: 36, value: "09:41" },
+                { id: "sel_1", control_type: "rich_select", x: 10, y: 1130, width: 200, height: 36, text: "Choose User..." }
             ]
         };
 
@@ -111,6 +121,26 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(html).toContain("⏮"); // DB Navigator button
         expect(html).toContain("Email");
         expect(html).toContain("Category");
+        expect(html).toContain("id=\"seg_1\"");
+        expect(html).toContain("Overview");
+        expect(html).toContain("id=\"tree_1\"");
+        expect(html).toContain("Project Root");
+        expect(html).toContain("id=\"av_1\"");
+        expect(html).toContain("JD");
+        expect(html).toContain("id=\"stat_1\"");
+        expect(html).toContain("Revenue");
+        expect(html).toContain("id=\"acc_1\"");
+        expect(html).toContain("Section 1");
+        expect(html).toContain("id=\"crumb_1\"");
+        expect(html).toContain("Home");
+        expect(html).toContain("id=\"time_1\"");
+        expect(html).toContain("Step 1");
+        expect(html).toContain("id=\"toast_1\"");
+        expect(html).toContain("Saved!");
+        expect(html).toContain("id=\"tp_1\"");
+        expect(html).toContain("09:41");
+        expect(html).toContain("id=\"sel_1\"");
+        expect(html).toContain("Choose User...");
 
         // Verify Custom Control Colors & Themes propagate to Preview HTML
         const lightSpec = {
@@ -194,6 +224,11 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
 
         expect(htmlContent).toContain("Exported Test App");
         expect(tsContent).toContain("import { SizeHint, Webview } from \"webview-bun\";");
+        expect(tsContent).toContain("export function setControlValue");
+        expect(tsContent).toContain("export function setSegmentedSelected");
+        expect(tsContent).toContain("export function setStatChart");
+        expect(tsContent).toContain("export function setToast");
+        expect(tsContent).toContain("export function setAccordionOpen");
         expect(pkgContent.dependencies["webview-bun"]).toBeDefined();
         expect(pkgContent.scripts.start).toBe("bun run index.ts");
     });
@@ -208,6 +243,7 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("Standard Controls");
         expect(ideContent).toContain("Database & Data Controls");
         expect(ideContent).toContain("Non-Visual Component Tray");
+        expect(ideContent).toContain("Advanced Modern Controls");
 
         // Verify key toolbar actions
         expect(ideContent).toContain("launchAccessCrudWizard()");
