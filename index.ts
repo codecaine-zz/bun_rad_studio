@@ -413,11 +413,27 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text||'DBField'}</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="Sample Record Data"${ev} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
         } else if (t === 'db_dropdown') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text||'DBLookup'}</label><select${ev} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><option>Acme Corp</option><option>Starlight Ltd</option><option>Nexus Tech</option></select></div>\n`;
+        } else if (t === 'open_dialog') {
+            controls += `<input type="file"${id}${ev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
+        } else if (t === 'save_dialog') {
+            controls += `<input type="file"${id}${ev} style="display:none;">\n`;
         } else if (t === 'table') {
             controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${cbg};"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};">${['ID','Name','Value','Status'].map(h=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[1,2,3].map(r=>`<tr style="border-bottom:1px solid ${border};" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'}'" onmouseout="this.style.background=''">${['#'+r,'Item '+r,(r*100).toFixed(0),'Active'].map(cell=>`<td style="padding:8px 12px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
         } else {
             // Fallback for any other type
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
+        }
+    }
+
+    // Process non_visual_controls array if present
+    for (const nv of (spec.non_visual_controls || [])) {
+        const nvt = nv.control_type;
+        const nvid = ` id="${nv.id}"`;
+        const nvev = buildEvents(nv);
+        if (nvt === 'open_dialog') {
+            controls += `<input type="file"${nvid}${nvev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${nv.id}_onSelect'])window['${nv.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
+        } else if (nvt === 'save_dialog') {
+            controls += `<input type="file"${nvid}${nvev} style="display:none;">\n`;
         }
     }
 
@@ -452,6 +468,8 @@ export function generatePreviewHtml(spec: any): string {
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
 ${controls}
 <script>
+  window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
+  window.showSaveDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
   window.addEventListener("DOMContentLoaded", () => {
     if (window.onFormLoad) window.onFormLoad();
   });
