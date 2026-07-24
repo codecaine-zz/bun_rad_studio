@@ -105,7 +105,7 @@ interface ControlSpec {
   placeholder?: string;            // Input placeholder text
   value?: any;                     // Metric, slider value, or stepper number
   checked?: boolean;               // Checkbox, radio, or switch toggle state
-  enabled?: boolean;               // Interactive state (true = enabled)
+  enabled?: boolean;               // Interactive state (true = enabled, false = disabled on window creation)
   visible?: boolean;               // Render visibility state (true = visible)
   locked?: boolean;                // Designer lock state (true = locked against drag)
   tab_order?: number;              // Focus sequence index
@@ -172,7 +172,7 @@ The `event_handlers` record can map the following event names to string blocks o
 | `rating` | Star Rating | 150 × 36 px | 5-star rating component |
 | `tag` | Tag Chips | 150 × 36 px | Multi-tag chip array |
 | `alert_banner` | Alert Banner | 280 × 44 px | Contextual notification message box |
-| `code_view` | Syntax Code View | 280 × 120 px | Monospace syntax code preview box |
+| `code_view` | Syntax Code View | 280 × 120 px | Interactive monospaced syntax code editor & viewer |
 | `drop_zone` | File Drop Zone | 280 × 100 px | Drag-and-drop file upload target |
 | `panel` | Panel Box | 280 × 120 px | Container box for grouping controls |
 | `table` | Data Grid | 280 × 120 px | Multi-column table data grid |
@@ -209,8 +209,18 @@ Generates a complete, standalone Bun project directory on disk under `./exported
 ### 3. `quitApp(): void`
 Terminates the main RAD Studio IDE application process.
 
-### 4. `backendAlert(msg: string): void`
-Logs a backend diagnostic notification to the terminal.
+### Window Event Lifecycle Hooks
+Auto-generated TS templates and exported projects support window lifecycle bindings:
+- `onFormLoad()`: Triggered on window creation when the UI DOM finishes loading.
+- `onFormResize(size: { width: number, height: number })`: Triggered dynamically when the window is resized.
+- `onFormClose()`: Triggered right before the application closes / terminates.
+
+### RAD Backend Helper Utilities
+Exported TypeScript templates include built-in helper utilities for fast development:
+- `execJS(code: string)`: Safely evaluates client-side JavaScript in the webview window (`wv.eval(...)`).
+- `setControlText(id: string, text: string)`: Dynamically updates the caption, label, or value of any UI control.
+- `setControlEnabled(id: string, enabled: boolean)`: Dynamically enables or disables any UI control at runtime.
+- `setControlVisible(id: string, visible: boolean)`: Dynamically shows or hides any UI control at runtime.
 
 ---
 

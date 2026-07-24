@@ -30,22 +30,96 @@ export function exportProjectHelper(specJson: string, customExportDir?: string) 
         const previewHtml = generatePreviewHtml(spec);
         writeFileSync(join(exportDir, "index.html"), previewHtml);
 
+        let boundMethods: string[] = [];
+        let customHandlers: { name: string, ctrlId: string, type: string, evt: string }[] = [];
+        (spec.controls || []).forEach((c: any) => {
+            if (!c.event_handlers) return;
+            for (let evtName in c.event_handlers) {
+                let handler = c.event_handlers[evtName];
+                if (handler && typeof handler === "string" && handler.trim()) {
+                    const clean = handler.trim();
+                    const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
+                    if (isFuncName && !boundMethods.includes(clean)) {
+                        boundMethods.push(clean);
+                        customHandlers.push({ name: clean, ctrlId: c.id, type: c.control_type || "control", evt: evtName });
+                    }
+                }
+            }
+        });
+
+        let handlersCode = "";
+        if (customHandlers.length > 0) {
+            handlersCode += '\n// ==========================================\n';
+            handlersCode += '// 🔌 RAD COMPONENT EVENT HANDLERS (' + customHandlers.length + ' active binding(s))\n';
+            handlersCode += '// ==========================================\n';
+            customHandlers.forEach(h => {
+                handlersCode += 'wv.bind("' + h.name + '", (data?: any) => {\n';
+                handlersCode += '    console.log("⚡ RAD Event [' + h.evt + '] on #' + h.ctrlId + ' (' + h.type + '):", data || "");\n';
+                if (h.evt === "onChange" || h.evt === "onInput") {
+                    handlersCode += '    return { success: true, value: data };\n';
+                } else {
+                    handlersCode += '    return { success: true, timestamp: Date.now() };\n';
+                }
+                handlersCode += '});\n\n';
+            });
+        }
+
         const appTs = `
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
+// Initialize Webview Window
 const wv = new Webview();
-wv.setHTML(html);
-wv.title = "${spec.title}";
+wv.title = "${spec.title || 'Exported App'}";
 wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
 
-// Add your custom backend bindings here!
-wv.bind("backendAlert", (msg: string) => {
-    console.log("Backend alert:", msg);
+// Load HTML UI Spec
+const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
+wv.setHTML(html);
+
+// ==========================================
+// 🛠️ RAD BACKEND HELPER UTILITIES
+// ==========================================
+
+export function execJS(code: string) {
+    try { wv.eval(code); } catch (e) { console.error("❌ JS Exec Error:", e); }
+}
+
+export function setControlText(controlId: string, text: string) {
+    const escaped = JSON.stringify(text);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else el.textContent=\${escaped};}\`);
+}
+
+export function setControlEnabled(controlId: string, enabled: boolean) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){el.disabled=\${!enabled};el.style.opacity=\${enabled ? "1" : "0.55"};el.style.pointerEvents=\${enabled ? "auto" : "none"};}\`);
+}
+
+export function setControlVisible(controlId: string, visible: boolean) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){el.style.display=\${visible ? "" : "none"};}\`);
+}
+
+// ==========================================
+// 🪟 WINDOW EVENT LIFECYCLE HOOKS
+// ==========================================
+
+wv.bind("onFormLoad", () => {
+    console.log("⚡ Window Lifecycle [onFormLoad]: Application initialized successfully.");
 });
 
+wv.bind("onFormResize", (size?: { width: number, height: number }) => {
+    console.log("⚡ Window Lifecycle [onFormResize]: New window dimensions:", size || "");
+});
+
+wv.bind("onFormClose", () => {
+    console.log("⚡ Window Lifecycle [onFormClose]: Application closing...");
+});
+
+wv.bind("backendAlert", (msg: string) => {
+    console.log("⚡ Backend Alert:", msg);
+});
+${handlersCode}
+console.log("🚀 Starting Bun RAD Studio App: ${spec.title || 'Exported App'}...");
 wv.run();
         `;
         writeFileSync(join(exportDir, "index.ts"), appTs.trim());
@@ -182,7 +256,7 @@ export function generatePreviewHtml(spec: any): string {
     const base = (c: any, extra = '') =>
         `position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;` +
         `font-size:${c.font_size || 13}px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;` +
-        `box-sizing:border-box;${extra}`;
+        `box-sizing:border-box;${c.enabled === false ? 'opacity:0.55;pointer-events:none;' : ''}${extra}`;
 
     let controls = '';
     for (const c of (spec.controls || [])) {
@@ -270,7 +344,7 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'code_view') {
             const codeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117';
             const codeFg = c.font_color && c.font_color !== fg ? c.font_color : '#7dd3fc';
-            controls += `<pre${id} style="${base(c)}background:${codeBg};border:1px solid ${border};border-radius:8px;padding:12px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:12px;overflow:auto;margin:0;white-space:pre-wrap;word-break:break-all;">${text||'// code here'}</pre>\n`;
+            controls += `<textarea${id}${ev} style="${base(c)}background:${codeBg};border:1px solid ${border};border-radius:8px;padding:12px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size||12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${text}</textarea>\n`;
         } else if (t === 'metric_meter') {
             const val = c.value !== undefined ? c.value : 65;
             const meterBg = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
@@ -330,9 +404,19 @@ export function generatePreviewHtml(spec: any): string {
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 </style>
-</head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
 ${controls}
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.onFormLoad) window.onFormLoad();
+  });
+  window.addEventListener("resize", () => {
+    if (window.onFormResize) window.onFormResize({ width: window.innerWidth, height: window.innerHeight });
+  });
+  window.addEventListener("beforeunload", () => {
+    if (window.onFormClose) window.onFormClose();
+  });
+</script>
 </body>
 </html>`;
 }

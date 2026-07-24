@@ -27,7 +27,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 ### 🎨 35+ Modern UI & RAD Controls
 * **Standard Controls**: Buttons, Labels, Single-Line Inputs, Password Inputs, Textareas, Checkboxes, Radio Buttons, Toggles/Switches, Sliders, Number Steppers, Color Wells, Date Pickers, and File Pickers.
 * **Data & Non-Visual Controls**: DB Grid, DB Navigator, DB Field, DB Lookup, Timer, File Dialogs, DB Connection, REST HTTP Client, Notification.
-* **Advanced Visual Controls**: Progress Bars, SVG Circular Gauges, Star Ratings, Badges, Status Indicators, Metric KPI Cards, Alert Banners, Syntax Code Views, File Drop Zones, and Tag Chips.
+* **Advanced Visual Controls**: Progress Bars, SVG Circular Gauges, Star Ratings, Badges, Status Indicators, Metric KPI Cards, Alert Banners, Interactive Monospaced Code Views (`code_view`), File Drop Zones, and Tag Chips.
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 * **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
@@ -36,8 +36,10 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Multi-Control Alignment Toolbar**: Select multiple controls to align their left, right, top, or bottom edges, center horizontally/vertically, or equalize width/height.
 * **Size Equalization**: Match selected controls' width or height to the primary control, or equalize to **Widest**, **Narrowest**, **Tallest**, or **Shortest**.
 
-### ✏️ In-Studio Event Handler Code Editor
+### ✏️ In-Studio Event Handler Code Editor & Object Inspector
 * **Dual-Tab Object Inspector**: Separate `Properties` and `Events` tabs in the Object Inspector, complete with detailed tooltip hints for every single property and event.
+* **Control Enabled/Disabled State**: Full support for `Enabled State` property toggling (`Enabled` vs `Disabled`) directly in the Object Inspector. Controls configured with `enabled: false` render with dimmed opacity and grayscale cues on canvas, and native HTML `disabled` attributes with `pointer-events: none` on window creation.
+* **Interactive Code View (`code_view`)**: Interactive monospaced code editing control allowing users to type, edit, and bind events to code blocks in Live Preview and exported applications.
 * **Component Tooltips**: Dropping a control from the palette automatically assigns it a descriptive tooltip explaining its purpose and API method.
 * **Interactive Code Editor Modal**: Double-click any event (`onClick`, `onChange`, `onDoubleClick`, `onTimer`, `onHover`, `onHoverExit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseDown`, `onMouseUp`) to open an in-studio script code editor modal with syntax highlighting and pre-built code snippets.
 

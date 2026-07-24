@@ -1414,6 +1414,13 @@
 							<option value="true">Checked (true)</option>
 						</select>
 					</div>
+					<div class="prop-row" id="propEnabledRow">
+						<span class="prop-label">Enabled State</span>
+						<select class="prop-input" id="propEnabled" onchange="updateSelectedControl('enabled')" title="Enable or disable component interaction on window creation">
+							<option value="true">Enabled (true)</option>
+							<option value="false">Disabled (false)</option>
+						</select>
+					</div>
 					<div class="prop-row">
 						<span class="prop-label">Hover Tooltip / Hint</span>
 						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propTooltip" placeholder="Tooltip text on hover..." oninput="updateSelectedControl('tooltip')" title="Tooltip hint text displayed when user hovers over control">
@@ -2855,15 +2862,31 @@
 
 		function getThemeColors(theme) {
 			if (theme === "Light") {
-				return { formBg: "#f8fafc", formFg: "#0f172a", ctrlBg: "#ffffff", ctrlFg: "#0f172a", btnBg: "#0284c7", panelBg: "#e2e8f0" };
-			} else if (theme === "High Contrast") {
-				return { formBg: "#000000", formFg: "#00ff00", ctrlBg: "#111111", ctrlFg: "#00ff00", btnBg: "#00ff00", panelBg: "#1a1a1a" };
-			} else if (theme === "Cyberpunk") {
-				return { formBg: "#0d0221", formFg: "#00f6ff", ctrlBg: "#190536", ctrlFg: "#00f6ff", btnBg: "#ff007f", panelBg: "#24094a" };
+				return { formBg: "#f1f5f9", formFg: "#0f172a", ctrlBg: "#ffffff", ctrlFg: "#0f172a", btnBg: "#2563eb", btnFg: "#ffffff", panelBg: "#e2e8f0" };
+			} else if (theme === "Apple Dark") {
+				return { formBg: "#1e1e1e", formFg: "#f5f5f7", ctrlBg: "#2c2c2e", ctrlFg: "#ffffff", btnBg: "#0a84ff", btnFg: "#ffffff", panelBg: "#252528" };
 			} else if (theme === "Midnight") {
-				return { formBg: "#090d16", formFg: "#e2e8f0", ctrlBg: "#111827", ctrlFg: "#f3f4f6", btnBg: "#2563eb", panelBg: "#1f2937" };
-			} else { // Dark / Default
-				return { formBg: "#0f172a", formFg: "#f8fafc", ctrlBg: "#1e293b", ctrlFg: "#ffffff", btnBg: "#0284c7", panelBg: "#1e293b" };
+				return { formBg: "#0b0f19", formFg: "#e2e8f0", ctrlBg: "#151c2c", ctrlFg: "#f3f4f6", btnBg: "#6366f1", btnFg: "#ffffff", panelBg: "#1e293b" };
+			} else if (theme === "Apple Sunset") {
+				return { formBg: "#2a1b2a", formFg: "#ffd166", ctrlBg: "#3c243c", ctrlFg: "#ffe5ec", btnBg: "#ff477e", btnFg: "#ffffff", panelBg: "#4a2c4a" };
+			} else if (theme === "Sonoma Emerald") {
+				return { formBg: "#062c21", formFg: "#a7f3d0", ctrlBg: "#0b4334", ctrlFg: "#d1fae5", btnBg: "#10b981", btnFg: "#ffffff", panelBg: "#0f5241" };
+			} else if (theme === "Catppuccin") {
+				return { formBg: "#1e1e2e", formFg: "#cdd6f4", ctrlBg: "#313244", ctrlFg: "#cdd6f4", btnBg: "#cba6f7", btnFg: "#1e1e2e", panelBg: "#45475a" };
+			} else if (theme === "Dracula") {
+				return { formBg: "#282a36", formFg: "#f8f8f2", ctrlBg: "#44475a", ctrlFg: "#f8f8f2", btnBg: "#ff79c6", btnFg: "#282a36", panelBg: "#383a59" };
+			} else if (theme === "Cyberpunk") {
+				return { formBg: "#0d0221", formFg: "#00f6ff", ctrlBg: "#190536", ctrlFg: "#00f6ff", btnBg: "#ff007f", btnFg: "#ffffff", panelBg: "#26094e" };
+			} else if (theme === "Nord") {
+				return { formBg: "#2e3440", formFg: "#eceff4", ctrlBg: "#3b4252", ctrlFg: "#eceff4", btnBg: "#88c0d0", btnFg: "#2e3440", panelBg: "#434c5e" };
+			} else if (theme === "Solarized Light") {
+				return { formBg: "#fdf6e3", formFg: "#657b83", ctrlBg: "#eee8d5", ctrlFg: "#073642", btnBg: "#b58900", btnFg: "#fdf6e3", panelBg: "#e0d8c3" };
+			} else if (theme === "Solarized Dark") {
+				return { formBg: "#002b36", formFg: "#839496", ctrlBg: "#073642", ctrlFg: "#93a1a1", btnBg: "#2aa198", btnFg: "#002b36", panelBg: "#094352" };
+			} else if (theme === "High Contrast") {
+				return { formBg: "#000000", formFg: "#00ff00", ctrlBg: "#111111", ctrlFg: "#00ff00", btnBg: "#00ff00", btnFg: "#000000", panelBg: "#1a1a1a" };
+			} else { // Dark Mode (Default)
+				return { formBg: "#0f172a", formFg: "#f8fafc", ctrlBg: "#1e293b", ctrlFg: "#ffffff", btnBg: "#0284c7", btnFg: "#ffffff", panelBg: "#1e293b" };
 			}
 		}
 
@@ -2879,7 +2902,7 @@
 			formSpec.controls.forEach(ctrl => {
 				if (ctrl.control_type === "button") {
 					ctrl.background_color = colors.btnBg;
-					ctrl.font_color = (theme === "High Contrast") ? "#000000" : "#ffffff";
+					ctrl.font_color = colors.btnFg;
 				} else if (ctrl.control_type === "panel") {
 					ctrl.background_color = colors.panelBg;
 					ctrl.font_color = colors.formFg;
@@ -3217,6 +3240,13 @@
 				div.style.cursor = isLiveHoverMode ? "pointer" : "move";
 			}
 
+			if (ctrl.enabled === false) {
+				div.style.opacity = "0.55";
+				div.style.filter = "grayscale(0.6)";
+			} else {
+				div.style.opacity = "1";
+				div.style.filter = "";
+			}
 			if (ctrl.locked) div.classList.add("locked"); else div.classList.remove("locked");
 			if (dimBadge) {
 				dimBadge.textContent = ctrl.id + " (" + ctrl.width + "x" + ctrl.height + ")";
@@ -3460,12 +3490,16 @@
 				div.style.borderLeft = "4px solid var(--accent)";
 				div.innerHTML = "<div style='display:flex; align-items:center; gap:8px; padding:0 8px; font-size:11px;'><span>ℹ️</span><span><b>" + text + ":</b> System operating normally.</span></div>";
 			} else if (type === "code_view") {
-				div.style.backgroundColor = "#0d1117";
-				div.style.fontFamily = "monospace";
-				div.style.fontSize = "10px";
-				div.style.padding = "6px";
+				div.style.backgroundColor = ctrl.background_color && ctrl.background_color !== "transparent" ? ctrl.background_color : "#0d1117";
+				div.style.color = ctrl.font_color || "#7dd3fc";
+				div.style.fontFamily = "'Fira Code', 'Courier New', monospace";
+				div.style.fontSize = (ctrl.font_size || 11) + "px";
+				div.style.padding = "8px";
 				div.style.alignItems = "flex-start";
-				div.innerHTML = "<span style='color:#ff79c6;'>fn</span> <span style='color:#50fa7b;'>main</span>() {\n  <span style='color:#f1fa8c;'>println(\"Hello\")</span>\n}";
+				div.style.whiteSpace = "pre-wrap";
+				div.style.overflow = "hidden";
+				const dispText = text || "// code here";
+				div.innerHTML = "<div style='width:100%; height:100%; white-space:pre-wrap; word-break:break-all; font-family:monospace;'>" + dispText.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</div>";
 			} else {
 				if (ctrl.background_color) div.style.backgroundColor = ctrl.background_color;
 				const fg = ctrl.font_color || "#ffffff";
@@ -4180,6 +4214,8 @@
 				if (propTextEl) { propTextEl.value = c.text || ""; propTextEl.placeholder = ""; }
 				const propCheckedEl = document.getElementById("propChecked");
 				if (propCheckedEl) { propCheckedEl.value = c.checked ? "true" : "false"; }
+				const propEnabledEl = document.getElementById("propEnabled");
+				if (propEnabledEl) { propEnabledEl.value = c.enabled !== false ? "true" : "false"; }
 				if (propTooltipEl) { propTooltipEl.value = c.tooltip || ""; propTooltipEl.placeholder = ""; }
 				if (propXEl) { propXEl.value = c.x; propXEl.placeholder = ""; }
 				if (propYEl) { propYEl.value = c.y; propYEl.placeholder = ""; }
@@ -4302,6 +4338,12 @@
 							});
 						}
 						ctrl.checked = isChk;
+					}
+				}
+				if (!changedProp || changedProp === 'enabled') {
+					const propEnabledEl = document.getElementById("propEnabled");
+					if (propEnabledEl) {
+						ctrl.enabled = propEnabledEl.value === "true";
 					}
 				}
 				if (!changedProp || changedProp === 'tooltip') {
@@ -4586,11 +4628,13 @@
 				const c_fg = c.font_color || fg;
 				const c_fs = c.font_size || 13;
 				const text = (c.text || c.id || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-				const posStyle = "left: " + c.x + "px; top: " + (c.y + 40) + "px; width: " + c.width + "px; height: " + c.height + "px; color: " + c_fg + "; font-size: " + c_fs + "px;";
+				const disStyle = c.enabled === false ? " opacity: 0.55; pointer-events: none;" : "";
+				const disAttr = c.enabled === false ? " disabled" : "";
+				const posStyle = "left: " + c.x + "px; top: " + (c.y + 40) + "px; width: " + c.width + "px; height: " + c.height + "px; color: " + c_fg + "; font-size: " + c_fs + "px;" + disStyle;
 
 				if (c.control_type === "button") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <button class=\"btn-ctrl\" style=\"width:100%; height:100%; background-color:" + c_bg + "; color:" + c_fg + "; font-size:" + c_fs + "px;\" id=\"" + c.id + "\">" + text + "</button>\n";
+					html += "    <button class=\"btn-ctrl\"" + disAttr + " style=\"width:100%; height:100%; background-color:" + c_bg + "; color:" + c_fg + "; font-size:" + c_fs + "px;\" id=\"" + c.id + "\">" + text + "</button>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "label") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + " font-weight: 600;\">\n";
@@ -4598,15 +4642,15 @@
 					html += "  </div>\n";
 				} else if (c.control_type === "input") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"text\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"text\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "password") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"password\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"password\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "textarea") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + "; resize:none;\" id=\"" + c.id + "\">" + text + "</textarea>\n";
+					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + "; resize:none;\" id=\"" + c.id + "\">" + text + "</textarea>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "checkbox") {
 					const chk = c.checked ? "checked" : "";
@@ -4627,6 +4671,10 @@
 				} else if (c.control_type === "panel") {
 					html += "  <div class=\"control-item panel-ctrl\" style=\"" + posStyle + " background-color:" + c_bg + "; color:" + c_fg + ";\" id=\"" + c.id + "\">\n";
 					html += "    📦 " + text + "\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "code_view") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117') + "; color:" + (c.font_color || '#7dd3fc') + "; font-family:'Fira Code','Courier New',monospace; font-size:" + c_fs + "px; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:10px; resize:none; outline:none; white-space:pre;\" id=\"" + c.id + "\">" + text + "</textarea>\n";
 					html += "  </div>\n";
 				} else {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
@@ -4690,7 +4738,70 @@
 			const w = formSpec.width || 840;
 			const h = formSpec.height || 560;
 
-			let code = 'import { SizeHint, Webview } from "webview-bun";\nimport { readFileSync } from "fs";\nimport { join } from "path";\n\n// Initialize Webview Window\nconst wv = new Webview();\nwv.title = "' + title + '";\nwv.size = { width: ' + w + ', height: ' + h + ', hint: SizeHint.NONE };\n\n// Load HTML UI Spec\nconst html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");\nwv.setHTML(html);\n\n// Global Backend Logging Bridge\nwv.bind("backendAlert", (msg: string) => {\n    console.log("⚡ Backend Alert:", msg);\n});\n';
+			let code = `import { SizeHint, Webview } from "webview-bun";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// Initialize Webview Window
+const wv = new Webview();
+wv.title = "${title}";
+wv.size = { width: ${w}, height: ${h}, hint: SizeHint.NONE };
+
+// Load HTML UI Spec
+const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
+wv.setHTML(html);
+
+// ==========================================
+// 🛠️ RAD BACKEND HELPER UTILITIES
+// ==========================================
+
+/** Safely execute JavaScript code in the frontend Webview window */
+export function execJS(code: string) {
+    try {
+        wv.eval(code);
+    } catch (e) {
+        console.error("❌ JS Exec Error:", e);
+    }
+}
+
+/** Dynamic UI control property updaters */
+export function setControlText(controlId: string, text: string) {
+    const escaped = JSON.stringify(text);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else el.textContent=\${escaped};}\`);
+}
+
+export function setControlEnabled(controlId: string, enabled: boolean) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){el.disabled=\${!enabled};el.style.opacity=\${enabled ? "1" : "0.55"};el.style.pointerEvents=\${enabled ? "auto" : "none"};}\`);
+}
+
+export function setControlVisible(controlId: string, visible: boolean) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){el.style.display=\${visible ? "" : "none"};}\`);
+}
+
+// ==========================================
+// 🪟 WINDOW EVENT LIFECYCLE HOOKS
+// ==========================================
+
+/** Triggered when UI finish loading on window creation */
+wv.bind("onFormLoad", () => {
+    console.log("⚡ Window Lifecycle [onFormLoad]: Form initialized.");
+});
+
+/** Triggered when the UI window is resized */
+wv.bind("onFormResize", (size?: { width: number, height: number }) => {
+    console.log("⚡ Window Lifecycle [onFormResize]: Dimensions changed:", size || "");
+});
+
+/** Triggered when the UI window is closing */
+wv.bind("onFormClose", () => {
+    console.log("⚡ Window Lifecycle [onFormClose]: Window closing...");
+});
+
+// Global Backend Logging Bridge
+wv.bind("backendAlert", (msg: string) => {
+    console.log("⚡ Backend Alert:", msg);
+});
+`;
 
 			let boundMethods = [];
 			let customHandlers = [];
@@ -4711,7 +4822,9 @@
 			});
 
 			if (customHandlers.length > 0) {
-				code += '\n// RAD Event Backend Handlers (' + customHandlers.length + ' active event binding(s))\n';
+				code += '\n// ==========================================\n';
+				code += '// 🔌 RAD COMPONENT EVENT HANDLERS (' + customHandlers.length + ' active binding(s))\n';
+				code += '// ==========================================\n';
 				customHandlers.forEach(h => {
 					code += 'wv.bind("' + h.name + '", (data?: any) => {\n';
 					code += '    console.log("⚡ RAD Event [' + h.evt + '] on #' + h.ctrlId + ' (' + h.type + '):", data || "");\n';
@@ -4725,7 +4838,7 @@
 					code += '});\n\n';
 				});
 			} else {
-				code += '\n// Note: Add event handlers in the Events tab to auto-generate TS backend methods here.\n\n';
+				code += '\n// Note: Add component event handlers in the Events tab to auto-generate TS methods here.\n\n';
 			}
 
 			code += 'console.log("🚀 Starting Bun RAD Studio App: ' + title + '...");\nwv.run();\n';

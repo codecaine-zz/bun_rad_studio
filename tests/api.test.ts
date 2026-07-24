@@ -127,6 +127,16 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(lightHtml).toContain("color:#00f6ff");
         // Ensure inline style attributes do not contain unescaped double quotes that break HTML parsing
         expect(lightHtml).not.toMatch(/style="[^"]*font-family:[^"]*"[^"]*;/);
+
+        // Verify Enabled State (enabled: false) propagation
+        const disabledSpec = {
+            controls: [
+                { id: "btn_dis", control_type: "button", enabled: false, x: 10, y: 10, width: 100, height: 30, text: "Disabled Btn" }
+            ]
+        };
+        const disabledHtml = generatePreviewHtml(disabledSpec);
+        expect(disabledHtml).toContain("opacity:0.55;pointer-events:none;");
+        expect(disabledHtml).toContain("disabled");
     });
 
     test("3. Project Exporter Engine (exportProjectHelper)", () => {
