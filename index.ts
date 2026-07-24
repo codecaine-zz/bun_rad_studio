@@ -673,7 +673,20 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'save_dialog') {
             controls += `<input type="file"${id}${ev} style="display:none;">\n`;
         } else if (t === 'table') {
-            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${cbg};"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};">${['ID','Name','Value','Status'].map(h=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[1,2,3].map(r=>`<tr style="border-bottom:1px solid ${border};" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'}'" onmouseout="this.style.background=''">${['#'+r,'Item '+r,(r*100).toFixed(0),'Active'].map(cell=>`<td style="padding:8px 12px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
+            const rawHeaders = c.columns || c.headers || ['ID', 'Name', 'Value', 'Status'];
+            const headers = Array.isArray(rawHeaders) ? rawHeaders : String(rawHeaders).split(',').map(s => s.trim());
+            const rawRows = c.rows || c.data || c.dataset || [
+                ['#1', 'Item 1', '100', 'Active'],
+                ['#2', 'Item 2', '200', 'Active'],
+                ['#3', 'Item 3', '300', 'Active']
+            ];
+            const tableBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : cbg;
+            const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
+            const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};">${headers.map((h: any)=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${rawRows.map((r: any)=>{
+                const cells = Array.isArray(r) ? r : Object.values(r);
+                return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" onclick="const tbody=this.closest('tbody');if(tbody){tbody.querySelectorAll('tr').forEach(tr=>{tr.classList.remove('selected-tr');tr.style.background=''});this.classList.add('selected-tr');this.style.background='${selBg}';window.selectedRowElement=this;if(window.onTableRowClick)window.onTableRowClick(this);}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${cells.map((cell: any)=>`<td style="padding:8px 12px;">${cell}</td>`).join('')}</tr>`;
+            }).join('')}</tbody></table></div>\n`;
         } else if (t === 'segmented_control') {
             const items = (text || 'Overview, Analytics, Reports').split(',').map((s: string) => s.trim());
             const sel = c.value || items[0] || '';

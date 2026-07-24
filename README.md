@@ -89,6 +89,9 @@ bun run demo:data
 
 # Demo 4: Native Window Placement API (9 Screen Presets), Always On Top Pinning, & Fullscreen
 bun run demo:window
+
+# Demo 5: Dynamic Table Control Studio (Add/Remove Rows & Columns, Filtering, Sorting, Payroll Stats & IPC Log)
+bun run demo:table
 ```
 
 ---

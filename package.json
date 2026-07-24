@@ -9,7 +9,10 @@
     "demo:standard": "bun run demos/01_standard_controls.ts",
     "demo:modern": "bun run demos/02_advanced_modern_controls.ts",
     "demo:data": "bun run demos/03_data_and_non_visual.ts",
-    "demo:window": "bun run demos/04_window_placement_and_pin.ts"
+    "demo:window": "bun run demos/04_window_placement_and_pin.ts",
+    "demo:crud": "bun run demos/05_crud_todo_table.ts",
+    "demo:todo": "bun run demos/05_crud_todo_table.ts",
+    "demo:table": "bun run demos/05_crud_todo_table.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
