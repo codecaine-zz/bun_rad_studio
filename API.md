@@ -110,6 +110,13 @@ interface ControlSpec {
   text_align?: "left" | "center" | "right" | "justify"; // Horizontal text alignment
   opacity?: number;                // Component transparency opacity percentage (0-100)
   placeholder?: string;            // Input placeholder text
+  read_only?: boolean;             // Read-only text mode (selectable/copyable, not editable)
+  required?: boolean;              // Form field mandatory validation requirement
+  max_length?: number;             // Character input length limit
+  min_value?: number;              // Numeric lower bound for slider, number input, stepper
+  max_value?: number;              // Numeric upper bound for slider, number input, stepper
+  step?: number;                   // Numeric step increment interval
+  auto_focus?: boolean;            // Focus control automatically on window creation
   value?: any;                     // Metric, slider value, or stepper number
   checked?: boolean;               // Checkbox, radio, or switch toggle state
   enabled?: boolean;               // Interactive state (true = enabled, false = disabled on window creation)
@@ -242,6 +249,9 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `setControlText(id, text)` | `(id: string, text: string) => void` | Dynamically updates caption, label, or text of any UI control |
 | `setControlValue(id, value)` | `(id: string, value: any) => void` | Updates input value, slider value, checkbox state, or metric |
 | `setControlPlaceholder(id, placeholder)` | `(id: string, placeholder: string) => void` | Dynamically updates placeholder text for input fields, textareas, and code views |
+| `setControlReadOnly(id, readOnly)` | `(id: string, readOnly: boolean) => void` | Dynamically toggles read-only state for text inputs, textareas, and code views |
+| `setControlRequired(id, required)` | `(id: string, required: boolean) => void` | Dynamically toggles required state for input fields, textareas, and dropdowns |
+| `setControlMaxLength(id, maxLength)` | `(id: string, maxLength: number) => void` | Dynamically updates maximum character length limit for input fields |
 | `setControlEnabled(id, enabled)` | `(id: string, enabled: boolean) => void` | Dynamically enables or disables any UI control at runtime |
 | `setControlVisible(id, visible)` | `(id: string, visible: boolean) => void` | Dynamically shows or hides any UI control at runtime |
 | `setSegmentedSelected(id, text)` | `(id: string, text: string) => void` | Selects a segment button in a Segmented Control by item name |

@@ -105,7 +105,9 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
                 { id: "time_1", control_type: "timeline", x: 10, y: 900, width: 280, height: 110, text: "Step 1, Step 2, Step 3" },
                 { id: "toast_1", control_type: "toast_card", x: 10, y: 1020, width: 260, height: 64, text: "Saved!" },
                 { id: "tp_1", control_type: "time_picker", x: 10, y: 1090, width: 150, height: 36, value: "09:41" },
-                { id: "sel_1", control_type: "rich_select", x: 10, y: 1130, width: 200, height: 36, text: "Choose User..." }
+                { id: "sel_1", control_type: "rich_select", x: 10, y: 1130, width: 200, height: 36, text: "Choose User..." },
+                { id: "inp_dev", control_type: "input", x: 10, y: 1180, width: 200, height: 36, text: "Dev Value", read_only: true, required: true, max_length: 50, auto_focus: true },
+                { id: "num_dev", control_type: "number", x: 10, y: 1220, width: 200, height: 36, value: 25, min_value: 0, max_value: 100, step: 5 }
             ]
         };
 
@@ -141,6 +143,15 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(html).toContain("09:41");
         expect(html).toContain("id=\"sel_1\"");
         expect(html).toContain("Choose User...");
+        expect(html).toContain("id=\"inp_dev\"");
+        expect(html).toContain(" readonly");
+        expect(html).toContain(" required");
+        expect(html).toContain("maxlength=\"50\"");
+        expect(html).toContain(" autofocus");
+        expect(html).toContain("id=\"num_dev\"");
+        expect(html).toContain("min=\"0\"");
+        expect(html).toContain("max=\"100\"");
+        expect(html).toContain("step=\"5\"");
 
         // Verify Custom Control Colors & Themes propagate to Preview HTML
         const lightSpec = {

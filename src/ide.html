@@ -1486,6 +1486,53 @@
 							<option value="false">Disabled (false)</option>
 						</select>
 					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Read-Only</span>
+							<select class="prop-input" id="propReadOnly" onchange="updateSelectedControl('read_only')" title="Read-only mode (text is selectable/copyable but not editable)">
+								<option value="false">Editable</option>
+								<option value="true">Read-Only</option>
+							</select>
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Required Field</span>
+							<select class="prop-input" id="propRequired" onchange="updateSelectedControl('required')" title="Mark field as required for form validation">
+								<option value="false">Optional</option>
+								<option value="true">Required</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Max Length</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propMaxLength" oninput="updateSelectedControl('max_length')" placeholder="Unlimited" title="Maximum character length limit for input">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Auto Focus</span>
+							<select class="prop-input" id="propAutoFocus" onchange="updateSelectedControl('auto_focus')" title="Focus component automatically on window load">
+								<option value="false">Off</option>
+								<option value="true">On Load</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+						<div class="prop-row">
+							<span class="prop-label">Min Val</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propMinValue" oninput="updateSelectedControl('min_value')" placeholder="Min" title="Minimum numeric value bound">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Max Val</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propMaxValue" oninput="updateSelectedControl('max_value')" placeholder="Max" title="Maximum numeric value bound">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Step</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propStep" oninput="updateSelectedControl('step')" placeholder="1" title="Numeric step increment interval">
+						</div>
+					</div>
+
 					<div class="prop-row">
 						<span class="prop-label">Hover Tooltip / Hint</span>
 						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propTooltip" placeholder="Tooltip text on hover..." oninput="updateSelectedControl('tooltip')" title="Tooltip hint text displayed when user hovers over control">
@@ -4530,6 +4577,20 @@
 				if (propCheckedEl) { propCheckedEl.value = c.checked ? "true" : "false"; }
 				const propEnabledEl = document.getElementById("propEnabled");
 				if (propEnabledEl) { propEnabledEl.value = c.enabled !== false ? "true" : "false"; }
+				const propReadOnlyEl = document.getElementById("propReadOnly");
+				if (propReadOnlyEl) propReadOnlyEl.value = c.read_only ? "true" : "false";
+				const propRequiredEl = document.getElementById("propRequired");
+				if (propRequiredEl) propRequiredEl.value = c.required ? "true" : "false";
+				const propAutoFocusEl = document.getElementById("propAutoFocus");
+				if (propAutoFocusEl) propAutoFocusEl.value = c.auto_focus ? "true" : "false";
+				const propMaxLengthEl = document.getElementById("propMaxLength");
+				if (propMaxLengthEl) propMaxLengthEl.value = c.max_length !== undefined && c.max_length !== null ? c.max_length : "";
+				const propMinValueEl = document.getElementById("propMinValue");
+				if (propMinValueEl) propMinValueEl.value = c.min_value !== undefined && c.min_value !== null ? c.min_value : "";
+				const propMaxValueEl = document.getElementById("propMaxValue");
+				if (propMaxValueEl) propMaxValueEl.value = c.max_value !== undefined && c.max_value !== null ? c.max_value : "";
+				const propStepEl = document.getElementById("propStep");
+				if (propStepEl) propStepEl.value = c.step !== undefined && c.step !== null ? c.step : "";
 				if (propTooltipEl) { propTooltipEl.value = c.tooltip || ""; propTooltipEl.placeholder = ""; }
 				if (propXEl) { propXEl.value = c.x; propXEl.placeholder = ""; }
 				if (propYEl) { propYEl.value = c.y; propYEl.placeholder = ""; }
@@ -4594,6 +4655,20 @@
 					propPlaceholderEl.value = allSame("placeholder") ? (selectedCtrls[0].placeholder || "") : "";
 					propPlaceholderEl.placeholder = allSame("placeholder") ? "" : "(Multiple values)";
 				}
+				const propReadOnlyEl = document.getElementById("propReadOnly");
+				if (propReadOnlyEl) propReadOnlyEl.value = allSame("read_only") ? (selectedCtrls[0].read_only ? "true" : "false") : "false";
+				const propRequiredEl = document.getElementById("propRequired");
+				if (propRequiredEl) propRequiredEl.value = allSame("required") ? (selectedCtrls[0].required ? "true" : "false") : "false";
+				const propAutoFocusEl = document.getElementById("propAutoFocus");
+				if (propAutoFocusEl) propAutoFocusEl.value = allSame("auto_focus") ? (selectedCtrls[0].auto_focus ? "true" : "false") : "false";
+				const propMaxLengthEl = document.getElementById("propMaxLength");
+				if (propMaxLengthEl) { propMaxLengthEl.value = allSame("max_length") ? (selectedCtrls[0].max_length !== undefined ? selectedCtrls[0].max_length : "") : ""; propMaxLengthEl.placeholder = allSame("max_length") ? "Unlimited" : "(Multiple)"; }
+				const propMinValueEl = document.getElementById("propMinValue");
+				if (propMinValueEl) { propMinValueEl.value = allSame("min_value") ? (selectedCtrls[0].min_value !== undefined ? selectedCtrls[0].min_value : "") : ""; propMinValueEl.placeholder = allSame("min_value") ? "Min" : "(Multiple)"; }
+				const propMaxValueEl = document.getElementById("propMaxValue");
+				if (propMaxValueEl) { propMaxValueEl.value = allSame("max_value") ? (selectedCtrls[0].max_value !== undefined ? selectedCtrls[0].max_value : "") : ""; propMaxValueEl.placeholder = allSame("max_value") ? "Max" : "(Multiple)"; }
+				const propStepEl = document.getElementById("propStep");
+				if (propStepEl) { propStepEl.value = allSame("step") ? (selectedCtrls[0].step !== undefined ? selectedCtrls[0].step : "") : ""; propStepEl.placeholder = allSame("step") ? "1" : "(Multiple)"; }
 				if (propTooltipEl) {
 					propTooltipEl.value = allSame("tooltip") ? (selectedCtrls[0].tooltip || "") : "";
 					propTooltipEl.placeholder = allSame("tooltip") ? "" : "(Multiple values)";
@@ -4698,6 +4773,34 @@
 					if (propEnabledEl) {
 						ctrl.enabled = propEnabledEl.value === "true";
 					}
+				}
+				if (!changedProp || changedProp === 'read_only') {
+					const el = document.getElementById("propReadOnly");
+					if (el) ctrl.read_only = el.value === "true";
+				}
+				if (!changedProp || changedProp === 'required') {
+					const el = document.getElementById("propRequired");
+					if (el) ctrl.required = el.value === "true";
+				}
+				if (!changedProp || changedProp === 'auto_focus') {
+					const el = document.getElementById("propAutoFocus");
+					if (el) ctrl.auto_focus = el.value === "true";
+				}
+				if (!changedProp || changedProp === 'max_length') {
+					const el = document.getElementById("propMaxLength");
+					if (el && el.value !== "") ctrl.max_length = parseNum(el.value, undefined, 1); else if (el && el.value === "") delete ctrl.max_length;
+				}
+				if (!changedProp || changedProp === 'min_value') {
+					const el = document.getElementById("propMinValue");
+					if (el && el.value !== "") ctrl.min_value = parseFloat(el.value); else if (el && el.value === "") delete ctrl.min_value;
+				}
+				if (!changedProp || changedProp === 'max_value') {
+					const el = document.getElementById("propMaxValue");
+					if (el && el.value !== "") ctrl.max_value = parseFloat(el.value); else if (el && el.value === "") delete ctrl.max_value;
+				}
+				if (!changedProp || changedProp === 'step') {
+					const el = document.getElementById("propStep");
+					if (el && el.value !== "") ctrl.step = parseFloat(el.value); else if (el && el.value === "") delete ctrl.step;
 				}
 				if (!changedProp || changedProp === 'tooltip') {
 					if (propTooltipEl) ctrl.tooltip = propTooltipEl.value;
@@ -5157,6 +5260,18 @@ export function setControlText(controlId: string, text: string) {
 export function setControlPlaceholder(controlId: string, placeholder: string) {
     const escaped = JSON.stringify(placeholder);
     execJS(\`const el=document.getElementById("\${controlId}");if(el){if("placeholder" in el)el.placeholder=\${escaped};else{const inp=el.querySelector("input, textarea");if(inp)inp.placeholder=\${escaped};}}\`);
+}
+
+export function setControlReadOnly(controlId: string, readOnly: boolean) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("readOnly" in el)el.readOnly=\${readOnly};else{const inp=el.querySelector("input, textarea");if(inp)inp.readOnly=\${readOnly};}}\`);
+}
+
+export function setControlRequired(controlId: string, required: boolean) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("required" in el)el.required=\${required};else{const inp=el.querySelector("input, textarea, select");if(inp)inp.required=\${required};}}\`);
+}
+
+export function setControlMaxLength(controlId: string, maxLength: number) {
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("maxLength" in el)el.maxLength=\${maxLength};else{const inp=el.querySelector("input, textarea");if(inp)inp.maxLength=\${maxLength};}}\`);
 }
 
 export function setControlEnabled(controlId: string, enabled: boolean) {
