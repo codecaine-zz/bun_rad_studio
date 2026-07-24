@@ -280,18 +280,21 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         const demo3Path = join(process.cwd(), "demos", "03_data_and_non_visual.ts");
         const demo4Path = join(process.cwd(), "demos", "04_window_placement_and_pin.ts");
         const demo5Path = join(process.cwd(), "demos", "05_crud_todo_table.ts");
+        const demo6Path = join(process.cwd(), "demos", "06_timer_control_studio.ts");
 
         expect(existsSync(demo1Path)).toBe(true);
         expect(existsSync(demo2Path)).toBe(true);
         expect(existsSync(demo3Path)).toBe(true);
         expect(existsSync(demo4Path)).toBe(true);
         expect(existsSync(demo5Path)).toBe(true);
+        expect(existsSync(demo6Path)).toBe(true);
 
         const d1 = readFileSync(demo1Path, "utf-8");
         const d2 = readFileSync(demo2Path, "utf-8");
         const d3 = readFileSync(demo3Path, "utf-8");
         const d4 = readFileSync(demo4Path, "utf-8");
         const d5 = readFileSync(demo5Path, "utf-8");
+        const d6 = readFileSync(demo6Path, "utf-8");
 
         expect(d1).toContain("generatePreviewHtml");
         expect(d2).toContain("segmented_control");
@@ -304,6 +307,8 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(d5).toContain("table");
         expect(d5).toContain("columns");
         expect(d5).toContain("rows");
+        expect(d6).toContain("timer");
+        expect(d6).toContain("onTimer");
     });
 
 });

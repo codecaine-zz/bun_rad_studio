@@ -765,6 +765,23 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<input type="file"${nvid}${nvev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${nv.id}_onSelect'])window['${nv.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
         } else if (nvt === 'save_dialog') {
             controls += `<input type="file"${nvid}${nvev} style="display:none;">\n`;
+        } else if (nvt === 'timer') {
+            const interval = nv.interval || 1000;
+            const handler = nv.event_handlers?.onTimer || nv.event_handlers?.ontimer || `on_${nv.id}_timer`;
+            const autoStart = nv.enabled !== false;
+            controls += `<script>
+                (function() {
+                    window['__timer_interval_${nv.id}'] = ${interval};
+                    window['__timer_func_${nv.id}'] = function() {
+                        if (window['${handler}']) { try{ window['${handler}'](); } catch(e){ console.error(e); } }
+                        else if (window['on_${nv.id}_timer']) { try{ window['on_${nv.id}_timer'](); } catch(e){ console.error(e); } }
+                        else if (window['on_${nv.id}_tick']) { try{ window['on_${nv.id}_tick'](); } catch(e){ console.error(e); } }
+                    };
+                    if (${autoStart}) {
+                        window['__timer_id_${nv.id}'] = setInterval(window['__timer_func_${nv.id}'], ${interval});
+                    }
+                })();
+            </script>\n`;
         }
     }
 
@@ -801,6 +818,28 @@ ${controls}
 <script>
   window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
   window.showSaveDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
+  window.startTimer = function(id, ms) {
+    if (window['__timer_id_' + id]) clearInterval(window['__timer_id_' + id]);
+    const interval = ms || window['__timer_interval_' + id] || 1000;
+    window['__timer_interval_' + id] = interval;
+    const runner = function() {
+      if (window['__timer_func_' + id]) { try { window['__timer_func_' + id](); } catch(e){} }
+      else if (window['on_' + id + '_tick']) { try { window['on_' + id + '_tick'](); } catch(e){} }
+      else if (window['on_' + id + '_timer']) { try { window['on_' + id + '_timer'](); } catch(e){} }
+    };
+    window['__timer_id_' + id] = setInterval(runner, interval);
+  };
+  window.stopTimer = function(id) {
+    if (window['__timer_id_' + id]) {
+      clearInterval(window['__timer_id_' + id]);
+      window['__timer_id_' + id] = null;
+    }
+  };
+  window.setTimerInterval = function(id, ms) {
+    const newMs = ms || 1000;
+    window['__timer_interval_' + id] = newMs;
+    window.startTimer(id, newMs);
+  };
   window.getControlValue = function(id) {
     const el = document.getElementById(id);
     if (!el) return null;

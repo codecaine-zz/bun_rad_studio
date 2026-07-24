@@ -293,7 +293,7 @@ bun run index.ts
 
 ## 7. Interactive Demos Suite (`demos/`)
 
-The repository includes 5 interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
+The repository includes 6 interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
 
 | Demo Script | Command | Key Features Demonstrated |
 | --- | --- | --- |
@@ -302,4 +302,5 @@ The repository includes 5 interactive executable demo scripts demonstrating all 
 | `demos/03_data_and_non_visual.ts` | `bun run demo:data` | Data-Aware `DBGrid`, `DBNavigator`, non-visual `Timer` component (`onTimer` event), monospaced `CodeView`, Progress Bars, Gauges, Ratings |
 | `demos/04_window_placement_and_pin.ts` | `bun run demo:window` | Native Window Placement API (`setWindowPosition`), 9 screen placement presets, Always On Top window pinning (`setAlwaysOnTop`), Native Cocoa Fullscreen (`toggleFullscreenNative`), and Quit (`process.exit(0)`) |
 | `demos/05_crud_todo_table.ts` | `bun run demo:table` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
+| `demos/06_timer_control_studio.ts` | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
 

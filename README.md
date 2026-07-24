@@ -92,6 +92,9 @@ bun run demo:window
 
 # Demo 5: Dynamic Table Control Studio (Add/Remove Rows & Columns, Filtering, Sorting, Payroll Stats & IPC Log)
 bun run demo:table
+
+# Demo 6: Non-Visual Timer Control Studio (onTimer Tick Loops, Clock, Telemetry Gauges, Countdown & Speed Adjustment)
+bun run demo:timer
 ```
 
 ---

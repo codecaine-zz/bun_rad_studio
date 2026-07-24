@@ -12,7 +12,8 @@
     "demo:window": "bun run demos/04_window_placement_and_pin.ts",
     "demo:crud": "bun run demos/05_crud_todo_table.ts",
     "demo:todo": "bun run demos/05_crud_todo_table.ts",
-    "demo:table": "bun run demos/05_crud_todo_table.ts"
+    "demo:table": "bun run demos/05_crud_todo_table.ts",
+    "demo:timer": "bun run demos/06_timer_control_studio.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
