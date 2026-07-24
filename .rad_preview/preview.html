@@ -8,8 +8,8 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
-    background: #000000;
-    color: #00ff00;
+    background: #0f172a;
+    color: #e2e8f0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     position: relative;
     width: 800px;
@@ -18,17 +18,26 @@
   }
   input, textarea, select, button { font-family: inherit; } * { spellcheck: false; }
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #00ff00; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
-  :focus-visible { outline: 2px solid #00ff00; outline-offset: 2px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
+  :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
   ::selection { background: rgba(56,189,248,0.3); }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 </style>
-</head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
-<button id="button_1" onclick="try{if(window['on_button_1_click']){window['on_button_1_click'](this.value||'')}else if(window.backendAlert){window.backendAlert('Event: on_button_1_click')}}catch(e){console.error(e)}" style="position:absolute;left:112px;top:88px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;background:#00ff00;color:#000000;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;transition:filter 0.15s,transform 0.1s;box-shadow:0 2px 8px rgba(0,0,0,0.3);" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Button 1</button>
-<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' id="textarea_2" onclick="try{if(window['on_textarea_2_click']){window['on_textarea_2_click'](this.value||'')}else if(window.backendAlert){window.backendAlert('Event: on_textarea_2_click')}}catch(e){console.error(e)}" style="position:absolute;left:392px;top:208px;width:280px;height:120px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;background:#111111;color:#00ff00;border:1px solid rgba(255, 255, 255, 0.12);border-radius:5px;padding:8px;resize:none;outline:none;">Textarea 2</textarea>
+<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' id="input_1" onclick="try{if(window['on_input_1_click']){window['on_input_1_click'](this.value||'')}else if(window.backendAlert){window.backendAlert('Event: on_input_1_click')}}catch(e){console.error(e)}" type="text" value="Input 1" placeholder="" style="position:absolute;left:80px;top:208px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;border-width:2px;border-radius:10px;background:#1e293b;color:#ffffff;border-width:2px;border-color:rgba(255, 255, 255, 0.12);border-style:solid;border-radius:10px;padding:0 10px;outline:none;">
 
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.onFormLoad) window.onFormLoad();
+  });
+  window.addEventListener("resize", () => {
+    if (window.onFormResize) window.onFormResize({ width: window.innerWidth, height: window.innerHeight });
+  });
+  window.addEventListener("beforeunload", () => {
+    if (window.onFormClose) window.onFormClose();
+  });
+</script>
 </body>
 </html>

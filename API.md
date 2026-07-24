@@ -102,6 +102,13 @@ interface ControlSpec {
   hover_color?: string;            // Hover background color HEX code
   hover_text_color?: string;       // Hover text color HEX code
   cursor?: string;                 // Mouse cursor CSS style on hover
+  border_radius?: number;          // Corner rounding radius in px (0 for square, 9999 for pill)
+  border_width?: number;           // Border stroke thickness in px
+  border_color?: string;           // Border stroke color HEX code
+  border_style?: "solid" | "dashed" | "dotted" | "double" | "none"; // Border stroke pattern
+  box_shadow?: "none" | "subtle" | "medium" | "deep" | "glow"; // Drop shadow elevation or glow
+  text_align?: "left" | "center" | "right" | "justify"; // Horizontal text alignment
+  opacity?: number;                // Component transparency opacity percentage (0-100)
   placeholder?: string;            // Input placeholder text
   value?: any;                     // Metric, slider value, or stepper number
   checked?: boolean;               // Checkbox, radio, or switch toggle state

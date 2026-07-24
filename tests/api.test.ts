@@ -137,6 +137,32 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         const disabledHtml = generatePreviewHtml(disabledSpec);
         expect(disabledHtml).toContain("opacity:0.55;pointer-events:none;");
         expect(disabledHtml).toContain("disabled");
+
+        // Verify Border, Radius, Elevation Shadow, Text Alignment & Opacity propagation
+        const styledSpec = {
+            controls: [
+                { 
+                    id: "btn_styled", 
+                    control_type: "button", 
+                    x: 10, y: 10, width: 120, height: 40, text: "Styled Btn", 
+                    border_radius: 12, 
+                    border_width: 2, 
+                    border_color: "#38bdf8", 
+                    border_style: "dashed", 
+                    box_shadow: "glow", 
+                    text_align: "center", 
+                    opacity: 90 
+                }
+            ]
+        };
+        const styledHtml = generatePreviewHtml(styledSpec);
+        expect(styledHtml).toContain("border-radius:12px;");
+        expect(styledHtml).toContain("border-width:2px;");
+        expect(styledHtml).toContain("border-color:#38bdf8;");
+        expect(styledHtml).toContain("border-style:dashed;");
+        expect(styledHtml).toContain("box-shadow:0 0 15px #38bdf8;");
+        expect(styledHtml).toContain("text-align:center;");
+        expect(styledHtml).toContain("opacity:0.9;");
     });
 
     test("3. Project Exporter Engine (exportProjectHelper)", () => {

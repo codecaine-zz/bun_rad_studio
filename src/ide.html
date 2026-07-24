@@ -1478,6 +1478,64 @@
 					</div>
 
 					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">Border, Radius & Effects</span>
+
+					<div class="prop-grid-2" style="margin-top: 4px;">
+						<div class="prop-row">
+							<span class="prop-label">Border Radius (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propBorderRadius" oninput="updateSelectedControl('border_radius')" title="Corner rounding in pixels (0 for square, 9999 for pill shape)">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Border Width (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propBorderWidth" oninput="updateSelectedControl('border_width')" title="Border stroke thickness in pixels">
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Border Color</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propBorderColor" oninput="updateSelectedControl('border_color')" title="Border stroke color">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Border Style</span>
+							<select class="prop-input" id="propBorderStyle" onchange="updateSelectedControl('border_style')" title="Border stroke pattern style">
+								<option value="solid">Solid</option>
+								<option value="dashed">Dashed</option>
+								<option value="dotted">Dotted</option>
+								<option value="double">Double</option>
+								<option value="none">None</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Box Shadow / Elevation</span>
+							<select class="prop-input" id="propBoxShadow" onchange="updateSelectedControl('box_shadow')" title="Drop shadow elevation or glow effect">
+								<option value="none">None</option>
+								<option value="subtle">Subtle Shadow</option>
+								<option value="medium">Medium Elevation</option>
+								<option value="deep">Deep Shadow</option>
+								<option value="glow">Accent Glow</option>
+							</select>
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Text Alignment</span>
+							<select class="prop-input" id="propTextAlign" onchange="updateSelectedControl('text_align')" title="Text horizontal alignment">
+								<option value="left">Left</option>
+								<option value="center">Center</option>
+								<option value="right">Right</option>
+								<option value="justify">Justify</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Opacity (%)</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" min="0" max="100" class="prop-input" id="propOpacity" oninput="updateSelectedControl('opacity')" title="Control transparency opacity percentage (0-100)">
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
 					<span class="prop-label" style="color: var(--accent);">Hover Styling & Mouse Cursor</span>
 
 					<div class="prop-grid-2" style="margin-top: 4px;">
@@ -3240,7 +3298,32 @@
 				div.style.cursor = isLiveHoverMode ? "pointer" : "move";
 			}
 
-			if (ctrl.enabled === false) {
+			if (ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "") {
+				div.style.borderRadius = ctrl.border_radius + "px";
+			} else {
+				div.style.borderRadius = "";
+			}
+			if (ctrl.border_width !== undefined && ctrl.border_width !== null && ctrl.border_width !== "") {
+				div.style.borderWidth = ctrl.border_width + "px";
+			} else {
+				div.style.borderWidth = "";
+			}
+			if (ctrl.border_color) div.style.borderColor = ctrl.border_color; else div.style.borderColor = "";
+			if (ctrl.border_style) div.style.borderStyle = ctrl.border_style; else div.style.borderStyle = "";
+			if (ctrl.box_shadow && ctrl.box_shadow !== "none") {
+				const col = ctrl.border_color || ctrl.font_color || "#38bdf8";
+				div.style.boxShadow = ctrl.box_shadow === "subtle" ? "0 2px 4px rgba(0,0,0,0.15)" :
+				                     ctrl.box_shadow === "medium" ? "0 4px 12px rgba(0,0,0,0.3)" :
+				                     ctrl.box_shadow === "deep" ? "0 10px 25px rgba(0,0,0,0.5)" :
+				                     "0 0 15px " + col;
+			} else {
+				div.style.boxShadow = "";
+			}
+			if (ctrl.text_align) div.style.textAlign = ctrl.text_align; else div.style.textAlign = "";
+
+			if (ctrl.opacity !== undefined && ctrl.opacity !== null && ctrl.opacity !== "") {
+				div.style.opacity = (ctrl.opacity / 100);
+			} else if (ctrl.enabled === false) {
 				div.style.opacity = "0.55";
 				div.style.filter = "grayscale(0.6)";
 			} else {
@@ -3396,23 +3479,31 @@
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
 				const fg = ctrl.font_color || "inherit";
-				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px;'>Sample Input</div></div>";
+				const inRad = ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "" ? ctrl.border_radius + "px" : "4px";
+				const inBdr = ctrl.border_width || ctrl.border_color || ctrl.border_style ? (ctrl.border_width || 1) + "px " + (ctrl.border_style || "solid") + " " + (ctrl.border_color || "var(--border-color)") : "1px solid var(--border-color)";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='background:" + (ctrl.background_color || "#1e293b") + "; border:" + inBdr + "; padding:4px 8px; border-radius:" + inRad + "; font-size:11px;'>Sample Input</div></div>";
 			} else if (type === "form_textarea") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
 				const fg = ctrl.font_color || "inherit";
-				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; height:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='flex:1; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); padding:6px; border-radius:4px; font-size:11px;'>Multi-line content...</div></div>";
+				const inRad = ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "" ? ctrl.border_radius + "px" : "4px";
+				const inBdr = ctrl.border_width || ctrl.border_color || ctrl.border_style ? (ctrl.border_width || 1) + "px " + (ctrl.border_style || "solid") + " " + (ctrl.border_color || "var(--border-color)") : "1px solid var(--border-color)";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; height:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='flex:1; background:" + (ctrl.background_color || "#1e293b") + "; border:" + inBdr + "; padding:6px; border-radius:" + inRad + "; font-size:11px;'>Multi-line content...</div></div>";
 			} else if (type === "form_password") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
 				const fg = ctrl.font_color || "inherit";
-				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px;'>••••••••</div></div>";
+				const inRad = ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "" ? ctrl.border_radius + "px" : "4px";
+				const inBdr = ctrl.border_width || ctrl.border_color || ctrl.border_style ? (ctrl.border_width || 1) + "px " + (ctrl.border_style || "solid") + " " + (ctrl.border_color || "var(--border-color)") : "1px solid var(--border-color)";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='background:" + (ctrl.background_color || "#1e293b") + "; border:" + inBdr + "; padding:4px 8px; border-radius:" + inRad + "; font-size:11px;'>••••••••</div></div>";
 			} else if (type === "form_number") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
 				const fg = ctrl.font_color || "inherit";
 				const val = ctrl.value !== undefined ? ctrl.value : 0;
-				div.innerHTML = "<div style='display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;'><span style='font-size:11px; font-weight:bold; color:" + fg + "'>" + text + "</span><div style='background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); padding:2px 8px; border-radius:4px; font-weight:bold;'>" + val + "</div></div>";
+				const inRad = ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "" ? ctrl.border_radius + "px" : "4px";
+				const inBdr = ctrl.border_width || ctrl.border_color || ctrl.border_style ? (ctrl.border_width || 1) + "px " + (ctrl.border_style || "solid") + " " + (ctrl.border_color || "var(--border-color)") : "1px solid var(--border-color)";
+				div.innerHTML = "<div style='display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;'><span style='font-size:11px; font-weight:bold; color:" + fg + "'>" + text + "</span><div style='background:" + (ctrl.background_color || "#1e293b") + "; border:" + inBdr + "; padding:2px 8px; border-radius:" + inRad + "; font-weight:bold;'>" + val + "</div></div>";
 			} else if (type === "form_slider") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
@@ -3423,12 +3514,16 @@
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
 				const fg = ctrl.font_color || "inherit";
-				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; justify-content:space-between; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px;'><span>Option 1</span><span>▼</span></div></div>";
+				const inRad = ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "" ? ctrl.border_radius + "px" : "4px";
+				const inBdr = ctrl.border_width || ctrl.border_color || ctrl.border_style ? (ctrl.border_width || 1) + "px " + (ctrl.border_style || "solid") + " " + (ctrl.border_color || "var(--border-color)") : "1px solid var(--border-color)";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; justify-content:space-between; background:" + (ctrl.background_color || "#1e293b") + "; border:" + inBdr + "; padding:4px 8px; border-radius:" + inRad + "; font-size:11px;'><span>Option 1</span><span>▼</span></div></div>";
 			} else if (type === "form_date") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
 				const fg = ctrl.font_color || "inherit";
-				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:6px; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px;'><span>📅</span><span>2026-07-22</span></div></div>";
+				const inRad = ctrl.border_radius !== undefined && ctrl.border_radius !== null && ctrl.border_radius !== "" ? ctrl.border_radius + "px" : "4px";
+				const inBdr = ctrl.border_width || ctrl.border_color || ctrl.border_style ? (ctrl.border_width || 1) + "px " + (ctrl.border_style || "solid") + " " + (ctrl.border_color || "var(--border-color)") : "1px solid var(--border-color)";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:6px; background:" + (ctrl.background_color || "#1e293b") + "; border:" + inBdr + "; padding:4px 8px; border-radius:" + inRad + "; font-size:11px;'><span>📅</span><span>2026-07-22</span></div></div>";
 			} else if (type === "form_progress") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
@@ -4228,6 +4323,21 @@
 				if (hoverFgEl) hoverFgEl.value = c.hover_text_color || "#ffffff";
 				if (cursorEl) cursorEl.value = c.cursor || "default";
 
+				const propRadiusEl = document.getElementById("propBorderRadius");
+				if (propRadiusEl) propRadiusEl.value = c.border_radius !== undefined && c.border_radius !== null ? c.border_radius : "";
+				const propWidthEl = document.getElementById("propBorderWidth");
+				if (propWidthEl) propWidthEl.value = c.border_width !== undefined && c.border_width !== null ? c.border_width : "";
+				const propColorEl = document.getElementById("propBorderColor");
+				if (propColorEl) propColorEl.value = c.border_color || "#38bdf8";
+				const propStyleEl = document.getElementById("propBorderStyle");
+				if (propStyleEl) propStyleEl.value = c.border_style || "solid";
+				const propShadowEl = document.getElementById("propBoxShadow");
+				if (propShadowEl) propShadowEl.value = c.box_shadow || "none";
+				const propAlignEl = document.getElementById("propTextAlign");
+				if (propAlignEl) propAlignEl.value = c.text_align || "left";
+				const propOpacityEl = document.getElementById("propOpacity");
+				if (propOpacityEl) propOpacityEl.value = c.opacity !== undefined && c.opacity !== null ? c.opacity : 100;
+
 				c.event_handlers = c.event_handlers || {};
 				const evtClickEl = document.getElementById("evtOnClick");
 				if (evtClickEl) evtClickEl.value = c.event_handlers["onClick"] || "";
@@ -4289,6 +4399,21 @@
 				if (hoverBgEl) hoverBgEl.value = allSame("hover_color") ? (selectedCtrls[0].hover_color || "#0284c7") : "#0284c7";
 				if (hoverFgEl) hoverFgEl.value = allSame("hover_text_color") ? (selectedCtrls[0].hover_text_color || "#ffffff") : "#ffffff";
 				if (cursorEl) cursorEl.value = allSame("cursor") ? (selectedCtrls[0].cursor || "default") : "default";
+
+				const propRadiusEl = document.getElementById("propBorderRadius");
+				if (propRadiusEl) propRadiusEl.value = allSame("border_radius") ? (selectedCtrls[0].border_radius !== undefined ? selectedCtrls[0].border_radius : "") : "";
+				const propWidthEl = document.getElementById("propBorderWidth");
+				if (propWidthEl) propWidthEl.value = allSame("border_width") ? (selectedCtrls[0].border_width !== undefined ? selectedCtrls[0].border_width : "") : "";
+				const propColorEl = document.getElementById("propBorderColor");
+				if (propColorEl) propColorEl.value = allSame("border_color") ? (selectedCtrls[0].border_color || "#38bdf8") : "#38bdf8";
+				const propStyleEl = document.getElementById("propBorderStyle");
+				if (propStyleEl) propStyleEl.value = allSame("border_style") ? (selectedCtrls[0].border_style || "solid") : "solid";
+				const propShadowEl = document.getElementById("propBoxShadow");
+				if (propShadowEl) propShadowEl.value = allSame("box_shadow") ? (selectedCtrls[0].box_shadow || "none") : "none";
+				const propAlignEl = document.getElementById("propTextAlign");
+				if (propAlignEl) propAlignEl.value = allSame("text_align") ? (selectedCtrls[0].text_align || "left") : "left";
+				const propOpacityEl = document.getElementById("propOpacity");
+				if (propOpacityEl) propOpacityEl.value = allSame("opacity") ? (selectedCtrls[0].opacity !== undefined ? selectedCtrls[0].opacity : 100) : 100;
 			}
 		}
 
@@ -4378,6 +4503,37 @@
 				}
 				if (changedProp === 'cursor') {
 					if (cursorEl) ctrl.cursor = cursorEl.value;
+				}
+				if (changedProp === 'border_radius') {
+					const el = document.getElementById("propBorderRadius");
+					if (el && el.value !== "") ctrl.border_radius = parseNum(el.value, 0, 0);
+					else if (el && el.value === "") delete ctrl.border_radius;
+				}
+				if (changedProp === 'border_width') {
+					const el = document.getElementById("propBorderWidth");
+					if (el && el.value !== "") ctrl.border_width = parseNum(el.value, 0, 0);
+					else if (el && el.value === "") delete ctrl.border_width;
+				}
+				if (changedProp === 'border_color') {
+					const el = document.getElementById("propBorderColor");
+					if (el && el.value) ctrl.border_color = el.value;
+				}
+				if (changedProp === 'border_style') {
+					const el = document.getElementById("propBorderStyle");
+					if (el && el.value) ctrl.border_style = el.value;
+				}
+				if (changedProp === 'box_shadow') {
+					const el = document.getElementById("propBoxShadow");
+					if (el && el.value) ctrl.box_shadow = el.value;
+				}
+				if (changedProp === 'text_align') {
+					const el = document.getElementById("propTextAlign");
+					if (el && el.value) ctrl.text_align = el.value;
+				}
+				if (changedProp === 'opacity') {
+					const el = document.getElementById("propOpacity");
+					if (el && el.value !== "") ctrl.opacity = Math.min(100, Math.max(0, parseNum(el.value, 100, 0)));
+					else if (el && el.value === "") delete ctrl.opacity;
 				}
 			});
 
