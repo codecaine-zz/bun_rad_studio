@@ -20,8 +20,6 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 The entire state of a form layout in Bun RAD Studio is represented as a JSON object called `FormSpec`. This spec is synchronized between the visual canvas, the Object Inspector, code generators, and the Bun backend.
 
 ```json
-
-```json
 {
   "title": "Customer Registration",
   "width": 840,

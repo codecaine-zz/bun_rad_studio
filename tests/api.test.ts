@@ -111,6 +111,22 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(html).toContain("⏮"); // DB Navigator button
         expect(html).toContain("Email");
         expect(html).toContain("Category");
+
+        // Verify Custom Control Colors & Themes propagate to Preview HTML
+        const lightSpec = {
+            title: "Light Theme Form",
+            background_color: "#f8fafc",
+            font_color: "#0f172a",
+            controls: [
+                { id: "inp_custom", control_type: "form_field", x: 10, y: 10, width: 200, height: 40, text: "Custom Input", background_color: "#ff007f", font_color: "#00f6ff" }
+            ]
+        };
+        const lightHtml = generatePreviewHtml(lightSpec);
+        expect(lightHtml).toContain("background: #f8fafc;");
+        expect(lightHtml).toContain("background:#ff007f");
+        expect(lightHtml).toContain("color:#00f6ff");
+        // Ensure inline style attributes do not contain unescaped double quotes that break HTML parsing
+        expect(lightHtml).not.toMatch(/style="[^"]*font-family:[^"]*"[^"]*;/);
     });
 
     test("3. Project Exporter Engine (exportProjectHelper)", () => {

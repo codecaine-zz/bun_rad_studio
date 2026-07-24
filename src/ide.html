@@ -4322,19 +4322,19 @@
 				if (!changedProp || changedProp === 'font_size') {
 					if (propFSEl && propFSEl.value !== "") ctrl.font_size = parseNum(propFSEl.value, ctrl.font_size || 13, 1);
 				}
-				if (!changedProp || changedProp === 'font_color') {
-					if (fontEl) ctrl.font_color = fontEl.value;
+				if (changedProp === 'font_color') {
+					if (fontEl && fontEl.value) ctrl.font_color = fontEl.value;
 				}
-				if (!changedProp || changedProp === 'background_color') {
-					if (bgEl) ctrl.background_color = bgEl.value;
+				if (changedProp === 'background_color') {
+					if (bgEl && bgEl.value) ctrl.background_color = bgEl.value;
 				}
-				if (!changedProp || changedProp === 'hover_color') {
-					if (hoverBgEl) ctrl.hover_color = hoverBgEl.value;
+				if (changedProp === 'hover_color') {
+					if (hoverBgEl && hoverBgEl.value) ctrl.hover_color = hoverBgEl.value;
 				}
-				if (!changedProp || changedProp === 'hover_text_color') {
-					if (hoverFgEl) ctrl.hover_text_color = hoverFgEl.value;
+				if (changedProp === 'hover_text_color') {
+					if (hoverFgEl && hoverFgEl.value) ctrl.hover_text_color = hoverFgEl.value;
 				}
-				if (!changedProp || changedProp === 'cursor') {
+				if (changedProp === 'cursor') {
 					if (cursorEl) ctrl.cursor = cursorEl.value;
 				}
 			});
@@ -4594,31 +4594,31 @@
 					html += "  </div>\n";
 				} else if (c.control_type === "label") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + " font-weight: 600;\">\n";
-					html += "    <span id=\"" + c.id + "\">" + text + "</span>\n";
+					html += "    <span id=\"" + c.id + "\" style=\"color:" + c_fg + ";\">" + text + "</span>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "input") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"text\" class=\"input-ctrl\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"text\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "password") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"password\" class=\"input-ctrl\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"password\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "textarea") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" id=\"" + c.id + "\" style=\"resize:none;\">" + text + "</textarea>\n";
+					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + "; resize:none;\" id=\"" + c.id + "\">" + text + "</textarea>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "checkbox") {
 					const chk = c.checked ? "checked" : "";
 					html += "  <div class=\"control-item\" style=\"" + posStyle + " gap:8px;\">\n";
 					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"checkbox\" id=\"" + c.id + "\" " + chk + ">\n";
-					html += "    <label for=\"" + c.id + "\">" + text + "</label>\n";
+					html += "    <label for=\"" + c.id + "\" style=\"color:" + c_fg + ";\">" + text + "</label>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "radio") {
 					const chk = c.checked ? "checked" : "";
 					html += "  <div class=\"control-item\" style=\"" + posStyle + " gap:8px;\">\n";
 					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"radio\" name=\"form_radios\" id=\"" + c.id + "\" " + chk + ">\n";
-					html += "    <label for=\"" + c.id + "\">" + text + "</label>\n";
+					html += "    <label for=\"" + c.id + "\" style=\"color:" + c_fg + ";\">" + text + "</label>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "badge") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
@@ -4630,7 +4630,7 @@
 					html += "  </div>\n";
 				} else {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <div id=\"" + c.id + "\" style=\"width:100%; height:100%; background-color:" + c_bg + "; padding:6px; border-radius:6px;\">" + text + "</div>\n";
+					html += "    <div id=\"" + c.id + "\" style=\"width:100%; height:100%; background-color:" + c_bg + "; color:" + c_fg + "; padding:6px; border-radius:6px;\">" + text + "</div>\n";
 					html += "  </div>\n";
 				}
 			});
