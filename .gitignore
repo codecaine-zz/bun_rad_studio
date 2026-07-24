@@ -2,8 +2,7 @@
 node_modules/
 bun.lockb
 
-# Local Preview & Export Output Directories
-.rad_preview/
+# Export Output Directories
 exported_project/
 .build_check/
 dist/

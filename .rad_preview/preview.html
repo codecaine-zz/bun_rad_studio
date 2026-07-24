@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Form1</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    position: relative;
+    width: 800px;
+    height: 600px;
+    overflow: hidden;
+  }
+  input, textarea, select, button { font-family: inherit; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
+  :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+  ::selection { background: rgba(56,189,248,0.3); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<button id="button_1" onclick="try{ eval('on_button_1_click') }catch(e){console.error(e)}" onchange="try{ eval('Blah') }catch(e){console.error(e)}" style="position:absolute;left:296px;top:136px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box;background:#0284c7;color:#ffffff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;transition:filter 0.15s,transform 0.1s;box-shadow:0 2px 8px rgba(0,0,0,0.3);" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Button 1</button>
+<div id="label_2" onclick="try{ eval('on_label_2_click') }catch(e){console.error(e)}" style="position:absolute;left:135px;top:136px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box;color:#f8fafc;display:flex;align-items:center;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Label 2</div>
+<input id="color_3" type="color" value="#38bdf8" onclick="try{ eval('on_color_3_click') }catch(e){console.error(e)}" style="position:absolute;left:272px;top:384px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box;padding:2px;border:1px solid rgba(255,255,255,0.12);border-radius:5px;cursor:pointer;background:transparent;">
+
+</body>
+</html>
