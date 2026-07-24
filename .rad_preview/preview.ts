@@ -9,10 +9,9 @@ wv.setHTML(html);
 wv.title = "Form1 - Live Preview";
 wv.size = { width: 800, height: 600, hint: SizeHint.NONE };
 
-// Expose backend capabilities to the preview
 wv.bind("backendAlert", (msg: string) => {
     console.log("Backend alert:", msg);
 });
 
 wv.run();
-        
+            

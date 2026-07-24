@@ -14,29 +14,40 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ### 🚀 Visual RAD Form Designer
 * **Interactive Canvas**: Drag, nudge, resize, and align components visually on a high-DPI scaled canvas with pixel rulers and smart grid snapping (8px, 16px, 4px, or off).
-* **Delphi Placement Mode**: Click any palette component to arm the placement crosshair, then click anywhere on the canvas to place it at exact coordinates. Hold `Shift` while clicking to place multiple controls sequentially.
+* **Delphi Anchors & Docking System**: Full support for component `Anchors` (`Top`, `Left`, `Right`, `Bottom`) and `Dock` modes (`None`, `Top`, `Bottom`, `Left`, `Right`, `Fill`) so forms dynamically reflow when resized.
+* **Non-Visual Component Tray**: Visual bottom tray below the form canvas for non-visual RAD controls (`Timer`, `OpenFileDialog`, `SaveFileDialog`, `DBConnection`, `HTTPClient`, `Notification`) just like Borland Delphi and Lazarus.
+* **Delphi Placement Mode**: Click any palette component to arm the placement crosshairs, then click anywhere on the canvas to place it at exact coordinates. Hold `Shift` while clicking to place multiple controls sequentially.
 * **Marquee Multi-Selection**: Left-click and drag across the canvas background to marquee select groups of components.
 * **Component Hierarchy & Tree**: View, filter, and select components in a real-time DOM hierarchy tree.
 
-### 🎨 30+ Modern UI Controls
+### 🗄️ MS Access & Delphi Data-Aware RAD Controls
+* **Data-Aware Controls**: Access & Delphi style DB controls including `DBGrid` with sorting/paging, `DBNavigator` (First/Prev/Next/Last/Add/Delete/Post/Refresh), `DBInput`, and `DBDropdown` with live dataset field bindings.
+* **1-Click Database CRUD Form Wizard**: Instant 1-click wizard button that auto-generates a complete, ready-to-run Customer Accounts Database CRUD layout.
+
+### 🎨 35+ Modern UI & RAD Controls
 * **Standard Controls**: Buttons, Labels, Single-Line Inputs, Password Inputs, Textareas, Checkboxes, Radio Buttons, Toggles/Switches, Sliders, Number Steppers, Color Wells, Date Pickers, and File Pickers.
-* **Advanced Visual Controls**: Progress Bars, SVG Circular Gauges, Star Ratings, Badges, Status Indicators, Metric KPI Cards, Alert Banners, Syntax-Highlighted Code Views, File Drop Zones, and Tags.
+* **Data & Non-Visual Controls**: DB Grid, DB Navigator, DB Field, DB Lookup, Timer, File Dialogs, DB Connection, REST HTTP Client, Notification.
+* **Advanced Visual Controls**: Progress Bars, SVG Circular Gauges, Star Ratings, Badges, Status Indicators, Metric KPI Cards, Alert Banners, Syntax Code Views, File Drop Zones, and Tag Chips.
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
-* **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, and Help Desk Support Tickets.
+* **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
 ### 📐 Precision Alignment & Layout Tools
 * **Single-Control Alignment**: Instantly snap a control to the Left, Center H, Right, Top, Center V, or Bottom edge of the form canvas.
-* **Multi-Control Anchor Alignment**: Select multiple controls to align their left, right, top, or bottom edges to the **Primary Anchor Control** (Delphi/VB RAD style).
+* **Multi-Control Alignment Toolbar**: Select multiple controls to align their left, right, top, or bottom edges, center horizontally/vertically, or equalize width/height.
 * **Size Equalization**: Match selected controls' width or height to the primary control, or equalize to **Widest**, **Narrowest**, **Tallest**, or **Shortest**.
-* **Spatial Distribution**: Evenly space 3 or more controls horizontally or vertically.
 
-### 🧪 Live Hover & Interactive Test Mode
-* **Live Canvas Test Mode**: Toggle **Live Test Mode** to interactively test control hover styles, button press animations, radio/checkbox toggles, and live `onClick` event code directly inside the designer without launching a separate window.
+### ✏️ In-Studio Event Handler Code Editor
+* **Dual-Tab Object Inspector**: Separate `Properties` and `Events` tabs in the Object Inspector, complete with detailed tooltip hints for every single property and event.
+* **Component Tooltips**: Dropping a control from the palette automatically assigns it a descriptive tooltip explaining its purpose and API method.
+* **Interactive Code Editor Modal**: Double-click any event (`onClick`, `onChange`, `onDoubleClick`, `onTimer`, `onHover`, `onHoverExit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseDown`, `onMouseUp`) to open an in-studio script code editor modal with syntax highlighting and pre-built code snippets.
 
-### ⚡ Auto-Generated Code & 1-Click Export
-* **Live Bun TypeScript Preview**: Real-time auto-generated Bun + `webview-bun` TypeScript code (`index.ts`) complete with typed backend method bindings (`wv.bind(...)`) for all control events.
-* **1-Click App Exporter**: Export a complete, runnable Bun project folder to disk (`/exported_project`) with `package.json`, `index.ts`, and `index.html`.
-* **Standalone HTML5 Export**: Export clean, responsive HTML5 + CSS standalone web templates with 1-click clipboard copy.
+### ⚡ Auto-Generated Code & Multi-Target Exporters
+* **Live Bun TypeScript Exporter**: Real-time auto-generated Bun + `webview-bun` TypeScript code (`index.ts`) complete with typed backend method bindings (`wv.bind(...)`).
+* **React + Tailwind Exporter**: Export modern React TSX component code styled with Tailwind CSS.
+* **Vue 3 SFC Exporter**: Export Vue 3 Single File Components (`.vue`) using `<script setup>`.
+* **Python CustomTkinter Exporter**: Export standalone executable Python GUI desktop app code.
+* **Standalone HTML5 Export**: Export clean, responsive HTML5 + CSS standalone web templates.
+* **1-Click App Exporter**: Export a complete, runnable Bun project folder to disk (`/exported_project`).
 
 ---
 

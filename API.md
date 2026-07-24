@@ -20,6 +20,8 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 The entire state of a form layout in Bun RAD Studio is represented as a JSON object called `FormSpec`. This spec is synchronized between the visual canvas, the Object Inspector, code generators, and the Bun backend.
 
 ```json
+
+```json
 {
   "title": "Customer Registration",
   "width": 840,
@@ -46,8 +48,21 @@ The entire state of a form layout in Bun RAD Studio is represented as a JSON obj
       "visible": true,
       "locked": false,
       "tab_order": 1,
+      "anchors": { "top": true, "left": true, "right": false, "bottom": false },
+      "dock": "none",
       "event_handlers": {
         "onClick": "on_button_1_click"
+      }
+    }
+  ],
+  "non_visual_controls": [
+    {
+      "id": "timer_1",
+      "control_type": "timer",
+      "interval": 1000,
+      "enabled": true,
+      "event_handlers": {
+        "onTimer": "on_timer_1_tick"
       }
     }
   ]
@@ -65,13 +80,14 @@ The entire state of a form layout in Bun RAD Studio is represented as a JSON obj
 | `font_color` | `string` | Form default text color (HEX/RGB) | `"#f8fafc"` |
 | `padding` | `number` | Internal form margin/padding in pixels | `20` |
 | `spacing` | `number` | Default control spacing gap | `12` |
-| `controls` | `Array<ControlSpec>` | Array of placed component objects | `[]` |
+| `controls` | `Array<ControlSpec>` | Array of placed visual component objects | `[]` |
+| `non_visual_controls` | `Array<ControlSpec>` | Array of non-visual tray controls (Timer, Dialogs, DB) | `[]` |
 
 ---
 
 ## 2. Control Specification Object
 
-Each component placed on the form canvas is represented by a `ControlSpec` object.
+Each component placed on the form canvas or tray is represented by a `ControlSpec` object.
 
 ```typescript
 interface ControlSpec {
@@ -96,15 +112,42 @@ interface ControlSpec {
   locked?: boolean;                // Designer lock state (true = locked against drag)
   tab_order?: number;              // Focus sequence index
   tooltip?: string;                // Hover hint tooltip text
+  anchors?: {                      // Delphi/VB style component anchoring
+    top?: boolean;
+    left?: boolean;
+    right?: boolean;
+    bottom?: boolean;
+  };
+  dock?: "none" | "top" | "bottom" | "left" | "right" | "fill"; // Component docking behavior
+  data_source?: string;            // MS Access / Delphi Dataset connection binding name
+  data_field?: string;             // Dataset column field name binding
+  interval?: number;               // Timer interval in ms (for TTimer)
   alert_type?: "info" | "success" | "warning" | "error";
   status?: "active" | "inactive" | "warning" | "error";
   event_handlers?: Record<string, string>; // Map of event names to handler code/names
 }
+
+### Supported Event Handlers
+The `event_handlers` record can map the following event names to string blocks of JavaScript:
+- `onClick`: Triggered when the component is clicked.
+- `onChange`: Triggered when an input or state value changes.
+- `onDoubleClick`: Triggered when the component is double-clicked.
+- `onHover`: Triggered when the mouse pointer enters the component.
+- `onHoverExit`: Triggered when the mouse pointer leaves the component.
+- `onFocus`: Triggered when the component gains input focus.
+- `onBlur`: Triggered when the component loses input focus.
+- `onKeyDown`: Triggered when a key is pressed down.
+- `onKeyUp`: Triggered when a key is released.
+- `onMouseDown`: Triggered when the mouse button is pressed.
+- `onMouseUp`: Triggered when the mouse button is released.
+- `onTimer`: Triggered periodically for `timer` non-visual components.
 ```
 
 ---
 
 ## 3. Supported Component Reference
+
+### Visual Components
 
 | Control Type | Display Name | Default Width × Height | Description |
 | --- | --- | --- | --- |
@@ -135,11 +178,23 @@ interface ControlSpec {
 | `drop_zone` | File Drop Zone | 280 × 100 px | Drag-and-drop file upload target |
 | `panel` | Panel Box | 280 × 120 px | Container box for grouping controls |
 | `table` | Data Grid | 280 × 120 px | Multi-column table data grid |
+| `db_grid` | Data-Aware Grid | 320 × 160 px | Access/Delphi DB-bound visual grid |
+| `db_navigator` | DB Navigator Bar | 320 × 36 px | Classic DB action buttons bar |
+| `db_input` | Data Bound Field | 220 × 44 px | Field-bound database text input |
+| `db_dropdown` | Data Bound Select | 220 × 44 px | Field-bound database lookup select |
 | `divider` | Separator | 300 × 4 px | Horizontal line divider |
 | `form_field` | Labelled Input | 220 × 44 px | Pre-configured label + text field pair |
-| `form_password` | Labelled Password | 220 × 44 px | Pre-configured label + password pair |
-| `form_textarea` | Labelled Textarea | 280 × 120 px | Pre-configured label + textarea pair |
-| `form_dropdown` | Labelled Dropdown | 220 × 44 px | Pre-configured label + select dropdown |
+
+### Non-Visual Tray Components
+
+| Control Type | Display Name | Tray Icon | Description |
+| --- | --- | --- | --- |
+| `timer` | Timer | ⏱️ | Periodic execution timer (`onTimer` event) |
+| `open_dialog` | Open File Dialog | 📂 | Native file picker open dialog |
+| `save_dialog` | Save File Dialog | 💾 | Native file picker save dialog |
+| `db_connection` | Database Connection | 🗄️ | SQLite / JSON dataset connection component |
+| `http_client` | REST API Client | 🌐 | Asynchronous HTTP request client |
+| `notification` | System Notification | 🔔 | Desktop toast notification trigger |
 
 ---
 
@@ -163,37 +218,14 @@ Logs a backend diagnostic notification to the terminal.
 
 ## 5. Code Generators
 
-Bun RAD Studio includes 4 real-time code output generators:
+Bun RAD Studio includes 6 real-time code output generators:
 
-### 1. Bun TypeScript Generator (`generateBunTSCode()`)
-Generates executable TypeScript runner code using `webview-bun`. It automatically scans all placed controls and generates typed backend bindings for every `event_handler`:
-
-```typescript
-import { SizeHint, Webview } from "webview-bun";
-import { readFileSync } from "fs";
-import { join } from "path";
-
-const wv = new Webview();
-wv.title = "Customer Registration";
-wv.size = { width: 840, height: 560, hint: SizeHint.NONE };
-
-const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
-wv.setHTML(html);
-
-// Auto-generated Event Bindings
-wv.bind("on_button_1_click", (data?: any) => {
-    console.log("⚡ RAD Event [onClick] on #button_1:", data || "");
-    return { success: true, timestamp: Date.now() };
-});
-
-wv.run();
-```
-
-### 2. Standalone HTML5 Generator (`generateHTMLCode()`)
-Generates a clean, responsive standalone single-file web application with embedded CSS and JS.
-
-### 3. FormSpec JSON Generator
-Generates the raw, formatted `FormSpec` JSON layout document for layout saving and importing.
+1. **Bun TypeScript Generator (`generateBunTSCode()`)**: Executable TypeScript runner code using `webview-bun` with auto-generated typed backend bindings.
+2. **Standalone HTML5 Generator (`generateHTMLCode()`)**: Single-file web application with embedded CSS, JS, Anchors & Docking logic.
+3. **React + Tailwind Generator (`generateReactTailwindCode()`)**: Modern React TSX component with Tailwind CSS styling and interactive state.
+4. **Vue 3 SFC Generator (`generateVueCode()`)**: Clean Vue 3 Single File Component (`.vue`) using `<script setup>`.
+5. **Python CustomTkinter Generator (`generatePythonTkinterCode()`)**: Native desktop Python application code using CustomTkinter.
+6. **FormSpec JSON Generator**: Raw formatted `FormSpec` JSON document for importing and saving layouts.
 
 ---
 
@@ -214,3 +246,4 @@ cd exported_project
 bun install
 bun run index.ts
 ```
+

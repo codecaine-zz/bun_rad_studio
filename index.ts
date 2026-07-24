@@ -20,24 +20,71 @@ const defaultSpec = JSON.stringify({
 });
 html = html.replace("__SPEC_JSON__", defaultSpec);
 
-const webview = new Webview();
-webview.setHTML(html);
-webview.title = "Bun RAD Studio (Delphi/VB Style)";
-webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
-
-// Bind a method to run the live preview
-webview.bind("runPreview", (specJson: string) => {
+// Helper function for exporting project structure
+export function exportProjectHelper(specJson: string, customExportDir?: string) {
     try {
         const spec = JSON.parse(specJson);
-        const tempDir = join(process.cwd(), ".rad_preview");
-        mkdirSync(tempDir, { recursive: true });
-
-        // Generate preview HTML
+        const exportDir = customExportDir || join(process.cwd(), "exported_project");
+        mkdirSync(exportDir, { recursive: true });
+        
         const previewHtml = generatePreviewHtml(spec);
-        writeFileSync(join(tempDir, "preview.html"), previewHtml);
+        writeFileSync(join(exportDir, "index.html"), previewHtml);
 
-        // Generate preview runner TS
-        const previewTs = `
+        const appTs = `
+import { SizeHint, Webview } from "webview-bun";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
+const wv = new Webview();
+wv.setHTML(html);
+wv.title = "${spec.title}";
+wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
+
+// Add your custom backend bindings here!
+wv.bind("backendAlert", (msg: string) => {
+    console.log("Backend alert:", msg);
+});
+
+wv.run();
+        `;
+        writeFileSync(join(exportDir, "index.ts"), appTs.trim());
+
+        const pkgJson = {
+            name: "exported-rad-project",
+            version: "1.0.0",
+            scripts: {
+                start: "bun run index.ts"
+            },
+            dependencies: {
+                "webview-bun": "^2.4.0"
+            }
+        };
+        writeFileSync(join(exportDir, "package.json"), JSON.stringify(pkgJson, null, 2));
+
+        return { success: true, dir: exportDir };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+// Only launch main Webview IDE window when run as primary entrypoint (not imported during bun test)
+if (import.meta.main) {
+    const webview = new Webview();
+    webview.setHTML(html);
+    webview.title = "Bun RAD Studio (Delphi/VB Style)";
+    webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
+
+    webview.bind("runPreview", (specJson: string) => {
+        try {
+            const spec = JSON.parse(specJson);
+            const tempDir = join(process.cwd(), ".rad_preview");
+            mkdirSync(tempDir, { recursive: true });
+
+            const previewHtml = generatePreviewHtml(spec);
+            writeFileSync(join(tempDir, "preview.html"), previewHtml);
+
+            const previewTs = `
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -48,31 +95,42 @@ wv.setHTML(html);
 wv.title = "${spec.title} - Live Preview";
 wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
 
-// Expose backend capabilities to the preview
 wv.bind("backendAlert", (msg: string) => {
     console.log("Backend alert:", msg);
 });
 
 wv.run();
-        `;
-        writeFileSync(join(tempDir, "preview.ts"), previewTs);
+            `;
+            writeFileSync(join(tempDir, "preview.ts"), previewTs);
 
-        // Run the preview using Bun in the background
-        const proc = spawn("bun", ["run", "preview.ts"], {
-            cwd: tempDir,
-            stdio: "ignore",
-            detached: true
-        });
-        proc.unref();
+            const proc = spawn("bun", ["run", "preview.ts"], {
+                cwd: tempDir,
+                stdio: "ignore",
+                detached: true
+            });
+            proc.unref();
 
-        return { success: true };
-    } catch (err: any) {
-        console.error("Preview failed:", err);
-        return { success: false, error: err.message };
-    }
-});
+            return { success: true };
+        } catch (err: any) {
+            console.error("Preview failed:", err);
+            return { success: false, error: err.message };
+        }
+    });
 
-function generatePreviewHtml(spec: any): string {
+    webview.bind("quitApp", () => {
+        process.exit(0);
+    });
+
+    webview.bind("exportProject", (specJson: string) => {
+        return exportProjectHelper(specJson);
+    });
+
+    webview.run();
+}
+
+
+
+export function generatePreviewHtml(spec: any): string {
     const bg = spec.background_color || '#0f172a';
     const fg = spec.font_color || '#e2e8f0';
     const accent = '#38bdf8';
@@ -200,6 +258,14 @@ function generatePreviewHtml(spec: any): string {
             controls += `<div${id} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;
         } else if (t === 'path') {
             controls += `<div${id} style="${base(c)}display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid ${border};border-radius:5px;padding:0 10px;color:rgba(255,255,255,0.6);font-size:11px;overflow:hidden;">📁 ${(text||'Users › developer › project').replace(/›/g,'<span style="opacity:0.4;margin:0 4px;">›</span>')}</div>\n`;
+        } else if (t === 'db_grid') {
+            controls += `<div${id} style="${base(c)}overflow:auto;border:1px solid ${accent};border-radius:8px;background:rgba(15,23,42,0.8);box-shadow:0 4px 12px rgba(0,0,0,0.3);"><div style="padding:6px 12px;background:rgba(56,189,248,0.1);font-size:11px;font-weight:700;color:${accent};border-bottom:1px solid ${border};display:flex;justify-content:space-between;"><span>🗄️ ${text||'DBGrid: Dataset1'}</span><span>3 Records</span></div><table style="width:100%;border-collapse:collapse;font-size:11px;color:${color};"><thead><tr style="background:rgba(255,255,255,0.06);">${['ID','Customer Name','Email','Balance'].map(h=>`<th style="padding:6px 10px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[['101','Acme Corp','sales@acme.com','$12,450'],['102','Starlight Ltd','info@starlight.io','$8,900'],['103','Nexus Tech','contact@nexus.dev','$15,200']].map(r=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(56,189,248,0.08)'" onmouseout="this.style.background=''">${r.map(cell=>`<td style="padding:6px 10px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
+        } else if (t === 'db_navigator') {
+            controls += `<div${id} style="${base(c)}display:flex;align-items:center;background:rgba(255,255,255,0.06);border:1px solid ${border};border-radius:6px;padding:2px;gap:2px;">${[['⏮','First'],['◀','Prev'],['▶','Next'],['⏭','Last'],['➕','Add'],['✖','Delete'],['💾','Post'],['🔄','Refresh']].map(b=>`<button title="${b[1]}" style="flex:1;height:100%;background:rgba(255,255,255,0.05);border:none;border-radius:4px;color:${color};font-size:12px;cursor:pointer;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">${b[0]}</button>`).join('')}</div>\n`;
+        } else if (t === 'db_input') {
+            controls += `<div${id} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text||'DBField'}</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="Sample Record Data"${ev} style="height:32px;background:rgba(56,189,248,0.05);color:${color};border:1px solid ${accent}55;border-radius:5px;padding:0 10px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
+        } else if (t === 'db_dropdown') {
+            controls += `<div${id} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text||'DBLookup'}</label><select${ev} style="height:32px;background:rgba(56,189,248,0.05);color:${color};border:1px solid ${accent}55;border-radius:5px;padding:0 8px;outline:none;cursor:pointer;font-size:${c.font_size||13}px;"><option>Acme Corp</option><option>Starlight Ltd</option><option>Nexus Tech</option></select></div>\n`;
         } else if (t === 'table') {
             controls += `<div${id} style="${base(c)}overflow:auto;border:1px solid ${border};border-radius:8px;"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:rgba(255,255,255,0.06);">${['ID','Name','Value','Status'].map(h=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[1,2,3].map(r=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">${['#'+r,'Item '+r,(r*100).toFixed(0),'Active'].map(cell=>`<td style="padding:8px 12px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
         } else {
@@ -242,58 +308,3 @@ ${controls}
 </html>`;
 }
 
-
-// Bind quitApp to exit the IDE
-webview.bind("quitApp", () => {
-    process.exit(0);
-});
-
-// Bind exportProject to save generated app to disk
-webview.bind("exportProject", (specJson: string) => {
-    try {
-        const spec = JSON.parse(specJson);
-        const exportDir = join(process.cwd(), "exported_project");
-        mkdirSync(exportDir, { recursive: true });
-        
-        const previewHtml = generatePreviewHtml(spec);
-        writeFileSync(join(exportDir, "index.html"), previewHtml);
-
-        const appTs = `
-import { SizeHint, Webview } from "webview-bun";
-import { readFileSync } from "fs";
-import { join } from "path";
-
-const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
-const wv = new Webview();
-wv.setHTML(html);
-wv.title = "${spec.title}";
-wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
-
-// Add your custom backend bindings here!
-wv.bind("backendAlert", (msg: string) => {
-    console.log("Backend alert:", msg);
-});
-
-wv.run();
-        `;
-        writeFileSync(join(exportDir, "index.ts"), appTs.trim());
-
-        const pkgJson = {
-            name: "exported-rad-project",
-            version: "1.0.0",
-            scripts: {
-                start: "bun run index.ts"
-            },
-            dependencies: {
-                "webview-bun": "^2.4.0"
-            }
-        };
-        writeFileSync(join(exportDir, "package.json"), JSON.stringify(pkgJson, null, 2));
-
-        return { success: true, dir: exportDir };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
-});
-
-webview.run();

@@ -744,6 +744,7 @@
 
 		.tab-bar {
 			display: flex;
+			flex-wrap: wrap;
 			background: #090d16;
 			border-bottom: 1px solid var(--border-color);
 		}
@@ -947,6 +948,7 @@
 			<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
 			<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
 			<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
+			<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
 			<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
 			<span class="toolbar-divider"></span>
 			<!-- Edit actions -->
@@ -955,6 +957,16 @@
 			<button class="btn btn-icon" onclick="copySelectedControl()" title="Copy (⌘C)">⎘</button>
 			<button class="btn btn-icon" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
 			<button class="btn btn-icon" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
+			<span class="toolbar-divider"></span>
+			<!-- Multi-Select Alignment Tools -->
+			<button class="btn btn-icon" onclick="alignSelectedControls('left')" title="Align Left Edges">⇤</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('center_h')" title="Center Horizontally">↔</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('right')" title="Align Right Edges">⇥</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('top')" title="Align Top Edges">⟰</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('center_v')" title="Center Vertically">↕</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('bottom')" title="Align Bottom Edges">⟱</button>
+			<button class="btn btn-icon" onclick="equalizeSize('width')" title="Make Same Width">⇗</button>
+			<button class="btn btn-icon" onclick="equalizeSize('height')" title="Make Same Height">⇘</button>
 			<span class="toolbar-divider"></span>
 			<!-- Layout tools -->
 			<button class="btn btn-icon" onclick="toggleLockSelected()" title="Lock / Unlock selected">🔒</button>
@@ -1045,6 +1057,60 @@
 					<div class="palette-item" draggable="true" onclick="spawnControl('mode')" ondragstart="onDragStart(event, 'mode')" title="Mode Toggle: Theme/Mode toggle button (win.add_mode_control)">
 						<span class="palette-icon">🌓</span>
 						<span>Mode Toggle</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 2.5: Database & Data-Aware Controls (MS Access / Delphi ADO Paradigm) -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🗄️ Database & Data Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_grid')" ondragstart="onDragStart(event, 'db_grid')" title="DB Grid: Access / Delphi visual data table grid bound to dataset">
+						<span class="palette-icon">📊</span>
+						<span>DB Grid</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_navigator')" ondragstart="onDragStart(event, 'db_navigator')" title="DB Navigator: Classic dataset navigation & CRUD actions bar">
+						<span class="palette-icon">🧭</span>
+						<span>DB Navigator</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_input')" ondragstart="onDragStart(event, 'db_input')" title="DB Input: Field-bound database text field">
+						<span class="palette-icon">📝</span>
+						<span>DB Field</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_dropdown')" ondragstart="onDragStart(event, 'db_dropdown')" title="DB Dropdown: Field-bound database lookup select dropdown">
+						<span class="palette-icon">🔽</span>
+						<span>DB Lookup</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 2.6: Non-Visual Component Tray (Delphi TTimer / TOpenDialog Paradigm) -->
+			<div class="palette-category">
+				<div class="palette-cat-header">⚙️ Non-Visual Component Tray</div>
+				<div class="palette-grid">
+					<div class="palette-item" onclick="spawnNonVisualControl('timer')" title="Timer (TTimer): Execution timer trigger with interval and onTimer tick">
+						<span class="palette-icon">⏱️</span>
+						<span>Timer</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('open_dialog')" title="Open File Dialog (TOpenDialog): Native file open picker trigger">
+						<span class="palette-icon">📂</span>
+						<span>Open Dialog</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('save_dialog')" title="Save File Dialog (TSaveDialog): Native file save picker trigger">
+						<span class="palette-icon">💾</span>
+						<span>Save Dialog</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('db_connection')" title="Database Connection (TFDConnection): SQLite / JSON store connection">
+						<span class="palette-icon">🔌</span>
+						<span>DB Connection</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('http_client')" title="REST API Client (TRESTClient): HTTP API request runner">
+						<span class="palette-icon">🌐</span>
+						<span>HTTP Client</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('notification')" title="Toast Notification: Desktop toast alert trigger">
+						<span class="palette-icon">🔔</span>
+						<span>Notification</span>
 					</div>
 				</div>
 			</div>
@@ -1265,6 +1331,17 @@
 							<div id="colGuideLine" style="position: absolute; left: 445px; top: 0; bottom: 0; width: 1px; border-left: 1px dashed rgba(56, 189, 248, 0.35); pointer-events: none; z-index: 2;"><span style="font-size: 9px; color: rgba(56, 189, 248, 0.75); background: rgba(15, 23, 42, 0.85); padding: 2px 6px; border-radius: 3px; white-space: nowrap; margin-left: 4px; margin-top: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">Column 1 ↔ Column 2 (X: 445)</span></div>
 							<!-- Controls dynamically rendered here -->
 						</div>
+
+						<!-- Delphi/Lazarus Style Non-Visual Component Tray -->
+						<div id="nonVisualTrayContainer" style="background: rgba(15,23,42,0.95); border-top: 1px dashed var(--border-color); padding: 6px 12px; font-size: 11px;">
+							<div style="font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+								<span>⚙️ Non-Visual Component Tray (Timer, Dialogs, DB Connections)</span>
+								<span id="nonVisualCount" style="color: var(--text-muted);">0 non-visual items</span>
+							</div>
+							<div id="nonVisualTray" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 28px;">
+								<span style="color: var(--text-muted); font-size: 10px; font-style: italic;">No non-visual components added. Add Timers or DB Connections from Palette.</span>
+							</div>
+						</div>
 					</div>
 				</main>
 			</div>
@@ -1283,9 +1360,11 @@
 				<div class="tab-item active" onclick="switchTab('tabProps', event)">Properties</div>
 				<div class="tab-item" onclick="switchTab('tabTree', event)">Tree</div>
 				<div class="tab-item" onclick="switchTab('tabEvents', event)">Events</div>
-				<div class="tab-item" onclick="switchTab('tabCode', event)">V Code</div>
 				<div class="tab-item" onclick="switchTab('tabBunTS', event)">Bun TS</div>
 				<div class="tab-item" onclick="switchTab('tabHTML', event)">HTML</div>
+				<div class="tab-item" onclick="switchTab('tabReact', event)">React</div>
+				<div class="tab-item" onclick="switchTab('tabVue', event)">Vue 3</div>
+				<div class="tab-item" onclick="switchTab('tabPython', event)">Python</div>
 				<div class="tab-item" onclick="switchTab('tabJSON', event)">JSON</div>
 			</div>
 
@@ -1293,7 +1372,7 @@
 			<div class="tab-content active" id="tabProps">
 				<div class="prop-row">
 					<span class="prop-label">Form Title</span>
-					<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propFormTitle" oninput="updateFormSpec()">
+					<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propFormTitle" oninput="updateFormSpec()" title="Main title/caption of the form window">
 				</div>
 				<div class="prop-row">
 					<span class="prop-label">Form Theme</span>
@@ -1322,11 +1401,11 @@
 
 					<div class="prop-row" style="margin-top: 4px;">
 						<span class="prop-label">Control ID / Var Name</span>
-						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propId" oninput="updateSelectedControl('id')">
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propId" oninput="updateSelectedControl('id')" title="Unique variable name or ID for the control">
 					</div>
 					<div class="prop-row">
 						<span class="prop-label">Caption / Text</span>
-						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propText" oninput="updateSelectedControl('text')">
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propText" oninput="updateSelectedControl('text')" title="Text or caption displayed on the control">
 					</div>
 					<div class="prop-row" id="propCheckedRow">
 						<span class="prop-label">Checked / Selected</span>
@@ -1343,39 +1422,39 @@
 					<div class="prop-grid-2">
 						<div class="prop-row">
 							<span class="prop-label">X Pos (px)</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propX" oninput="updateSelectedControl('x')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propX" oninput="updateSelectedControl('x')" title="Horizontal X position on canvas">
 						</div>
 						<div class="prop-row">
 							<span class="prop-label">Y Pos (px)</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propY" oninput="updateSelectedControl('y')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propY" oninput="updateSelectedControl('y')" title="Vertical Y position on canvas">
 						</div>
 					</div>
 
 					<div class="prop-grid-2">
 						<div class="prop-row">
 							<span class="prop-label">Width (px)</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propWidth" oninput="updateSelectedControl('width')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propWidth" oninput="updateSelectedControl('width')" title="Width of the control in pixels">
 						</div>
 						<div class="prop-row">
 							<span class="prop-label">Height (px)</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propHeight" oninput="updateSelectedControl('height')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propHeight" oninput="updateSelectedControl('height')" title="Height of the control in pixels">
 						</div>
 					</div>
 
 					<div class="prop-grid-2">
 						<div class="prop-row">
 							<span class="prop-label">Font Size</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propFontSize" oninput="updateSelectedControl('font_size')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propFontSize" oninput="updateSelectedControl('font_size')" title="Text font size in pixels">
 						</div>
 						<div class="prop-row">
 							<span class="prop-label">Font Color</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propFontColor" oninput="updateSelectedControl('font_color')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propFontColor" oninput="updateSelectedControl('font_color')" title="Text foreground font color">
 						</div>
 					</div>
 
 					<div class="prop-row">
 						<span class="prop-label">Background Color</span>
-						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propBgColor" oninput="updateSelectedControl('background_color')">
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propBgColor" oninput="updateSelectedControl('background_color')" title="Control background or fill color">
 					</div>
 
 					<div class="prop-row">
@@ -1397,11 +1476,11 @@
 					<div class="prop-grid-2" style="margin-top: 4px;">
 						<div class="prop-row">
 							<span class="prop-label">Hover Background</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propHoverBgColor" oninput="updateSelectedControl('hover_color')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propHoverBgColor" oninput="updateSelectedControl('hover_color')" title="Background color on mouse hover">
 						</div>
 						<div class="prop-row">
 							<span class="prop-label">Hover Text Color</span>
-							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propHoverFgColor" oninput="updateSelectedControl('hover_text_color')">
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propHoverFgColor" oninput="updateSelectedControl('hover_text_color')" title="Text color on mouse hover">
 						</div>
 					</div>
 
@@ -1414,6 +1493,45 @@
 							<div class="swatch" style="background:#ef4444;" onclick="setHoverBgColor('#ef4444')" title="Rose Hover"></div>
 							<div class="swatch" style="background:#8b5cf6;" onclick="setHoverBgColor('#8b5cf6')" title="Violet Hover"></div>
 							<button class="btn" style="padding: 2px 6px; font-size: 9px; border-style: dashed;" onclick="setHoverBgColor('')" title="Clear custom hover background">Clear</button>
+						</div>
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">⚓ Delphi Anchors & Docking</span>
+
+					<div class="prop-row" style="margin-top: 4px;">
+						<span class="prop-label">Anchors (Top/Left/Right/Bottom)</span>
+						<div style="display:flex; gap:4px; align-items:center;">
+							<button class="btn btn-icon" id="anchorTopBtn" onclick="toggleAnchor('top')" title="Anchor Top" style="width:28px; height:24px; font-size:10px; font-weight:bold;">T</button>
+							<button class="btn btn-icon" id="anchorLeftBtn" onclick="toggleAnchor('left')" title="Anchor Left" style="width:28px; height:24px; font-size:10px; font-weight:bold;">L</button>
+							<button class="btn btn-icon" id="anchorRightBtn" onclick="toggleAnchor('right')" title="Anchor Right" style="width:28px; height:24px; font-size:10px; font-weight:bold;">R</button>
+							<button class="btn btn-icon" id="anchorBottomBtn" onclick="toggleAnchor('bottom')" title="Anchor Bottom" style="width:28px; height:24px; font-size:10px; font-weight:bold;">B</button>
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Dock Behavior</span>
+						<select class="prop-input" id="propDock" onchange="updateSelectedControlDock(this.value)" title="Dock control to parent container edge">
+							<option value="none">None (Free Position)</option>
+							<option value="top">Top Edge</option>
+							<option value="bottom">Bottom Edge</option>
+							<option value="left">Left Edge</option>
+							<option value="right">Right Edge</option>
+							<option value="fill">Fill (Client Align)</option>
+						</select>
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">🗄️ MS Access Data Binding</span>
+
+					<div class="prop-grid-2" style="margin-top: 4px;">
+						<div class="prop-row">
+							<span class="prop-label">Data Source</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propDataSource" placeholder="Dataset1" oninput="updateSelectedControl('data_source')" title="Linked dataset name for data binding">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Data Field</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propDataField" placeholder="customer_name" oninput="updateSelectedControl('data_field')" title="Linked column or field for data binding">
 						</div>
 					</div>
 
@@ -1465,51 +1583,97 @@
 
 				<div class="prop-row">
 					<span class="prop-label">onClick Handler</span>
-					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnClick" placeholder="alert('Clicked!');" oninput="updateEventPlaceholder('onClick', this.value)"></textarea>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnClick" placeholder="alert('Clicked!');" oninput="updateEventPlaceholder('onClick', this.value)" title="JavaScript code to execute on click"></textarea>
 				</div>
 
 				<div class="prop-row">
 					<span class="prop-label">onChange Handler</span>
-					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnChange" placeholder="console.log('Changed');" oninput="updateEventPlaceholder('onChange', this.value)"></textarea>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnChange" placeholder="console.log('Changed');" oninput="updateEventPlaceholder('onChange', this.value)" title="JavaScript code to execute on value change"></textarea>
 				</div>
 
 				<div class="prop-row">
 					<span class="prop-label">onDoubleClick Handler</span>
-					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnDblClick" placeholder="" oninput="updateEventPlaceholder('onDoubleClick', this.value)"></textarea>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnDblClick" placeholder="" oninput="updateEventPlaceholder('onDoubleClick', this.value)" title="JavaScript code to execute on double click"></textarea>
 				</div>
 
 				<div class="prop-row">
 					<span class="prop-label">onHover (Mouse Enter)</span>
-					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnHover" placeholder="" oninput="updateEventPlaceholder('onHover', this.value)"></textarea>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnHover" placeholder="" oninput="updateEventPlaceholder('onHover', this.value)" title="JavaScript code to execute when mouse enters"></textarea>
 				</div>
 
 				<div class="prop-row">
 					<span class="prop-label">onHoverExit (Mouse Exit)</span>
-					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnHoverExit" placeholder="" oninput="updateEventPlaceholder('onHoverExit', this.value)"></textarea>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnHoverExit" placeholder="" oninput="updateEventPlaceholder('onHoverExit', this.value)" title="JavaScript code to execute when mouse exits"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onFocus</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnFocus" placeholder="" oninput="updateEventPlaceholder('onFocus', this.value)" title="JavaScript code to execute on focus"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onBlur</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnBlur" placeholder="" oninput="updateEventPlaceholder('onBlur', this.value)" title="JavaScript code to execute on blur"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onKeyDown</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnKeyDown" placeholder="" oninput="updateEventPlaceholder('onKeyDown', this.value)" title="JavaScript code to execute on key down"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onKeyUp</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnKeyUp" placeholder="" oninput="updateEventPlaceholder('onKeyUp', this.value)" title="JavaScript code to execute on key up"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onMouseDown</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnMouseDown" placeholder="" oninput="updateEventPlaceholder('onMouseDown', this.value)" title="JavaScript code to execute on mouse down"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onMouseUp</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnMouseUp" placeholder="" oninput="updateEventPlaceholder('onMouseUp', this.value)" title="JavaScript code to execute on mouse up"></textarea>
 				</div>
 			</div>
 
-			<!-- V Code Export Tab -->
-			<div class="tab-content" id="tabCode">
-				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="codePreviewText" readonly></textarea>
-			</div>
-
-			<!-- Bun TS Code Export Tab -->
+			<!-- Bun TS Export Tab -->
 			<div class="tab-content" id="tabBunTS">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-					<span class="prop-label" style="color:var(--accent);">Bun / Webview TS Code</span>
-					<button class="btn btn-primary" onclick="copyBunTSCode()">📋 Copy Bun TS</button>
+					<span class="prop-label" style="color:var(--accent);">Bun TypeScript</span>
+					<button class="btn btn-primary" onclick="copyBunTSCode()">📋 Copy Bun Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="bunTsPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
 
-			<!-- HTML / CSS Export Tab -->
+			<!-- HTML Export Tab -->
 			<div class="tab-content" id="tabHTML">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-					<span class="prop-label" style="color:var(--accent);">Standalone HTML5 & CSS</span>
-					<button class="btn btn-primary" onclick="copyHTMLCode()">📋 Copy HTML</button>
+					<span class="prop-label" style="color:var(--accent);">Standalone HTML5</span>
+					<button class="btn btn-primary" onclick="copyHTMLCode()">📋 Copy HTML Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="htmlPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- React + Tailwind Export Tab -->
+			<div class="tab-content" id="tabReact">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">React + Tailwind TSX</span>
+					<button class="btn btn-primary" onclick="copyReactCode()">📋 Copy React Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="reactPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- Vue 3 SFC Export Tab -->
+			<div class="tab-content" id="tabVue">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">Vue 3 SFC (.vue)</span>
+					<button class="btn btn-primary" onclick="copyVueCode()">📋 Copy Vue Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="vuePreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- Python CustomTkinter Export Tab -->
+			<div class="tab-content" id="tabPython">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">Python CustomTkinter</span>
+					<button class="btn btn-primary" onclick="copyPythonCode()">📋 Copy Python Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="pythonPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
 
 			<!-- JSON Export Tab -->
@@ -1517,6 +1681,25 @@
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="jsonPreviewText" readonly></textarea>
 			</div>
 		</aside>
+	</div>
+
+	<!-- Event Handler Code Editor Modal (Delphi / VB Code Window Paradigm) -->
+	<div class="modal-overlay" id="eventEditorModal">
+		<div class="modal-box" style="width:680px;">
+			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+				<span style="font-weight:700; color:var(--accent); font-size:14px;" id="eventEditorTitle">✏️ RAD Event Handler Script Editor</span>
+				<span id="eventEditorSubtitle" style="font-size:11px; color:var(--text-muted);">button_1.onClick</span>
+			</div>
+			<div style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap;">
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('alert')">+ Alert Dialog</button>
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('console')">+ Console Log</button>
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('backend')">+ Backend Call</button>
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('setValue')">+ Set Control Value</button>
+			</div>
+			<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="eventEditorTextarea" style="height:260px; font-family:monospace; font-size:12px; line-height:1.4; background:#0f172a; color:#7dd3fc; border-color:var(--accent);"></textarea>
+			<div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+				<button class="btn" onclick="hideEventEditorModal()">Cancel</button>
+				<button class="btn btn-primary" onclick="saveEventHandlerCode()">💾 Save & Bind Handler</button>
 	</div>
 
 	<!-- Custom Right-Click Context Menu -->
@@ -2413,6 +2596,10 @@
 				defaultBg = themeColors.panelBg;
 			}
 
+			let defaultTooltip = "";
+			const pItem = document.querySelector(`.palette-item[onclick*="'${type}'"]`);
+			if (pItem) defaultTooltip = pItem.getAttribute("title") || "";
+
 			const newControl = {
 				id: id,
 				control_type: type,
@@ -2427,6 +2614,7 @@
 				enabled: true,
 				visible: true,
 				locked: false,
+				tooltip: defaultTooltip,
 				event_handlers: {
 					"onClick": "on_" + id + "_click"
 				}
@@ -3401,8 +3589,11 @@
 			canvas.style.backgroundColor = formSpec.background_color || "#0f172a";
 			canvas.style.color = formSpec.font_color || "#f8fafc";
 
-			document.getElementById("winTitleHeader").textContent = formSpec.title;
-			document.getElementById("canvasStats").textContent = "Form: " + formSpec.width + "x" + formSpec.height + " | Controls: " + formSpec.controls.length + (selectedIndices.length > 0 ? " (Selected: " + selectedIndices.length + ")" : "");
+			const winHeaderEl = document.getElementById("winTitleHeader");
+			if (winHeaderEl) winHeaderEl.textContent = formSpec.title || "Delphi/VB RAD Form Studio";
+
+			const statsEl = document.getElementById("canvasStats");
+			if (statsEl) statsEl.textContent = "Form: " + formSpec.width + "x" + formSpec.height + " | Controls: " + formSpec.controls.length + (selectedIndices.length > 0 ? " (Selected: " + selectedIndices.length + ")" : "");
 
 			formSpec.controls.forEach((ctrl, idx) => {
 				const div = document.createElement("div");
@@ -4012,6 +4203,18 @@
 				if (evtHoverEl) evtHoverEl.value = c.event_handlers["onHover"] || "";
 				const evtHoverExitEl = document.getElementById("evtOnHoverExit");
 				if (evtHoverExitEl) evtHoverExitEl.value = c.event_handlers["onHoverExit"] || "";
+				const evtFocusEl = document.getElementById("evtOnFocus");
+				if (evtFocusEl) evtFocusEl.value = c.event_handlers["onFocus"] || "";
+				const evtBlurEl = document.getElementById("evtOnBlur");
+				if (evtBlurEl) evtBlurEl.value = c.event_handlers["onBlur"] || "";
+				const evtKeyDownEl = document.getElementById("evtOnKeyDown");
+				if (evtKeyDownEl) evtKeyDownEl.value = c.event_handlers["onKeyDown"] || "";
+				const evtKeyUpEl = document.getElementById("evtOnKeyUp");
+				if (evtKeyUpEl) evtKeyUpEl.value = c.event_handlers["onKeyUp"] || "";
+				const evtMouseDownEl = document.getElementById("evtOnMouseDown");
+				if (evtMouseDownEl) evtMouseDownEl.value = c.event_handlers["onMouseDown"] || "";
+				const evtMouseUpEl = document.getElementById("evtOnMouseUp");
+				if (evtMouseUpEl) evtMouseUpEl.value = c.event_handlers["onMouseUp"] || "";
 			} else {
 				const selectedCtrls = selectedIndices.map(i => formSpec.controls[i]);
 				if (propIdEl) { propIdEl.value = ""; propIdEl.placeholder = "(Multiple)"; propIdEl.disabled = true; }
@@ -4179,6 +4382,12 @@
 				c.event_handlers["onChange"] = "on_" + c.id + "_change";
 				c.event_handlers["onHover"] = "on_" + c.id + "_hover";
 				c.event_handlers["onHoverExit"] = "on_" + c.id + "_hover_exit";
+				c.event_handlers["onFocus"] = "on_" + c.id + "_focus";
+				c.event_handlers["onBlur"] = "on_" + c.id + "_blur";
+				c.event_handlers["onKeyDown"] = "on_" + c.id + "_keydown";
+				c.event_handlers["onKeyUp"] = "on_" + c.id + "_keyup";
+				c.event_handlers["onMouseDown"] = "on_" + c.id + "_mousedown";
+				c.event_handlers["onMouseUp"] = "on_" + c.id + "_mouseup";
 			});
 			populateInspector();
 			renderCode();
@@ -4300,6 +4509,18 @@
 								vcode += "  win.on_hover_exit('" + c.id + "', " + h_clean + ")\n";
 							} else if (evt === "onDoubleClick") {
 								vcode += "  win.add_context_menu_item('" + c.id + "', 'Double Click', " + h_clean + ")\n";
+							} else if (evt === "onFocus") {
+								vcode += "  // win.on_focus('" + c.id + "', " + h_clean + ")\n";
+							} else if (evt === "onBlur") {
+								vcode += "  // win.on_blur('" + c.id + "', " + h_clean + ")\n";
+							} else if (evt === "onKeyDown") {
+								vcode += "  // win.on_key_down('" + c.id + "', " + h_clean + ")\n";
+							} else if (evt === "onKeyUp") {
+								vcode += "  // win.on_key_up('" + c.id + "', " + h_clean + ")\n";
+							} else if (evt === "onMouseDown") {
+								vcode += "  // win.on_mouse_down('" + c.id + "', " + h_clean + ")\n";
+							} else if (evt === "onMouseUp") {
+								vcode += "  // win.on_mouse_up('" + c.id + "', " + h_clean + ")\n";
 							}
 							handlers.push({ name: h_clean, id: c.id, evt: evt });
 						}
@@ -4607,6 +4828,291 @@
 				alert("Invalid JSON format: " + err.message);
 			}
 		}
+
+		// MS Access Database CRUD Form Wizard (1-Click RAD Form Generator)
+		function launchAccessCrudWizard() {
+			saveHistoryState();
+			formSpec = {
+				title: "Customer Database CRUD Manager",
+				width: 860,
+				height: 580,
+				background_color: "#0f172a",
+				font_color: "#f8fafc",
+				padding: 20,
+				spacing: 12,
+				controls: [
+					{ id: "lbl_header", control_type: "label", x: 20, y: 16, width: 340, height: 28, text: "🗄️ Customer Accounts Repository", font_size: 16, font_color: "#38bdf8" },
+					{ id: "db_nav_main", control_type: "db_navigator", x: 380, y: 14, width: 320, height: 32, text: "Dataset1" },
+					{ id: "btn_new_rec", control_type: "button", x: 710, y: 14, width: 130, height: 32, text: "+ New Record", background_color: "#0284c7", font_color: "#ffffff" },
+					
+					{ id: "pnl_fields", control_type: "panel", x: 20, y: 56, width: 320, height: 360, text: "RECORD DETAILS (ACCESS FORM)" },
+					{ id: "db_input_id", control_type: "db_input", x: 36, y: 92, width: 280, height: 44, text: "Customer ID", data_source: "Dataset1", data_field: "id" },
+					{ id: "db_input_name", control_type: "db_input", x: 36, y: 144, width: 280, height: 44, text: "Company Name", data_source: "Dataset1", data_field: "company_name" },
+					{ id: "db_input_email", control_type: "db_input", x: 36, y: 196, width: 280, height: 44, text: "Contact Email", data_source: "Dataset1", data_field: "email" },
+					{ id: "db_lookup_status", control_type: "db_dropdown", x: 36, y: 248, width: 280, height: 44, text: "Account Status", data_source: "Dataset1", data_field: "status" },
+					{ id: "db_input_balance", control_type: "db_input", x: 36, y: 300, width: 280, height: 44, text: "Current Balance ($)", data_source: "Dataset1", data_field: "balance" },
+					{ id: "btn_save_rec", control_type: "button", x: 36, y: 356, width: 280, height: 36, text: "💾 Save Record Changes", background_color: "#10b981", font_color: "#ffffff", event_handlers: { onClick: "on_save_record_click" } },
+
+					{ id: "db_grid_main", control_type: "db_grid", x: 356, y: 56, width: 484, height: 360, text: "Dataset1: Customer Database Grid", data_source: "Dataset1" },
+					
+					{ id: "alert_info", control_type: "alert_banner", x: 20, y: 430, width: 820, height: 40, text: "Connected to SQLite Database (customers.db) — 3 Active Records Loaded", alert_type: "info" }
+				],
+				non_visual_controls: [
+					{ id: "dbConn1", control_type: "db_connection", text: "customers.db (SQLite)" },
+					{ id: "timer1", control_type: "timer", interval: 5000, enabled: true, event_handlers: { onTimer: "on_db_sync_timer" } },
+					{ id: "openDlg1", control_type: "open_dialog", text: "Import DB File" }
+				]
+			};
+			selectedIndices = [];
+			renderCanvas();
+			renderNonVisualTray();
+			renderCode();
+			renderTree();
+			populateInspector();
+			showCopyToast("Generated MS Access style Database CRUD Form!");
+		}
+
+		// Non-Visual Components Tray System (Delphi TTimer / TOpenDialog Paradigm)
+		function spawnNonVisualControl(type) {
+			saveHistoryState();
+			formSpec.non_visual_controls = formSpec.non_visual_controls || [];
+			const count = formSpec.non_visual_controls.length + 1;
+			const id = type + "_" + count;
+			let icon = "⚙️";
+			if (type === "timer") icon = "⏱️";
+			else if (type === "open_dialog") icon = "📂";
+			else if (type === "save_dialog") icon = "💾";
+			else if (type === "db_connection") icon = "🔌";
+			else if (type === "http_client") icon = "🌐";
+			else if (type === "notification") icon = "🔔";
+
+			let defaultTooltip = "";
+			const pItem = document.querySelector(`.palette-item[onclick*="'${type}'"]`);
+			if (pItem) defaultTooltip = pItem.getAttribute("title") || "";
+
+			const nvc = {
+				id: id,
+				control_type: type,
+				icon: icon,
+				text: id,
+				tooltip: defaultTooltip,
+				interval: type === "timer" ? 1000 : undefined,
+				enabled: true,
+				event_handlers: {}
+			};
+			formSpec.non_visual_controls.push(nvc);
+			renderNonVisualTray();
+			renderCode();
+			showCopyToast("Added non-visual " + type + " to component tray!");
+		}
+
+		function renderNonVisualTray() {
+			const tray = document.getElementById("nonVisualTray");
+			const countEl = document.getElementById("nonVisualCount");
+			if (!tray) return;
+			const nvcs = formSpec.non_visual_controls || [];
+			if (countEl) countEl.textContent = nvcs.length + " non-visual item(s)";
+
+			if (nvcs.length === 0) {
+				tray.innerHTML = '<span style="color: var(--text-muted); font-size: 10px; font-style: italic;">No non-visual components added. Add Timers or DB Connections from Palette.</span>';
+				return;
+			}
+
+			tray.innerHTML = nvcs.map((c, i) => {
+				let icon = "⚙️";
+				if (c.control_type === "timer") icon = "⏱️";
+				else if (c.control_type === "open_dialog") icon = "📂";
+				else if (c.control_type === "save_dialog") icon = "💾";
+				else if (c.control_type === "db_connection") icon = "🔌";
+				else if (c.control_type === "http_client") icon = "🌐";
+				else if (c.control_type === "notification") icon = "🔔";
+
+				return `<div onclick="selectNonVisualControl(${i})" style="display:inline-flex; align-items:center; gap:6px; background:rgba(56,189,248,0.12); border:1px solid var(--accent); border-radius:14px; padding:3px 10px; cursor:pointer; color:var(--text-primary); font-weight:600; font-size:11px;" title="${c.id} (${c.control_type})"><span>${icon}</span><span>${c.id}</span><span onclick="event.stopPropagation(); deleteNonVisualControl(${i})" style="opacity:0.6; margin-left:4px; font-size:10px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">✕</span></div>`;
+			}).join('');
+		}
+
+		function deleteNonVisualControl(idx) {
+			if (!formSpec.non_visual_controls) return;
+			saveHistoryState();
+			formSpec.non_visual_controls.splice(idx, 1);
+			renderNonVisualTray();
+			renderCode();
+		}
+
+		function selectNonVisualControl(idx) {
+			const c = formSpec.non_visual_controls[idx];
+			if (!c) return;
+			document.getElementById("statusMsg").textContent = "Inspecting Non-Visual Component: " + c.id;
+		}
+
+		// Delphi Anchors & Docking Controls
+		function toggleAnchor(dir) {
+			if (selectedIndices.length === 0) return;
+			saveHistoryState();
+			selectedIndices.forEach(idx => {
+				const c = formSpec.controls[idx];
+				c.anchors = c.anchors || { top: true, left: true, right: false, bottom: false };
+				c.anchors[dir] = !c.anchors[dir];
+			});
+			populateInspector();
+			renderCanvas();
+			renderCode();
+		}
+
+		function updateSelectedControlDock(val) {
+			if (selectedIndices.length === 0) return;
+			saveHistoryState();
+			selectedIndices.forEach(idx => {
+				formSpec.controls[idx].dock = val;
+			});
+			populateInspector();
+			renderCanvas();
+			renderCode();
+		}
+
+		// Event Handler Code Editor Modal Logic
+		let activeEditingEvtName = null;
+
+		function showEventEditorModal(evtName) {
+			if (selectedIndices.length !== 1) {
+				alert("Please select a single control to edit event handlers.");
+				return;
+			}
+			const c = formSpec.controls[selectedIndices[0]];
+			activeEditingEvtName = evtName;
+			const titleEl = document.getElementById("eventEditorTitle");
+			const subtitleEl = document.getElementById("eventEditorSubtitle");
+			const textarea = document.getElementById("eventEditorTextarea");
+
+			if (titleEl) titleEl.textContent = "✏️ RAD Event Script Editor: " + evtName;
+			if (subtitleEl) subtitleEl.textContent = c.id + "." + evtName;
+			if (textarea) textarea.value = (c.event_handlers && c.event_handlers[evtName]) || "";
+
+			const modal = document.getElementById("eventEditorModal");
+			if (modal) modal.style.display = "flex";
+		}
+
+		function hideEventEditorModal() {
+			const modal = document.getElementById("eventEditorModal");
+			if (modal) modal.style.display = "none";
+		}
+
+		function saveEventHandlerCode() {
+			if (selectedIndices.length !== 1 || !activeEditingEvtName) return;
+			saveHistoryState();
+			const c = formSpec.controls[selectedIndices[0]];
+			c.event_handlers = c.event_handlers || {};
+			const code = document.getElementById("eventEditorTextarea").value;
+			c.event_handlers[activeEditingEvtName] = code;
+
+			hideEventEditorModal();
+			populateInspector();
+			renderCode();
+			showCopyToast("Saved & bound event handler " + activeEditingEvtName + " to " + c.id + "!");
+		}
+
+		function insertEventCodeSnippet(type) {
+			const textarea = document.getElementById("eventEditorTextarea");
+			if (!textarea) return;
+			let snippet = "";
+			if (type === "alert") snippet = "alert('Event triggered successfully!');";
+			else if (type === "console") snippet = "console.log('⚡ RAD Event triggered:', this.id, this.value);";
+			else if (type === "backend") snippet = "if (window.backendAlert) window.backendAlert('Processing backend action for ' + this.id);";
+			else if (type === "setValue") snippet = "document.getElementById('target_ctrl_id').textContent = 'Updated!';";
+
+			textarea.value = (textarea.value ? textarea.value + "\n" : "") + snippet;
+		}
+
+		// Modern Framework Code Generators (React + Tailwind, Vue 3, Python CustomTkinter)
+		function generateReactTailwindCode() {
+			const title = formSpec.title || "RAD Studio Form";
+			let code = `import React, { useState } from 'react';\n\nexport default function ${title.replace(/[^a-zA-Z0-9]/g, '') || 'App'}Form() {\n`;
+			code += `  // Form Component State\n  const [formState, setFormState] = useState({\n`;
+			(formSpec.controls || []).forEach(c => {
+				code += `    ${c.id}: ${JSON.stringify(c.value !== undefined ? c.value : c.text || '')},\n`;
+			});
+			code += `  });\n\n`;
+			code += `  return (\n    <div className="relative w-[${formSpec.width || 840}px] min-h-[${formSpec.height || 560}px] bg-[${formSpec.background_color || '#0f172a'}] text-[${formSpec.font_color || '#f8fafc'}] rounded-xl shadow-2xl p-6 overflow-hidden">\n`;
+			code += `      <h2 className="text-xl font-bold border-b border-white/10 pb-3 mb-4">${title}</h2>\n`;
+
+			(formSpec.controls || []).forEach(c => {
+				const style = `left: '${c.x}px', top: '${c.y + 30}px', width: '${c.width}px', height: '${c.height}px'`;
+				if (c.control_type === 'button') {
+					code += `      <button id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-lg shadow-md transition flex items-center justify-center">${c.text || 'Button'}</button>\n`;
+				} else if (c.control_type === 'label') {
+					code += `      <span id="${c.id}" style={{ position: 'absolute', ${style} }} className="font-medium flex items-center">${c.text || 'Label'}</span>\n`;
+				} else if (c.control_type === 'input') {
+					code += `      <input id="${c.id}" type="text" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none focus:border-sky-400" placeholder="${c.placeholder || ''}" defaultValue="${c.text || ''}" />\n`;
+				} else {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="border border-white/10 rounded-lg p-2 flex items-center">${c.text || c.id}</div>\n`;
+				}
+			});
+
+			code += `    </div>\n  );\n}\n`;
+			return code;
+		}
+
+		function generateVueCode() {
+			const title = formSpec.title || "RAD Studio Form";
+			let code = `<template>\n  <div class="rad-form-window">\n    <h2 class="form-title">${title}</h2>\n`;
+			(formSpec.controls || []).forEach(c => {
+				const style = `position: absolute; left: ${c.x}px; top: ${c.y + 30}px; width: ${c.width}px; height: ${c.height}px;`;
+				if (c.control_type === 'button') {
+					code += `    <button id="${c.id}" style="${style}" class="rad-btn">${c.text || 'Button'}</button>\n`;
+				} else {
+					code += `    <div id="${c.id}" style="${style}" class="rad-ctrl">${c.text || c.id}</div>\n`;
+				}
+			});
+			code += `  </div>\n</template>\n\n<` + `script setup>\nimport { ref } from 'vue';\n// Form Logic Here\n<` + `/script>\n\n<style scoped>\n.rad-form-window { position: relative; width: ${formSpec.width || 840}px; height: ${formSpec.height || 560}px; background: ${formSpec.background_color || '#0f172a'}; color: ${formSpec.font_color || '#f8fafc'}; border-radius: 12px; padding: 20px; }\n</style>\n`;
+			return code;
+		}
+
+		function generatePythonTkinterCode() {
+			const title = formSpec.title || "RAD Studio App";
+			let code = `import customtkinter as ctk\n\n# Initialize Application Window\nctk.set_appearance_mode("dark")\nroot = ctk.CTk()\nroot.title("${title}")\nroot.geometry("${formSpec.width || 840}x${formSpec.height || 560}")\n\n`;
+			(formSpec.controls || []).forEach(c => {
+				if (c.control_type === 'button') {
+					code += `# ${c.id}\nbtn_${c.id} = ctk.CTkButton(root, text="${c.text || 'Button'}", width=${c.width}, height=${c.height})\nbtn_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'label') {
+					code += `# ${c.id}\nlbl_${c.id} = ctk.CTkLabel(root, text="${c.text || 'Label'}")\nlbl_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'input') {
+					code += `# ${c.id}\nentry_${c.id} = ctk.CTkEntry(root, width=${c.width}, height=${c.height}, placeholder_text="${c.placeholder || ''}")\nentry_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				}
+			});
+			code += `root.mainloop()\n`;
+			return code;
+		}
+
+		function copyReactCode() {
+			const code = generateReactTailwindCode();
+			copyTextToClipboard(code, "Copied React + Tailwind TSX code to clipboard!");
+			switchTab("tabReact");
+		}
+
+		function copyVueCode() {
+			const code = generateVueCode();
+			copyTextToClipboard(code, "Copied Vue 3 SFC code to clipboard!");
+			switchTab("tabVue");
+		}
+
+		function copyPythonCode() {
+			const code = generatePythonTkinterCode();
+			copyTextToClipboard(code, "Copied Python CustomTkinter code to clipboard!");
+			switchTab("tabPython");
+		}
+
+		// Hook into renderCode to keep modern exporters populated
+		const origRenderCode = renderCode;
+		renderCode = function() {
+			origRenderCode();
+			const reactEl = document.getElementById("reactPreviewText");
+			if (reactEl) reactEl.value = generateReactTailwindCode();
+			const vueEl = document.getElementById("vuePreviewText");
+			if (vueEl) vueEl.value = generateVueCode();
+			const pyEl = document.getElementById("pythonPreviewText");
+			if (pyEl) pyEl.value = generatePythonTkinterCode();
+			renderNonVisualTray();
+		};
 
 		function triggerRunForm() {
 			document.getElementById("statusMsg").textContent = "Launching live Bun preview window...";
