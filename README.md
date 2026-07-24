@@ -2,9 +2,9 @@
 
 A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** and **Webview-Bun**, inspired by classic Borland Delphi and Visual Basic 6, built with modern web technologies.
 
-![Bun RAD Studio Architecture](https://img.shields.value/badge/Bun-v1.3.14-orange?style=for-the-badge&logo=bun)
-![Webview-Bun](https://img.shields.value/badge/Webview--Bun-v2.4.0-blue?style=for-the-badge)
-![TypeScript](https://img.shields.value/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
+![Bun RAD Studio Architecture](https://img.shields.io/badge/Bun-v1.3.14-orange?style=for-the-badge&logo=bun)
+![Webview-Bun](https://img.shields.io/badge/Webview--Bun-v2.4.0-blue?style=for-the-badge)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)
 
@@ -20,28 +20,31 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Marquee Multi-Selection**: Left-click and drag across the canvas background to marquee select groups of components.
 * **Component Hierarchy & Tree**: View, filter, and select components in a real-time DOM hierarchy tree.
 
+### 🖼️ Native Window Management & Placement API
+* **Native Fullscreen Mode**: Press **<kbd>Cmd</kbd> + <kbd>F</kbd>** / **<kbd>Fn</kbd> + <kbd>F</kbd>** / **<kbd>F11</kbd>** or click `⛶ Fullscreen` to toggle borderless native macOS Cocoa window fullscreen mode (`[NSWindow toggleFullScreen:nil]`).
+* **Stay On Top (Window Pinning)**: Click `📌 Pin: ON / OFF` or call `setAlwaysOnTop(true)` to float the application window above all other desktop applications (`NSFloatingWindowLevel`).
+* **Window Placement API**: Position application windows anywhere on screen using `setWindowPosition(pos)` or the `📍 Position` toolbar dropdown across 9 screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` coordinates.
+* **Application Quit**: Press **<kbd>Cmd</kbd> + <kbd>Q</kbd>** (macOS) or **<kbd>Alt</kbd> + <kbd>F4</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Q</kbd>** (Windows/Linux) to safely terminate application execution (`process.exit(0)`).
+
 ### 🗄️ MS Access & Delphi Data-Aware RAD Controls
 * **Data-Aware Controls**: Access & Delphi style DB controls including `DBGrid` with sorting/paging, `DBNavigator` (First/Prev/Next/Last/Add/Delete/Post/Refresh), `DBInput`, and `DBDropdown` with live dataset field bindings.
 * **1-Click Database CRUD Form Wizard**: Instant 1-click wizard button that auto-generates a complete, ready-to-run Customer Accounts Database CRUD layout.
 
-### 🎨 35+ Modern UI & RAD Controls
+### 🎨 45+ Modern UI & RAD Controls
 * **Standard Controls**: Buttons, Labels, Single-Line Inputs, Password Inputs, Textareas, Checkboxes, Radio Buttons, Toggles/Switches, Sliders, Number Steppers, Color Wells, Date Pickers, and File Pickers.
+* **Advanced Modern Controls**: Segmented Control (`segmented_control`), Directory Tree Explorer (`tree_view`), Stacked User Profile Avatars (`avatar_group`), Executive KPI Stat Card with SVG Sparkline (`stat_chart`), Collapsible Accordion Panel (`accordion`), Step Navigation Breadcrumbs (`breadcrumb`), Step Activity Timeline (`timeline`), Floating Notification Toast Alert (`toast_card`), Precision Clock Time Picker (`time_picker`), and Searchable Combobox (`rich_select`).
 * **Data & Non-Visual Controls**: DB Grid, DB Navigator, DB Field, DB Lookup, Timer, File Dialogs, DB Connection, REST HTTP Client, Notification.
-* **Advanced Visual Controls**: Progress Bars, SVG Circular Gauges, Star Ratings, Badges, Status Indicators, Metric KPI Cards, Alert Banners, Interactive Monospaced Code Views (`code_view`), File Drop Zones, and Tag Chips.
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 * **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-### 📐 Precision Alignment & Layout Tools
-* **Single-Control Alignment**: Instantly snap a control to the Left, Center H, Right, Top, Center V, or Bottom edge of the form canvas.
-* **Multi-Control Alignment Toolbar**: Select multiple controls to align their left, right, top, or bottom edges, center horizontally/vertically, or equalize width/height.
-* **Size Equalization**: Match selected controls' width or height to the primary control, or equalize to **Widest**, **Narrowest**, **Tallest**, or **Shortest**.
-
-### ✏️ In-Studio Event Handler Code Editor & Object Inspector
-* **Dual-Tab Object Inspector**: Separate `Properties` and `Events` tabs in the Object Inspector, complete with detailed tooltip hints for every single property and event.
-* **Control Enabled/Disabled State**: Full support for `Enabled State` property toggling (`Enabled` vs `Disabled`) directly in the Object Inspector. Controls configured with `enabled: false` render with dimmed opacity and grayscale cues on canvas, and native HTML `disabled` attributes with `pointer-events: none` on window creation.
-* **Interactive Code View (`code_view`)**: Interactive monospaced code editing control allowing users to type, edit, and bind events to code blocks in Live Preview and exported applications.
-* **Component Tooltips**: Dropping a control from the palette automatically assigns it a descriptive tooltip explaining its purpose and API method.
-* **Interactive Code Editor Modal**: Double-click any event (`onClick`, `onChange`, `onDoubleClick`, `onTimer`, `onHover`, `onHoverExit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseDown`, `onMouseUp`) to open an in-studio script code editor modal with syntax highlighting and pre-built code snippets.
+### 🛠️ High-Level Backend & Client Helper Utilities
+Programmatically interact with and control form state from Bun TypeScript or client scripts:
+- `getControlValue(id)` / `setControlText(id, text)` / `setControlValue(id, value)`
+- `setControlEnabled(id, enabled)` / `setControlVisible(id, visible)`
+- `setSegmentedSelected(id, text)` / `setStatChart(id, opts)` / `setToast(id, title, msg, alertType)`
+- `setTimePickerValue(id, timeStr)` / `setAccordionOpen(id, open)` / `setTimelineSteps(id, stepsCSV)`
+- `setBreadcrumbs(id, crumbsCSV)` / `setTreeNodes(id, nodesCSV)` / `setAvatarGroup(id, avatarsCSV)` / `setRichSelectText(id, text)`
+- `setAlwaysOnTop(onTop)` / `setWindowPosition(pos)` / `quitApp()`
 
 ### ⚡ Auto-Generated Code & Multi-Target Exporters
 * **Live Bun TypeScript Exporter**: Real-time auto-generated Bun + `webview-bun` TypeScript code (`index.ts`) complete with typed backend method bindings (`wv.bind(...)`).
@@ -78,6 +81,8 @@ bun run index.ts
 | Shortcut | Action |
 | --- | --- |
 | **F5** | Launch Live App Preview Window |
+| **⌘ + F** / **Fn + F** / **F11** | Toggle Native Borderless Fullscreen Mode |
+| **⌘ + Q** / **Alt + F4** | Terminate & Quit Application (`process.exit(0)`) |
 | **⌘ + C** / **Ctrl + C** | Copy selected control(s) to clipboard buffer |
 | **⌘ + V** / **Ctrl + V** | Paste copied control(s) at cursor position |
 | **⌘ + D** / **Ctrl + D** | Duplicate selected control(s) |
@@ -97,7 +102,7 @@ bun run index.ts
 
 ```
 bun_rad_studio/
-├── index.ts          # Main Bun entry point & Webview IPC runner
+├── index.ts          # Main Bun entry point, FFI Window Manager & Webview IPC runner
 ├── package.json      # Dependencies (webview-bun, @types/bun)
 ├── tsconfig.json     # TypeScript compiler settings
 ├── API.md            # Complete API & FormSpec JSON Schema Specification

@@ -253,6 +253,8 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `setTreeNodes(id, nodesCSV)` | `(id: string, nodesCSV: string) => void` | Updates Tree View directory nodes from comma-separated string |
 | `setAvatarGroup(id, avatarsCSV)` | `(id: string, avatarsCSV: string) => void` | Updates Avatar Group stack initials from comma-separated string |
 | `setRichSelectText(id, text)` | `(id: string, text: string) => void` | Updates Searchable Combobox display selection label |
+| `setAlwaysOnTop(onTop)` | `(onTop: boolean) => void` | Toggles window always-on-top mode floating above all OS windows |
+| `setWindowPosition(pos)` | `(pos: WindowPositionPreset \| { x: number, y: number }) => void` | Repositions application window to screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` screen coordinates |
 
 ---
 

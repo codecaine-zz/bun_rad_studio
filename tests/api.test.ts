@@ -249,6 +249,14 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("launchAccessCrudWizard()");
         expect(ideContent).toContain("alignSelectedControls('left')");
         expect(ideContent).toContain("equalizeSize('width')");
+        expect(ideContent).toContain("window.quitApp");
+        expect(ideContent).toContain("Cmd + Q");
+        expect(ideContent).toContain("toggleAlwaysOnTop()");
+        expect(ideContent).toContain("toggleFullscreen()");
+        expect(ideContent).toContain("stayOnTopBtn");
+        expect(ideContent).toContain("Fn + F");
+        expect(ideContent).toContain("winPosSelect");
+        expect(ideContent).toContain("changeWindowPosition(this.value)");
 
         // Verify Object Inspector & Code Editor Modal
         expect(ideContent).toContain("id=\"nonVisualTray\"");

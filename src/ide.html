@@ -947,6 +947,20 @@
 			<!-- Primary actions -->
 			<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
 			<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
+			<button class="btn" id="stayOnTopBtn" onclick="toggleAlwaysOnTop()" title="Toggle window always-on-top mode (Stay On Top)">📌 Pin: OFF</button>
+			<button class="btn" onclick="toggleFullscreen()" title="Toggle fullscreen window mode (Fn+F / F11)">⛶ Fullscreen</button>
+			<select class="btn" id="winPosSelect" onchange="changeWindowPosition(this.value)" title="Move window position on screen">
+				<option value="" disabled selected>📍 Position</option>
+				<option value="center">Center Screen</option>
+				<option value="upper_left">Upper Left</option>
+				<option value="upper_right">Upper Right</option>
+				<option value="top_center">Top Center</option>
+				<option value="bottom_left">Lower Left</option>
+				<option value="bottom_right">Lower Right</option>
+				<option value="bottom_center">Lower Center</option>
+				<option value="center_left">Center Left</option>
+				<option value="center_right">Center Right</option>
+			</select>
 			<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
 			<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
 			<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
@@ -1883,6 +1897,8 @@
 				<tr><td><span class="hotkey-key">Shift + Arrows</span></td><td>Nudge control position by 8px (Grid snap)</td></tr>
 				<tr><td><span class="hotkey-key">Space + Drag</span> / <span class="hotkey-key">Middle Click Drag</span></td><td>Pan canvas workspace view</td></tr>
 				<tr><td><span class="hotkey-key">Ctrl / Cmd + Wheel</span></td><td>Smooth zoom canvas workspace</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Q</span> / <span class="hotkey-key">Alt + F4</span></td><td>Quit application</td></tr>
+				<tr><td><span class="hotkey-key">Fn + F</span> / <span class="hotkey-key">F11</span></td><td>Toggle Fullscreen window mode</td></tr>
 				<tr><td><span class="hotkey-key">Escape</span></td><td>Deselect all controls & close modals</td></tr>
 			</table>
 			<div style="display:flex; justify-content:flex-end;">
@@ -2015,6 +2031,23 @@
 
 			// Keyboard shortcuts engine
 			window.addEventListener("keydown", (e) => {
+				// Cmd+F (macOS) / Ctrl+F / Fn+F / F11 Toggle Fullscreen
+				if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") || e.key === "F11" || e.code === "F11" || ((e.key.toLowerCase() === "f" || e.code === "KeyF") && (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey))) {
+					e.preventDefault();
+					toggleFullscreen();
+					return;
+				}
+				// Cmd+Q (macOS) / Ctrl+Q or Alt+F4 (Windows/Linux) to quit app
+				if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "q") || (e.altKey && (e.key === "F4" || e.code === "F4"))) {
+					e.preventDefault();
+					if (window.quitApp) {
+						window.quitApp();
+					} else {
+						window.close();
+					}
+					return;
+				}
+
 				if (e.key === "Escape") {
 					if (placementType) { cancelPlacementMode(); return; }
 				}
@@ -2277,6 +2310,61 @@
 			frame.style.transform = "scale(" + canvasScale + ")";
 			document.getElementById("statusMsg").textContent = "Canvas Zoom: " + Math.round(canvasScale * 100) + "%";
 			drawRulers();
+		}
+
+		let isAlwaysOnTopState = false;
+		function toggleAlwaysOnTop() {
+			isAlwaysOnTopState = !isAlwaysOnTopState;
+			if (window.setAlwaysOnTop) {
+				window.setAlwaysOnTop(isAlwaysOnTopState).then(res => {
+					if (res && res.onTop !== undefined) isAlwaysOnTopState = res.onTop;
+					updateStayOnTopUI();
+				}).catch(() => updateStayOnTopUI());
+			} else {
+				updateStayOnTopUI();
+			}
+		}
+
+		function updateStayOnTopUI() {
+			const btn = document.getElementById("stayOnTopBtn");
+			if (btn) {
+				if (isAlwaysOnTopState) {
+					btn.textContent = "📌 Pin: ON";
+					btn.classList.add("btn-primary");
+					document.getElementById("statusMsg").textContent = "Window Always On Top: ENABLED";
+				} else {
+					btn.textContent = "📌 Pin: OFF";
+					btn.classList.remove("btn-primary");
+					document.getElementById("statusMsg").textContent = "Window Always On Top: DISABLED";
+				}
+			}
+		}
+
+		function toggleFullscreen() {
+			if (window.toggleNativeFullscreen) {
+				try { window.toggleNativeFullscreen(); } catch (e) {}
+			}
+			if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+				if (document.documentElement.requestFullscreen) {
+					document.documentElement.requestFullscreen().catch(() => {});
+				} else if (document.documentElement.webkitRequestFullscreen) {
+					document.documentElement.webkitRequestFullscreen();
+				}
+			} else {
+				if (document.exitFullscreen) {
+					document.exitFullscreen().catch(() => {});
+				} else if (document.webkitExitFullscreen) {
+					document.webkitExitFullscreen();
+				}
+			}
+		}
+
+		function changeWindowPosition(preset) {
+			if (window.setWindowPosition) {
+				window.setWindowPosition(preset).then(() => {
+					document.getElementById("statusMsg").textContent = "Window position moved to: " + preset;
+				}).catch(() => {});
+			}
 		}
 
 		function resetZoom() {

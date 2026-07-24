@@ -2,6 +2,149 @@ import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { spawn } from "child_process";
 import { join } from "path";
+import { dlopen, FFIType } from "bun:ffi";
+
+export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
+    try {
+        if (process.platform === "darwin") {
+            const nsWindow = wv.unsafeWindowHandle;
+            if (nsWindow) {
+                const libobjc = dlopen("libobjc.dylib", {
+                    objc_msgSend: {
+                        args: [FFIType.pointer, FFIType.pointer, FFIType.i64],
+                        returns: FFIType.void,
+                    },
+                    sel_registerName: {
+                        args: [FFIType.cstring],
+                        returns: FFIType.pointer,
+                    }
+                });
+                const sel_setLevel = libobjc.symbols.sel_registerName(Buffer.from("setLevel:\0"));
+                // Level 5 = NSFloatingWindowLevel (Always On Top), 0 = NSNormalWindowLevel
+                const level = onTop ? 5n : 0n;
+                libobjc.symbols.objc_msgSend(nsWindow, sel_setLevel, level);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not set window level:", e);
+    }
+}
+
+export function toggleFullscreenNative(wv: Webview) {
+    try {
+        if (process.platform === "darwin") {
+            const nsWindow = wv.unsafeWindowHandle;
+            if (nsWindow) {
+                const libobjc = dlopen("libobjc.dylib", {
+                    objc_msgSend: {
+                        args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
+                        returns: FFIType.u64,
+                    },
+                    sel_registerName: {
+                        args: [FFIType.cstring],
+                        returns: FFIType.pointer,
+                    }
+                });
+                const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
+                const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
+                const sel_toggle = libobjc.symbols.sel_registerName(Buffer.from("toggleFullScreen:\0"));
+
+                // Enable NSWindowCollectionBehaviorFullScreenPrimary (128) on NSWindow
+                const cb = BigInt(libobjc.symbols.objc_msgSend(nsWindow, sel_cb, 0n));
+                libobjc.symbols.objc_msgSend(nsWindow, sel_scb, cb | 128n);
+
+                // Perform Cocoa toggleFullScreen:
+                libobjc.symbols.objc_msgSend(nsWindow, sel_toggle, 0n);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not toggle native window fullscreen:", e);
+    }
+}
+
+export type WindowPositionPreset = 
+    | "center" | "screen_center"
+    | "upper_left" | "top_left"
+    | "upper_right" | "top_right"
+    | "bottom_left" | "lower_left"
+    | "bottom_right" | "lower_right"
+    | "top_center" | "upper_center"
+    | "bottom_center" | "lower_center"
+    | "center_left"
+    | "center_right";
+
+export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset | { x: number, y: number }, winWidth = 1400, winHeight = 900) {
+    try {
+        if (process.platform === "darwin") {
+            const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
+                CGMainDisplayID: { args: [], returns: FFIType.u32 },
+                CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+                CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 }
+            });
+            const mainId = cg.symbols.CGMainDisplayID();
+            const screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
+            const screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
+
+            let targetX = 40;
+            let targetTopY = 40;
+
+            if (typeof pos === "object" && pos !== null) {
+                targetX = pos.x;
+                targetTopY = pos.y;
+            } else {
+                const preset = String(pos || "center").toLowerCase();
+                const margin = 30;
+                if (preset === "upper_left" || preset === "top_left") {
+                    targetX = margin;
+                    targetTopY = margin + 30;
+                } else if (preset === "upper_right" || preset === "top_right") {
+                    targetX = screenW - winWidth - margin;
+                    targetTopY = margin + 30;
+                } else if (preset === "bottom_left" || preset === "lower_left") {
+                    targetX = margin;
+                    targetTopY = screenH - winHeight - margin;
+                } else if (preset === "bottom_right" || preset === "lower_right") {
+                    targetX = screenW - winWidth - margin;
+                    targetTopY = screenH - winHeight - margin;
+                } else if (preset === "top_center" || preset === "upper_center") {
+                    targetX = Math.round((screenW - winWidth) / 2);
+                    targetTopY = margin + 30;
+                } else if (preset === "bottom_center" || preset === "lower_center") {
+                    targetX = Math.round((screenW - winWidth) / 2);
+                    targetTopY = screenH - winHeight - margin;
+                } else if (preset === "center_left") {
+                    targetX = margin;
+                    targetTopY = Math.round((screenH - winHeight) / 2);
+                } else if (preset === "center_right") {
+                    targetX = screenW - winWidth - margin;
+                    targetTopY = Math.round((screenH - winHeight) / 2);
+                } else {
+                    // "center" default
+                    targetX = Math.round((screenW - winWidth) / 2);
+                    targetTopY = Math.round((screenH - winHeight) / 2);
+                }
+            }
+
+            const nsWindow = wv.unsafeWindowHandle;
+            if (nsWindow) {
+                const libobjc = dlopen("libobjc.dylib", {
+                    objc_msgSend: {
+                        args: [FFIType.pointer, FFIType.pointer, FFIType.f64, FFIType.f64],
+                        returns: FFIType.void,
+                    },
+                    sel_registerName: {
+                        args: [FFIType.cstring],
+                        returns: FFIType.pointer,
+                    }
+                });
+                const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(Buffer.from("setFrameTopLeftPoint:\0"));
+                libobjc.symbols.objc_msgSend(nsWindow, sel_setFrameTopLeft, Number(targetX), Number(screenH - targetTopY));
+            }
+        }
+    } catch (e) {
+        console.warn("Could not set window position:", e);
+    }
+}
 
 // Main IDE entry point
 const htmlPath = join(process.cwd(), "src", "ide.html");
@@ -157,6 +300,10 @@ export function setRichSelectText(controlId: string, text: string) {
     execJS(\`const c=document.getElementById("\${controlId}");if(c){const span=c.querySelector("span:nth-child(2)");if(span)span.textContent=\${escaped};}\`);
 }
 
+export function setWindowPosition(pos: "center" | "upper_left" | "upper_right" | "bottom_left" | "bottom_right" | "top_center" | "bottom_center" | "center_left" | "center_right" | { x: number, y: number }) {
+    execJS(\`if(window.setWindowPosition)window.setWindowPosition(\${JSON.stringify(pos)});\`);
+}
+
 // ==========================================
 // 🪟 WINDOW EVENT LIFECYCLE HOOKS
 // ==========================================
@@ -207,6 +354,19 @@ if (import.meta.main) {
     webview.title = "Bun RAD Studio (Delphi/VB Style)";
     webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
 
+    if (process.platform === "darwin" && webview.unsafeWindowHandle) {
+        try {
+            const libobjc = dlopen("libobjc.dylib", {
+                objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.u64], returns: FFIType.u64 },
+                sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer }
+            });
+            const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
+            const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
+            const cb = BigInt(libobjc.symbols.objc_msgSend(webview.unsafeWindowHandle, sel_cb, 0n));
+            libobjc.symbols.objc_msgSend(webview.unsafeWindowHandle, sel_scb, cb | 128n);
+        } catch (e) {}
+    }
+
     webview.bind("runPreview", (specJson: string) => {
         try {
             const spec = JSON.parse(specJson);
@@ -254,6 +414,28 @@ wv.run();
 
     webview.bind("quitApp", () => {
         process.exit(0);
+    });
+
+    let isAlwaysOnTopState = false;
+    webview.bind("setAlwaysOnTop", (onTop?: boolean) => {
+        isAlwaysOnTopState = onTop !== undefined ? onTop : !isAlwaysOnTopState;
+        setAlwaysOnTopNative(webview, isAlwaysOnTopState);
+        return { success: true, onTop: isAlwaysOnTopState };
+    });
+
+    webview.bind("toggleNativeFullscreen", () => {
+        toggleFullscreenNative(webview);
+        return { success: true };
+    });
+
+    webview.bind("toggleFullscreen", () => {
+        toggleFullscreenNative(webview);
+        return { success: true };
+    });
+
+    webview.bind("setWindowPosition", (pos: any) => {
+        setWindowPositionNative(webview, pos);
+        return { success: true, position: pos };
     });
 
     webview.bind("exportProject", (specJson: string) => {
@@ -624,6 +806,26 @@ ${controls}
       if (alertType) { c.style.borderLeftColor = alertType==='error'?'#ef4444':alertType==='warning'?'#f59e0b':'#10b981'; }
     }
   };
+  window.toggleFullscreen = function() {
+    if (window.toggleFullscreenBackend) try { window.toggleFullscreenBackend(); } catch(e){}
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+      else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+  };
+  window.addEventListener("keydown", (e) => {
+    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "q") || (e.altKey && (e.key === "F4" || e.code === "F4"))) {
+      e.preventDefault();
+      if (window.quitApp) window.quitApp();
+      else window.close();
+    } else if (e.key === "F11" || e.code === "F11" || ((e.key.toLowerCase() === "f" || e.code === "KeyF") && (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey))) {
+      e.preventDefault();
+      window.toggleFullscreen();
+    }
+  });
   window.addEventListener("DOMContentLoaded", () => {
     if (window.onFormLoad) window.onFormLoad();
   });
