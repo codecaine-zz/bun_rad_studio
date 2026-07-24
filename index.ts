@@ -470,8 +470,16 @@ export function generatePreviewHtml(spec: any): string {
 
     const buildEvents = (c: any) => {
         let ev = '';
-        if (!c.event_handlers) return ev;
-        for (const [evtName, handler] of Object.entries(c.event_handlers)) {
+        const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
+        if (c.id) {
+            if (!handlers.onClick && !handlers.onclick) {
+                handlers.onClick = `on_${c.id}_click`;
+            }
+            if (!handlers.onChange && !handlers.onchange) {
+                handlers.onChange = `on_${c.id}_change`;
+            }
+        }
+        for (const [evtName, handler] of Object.entries(handlers)) {
             if (!handler || typeof handler !== 'string' || !handler.trim()) continue;
             const clean = (handler as string).trim();
             let attrName = evtName.toLowerCase();
@@ -482,7 +490,7 @@ export function generatePreviewHtml(spec: any): string {
             const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
             let codeToExec = '';
             if (isFuncName) {
-                codeToExec = `if(window['${clean}']){window['${clean}'](this.value||'')}else if(window.backendAlert){window.backendAlert('Event: ${clean}')}`;
+                codeToExec = `if(window['${clean}']){window['${clean}'](this.value||'')}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
             } else {
                 codeToExec = clean;
             }
@@ -511,7 +519,9 @@ export function generatePreviewHtml(spec: any): string {
         let op = c.opacity !== undefined && c.opacity !== null && c.opacity !== '' ? `opacity:${c.opacity / 100};` : (c.enabled === false ? 'opacity:0.55;' : '');
         let pe = c.enabled === false ? 'pointer-events:none;' : '';
         let cur = c.cursor ? `cursor:${c.cursor};` : '';
-        return `position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;` +
+        const posX = c.left !== undefined ? c.left : (c.x !== undefined ? c.x : 0);
+        const posY = c.top !== undefined ? c.top : (c.y !== undefined ? c.y : 0);
+        return `position:absolute;left:${posX}px;top:${posY}px;width:${c.width}px;height:${c.height}px;` +
             `font-size:${c.font_size || 13}px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;` +
             `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${op}${pe}${cur}${extra}`;
     };
@@ -520,8 +530,8 @@ export function generatePreviewHtml(spec: any): string {
     let hoverStyles = '';
     for (const c of (spec.controls || [])) {
         if (c.visible === false) continue;
-        const t = c.control_type;
-        const text = c.text || '';
+        const t = c.control_type || c.type;
+        const text = c.caption !== undefined ? c.caption : (c.text !== undefined ? c.text : (c.title !== undefined ? c.title : ''));
         const color = c.font_color || fg;
         const rawCbg = c.background_color || 'transparent';
         const cbg = c.background_color && c.background_color !== 'transparent'
@@ -589,8 +599,9 @@ export function generatePreviewHtml(spec: any): string {
             const circBg = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 100 100" width="${Math.min(c.width,c.height)}" height="${Math.min(c.width,c.height)}"><circle cx="50" cy="50" r="${r}" fill="none" stroke="${circBg}" stroke-width="10"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${accent}" stroke-width="10" stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round" transform="rotate(-90 50 50)"/><text x="50" y="54" text-anchor="middle" font-size="18" fill="${color}" font-weight="bold">${val}%</text></svg></div>\n`;
         } else if (t === 'rating') {
+            const val = c.value !== undefined ? c.value : 3;
             const starBg = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height-8,16)}px;">${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;color:${i<=3?'#f59e0b':starBg};transition:color 0.1s;" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<3?'#f59e0b':'${starBg}'})">★</span>`).join('')}</div>\n`;
+            controls += `<div${id}${titleAttr} data-value="${val}" style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height-8,16)}px;">${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;color:${i<=val?'#f59e0b':starBg};transition:color 0.1s;" onclick="const parent=this.parentNode;parent.dataset.value='${i}';parent.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'});if(window['${c.id}_onChange'])window['${c.id}_onChange'](${i});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${i});" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="const cur=parseInt(this.parentNode.dataset.value||'${val}');this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<cur?'#f59e0b':'${starBg}'})">★</span>`).join('')}</div>\n`;
         } else if (t === 'stepper') {
             const val = c.value !== undefined ? c.value : 5;
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><button onclick="const v=this.nextSibling;v.textContent=parseInt(v.textContent)-1;" style="background:none;border:none;color:${color};font-size:18px;cursor:pointer;line-height:1;">−</button><span style="font-weight:bold;">${val}</span><button onclick="const v=this.previousSibling;v.textContent=parseInt(v.textContent)+1;" style="background:none;border:none;color:${color};font-size:18px;cursor:pointer;line-height:1;">+</button></div>\n`;
@@ -607,6 +618,10 @@ export function generatePreviewHtml(spec: any): string {
             const panelBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#e2e8f0' : '#1e293b');
             const pRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
             controls += `<div${id}${titleAttr} style="${base(c)}background:${panelBg};color:${color};${defBorder}${pRadius}overflow:hidden;"><div style="padding:8px 12px;font-weight:700;font-size:11px;text-transform:uppercase;color:${accent};border-bottom:1px solid ${border};letter-spacing:0.5px;">${text}</div></div>\n`;
+        } else if (t === 'groupbox') {
+            const gbTitle = c.title || c.caption || text || 'Group';
+            const gbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${accent};text-transform:uppercase;letter-spacing:0.5px;">${gbTitle}</legend></fieldset>\n`;
         } else if (t === 'drop_zone') {
             const dzBorder = hasCustomBorder ? `border-width:${c.border_width || 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || 'dashed'};` : `border:2px dashed ${accent};`;
             const dzRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
@@ -664,18 +679,23 @@ export function generatePreviewHtml(spec: any): string {
             const sel = c.value || items[0] || '';
             const segBg = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)';
             const segRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items.map((item: string) => {
+            const activeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : accent;
+            controls += `<div${id}${titleAttr}${ev} data-value="${sel}" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items.map((item: string) => {
                 const isSel = item === sel;
-                const itemBg = isSel ? (c.background_color && c.background_color !== 'transparent' ? c.background_color : accent) : 'transparent';
+                const itemBg = isSel ? activeBg : 'transparent';
                 const itemFg = isSel ? '#ffffff' : color;
-                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${itemBg}';this.style.color='${itemFg}'" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor||'pointer'};transition:all 0.15s;">${item}</button>`;
+                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${activeBg}';this.style.color='#ffffff';this.parentNode.dataset.value='${item}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${item}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${item}');" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor||'pointer'};transition:all 0.15s;">${item}</button>`;
             }).join('')}</div>\n`;
         } else if (t === 'tree_view') {
-            const nodes = (text || 'Project Root, 📂 src, 📄 index.ts, 📄 styles.css').split(',').map((n: string) => n.trim());
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:8px 10px;overflow:auto;display:flex;flex-direction:column;gap:4px;font-size:12px;color:${color};">${nodes.map((node: string, idx: number) => {
-                const indent = idx === 0 ? '0px' : '16px';
-                const icon = idx === 0 ? '▼ 📁' : '├─';
-                return `<div style="padding-left:${indent};display:flex;align-items:center;gap:6px;cursor:pointer;" onmouseover="this.style.color='${accent}'" onmouseout="this.style.color='${color}'"><span style="opacity:0.6;">${icon}</span><span>${node}</span></div>`;
+            const rawNodes = (text || '📂 Project Root, 📂 src, 📄 index.ts, 📄 styles.css, 📁 assets, 🖼️ logo.png').split(',').map((n: string) => n.trim());
+            const treeBg = cbg;
+            const selBg = isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)';
+            controls += `<div${id}${titleAttr}${ev} class="rad-tree-container" data-selected="" style="${base(c)}background:${treeBg};${defBorder}${defRadius}padding:6px 8px;overflow:auto;display:flex;flex-direction:column;gap:2px;font-size:12px;color:${color};">${rawNodes.map((nodeText: string, idx: number) => {
+                const isFolder = nodeText.includes('📁') || nodeText.includes('Project Root') || nodeText.includes('src') || nodeText.includes('assets') || idx === 0;
+                const indent = idx === 0 ? 0 : (idx === 1 || idx === 4 ? 16 : 32);
+                const arrowIcon = isFolder ? '▼' : ' ';
+                const cleanName = nodeText;
+                return `<div class="tree-node${idx===0?' selected-tree-node':''}" data-node="${cleanName}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx===0 ? `background:${selBg};color:${accent};font-weight:600;` : ''}" onclick="event.stopPropagation();const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${accent}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](this.dataset.node);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.dataset.node);if(window['${c.id}_onNodeClick'])window['${c.id}_onNodeClick'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${cleanName}</span></div>`;
             }).join('')}</div>\n`;
         } else if (t === 'avatar_group') {
             const avatars = (text || 'JD, AS, MK, +3').split(',').map((a: string) => a.trim());
@@ -715,7 +735,8 @@ export function generatePreviewHtml(spec: any): string {
             const val = c.value || '09:30';
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${val}" style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||13}px;outline:none;width:100%;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
         } else if (t === 'rich_select') {
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};cursor:${c.cursor||'pointer'};"><div style="display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;"><span style="opacity:0.6;">🔍</span><span style="font-size:12px;opacity:0.85;">${text||'Select option...'}</span></div><span style="font-size:10px;opacity:0.5;">▼</span></div>\n`;
+            const optList = c.options || 'React.js, Vue.js, Angular, Svelte, Next.js, Bun RAD Studio, TypeScript';
+            controls += `<div${id}${titleAttr}${ev} class="rad-rich-select" style="${base(c)}background:${cbg};${defBorder}${defRadius}display:flex;align-items:center;gap:6px;padding:0 8px;color:${color};"><span style="opacity:0.6;font-size:13px;flex-shrink:0;">🔍</span><input type="text" value="${text || ''}" placeholder="${c.placeholder || 'Type to search options...'}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||12}px;outline:none;width:100%;" oninput="const val=this.value.toLowerCase();const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown){dropdown.style.display='block';dropdown.querySelectorAll('.rich-select-option').forEach(opt=>{opt.style.display=opt.textContent.toLowerCase().includes(val)?'block':'none';});}if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" onfocus="const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='block';" onblur="setTimeout(()=>{const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='none';},200)"><span style="font-size:10px;opacity:0.5;cursor:pointer;flex-shrink:0;" onclick="const input=this.parentNode.querySelector('input');input.focus();">▼</span><div class="rich-select-dropdown" style="display:none;position:absolute;left:0;top:100%;width:100%;max-height:160px;overflow-y:auto;background:${isLight?'#ffffff':'#1e293b'};border:1px solid ${border};border-radius:6px;margin-top:4px;box-shadow:0 6px 16px rgba(0,0,0,0.3);z-index:999;">${optList.split(',').map((opt: string) => { const clean = opt.trim(); return `<div class="rich-select-option" style="padding:6px 10px;font-size:11px;cursor:pointer;color:${color};" onmouseover="this.style.background='${isLight?'rgba(2,132,199,0.1)':'rgba(56,189,248,0.15)'}'" onmouseout="this.style.background='transparent'" onmousedown="event.preventDefault()" onclick="const input=this.closest('.rad-rich-select').querySelector('input');input.value='${clean}';this.parentNode.style.display='none';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${clean}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${clean}');">${clean}</div>`; }).join('')}</div></div>\n`;
         } else {
             // Fallback for any other type
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
@@ -790,13 +811,43 @@ ${controls}
     const el = document.getElementById(id);
     if (el) { el.style.display = visible ? "" : "none"; }
   };
-  window.setStatChart = function(id, opts) {
+  window.setStatChart = function(id, titleOrOpts, valStr, trendStr) {
     const c = document.getElementById(id);
-    if (c) {
-      if (opts.title) { const t = c.querySelector("span"); if (t) t.textContent = opts.title; }
-      if (opts.value) { const v = c.querySelector("div:nth-child(2)"); if (v) v.textContent = opts.value; }
-      if (opts.trend) { const tr = c.querySelectorAll("span")[1]; if (tr) tr.textContent = opts.trend; }
+    if (!c) return;
+    let title = '', value = '', trend = '';
+    if (typeof titleOrOpts === 'object' && titleOrOpts !== null) {
+      title = titleOrOpts.title || '';
+      value = titleOrOpts.value || '';
+      trend = titleOrOpts.trend || '';
+    } else {
+      title = String(titleOrOpts || '');
+      value = String(valStr || '');
+      trend = String(trendStr || '');
     }
+    if (title) { const t = c.querySelector(".stat-title") || c.querySelector("span"); if (t) t.textContent = title; }
+    if (value) { const v = c.querySelector(".stat-val") || c.querySelector("div:nth-child(2)"); if (v) v.textContent = value; }
+    if (trend) { const tr = c.querySelector(".stat-trend") || c.querySelectorAll("span")[1]; if (tr) tr.textContent = trend; }
+    c.style.transition = "box-shadow 0.3s, border-color 0.3s";
+    c.style.boxShadow = "0 0 22px #38bdf8";
+    c.style.borderColor = "#38bdf8";
+    setTimeout(function() { c.style.boxShadow = ""; c.style.borderColor = ""; }, 1500);
+  };
+  window.setTimelineSteps = function(id, stepsList) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const steps = Array.isArray(stepsList) ? stepsList : String(stepsList || '').split(',').map(function(s){ return s.trim(); });
+    const accent = '#38bdf8';
+    let html = '';
+    steps.forEach(function(stepText, idx) {
+      const active = idx <= 1 || stepText.includes('Passed') || stepText.includes('Verified') || stepText.includes('Deployed');
+      const nodeCol = active ? '#10b981' : (idx === 0 ? accent : 'rgba(255,255,255,0.3)');
+      const icon = active ? '✓' : '•';
+      html += '<div style="display:flex;align-items:center;gap:10px;font-size:11px;margin-bottom:6px;"><span style="color:' + nodeCol + ';font-weight:bold;">' + icon + '</span><span style="font-weight:' + (active?'700':'400') + ';">' + stepText + '</span></div>';
+    });
+    c.innerHTML = html;
+    c.style.transition = "box-shadow 0.3s";
+    c.style.boxShadow = "0 0 20px #10b981";
+    setTimeout(function() { c.style.boxShadow = ""; }, 1400);
   };
   window.setToast = function(id, title, msg, alertType) {
     const c = document.getElementById(id);
@@ -804,7 +855,60 @@ ${controls}
       if (title) { const tEl = c.querySelector("span:nth-child(1)"); if (tEl) tEl.textContent = title; }
       if (msg) { const mEl = c.querySelector("span:nth-child(2)"); if (mEl) mEl.textContent = msg; }
       if (alertType) { c.style.borderLeftColor = alertType==='error'?'#ef4444':alertType==='warning'?'#f59e0b':'#10b981'; }
+      c.style.transition = "box-shadow 0.3s, border-color 0.3s";
+      c.style.boxShadow = "0 0 18px " + (alertType==='error'?'#ef4444':alertType==='warning'?'#f59e0b':'#10b981');
+      setTimeout(function() { c.style.boxShadow = ""; }, 1400);
     }
+  };
+  window.setSegmentedSelected = function(id, labelText) {
+    const container = document.getElementById(id);
+    if (!container) return;
+    const accent = '#38bdf8';
+    container.dataset.value = labelText;
+    container.querySelectorAll('button').forEach(function(b) {
+      const isSel = b.textContent.trim() === labelText;
+      b.style.background = isSel ? accent : 'transparent';
+      b.style.color = isSel ? '#ffffff' : 'inherit';
+    });
+  };
+  window.setTreeNodes = function(id, nodesList) {
+    const container = document.getElementById(id);
+    if (!container) return;
+    const nodes = Array.isArray(nodesList) ? nodesList : String(nodesList || '').split(',').map(function(s){ return s.trim(); });
+    const accent = '#38bdf8';
+    const selBg = 'rgba(56,189,248,0.25)';
+    let html = '';
+    nodes.forEach(function(nodeText, idx) {
+      const isFolder = nodeText.includes('📁') || nodeText.includes('📂') || nodeText.includes('demos') || nodeText.includes('src') || idx === 0;
+      const indent = idx === 0 ? 0 : (idx === 1 ? 16 : 32);
+      const arrow = isFolder ? '▼' : ' ';
+      const selStyle = idx === 0 ? 'background:' + selBg + ';color:' + accent + ';font-weight:700;' : '';
+      const isUpdatedFolder = nodeText.includes('UPDATED') || nodeText.includes('[');
+      const isNewFile = nodeText.endsWith('.ts') || nodeText.includes('.js') || nodeText.includes('.json');
+      let badgeHtml = '';
+      if (isUpdatedFolder) {
+        badgeHtml = '<span style="font-size:9px;font-weight:800;background:#0284c7;color:#ffffff;padding:2px 8px;border-radius:10px;box-shadow:0 0 8px rgba(2,132,199,0.6);flex-shrink:0;margin-left:8px;">UPDATED</span>';
+      } else if (isNewFile) {
+        badgeHtml = '<span style="font-size:9px;font-weight:800;background:#10b981;color:#ffffff;padding:2px 8px;border-radius:10px;box-shadow:0 0 8px rgba(16,185,129,0.6);flex-shrink:0;margin-left:8px;">NEW</span>';
+      }
+      html += '<div class="tree-node' + (idx===0?' selected-tree-node':'') + '" data-node="' + nodeText + '" style="padding:6px 10px;padding-left:' + (indent + 8) + 'px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;cursor:pointer;user-select:none;transition:all 0.2s;' + selStyle + '"' +
+        ' onclick="event.stopPropagation();const parent=this.closest(\'.rad-tree-container\');parent.querySelectorAll(\'.tree-node\').forEach(function(n){n.style.background=\'transparent\';n.style.color=\'inherit\';n.style.fontWeight=\'normal\';});this.style.background=\'' + selBg + '\';this.style.color=\'' + accent + '\';this.style.fontWeight=\'700\';if(window[\'' + id + '_onSelect\'])window[\'' + id + '_onSelect\'](this.dataset.node);"' +
+        ' onmouseover="if(!this.style.background.includes(\'rgba\')){this.style.background=\'rgba(255,255,255,0.08)\'}"' +
+        ' onmouseout="if(!this.style.background.includes(\'rgba(56\')){this.style.background=\'transparent\';}">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden;">' +
+        '<span class="tree-arrow" onclick="event.stopPropagation();const isCol=this.textContent===\'▶\';this.textContent=isCol?\'▼\':\'▶\';let curr=this.closest(\'.tree-node\').nextElementSibling;while(curr){const currInd=parseInt(curr.style.paddingLeft||\'0\');if(currInd<=' + (indent + 8) + ')break;curr.style.display=isCol?\'flex\':\'none\';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.8;cursor:pointer;flex-shrink:0;">' + arrow + '</span>' +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nodeText + '</span></div>' +
+        badgeHtml +
+        '</div>';
+    });
+    container.innerHTML = html;
+    container.style.transition = "box-shadow 0.3s, border-color 0.3s";
+    container.style.boxShadow = "0 0 25px #38bdf8";
+    container.style.borderColor = "#38bdf8";
+    setTimeout(function() {
+      container.style.boxShadow = "";
+      container.style.borderColor = "";
+    }, 1500);
   };
   window.toggleFullscreen = function() {
     if (window.toggleFullscreenBackend) try { window.toggleFullscreenBackend(); } catch(e){}

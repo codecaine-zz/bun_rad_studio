@@ -74,6 +74,23 @@ bun install
 bun run index.ts
 ```
 
+### 3. Run Interactive Feature Demos
+Explore pre-built executable demo applications demonstrating controls, events, and dynamic helper functions:
+
+```bash
+# Demo 1: Standard UI Controls, Events & Input Helpers
+bun run demo:standard
+
+# Demo 2: 10 Advanced Modern Controls & Helper Wrappers (Segmented, Stat Chart, Toast, Timeline, Tree View)
+bun run demo:modern
+
+# Demo 3: Data-Aware DB Grid, Non-Visual Timer (1000ms Event Ticks), & Code View
+bun run demo:data
+
+# Demo 4: Native Window Placement API (9 Screen Presets), Always On Top Pinning, & Fullscreen
+bun run demo:window
+```
+
 ---
 
 ## ⌨️ Keyboard Shortcuts & Power Actions

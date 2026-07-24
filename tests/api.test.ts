@@ -274,4 +274,30 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("generatePythonTkinterCode()");
     });
 
+    test("5. Interactive Demos Suite Integrity (demos/)", () => {
+        const demo1Path = join(process.cwd(), "demos", "01_standard_controls.ts");
+        const demo2Path = join(process.cwd(), "demos", "02_advanced_modern_controls.ts");
+        const demo3Path = join(process.cwd(), "demos", "03_data_and_non_visual.ts");
+        const demo4Path = join(process.cwd(), "demos", "04_window_placement_and_pin.ts");
+
+        expect(existsSync(demo1Path)).toBe(true);
+        expect(existsSync(demo2Path)).toBe(true);
+        expect(existsSync(demo3Path)).toBe(true);
+        expect(existsSync(demo4Path)).toBe(true);
+
+        const d1 = readFileSync(demo1Path, "utf-8");
+        const d2 = readFileSync(demo2Path, "utf-8");
+        const d3 = readFileSync(demo3Path, "utf-8");
+        const d4 = readFileSync(demo4Path, "utf-8");
+
+        expect(d1).toContain("generatePreviewHtml");
+        expect(d2).toContain("segmented_control");
+        expect(d2).toContain("stat_chart");
+        expect(d2).toContain("toast_card");
+        expect(d3).toContain("db_grid");
+        expect(d3).toContain("code_view");
+        expect(d4).toContain("setWindowPositionNative");
+        expect(d4).toContain("setAlwaysOnTopNative");
+    });
+
 });
