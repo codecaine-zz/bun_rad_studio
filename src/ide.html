@@ -1468,6 +1468,10 @@
 						<span class="prop-label">Caption / Text</span>
 						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propText" oninput="updateSelectedControl('text')" title="Text or caption displayed on the control">
 					</div>
+					<div class="prop-row" id="propPlaceholderRow">
+						<span class="prop-label">Placeholder Text</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propPlaceholder" placeholder="Hint text inside empty input..." oninput="updateSelectedControl('placeholder')" title="Placeholder hint text displayed inside empty inputs">
+					</div>
 					<div class="prop-row" id="propCheckedRow">
 						<span class="prop-label">Checked / Selected</span>
 						<select class="prop-input" id="propChecked" onchange="updateSelectedControl('checked')" title="Toggle checked/selected state for radio buttons, checkboxes, and switches">
@@ -4520,6 +4524,8 @@
 				const c = formSpec.controls[selectedIndices[0]];
 				if (propIdEl) { propIdEl.value = c.id; propIdEl.disabled = false; propIdEl.placeholder = ""; }
 				if (propTextEl) { propTextEl.value = c.text || ""; propTextEl.placeholder = ""; }
+				const propPlaceholderEl = document.getElementById("propPlaceholder");
+				if (propPlaceholderEl) { propPlaceholderEl.value = c.placeholder || ""; propPlaceholderEl.placeholder = ""; }
 				const propCheckedEl = document.getElementById("propChecked");
 				if (propCheckedEl) { propCheckedEl.value = c.checked ? "true" : "false"; }
 				const propEnabledEl = document.getElementById("propEnabled");
@@ -4583,6 +4589,11 @@
 					propTextEl.value = allSame("text") ? selectedCtrls[0].text : "";
 					propTextEl.placeholder = allSame("text") ? "" : "(Multiple values)";
 				}
+				const propPlaceholderEl = document.getElementById("propPlaceholder");
+				if (propPlaceholderEl) {
+					propPlaceholderEl.value = allSame("placeholder") ? (selectedCtrls[0].placeholder || "") : "";
+					propPlaceholderEl.placeholder = allSame("placeholder") ? "" : "(Multiple values)";
+				}
 				if (propTooltipEl) {
 					propTooltipEl.value = allSame("tooltip") ? (selectedCtrls[0].tooltip || "") : "";
 					propTooltipEl.placeholder = allSame("tooltip") ? "" : "(Multiple values)";
@@ -4639,6 +4650,7 @@
 
 			const propIdEl = document.getElementById("propId");
 			const propTextEl = document.getElementById("propText");
+			const propPlaceholderEl = document.getElementById("propPlaceholder");
 			const propTooltipEl = document.getElementById("propTooltip");
 			const propXEl = document.getElementById("propX");
 			const propYEl = document.getElementById("propY");
@@ -4665,6 +4677,9 @@
 				}
 				if (!changedProp || changedProp === 'text') {
 					if (propTextEl && propTextEl.value !== "") ctrl.text = propTextEl.value;
+				}
+				if (!changedProp || changedProp === 'placeholder') {
+					if (propPlaceholderEl) ctrl.placeholder = propPlaceholderEl.value;
 				}
 				if (!changedProp || changedProp === 'checked') {
 					const propCheckedEl = document.getElementById("propChecked");
@@ -5019,7 +5034,7 @@
 					html += "  </div>\n";
 				} else if (c.control_type === "textarea") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + "; resize:none;\" id=\"" + c.id + "\">" + text + "</textarea>\n";
+					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + "; resize:none;\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\">" + text + "</textarea>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "checkbox") {
 					const chk = c.checked ? "checked" : "";
@@ -5043,7 +5058,7 @@
 					html += "  </div>\n";
 				} else if (c.control_type === "code_view") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
-					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117') + "; color:" + (c.font_color || '#7dd3fc') + "; font-family:'Fira Code','Courier New',monospace; font-size:" + c_fs + "px; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:10px; resize:none; outline:none; white-space:pre;\" id=\"" + c.id + "\">" + text + "</textarea>\n";
+					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117') + "; color:" + (c.font_color || '#7dd3fc') + "; font-family:'Fira Code','Courier New',monospace; font-size:" + c_fs + "px; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:10px; resize:none; outline:none; white-space:pre;\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\">" + text + "</textarea>\n";
 					html += "  </div>\n";
 				} else {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
@@ -5137,6 +5152,11 @@ export function execJS(code: string) {
 export function setControlText(controlId: string, text: string) {
     const escaped = JSON.stringify(text);
     execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else el.textContent=\${escaped};}\`);
+}
+
+export function setControlPlaceholder(controlId: string, placeholder: string) {
+    const escaped = JSON.stringify(placeholder);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("placeholder" in el)el.placeholder=\${escaped};else{const inp=el.querySelector("input, textarea");if(inp)inp.placeholder=\${escaped};}}\`);
 }
 
 export function setControlEnabled(controlId: string, enabled: boolean) {

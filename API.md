@@ -241,6 +241,7 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `getControlValue(id)` | `(id: string) => any` | Reads current value or text of any UI control |
 | `setControlText(id, text)` | `(id: string, text: string) => void` | Dynamically updates caption, label, or text of any UI control |
 | `setControlValue(id, value)` | `(id: string, value: any) => void` | Updates input value, slider value, checkbox state, or metric |
+| `setControlPlaceholder(id, placeholder)` | `(id: string, placeholder: string) => void` | Dynamically updates placeholder text for input fields, textareas, and code views |
 | `setControlEnabled(id, enabled)` | `(id: string, enabled: boolean) => void` | Dynamically enables or disables any UI control at runtime |
 | `setControlVisible(id, visible)` | `(id: string, visible: boolean) => void` | Dynamically shows or hides any UI control at runtime |
 | `setSegmentedSelected(id, text)` | `(id: string, text: string) => void` | Selects a segment button in a Segmented Control by item name |
