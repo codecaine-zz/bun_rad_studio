@@ -24,9 +24,12 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+  #button_1:hover { background-color:#d95000 !important;background:#d95000 !important;color:#4f7a28 !important; }
+#button_1:hover input, #button_1:hover textarea, #button_1:hover select, #button_1:hover button { background-color:#d95000 !important;background:#d95000 !important;color:#4f7a28 !important; }
+
 </style>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
-<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' id="input_1" onclick="try{if(window['on_input_1_click']){window['on_input_1_click'](this.value||'')}else if(window.backendAlert){window.backendAlert('Event: on_input_1_click')}}catch(e){console.error(e)}" type="text" value="Input 1" placeholder="" style="position:absolute;left:80px;top:208px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;border-width:2px;border-radius:10px;background:#1e293b;color:#ffffff;border-width:2px;border-color:rgba(255, 255, 255, 0.12);border-style:solid;border-radius:10px;padding:0 10px;outline:none;">
+<button id="button_1" title="Button: Clickable action button widget (win.add_button)" onclick="try{if(window['on_button_1_click']){window['on_button_1_click'](this.value||'')}else if(window.backendAlert){window.backendAlert('Event: on_button_1_click')}}catch(e){console.error(e)}" style="position:absolute;left:104px;top:128px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;background:#0284c7;color:#ffffff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Button 1</button>
 
 <script>
   window.addEventListener("DOMContentLoaded", () => {
