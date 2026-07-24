@@ -5391,20 +5391,67 @@ wv.bind("backendAlert", (msg: string) => {
 		}
 
 		function exportApp() {
-			document.getElementById("statusMsg").textContent = "Exporting App Project...";
+			const statusMsg = document.getElementById("statusMsg");
+			if (statusMsg) statusMsg.textContent = "Exporting App Project...";
+
+			const handleResult = (res) => {
+				let data = res;
+				if (typeof data === "string") {
+					try { data = JSON.parse(data); } catch(e){}
+				}
+				if (data && data.success) {
+					const targetDir = data.dir || "exported_project";
+					if (statusMsg) statusMsg.textContent = "Project exported to: " + targetDir;
+					showCopyToast("Project successfully exported to " + targetDir);
+					switchTab("tabBunTS");
+				} else {
+					const err = (data && data.error) ? data.error : "Unknown export error";
+					if (statusMsg) statusMsg.textContent = "Export failed: " + err;
+					showCopyToast("Export failed: " + err);
+				}
+			};
+
 			if (window.exportProject) {
-				window.exportProject(JSON.stringify(formSpec))
-					.then((res) => {
-						if (res.success) {
-							document.getElementById("statusMsg").textContent = "Project exported to: " + res.dir;
-							alert("Project successfully exported to " + res.dir);
-						} else {
-							alert("Export failed: " + res.error);
-						}
-					})
-					.catch((err) => alert("Export failed: " + err.message));
+				try {
+					const res = window.exportProject(JSON.stringify(formSpec));
+					if (res && typeof res.then === "function") {
+						res.then(handleResult).catch((err) => {
+							if (statusMsg) statusMsg.textContent = "Export failed: " + err.message;
+							showCopyToast("Export failed: " + err.message);
+						});
+					} else {
+						handleResult(res);
+					}
+				} catch (err) {
+					if (statusMsg) statusMsg.textContent = "Export error: " + err.message;
+					showCopyToast("Export error: " + err.message);
+				}
 			} else {
-				alert("Error: window.exportProject is not bound.");
+				// Browser / Standalone HTTP Fallback Export
+				downloadProjectFiles();
+			}
+		}
+
+		function downloadProjectFiles() {
+			const statusMsg = document.getElementById("statusMsg");
+			try {
+				const jsonStr = JSON.stringify(formSpec, null, 2);
+				const blob = new Blob([jsonStr], { type: "application/json" });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = (formSpec.title ? formSpec.title.toLowerCase().replace(/[^a-z0-9]/g, "_") : "rad_project") + "_spec.json";
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+
+				if (statusMsg) statusMsg.textContent = "Project layout JSON downloaded! Switched to Bun TS code tab.";
+				showCopyToast("Layout JSON downloaded! Switched to Bun TS code view.");
+				switchTab("tabBunTS");
+			} catch (err) {
+				if (statusMsg) statusMsg.textContent = "Download failed: " + err.message;
+				showCopyToast("Download failed: " + err.message);
 			}
 		}
 
