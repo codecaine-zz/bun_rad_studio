@@ -14,6 +14,10 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 6. [Exported Project Architecture](#6-exported-project-architecture)
 7. [Interactive Demos Suite (`demos/`)](#7-interactive-demos-suite-demos)
 8. [Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)](#8-form-themes--color-palettes-macos--windows-11-desktop-themes)
+9. [Quick Start & Developer Recipes](#9-quick-start--developer-recipes)
+
+---
+
 
 ---
 
@@ -141,20 +145,24 @@ interface ControlSpec {
   event_handlers?: Record<string, string>; // Map of event names to handler code/names
 }
 
-### Supported Event Handlers
-The `event_handlers` record can map the following event names to string blocks of JavaScript:
-- `onClick`: Triggered when the component is clicked.
-- `onChange`: Triggered when an input or state value changes.
-- `onDoubleClick`: Triggered when the component is double-clicked.
-- `onHover`: Triggered when the mouse pointer enters the component.
-- `onHoverExit`: Triggered when the mouse pointer leaves the component.
-- `onFocus`: Triggered when the component gains input focus.
-- `onBlur`: Triggered when the component loses input focus.
-- `onKeyDown`: Triggered when a key is pressed down.
-- `onKeyUp`: Triggered when a key is released.
-- `onMouseDown`: Triggered when the mouse button is pressed.
-- `onMouseUp`: Triggered when the mouse button is released.
-- `onTimer`: Triggered periodically for `timer` non-visual components.
+### Supported Event Handlers & Callback Signatures
+
+The `event_handlers` record maps event names to function names or JavaScript strings. Below are the supported event names and the parameters passed to their handlers:
+
+| Event Name | Signature / Passed Parameter | Description | Typical Target Components |
+| --- | --- | --- | --- |
+| `onClick` | `(valueOrLabel?: string) => void` | Triggered on mouse click. Passes element caption/item label if available | `button`, `metric_card`, `kanban_board`, `shortcut_recorder`, `split_button`, `sparkline_table`, `activity_feed`, `toast_card` |
+| `onChange` | `(newValue?: any) => void` | Triggered when state/value changes | `input`, `select`, `checkbox`, `radio`, `switch`, `slider`, `number`, `time_picker`, `file_tree_tabs` |
+| `onMenu` | `(actionLabel?: string) => void` | Triggered when split button sub-menu arrow is clicked | `split_button` |
+| `onSelect` | `(nodeText?: string) => void` | Triggered when a tree view node or option chip is selected | `tree_view`, `segmented_control` |
+| `onDoubleClick` | `() => void` | Triggered on double click | Any visual component |
+| `onHover` | `() => void` | Triggered when mouse enters element bounds | Any visual component |
+| `onHoverExit` | `() => void` | Triggered when mouse exits element bounds | Any visual component |
+| `onFocus` | `() => void` | Triggered when input element gains focus | `input`, `password`, `textarea`, `search`, `code_view` |
+| `onBlur` | `() => void` | Triggered when input element loses focus | `input`, `password`, `textarea`, `search`, `code_view` |
+| `onKeyDown` | `(keyEvent?: string) => void` | Triggered on key press | `input`, `shortcut_recorder`, `command_palette` |
+| `onKeyUp` | `(keyEvent?: string) => void` | Triggered on key release | `input`, `shortcut_recorder`, `command_palette` |
+| `onTimer` | `() => void` | Triggered periodically on timer interval | `timer` non-visual component |
 ```
 
 ---
@@ -278,7 +286,10 @@ Auto-generated TS templates and exported projects support window lifecycle bindi
 - `onFormClose()`: Triggered right before the application closes / terminates.
 
 ### RAD Backend & Client Helper Utilities
+
 Exported TypeScript templates and client scripts include built-in high-level helper functions to read, update, and manipulate all RAD controls dynamically:
+
+#### 🔹 Core Component & Form Mutators
 
 | Helper Utility Function | Signature | Description |
 | --- | --- | --- |
@@ -291,28 +302,51 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `setControlRequired(id, required)` | `(id: string, required: boolean) => void` | Dynamically toggles required state for input fields, textareas, and dropdowns |
 | `setControlMaxLength(id, maxLength)` | `(id: string, maxLength: number) => void` | Dynamically updates maximum character length limit for input fields |
 | `setControlEnabled(id, enabled)` | `(id: string, enabled: boolean) => void` | Dynamically enables or disables any UI control at runtime |
-| `setControlVisible(id, visible)` | `(id: string, visible: boolean) => void` | Dynamically shows or hides any UI control at runtime |
+| `setControlVisible(id, visible)` | `(id: string, visible: visible) => void` | Dynamically shows or hides any UI control at runtime |
+
+#### 🔹 Navigation, Layout & Desktop App Mutators
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `setTabsActive(id, tabName)` | `(id: string, tabName: string) => void` | Sets active tab in a Tab Container |
+| `setWorkspaceTabs(id, filesCSV)` | `(id: string, filesCSV: string) => void` | Updates IDE workspace file tabs and icons |
+| `setStatusBarText(id, statusText)` | `(id: string, statusText: string) => void` | Updates status bar message text |
+| `setPaginationPage(id, pageNum)` | `(id: string, pageNum: number \| string) => void` | Selects page number in Pagination Bar |
 | `setSegmentedSelected(id, text)` | `(id: string, text: string) => void` | Selects a segment button in a Segmented Control by item name |
+| `setToggleButtonState(id, active, labelText)` | `(id: string, active: boolean, labelText?: string) => void` | Toggles icon toggle button state & label |
+| `setBreadcrumbs(id, crumbsCSV)` | `(id: string, crumbsCSV: string) => void` | Updates Breadcrumb navigation items from comma-separated string |
+| `setTreeNodes(id, nodesCSV)` | `(id: string, nodesCSV: string) => void` | Updates Tree View directory nodes from comma-separated string |
+| `setFilePathBarPath(id, pathStr)` | `(id: string, pathStr: string) => void` | Updates location string in Desktop File Path Address Bar |
+| `setPopupMenuItems(id, itemsCSV)` | `(id: string, itemsCSV: string) => void` | Updates Desktop Popup Context Menu action items and keyboard shortcuts |
+
+#### 🔹 Productivity Controls & Analytics Mutators
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `setKanbanColumns(id, rawCols)` | `(id: string, rawCols: string) => void` | Updates Kanban task board column headers and cards |
+| `setShortcutRecorderValue(id, shortcutStr)` | `(id: string, shortcutStr: string) => void` | Updates shortcut recorder displayed key combination badge |
+| `setSplitButtonAction(id, textStr)` | `(id: string, textStr: string) => void` | Updates primary action label text of Split Action Button |
+| `setSparklineTableData(id, rowsCSV)` | `(id: string, rowsCSV: string) => void` | Updates rows and SVG trend sparklines in Sparkline Data Grid |
+| `setMetricComparison(id, opts)` | `(id: string, opts: { title?, curVal?, targetStr?, changeStr? }) => void` | Updates executive KPI card title, current value, target goal, and percentage delta |
+| `setActivityFeedItems(id, itemsCSV)` | `(id: string, itemsCSV: string) => void` | Updates activity audit stream items and user initial avatars |
 | `setStatChart(id, opts)` | `(id: string, opts: { title?, value?, trend? }) => void` | Updates Stat Chart KPI card title, value, and trend percentage badge |
 | `setToast(id, title, msg, alertType)` | `(id: string, title: string, msg?: string, alertType?: string) => void` | Updates Notification Toast card title, message body, and alert color |
 | `setTimePickerValue(id, timeStr)` | `(id: string, timeStr: string) => void` | Sets Time Picker value (e.g. `"09:41"`) |
 | `setAccordionOpen(id, open)` | `(id: string, open: boolean) => void` | Expands (`true`) or collapses (`false`) an Accordion section |
 | `setTimelineSteps(id, stepsCSV)` | `(id: string, stepsCSV: string) => void` | Updates Activity Timeline steps from comma-separated string |
-| `setBreadcrumbs(id, crumbsCSV)` | `(id: string, crumbsCSV: string) => void` | Updates Breadcrumb navigation items from comma-separated string |
-| `setTreeNodes(id, nodesCSV)` | `(id: string, nodesCSV: string) => void` | Updates Tree View directory nodes from comma-separated string |
 | `setAvatarGroup(id, avatarsCSV)` | `(id: string, avatarsCSV: string) => void` | Updates Avatar Group stack initials from comma-separated string |
 | `setRichSelectText(id, text)` | `(id: string, text: string) => void` | Updates Searchable Combobox display selection label |
-| `setTabsActive(id, tabName)` | `(id: string, tabName: string) => void` | Sets active tab in a Tab Container |
-| `setStatusBarText(id, statusText)` | `(id: string, statusText: string) => void` | Updates status bar message text |
-| `setPaginationPage(id, pageNum)` | `(id: string, pageNum: number \| string) => void` | Selects page number in Pagination Bar |
-| `setToggleButtonState(id, active, labelText)` | `(id: string, active: boolean, labelText?: string) => void` | Toggles icon toggle button state & label |
 | `setPropertyGridData(id, properties)` | `(id: string, properties: string \| Record<string, string>) => void` | Updates Property Inspector Grid two-column key-value data |
-| `setPopupMenuItems(id, itemsCSV)` | `(id: string, itemsCSV: string) => void` | Updates Desktop Popup Context Menu action items and keyboard shortcuts |
 | `setCalendarDate(id, yearMonthStr)` | `(id: string, yearMonthStr: string) => void` | Updates Month Calendar View header title and date grid |
 | `setColorSwatchColor(id, hexColor)` | `(id: string, hexColor: string) => void` | Selects active color chip in Color Swatch palette grid |
-| `setFilePathBarPath(id, pathStr)` | `(id: string, pathStr: string) => void` | Updates location string in Desktop File Path Address Bar |
+
+#### 🔹 Native Window & OS Integration Utilities
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
 | `setAlwaysOnTop(onTop)` | `(onTop: boolean) => void` | Toggles window always-on-top mode floating above all OS windows |
 | `setWindowPosition(pos)` | `(pos: WindowPositionPreset \| { x: number, y: number }) => void` | Repositions application window to screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` screen coordinates |
+| `toggleFullscreenNative()` | `() => void` | Toggles native OS window fullscreen/maximized mode (macOS Cocoa, Windows 11 SW_MAXIMIZE, Linux GTK) |
 
 ---
 
@@ -359,10 +393,15 @@ The repository includes interactive executable demo scripts demonstrating all co
 | `demos/02_advanced_modern_controls.ts` | `bun run demo:modern` | All 10 modern visual controls & dedicated helper wrappers (`setSegmentedSelected`, `setStatChart`, `setToast`, `setTimePickerValue`, `setAccordionOpen`, `setTimelineSteps`, `setBreadcrumbs`, `setTreeNodes`, `setAvatarGroup`, `setRichSelectText`) |
 | `demos/03_data_and_non_visual.ts` | `bun run demo:data` | Data-Aware `DBGrid`, `DBNavigator`, non-visual `Timer` component (`onTimer` event), monospaced `CodeView`, Progress Bars, Gauges, Ratings |
 | `demos/04_window_placement_and_pin.ts` | `bun run demo:window` | Native Window Placement API (`setWindowPosition`), 9 screen placement presets, Always On Top window pinning (`setAlwaysOnTop`), Native Cocoa Fullscreen (`toggleFullscreenNative`), and Quit (`process.exit(0)`) |
-| `demos/05_crud_todo_table.ts` | `bun run demo:table` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
+| `demos/05_crud_todo_table.ts` | `bun run demo:table` / `bun run demo:crud` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
 | `demos/06_timer_control_studio.ts` | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
 | `demos/07_labeled_form_and_desktop_controls.ts` | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
+| `demos/08_analytics_dashboard_template.ts` | `bun run demo:dashboard` | Executive Analytics Dashboard template featuring Metric KPI cards, Stat Charts with SVG sparklines, Alert Banners, Segmented Controls, and Progress Gauges |
+| `demos/09_file_explorer_ide_template.ts` | `bun run demo:ide` | Developer File Explorer & Code Studio template featuring Tree View directory navigation, Workspace Tab bar, Monospaced Code View, Search Bar, and Status Bar |
+| `demos/10_db_studio_query_editor_template.ts` | `bun run demo:db` | Database Studio & Query Editor template featuring DB Navigator, DB-bound Data Grids, SQL Code View, Property Inspector Grid, and DB Connection tray component |
+| `demos/11_app_settings_preferences_template.ts` | `bun run demo:settings` | Desktop Application Settings & Preferences template featuring Tab Containers, Toggle Switches, Range Sliders, Color Wells, Time Pickers, and File Path Address Bar |
 | `demos/12_advanced_desktop_app_controls.ts` | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (`property_grid`, `popup_menu`, `calendar_view`, `color_swatch`, `file_path_bar`), backend IPC bindings, and live helper updates |
+| `demos/13_productivity_controls_studio.ts` | `bun run demo:productivity` | All 7 Modern Productivity UI Controls Studio featuring Kanban Boards (`kanban_board`), Hotkey Shortcut Recorders (`shortcut_recorder`), Split Action Buttons (`split_button`), Sparkline Data Grids (`sparkline_table`), KPI Metric Comparisons (`metric_comparison`), Activity Audit Feeds (`activity_feed`), and Workspace Tab Bars (`file_tree_tabs`) with live on-form alert feedback and event payload stream |
 
 ---
 
@@ -421,4 +460,107 @@ When a theme is selected in the RAD IDE Inspector or applied programmatically, `
 | `Solarized Light` | Solarized Light | `#fdf6e3` | `#657b83` | `#eee8d5` | `#073642` | `#b58900` | `#fdf6e3` | `#e0d8c3` | Low-contrast solarized light theme designed for reduced glare during daylight coding. |
 | `Solarized Dark` | Solarized Dark | `#002b36` | `#839496` | `#073642` | `#93a1a1` | `#2aa198` | `#002b36` | `#094352` | Low-contrast solarized dark theme with cyan/teal primary button swatches. |
 | `High Contrast` | Accessibility High Contrast | `#000000` | `#00ff00` | `#111111` | `#00ff00` | `#00ff00` | `#000000` | `#1a1a1a` | High-contrast accessibility theme featuring neon green elements on solid pitch black canvas. |
+
+---
+
+## 9. Quick Start & Developer Recipes
+
+Below are complete, copy-pasteable TypeScript developer recipes demonstrating standard patterns for building desktop UI applications with Bun RAD Studio.
+
+### 💡 Recipe 1: Minimal RAD Desktop Window Setup
+
+```typescript
+import { SizeHint, Webview } from "webview-bun";
+import { generatePreviewHtml } from "./index.ts";
+
+const formSpec = {
+  title: "My Bun RAD App",
+  width: 800,
+  height: 600,
+  background_color: "#0f172a",
+  font_color: "#f8fafc",
+  controls: [
+    {
+      id: "btn_action",
+      control_type: "button",
+      x: 30, y: 30, width: 160, height: 38,
+      text: "Click Me",
+      background_color: "#0284c7",
+      event_handlers: { onClick: "on_btn_action_click" }
+    },
+    {
+      id: "status_lbl",
+      control_type: "label",
+      x: 200, y: 38, width: 300, height: 24,
+      text: "Ready."
+    }
+  ]
+};
+
+const html = generatePreviewHtml(formSpec as any);
+const wv = new Webview(true);
+wv.title = formSpec.title;
+wv.size = { width: formSpec.width, height: formSpec.height, hint: SizeHint.NONE };
+
+// Bind backend IPC click handler
+wv.bind("on_btn_action_click", () => {
+  wv.eval(`setControlText("status_lbl", "Button clicked at ${new Date().toLocaleTimeString()}!")`);
+});
+
+wv.navigate(`data:text/html,${encodeURIComponent(html)}`);
+wv.run();
+```
+
+---
+
+### 💡 Recipe 2: Interacting with Modern Productivity Controls
+
+```typescript
+// Update Kanban board columns dynamically
+wv.eval(`setKanbanColumns("kanban_1", "Backlog (3) | In Progress (5) | Completed (12)")`);
+
+// Update executive KPI metric comparison
+wv.eval(`setMetricComparison("metric_1", {
+  title: "Quarterly Revenue",
+  curVal: "$485,000",
+  targetStr: "Target: $450,000",
+  changeStr: "+7.8% vs Q2"
+})`);
+
+// Push new entries to activity audit stream
+wv.eval(`setActivityFeedItems("feed_1", "Sarah deployed v2.1.0 release (1m ago), System automated backup finished (15m ago)")`);
+
+// Toggle window pinning always-on-top
+wv.eval(`setAlwaysOnTop(true)`);
+```
+
+---
+
+### 💡 Recipe 3: Applying Desktop Form Themes Programmatically
+
+```typescript
+import { updateFormTheme } from "./index.ts";
+
+// Apply macOS Sonoma Dark theme across FormSpec
+const themedFormSpec = updateFormTheme(formSpec, "macOS Sonoma Dark");
+
+// Generate themed preview HTML
+const themedHtml = generatePreviewHtml(themedFormSpec);
+```
+
+---
+
+### 💡 Recipe 4: Programmatic Project Exporter
+
+```typescript
+import { exportProject } from "./index.ts";
+
+const result = exportProject(JSON.stringify(formSpec));
+if (result.success) {
+  console.log(`✅ App successfully exported to directory: ${result.dir}`);
+} else {
+  console.error(`❌ Export failed: ${result.error}`);
+}
+```
+
 
