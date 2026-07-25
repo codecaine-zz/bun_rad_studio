@@ -588,7 +588,7 @@ export function generatePreviewHtml(spec: any): string {
         const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
-            const isInputType = ['input', 'textarea', 'select', 'checkbox', 'radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'form_date', 'color'].includes(ctrlType);
+            const isInputType = ['input', 'search', 'textarea', 'select', 'checkbox', 'radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'form_date', 'color'].includes(ctrlType);
             if (isInputType) {
                 if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
                     handlers.onChange = `on_${c.id}_change`;

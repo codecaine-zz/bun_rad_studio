@@ -276,13 +276,16 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("id=\"propDock\"");
         expect(ideContent).toContain("id=\"propDataSource\"");
 
-        // Verify Exporter tabs
+        // Verify Exporter tabs & Copy Toast Notifications
         expect(ideContent).toContain("switchTab('tabReact', event)");
         expect(ideContent).toContain("switchTab('tabVue', event)");
         expect(ideContent).toContain("switchTab('tabPython', event)");
         expect(ideContent).toContain("generateReactTailwindCode()");
         expect(ideContent).toContain("generateVueCode()");
         expect(ideContent).toContain("generatePythonTkinterCode()");
+        expect(ideContent).toContain("id=\"copyNotificationToast\"");
+        expect(ideContent).toContain("flashCopyButton");
+        expect(ideContent).toContain("showCopyToast");
     });
 
     test("5. Interactive Demos Suite Integrity (demos/)", () => {
@@ -328,6 +331,45 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(() => toggleFullscreenNative(dummyWebview)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, "center", 800, 600)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, { x: 100, y: 100 }, 800, 600)).not.toThrow();
+    });
+
+    test("7. Control HTML Translation Validation", () => {
+        const spec = {
+            title: "HTML Translation Test",
+            controls: [
+                { id: "src_1", control_type: "search", x: 10, y: 10, width: 200, height: 36, text: "Filter...", placeholder: "Search items..." },
+                { id: "num_1", control_type: "number", x: 10, y: 50, width: 200, height: 36, value: 42 },
+                { id: "date_1", control_type: "date", x: 10, y: 90, width: 200, height: 36 },
+                { id: "col_1", control_type: "color", x: 10, y: 130, width: 200, height: 36, value: "#0284c7" },
+                { id: "sld_1", control_type: "slider", x: 10, y: 170, width: 200, height: 36, value: 75 }
+            ]
+        };
+
+        const html = generatePreviewHtml(spec);
+
+        // Search control must translate to <input type="search">
+        expect(html).toContain('id="src_1"');
+        expect(html).toContain('type="search"');
+        expect(html).toContain('placeholder="Search items..."');
+
+        // Verify other input controls translate properly
+        expect(html).toContain('id="num_1"');
+        expect(html).toContain('type="number"');
+
+        expect(html).toContain('id="date_1"');
+        expect(html).toContain('type="date"');
+
+        expect(html).toContain('id="col_1"');
+        expect(html).toContain('type="color"');
+
+        expect(html).toContain('id="sld_1"');
+        expect(html).toContain('type="range"');
+
+        // Verify ide.html contains proper search input translation handling
+        const idePath = join(process.cwd(), "src", "ide.html");
+        const ideContent = readFileSync(idePath, "utf-8");
+        expect(ideContent).toContain('c.control_type === "search"');
+        expect(ideContent).toContain('type="search"');
     });
 
 });

@@ -216,6 +216,44 @@
 			50% { transform: scale(1.2); }
 		}
 
+		/* Global Copy Notification Toast */
+		.copy-notification-toast {
+			position: fixed;
+			top: 64px;
+			right: 24px;
+			z-index: 100000;
+			background: linear-gradient(135deg, #064e3b, #0f172a);
+			color: #f8fafc;
+			border: 1px solid #10b981;
+			box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4), 0 4px 14px rgba(0,0,0,0.6);
+			border-radius: 10px;
+			padding: 12px 20px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			font-size: 13px;
+			font-weight: 700;
+			opacity: 0;
+			transform: translateY(-20px) scale(0.95);
+			pointer-events: none;
+			transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+		}
+		.copy-notification-toast.visible {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+		.copy-toast-icon {
+			font-size: 16px;
+			filter: drop-shadow(0 0 6px #10b981);
+		}
+		.btn-copy-success {
+			background-color: #059669 !important;
+			background: #059669 !important;
+			border-color: #10b981 !important;
+			color: #ffffff !important;
+			box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
+		}
+
 		/* Canvas empty state */
 		#canvasEmptyState {
 			position: absolute;
@@ -968,7 +1006,7 @@
 			<!-- Edit actions -->
 			<button class="btn btn-icon" onclick="undo()" id="undoBtn" title="Undo (⌘Z)">↩</button>
 			<button class="btn btn-icon" onclick="redo()" id="redoBtn" title="Redo (⌘⇧Z)">↪</button>
-			<button class="btn btn-icon" onclick="copySelectedControl()" title="Copy (⌘C)">⎘</button>
+			<button class="btn btn-icon" onclick="copySelectedControl(this)" title="Copy (⌘C)">⎘</button>
 			<button class="btn btn-icon" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
 			<button class="btn btn-icon" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
 			<span class="toolbar-divider"></span>
@@ -991,8 +1029,8 @@
 			<!-- Advanced -->
 			<button class="btn" id="liveHoverTestBtn" onclick="toggleLiveHoverMode()" title="Live hover test mode on canvas">🧪 Test</button>
 			<button class="btn" onclick="showDiagnosticsModal()" title="Audit form for overlaps/errors">🔍 Audit</button>
-			<button class="btn btn-primary" onclick="copyBunTSCode()" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
-			<button class="btn" onclick="copyHTMLCode()" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
+			<button class="btn btn-primary" onclick="copyBunTSCode(this)" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
+			<button class="btn" onclick="copyHTMLCode(this)" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
 			<button class="btn" onclick="showHotkeysModal()" title="Keyboard shortcuts">⌨ Keys</button>
 		</div>
 	</header>
@@ -1812,7 +1850,7 @@
 			<div class="tab-content" id="tabBunTS">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
 					<span class="prop-label" style="color:var(--accent);">Bun TypeScript</span>
-					<button class="btn btn-primary" onclick="copyBunTSCode()">📋 Copy Bun Code</button>
+					<button class="btn btn-primary" onclick="copyBunTSCode(this)">📋 Copy Bun Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="bunTsPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
@@ -1821,7 +1859,7 @@
 			<div class="tab-content" id="tabHTML">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
 					<span class="prop-label" style="color:var(--accent);">Standalone HTML5</span>
-					<button class="btn btn-primary" onclick="copyHTMLCode()">📋 Copy HTML Code</button>
+					<button class="btn btn-primary" onclick="copyHTMLCode(this)">📋 Copy HTML Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="htmlPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
@@ -1830,7 +1868,7 @@
 			<div class="tab-content" id="tabReact">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
 					<span class="prop-label" style="color:var(--accent);">React + Tailwind TSX</span>
-					<button class="btn btn-primary" onclick="copyReactCode()">📋 Copy React Code</button>
+					<button class="btn btn-primary" onclick="copyReactCode(this)">📋 Copy React Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="reactPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
@@ -1839,7 +1877,7 @@
 			<div class="tab-content" id="tabVue">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
 					<span class="prop-label" style="color:var(--accent);">Vue 3 SFC (.vue)</span>
-					<button class="btn btn-primary" onclick="copyVueCode()">📋 Copy Vue Code</button>
+					<button class="btn btn-primary" onclick="copyVueCode(this)">📋 Copy Vue Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="vuePreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
@@ -1848,7 +1886,7 @@
 			<div class="tab-content" id="tabPython">
 				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
 					<span class="prop-label" style="color:var(--accent);">Python CustomTkinter</span>
-					<button class="btn btn-primary" onclick="copyPythonCode()">📋 Copy Python Code</button>
+					<button class="btn btn-primary" onclick="copyPythonCode(this)">📋 Copy Python Code</button>
 				</div>
 				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="pythonPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
 			</div>
@@ -1918,6 +1956,12 @@
 		<span id="placementToastText">Click canvas to place control</span>
 		<span style="opacity:0.5;font-size:11px;font-weight:400;">Shift+click = keep placing</span>
 		<button class="toast-cancel" onclick="cancelPlacementMode()">Esc ✕</button>
+	</div>
+
+	<!-- Global Copy Notification Toast -->
+	<div id="copyNotificationToast" class="copy-notification-toast">
+		<span class="copy-toast-icon">✅</span>
+		<span id="copyNotificationToastText">Copied to clipboard!</span>
 	</div>
 
 	<!-- Import JSON Modal -->
@@ -2191,10 +2235,14 @@
 		}
 
 		// Clipboard Engine
-		function copySelectedControl() {
+		function copySelectedControl(btn) {
 			if (selectedIndices.length === 0) return;
 			clipboardBuffer = selectedIndices.map(idx => JSON.parse(JSON.stringify(formSpec.controls[idx])));
-			document.getElementById("statusMsg").textContent = "Copied " + clipboardBuffer.length + " control(s) to internal clipboard.";
+			const msg = "Copied " + clipboardBuffer.length + " control(s) to internal clipboard.";
+			document.getElementById("statusMsg").textContent = msg;
+			showCopyToast(msg);
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			if (targetBtn) flashCopyButton(targetBtn);
 		}
 
 		function pasteCopiedControl() {
@@ -5131,6 +5179,10 @@
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
 					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"text\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
 					html += "  </div>\n";
+				} else if (c.control_type === "search") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"search\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "Search...") + "\">\n";
+					html += "  </div>\n";
 				} else if (c.control_type === "password") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
 					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"password\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + text + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
@@ -5150,6 +5202,76 @@
 					html += "  <div class=\"control-item\" style=\"" + posStyle + " gap:8px;\">\n";
 					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type=\"radio\" name=\"form_radios\" id=\"" + c.id + "\" " + chk + ">\n";
 					html += "    <label for=\"" + c.id + "\" style=\"color:" + c_fg + ";\">" + text + "</label>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "number" || c.control_type === "form_number") {
+					const val = c.value !== undefined ? c.value : 0;
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"number\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + val + "\" placeholder=\"" + (c.placeholder || "") + "\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "date" || c.control_type === "date_picker" || c.control_type === "form_date") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"date\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "time_picker") {
+					const val = c.value || "09:30";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"time\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + val + "\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "color") {
+					const val = c.value || "#38bdf8";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"color\" class=\"input-ctrl\" style=\"padding:2px; cursor:pointer; background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'transparent') + "; color:" + c_fg + ";\" id=\"" + c.id + "\" value=\"" + val + "\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "slider" || c.control_type === "form_slider") {
+					const val = c.value !== undefined ? c.value : 50;
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <input type=\"range\" id=\"" + c.id + "\" value=\"" + val + "\" min=\"0\" max=\"100\" style=\"width:100%; accent-color:#38bdf8;\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "switch" || c.control_type === "form_switch") {
+					const chk = c.checked ? "checked" : "";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + " gap:8px;\">\n";
+					html += "    <input type=\"checkbox\" role=\"switch\" id=\"" + c.id + "\" " + chk + " style=\"width:36px; height:20px; cursor:pointer;\">\n";
+					html += "    <label for=\"" + c.id + "\" style=\"color:" + c_fg + ";\">" + text + "</label>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "progress" || c.control_type === "form_progress") {
+					const val = c.value !== undefined ? c.value : 60;
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <progress id=\"" + c.id + "\" value=\"" + val + "\" max=\"100\" style=\"width:100%; height:100%; accent-color:#38bdf8;\">" + val + "%</progress>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "divider") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <hr id=\"" + c.id + "\" style=\"width:100%; border:none; border-top:1px solid rgba(255,255,255,0.2); margin:0;\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_field" || c.control_type === "db_input") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"text\" class=\"input-ctrl\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\"></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_password") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"password\" class=\"input-ctrl\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\"></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_textarea") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " class=\"input-ctrl\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\" style=\"resize:none;\"></textarea></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_dropdown" || c.control_type === "db_dropdown") {
+					const opts = (c.options || "Option 1, Option 2, Option 3").split(',').map(s => s.trim());
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><select id=\"" + c.id + "\" class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : 'rgba(255,255,255,0.05)') + "; color:" + c_fg + ";\">" + opts.map(o => `<option value="${o}">${o}</option>`).join('') + "</select></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_link") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <a id=\"" + c.id + "\" href=\"#\" style=\"color:#38bdf8; text-decoration:none; font-weight:600;\">" + text + " 🔗</a>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "table" || c.control_type === "db_grid") {
+					const rawHeaders = c.columns || c.headers || ['ID', 'Name', 'Value', 'Status'];
+					const headers = Array.isArray(rawHeaders) ? rawHeaders : String(rawHeaders).split(',').map(s => s.trim());
+					const rawRows = c.rows || c.data || [['#1', 'Item 1', '100', 'Active'], ['#2', 'Item 2', '200', 'Active']];
+					html += "  <div class=\"control-item\" style=\"" + posStyle + " overflow:auto;\">\n";
+					html += "    <table id=\"" + c.id + "\" style=\"width:100%; border-collapse:collapse; background:" + (c_bg !== 'transparent' ? c_bg : 'rgba(255,255,255,0.03)') + "; border:1px solid rgba(255,255,255,0.1); border-radius:6px; font-size:12px;\">\n";
+					html += "      <thead><tr style=\"background:rgba(255,255,255,0.06);\">" + headers.map(h => `<th style="padding:6px 10px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.1);">${h}</th>`).join('') + "</tr></thead>\n";
+					html += "      <tbody>" + rawRows.map(r => { const cells = Array.isArray(r) ? r : Object.values(r); return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">${cells.map(cell => `<td style="padding:6px 10px;">${cell}</td>`).join('')}</tr>`; }).join('\n') + "</tbody>\n";
+					html += "    </table>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "badge") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
@@ -5175,8 +5297,22 @@
 		}
 
 		
-		function copyTextToClipboard(text, successMsg) {
-			let done = false;
+		function flashCopyButton(btn) {
+			if (!btn || !(btn instanceof HTMLElement)) return;
+			if (btn._copyTimeout) clearTimeout(btn._copyTimeout);
+			if (!btn._origContent) btn._origContent = btn.innerHTML;
+			btn.classList.add("btn-copy-success");
+			btn.innerHTML = "✓ Copied!";
+			btn._copyTimeout = setTimeout(() => {
+				btn.innerHTML = btn._origContent;
+				btn.classList.remove("btn-copy-success");
+				delete btn._origContent;
+				delete btn._copyTimeout;
+			}, 2000);
+		}
+
+		function copyTextToClipboard(text, successMsg, btn) {
+			if (btn) flashCopyButton(btn);
 			if (navigator.clipboard && navigator.clipboard.writeText) {
 				navigator.clipboard.writeText(text).then(() => {
 					showCopyToast(successMsg);
@@ -5207,16 +5343,15 @@
 		function showCopyToast(msg) {
 			const statusMsg = document.getElementById("statusMsg");
 			if (statusMsg) statusMsg.textContent = "📋 " + msg;
-			const toast = document.getElementById("placementToast");
-			const toastText = document.getElementById("placementToastText");
+			const toast = document.getElementById("copyNotificationToast");
+			const toastText = document.getElementById("copyNotificationToastText");
 			if (toast && toastText) {
-				toastText.textContent = "📋 " + msg;
-				toast.style.display = "flex";
-				requestAnimationFrame(() => toast.classList.add("visible"));
-				setTimeout(() => {
+				toastText.textContent = msg;
+				toast.classList.add("visible");
+				if (toast._toastTimeout) clearTimeout(toast._toastTimeout);
+				toast._toastTimeout = setTimeout(() => {
 					toast.classList.remove("visible");
-					setTimeout(() => { toast.style.display = "none"; }, 250);
-				}, 2000);
+				}, 2500);
 			}
 		}
 
@@ -5349,15 +5484,17 @@ wv.bind("backendAlert", (msg: string) => {
 			return code;
 		}
 
-		function copyBunTSCode() {
+		function copyBunTSCode(btn) {
 			const code = generateBunTSCode();
-			copyTextToClipboard(code, "Copied Bun GUI TypeScript runner code to clipboard!");
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(code, "Copied Bun GUI TypeScript runner code to clipboard!", targetBtn);
 			switchTab("tabBunTS");
 		}
 
-		function copyHTMLCode() {
+		function copyHTMLCode(btn) {
 			const htmlStr = generateHTMLCode();
-			copyTextToClipboard(htmlStr, "Copied standalone HTML/CSS code to clipboard!");
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(htmlStr, "Copied standalone HTML5 code to clipboard!", targetBtn);
 			switchTab("tabHTML");
 		}
 
@@ -5384,10 +5521,10 @@ wv.bind("backendAlert", (msg: string) => {
 			document.getElementById("statusMsg").textContent = "Created a new blank form layout.";
 		}
 
-		function copyVCode() {
+		function copyVCode(btn) {
 			const text = document.getElementById("codePreviewText").value;
-			navigator.clipboard.writeText(text);
-			document.getElementById("statusMsg").textContent = "V source code copied to clipboard!";
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(text, "Copied V source code to clipboard!", targetBtn);
 		}
 
 		function exportApp() {
@@ -5707,6 +5844,24 @@ wv.bind("backendAlert", (msg: string) => {
 					code += `      <span id="${c.id}" style={{ position: 'absolute', ${style} }} className="font-medium flex items-center">${c.text || 'Label'}</span>\n`;
 				} else if (c.control_type === 'input') {
 					code += `      <input id="${c.id}" type="text" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none focus:border-sky-400" placeholder="${c.placeholder || ''}" defaultValue="${c.text || ''}" />\n`;
+				} else if (c.control_type === 'search') {
+					code += `      <input id="${c.id}" type="search" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none focus:border-sky-400" placeholder="${c.placeholder || 'Search...'}" defaultValue="${c.text || ''}" />\n`;
+				} else if (c.control_type === 'password') {
+					code += `      <input id="${c.id}" type="password" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none focus:border-sky-400" placeholder="${c.placeholder || ''}" defaultValue="${c.text || ''}" />\n`;
+				} else if (c.control_type === 'textarea') {
+					code += `      <textarea id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg p-3 outline-none focus:border-sky-400 resize-none" placeholder="${c.placeholder || ''}" defaultValue="${c.text || ''}" />\n`;
+				} else if (c.control_type === 'checkbox') {
+					code += `      <label id="${c.id}" style={{ position: 'absolute', ${style} }} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" defaultChecked={${!!c.checked}} className="rounded accent-sky-500" /><span>${c.text || ''}</span></label>\n`;
+				} else if (c.control_type === 'radio') {
+					code += `      <label id="${c.id}" style={{ position: 'absolute', ${style} }} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="form_radios" defaultChecked={${!!c.checked}} className="accent-sky-500" /><span>${c.text || ''}</span></label>\n`;
+				} else if (c.control_type === 'number' || c.control_type === 'form_number') {
+					code += `      <input id="${c.id}" type="number" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none" defaultValue={${c.value !== undefined ? c.value : 0}} />\n`;
+				} else if (c.control_type === 'date' || c.control_type === 'date_picker' || c.control_type === 'form_date') {
+					code += `      <input id="${c.id}" type="date" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 outline-none" />\n`;
+				} else if (c.control_type === 'color') {
+					code += `      <input id="${c.id}" type="color" style={{ position: 'absolute', ${style} }} className="bg-transparent rounded-lg cursor-pointer" defaultValue="${c.value || '#38bdf8'}" />\n`;
+				} else if (c.control_type === 'slider' || c.control_type === 'form_slider') {
+					code += `      <input id="${c.id}" type="range" style={{ position: 'absolute', ${style} }} className="w-full accent-sky-400" defaultValue={${c.value !== undefined ? c.value : 50}} />\n`;
 				} else if (c.control_type === 'segmented_control') {
 					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-white/10 p-1 rounded-lg flex gap-1">${(c.text || 'Overview, Analytics, Reports').split(',').map(s=>`<button className="flex-1 py-1 text-xs font-semibold rounded-md bg-sky-600 text-white">${s.trim()}</button>`).join('')}</div>\n`;
 				} else if (c.control_type === 'stat_chart') {
@@ -5731,6 +5886,18 @@ wv.bind("backendAlert", (msg: string) => {
 				const style = `position: absolute; left: ${c.x}px; top: ${c.y + 30}px; width: ${c.width}px; height: ${c.height}px;`;
 				if (c.control_type === 'button') {
 					code += `    <button id="${c.id}" style="${style}" class="rad-btn">${c.text || 'Button'}</button>\n`;
+				} else if (c.control_type === 'label') {
+					code += `    <span id="${c.id}" style="${style}" class="rad-label">${c.text || 'Label'}</span>\n`;
+				} else if (c.control_type === 'input') {
+					code += `    <input id="${c.id}" style="${style}" type="text" class="rad-input" placeholder="${c.placeholder || ''}" :value="'${c.text || ''}'" />\n`;
+				} else if (c.control_type === 'search') {
+					code += `    <input id="${c.id}" style="${style}" type="search" class="rad-input" placeholder="${c.placeholder || 'Search...'}" :value="'${c.text || ''}'" />\n`;
+				} else if (c.control_type === 'password') {
+					code += `    <input id="${c.id}" style="${style}" type="password" class="rad-input" placeholder="${c.placeholder || ''}" />\n`;
+				} else if (c.control_type === 'textarea') {
+					code += `    <textarea id="${c.id}" style="${style}" class="rad-input" placeholder="${c.placeholder || ''}">${c.text || ''}</textarea>\n`;
+				} else if (c.control_type === 'checkbox') {
+					code += `    <label id="${c.id}" style="${style}" class="rad-checkbox"><input type="checkbox" ${c.checked ? 'checked' : ''} /> <span>${c.text || ''}</span></label>\n`;
 				} else {
 					code += `    <div id="${c.id}" style="${style}" class="rad-ctrl">${c.text || c.id}</div>\n`;
 				}
@@ -5749,6 +5916,16 @@ wv.bind("backendAlert", (msg: string) => {
 					code += `# ${c.id}\nlbl_${c.id} = ctk.CTkLabel(root, text="${c.text || 'Label'}")\nlbl_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
 				} else if (c.control_type === 'input') {
 					code += `# ${c.id}\nentry_${c.id} = ctk.CTkEntry(root, width=${c.width}, height=${c.height}, placeholder_text="${c.placeholder || ''}")\nentry_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'search') {
+					code += `# ${c.id}\nsearch_${c.id} = ctk.CTkEntry(root, width=${c.width}, height=${c.height}, placeholder_text="${c.placeholder || 'Search...'}")\nsearch_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'password') {
+					code += `# ${c.id}\npass_${c.id} = ctk.CTkEntry(root, width=${c.width}, height=${c.height}, show="*")\npass_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'checkbox') {
+					code += `# ${c.id}\nchk_${c.id} = ctk.CTkCheckBox(root, text="${c.text || ''}")\nchk_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'switch' || c.control_type === 'form_switch') {
+					code += `# ${c.id}\nsw_${c.id} = ctk.CTkSwitch(root, text="${c.text || ''}")\nsw_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
+				} else if (c.control_type === 'slider' || c.control_type === 'form_slider') {
+					code += `# ${c.id}\nslider_${c.id} = ctk.CTkSlider(root, from_=0, to=100)\nslider_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
 				} else if (c.control_type === 'segmented_control') {
 					code += `# ${c.id}\nseg_${c.id} = ctk.CTkSegmentedButton(root, values=["Overview", "Analytics", "Reports"])\nseg_${c.id}.place(x=${c.x}, y=${c.y})\n\n`;
 				} else if (c.control_type === 'stat_chart' || c.control_type === 'toast_card' || c.control_type === 'accordion') {
@@ -5761,21 +5938,24 @@ wv.bind("backendAlert", (msg: string) => {
 			return code;
 		}
 
-		function copyReactCode() {
+		function copyReactCode(btn) {
 			const code = generateReactTailwindCode();
-			copyTextToClipboard(code, "Copied React + Tailwind TSX code to clipboard!");
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(code, "Copied React + Tailwind TSX code to clipboard!", targetBtn);
 			switchTab("tabReact");
 		}
 
-		function copyVueCode() {
+		function copyVueCode(btn) {
 			const code = generateVueCode();
-			copyTextToClipboard(code, "Copied Vue 3 SFC code to clipboard!");
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(code, "Copied Vue 3 SFC code to clipboard!", targetBtn);
 			switchTab("tabVue");
 		}
 
-		function copyPythonCode() {
+		function copyPythonCode(btn) {
 			const code = generatePythonTkinterCode();
-			copyTextToClipboard(code, "Copied Python CustomTkinter code to clipboard!");
+			const targetBtn = btn || (typeof event !== 'undefined' && event && event.currentTarget);
+			copyTextToClipboard(code, "Copied Python CustomTkinter code to clipboard!", targetBtn);
 			switchTab("tabPython");
 		}
 
