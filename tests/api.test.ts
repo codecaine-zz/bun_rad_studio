@@ -76,10 +76,10 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(sampleSpec.title).toBe("Test CRUD Form");
         expect(sampleSpec.controls.length).toBe(3);
         expect(sampleSpec.non_visual_controls.length).toBe(2);
-        expect(sampleSpec.controls[0].anchors?.top).toBe(true);
-        expect(sampleSpec.controls[1].control_type).toBe("db_grid");
-        expect(sampleSpec.controls[2].data_field).toBe("company_name");
-        expect(sampleSpec.non_visual_controls[0].interval).toBe(1000);
+        expect(sampleSpec.controls[0]?.anchors?.top).toBe(true);
+        expect(sampleSpec.controls[1]?.control_type).toBe("db_grid");
+        expect(sampleSpec.controls[2]?.data_field).toBe("company_name");
+        expect(sampleSpec.non_visual_controls?.[0]?.interval).toBe(1000);
     });
 
     test("2. Backend HTML Preview Generator (generatePreviewHtml)", () => {
