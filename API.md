@@ -12,6 +12,8 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 4. [Webview IPC & Backend Bindings](#4-webview-ipc--backend-bindings)
 5. [Code Generators](#5-code-generators)
 6. [Exported Project Architecture](#6-exported-project-architecture)
+7. [Interactive Demos Suite (`demos/`)](#7-interactive-demos-suite-demos)
+8. [Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)](#8-form-themes--color-palettes-macos--windows-11-desktop-themes)
 
 ---
 
@@ -354,4 +356,62 @@ The repository includes interactive executable demo scripts demonstrating all co
 | `demos/06_timer_control_studio.ts` | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
 | `demos/07_labeled_form_and_desktop_controls.ts` | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
 | `demos/12_advanced_desktop_app_controls.ts` | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (`property_grid`, `popup_menu`, `calendar_view`, `color_swatch`, `file_path_bar`), backend IPC bindings, and live helper updates |
+
+---
+
+## 8. Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)
+
+Bun RAD Studio includes an automated visual theme engine (`updateFormTheme()`) that harmonizes application form background, text foreground, container panel background, interactive component backgrounds, and primary action button swatches across built-in presets.
+
+### Theme Harmonization Engine
+
+When a theme is selected in the RAD IDE Inspector or applied programmatically, `getThemeColors(themeName)` resolves a color palette object containing:
+- `formBg`: Canvas and root container background HEX code
+- `formFg`: Form header, title, and label text HEX code
+- `ctrlBg`: Default input, grid, dropdown, and interactive control background HEX code
+- `ctrlFg`: Input field text and item label HEX code
+- `btnBg`: Primary action button background accent HEX code
+- `btnFg`: Primary action button font text HEX code
+- `panelBg`: Container box panel background HEX code
+
+---
+
+### macOS Desktop Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `macOS Sonoma Dark` | macOS Dark Mode | `#1e1e1e` | `#f5f5f7` | `#2c2c2e` | `#ffffff` | `#0a84ff` | `#ffffff` | `#252528` | macOS Sonoma / Ventura Dark theme featuring SF-inspired high contrast typography, translucent gray control surfaces, and Apple System Blue accent. |
+| `macOS Ventura Light` | macOS Light Mode | `#f6f6f6` | `#1d1d1f` | `#ffffff` | `#1d1d1f` | `#007aff` | `#ffffff` | `#e8e8ed` | Clean, modern macOS Light desktop aesthetic with bright card surfaces, crisp dark typography, and vibrant macOS Aqua Blue accent. |
+| `macOS Liquid Glass` | Glassmorphic Navy | `#141923` | `#f3f4f6` | `#1f2937` | `#f9fafb` | `#0284c7` | `#ffffff` | `#111827` | Translucent macOS Glassmorphism design featuring dark navy glass panels, subtle border reflections, and cyan highlight accents. |
+| `Apple Dark` | Classic Space Gray | `#1e1e1e` | `#f5f5f7` | `#2c2c2e` | `#ffffff` | `#0a84ff` | `#ffffff` | `#252528` | Classic Apple macOS Space Gray desktop palette optimized for pro desktop studio tools and IDE window layouts. |
+| `Midnight` | Midnight Indigo | `#0b0f19` | `#e2e8f0` | `#151c2c` | `#f3f4f6` | `#6366f1` | `#ffffff` | `#1e293b` | Deep dark blue/indigo macOS desktop theme with soft violet accents and elevated midnight slate panels. |
+| `Apple Sunset` | macOS Sunset Wallpaper | `#2a1b2a` | `#ffd166` | `#3c243c` | `#ffe5ec` | `#ff477e` | `#ffffff` | `#4a2c4a` | macOS Sunset wallpaper theme with warm purple/magenta background, amber gold typography, and rose pink primary action buttons. |
+| `Sonoma Emerald` | macOS Emerald Wallpaper | `#062c21` | `#a7f3d0` | `#0b4334` | `#d1fae5` | `#10b981` | `#ffffff` | `#0f5241` | macOS Sonoma Emerald forest wallpaper palette with deep emerald background, mint text, and green button swatches. |
+
+---
+
+### Windows 11 Desktop Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `Windows 11 Mica Light` | Fluent Mica Light | `#f3f3f3` | `#1b1b1b` | `#ffffff` | `#1b1b1b` | `#0067c0` | `#ffffff` | `#e5e5e5` | Windows 11 Fluent Design light theme with soft off-white Mica tinted background, crisp white card surfaces, and Windows Accent Blue buttons. |
+| `Windows 11 Acrylic Dark` | Fluent Dark Acrylic | `#202020` | `#ffffff` | `#2c2c2c` | `#ffffff` | `#60cdff` | `#000000` | `#181818` | Windows 11 Dark Acrylic design with sleek dark charcoal surface, high contrast controls, and electric blue accent. |
+| `Windows 11 Fluent Slate` | Fluent Slate Dark | `#1c2128` | `#adbac7` | `#22272e` | `#adbac7` | `#4796e6` | `#ffffff` | `#2d333b` | Windows 11 Slate theme featuring muted dark blue-gray card containers, steel blue buttons, and ergonomic low-eyestrain dark palette. |
+| `Windows 11 Sun Valley` | Sun Valley Cobalt | `#0f172a` | `#f8fafc` | `#1e293b` | `#ffffff` | `#38bdf8` | `#0f172a` | `#1e293b` | Windows 11 signature Sun Valley cobalt theme with deep midnight slate canvas, high-contrast dark blue panels, and sky blue accents. |
+
+---
+
+### Developer & Studio Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `Dark` | Default Slate | `#0f172a` | `#f8fafc` | `#1e293b` | `#ffffff` | `#0284c7` | `#ffffff` | `#1e293b` | Default Bun RAD Studio dark theme with Tailwind slate tones and sky blue primary accents. |
+| `Light` | Classic Light | `#f6f6f6` | `#1d1d1f` | `#ffffff` | `#1d1d1f` | `#007aff` | `#ffffff` | `#e8e8ed` | Classic light desktop theme with clean white container surfaces and system blue primary buttons. |
+| `Catppuccin` | Catppuccin Mocha | `#1e1e2e` | `#cdd6f4` | `#313244` | `#cdd6f4` | `#cba6f7` | `#1e1e2e` | `#45475a` | Warm pastel dark developer theme inspired by Catppuccin Mocha with mauve accents. |
+| `Dracula` | Dracula Studio | `#282a36` | `#f8f8f2` | `#44475a` | `#f8f8f2` | `#ff79c6` | `#282a36` | `#383a59` | High contrast dark developer theme with Dracula pink primary buttons and purple container slate. |
+| `Cyberpunk` | Cyberpunk Neon | `#0d0221` | `#00f6ff` | `#190536` | `#00f6ff` | `#ff007f` | `#ffffff` | `#26094e` | Futuristic neon dark theme with deep purple canvas, glowing cyan text, and hot pink action buttons. |
+| `Nord` | Nordic Ice | `#2e3440` | `#eceff4` | `#3b4252` | `#eceff4` | `#88c0d0` | `#2e3440` | `#434c5e` | Cool arctic dark theme with icy blue accent buttons and muted slate container boxes. |
+| `Solarized Light` | Solarized Light | `#fdf6e3` | `#657b83` | `#eee8d5` | `#073642` | `#b58900` | `#fdf6e3` | `#e0d8c3` | Low-contrast solarized light theme designed for reduced glare during daylight coding. |
+| `Solarized Dark` | Solarized Dark | `#002b36` | `#839496` | `#073642` | `#93a1a1` | `#2aa198` | `#002b36` | `#094352` | Low-contrast solarized dark theme with cyan/teal primary button swatches. |
+| `High Contrast` | Accessibility High Contrast | `#000000` | `#00ff00` | `#111111` | `#00ff00` | `#00ff00` | `#000000` | `#1a1a1a` | High-contrast accessibility theme featuring neon green elements on solid pitch black canvas. |
 

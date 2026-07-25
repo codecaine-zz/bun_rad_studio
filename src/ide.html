@@ -1563,19 +1563,32 @@
 				<div class="prop-row">
 					<span class="prop-label">Form Theme</span>
 					<select class="prop-input" id="propFormTheme" onchange="updateFormTheme()" title="Switch application theme palette">
-						<option value="Dark">Dark Mode</option>
-						<option value="Light">Light Mode (Aqua)</option>
-						<option value="Apple Dark">Apple Dark</option>
-						<option value="Midnight">Midnight Space Gray</option>
-						<option value="Apple Sunset">Apple Sunset</option>
-						<option value="Sonoma Emerald">Sonoma Emerald</option>
-						<option value="Catppuccin">Catppuccin Mocha</option>
-						<option value="Dracula">Dracula Studio</option>
-						<option value="Cyberpunk">Cyberpunk Neon</option>
-						<option value="Nord">Nordic Ice</option>
-						<option value="Solarized Light">Solarized Light</option>
-						<option value="Solarized Dark">Solarized Dark</option>
-						<option value="High Contrast">High Contrast</option>
+						<option value="Dark">Dark Mode (Default)</option>
+						<option value="Light">Light Mode (Classic)</option>
+						<optgroup label=" macOS Desktop Themes">
+							<option value="macOS Sonoma Dark">macOS Sonoma Dark</option>
+							<option value="macOS Ventura Light">macOS Ventura Light</option>
+							<option value="macOS Liquid Glass">macOS Liquid Glass</option>
+							<option value="Apple Dark">Apple Dark (Space Gray)</option>
+							<option value="Midnight">Midnight Space Gray</option>
+							<option value="Apple Sunset">Apple Sunset</option>
+							<option value="Sonoma Emerald">Sonoma Emerald</option>
+						</optgroup>
+						<optgroup label="🪟 Windows 11 Desktop Themes">
+							<option value="Windows 11 Mica Light">Windows 11 Mica Light</option>
+							<option value="Windows 11 Acrylic Dark">Windows 11 Acrylic Dark</option>
+							<option value="Windows 11 Fluent Slate">Windows 11 Fluent Slate</option>
+							<option value="Windows 11 Sun Valley">Windows 11 Sun Valley (Cobalt)</option>
+						</optgroup>
+						<optgroup label="🎨 Developer & Studio Themes">
+							<option value="Catppuccin">Catppuccin Mocha</option>
+							<option value="Dracula">Dracula Studio</option>
+							<option value="Cyberpunk">Cyberpunk Neon</option>
+							<option value="Nord">Nordic Ice</option>
+							<option value="Solarized Light">Solarized Light</option>
+							<option value="Solarized Dark">Solarized Dark</option>
+							<option value="High Contrast">High Contrast</option>
+						</optgroup>
 					</select>
 				</div>
 
@@ -3263,16 +3276,26 @@
 		}
 
 		function getThemeColors(theme) {
-			if (theme === "Light") {
-				return { formBg: "#f1f5f9", formFg: "#0f172a", ctrlBg: "#ffffff", ctrlFg: "#0f172a", btnBg: "#2563eb", btnFg: "#ffffff", panelBg: "#e2e8f0" };
-			} else if (theme === "Apple Dark") {
+			if (theme === "Light" || theme === "macOS Ventura Light") {
+				return { formBg: "#f6f6f6", formFg: "#1d1d1f", ctrlBg: "#ffffff", ctrlFg: "#1d1d1f", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#e8e8ed" };
+			} else if (theme === "macOS Sonoma Dark" || theme === "Apple Dark") {
 				return { formBg: "#1e1e1e", formFg: "#f5f5f7", ctrlBg: "#2c2c2e", ctrlFg: "#ffffff", btnBg: "#0a84ff", btnFg: "#ffffff", panelBg: "#252528" };
+			} else if (theme === "macOS Liquid Glass") {
+				return { formBg: "#141923", formFg: "#f3f4f6", ctrlBg: "#1f2937", ctrlFg: "#f9fafb", btnBg: "#0284c7", btnFg: "#ffffff", panelBg: "#111827" };
 			} else if (theme === "Midnight") {
 				return { formBg: "#0b0f19", formFg: "#e2e8f0", ctrlBg: "#151c2c", ctrlFg: "#f3f4f6", btnBg: "#6366f1", btnFg: "#ffffff", panelBg: "#1e293b" };
 			} else if (theme === "Apple Sunset") {
 				return { formBg: "#2a1b2a", formFg: "#ffd166", ctrlBg: "#3c243c", ctrlFg: "#ffe5ec", btnBg: "#ff477e", btnFg: "#ffffff", panelBg: "#4a2c4a" };
 			} else if (theme === "Sonoma Emerald") {
 				return { formBg: "#062c21", formFg: "#a7f3d0", ctrlBg: "#0b4334", ctrlFg: "#d1fae5", btnBg: "#10b981", btnFg: "#ffffff", panelBg: "#0f5241" };
+			} else if (theme === "Windows 11 Mica Light") {
+				return { formBg: "#f3f3f3", formFg: "#1b1b1b", ctrlBg: "#ffffff", ctrlFg: "#1b1b1b", btnBg: "#0067c0", btnFg: "#ffffff", panelBg: "#e5e5e5" };
+			} else if (theme === "Windows 11 Acrylic Dark") {
+				return { formBg: "#202020", formFg: "#ffffff", ctrlBg: "#2c2c2c", ctrlFg: "#ffffff", btnBg: "#60cdff", btnFg: "#000000", panelBg: "#181818" };
+			} else if (theme === "Windows 11 Fluent Slate") {
+				return { formBg: "#1c2128", formFg: "#adbac7", ctrlBg: "#22272e", ctrlFg: "#adbac7", btnBg: "#4796e6", btnFg: "#ffffff", panelBg: "#2d333b" };
+			} else if (theme === "Windows 11 Sun Valley") {
+				return { formBg: "#0f172a", formFg: "#f8fafc", ctrlBg: "#1e293b", ctrlFg: "#ffffff", btnBg: "#38bdf8", btnFg: "#0f172a", panelBg: "#1e293b" };
 			} else if (theme === "Catppuccin") {
 				return { formBg: "#1e1e2e", formFg: "#cdd6f4", ctrlBg: "#313244", ctrlFg: "#cdd6f4", btnBg: "#cba6f7", btnFg: "#1e1e2e", panelBg: "#45475a" };
 			} else if (theme === "Dracula") {

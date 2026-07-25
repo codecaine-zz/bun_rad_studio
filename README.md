@@ -39,6 +39,9 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 * **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
+### 🎨 macOS & Windows 11 Desktop Form Themes
+* **macOS & Windows 11 Desktop Themes**: Comprehensive selection of modern desktop UI themes including **macOS Sonoma Dark**, **macOS Ventura Light**, **macOS Liquid Glass**, **Apple Dark (Space Gray)**, **Midnight Space Gray**, **Apple Sunset**, **Sonoma Emerald**, **Windows 11 Mica Light**, **Windows 11 Acrylic Dark**, **Windows 11 Fluent Slate**, **Windows 11 Sun Valley (Cobalt)**, Catppuccin, Dracula, Nord, Cyberpunk, Solarized, and High Contrast. Automatically harmonizes form canvas backgrounds, typography foregrounds, control surfaces, primary action button swatches, and container panels.
+
 ### 🛠️ High-Level Backend & Client Helper Utilities
 Programmatically interact with and control form state from Bun TypeScript or client scripts:
 - `getControlValue(id)` / `setControlText(id, text)` / `setControlValue(id, value)`

@@ -286,6 +286,15 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("id=\"copyNotificationToast\"");
         expect(ideContent).toContain("flashCopyButton");
         expect(ideContent).toContain("showCopyToast");
+
+        // Verify macOS and Windows 11 Desktop Themes
+        expect(ideContent).toContain("macOS Sonoma Dark");
+        expect(ideContent).toContain("macOS Ventura Light");
+        expect(ideContent).toContain("macOS Liquid Glass");
+        expect(ideContent).toContain("Windows 11 Mica Light");
+        expect(ideContent).toContain("Windows 11 Acrylic Dark");
+        expect(ideContent).toContain("Windows 11 Fluent Slate");
+        expect(ideContent).toContain("Windows 11 Sun Valley");
     });
 
     test("5. Interactive Demos Suite Integrity (demos/)", () => {
