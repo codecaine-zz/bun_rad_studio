@@ -64,7 +64,7 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/codecaine-zz/bun_webview.git
+git clone https://github.com/codecaine-zz/bun_rad_studio.git
 cd bun_rad_studio
 bun install
 ```
@@ -95,6 +95,47 @@ bun run demo:table
 
 # Demo 6: Non-Visual Timer Control Studio (onTimer Tick Loops, Clock, Telemetry Gauges, Countdown & Speed Adjustment)
 bun run demo:timer
+```
+
+---
+
+## 📦 Compiling Standalone macOS Binaries (.app) with Custom Icons
+
+To package your applications into standalone, distribution-ready macOS `.app` bundles with custom application icons, display names, and `Info.plist` metadata, leverage the companion project [bun_webview](https://github.com/codecaine-zz/bun_webview).
+
+### Option 1: Native Single-File Executable
+If you only need a standalone CLI binary without a macOS `.app` bundle structure or app icon:
+
+```bash
+bun build --compile index.ts
+```
+
+### Option 2: Full macOS `.app` Bundle with Custom Icons
+To package your project into a complete macOS `.app` application bundle using [bun_webview](https://github.com/codecaine-zz/bun_webview):
+
+1. **Clone the `bun_webview` builder repository**:
+   ```bash
+   git clone https://github.com/codecaine-zz/bun_webview.git
+   cd bun_webview
+   bun install
+   ```
+
+2. **Package your RAD application**:
+   ```bash
+   bun run build-app /path/to/your/index.ts --name "My Application" --icon /path/to/icon.png --identifier "com.example.myapp"
+   ```
+
+#### CLI Options:
+* `-i, --icon <path>`: Path to a PNG icon (defaults to `resources/icon.png` or pre-built Apple-style glassmorphism icon templates).
+* `-n, --name <name>`: Custom display name for the `.app` bundle (e.g. `--name "Customer Studio"`).
+* `-d, --identifier <id>`: `CFBundleIdentifier` (e.g. `--identifier "com.company.app"`).
+* `-v, --version <version>`: App version string (defaults to `package.json` version or `1.0.0`).
+* `-o, --out <dir>`: Output directory for the `.app` bundle (defaults to `dist`).
+
+#### Launching the Compiled App:
+Launch your compiled `.app` bundle from macOS Finder in `dist/` or via terminal:
+```bash
+open "dist/My Application.app"
 ```
 
 ---
