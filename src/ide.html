@@ -1450,6 +1450,34 @@
 						<span class="palette-icon">📁</span>
 						<span>File Path Bar</span>
 					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('kanban_board')" ondragstart="onDragStart(event, 'kanban_board')" title="Kanban Board: Multi-column task board with cards & badges">
+						<span class="palette-icon">📋</span>
+						<span>Kanban Board</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('shortcut_recorder')" ondragstart="onDragStart(event, 'shortcut_recorder')" title="Shortcut Recorder: Hotkey shortcut recorder & key badge viewer">
+						<span class="palette-icon">⌨️</span>
+						<span>Shortcut Recorder</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('split_button')" ondragstart="onDragStart(event, 'split_button')" title="Split Button: Action button with secondary dropdown arrow">
+						<span class="palette-icon">➗</span>
+						<span>Split Button</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('sparkline_table')" ondragstart="onDragStart(event, 'sparkline_table')" title="Sparkline Table: Data grid with embedded SVG mini trendlines">
+						<span class="palette-icon">📈</span>
+						<span>Sparkline Table</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('metric_comparison')" ondragstart="onDragStart(event, 'metric_comparison')" title="Metric Comparison: Executive KPI card comparing current vs target">
+						<span class="palette-icon">📊</span>
+						<span>Metric Comparison</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('activity_feed')" ondragstart="onDragStart(event, 'activity_feed')" title="Activity Feed: Timestamped audit log with user avatars & status">
+						<span class="palette-icon">⚡</span>
+						<span>Activity Feed</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('file_tree_tabs')" ondragstart="onDragStart(event, 'file_tree_tabs')" title="Workspace Tabs: IDE tab bar with file icons & modified state dot">
+						<span class="palette-icon">📑</span>
+						<span>Workspace Tabs</span>
+					</div>
 				</div>
 			</div>
 		</aside>
@@ -3003,12 +3031,19 @@
 			if (type === "calendar_view") { defaultW = 240; defaultH = 180; }
 			if (type === "color_swatch") { defaultW = 200; defaultH = 70; }
 			if (type === "file_path_bar") { defaultW = 280; defaultH = 36; }
+			if (type === "kanban_board") { defaultW = 340; defaultH = 180; }
+			if (type === "shortcut_recorder") { defaultW = 180; defaultH = 36; }
+			if (type === "split_button") { defaultW = 160; defaultH = 36; }
+			if (type === "sparkline_table") { defaultW = 300; defaultH = 130; }
+			if (type === "metric_comparison") { defaultW = 220; defaultH = 90; }
+			if (type === "activity_feed") { defaultW = 280; defaultH = 140; }
+			if (type === "file_tree_tabs") { defaultW = 320; defaultH = 36; }
 
 			const themeSelect = document.getElementById("propFormTheme");
 			const activeTheme = themeSelect ? themeSelect.value : "Dark";
 			const themeColors = getThemeColors(activeTheme);
 
-			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "form_checkbox", "form_radio", "form_search", "form_color", "form_time", "form_stepper", "form_code", "form_drop_zone", "tabs", "tool_bar", "status_bar", "split_pane", "pagination", "command_palette", "toggle_button", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select", "color_swatch", "file_path_bar"];
+			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "form_checkbox", "form_radio", "form_search", "form_color", "form_time", "form_stepper", "form_code", "form_drop_zone", "tabs", "tool_bar", "status_bar", "split_pane", "pagination", "command_palette", "toggle_button", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select", "color_swatch", "file_path_bar", "kanban_board", "shortcut_recorder", "split_button", "sparkline_table", "metric_comparison", "activity_feed", "file_tree_tabs"];
 			let defaultBg = themeColors.ctrlBg;
 			if (transparentTypes.includes(type)) {
 				defaultBg = "transparent";
@@ -4071,6 +4106,57 @@
 				div.style.padding = "0 8px";
 				div.style.justifyContent = "space-between";
 				div.innerHTML = "<div style='display:flex; align-items:center; gap:6px; font-size:11px; overflow:hidden;'><span style='opacity:0.7;'>📁</span><span style='font-family:monospace; opacity:0.9; white-space:nowrap;'>" + (text || "/Users/app/src") + "</span></div><button style='font-size:9px; font-weight:bold; background:var(--accent); color:#fff; border:none; border-radius:4px; padding:2px 6px; flex-shrink:0;'>Browse</button>";
+			} else if (type === "kanban_board") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.padding = "6px";
+				div.style.gap = "6px";
+				div.style.alignItems = "stretch";
+				const kbCols = ["To Do (3)", "In Progress (2)", "Done (4)"];
+				div.innerHTML = kbCols.map((cName,i)=>`<div style='flex:1; background:rgba(255,255,255,0.05); border-radius:4px; padding:4px; font-size:9px; display:flex; flex-direction:column; gap:4px;'><div style='font-weight:bold; color:var(--accent); border-bottom:1px solid var(--border-color); pb-1;'>${cName}</div><div style='background:rgba(255,255,255,0.08); padding:3px 4px; border-radius:3px;'>● Task #${i+1}</div></div>`).join('');
+			} else if (type === "shortcut_recorder") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "6px";
+				div.style.padding = "0 8px";
+				div.style.justifyContent = "space-between";
+				const keys = (text || "⌘ Shift P").split(/\s+|\+/);
+				div.innerHTML = "<div style='display:flex; gap:4px; align-items:center;'>" + keys.map(k=>`<span style='background:rgba(255,255,255,0.12); padding:2px 5px; border-radius:3px; font-family:monospace; font-size:10px; font-weight:bold; color:var(--accent);'>${k}</span>`).join('') + "</div><span style='font-size:9px; opacity:0.6;'>⌨️ Edit</span>";
+			} else if (type === "split_button") {
+				div.style.backgroundColor = ctrl.background_color || "var(--accent)";
+				div.style.borderRadius = "6px";
+				div.style.padding = "0";
+				div.style.overflow = "hidden";
+				div.innerHTML = "<div style='flex:1; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:bold; padding:0 8px;'>" + (text || "Save File") + "</div><div style='width:1px; background:rgba(255,255,255,0.3);'></div><div style='padding:0 6px; color:#fff; font-size:10px; display:flex; align-items:center;'>▼</div>";
+			} else if (type === "sparkline_table") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.padding = "6px 8px";
+				div.style.flexDirection = "column";
+				div.style.justifyContent = "space-around";
+				div.style.fontSize = "10px";
+				div.innerHTML = "<div style='display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding:2px 0;'><span>Revenue</span><span style='color:#10b981; font-weight:bold; font-family:monospace;'>📈 $48.2k</span></div><div style='display:flex; justify-content:space-between; padding:2px 0;'><span>Active Users</span><span style='color:var(--accent); font-weight:bold; font-family:monospace;'>📊 1,420</span></div>";
+			} else if (type === "metric_comparison") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.padding = "8px";
+				div.style.flexDirection = "column";
+				div.style.justifyContent = "space-between";
+				div.innerHTML = "<div style='display:flex; justify-content:space-between; font-size:9px; font-weight:bold; opacity:0.8;'><span>" + (text || "Monthly Revenue") + "</span><span style='color:#10b981;'>▲ +14.2%</span></div><div style='font-size:16px; font-weight:extrabold; color:var(--accent);'>$84,250</div><div style='height:3px; background:rgba(255,255,255,0.1); border-radius:2px;'><div style='width:75%; height:100%; background:#10b981; border-radius:2px;'></div></div>";
+			} else if (type === "activity_feed") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.padding = "6px 8px";
+				div.style.flexDirection = "column";
+				div.style.gap = "4px";
+				div.style.fontSize = "10px";
+				div.innerHTML = "<div style='font-weight:bold; color:var(--accent); border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:2px;'>⚡ Activity Stream</div><div style='display:flex; align-items:center; gap:6px;'><span style='background:var(--accent); color:#fff; border-radius:50%; width:14px; height:14px; display:inline-flex; align-items:center; justify-content:center; font-size:8px;'>A</span><span>Alice deployed v1.4 (2m ago)</span></div>";
+			} else if (type === "file_tree_tabs") {
+				div.style.backgroundColor = ctrl.background_color || "rgba(0,0,0,0.2)";
+				div.style.borderRadius = "6px";
+				div.style.padding = "2px 4px";
+				div.style.gap = "4px";
+				div.style.alignItems = "center";
+				div.innerHTML = "<div style='background:var(--accent); color:#fff; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:flex; gap:4px; align-items:center;'><span>⚡ index.ts*</span><span>✕</span></div><div style='opacity:0.7; font-size:10px; padding:2px 6px;'>📄 API.md</div>";
 			} else if (type === "form_checkbox") {
 				div.style.backgroundColor = "transparent";
 				div.style.border = "none";
@@ -6199,6 +6285,20 @@ wv.bind("backendAlert", (msg: string) => {
 					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-sky-500 ring-2 ring-white"></div><div className="w-5 h-5 rounded-full bg-emerald-500"></div><div className="w-5 h-5 rounded-full bg-amber-500"></div></div>\n`;
 				} else if (c.control_type === 'file_path_bar') {
 					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-white/5 border border-white/15 rounded-lg px-3 flex items-center justify-between text-xs font-mono"><span>📁 ${c.text || '/Users/app/src'}</span><button className="bg-sky-600 text-white px-2 py-0.5 rounded font-sans font-bold text-[10px]">Browse</button></div>\n`;
+				} else if (c.control_type === 'kanban_board') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800 border border-white/10 rounded-xl p-2 flex gap-2 text-xs"><div className="flex-1 bg-white/5 p-2 rounded-lg font-bold text-sky-400">To Do (3)</div><div className="flex-1 bg-white/5 p-2 rounded-lg font-bold text-sky-400">Done (4)</div></div>\n`;
+				} else if (c.control_type === 'shortcut_recorder') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800 border border-white/10 rounded-lg px-3 flex items-center justify-between text-xs font-mono"><span className="bg-white/10 px-2 py-0.5 rounded font-bold text-sky-400">⌘ Shift P</span></div>\n`;
+				} else if (c.control_type === 'split_button') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-sky-600 rounded-lg flex items-stretch text-white text-xs font-bold"><button className="px-3 py-1.5 flex-1">${c.text || 'Save Changes'}</button><div className="w-[1px] bg-white/30"></div><button className="px-2">▼</button></div>\n`;
+				} else if (c.control_type === 'sparkline_table') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800 border border-white/10 rounded-xl p-3 flex flex-col justify-around text-xs"><div className="flex justify-between"><span>Revenue</span><span className="font-bold text-emerald-400">$48.2k</span></div></div>\n`;
+				} else if (c.control_type === 'metric_comparison') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800 border border-white/10 rounded-xl p-3 flex flex-col justify-between text-xs"><div className="flex justify-between font-bold"><span>MRR</span><span className="text-emerald-400">+14.2%</span></div><div className="text-lg font-extrabold text-sky-400">$84,250</div></div>\n`;
+				} else if (c.control_type === 'activity_feed') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-slate-800 border border-white/10 rounded-xl p-3 flex flex-col gap-2 text-xs"><div className="font-bold text-sky-400">⚡ Activity Stream</div></div>\n`;
+				} else if (c.control_type === 'file_tree_tabs') {
+					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="bg-white/5 rounded-lg p-1 flex gap-1 text-xs"><div className="bg-sky-600 text-white px-2 py-1 rounded font-bold">⚡ index.ts*</div></div>\n`;
 				} else {
 					code += `      <div id="${c.id}" style={{ position: 'absolute', ${style} }} className="border border-white/10 rounded-lg p-2 flex items-center">${c.text || c.id}</div>\n`;
 				}

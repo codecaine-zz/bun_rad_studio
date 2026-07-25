@@ -237,6 +237,13 @@ The `event_handlers` record can map the following event names to string blocks o
 | `calendar_view` | Calendar View | 240 × 180 px | Full month calendar grid view widget |
 | `color_swatch` | Color Swatch | 200 × 70 px | Color palette swatch selection grid |
 | `file_path_bar` | File Path Bar | 280 × 36 px | Desktop location address/path selector bar |
+| `kanban_board` | Kanban Task Board | 340 × 180 px | Multi-column task board with columns (To Do, In Progress, Done) and task cards |
+| `shortcut_recorder` | Shortcut Recorder | 180 × 36 px | Desktop hotkey recorder & key combination badge viewer widget |
+| `split_button` | Split Action Button | 160 × 36 px | Dual-segment button with primary action label + sub-menu dropdown toggle arrow |
+| `sparkline_table` | Sparkline Table | 300 × 130 px | Multi-row data grid with embedded SVG mini trend sparklines and status badges |
+| `metric_comparison` | KPI Metric Comparison | 220 × 90 px | Executive KPI card comparing current value vs target with percentage delta |
+| `activity_feed` | Activity Feed | 280 × 140 px | Timestamped activity audit log stream with user avatars & status |
+| `file_tree_tabs` | Workspace Tab Bar | 320 × 36 px | Multi-file IDE tab bar with file icons, modified state dot (•), and close buttons |
 
 ### Non-Visual Tray Components
 

@@ -541,5 +541,70 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("file_path_bar");
     });
 
+    test("10. Modern Productivity Controls Suite Validation", () => {
+        const spec = {
+            title: "Productivity Controls Suite",
+            controls: [
+                { id: "kb_1", control_type: "kanban_board", x: 10, y: 10, width: 340, height: 180, text: "To Do (3) | In Progress (2) | Done (4)" },
+                { id: "sc_1", control_type: "shortcut_recorder", x: 10, y: 200, width: 180, height: 36, text: "⌘ Shift P", value: "⌘ Shift P" },
+                { id: "sb_1", control_type: "split_button", x: 10, y: 250, width: 160, height: 36, text: "Save Changes" },
+                { id: "st_1", control_type: "sparkline_table", x: 10, y: 300, width: 300, height: 130, text: "Revenue: $48k [↗], Active Users: 1.2k [→]" },
+                { id: "mc_1", control_type: "metric_comparison", x: 10, y: 440, width: 220, height: 90, text: "Monthly Revenue", value: "$84,250" },
+                { id: "af_1", control_type: "activity_feed", x: 10, y: 540, width: 280, height: 140, text: "Alice deployed v1.4 (2m ago), Bob pushed fix (15m ago)" },
+                { id: "ft_1", control_type: "file_tree_tabs", x: 10, y: 690, width: 320, height: 36, text: "⚡ index.ts*, 📄 API.md" }
+            ]
+        };
+
+        const html = generatePreviewHtml(spec);
+
+        expect(html).toContain('id="kb_1"');
+        expect(html).toContain('To Do (3)');
+        expect(html).toContain('id="sc_1"');
+        expect(html).toContain('⌘');
+        expect(html).toContain('id="sb_1"');
+        expect(html).toContain('Save Changes');
+        expect(html).toContain('id="st_1"');
+        expect(html).toContain('Revenue');
+        expect(html).toContain('id="mc_1"');
+        expect(html).toContain('$84,250');
+        expect(html).toContain('id="af_1"');
+        expect(html).toContain('Alice deployed');
+        expect(html).toContain('id="ft_1"');
+        expect(html).toContain('index.ts*');
+
+        // Check index.ts helper exports
+        const indexTsContent = readFileSync(join(process.cwd(), "index.ts"), "utf-8");
+        expect(indexTsContent).toContain("export function setKanbanColumns");
+        expect(indexTsContent).toContain("export function setShortcutRecorderValue");
+        expect(indexTsContent).toContain("export function setSplitButtonAction");
+        expect(indexTsContent).toContain("export function setSparklineTableData");
+        expect(indexTsContent).toContain("export function setMetricComparison");
+        expect(indexTsContent).toContain("export function setActivityFeedItems");
+        expect(indexTsContent).toContain("export function setWorkspaceTabs");
+
+        // Check Demo 13 file integrity
+        const demo13Path = join(process.cwd(), "demos", "13_productivity_controls_studio.ts");
+        expect(existsSync(demo13Path)).toBe(true);
+        const demo13Content = readFileSync(demo13Path, "utf-8");
+        expect(demo13Content).toContain("kanban_board");
+        expect(demo13Content).toContain("shortcut_recorder");
+        expect(demo13Content).toContain("split_button");
+        expect(demo13Content).toContain("sparkline_table");
+        expect(demo13Content).toContain("metric_comparison");
+        expect(demo13Content).toContain("activity_feed");
+        expect(demo13Content).toContain("file_tree_tabs");
+
+        // Check ide.html palette items
+        const idePath = join(process.cwd(), "src", "ide.html");
+        const ideContent = readFileSync(idePath, "utf-8");
+        expect(ideContent).toContain("kanban_board");
+        expect(ideContent).toContain("shortcut_recorder");
+        expect(ideContent).toContain("split_button");
+        expect(ideContent).toContain("sparkline_table");
+        expect(ideContent).toContain("metric_comparison");
+        expect(ideContent).toContain("activity_feed");
+        expect(ideContent).toContain("file_tree_tabs");
+    });
+
 });
 

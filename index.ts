@@ -462,6 +462,41 @@ export function setFilePathBarPath(controlId: string, pathStr: string) {
     execJS(\`if(window.setFilePathBarPath)window.setFilePathBarPath(\${JSON.stringify(controlId)}, \${escaped});\`);
 }
 
+export function setKanbanColumns(controlId: string, columnsData: string) {
+    const escaped = JSON.stringify(columnsData);
+    execJS(\`if(window.setKanbanColumns)window.setKanbanColumns(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setShortcutRecorderValue(controlId: string, shortcutStr: string) {
+    const escaped = JSON.stringify(shortcutStr);
+    execJS(\`if(window.setShortcutRecorderValue)window.setShortcutRecorderValue(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setSplitButtonAction(controlId: string, text: string) {
+    const escaped = JSON.stringify(text);
+    execJS(\`if(window.setSplitButtonAction)window.setSplitButtonAction(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setSparklineTableData(controlId: string, rowsCSV: string) {
+    const escaped = JSON.stringify(rowsCSV);
+    execJS(\`if(window.setSparklineTableData)window.setSparklineTableData(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setMetricComparison(controlId: string, title: string, curVal: string, targetStr: string, changeStr: string) {
+    const opts = JSON.stringify({ title, curVal, targetStr, changeStr });
+    execJS(\`if(window.setMetricComparison)window.setMetricComparison(\${JSON.stringify(controlId)}, \${opts});\`);
+}
+
+export function setActivityFeedItems(controlId: string, itemsCSV: string) {
+    const escaped = JSON.stringify(itemsCSV);
+    execJS(\`if(window.setActivityFeedItems)window.setActivityFeedItems(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setWorkspaceTabs(controlId: string, filesCSV: string) {
+    const escaped = JSON.stringify(filesCSV);
+    execJS(\`if(window.setWorkspaceTabs)window.setWorkspaceTabs(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
 export function setWindowPosition(pos: "center" | "upper_left" | "upper_right" | "bottom_left" | "bottom_right" | "top_center" | "bottom_center" | "center_left" | "center_right" | { x: number, y: number }) {
     execJS(\`if(window.setWindowPosition)window.setWindowPosition(\${JSON.stringify(pos)});\`);
 }
@@ -609,6 +644,15 @@ wv.run();
 
 
 
+export function setStatusBarText(controlId: string, statusText: string) {}
+export function setKanbanColumns(controlId: string, columnsData: string) {}
+export function setShortcutRecorderValue(controlId: string, shortcutStr: string) {}
+export function setSplitButtonAction(controlId: string, text: string) {}
+export function setSparklineTableData(controlId: string, rowsCSV: string) {}
+export function setMetricComparison(controlId: string, title: string, curVal: string, targetStr: string, changeStr: string) {}
+export function setActivityFeedItems(controlId: string, itemsCSV: string) {}
+export function setWorkspaceTabs(controlId: string, filesCSV: string) {}
+
 export function generatePreviewHtml(spec: any): string {
     const bg = spec.background_color || '#0f172a';
     const fg = spec.font_color || '#e2e8f0';
@@ -690,7 +734,7 @@ export function generatePreviewHtml(spec: any): string {
         const posX = c.left !== undefined ? c.left : (c.x !== undefined ? c.x : 0);
         const posY = c.top !== undefined ? c.top : (c.y !== undefined ? c.y : 0);
         return `position:absolute;left:${posX}px;top:${posY}px;width:${c.width}px;height:${c.height}px;` +
-            `font-size:${c.font_size || 13}px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;` +
+            `font-size:${c.font_size || 13}px;` +
             `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${op}${pe}${cur}${extra}`;
     };
 
@@ -825,7 +869,7 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 8px;">${(text||'tag1,tag2').split(',').map((tg: string)=>`<span style="background:${cbg};color:${accent};${defBorder}${defRadius}padding:2px 10px;font-size:11px;font-weight:600;">${tg.trim()}</span>`).join('')}</div>\n`;
         } else if (t === 'form_field' || t === 'form_password' || t === 'form_textarea') {
             const inputType = t === 'form_password' ? 'password' : (t === 'form_textarea' ? 'textarea' : 'text');
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === 'textarea' ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size||13}px;font-family:inherit;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;">`}</div>\n`;
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === 'textarea' ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size||13}px;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;">`}</div>\n`;
         } else if (t === 'form_dropdown') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select${ev}${reqAttr} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><option>Option 1</option><option>Option 2</option><option>Option 3</option></select></div>\n`;
         } else if (t === 'form_link') {
@@ -964,6 +1008,71 @@ export function generatePreviewHtml(spec: any): string {
             const pathVal = text || '/Users/codecaine/bun_rad_studio/src';
             const fRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${fRadius}padding:0 8px;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;"><span style="font-size:14px;opacity:0.75;flex-shrink:0;">📁</span><span class="path-text" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.9;font-family:monospace;">${pathVal}</span></div><button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${pathVal}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${pathVal}');" style="padding:4px 10px;background:${accent};color:#ffffff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">Browse...</button></div>\n`;
+        } else if (t === 'kanban_board') {
+            const rawCols = text || 'To Do (3) | In Progress (2) | Done (4)';
+            const cols = rawCols.split('|').map((s: string) => s.trim());
+            const kbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            const sampleCards = [
+                ['● Design Specs', '● IPC Handlers', '● State Sync'],
+                ['● HTML Generator', '● UI Canvas'],
+                ['● Unit Tests', '● API Docs', '● Themes', '● Exporter']
+            ];
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#f8fafc' : '#0f172a')};${defBorder}${kbRadius}padding:8px;display:flex;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow-x:auto;">${cols.map((colStr: string, idx: number) => {
+                const cards = sampleCards[idx % sampleCards.length];
+                return `<div style="flex:1;min-width:90px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'};border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;"><div style="font-size:10px;font-weight:700;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>${colStr}</span></div><div style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;">${cards.map((card: string) => `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${card.replace(/'/g, "\\'")}');" style="background:${isLight ? '#ffffff' : '#1e293b'};border:1px solid ${border};border-radius:4px;padding:4px 6px;font-size:10px;color:${color};font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:pointer;">${card}</div>`).join('')}</div></div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'shortcut_recorder') {
+            const scVal = text || c.value || '⌘ Shift P';
+            const keys = scVal.split(/\s+|\+|\-/).filter(Boolean);
+            const srRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${srRadius}padding:0 8px;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};cursor:pointer;" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${scVal}');"><div style="display:flex;align-items:center;gap:4px;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};border:1px solid ${border};border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:${accent};">${k}</kbd>`).join('')}</div><span style="font-size:10px;opacity:0.5;">⌨️ Edit</span></div>\n`;
+        } else if (t === 'split_button') {
+            const mainText = text || 'Save Changes';
+            const sbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            const customMenuHandler = c.event_handlers?.onMenu || c.event_handlers?.onmenu || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:inline-flex;align-items:stretch;background:${cbg !== 'transparent' ? cbg : accent};${defBorder}${sbRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><button onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mainText}');" style="flex:1;padding:0 12px;background:none;border:none;color:#ffffff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">${mainText}</button><div style="width:1px;background:rgba(255,255,255,0.25);"></div><button onclick="const fn=window['${customMenuHandler}']||window['${c.id}_onMenu']||window['on_${c.id}_menu'];if(fn)fn();" style="padding:0 8px;background:none;border:none;color:#ffffff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button></div>\n`;
+        } else if (t === 'sparkline_table') {
+            const rawRows = text || 'Revenue: $48k [↗], Active Users: 1.2k [→], Errors: 0.01% [↘]';
+            const rows = rawRows.split(',').map((s: string) => s.trim());
+            const stRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${stRadius}padding:6px 10px;display:flex;flex-direction:column;justify-content:space-around;box-shadow:0 4px 12px rgba(0,0,0,0.2);color:${color};">${rows.map((row: string, i: number) => {
+                const parts = row.split(':');
+                const label = parts[0] || 'Metric';
+                const val = parts[1] || '$10k';
+                const isUp = i % 3 === 0; const isFlat = i % 3 === 1;
+                const sparkColor = isUp ? '#10b981' : isFlat ? accent : '#ef4444';
+                const points = isUp ? '0,14 10,12 20,8 30,10 40,4 50,2' : isFlat ? '0,8 10,10 20,7 30,9 40,8 50,8' : '0,2 10,5 20,8 30,6 40,12 50,14';
+                return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:${i < rows.length - 1 ? `1px solid ${border}` : 'none'};cursor:pointer;"><span style="font-weight:600;opacity:0.85;">${label}</span><div style="display:flex;align-items:center;gap:8px;"><svg width="50" height="16" style="overflow:visible;"><polyline fill="none" stroke="${sparkColor}" stroke-width="2" points="${points}" /></svg><span class="rad-mono" style="font-weight:700;color:${sparkColor};">${val}</span></div></div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'metric_comparison') {
+            const mTitle = text || 'Monthly Recurring Revenue';
+            const mVal = c.value || '$84,250';
+            const targetStr = c.placeholder || 'vs $75,000 target';
+            const mcRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${mcRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);color:${color};cursor:pointer;" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mTitle.replace(/'/g, "\\'")}');"><div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700;opacity:0.8;"><span>${mTitle}</span><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 6px;border-radius:4px;font-weight:bold;">▲ +12.3%</span></div><div style="display:flex;align-items:baseline;gap:8px;margin:4px 0;"><span style="font-size:20px;font-weight:800;color:${accent};">${mVal}</span><span style="font-size:10px;opacity:0.6;">${targetStr}</span></div><div style="width:100%;height:4px;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'};border-radius:2px;overflow:hidden;"><div style="width:82%;height:100%;background:#10b981;"></div></div></div>\n`;
+        } else if (t === 'activity_feed') {
+            const rawItems = text || 'Alice deployed v1.4 (2m ago), Bob pushed fix (15m ago), Charlie opened PR #42 (1h ago)';
+            const items = rawItems.split(',').map((s: string) => s.trim());
+            const afRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${afRadius}padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);color:${color};"><div style="font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;align-items:center;gap:6px;"><span>⚡</span><span>${c.caption || 'Activity Stream'}</span></div><div style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;">${items.map((it: string) => {
+                const initial = it.charAt(0).toUpperCase();
+                return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${it.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;gap:8px;font-size:10px;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:${accent};color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:9px;flex-shrink:0;">${initial}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it}</span></div>`;
+            }).join('')}</div></div>\n`;
+        } else if (t === 'file_tree_tabs') {
+            const rawFiles = text || '⚡ index.ts*, 📄 API.md, 🎨 styles.css';
+            const files = rawFiles.split(',').map((s: string) => s.trim());
+            const ftRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            const customHandler = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? '#e2e8f0' : '#090d16')};${defBorder}${ftRadius}padding:0 4px;gap:2px;overflow-x:auto;">${files.map((file: string, idx: number) => {
+                const isSel = idx === 0;
+                return `<div style="padding:4px 10px;background:${isSel ? (isLight ? '#ffffff' : '#1e293b') : 'transparent'};border-radius:4px 4px 0 0;font-size:11px;font-weight:${isSel ? '700' : 'normal'};color:${isSel ? accent : color};display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};" onclick="const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${file}');"><span>${file}</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div>`;
+            }).join('')}</div>\n`;
         } else if (t === 'form_checkbox') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${c.checked ? 'checked' : ''}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${c.placeholder || 'Enable option toggle'}</label></div>\n`;
         } else if (t === 'form_radio') {
@@ -978,7 +1087,8 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${timeVal}"${disabled}${roAttr}${ev} style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||13}px;outline:none;width:100%;color-scheme:${isLight ? 'light' : 'dark'};"></div></div>\n`;
         } else if (t === 'form_stepper') {
             const stepVal = c.value !== undefined ? c.value : 5;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;gap:8px;color:${color};"><span style="font-size:11px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;height:32px;min-width:110px;"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;padding:0 8px;">${stepVal}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div></div>\n`;
+            const customHandler = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;gap:8px;color:${color};"><span style="font-size:11px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;height:32px;min-width:110px;"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;padding:0 8px;">${stepVal}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div></div>\n`;
         } else if (t === 'form_code') {
             const codeFg = c.font_color && c.font_color !== fg ? c.font_color : '#7dd3fc';
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><textarea${disabled}${roAttr}${autoFocusAttr}${ev} placeholder="${c.placeholder || '// Enter script code...'}" style="flex:1;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117'};${defBorder}${defRadius}padding:8px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size||12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${c.value || c.code || ''}</textarea></div>\n`;
@@ -987,13 +1097,15 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'tabs') {
             const tabItems = (text || 'General, Security, Advanced').split(',').map((tb: string) => tb.trim());
             const activeTab = c.value || tabItems[0] || '';
+            const customHandler = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
             controls += `<div${id}${titleAttr} data-value="${activeTab}" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)')};border-bottom:2px solid ${border};padding:0 4px;gap:2px;">${tabItems.map((tb: string, idx: number) => {
                 const isSel = tb === activeTab || (idx === 0 && !c.value);
-                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderBottom='none';b.style.color='${color}';b.style.fontWeight='normal'});this.style.borderBottom='2px solid ${accent}';this.style.color='${accent}';this.style.fontWeight='700';this.parentNode.dataset.value='${tb}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${tb}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${tb}');" style="height:100%;padding:0 14px;background:none;border:none;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};color:${isSel ? accent : color};font-weight:${isSel ? '700' : 'normal'};font-size:12px;cursor:pointer;transition:all 0.15s;">${tb}</button>`;
+                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderBottom='none';b.style.color='${color}';b.style.fontWeight='normal'});this.style.borderBottom='2px solid ${accent}';this.style.color='${accent}';this.style.fontWeight='700';this.parentNode.dataset.value='${tb}';const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${tb}');" style="height:100%;padding:0 14px;background:none;border:none;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};color:${isSel ? accent : color};font-weight:${isSel ? '700' : 'normal'};font-size:12px;cursor:pointer;transition:all 0.15s;">${tb}</button>`;
             }).join('')}</div>\n`;
         } else if (t === 'tool_bar') {
             const barItems = (text || '📄 New, 📂 Open, 💾 Save, ⚙️ Settings, 🔍 Search').split(',').map((item: string) => item.trim());
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f1f5f9' : '#1e293b')};${defBorder}${defRadius}padding:0 8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${barItems.map((item: string) => `<button style="height:28px;padding:0 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)'}'" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)'}'" onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${item}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${item}');">${item}</button>`).join('')}</div>\n`;
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f1f5f9' : '#1e293b')};${defBorder}${defRadius}padding:0 8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${barItems.map((item: string) => `<button style="height:28px;padding:0 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)'}'" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)'}'" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${item.replace(/'/g, "\\'")}');">${item}</button>`).join('')}</div>\n`;
         } else if (t === 'status_bar') {
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#e2e8f0' : '#090d16')};border-top:1px solid ${border};padding:0 12px;font-size:11px;color:${color};"><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">🟢 Ready</span><span style="opacity:0.4;">|</span><span>${text || 'UTF-8 | Line 1, Col 1'}</span></div><div style="display:flex;align-items:center;gap:8px;opacity:0.75;"><span>Bun RAD v1.3</span><span>100%</span></div></div>\n`;
         } else if (t === 'split_pane') {
@@ -1084,13 +1196,13 @@ export function generatePreviewHtml(spec: any): string {
   body {
     background: ${bg};
     color: ${fg};
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     position: relative;
     width: ${w}px;
     height: ${h}px;
     overflow: hidden;
   }
-  input, textarea, select, button { font-family: inherit; } * { spellcheck: false; }
+  input, textarea, select, button { font-family: inherit; } .rad-mono { font-family: monospace; } * { spellcheck: false; }
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${accent}; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
   :focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }
@@ -1251,8 +1363,8 @@ ${controls}
       }
       html += '<div class="tree-node' + (idx===0?' selected-tree-node':'') + '" data-node="' + nodeText + '" style="padding:6px 10px;padding-left:' + (indent + 8) + 'px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;cursor:pointer;user-select:none;transition:all 0.2s;' + selStyle + '"' +
         ' onclick="event.stopPropagation();const parent=this.closest(\'.rad-tree-container\');parent.querySelectorAll(\'.tree-node\').forEach(function(n){n.style.background=\'transparent\';n.style.color=\'inherit\';n.style.fontWeight=\'normal\';});this.style.background=\'' + selBg + '\';this.style.color=\'' + accent + '\';this.style.fontWeight=\'700\';if(window[\'' + id + '_onSelect\'])window[\'' + id + '_onSelect\'](this.dataset.node);"' +
-        ' onmouseover="if(!this.style.background.includes(\'rgba\')){this.style.background=\'rgba(255,255,255,0.08)\'}"' +
-        ' onmouseout="if(!this.style.background.includes(\'rgba(56\')){this.style.background=\'transparent\';}">' +
+        ' onmouseover="if(!this.style.background.includes(\'rgba\')){this.style[\'background\']=\'rgba(255,255,255,0.08)\'}"' +
+        ' onmouseout="if(!this.style.background.includes(\'rgba(56\')){this.style[\'background\']=\'transparent\';}">' +
         '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden;">' +
         '<span class="tree-arrow" onclick="event.stopPropagation();const isCol=this.textContent===\'▶\';this.textContent=isCol?\'▼\':\'▶\';let curr=this.closest(\'.tree-node\').nextElementSibling;while(curr){const currInd=parseInt(curr.style.paddingLeft||\'0\');if(currInd<=' + (indent + 8) + ')break;curr.style.display=isCol?\'flex\':\'none\';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.8;cursor:pointer;flex-shrink:0;">' + arrow + '</span>' +
         '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nodeText + '</span></div>' +
@@ -1334,6 +1446,95 @@ ${controls}
     if (!c) return;
     const span = c.querySelector('.path-text');
     if (span) span.textContent = pathStr;
+  };
+  window.setKanbanColumns = function(id, rawCols) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const cols = String(rawCols || '').split('|').map(function(s){ return s.trim(); });
+    const sampleCards = [
+      ['● Design Specs', '● IPC Handlers', '● State Sync'],
+      ['● HTML Generator', '● UI Canvas'],
+      ['● Unit Tests', '● API Docs', '● Themes', '● Exporter']
+    ];
+    let html = '';
+    const accent = '#38bdf8';
+    cols.forEach(function(colStr, idx) {
+      const cards = sampleCards[idx % sampleCards.length];
+      html += '<div style="flex:1;min-width:90px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;"><div style="font-size:10px;font-weight:700;color:' + accent + ';border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>' + colStr + '</span></div><div style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;">' + cards.map(function(card){ return '<div onclick="const fn=window[' + JSON.stringify(id + '_onClick') + ']||window[' + JSON.stringify('on_' + id + '_click') + '];if(fn)fn(' + JSON.stringify(card) + ');" style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px 6px;font-size:10px;color:inherit;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:pointer;">' + card + '</div>'; }).join('') + '</div></div>';
+    });
+    c.innerHTML = html;
+  };
+  window.setShortcutRecorderValue = function(id, shortcutStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.dataset.value = shortcutStr;
+    const keys = String(shortcutStr || '').split(/\s+|\+|\-/).filter(Boolean);
+    const accent = '#38bdf8';
+    const keysContainer = c.querySelector('div');
+    if (keysContainer) {
+      keysContainer.innerHTML = keys.map(function(k){ return '<kbd class="rad-mono" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:' + accent + ';">' + k + '</kbd>'; }).join('');
+    }
+  };
+  window.setSplitButtonAction = function(id, textStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const btn = c.querySelector('button:first-child');
+    if (btn) btn.textContent = textStr;
+  };
+  window.setSparklineTableData = function(id, rowsCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const rows = String(rowsCSV || '').split(',').map(function(s){ return s.trim(); });
+    const accent = '#38bdf8';
+    let html = '';
+    rows.forEach(function(row, i) {
+      const parts = row.split(':');
+      const label = parts[0] || 'Metric';
+      const val = parts[1] || '$10k';
+      const isUp = i % 3 === 0; const isFlat = i % 3 === 1;
+      const sparkColor = isUp ? '#10b981' : isFlat ? accent : '#ef4444';
+      const points = isUp ? '0,14 10,12 20,8 30,10 40,4 50,2' : isFlat ? '0,8 10,10 20,7 30,9 40,8 50,8' : '0,2 10,5 20,8 30,6 40,12 50,14';
+      html += '<div onclick="const fn=window[' + JSON.stringify(id + '_onClick') + ']||window[' + JSON.stringify('on_' + id + '_click') + '];if(fn)fn(' + JSON.stringify(label) + ');" style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:' + (i < rows.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none') + ';cursor:pointer;"><span style="font-weight:600;opacity:0.85;">' + label + '</span><div style="display:flex;align-items:center;gap:8px;"><svg width="50" height="16" style="overflow:visible;"><polyline fill="none" stroke="' + sparkColor + '" stroke-width="2" points="' + points + '" /></svg><span class="rad-mono" style="font-weight:700;color:' + sparkColor + ';">' + val + '</span></div></div>';
+    });
+    c.innerHTML = html;
+  };
+  window.setMetricComparison = function(id, opts) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const titleSpan = c.querySelector('div:first-child span:first-child');
+    if (titleSpan && opts.title) titleSpan.textContent = opts.title;
+    const valSpan = c.querySelector('div:nth-child(2) span:first-child');
+    if (valSpan && opts.curVal) valSpan.textContent = opts.curVal;
+    const targetSpan = c.querySelector('div:nth-child(2) span:nth-child(2)');
+    if (targetSpan && opts.targetStr) targetSpan.textContent = opts.targetStr;
+    const changeSpan = c.querySelector('div:first-child span:nth-child(2)');
+    if (changeSpan && opts.changeStr) changeSpan.textContent = opts.changeStr;
+  };
+  window.setActivityFeedItems = function(id, itemsCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const items = String(itemsCSV || '').split(',').map(function(s){ return s.trim(); });
+    const stream = c.querySelector('div:nth-child(2)');
+    if (!stream) return;
+    const accent = '#38bdf8';
+    let html = '';
+    items.forEach(function(it) {
+      const initial = it.charAt(0).toUpperCase();
+      html += '<div onclick="const fn=window[' + JSON.stringify(id + '_onClick') + ']||window[' + JSON.stringify('on_' + id + '_click') + '];if(fn)fn(' + JSON.stringify(it) + ');" style="display:flex;align-items:center;gap:8px;font-size:10px;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:' + accent + ';color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:9px;flex-shrink:0;">' + initial + '</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + it + '</span></div>';
+    });
+    stream.innerHTML = html;
+  };
+  window.setWorkspaceTabs = function(id, filesCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const files = String(filesCSV || '').split(',').map(function(s){ return s.trim(); });
+    const accent = '#38bdf8';
+    let html = '';
+    files.forEach(function(file, idx) {
+      const isSel = idx === 0;
+      html += '<div style="padding:4px 10px;background:' + (isSel ? '#1e293b' : 'transparent') + ';border-radius:4px 4px 0 0;font-size:11px;font-weight:' + (isSel ? '700' : 'normal') + ';color:' + (isSel ? accent : 'inherit') + ';display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:' + (isSel ? '2px solid ' + accent : 'none') + ';" onclick="const fn=window[' + JSON.stringify(id + '_onChange') + ']||window[' + JSON.stringify('on_' + id + '_change') + '];if(fn)fn(' + JSON.stringify(file) + ');"><span>' + file + '</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display=\'none\';">✕</span></div>';
+    });
+    c.innerHTML = html;
   };
   window.__handlePagClick = function(btn, id, accent, border, isLight, e) {
     var log = function(msg) {
