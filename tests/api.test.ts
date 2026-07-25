@@ -295,6 +295,11 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         const demo4Path = join(process.cwd(), "demos", "04_window_placement_and_pin.ts");
         const demo5Path = join(process.cwd(), "demos", "05_crud_todo_table.ts");
         const demo6Path = join(process.cwd(), "demos", "06_timer_control_studio.ts");
+        const demo7Path = join(process.cwd(), "demos", "07_labeled_form_and_desktop_controls.ts");
+        const demo8Path = join(process.cwd(), "demos", "08_analytics_dashboard_template.ts");
+        const demo9Path = join(process.cwd(), "demos", "09_file_explorer_ide_template.ts");
+        const demo10Path = join(process.cwd(), "demos", "10_db_studio_query_editor_template.ts");
+        const demo11Path = join(process.cwd(), "demos", "11_app_settings_preferences_template.ts");
 
         expect(existsSync(demo1Path)).toBe(true);
         expect(existsSync(demo2Path)).toBe(true);
@@ -302,6 +307,11 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(existsSync(demo4Path)).toBe(true);
         expect(existsSync(demo5Path)).toBe(true);
         expect(existsSync(demo6Path)).toBe(true);
+        expect(existsSync(demo7Path)).toBe(true);
+        expect(existsSync(demo8Path)).toBe(true);
+        expect(existsSync(demo9Path)).toBe(true);
+        expect(existsSync(demo10Path)).toBe(true);
+        expect(existsSync(demo11Path)).toBe(true);
 
         const d1 = readFileSync(demo1Path, "utf-8");
         const d2 = readFileSync(demo2Path, "utf-8");
@@ -309,6 +319,10 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         const d4 = readFileSync(demo4Path, "utf-8");
         const d5 = readFileSync(demo5Path, "utf-8");
         const d6 = readFileSync(demo6Path, "utf-8");
+        const d8 = readFileSync(demo8Path, "utf-8");
+        const d9 = readFileSync(demo9Path, "utf-8");
+        const d10 = readFileSync(demo10Path, "utf-8");
+        const d11 = readFileSync(demo11Path, "utf-8");
 
         expect(d1).toContain("generatePreviewHtml");
         expect(d2).toContain("segmented_control");
@@ -318,6 +332,18 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(d3).toContain("code_view");
         expect(d4).toContain("setWindowPositionNative");
         expect(d4).toContain("setAlwaysOnTopNative");
+        expect(d5).toContain("on_btnAddRow_click");
+        expect(d6).toContain("timer");
+
+        // Demos 8-11 Templates Integrity
+        expect(d8).toContain("stat_chart");
+        expect(d8).toContain("circular_progress");
+        expect(d9).toContain("tree_view");
+        expect(d9).toContain("form_code");
+        expect(d10).toContain("db_navigator");
+        expect(d10).toContain("db_grid");
+        expect(d11).toContain("form_color");
+        expect(d11).toContain("form_drop_zone");
         expect(d5).toContain("table");
         expect(d5).toContain("columns");
         expect(d5).toContain("rows");

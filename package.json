@@ -15,7 +15,11 @@
     "demo:table": "bun run demos/05_crud_todo_table.ts",
     "demo:timer": "bun run demos/06_timer_control_studio.ts",
     "demo:desktop": "bun run demos/07_labeled_form_and_desktop_controls.ts",
-    "demo:labeled": "bun run demos/07_labeled_form_and_desktop_controls.ts"
+    "demo:labeled": "bun run demos/07_labeled_form_and_desktop_controls.ts",
+    "demo:dashboard": "bun run demos/08_analytics_dashboard_template.ts",
+    "demo:ide": "bun run demos/09_file_explorer_ide_template.ts",
+    "demo:db": "bun run demos/10_db_studio_query_editor_template.ts",
+    "demo:settings": "bun run demos/11_app_settings_preferences_template.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
