@@ -477,5 +477,60 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain("command_palette");
     });
 
+    test("9. Additional 5 Desktop Application Controls Suite Validation", () => {
+        const spec = {
+            title: "Advanced Desktop Controls Suite",
+            controls: [
+                { id: "pg_1", control_type: "property_grid", x: 10, y: 10, width: 240, height: 140, text: "Theme: Dark, Font Size: 13px, Version: 1.4.0", caption: "Property Inspector" },
+                { id: "pm_1", control_type: "popup_menu", x: 10, y: 160, width: 200, height: 130, text: "✂️ Cut ⌘X, 📋 Copy ⌘C, ---, 🗑️ Delete ⌫" },
+                { id: "cal_1", control_type: "calendar_view", x: 10, y: 300, width: 240, height: 180, text: "July 2026" },
+                { id: "sw_1", control_type: "color_swatch", x: 10, y: 490, width: 200, height: 70, text: "#0284c7, #38bdf8, #10b981", value: "#0284c7" },
+                { id: "fp_1", control_type: "file_path_bar", x: 10, y: 570, width: 280, height: 36, text: "/Users/codecaine/bun_rad_studio/src" }
+            ]
+        };
+
+        const html = generatePreviewHtml(spec);
+
+        expect(html).toContain('id="pg_1"');
+        expect(html).toContain('Property Inspector');
+        expect(html).toContain('Theme');
+        expect(html).toContain('id="pm_1"');
+        expect(html).toContain('✂️ Cut');
+        expect(html).toContain('id="cal_1"');
+        expect(html).toContain('July 2026');
+        expect(html).toContain('id="sw_1"');
+        expect(html).toContain('#0284c7');
+        expect(html).toContain('id="fp_1"');
+        expect(html).toContain('/Users/codecaine/bun_rad_studio/src');
+
+        // Check index.ts helper exports
+        const indexTsContent = readFileSync(join(process.cwd(), "index.ts"), "utf-8");
+        expect(indexTsContent).toContain("export function setPropertyGridData");
+        expect(indexTsContent).toContain("export function setPopupMenuItems");
+        expect(indexTsContent).toContain("export function setCalendarDate");
+        expect(indexTsContent).toContain("export function setColorSwatchColor");
+        expect(indexTsContent).toContain("export function setFilePathBarPath");
+
+        // Check Demo 12 file integrity
+        const demo12Path = join(process.cwd(), "demos", "12_advanced_desktop_app_controls.ts");
+        expect(existsSync(demo12Path)).toBe(true);
+        const demo12Content = readFileSync(demo12Path, "utf-8");
+        expect(demo12Content).toContain("property_grid");
+        expect(demo12Content).toContain("popup_menu");
+        expect(demo12Content).toContain("calendar_view");
+        expect(demo12Content).toContain("color_swatch");
+        expect(demo12Content).toContain("file_path_bar");
+        expect(demo12Content).toContain("setPropertyGridData");
+
+        // Check ide.html palette items
+        const idePath = join(process.cwd(), "src", "ide.html");
+        const ideContent = readFileSync(idePath, "utf-8");
+        expect(ideContent).toContain("property_grid");
+        expect(ideContent).toContain("popup_menu");
+        expect(ideContent).toContain("calendar_view");
+        expect(ideContent).toContain("color_swatch");
+        expect(ideContent).toContain("file_path_bar");
+    });
+
 });
 

@@ -436,6 +436,32 @@ export function setToggleButtonState(controlId: string, active: boolean, labelTe
     execJS(\`const btn=document.getElementById("\${controlId}");if(btn){btn.dataset.checked="\${active}";btn.style.background=\${active}?"var(--accent, #38bdf8)":"rgba(255,255,255,0.08)";btn.style.color=\${active}?"#ffffff":"inherit";if(\${label}!==null)btn.textContent=\${label};}\`);
 }
 
+export function setPropertyGridData(controlId: string, properties: string | Record<string, string>) {
+    const raw = typeof properties === 'string' ? properties : Object.entries(properties).map(([k, v]) => \`\${k}: \${v}\`).join(', ');
+    const escaped = JSON.stringify(raw);
+    execJS(\`if(window.setPropertyGridData)window.setPropertyGridData(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setPopupMenuItems(controlId: string, itemsCSV: string) {
+    const escaped = JSON.stringify(itemsCSV);
+    execJS(\`if(window.setPopupMenuItems)window.setPopupMenuItems(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setCalendarDate(controlId: string, yearMonthStr: string) {
+    const escaped = JSON.stringify(yearMonthStr);
+    execJS(\`if(window.setCalendarDate)window.setCalendarDate(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setColorSwatchColor(controlId: string, hexColor: string) {
+    const escaped = JSON.stringify(hexColor);
+    execJS(\`if(window.setColorSwatchColor)window.setColorSwatchColor(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
+export function setFilePathBarPath(controlId: string, pathStr: string) {
+    const escaped = JSON.stringify(pathStr);
+    execJS(\`if(window.setFilePathBarPath)window.setFilePathBarPath(\${JSON.stringify(controlId)}, \${escaped});\`);
+}
+
 export function setWindowPosition(pos: "center" | "upper_left" | "upper_right" | "bottom_left" | "bottom_right" | "top_center" | "bottom_center" | "center_left" | "center_right" | { x: number, y: number }) {
     execJS(\`if(window.setWindowPosition)window.setWindowPosition(\${JSON.stringify(pos)});\`);
 }
@@ -673,7 +699,7 @@ export function generatePreviewHtml(spec: any): string {
     for (const c of (spec.controls || [])) {
         if (c.visible === false) continue;
         const t = c.control_type || c.type;
-        const text = c.caption !== undefined ? c.caption : (c.text !== undefined ? c.text : (c.title !== undefined ? c.title : ''));
+        const text = c.text !== undefined ? c.text : (c.caption !== undefined ? c.caption : (c.title !== undefined ? c.title : ''));
         const color = c.font_color || fg;
         const rawCbg = c.background_color || 'transparent';
         const cbg = c.background_color && c.background_color !== 'transparent'
@@ -899,6 +925,45 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'rich_select') {
             const optList = c.options || 'React.js, Vue.js, Angular, Svelte, Next.js, Bun RAD Studio, TypeScript';
             controls += `<div${id}${titleAttr}${ev} class="rad-rich-select" style="${base(c)}background:${cbg};${defBorder}${defRadius}display:flex;align-items:center;gap:6px;padding:0 8px;color:${color};"><span style="opacity:0.6;font-size:13px;flex-shrink:0;">🔍</span><input type="text" value="${text || ''}" placeholder="${c.placeholder || 'Type to search options...'}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||12}px;outline:none;width:100%;" oninput="const val=this.value.toLowerCase();const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown){dropdown.style.display='block';dropdown.querySelectorAll('.rich-select-option').forEach(opt=>{opt.style.display=opt.textContent.toLowerCase().includes(val)?'block':'none';});}if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" onfocus="const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='block';" onblur="setTimeout(()=>{const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='none';},200)"><span style="font-size:10px;opacity:0.5;cursor:pointer;flex-shrink:0;" onclick="const input=this.parentNode.querySelector('input');input.focus();">▼</span><div class="rich-select-dropdown" style="display:none;position:absolute;left:0;top:100%;width:100%;max-height:160px;overflow-y:auto;background:${isLight?'#ffffff':'#1e293b'};border:1px solid ${border};border-radius:6px;margin-top:4px;box-shadow:0 6px 16px rgba(0,0,0,0.3);z-index:999;">${optList.split(',').map((opt: string) => { const clean = opt.trim(); return `<div class="rich-select-option" style="padding:6px 10px;font-size:11px;cursor:pointer;color:${color};" onmouseover="this.style.background='${isLight?'rgba(2,132,199,0.1)':'rgba(56,189,248,0.15)'}'" onmouseout="this.style.background='transparent'" onmousedown="event.preventDefault()" onclick="const input=this.closest('.rad-rich-select').querySelector('input');input.value='${clean}';this.parentNode.style.display='none';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${clean}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${clean}');">${clean}</div>`; }).join('')}</div></div>\n`;
+        } else if (t === 'property_grid') {
+            const rawProps = text || 'Theme: Dark, Font Size: 13px, Auto Save: True, Version: 1.4.0';
+            const propsList = rawProps.split(',').map((s: string) => s.trim().split(':')).filter((arr: string[]) => arr.length === 2);
+            const pgRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || 'Property Inspector'}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;">${propsList.map((pair: string[]) => {
+                const k = pair[0].trim(); const v = pair[1].trim();
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'}'" onmouseout="this.style.background=''"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
+            }).join('')}</div></div>\n`;
+        } else if (t === 'popup_menu') {
+            const rawItems = text || '✂️ Cut  ⌘X, 📋 Copy  ⌘C, 📄 Paste  ⌘V, ---, 🗑️ Delete  ⌫';
+            const items = rawItems.split(',').map((s: string) => s.trim());
+            const pmRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            controls += `<div${id}${titleAttr}${ev} class="rad-popup-menu" style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pmRadius}padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 25px rgba(0,0,0,0.4);">${items.map((it: string) => {
+                if (it === '---') return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
+                const parts = it.split(/\s{2,}/);
+                const label = parts[0] || it;
+                const shortcut = parts[1] || '';
+                return `<div class="popup-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.18)'}'" onmouseout="this.style.background=''" onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${label}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${label}');"><span>${label}</span>${shortcut ? `<span style="font-size:10px;opacity:0.5;font-family:monospace;">${shortcut}</span>` : ''}</div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'calendar_view') {
+            const calRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:12px;';
+            const calBg = cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b');
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="if(window['${c.id}_onPrev'])window['${c.id}_onPrev']();">◄</button><span>${text || 'July 2026'}</span><button style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="if(window['${c.id}_onNext'])window['${c.id}_onNext']();">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${[28,29,30,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28].slice(0,21).map((d: number, idx: number) => {
+                const isCurMonth = idx >= 3;
+                const isSelected = d === 25;
+                const bgStyle = isSelected ? `background:${accent};color:#ffffff;font-weight:700;border-radius:50%;` : '';
+                return `<span style="padding:4px 0;opacity:${isCurMonth ? (isSelected ? 1 : 0.9) : 0.35};cursor:pointer;${bgStyle}" onclick="if(window['${c.id}_onChange'])window['${c.id}_onChange'](${d});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${d});">${d}</span>`;
+            }).join('')}</div></div>\n`;
+        } else if (t === 'color_swatch') {
+            const colorsList = (text || '#0284c7, #38bdf8, #10b981, #f59e0b, #ef4444, #7c3aed, #ec4899').split(',').map((s: string) => s.trim());
+            const curCol = c.value || colorsList[0] || '#0284c7';
+            controls += `<div${id}${titleAttr}${ev} data-value="${curCol}" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;padding:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${c.caption || 'Color Palette Swatch'}</span><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${colorsList.map((hex: string) => {
+                const isSel = hex.toLowerCase() === curCol.toLowerCase();
+                return `<div class="swatch-chip" data-color="${hex}" style="width:24px;height:24px;border-radius:50%;background:${hex};cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;box-shadow:${isSel ? `0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}` : '0 2px 6px rgba(0,0,0,0.3)'};transform:${isSel ? 'scale(1.15)' : 'scale(1)'};" onclick="this.parentNode.querySelectorAll('.swatch-chip').forEach(s=>{s.style.transform='scale(1)';s.style.boxShadow='0 2px 6px rgba(0,0,0,0.3)';});this.style.transform='scale(1.15)';this.style.boxShadow='0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}';this.parentNode.parentNode.dataset.value='${hex}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${hex}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${hex}');"></div>`;
+            }).join('')}</div></div>\n`;
+        } else if (t === 'file_path_bar') {
+            const pathVal = text || '/Users/codecaine/bun_rad_studio/src';
+            const fRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${fRadius}padding:0 8px;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;"><span style="font-size:14px;opacity:0.75;flex-shrink:0;">📁</span><span class="path-text" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.9;font-family:monospace;">${pathVal}</span></div><button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${pathVal}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${pathVal}');" style="padding:4px 10px;background:${accent};color:#ffffff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">Browse...</button></div>\n`;
         } else if (t === 'form_checkbox') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${c.checked ? 'checked' : ''}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${c.placeholder || 'Enable option toggle'}</label></div>\n`;
         } else if (t === 'form_radio') {
@@ -1220,6 +1285,55 @@ ${controls}
     if (!c) return;
     const span = c.querySelector('div:nth-child(1) span:nth-child(3)');
     if (span) span.textContent = textStr;
+  };
+  window.setPropertyGridData = function(id, rawProps) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const body = c.querySelector('.prop-grid-body');
+    if (!body) return;
+    const propsList = String(rawProps || '').split(',').map(function(s){ return s.trim().split(':'); }).filter(function(arr){ return arr.length === 2; });
+    const accent = '#38bdf8';
+    let html = '';
+    propsList.forEach(function(pair) {
+      const k = pair[0].trim(); const v = pair[1].trim();
+      html += '<div style=\'display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;\'><span style=\'font-weight:600;opacity:0.85;\'>' + k + '</span><span style=\'font-size:11px;color:' + accent + ';font-weight:600;font-family:monospace;\'>' + v + '</span></div>';
+    });
+    body.innerHTML = html;
+  };
+  window.setPopupMenuItems = function(id, itemsCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const items = String(itemsCSV || '').split(',').map(function(s){ return s.trim(); });
+    let html = '';
+    items.forEach(function(it) {
+      if (it === '---') { html += '<div style=\'height:1px;background:rgba(255,255,255,0.1);margin:4px 0;\'></div>'; return; }
+      const parts = it.split(/\s{2,}/);
+      const label = parts[0] || it; const shortcut = parts[1] || '';
+      html += '<div class="popup-item" style=\'padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;cursor:pointer;\' onclick="if(window[\'' + id + '_onClick\'])window[\'' + id + '_onClick\'](\'' + label + '\');else if(window[\'on_' + id + '_click\'])window[\'on_' + id + '_click\'](\'' + label + '\');"><span>' + label + '</span>' + (shortcut ? '<span style=\'font-size:10px;opacity:0.5;font-family:monospace;\'>' + shortcut + '</span>' : '') + '</div>';
+    });
+    c.innerHTML = html;
+  };
+  window.setCalendarDate = function(id, headerText) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const span = c.querySelector('div:nth-child(1) span:nth-child(2)');
+    if (span) span.textContent = headerText;
+  };
+  window.setColorSwatchColor = function(id, hexColor) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.dataset.value = hexColor;
+    c.querySelectorAll('.swatch-chip').forEach(function(chip) {
+      const isSel = chip.dataset.color.toLowerCase() === hexColor.toLowerCase();
+      chip.style.transform = isSel ? 'scale(1.15)' : 'scale(1)';
+      chip.style.boxShadow = isSel ? '0 0 0 3px #0f172a, 0 0 0 5px ' + hexColor : '0 2px 6px rgba(0,0,0,0.3)';
+    });
+  };
+  window.setFilePathBarPath = function(id, pathStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const span = c.querySelector('.path-text');
+    if (span) span.textContent = pathStr;
   };
   window.__handlePagClick = function(btn, id, accent, border, isLight, e) {
     var log = function(msg) {

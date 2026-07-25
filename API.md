@@ -230,6 +230,11 @@ The `event_handlers` record can map the following event names to string blocks o
 | `toast_card` | Notification Toast | 260 × 64 px | Floating notification toast alert card with status icon & close action |
 | `time_picker` | Time Picker | 150 × 36 px | Precision clock time selection input field |
 | `rich_select` | Searchable Combobox | 200 × 36 px | Searchable dropdown select combobox with icon & arrow |
+| `property_grid` | Property Inspector | 240 × 140 px | Two-column key-value property inspector grid widget |
+| `popup_menu` | Popup Menu | 200 × 130 px | Desktop context/popup action menu |
+| `calendar_view` | Calendar View | 240 × 180 px | Full month calendar grid view widget |
+| `color_swatch` | Color Swatch | 200 × 70 px | Color palette swatch selection grid |
+| `file_path_bar` | File Path Bar | 280 × 36 px | Desktop location address/path selector bar |
 
 ### Non-Visual Tray Components
 
@@ -292,6 +297,11 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `setStatusBarText(id, statusText)` | `(id: string, statusText: string) => void` | Updates status bar message text |
 | `setPaginationPage(id, pageNum)` | `(id: string, pageNum: number \| string) => void` | Selects page number in Pagination Bar |
 | `setToggleButtonState(id, active, labelText)` | `(id: string, active: boolean, labelText?: string) => void` | Toggles icon toggle button state & label |
+| `setPropertyGridData(id, properties)` | `(id: string, properties: string \| Record<string, string>) => void` | Updates Property Inspector Grid two-column key-value data |
+| `setPopupMenuItems(id, itemsCSV)` | `(id: string, itemsCSV: string) => void` | Updates Desktop Popup Context Menu action items and keyboard shortcuts |
+| `setCalendarDate(id, yearMonthStr)` | `(id: string, yearMonthStr: string) => void` | Updates Month Calendar View header title and date grid |
+| `setColorSwatchColor(id, hexColor)` | `(id: string, hexColor: string) => void` | Selects active color chip in Color Swatch palette grid |
+| `setFilePathBarPath(id, pathStr)` | `(id: string, pathStr: string) => void` | Updates location string in Desktop File Path Address Bar |
 | `setAlwaysOnTop(onTop)` | `(onTop: boolean) => void` | Toggles window always-on-top mode floating above all OS windows |
 | `setWindowPosition(pos)` | `(pos: WindowPositionPreset \| { x: number, y: number }) => void` | Repositions application window to screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` screen coordinates |
 
@@ -332,7 +342,7 @@ bun run index.ts
 
 ## 7. Interactive Demos Suite (`demos/`)
 
-The repository includes 7 interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
+The repository includes interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
 
 | Demo Script | Command | Key Features Demonstrated |
 | --- | --- | --- |
@@ -343,4 +353,5 @@ The repository includes 7 interactive executable demo scripts demonstrating all 
 | `demos/05_crud_todo_table.ts` | `bun run demo:table` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
 | `demos/06_timer_control_studio.ts` | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
 | `demos/07_labeled_form_and_desktop_controls.ts` | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
+| `demos/12_advanced_desktop_app_controls.ts` | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (`property_grid`, `popup_menu`, `calendar_view`, `color_swatch`, `file_path_bar`), backend IPC bindings, and live helper updates |
 
