@@ -19,7 +19,7 @@ import { generatePreviewHtml } from "../index.ts";
 const formSpec = {
     title: "Demo 13 - Modern Productivity UI Controls Studio",
     width: 1000,
-    height: 750,
+    height: 840,
     background_color: "#0f172a",
     font_color: "#e2e8f0",
     padding: 20,
@@ -120,7 +120,7 @@ const formSpec = {
         {
             id: "activity_1",
             control_type: "activity_feed",
-            x: 20, y: 561, width: 960, height: 125,
+            x: 20, y: 561, width: 960, height: 155,
             text: "Alice published v1.5.0 release build (2m ago), Bob pushed 4 commits to main (12m ago), Charlie resolved Issue #108 (35m ago), System auto-backup completed successfully (1h ago)",
             caption: "Live Team Operations Audit Stream",
             event_handlers: { onClick: "on_activity_click" }
@@ -130,7 +130,7 @@ const formSpec = {
         {
             id: "app_status_bar",
             control_type: "status_bar",
-            x: 0, y: 710, width: 1000, height: 28,
+            x: 0, y: 795, width: 1000, height: 28,
             text: "Demo 13 | All 7 Modern Productivity UI Controls Operational | Bun RAD v1.3",
             dock: "bottom"
         }

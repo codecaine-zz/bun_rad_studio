@@ -733,7 +733,17 @@ export function generatePreviewHtml(spec: any): string {
         let cur = c.cursor ? `cursor:${c.cursor};` : '';
         const posX = c.left !== undefined ? c.left : (c.x !== undefined ? c.x : 0);
         const posY = c.top !== undefined ? c.top : (c.y !== undefined ? c.y : 0);
-        return `position:absolute;left:${posX}px;top:${posY}px;width:${c.width}px;height:${c.height}px;` +
+
+        let posStyle = `position:absolute;left:${posX}px;top:${posY}px;width:${c.width}px;height:${c.height}px;`;
+        if (c.dock === 'bottom' || c.control_type === 'status_bar' || (c.type === 'status_bar')) {
+            posStyle = `position:fixed;bottom:0;left:0;right:0;width:100%;height:${c.height || 28}px;z-index:9999;`;
+        } else if (c.dock === 'top') {
+            posStyle = `position:fixed;top:0;left:0;right:0;width:100%;height:${c.height || 40}px;z-index:9999;`;
+        } else if (c.dock === 'fill') {
+            posStyle = `position:absolute;top:0;bottom:0;left:0;right:0;width:100%;height:100%;`;
+        }
+
+        return `${posStyle}` +
             `font-size:${c.font_size || 13}px;` +
             `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${op}${pe}${cur}${extra}`;
     };
@@ -1192,15 +1202,15 @@ export function generatePreviewHtml(spec: any): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 100%; height: 100%; overflow: hidden; }
+  html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: auto; }
   body {
     background: ${bg};
     color: ${fg};
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     position: relative;
-    width: ${w}px;
-    height: ${h}px;
-    overflow: hidden;
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
   }
   input, textarea, select, button { font-family: inherit; } .rad-mono { font-family: monospace; } * { spellcheck: false; }
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }

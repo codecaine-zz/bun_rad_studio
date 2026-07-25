@@ -10,13 +10,13 @@
   body {
     background: #0f172a;
     color: #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     position: relative;
     width: 800px;
     height: 600px;
     overflow: hidden;
   }
-  input, textarea, select, button { font-family: inherit; } * { spellcheck: false; }
+  input, textarea, select, button { font-family: inherit; } .rad-mono { font-family: monospace; } * { spellcheck: false; }
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
   :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
@@ -27,9 +27,8 @@
   
 </style>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
-<button id="button_1" title="Button: Clickable action button widget (win.add_button)" onclick="try{if(window['on_button_1_click']){window['on_button_1_click'](this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:''))}else if(window['on_button_1_click']===undefined&&window.backendAlert){window.backendAlert('Event: on_button_1_click')}}catch(e){console.error(e)}" style="position:absolute;left:176px;top:120px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;background:#0284c7;color:#ffffff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">Button 1</button>
-<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' id="textarea_2" title="Text Area: Multi-line text input area (win.add_textarea)" onclick="try{if(window['on_textarea_2_click']){window['on_textarea_2_click'](this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:''))}else if(window['on_textarea_2_click']===undefined&&window.backendAlert){window.backendAlert('Event: on_textarea_2_click')}}catch(e){console.error(e)}" placeholder="" style="position:absolute;left:272px;top:272px;width:280px;height:120px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;background:#1e293b;color:#ffffff;border:1px solid rgba(255, 255, 255, 0.12);border-radius:5px;padding:8px;resize:none;outline:none;">Textarea 2</textarea>
-<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' id="input_3" title="Input: Single-line text input field (win.add_input)" onclick="try{if(window['on_input_3_click']){window['on_input_3_click'](this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:''))}else if(window['on_input_3_click']===undefined&&window.backendAlert){window.backendAlert('Event: on_input_3_click')}}catch(e){console.error(e)}" type="text" value="Input 3" placeholder="" style="position:absolute;left:488px;top:120px;width:150px;height:36px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;background:#1e293b;color:#ffffff;border:1px solid rgba(255, 255, 255, 0.12);border-radius:5px;padding:0 10px;outline:none;">
+<div id="file_tree_tabs_1" title="Workspace Tabs: IDE tab bar with file icons & modified state dot" style="position:absolute;left:152px;top:120px;width:320px;height:36px;font-size:13px;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;display:flex;align-items:center;background:rgba(255, 255, 255, 0.06);border:1px solid rgba(255, 255, 255, 0.12);border-radius:6px;padding:0 4px;gap:2px;overflow-x:auto;"><div style="padding:4px 10px;background:#1e293b;border-radius:4px 4px 0 0;font-size:11px;font-weight:700;color:#38bdf8;display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:2px solid #38bdf8;" onclick="const fn=window['']||window['file_tree_tabs_1_onChange']||window['on_file_tree_tabs_1_change'];if(fn)fn('File_tree_tabs 1');"><span>File_tree_tabs 1</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div><div style="padding:4px 10px;background:transparent;border-radius:4px 4px 0 0;font-size:11px;font-weight:normal;color:#ffffff;display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:none;" onclick="const fn=window['']||window['file_tree_tabs_1_onChange']||window['on_file_tree_tabs_1_change'];if(fn)fn('mouse');"><span>mouse</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div></div>
+<div id="file_tree_tabs_2" title="Workspace Tabs: IDE tab bar with file icons & modified state dot" style="position:absolute;left:584px;top:88px;width:320px;height:36px;font-size:13px;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;display:flex;align-items:center;background:rgba(255, 255, 255, 0.06);border:1px solid rgba(255, 255, 255, 0.12);border-radius:6px;padding:0 4px;gap:2px;overflow-x:auto;"><div style="padding:4px 10px;background:#1e293b;border-radius:4px 4px 0 0;font-size:11px;font-weight:700;color:#38bdf8;display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:2px solid #38bdf8;" onclick="const fn=window['']||window['file_tree_tabs_2_onChange']||window['on_file_tree_tabs_2_change'];if(fn)fn('File_tree_tabs 2');"><span>File_tree_tabs 2</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div></div>
 
 <script>
   window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
@@ -180,8 +179,8 @@
       }
       html += '<div class="tree-node' + (idx===0?' selected-tree-node':'') + '" data-node="' + nodeText + '" style="padding:6px 10px;padding-left:' + (indent + 8) + 'px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;cursor:pointer;user-select:none;transition:all 0.2s;' + selStyle + '"' +
         ' onclick="event.stopPropagation();const parent=this.closest('.rad-tree-container');parent.querySelectorAll('.tree-node').forEach(function(n){n.style.background='transparent';n.style.color='inherit';n.style.fontWeight='normal';});this.style.background='' + selBg + '';this.style.color='' + accent + '';this.style.fontWeight='700';if(window['' + id + '_onSelect'])window['' + id + '_onSelect'](this.dataset.node);"' +
-        ' onmouseover="if(!this.style.background.includes('rgba')){this.style.background='rgba(255,255,255,0.08)'}"' +
-        ' onmouseout="if(!this.style.background.includes('rgba(56')){this.style.background='transparent';}">' +
+        ' onmouseover="if(!this.style.background.includes('rgba')){this.style['background']='rgba(255,255,255,0.08)'}"' +
+        ' onmouseout="if(!this.style.background.includes('rgba(56')){this.style['background']='transparent';}">' +
         '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden;">' +
         '<span class="tree-arrow" onclick="event.stopPropagation();const isCol=this.textContent==='▶';this.textContent=isCol?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currInd=parseInt(curr.style.paddingLeft||'0');if(currInd<=' + (indent + 8) + ')break;curr.style.display=isCol?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.8;cursor:pointer;flex-shrink:0;">' + arrow + '</span>' +
         '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nodeText + '</span></div>' +
@@ -263,6 +262,95 @@
     if (!c) return;
     const span = c.querySelector('.path-text');
     if (span) span.textContent = pathStr;
+  };
+  window.setKanbanColumns = function(id, rawCols) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const cols = String(rawCols || '').split('|').map(function(s){ return s.trim(); });
+    const sampleCards = [
+      ['● Design Specs', '● IPC Handlers', '● State Sync'],
+      ['● HTML Generator', '● UI Canvas'],
+      ['● Unit Tests', '● API Docs', '● Themes', '● Exporter']
+    ];
+    let html = '';
+    const accent = '#38bdf8';
+    cols.forEach(function(colStr, idx) {
+      const cards = sampleCards[idx % sampleCards.length];
+      html += '<div style="flex:1;min-width:90px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;"><div style="font-size:10px;font-weight:700;color:' + accent + ';border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>' + colStr + '</span></div><div style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;">' + cards.map(function(card){ return '<div onclick="const fn=window[' + JSON.stringify(id + '_onClick') + ']||window[' + JSON.stringify('on_' + id + '_click') + '];if(fn)fn(' + JSON.stringify(card) + ');" style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:4px 6px;font-size:10px;color:inherit;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:pointer;">' + card + '</div>'; }).join('') + '</div></div>';
+    });
+    c.innerHTML = html;
+  };
+  window.setShortcutRecorderValue = function(id, shortcutStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.dataset.value = shortcutStr;
+    const keys = String(shortcutStr || '').split(/s+|+|-/).filter(Boolean);
+    const accent = '#38bdf8';
+    const keysContainer = c.querySelector('div');
+    if (keysContainer) {
+      keysContainer.innerHTML = keys.map(function(k){ return '<kbd class="rad-mono" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:' + accent + ';">' + k + '</kbd>'; }).join('');
+    }
+  };
+  window.setSplitButtonAction = function(id, textStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const btn = c.querySelector('button:first-child');
+    if (btn) btn.textContent = textStr;
+  };
+  window.setSparklineTableData = function(id, rowsCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const rows = String(rowsCSV || '').split(',').map(function(s){ return s.trim(); });
+    const accent = '#38bdf8';
+    let html = '';
+    rows.forEach(function(row, i) {
+      const parts = row.split(':');
+      const label = parts[0] || 'Metric';
+      const val = parts[1] || '$10k';
+      const isUp = i % 3 === 0; const isFlat = i % 3 === 1;
+      const sparkColor = isUp ? '#10b981' : isFlat ? accent : '#ef4444';
+      const points = isUp ? '0,14 10,12 20,8 30,10 40,4 50,2' : isFlat ? '0,8 10,10 20,7 30,9 40,8 50,8' : '0,2 10,5 20,8 30,6 40,12 50,14';
+      html += '<div onclick="const fn=window[' + JSON.stringify(id + '_onClick') + ']||window[' + JSON.stringify('on_' + id + '_click') + '];if(fn)fn(' + JSON.stringify(label) + ');" style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:' + (i < rows.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none') + ';cursor:pointer;"><span style="font-weight:600;opacity:0.85;">' + label + '</span><div style="display:flex;align-items:center;gap:8px;"><svg width="50" height="16" style="overflow:visible;"><polyline fill="none" stroke="' + sparkColor + '" stroke-width="2" points="' + points + '" /></svg><span class="rad-mono" style="font-weight:700;color:' + sparkColor + ';">' + val + '</span></div></div>';
+    });
+    c.innerHTML = html;
+  };
+  window.setMetricComparison = function(id, opts) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const titleSpan = c.querySelector('div:first-child span:first-child');
+    if (titleSpan && opts.title) titleSpan.textContent = opts.title;
+    const valSpan = c.querySelector('div:nth-child(2) span:first-child');
+    if (valSpan && opts.curVal) valSpan.textContent = opts.curVal;
+    const targetSpan = c.querySelector('div:nth-child(2) span:nth-child(2)');
+    if (targetSpan && opts.targetStr) targetSpan.textContent = opts.targetStr;
+    const changeSpan = c.querySelector('div:first-child span:nth-child(2)');
+    if (changeSpan && opts.changeStr) changeSpan.textContent = opts.changeStr;
+  };
+  window.setActivityFeedItems = function(id, itemsCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const items = String(itemsCSV || '').split(',').map(function(s){ return s.trim(); });
+    const stream = c.querySelector('div:nth-child(2)');
+    if (!stream) return;
+    const accent = '#38bdf8';
+    let html = '';
+    items.forEach(function(it) {
+      const initial = it.charAt(0).toUpperCase();
+      html += '<div onclick="const fn=window[' + JSON.stringify(id + '_onClick') + ']||window[' + JSON.stringify('on_' + id + '_click') + '];if(fn)fn(' + JSON.stringify(it) + ');" style="display:flex;align-items:center;gap:8px;font-size:10px;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:' + accent + ';color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:9px;flex-shrink:0;">' + initial + '</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + it + '</span></div>';
+    });
+    stream.innerHTML = html;
+  };
+  window.setWorkspaceTabs = function(id, filesCSV) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const files = String(filesCSV || '').split(',').map(function(s){ return s.trim(); });
+    const accent = '#38bdf8';
+    let html = '';
+    files.forEach(function(file, idx) {
+      const isSel = idx === 0;
+      html += '<div style="padding:4px 10px;background:' + (isSel ? '#1e293b' : 'transparent') + ';border-radius:4px 4px 0 0;font-size:11px;font-weight:' + (isSel ? '700' : 'normal') + ';color:' + (isSel ? accent : 'inherit') + ';display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:' + (isSel ? '2px solid ' + accent : 'none') + ';" onclick="const fn=window[' + JSON.stringify(id + '_onChange') + ']||window[' + JSON.stringify('on_' + id + '_change') + '];if(fn)fn(' + JSON.stringify(file) + ');"><span>' + file + '</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div>';
+    });
+    c.innerHTML = html;
   };
   window.__handlePagClick = function(btn, id, accent, border, isLight, e) {
     var log = function(msg) {

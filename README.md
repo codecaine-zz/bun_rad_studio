@@ -8,6 +8,9 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)
 
+### ⚡ Modern Productivity UI Controls Studio (`demo:productivity`)
+![Modern Productivity UI Controls Studio Screenshot](screenshot_productivity.png)
+
 ---
 
 ## 🌟 Highlights & Features
@@ -107,8 +110,23 @@ bun run demo:timer
 # Demo 7: Labeled Form Controls & Desktop Application UI Controls Studio
 bun run demo:desktop  # or: bun run demo:labeled
 
+# Demo 8: Executive Analytics Dashboard Template (Metric KPI Cards, Stat Charts, Alert Banners)
+bun run demo:dashboard
+
+# Demo 9: Developer File Explorer & IDE Studio Template (Tree View, Workspace Tabs, Monospaced Code View)
+bun run demo:ide
+
+# Demo 10: Database Studio & Query Editor Template (DB Navigator, DB-bound Data Grids, SQL Code View)
+bun run demo:db
+
+# Demo 11: Desktop Application Settings & Preferences Template (Tabs, Toggles, Sliders, Time Pickers)
+bun run demo:settings
+
 # Demo 12: Additional 5 Desktop Application Controls Studio (Property Grid, Popup Menu, Calendar View, Color Swatch, File Path Bar)
 bun run demo:app_controls
+
+# Demo 13: Modern Productivity UI Controls Studio (Kanban Board, Hotkey Recorder, Split Button, Sparklines, Metric Comparison, Activity Audit Feed, Workspace Tabs)
+bun run demo:productivity
 ```
 
 ---
