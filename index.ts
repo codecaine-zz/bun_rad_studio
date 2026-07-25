@@ -415,6 +415,27 @@ export function setRichSelectText(controlId: string, text: string) {
     execJS(\`const c=document.getElementById("\${controlId}");if(c){const span=c.querySelector("span:nth-child(2)");if(span)span.textContent=\${escaped};}\`);
 }
 
+export function setTabsActive(controlId: string, tabName: string) {
+    const escaped = JSON.stringify(tabName);
+    execJS(\`const container=document.getElementById("\${controlId}");if(container){container.dataset.value=\${escaped};container.querySelectorAll("button").forEach(b=>{const isSel=b.textContent.trim()===\${escaped};b.style.borderBottom=isSel?"2px solid var(--accent, #38bdf8)":"none";b.style.color=isSel?"var(--accent, #38bdf8)":"inherit";b.style.fontWeight=isSel?"700":"normal";});}\`);
+}
+
+export function setStatusBarText(controlId: string, statusText: string) {
+    const escaped = JSON.stringify(statusText);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){const span=c.querySelector("div:nth-child(1) span:nth-child(3)");if(span)span.textContent=\${escaped};}\`);
+}
+
+export function setPaginationPage(controlId: string, pageNum: number | string) {
+    const pageStr = String(pageNum);
+    const escaped = JSON.stringify(pageStr);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c){c.querySelectorAll("button").forEach(b=>{if(!isNaN(parseInt(b.textContent.trim()))){const isSel=b.textContent.trim()===\${escaped};b.style.background=isSel?"var(--accent, #38bdf8)":"rgba(255,255,255,0.06)";b.style.color=isSel?"#ffffff":"inherit";b.style.fontWeight=isSel?"700":"normal";}});}\`);
+}
+
+export function setToggleButtonState(controlId: string, active: boolean, labelText?: string) {
+    const label = labelText !== undefined ? JSON.stringify(labelText) : "null";
+    execJS(\`const btn=document.getElementById("\${controlId}");if(btn){btn.dataset.checked="\${active}";btn.style.background=\${active}?"var(--accent, #38bdf8)":"rgba(255,255,255,0.08)";btn.style.color=\${active}?"#ffffff":"inherit";if(\${label}!==null)btn.textContent=\${label};}\`);
+}
+
 export function setWindowPosition(pos: "center" | "upper_left" | "upper_right" | "bottom_left" | "bottom_right" | "top_center" | "bottom_center" | "center_left" | "center_right" | { x: number, y: number }) {
     execJS(\`if(window.setWindowPosition)window.setWindowPosition(\${JSON.stringify(pos)});\`);
 }
@@ -588,7 +609,7 @@ export function generatePreviewHtml(spec: any): string {
         const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
-            const isInputType = ['input', 'search', 'textarea', 'select', 'checkbox', 'radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'form_date', 'color'].includes(ctrlType);
+            const isInputType = ['input', 'search', 'form_search', 'textarea', 'form_textarea', 'select', 'form_dropdown', 'checkbox', 'form_checkbox', 'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'form_date', 'time_picker', 'form_time', 'color', 'form_color', 'form_code', 'form_stepper', 'form_drop_zone', 'tabs', 'pagination', 'toggle_button'].includes(ctrlType);
             if (isInputType) {
                 if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
                     handlers.onChange = `on_${c.id}_change`;
@@ -610,7 +631,8 @@ export function generatePreviewHtml(spec: any): string {
             const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
             let codeToExec = '';
             if (isFuncName) {
-                codeToExec = `if(window['${clean}']){window['${clean}'](this.value||'')}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
+                const valExpr = "this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:'')";
+                codeToExec = `if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
             } else {
                 codeToExec = clean;
             }
@@ -731,7 +753,7 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} data-value="${val}" style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height-8,16)}px;">${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;color:${i<=val?'#f59e0b':starBg};transition:color 0.1s;" onclick="const parent=this.parentNode;parent.dataset.value='${i}';parent.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'});if(window['${c.id}_onChange'])window['${c.id}_onChange'](${i});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${i});" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="const cur=parseInt(this.parentNode.dataset.value||'${val}');this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<cur?'#f59e0b':'${starBg}'})">★</span>`).join('')}</div>\n`;
         } else if (t === 'stepper') {
             const val = c.value !== undefined ? c.value : 5;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><button onclick="const v=this.nextSibling;v.textContent=parseInt(v.textContent)-1;" style="background:none;border:none;color:${color};font-size:18px;cursor:pointer;line-height:1;">−</button><span style="font-weight:bold;">${val}</span><button onclick="const v=this.previousSibling;v.textContent=parseInt(v.textContent)+1;" style="background:none;border:none;color:${color};font-size:18px;cursor:pointer;line-height:1;">+</button></div>\n`;
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;color:${color};"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;">${val}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div>\n`;
         } else if (t === 'badge') {
             const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : '#10b981';
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:20px;';
@@ -877,6 +899,79 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'rich_select') {
             const optList = c.options || 'React.js, Vue.js, Angular, Svelte, Next.js, Bun RAD Studio, TypeScript';
             controls += `<div${id}${titleAttr}${ev} class="rad-rich-select" style="${base(c)}background:${cbg};${defBorder}${defRadius}display:flex;align-items:center;gap:6px;padding:0 8px;color:${color};"><span style="opacity:0.6;font-size:13px;flex-shrink:0;">🔍</span><input type="text" value="${text || ''}" placeholder="${c.placeholder || 'Type to search options...'}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||12}px;outline:none;width:100%;" oninput="const val=this.value.toLowerCase();const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown){dropdown.style.display='block';dropdown.querySelectorAll('.rich-select-option').forEach(opt=>{opt.style.display=opt.textContent.toLowerCase().includes(val)?'block':'none';});}if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" onfocus="const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='block';" onblur="setTimeout(()=>{const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='none';},200)"><span style="font-size:10px;opacity:0.5;cursor:pointer;flex-shrink:0;" onclick="const input=this.parentNode.querySelector('input');input.focus();">▼</span><div class="rich-select-dropdown" style="display:none;position:absolute;left:0;top:100%;width:100%;max-height:160px;overflow-y:auto;background:${isLight?'#ffffff':'#1e293b'};border:1px solid ${border};border-radius:6px;margin-top:4px;box-shadow:0 6px 16px rgba(0,0,0,0.3);z-index:999;">${optList.split(',').map((opt: string) => { const clean = opt.trim(); return `<div class="rich-select-option" style="padding:6px 10px;font-size:11px;cursor:pointer;color:${color};" onmouseover="this.style.background='${isLight?'rgba(2,132,199,0.1)':'rgba(56,189,248,0.15)'}'" onmouseout="this.style.background='transparent'" onmousedown="event.preventDefault()" onclick="const input=this.closest('.rad-rich-select').querySelector('input');input.value='${clean}';this.parentNode.style.display='none';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${clean}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${clean}');">${clean}</div>`; }).join('')}</div></div>\n`;
+        } else if (t === 'form_checkbox') {
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${c.checked ? 'checked' : ''}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${c.placeholder || 'Enable option toggle'}</label></div>\n`;
+        } else if (t === 'form_radio') {
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${c.checked ? 'checked' : ''}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${c.placeholder || 'Select option'}</label></div>\n`;
+        } else if (t === 'form_search') {
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:6px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="opacity:0.6;font-size:13px;">🔍</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="" placeholder="${c.placeholder || 'Search records...'}"${disabled}${roAttr}${ev} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size||13}px;width:100%;"></div></div>\n`;
+        } else if (t === 'form_color') {
+            const hexVal = c.value || '#38bdf8';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${hexVal}"${disabled}${ev} style="width:36px;height:28px;padding:2px;${defBorder}${defRadius}cursor:${c.cursor||'pointer'};background:${rawCbg};"><span style="font-family:monospace;font-size:12px;opacity:0.9;">${hexVal}</span></div></div>\n`;
+        } else if (t === 'form_time') {
+            const timeVal = c.value || '09:30';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${timeVal}"${disabled}${roAttr}${ev} style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||13}px;outline:none;width:100%;color-scheme:${isLight ? 'light' : 'dark'};"></div></div>\n`;
+        } else if (t === 'form_stepper') {
+            const stepVal = c.value !== undefined ? c.value : 5;
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;gap:8px;color:${color};"><span style="font-size:11px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;height:32px;min-width:110px;"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;padding:0 8px;">${stepVal}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div></div>\n`;
+        } else if (t === 'form_code') {
+            const codeFg = c.font_color && c.font_color !== fg ? c.font_color : '#7dd3fc';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><textarea${disabled}${roAttr}${autoFocusAttr}${ev} placeholder="${c.placeholder || '// Enter script code...'}" style="flex:1;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117'};${defBorder}${defRadius}padding:8px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size||12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${c.value || c.code || ''}</textarea></div>\n`;
+        } else if (t === 'form_drop_zone') {
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><div style="flex:1;background:${cbg};border:2px dashed ${accent};${defRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};"><span style="font-size:20px;">📥</span><span style="font-size:11px;">${c.placeholder || 'Drop files here or click to browse'}</span></div></div>\n`;
+        } else if (t === 'tabs') {
+            const tabItems = (text || 'General, Security, Advanced').split(',').map((tb: string) => tb.trim());
+            const activeTab = c.value || tabItems[0] || '';
+            controls += `<div${id}${titleAttr} data-value="${activeTab}" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)')};border-bottom:2px solid ${border};padding:0 4px;gap:2px;">${tabItems.map((tb: string, idx: number) => {
+                const isSel = tb === activeTab || (idx === 0 && !c.value);
+                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderBottom='none';b.style.color='${color}';b.style.fontWeight='normal'});this.style.borderBottom='2px solid ${accent}';this.style.color='${accent}';this.style.fontWeight='700';this.parentNode.dataset.value='${tb}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${tb}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${tb}');" style="height:100%;padding:0 14px;background:none;border:none;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};color:${isSel ? accent : color};font-weight:${isSel ? '700' : 'normal'};font-size:12px;cursor:pointer;transition:all 0.15s;">${tb}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'tool_bar') {
+            const barItems = (text || '📄 New, 📂 Open, 💾 Save, ⚙️ Settings, 🔍 Search').split(',').map((item: string) => item.trim());
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f1f5f9' : '#1e293b')};${defBorder}${defRadius}padding:0 8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${barItems.map((item: string) => `<button style="height:28px;padding:0 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)'}'" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)'}'" onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${item}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${item}');">${item}</button>`).join('')}</div>\n`;
+        } else if (t === 'status_bar') {
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#e2e8f0' : '#090d16')};border-top:1px solid ${border};padding:0 12px;font-size:11px;color:${color};"><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">🟢 Ready</span><span style="opacity:0.4;">|</span><span>${text || 'UTF-8 | Line 1, Col 1'}</span></div><div style="display:flex;align-items:center;gap:8px;opacity:0.75;"><span>Bun RAD v1.3</span><span>100%</span></div></div>\n`;
+        } else if (t === 'split_pane') {
+            const parts = (text || 'Navigation Sidebar | Main Detail Area').split('|');
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f8fafc' : '#0f172a')};${defBorder}${defRadius}overflow:hidden;"><div style="flex:1;padding:8px 12px;font-size:11px;color:${color};background:${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'};overflow:auto;"><div style="font-weight:700;color:${accent};margin-bottom:4px;">Left Pane</div><div>${parts[0].trim()}</div></div><div style="width:4px;background:${accent};cursor:col-resize;opacity:0.75;flex-shrink:0;"></div><div style="flex:2;padding:8px 12px;font-size:11px;color:${color};overflow:auto;"><div style="font-weight:700;color:${accent};margin-bottom:4px;">Main Area</div><div>${parts[1] ? parts[1].trim() : 'Detail content panel'}</div></div></div>\n`;
+        } else if (t === 'pagination') {
+            const curPage = Number(c.value) || 1;
+            const pagId = c.id;
+            const pagInactBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+            const pagActiveBg = accent;
+
+            const updateJs = (pageExpr: string) => `
+                var p=this.parentNode;
+                var targetP=${pageExpr};
+                p.dataset.page=String(targetP);
+                p.querySelectorAll('button[data-pag-num]').forEach(function(b){
+                    var sel=b.dataset.pagNum===String(targetP);
+                    b.dataset.active=sel?'true':'false';
+                    b.style.background=sel?'${pagActiveBg}':'${pagInactBg}';
+                    b.style.color=sel?'#ffffff':'inherit';
+                    b.style.fontWeight=sel?'bold':'normal';
+                    b.style.border=sel?'none':'1px solid ${border}';
+                });
+                if(window['${pagId}_onChange']) window['${pagId}_onChange'](targetP);
+                else if(window['on_${pagId}_change']) window['on_${pagId}_change'](targetP);
+                if(window['${pagId}_onClick']) window['${pagId}_onClick'](targetP);
+                else if(window['on_${pagId}_click']) window['on_${pagId}_click'](targetP);
+            `.replace(/\s+/g, ' ').trim();
+
+            const makePageBtn = (n: number) => {
+                const isActive = curPage === n;
+                return `<button data-pag-num="${n}" data-active="${isActive ? 'true' : 'false'}" onclick="${updateJs(String(n))}" style="padding:4px 10px;background:${isActive ? pagActiveBg : pagInactBg};border:${isActive ? 'none' : '1px solid ' + border};border-radius:4px;color:${isActive ? '#fff' : 'inherit'};font-weight:${isActive ? 'bold' : 'normal'};cursor:pointer;transition:all 0.15s;">${n}</button>`;
+            };
+
+            const prevJs = updateJs("Math.max(1, parseInt(this.parentNode.dataset.page||'1', 10) - 1)");
+            const nextJs = updateJs("Math.min(this.parentNode.querySelectorAll('button[data-pag-num]').length||3, parseInt(this.parentNode.dataset.page||'1', 10) + 1)");
+
+            controls += `<div${id}${titleAttr} data-page="${curPage}" style="${base(c)}display:flex;align-items:center;justify-content:center;gap:4px;color:${color};font-size:12px;"><button onclick="${prevJs}" style="padding:4px 8px;background:${pagInactBg};border:1px solid ${border};border-radius:4px;color:inherit;cursor:pointer;transition:all 0.15s;">&#171; Prev</button>${makePageBtn(1)}${makePageBtn(2)}${makePageBtn(3)}<button onclick="${nextJs}" style="padding:4px 8px;background:${pagInactBg};border:1px solid ${border};border-radius:4px;color:inherit;cursor:pointer;transition:all 0.15s;">Next &#187;</button></div>\n`;
+        } else if (t === 'command_palette') {
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};border:1px solid ${accent};${defRadius}padding:0 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);color:${color};"><span style="font-size:14px;color:${accent};">⌘</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || 'Type a command or search actions...'}" value="${text || ''}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:12px;outline:none;" ${disabled}${roAttr}><span style="font-size:10px;font-weight:700;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};padding:2px 6px;border-radius:4px;opacity:0.8;">ESC</span></div>\n`;
+        } else if (t === 'toggle_button') {
+            const isChecked = c.checked;
+            controls += `<button id="${c.id}" ${titleAttr}${ev}${disabled} style="${base(c)}background:${isChecked ? accent : (cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'))};color:${isChecked ? '#ffffff' : color};${defBorder}${defRadius}font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:${c.cursor||'pointer'};" onclick="const isChk=this.dataset.checked==='true';this.dataset.checked=!isChk;this.style.background=!isChk?'${accent}':'${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')}';this.style.color=!isChk?'#ffffff':'${color}';if(window['${c.id}_onChange'])window['${c.id}_onChange'](!isChk);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](!isChk);" data-checked="${isChecked ? 'true' : 'false'}">${isChecked ? '🔒 Locked' : (text || '🔓 Unlocked')}</button>\n`;
         } else {
             // Fallback for any other type
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
@@ -1107,6 +1202,119 @@ ${controls}
       container.style.boxShadow = "";
       container.style.borderColor = "";
     }, 1500);
+  };
+  window.setTabsActive = function(id, tabName) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const accent = '#38bdf8';
+    c.dataset.value = tabName;
+    c.querySelectorAll('button').forEach(function(b) {
+      const isSel = b.textContent.trim() === tabName;
+      b.style.borderBottom = isSel ? '2px solid ' + accent : 'none';
+      b.style.color = isSel ? accent : 'inherit';
+      b.style.fontWeight = isSel ? '700' : 'normal';
+    });
+  };
+  window.setStatusBarText = function(id, textStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const span = c.querySelector('div:nth-child(1) span:nth-child(3)');
+    if (span) span.textContent = textStr;
+  };
+  window.__handlePagClick = function(btn, id, accent, border, isLight, e) {
+    var log = function(msg) {
+      if (window.backendAlert) window.backendAlert("PagClick Log: " + msg);
+      else console.log("PagClick Log: " + msg);
+    };
+    try {
+      if (e && e.stopPropagation) e.stopPropagation();
+      var parent = btn.closest ? btn.closest('[data-page]') : btn.parentNode;
+      if (!parent) parent = btn.parentNode;
+      var numBtns = Array.from(parent.querySelectorAll('button[data-pag-num]'));
+      var currentPageStr = parent.dataset.page || '1';
+      var currentPage = parseInt(currentPageStr, 10) || 1;
+      var targetPage = currentPage;
+
+      if (btn.dataset && btn.dataset.pagNum) {
+        targetPage = parseInt(btn.dataset.pagNum, 10);
+      } else if (btn.dataset && btn.dataset.pagPrev) {
+        targetPage = Math.max(1, currentPage - 1);
+      } else if (btn.dataset && btn.dataset.pagNext) {
+        targetPage = Math.min(numBtns.length || 3, currentPage + 1);
+      }
+
+      parent.dataset.page = String(targetPage);
+
+      numBtns.forEach(function(b) {
+        var pn = parseInt(b.dataset.pagNum, 10);
+        var isSel = pn === targetPage;
+        b.dataset.active = isSel ? 'true' : 'false';
+        b.style.background = isSel ? accent : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)');
+        b.style.color = isSel ? '#ffffff' : 'inherit';
+        b.style.fontWeight = isSel ? 'bold' : 'normal';
+        b.style.border = isSel ? 'none' : '1px solid ' + border;
+      });
+
+      var pageArg = targetPage;
+      if (typeof window[id + '_onChange'] === 'function') { window[id + '_onChange'](pageArg); }
+      else if (typeof window['on_' + id + '_change'] === 'function') { window['on_' + id + '_change'](pageArg); }
+      if (typeof window[id + '_onClick'] === 'function') { window[id + '_onClick'](pageArg); }
+      else if (typeof window['on_' + id + '_click'] === 'function') { window['on_' + id + '_click'](pageArg); }
+    } catch (err) {
+      log(err.message + " " + err.stack);
+    }
+  };
+  window.setControlText = function(id, text) {
+    const el = document.getElementById(id);
+    if (el) {
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") {
+        el.value = text;
+      } else {
+        const targetSpan = el.querySelector("span:nth-child(2)");
+        if (targetSpan) {
+          targetSpan.textContent = text;
+        } else {
+          el.textContent = text;
+        }
+      }
+    }
+  };
+  window.setAlertBannerText = function(id, textStr) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const span = el.querySelector("span:nth-child(2)");
+    if (span) span.textContent = textStr;
+    else el.textContent = textStr;
+  };
+  window.setPaginationPage = function(id, pageNum) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const pNum = parseInt(String(pageNum), 10);
+    if (isNaN(pNum)) return;
+    const accent = '#38bdf8';
+    c.dataset.page = String(pNum);
+    const numBtns = Array.from(c.querySelectorAll('button[data-pag-num]'));
+    const fallbackBtns = numBtns.length === 0
+      ? Array.from(c.querySelectorAll('button')).filter(function(b) { return !isNaN(parseInt(b.textContent.trim(), 10)); })
+      : numBtns;
+    fallbackBtns.forEach(function(b) {
+      const bn = b.dataset.pagNum ? parseInt(b.dataset.pagNum, 10) : parseInt(b.textContent.trim(), 10);
+      const isSel = bn === pNum;
+      b.dataset.active = isSel ? 'true' : 'false';
+      b.style.background = isSel ? accent : 'rgba(255,255,255,0.06)';
+      b.style.color = isSel ? '#ffffff' : 'inherit';
+      b.style.fontWeight = isSel ? '700' : 'normal';
+      b.style.border = isSel ? 'none' : '1px solid rgba(255,255,255,0.12)';
+    });
+  };
+  window.setToggleButtonState = function(id, active, labelText) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const accent = '#38bdf8';
+    btn.dataset.checked = active ? 'true' : 'false';
+    btn.style.background = active ? accent : 'rgba(255,255,255,0.08)';
+    btn.style.color = active ? '#ffffff' : 'inherit';
+    if (labelText !== undefined && labelText !== null) btn.textContent = labelText;
   };
   window.toggleFullscreen = function() {
     if (window.toggleFullscreenBackend) try { window.toggleFullscreenBackend(); } catch(e){}

@@ -27,6 +27,7 @@
   
 </style>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
+<div id="tool_bar_1" title="Action Toolbar: Window action toolbar with icon buttons" onclick="try{if(window['on_tool_bar_1_click']){window['on_tool_bar_1_click'](this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:''))}else if(window['on_tool_bar_1_click']===undefined&&window.backendAlert){window.backendAlert('Event: on_tool_bar_1_click')}}catch(e){console.error(e)}" style="position:absolute;left:8px;top:16px;width:719px;height:40px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;display:flex;align-items:center;gap:6px;background:rgba(255, 255, 255, 0.06);border:1px solid rgba(255, 255, 255, 0.12);border-radius:5px;padding:0 8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);"><button style="height:28px;padding:0 10px;background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:#ffffff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'" onclick="if(window['tool_bar_1_onClick'])window['tool_bar_1_onClick']('📄 New Project');else if(window['on_tool_bar_1_click'])window['on_tool_bar_1_click']('📄 New Project');">📄 New Project</button><button style="height:28px;padding:0 10px;background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:#ffffff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'" onclick="if(window['tool_bar_1_onClick'])window['tool_bar_1_onClick']('📂 Open File');else if(window['on_tool_bar_1_click'])window['on_tool_bar_1_click']('📂 Open File');">📂 Open File</button><button style="height:28px;padding:0 10px;background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:#ffffff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'" onclick="if(window['tool_bar_1_onClick'])window['tool_bar_1_onClick']('💾 Save Spec');else if(window['on_tool_bar_1_click'])window['on_tool_bar_1_click']('💾 Save Spec');">💾 Save Spec</button><button style="height:28px;padding:0 10px;background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:#ffffff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'" onclick="if(window['tool_bar_1_onClick'])window['tool_bar_1_onClick']('⚙️ Settings');else if(window['on_tool_bar_1_click'])window['on_tool_bar_1_click']('⚙️ Settings');">⚙️ Settings</button><button style="height:28px;padding:0 10px;background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:#ffffff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'" onclick="if(window['tool_bar_1_onClick'])window['tool_bar_1_onClick']('🔍 Search');else if(window['on_tool_bar_1_click'])window['on_tool_bar_1_click']('🔍 Search');">🔍 Search</button><button style="height:28px;padding:0 10px;background:rgba(255,255,255,0.08);border:none;border-radius:4px;color:#ffffff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'" onclick="if(window['tool_bar_1_onClick'])window['tool_bar_1_onClick']('🚀 Run App');else if(window['on_tool_bar_1_click'])window['on_tool_bar_1_click']('🚀 Run App');">🚀 Run App</button></div>
 
 <script>
   window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
@@ -62,11 +63,11 @@
   };
   window.setControlText = function(id, text) {
     const el = document.getElementById(id);
-    if (el) { if ("value" in el) el.value = text; else el.textContent = text; }
+    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") el.value = text; else { el.textContent = text; el.innerText = text; } }
   };
   window.setControlValue = function(id, val) {
     const el = document.getElementById(id);
-    if (el) { if ("value" in el) el.value = val; else el.textContent = val; }
+    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") el.value = val; else { el.textContent = val; el.innerText = val; if (el.dataset) el.dataset.value = val; } }
   };
   window.setControlPlaceholder = function(id, placeholder) {
     const el = document.getElementById(id);
@@ -193,6 +194,99 @@
       container.style.boxShadow = "";
       container.style.borderColor = "";
     }, 1500);
+  };
+  window.setTabsActive = function(id, tabName) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const accent = '#38bdf8';
+    c.dataset.value = tabName;
+    c.querySelectorAll('button').forEach(function(b) {
+      const isSel = b.textContent.trim() === tabName;
+      b.style.borderBottom = isSel ? '2px solid ' + accent : 'none';
+      b.style.color = isSel ? accent : 'inherit';
+      b.style.fontWeight = isSel ? '700' : 'normal';
+    });
+  };
+  window.setStatusBarText = function(id, textStr) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const span = c.querySelector('div:nth-child(1) span:nth-child(3)');
+    if (span) span.textContent = textStr;
+  };
+  window.__handlePagClick = function(btn, id, accent, border, isLight, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const parent = btn.parentNode;
+    const btns = Array.from(parent.querySelectorAll('button'));
+    const numBtns = btns.filter(function(b) { return !isNaN(parseInt(b.textContent.trim())); });
+    const currentActive = btns.find(function(b) { return b.dataset.active === 'true'; }) || numBtns[0];
+    let currentPage = parseInt(currentActive ? currentActive.textContent.trim() : '1');
+    const txt = btn.textContent.trim();
+    let targetPage = currentPage;
+
+    if (txt === '« Prev' || txt.includes('Prev')) {
+      targetPage = Math.max(1, currentPage - 1);
+    } else if (txt === 'Next »' || txt.includes('Next')) {
+      targetPage = Math.min(numBtns.length, currentPage + 1);
+    } else if (!isNaN(parseInt(txt))) {
+      targetPage = parseInt(txt);
+    }
+
+    parent.dataset.page = String(targetPage);
+
+    numBtns.forEach(function(b) {
+      const pageNum = parseInt(b.textContent.trim());
+      if (pageNum === targetPage) {
+        b.dataset.active = 'true';
+        b.style.background = accent;
+        b.style.color = '#ffffff';
+        b.style.fontWeight = 'bold';
+        b.style.border = 'none';
+      } else {
+        b.dataset.active = 'false';
+        b.style.background = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+        b.style.color = 'inherit';
+        b.style.fontWeight = 'normal';
+        b.style.border = '1px solid ' + border;
+      }
+    });
+
+    if (window[id + '_onChange']) window[id + '_onChange'](targetPage);
+    else if (window['on_' + id + '_change']) window['on_' + id + '_change'](targetPage);
+    if (window[id + '_onClick']) window[id + '_onClick'](targetPage);
+    else if (window['on_' + id + '_click']) window['on_' + id + '_click'](targetPage);
+  };
+  window.setPaginationPage = function(id, pageNum) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const pNum = parseInt(String(pageNum));
+    if (isNaN(pNum)) return;
+    const accent = '#38bdf8';
+    const numBtns = Array.from(c.querySelectorAll('button')).filter(function(b) { return !isNaN(parseInt(b.textContent.trim())); });
+    numBtns.forEach(function(b) {
+      const bn = parseInt(b.textContent.trim());
+      const isSel = bn === pNum;
+      if (isSel) {
+        b.dataset.active = 'true';
+        b.style.background = accent;
+        b.style.color = '#ffffff';
+        b.style.fontWeight = '700';
+        b.style.border = 'none';
+      } else {
+        b.dataset.active = 'false';
+        b.style.background = 'rgba(255,255,255,0.06)';
+        b.style.color = 'inherit';
+        b.style.fontWeight = 'normal';
+      }
+    });
+  };
+  window.setToggleButtonState = function(id, active, labelText) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const accent = '#38bdf8';
+    btn.dataset.checked = active ? 'true' : 'false';
+    btn.style.background = active ? accent : 'rgba(255,255,255,0.08)';
+    btn.style.color = active ? '#ffffff' : 'inherit';
+    if (labelText !== undefined && labelText !== null) btn.textContent = labelText;
   };
   window.toggleFullscreen = function() {
     if (window.toggleFullscreenBackend) try { window.toggleFullscreenBackend(); } catch(e){}

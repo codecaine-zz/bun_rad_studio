@@ -372,5 +372,84 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(ideContent).toContain('type="search"');
     });
 
+    test("8. Labeled Controls & Desktop App Controls Suite Validation", () => {
+        const spec = {
+            title: "Labeled & Desktop App Suite",
+            controls: [
+                { id: "fc_1", control_type: "form_checkbox", x: 10, y: 10, width: 220, height: 44, text: "Labeled Checkbox", placeholder: "Enable SSL" },
+                { id: "fr_1", control_type: "form_radio", x: 10, y: 60, width: 220, height: 44, text: "Labeled Radio", placeholder: "Radio Opt 1" },
+                { id: "fs_1", control_type: "form_search", x: 10, y: 110, width: 220, height: 44, text: "Labeled Search", placeholder: "Find files..." },
+                { id: "fclr_1", control_type: "form_color", x: 10, y: 160, width: 220, height: 44, text: "Labeled Color", value: "#0284c7" },
+                { id: "ft_1", control_type: "form_time", x: 10, y: 210, width: 220, height: 44, text: "Labeled Time", value: "12:00" },
+                { id: "fstep_1", control_type: "form_stepper", x: 10, y: 260, width: 220, height: 44, text: "Labeled Stepper", value: 10 },
+                { id: "fcode_1", control_type: "form_code", x: 10, y: 310, width: 280, height: 140, text: "Labeled Code View", code: "const x = 42;" },
+                { id: "fdrop_1", control_type: "form_drop_zone", x: 10, y: 460, width: 280, height: 120, text: "Labeled Drop Zone", placeholder: "Drop PDF here" },
+                { id: "tabs_1", control_type: "tabs", x: 10, y: 590, width: 320, height: 40, text: "Tab 1, Tab 2, Tab 3", value: "Tab 1" },
+                { id: "tb_1", control_type: "tool_bar", x: 10, y: 640, width: 400, height: 40, text: "📄 New, 📂 Open, 💾 Save" },
+                { id: "sb_1", control_type: "status_bar", x: 10, y: 690, width: 400, height: 28, text: "UTF-8 | Line 1" },
+                { id: "sp_1", control_type: "split_pane", x: 10, y: 730, width: 320, height: 160, text: "Left Tree | Right View" },
+                { id: "pag_1", control_type: "pagination", x: 10, y: 900, width: 260, height: 36 },
+                { id: "cp_1", control_type: "command_palette", x: 10, y: 945, width: 320, height: 40, placeholder: "Type command..." },
+                { id: "tog_1", control_type: "toggle_button", x: 10, y: 995, width: 120, height: 36, text: "🔒 Locked", checked: true }
+            ]
+        };
+
+        const html = generatePreviewHtml(spec);
+
+        expect(html).toContain('id="fc_1"');
+        expect(html).toContain('Labeled Checkbox');
+        expect(html).toContain('Enable SSL');
+        expect(html).toContain('id="fr_1"');
+        expect(html).toContain('Radio Opt 1');
+        expect(html).toContain('id="fs_1"');
+        expect(html).toContain('Find files...');
+        expect(html).toContain('id="fclr_1"');
+        expect(html).toContain('#0284c7');
+        expect(html).toContain('id="ft_1"');
+        expect(html).toContain('12:00');
+        expect(html).toContain('id="fstep_1"');
+        expect(html).toContain('10');
+        expect(html).toContain('id="fcode_1"');
+        expect(html).toContain('const x = 42;');
+        expect(html).toContain('id="fdrop_1"');
+        expect(html).toContain('Drop PDF here');
+        expect(html).toContain('id="tabs_1"');
+        expect(html).toContain('Tab 1');
+        expect(html).toContain('id="tb_1"');
+        expect(html).toContain('📄 New');
+        expect(html).toContain('id="sb_1"');
+        expect(html).toContain('UTF-8 | Line 1');
+        expect(html).toContain('id="sp_1"');
+        expect(html).toContain('Left Tree');
+        expect(html).toContain('id="pag_1"');
+        expect(html).toContain('« Prev');
+        expect(html).toContain('id="cp_1"');
+        expect(html).toContain('Type command...');
+        expect(html).toContain('id="tog_1"');
+        expect(html).toContain('🔒 Locked');
+
+        // Check index.ts helper exports
+        const indexTsContent = readFileSync(join(process.cwd(), "index.ts"), "utf-8");
+        expect(indexTsContent).toContain("export function setTabsActive");
+        expect(indexTsContent).toContain("export function setStatusBarText");
+        expect(indexTsContent).toContain("export function setPaginationPage");
+        expect(indexTsContent).toContain("export function setToggleButtonState");
+
+        // Check Demo 7 integrity
+        const demo7Path = join(process.cwd(), "demos", "07_labeled_form_and_desktop_controls.ts");
+        expect(existsSync(demo7Path)).toBe(true);
+        const demo7Content = readFileSync(demo7Path, "utf-8");
+        expect(demo7Content).toContain("form_checkbox");
+        expect(demo7Content).toContain("command_palette");
+        expect(demo7Content).toContain("setTabsActive");
+
+        // Check ide.html palette
+        const idePath = join(process.cwd(), "src", "ide.html");
+        const ideContent = readFileSync(idePath, "utf-8");
+        expect(ideContent).toContain("form_checkbox");
+        expect(ideContent).toContain("Desktop App Controls");
+        expect(ideContent).toContain("command_palette");
+    });
+
 });
 

@@ -196,6 +196,30 @@ The `event_handlers` record can map the following event names to string blocks o
 | `db_dropdown` | Data Bound Select | 220 × 44 px | Field-bound database lookup select |
 | `divider` | Separator | 300 × 4 px | Horizontal line divider |
 | `form_field` | Labelled Input | 220 × 44 px | Pre-configured label + text field pair |
+| `form_password` | Labelled Password | 220 × 44 px | Pre-configured field label + password masked input pair |
+| `form_textarea` | Labelled Textarea | 280 × 120 px | Pre-configured field label + multi-line text input |
+| `form_dropdown` | Labelled Dropdown | 220 × 44 px | Pre-configured field label + dropdown select menu |
+| `form_link` | Labelled Link | 150 × 36 px | Pre-configured field label + hyperlink text |
+| `form_checkbox` | Labelled Checkbox | 220 × 44 px | Pre-configured field label + checkbox toggle option |
+| `form_radio` | Labelled Radio | 220 × 44 px | Pre-configured field label + radio selection button |
+| `form_search` | Labelled Search Bar | 220 × 44 px | Pre-configured field label + search bar input |
+| `form_color` | Labelled Color Well | 220 × 44 px | Pre-configured field label + color swatch picker & hex display |
+| `form_time` | Labelled Time Picker | 220 × 44 px | Pre-configured field label + clock time picker input |
+| `form_stepper` | Labelled Stepper | 220 × 44 px | Pre-configured field label + numeric counter stepper |
+| `form_code` | Labelled Code View | 280 × 140 px | Pre-configured field label + monospaced syntax code editor |
+| `form_drop_zone` | Labelled Drop Zone | 280 × 120 px | Pre-configured field label + drag-and-drop file upload area |
+| `form_switch` | Labelled Switch | 220 × 44 px | Pre-configured field label + toggle switch control |
+| `form_slider` | Labelled Slider | 220 × 44 px | Pre-configured field label + range value slider |
+| `form_number` | Labelled Number Input | 220 × 44 px | Pre-configured field label + numeric input field |
+| `form_date` | Labelled Date Picker | 220 × 44 px | Pre-configured field label + date picker input |
+| `form_progress` | Labelled Progress Bar | 220 × 44 px | Pre-configured field label + progress bar gauge |
+| `tabs` | Tab Container | 320 × 40 px | Multi-tab navigation bar with active tab selector |
+| `tool_bar` | Action Toolbar | 400 × 40 px | Window action toolbar with icon action buttons |
+| `status_bar` | Window Status Bar | 400 × 28 px | Bottom desktop window status strip with indicator dot |
+| `split_pane` | Split View Panel | 320 × 160 px | Dual-pane split container layout with vertical handle |
+| `pagination` | Pagination Bar | 260 × 36 px | Page navigator button strip for data grids & lists |
+| `command_palette` | Command Palette | 320 × 40 px | Desktop command launcher search bar |
+| `toggle_button` | Icon Toggle Button | 120 × 36 px | Toolbar icon toggle button with active pressed state |
 | `segmented_control` | Segmented Control | 240 × 36 px | Modern tabbed pill segment button selector |
 | `tree_view` | Tree View | 220 × 140 px | Hierarchical collapsible directory/node tree explorer |
 | `avatar_group` | Avatar Group | 160 × 38 px | Stacked user profile avatars with initials & overflow badge |
@@ -264,6 +288,10 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `setTreeNodes(id, nodesCSV)` | `(id: string, nodesCSV: string) => void` | Updates Tree View directory nodes from comma-separated string |
 | `setAvatarGroup(id, avatarsCSV)` | `(id: string, avatarsCSV: string) => void` | Updates Avatar Group stack initials from comma-separated string |
 | `setRichSelectText(id, text)` | `(id: string, text: string) => void` | Updates Searchable Combobox display selection label |
+| `setTabsActive(id, tabName)` | `(id: string, tabName: string) => void` | Sets active tab in a Tab Container |
+| `setStatusBarText(id, statusText)` | `(id: string, statusText: string) => void` | Updates status bar message text |
+| `setPaginationPage(id, pageNum)` | `(id: string, pageNum: number \| string) => void` | Selects page number in Pagination Bar |
+| `setToggleButtonState(id, active, labelText)` | `(id: string, active: boolean, labelText?: string) => void` | Toggles icon toggle button state & label |
 | `setAlwaysOnTop(onTop)` | `(onTop: boolean) => void` | Toggles window always-on-top mode floating above all OS windows |
 | `setWindowPosition(pos)` | `(pos: WindowPositionPreset \| { x: number, y: number }) => void` | Repositions application window to screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` screen coordinates |
 
@@ -304,7 +332,7 @@ bun run index.ts
 
 ## 7. Interactive Demos Suite (`demos/`)
 
-The repository includes 6 interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
+The repository includes 7 interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
 
 | Demo Script | Command | Key Features Demonstrated |
 | --- | --- | --- |
@@ -314,4 +342,5 @@ The repository includes 6 interactive executable demo scripts demonstrating all 
 | `demos/04_window_placement_and_pin.ts` | `bun run demo:window` | Native Window Placement API (`setWindowPosition`), 9 screen placement presets, Always On Top window pinning (`setAlwaysOnTop`), Native Cocoa Fullscreen (`toggleFullscreenNative`), and Quit (`process.exit(0)`) |
 | `demos/05_crud_todo_table.ts` | `bun run demo:table` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
 | `demos/06_timer_control_studio.ts` | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
+| `demos/07_labeled_form_and_desktop_controls.ts` | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
 

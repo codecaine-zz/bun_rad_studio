@@ -1246,6 +1246,38 @@
 						<span class="palette-icon">🔗</span>
 						<span>Form Link</span>
 					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_checkbox')" ondragstart="onDragStart(event, 'form_checkbox')" title="Form Checkbox: Integrated Labeled Checkbox option toggle">
+						<span class="palette-icon">☑️</span>
+						<span>Form Checkbox</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_radio')" ondragstart="onDragStart(event, 'form_radio')" title="Form Radio: Integrated Labeled Radio selection button">
+						<span class="palette-icon">🔘</span>
+						<span>Form Radio</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_search')" ondragstart="onDragStart(event, 'form_search')" title="Form Search: Integrated Labeled Search Bar field">
+						<span class="palette-icon">🔍</span>
+						<span>Form Search</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_color')" ondragstart="onDragStart(event, 'form_color')" title="Form Color: Integrated Labeled Color Swatch Picker">
+						<span class="palette-icon">🎨</span>
+						<span>Form Color</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_time')" ondragstart="onDragStart(event, 'form_time')" title="Form Time: Integrated Labeled Time Selection Field">
+						<span class="palette-icon">🕒</span>
+						<span>Form Time</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_stepper')" ondragstart="onDragStart(event, 'form_stepper')" title="Form Stepper: Integrated Labeled Numeric Stepper">
+						<span class="palette-icon">🔢</span>
+						<span>Form Stepper</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_code')" ondragstart="onDragStart(event, 'form_code')" title="Form Code: Integrated Labeled Monospaced Code View">
+						<span class="palette-icon">💻</span>
+						<span>Form Code</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_drop_zone')" ondragstart="onDragStart(event, 'form_drop_zone')" title="Form Drop Zone: Integrated Labeled File Upload Area">
+						<span class="palette-icon">📥</span>
+						<span>Form Drop Zone</span>
+					</div>
 				</div>
 			</div>
 
@@ -1362,6 +1394,41 @@
 					<div class="palette-item" draggable="true" onclick="spawnControl('rich_select')" ondragstart="onDragStart(event, 'rich_select')" title="Searchable Combobox: Searchable dropdown select combobox with icon & arrow">
 						<span class="palette-icon">🔍</span>
 						<span>Rich Select</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 8: Desktop App Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🖥️ Desktop App Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('tabs')" ondragstart="onDragStart(event, 'tabs')" title="Tab Container: Multi-tab navigation bar with tab selector">
+						<span class="palette-icon">🗂️</span>
+						<span>Tab Control</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tool_bar')" ondragstart="onDragStart(event, 'tool_bar')" title="Action Toolbar: Window action toolbar with icon buttons">
+						<span class="palette-icon">🛠️</span>
+						<span>Action Toolbar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('status_bar')" ondragstart="onDragStart(event, 'status_bar')" title="Status Bar: Bottom window status strip">
+						<span class="palette-icon">📊</span>
+						<span>Status Bar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('split_pane')" ondragstart="onDragStart(event, 'split_pane')" title="Split View Panel: Dual-pane split container layout">
+						<span class="palette-icon">📐</span>
+						<span>Split Pane</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('pagination')" ondragstart="onDragStart(event, 'pagination')" title="Pagination Bar: Page navigator strip for data grids">
+						<span class="palette-icon">📄</span>
+						<span>Pagination Bar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('command_palette')" ondragstart="onDragStart(event, 'command_palette')" title="Command Palette: Desktop command launcher search bar">
+						<span class="palette-icon">⌘</span>
+						<span>Command Palette</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('toggle_button')" ondragstart="onDragStart(event, 'toggle_button')" title="Toggle Button: Desktop toolbar icon toggle button widget">
+						<span class="palette-icon">🔘</span>
+						<span>Toggle Button</span>
 					</div>
 				</div>
 			</div>
@@ -2870,8 +2937,16 @@
 
 			let defaultW = 150;
 			let defaultH = 36;
-			if (type === "textarea" || type === "table" || type === "panel" || type === "form_textarea" || type === "code_view") { defaultW = 280; defaultH = 120; }
-			if (type === "form_field" || type === "form_password" || type === "form_dropdown" || type === "form_date" || type === "form_slider" || type === "form_progress") { defaultW = 220; defaultH = 44; }
+			if (type === "textarea" || type === "table" || type === "panel" || type === "form_textarea" || type === "code_view" || type === "form_drop_zone") { defaultW = 280; defaultH = 120; }
+			if (type === "form_field" || type === "form_password" || type === "form_dropdown" || type === "form_date" || type === "form_slider" || type === "form_progress" || type === "form_checkbox" || type === "form_radio" || type === "form_search" || type === "form_color" || type === "form_time" || type === "form_stepper") { defaultW = 220; defaultH = 44; }
+			if (type === "form_code") { defaultW = 280; defaultH = 140; }
+			if (type === "tabs") { defaultW = 320; defaultH = 40; }
+			if (type === "tool_bar") { defaultW = 400; defaultH = 40; }
+			if (type === "status_bar") { defaultW = 400; defaultH = 28; }
+			if (type === "split_pane") { defaultW = 320; defaultH = 160; }
+			if (type === "pagination") { defaultW = 260; defaultH = 36; }
+			if (type === "command_palette") { defaultW = 320; defaultH = 40; }
+			if (type === "toggle_button") { defaultW = 120; defaultH = 36; }
 			if (type === "form_switch") { defaultW = 220; defaultH = 32; }
 			if (type === "metric_card") { defaultW = 180; defaultH = 75; }
 			if (type === "alert_banner") { defaultW = 320; defaultH = 40; }
@@ -2895,7 +2970,7 @@
 			const activeTheme = themeSelect ? themeSelect.value : "Dark";
 			const themeColors = getThemeColors(activeTheme);
 
-			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select"];
+			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "form_checkbox", "form_radio", "form_search", "form_color", "form_time", "form_stepper", "form_code", "form_drop_zone", "tabs", "tool_bar", "status_bar", "split_pane", "pagination", "command_palette", "toggle_button", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select"];
 			let defaultBg = themeColors.ctrlBg;
 			if (transparentTypes.includes(type)) {
 				defaultBg = "transparent";
@@ -3907,6 +3982,92 @@
 				div.style.padding = "0 8px";
 				div.style.justifyContent = "space-between";
 				div.innerHTML = "<div style='display:flex; align-items:center; gap:6px; font-size:11px;'><span style='opacity:0.6;'>🔍</span><span>" + text + "</span></div><span style='font-size:10px; opacity:0.5;'>▼</span>";
+			} else if (type === "form_checkbox") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:6px; font-size:11px;'><input type='checkbox' checked style='accent-color:var(--accent);'><span>" + (ctrl.placeholder || "Enable Option") + "</span></div></div>";
+			} else if (type === "form_radio") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:6px; font-size:11px;'><input type='radio' checked style='accent-color:var(--accent);'><span>" + (ctrl.placeholder || "Select Option") + "</span></div></div>";
+			} else if (type === "form_search") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:6px; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); border-radius:4px; padding:4px 8px; font-size:11px;'><span>🔍</span><span>Search records...</span></div></div>";
+			} else if (type === "form_color") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				const hexVal = ctrl.value || "#38bdf8";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:8px;'><div style='width:24px; height:24px; background:" + hexVal + "; border-radius:4px; border:1px solid var(--border-color);'></div><span style='font-family:monospace; font-size:11px;'>" + hexVal + "</span></div></div>";
+			} else if (type === "form_time") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='display:flex; align-items:center; gap:6px; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); border-radius:4px; padding:4px 8px; font-size:11px;'><span>🕒</span><span>09:30 AM</span></div></div>";
+			} else if (type === "form_stepper") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				const val = ctrl.value !== undefined ? ctrl.value : 5;
+				div.innerHTML = "<div style='display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;'><span style='font-size:11px; font-weight:bold; color:" + fg + "'>" + text + "</span><div style='display:flex; justify-content:space-between; align-items:center; width:100px; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); border-radius:4px; padding:2px 6px; font-weight:bold;'><span style='width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; background:rgba(56,189,248,0.15); color:var(--accent); border-radius:3px;'>−</span><span>" + val + "</span><span style='width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; background:rgba(56,189,248,0.15); color:var(--accent); border-radius:3px;'>+</span></div></div>";
+			} else if (type === "form_code") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; height:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='flex:1; background:#0d1117; color:#7dd3fc; border:1px solid var(--border-color); border-radius:6px; padding:6px; font-family:monospace; font-size:11px; overflow:hidden;'>// Code Editor View...</div></div>";
+			} else if (type === "form_drop_zone") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const fg = ctrl.font_color || "inherit";
+				div.innerHTML = "<div style='display:flex; flex-direction:column; width:100%; height:100%; gap:2px;'><span style='font-size:10px; font-weight:bold; opacity:0.8; color:" + fg + "'>" + text + "</span><div style='flex:1; border:2px dashed var(--accent); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:10px; opacity:0.85;'><span>📥</span><span>Drop files here</span></div></div>";
+			} else if (type === "tabs") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				const tabs = (text || "General, Security, Advanced").split(",").map(s=>s.trim());
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:2px; border-bottom:2px solid var(--border-color); width:100%; padding-bottom:2px;'>" + tabs.map((tb, i) => `<span style='padding:2px 10px; font-size:11px; ${i===0?'font-weight:bold; color:var(--accent); border-bottom:2px solid var(--accent);':'opacity:0.7;'}'>${tb}</span>`).join('') + "</div>";
+			} else if (type === "tool_bar") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "6px";
+				div.style.padding = "0 6px";
+				const items = (text || "📄 New, 📂 Open, 💾 Save, ⚙️ Settings").split(",").map(s=>s.trim());
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:6px; font-size:11px; width:100%;'>" + items.map(it => `<span style='background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:4px; font-weight:600;'>${it}</span>`).join('') + "</div>";
+			} else if (type === "status_bar") {
+				div.style.backgroundColor = ctrl.background_color || "#090d16";
+				div.style.borderTop = "1px solid var(--border-color)";
+				div.style.padding = "0 10px";
+				div.style.justifyContent = "space-between";
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:6px; font-size:10px;'><span style='color:#10b981; font-weight:bold;'>🟢 Ready</span><span>|</span><span>" + (text || "UTF-8 | Line 1, Col 1") + "</span></div><span style='font-size:10px; opacity:0.7;'>100%</span>";
+			} else if (type === "split_pane") {
+				div.style.backgroundColor = ctrl.background_color || "#0f172a";
+				div.style.borderRadius = "6px";
+				div.style.border = "1px solid var(--border-color)";
+				div.style.overflow = "hidden";
+				div.innerHTML = "<div style='flex:1; padding:6px; font-size:10px; background:rgba(255,255,255,0.03);'><div style='font-weight:bold; color:var(--accent);'>Sidebar</div></div><div style='width:3px; background:var(--accent);'></div><div style='flex:2; padding:6px; font-size:10px;'><div style='font-weight:bold; color:var(--accent);'>Main Content</div></div>";
+			} else if (type === "pagination") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				div.style.justifyContent = "center";
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:4px; font-size:11px;'><span style='padding:2px 6px; background:rgba(255,255,255,0.06); border-radius:3px;'>«</span><span style='padding:2px 8px; background:var(--accent); color:#fff; border-radius:3px; font-weight:bold;'>1</span><span style='padding:2px 8px; background:rgba(255,255,255,0.06); border-radius:3px;'>2</span><span style='padding:2px 8px; background:rgba(255,255,255,0.06); border-radius:3px;'>3</span><span style='padding:2px 6px; background:rgba(255,255,255,0.06); border-radius:3px;'>»</span></div>";
+			} else if (type === "command_palette") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.border = "1px solid var(--accent)";
+				div.style.borderRadius = "6px";
+				div.style.padding = "0 10px";
+				div.style.justifyContent = "space-between";
+				div.innerHTML = "<div style='display:flex; align-items:center; gap:6px; font-size:11px;'><span style='color:var(--accent); font-weight:bold;'>⌘</span><span>" + (text || "Type a command...") + "</span></div><span style='font-size:9px; background:rgba(255,255,255,0.1); padding:1px 4px; border-radius:3px;'>ESC</span>";
+			} else if (type === "toggle_button") {
+				const isChecked = ctrl.checked;
+				div.style.backgroundColor = isChecked ? "var(--accent)" : (ctrl.background_color || "rgba(255,255,255,0.08)");
+				div.style.color = isChecked ? "#ffffff" : "inherit";
+				div.style.borderRadius = "6px";
+				div.style.justifyContent = "center";
+				div.style.fontWeight = "bold";
+				div.style.fontSize = "11px";
+				div.innerHTML = isChecked ? "🔒 Locked" : (text || "🔓 Unlocked");
 			} else {
 				if (ctrl.background_color) div.style.backgroundColor = ctrl.background_color;
 				const fg = ctrl.font_color || "#ffffff";
@@ -5245,6 +5406,75 @@
 				} else if (c.control_type === "form_field" || c.control_type === "db_input") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
 					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"text\" class=\"input-ctrl\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\"></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_checkbox") {
+					const chk = c.checked ? "checked" : "";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><label style=\"display:flex; align-items:center; gap:8px;\"><input type=\"checkbox\" id=\"" + c.id + "\" " + chk + "><span style=\"font-size:12px;\">" + (c.placeholder || "Enable Option") + "</span></label></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_radio") {
+					const chk = c.checked ? "checked" : "";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><label style=\"display:flex; align-items:center; gap:8px;\"><input type=\"radio\" id=\"" + c.id + "\" " + chk + "><span style=\"font-size:12px;\">" + (c.placeholder || "Select Option") + "</span></label></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_search") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><div style=\"display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:0 8px;\"><span>🔍</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"search\" class=\"input-ctrl\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "Search...") + "\" style=\"border:none;\"></div></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_color") {
+					const val = c.value || "#38bdf8";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"color\" id=\"" + c.id + "\" value=\"" + val + "\" style=\"width:40px; height:28px; padding:2px; border-radius:4px;\"></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_time") {
+					const val = c.value || "09:30";
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'" + disAttr + " type=\"time\" class=\"input-ctrl\" id=\"" + c.id + "\" value=\"" + val + "\"></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_stepper") {
+					const val = c.value !== undefined ? c.value : 5;
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><div style=\"display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 6px;\"><button style=\"width:24px; height:24px; background:rgba(56,189,248,0.2); border:none; border-radius:4px; color:#38bdf8; font-weight:bold; font-size:16px; cursor:pointer;\">−</button><span id=\"" + c.id + "\" style=\"font-weight:bold;\">" + val + "</span><button style=\"width:24px; height:24px; background:rgba(56,189,248,0.2); border:none; border-radius:4px; color:#38bdf8; font-weight:bold; font-size:16px; cursor:pointer;\">+</button></div></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_code") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; height:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><textarea id=\"" + c.id + "\" class=\"input-ctrl\" style=\"flex:1; background:#0d1117; color:#7dd3fc; font-family:monospace; resize:none; padding:8px;\">" + (c.value || c.code || "") + "</textarea></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "form_drop_zone") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column; width:100%; height:100%; gap:4px;\"><label style=\"font-size:10px; font-weight:700; opacity:0.8;\">" + text + "</label><div id=\"" + c.id + "\" style=\"flex:1; border:2px dashed #38bdf8; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; opacity:0.85;\"><span>📥</span><span>" + (c.placeholder || "Drop files here") + "</span></div></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "tabs") {
+					const tItems = (text || "General, Security, Advanced").split(',').map(s => s.trim());
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div id=\"" + c.id + "\" style=\"display:flex; border-bottom:2px solid rgba(255,255,255,0.1); gap:4px;\">" + tItems.map((tb, idx) => `<button style="background:none; border:none; color:${idx===0?'#38bdf8':'inherit'}; border-bottom:${idx===0?'2px solid #38bdf8':'none'}; padding:4px 12px; cursor:pointer;">${tb}</button>`).join('') + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "tool_bar") {
+					const bItems = (text || "📄 New, 📂 Open, 💾 Save, ⚙️ Settings").split(',').map(s => s.trim());
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div id=\"" + c.id + "\" style=\"display:flex; gap:6px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px;\">" + bItems.map(it => `<button style="background:rgba(255,255,255,0.08); border:none; border-radius:4px; color:inherit; padding:4px 10px; cursor:pointer; font-weight:600;">${it}</button>`).join('') + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "status_bar") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div id=\"" + c.id + "\" style=\"display:flex; justify-content:space-between; align-items:center; width:100%; background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.1); padding:0 12px; font-size:11px;\"><span>🟢 Ready | " + text + "</span><span>100%</span></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "split_pane") {
+					const parts = (text || "Sidebar | Details").split('|');
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div id=\"" + c.id + "\" style=\"display:flex; width:100%; height:100%; border:1px solid rgba(255,255,255,0.1); border-radius:6px; overflow:hidden;\"><div style=\"flex:1; padding:8px;\">" + parts[0].trim() + "</div><div style=\"width:4px; background:#38bdf8;\"></div><div style=\"flex:2; padding:8px;\">" + (parts[1] || 'Content').trim() + "</div></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "pagination") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div id=\"" + c.id + "\" style=\"display:flex; gap:4px; justify-content:center; width:100%;\"><button style=\"padding:2px 8px;\">« Prev</button><button style=\"padding:2px 8px; background:#38bdf8; color:#fff; font-weight:bold;\">1</button><button style=\"padding:2px 8px;\">2</button><button style=\"padding:2px 8px;\">Next »</button></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "command_palette") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div id=\"" + c.id + "\" style=\"display:flex; align-items:center; gap:8px; background:#1e293b; border:1px solid #38bdf8; border-radius:6px; padding:0 12px;\"><span style=\"color:#38bdf8;\">⌘</span><input type=\"text\" placeholder=\"Type command...\" style=\"flex:1; background:none; border:none; color:inherit; outline:none;\"></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "toggle_button") {
+					const chk = c.checked;
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <button id=\"" + c.id + "\" style=\"width:100%; height:100%; background:" + (chk ? '#38bdf8' : 'rgba(255,255,255,0.08)') + "; color:" + (chk ? '#ffffff' : 'inherit') + "; border:none; border-radius:6px; font-weight:bold;\">" + (chk ? '🔒 Locked' : (text || '🔓 Unlocked')) + "</button>\n";
 					html += "  </div>\n";
 				} else if (c.control_type === "form_password") {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";

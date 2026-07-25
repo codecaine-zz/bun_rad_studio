@@ -13,7 +13,9 @@
     "demo:crud": "bun run demos/05_crud_todo_table.ts",
     "demo:todo": "bun run demos/05_crud_todo_table.ts",
     "demo:table": "bun run demos/05_crud_todo_table.ts",
-    "demo:timer": "bun run demos/06_timer_control_studio.ts"
+    "demo:timer": "bun run demos/06_timer_control_studio.ts",
+    "demo:desktop": "bun run demos/07_labeled_form_and_desktop_controls.ts",
+    "demo:labeled": "bun run demos/07_labeled_form_and_desktop_controls.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -22,6 +24,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "jsdom": "^29.1.1",
     "webview-bun": "^2.4.0"
   }
 }
