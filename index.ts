@@ -35,7 +35,7 @@ export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
             });
             // HWND_TOPMOST = -1, HWND_NOTOPMOST = -2
             // SWP_NOMOVE (2) | SWP_NOSIZE (1) = 3
-            const insertAfter = onTop ? -1n : -2n;
+            const insertAfter = onTop ? -1 : -2;
             user32.symbols.SetWindowPos(handle, insertAfter, 0, 0, 0, 0, 3);
         } else if (process.platform === "linux") {
             const gtk = dlopen("libgtk-3.so.0", {
