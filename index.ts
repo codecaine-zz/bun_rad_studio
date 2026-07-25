@@ -4,26 +4,47 @@ import { spawn } from "child_process";
 import { join } from "path";
 import { dlopen, FFIType } from "bun:ffi";
 
+const fullscreenStateMap = new WeakMap<Webview, boolean>();
+
 export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
     try {
+        const handle = wv.unsafeWindowHandle;
+        if (!handle) return;
+
         if (process.platform === "darwin") {
-            const nsWindow = wv.unsafeWindowHandle;
-            if (nsWindow) {
-                const libobjc = dlopen("libobjc.dylib", {
-                    objc_msgSend: {
-                        args: [FFIType.pointer, FFIType.pointer, FFIType.i64],
-                        returns: FFIType.void,
-                    },
-                    sel_registerName: {
-                        args: [FFIType.cstring],
-                        returns: FFIType.pointer,
-                    }
-                });
-                const sel_setLevel = libobjc.symbols.sel_registerName(Buffer.from("setLevel:\0"));
-                // Level 5 = NSFloatingWindowLevel (Always On Top), 0 = NSNormalWindowLevel
-                const level = onTop ? 5n : 0n;
-                libobjc.symbols.objc_msgSend(nsWindow, sel_setLevel, level);
-            }
+            const libobjc = dlopen("libobjc.dylib", {
+                objc_msgSend: {
+                    args: [FFIType.pointer, FFIType.pointer, FFIType.i64],
+                    returns: FFIType.void,
+                },
+                sel_registerName: {
+                    args: [FFIType.cstring],
+                    returns: FFIType.pointer,
+                }
+            });
+            const sel_setLevel = libobjc.symbols.sel_registerName(Buffer.from("setLevel:\0"));
+            // Level 5 = NSFloatingWindowLevel (Always On Top), 0 = NSNormalWindowLevel
+            const level = onTop ? 5n : 0n;
+            libobjc.symbols.objc_msgSend(handle, sel_setLevel, level);
+        } else if (process.platform === "win32") {
+            const user32 = dlopen("user32.dll", {
+                SetWindowPos: {
+                    args: [FFIType.pointer, FFIType.pointer, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.u32],
+                    returns: FFIType.bool,
+                }
+            });
+            // HWND_TOPMOST = -1, HWND_NOTOPMOST = -2
+            // SWP_NOMOVE (2) | SWP_NOSIZE (1) = 3
+            const insertAfter = onTop ? -1n : -2n;
+            user32.symbols.SetWindowPos(handle, insertAfter, 0, 0, 0, 0, 3);
+        } else if (process.platform === "linux") {
+            const gtk = dlopen("libgtk-3.so.0", {
+                gtk_window_set_keep_above: {
+                    args: [FFIType.pointer, FFIType.i32],
+                    returns: FFIType.void,
+                }
+            });
+            gtk.symbols.gtk_window_set_keep_above(handle, onTop ? 1 : 0);
         }
     } catch (e) {
         console.warn("Could not set window level:", e);
@@ -32,29 +53,62 @@ export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
 
 export function toggleFullscreenNative(wv: Webview) {
     try {
+        const handle = wv.unsafeWindowHandle;
+        if (!handle) return;
+
         if (process.platform === "darwin") {
-            const nsWindow = wv.unsafeWindowHandle;
-            if (nsWindow) {
-                const libobjc = dlopen("libobjc.dylib", {
-                    objc_msgSend: {
-                        args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-                        returns: FFIType.u64,
-                    },
-                    sel_registerName: {
-                        args: [FFIType.cstring],
-                        returns: FFIType.pointer,
-                    }
-                });
-                const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
-                const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
-                const sel_toggle = libobjc.symbols.sel_registerName(Buffer.from("toggleFullScreen:\0"));
+            const libobjc = dlopen("libobjc.dylib", {
+                objc_msgSend: {
+                    args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
+                    returns: FFIType.u64,
+                },
+                sel_registerName: {
+                    args: [FFIType.cstring],
+                    returns: FFIType.pointer,
+                }
+            });
+            const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
+            const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
+            const sel_toggle = libobjc.symbols.sel_registerName(Buffer.from("toggleFullScreen:\0"));
 
-                // Enable NSWindowCollectionBehaviorFullScreenPrimary (128) on NSWindow
-                const cb = BigInt(libobjc.symbols.objc_msgSend(nsWindow, sel_cb, 0n));
-                libobjc.symbols.objc_msgSend(nsWindow, sel_scb, cb | 128n);
+            // Enable NSWindowCollectionBehaviorFullScreenPrimary (128) on NSWindow
+            const cb = BigInt(libobjc.symbols.objc_msgSend(handle, sel_cb, 0n));
+            libobjc.symbols.objc_msgSend(handle, sel_scb, cb | 128n);
 
-                // Perform Cocoa toggleFullScreen:
-                libobjc.symbols.objc_msgSend(nsWindow, sel_toggle, 0n);
+            // Perform Cocoa toggleFullScreen:
+            libobjc.symbols.objc_msgSend(handle, sel_toggle, 0n);
+        } else if (process.platform === "win32") {
+            const user32 = dlopen("user32.dll", {
+                IsZoomed: {
+                    args: [FFIType.pointer],
+                    returns: FFIType.bool,
+                },
+                ShowWindow: {
+                    args: [FFIType.pointer, FFIType.i32],
+                    returns: FFIType.bool,
+                }
+            });
+            const isZoomed = user32.symbols.IsZoomed(handle);
+            // SW_MAXIMIZE = 3, SW_RESTORE = 9
+            user32.symbols.ShowWindow(handle, isZoomed ? 9 : 3);
+        } else if (process.platform === "linux") {
+            const gtk = dlopen("libgtk-3.so.0", {
+                gtk_window_fullscreen: {
+                    args: [FFIType.pointer],
+                    returns: FFIType.void,
+                },
+                gtk_window_unfullscreen: {
+                    args: [FFIType.pointer],
+                    returns: FFIType.void,
+                }
+            });
+            const isFS = fullscreenStateMap.get(wv) ?? false;
+            if (isFS) {
+                gtk.symbols.gtk_window_unfullscreen(handle);
+                fullscreenStateMap.set(wv, false);
+            } else {
+                gtk.symbols.gtk_window_fullscreen(handle);
+                fullscreenStateMap.set(wv, true);
             }
         }
     } catch (e) {
@@ -75,6 +129,9 @@ export type WindowPositionPreset =
 
 export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset | { x: number, y: number }, winWidth = 1400, winHeight = 900) {
     try {
+        let screenW = 1920;
+        let screenH = 1080;
+
         if (process.platform === "darwin") {
             const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
                 CGMainDisplayID: { args: [], returns: FFIType.u32 },
@@ -82,51 +139,75 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
                 CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 }
             });
             const mainId = cg.symbols.CGMainDisplayID();
-            const screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
-            const screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
-
-            let targetX = 40;
-            let targetTopY = 40;
-
-            if (typeof pos === "object" && pos !== null) {
-                targetX = pos.x;
-                targetTopY = pos.y;
-            } else {
-                const preset = String(pos || "center").toLowerCase();
-                const margin = 30;
-                if (preset === "upper_left" || preset === "top_left") {
-                    targetX = margin;
-                    targetTopY = margin + 30;
-                } else if (preset === "upper_right" || preset === "top_right") {
-                    targetX = screenW - winWidth - margin;
-                    targetTopY = margin + 30;
-                } else if (preset === "bottom_left" || preset === "lower_left") {
-                    targetX = margin;
-                    targetTopY = screenH - winHeight - margin;
-                } else if (preset === "bottom_right" || preset === "lower_right") {
-                    targetX = screenW - winWidth - margin;
-                    targetTopY = screenH - winHeight - margin;
-                } else if (preset === "top_center" || preset === "upper_center") {
-                    targetX = Math.round((screenW - winWidth) / 2);
-                    targetTopY = margin + 30;
-                } else if (preset === "bottom_center" || preset === "lower_center") {
-                    targetX = Math.round((screenW - winWidth) / 2);
-                    targetTopY = screenH - winHeight - margin;
-                } else if (preset === "center_left") {
-                    targetX = margin;
-                    targetTopY = Math.round((screenH - winHeight) / 2);
-                } else if (preset === "center_right") {
-                    targetX = screenW - winWidth - margin;
-                    targetTopY = Math.round((screenH - winHeight) / 2);
-                } else {
-                    // "center" default
-                    targetX = Math.round((screenW - winWidth) / 2);
-                    targetTopY = Math.round((screenH - winHeight) / 2);
+            screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
+            screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
+        } else if (process.platform === "win32") {
+            const user32 = dlopen("user32.dll", {
+                GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 }
+            });
+            // SM_CXSCREEN = 0, SM_CYSCREEN = 1
+            screenW = user32.symbols.GetSystemMetrics(0);
+            screenH = user32.symbols.GetSystemMetrics(1);
+        } else if (process.platform === "linux") {
+            try {
+                const gdk = dlopen("libgdk-3.so.0", {
+                    gdk_screen_get_default: { args: [], returns: FFIType.pointer },
+                    gdk_screen_get_width: { args: [FFIType.pointer], returns: FFIType.i32 },
+                    gdk_screen_get_height: { args: [FFIType.pointer], returns: FFIType.i32 },
+                });
+                const defaultScreen = gdk.symbols.gdk_screen_get_default();
+                if (defaultScreen) {
+                    screenW = gdk.symbols.gdk_screen_get_width(defaultScreen);
+                    screenH = gdk.symbols.gdk_screen_get_height(defaultScreen);
                 }
+            } catch (e) {
+                // Fallback resolution 1920x1080 if GDK display query fails
             }
+        }
 
-            const nsWindow = wv.unsafeWindowHandle;
-            if (nsWindow) {
+        let targetX = 40;
+        let targetTopY = 40;
+
+        if (typeof pos === "object" && pos !== null) {
+            targetX = pos.x;
+            targetTopY = pos.y;
+        } else {
+            const preset = String(pos || "center").toLowerCase();
+            const margin = 30;
+            if (preset === "upper_left" || preset === "top_left") {
+                targetX = margin;
+                targetTopY = margin + 30;
+            } else if (preset === "upper_right" || preset === "top_right") {
+                targetX = screenW - winWidth - margin;
+                targetTopY = margin + 30;
+            } else if (preset === "bottom_left" || preset === "lower_left") {
+                targetX = margin;
+                targetTopY = screenH - winHeight - margin;
+            } else if (preset === "bottom_right" || preset === "lower_right") {
+                targetX = screenW - winWidth - margin;
+                targetTopY = screenH - winHeight - margin;
+            } else if (preset === "top_center" || preset === "upper_center") {
+                targetX = Math.round((screenW - winWidth) / 2);
+                targetTopY = margin + 30;
+            } else if (preset === "bottom_center" || preset === "lower_center") {
+                targetX = Math.round((screenW - winWidth) / 2);
+                targetTopY = screenH - winHeight - margin;
+            } else if (preset === "center_left") {
+                targetX = margin;
+                targetTopY = Math.round((screenH - winHeight) / 2);
+            } else if (preset === "center_right") {
+                targetX = screenW - winWidth - margin;
+                targetTopY = Math.round((screenH - winHeight) / 2);
+            } else {
+                // "center" default
+                targetX = Math.round((screenW - winWidth) / 2);
+                targetTopY = Math.round((screenH - winHeight) / 2);
+            }
+        }
+
+        const handle = wv.unsafeWindowHandle;
+        if (handle) {
+            if (process.platform === "darwin") {
                 const libobjc = dlopen("libobjc.dylib", {
                     objc_msgSend: {
                         args: [FFIType.pointer, FFIType.pointer, FFIType.f64, FFIType.f64],
@@ -138,7 +219,24 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
                     }
                 });
                 const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(Buffer.from("setFrameTopLeftPoint:\0"));
-                libobjc.symbols.objc_msgSend(nsWindow, sel_setFrameTopLeft, Number(targetX), Number(screenH - targetTopY));
+                libobjc.symbols.objc_msgSend(handle, sel_setFrameTopLeft, Number(targetX), Number(screenH - targetTopY));
+            } else if (process.platform === "win32") {
+                const user32 = dlopen("user32.dll", {
+                    SetWindowPos: {
+                        args: [FFIType.pointer, FFIType.pointer, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.u32],
+                        returns: FFIType.bool,
+                    }
+                });
+                // SWP_NOSIZE (1) | SWP_NOZORDER (4) = 5
+                user32.symbols.SetWindowPos(handle, null, Number(targetX), Number(targetTopY), 0, 0, 5);
+            } else if (process.platform === "linux") {
+                const gtk = dlopen("libgtk-3.so.0", {
+                    gtk_window_move: {
+                        args: [FFIType.pointer, FFIType.i32, FFIType.i32],
+                        returns: FFIType.void,
+                    }
+                });
+                gtk.symbols.gtk_window_move(handle, Number(targetX), Number(targetTopY));
             }
         }
     } catch (e) {
@@ -231,12 +329,12 @@ export function execJS(code: string) {
 
 export function setControlText(controlId: string, text: string) {
     const escaped = JSON.stringify(text);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else el.textContent=\${escaped};}\`);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT")el.value=\${escaped};else{el.textContent=\${escaped};el.innerText=\${escaped};}}\`);
 }
 
 export function setControlValue(controlId: string, value: any) {
     const escaped = JSON.stringify(value);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("value" in el)el.value=\${escaped};else if(el.dataset)el.dataset.value=\${escaped};}\`);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT")el.value=\${escaped};else{el.textContent=\${escaped};el.innerText=\${escaped};if(el.dataset)el.dataset.value=\${escaped};}}\`);
 }
 
 export function setControlPlaceholder(controlId: string, placeholder: string) {
@@ -489,11 +587,16 @@ export function generatePreviewHtml(spec: any): string {
         let ev = '';
         const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
         if (c.id) {
-            if (!handlers.onClick && !handlers.onclick) {
-                handlers.onClick = `on_${c.id}_click`;
-            }
-            if (!handlers.onChange && !handlers.onchange) {
-                handlers.onChange = `on_${c.id}_change`;
+            const ctrlType = (c.control_type || c.type || '').toLowerCase();
+            const isInputType = ['input', 'textarea', 'select', 'checkbox', 'radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'form_date', 'color'].includes(ctrlType);
+            if (isInputType) {
+                if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
+                    handlers.onChange = `on_${c.id}_change`;
+                }
+            } else {
+                if (!handlers.onClick && !handlers.onclick) {
+                    handlers.onClick = `on_${c.id}_click`;
+                }
             }
         }
         for (const [evtName, handler] of Object.entries(handlers)) {
@@ -873,11 +976,11 @@ ${controls}
   };
   window.setControlText = function(id, text) {
     const el = document.getElementById(id);
-    if (el) { if ("value" in el) el.value = text; else el.textContent = text; }
+    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") el.value = text; else { el.textContent = text; el.innerText = text; } }
   };
   window.setControlValue = function(id, val) {
     const el = document.getElementById(id);
-    if (el) { if ("value" in el) el.value = val; else el.textContent = val; }
+    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") el.value = val; else { el.textContent = val; el.innerText = val; if (el.dataset) el.dataset.value = val; } }
   };
   window.setControlPlaceholder = function(id, placeholder) {
     const el = document.getElementById(id);

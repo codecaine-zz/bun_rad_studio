@@ -38,7 +38,7 @@ const formSpec = {
 
         // Pinning & Fullscreen Action Controls
         { id: "pnlPin", type: "groupbox", title: "📌 Always On Top & Fullscreen Toggles", left: 24, top: 270, width: 722, height: 110 },
-        { id: "btnTogglePin", type: "button", caption: "📌 Toggle Stay On Top (OFF)", left: 40, top: 305, width: 220, height: 44, background_color: "#475569", event_handlers: { onClick: "on_btnTogglePin_click" } },
+        { id: "btnTogglePin", type: "button", caption: "📌 Toggle Stay On Top (OFF)", left: 40, top: 305, width: 220, height: 44, background_color: "#475569", event_handlers: { onClick: "this.dataset.pinned = this.dataset.pinned === 'true' ? 'false' : 'true'; const isPinned = this.dataset.pinned === 'true'; this.innerText = isPinned ? '📌 Pin: ENABLED (ON)' : '📌 Pin: DISABLED (OFF)'; this.style.background = isPinned ? '#0284c7' : '#475569'; if (window.on_btnTogglePin_click) window.on_btnTogglePin_click(isPinned);" } },
         { id: "btnToggleFs", type: "button", caption: "⛶ Toggle Fullscreen (Cmd+F)", left: 275, top: 305, width: 220, height: 44, background_color: "#10b981", event_handlers: { onClick: "on_btnToggleFs_click" } },
         { id: "btnQuitApp", type: "button", caption: "❌ Quit App (Cmd+Q)", left: 510, top: 305, width: 215, height: 44, background_color: "#ef4444", event_handlers: { onClick: "on_btnQuitApp_click" } },
 
@@ -124,16 +124,21 @@ wv.bind("on_btnBottomRight_click", () => {
 });
 
 // Always On Top Pin Handler
-wv.bind("on_btnTogglePin_click", () => {
-    isPinned = !isPinned;
+wv.bind("on_btnTogglePin_click", (isPinnedArg?: any) => {
+    let pinnedState = false;
+    if (typeof isPinnedArg === "boolean") {
+        pinnedState = isPinnedArg;
+    } else if (typeof isPinnedArg === "string") {
+        pinnedState = isPinnedArg === "true";
+    } else {
+        isPinned = !isPinned;
+        pinnedState = isPinned;
+    }
+    isPinned = pinnedState;
     console.log("⚡ [IPC] Setting Always On Top:", isPinned);
-    setAlwaysOnTopNative(wv, isPinned);
-    execJS(`
-        const btn = document.getElementById("btnTogglePin");
-        btn.textContent = ${isPinned ? '"📌 Pin: ENABLED (ON)"' : '"📌 Pin: DISABLED (OFF)"'};
-        btn.style.background = ${isPinned ? '"#0284c7"' : '"#475569"'};
-    `);
+    
     updateLog(isPinned ? "📌 Always On Top ENABLED: Window floats above all OS windows." : "📌 Always On Top DISABLED: Normal window level.");
+    setAlwaysOnTopNative(wv, isPinned);
 });
 
 // Fullscreen Handler

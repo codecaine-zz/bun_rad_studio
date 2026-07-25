@@ -1,7 +1,7 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { readFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
-import { generatePreviewHtml, exportProjectHelper } from "../index.ts";
+import { generatePreviewHtml, exportProjectHelper, setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative } from "../index.ts";
 
 const TEST_EXPORT_DIR = join(process.cwd(), ".test_export_output");
 
@@ -322,4 +322,13 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(d6).toContain("onTimer");
     });
 
+    test("6. Cross-Platform Native Window Helpers Validation", () => {
+        const dummyWebview = { unsafeWindowHandle: null } as any;
+        expect(() => setAlwaysOnTopNative(dummyWebview, true)).not.toThrow();
+        expect(() => toggleFullscreenNative(dummyWebview)).not.toThrow();
+        expect(() => setWindowPositionNative(dummyWebview, "center", 800, 600)).not.toThrow();
+        expect(() => setWindowPositionNative(dummyWebview, { x: 100, y: 100 }, 800, 600)).not.toThrow();
+    });
+
 });
+
