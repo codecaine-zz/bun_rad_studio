@@ -16,11 +16,9 @@ const win = simplegui.createWindow("SimpleGUI - All Controls Showcase", 920, 740
 // Title Header
 win.addLabel("⚡ SimpleGUI Complete Controls Suite")
     .font(20, "#38bdf8", "700")
-    .width(880);
 
 win.addLabel("Comprehensive showcase of controls, layout containers, timers, and themes built with simplegui")
-    .font(12, "#94a3b8")
-    .width(880);
+    .font(12, "#94a3b8");
 
 win.addDivider();
 
