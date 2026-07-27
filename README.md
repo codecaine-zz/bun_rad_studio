@@ -167,8 +167,60 @@ To package your project into a complete macOS `.app` application bundle using [b
 #### Launching the Compiled App:
 Launch your compiled `.app` bundle from macOS Finder in `dist/` or via terminal:
 ```bash
-open "dist/My Application.app"
+
+---
+
+## 🎨 Declarative SimpleGUI Module (`simplegui`)
+
+Build native desktop GUIs directly in TypeScript using an intuitive, fluent, event-driven API inspired by [vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui) — no visual designer required! For complete API docs, see the dedicated [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md) reference.
+
+```typescript
+import { simplegui } from "bun_rad_studio";
+
+// 1. Create a SimpleGUI window
+const win = simplegui.createWindow("My SimpleGUI App", 760, 520, {
+    theme: "apple_dark"
+});
+
+// 2. Add controls with fluent method chaining
+win.addLabel("👤 User Account & Profile Setup")
+   .font(20, "#38bdf8", "700");
+
+win.beginCard("Personal Details");
+
+win.beginRow();
+win.addLabel("Full Name:").width(120);
+win.addTextInput("e.g. Alex Mercer").id("txtName").width(260);
+win.endRow();
+
+win.beginRow();
+win.addLabel("Plan:").width(120);
+win.addDropdown(["Developer (Free)", "Pro ($19/mo)", "Enterprise ($99/mo)"], "Pro").id("cmbPlan").width(260);
+win.endRow();
+
+win.endCard();
+
+// 3. Add interactive button with event callback & dialog prompt
+win.addButton("🚀 Submit Profile", (w) => {
+    const vals = w.getFormValues();
+    w.showAlert(`✅ Profile created for ${vals.txtName || "User"} (${vals.cmbPlan})!`);
+}).bg("#0284c7").color("#ffffff").bold().width(180).height(40);
+
+// 4. Launch window
+win.run();
 ```
+
+### Key Features:
+* **`vlang_simplegui` API Parity**: 100% API compatibility with `vlang_simplegui` (`new_simple_window()`, `add_input()`, `add_button()`, `hasControl()`, `listControls()`, `requireControl()`, `listThemes()`, `getTheme()`, `homeDir()`, `tempDir()`, `desktopDir()`, `documentsDir()`, `downloadsDir()`).
+* **Multi-Window & Application Lifecycle**: Distinct `win.close()` / `win.close_window()` (closes current window handle without terminating process for multi-window support) and `win.exit()` / `win.quit()` / `win.exitApp()` / `win.quit_application()` (terminates process via `process.exit(code)`).
+* **Fluent Method Chaining**: Chain styling & behavior modifiers (`.width()`, `.height()`, `.bg()`, `.color()`, `.bold()`, `.align()`, `.tooltip()`, `.onClick()`, `.onChange()`).
+* **Form & Labeled Helpers**: `addFormField()`, `addFormPassword()`, `addFormDropdown()`, `addFormDatePicker()`, `addFormSwitch()`, `addFormSlider()`, `addFormNumber()`, `addHeading()`.
+* **Typed Value Accessors**: `getText(id)`, `setText(id, val)`, `getBool(id)`, `setBool(id, val)`, `getInt(id)`, `setInt(id, val)`, `getFloat(id)`, `setFloat(id, val)`.
+* **Auto-Reflowing Layout Containers**: `beginRow()` / `endRow()`, `beginGrid(cols)`, `endGrid()`, `beginCard(title)`, `endCard()`, `beginFlex()`, `endFlex()`.
+* **Form Value Serialization**: `win.getFormValues()`, `win.setFormValues()`, `win.getValue(id)`, `win.setValue(id, val)`.
+* **Native Dialogs & OS APIs**: `showAlert()`, `showConfirm()`, `showPrompt()`, `copyToClipboard()`, `setAlwaysOnTop()`, `toggleFullscreen()`.
+* **Non-Visual Timer Loop**: `win.addTimer(intervalMs, onTick)`.
+* **Demos**: `bun run demo:simplegui` or `bun run demo:simplegui_all`.
 
 ---
 

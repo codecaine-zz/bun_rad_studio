@@ -15,6 +15,7 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 7. [Interactive Demos Suite (`demos/`)](#7-interactive-demos-suite-demos)
 8. [Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)](#8-form-themes--color-palettes-macos--windows-11-desktop-themes)
 9. [Quick Start & Developer Recipes](#9-quick-start--developer-recipes)
+10. [SimpleGUI Declarative Module Reference](#10-simplegui-declarative-module-reference)
 
 ---
 
@@ -562,5 +563,83 @@ if (result.success) {
   console.error(`❌ Export failed: ${result.error}`);
 }
 ```
+
+---
+
+## 10. SimpleGUI Declarative Module Reference
+
+The `SimpleGUI` module (`src/simplegui.ts` / exported via `index.ts`) provides a lightweight, fluent declarative API matching `vlang_simplegui`. A dedicated, complete API reference guide is available at [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md).
+
+### 🪟 Window Initialization & Configuration
+
+```typescript
+import { createWindow, newWindow, new_simple_window } from "bun_rad_studio";
+
+const win = createWindow("My App", 800, 600, {
+  theme: "apple_dark",
+  alwaysOnTop: false,
+  padding: 20,
+  spacing: 12
+});
+```
+
+### 🚪 Window Lifecycle & Process Exit Methods
+
+| Function / Method | Signature | Description |
+| --- | --- | --- |
+| `win.close()` | `() => void` | Closes the current window frame (`webview.destroy()`) without killing the process (for multi-window apps). |
+| `win.close_window()` | `() => void` | Alias for `win.close()`. |
+| `win.exit(code?)` | `(code?: number) => void` | Immediately terminates the entire application process (`process.exit(code)`). |
+| `win.quit(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.exitApp(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.exit_app(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.exit_application(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.quit_application(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+
+### 🔤 Typed Accessor & Control Value Methods
+
+```typescript
+// Typed getters
+const name: string = win.getText("txtName");
+const isEnabled: boolean = win.getBool("chkActive");
+const age: number = win.getInt("numAge");
+const price: number = win.getFloat("numPrice");
+
+// Typed setters
+win.setText("txtName", "Alice");
+win.setBool("chkActive", true);
+win.setInt("numAge", 30);
+win.setFloat("numPrice", 49.99);
+```
+
+### 💬 In-Window Glassmorphic Modal Dialogs
+
+```typescript
+// Alert dialog
+win.showAlert("Operation completed successfully!", "Success");
+
+// Confirm dialog
+win.showConfirm("Are you sure you want to delete this account?", "Confirm Action");
+
+// Prompt dialog (async)
+const inputName = await win.showPrompt("Please enter your name:", "Default Name", "Input Required");
+```
+
+### 🔍 Inspection & OS Path Helpers
+
+```typescript
+win.hasControl("btnSubmit");         // boolean
+win.listControls();                 // string[]
+win.getControlKind("btnSubmit");    // string ("button")
+win.requireControl("btnSubmit");    // throws error if control doesn't exist
+
+// OS System Path Helpers
+homeDir();                          // User home directory path
+tempDir();                          // System temp directory path
+desktopDir();                       // Desktop folder path
+documentsDir();                     // Documents folder path
+downloadsDir();                     // Downloads folder path
+```
+
 
 

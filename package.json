@@ -21,7 +21,11 @@
     "demo:db": "bun run demos/10_db_studio_query_editor_template.ts",
     "demo:settings": "bun run demos/11_app_settings_preferences_template.ts",
     "demo:app_controls": "bun run demos/12_advanced_desktop_app_controls.ts",
-    "demo:productivity": "bun run demos/13_productivity_controls_studio.ts"
+    "demo:productivity": "bun run demos/13_productivity_controls_studio.ts",
+    "demo:simplegui": "bun run demos/14_simplegui_fluent_form_demo.ts",
+    "demo:simplegui_all": "bun run demos/15_simplegui_all_controls_showcase.ts",
+    "demo:parity": "bun run demos/16_simplegui_parity_api_demo.ts",
+    "demo:layouts": "bun run demos/17_simplegui_layout_types_showcase.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

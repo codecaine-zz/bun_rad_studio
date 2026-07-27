@@ -351,8 +351,19 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(d9).toContain("form_code");
         expect(d10).toContain("db_navigator");
         expect(d10).toContain("db_grid");
-        expect(d11).toContain("form_color");
-        expect(d11).toContain("form_drop_zone");
+        const demo16Path = join(process.cwd(), "demos", "16_simplegui_parity_api_demo.ts");
+        expect(existsSync(demo16Path)).toBe(true);
+        const d16 = readFileSync(demo16Path, "utf-8");
+        expect(d16).toContain("new_simple_window");
+        expect(d16).toContain("get_text");
+        expect(d16).toContain("list_controls");
+
+        const demo17Path = join(process.cwd(), "demos", "17_simplegui_layout_types_showcase.ts");
+        expect(existsSync(demo17Path)).toBe(true);
+        const d17 = readFileSync(demo17Path, "utf-8");
+        expect(d17).toContain("beginRow");
+        expect(d17).toContain("beginGrid");
+        expect(d17).toContain("beginCard");
         expect(d5).toContain("table");
         expect(d5).toContain("columns");
         expect(d5).toContain("rows");

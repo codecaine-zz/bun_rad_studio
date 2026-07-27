@@ -208,18 +208,34 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
         const handle = wv.unsafeWindowHandle;
         if (handle) {
             if (process.platform === "darwin") {
-                const libobjc = dlopen("libobjc.dylib", {
-                    objc_msgSend: {
-                        args: [FFIType.pointer, FFIType.pointer, FFIType.f64, FFIType.f64],
-                        returns: FFIType.void,
-                    },
-                    sel_registerName: {
-                        args: [FFIType.cstring],
-                        returns: FFIType.pointer,
-                    }
-                });
-                const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(Buffer.from("setFrameTopLeftPoint:\0"));
-                libobjc.symbols.objc_msgSend(handle, sel_setFrameTopLeft, Number(targetX), Number(screenH - targetTopY));
+                const presetStr = typeof pos === "string" ? pos.toLowerCase() : "";
+                if (presetStr === "center" || presetStr === "middle" || presetStr === "middle_center" || presetStr === "center_center" || !presetStr) {
+                    const libobjc = dlopen("libobjc.dylib", {
+                        objc_msgSend: {
+                            args: [FFIType.pointer, FFIType.pointer],
+                            returns: FFIType.void,
+                        },
+                        sel_registerName: {
+                            args: [FFIType.cstring],
+                            returns: FFIType.pointer,
+                        }
+                    });
+                    const sel_center = libobjc.symbols.sel_registerName(Buffer.from("center\0"));
+                    libobjc.symbols.objc_msgSend(handle, sel_center);
+                } else {
+                    const libobjc = dlopen("libobjc.dylib", {
+                        objc_msgSend: {
+                            args: [FFIType.pointer, FFIType.pointer, FFIType.f64, FFIType.f64],
+                            returns: FFIType.void,
+                        },
+                        sel_registerName: {
+                            args: [FFIType.cstring],
+                            returns: FFIType.pointer,
+                        }
+                    });
+                    const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(Buffer.from("setFrameTopLeftPoint:\0"));
+                    libobjc.symbols.objc_msgSend(handle, sel_setFrameTopLeft, Number(targetX), Number(screenH - targetTopY));
+                }
             } else if (process.platform === "win32") {
                 const user32 = dlopen("user32.dll", {
                     SetWindowPos: {
@@ -643,6 +659,7 @@ wv.run();
 }
 
 
+export { simplegui, SimpleWindow, SimpleControlRef, createWindow, newWindow, new_simple_window, listThemes, getTheme, homeDir, tempDir, desktopDir, documentsDir, downloadsDir } from "./src/simplegui.ts";
 
 export function setStatusBarText(controlId: string, statusText: string) {}
 export function setKanbanColumns(controlId: string, columnsData: string) {}
@@ -679,7 +696,7 @@ export function generatePreviewHtml(spec: any): string {
         const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
-            const isInputType = ['input', 'search', 'form_search', 'textarea', 'form_textarea', 'select', 'form_dropdown', 'checkbox', 'form_checkbox', 'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'form_date', 'time_picker', 'form_time', 'color', 'form_color', 'form_code', 'form_stepper', 'form_drop_zone', 'tabs', 'pagination', 'toggle_button'].includes(ctrlType);
+            const isInputType = ['input', 'search', 'form_search', 'textarea', 'form_textarea', 'select', 'form_dropdown', 'checkbox', 'form_checkbox', 'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'date_picker', 'form_date', 'time_picker', 'form_time', 'color', 'color_picker', 'color_well', 'form_color', 'form_code', 'form_stepper', 'form_drop_zone', 'tabs', 'pagination', 'toggle_button'].includes(ctrlType);
             if (isInputType) {
                 if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
                     handlers.onChange = `on_${c.id}_change`;
@@ -809,14 +826,17 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor||'pointer'};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === 'form_switch' ? `<span>${text}</span>` : ''}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== 'form_switch' ? `<span>${text}</span>` : ''}</div>\n`;
         } else if (t === 'slider' || t === 'form_slider') {
             const val = c.value !== undefined ? c.value : 50;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><${t.startsWith('form') ? `span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><` : ''}input type="range"${minAttr || ' min="0"'}${maxAttr || ' max="100"'}${stepAttr} value="${val}"${ev} style="width:100%;accent-color:${accent};cursor:${c.cursor||'pointer'};"></div>\n`;
+            const headerLabel = text ? `<span style="opacity:0.9;">${text}</span>` : '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:${headerLabel ? 'space-between' : 'flex-end'};align-items:center;font-size:11px;font-weight:700;">${headerLabel}<span class="slider-val" style="color:${accent};font-family:monospace;font-size:12px;font-weight:bold;">${val}</span></div><input type="range"${minAttr || ' min="0"'}${maxAttr || ' max="100"'}${stepAttr} value="${val}"${ev} oninput="if(this.previousElementSibling&&this.previousElementSibling.querySelector('.slider-val'))this.previousElementSibling.querySelector('.slider-val').textContent=this.value;" style="width:100%;height:6px;accent-color:${accent};cursor:${c.cursor||'pointer'};"></div>\n`;
         } else if (t === 'number' || t === 'form_number') {
             const val = c.value !== undefined ? c.value : 0;
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ''}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" value="${val}" placeholder="${c.placeholder || ''}"${ev}${roAttr}${reqAttr}${minAttr}${maxAttr}${stepAttr}${autoFocusAttr} style="background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
-        } else if (t === 'date' || t === 'form_date') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ''}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="date"${ev} style="background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size||13}px;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
-        } else if (t === 'color') {
-            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr} type="color" value="${c.value||'#38bdf8'}"${ev} style="${base(c)}padding:2px;${defBorder}${defRadius}cursor:${c.cursor||'pointer'};background:${rawCbg};">\n`;
+        } else if (t === 'date' || t === 'date_picker' || t === 'form_date') {
+            const val = c.value || '2026-07-27';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ''}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="date" value="${val}"${ev} style="width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size||13}px;color-scheme:${isLight ? 'light' : 'dark'};cursor:pointer;"></div>\n`;
+        } else if (t === 'color' || t === 'color_picker' || t === 'color_well' || t === 'form_color') {
+            const val = c.value || '#0284c7';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:2px 8px;cursor:pointer;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${val}"${ev} style="width:28px;height:24px;border:none;border-radius:4px;cursor:pointer;background:transparent;" oninput="if(this.nextElementSibling)this.nextElementSibling.textContent=this.value.toUpperCase();"><span class="color-hex" style="font-size:11px;font-weight:700;color:${color};font-family:monospace;">${val.toUpperCase()}</span></div>\n`;
         } else if (t === 'progress' || t === 'form_progress') {
             const val = c.value !== undefined ? c.value : 60;
             const progBg = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
@@ -880,8 +900,22 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'form_field' || t === 'form_password' || t === 'form_textarea') {
             const inputType = t === 'form_password' ? 'password' : (t === 'form_textarea' ? 'textarea' : 'text');
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === 'textarea' ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size||13}px;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;">`}</div>\n`;
-        } else if (t === 'form_dropdown') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select${ev}${reqAttr} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><option>Option 1</option><option>Option 2</option><option>Option 3</option></select></div>\n`;
+        } else if (t === 'select' || t === 'dropdown' || t === 'form_dropdown') {
+            const rawOpts = c.items || c.options || text || c.caption || 'Option 1, Option 2, Option 3';
+            const optArray = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
+            const curVal = c.value !== undefined ? String(c.value) : (optArray[0] || '');
+            const selOptions = optArray.map((opt: string) => {
+                const isSelected = opt === curVal ? ' selected' : '';
+                return `<option value="${opt.replace(/"/g, '&quot;')}"${isSelected}>${opt}</option>`;
+            }).join('');
+
+            const selectInnerStyle = `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 24px 0 10px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%2338bdf8'/></svg>");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 6px;box-sizing:border-box;`;
+
+            if (t === 'form_dropdown') {
+                controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select${ev}${disabled}${reqAttr} onchange="if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+            } else {
+                controls += `<div${id}${titleAttr} style="${base(c)}"><select${ev}${disabled}${reqAttr} onchange="if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+            }
         } else if (t === 'form_link') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;
         } else if (t === 'path') {
@@ -901,14 +935,14 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<input type="file"${id}${ev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
         } else if (t === 'save_dialog') {
             controls += `<input type="file"${id}${ev} style="display:none;">\n`;
-        } else if (t === 'table') {
-            const rawHeaders = c.columns || c.headers || ['ID', 'Name', 'Value', 'Status'];
+        } else if (t === 'table' || t === 'data_table' || t === 'table_view' || t === 'form_table') {
+            const rawHeaders = c.columns || c.headers || (c.text ? String(c.text).split(',').map(s => s.trim()) : ['ID', 'Name', 'Value', 'Status']);
             const headers = Array.isArray(rawHeaders) ? rawHeaders : String(rawHeaders).split(',').map(s => s.trim());
-            const rawRows = c.rows || c.data || c.dataset || [
+            const rawRows = c.rows || c.data || c.dataset || (Array.isArray(c.value) ? c.value : [
                 ['#1', 'Item 1', '100', 'Active'],
                 ['#2', 'Item 2', '200', 'Active'],
                 ['#3', 'Item 3', '300', 'Active']
-            ];
+            ]);
             const tableBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : cbg;
             const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
             const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
