@@ -174,5 +174,97 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(homeDir()).toBeDefined();
         expect(documentsDir()).toContain("Documents");
     });
+
+    test("7. Ergonomics API & Beginner Helpers (Parity with ergonomics.v)", async () => {
+        const win = simplegui.createWindow("Ergonomics Test", 800, 600);
+
+        // Control registration
+        const txtA = win.addTextInput("Text A", "Initial A").id("txtA");
+        const txtB = win.addTextInput("Text B", "Initial B").id("txtB");
+        const chkOpt = win.addCheckbox("Option", false).id("chkOpt");
+        const numCount = win.addStepper(0, 100, 10).id("numCount");
+        const cmbList = win.addDropdown(["Apple", "Banana", "Cherry"], "Banana").id("cmbList");
+
+        // Batch Visibility & Enabled Operations
+        win.disableControls(["txtA", "txtB"]);
+        expect(win.getControlEnabled("txtA")).toBe(false);
+        expect(win.getControlEnabled("txtB")).toBe(false);
+
+        win.enableAllControls();
+        expect(win.getControlEnabled("txtA")).toBe(true);
+        expect(win.getControlEnabled("txtB")).toBe(true);
+
+        win.hideControls(["txtA"]);
+        expect(win.getControlVisible("txtA")).toBe(false);
+
+        win.showControls(["txtA"]);
+        expect(win.getControlVisible("txtA")).toBe(true);
+
+        win.toggleVisible("txtA");
+        expect(win.getControlVisible("txtA")).toBe(false);
+
+        win.toggleEnabled("txtB");
+        expect(win.getControlEnabled("txtB")).toBe(false);
+
+        // Value Convenience Accessors & Modifiers
+        expect(win.increment("numCount", 5)).toBe(15);
+        expect(win.getInt("numCount")).toBe(15);
+
+        expect(numCount.increment(5)).toBe(20);
+
+        expect(win.toggleChecked("chkOpt")).toBe(true);
+        expect(win.getBool("chkOpt")).toBe(true);
+
+        win.appendText("txtB", " Appended");
+        expect(win.getText("txtB")).toBe("Initial B Appended");
+
+        win.appendLine("txtB", "Line 2");
+        expect(win.getText("txtB")).toBe("Initial B Appended\nLine 2");
+
+        // Batch Setters & Getters
+        win.setManyTexts({ txtA: "New A", txtB: "New B" });
+        expect(win.getManyTexts(["txtA", "txtB"])).toEqual({ txtA: "New A", txtB: "New B" });
+
+        win.setAll({ txtA: "Batch A", txtB: "Batch B" });
+        expect(win.getAll(["txtA", "txtB"])).toEqual({ txtA: "Batch A", txtB: "Batch B" });
+
+        // List Item Management (Dropdown & ListBox)
+        const lstFw = win.addListBox(["React", "Vue", "Svelte"], "React", undefined, { size: 4 }).id("lstFw");
+        expect(win.getListItems("cmbList")).toEqual(["Apple", "Banana", "Cherry"]);
+        expect(win.getListCount("cmbList")).toBe(3);
+        expect(win.getListItems("lstFw")).toEqual(["React", "Vue", "Svelte"]);
+
+        win.addListItem("cmbList", "Dragonfruit");
+        expect(win.getListItems("cmbList")).toEqual(["Apple", "Banana", "Cherry", "Dragonfruit"]);
+
+        win.removeListItem("cmbList", 0);
+        expect(win.getListItems("cmbList")).toEqual(["Banana", "Cherry", "Dragonfruit"]);
+
+        win.setValue("lstFw", "Vue");
+        expect(win.getListSelectedText("lstFw")).toBe("Vue");
+
+        win.removeSelectedListItem("lstFw");
+        expect(win.getListItems("lstFw")).toEqual(["React", "Svelte"]);
+        expect(win.getListSelectedText("lstFw")).toBe("React");
+
+        // Busy State Handler & Async Delays
+        await win.withBusyState(["txtA", "txtB"], "Processing...", async (w) => {
+            expect(w.getControlEnabled("txtA")).toBe(false);
+            expect(w.statusText).toBe("Processing...");
+            await w.delay(10);
+            await w.sleep(10);
+        });
+        expect(win.getControlEnabled("txtA")).toBe(true);
+
+        // Settings Persistence (JSON)
+        const tempPath = `/tmp/test_simplegui_settings_${Date.now()}.json`;
+        win.saveValuesToFile(tempPath);
+
+        win.setAll({ txtA: "Modified A", txtB: "Modified B" });
+        expect(win.getText("txtA")).toBe("Modified A");
+
+        win.loadValuesFromFile(tempPath);
+        expect(win.getText("txtA")).toBe("Batch A");
+    });
 });
 

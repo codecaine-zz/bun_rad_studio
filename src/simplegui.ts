@@ -1,5 +1,6 @@
 import { SizeHint, Webview } from "webview-bun";
 import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setWindowPositionNative } from "../index.ts";
+import * as fs from "fs";
 
 export function forceExit(code = 0): void {
     process.exit(code);
@@ -34,6 +35,21 @@ export class SimpleControlRef {
             const val = this.window.getValue(oldId);
             if (val !== undefined) {
                 this.window.setValue(idStr, val);
+                delete this.window.formValuesStore[oldId];
+            }
+            if (this.window.listItemsStore && this.window.listItemsStore[oldId] !== undefined) {
+                this.window.listItemsStore[idStr] = this.window.listItemsStore[oldId];
+                delete this.window.listItemsStore[oldId];
+            }
+            if (this.window.eventHandlersMap) {
+                const prefix = `${oldId}:`;
+                for (const [key, callback] of Array.from(this.window.eventHandlersMap.entries())) {
+                    if (key.startsWith(prefix)) {
+                        const eventType = key.slice(prefix.length);
+                        this.window.eventHandlersMap.delete(key);
+                        this.window.eventHandlersMap.set(`${idStr}:${eventType}`, callback);
+                    }
+                }
             }
         }
         this.spec.id = idStr;
@@ -116,27 +132,13 @@ export class SimpleControlRef {
 
     enabled(flag = true): this {
         this.spec.enabled = flag;
-        if (this.window.isRunning()) {
-            this.window.evalJS(`
-                const el = document.getElementById("${this.spec.id}");
-                if (el) {
-                    el.disabled = ${!flag};
-                    el.style.opacity = "${flag ? '1' : '0.5'}";
-                    el.style.pointerEvents = "${flag ? 'auto' : 'none'}";
-                }
-            `);
-        }
+        this.window.setControlEnabled(this.spec.id, flag);
         return this;
     }
 
     visible(flag = true): this {
         this.spec.visible = flag;
-        if (this.window.isRunning()) {
-            this.window.evalJS(`
-                const el = document.getElementById("${this.spec.id}");
-                if (el) el.style.display = "${flag ? 'block' : 'none'}";
-            `);
-        }
+        this.window.setControlVisible(this.spec.id, flag);
         return this;
     }
 
@@ -177,6 +179,18 @@ export class SimpleControlRef {
         this.window.setText(this.spec.id, text);
         return this;
     }
+
+    show(): this { return this.visible(true); }
+    hide(): this { return this.visible(false); }
+    enable(): this { return this.enabled(true); }
+    disable(): this { return this.enabled(false); }
+    focus(): this { this.window.setFocus(this.spec.id); return this; }
+    flash(): this { this.window.flashControl(this.spec.id); return this; }
+    highlight(durationMs = 1000): this { this.window.highlightControl(this.spec.id, durationMs); return this; }
+    increment(delta = 1): number { return this.window.increment(this.spec.id, delta); }
+    toggleChecked(): boolean { return this.window.toggleChecked(this.spec.id); }
+    appendText(text: string): this { this.window.appendText(this.spec.id, text); return this; }
+    appendLine(line: string): this { this.window.appendLine(this.spec.id, line); return this; }
 }
 
 interface LayoutFrame {
@@ -601,8 +615,23 @@ export class SimpleWindow {
         const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
         const ref = this.addVisualControl("select", 240, 36, { text, caption: text, value: initialVal, ...opts });
         this.formValuesStore[ref.spec.id] = initialVal;
+        this.listItemsStore[ref.spec.id] = [...items];
         if (onChange) ref.onChange(onChange);
         return ref;
+    }
+
+    public addListBox(items: string[], selected?: string | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        const text = items.join(", ");
+        const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
+        const height = opts.height || (opts.size ? opts.size * 24 + 10 : 120);
+        const ref = this.addVisualControl("listbox", 240, height, { text, caption: text, value: initialVal, items, size: opts.size || 5, ...opts });
+        this.formValuesStore[ref.spec.id] = initialVal;
+        this.listItemsStore[ref.spec.id] = [...items];
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+    public add_list_box(items: string[], selected?: string | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addListBox(items, selected, onChange, opts);
     }
 
     public addSegmentedControl(items: string[], selectedIndex = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
@@ -610,6 +639,7 @@ export class SimpleWindow {
         const initialVal = items[selectedIndex] || "";
         const ref = this.addVisualControl("segmented_control", 280, 36, { text, caption: text, value: initialVal, ...opts });
         this.formValuesStore[ref.spec.id] = initialVal;
+        this.listItemsStore[ref.spec.id] = [...items];
         if (onChange) ref.onChange(onChange);
         return ref;
     }
@@ -696,11 +726,15 @@ export class SimpleWindow {
         if (this.webview) {
             const bindName = `on_${controlId}_${eventType.replace(/^on/i, "").toLowerCase()}`;
             try {
-                this.webview.bind(bindName, (val: any) => {
+                this.webview.bind(bindName, async (val: any) => {
                     if (val !== undefined && val !== null) {
                         this.formValuesStore[controlId] = val;
                     }
-                    callback(this, val);
+                    try {
+                        await callback(this, val);
+                    } catch (err) {
+                        console.error(`Error in IPC event ${bindName}:`, err);
+                    }
                 });
             } catch (e) {
                 // Ignore if already bound
@@ -717,12 +751,38 @@ export class SimpleWindow {
         if (this.isWindowRunning) {
             const escaped = typeof val === "string" ? JSON.stringify(val) : val;
             this.evalJS(`
-                const el = document.getElementById("${id}");
-                if (el) {
-                    if (el.type === "checkbox" || el.type === "radio") el.checked = Boolean(${val});
-                    else if (el.value !== undefined) el.value = ${escaped};
-                    else el.textContent = String(${escaped});
-                }
+                (function() {
+                    const rawEl = document.getElementById("${id}");
+                    if (!rawEl) return;
+                    const el = (rawEl.tagName === "INPUT" || rawEl.tagName === "SELECT" || rawEl.tagName === "TEXTAREA")
+                        ? rawEl
+                        : (rawEl.querySelector("input, select, textarea") || rawEl);
+
+                    if (el.type === "checkbox" || el.type === "radio") {
+                        el.checked = Boolean(${val});
+                    } else if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") {
+                        el.value = ${escaped};
+                    } else {
+                        const swThumb = rawEl.querySelector(".sw-thumb");
+                        const swTrack = rawEl.querySelector(".sw-track");
+                        const span = rawEl.querySelector("span");
+                        const innerBar = rawEl.querySelector("div > div");
+
+                        if (swThumb && swTrack) {
+                            const on = Boolean(${val});
+                            swThumb.style.left = on ? "22px" : "2px";
+                            swTrack.style.background = on ? "var(--accent, #0284c7)" : "rgba(255,255,255,0.15)";
+                        } else if (span && rawEl.querySelectorAll("button").length >= 2) {
+                            span.textContent = String(${escaped});
+                        } else if (innerBar && rawEl.classList.contains("rad-progress")) {
+                            innerBar.style.width = String(${escaped}) + "%";
+                        } else if (rawEl.value !== undefined) {
+                            rawEl.value = ${escaped};
+                        } else {
+                            rawEl.textContent = String(${escaped});
+                        }
+                    }
+                })();
             `);
         }
         return this;
@@ -777,7 +837,8 @@ export class SimpleWindow {
                     window.showSimpleguiModalDialog({type:"confirm",title:${safeTitle},message:${safeMsg},reqId:"${reqId}"});
                 } else {
                     const res = confirm(${safeMsg});
-                    if (window.onSimpleguiPromptResult) window.onSimpleguiPromptResult("${reqId}", res);
+                    const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
+                    if (fn) fn("${reqId}", res);
                 }
             `);
         });
@@ -796,7 +857,8 @@ export class SimpleWindow {
                     window.showSimpleguiModalDialog({type:"prompt",title:${safeTitle},message:${safeMsg},defaultVal:${safeDef},reqId:"${reqId}"});
                 } else {
                     const res = prompt(${safeMsg}, ${safeDef});
-                    if (window.onSimpleguiPromptResult) window.onSimpleguiPromptResult("${reqId}", res);
+                    const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
+                    if (fn) fn("${reqId}", res);
                 }
             `);
         });
@@ -826,17 +888,106 @@ export class SimpleWindow {
         return new Promise((resolve) => {
             this.promptResolversMap.set(reqId, resolve);
             this.evalJS(`
+                const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
                 if (navigator.clipboard && navigator.clipboard.readText) {
                     navigator.clipboard.readText().then(txt => {
-                        if (window.onSimpleguiPromptResult) window.onSimpleguiPromptResult("${reqId}", txt);
+                        if (fn) fn("${reqId}", txt);
                     }).catch(() => {
-                        if (window.onSimpleguiPromptResult) window.onSimpleguiPromptResult("${reqId}", "");
+                        if (fn) fn("${reqId}", "");
                     });
                 } else {
-                    if (window.onSimpleguiPromptResult) window.onSimpleguiPromptResult("${reqId}", "");
+                    if (fn) fn("${reqId}", "");
                 }
             `);
         });
+    }
+
+    public delay(ms: number, cb?: () => void): Promise<void> | void {
+        if (cb) {
+            if (!this.isWindowRunning || !this.webview) {
+                setTimeout(cb, ms);
+                return;
+            }
+            const reqId = `delay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            this.promptResolversMap.set(reqId, cb);
+            this.evalJS(`
+                setTimeout(function() {
+                    const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
+                    if (fn) {
+                        fn("${reqId}", true);
+                    }
+                }, ${ms});
+            `);
+            return;
+        }
+
+        // Keep Promise version for contexts where it might work
+        return new Promise((resolve) => {
+            if (!this.isWindowRunning || !this.webview) {
+                setTimeout(resolve, ms);
+                return;
+            }
+            const reqId = `delay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            this.promptResolversMap.set(reqId, resolve);
+            this.evalJS(`
+                setTimeout(function() {
+                    const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
+                    if (fn) {
+                        fn("${reqId}", true);
+                    }
+                }, ${ms});
+            `);
+        });
+    }
+
+    public async sleep(ms: number): Promise<void> {
+        return this.delay(ms) as Promise<void>;
+    }
+
+    public withBusyState(names: string[], statusText: string, callback: (win: SimpleWindow, done: (completionStatus?: string) => void) => any | Promise<any>): this {
+        console.log(`[withBusyState] Starting... setting status to: ${statusText}`);
+        let originalStatus = this.statusText;
+        if (!originalStatus) {
+            const lbl = this.findControl("lblStatus") || this.findControl("status");
+            if (lbl && (lbl.text || lbl.caption)) {
+                originalStatus = lbl.text || lbl.caption;
+            }
+        }
+        
+        const originalStates: Record<string, boolean> = {};
+        for (const name of names) {
+            originalStates[name] = this.getControlEnabled(name);
+            this.setControlEnabled(name, false);
+        }
+        this.setStatus(statusText);
+        
+        const done = (completionStatus?: string) => {
+            console.log(`[withBusyState] Finished callback. Restoring control states...`);
+            for (const [name, enabled] of Object.entries(originalStates)) {
+                this.setControlEnabled(name, enabled);
+            }
+            
+            const finalStatus = completionStatus || "Task completed";
+            this.setStatus(finalStatus);
+
+            // Keep the completion status visible for 3 seconds before reverting to original status
+            setTimeout(() => {
+                if (this.isWindowRunning) {
+                    console.log(`[withBusyState] Reverting status label to: ${originalStatus}`);
+                    this.setStatus(originalStatus);
+                }
+            }, 3000);
+        };
+
+        const result = callback(this, done);
+        // If the callback is actually synchronous and didn't use callbacks
+        if (result && typeof result.then === 'function') {
+            result.then(done).catch((err: any) => {
+                console.error("[withBusyState] Promise rejected:", err);
+                done();
+            });
+        }
+        return this;
     }
 
     // --- HTML & Window Build Engine ---
@@ -927,7 +1078,7 @@ export class SimpleWindow {
 
                 setInterval(function() {
                     if (window.handleHeartbeatIPC) window.handleHeartbeatIPC();
-                }, 250);
+                }, 50);
 
                 window.addEventListener("beforeunload", function() {
                     if (window.handleWindowCloseIPC) window.handleWindowCloseIPC();
@@ -990,14 +1141,15 @@ export class SimpleWindow {
             setAlwaysOnTopNative(this.webview, true);
         }
 
-        // Register internal IPC handlers BEFORE setHTML
-        this.webview.bind("handlePromptResultIPC", (reqId: string, result: any) => {
+        const handlePrompt = (reqId: string, result: any) => {
             const resolver = this.promptResolversMap.get(reqId);
             if (resolver) {
                 resolver(result);
                 this.promptResolversMap.delete(reqId);
             }
-        });
+        };
+        this.webview.bind("handlePromptResultIPC", handlePrompt);
+        try { this.webview.bind("onSimpleguiPromptResult", handlePrompt); } catch (e) {}
 
         let lastHeartbeat = Date.now();
         this.webview.bind("handleHeartbeatIPC", () => {
@@ -1028,17 +1180,60 @@ export class SimpleWindow {
             }
         }, 300);
 
-        // Bind all registered control events to Webview IPC BEFORE setHTML
+        // Auto-bind state synchronization IPC handlers for all controls BEFORE setHTML
+        for (const ctrl of this.controls) {
+            if (!ctrl || !ctrl.id) continue;
+            const cid = ctrl.id;
+
+            const changeBind = `on_${cid}_change`;
+            try {
+                this.webview.bind(changeBind, async (val: any) => {
+                    if (val !== undefined && val !== null) {
+                        this.formValuesStore[cid] = val;
+                    }
+                    const cb = this.eventHandlersMap.get(`${cid}:onchange`);
+                    if (cb) {
+                        try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${changeBind}:`, err); }
+                    }
+                });
+            } catch (e) {
+                // Ignore duplicate binds
+            }
+
+            const clickBind = `on_${cid}_click`;
+            try {
+                this.webview.bind(clickBind, async (val: any) => {
+                    if (val !== undefined && val !== null) {
+                        this.formValuesStore[cid] = val;
+                    }
+                    const cb = this.eventHandlersMap.get(`${cid}:onclick`);
+                    if (cb) {
+                        try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${clickBind}:`, err); }
+                    }
+                });
+            } catch (e) {
+                // Ignore duplicate binds
+            }
+        }
+
+        // Bind any remaining explicitly registered control events to Webview IPC BEFORE setHTML
         for (const [key, callback] of this.eventHandlersMap.entries()) {
             const [controlId, eventType] = key.split(":");
             if (!controlId || !eventType) continue;
-            const bindName = `on_${controlId}_${eventType.replace(/^on/i, "").toLowerCase()}`;
+            const eventLower = eventType.replace(/^on/i, "").toLowerCase();
+            if (eventLower === "change" || eventLower === "click") continue; // Already bound above
+
+            const bindName = `on_${controlId}_${eventLower}`;
             try {
-                this.webview.bind(bindName, (val: any) => {
+                this.webview.bind(bindName, async (val: any) => {
                     if (val !== undefined && val !== null) {
                         this.formValuesStore[controlId] = val;
                     }
-                    callback(this, val);
+                    try {
+                        await callback(this, val);
+                    } catch (err) {
+                        console.error(`Error in IPC event ${bindName}:`, err);
+                    }
                 });
             } catch (e) {
                 // Ignore duplicate binds
@@ -1055,16 +1250,35 @@ export class SimpleWindow {
     }
 
     // --- Developer Helpers & Inspection Methods ---
-    public hasControl(id: string): boolean {
-        return this.controls.some(c => c.id === id) || this.nonVisualControls.some(c => c.id === id);
+    public findControl(id: string, list: any[] = this.controls): any | null {
+        for (const item of list) {
+            if (item.id === id) return item;
+            if (item.children) {
+                const found = this.findControl(id, item.children);
+                if (found) return found;
+            }
+        }
+        return this.nonVisualControls.find(c => c.id === id) || null;
     }
 
-    public listControls(): string[] {
-        return [...this.controls.map(c => c.id), ...this.nonVisualControls.map(c => c.id)];
+    public hasControl(id: string): boolean {
+        return this.findControl(id) !== null;
+    }
+
+    public listControls(list: any[] = this.controls): string[] {
+        let ids: string[] = [];
+        for (const item of list) {
+            if (item.id) ids.push(item.id);
+            if (item.children) ids = ids.concat(this.listControls(item.children));
+        }
+        if (list === this.controls) {
+            ids = ids.concat(this.nonVisualControls.map(c => c.id));
+        }
+        return ids;
     }
 
     public getControlKind(id: string): string {
-        const ctrl = this.controls.find(c => c.id === id) || this.nonVisualControls.find(c => c.id === id);
+        const ctrl = this.findControl(id);
         return ctrl ? (ctrl.control_type || ctrl.type || "unknown") : "unknown";
     }
 
@@ -1872,6 +2086,664 @@ export class SimpleWindow {
 
     public set_debug_mode(enabled: boolean): this { return this.setDebugMode(enabled); }
     public get_debug_mode(): boolean { return this.getDebugMode(); }
+
+    // =========================================================================
+    // ⚡ Ergonomic Helpers & Beginner Shortcuts (Parity with ergonomics.v)
+    // =========================================================================
+    public listItemsStore: Record<string, string[]> = {};
+    public statusText = "";
+
+    // 1. Dialog Shortcuts
+    public info(titleOrMessage: string, message?: string): this {
+        const title = message ? titleOrMessage : "Information";
+        const msg = message ? message : titleOrMessage;
+        return this.showAlert(msg, title);
+    }
+
+    public warn(titleOrMessage: string, message?: string): this {
+        const title = message ? titleOrMessage : "Warning";
+        const msg = message ? message : titleOrMessage;
+        return this.showAlert(`⚠️ ${msg}`, title);
+    }
+
+    public errorDialog(titleOrMessage: string, message?: string): this {
+        const title = message ? titleOrMessage : "Error";
+        const msg = message ? message : titleOrMessage;
+        return this.showAlert(`❌ ${msg}`, title);
+    }
+
+    public error_dialog(titleOrMessage: string, message?: string): this {
+        return this.errorDialog(titleOrMessage, message);
+    }
+
+    public error(titleOrMessage: string, message?: string): this {
+        return this.errorDialog(titleOrMessage, message);
+    }
+
+    public confirm(question: string, title = "Confirm"): Promise<boolean> {
+        return this.showConfirm(question, title);
+    }
+
+    public ask(question: string, title = "Confirm"): Promise<boolean> {
+        return this.showConfirm(question, title);
+    }
+
+    public prompt(message: string, defaultVal = "", title = "Prompt"): Promise<string | null> {
+        return this.showPrompt(message, defaultVal, title);
+    }
+
+    // 2. Control Enabled / Visible & Batch Operations
+    public setControlEnabled(id: string, enabled: boolean): this {
+        const ctrl = this.controls.find(c => c.id === id);
+        if (ctrl) ctrl.enabled = enabled;
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                (function() {
+                    const el = document.getElementById("${id}");
+                    if (el) {
+                        el.disabled = ${!enabled};
+                        if (${!enabled}) {
+                            el.setAttribute("disabled", "disabled");
+                            el.style.opacity = "0.5";
+                            el.style.pointerEvents = "none";
+                            el.style.userSelect = "none";
+                        } else {
+                            el.removeAttribute("disabled");
+                            el.style.opacity = "1";
+                            el.style.pointerEvents = "auto";
+                            el.style.userSelect = "auto";
+                        }
+                        const children = el.querySelectorAll("input, select, textarea, button");
+                        children.forEach(function(child) {
+                            child.disabled = ${!enabled};
+                            if (${!enabled}) child.setAttribute("disabled", "disabled");
+                            else child.removeAttribute("disabled");
+                        });
+                    }
+                })();
+            `);
+        }
+        return this;
+    }
+
+    public set_control_enabled(id: string, enabled: boolean): this { return this.setControlEnabled(id, enabled); }
+
+    public setControlVisible(id: string, visible: boolean): this {
+        const ctrl = this.controls.find(c => c.id === id);
+        if (ctrl) ctrl.visible = visible;
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                (function() {
+                    const el = document.getElementById("${id}");
+                    if (el) el.style.display = "${visible ? 'block' : 'none'}";
+                })();
+            `);
+        }
+        return this;
+    }
+
+    public set_control_visible(id: string, visible: boolean): this { return this.setControlVisible(id, visible); }
+
+    public getControlEnabled(id: string): boolean {
+        const ctrl = this.controls.find(c => c.id === id);
+        return ctrl ? ctrl.enabled !== false : true;
+    }
+
+    public get_control_enabled(id: string): boolean { return this.getControlEnabled(id); }
+
+    public getControlVisible(id: string): boolean {
+        const ctrl = this.controls.find(c => c.id === id);
+        return ctrl ? ctrl.visible !== false : true;
+    }
+
+    public get_control_visible(id: string): boolean { return this.getControlVisible(id); }
+
+    public showControls(names: string[]): this {
+        names.forEach(name => this.setControlVisible(name, true));
+        return this;
+    }
+    public show_controls(names: string[]): this { return this.showControls(names); }
+    public batch_show_controls(names: string[]): this { return this.showControls(names); }
+
+    public hideControls(names: string[]): this {
+        names.forEach(name => this.setControlVisible(name, false));
+        return this;
+    }
+    public hide_controls(names: string[]): this { return this.hideControls(names); }
+    public batch_hide_controls(names: string[]): this { return this.hideControls(names); }
+
+    public enableControls(names: string[]): this {
+        names.forEach(name => this.setControlEnabled(name, true));
+        return this;
+    }
+    public enable_controls(names: string[]): this { return this.enableControls(names); }
+    public batch_enable_controls(names: string[]): this { return this.enableControls(names); }
+
+    public disableControls(names: string[]): this {
+        names.forEach(name => this.setControlEnabled(name, false));
+        return this;
+    }
+    public disable_controls(names: string[]): this { return this.disableControls(names); }
+    public batch_disable_controls(names: string[]): this { return this.disableControls(names); }
+
+    public enableAllControls(): this {
+        this.controls.forEach(c => this.setControlEnabled(c.id, true));
+        return this;
+    }
+    public enable_all_controls(): this { return this.enableAllControls(); }
+    public enableAll(): this { return this.enableAllControls(); }
+    public enable_all(): this { return this.enableAllControls(); }
+
+    public disableAllControls(): this {
+        this.controls.forEach(c => this.setControlEnabled(c.id, false));
+        return this;
+    }
+    public disable_all_controls(): this { return this.disableAllControls(); }
+    public disableAll(): this { return this.disableAllControls(); }
+    public disable_all(): this { return this.disableAllControls(); }
+
+    public setAll(values: Record<string, any>): this {
+        for (const [k, v] of Object.entries(values)) {
+            this.setValue(k, v);
+        }
+        return this;
+    }
+    public set_all(values: Record<string, any>): this { return this.setAll(values); }
+
+    public getAll(names: string[]): Record<string, any> {
+        const result: Record<string, any> = {};
+        for (const name of names) {
+            result[name] = this.getValue(name);
+        }
+        return result;
+    }
+    public get_all(names: string[]): Record<string, any> { return this.getAll(names); }
+
+    public toggleControlsEnabled(names: string[]): this {
+        names.forEach(n => this.toggleEnabled(n));
+        return this;
+    }
+    public toggle_controls_enabled(names: string[]): this { return this.toggleControlsEnabled(names); }
+
+    public toggleControlsVisible(names: string[]): this {
+        names.forEach(n => this.toggleVisible(n));
+        return this;
+    }
+    public toggle_controls_visible(names: string[]): this { return this.toggleControlsVisible(names); }
+
+    public flashControl(id: string): this {
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                const el = document.getElementById("${id}");
+                if (el) {
+                    el.style.transition = "outline 0.15s ease-in-out";
+                    el.style.outline = "2px solid #38bdf8";
+                    setTimeout(() => { el.style.outline = "none"; }, 300);
+                }
+            `);
+        }
+        return this;
+    }
+    public flash_control(id: string): this { return this.flashControl(id); }
+
+    public flashControls(names: string[]): this {
+        names.forEach(n => this.flashControl(n));
+        return this;
+    }
+    public flash_controls(names: string[]): this { return this.flashControls(names); }
+
+    public highlightControl(id: string, durationMs = 1000): this {
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                const el = document.getElementById("${id}");
+                if (el) {
+                    el.style.transition = "box-shadow 0.2s ease-in-out";
+                    el.style.boxShadow = "0 0 0 3px rgba(56, 189, 248, 0.6)";
+                    setTimeout(() => { el.style.boxShadow = "none"; }, ${durationMs});
+                }
+            `);
+        }
+        return this;
+    }
+    public highlight_control(id: string, durationMs = 1000): this { return this.highlightControl(id, durationMs); }
+
+    public highlightControls(names: string[], durationMs = 1000): this {
+        names.forEach(n => this.highlightControl(n, durationMs));
+        return this;
+    }
+    public highlight_controls(names: string[], durationMs = 1000): this { return this.highlightControls(names, durationMs); }
+
+    public toggleVisible(id: string): boolean {
+        const next = !this.getControlVisible(id);
+        this.setControlVisible(id, next);
+        return next;
+    }
+    public toggle_visible(id: string): boolean { return this.toggleVisible(id); }
+
+    public toggleEnabled(id: string): boolean {
+        const next = !this.getControlEnabled(id);
+        this.setControlEnabled(id, next);
+        return next;
+    }
+    public toggle_enabled(id: string): boolean { return this.toggleEnabled(id); }
+
+    // 3. Value Convenience Accessors & Modifiers
+    public increment(id: string, delta = 1): number {
+        const current = this.getInt(id);
+        const next = current + delta;
+        this.setInt(id, next);
+        return next;
+    }
+    public increment_value(id: string, delta = 1): number { return this.increment(id, delta); }
+
+    public toggleChecked(id: string): boolean {
+        const current = this.getBool(id);
+        const next = !current;
+        this.setBool(id, next);
+        return next;
+    }
+    public toggle_checked(id: string): boolean { return this.toggleChecked(id); }
+
+    public setProgress(id: string, value: number): this {
+        return this.setValue(id, value);
+    }
+    public set_progress(id: string, value: number): this { return this.setProgress(id, value); }
+
+    public getProgress(id: string): number {
+        return this.getInt(id);
+    }
+    public get_progress(id: string): number { return this.getProgress(id); }
+
+    public appendText(id: string, text: string): this {
+        const current = this.getText(id);
+        return this.setText(id, current + text);
+    }
+    public append_text(id: string, text: string): this { return this.appendText(id, text); }
+
+    public appendLine(id: string, line: string): this {
+        const current = this.getText(id);
+        return this.setText(id, current ? `${current}\n${line}` : line);
+    }
+    public append_line(id: string, line: string): this { return this.appendLine(id, line); }
+
+    public setManyTexts(values: Record<string, string>): this {
+        for (const [id, val] of Object.entries(values)) this.setText(id, val);
+        return this;
+    }
+    public set_many_texts(values: Record<string, string>): this { return this.setManyTexts(values); }
+
+    public getManyTexts(names: string[]): Record<string, string> {
+        const res: Record<string, string> = {};
+        for (const name of names) res[name] = this.getText(name);
+        return res;
+    }
+    public get_many_texts(names: string[]): Record<string, string> { return this.getManyTexts(names); }
+
+    public setManyChecked(values: Record<string, boolean>): this {
+        for (const [id, val] of Object.entries(values)) this.setBool(id, val);
+        return this;
+    }
+    public set_many_checked(values: Record<string, boolean>): this { return this.setManyChecked(values); }
+
+    public getManyChecked(names: string[]): Record<string, boolean> {
+        const res: Record<string, boolean> = {};
+        for (const name of names) res[name] = this.getBool(name);
+        return res;
+    }
+    public get_many_checked(names: string[]): Record<string, boolean> { return this.getManyChecked(names); }
+
+    public setManyNumbers(values: Record<string, number>): this {
+        for (const [id, val] of Object.entries(values)) this.setInt(id, val);
+        return this;
+    }
+    public set_many_numbers(values: Record<string, number>): this { return this.setManyNumbers(values); }
+
+    public getManyNumbers(names: string[]): Record<string, number> {
+        const res: Record<string, number> = {};
+        for (const name of names) res[name] = this.getInt(name);
+        return res;
+    }
+    public get_many_numbers(names: string[]): Record<string, number> { return this.getManyNumbers(names); }
+
+    public setManyVisibility(values: Record<string, boolean>): this {
+        for (const [id, val] of Object.entries(values)) this.setControlVisible(id, val);
+        return this;
+    }
+    public set_many_visibility(values: Record<string, boolean>): this { return this.setManyVisibility(values); }
+
+    public getManyVisibility(names: string[]): Record<string, boolean> {
+        const res: Record<string, boolean> = {};
+        for (const name of names) res[name] = this.getControlVisible(name);
+        return res;
+    }
+    public get_many_visibility(names: string[]): Record<string, boolean> { return this.getManyVisibility(names); }
+
+    public setManyEnabled(values: Record<string, boolean>): this {
+        for (const [id, val] of Object.entries(values)) this.setControlEnabled(id, val);
+        return this;
+    }
+    public set_many_enabled(values: Record<string, boolean>): this { return this.setManyEnabled(values); }
+
+    public getManyEnabled(names: string[]): Record<string, boolean> {
+        const res: Record<string, boolean> = {};
+        for (const name of names) res[name] = this.getControlEnabled(name);
+        return res;
+    }
+    public get_many_enabled(names: string[]): Record<string, boolean> { return this.getManyEnabled(names); }
+
+    public setManyErrors(values: Record<string, string>): this {
+        for (const [id, err] of Object.entries(values)) {
+            const ctrl = this.controls.find(c => c.id === id);
+            if (ctrl) ctrl.error = err;
+        }
+        return this;
+    }
+    public set_many_errors(values: Record<string, string>): this { return this.setManyErrors(values); }
+
+    public setManyPlaceholders(values: Record<string, string>): this {
+        for (const [id, ph] of Object.entries(values)) {
+            const ctrl = this.controls.find(c => c.id === id);
+            if (ctrl) ctrl.placeholder = ph;
+        }
+        return this;
+    }
+    public set_many_placeholders(values: Record<string, string>): this { return this.setManyPlaceholders(values); }
+
+    public setManyTooltips(values: Record<string, string>): this {
+        for (const [id, hint] of Object.entries(values)) {
+            const ctrl = this.controls.find(c => c.id === id);
+            if (ctrl) ctrl.tooltip = hint;
+        }
+        return this;
+    }
+    public set_many_tooltips(values: Record<string, string>): this { return this.setManyTooltips(values); }
+
+    public setStatus(text: string): this {
+        console.log(`[setStatus] Called with text: "${text}"`);
+        this.statusText = text;
+        if (this.hasControl("lblStatus")) this.setText("lblStatus", text);
+        else if (this.hasControl("status")) this.setText("status", text);
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                const el = document.getElementById("lblStatus") || document.getElementById("status");
+                if (el) el.textContent = ${JSON.stringify(text)};
+            `);
+        }
+        return this;
+    }
+    public set_status(text: string): this { return this.setStatus(text); }
+
+    public with_busy_state(names: string[], statusText: string, callback: (win: SimpleWindow) => any | Promise<any>): Promise<this> {
+        return this.withBusyState(names, statusText, callback);
+    }
+
+    public clearMany(names: string[]): this {
+        names.forEach(name => this.setValue(name, ""));
+        return this;
+    }
+    public clear_many(names: string[]): this { return this.clearMany(names); }
+
+    public resetMany(names: string[]): this {
+        for (const name of names) {
+            const ctrl = this.controls.find(c => c.id === name);
+            if (ctrl) {
+                if (ctrl.type === "checkbox" || ctrl.type === "switch") {
+                    this.setBool(name, ctrl.checked || false);
+                } else if (ctrl.type === "slider" || ctrl.type === "progress_bar") {
+                    this.setInt(name, ctrl.value || 0);
+                } else {
+                    this.setText(name, ctrl.value || "");
+                }
+            }
+        }
+        return this;
+    }
+    public reset_many(names: string[]): this { return this.resetMany(names); }
+
+    public setFocus(id: string): this {
+        if (this.isWindowRunning) {
+            this.evalJS(`const el = document.getElementById("${id}"); if(el) el.focus();`);
+        }
+        return this;
+    }
+    public set_focus(id: string): this { return this.setFocus(id); }
+    public focus(id: string): this { return this.setFocus(id); }
+
+    // 4. List Box & Dynamic Item Management
+    public getListItems(id: string): string[] {
+        return this.listItemsStore[id] || [];
+    }
+    public get_list_items(id: string): string[] { return this.getListItems(id); }
+
+    public setListItems(id: string, items: string[]): this {
+        this.listItemsStore[id] = [...items];
+        const currentVal = this.getValue(id);
+        let nextVal = currentVal;
+        if (Array.isArray(currentVal)) {
+            nextVal = currentVal.filter(v => items.includes(v));
+        } else if (currentVal && !items.includes(currentVal)) {
+            nextVal = items[0] || "";
+        } else if (!currentVal && items.length > 0) {
+            nextVal = items[0];
+        }
+        this.formValuesStore[id] = nextVal;
+
+        if (this.isWindowRunning) {
+            const selectedSet = new Set(Array.isArray(nextVal) ? nextVal : [nextVal]);
+            const optsHtml = items.map(it => {
+                const sel = selectedSet.has(it) ? ' selected="selected"' : '';
+                return `<option value="${it.replace(/"/g, '&quot;')}"${sel}>${it}</option>`;
+            }).join("");
+
+            this.evalJS(`
+                (function() {
+                    let el = document.getElementById("${id}");
+                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+                    if (el && el.tagName === "SELECT") {
+                        el.innerHTML = ${JSON.stringify(optsHtml)};
+                    }
+                })();
+            `);
+        }
+        return this;
+    }
+    public set_list_items(id: string, items: string[]): this { return this.setListItems(id, items); }
+    public updateListItems(id: string, items: string[]): this { return this.setListItems(id, items); }
+    public update_list_items(id: string, items: string[]): this { return this.setListItems(id, items); }
+
+    public addListItem(id: string, item: string): this {
+        const clean = (item || "").trim();
+        if (!clean) return this;
+        const items = this.getListItems(id);
+        if (!items.includes(clean)) {
+            items.push(clean);
+        }
+        this.setValue(id, clean);
+        return this.setListItems(id, items);
+    }
+    public add_list_item(id: string, item: string): this { return this.addListItem(id, item); }
+
+    public addListItems(id: string, newItems: string[]): this {
+        const items = this.getListItems(id);
+        const valid = newItems.map(i => (i || "").trim()).filter(Boolean);
+        valid.forEach(v => {
+            if (!items.includes(v)) items.push(v);
+        });
+        if (valid.length > 0) {
+            this.setValue(id, valid[valid.length - 1]);
+        }
+        return this.setListItems(id, items);
+    }
+    public add_list_items(id: string, newItems: string[]): this { return this.addListItems(id, newItems); }
+
+    public removeListItem(id: string, index: number): this {
+        const items = this.getListItems(id);
+        if (index >= 0 && index < items.length) {
+            items.splice(index, 1);
+            this.setListItems(id, items);
+        }
+        return this;
+    }
+    public remove_list_item(id: string, index: number): this { return this.removeListItem(id, index); }
+
+    public clearListItems(id: string): this {
+        return this.setListItems(id, []);
+    }
+    public clear_list_items(id: string): this { return this.clearListItems(id); }
+
+    public getListCount(id: string): number {
+        return this.getListItems(id).length;
+    }
+    public get_list_count(id: string): number { return this.getListCount(id); }
+
+    public getListSelectedText(id: string): string {
+        const val = this.getValue(id);
+        if (Array.isArray(val)) return val[0] || "";
+        return String(val || "");
+    }
+    public get_list_selected_text(id: string): string { return this.getListSelectedText(id); }
+
+    public removeSelectedListItem(id: string): this {
+        const selectedText = this.getListSelectedText(id);
+        const items = this.getListItems(id);
+        const idx = items.indexOf(selectedText);
+        if (idx >= 0) {
+            this.removeListItem(id, idx);
+        }
+        return this;
+    }
+    public remove_selected_list_item(id: string): this { return this.removeSelectedListItem(id); }
+
+    public setListMultiSelect(id: string, enabled: boolean): this {
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                (function() {
+                    let el = document.getElementById("${id}");
+                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+                    if (el && el.tagName === "SELECT") el.multiple = ${enabled};
+                })();
+            `);
+        }
+        return this;
+    }
+    public set_list_multi_select(id: string, enabled: boolean): this { return this.setListMultiSelect(id, enabled); }
+
+    public getListSelectedIndexes(id: string): number[] {
+        const items = this.getListItems(id);
+        const val = this.getValue(id);
+        if (Array.isArray(val)) {
+            return val.map(v => items.indexOf(v)).filter(i => i >= 0);
+        } else if (typeof val === "string") {
+            const idx = items.indexOf(val);
+            return idx >= 0 ? [idx] : [];
+        }
+        return [];
+    }
+    public get_list_selected_indexes(id: string): number[] { return this.getListSelectedIndexes(id); }
+
+    public setListSelectedIndexes(id: string, indexes: number[]): this {
+        const items = this.getListItems(id);
+        const selectedVals = indexes.map(i => items[i]).filter(Boolean);
+        this.setValue(id, selectedVals);
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                (function() {
+                    let el = document.getElementById("${id}");
+                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+                    if (el && el.tagName === "SELECT") {
+                        const idxs = new Set(${JSON.stringify(indexes)});
+                        Array.from(el.options).forEach((opt, idx) => {
+                            opt.selected = idxs.has(idx);
+                        });
+                    }
+                })();
+            `);
+        }
+        return this;
+    }
+    public set_list_selected_indexes(id: string, indexes: number[]): this { return this.setListSelectedIndexes(id, indexes); }
+
+    public getListSelectedTexts(id: string): string[] {
+        const items = this.getListItems(id);
+        return this.getListSelectedIndexes(id).map(i => items[i]).filter(Boolean);
+    }
+    public get_list_selected_texts(id: string): string[] { return this.getListSelectedTexts(id); }
+
+    public selectAllListItems(id: string): this {
+        const items = this.getListItems(id);
+        this.setValue(id, [...items]);
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                (function() {
+                    let el = document.getElementById("${id}");
+                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+                    if (el && el.tagName === "SELECT") {
+                        Array.from(el.options).forEach(opt => opt.selected = true);
+                    }
+                })();
+            `);
+        }
+        return this;
+    }
+    public select_all_list_items(id: string): this { return this.selectAllListItems(id); }
+
+    public clearListSelection(id: string): this {
+        this.setValue(id, "");
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                (function() {
+                    let el = document.getElementById("${id}");
+                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+                    if (el && el.tagName === "SELECT") {
+                        el.selectedIndex = -1;
+                        Array.from(el.options).forEach(opt => opt.selected = false);
+                    }
+                })();
+            `);
+        }
+        return this;
+    }
+    public clear_list_selection(id: string): this { return this.clearListSelection(id); }
+
+    public removeSelectedListItems(id: string): string[] {
+        const selectedIndexes = this.getListSelectedIndexes(id);
+        const items = this.getListItems(id);
+        const removed: string[] = [];
+        const remaining: string[] = [];
+        items.forEach((item, idx) => {
+            if (selectedIndexes.includes(idx)) removed.push(item);
+            else remaining.push(item);
+        });
+        this.setListItems(id, remaining);
+        return removed;
+    }
+    public remove_selected_list_items(id: string): string[] { return this.removeSelectedListItems(id); }
+
+    public onListDoubleClick(id: string, callback: EventCallback): this {
+        this.bindControlEvent(id, "onDoubleClick", callback);
+        return this;
+    }
+    public on_list_double_click(id: string, callback: EventCallback): this { return this.onListDoubleClick(id, callback); }
+
+    // 5. Settings Persistence (JSON File)
+    public saveValuesToFile(filePath: string): void {
+        const values = this.getFormValues();
+        fs.writeFileSync(filePath, JSON.stringify(values, null, 2), "utf-8");
+    }
+    public save_values_to_file(pathStr: string): void { this.saveValuesToFile(pathStr); }
+
+    public loadValuesFromFile(filePath: string): void {
+        if (fs.existsSync(filePath)) {
+            const content = fs.readFileSync(filePath, "utf-8");
+            const values = JSON.parse(content);
+            for (const [id, val] of Object.entries(values)) {
+                if (this.hasControl(id)) {
+                    this.setValue(id, val);
+                }
+            }
+        }
+    }
+    public load_values_from_file(pathStr: string): void { this.loadValuesFromFile(pathStr); }
 }
 
 // Production Theme Specification Lookup Table

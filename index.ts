@@ -696,7 +696,7 @@ export function generatePreviewHtml(spec: any): string {
         const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
-            const isInputType = ['input', 'search', 'form_search', 'textarea', 'form_textarea', 'select', 'form_dropdown', 'checkbox', 'form_checkbox', 'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'date_picker', 'form_date', 'time_picker', 'form_time', 'color', 'color_picker', 'color_well', 'form_color', 'form_code', 'form_stepper', 'form_drop_zone', 'tabs', 'pagination', 'toggle_button'].includes(ctrlType);
+            const isInputType = ['input', 'search', 'form_search', 'textarea', 'form_textarea', 'select', 'dropdown', 'form_dropdown', 'listbox', 'checkbox', 'form_checkbox', 'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'date_picker', 'form_date', 'time_picker', 'form_time', 'color', 'color_picker', 'color_well', 'form_color', 'form_code', 'stepper', 'number_stepper', 'form_stepper', 'form_drop_zone', 'tabs', 'pagination', 'toggle_button'].includes(ctrlType);
             if (isInputType) {
                 if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
                     handlers.onChange = `on_${c.id}_change`;
@@ -718,8 +718,8 @@ export function generatePreviewHtml(spec: any): string {
             const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
             let codeToExec = '';
             if (isFuncName) {
-                const valExpr = "this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:'')";
-                codeToExec = `if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
+                const valExpr = "this.tagName==='SELECT'&&this.multiple?Array.from(this.selectedOptions).map(o=>o.value):(this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:''))";
+                codeToExec = `if(event&&!event.isTrusted)return;if(this.disabled)return;if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
             } else {
                 codeToExec = clean;
             }
@@ -837,10 +837,10 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'color' || t === 'color_picker' || t === 'color_well' || t === 'form_color') {
             const val = c.value || '#0284c7';
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:2px 8px;cursor:pointer;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${val}"${ev} style="width:28px;height:24px;border:none;border-radius:4px;cursor:pointer;background:transparent;" oninput="if(this.nextElementSibling)this.nextElementSibling.textContent=this.value.toUpperCase();"><span class="color-hex" style="font-size:11px;font-weight:700;color:${color};font-family:monospace;">${val.toUpperCase()}</span></div>\n`;
-        } else if (t === 'progress' || t === 'form_progress') {
+        } else if (t === 'progress' || t === 'progress_bar' || t === 'form_progress') {
             const val = c.value !== undefined ? c.value : 60;
             const progBg = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div>` : ''}<div style="width:100%;height:8px;background:${progBg};border-radius:4px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : accent};border-radius:4px;transition:width 0.3s;"></div></div></div>\n`;
+            controls += `<div${id}${titleAttr} class="rad-progress" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div>` : ''}<div style="width:100%;height:8px;background:${progBg};border-radius:4px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : accent};border-radius:4px;transition:width 0.3s;"></div></div></div>\n`;
         } else if (t === 'circular_progress') {
             const val = c.value !== undefined ? c.value : 75;
             const r = 36; const circ = 2 * Math.PI * r;
@@ -851,17 +851,17 @@ export function generatePreviewHtml(spec: any): string {
             const val = c.value !== undefined ? c.value : 3;
             const starBg = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
             controls += `<div${id}${titleAttr} data-value="${val}" style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height-8,16)}px;">${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;color:${i<=val?'#f59e0b':starBg};transition:color 0.1s;" onclick="const parent=this.parentNode;parent.dataset.value='${i}';parent.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'});if(window['${c.id}_onChange'])window['${c.id}_onChange'](${i});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${i});" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="const cur=parseInt(this.parentNode.dataset.value||'${val}');this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<cur?'#f59e0b':'${starBg}'})">★</span>`).join('')}</div>\n`;
-        } else if (t === 'stepper') {
+        } else if (t === 'stepper' || t === 'number_stepper') {
             const val = c.value !== undefined ? c.value : 5;
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;color:${color};"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;">${val}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div>\n`;
-        } else if (t === 'badge') {
+        } else if (t === 'badge' || t === 'status_badge') {
             const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : '#10b981';
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:20px;';
             controls += `<div${id}${titleAttr} style="${base(c)}background:${badgeBg};color:${color};${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${text}</div>\n`;
         } else if (t === 'image') {
             const imgBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'dashed'};` : `border:1px dashed ${border};`;
             controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${imgBorder}${defRadius}display:flex;align-items:center;justify-content:center;color:${color};font-size:11px;">🖼️ ${text||'Image'}</div>\n`;
-        } else if (t === 'divider') {
+        } else if (t === 'divider' || t === 'separator') {
             controls += `<hr${id}${titleAttr} style="${base(c)}height:1px;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : border};border:none;padding:0;margin:0;">\n`;
         } else if (t === 'panel') {
             const panelBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#e2e8f0' : '#1e293b');
@@ -900,7 +900,7 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'form_field' || t === 'form_password' || t === 'form_textarea') {
             const inputType = t === 'form_password' ? 'password' : (t === 'form_textarea' ? 'textarea' : 'text');
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === 'textarea' ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size||13}px;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;">`}</div>\n`;
-        } else if (t === 'select' || t === 'dropdown' || t === 'form_dropdown') {
+        } else if (t === 'select' || t === 'dropdown' || t === 'form_dropdown' || t === 'listbox') {
             const rawOpts = c.items || c.options || text || c.caption || 'Option 1, Option 2, Option 3';
             const optArray = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
             const curVal = c.value !== undefined ? String(c.value) : (optArray[0] || '');
@@ -909,12 +909,16 @@ export function generatePreviewHtml(spec: any): string {
                 return `<option value="${opt.replace(/"/g, '&quot;')}"${isSelected}>${opt}</option>`;
             }).join('');
 
-            const selectInnerStyle = `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 24px 0 10px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%2338bdf8'/></svg>");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 6px;box-sizing:border-box;`;
+            const isListBox = t === 'listbox';
+            const sizeAttr = isListBox ? ` size="${c.size || 5}"` : '';
+            const selectInnerStyle = isListBox
+                ? `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;box-sizing:border-box;`
+                : `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 24px 0 10px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%2338bdf8'/></svg>");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 6px;box-sizing:border-box;`;
 
             if (t === 'form_dropdown') {
-                controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select${ev}${disabled}${reqAttr} onchange="if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+                controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select id="${c.id}"${sizeAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
             } else {
-                controls += `<div${id}${titleAttr} style="${base(c)}"><select${ev}${disabled}${reqAttr} onchange="if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+                controls += `<div style="${base(c)}"><select id="${c.id}"${sizeAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
             }
         } else if (t === 'form_link') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;

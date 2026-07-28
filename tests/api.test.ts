@@ -364,6 +364,13 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(d17).toContain("beginRow");
         expect(d17).toContain("beginGrid");
         expect(d17).toContain("beginCard");
+
+        const demo18Path = join(process.cwd(), "demos", "18_simplegui_ergonomics_demo.ts");
+        expect(existsSync(demo18Path)).toBe(true);
+        const d18 = readFileSync(demo18Path, "utf-8");
+        expect(d18).toContain("withBusyState");
+        expect(d18).toContain("saveValuesToFile");
+        expect(d18).toContain("increment");
         expect(d5).toContain("table");
         expect(d5).toContain("columns");
         expect(d5).toContain("rows");
