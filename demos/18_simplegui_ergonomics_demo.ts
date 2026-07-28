@@ -1,15 +1,17 @@
 import { simplegui } from "../index.ts";
 
-const win = simplegui.createWindow("⚡ SimpleGUI Ergonomics & Shortcuts Demo", 920, 720, {
+const win = simplegui.createWindow("⚡ SimpleGUI Ergonomics & Shortcuts Demo", 960, 730, {
     theme: "apple_dark"
 });
 
 // Title Banner
 win.addLabel("🚀 SimpleGUI Ergonomics & Shortcuts API Showcase")
-    .font(20, "#38bdf8", "700");
+    .font(20, "#38bdf8", "700")
+    .width(900);
 
 win.addLabel("High-level shortcuts, batch operations, value modifiers, dynamic listbox/dropdown managers, and JSON settings persistence.")
-    .font(12, "#94a3b8");
+    .font(12, "#94a3b8")
+    .width(900);
 
 win.addDivider();
 

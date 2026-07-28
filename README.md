@@ -11,6 +11,9 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 ### ⚡ Modern Productivity UI Controls Studio (`demo:productivity`)
 ![Modern Productivity UI Controls Studio Screenshot](screenshot_productivity.png)
 
+### ⚡ SimpleGUI Ergonomics & Shortcuts API Showcase (`demos/18_simplegui_ergonomics_demo.ts`)
+![SimpleGUI Ergonomics & Shortcuts Demo Screenshot](screenshot_ergonomics.png)
+
 ---
 
 ## 🌟 Highlights & Features
@@ -173,6 +176,8 @@ Launch your compiled `.app` bundle from macOS Finder in `dist/` or via terminal:
 ## 🎨 Declarative SimpleGUI Module (`simplegui`)
 
 Build native desktop GUIs directly in TypeScript using an intuitive, fluent, event-driven API inspired by [vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui) — no visual designer required! For complete API docs, see the dedicated [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md) reference.
+
+![SimpleGUI Ergonomics & Shortcuts Showcase Screenshot](screenshot_ergonomics.png)
 
 ```typescript
 import { simplegui } from "bun_rad_studio";

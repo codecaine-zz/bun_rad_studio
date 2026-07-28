@@ -240,8 +240,8 @@ export class SimpleWindow {
     private controlIdCounter: Record<string, number> = {};
     private webview: Webview | null = null;
     private isWindowRunning = false;
-    private formValuesStore: Record<string, any> = {};
-    private eventHandlersMap: Map<string, EventCallback> = new Map();
+    public formValuesStore: Record<string, any> = {};
+    public eventHandlersMap: Map<string, EventCallback> = new Map();
     private promptResolversMap: Map<string, (val: any) => void> = new Map();
 
     private layoutStack: LayoutFrame[] = [];
@@ -263,9 +263,9 @@ export class SimpleWindow {
         this.currentY = this.padding;
     }
 
-    private resolveThemeColors(name: string): { bg: string; fg: string } {
+    private resolveThemeColors(name: string, customBg?: string, customFg?: string): { bg: string; fg: string } {
         const theme = getTheme(name);
-        return { bg: theme.background_color, fg: theme.font_color };
+        return { bg: customBg || theme.background_color, fg: customFg || theme.font_color };
     }
 
     public setTheme(themeName: string): this {
@@ -647,10 +647,10 @@ export class SimpleWindow {
         return this.addVisualControl("progress_bar", 280, 20, { value, max_value: max, ...opts });
     }
 
-    public addDropdown(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+    public addDropdown(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         let selected: string | number | undefined;
         let onChange: EventCallback | undefined;
-        let opts: Partial<any> = {};
+        let opts: Record<string, any> = {};
 
         if (typeof selectedOrOnChange === "function") {
             onChange = selectedOrOnChange;
@@ -658,9 +658,9 @@ export class SimpleWindow {
         } else {
             selected = selectedOrOnChange;
             if (typeof onChangeOrOpts === "function") {
-                onChange = onChangeOrOpts;
+                onChange = onChangeOrOpts as EventCallback;
                 opts = optsArg;
-            } else if (typeof onChangeOrOpts === "object") {
+            } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
                 opts = onChangeOrOpts;
             }
         }
@@ -674,10 +674,10 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addListBox(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+    public addListBox(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         let selected: string | number | undefined;
         let onChange: EventCallback | undefined;
-        let opts: Partial<any> = {};
+        let opts: Record<string, any> = {};
 
         if (typeof selectedOrOnChange === "function") {
             onChange = selectedOrOnChange;
@@ -685,9 +685,9 @@ export class SimpleWindow {
         } else {
             selected = selectedOrOnChange;
             if (typeof onChangeOrOpts === "function") {
-                onChange = onChangeOrOpts;
+                onChange = onChangeOrOpts as EventCallback;
                 opts = optsArg;
-            } else if (typeof onChangeOrOpts === "object") {
+            } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
                 opts = onChangeOrOpts;
             }
         }
@@ -2021,11 +2021,7 @@ export class SimpleWindow {
             this.webview = null;
         }
     }
-
-    public close_window(): void {
-        this.close();
-    }
-
+    
     public exit(code = 0): void {
         this.isWindowRunning = false;
         process.exit(code);
@@ -2108,7 +2104,6 @@ export class SimpleWindow {
         return this;
     }
 
-    public resize(w: number, h: number): this { return this.set_size(w, h); }
     public get_width(): number { return this.width; }
     public get_height(): number { return this.height; }
 
@@ -2191,19 +2186,22 @@ export class SimpleWindow {
     public info(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Information";
         const msg = message ? message : titleOrMessage;
-        return this.showAlert(msg, title);
+        this.showAlert(msg, title);
+        return this;
     }
 
     public warn(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Warning";
         const msg = message ? message : titleOrMessage;
-        return this.showAlert(`⚠️ ${msg}`, title);
+        this.showAlert(`⚠️ ${msg}`, title);
+        return this;
     }
 
     public errorDialog(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Error";
         const msg = message ? message : titleOrMessage;
-        return this.showAlert(`❌ ${msg}`, title);
+        this.showAlert(`❌ ${msg}`, title);
+        return this;
     }
 
     public error_dialog(titleOrMessage: string, message?: string): this {
@@ -2759,7 +2757,7 @@ export class SimpleWindow {
 
     public getListSelectedTexts(id: string): string[] {
         const items = this.getListItems(id);
-        return this.getListSelectedIndexes(id).map(i => items[i]).filter(Boolean);
+        return this.getListSelectedIndexes(id).map(i => items[i]).filter((x): x is string => Boolean(x));
     }
     public get_list_selected_texts(id: string): string[] { return this.getListSelectedTexts(id); }
 
@@ -2876,7 +2874,7 @@ export function listThemes(): string[] {
 
 export function getTheme(themeName: string): SimpleGUITheme {
     const key = themeName.toLowerCase().replace(/[\s\-_]+/g, "_");
-    return SIMPLEGUI_THEMES[key] || SIMPLEGUI_THEMES["apple_light"];
+    return SIMPLEGUI_THEMES[key] || SIMPLEGUI_THEMES["apple_light"]!;
 }
 
 // OS Path Utilities
