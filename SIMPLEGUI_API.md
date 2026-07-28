@@ -16,7 +16,7 @@ The `simplegui` module (`src/simplegui.ts` / exported via `index.ts`) provides a
    - [6.2 Batch Control Operations](#62-batch-control-operations)
    - [6.3 Value Accessors & Modifiers](#63-value-accessors--modifiers)
    - [6.4 Dynamic List Box & Item Management](#64-dynamic-list-box--item-management)
-   - [6.5 Busy State & Status Bar Handler](#65-busy-state--status-bar-handler)
+   - [6.5 Async Busy State & Status Handler (`withBusyState`)](#65-async-busy-state--status-handler-withbusystate)
    - [6.6 JSON Settings Persistence](#66-json-settings-persistence)
 7. [Typed Accessor & Form Values API](#7-typed-accessor--form-values-api)
 8. [In-Window Glassmorphic Modal Dialogs](#8-in-window-glassmorphic-modal-dialogs)
@@ -39,7 +39,7 @@ const win = simplegui.createWindow("Quickstart App", 760, 520, {
     theme: "apple_dark"
 });
 
-// 2. Add header
+// 2. Add header label
 win.addLabel("⚡ Welcome to SimpleGUI").font(20, "#38bdf8", "700");
 
 // 3. Group controls inside a Card container with a Horizontal Row layout
@@ -116,7 +116,7 @@ Aligns controls side-by-side horizontally across the container and auto-calculat
 ```typescript
 win.beginRow();
 win.addLabel("Search:").width(60);
-win.addTextInput("Type keywords...").id("txtSearch").width(240);
+win.addTextInput("Type keywords...", (w, val) => console.log("Search query:", val)).id("txtSearch").width(240);
 win.addDropdown(["All", "Code", "Docs"], "All").id("cmbCategory").width(140);
 win.addButton("🔍 Search", (w) => { ... }).width(100);
 win.endRow();
@@ -144,9 +144,9 @@ Wraps controls inside a visual card with rounded corners, translucent background
 
 ```typescript
 win.beginCard("👤 Developer Profile");
-win.addTextInput("Full Name");
-win.addTextInput("Email Address");
-win.endCard(); // Auto-calculates height based on contained controls
+win.addTextInput("Full Name", "Ada Lovelace").id("txtName");
+win.addTextInput("Email Address", "ada@lovelace.org").id("txtEmail");
+win.endCard(); // Auto-calculates container height based on contained controls
 ```
 
 ### 5. Absolute Pixel Positioning (`.at(x, y)` / `.pos(x, y)`)
@@ -160,36 +160,38 @@ win.addButton("Floating Button").at(680, 20).size(120, 36);
 
 ## 4. Control Builder Reference
 
-### 1. Visual Control Builders
+SimpleGUI control builders support flexible parameter overloads (allowing callbacks `(win, val) => void` or options objects to be passed flexibly as 2nd or 3rd arguments).
 
-| Method | Return Type | Description |
+| Method | Return Type | Overload Signatures & Description |
 | --- | --- | --- |
 | `win.addLabel(text, opts?)` | `SimpleControlRef` | Adds a text label |
 | `win.addButton(text, onClick?, opts?)` | `SimpleControlRef` | Adds a clickable button |
-| `win.addTextInput(placeholder?, onChange?, opts?)` | `SimpleControlRef` | Adds a single-line text input field |
-| `win.addPasswordInput(placeholder?, onChange?, opts?)` | `SimpleControlRef` | Adds a masked password input field |
-| `win.addSearchInput(placeholder?, onChange?, opts?)` | `SimpleControlRef` | Adds a search input with search icon |
-| `win.addDropdown(items, selected?, onChange?, opts?)` | `SimpleControlRef` | Adds a single-select dropdown menu |
-| `win.addListBox(items, selected?, onChange?, opts?)` | `SimpleControlRef` | Adds a multi-row scrollable listbox control |
+| `win.addTextInput(placeholder?, initialValue \| onChange?, opts?)` | `SimpleControlRef` | Adds a text input (accepts initial text or `onChange` callback) |
+| `win.addPasswordInput(placeholder?, opts?)` | `SimpleControlRef` | Adds a masked password input field |
+| `win.addTextArea(placeholder?, initialValue?, opts?)` | `SimpleControlRef` | Adds a multi-line text area input field |
+| `win.addDropdown(items, selected \| onChange?, onChange \| opts?, opts?)` | `SimpleControlRef` | Adds a dropdown selection menu |
+| `win.addListBox(items, selected \| onChange?, onChange \| opts?, opts?)` | `SimpleControlRef` | Adds a multi-row scrollable listbox control |
 | `win.addCheckbox(text, checked?, onChange?, opts?)` | `SimpleControlRef` | Adds a labeled checkbox toggle |
 | `win.addRadioButton(text, checked?, onChange?, opts?)` | `SimpleControlRef` | Adds a radio option button |
 | `win.addSwitch(text, checked?, onChange?, opts?)` | `SimpleControlRef` | Adds an iOS/macOS styled toggle switch |
 | `win.addSlider(min, max, value, onChange?, opts?)` | `SimpleControlRef` | Adds a numerical range slider meter |
+| `win.addStepper(min, max, value, onChange?, opts?)` | `SimpleControlRef` | Adds a numerical stepper input with inc/dec buttons |
 | `win.addProgressBar(value, max?, opts?)` | `SimpleControlRef` | Adds a horizontal progress bar indicator |
-| `win.addBadge(text, variant?, opts?)` | `SimpleControlRef` | Adds a status pill badge (`success`, `warning`, `info`) |
-| `win.addTable(headers, rows, opts?)` | `SimpleControlRef` | Adds an interactive multi-column data table |
-| `win.addTreeView(nodes, opts?)` | `SimpleControlRef` | Adds a collapsible hierarchical file tree view |
-| `win.addCodeView(codeText, opts?)` | `SimpleControlRef` | Adds a syntax-highlighted code editor panel |
+| `win.addBadge(text, variant?, opts?)` | `SimpleControlRef` | Adds a status pill badge (`success`, `warning`, `info`, `error`) |
+| `win.addTable(headers, rows, onSelect?, opts?)` | `SimpleControlRef` | Adds an interactive multi-column data table |
+| `win.addTreeView(nodes, onSelect?, opts?)` | `SimpleControlRef` | Adds a collapsible hierarchical file tree view |
+| `win.addCodeView(codeText, language?, opts?)` | `SimpleControlRef` | Adds a syntax-highlighted code editor panel |
 | `win.addDatePicker(initialDate?, onChange?, opts?)` | `SimpleControlRef` | Adds a date selection picker field |
+| `win.addTimePicker(initialTime?, onChange?, opts?)` | `SimpleControlRef` | Adds a time selection picker field |
 | `win.addColorWell(initialColor?, onChange?, opts?)` | `SimpleControlRef` | Adds a color picker well with hex code display |
 | `win.addSegmentedControl(items, selectedIndex?, onChange?, opts?)` | `SimpleControlRef` | Adds a horizontal segmented option picker |
-| `win.addDivider()` | `SimpleControlRef` | Adds a horizontal section divider line |
+| `win.addDivider(opts?)` | `SimpleControlRef` | Adds a horizontal section divider line |
 
 ---
 
 ## 5. Fluent Property Chaining (`SimpleControlRef`)
 
-Every control builder returns a `SimpleControlRef` instance supporting method chaining:
+Every control builder returns a `SimpleControlRef` instance supporting rich method chaining:
 
 ```typescript
 win.addButton("🚀 Submit Profile", (w) => { ... })
@@ -221,28 +223,31 @@ win.addButton("🚀 Submit Profile", (w) => { ... })
 | `.tooltip(hint)` | `string` | Sets hover tooltip text |
 | `.placeholder(ph)` | `string` | Sets input placeholder text |
 | `.enabled(flag)` / `.enable()` / `.disable()` | `boolean` | Enables or disables control interaction |
+| `.disabled(flag?)` | `boolean` | Concise inverse helper for `.enabled(!flag)` |
+| `.readOnly(flag?)` | `boolean` | Sets read-only mode for input/textarea controls |
 | `.visible(flag)` / `.show()` / `.hide()` | `boolean` | Shows or hides the control |
 | `.focus()` | `()` | Moves keyboard focus to this control |
 | `.flash()` | `()` | Flashes a temporary blue outline highlight |
 | `.highlight(durationMs?)` | `number?` | Highlights control with blue box-shadow ring |
 | `.increment(delta?)` | `number?` | Increments numerical control value |
 | `.toggleChecked()` | `()` | Flashes boolean state for checkbox or switch |
+| `.value(val?)` | `any?` | Getter/Setter overload (`.value()` reads, `.value(x)` sets) |
+| `.text(txt?)` | `string?` | Getter/Setter overload (`.text()` reads, `.text(x)` sets) |
+| `.options(items)` | `string[]` | Updates options list for dropdowns and listboxes |
+| `.min(val)` / `.max(val)` / `.step(val)` | `number` | Updates slider or stepper boundaries |
 | `.appendText(text)` | `string` | Appends text to control |
 | `.appendLine(line)` | `string` | Appends new line of text to textarea or label |
 | `.onClick(handler)` | `(win, val) => void` | Binds click event callback |
 | `.onChange(handler)` | `(win, val) => void` | Binds change event callback |
-| `.onHover(handler)` | `(win, val) => void` | Binds mouse enter event callback |
-| `.onHoverExit(handler)` | `(win, val) => void` | Binds mouse leave event callback |
-| `.getValue()` | `() => any` | Reads current control value |
-| `.setValue(val)` | `(val: any) => this` | Updates control value dynamically |
-| `.getText()` | `() => string` | Reads text label of control |
-| `.setText(text)` | `(text: string) => this` | Updates text label dynamically |
+| `.onHover(handler)` / `.onHoverExit(handler)` | `(win, val) => void` | Binds mouse enter/leave event callbacks |
+| `.getValue()` / `.setValue(val)` | `(val: any)` | Reads or updates control value dynamically |
+| `.getText()` / `.setText(text)` | `(text: string)` | Reads or updates text label dynamically |
 
 ---
 
 ## 6. Ergonomics & Beginner Shortcuts API (Parity with `ergonomics.v`)
 
-SimpleGUI includes a comprehensive ergonomics layer ported directly from `vlang_simplegui/simplegui/ergonomics.v`. These shortcuts make desktop GUI programming intuitive, clean, and fast for developers of all skill levels.
+SimpleGUI includes a comprehensive ergonomics layer ported directly from `vlang_simplegui/simplegui/ergonomics.v`.
 
 ### 6.1 Dialog & Popup Shortcuts
 
@@ -381,9 +386,9 @@ win.onListDoubleClick("cmbFruits", (w, val) => {
 });
 ```
 
-### 6.5 Busy State & Status Bar Handler
+### 6.5 Async Busy State & Status Handler (`withBusyState`)
 
-Automatically manage loading states during asynchronous background operations:
+Automatically manage loading states during asynchronous background operations with full `Promise<this>` support:
 
 ```typescript
 // Sets window status message
@@ -392,10 +397,10 @@ win.setStatus("Syncing database records...");
 // Run a background task with automatic temporary control disable and status restoration
 await win.withBusyState(["btnSync", "txtDbUrl", "cmbCluster"], "Syncing data...", async (w) => {
     // Controls in the array are automatically disabled during execution
-    await new Promise(r => setTimeout(r, 2000));
+    await w.sleep(2000);
     w.info("Sync Complete", "All records updated successfully!");
 });
-// Controls are automatically re-enabled and status text restored!
+// Controls are automatically re-enabled and status text restored upon promise resolution!
 ```
 
 ### 6.6 JSON Settings Persistence
@@ -429,6 +434,11 @@ win.setFormValues({
 
 // Clear/reset all input controls back to defaults
 win.clearForm();
+win.resetForm(); // Alias
+
+// Clear specific input fields
+win.clearInput("txtName");
+win.clearInputs(["txtName", "txtEmail"]);
 ```
 
 ### Typed Getters & Setters

@@ -266,5 +266,56 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         win.loadValuesFromFile(tempPath);
         expect(win.getText("txtA")).toBe("Batch A");
     });
+
+    test("8. Refactored Flexible Overloads & SimpleControlRef Ergonomics", () => {
+        const win = simplegui.createWindow("Refactor Test", 600, 400);
+
+        let cbTriggered = false;
+        const txtOverload = win.addTextInput("Enter text...", (w, val) => {
+            cbTriggered = true;
+        }).id("txtOverload");
+
+        expect(txtOverload.spec.placeholder).toBe("Enter text...");
+        expect(txtOverload.spec.value).toBe("");
+
+        let dropdownTriggered = false;
+        const cmbOverload = win.addDropdown(["Option 1", "Option 2"], (w, val) => {
+            dropdownTriggered = true;
+        }).id("cmbOverload");
+
+        expect(cmbOverload.spec.value).toBe("Option 1");
+
+        // Fluent methods on SimpleControlRef
+        const sld = win.addSlider(0, 100, 50).id("sldRef")
+            .min(10)
+            .max(200)
+            .step(5)
+            .disabled(true)
+            .readOnly(true);
+
+        expect(sld.spec.min_value).toBe(10);
+        expect(sld.spec.max_value).toBe(200);
+        expect(sld.spec.step).toBe(5);
+        expect(sld.spec.enabled).toBe(false);
+        expect(sld.spec.readonly).toBe(true);
+
+        sld.value(75);
+        expect(sld.value()).toBe(75);
+
+        const txtRef = win.addTextInput("Text Ref").id("txtRef");
+        txtRef.text("Hello World");
+        expect(txtRef.text()).toBe("Hello World");
+
+        cmbOverload.options(["New Opt A", "New Opt B"]);
+        expect(win.getListItems("cmbOverload")).toEqual(["New Opt A", "New Opt B"]);
+
+        // Form reset and clear helpers
+        win.clearInput("txtRef");
+        expect(txtRef.text()).toBe("");
+
+        win.setValue("txtOverload", "Test Content");
+        win.resetForm();
+        expect(win.getText("txtOverload")).toBe("");
+    });
 });
 

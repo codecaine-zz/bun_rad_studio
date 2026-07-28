@@ -184,6 +184,8 @@ export class SimpleControlRef {
     hide(): this { return this.visible(false); }
     enable(): this { return this.enabled(true); }
     disable(): this { return this.enabled(false); }
+    disabled(flag = true): this { return this.enabled(!flag); }
+    readOnly(flag = true): this { this.spec.readonly = flag; return this; }
     focus(): this { this.window.setFocus(this.spec.id); return this; }
     flash(): this { this.window.flashControl(this.spec.id); return this; }
     highlight(durationMs = 1000): this { this.window.highlightControl(this.spec.id, durationMs); return this; }
@@ -191,6 +193,22 @@ export class SimpleControlRef {
     toggleChecked(): boolean { return this.window.toggleChecked(this.spec.id); }
     appendText(text: string): this { this.window.appendText(this.spec.id, text); return this; }
     appendLine(line: string): this { this.window.appendLine(this.spec.id, line); return this; }
+    
+    value(val?: any): any | this {
+        if (val === undefined) return this.getValue();
+        return this.setValue(val);
+    }
+    text(txt?: string): string | this {
+        if (txt === undefined) return this.getText();
+        return this.setText(txt);
+    }
+    options(items: string[]): this {
+        this.window.setListItems(this.spec.id, items);
+        return this;
+    }
+    min(val: number): this { this.spec.min_value = val; return this; }
+    max(val: number): this { this.spec.max_value = val; return this; }
+    step(val: number): this { this.spec.step = val; return this; }
 }
 
 interface LayoutFrame {
@@ -562,9 +580,28 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addTextInput(placeholder = "", initialValue = "", opts: Partial<any> = {}): SimpleControlRef {
+    public addTextInput(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: EventCallback | Partial<any> = {}): SimpleControlRef {
+        let initialValue = "";
+        let onChange: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof arg2 === "function") {
+            onChange = arg2 as EventCallback;
+            if (typeof arg3 === "object") opts = arg3;
+        } else if (typeof arg2 === "string") {
+            initialValue = arg2;
+            if (typeof arg3 === "function") {
+                onChange = arg3 as EventCallback;
+            } else if (typeof arg3 === "object") {
+                opts = arg3;
+            }
+        } else if (typeof arg2 === "object" && arg2 !== null) {
+            opts = arg2;
+        }
+
         const ref = this.addVisualControl("input", 280, 36, { placeholder, value: initialValue, ...opts });
         if (initialValue) this.formValuesStore[ref.spec.id] = initialValue;
+        if (onChange) ref.onChange(onChange);
         return ref;
     }
 
@@ -610,7 +647,24 @@ export class SimpleWindow {
         return this.addVisualControl("progress_bar", 280, 20, { value, max_value: max, ...opts });
     }
 
-    public addDropdown(items: string[], selected?: string | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+    public addDropdown(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+        let selected: string | number | undefined;
+        let onChange: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof selectedOrOnChange === "function") {
+            onChange = selectedOrOnChange;
+            if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+        } else {
+            selected = selectedOrOnChange;
+            if (typeof onChangeOrOpts === "function") {
+                onChange = onChangeOrOpts;
+                opts = optsArg;
+            } else if (typeof onChangeOrOpts === "object") {
+                opts = onChangeOrOpts;
+            }
+        }
+
         const text = items.join(", ");
         const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
         const ref = this.addVisualControl("select", 240, 36, { text, caption: text, value: initialVal, ...opts });
@@ -620,7 +674,24 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addListBox(items: string[], selected?: string | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+    public addListBox(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+        let selected: string | number | undefined;
+        let onChange: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof selectedOrOnChange === "function") {
+            onChange = selectedOrOnChange;
+            if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+        } else {
+            selected = selectedOrOnChange;
+            if (typeof onChangeOrOpts === "function") {
+                onChange = onChangeOrOpts;
+                opts = optsArg;
+            } else if (typeof onChangeOrOpts === "object") {
+                opts = onChangeOrOpts;
+            }
+        }
+
         const text = items.join(", ");
         const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
         const height = opts.height || (opts.size ? opts.size * 24 + 10 : 120);
@@ -814,6 +885,22 @@ export class SimpleWindow {
         return this;
     }
 
+    public resetForm(): this {
+        return this.clearForm();
+    }
+
+    public clearInput(id: string): this {
+        this.setValue(id, "");
+        return this;
+    }
+
+    public clearInputs(ids: string[]): this {
+        for (const id of ids) {
+            this.setValue(id, "");
+        }
+        return this;
+    }
+
     // --- Dialogs & Native Integration ---
     public showAlert(message: string, title = "Alert"): void {
         if (this.isWindowRunning) {
@@ -944,7 +1031,7 @@ export class SimpleWindow {
         return this.delay(ms) as Promise<void>;
     }
 
-    public withBusyState(names: string[], statusText: string, callback: (win: SimpleWindow, done: (completionStatus?: string) => void) => any | Promise<any>): this {
+    public async withBusyState(names: string[], statusText: string, callback: (win: SimpleWindow, done?: (completionStatus?: string) => void) => any | Promise<any>): Promise<this> {
         console.log(`[withBusyState] Starting... setting status to: ${statusText}`);
         let originalStatus = this.statusText;
         if (!originalStatus) {
@@ -961,7 +1048,10 @@ export class SimpleWindow {
         }
         this.setStatus(statusText);
         
+        let doneCalled = false;
         const done = (completionStatus?: string) => {
+            if (doneCalled) return;
+            doneCalled = true;
             console.log(`[withBusyState] Finished callback. Restoring control states...`);
             for (const [name, enabled] of Object.entries(originalStates)) {
                 this.setControlEnabled(name, enabled);
@@ -979,13 +1069,17 @@ export class SimpleWindow {
             }, 3000);
         };
 
-        const result = callback(this, done);
-        // If the callback is actually synchronous and didn't use callbacks
-        if (result && typeof result.then === 'function') {
-            result.then(done).catch((err: any) => {
-                console.error("[withBusyState] Promise rejected:", err);
+        try {
+            const result = callback(this, done);
+            if (result && typeof result.then === 'function') {
+                await result;
                 done();
-            });
+            } else {
+                done();
+            }
+        } catch (err) {
+            console.error("[withBusyState] Error in callback:", err);
+            done();
         }
         return this;
     }
