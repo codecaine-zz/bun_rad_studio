@@ -1,727 +1,666 @@
-# 🎨 SimpleGUI Module API Reference
+# 🎨 SimpleGUI Beginner-Friendly API Guide & Reference
 
-The `simplegui` module (`src/simplegui.ts` / exported via `index.ts`) provides a lightweight, fluent declarative GUI API matching `vlang_simplegui` for building native cross-platform desktop applications in TypeScript and Bun.
+Welcome to **SimpleGUI**! SimpleGUI is a lightweight, easy-to-learn toolkit for building modern desktop applications in TypeScript and Bun. Whether you are building your very first desktop app or creating a rapid prototype, SimpleGUI is designed so you can get up and running in minutes.
 
 ---
 
 ## 📑 Table of Contents
 
-1. [Quick Start Example](#1-quick-start-example)
-2. [Window Initialization & Options](#2-window-initialization--options)
-3. [Layout Systems & Containers](#3-layout-systems--containers)
-4. [Control Builder Reference](#4-control-builder-reference)
-5. [Fluent Property Chaining (`SimpleControlRef`)](#5-fluent-property-chaining-simplecontrolref)
-6. [Ergonomics & Beginner Shortcuts API (Parity with `ergonomics.v`)](#6-ergonomics--beginner-shortcuts-api-parity-with-ergonomicsv)
-   - [6.1 Dialog & Popup Shortcuts](#61-dialog--popup-shortcuts)
-   - [6.2 Batch Control Operations](#62-batch-control-operations)
-   - [6.3 Value Accessors & Modifiers](#63-value-accessors--modifiers)
-   - [6.4 Dynamic List Box & Item Management](#64-dynamic-list-box--item-management)
-   - [6.5 Async Busy State & Status Handler (`withBusyState`)](#65-async-busy-state--status-handler-withbusystate)
-   - [6.6 JSON Settings Persistence](#66-json-settings-persistence)
-7. [Typed Accessor & Form Values API](#7-typed-accessor--form-values-api)
-8. [In-Window Glassmorphic Modal Dialogs](#8-in-window-glassmorphic-modal-dialogs)
-9. [Window Controls, Themes & Lifecycle](#9-window-controls-themes--lifecycle)
-10. [Non-Visual Controls & Timers](#10-non-visual-controls--timers)
-11. [System & OS Path Helpers](#11-system--os-path-helpers)
-12. [Control Inspection & Debug Helpers](#12-control-inspection--debug-helpers)
-13. [Built-In Themes Specification](#13-built-in-themes-specification)
-14. [Complete Application Example](#14-complete-application-example)
+1. [🐣 5-Minute Quick Start](#1--5-minute-quick-start)
+2. [🧠 How SimpleGUI Works (Core Concepts)](#2--how-simplegui-works-core-concepts)
+3. [🪟 1. Creating Windows & Custom Settings](#3-1-creating-windows--custom-settings)
+4. [📐 2. Arranging Your UI (Layout Systems)](#4-2-arranging-your-ui-layout-systems)
+5. [🎛️ 3. Interactive Controls Reference](#5-3-interactive-controls-reference)
+6. [🔗 4. Styling Controls (Method Chaining)](#6-4-styling-controls-method-chaining)
+7. [⚡ 5. Ergonomics & Beginner Shortcuts](#7-5-ergonomics--beginner-shortcuts)
+   - [5.1 Popups & Message Dialogs](#51-popups--message-dialogs)
+   - [5.2 Group Operations (Enable, Disable, Show, Hide)](#52-group-operations-enable-disable-show-hide)
+   - [5.3 Quick Value Modifiers (Counters & Checkboxes)](#53-quick-value-modifiers-counters--checkboxes)
+   - [5.4 Dynamic Dropdown & List Box Management](#54-dynamic-dropdown--list-box-management)
+   - [5.5 Handling Background Tasks & Loading States](#55-handling-background-tasks--loading-states)
+   - [5.6 Saving & Loading App Settings to File](#56-saving--loading-app-settings-to-file)
+8. [📋 6. Form Handling & Easy Data Reading](#8-6-form-handling--easy-data-reading)
+9. [💬 7. In-Window Glass Dialogs & Prompts](#9-7-in-window-glass-dialogs--prompts)
+10. [⏱️ 8. Timers & Live Clock Updates](#10-8-timers--live-clock-updates)
+11. [📂 9. Computer Folders & Clipboard Helpers](#11-9-computer-folders--clipboard-helpers)
+12. [🎨 10. Built-in Visual Themes (17 Themes)](#12-10-built-in-visual-themes-17-themes)
+13. [💡 11. Beginner's "How Do I...?" Cheat Sheet](#13-11-beginners-how-do-i-cheat-sheet)
+14. [🚀 12. Complete Real-World Example App](#14-12-complete-real-world-example-app)
 
 ---
 
-## 1. Quick Start Example
+## 1. 🐣 5-Minute Quick Start
+
+Creating your first desktop window takes just a few lines of code!
 
 ```typescript
 import { simplegui } from "bun_rad_studio";
 
-// 1. Create a SimpleGUI window
-const win = simplegui.createWindow("Quickstart App", 760, 520, {
-    theme: "apple_dark"
+// Step 1: Create a window (Title, Width, Height)
+const win = simplegui.createWindow("My First Desktop App", 760, 520, {
+    theme: "apple_dark" // Pick a modern dark theme
 });
 
-// 2. Add header label
-win.addLabel("⚡ Welcome to SimpleGUI").font(20, "#38bdf8", "700");
+// Step 2: Add a welcoming header text
+win.addLabel("⚡ Welcome to SimpleGUI!").font(22, "#38bdf8", "700");
 
-// 3. Group controls inside a Card container with a Horizontal Row layout
-win.beginCard("User Authentication");
-win.beginRow();
-win.addLabel("Username:").width(90);
-win.addTextInput("e.g. alex_mercer").id("txtUser").width(240);
-win.endRow();
+// Step 3: Put inputs inside a neat Card section
+win.beginCard("User Login");
+  win.beginRow();
+    win.addLabel("Username:").width(90);
+    win.addTextInput("Type your username...").id("txtUser").width(240);
+  win.endRow();
 
-win.beginRow();
-win.addLabel("Password:").width(90);
-win.addPasswordInput("••••••••").id("txtPass").width(240);
-win.endRow();
+  win.beginRow();
+    win.addLabel("Password:").width(90);
+    win.addPasswordInput("••••••••").id("txtPass").width(240);
+  win.endRow();
 win.endCard();
 
-// 4. Action Button with Event Callback
+// Step 4: Add an interactive button with a click handler
 win.addButton("🚀 Login", (w) => {
-    const user = w.getText("txtUser") || "Guest";
-    w.info("Login Success", `Welcome back, ${user}!`);
+    // Read what the user typed in the text box using its ID!
+    const username = w.getText("txtUser") || "Friend";
+    w.info("Welcome!", `Hello ${username}, you are logged in!`);
 }).bg("#0284c7").color("#ffffff").bold().width(140).height(38);
 
-// 5. Run the native window event loop
+// Step 5: Display the window and start running your app!
 win.run();
 ```
 
+> [!TIP]
+> **How to run this code:** Save this code in a file called `app.ts` and run it in your terminal with: `bun run app.ts`!
+
 ---
 
-## 2. Window Initialization & Options
+## 2. 🧠 How SimpleGUI Works (Core Concepts)
 
-SimpleGUI provides three equivalent factory functions for creating a `SimpleWindow`:
+Before diving into the detailed API, here is the simple mental model for building apps with SimpleGUI:
 
-```typescript
-import { createWindow, newWindow, new_simple_window } from "bun_rad_studio";
-
-// Standard creation with options object
-const win1 = createWindow("App Title", 800, 600, {
-    theme: "apple_dark",
-    padding: 20,
-    spacing: 12,
-    alwaysOnTop: false
-});
-
-// Parity factory aliases matching vlang_simplegui
-const win2 = newWindow("App Title", 800, 600);
-const win3 = new_simple_window("App Title", 800, 600);
+```
+┌────────────────────────────────────────────────────────┐
+│ 🪟 Window (The main window box)                       │
+│  ├─ 📐 Layouts (Rows, Grids, Cards organize controls)  │
+│  ├─ 🎛️ Controls (Buttons, Inputs, Switches, Labels)   │
+│  └─ ⚡ Events (Code that runs when user clicks/types)  │
+└────────────────────────────────────────────────────────┘
 ```
 
-### `SimpleWindowOptions` Specification
-
-| Property | Type | Default | Description |
-| --- | --- | --- | --- |
-| `title` | `string` | `"SimpleGUI Application"` | Window title bar text |
-| `width` | `number` | `800` | Initial window width in pixels |
-| `height` | `number` | `600` | Initial window height in pixels |
-| `theme` | `string` | `"apple_dark"` | Active color theme name |
-| `background_color` | `string` | Theme default | Custom canvas background CSS color |
-| `font_color` | `string` | Theme default | Custom primary text CSS color |
-| `padding` | `number` | `20` | Canvas edge padding in pixels |
-| `spacing` | `number` | `12` | Default spacing between controls |
-| `alwaysOnTop` | `boolean` | `false` | Pins window above all other desktop windows |
+1. **The Window (`win`)**: Your desktop application's canvas. Everything you build is attached to a `SimpleWindow`.
+2. **Layouts (`beginRow`, `beginCard`, `beginGrid`)**: Think of layouts like invisible boxes or shelves. They automatically position buttons and text inputs so you don't have to calculate pixel coordinates by hand.
+3. **Control IDs (`.id("myInput")`)**: When you create an input box or checkbox, give it a unique `id`. Later, when the user clicks a button, you can ask the window: `"Hey win, what is the text inside 'myInput'?"`
+4. **Method Chaining (`.bg("#000").bold()`)**: Every control you create returns a builder object. You can stack settings together like building blocks: `.width(200).bg("blue").bold()`.
 
 ---
 
-## 3. Layout Systems & Containers
+## 3. 🪟 1. Creating Windows & Custom Settings
 
-SimpleGUI features 5 distinct layout paradigms for organizing controls:
+You can create a window using `createWindow`, or the shorter aliases `newWindow` / `new_simple_window`.
 
-### 1. Default Vertical Flow
-Controls added sequentially outside container frames automatically stack top-to-bottom with consistent `spacing`.
+```typescript
+import { createWindow } from "bun_rad_studio";
 
-### 2. Horizontal Row Flex Layout (`beginRow` / `endRow`)
-Aligns controls side-by-side horizontally across the container and auto-calculates row height.
+// Basic creation
+const win = createWindow("My App Title", 800, 600);
+
+// Advanced creation with options
+const customWin = createWindow("Custom App", 900, 650, {
+    theme: "apple_dark",     // Pick from 17 built-in themes!
+    padding: 24,             // Space between window edge & controls (in pixels)
+    spacing: 14,             // Space between stacked controls (in pixels)
+    alwaysOnTop: true        // Keeps this window above all other open desktop windows
+});
+```
+
+### Window Options Explained
+
+| Option Name | What it is | Default Value | Example |
+| --- | --- | --- | --- |
+| `title` | The text shown in the top title bar | `"SimpleGUI Application"` | `"My Notepad"` |
+| `width` | Window width in pixels | `800` | `1024` |
+| `height` | Window height in pixels | `600` | `768` |
+| `theme` | Color scheme name | `"apple_dark"` | `"catppuccin"`, `"nord"` |
+| `padding` | Inner margin space around window edges | `20` | `25` |
+| `spacing` | Gap between vertical controls | `12` | `16` |
+| `alwaysOnTop` | Keeps window floating over other apps | `false` | `true` |
+
+---
+
+## 4. 📐 2. Arranging Your UI (Layout Systems)
+
+SimpleGUI provides 5 layout choices so your app always looks clean and aligned:
+
+### 1. Default Vertical Stack (Top to Bottom)
+If you add controls one after another without opening a row or grid, SimpleGUI places them neatly from top to bottom.
+
+```typescript
+win.addLabel("Line 1");
+win.addLabel("Line 2"); // Placed right under Line 1
+```
+
+### 2. Side-by-Side Horizontal Row (`beginRow` / `endRow`)
+Use `beginRow()` when you want elements to sit next to each other horizontally (like a text input next to its search button).
 
 ```typescript
 win.beginRow();
-win.addLabel("Search:").width(60);
-win.addTextInput("Type keywords...", (w, val) => console.log("Search query:", val)).id("txtSearch").width(240);
-win.addDropdown(["All", "Code", "Docs"], "All").id("cmbCategory").width(140);
-win.addButton("🔍 Search", (w) => { ... }).width(100);
-win.endRow();
+  win.addLabel("Search:").width(60);
+  win.addTextInput("Type keywords...").id("txtSearch").width(240);
+  win.addButton("🔍 Go", (w) => console.log(w.getText("txtSearch")));
+win.endRow(); // Don't forget to close the row!
 ```
 
-### 3. Multi-Column Grid Layout (`beginGrid` / `endGrid`)
-Calculates column cell widths dynamically and wraps controls automatically into a multi-column grid matrix.
+### 3. Multi-Column Grid (`beginGrid` / `endGrid`)
+Need a dashboard with multiple columns? `beginGrid(columns, spacing)` automatically arranges controls into equal columns.
 
 ```typescript
-// 3-Column Grid with 16px gap between cells
+// Create a 3-column layout with 16px gap between cells
 win.beginGrid(3, 16);
-
-win.addTextInput("Item 1").id("g1");
-win.addTextInput("Item 2").id("g2");
-win.addTextInput("Item 3").id("g3");
-win.addDropdown(["Opt A", "Opt B"], "Opt A").id("g4"); // Wraps to row 2
-win.addSwitch("Enable Switch", true).id("g5");
-win.addButton("⚡ Action").bg("#059669");
-
+  win.addTextInput("First Name").id("txtFirst");
+  win.addTextInput("Middle Name").id("txtMid");
+  win.addTextInput("Last Name").id("txtLast");
+  // The next control automatically wraps down to Column 1 in Row 2!
+  win.addSwitch("Active Status", true).id("swtActive");
 win.endGrid();
 ```
 
-### 4. Group Card Containers (`beginCard` / `endCard`)
-Wraps controls inside a visual card with rounded corners, translucent background, and a header title.
+### 4. Visual Card Boxes (`beginCard` / `endCard`)
+Group related settings together inside a styled container card with rounded corners and a title header.
 
 ```typescript
-win.beginCard("👤 Developer Profile");
-win.addTextInput("Full Name", "Ada Lovelace").id("txtName");
-win.addTextInput("Email Address", "ada@lovelace.org").id("txtEmail");
-win.endCard(); // Auto-calculates container height based on contained controls
+win.beginCard("👤 Account Settings");
+  win.addTextInput("Email Address").id("txtEmail");
+  win.addPasswordInput("New Password").id("txtPass");
+win.endCard();
 ```
 
-### 5. Absolute Pixel Positioning (`.at(x, y)` / `.pos(x, y)`)
-Positions a control at exact pixel coordinates `(x, y)` when custom layout placement is needed.
+### 5. Custom Pixel Placement (`.at(x, y)`)
+If you ever want to place a button at an exact pixel location on the screen, use `.at(x, y)`:
 
 ```typescript
-win.addButton("Floating Button").at(680, 20).size(120, 36);
+// Position floating button at X=650px, Y=20px
+win.addButton("❓ Help").at(650, 20).size(90, 32);
 ```
 
 ---
 
-## 4. Control Builder Reference
+## 5. 🎛️ 3. Interactive Controls Reference
 
-SimpleGUI control builders support flexible parameter overloads (allowing callbacks `(win, val) => void` or options objects to be passed flexibly as 2nd or 3rd arguments).
+SimpleGUI comes with a rich set of built-in controls. Here is a friendly lookup guide:
 
-| Method | Return Type | Overload Signatures & Description |
-| --- | --- | --- |
-| `win.addLabel(text, opts?)` | `SimpleControlRef` | Adds a text label |
-| `win.addButton(text, onClick?, opts?)` | `SimpleControlRef` | Adds a clickable button |
-| `win.addTextInput(placeholder?, initialValue \| onChange?, opts?)` | `SimpleControlRef` | Adds a text input (accepts initial text or `onChange` callback) |
-| `win.addPasswordInput(placeholder?, opts?)` | `SimpleControlRef` | Adds a masked password input field |
-| `win.addTextArea(placeholder?, initialValue?, opts?)` | `SimpleControlRef` | Adds a multi-line text area input field |
-| `win.addDropdown(items, selected \| onChange?, onChange \| opts?, opts?)` | `SimpleControlRef` | Adds a dropdown selection menu |
-| `win.addListBox(items, selected \| onChange?, onChange \| opts?, opts?)` | `SimpleControlRef` | Adds a multi-row scrollable listbox control |
-| `win.addCheckbox(text, checked?, onChange?, opts?)` | `SimpleControlRef` | Adds a labeled checkbox toggle |
-| `win.addRadioButton(text, checked?, onChange?, opts?)` | `SimpleControlRef` | Adds a radio option button |
-| `win.addSwitch(text, checked?, onChange?, opts?)` | `SimpleControlRef` | Adds an iOS/macOS styled toggle switch |
-| `win.addSlider(min, max, value, onChange?, opts?)` | `SimpleControlRef` | Adds a numerical range slider meter |
-| `win.addStepper(min, max, value, onChange?, opts?)` | `SimpleControlRef` | Adds a numerical stepper input with inc/dec buttons |
-| `win.addProgressBar(value, max?, opts?)` | `SimpleControlRef` | Adds a horizontal progress bar indicator |
-| `win.addBadge(text, variant?, opts?)` | `SimpleControlRef` | Adds a status pill badge (`success`, `warning`, `info`, `error`) |
-| `win.addTable(headers, rows, onSelect?, opts?)` | `SimpleControlRef` | Adds an interactive multi-column data table |
-| `win.addTreeView(nodes, onSelect?, opts?)` | `SimpleControlRef` | Adds a collapsible hierarchical file tree view |
-| `win.addCodeView(codeText, language?, opts?)` | `SimpleControlRef` | Adds a syntax-highlighted code editor panel |
-| `win.addDatePicker(initialDate?, onChange?, opts?)` | `SimpleControlRef` | Adds a date selection picker field |
-| `win.addTimePicker(initialTime?, onChange?, opts?)` | `SimpleControlRef` | Adds a time selection picker field |
-| `win.addColorWell(initialColor?, onChange?, opts?)` | `SimpleControlRef` | Adds a color picker well with hex code display |
-| `win.addSegmentedControl(items, selectedIndex?, onChange?, opts?)` | `SimpleControlRef` | Adds a horizontal segmented option picker |
-| `win.addDivider(opts?)` | `SimpleControlRef` | Adds a horizontal section divider line |
+| Control Type | SimpleGUI Method | How to Use | Common Purpose |
+| --- | --- | --- | --- |
+| **Text Label** | `win.addLabel(text)` | `win.addLabel("Hello World")` | Displays static text or titles |
+| **Button** | `win.addButton(text, onClick)` | `win.addButton("Save", (w) => { ... })` | Triggers actions on click |
+| **Text Input** | `win.addTextInput(placeholder)` | `win.addTextInput("Enter email...").id("email")` | Single line text entry |
+| **Password Input** | `win.addPasswordInput(placeholder)` | `win.addPasswordInput("••••••").id("pass")` | Masks text input with dots |
+| **Text Area** | `win.addTextArea(placeholder)` | `win.addTextArea("Write notes...").id("notes")` | Multi-line text field |
+| **Dropdown Menu** | `win.addDropdown(items, default)` | `win.addDropdown(["Dark", "Light"], "Dark")` | Pick one option from popup list |
+| **List Box** | `win.addListBox(items, default)` | `win.addListBox(["Item 1", "Item 2"])` | Scrollable selection box |
+| **Checkbox** | `win.addCheckbox(text, isChecked)` | `win.addCheckbox("Remember Me", true)` | Toggle on/off options |
+| **Radio Button** | `win.addRadioButton(text, isChecked)` | `win.addRadioButton("Option A", true)` | Pick one option from a set |
+| **Toggle Switch** | `win.addSwitch(text, isChecked)` | `win.addSwitch("Enable Wifi", true)` | Modern iOS-styled toggle switch |
+| **Range Slider** | `win.addSlider(min, max, val)` | `win.addSlider(0, 100, 50)` | Volume or brightness meter slider |
+| **Stepper** | `win.addStepper(min, max, val)` | `win.addStepper(1, 10, 1)` | Number box with +/- buttons |
+| **Progress Bar** | `win.addProgressBar(val, max)` | `win.addProgressBar(75, 100)` | Progress loading indicator |
+| **Badge** | `win.addBadge(text, variant)` | `win.addBadge("ONLINE", "success")` | Status pill (`success`, `warning`, `error`, `info`) |
+| **Data Table** | `win.addTable(headers, rows)` | `win.addTable(["ID", "Name"], [["1", "Alice"]])` | Tabular data display |
+| **Tree View** | `win.addTreeView(nodes)` | `win.addTreeView([{ label: "Folder", children: [...] }])` | Hierarchical file or folder list |
+| **Code View** | `win.addCodeView(code, lang)` | `win.addCodeView("console.log('hi');", "typescript")` | Syntax highlighted code block |
+| **Date Picker** | `win.addDatePicker()` | `win.addDatePicker("2026-01-01")` | Select dates from a calendar |
+| **Time Picker** | `win.addTimePicker()` | `win.addTimePicker("12:00")` | Select times |
+| **Color Picker** | `win.addColorWell()` | `win.addColorWell("#38bdf8")` | Pick color hex codes visually |
+| **Segmented Tabs** | `win.addSegmentedControl(items)`| `win.addSegmentedControl(["Day", "Week", "Month"])` | Tab button bar |
+| **Divider Line** | `win.addDivider()` | `win.addDivider()` | Horizontal separation line |
 
 ---
 
-## 5. Fluent Property Chaining (`SimpleControlRef`)
+## 6. 🔗 4. Styling Controls (Method Chaining)
 
-Every control builder returns a `SimpleControlRef` instance supporting rich method chaining:
+When you create any control, you can immediately chain formatting methods to style it, give it an ID, change its width, adjust its colors, or attach tooltips:
 
 ```typescript
-win.addButton("🚀 Submit Profile", (w) => { ... })
-    .id("btnSubmit")
-    .width(180)
-    .height(40)
-    .font(14, "#ffffff", "700")
-    .bg("#0284c7")
-    .bold()
-    .tooltip("Click to save your profile settings")
-    .enabled(true);
+win.addButton("🚀 Submit Order", (w) => console.log("Submitted!"))
+    .id("btnSubmit")            // Give it a unique lookup name
+    .width(180)                 // Set width to 180 pixels
+    .height(42)                 // Set height to 42 pixels
+    .bg("#0284c7")              // Background color (CSS Hex or named color)
+    .color("#ffffff")           // Text color (White)
+    .font(15, "#ffffff", "700") // Font size 15px, white text, bold (700 weight)
+    .bold()                     // Shortcut to make text bold
+    .tooltip("Click here to send your order") // Hover hint text
+    .enabled(true);             // Enable or disable interaction
 ```
 
-### Reference Chain Methods
+### Popular Style & Action Chain Methods
 
-| Method | Arguments | Description |
-| --- | --- | --- |
-| `.id(idStr)` | `string` | Assigns a custom unique ID for direct lookup |
-| `.width(w)` | `number` | Sets explicit width in pixels |
-| `.height(h)` | `number` | Sets explicit height in pixels |
-| `.size(w, h)` | `number, number` | Sets explicit width and height |
-| `.at(x, y)` / `.pos(x, y)` | `number, number` | Sets explicit `(x, y)` top-left positioning |
-| `.bg(color)` | `string` | Sets custom CSS background color |
-| `.color(color)` | `string` | Sets text font color |
-| `.font(size, color?, weight?)` | `number, string?, string?` | Configures font size, color, and weight |
-| `.bold(flag?)` | `boolean` | Toggles bold font weight (`700`) |
-| `.italic(flag?)` | `boolean` | Toggles italic font style |
-| `.align(mode)` | `"left" \| "center" \| "right"` | Sets text alignment |
-| `.tooltip(hint)` | `string` | Sets hover tooltip text |
-| `.placeholder(ph)` | `string` | Sets input placeholder text |
-| `.enabled(flag)` / `.enable()` / `.disable()` | `boolean` | Enables or disables control interaction |
-| `.disabled(flag?)` | `boolean` | Concise inverse helper for `.enabled(!flag)` |
-| `.readOnly(flag?)` | `boolean` | Sets read-only mode for input/textarea controls |
-| `.visible(flag)` / `.show()` / `.hide()` | `boolean` | Shows or hides the control |
-| `.focus()` | `()` | Moves keyboard focus to this control |
-| `.flash()` | `()` | Flashes a temporary blue outline highlight |
-| `.highlight(durationMs?)` | `number?` | Highlights control with blue box-shadow ring |
-| `.increment(delta?)` | `number?` | Increments numerical control value |
-| `.toggleChecked()` | `()` | Flashes boolean state for checkbox or switch |
-| `.value(val?)` | `any?` | Getter/Setter overload (`.value()` reads, `.value(x)` sets) |
-| `.text(txt?)` | `string?` | Getter/Setter overload (`.text()` reads, `.text(x)` sets) |
-| `.options(items)` | `string[]` | Updates options list for dropdowns and listboxes |
-| `.min(val)` / `.max(val)` / `.step(val)` | `number` | Updates slider or stepper boundaries |
-| `.appendText(text)` | `string` | Appends text to control |
-| `.appendLine(line)` | `string` | Appends new line of text to textarea or label |
-| `.onClick(handler)` | `(win, val) => void` | Binds click event callback |
-| `.onChange(handler)` | `(win, val) => void` | Binds change event callback |
-| `.onHover(handler)` / `.onHoverExit(handler)` | `(win, val) => void` | Binds mouse enter/leave event callbacks |
-| `.getValue()` / `.setValue(val)` | `(val: any)` | Reads or updates control value dynamically |
-| `.getText()` / `.setText(text)` | `(text: string)` | Reads or updates text label dynamically |
+- **Identifier**: `.id("uniqueName")`
+- **Sizing**: `.width(200)`, `.height(40)`, `.size(200, 40)`
+- **Colors**: `.bg("#2563eb")`, `.color("#ffffff")`
+- **Text & Fonts**: `.font(16, "white", "bold")`, `.bold()`, `.italic()`, `.align("center")`
+- **User Hints**: `.tooltip("Help text on hover")`, `.placeholder("Type here...")`
+- **State Control**: `.enable()`, `.disable()`, `.enabled(boolean)`, `.disabled(boolean)`
+- **Visibility**: `.show()`, `.hide()`, `.visible(boolean)`
+- **Attention Highlights**: `.flash()`, `.highlight(2000)` (Glows blue for 2 seconds)
+- **Event Listeners**: `.onClick((win, val) => { ... })`, `.onChange((win, val) => { ... })`
 
 ---
 
-## 6. Ergonomics & Beginner Shortcuts API (Parity with `ergonomics.v`)
+## 7. ⚡ 5. Ergonomics & Beginner Shortcuts
 
-SimpleGUI includes a comprehensive ergonomics layer ported directly from `vlang_simplegui/simplegui/ergonomics.v`.
+SimpleGUI provides handy shortcut functions that make common programming tasks quick and effortless!
 
-### 6.1 Dialog & Popup Shortcuts
+### 5.1 Popups & Message Dialogs
+
+Displaying message alerts or asking users for confirmation takes just one line of code:
 
 ```typescript
-// Info Alert Popup
-win.info("Profile Updated", "Your changes have been saved successfully!");
-win.info("Operation Complete"); // Uses default "Information" title
+// ℹ️ Information Popup
+win.info("Saved!", "Your profile was saved successfully.");
 
-// Warning Alert Popup with ⚠️ Icon
-win.warn("Low Disk Space", "Available storage is below 5%");
+// ⚠️ Warning Alert
+win.warn("Low Disk Space", "Your storage is almost full (under 5%).");
 
-// Error Alert Popup with ❌ Icon
-win.errorDialog("Database Connection Failed", "Unable to reach remote host");
-win.error("Unexpected error occurred"); // Parity alias
+// ❌ Error Alert
+win.error("Connection Failed", "Unable to reach database server.");
 
-// Confirmation Dialog
-if (win.ask("Do you want to overwrite existing settings?", "Confirm Overwrite")) {
-    console.log("User confirmed overwrite");
+// ❓ Confirmation Question (Returns true if user clicks OK)
+if (win.ask("Are you sure you want to delete this file?", "Confirm Delete")) {
+    console.log("User clicked Yes/OK!");
 }
 
-// Immediate Quit & Terminate Process
-win.quit(); // Closes window and exits app process (alias of win.exit())
+// 🚪 Quick App Exit
+win.quit(); // Closes the window and exits the application cleanly
 ```
 
-### 6.2 Batch Control Operations
+---
 
-Operate on multiple controls simultaneously in a single clean method call:
+### 5.2 Group Operations (Enable, Disable, Show, Hide)
+
+Instead of updating controls one by one, manage whole groups at once using arrays of control IDs!
 
 ```typescript
-// Enable & Disable Control Groups
+// Disable multiple text inputs during background processing
 win.disableControls(["txtName", "txtEmail", "btnSave"]);
+
+// Re-enable them when finished
 win.enableControls(["txtName", "txtEmail", "btnSave"]);
 
-// Enable or Disable All Registered Controls
-win.disableAllControls(); // e.g. while processing a long background task
-win.enableAllControls();  // Restore when task finishes
-win.enableAll();          // Concise alias
-win.disableAll();         // Concise alias
+// Toggle visibility of secret panels
+win.hideControls(["secretPanel1", "secretPanel2"]);
+win.showControls(["secretPanel1", "secretPanel2"]);
 
-// Show & Hide Control Groups
-win.hideControls(["lblSecret", "txtSecretKey"]);
-win.showControls(["lblSecret", "txtSecretKey"]);
-
-// Toggle States Dynamically
-const isVisible = win.toggleVisible("txtPassword"); // Flips visibility & returns new state
-const isEnabled = win.toggleEnabled("btnSubmit");   // Flips enabled state & returns new state
-win.toggleControlsVisible(["panel1", "panel2"]);
-win.toggleControlsEnabled(["btnStep1", "btnStep2"]);
-
-// Flash & Highlight Controls for User Attention
-win.flashControl("txtApiKey");                       // 150ms outline flash
-win.flashControls(["txtUser", "txtPass"]);
-win.highlightControl("txtRequiredField", 2000);       // Glows with focus ring for 2000ms
-win.highlightControls(["f1", "f2"], 1500);
-
-// Batch Value Assignment & Retrieval
+// Fill out multiple form fields at once!
 win.setAll({
-    txtName: "Ada Lovelace",
-    txtEmail: "ada@algorithm.org",
-    cmbRole: "Lead Engineer"
+    txtName: "Alex Mercer",
+    txtEmail: "alex@example.com",
+    cmbRole: "Developer"
 });
 
-const values = win.getAll(["txtName", "txtEmail", "cmbRole"]);
-// Returns: { txtName: "Ada Lovelace", txtEmail: "...", cmbRole: "..." }
-```
-
-### 6.3 Value Accessors & Modifiers
-
-Convenient helper methods for modifying values directly on controls without boilerplate:
-
-```typescript
-// Increment & Decrement Numerical Controls
-const nextVal = win.increment("numCount", 1);  // Adds 1 (or custom delta) and returns new value
-win.increment("numScore", -5);                 // Decrements score by 5
-
-// Toggle Checkbox & Switch Controls
-const isChecked = win.toggleChecked("chkNotify"); // Flips boolean state & returns new state
-
-// Append Text & Append Line (Great for logs)
-win.appendText("txtLog", "Processing item #42...");
-win.appendLine("txtActivityLog", "[12:45:00] User logged in");
-
-// Typed Batch Value Operations
-win.setManyTexts({ lblStatus: "Ready", txtInput: "Hello" });
-win.getManyTexts(["lblStatus", "txtInput"]);
-
-win.setManyChecked({ chkOpt1: true, chkOpt2: false });
-win.getManyChecked(["chkOpt1", "chkOpt2"]);
-
-win.setManyNumbers({ numVolume: 80, sldBrightness: 100 });
-win.getManyNumbers(["numVolume", "sldBrightness"]);
-
-win.setManyVisibility({ panelAdmin: true, panelGuest: false });
-win.setManyEnabled({ btnExport: true, btnImport: false });
-win.setManyPlaceholders({ txtUser: "Enter Username", txtPass: "Enter Password" });
-win.setManyTooltips({ btnSave: "Saves profile to disk" });
-
-// Focus Management
-win.setFocus("txtSearchInput");
-win.focus("txtSearchInput");
-```
-
-### 6.4 Dynamic List Box & Item Management
-
-SimpleGUI provides built-in list box item management methods for dropdowns, listboxes, and segmented controls:
-
-```typescript
-win.addDropdown(["Apple", "Banana", "Cherry"], "Apple").id("cmbFruits");
-
-// Read and Update Items
-const items = win.getListItems("cmbFruits"); // ["Apple", "Banana", "Cherry"]
-const count = win.getListCount("cmbFruits"); // 3
-
-// Add and Remove Items
-win.addListItem("cmbFruits", "Dragonfruit");
-win.removeListItem("cmbFruits", 0); // Removes "Apple"
-win.clearListItems("cmbFruits");   // Clears all options
-win.setListItems("cmbFruits", ["Mango", "Peach", "Plum"]); // Replaces all options
-
-// Selection Helpers
-const selectedText = win.getListSelectedText("cmbFruits"); // "Mango"
-win.removeSelectedListItem("cmbFruits"); // Removes currently selected item
-
-// Multi-Select List Box Operations
-win.setListMultiSelect("cmbFruits", true);
-win.selectAllListItems("cmbFruits");
-win.clearListSelection("cmbFruits");
-const selectedTexts = win.getListSelectedTexts("cmbFruits");
-const selectedIndexes = win.getListSelectedIndexes("cmbFruits");
-win.setListSelectedIndexes("cmbFruits", [0, 2]);
-const removedItems = win.removeSelectedListItems("cmbFruits"); // Removes and returns selected items
-
-// Double Click Event Listener
-win.onListDoubleClick("cmbFruits", (w, val) => {
-    w.info("Double Clicked", `Selected item index: ${val}`);
-});
-```
-
-### 6.5 Async Busy State & Status Handler (`withBusyState`)
-
-Automatically manage loading states during asynchronous background operations with full `Promise<this>` support:
-
-```typescript
-// Sets window status message
-win.setStatus("Syncing database records...");
-
-// Run a background task with automatic temporary control disable and status restoration
-await win.withBusyState(["btnSync", "txtDbUrl", "cmbCluster"], "Syncing data...", async (w) => {
-    // Controls in the array are automatically disabled during execution
-    await w.sleep(2000);
-    w.info("Sync Complete", "All records updated successfully!");
-});
-// Controls are automatically re-enabled and status text restored upon promise resolution!
-```
-
-### 6.6 JSON Settings Persistence
-
-Easily export and restore application state to/from disk in standard JSON format:
-
-```typescript
-// Save all form values to a JSON settings file on disk
-win.saveValuesToFile("/Users/developer/.app_settings.json");
-
-// Restore form values from JSON file (missing fields are safely ignored)
-win.loadValuesFromFile("/Users/developer/.app_settings.json");
+// Read multiple fields into a single JavaScript object!
+const data = win.getAll(["txtName", "txtEmail", "cmbRole"]);
+// Returns: { txtName: "Alex Mercer", txtEmail: "...", cmbRole: "..." }
 ```
 
 ---
 
-## 7. Typed Accessor & Form Values API
+### 5.3 Quick Value Modifiers (Counters & Checkboxes)
 
-### Form Batch Operations
+Easily modify values on existing controls without manually reading and re-setting them:
 
 ```typescript
-// Read all form inputs as a key-value object
+// ➕ Increment or Decrement a Number Input or Slider
+win.increment("numItems", 1);  // Adds 1 to the current count
+win.increment("numItems", -1); // Subtracts 1 from the count
+
+// 🔄 Flip a Checkbox or Switch
+win.toggleChecked("chkNotification"); // Swaps checked between true and false
+
+// 📝 Append text to a Log Area
+win.appendLine("txtLog", "[12:00:00] User logged in.");
+win.appendLine("txtLog", "[12:01:15] Clicked Save button.");
+```
+
+---
+
+### 5.4 Dynamic Dropdown & List Box Management
+
+Add, remove, or modify items inside dropdown menus or listboxes while your app is running:
+
+```typescript
+// Create a dropdown menu
+win.addDropdown(["Option 1", "Option 2"], "Option 1").id("myDropdown");
+
+// Add a new item to the dropdown list
+win.addListItem("myDropdown", "Option 3");
+
+// Remove an item by index
+win.removeListItem("myDropdown", 0); // Removes "Option 1"
+
+// Get what the user currently selected
+const choice = win.getListSelectedText("myDropdown");
+console.log("User chose:", choice);
+
+// Replace all items in one shot
+win.setListItems("myDropdown", ["Red", "Green", "Blue"]);
+```
+
+---
+
+### 5.5 Handling Background Tasks & Loading States
+
+When performing a task that takes time (like loading data from a server), use `withBusyState`. It automatically disables specified controls, sets a status message, runs your async work, and then restores everything when done!
+
+```typescript
+win.addButton("☁️ Sync Data", async (w) => {
+    // Disable inputs and show status during 2-second download
+    await w.withBusyState(["btnSync", "txtUrl"], "⏳ Syncing data with cloud...", async (winContext) => {
+        await winContext.sleep(2000); // Simulate background network request
+        winContext.info("Success", "All cloud files synced!");
+    });
+    // Controls are automatically re-enabled here!
+});
+```
+
+---
+
+### 5.6 Saving & Loading App Settings to File
+
+Save your entire user form to a JSON file on disk and restore it later with a single command!
+
+```typescript
+// Save all control values to a local file
+win.saveValuesToFile("./user_settings.json");
+
+// Restore all control values from the local file
+win.loadValuesFromFile("./user_settings.json");
+```
+
+---
+
+## 8. 📋 6. Form Handling & Easy Data Reading
+
+Reading data typed by your user is simple and intuitive in SimpleGUI.
+
+### Read All Inputs as an Object
+
+```typescript
+// Get values of every input box, switch, and dropdown in the window as an object
 const formData = win.getFormValues();
-// Returns: { txtName: "Alex", cmbPlan: "Pro", swtNotify: true }
+console.log(formData);
+// Output: { txtUser: "alex", txtPass: "secret", swtNotify: true }
 
-// Bulk update form values
-win.setFormValues({
-    txtName: "Sarah Connor",
-    cmbPlan: "Enterprise"
-});
-
-// Clear/reset all input controls back to defaults
+// Clear every input field on the screen (great for a "Reset Form" button!)
 win.clearForm();
-win.resetForm(); // Alias
-
-// Clear specific input fields
-win.clearInput("txtName");
-win.clearInputs(["txtName", "txtEmail"]);
 ```
 
-### Typed Getters & Setters
+### Typed Accessors (Get & Set Specific Types)
+
+SimpleGUI provides direct helper functions to read string, number, or boolean values:
 
 ```typescript
-// String Accessors
-const textVal: string = win.getText("txtName");
-win.setText("txtName", "New Value");
+// 🔤 Text / String
+const name: string = win.getText("txtName");
+win.setText("txtName", "Sarah");
 
-// Boolean Accessors
-const isChecked: boolean = win.getBool("swtEnable");
-win.setBool("swtEnable", true);
+// 🔘 Boolean (Checkbox / Switch)
+const isSubscribed: boolean = win.getBool("swtSubscribe");
+win.setBool("swtSubscribe", true);
 
-// Integer Accessors
+// 🔢 Integers & Numbers
 const age: number = win.getInt("numAge");
-win.setInt("numAge", 30);
+win.setInt("numAge", 25);
 
-// Floating Point Accessors
 const price: number = win.getFloat("numPrice");
-win.setFloat("numPrice", 99.95);
-
-// Parity Snake Case Aliases (vlang_simplegui)
-win.get_text("txtName");
-win.set_text("txtName", "New Value");
-win.get_value("txtName");
-win.set_value("txtName", "New Value");
-win.get_bool("swtEnable");
-win.set_bool("swtEnable", true);
-win.get_int("numAge");
-win.set_int("numAge", 30);
-win.get_float("numPrice");
-win.set_float("numPrice", 99.95);
+win.setFloat("numPrice", 19.99);
 ```
 
 ---
 
-## 8. In-Window Glassmorphic Modal Dialogs
+## 9. 💬 7. In-Window Glass Dialogs & Prompts
 
-SimpleGUI renders non-blocking, glassmorphic modal dialogs inside the webview canvas:
+SimpleGUI can pop up non-blocking modal dialogs directly inside the window canvas:
 
 ```typescript
-// 1. Alert Box
-win.showAlert("Your profile has been saved successfully!", "Success");
-// Ergonomic shortcuts
-win.info("Changes applied.", "Success");
-win.warn("Caution: Unsaved changes", "Warning");
-win.error("Failed to connect", "Error");
+// 1. Alert Message Box
+win.showAlert("Your report has been generated!", "Report Ready");
 
-// 2. Confirm Box
-win.showConfirm("Are you sure you want to exit?", "Confirm Exit");
-// Ergonomic ask shortcut
-if (win.ask("Proceed with deletion?", "Confirm Delete")) { ... }
+// 2. Confirmation Dialog (Yes / No)
+win.showConfirm("Would you like to exit without saving?", "Unsaved Changes");
 
-// 3. Prompt Input Box (Async / Await)
-const apiKey = await win.showPrompt("Please enter your API Key:", "sk-test-12345", "Configuration Required");
+// 3. Prompt Input Box (Ask user for typed text input asynchronously)
+const apiKey = await win.showPrompt("Please enter your API Key:", "sk-default-key", "Enter Key");
 if (apiKey) {
-    console.log("Entered API Key:", apiKey);
+    console.log("User entered key:", apiKey);
 }
 ```
 
 ---
 
-## 9. Window Controls, Themes & Lifecycle
+## 10. ⏱️ 8. Timers & Live Clock Updates
 
-### Window Lifecycle & Process Exit
-
-| Function / Method | Signature | Description |
-| --- | --- | --- |
-| `win.close()` | `() => void` | Closes window frame (`webview.destroy()`) without exiting Bun process |
-| `win.close_window()` | `() => void` | Alias for `win.close()` |
-| `win.exit(code?)` | `(code?: number) => void` | Terminates process immediately (`process.exit(code)`) |
-| `win.quit(code?)` | `(code?: number) => void` | Alias for `win.exit()` |
-| `win.exitApp(code?)` | `(code?: number) => void` | Alias for `win.exit()` |
-| `win.exit_app(code?)` | `(code?: number) => void` | Alias for `win.exit()` |
-
-### Window Customization & Positioning
+Need to run background tasks periodically (like updating a live clock or monitoring server health)? Use timers!
 
 ```typescript
-// Toggle window always-on-top pin state
-win.setAlwaysOnTop(true);
+// Add a timer that ticks every 1000 milliseconds (1 second)
+const timer = win.addTimer(1000, (w) => {
+    const timeNow = new Date().toLocaleTimeString();
+    w.setText("lblClock", `⏰ Current Time: ${timeNow}`);
+}, { id: "myClockTimer" });
 
-// Toggle desktop fullscreen mode
-win.toggleFullscreen();
+// To stop the timer later:
+win.removeTimer("myClockTimer");
+```
 
-// Dynamically change active color theme
+---
+
+## 11. 📂 9. Computer Folders & Clipboard Helpers
+
+Access cross-platform desktop directories and system clipboard easily:
+
+```typescript
+import { homeDir, desktopDir, downloadsDir } from "bun_rad_studio";
+
+console.log("Home folder:", homeDir());          // e.g. "/Users/alex"
+console.log("Desktop folder:", desktopDir());    // e.g. "/Users/alex/Desktop"
+console.log("Downloads folder:", downloadsDir());// e.g. "/Users/alex/Downloads"
+
+// Copy text to the user's system clipboard (Ctrl+C / Cmd+C)
+win.copyToClipboard("Text copied to clipboard!");
+```
+
+---
+
+## 12. 🎨 10. Built-in Visual Themes (17 Themes)
+
+SimpleGUI includes 17 professionally crafted dark and light desktop color themes. Change themes instantly using `win.setTheme("theme_name")`!
+
+```typescript
+// Change theme dynamically at runtime!
 win.setTheme("catppuccin");
-win.set_theme("midnight");
-
-// Check running state
-if (win.isRunning()) {
-    console.log("Window event loop active");
-}
 ```
 
----
-
-## 10. Non-Visual Controls & Timers
-
-Add background timers that fire periodic callbacks to update UI widgets dynamically:
-
-```typescript
-// Fired every 1000ms (1 second)
-const timerRef = win.addTimer(1000, (w) => {
-    const timeStr = new Date().toLocaleTimeString();
-    w.setText("lblClock", `⏰ System Time: ${timeStr}`);
-}, { id: "clockTimer" });
-
-// Remove timer loop
-win.removeTimer("clockTimer");
-
-// Parity interval alias
-win.addInterval(500, (w) => { ... });
-```
-
----
-
-## 11. System & OS Path Helpers
-
-Utility functions for accessing cross-platform system directories and desktop clipboard:
-
-```typescript
-import { homeDir, tempDir, desktopDir, documentsDir, downloadsDir } from "bun_rad_studio";
-
-console.log("User Home:", homeDir());          // e.g. "/Users/developer"
-console.log("Temp Directory:", tempDir());     // e.g. "/tmp"
-console.log("Desktop Directory:", desktopDir()); // e.g. "/Users/developer/Desktop"
-console.log("Documents Directory:", documentsDir());
-console.log("Downloads Directory:", downloadsDir());
-
-// System Clipboard Integration
-win.copyToClipboard("Text copied to desktop clipboard!");
-```
-
----
-
-## 12. Control Inspection & Debug Helpers
-
-Inspect and validate controls at runtime:
-
-```typescript
-// Check if a control exists by ID
-if (win.hasControl("btnSubmit")) {
-    console.log("Submit button found");
-}
-
-// List all registered control IDs in window
-const ids: string[] = win.listControls();
-
-// Get kind/type string of a control
-const kind: string = win.getControlKind("txtUser"); // "input"
-
-// Require control (throws error if missing)
-win.requireControl("txtUser");
-
-// Enable debug logging mode
-win.setDebugMode(true);
-```
-
----
-
-## 13. Built-In Themes Specification
-
-SimpleGUI includes 17 curated desktop theme palettes:
-
-| Theme Key | Display Name | Type | Description |
+| Theme ID Key | Theme Name | Type | Description / Vibe |
 | --- | --- | --- | --- |
-| `apple_dark` | Apple Dark | Dark | macOS Dark Mode surface (Default) |
-| `apple_light` | Apple Light | Light | Clean macOS Aqua light canvas |
-| `midnight` | Midnight Space Gray | Dark | Pro dark titanium space gray theme |
-| `sonoma_emerald` | Sonoma Emerald | Dark | macOS Sonoma dark forest glass palette |
-| `ventura_amber` | Ventura Amber | Dark | macOS Ventura golden sunset dark hues |
-| `apple_sunset` | Apple Sunset | Dark | Warm macOS Mojave twilight sunset hues |
-| `catppuccin` | Catppuccin Mocha | Dark | Soothing lavender catppuccin dark mode |
-| `nord` | Nord | Dark | Arctic frost nord developer palette |
-| `dracula` | Dracula | Dark | High-contrast vampire purple palette |
-| `cyberpunk` | Cyberpunk | Dark | Neon glow dark contrast palette |
-| `github_dark` | GitHub Dark | Dark | Official GitHub dark interface palette |
-| `github_light` | GitHub Light | Light | Clean GitHub light canvas palette |
-| `navy_blue` | Navy Blue | Dark | Deep slate navy dark theme |
-| `forest_green` | Forest Green | Dark | Rich emerald green dark theme |
-| `soft_pastel` | Soft Pastel | Light | Apple Studio warm soft light theme |
-| `solarized_dark` | Solarized Dark | Dark | Precision engineered dark palette |
-| `solarized_light` | Solarized Light | Light | Precision engineered light palette |
+| `apple_dark` | Apple Dark | 🌙 Dark | Modern macOS Dark Mode canvas (Default) |
+| `apple_light` | Apple Light | ☀️ Light | Clean, bright macOS Aqua light canvas |
+| `midnight` | Midnight | 🌙 Dark | Deep space gray and titanium tones |
+| `sonoma_emerald` | Sonoma Emerald | 🌙 Dark | macOS Sonoma forest green glass aesthetic |
+| `ventura_amber` | Ventura Amber | 🌙 Dark | Warm golden sunset dark hues |
+| `apple_sunset` | Apple Sunset | 🌙 Dark | Cozy Mojave twilight hues |
+| `catppuccin` | Catppuccin | 🌙 Dark | Soothing pastel purple & lavender dark mode |
+| `nord` | Nord | 🌙 Dark | Arctic ice blue developer palette |
+| `dracula` | Dracula | 🌙 Dark | Popular high-contrast vampire purple theme |
+| `cyberpunk` | Cyberpunk | 🌙 Dark | Vibrant neon pink and cyan dark theme |
+| `github_dark` | GitHub Dark | 🌙 Dark | Official GitHub dark code palette |
+| `github_light` | GitHub Light | ☀️ Light | Official clean GitHub light palette |
+| `navy_blue` | Navy Blue | 🌙 Dark | Deep blue ocean dark palette |
+| `forest_green` | Forest Green | 🌙 Dark | Natural emerald green dark palette |
+| `soft_pastel` | Soft Pastel | ☀️ Light | Warm studio light canvas |
+| `solarized_dark` | Solarized Dark | 🌙 Dark | Precision engineered solarized dark canvas |
+| `solarized_light` | Solarized Light | ☀️ Light | Precision engineered solarized light canvas |
 
 ---
 
-## 14. Complete Application Example
+## 13. 💡 11. Beginner's "How Do I...?" Cheat Sheet
+
+Here are quick solutions to the most common tasks:
+
+### Q: How do I read text from an input box when a button is clicked?
+```typescript
+win.addTextInput("Enter name...").id("txtName");
+win.addButton("Submit", (w) => {
+    const userTyped = w.getText("txtName");
+    console.log("User typed:", userTyped);
+});
+```
+
+### Q: How do I change a label's text when a button is clicked?
+```typescript
+win.addLabel("Initial Status").id("lblStatus");
+win.addButton("Update", (w) => {
+    w.setText("lblStatus", "✅ Operation Complete!");
+});
+```
+
+### Q: How do I make a button blue and bold?
+```typescript
+win.addButton("Click Me")
+   .bg("#2563eb")
+   .color("#ffffff")
+   .bold();
+```
+
+### Q: How do I disable a button so the user can't click it?
+```typescript
+win.addButton("Save").id("btnSave").disabled(true);
+// Later, to re-enable it:
+win.enableControls(["btnSave"]);
+```
+
+### Q: How do I show an error popup message?
+```typescript
+win.error("Invalid Input", "Please enter a valid email address.");
+```
+
+---
+
+## 14. 🚀 12. Complete Real-World Example App
+
+Here is a complete, copy-paste ready application demonstrating form controls, layout cards, theme selection, timers, busy loading states, and ergonomic shortcuts!
 
 ```typescript
 import { simplegui } from "bun_rad_studio";
 
-const win = simplegui.createWindow("SimpleGUI Developer Studio", 880, 680, {
+// 1. Create Window
+const win = simplegui.createWindow("🚀 Developer Studio Desktop App", 860, 640, {
     theme: "apple_dark"
 });
 
-// Title Section
-win.addLabel("⚡ SimpleGUI Production Desktop App")
-    .font(20, "#38bdf8", "700");
+// 2. App Title Header
+win.addLabel("⚡ SimpleGUI Production App Studio")
+   .font(22, "#38bdf8", "700");
 
-win.addLabel("Declarative UI application with multi-column grid containers and interactive form validation.")
-    .font(12, "#94a3b8");
+win.addLabel("Build powerful cross-platform desktop interfaces effortlessly with TypeScript & Bun.")
+   .font(13, "#94a3b8");
 
 win.addDivider();
 
-// Multi-Column Grid Layout
+// 3. Multi-Column Grid Layout (2 Equal Columns)
 win.beginGrid(2, 16);
 
-// Column 1 Card: User Details
-win.beginCard("👤 User Account Details");
+  // --- Column 1: User Registration Card ---
+  win.beginCard("👤 User Account Details");
+    win.beginRow();
+      win.addLabel("Full Name:").width(90);
+      win.addTextInput("e.g. Alex Mercer").id("txtName").width(220);
+    win.endRow();
 
-win.beginRow();
-win.addLabel("Full Name:").width(100);
-win.addTextInput("e.g. Alex Mercer").id("txtName").width(240);
-win.endRow();
+    win.beginRow();
+      win.addLabel("Email:").width(90);
+      win.addTextInput("alex@example.com").id("txtEmail").width(220);
+    win.endRow();
 
-win.beginRow();
-win.addLabel("Email:").width(100);
-win.addTextInput("alex@example.com").id("txtEmail").width(240);
-win.endRow();
+    win.beginRow();
+      win.addLabel("Role:").width(90);
+      win.addSegmentedControl(["Developer", "Designer", "Lead"], 0).id("segRole").width(220);
+    win.endRow();
+  win.endCard();
 
-win.beginRow();
-win.addLabel("Role:").width(100);
-win.addSegmentedControl(["Developer", "Designer", "Manager"], 0).id("segRole").width(240);
-win.endRow();
+  // --- Column 2: App Preferences Card ---
+  win.beginCard("⚙️ System Preferences");
+    win.beginRow();
+      win.addLabel("Color Theme:").width(90);
+      win.addDropdown(["apple_dark", "catppuccin", "nord", "cyberpunk"], "apple_dark")
+         .id("cmbTheme")
+         .width(220);
+    win.endRow();
 
-win.endCard();
+    win.beginRow();
+      win.addLabel("Telemetry:").width(90);
+      win.addSwitch("Enable Live Reporting", true).id("swtTelemetry");
+    win.endRow();
 
-// Column 2 Card: Application Settings
-win.beginCard("⚙️ System Preferences");
-
-win.beginRow();
-win.addLabel("Theme:").width(100);
-win.addDropdown(["apple_dark", "apple_light", "midnight", "nord"], "apple_dark").id("cmbTheme").width(220);
-win.endRow();
-
-win.beginRow();
-win.addLabel("Telemetry:").width(100);
-win.addSwitch("Enable Live Reporting", true).id("swtTelemetry");
-win.endRow();
-
-win.beginRow();
-win.addLabel("Volume:").width(100);
-win.addSlider(0, 100, 80).id("sldVol").width(200);
-win.endRow();
-
-win.endCard();
+    win.beginRow();
+      win.addLabel("Sound Vol:").width(90);
+      win.addSlider(0, 100, 75).id("sldVol").width(200);
+    win.endRow();
+  win.endCard();
 
 win.endGrid();
 
-// Status Bar & Action Controls
-win.beginCard("Live Telemetry & Actions");
-win.beginRow();
-win.addBadge("SYSTEM ONLINE", "success").width(130);
-win.addBadge("IPC CONNECTED", "info").width(130);
-const lblTime = win.addLabel("System Time: Initializing...").id("lblTime").font(13, "#38bdf8", "600").width(300);
-win.endRow();
-
-// Non-visual live clock timer
-win.addTimer(1000, (w) => {
-    w.setText("lblTime", `⏰ System Time: ${new Date().toLocaleTimeString()}`);
-});
+// 4. Status Bar & Live Clock Card
+win.beginCard("📊 Real-Time Telemetry & Status");
+  win.beginRow();
+    win.addBadge("SYSTEM ONLINE", "success").width(130);
+    win.addBadge("IPC CONNECTED", "info").width(130);
+    win.addLabel("⏰ System Time: Initializing...")
+       .id("lblClock")
+       .font(13, "#38bdf8", "600")
+       .width(300);
+  win.endRow();
 win.endCard();
 
-// Footer Buttons with Ergonomic Helper Usage
+// Live Timer ticking every 1 second
+win.addTimer(1000, (w) => {
+    w.setText("lblClock", `⏰ System Time: ${new Date().toLocaleTimeString()}`);
+});
+
+// 5. Footer Action Buttons
 win.beginRow();
-win.addButton("🚀 Submit Form", async (w) => {
-    await w.withBusyState(["txtName", "txtEmail"], "Submitting Form...", async (winApp) => {
-        const vals = winApp.getFormValues();
-        const name = vals.txtName || "Guest";
-        winApp.info("Form Submission", `Submitted profile for: ${name}\nTheme: ${vals.cmbTheme}`);
-    });
-}).bg("#0284c7").color("#ffffff").bold().width(160).height(38);
+  // Submit Form Button with Async Loading State
+  win.addButton("🚀 Submit Profile", async (w) => {
+      await w.withBusyState(["txtName", "txtEmail"], "⏳ Saving profile...", async (winCtx) => {
+          const formData = winCtx.getFormValues();
+          const username = formData.txtName || "Guest";
+          winCtx.info("Profile Saved", `Successfully updated profile for ${username}!`);
+      });
+  }).bg("#0284c7").color("#ffffff").bold().width(160).height(40);
 
-win.addButton("🎨 Change Theme", (w) => {
-    const selectedTheme = w.getValue("cmbTheme") || "apple_light";
-    w.setTheme(selectedTheme);
-}).bg("#475569").color("#ffffff").width(150).height(38);
+  // Apply Theme Button
+  win.addButton("🎨 Apply Theme", (w) => {
+      const selectedTheme = w.getText("cmbTheme") || "apple_dark";
+      w.setTheme(selectedTheme);
+      w.info("Theme Changed", `Switched active theme to '${selectedTheme}'`);
+  }).bg("#475569").color("#ffffff").width(140).height(40);
 
-win.addButton("❌ Exit App", (w) => {
-    w.quit();
-}).bg("#dc2626").color("#ffffff").bold().width(120).height(38);
+  // Save Settings Button
+  win.addButton("💾 Save to File", (w) => {
+      w.saveValuesToFile("./app_config.json");
+      w.info("Saved", "Settings saved to app_config.json");
+  }).bg("#059669").color("#ffffff").width(140).height(40);
+
+  // Exit App Button
+  win.addButton("❌ Exit App", (w) => {
+      if (w.ask("Are you sure you want to quit?", "Confirm Exit")) {
+          w.quit();
+      }
+  }).bg("#dc2626").color("#ffffff").bold().width(120).height(40);
 win.endRow();
 
-// Launch Event Loop
+// 6. Launch Desktop Application Event Loop
 win.run();
 ```
+
+---
+
+🎉 **You are all set to build amazing desktop apps with SimpleGUI!**
