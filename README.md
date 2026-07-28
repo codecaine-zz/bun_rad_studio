@@ -224,6 +224,26 @@ win.run();
 
 ---
 
+## 📚 Documentation Reference: API.md vs. SIMPLEGUI_API.md
+
+**Bun RAD Studio** provides two distinct documentation guides depending on whether you are using the **Visual RAD Designer IDE** or the **Declarative `simplegui` Code-First Module**:
+
+| Feature / Topic | 📖 [API.md](file:///Users/codecaine/bun_rad_studio/API.md) | 🎨 [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md) |
+| --- | --- | --- |
+| **Primary Scope** | **Visual RAD Studio IDE & Core Engine** | **Declarative Code-First `simplegui` Module** |
+| **Approach** | Drag-and-drop canvas, Object Inspector, visual layout grid | Pure TypeScript code layout with fluent method chaining |
+| **Data Architecture** | `FormSpec` JSON schema, visual control properties, anchors & docking | `SimpleWindow` instance, auto-reflowing containers (`beginRow`, `beginCard`, `beginGrid`) |
+| **IPC & Backend** | Low-level Webview IPC bindings (`wv.bind(...)`), runtime helper methods | High-level TypeScript methods (`getFormValues()`, `showAlert()`, `saveFormToFile()`) |
+| **Code Exporters** | Multi-target generators (Bun TS, React + Tailwind, Vue 3, Python CustomTkinter, HTML5) | Direct native execution via Bun (`win.run()`) |
+| **Target Use Case** | Visual app design, form spec JSON inspection, multi-framework exporting | Rapid code-driven desktop app development without a visual designer |
+
+### 📖 Summary of API Files
+
+* **[API.md](file:///Users/codecaine/bun_rad_studio/API.md)**: Technical specification for the **Visual RAD Designer Studio**. Documents the `FormSpec` JSON data schema, 70+ visual component definitions, low-level Webview IPC protocol, window placement APIs, and code generator architectures.
+* **[SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md)**: Beginner-friendly developer reference for the **Declarative `simplegui` Module**. Documents window creation, reflowing card/grid/row layouts, fluent styling modifiers, popups/dialogs, timers, group operations, state helpers, and JSON settings persistence.
+
+---
+
 ## ⌨️ Keyboard Shortcuts & Power Actions
 
 | Shortcut | Action |
@@ -253,8 +273,9 @@ bun_rad_studio/
 ├── index.ts          # Main Bun entry point, FFI Window Manager & Webview IPC runner
 ├── package.json      # Dependencies (webview-bun, @types/bun)
 ├── tsconfig.json     # TypeScript compiler settings
-├── API.md            # Complete API & FormSpec JSON Schema Specification
-├── README.md         # Documentation & User Guide
+├── API.md            # Visual RAD Designer API & FormSpec JSON Schema Specification
+├── SIMPLEGUI_API.md  # Declarative Code-First SimpleGUI API Guide & Reference
+├── README.md         # Main Documentation & User Guide
 └── src/
     └── ide.html      # Complete RAD Designer Studio HTML5/CSS3/JS Application
 ```
