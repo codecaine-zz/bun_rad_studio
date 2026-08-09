@@ -1,9 +1,14 @@
 {
   "name": "bun_rad_studio",
+  "version": "1.0.0",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
+    "build": "bun run scripts/build.ts lib",
+    "build:binary": "bun run scripts/build.ts binary",
+    "build:all": "bun run scripts/build.ts all",
+    "clean": "rm -rf dist",
     "start": "bun run index.ts",
     "test": "bun test",
     "demo:standard": "bun run demos/01_standard_controls.ts",
