@@ -38,6 +38,7 @@ Welcome to **SimpleGUI**! SimpleGUI is a lightweight, fluent, and beginner-frien
 15. [💡 13. Beginner's "How Do I...?" Cheat Sheet](#cheat-sheet)
 16. [⚠️ 14. Troubleshooting & Common Pitfalls](#troubleshooting)
 17. [🚀 15. Complete Production Studio Application](#production-app)
+18. [🌟 16. Related RAD & GUI Ecosystem Projects](#related-projects)
 
 ---
 
@@ -812,4 +813,21 @@ win.run();
 
 ---
 
+<a id="related-projects"></a>
+## 16. 🌟 Related RAD & GUI Ecosystem Projects
+
+| Project | Description | Primary Use Case |
+| :--- | :--- | :--- |
+| **[bun_rad_studio](https://github.com/codecaine-zz/bun_rad_studio)** | Full-stack Rapid Application Development (RAD) visual designer and code studio powered by Bun, TypeScript, and modern web UI technologies. | Full-stack desktop & client web applications, rapid UI prototyping, and visual form design. |
+| **[bun_simplcli](https://github.com/codecaine-zz/bun_simplcli)** | Zero-dependency, high-performance console utility framework & RAD toolkit built natively for the Bun runtime (cross-platform OS system telemetry, hardware resource monitoring, ANSI styling, interactive prompts, spinners, progress meters, data tables, and logging). | Headless CLI tools, system administration utilities, terminal dashboards, and DevOps automation scripts in Bun (headless companion to Bun RAD Studio). |
+| **[vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui)** | Lightweight, high-productivity cross-platform desktop GUI toolkit and visual designer for the V programming language with 100% API parity. | Native desktop GUI applications, rapid UI prototyping, and cross-platform desktop utilities in V. |
+| **[vlang_simplecli](https://github.com/codecaine-zz/vlang_simplecli)** | Zero-dependency, high-productivity console & terminal RAD toolkit for V (ANSI colors, banners, spinners, progress meters, data tables, safe execution). | Headless CLI tools, DevOps automation scripts, and terminal dashboards (headless companion to SimpleGUI in V). |
+| **[simple_gg](https://github.com/codecaine-zz/simple_gg)** | Lightweight, hardware-accelerated 2D game & graphics engine with an immediate-mode GUI toolkit written in V. | 2D games, custom canvas widgets, interactive data visualizers, and creative coding. |
+| **[bun_webview](https://github.com/codecaine-zz/bun_webview)** | Standalone macOS `.app` packager and native webview window runtime for Bun applications with custom icons, Cocoa menus, and distribution bundling. | Packaging Bun TypeScript/JavaScript apps into native standalone macOS application bundles. |
+
+[⬆️ Back to Top](#table-of-contents)
+
+---
+
 🎉 **You are all set to build amazing desktop apps with SimpleGUI!**
+

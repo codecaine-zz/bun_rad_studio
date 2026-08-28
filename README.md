@@ -2,9 +2,13 @@
 
 A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** and **Webview-Bun**, inspired by classic Borland Delphi and Visual Basic 6, built with modern web technologies.
 
-![Bun RAD Studio Architecture](https://img.shields.io/badge/Bun-v1.3.14-orange?style=for-the-badge&logo=bun)
-![Webview-Bun](https://img.shields.io/badge/Webview--Bun-v2.4.0-blue?style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
+[![Bun](https://img.shields.io/badge/Bun-v1.3.14-orange?style=for-the-badge&logo=bun)](https://bun.sh)
+[![Webview-Bun](https://img.shields.io/badge/Webview--Bun-v2.4.0-blue?style=for-the-badge)](https://github.com/codecaine-zz/bun_webview)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
+[![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](API.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
+> 📖 **Quick Links:** [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)
 
@@ -13,6 +17,39 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ### ⚡ SimpleGUI Ergonomics & Shortcuts API Showcase (`demos/18_simplegui_ergonomics_demo.ts`)
 ![SimpleGUI Ergonomics & Shortcuts Demo Screenshot](screenshot_ergonomics.png)
+
+---
+
+## 📑 Table of Contents
+
+- [🌟 Highlights & Features](#highlights--features)
+  - [🚀 Visual RAD Form Designer](#visual-rad-form-designer)
+  - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
+  - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
+  - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
+  - [🎨 macOS & Windows 11 Desktop Form Themes](#macos--windows-11-desktop-form-themes)
+  - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
+  - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
+- [💻 Installation & Quick Start](#installation--quick-start)
+  - [Prerequisites](#prerequisites)
+  - [1. Clone & Install Dependencies](#1-clone--install-dependencies)
+  - [2. Launch RAD Studio](#2-launch-rad-studio)
+  - [3. Run Interactive Feature Demos](#3-run-interactive-feature-demos)
+- [📦 Dist Build Process](#dist-build-process)
+  - [Commands](#commands)
+  - [`dist/` Output Structure](#dist-output-structure)
+  - [Importing from `dist/` in Another Bun Project](#importing-from-dist-in-another-bun-project)
+- [📦 Compiling Standalone macOS Binaries (.app) with Custom Icons](#compiling-standalone-macos-binaries-app-with-custom-icons)
+  - [Option 1: Native Single-File Executable via `build:binary`](#option-1-native-single-file-executable-via-buildbinary)
+  - [Option 2: Full macOS `.app` Bundle with Custom Icons](#option-2-full-macos-app-bundle-with-custom-icons)
+- [🎨 Declarative SimpleGUI Module (`simplegui`)](#declarative-simplegui-module-simplegui)
+  - [Key Features](#key-features)
+- [📚 Documentation Reference: API.md vs. SIMPLEGUI_API.md](#documentation-reference-apimd-vs-simplegui_apimd)
+  - [📖 Summary of API Files](#summary-of-api-files)
+- [⌨️ Keyboard Shortcuts & Power Actions](#keyboard-shortcuts--power-actions)
+- [📂 Project Structure](#project-structure)
+- [🌟 Related RAD & GUI Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+- [📄 License](#license)
 
 ---
 
@@ -73,7 +110,7 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 ## 💻 Installation & Quick Start
 
 ### Prerequisites
-* [Bun Runtime](https://bun.com) (v1.0.0 or higher)
+* [Bun Runtime](https://bun.sh) (v1.0.0 or higher)
 * macOS, Windows, or Linux with WebKit/Webview support
 
 ### 1. Clone & Install Dependencies
@@ -86,57 +123,46 @@ bun install
 ### 2. Launch RAD Studio
 ```bash
 bun run index.ts
+# or
+bun start
 ```
 
 ### 3. Run Interactive Feature Demos
-Explore pre-built executable demo applications demonstrating controls, events, and dynamic helper functions:
+Explore pre-built executable demo applications demonstrating controls, events, dynamic helper functions, and the Declarative SimpleGUI engine:
+
+| Demo Script | NPM Command | Description |
+| :--- | :--- | :--- |
+| **[demos/01_standard_controls.ts](demos/01_standard_controls.ts)** | `bun run demo:standard` | Standard UI controls, `onClick`/`onChange` events, input validation, and control locking. |
+| **[demos/02_advanced_modern_controls.ts](demos/02_advanced_modern_controls.ts)** | `bun run demo:modern` | 10 modern visual controls & helper wrappers (Segmented, Stat Chart, Toast, Timeline, Tree View). |
+| **[demos/03_data_and_non_visual.ts](demos/03_data_and_non_visual.ts)** | `bun run demo:data` | Data-Aware `DBGrid`, `DBNavigator`, non-visual `Timer` component (1000ms ticks), and Code View. |
+| **[demos/04_window_placement_and_pin.ts](demos/04_window_placement_and_pin.ts)** | `bun run demo:window` | Native Window Placement API (9 screen presets), Always On Top pinning, and Fullscreen. |
+| **[demos/05_crud_todo_table.ts](demos/05_crud_todo_table.ts)** | `bun run demo:table` / `bun run demo:crud` | Dynamic Table Control Studio (Add/Remove Rows & Columns, Filtering, Sorting, Payroll Stats). |
+| **[demos/06_timer_control_studio.ts](demos/06_timer_control_studio.ts)** | `bun run demo:timer` | Non-Visual Timer Control Studio (onTimer tick loops, Clock, Telemetry Gauges, Countdown). |
+| **[demos/07_labeled_form_and_desktop_controls.ts](demos/07_labeled_form_and_desktop_controls.ts)** | `bun run demo:desktop` | Labeled Form Controls (`form_field`, `form_password`) & Desktop Application UI Controls Studio. |
+| **[demos/08_analytics_dashboard_template.ts](demos/08_analytics_dashboard_template.ts)** | `bun run demo:dashboard` | Executive Analytics Dashboard Template (Metric KPI Cards, Stat Charts, Alert Banners). |
+| **[demos/09_file_explorer_ide_template.ts](demos/09_file_explorer_ide_template.ts)** | `bun run demo:ide` | Developer File Explorer & IDE Studio Template (Tree View, Workspace Tabs, Code View). |
+| **[demos/10_db_studio_query_editor_template.ts](demos/10_db_studio_query_editor_template.ts)** | `bun run demo:db` | Database Studio & Query Editor Template (DB Navigator, DB-bound Data Grids, SQL View). |
+| **[demos/11_app_settings_preferences_template.ts](demos/11_app_settings_preferences_template.ts)** | `bun run demo:settings` | Desktop Application Settings & Preferences Template (Tabs, Toggles, Sliders, Time Pickers). |
+| **[demos/12_advanced_desktop_app_controls.ts](demos/12_advanced_desktop_app_controls.ts)** | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (Property Grid, Popup Menu, Calendar View). |
+| **[demos/13_productivity_controls_studio.ts](demos/13_productivity_controls_studio.ts)** | `bun run demo:productivity` | Modern Productivity UI Controls Studio (Kanban Board, Hotkeys, Split Button, Sparklines). |
+| **[demos/14_simplegui_fluent_form_demo.ts](demos/14_simplegui_fluent_form_demo.ts)** | `bun run demo:simplegui` | Declarative SimpleGUI Fluent Form Demo with method chaining and interactive events. |
+| **[demos/15_simplegui_all_controls_showcase.ts](demos/15_simplegui_all_controls_showcase.ts)** | `bun run demo:simplegui_all` | Comprehensive SimpleGUI All-Controls Showcase across standard, labeled, and dashboard widgets. |
+| **[demos/16_simplegui_parity_api_demo.ts](demos/16_simplegui_parity_api_demo.ts)** | `bun run demo:parity` | `vlang_simplegui` 100% API Parity showcase (`new_simple_window`, `add_input`, OS directories). |
+| **[demos/17_simplegui_layout_types_showcase.ts](demos/17_simplegui_layout_types_showcase.ts)** | `bun run demo:layouts` | SimpleGUI Layout Showcase (Rows, Grids, Cards, Absolute Positioning, and Resizing). |
+| **[demos/18_simplegui_ergonomics_demo.ts](demos/18_simplegui_ergonomics_demo.ts)** | `bun run demo:ergonomics` | SimpleGUI Ergonomics & Shortcuts API Showcase (Batch ops, value modifiers, JSON persistence). |
 
 ```bash
-# Demo 1: Standard UI Controls, Events & Input Helpers
-bun run demo:standard
-
-# Demo 2: 10 Advanced Modern Controls & Helper Wrappers (Segmented, Stat Chart, Toast, Timeline, Tree View)
-bun run demo:modern
-
-# Demo 3: Data-Aware DB Grid, Non-Visual Timer (1000ms Event Ticks), & Code View
-bun run demo:data
-
-# Demo 4: Native Window Placement API (9 Screen Presets), Always On Top Pinning, & Fullscreen
-bun run demo:window
-
-# Demo 5: Dynamic Table Control Studio (Add/Remove Rows & Columns, Filtering, Sorting, Payroll Stats & IPC Log)
-bun run demo:table
-
-# Demo 6: Non-Visual Timer Control Studio (onTimer Tick Loops, Clock, Telemetry Gauges, Countdown & Speed Adjustment)
-bun run demo:timer
-
-# Demo 7: Labeled Form Controls & Desktop Application UI Controls Studio
-bun run demo:desktop  # or: bun run demo:labeled
-
-# Demo 8: Executive Analytics Dashboard Template (Metric KPI Cards, Stat Charts, Alert Banners)
-bun run demo:dashboard
-
-# Demo 9: Developer File Explorer & IDE Studio Template (Tree View, Workspace Tabs, Monospaced Code View)
-bun run demo:ide
-
-# Demo 10: Database Studio & Query Editor Template (DB Navigator, DB-bound Data Grids, SQL Code View)
-bun run demo:db
-
-# Demo 11: Desktop Application Settings & Preferences Template (Tabs, Toggles, Sliders, Time Pickers)
-bun run demo:settings
-
-# Demo 12: Additional 5 Desktop Application Controls Studio (Property Grid, Popup Menu, Calendar View, Color Swatch, File Path Bar)
-bun run demo:app_controls
-
-# Demo 13: Modern Productivity UI Controls Studio (Kanban Board, Hotkey Recorder, Split Button, Sparklines, Metric Comparison, Activity Audit Feed, Workspace Tabs)
+# Run any demo directly with Bun:
 bun run demo:productivity
+bun run demo:ergonomics
+bun run demo:simplegui
 ```
 
 ---
 
 ## 📦 Dist Build Process
 
-Bun RAD Studio ships a full distribution build pipeline powered by `scripts/build.ts`. Three build targets are available:
+Bun RAD Studio ships a full distribution build pipeline powered by [scripts/build.ts](scripts/build.ts). Three build targets are available:
 
 ### Commands
 
@@ -229,12 +255,14 @@ To package your project into a complete macOS `.app` application bundle using [b
 #### Launching the Compiled App:
 Launch your compiled `.app` bundle from macOS Finder in `dist/` or via terminal:
 ```bash
+open "dist/My Application.app"
+```
 
 ---
 
 ## 🎨 Declarative SimpleGUI Module (`simplegui`)
 
-Build native desktop GUIs directly in TypeScript using an intuitive, fluent, event-driven API inspired by [vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui) — no visual designer required! For complete API docs, see the dedicated [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md) reference.
+Build native desktop GUIs directly in TypeScript using an intuitive, fluent, event-driven API inspired by [vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui) — no visual designer required! For complete API docs, see the dedicated [SIMPLEGUI_API.md](SIMPLEGUI_API.md) reference.
 
 ![SimpleGUI Ergonomics & Shortcuts Showcase Screenshot](screenshot_ergonomics.png)
 
@@ -284,7 +312,7 @@ win.run();
 * **Form Value Serialization**: `win.getFormValues()`, `win.setFormValues()`, `win.getValue(id)`, `win.setValue(id, val)`.
 * **Native Dialogs & OS APIs**: `showAlert()`, `showConfirm()`, `showPrompt()`, `copyToClipboard()`, `setAlwaysOnTop()`, `toggleFullscreen()`.
 * **Non-Visual Timer Loop**: `win.addTimer(intervalMs, onTick)`.
-* **Demos**: `bun run demo:simplegui` or `bun run demo:simplegui_all`.
+* **Demos**: `bun run demo:simplegui`, `bun run demo:simplegui_all`, or `bun run demo:ergonomics`.
 
 ---
 
@@ -292,7 +320,7 @@ win.run();
 
 **Bun RAD Studio** provides two distinct documentation guides depending on whether you are using the **Visual RAD Designer IDE** or the **Declarative `simplegui` Code-First Module**:
 
-| Feature / Topic | 📖 [API.md](file:///Users/codecaine/bun_rad_studio/API.md) | 🎨 [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md) |
+| Feature / Topic | 📖 [API.md](API.md) | 🎨 [SIMPLEGUI_API.md](SIMPLEGUI_API.md) |
 | --- | --- | --- |
 | **Primary Scope** | **Visual RAD Studio IDE & Core Engine** | **Declarative Code-First `simplegui` Module** |
 | **Approach** | Drag-and-drop canvas, Object Inspector, visual layout grid | Pure TypeScript code layout with fluent method chaining |
@@ -303,8 +331,8 @@ win.run();
 
 ### 📖 Summary of API Files
 
-* **[API.md](file:///Users/codecaine/bun_rad_studio/API.md)**: Technical specification for the **Visual RAD Designer Studio**. Documents the `FormSpec` JSON data schema, 70+ visual component definitions, low-level Webview IPC protocol, window placement APIs, and code generator architectures.
-* **[SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md)**: Beginner-friendly developer reference for the **Declarative `simplegui` Module**. Documents window creation, reflowing card/grid/row layouts, fluent styling modifiers, popups/dialogs, timers, group operations, state helpers, and JSON settings persistence.
+* **[API.md](API.md)**: Technical specification for the **Visual RAD Designer Studio**. Documents the `FormSpec` JSON data schema, 70+ visual component definitions, low-level Webview IPC protocol, window placement APIs, and code generator architectures.
+* **[SIMPLEGUI_API.md](SIMPLEGUI_API.md)**: Beginner-friendly developer reference for the **Declarative `simplegui` Module**. Documents window creation, reflowing card/grid/row layouts, fluent styling modifiers, popups/dialogs, timers, group operations, state helpers, and JSON settings persistence.
 
 ---
 
@@ -335,7 +363,7 @@ win.run();
 ```
 bun_rad_studio/
 ├── index.ts           # Main Bun entry point, FFI Window Manager & Webview IPC runner
-├── package.json       # Dependencies, scripts (build, build:binary, build:all, clean)
+├── package.json       # Dependencies, scripts (build, build:binary, build:all, clean, demos)
 ├── tsconfig.json      # TypeScript compiler settings
 ├── API.md             # Visual RAD Designer API & FormSpec JSON Schema Specification
 ├── SIMPLEGUI_API.md   # Declarative Code-First SimpleGUI API Guide & Reference
@@ -345,14 +373,27 @@ bun_rad_studio/
 ├── src/
 │   ├── ide.html       # Complete RAD Designer Studio HTML5/CSS3/JS Application
 │   └── simplegui.ts   # Declarative SimpleGUI module
-├── demos/             # Executable demo applications (bun run demo:*)
-├── tests/             # Test suite (bun test)
+├── demos/             # 18 Executable demo applications (bun run demo:*)
+├── tests/             # Comprehensive test suite (bun test)
 └── dist/              # Build output (generated by bun run build)
     ├── index.js       # Bundled ESM library
     ├── simplegui.js   # Bundled SimpleGUI module
     ├── src/ide.html   # Copied RAD Studio asset
     └── bun_rad_studio # Standalone binary (bun run build:binary)
 ```
+
+---
+
+## 🌟 Related RAD & GUI Ecosystem Projects
+
+| Project | Description | Primary Use Case |
+| :--- | :--- | :--- |
+| **[bun_rad_studio](https://github.com/codecaine-zz/bun_rad_studio)** | Full-stack Rapid Application Development (RAD) visual designer and code studio powered by Bun, TypeScript, and modern web UI technologies. | Full-stack desktop & client web applications, rapid UI prototyping, and visual form design. |
+| **[bun_simplcli](https://github.com/codecaine-zz/bun_simplcli)** | Zero-dependency, high-performance console utility framework & RAD toolkit built natively for the Bun runtime (cross-platform OS system telemetry, hardware resource monitoring, ANSI styling, interactive prompts, spinners, progress meters, data tables, and logging). | Headless CLI tools, system administration utilities, terminal dashboards, and DevOps automation scripts in Bun (headless companion to Bun RAD Studio). |
+| **[vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui)** | Lightweight, high-productivity cross-platform desktop GUI toolkit and visual designer for the V programming language with 100% API parity. | Native desktop GUI applications, rapid UI prototyping, and cross-platform desktop utilities in V. |
+| **[vlang_simplecli](https://github.com/codecaine-zz/vlang_simplecli)** | Zero-dependency, high-productivity console & terminal RAD toolkit for V (ANSI colors, banners, spinners, progress meters, data tables, safe execution). | Headless CLI tools, DevOps automation scripts, and terminal dashboards (headless companion to SimpleGUI in V). |
+| **[simple_gg](https://github.com/codecaine-zz/simple_gg)** | Lightweight, hardware-accelerated 2D game & graphics engine with an immediate-mode GUI toolkit written in V. | 2D games, custom canvas widgets, interactive data visualizers, and creative coding. |
+| **[bun_webview](https://github.com/codecaine-zz/bun_webview)** | Standalone macOS `.app` packager and native webview window runtime for Bun applications with custom icons, Cocoa menus, and distribution bundling. | Packaging Bun TypeScript/JavaScript apps into native standalone macOS application bundles. |
 
 ---
 

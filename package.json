@@ -30,7 +30,8 @@
     "demo:simplegui": "bun run demos/14_simplegui_fluent_form_demo.ts",
     "demo:simplegui_all": "bun run demos/15_simplegui_all_controls_showcase.ts",
     "demo:parity": "bun run demos/16_simplegui_parity_api_demo.ts",
-    "demo:layouts": "bun run demos/17_simplegui_layout_types_showcase.ts"
+    "demo:layouts": "bun run demos/17_simplegui_layout_types_showcase.ts",
+    "demo:ergonomics": "bun run demos/18_simplegui_ergonomics_demo.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

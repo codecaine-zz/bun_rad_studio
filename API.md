@@ -16,9 +16,7 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 8. [Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)](#8-form-themes--color-palettes-macos--windows-11-desktop-themes)
 9. [Quick Start & Developer Recipes](#9-quick-start--developer-recipes)
 10. [SimpleGUI Declarative Module Reference](#10-simplegui-declarative-module-reference)
-
----
-
+11. [Related RAD & GUI Ecosystem Projects](#11--related-rad--gui-ecosystem-projects)
 
 ---
 
@@ -386,23 +384,28 @@ bun run index.ts
 
 ## 7. Interactive Demos Suite (`demos/`)
 
-The repository includes interactive executable demo scripts demonstrating all controls, event listeners, and helper utility wrappers:
+The repository includes 18 interactive executable demo scripts demonstrating all visual components, event listeners, helper utility wrappers, and the declarative SimpleGUI engine:
 
 | Demo Script | Command | Key Features Demonstrated |
-| --- | --- | --- |
-| `demos/01_standard_controls.ts` | `bun run demo:standard` | Standard UI controls, `onClick`/`onChange` events, input validation, control locking/unlocking via `setControlEnabled` |
-| `demos/02_advanced_modern_controls.ts` | `bun run demo:modern` | All 10 modern visual controls & dedicated helper wrappers (`setSegmentedSelected`, `setStatChart`, `setToast`, `setTimePickerValue`, `setAccordionOpen`, `setTimelineSteps`, `setBreadcrumbs`, `setTreeNodes`, `setAvatarGroup`, `setRichSelectText`) |
-| `demos/03_data_and_non_visual.ts` | `bun run demo:data` | Data-Aware `DBGrid`, `DBNavigator`, non-visual `Timer` component (`onTimer` event), monospaced `CodeView`, Progress Bars, Gauges, Ratings |
-| `demos/04_window_placement_and_pin.ts` | `bun run demo:window` | Native Window Placement API (`setWindowPosition`), 9 screen placement presets, Always On Top window pinning (`setAlwaysOnTop`), Native Cocoa Fullscreen (`toggleFullscreenNative`), and Quit (`process.exit(0)`) |
-| `demos/05_crud_todo_table.ts` | `bun run demo:table` / `bun run demo:crud` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
-| `demos/06_timer_control_studio.ts` | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
-| `demos/07_labeled_form_and_desktop_controls.ts` | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
-| `demos/08_analytics_dashboard_template.ts` | `bun run demo:dashboard` | Executive Analytics Dashboard template featuring Metric KPI cards, Stat Charts with SVG sparklines, Alert Banners, Segmented Controls, and Progress Gauges |
-| `demos/09_file_explorer_ide_template.ts` | `bun run demo:ide` | Developer File Explorer & Code Studio template featuring Tree View directory navigation, Workspace Tab bar, Monospaced Code View, Search Bar, and Status Bar |
-| `demos/10_db_studio_query_editor_template.ts` | `bun run demo:db` | Database Studio & Query Editor template featuring DB Navigator, DB-bound Data Grids, SQL Code View, Property Inspector Grid, and DB Connection tray component |
-| `demos/11_app_settings_preferences_template.ts` | `bun run demo:settings` | Desktop Application Settings & Preferences template featuring Tab Containers, Toggle Switches, Range Sliders, Color Wells, Time Pickers, and File Path Address Bar |
-| `demos/12_advanced_desktop_app_controls.ts` | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (`property_grid`, `popup_menu`, `calendar_view`, `color_swatch`, `file_path_bar`), backend IPC bindings, and live helper updates |
-| `demos/13_productivity_controls_studio.ts` | `bun run demo:productivity` | All 7 Modern Productivity UI Controls Studio featuring Kanban Boards (`kanban_board`), Hotkey Shortcut Recorders (`shortcut_recorder`), Split Action Buttons (`split_button`), Sparkline Data Grids (`sparkline_table`), KPI Metric Comparisons (`metric_comparison`), Activity Audit Feeds (`activity_feed`), and Workspace Tab Bars (`file_tree_tabs`) with live on-form alert feedback and event payload stream |
+| :--- | :--- | :--- |
+| **[demos/01_standard_controls.ts](demos/01_standard_controls.ts)** | `bun run demo:standard` | Standard UI controls, `onClick`/`onChange` events, input validation, control locking/unlocking via `setControlEnabled` |
+| **[demos/02_advanced_modern_controls.ts](demos/02_advanced_modern_controls.ts)** | `bun run demo:modern` | All 10 modern visual controls & dedicated helper wrappers (`setSegmentedSelected`, `setStatChart`, `setToast`, `setTimePickerValue`, `setAccordionOpen`, `setTimelineSteps`, `setBreadcrumbs`, `setTreeNodes`, `setAvatarGroup`, `setRichSelectText`) |
+| **[demos/03_data_and_non_visual.ts](demos/03_data_and_non_visual.ts)** | `bun run demo:data` | Data-Aware `DBGrid`, `DBNavigator`, non-visual `Timer` component (`onTimer` event), monospaced `CodeView`, Progress Bars, Gauges, Ratings |
+| **[demos/04_window_placement_and_pin.ts](demos/04_window_placement_and_pin.ts)** | `bun run demo:window` | Native Window Placement API (`setWindowPosition`), 9 screen placement presets, Always On Top window pinning (`setAlwaysOnTop`), Native Cocoa Fullscreen (`toggleFullscreenNative`), and Quit (`process.exit(0)`) |
+| **[demos/05_crud_todo_table.ts](demos/05_crud_todo_table.ts)** | `bun run demo:table` / `bun run demo:crud` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
+| **[demos/06_timer_control_studio.ts](demos/06_timer_control_studio.ts)** | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
+| **[demos/07_labeled_form_and_desktop_controls.ts](demos/07_labeled_form_and_desktop_controls.ts)** | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
+| **[demos/08_analytics_dashboard_template.ts](demos/08_analytics_dashboard_template.ts)** | `bun run demo:dashboard` | Executive Analytics Dashboard template featuring Metric KPI cards, Stat Charts with SVG sparklines, Alert Banners, Segmented Controls, and Progress Gauges |
+| **[demos/09_file_explorer_ide_template.ts](demos/09_file_explorer_ide_template.ts)** | `bun run demo:ide` | Developer File Explorer & Code Studio template featuring Tree View directory navigation, Workspace Tab bar, Monospaced Code View, Search Bar, and Status Bar |
+| **[demos/10_db_studio_query_editor_template.ts](demos/10_db_studio_query_editor_template.ts)** | `bun run demo:db` | Database Studio & Query Editor template featuring DB Navigator, DB-bound Data Grids, SQL Code View, Property Inspector Grid, and DB Connection tray component |
+| **[demos/11_app_settings_preferences_template.ts](demos/11_app_settings_preferences_template.ts)** | `bun run demo:settings` | Desktop Application Settings & Preferences template featuring Tab Containers, Toggle Switches, Range Sliders, Color Wells, Time Pickers, and File Path Address Bar |
+| **[demos/12_advanced_desktop_app_controls.ts](demos/12_advanced_desktop_app_controls.ts)** | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (`property_grid`, `popup_menu`, `calendar_view`, `color_swatch`, `file_path_bar`), backend IPC bindings, and live helper updates |
+| **[demos/13_productivity_controls_studio.ts](demos/13_productivity_controls_studio.ts)** | `bun run demo:productivity` | All 7 Modern Productivity UI Controls Studio featuring Kanban Boards (`kanban_board`), Hotkey Shortcut Recorders (`shortcut_recorder`), Split Action Buttons (`split_button`), Sparkline Data Grids (`sparkline_table`), KPI Metric Comparisons (`metric_comparison`), Activity Audit Feeds (`activity_feed`), and Workspace Tab Bars (`file_tree_tabs`) |
+| **[demos/14_simplegui_fluent_form_demo.ts](demos/14_simplegui_fluent_form_demo.ts)** | `bun run demo:simplegui` | Declarative SimpleGUI Fluent Form Demo with method chaining and interactive events |
+| **[demos/15_simplegui_all_controls_showcase.ts](demos/15_simplegui_all_controls_showcase.ts)** | `bun run demo:simplegui_all` | Comprehensive SimpleGUI All-Controls Showcase across standard, labeled, and dashboard widgets |
+| **[demos/16_simplegui_parity_api_demo.ts](demos/16_simplegui_parity_api_demo.ts)** | `bun run demo:parity` | `vlang_simplegui` 100% API Parity showcase (`new_simple_window`, `add_input`, OS directories) |
+| **[demos/17_simplegui_layout_types_showcase.ts](demos/17_simplegui_layout_types_showcase.ts)** | `bun run demo:layouts` | SimpleGUI Layout Showcase (Rows, Grids, Cards, Absolute Positioning, and Resizing) |
+| **[demos/18_simplegui_ergonomics_demo.ts](demos/18_simplegui_ergonomics_demo.ts)** | `bun run demo:ergonomics` | SimpleGUI Ergonomics & Shortcuts API Showcase (Batch ops, value modifiers, JSON persistence) |
 
 ---
 
@@ -568,7 +571,7 @@ if (result.success) {
 
 ## 10. SimpleGUI Declarative Module Reference
 
-The `SimpleGUI` module (`src/simplegui.ts` / exported via `index.ts`) provides a lightweight, fluent declarative API matching `vlang_simplegui`. A dedicated, complete API reference guide is available at [SIMPLEGUI_API.md](file:///Users/codecaine/bun_rad_studio/SIMPLEGUI_API.md).
+The `SimpleGUI` module ([src/simplegui.ts](src/simplegui.ts) / exported via [index.ts](index.ts)) provides a lightweight, fluent declarative API matching `vlang_simplegui`. A dedicated, complete API reference guide is available at [SIMPLEGUI_API.md](SIMPLEGUI_API.md).
 
 ### 🪟 Window Initialization & Configuration
 
@@ -640,6 +643,20 @@ desktopDir();                       // Desktop folder path
 documentsDir();                     // Documents folder path
 downloadsDir();                     // Downloads folder path
 ```
+
+---
+
+## 11. 🌟 Related RAD & GUI Ecosystem Projects
+
+| Project | Description | Primary Use Case |
+| :--- | :--- | :--- |
+| **[bun_rad_studio](https://github.com/codecaine-zz/bun_rad_studio)** | Full-stack Rapid Application Development (RAD) visual designer and code studio powered by Bun, TypeScript, and modern web UI technologies. | Full-stack desktop & client web applications, rapid UI prototyping, and visual form design. |
+| **[bun_simplcli](https://github.com/codecaine-zz/bun_simplcli)** | Zero-dependency, high-performance console utility framework & RAD toolkit built natively for the Bun runtime (cross-platform OS system telemetry, hardware resource monitoring, ANSI styling, interactive prompts, spinners, progress meters, data tables, and logging). | Headless CLI tools, system administration utilities, terminal dashboards, and DevOps automation scripts in Bun (headless companion to Bun RAD Studio). |
+| **[vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui)** | Lightweight, high-productivity cross-platform desktop GUI toolkit and visual designer for the V programming language with 100% API parity. | Native desktop GUI applications, rapid UI prototyping, and cross-platform desktop utilities in V. |
+| **[vlang_simplecli](https://github.com/codecaine-zz/vlang_simplecli)** | Zero-dependency, high-productivity console & terminal RAD toolkit for V (ANSI colors, banners, spinners, progress meters, data tables, safe execution). | Headless CLI tools, DevOps automation scripts, and terminal dashboards (headless companion to SimpleGUI in V). |
+| **[simple_gg](https://github.com/codecaine-zz/simple_gg)** | Lightweight, hardware-accelerated 2D game & graphics engine with an immediate-mode GUI toolkit written in V. | 2D games, custom canvas widgets, interactive data visualizers, and creative coding. |
+| **[bun_webview](https://github.com/codecaine-zz/bun_webview)** | Standalone macOS `.app` packager and native webview window runtime for Bun applications with custom icons, Cocoa menus, and distribution bundling. | Packaging Bun TypeScript/JavaScript apps into native standalone macOS application bundles. |
+
 
 
 
