@@ -157,8 +157,10 @@ export function createTaskTracker(): SimpleWindow {
   return win;
 }
 
+export const createProcessStudio = createTaskTracker;
+
 if (import.meta.main) {
-  const win = createTaskTracker();
-  console.log("Launching Task Manager Pro...");
+  const win = createProcessStudio();
+  console.log("Launching Process Monitor Studio...");
   win.run();
 }

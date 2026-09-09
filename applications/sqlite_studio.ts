@@ -142,8 +142,10 @@ export function createSqliteStudio(dbPath: string = ":memory:"): SimpleWindow {
   return win;
 }
 
+export const createDatabaseStudio = createSqliteStudio;
+
 if (import.meta.main) {
-  const win = createSqliteStudio();
-  console.log("Launching SQLite Studio Pro...");
+  const win = createDatabaseStudio();
+  console.log("Launching Database Studio Pro...");
   win.run();
 }
