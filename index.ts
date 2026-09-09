@@ -345,12 +345,12 @@ export function execJS(code: string) {
 
 export function setControlText(controlId: string, text: string) {
     const escaped = JSON.stringify(text);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT")el.value=\${escaped};else{el.textContent=\${escaped};el.innerText=\${escaped};}}\`);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"){el.value=\${escaped};if(el.tagName==="TEXTAREA")el.scrollTop=el.scrollHeight;}else{el.textContent=\${escaped};el.innerText=\${escaped};}}\`);
 }
 
 export function setControlValue(controlId: string, value: any) {
     const escaped = JSON.stringify(value);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT")el.value=\${escaped};else{el.textContent=\${escaped};el.innerText=\${escaped};if(el.dataset)el.dataset.value=\${escaped};}}\`);
+    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"){el.value=\${escaped};if(el.tagName==="TEXTAREA")el.scrollTop=el.scrollHeight;}else{el.textContent=\${escaped};el.innerText=\${escaped};if(el.dataset)el.dataset.value=\${escaped};}}\`);
 }
 
 export function setControlPlaceholder(controlId: string, placeholder: string) {
@@ -719,7 +719,20 @@ export function generatePreviewHtml(spec: any): string {
         const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
-            const isInputType = ['input', 'search', 'form_search', 'textarea', 'form_textarea', 'select', 'dropdown', 'form_dropdown', 'listbox', 'checkbox', 'form_checkbox', 'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number', 'date', 'date_picker', 'form_date', 'time_picker', 'form_time', 'color', 'color_picker', 'color_well', 'form_color', 'form_code', 'stepper', 'number_stepper', 'form_stepper', 'form_drop_zone', 'tabs', 'pagination', 'toggle_button'].includes(ctrlType);
+            const isInputType = [
+                'input', 'search', 'form_search', 'textarea', 'form_textarea',
+                'select', 'dropdown', 'form_dropdown', 'listbox', 'checkbox', 'form_checkbox',
+                'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number',
+                'date', 'date_picker', 'form_date', 'time_picker', 'form_time',
+                'color', 'color_picker', 'color_well', 'form_color', 'form_code',
+                'stepper', 'number_stepper', 'form_stepper', 'form_drop_zone',
+                'tabs', 'pagination', 'toggle_button',
+                'search_field', 'masked_input', 'token_field', 'tag_input',
+                'inline_editable_label', 'pull_down', 'combo_box', 'mode_control',
+                'theme_menu', 'pill_toggle', 'knob', 'vertical_slider', 'range_slider',
+                'date_range_picker', 'date_time_picker', 'color_grid', 'file_picker_field',
+                'feedback_mood', 'transfer_list', 'color_swatch', 'file_path_bar', 'drop_zone'
+            ].includes(ctrlType);
             if (isInputType) {
                 if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
                     handlers.onChange = `on_${c.id}_change`;
@@ -800,7 +813,10 @@ export function generatePreviewHtml(spec: any): string {
             ? c.background_color
             : (bg === '#050505' ? '#121212' : (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)'));
         const ev = buildEvents(c);
-        const id = ` id="${c.id}"`;
+        const ctxAttr = c.context_menu_items && Array.isArray(c.context_menu_items) && c.context_menu_items.length > 0
+            ? ` data-context-menu="${c.context_menu_items.join('|').replace(/"/g, '&quot;')}" data-ctrl-id="${c.id}"`
+            : '';
+        const id = ` id="${c.id}"${ctxAttr}`;
         const disabled = c.enabled === false ? ' disabled' : '';
         const titleAttr = c.tooltip ? ` title="${c.tooltip.replace(/"/g, '&quot;')}"` : '';
         const roAttr = c.read_only ? ' readonly' : '';
@@ -902,7 +918,9 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'drop_zone') {
             const dzBorder = hasCustomBorder ? `border-width:${c.border_width || 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || 'dashed'};` : `border:2px dashed ${accent};`;
             const dzRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${dzBorder}${dzRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"><span style="font-size:24px;">📥</span><span style="font-size:11px;">${text||'Drop files here'}</span></div>\n`;
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="${base(c)}background:${cbg};${dzBorder}${dzRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"><input type="hidden" id="${c.id}" name="${c.id}" value="${text||''}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:24px;">📥</span><span class="dz-label" style="font-size:11px;">${text||'Drop files here or click to browse'}</span></div>\n`;
         } else if (t === 'status_indicator') {
             const statusColor = c.status === 'error' ? '#ef4444' : c.status === 'warning' ? '#f59e0b' : c.status === 'inactive' ? (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)') : '#10b981';
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${text}</span></div>\n`;
@@ -1050,41 +1068,48 @@ export function generatePreviewHtml(spec: any): string {
             const rawProps = text || 'Theme: Dark, Font Size: 13px, Auto Save: True, Version: 1.4.0';
             const propsList = rawProps.split(',').map((s: string) => s.trim().split(':')).filter((arr: string[]) => arr.length === 2);
             const pgRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || 'Property Inspector'}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;">${propsList.map((pair: string[]) => {
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || 'Property Inspector'}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;">${propsList.map((pair: string[]) => {
                 const k = (pair[0] || '').trim(); const v = (pair[1] || '').trim();
-                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'}'" onmouseout="this.style.background=''"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;cursor:pointer;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${k}: ${v}');"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
             }).join('')}</div></div>\n`;
         } else if (t === 'popup_menu') {
             const rawItems = text || '✂️ Cut  ⌘X, 📋 Copy  ⌘C, 📄 Paste  ⌘V, ---, 🗑️ Delete  ⌫';
             const items = rawItems.split(',').map((s: string) => s.trim());
             const pmRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            controls += `<div${id}${titleAttr}${ev} class="rad-popup-menu" style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pmRadius}padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 25px rgba(0,0,0,0.4);">${items.map((it: string) => {
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div${id}${titleAttr} class="rad-popup-menu" style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pmRadius}padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 25px rgba(0,0,0,0.4);">${items.map((it: string) => {
                 if (it === '---') return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
                 const parts = it.split(/\s{2,}/);
                 const label = parts[0] || it;
                 const shortcut = parts[1] || '';
-                return `<div class="popup-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.18)'}'" onmouseout="this.style.background=''" onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${label}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${label}');"><span>${label}</span>${shortcut ? `<span style="font-size:10px;opacity:0.5;font-family:monospace;">${shortcut}</span>` : ''}</div>`;
+                return `<div class="popup-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.18)'}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${label.replace(/'/g, "\\'")}');"><span>${label}</span>${shortcut ? `<span style="font-size:10px;opacity:0.5;font-family:monospace;">${shortcut}</span>` : ''}</div>`;
             }).join('')}</div>\n`;
         } else if (t === 'calendar_view') {
             const calRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:12px;';
             const calBg = cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b');
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="if(window['${c.id}_onPrev'])window['${c.id}_onPrev']();">◄</button><span>${text || 'July 2026'}</span><button style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="if(window['${c.id}_onNext'])window['${c.id}_onNext']();">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${[28,29,30,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28].slice(0,21).map((d: number, idx: number) => {
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            const curDate = text || 'July 2026';
+            controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><input type="hidden" id="${c.id}" name="${c.id}" value="25"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="const s=this.nextElementSibling;const months=['January','February','March','April','May','June','July','August','September','October','November','December'];const cur=s.textContent.split(' ');let mIdx=months.indexOf(cur[0]);let y=parseInt(cur[1]||'2026',10);mIdx--;if(mIdx<0){mIdx=11;y--;}s.textContent=months[mIdx]+' '+y;if(window['${c.id}_onPrev'])window['${c.id}_onPrev'](s.textContent);">◄</button><span class="cal-title">${curDate}</span><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="const s=this.previousElementSibling;const months=['January','February','March','April','May','June','July','August','September','October','November','December'];const cur=s.textContent.split(' ');let mIdx=months.indexOf(cur[0]);let y=parseInt(cur[1]||'2026',10);mIdx++;if(mIdx>11){mIdx=0;y++;}s.textContent=months[mIdx]+' '+y;if(window['${c.id}_onNext'])window['${c.id}_onNext'](s.textContent);">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${[28,29,30,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28].slice(0,21).map((d: number, idx: number) => {
                 const isCurMonth = idx >= 3;
                 const isSelected = d === 25;
                 const bgStyle = isSelected ? `background:${accent};color:#ffffff;font-weight:700;border-radius:50%;` : '';
-                return `<span style="padding:4px 0;opacity:${isCurMonth ? (isSelected ? 1 : 0.9) : 0.35};cursor:pointer;${bgStyle}" onclick="if(window['${c.id}_onChange'])window['${c.id}_onChange'](${d});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${d});">${d}</span>`;
+                return `<span class="cal-day" style="padding:4px 0;opacity:${isCurMonth ? (isSelected ? 1 : 0.9) : 0.35};cursor:pointer;${bgStyle}" onclick="this.parentNode.querySelectorAll('.cal-day').forEach(el=>{el.style.background='transparent';el.style.color='inherit';el.style.fontWeight='normal';el.style.borderRadius='0';});this.style.background='${accent}';this.style.color='#ffffff';this.style.fontWeight='700';this.style.borderRadius='50%';const hid=document.getElementById('${c.id}');if(hid)hid.value=${d};const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${d});">${d}</span>`;
             }).join('')}</div></div>\n`;
         } else if (t === 'color_swatch') {
             const colorsList = (text || '#0284c7, #38bdf8, #10b981, #f59e0b, #ef4444, #7c3aed, #ec4899').split(',').map((s: string) => s.trim());
             const curCol = c.value || colorsList[0] || '#0284c7';
-            controls += `<div${id}${titleAttr}${ev} data-value="${curCol}" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;padding:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${c.caption || 'Color Palette Swatch'}</span><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${colorsList.map((hex: string) => {
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_wrapper"${titleAttr} data-value="${curCol}" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;padding:4px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curCol}"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${c.caption || 'Color Palette Swatch'}</span><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${colorsList.map((hex: string) => {
                 const isSel = hex.toLowerCase() === curCol.toLowerCase();
-                return `<div class="swatch-chip" data-color="${hex}" style="width:24px;height:24px;border-radius:50%;background:${hex};cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;box-shadow:${isSel ? `0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}` : '0 2px 6px rgba(0,0,0,0.3)'};transform:${isSel ? 'scale(1.15)' : 'scale(1)'};" onclick="this.parentNode.querySelectorAll('.swatch-chip').forEach(s=>{s.style.transform='scale(1)';s.style.boxShadow='0 2px 6px rgba(0,0,0,0.3)';});this.style.transform='scale(1.15)';this.style.boxShadow='0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}';this.parentNode.parentNode.dataset.value='${hex}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${hex}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${hex}');"></div>`;
+                return `<div class="swatch-chip" data-color="${hex}" style="width:24px;height:24px;border-radius:50%;background:${hex};cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;box-shadow:${isSel ? `0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}` : '0 2px 6px rgba(0,0,0,0.3)'};transform:${isSel ? 'scale(1.15)' : 'scale(1)'};" onclick="this.parentNode.querySelectorAll('.swatch-chip').forEach(s=>{s.style.transform='scale(1)';s.style.boxShadow='0 2px 6px rgba(0,0,0,0.3)';});this.style.transform='scale(1.15)';this.style.boxShadow='0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}';const hid=document.getElementById('${c.id}');if(hid)hid.value='${hex}';this.closest('[id]').dataset.value='${hex}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${hex}');"></div>`;
             }).join('')}</div></div>\n`;
         } else if (t === 'file_path_bar') {
             const pathVal = text || '/Users/codecaine/bun_rad_studio/src';
             const fRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${fRadius}padding:0 8px;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;"><span style="font-size:14px;opacity:0.75;flex-shrink:0;">📁</span><span class="path-text" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.9;font-family:monospace;">${pathVal}</span></div><button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${pathVal}');else if(window['on_${c.id}_click'])window['on_${c.id}_click']('${pathVal}');" style="padding:4px 10px;background:${accent};color:#ffffff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">Browse...</button></div>\n`;
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${fRadius}padding:0 8px;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${pathVal}"><input type="file" id="${c.id}_native_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const txt=this.parentNode.querySelector('.path-text');if(txt)txt.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;cursor:pointer;" onclick="const cur=document.getElementById('${c.id}')?.value||'${pathVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);"><span style="font-size:14px;opacity:0.75;flex-shrink:0;">📁</span><span class="path-text" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.9;font-family:monospace;">${pathVal}</span></div><button type="button" onclick="event.stopPropagation();const cur=document.getElementById('${c.id}')?.value||'${pathVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);const fi=document.getElementById('${c.id}_native_file');if(fi)fi.click();" style="padding:4px 10px;background:${accent};color:#ffffff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">Browse...</button></div>\n`;
         } else if (t === 'kanban_board') {
             const rawCols = text || 'To Do (3) | In Progress (2) | Done (4)';
             const cols = rawCols.split('|').map((s: string) => s.trim());
@@ -1170,7 +1195,9 @@ export function generatePreviewHtml(spec: any): string {
             const codeFg = c.font_color && c.font_color !== fg ? c.font_color : '#7dd3fc';
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><textarea${disabled}${roAttr}${autoFocusAttr}${ev} placeholder="${c.placeholder || '// Enter script code...'}" style="flex:1;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117'};${defBorder}${defRadius}padding:8px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size||12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${c.value || c.code || ''}</textarea></div>\n`;
         } else if (t === 'form_drop_zone') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><div style="flex:1;background:${cbg};border:2px dashed ${accent};${defRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};"><span style="font-size:20px;">📥</span><span style="font-size:11px;">${c.placeholder || 'Drop files here or click to browse'}</span></div></div>\n`;
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><div onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="flex:1;background:${cbg};border:2px dashed ${accent};${defRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};"><input type="hidden" id="${c.id}" name="${c.id}" value="${c.value||''}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:20px;">📥</span><span class="dz-label" style="font-size:11px;">${c.placeholder || 'Drop files here or click to browse'}</span></div></div>\n`;
         } else if (t === 'tabs') {
             const tabItems = (text || 'General, Security, Advanced').split(',').map((tb: string) => tb.trim());
             const activeTab = c.value || tabItems[0] || '';
@@ -1178,6 +1205,38 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} data-value="${activeTab}" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)')};border-bottom:2px solid ${border};padding:0 4px;gap:2px;">${tabItems.map((tb: string, idx: number) => {
                 const isSel = tb === activeTab || (idx === 0 && !c.value);
                 return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.borderBottom='none';b.style.color='${color}';b.style.fontWeight='normal'});this.style.borderBottom='2px solid ${accent}';this.style.color='${accent}';this.style.fontWeight='700';this.parentNode.dataset.value='${tb}';const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${tb}');" style="height:100%;padding:0 14px;background:none;border:none;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};color:${isSel ? accent : color};font-weight:${isSel ? '700' : 'normal'};font-size:12px;cursor:pointer;transition:all 0.15s;">${tb}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'menu_bar') {
+            const rawMenus = c.items || c.menus || (text ? text.split('|') : ['File', 'Edit', 'View', 'Help']);
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            const mbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            const defaultSubMenus: Record<string, string[]> = {
+                'File': ['📄 New File  ⌘N', '📂 Open...  ⌘O', '💾 Save  ⌘S', '---', '🚪 Exit  ⌘Q'],
+                'Edit': ['↩️ Undo  ⌘Z', '↪️ Redo  ⌘⇧Z', '---', '✂️ Cut  ⌘X', '📋 Copy  ⌘C', '📄 Paste  ⌘V'],
+                'View': ['🔍 Zoom In  ⌘+', '🔎 Zoom Out  ⌘-', '🔄 Reset Zoom  ⌘0', '---', '🖥️ Fullscreen  ⌃⌘F'],
+                'Run': ['▶️ Start Debugging  F5', '⚡ Run Without Debugging  ⌃F5', '🔄 Restart  ⌘⇧F5'],
+                'Tools': ['⌨️ Command Palette...  ⌘⇧P', '⚙️ Preferences...  ⌘,', '---', '🩺 Diagnostics'],
+                'Help': ['📖 Documentation', '⌨️ Keyboard Shortcuts', '---', 'ℹ️ About Bun RAD Studio']
+            };
+
+            const menus = (Array.isArray(rawMenus) ? rawMenus : [rawMenus]).map((m: any) => {
+                if (typeof m === 'string') {
+                    const parts = m.split(':');
+                    const label = (parts[0] || '').trim() || 'Menu';
+                    const items = parts[1] ? parts[1].split(',').map((s: string) => s.trim()) : (defaultSubMenus[label] || ['Action 1', 'Action 2']);
+                    return { label, items };
+                }
+                return { label: m.label || 'Menu', items: m.items || defaultSubMenus[m.label] || ['Item 1', 'Item 2'] };
+            });
+
+            controls += `<div id="${c.id}" class="rad-menu-bar" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f1f5f9' : '#1e293b')};${defBorder}${mbRadius}padding:0 6px;gap:2px;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${menus.map((m: any) => {
+                return `<div class="menu-bar-item" style="position:relative;display:inline-block;" onmouseleave="const dd=this.querySelector('.menu-dropdown');if(dd)dd.style.display='none';"><button type="button" onclick="event.stopPropagation();document.querySelectorAll('.menu-dropdown').forEach(d=>{if(d!==this.nextElementSibling)d.style.display='none'});const dd=this.nextElementSibling;if(dd)dd.style.display=dd.style.display==='block'?'none':'block';" onmouseenter="const anyOpen=Array.from(document.querySelectorAll('.menu-dropdown')).some(d=>d.style.display==='block');if(anyOpen){document.querySelectorAll('.menu-dropdown').forEach(d=>d.style.display='none');const dd=this.nextElementSibling;if(dd)dd.style.display='block';}" style="padding:5px 10px;background:transparent;border:none;border-radius:4px;color:${color};font-size:12px;font-weight:600;cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}'" onmouseout="this.style.background='transparent'">${m.label}</button><div class="menu-dropdown" style="display:none;position:absolute;left:0;top:100%;min-width:190px;background:${isLight ? '#ffffff' : '#1e293b'};border:1px solid ${border};border-radius:8px;padding:6px;box-shadow:0 12px 28px rgba(0,0,0,0.4);z-index:99999;backdrop-filter:blur(12px);">${(m.items || []).map((it: string) => {
+                    if (it === '---') return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
+                    const parts = it.split(/\s{2,}/);
+                    const itLabel = parts[0] || it;
+                    const itShortcut = parts[1] || '';
+                    return `<div class="menu-dropdown-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.18)'}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();this.closest('.menu-dropdown').style.display='none';if(window.showInteractionToast)window.showInteractionToast('Menu Bar Action','${m.label} > ${itLabel.replace(/'/g, "\\'")}');const fn=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${m.label} > ${itLabel.replace(/'/g, "\\'")}');"><span>${itLabel}</span>${itShortcut ? `<span class="rad-mono" style="font-size:10px;opacity:0.5;">${itShortcut}</span>` : ''}</div>`;
+                }).join('')}</div></div>`;
             }).join('')}</div>\n`;
         } else if (t === 'tool_bar') {
             const barItems = (text || '📄 New, 📂 Open, 💾 Save, ⚙️ Settings, 🔍 Search').split(',').map((item: string) => item.trim());
@@ -1226,6 +1285,308 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'toggle_button') {
             const isChecked = c.checked;
             controls += `<button id="${c.id}" ${titleAttr}${ev}${disabled} style="${base(c)}background:${isChecked ? accent : (cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'))};color:${isChecked ? '#ffffff' : color};${defBorder}${defRadius}font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:${c.cursor||'pointer'};" onclick="const isChk=this.dataset.checked==='true';this.dataset.checked=!isChk;this.style.background=!isChk?'${accent}':'${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')}';this.style.color=!isChk?'#ffffff':'${color}';if(window['${c.id}_onChange'])window['${c.id}_onChange'](!isChk);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](!isChk);" data-checked="${isChecked ? 'true' : 'false'}">${isChecked ? '🔒 Locked' : (text || '🔓 Unlocked')}</button>\n`;
+        } else if (t === 'search_field') {
+            const curVal = c.value !== undefined ? String(c.value) : (text || '');
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div id="${c.id}_wrapper" class="search-field-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}border-radius:20px;padding:0 12px;gap:8px;"><span style="font-size:13px;opacity:0.6;">🔍</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="${curVal}" placeholder="${c.placeholder || 'Search...'}"${disabled}${roAttr} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size||13}px;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(this.value);}">${curVal ? `<button type="button" onclick="const inp=document.getElementById('${c.id}');if(inp){inp.value='';inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:12px;">✕</button>` : ''}</div>\n`;
+        } else if (t === 'token_field' || t === 'tag_input') {
+            const rawTokens = c.tags || c.tokens || (text ? text.split(',') : ['tag1', 'tag2']);
+            const tokenArr = Array.isArray(rawTokens) ? rawTokens : String(rawTokens).split(',').map((s: string) => s.trim()).filter(Boolean);
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${tokenArr.join(',')}"><div class="token-list" style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;">${tokenArr.map((tok: string) => `<span class="token-chip" style="background:${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">${tok}<span onclick="const chip=this.parentNode;const cont=chip.closest('[id]');chip.remove();const all=Array.from(cont.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));" style="cursor:pointer;opacity:0.6;font-size:10px;">✕</span></span>`).join('')}</div><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || '+ Add...'}" onkeydown="if(event.key==='Enter'&&this.value.trim()){event.preventDefault();const val=this.value.trim();const list=this.previousElementSibling;const span=document.createElement('span');span.className='token-chip';span.style.cssText='background:${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;';span.innerHTML=val+'<span style=\\&quot;cursor:pointer;opacity:0.6;font-size:10px;\\&quot; onclick=\\&quot;const chip=this.parentNode;const cont=chip.closest(\\'[id]\\');chip.remove();const all=Array.from(cont.querySelectorAll(\\'.token-chip\\')).map(c=>c.textContent.replace(\\'✕\\',\\'\\').trim());const hid=document.getElementById(\\''+'${c.id}'+'\\');if(hid)hid.value=all.join(\\',\\');const fnC=window[\\''+'${customChange}'+'\\']||window[\\''+'${c.id}'+'_onChange\\']||window[\\'on_'+'${c.id}'+'_change\\'];if(fnC)fnC(all.join(\\',\\'));\\&quot;>✕</span>';list.appendChild(span);this.value='';const all=Array.from(list.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));}" style="flex:1;min-width:60px;background:none;border:none;color:${color};outline:none;font-size:11px;"></div>\n`;
+        } else if (t === 'masked_input') {
+            const mask = c.mask || '(999) 999-9999';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" placeholder="${mask}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size||13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.5;font-family:monospace;">${mask}</span></div>\n`;
+        } else if (t === 'inline_editable_label') {
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${rawCbg};color:${color};cursor:pointer;padding:0 6px;"><span class="label-display" style="font-size:${c.font_size||13}px;font-weight:600;">${text || 'Double-click to edit'} ✎</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" onblur="const span=this.previousElementSibling;span.textContent=this.value+' ✎';span.style.display='block';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();" style="display:none;width:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:2px 6px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
+        } else if (t === 'section_header') {
+            const subtitle = c.subtitle || c.caption || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid ${border};padding-bottom:6px;"><div style="font-size:16px;font-weight:800;color:${accent};letter-spacing:-0.2px;">${text}</div>${subtitle ? `<div style="font-size:11px;color:${color};opacity:0.7;margin-top:2px;">${subtitle}</div>` : ''}</div>\n`;
+        } else if (t === 'hotkey_badge') {
+            const keys = (c.shortcut || text || '⌘K').split(/\s+|\+/).filter(Boolean);
+            const rawDesc = c.description || '';
+            const hasDesc = Boolean(rawDesc && rawDesc !== text && !keys.includes(rawDesc));
+            const justify = hasDesc ? 'space-between' : 'center';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:${justify};gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;">${hasDesc ? `<span style="font-size:11px;font-weight:600;opacity:0.85;white-space:nowrap;">${rawDesc}</span>` : ''}<div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};border:1px solid ${border};border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;color:${accent};line-height:1.2;">${k}</kbd>`).join('')}</div></div>\n`;
+        } else if (t === 'link') {
+            const url = c.url || c.placeholder || '#';
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${url}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size||13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || url}</span></a></div>\n`;
+        } else if (t === 'banner' || t === 'status_banner') {
+            const bStyle = c.style || c.alert_type || c.banner_style || 'info';
+            const bCol = bStyle === 'error' ? '#ef4444' : (bStyle === 'warning' ? '#f59e0b' : (bStyle === 'success' ? '#10b981' : accent));
+            const bIcon = bStyle === 'error' ? '❌' : (bStyle === 'warning' ? '⚠️' : (bStyle === 'success' ? '✅' : 'ℹ️'));
+            const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            const subtitle = c.message || c.caption || '';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : (bCol + '18')};border-left:4px solid ${bCol};border-top:1px solid ${border};border-right:1px solid ${border};border-bottom:1px solid ${border};${bRadius}display:flex;align-items:center;gap:12px;padding:0 14px;color:${color};"><span style="font-size:16px;">${bIcon}</span><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:12px;font-weight:700;color:${color};">${text}</span>${subtitle ? `<span style="font-size:11px;opacity:0.8;color:${color};margin-top:1px;">${subtitle}</span>` : ''}</div></div>\n`;
+        } else if (t === 'info_callout') {
+            const bCol = c.alert_type === 'success' ? '#10b981' : (c.alert_type === 'warning' ? '#f59e0b' : accent);
+            const btnText = c.button_text || 'Learn More';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-left:4px solid ${bCol};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:20px;">💡</span><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:13px;color:${bCol};">${text || 'Callout Title'}</span><span style="font-size:11px;opacity:0.8;margin-top:2px;">${c.message || c.caption || 'Important callout details and guidance for the user.'}</span></div></div>${btnText ? `<button style="padding:6px 12px;background:${bCol};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${btnText}</button>` : ''}</div>\n`;
+        } else if (t === 'hero_banner') {
+            const heroGrad = c.gradient_style || `linear-gradient(135deg, ${accent}22 0%, #1e1b4b 100%)`;
+            const hTitle = c.caption || text || 'Hero Title';
+            const hSubtitle = c.caption ? (c.subtitle || text || '') : (c.subtitle || '');
+            const heroBtn = c.placeholder || c.button_text || 'Get Started';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${heroGrad};border:1px solid ${border};border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;color:${color};box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><div style="font-size:18px;font-weight:800;color:${accent};letter-spacing:-0.3px;">${hTitle}</div><div style="font-size:12px;opacity:0.85;max-width:560px;">${hSubtitle}</div></div>${heroBtn ? `<button type="button" onclick="const fnK=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${heroBtn.replace(/'/g, "\\'")}');" style="padding:8px 18px;background:${accent};color:#ffffff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px ${accent}44;flex-shrink:0;">${heroBtn}</button>` : ''}</div>\n`;
+        } else if (t === 'image_button') {
+            const sym = c.symbol || '🚀';
+            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;padding:0 12px;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"><span style="font-size:14px;">${sym}</span><span>${text}</span></button>\n`;
+        } else if (t === 'help_button') {
+            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};color:${color};border:1px solid ${border};border-radius:50%;width:${c.width||26}px;height:${c.height||26}px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;cursor:pointer;opacity:0.85;" title="${c.tooltip || text || 'Help & Documentation'}" onmouseover="this.style.opacity='1';this.style.borderColor='${accent}';" onmouseout="this.style.opacity='0.85';this.style.borderColor='${border}';">?</button>\n`;
+        } else if (t === 'badge_button') {
+            const count = c.count !== undefined ? c.count : 3;
+            const bCol = c.badge_color || '#ef4444';
+            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}position:relative;background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:700;font-size:12px;padding:0 14px;"><span>${text}</span><span style="background:${bCol};color:#ffffff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</span></button>\n`;
+        } else if (t === 'quick_action_bar') {
+            const rawActs = c.items || c.actions || (text ? text.split(',') : ['⚡ Run', '💾 Save', '🔄 Sync', '⚙️ Options']);
+            const actions = Array.isArray(rawActs) ? rawActs : String(rawActs).split(',').map((s: string) => s.trim());
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            controls += `<div id="${c.id}"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:4px;">${actions.map((act: any) => {
+                const label = typeof act === 'object' && act ? (act.label || act.actionId || '') : String(act);
+                const actionId = typeof act === 'object' && act ? (act.actionId || act.label || '') : String(act);
+                const icon = typeof act === 'object' && act && act.icon ? act.icon + ' ' : '';
+                return `<button type="button" onclick="const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${actionId.replace(/'/g, "\\'")}');" style="flex:1;height:100%;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'}';this.style.color='${color}';">${icon}${label}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'floating_toolbar') {
+            const tools = (c.tools || (text ? text.split(',') : ['🔍', '✂️', '📋', '🗑️', '⚙️'])).map((s: string) => s.trim());
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:rgba(20,25,35,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);border-radius:30px;padding:4px 8px;gap:6px;box-shadow:0 12px 30px rgba(0,0,0,0.5);">${tools.map((tl: string) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${tl}');" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#ffffff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.transform='scale(1.15)';" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.transform='scale(1)';">${tl}</button>`).join('')}</div>\n`;
+        } else if (t === 'radio_group') {
+            const rawOpts = c.items || (text ? text.split(',') : ['Option A', 'Option B', 'Option C']);
+            const rOpts = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
+            const curVal = c.value !== undefined ? String(c.value) : (rOpts[0] || '');
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:16px;color:${color};flex-wrap:wrap;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curVal}">${rOpts.map((opt: string, i: number) => {
+                const isSel = opt === curVal || String(i) === curVal;
+                return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:${c.font_size||12}px;font-weight:500;"><input type="radio" name="${c.id}_group" value="${opt}" ${isSel ? 'checked' : ''} style="accent-color:${accent};cursor:pointer;" onchange="const hid=document.getElementById('${c.id}');if(hid)hid.value='${opt}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${opt}');"><span>${opt}</span></label>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'pull_down' || t === 'combo_box') {
+            const rawOpts = c.items || c.options || (text ? text.split(',') : ['Default Item', 'Option 1', 'Option 2']);
+            const pOpts = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
+            const curVal = c.value !== undefined ? String(c.value) : (pOpts[0] || '');
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:6px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${curVal}" placeholder="${c.placeholder || 'Select or type...'}" style="flex:1;background:none;border:none;color:${color};font-size:${c.font_size||13}px;outline:none;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><select onchange="const inp=document.getElementById('${c.id}');if(inp){inp.value=this.value;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="background:none;border:none;color:${color};cursor:pointer;outline:none;width:18px;">${pOpts.map((opt: string) => `<option value="${opt}" ${opt === curVal ? 'selected' : ''}>${opt}</option>`).join('')}</select></div>\n`;
+        } else if (t === 'theme_menu' || t === 'mode_control') {
+            const rawModes = c.items || c.modes || ['System', 'Dark', 'Light'];
+            const modes = Array.isArray(rawModes) ? rawModes : String(rawModes).split(',').map((s: string) => s.trim());
+            const curMode = c.value !== undefined ? String(c.value) : (modes[0] || 'Dark');
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}border-radius:20px;padding:2px;gap:2px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curMode}">${modes.map((m: string) => {
+                const isSel = String(m).toLowerCase() === String(curMode).toLowerCase();
+                const icon = m.toLowerCase().includes('dark') ? '🌙 ' : (m.toLowerCase().includes('light') ? '☀️ ' : (m.toLowerCase().includes('system') || m.toLowerCase().includes('auto') ? '⚙️ ' : ''));
+                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${m}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${m}');" style="flex:1;height:100%;border:none;border-radius:18px;background:${isSel ? accent : 'transparent'};color:${isSel ? '#fff' : color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;">${icon}${m}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'icon_segments') {
+            const rawSyms = c.items || c.symbols || (text ? text.split(',') : ['▦ Grid', '☰ List', '☷ Table']);
+            const syms = Array.isArray(rawSyms) ? rawSyms : String(rawSyms).split(',').map((s: string) => s.trim());
+            const curIdx = c.selected !== undefined ? c.selected : (typeof c.value === 'number' ? c.value : 0);
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:3px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curIdx}">${syms.map((sym: any, i: number) => {
+                const label = typeof sym === 'object' && sym ? `${sym.icon ? sym.icon + ' ' : ''}${sym.label || ''}` : String(sym);
+                const isSel = i === curIdx;
+                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${i}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${i});" style="flex:1;height:100%;border:none;border-radius:6px;background:${isSel ? accent : 'transparent'};color:${isSel ? '#fff' : color};font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">${label}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'pill_toggle') {
+            const rawOpts = c.items || c.options || (text ? text.split(',') : ['Enabled', 'Disabled']);
+            const opts = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
+            const curIdx = typeof c.value === 'number' ? c.value : (c.selected !== undefined ? c.selected : (typeof c.value === 'string' ? opts.indexOf(c.value) : 0));
+            const activeIdx = curIdx >= 0 ? curIdx : 0;
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}border-radius:24px;padding:3px;gap:2px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${activeIdx}">${opts.map((op: string, idx: number) => {
+                const isSel = idx === activeIdx;
+                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${idx}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${idx});" style="flex:1;height:100%;border:none;border-radius:20px;background:${isSel ? accent : 'transparent'};color:${isSel ? '#fff' : color};font-size:11px;font-weight:700;cursor:pointer;">${op}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'tag_cloud') {
+            const rawTags = c.tags || (text ? text.split(',') : ['TypeScript', 'Bun', 'macOS', 'GUI', 'Cocoa', 'RAD', 'Desktop']);
+            const tags = Array.isArray(rawTags) ? rawTags : String(rawTags).split(',').map((s: string) => s.trim());
+            const rawSel = c.selectedTags || c.selected || [];
+            const selList = Array.isArray(rawSel) ? rawSel : [rawSel];
+            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${selList.join(',')}">${tags.map((tg: string) => {
+                const isSel = selList.includes(tg);
+                return `<span class="tag-cloud-item" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${accent}':'${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color=isS?'#ffffff':'${color}';const cont=this.closest('[id]');const curSel=Array.from(cont.querySelectorAll('.tag-cloud-item.selected')).map(el=>el.textContent.replace('#','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=curSel.join(',');const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${tg}');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(curSel.join(','));" style="background:${isSel ? accent : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')};color:${isSel ? '#ffffff' : color};border:1px solid ${border};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='${accent}';" onmouseout="this.style.borderColor='${border}';">#${tg}</span>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'transfer_list') {
+            const rawAvail = c.leftItems || c.available || ['Alpha', 'Beta', 'Gamma', 'Delta'];
+            const rawSel = c.rightItems || c.selected || ['Epsilon'];
+            const avail = Array.isArray(rawAvail) ? rawAvail : String(rawAvail).split(',').map((s: string) => s.trim());
+            const sel = Array.isArray(rawSel) ? rawSel : String(rawSel).split(',').map((s: string) => s.trim());
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${sel.join(',')}"><div class="transfer-avail" style="flex:1;height:100%;background:${cbg};${defBorder}${defRadius}padding:4px;overflow-y:auto;font-size:11px;"><div style="font-weight:700;color:${accent};padding:2px 4px;border-bottom:1px solid ${border};">Available</div>${avail.map((a: string) => `<div class="transfer-item" onclick="this.classList.toggle('selected');this.style.background=this.classList.contains('selected')?'${accent}33':'transparent';" style="padding:3px 6px;border-radius:4px;cursor:pointer;">${a}</div>`).join('')}</div><div style="display:flex;flex-direction:column;gap:6px;"><button type="button" onclick="const cont=this.closest('[id]');const availList=cont.querySelector('.transfer-avail');const selList=cont.querySelector('.transfer-sel');const toMove=availList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';selList.appendChild(el);});const currentSel=Array.from(selList.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=currentSel.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(currentSel.join(','));" style="padding:4px 8px;background:${accent};color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">&gt;</button><button type="button" onclick="const cont=this.closest('[id]');const availList=cont.querySelector('.transfer-avail');const selList=cont.querySelector('.transfer-sel');const toMove=selList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';availList.appendChild(el);});const currentSel=Array.from(selList.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=currentSel.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(currentSel.join(','));" style="padding:4px 8px;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;">&lt;</button></div><div class="transfer-sel" style="flex:1;height:100%;background:${cbg};${defBorder}${defRadius}padding:4px;overflow-y:auto;font-size:11px;"><div style="font-weight:700;color:#10b981;padding:2px 4px;border-bottom:1px solid ${border};">Selected</div>${sel.map((s: string) => `<div class="transfer-item" onclick="this.classList.toggle('selected');this.style.background=this.classList.contains('selected')?'#10b98133':'transparent';" style="padding:3px 6px;border-radius:4px;cursor:pointer;">${s}</div>`).join('')}</div></div>\n`;
+        } else if (t === 'vertical_slider') {
+            const val = c.value !== undefined ? c.value : 50;
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};"><span style="font-size:11px;font-weight:700;color:${accent};">${val}</span><input id="${c.id}" name="${c.id}" type="range" min="${c.min_value||0}" max="${c.max_value||100}" value="${val}" style="transform:rotate(-90deg);width:${Math.max(60, (c.height||120) - 40)}px;accent-color:${accent};cursor:pointer;" oninput="this.parentNode.querySelector('span').textContent=this.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><span style="font-size:10px;opacity:0.6;">${text || 'Vol'}</span></div>\n`;
+        } else if (t === 'range_slider') {
+            const low = c.low !== undefined ? c.low : 20;
+            const high = c.high !== undefined ? c.high : 80;
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;"><span>${text || 'Range'}</span><span style="color:${accent};">${low} – ${high}</span></div><div style="position:relative;height:6px;background:${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.12)'};border-radius:3px;"><div style="position:absolute;left:${low}%;width:${high - low}%;height:100%;background:${accent};border-radius:3px;"></div></div></div>\n`;
+        } else if (t === 'knob') {
+            const val = c.value !== undefined ? Number(c.value) : 60;
+            const min = c.min_value !== undefined ? Number(c.min_value) : 0;
+            const max = c.max_value !== undefined ? Number(c.max_value) : 100;
+            const angle = Math.round(((val - min) / (max - min)) * 270 - 135);
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};user-select:none;cursor:ns-resize;" onwheel="event.preventDefault();const inp=document.getElementById('${c.id}');let cur=parseInt(inp.value,10);cur=event.deltaY<0?Math.min(${max},cur+2):Math.max(${min},cur-2);inp.value=cur;this.querySelector('.knob-val').textContent=cur+'%';const ang=Math.round(((cur-${min})/(${max}-${min}))*270-135);this.querySelector('.knob-pointer').style.transform='rotate('+ang+'deg)';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(cur);" onclick="const inp=document.getElementById('${c.id}');let cur=parseInt(inp.value,10);cur=cur>=${max}?${min}:cur+10;inp.value=cur;this.querySelector('.knob-val').textContent=cur+'%';const ang=Math.round(((cur-${min})/(${max}-${min}))*270-135);this.querySelector('.knob-pointer').style.transform='rotate('+ang+'deg)';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(cur);"><input type="hidden" id="${c.id}" name="${c.id}" value="${val}"><div style="width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 30% 30%, ${isLight ? '#f1f5f9' : '#334155'}, ${isLight ? '#cbd5e1' : '#0f172a'});border:2px solid ${border};box-shadow:0 4px 10px rgba(0,0,0,0.3);position:relative;display:flex;align-items:center;justify-content:center;"><div class="knob-pointer" style="position:absolute;width:4px;height:12px;background:${accent};border-radius:2px;top:4px;transform-origin:center 18px;transform:rotate(${angle}deg);"></div></div><span class="knob-val" style="font-size:11px;font-weight:800;color:${accent};">${val}%</span></div>\n`;
+        } else if (t === 'level_indicator') {
+            const val = c.value !== undefined ? c.value : 75;
+            const bars = 12;
+            const activeBars = Math.round((val / 100) * bars);
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;padding:4px 6px;background:${cbg};${defBorder}${defRadius};">${Array.from({length: bars}).map((_, idx) => {
+                const isActive = idx < activeBars;
+                const col = idx >= 10 ? '#ef4444' : (idx >= 7 ? '#f59e0b' : '#10b981');
+                return `<div style="flex:1;height:100%;background:${isActive ? col : (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)')};border-radius:2px;box-shadow:${isActive ? `0 0 4px ${col}` : 'none'};"></div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'spinner') {
+            const isActive = c.active !== false;
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;gap:8px;color:${color};">${isActive ? `<svg width="24" height="24" viewBox="0 0 24 24" style="animation:spin 0.8s linear infinite;"><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style><circle cx="12" cy="12" r="10" stroke="${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}" stroke-width="3" fill="none"/><path d="M12 2 A10 10 0 0 1 22 12" stroke="${accent}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>` : ''}${text ? `<span style="font-size:12px;font-weight:600;">${text}</span>` : ''}</div>\n`;
+        } else if (t === 'donut_chart') {
+            const pct = c.value !== undefined ? Number(c.value) : 68;
+            const r = 32; const circ = 2 * Math.PI * r;
+            const dash = circ * pct / 100;
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:12px;background:${cbg};${defBorder}${defRadius}padding:10px 14px;color:${color};"><svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="${r}" fill="none" stroke="${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}" stroke-width="8"/><circle cx="40" cy="40" r="${r}" fill="none" stroke="${accent}" stroke-width="8" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="44" text-anchor="middle" font-size="14" font-weight="800" fill="${color}">${pct}%</text></svg><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:13px;font-weight:700;color:${color};">${text || 'Progress Metric'}</span><span style="font-size:11px;opacity:0.75;margin-top:2px;">${c.caption || 'Active workload completion'}</span></div></div>\n`;
+        } else if (t === 'activity_rings') {
+            const pcts = c.percentages || [85, 65, 45];
+            const cols = c.colors || ['#ff2d55', '#5856d6', '#00f5d4'];
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;"><svg width="90" height="90" viewBox="0 0 100 100">${pcts.map((pct: number, idx: number) => {
+                const rad = 38 - (idx * 10);
+                const circ = 2 * Math.PI * rad;
+                const d = circ * pct / 100;
+                const strokeCol = cols[idx % cols.length];
+                return `<circle cx="50" cy="50" r="${rad}" fill="none" stroke="${strokeCol}26" stroke-width="7"/><circle cx="50" cy="50" r="${rad}" fill="none" stroke="${strokeCol}" stroke-width="7" stroke-dasharray="${d.toFixed(1)} ${(circ - d).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 50 50)"/>`;
+            }).join('')}</svg></div>\n`;
+        } else if (t === 'segment_distribution_bar') {
+            const labels = c.labels || ['TypeScript (65%)', 'CSS (25%)', 'HTML (10%)'];
+            const vals = c.values || [65, 25, 10];
+            const segCols = c.colors || ['#3178c6', '#38bdf8', '#e34c26'];
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;"><span>${text || 'Distribution'}</span><span style="opacity:0.7;">100% total</span></div><div style="display:flex;width:100%;height:10px;border-radius:5px;overflow:hidden;">${vals.map((v: number, i: number) => `<div style="width:${v}%;height:100%;background:${segCols[i % segCols.length]};" title="${labels[i] || ''}"></div>`).join('')}</div><div style="display:flex;gap:12px;font-size:10px;opacity:0.8;flex-wrap:wrap;">${labels.map((l: string, i: number) => `<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:${segCols[i % segCols.length]};display:inline-block;"></span><span>${l}</span></div>`).join('')}</div></div>\n`;
+        } else if (t === 'feedback_mood') {
+            const moods = ['😡', '🙁', '😐', '🙂', '🤩'];
+            const selMood = c.value || '🙂';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-around;background:${cbg};${defBorder}${defRadius}padding:6px;gap:8px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${selMood}">${moods.map((m: string) => {
+                const isSel = m === selMood;
+                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.transform='scale(1)';b.style.background='transparent'});this.style.transform='scale(1.3)';this.style.background='${accent}22';const hid=document.getElementById('${c.id}');if(hid){hid.value='${m}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${m}');" style="font-size:22px;background:${isSel ? accent + '22' : 'transparent'};border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;transform:${isSel ? 'scale(1.3)' : 'scale(1)'};">${m}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'activity_heatmap') {
+            const weeks = c.weeks || 16;
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:10px;display:flex;flex-direction:column;justify-content:space-between;color:${color};"><div style="font-size:11px;font-weight:700;margin-bottom:6px;color:${accent};">${text || 'Contribution Activity'}</div><div style="display:flex;gap:3px;overflow-x:auto;">${Array.from({length: weeks}).map((_, wIdx) => `<div style="display:flex;flex-direction:column;gap:3px;">${Array.from({length: 5}).map((_, dIdx) => {
+                const intensity = (wIdx * 3 + dIdx * 2) % 5;
+                const heatCol = intensity === 0 ? (isLight ? '#e2e8f0' : '#1e293b') : (intensity === 1 ? '#0e4429' : (intensity === 2 ? '#006d32' : (intensity === 3 ? '#26a641' : '#39d353')));
+                return `<div style="width:10px;height:10px;border-radius:2px;background:${heatCol};"></div>`;
+            }).join('')}</div>`).join('')}</div></div>\n`;
+        } else if (t === 'date_range_picker') {
+            const startVal = c.start_date || '2026-07-01';
+            const endVal = c.end_date || '2026-07-31';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${startVal} to ${endVal}"><span style="font-size:13px;opacity:0.7;">📅</span><input type="date" value="${startVal}" onchange="const p=this.parentNode;const hid=document.getElementById('${c.id}');const endInp=p.querySelectorAll('input[type=date]')[1];hid.value=this.value+' to '+endInp.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(hid.value);" style="background:none;border:none;color:inherit;outline:none;font-size:11px;color-scheme:${isLight ? 'light' : 'dark'};"><span style="opacity:0.5;">➔</span><input type="date" value="${endVal}" onchange="const p=this.parentNode;const hid=document.getElementById('${c.id}');const startInp=p.querySelectorAll('input[type=date]')[0];hid.value=startInp.value+' to '+this.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(hid.value);" style="background:none;border:none;color:inherit;outline:none;font-size:11px;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
+        } else if (t === 'date_time_picker') {
+            const dtVal = c.value || '2026-07-27T12:00';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><span style="font-size:13px;opacity:0.7;">🕒</span><input id="${c.id}" name="${c.id}" type="datetime-local" value="${dtVal}" onchange="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:inherit;outline:none;font-size:12px;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
+        } else if (t === 'color_grid') {
+            const gridCols = c.colors || ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4', '#0284c7', '#6366f1', '#a855f7', '#ec4899', '#64748b'];
+            const curCol = c.value || c.selectedColor || gridCols[0];
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;background:${cbg};${defBorder}${defRadius}padding:8px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curCol}">${gridCols.map((gc: string) => {
+                const isSel = gc.toLowerCase() === String(curCol).toLowerCase();
+                return `<div class="color-grid-item" onclick="this.parentNode.querySelectorAll('.color-grid-item').forEach(el=>el.style.border='none');this.style.border='2px solid #ffffff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${gc}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${gc}');" style="width:100%;height:24px;border-radius:4px;background:${gc};cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform 0.1s;border:${isSel ? '2px solid #ffffff' : 'none'};" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'file_picker_field') {
+            const pVal = text || c.value || '/Users/codecaine/Documents';
+            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
+            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
+            controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:8px;color:${color};"><span style="font-size:13px;opacity:0.7;">📂</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" id="${c.id}" name="${c.id}" value="${pVal}" placeholder="${c.placeholder || 'Select a file...'}" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:inherit;font-family:monospace;font-size:11px;outline:none;"><input type="file" id="${c.id}_native_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const inp=document.getElementById('${c.id}');if(inp){inp.value=p;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><button type="button" onclick="event.stopPropagation();const inp=document.getElementById('${c.id}');const cur=inp?inp.value:'${pVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);const fi=document.getElementById('${c.id}_native_file');if(fi)fi.click();" style="padding:4px 10px;background:${accent};color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">${c.button_title || 'Browse...'}</button></div>\n`;
+        } else if (t === 'path_control') {
+            const parts = (text || 'Root › Users › codecaine › Projects').split('›').map((s: string) => s.trim());
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 10px;gap:6px;color:${color};font-size:11px;overflow-x:auto;">${parts.map((prt: string, i: number) => `<span style="cursor:pointer;font-weight:${i === parts.length - 1 ? '700' : 'normal'};color:${i === parts.length - 1 ? accent : color};">${prt}</span>${i < parts.length - 1 ? '<span style="opacity:0.4;">/</span>' : ''}`).join('')}</div>\n`;
+        } else if (t === 'html_view' || t === 'browser_view') {
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:12px;overflow:auto;color:${color};font-size:12px;">${text || '<div style="opacity:0.8;">HTML View Canvas</div>'}</div>\n`;
+        } else if (t === 'code_editor' || t === 'code_studio') {
+            const fileName = c.caption || c.filename || 'app.ts';
+            const lang = c.placeholder || c.language || 'typescript';
+            const codeVal = c.code || text || '// Bun RAD Studio v1.4\nconsole.log("Hello, World!");';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);"><div style="padding:6px 12px;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#c9d1d9;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#58a6ff;">📄</span><span style="font-weight:600;">${fileName}</span></div><span style="font-size:10px;background:#21262d;padding:2px 8px;border-radius:4px;color:#79c0ff;font-weight:bold;">${lang}</span></div><textarea spellcheck="false" ${id ? `data-ctrl-id="${c.id}"` : ''} style="flex:1;background:#0d1117;color:#79c0ff;border:none;padding:10px;font-family:'Fira Code',monospace;font-size:12px;line-height:1.5;outline:none;resize:none;margin:0;">${codeVal}</textarea></div>\n`;
+        } else if (t === 'diff_view') {
+            const oldLines = (c.old_text || '- function hello() {\n-   return false;\n- }').split('\n');
+            const newLines = (c.new_text || '+ function hello() {\n+   return true;\n+ }').split('\n');
+            controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;overflow:auto;font-family:monospace;font-size:11px;line-height:1.4;"><div style="color:#f85149;margin-bottom:4px;">${oldLines.map((l: string) => `<div>${l}</div>`).join('')}</div><div style="color:#3fb950;">${newLines.map((l: string) => `<div>${l}</div>`).join('')}</div></div>\n`;
+        } else if (t === 'terminal_view') {
+            const prompt = c.prompt_text || '$ bun run start';
+            const logOut = c.output || '[server] listening on http://localhost:3000\n[ready] client connected successfully';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:#050505;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;font-family:'Fira Code',monospace;font-size:11px;color:#f0fdf4;display:flex;flex-direction:column;gap:6px;overflow:auto;"><div style="color:#38bdf8;font-weight:700;">${prompt}</div><div style="opacity:0.85;white-space:pre-wrap;">${logOut}</div><div style="display:flex;align-items:center;gap:4px;color:#30d158;"><span>$</span><span style="animation:blink 1s infinite;">▌</span></div></div>\n`;
+        } else if (t === 'json_tree') {
+            const jsonText = c.json || text || '{\n  "name": "bun_rad_studio",\n  "status": "active",\n  "version": 1.4\n}';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:10px;font-family:monospace;font-size:11px;color:${color};overflow:auto;white-space:pre;"><span style="color:${accent};font-weight:bold;">{ JSON Inspector }</span>\n${jsonText}</div>\n`;
+        } else if (t === 'audio_waveform') {
+            const amps = c.amplitudes || [20, 45, 80, 60, 30, 90, 75, 40, 85, 95, 65, 35, 70, 50, 80, 40];
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;background:${cbg};${defBorder}${defRadius}padding:0 8px;">${amps.map((a: number) => `<div style="flex:1;height:${a}%;background:${accent};border-radius:2px;opacity:0.85;"></div>`).join('')}</div>\n`;
+        } else if (t === 'image_gallery') {
+            const imgs = c.images || ['🖼️ Slide 1', '🖼️ Slide 2', '🖼️ Slide 3'];
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:8px;overflow-x:auto;">${imgs.map((im: string) => `<div style="min-width:100px;height:100%;border:1px solid ${border};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:${color};background:${isLight ? '#f8fafc' : '#1e293b'};">${im}</div>`).join('')}</div>\n`;
+        } else if (t === 'media_player') {
+            const song = c.title || text || 'Midnight Drive';
+            const artist = c.artist || 'Synthwave Collective';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg, ${accent}, #ec4899);display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;">${song}</span><span style="font-size:10px;opacity:0.7;">${artist}</span></div></div><div style="display:flex;align-items:center;gap:8px;"><button style="background:none;border:none;color:${color};font-size:14px;cursor:pointer;">⏮</button><button style="width:28px;height:28px;border-radius:50%;background:${accent};color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;">▶</button><button style="background:none;border:none;color:${color};font-size:14px;cursor:pointer;">⏭</button></div></div>\n`;
+        } else if (t === 'stat_grid') {
+            let titles = c.titles || ['Revenue', 'Users', 'Orders', 'Growth'];
+            let vals = c.values || ['$12.4k', '850', '320', '+24%'];
+            if (Array.isArray(c.stats)) {
+                titles = c.stats.map((s: any) => s.label || s.title || '');
+                vals = c.stats.map((s: any) => s.value || '');
+            }
+            controls += `<div${id}${titleAttr} style="${base(c)}display:grid;grid-template-columns:repeat(${Math.max(1, titles.length)}, 1fr);gap:8px;">${titles.map((tl: string, idx: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;"><span style="font-size:10px;opacity:0.7;font-weight:bold;text-transform:uppercase;">${tl}</span><span style="font-size:16px;font-weight:800;color:${accent};margin-top:2px;">${vals[idx]||'—'}</span></div>`).join('')}</div>\n`;
+        } else if (t === 'score_card') {
+            const titleText = c.caption || text || 'User Satisfaction';
+            const subtitleText = c.caption ? (text || '') : (c.subtitle || '');
+            const score = c.score !== undefined ? c.score : (c.value !== undefined ? c.value : 4.9);
+            const grade = c.placeholder || c.grade || '';
+            const revs = c.reviews !== undefined ? c.reviews : 128;
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;color:${color};"><div style="display:flex;flex-direction:column;"><span style="font-size:11px;font-weight:700;opacity:0.8;">${titleText}</span><div style="font-size:24px;font-weight:900;color:${accent};">${score} <span style="font-size:14px;color:#f59e0b;">${grade ? `(${grade}) ★★★★★` : '★★★★★'}</span></div><span style="font-size:10px;opacity:0.6;">${subtitleText ? subtitleText : `Based on ${revs} reviews`}</span></div></div>\n`;
+        } else if (t === 'avatar_card') {
+            const user = text || 'John Doe';
+            const role = c.subtitle || 'Senior Engineer';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;color:${color};"><div style="width:36px;height:36px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;">${user.charAt(0)}</div><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-weight:700;font-size:12px;">${user}</span><span style="font-size:11px;opacity:0.7;">${role}</span></div></div>\n`;
+        } else if (t === 'user_profile_card') {
+            const user = (c.userProfile && c.userProfile.name) || c.caption || text || 'Jane Developer';
+            const email = (c.userProfile && (c.userProfile.handle || c.userProfile.email)) || c.text || c.email || 'jane@example.com';
+            const role = (c.userProfile && c.userProfile.bio) || c.role || 'Lead Architect';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;color:${color};box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;">${user.charAt(0)}</div><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:14px;">${user}</span><span style="font-size:11px;color:${accent};font-weight:600;">${role}</span><span style="font-size:10px;opacity:0.7;">${email}</span></div></div></div>\n`;
+        } else if (t === 'product_card') {
+            const prod = (c.productData && c.productData.title) || c.caption || text || 'Pro Wireless Mouse';
+            const price = (c.productData && c.productData.price) || c.value || c.price || '$79.99';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;color:${color};"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:800;font-size:13px;">${prod}</span><span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:bold;">In Stock</span></div><div style="font-size:18px;font-weight:900;color:${accent};margin:6px 0;">${price}</div><button style="width:100%;padding:6px;background:${accent};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Add to Cart 🛒</button></div>\n`;
+        } else if (t === 'app_launcher_tile') {
+            const appName = text || 'Code Studio';
+            const icon = c.icon || '🚀';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'"><span style="font-size:26px;">${icon}</span><span style="font-size:11px;font-weight:700;">${appName}</span></div>\n`;
+        } else if (t === 'http_request_card') {
+            const method = c.method || 'POST';
+            const url = c.url || '/api/v1/auth/login';
+            const sc = c.status_code || 200;
+            const rt = c.response_time || '42ms';
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;color:${color};font-family:monospace;font-size:11px;"><div style="display:flex;align-items:center;gap:8px;"><span style="background:${method === 'GET' ? '#0284c7' : '#10b981'};color:#fff;padding:2px 6px;border-radius:4px;font-weight:bold;">${method}</span><span>${url}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">${sc} OK</span><span style="opacity:0.6;">${rt}</span></div></div>\n`;
+        } else if (t === 'resource_monitor') {
+            const cpu = c.cpu !== undefined ? c.cpu : 24;
+            const mem = c.mem !== undefined ? c.mem : 58;
+            const disk = c.disk !== undefined ? c.disk : 41;
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-around;color:${color};"><div style="font-size:11px;font-weight:700;color:${accent};">⚡ System Resources</div>${[['CPU', cpu, '#0284c7'], ['RAM', mem, '#10b981'], ['Disk', disk, '#f59e0b']].map(([rName, rVal, rCol]: any) => `<div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;"><span style="width:36px;font-weight:bold;">${rName}</span><div style="flex:1;height:5px;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'};border-radius:3px;margin:0 8px;overflow:hidden;"><div style="width:${rVal}%;height:100%;background:${rCol};"></div></div><span style="font-family:monospace;font-weight:bold;">${rVal}%</span></div>`).join('')}</div>\n`;
+        } else if (t === 'env_vars') {
+            const vars = c.vars || { 'NODE_ENV': 'production', 'PORT': '3000', 'DEBUG': 'false' };
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;color:${color};font-family:monospace;font-size:11px;"><div style="font-weight:bold;color:${accent};">Environment Variables</div>${Object.entries(vars).map(([k, v]) => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid ${border};padding:2px 0;"><span style="color:#f59e0b;">${k}</span><span style="opacity:0.85;">${v}</span></div>`).join('')}</div>\n`;
+        } else if (t === 'status_dock') {
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:rgba(15,23,42,0.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0 12px;color:#f8fafc;font-size:11px;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#10b981;">●</span><span>${text || 'Daemon Live'}</span></div><span style="opacity:0.6;font-family:monospace;">${c.status || 'OK'}</span></div>\n`;
+        } else if (t === 'nav_rail') {
+            const items = (c.items || (text ? text.split(',') : ['🏠 Home', '📊 Stats', '⚙️ Config', '📁 Files'])).map((s: string) => s.trim());
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:8px;background:${cbg};border-right:1px solid ${border};padding:12px 6px;color:${color};">${items.map((it: string, idx: number) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${it}');" style="padding:8px 12px;background:${idx === 0 ? accent : 'transparent'};color:${idx === 0 ? '#fff' : color};border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;">${it}</button>`).join('')}</div>\n`;
+        } else if (t === 'disclosure' || t === 'collapsible_section') {
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}overflow:hidden;"><details style="padding:8px 12px;color:${color};font-size:12px;"><summary style="cursor:pointer;font-weight:700;color:${accent};user-select:none;">${text || 'Advanced Settings'}</summary><div style="padding-top:8px;font-size:11px;opacity:0.85;">${c.content || c.placeholder || 'Expanded collapsible details and configuration.'}</div></details></div>\n`;
+        } else if (t === 'accordion_group') {
+            const titles = (c.titles || (text ? text.split(',') : ['Section 1', 'Section 2', 'Section 3'])).map((s: string) => s.trim());
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;">${titles.map((tl: string, i: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:6px;overflow:hidden;"><div style="padding:6px 10px;font-size:11px;font-weight:700;color:${accent};cursor:pointer;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'};">${tl}</div></div>`).join('')}</div>\n`;
         } else {
             // Fallback for any other type
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
@@ -1310,9 +1671,10 @@ export function generatePreviewHtml(spec: any): string {
     color: ${fg} !important;
     padding: 8px 12px !important;
   }
+  .ctx-item:hover { background: rgba(56, 189, 248, 0.2) !important; }
   ${hoverStyles}
 </style>
-<body spellcheck="false" autocapitalize="none" autocorrect="off">
+<body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
 ${controls}
 <script>
   window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };
@@ -1348,11 +1710,11 @@ ${controls}
   };
   window.setControlText = function(id, text) {
     const el = document.getElementById(id);
-    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") el.value = text; else { el.textContent = text; el.innerText = text; } }
+    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") { el.value = text; if (el.tagName === "TEXTAREA") el.scrollTop = el.scrollHeight; } else { el.textContent = text; el.innerText = text; } }
   };
   window.setControlValue = function(id, val) {
     const el = document.getElementById(id);
-    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") el.value = val; else { el.textContent = val; el.innerText = val; if (el.dataset) el.dataset.value = val; } }
+    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") { el.value = val; if (el.tagName === "TEXTAREA") el.scrollTop = el.scrollHeight; } else { el.textContent = val; el.innerText = val; if (el.dataset) el.dataset.value = val; } }
   };
   window.setControlPlaceholder = function(id, placeholder) {
     const el = document.getElementById(id);
@@ -1441,6 +1803,36 @@ ${controls}
       b.style.color = isSel ? '#ffffff' : 'inherit';
     });
   };
+  window.handleTreeNodeClick = function(el) {
+    var id = el.getAttribute('data-tree-id');
+    var nodeText = el.getAttribute('data-node');
+    var parent = el.closest('.rad-tree-container');
+    if (parent) {
+      parent.querySelectorAll('.tree-node').forEach(function(n) {
+        n.style.background = 'transparent';
+        n.style.color = 'inherit';
+        n.style.fontWeight = 'normal';
+      });
+    }
+    el.style.background = 'rgba(56,189,248,0.25)';
+    el.style.color = '#38bdf8';
+    el.style.fontWeight = '700';
+    var fn = window[id + '_onSelect'] || window['on_' + id + '_select'];
+    if (fn) fn(nodeText);
+  };
+  window.handleTreeArrowClick = function(e, arrow) {
+    e.stopPropagation();
+    var isCol = arrow.textContent === '▶';
+    arrow.textContent = isCol ? '▼' : '▶';
+    var curr = arrow.closest('.tree-node').nextElementSibling;
+    var indent = parseInt(arrow.closest('.tree-node').style.paddingLeft || '0', 10);
+    while (curr) {
+      var currInd = parseInt(curr.style.paddingLeft || '0', 10);
+      if (currInd <= indent) break;
+      curr.style.display = isCol ? 'flex' : 'none';
+      curr = curr.nextElementSibling;
+    }
+  };
   window.setTreeNodes = function(id, nodesList) {
     const container = document.getElementById(id);
     if (!container) return;
@@ -1461,12 +1853,10 @@ ${controls}
       } else if (isNewFile) {
         badgeHtml = '<span style="font-size:9px;font-weight:800;background:#10b981;color:#ffffff;padding:2px 8px;border-radius:10px;box-shadow:0 0 8px rgba(16,185,129,0.6);flex-shrink:0;margin-left:8px;">NEW</span>';
       }
-      html += '<div class="tree-node' + (idx===0?' selected-tree-node':'') + '" data-node="' + nodeText + '" style="padding:6px 10px;padding-left:' + (indent + 8) + 'px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;cursor:pointer;user-select:none;transition:all 0.2s;' + selStyle + '"' +
-        ' onclick="event.stopPropagation();const parent=this.closest(\'.rad-tree-container\');parent.querySelectorAll(\'.tree-node\').forEach(function(n){n.style.background=\'transparent\';n.style.color=\'inherit\';n.style.fontWeight=\'normal\';});this.style.background=\'' + selBg + '\';this.style.color=\'' + accent + '\';this.style.fontWeight=\'700\';if(window[\'' + id + '_onSelect\'])window[\'' + id + '_onSelect\'](this.dataset.node);"' +
-        ' onmouseover="if(!this.style.background.includes(\'rgba\')){this.style[\'background\']=\'rgba(255,255,255,0.08)\'}"' +
-        ' onmouseout="if(!this.style.background.includes(\'rgba(56\')){this.style[\'background\']=\'transparent\';}">' +
+      html += '<div class="tree-node' + (idx===0?' selected-tree-node':'') + '" data-node="' + nodeText + '" data-tree-id="' + id + '" style="padding:6px 10px;padding-left:' + (indent + 8) + 'px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;cursor:pointer;user-select:none;transition:all 0.2s;' + selStyle + '"' +
+        ' onclick="window.handleTreeNodeClick(this);">' +
         '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden;">' +
-        '<span class="tree-arrow" onclick="event.stopPropagation();const isCol=this.textContent===\'▶\';this.textContent=isCol?\'▼\':\'▶\';let curr=this.closest(\'.tree-node\').nextElementSibling;while(curr){const currInd=parseInt(curr.style.paddingLeft||\'0\');if(currInd<=' + (indent + 8) + ')break;curr.style.display=isCol?\'flex\':\'none\';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.8;cursor:pointer;flex-shrink:0;">' + arrow + '</span>' +
+        '<span class="tree-arrow" onclick="window.handleTreeArrowClick(event, this);" style="width:12px;font-size:9px;opacity:0.8;cursor:pointer;flex-shrink:0;">' + arrow + '</span>' +
         '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nodeText + '</span></div>' +
         badgeHtml +
         '</div>';
@@ -1508,9 +1898,15 @@ ${controls}
     let html = '';
     propsList.forEach(function(pair) {
       const k = pair[0].trim(); const v = pair[1].trim();
-      html += '<div style=\'display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;\'><span style=\'font-weight:600;opacity:0.85;\'>' + k + '</span><span style=\'font-size:11px;color:' + accent + ';font-weight:600;font-family:monospace;\'>' + v + '</span></div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;"><span style="font-weight:600;opacity:0.85;">' + k + '</span><span class="rad-mono" style="font-size:11px;color:' + accent + ';font-weight:600;">' + v + '</span></div>';
     });
     body.innerHTML = html;
+  };
+  window.handlePopupItemClick = function(el) {
+    var id = el.getAttribute('data-popup-id');
+    var label = el.getAttribute('data-popup-label');
+    var fn = window[id + '_onClick'] || window['on_' + id + '_click'];
+    if (fn) fn(label);
   };
   window.setPopupMenuItems = function(id, itemsCSV) {
     const c = document.getElementById(id);
@@ -1518,10 +1914,10 @@ ${controls}
     const items = String(itemsCSV || '').split(',').map(function(s){ return s.trim(); });
     let html = '';
     items.forEach(function(it) {
-      if (it === '---') { html += '<div style=\'height:1px;background:rgba(255,255,255,0.1);margin:4px 0;\'></div>'; return; }
+      if (it === '---') { html += '<div style="height:1px;background:rgba(255,255,255,0.1);margin:4px 0;"></div>'; return; }
       const parts = it.split(/\s{2,}/);
       const label = parts[0] || it; const shortcut = parts[1] || '';
-      html += '<div class="popup-item" style=\'padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;cursor:pointer;\' onclick="if(window[\'' + id + '_onClick\'])window[\'' + id + '_onClick\'](\'' + label + '\');else if(window[\'on_' + id + '_click\'])window[\'on_' + id + '_click\'](\'' + label + '\');"><span>' + label + '</span>' + (shortcut ? '<span style=\'font-size:10px;opacity:0.5;font-family:monospace;\'>' + shortcut + '</span>' : '') + '</div>';
+      html += '<div class="popup-item" data-popup-id="' + id + '" data-popup-label="' + label.replace(/"/g, '&quot;') + '" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;cursor:pointer;" onclick="window.handlePopupItemClick(this);"><span>' + label + '</span>' + (shortcut ? '<span class="rad-mono" style="font-size:10px;opacity:0.5;">' + shortcut + '</span>' : '') + '</div>';
     });
     c.innerHTML = html;
   };
@@ -1568,7 +1964,7 @@ ${controls}
     const c = document.getElementById(id);
     if (!c) return;
     c.dataset.value = shortcutStr;
-    const keys = String(shortcutStr || '').split(/\s+|\+|\-/).filter(Boolean);
+    const keys = String(shortcutStr || '').split(/[ +-]+/).filter(Boolean);
     const accent = '#38bdf8';
     const keysContainer = c.querySelector('div');
     if (keysContainer) {
@@ -1624,6 +2020,10 @@ ${controls}
     });
     stream.innerHTML = html;
   };
+  window.handleTabCloseClick = function(e, btn) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (btn && btn.parentNode) btn.parentNode.style.display = 'none';
+  };
   window.setWorkspaceTabs = function(id, filesCSV) {
     const c = document.getElementById(id);
     if (!c) return;
@@ -1632,7 +2032,7 @@ ${controls}
     let html = '';
     files.forEach(function(file, idx) {
       const isSel = idx === 0;
-      html += '<div style="padding:4px 10px;background:' + (isSel ? '#1e293b' : 'transparent') + ';border-radius:4px 4px 0 0;font-size:11px;font-weight:' + (isSel ? '700' : 'normal') + ';color:' + (isSel ? accent : 'inherit') + ';display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:' + (isSel ? '2px solid ' + accent : 'none') + ';" onclick="const fn=window[' + JSON.stringify(id + '_onChange') + ']||window[' + JSON.stringify('on_' + id + '_change') + '];if(fn)fn(' + JSON.stringify(file) + ');"><span>' + file + '</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display=\'none\';">✕</span></div>';
+      html += '<div style="padding:4px 10px;background:' + (isSel ? '#1e293b' : 'transparent') + ';border-radius:4px 4px 0 0;font-size:11px;font-weight:' + (isSel ? '700' : 'normal') + ';color:' + (isSel ? accent : 'inherit') + ';display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:' + (isSel ? '2px solid ' + accent : 'none') + ';" onclick="const fn=window[' + JSON.stringify(id + '_onChange') + ']||window[' + JSON.stringify('on_' + id + '_change') + '];if(fn)fn(' + JSON.stringify(file) + ');"><span>' + file + '</span><span style="font-size:9px;opacity:0.5;" onclick="window.handleTabCloseClick(event, this);">✕</span></div>';
     });
     c.innerHTML = html;
   };
@@ -1741,7 +2141,172 @@ ${controls}
       else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     }
   };
+  window.showInteractionToast = function(title, subtitle) {
+    var toast = document.getElementById("rad-interaction-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "rad-interaction-toast";
+      toast.style.cssText = "position:fixed;top:40px;right:24px;background:rgba(15,23,42,0.92);color:#f8fafc;border:1px solid rgba(56,189,248,0.45);border-radius:10px;padding:8px 16px;box-shadow:0 12px 32px rgba(0,0,0,0.55),0 0 16px rgba(56,189,248,0.3);z-index:99999999;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-family:system-ui,-apple-system,sans-serif;font-size:12px;display:flex;align-items:center;gap:12px;transform:translateY(-8px);opacity:0;transition:all 0.22s cubic-bezier(0.16,1,0.3,1);pointer-events:none;";
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(56,189,248,0.2);color:#38bdf8;font-size:12px;font-weight:bold;">⚡</span><div><div style="font-weight:700;color:#38bdf8;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;">' + (title || 'ACTION TRIGGERED') + '</div><div style="color:#f8fafc;font-weight:600;font-size:12px;margin-top:2px;">' + (subtitle || '') + '</div></div>';
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+    if (window._interactionToastTimer) clearTimeout(window._interactionToastTimer);
+    window._interactionToastTimer = setTimeout(function() {
+      if (toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-8px)";
+      }
+    }, 2200);
+  };
+
+  window.highlightControl = function(ctrlId) {
+    if (!ctrlId) return;
+    var el = document.getElementById(ctrlId) || document.getElementById(ctrlId + '_wrapper') || document.getElementById(ctrlId + '_container');
+    if (!el) return;
+    var origOutline = el.style.outline;
+    var origShadow = el.style.boxShadow;
+    var origTransition = el.style.transition;
+    el.style.transition = 'all 0.15s ease';
+    el.style.outline = '2px solid #38bdf8';
+    el.style.boxShadow = '0 0 20px rgba(56,189,248,0.5)';
+    setTimeout(function() {
+      el.style.outline = origOutline;
+      el.style.boxShadow = origShadow;
+      el.style.transition = origTransition;
+    }, 900);
+  };
+
+  window.handleContextMenuItemClick = function(el) {
+    var cbName = el.getAttribute('data-ctx-cb') || 'on_context_menu_select';
+    var label = el.getAttribute('data-ctx-label') || '';
+    if (window.hideContextMenu) window.hideContextMenu();
+    if (window.showInteractionToast) {
+      window.showInteractionToast('Context Menu Select', label);
+    }
+    var cb = window[cbName];
+    if (cb) {
+      try { cb(label); } catch(err) { console.error('Context menu callback error:', err); }
+    }
+  };
+
+  window._contextMenuOpenedAt = 0;
+  window.globalContextMenuItems = ${JSON.stringify(spec.global_context_menu_items || spec.globalContextMenuItems || [])};
+
+  window.showContextMenu = function(opts) {
+    window._contextMenuOpenedAt = Date.now();
+    var menu = document.getElementById("rad-context-menu");
+    if (!menu) {
+      menu = document.createElement("div");
+      menu.id = "rad-context-menu";
+      menu.style.cssText = "display:none;position:fixed;min-width:210px;background:#1e293b;color:#f8fafc;border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:6px;box-shadow:0 16px 36px rgba(0,0,0,0.55);z-index:9999999;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-family:system-ui,-apple-system,sans-serif;user-select:none;pointer-events:auto;";
+      document.body.appendChild(menu);
+    }
+    var winW = window.innerWidth || document.documentElement.clientWidth || 1000;
+    var winH = window.innerHeight || document.documentElement.clientHeight || 800;
+    var rawX = typeof opts.x === 'number' ? opts.x : 100;
+    var rawY = typeof opts.y === 'number' ? opts.y : 100;
+    var x = Math.max(10, Math.min(rawX, winW - 230));
+    var y = Math.max(10, Math.min(rawY, winH - 280));
+    menu.style.left = x + "px";
+    menu.style.top = y + "px";
+    var items = opts.items || [];
+    var html = "";
+    items.forEach(function(it) {
+      if (it === "---") {
+        html += '<div style="height:1px;background:rgba(255,255,255,0.12);margin:4px 0;"></div>';
+      } else {
+        var parts = it.split(/\\s{2,}/);
+        var label = parts[0] || it;
+        var sc = parts[1] || '';
+        html += '<div class="ctx-item" data-ctx-cb="' + (opts.callback || 'on_context_menu_select') + '" data-ctx-label="' + label.replace(/"/g, '&quot;') + '" style="padding:6px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:12px;cursor:pointer;user-select:none;transition:background 0.12s;" onclick="event.stopPropagation();window.handleContextMenuItemClick(this);"><span>' + label + '</span>' + (sc ? '<span class="rad-mono" style="font-size:10px;opacity:0.5;">' + sc + '</span>' : '') + '</div>';
+      }
+    });
+    menu.innerHTML = html;
+    menu.style.display = "block";
+  };
+
+  window.hideContextMenu = function() {
+    var menu = document.getElementById("rad-context-menu");
+    if (menu) menu.style.display = "none";
+  };
+
+  // Close context menu and dropdowns on outside left click or mousedown
+  window.addEventListener("click", function(e) {
+    if (e && e.button !== 0) return;
+    if (window._contextMenuOpenedAt && Date.now() - window._contextMenuOpenedAt < 250) return;
+    var target = e.target;
+    if (target && target.closest && target.closest('#rad-context-menu')) return;
+    if (window.hideContextMenu) window.hideContextMenu();
+    document.querySelectorAll('.menu-dropdown').forEach(function(d) { d.style.display = 'none'; });
+  });
+
+  window.addEventListener("mousedown", function(e) {
+    if (e && e.button !== 0) return;
+    if (window._contextMenuOpenedAt && Date.now() - window._contextMenuOpenedAt < 250) return;
+    var target = e.target;
+    if (target && target.closest && target.closest('#rad-context-menu')) return;
+    if (window.hideContextMenu) window.hideContextMenu();
+  });
+
+  // Handle right-click context menus
+  window.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    window._contextMenuOpenedAt = Date.now();
+    var target = e.target;
+    var ctxEl = target && target.closest ? target.closest('[data-context-menu]') : null;
+    if (ctxEl) {
+      var raw = ctxEl.getAttribute('data-context-menu');
+      var ctrlId = ctxEl.getAttribute('data-ctrl-id') || ctxEl.id;
+      if (window.highlightControl) window.highlightControl(ctrlId);
+      if (window.showInteractionToast) {
+        window.showInteractionToast('Target Right-Clicked', 'Opened menu for ' + (ctrlId || 'target'));
+      }
+      var items = raw ? raw.split('|') : [];
+      if (window.showContextMenu) {
+        window.showContextMenu({
+          x: e.clientX,
+          y: e.clientY,
+          items: items,
+          callback: 'on_' + ctrlId + '_context_select'
+        });
+      }
+      var fn = "on_" + ctrlId + "_contextmenu";
+      if (window[fn]) {
+        try { window[fn]({ id: ctrlId, x: e.clientX, y: e.clientY }); } catch(err) {}
+      }
+      return false;
+    }
+    if (window.globalContextMenuItems && window.showContextMenu && window.globalContextMenuItems.length > 0) {
+      if (window.showInteractionToast) {
+        window.showInteractionToast('Global Context Menu', 'Canvas Background Right-Clicked');
+      }
+      window.showContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: window.globalContextMenuItems,
+        callback: 'on_global_context_menu_select'
+      });
+    }
+    if (window.on_window_contextmenu) {
+      try { window.on_window_contextmenu({ x: e.clientX, y: e.clientY }); } catch(err) {}
+    }
+    return false;
+  }, { capture: true });
+
   window.addEventListener("keydown", (e) => {
+    // Disable browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
+    if (
+      e.key === "F5" ||
+      e.code === "F5" ||
+      ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "r" || e.code === "KeyR"))
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
     if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "q") || (e.altKey && (e.key === "F4" || e.code === "F4"))) {
       e.preventDefault();
       if (window.quitApp) window.quitApp();
@@ -1750,7 +2315,7 @@ ${controls}
       e.preventDefault();
       window.toggleFullscreen();
     }
-  });
+  }, { capture: true });
   window.addEventListener("DOMContentLoaded", () => {
     if (window.onFormLoad) window.onFormLoad();
   });

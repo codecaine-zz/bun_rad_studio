@@ -171,6 +171,18 @@ export class SimpleControlRef {
         return this;
     }
 
+    contextMenu(items: string[] | string, onSelect?: EventCallback): this {
+        const itemsArr = Array.isArray(items) ? items : items.split(",").map(s => s.trim());
+        this.spec.context_menu_items = itemsArr;
+        if (onSelect) {
+            this.window.bindControlEvent(this.spec.id, "context_select", onSelect);
+        }
+        return this;
+    }
+    context_menu(items: string[] | string, onSelect?: EventCallback): this {
+        return this.contextMenu(items, onSelect);
+    }
+
     bindState(key: string): this {
         this.window.bindState(this.spec.id, key);
         return this;
@@ -259,6 +271,22 @@ export class SimpleControlRef {
     min(val: number): this { this.spec.min_value = val; return this; }
     max(val: number): this { this.spec.max_value = val; return this; }
     step(val: number): this { this.spec.step = val; return this; }
+
+    on_click(handler: EventCallback): this { return this.onClick(handler); }
+    on_change(handler: EventCallback): this { return this.onChange(handler); }
+    on_hover(handler: EventCallback): this { return this.onHover(handler); }
+    on_hover_exit(handler: EventCallback): this { return this.onHoverExit(handler); }
+    get_value(): any { return this.getValue(); }
+    set_value(val: any): this { return this.setValue(val); }
+    get_text(): string { return this.getText(); }
+    set_text(text: string): this { return this.setText(text); }
+    set_enabled(flag = true): this { return this.enabled(flag); }
+    set_visible(flag = true): this { return this.visible(flag); }
+    read_only(flag = true): this { return this.readOnly(flag); }
+    toggle_checked(): boolean { return this.toggleChecked(); }
+    append_text(text: string): this { return this.appendText(text); }
+    append_line(line: string): this { return this.appendLine(line); }
+    set_options(items: string[]): this { return this.options(items); }
 }
 
 interface LayoutFrame {
@@ -452,10 +480,11 @@ export function shouldPersistControl(ctrl: any): boolean {
     const kind = String(ctrl.kind || ctrl.type || "").toLowerCase();
     const supportedKinds = [
         "input", "textbox", "textinput", "search_bar", "search", "search_field",
-        "file_picker", "date_picker", "time_picker", "number", "stepper",
-        "dropdown", "select", "combobox", "segmented", "radio",
-        "checkbox", "switch", "toggle",
-        "slider", "step_slider", "range_slider", "rating",
+        "file_picker", "file_picker_field", "date_picker", "time_picker", "date_range_picker", "date_time_picker",
+        "number", "stepper", "dropdown", "select", "combobox", "combo_box", "pull_down", "segmented", "radio", "radio_group",
+        "checkbox", "switch", "toggle", "pill_toggle", "mode_control",
+        "slider", "vertical_slider", "step_slider", "range_slider", "rating",
+        "knob", "token_field", "tag_input", "masked_input", "inline_editable_label",
         "textarea"
     ];
     if (!supportedKinds.includes(kind)) {
@@ -833,15 +862,21 @@ export class SimpleWindow {
         } else if (activeFrame.type === "row") {
             // Horizontal Row Layout with Responsive Auto-Wrap
             const parentFrame = this.layoutStack[this.layoutStack.length - 2];
-            let maxX = this.width - (this.padding * 2);
+            let maxX = this.width - this.padding;
             if (parentFrame && parentFrame.type === "card" && parentFrame.cardSpec) {
-                maxX = (parentFrame.cardSpec.left || this.padding) + (parentFrame.cardSpec.width || (this.width - (this.padding * 2))) - 36;
+                maxX = (parentFrame.cardSpec.left || this.padding) + (parentFrame.cardSpec.width || (this.width - (this.padding * 2))) - 20;
             }
 
-            // Prevent control from exceeding the entire container width
-            const maxContainerW = Math.max(80, maxX - activeFrame.startX);
-            if (ctrl.width > maxContainerW && !ctrl.user_explicit_width) {
-                ctrl.width = maxContainerW;
+            // In a row, if control doesn't have an explicit width specified in opts:
+            // Prevent wide default width (e.g. full window width) from causing premature wrap
+            // when there is still reasonable space on this row.
+            const remainingW = maxX - activeFrame.currentX;
+            if (!ctrl.user_explicit_width) {
+                if (ctrl.width > remainingW && remainingW >= 140 && activeFrame.currentX > activeFrame.startX) {
+                    ctrl.width = remainingW;
+                } else if (ctrl.width > (maxX - activeFrame.startX)) {
+                    ctrl.width = Math.max(80, maxX - activeFrame.startX);
+                }
             }
 
             // Auto-wrap to next line if exceeding container bounds
@@ -898,10 +933,27 @@ export class SimpleWindow {
     }
 
     public recalculateRowX(spec: any, oldWidth: number, newWidth: number): void {
-        const diff = newWidth - oldWidth;
         const activeFrame = this.layoutStack[this.layoutStack.length - 1];
         if (activeFrame && activeFrame.type === "row") {
-            activeFrame.currentX += diff;
+            const parentFrame = this.layoutStack[this.layoutStack.length - 2];
+            let maxX = this.width - this.padding;
+            if (parentFrame && parentFrame.type === "card" && parentFrame.cardSpec) {
+                maxX = (parentFrame.cardSpec.left || this.padding) + (parentFrame.cardSpec.width || (this.width - (this.padding * 2))) - 20;
+            }
+            const itemSpacing = spec.control_type === "label" ? 8 : this.spacing;
+
+            // If new explicit width exceeds available bounds and not at startX, wrap to next line
+            if (spec.left + newWidth > maxX && spec.left > activeFrame.startX) {
+                activeFrame.currentY += activeFrame.rowHeight + this.spacing;
+                spec.left = activeFrame.startX;
+                spec.top = activeFrame.currentY;
+                spec.x = spec.left;
+                spec.y = spec.top;
+                activeFrame.currentX = spec.left + newWidth + itemSpacing;
+                activeFrame.rowHeight = spec.height;
+            } else {
+                activeFrame.currentX = spec.left + newWidth + itemSpacing;
+            }
         }
     }
 
@@ -930,6 +982,22 @@ export class SimpleWindow {
 
         this.allocateControlPosition(spec, width, height);
         this.controls.push(spec);
+
+        // Store initial value in formValuesStore if provided
+        if (opts.value !== undefined) {
+            this.formValuesStore[id] = opts.value;
+        } else if (opts.checked !== undefined) {
+            this.formValuesStore[id] = opts.checked;
+        } else if (opts.selected !== undefined) {
+            this.formValuesStore[id] = opts.selected;
+        } else if (opts.text !== undefined && (type === "textbox" || type === "input" || type === "search_field" || type === "masked_input" || type === "file_path_bar" || type === "file_picker_field" || type === "inline_editable_label")) {
+            this.formValuesStore[id] = opts.text;
+        } else if (opts.tags !== undefined) {
+            this.formValuesStore[id] = opts.tags;
+        } else if (opts.rightItems !== undefined) {
+            this.formValuesStore[id] = opts.rightItems;
+        }
+
         return new SimpleControlRef(spec, this);
     }
 
@@ -1009,12 +1077,19 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addTextInput(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: EventCallback | Partial<any> = {}): SimpleControlRef {
+    public addTextInput(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
         let initialValue = "";
         let onChange: EventCallback | undefined;
         let opts: Partial<any> = {};
+        let finalPlaceholder = placeholder;
+        let explicitId: string | undefined;
 
-        if (typeof arg2 === "function") {
+        if (typeof arg2 === "string" && typeof arg3 === "string") {
+            // Overload: (id, initialValue, placeholder)
+            explicitId = placeholder;
+            initialValue = arg2;
+            finalPlaceholder = arg3;
+        } else if (typeof arg2 === "function") {
             onChange = arg2 as EventCallback;
             if (typeof arg3 === "object") opts = arg3;
         } else if (typeof arg2 === "string") {
@@ -1028,17 +1103,42 @@ export class SimpleWindow {
             opts = arg2;
         }
 
-        const ref = this.addVisualControl("input", 280, 36, { placeholder, value: initialValue, ...opts });
+        if (explicitId) opts.id = explicitId;
+        const ref = this.addVisualControl("input", 280, 36, { placeholder: finalPlaceholder, value: initialValue, ...opts });
         if (initialValue) this.formValuesStore[ref.spec.id] = initialValue;
         if (onChange) ref.onChange(onChange);
         return ref;
+    }
+    public add_text_input(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: EventCallback | Partial<any> = {}): SimpleControlRef {
+        return this.addTextInput(placeholder, arg2, arg3);
+    }
+    public addTextField(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
+        return this.addTextInput(placeholder, arg2, arg3);
+    }
+    public add_text_field(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
+        return this.addTextInput(placeholder, arg2, arg3);
     }
 
     public addPasswordInput(placeholder = "••••••••", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("password", 280, 36, { placeholder, ...opts });
     }
 
-    public addTextArea(placeholder = "", initialValue = "", opts: Partial<any> = {}): SimpleControlRef {
+    public addTextArea(idOrPlaceholder = "", initialValueOrPlaceholder = "", optsOrPlaceholder: string | Partial<any> = {}): SimpleControlRef {
+        let id: string | undefined;
+        let placeholder = idOrPlaceholder;
+        let initialValue = initialValueOrPlaceholder;
+        let opts: Partial<any> = {};
+
+        if (typeof optsOrPlaceholder === "string") {
+            // Overload: (id, initialValue, placeholder)
+            id = idOrPlaceholder;
+            initialValue = initialValueOrPlaceholder;
+            placeholder = optsOrPlaceholder;
+        } else if (typeof optsOrPlaceholder === "object") {
+            opts = optsOrPlaceholder;
+        }
+
+        if (id) opts.id = id;
         const ref = this.addVisualControl("textarea", 340, 80, { placeholder, value: initialValue, ...opts });
         if (initialValue) this.formValuesStore[ref.spec.id] = initialValue;
         return ref;
@@ -1314,6 +1414,1303 @@ export class SimpleWindow {
         return this.addVisualControl("separator", this.width - (this.padding * 2), 2, { ...opts });
     }
 
+    // ==========================================
+    // --- VLang SimpleGUI Control Parity API ---
+    // ==========================================
+
+    // 1. Text & Input Controls
+    public addSearchField(id?: string, placeholder = "Search...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("search_field", Math.min(320, this.width - 40), 38, {
+            id,
+            placeholder,
+            text: initialVal,
+            caption: placeholder,
+            ...opts
+        });
+    }
+    public add_search_field(id?: string, placeholder = "Search...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSearchField(id, placeholder, initialVal, opts);
+    }
+
+    public addPassword(id?: string, placeholder = "Enter password...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("password_input", Math.min(280, this.width - 40), 38, {
+            id,
+            placeholder,
+            text: initialVal,
+            caption: placeholder,
+            ...opts
+        });
+    }
+    public add_password(id?: string, placeholder = "Enter password...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPassword(id, placeholder, initialVal, opts);
+    }
+
+    public addCommandPalette(id?: string, placeholder = "Type a command or search (Ctrl+K)...", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("command_palette", Math.min(480, this.width - 40), 44, {
+            id,
+            placeholder,
+            caption: placeholder,
+            ...opts
+        });
+    }
+    public add_command_palette(id?: string, placeholder = "Type a command or search (Ctrl+K)...", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCommandPalette(id, placeholder, opts);
+    }
+
+    public addTokenField(id?: string, tokens: string[] = ["Bun", "TypeScript", "VLang"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("token_field", Math.min(380, this.width - 40), 40, {
+            id,
+            tags: tokens,
+            text: tokens.join(", "),
+            ...opts
+        });
+    }
+    public add_token_field(id?: string, tokens: string[] = ["Bun", "TypeScript", "VLang"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTokenField(id, tokens, opts);
+    }
+
+    public addTagInputField(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("tag_input", Math.min(380, this.width - 40), 40, {
+            id,
+            tags,
+            text: tags.join(", "),
+            ...opts
+        });
+    }
+    public add_tag_input_field(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTagInputField(id, tags, opts);
+    }
+    public addTagInput(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTagInputField(id, tags, opts);
+    }
+    public add_tag_input(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTagInputField(id, tags, opts);
+    }
+    public tag_input(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTagInputField(id, tags, opts);
+    }
+
+    public addMaskedInput(id?: string, mask = "(999) 999-9999", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("masked_input", Math.min(240, this.width - 40), 38, {
+            id,
+            placeholder: mask,
+            text: initialVal,
+            caption: mask,
+            ...opts
+        });
+    }
+    public add_masked_input(id?: string, mask = "(999) 999-9999", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addMaskedInput(id, mask, initialVal, opts);
+    }
+
+    public addInlineEditableLabel(id?: string, text = "Click to edit text", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("inline_editable_label", Math.min(280, this.width - 40), 32, {
+            id,
+            text,
+            caption: text,
+            ...opts
+        });
+    }
+    public add_inline_editable_label(id?: string, text = "Click to edit text", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addInlineEditableLabel(id, text, opts);
+    }
+
+    // 2. Typography, Banners & Callouts
+    public addSectionHeader(title: string, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("section_header", this.width - (this.padding * 2), 48, {
+            caption: title,
+            text: subtitle,
+            ...opts
+        });
+    }
+    public add_section_header(title: string, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSectionHeader(title, subtitle, opts);
+    }
+
+    public addHotkeyBadge(keys: string | string[], opts: Partial<any> = {}): SimpleControlRef {
+        const keyText = Array.isArray(keys) ? keys.join(" + ") : String(keys);
+        const count = Array.isArray(keys) ? keys.length : keyText.split(/\s+|\+/).filter(Boolean).length;
+        const defaultW = Math.max(90, count * 36 + 20);
+        return this.addVisualControl("hotkey_badge", defaultW, 28, {
+            text: keyText,
+            caption: keyText,
+            ...opts
+        });
+    }
+    public add_hotkey_badge(keys: string | string[], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addHotkeyBadge(keys, opts);
+    }
+
+    public addLink(text: string, url = "#", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("link", 180, 24, {
+            text,
+            caption: url,
+            ...opts
+        });
+    }
+    public add_link(text: string, url = "#", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addLink(text, url, opts);
+    }
+
+    public addBanner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("banner", this.width - (this.padding * 2), 44, {
+            text: message,
+            caption: message,
+            style,
+            ...opts
+        });
+    }
+    public add_banner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addBanner(message, style, opts);
+    }
+
+    public addStatusBanner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("status_banner", this.width - (this.padding * 2), 44, {
+            text: message,
+            caption: message,
+            style,
+            ...opts
+        });
+    }
+    public add_status_banner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addStatusBanner(message, style, opts);
+    }
+
+    public addInfoCallout(title: string, body: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("info_callout", this.width - (this.padding * 2), 68, {
+            caption: title,
+            text: body,
+            ...opts
+        });
+    }
+    public add_info_callout(title: string, body: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addInfoCallout(title, body, opts);
+    }
+
+    public addHeroBanner(title: string, subtitle = "", badge = "NEW", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("hero_banner", this.width - (this.padding * 2), 110, {
+            caption: title,
+            text: subtitle,
+            placeholder: badge,
+            ...opts
+        });
+    }
+    public add_hero_banner(title: string, subtitle = "", badge = "NEW", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addHeroBanner(title, subtitle, badge, opts);
+    }
+
+    // 3. Buttons & Toolbars
+    public addImageButton(src: string, caption = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("image_button", 140, 42, {
+            caption: caption || src,
+            text: src,
+            onClick,
+            ...opts
+        });
+    }
+    public add_image_button(src: string, caption = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addImageButton(src, caption, onClick, opts);
+    }
+
+    public addHelpButton(tooltipText = "Help information", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("help_button", 36, 36, {
+            tooltip: tooltipText,
+            caption: "?",
+            text: tooltipText,
+            onClick,
+            ...opts
+        });
+    }
+    public add_help_button(tooltipText = "Help information", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addHelpButton(tooltipText, onClick, opts);
+    }
+
+    public addSplitButton(caption: string, menuItems: string[] = ["Action 1", "Action 2"], onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("split_button", 160, 38, {
+            caption,
+            text: caption,
+            items: menuItems,
+            onClick,
+            ...opts
+        });
+    }
+    public add_split_button(caption: string, menuItems: string[] = ["Action 1", "Action 2"], onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSplitButton(caption, menuItems, onClick, opts);
+    }
+
+    public addBadgeButton(caption: string, badgeCount: number | string = "1", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("badge_button", 130, 38, {
+            caption,
+            text: String(badgeCount),
+            onClick,
+            ...opts
+        });
+    }
+    public add_badge_button(caption: string, badgeCount: number | string = "1", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addBadgeButton(caption, badgeCount, onClick, opts);
+    }
+
+    public addQuickActionBar(actions: Array<{ label: string; icon?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("quick_action_bar", this.width - (this.padding * 2), 48, {
+            items: actions,
+            onClick: onSelect,
+            ...opts
+        });
+    }
+    public add_quick_action_bar(actions: Array<{ label: string; icon?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addQuickActionBar(actions, onSelect, opts);
+    }
+
+    public addFloatingToolbar(tools: Array<{ icon?: string; label?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("floating_toolbar", Math.min(380, this.width - 40), 46, {
+            items: tools,
+            onClick: onSelect,
+            ...opts
+        });
+    }
+    public add_floating_toolbar(tools: Array<{ icon?: string; label?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFloatingToolbar(tools, onSelect, opts);
+    }
+
+    // 4. Selection & Pickers
+    public addRadio(label: string, groupName: string, checked = false, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("radio", 180, 28, {
+            caption: label,
+            text: label,
+            group: groupName,
+            value: checked,
+            ...opts
+        });
+    }
+    public add_radio(label: string, groupName: string, checked = false, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addRadio(label, groupName, checked, opts);
+    }
+
+    public addRadioGroup(groupName: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        const initial = selected || options[0] || "";
+        return this.addVisualControl("radio_group", 240, Math.max(36, options.length * 30), {
+            id: groupName,
+            group: groupName,
+            items: options,
+            value: initial,
+            onChange,
+            ...opts
+        });
+    }
+    public add_radio_group(groupName: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addRadioGroup(groupName, options, selected, onChange, opts);
+    }
+
+    public addPullDown(id: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("pull_down", 220, 36, {
+            id,
+            items: options,
+            value: selected || options[0] || "",
+            onChange,
+            ...opts
+        });
+    }
+    public add_pull_down(id: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPullDown(id, options, selected, onChange, opts);
+    }
+
+    public addComboBox(id: string, options: string[], initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("combo_box", 240, 38, {
+            id,
+            items: options,
+            text: initialVal || options[0] || "",
+            value: initialVal || options[0] || "",
+            ...opts
+        });
+    }
+    public add_combo_box(id: string, options: string[], initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addComboBox(id, options, initialVal, opts);
+    }
+
+    public addThemeMenu(id = "theme_menu", selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("theme_menu", 180, 36, {
+            id,
+            value: selected || this.theme,
+            onChange,
+            ...opts
+        });
+    }
+    public add_theme_menu(id = "theme_menu", selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addThemeMenu(id, selected, onChange, opts);
+    }
+
+    public addModeControl(id: string, modes = ["System", "Dark", "Light"], selected = "Dark", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("mode_control", 240, 36, {
+            id,
+            items: modes,
+            value: selected,
+            onChange,
+            ...opts
+        });
+    }
+    public add_mode_control(id: string, modes = ["System", "Dark", "Light"], selected = "Dark", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addModeControl(id, modes, selected, onChange, opts);
+    }
+
+    public addIconSegments(id: string, items: Array<{ icon: string; label: string } | string>, selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("icon_segments", Math.min(320, this.width - 40), 38, {
+            id,
+            items,
+            value: selectedIdx,
+            onChange,
+            ...opts
+        });
+    }
+    public add_icon_segments(id: string, items: Array<{ icon: string; label: string } | string>, selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addIconSegments(id, items, selectedIdx, onChange, opts);
+    }
+
+    public addPillToggle(id: string, options: string[] = ["On", "Off"], selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("pill_toggle", 180, 34, {
+            id,
+            items: options,
+            value: selectedIdx,
+            onChange,
+            ...opts
+        });
+    }
+    public add_pill_toggle(id: string, options: string[] = ["On", "Off"], selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPillToggle(id, options, selectedIdx, onChange, opts);
+    }
+
+    public addTagCloud(id: string, tags: string[], selected: string[] = [], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("tag_cloud", Math.min(420, this.width - 40), 72, {
+            id,
+            tags,
+            selectedTags: selected,
+            onClick: onSelect,
+            ...opts
+        });
+    }
+    public add_tag_cloud(id: string, tags: string[], selected: string[] = [], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTagCloud(id, tags, selected, onSelect, opts);
+    }
+
+    public addTransferList(id: string, leftItems: string[] = [], rightItems: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("transfer_list", Math.min(480, this.width - 40), 160, {
+            id,
+            leftItems,
+            rightItems,
+            ...opts
+        });
+    }
+    public add_transfer_list(id: string, leftItems: string[] = [], rightItems: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTransferList(id, leftItems, rightItems, opts);
+    }
+
+    // 5. Sliders, Numbers & Progress
+    public addVerticalSlider(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("vertical_slider", 48, 160, {
+            id,
+            min,
+            max,
+            value: val,
+            ...opts
+        });
+    }
+    public add_vertical_slider(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVerticalSlider(id, min, max, val, opts);
+    }
+
+    public addRangeSlider(id: string, min = 0, max = 100, low = 25, high = 75, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("range_slider", Math.min(300, this.width - 40), 44, {
+            id,
+            min,
+            max,
+            lowValue: low,
+            highValue: high,
+            value: `${low}-${high}`,
+            ...opts
+        });
+    }
+    public add_range_slider(id: string, min = 0, max = 100, low = 25, high = 75, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addRangeSlider(id, min, max, low, high, opts);
+    }
+
+    public addKnob(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("knob", 80, 80, {
+            id,
+            min,
+            max,
+            value: val,
+            ...opts
+        });
+    }
+    public add_knob(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addKnob(id, min, max, val, opts);
+    }
+
+    public addProgressIndicator(id: string, value = 0, max = 100, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addProgressBar(value, max, { id, ...opts });
+    }
+    public add_progress_indicator(id: string, value = 0, max = 100, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addProgressIndicator(id, value, max, opts);
+    }
+
+    public addLevelIndicator(id: string, value = 5, max = 10, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("level_indicator", 160, 24, {
+            id,
+            value,
+            max,
+            ...opts
+        });
+    }
+    public add_level_indicator(id: string, value = 5, max = 10, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addLevelIndicator(id, value, max, opts);
+    }
+
+    public addSpinner(size = 28, text = "Loading...", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("spinner", 120, size + 8, {
+            caption: text,
+            text,
+            width: size,
+            height: size,
+            ...opts
+        });
+    }
+    public add_spinner(size = 28, text = "Loading...", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSpinner(size, text, opts);
+    }
+
+    public addRating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("rating", 140, 32, {
+            id,
+            value,
+            max,
+            ...opts
+        });
+    }
+    public add_rating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addRating(id, value, max, opts);
+    }
+
+    public addStarRating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addRating(id, value, max, opts);
+    }
+    public add_star_rating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addStarRating(id, value, max, opts);
+    }
+
+    public addDonutChart(id: string, title: string, percent = 75, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("donut_chart", 180, 160, {
+            id,
+            caption: title,
+            value: percent,
+            text: subtitle,
+            ...opts
+        });
+    }
+    public add_donut_chart(id: string, title: string, percent = 75, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDonutChart(id, title, percent, subtitle, opts);
+    }
+
+    public addActivityRings(id: string, rings: Array<{ label: string; percent: number; color?: string }> = [
+        { label: "Move", percent: 85, color: "#fa114f" },
+        { label: "Exercise", percent: 62, color: "#a1ff00" },
+        { label: "Stand", percent: 90, color: "#00f0ff" }
+    ], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("activity_rings", 160, 160, {
+            id,
+            rings,
+            ...opts
+        });
+    }
+    public add_activity_rings(id: string, rings?: Array<{ label: string; percent: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addActivityRings(id, rings, opts);
+    }
+
+    public addSegmentDistributionBar(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("segment_distribution_bar", Math.min(380, this.width - 40), 38, {
+            id,
+            segments,
+            ...opts
+        });
+    }
+    public add_segment_distribution_bar(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSegmentDistributionBar(id, segments, opts);
+    }
+
+    public addSegmentedProgress(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSegmentDistributionBar(id, segments, opts);
+    }
+    public add_segmented_progress(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSegmentedProgress(id, segments, opts);
+    }
+
+    public addFeedbackMood(id: string, selected = "neutral", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("feedback_mood", 240, 44, {
+            id,
+            value: selected,
+            onChange,
+            ...opts
+        });
+    }
+    public add_feedback_mood(id: string, selected = "neutral", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFeedbackMood(id, selected, onChange, opts);
+    }
+
+    public addActivityHeatmap(id: string, weeks = 12, data?: number[][], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("activity_heatmap", Math.min(480, this.width - 40), 120, {
+            id,
+            weeks,
+            heatmapData: data,
+            ...opts
+        });
+    }
+    public add_activity_heatmap(id: string, weeks = 12, data?: number[][], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addActivityHeatmap(id, weeks, data, opts);
+    }
+
+    // 6. Pickers & File / Path
+    public addDateRangePicker(id: string, startDate = "", endDate = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("date_range_picker", 280, 40, {
+            id,
+            startDate,
+            endDate,
+            value: `${startDate} - ${endDate}`,
+            ...opts
+        });
+    }
+    public add_date_range_picker(id: string, startDate = "", endDate = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDateRangePicker(id, startDate, endDate, opts);
+    }
+
+    public addDateTimePicker(id: string, initialDate = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("date_time_picker", 260, 40, {
+            id,
+            value: initialDate,
+            text: initialDate,
+            ...opts
+        });
+    }
+    public add_date_time_picker(id: string, initialDate = "", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDateTimePicker(id, initialDate, opts);
+    }
+
+    public addColorGrid(id: string, colors: string[] = ["#ef4444", "#f97316", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#a855f7"], selected = "#10b981", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("color_grid", 240, 44, {
+            id,
+            colors,
+            value: selected,
+            ...opts
+        });
+    }
+    public add_color_grid(id: string, colors?: string[], selected?: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addColorGrid(id, colors, selected, opts);
+    }
+
+    public addColorSwatchPanel(id: string, colors?: string[], selected?: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addColorGrid(id, colors, selected, opts);
+    }
+    public add_color_swatch_panel(id: string, colors?: string[], selected?: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addColorSwatchPanel(id, colors, selected, opts);
+    }
+
+    public addFilePickerField(id: string, placeholder = "Select a file...", filter = "*.*", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("file_picker_field", Math.min(380, this.width - 40), 38, {
+            id,
+            placeholder,
+            caption: filter,
+            ...opts
+        });
+    }
+    public add_file_picker_field(id: string, placeholder = "Select a file...", filter = "*.*", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFilePickerField(id, placeholder, filter, opts);
+    }
+
+    public addPathControl(id: string, segments: string[] = ["Macintosh HD", "Users", "codecaine", "Projects"], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("path_control", Math.min(420, this.width - 40), 34, {
+            id,
+            segments,
+            text: segments.join("/"),
+            ...opts
+        });
+    }
+    public add_path_control(id: string, segments?: string[], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPathControl(id, segments, opts);
+    }
+
+    public addDropZone(id: string, promptText = "Drag & Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("drop_zone", Math.min(480, this.width - 40), 100, {
+            id,
+            caption: promptText,
+            text: promptText,
+            ...opts
+        });
+    }
+    public add_drop_zone(id: string, promptText = "Drag & Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDropZone(id, promptText, opts);
+    }
+    public drop_zone(id: string, promptText = "Drag & Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDropZone(id, promptText, opts);
+    }
+
+    public addFormDropZone(id: string, promptText = "Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("form_drop_zone", Math.min(480, this.width - 40), 90, {
+            id,
+            text: promptText,
+            placeholder: promptText,
+            ...opts
+        });
+    }
+    public add_form_drop_zone(id: string, promptText = "Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFormDropZone(id, promptText, opts);
+    }
+    public form_drop_zone(id: string, promptText = "Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFormDropZone(id, promptText, opts);
+    }
+
+    public addFilePathBar(pathOrId: string, idOrPath?: string, opts: Partial<any> = {}): SimpleControlRef {
+        let id: string;
+        let path: string;
+        if (idOrPath !== undefined && typeof idOrPath === "string") {
+            if (pathOrId.startsWith("/") || pathOrId.includes("\\") || pathOrId.includes(".")) {
+                path = pathOrId;
+                id = idOrPath;
+            } else {
+                id = pathOrId;
+                path = idOrPath;
+            }
+        } else {
+            path = pathOrId;
+            id = this.generateUniqueId("file_path_bar");
+        }
+        return this.addVisualControl("file_path_bar", Math.min(640, this.width - 40), 40, {
+            id,
+            text: path,
+            caption: path,
+            value: path,
+            ...opts
+        });
+    }
+    public add_file_path_bar(pathOrId: string, idOrPath?: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFilePathBar(pathOrId, idOrPath, opts);
+    }
+    public file_path_bar(pathOrId: string, idOrPath?: string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFilePathBar(pathOrId, idOrPath, opts);
+    }
+
+    public addColorSwatch(idOrColors: string | string[], colorsOrSelected?: string[] | string, selectedOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let id: string;
+        let colors: string[];
+        let selected: string;
+        let finalOpts: Partial<any> = opts;
+
+        if (Array.isArray(idOrColors)) {
+            id = this.generateUniqueId("color_swatch");
+            colors = idOrColors;
+            selected = typeof colorsOrSelected === "string" ? colorsOrSelected : colors[0] || "#0284c7";
+            if (typeof selectedOrOpts === "object") finalOpts = selectedOrOpts;
+        } else {
+            id = idOrColors;
+            colors = Array.isArray(colorsOrSelected) ? colorsOrSelected : ["#0284c7", "#38bdf8", "#10b981", "#f59e0b", "#ef4444", "#7c3aed", "#ec4899"];
+            selected = typeof selectedOrOpts === "string" ? selectedOrOpts : colors[0] || "#0284c7";
+            if (typeof opts === "object") finalOpts = opts;
+        }
+
+        return this.addVisualControl("color_swatch", Math.min(320, this.width - 40), 90, {
+            id,
+            text: colors.join(", "),
+            value: selected,
+            caption: finalOpts.caption || "Color Palette Swatch",
+            ...finalOpts
+        });
+    }
+    public add_color_swatch(idOrColors: string | string[], colorsOrSelected?: string[] | string, selectedOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addColorSwatch(idOrColors, colorsOrSelected, selectedOrOpts, opts);
+    }
+    public color_swatch(idOrColors: string | string[], colorsOrSelected?: string[] | string, selectedOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addColorSwatch(idOrColors, colorsOrSelected, selectedOrOpts, opts);
+    }
+
+    public addCalendarView(idOrDate: string, dateOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let id: string;
+        let dateVal: string;
+        let finalOpts: Partial<any> = opts;
+
+        if (typeof dateOrOpts === "string") {
+            id = idOrDate;
+            dateVal = dateOrOpts;
+        } else {
+            if (idOrDate.includes(" ") || idOrDate.includes("-") || idOrDate.includes(",")) {
+                id = this.generateUniqueId("calendar_view");
+                dateVal = idOrDate;
+            } else {
+                id = idOrDate;
+                dateVal = "July 2026";
+            }
+            if (typeof dateOrOpts === "object") finalOpts = dateOrOpts;
+        }
+
+        return this.addVisualControl("calendar_view", 280, 220, {
+            id,
+            text: dateVal,
+            caption: dateVal,
+            value: 25,
+            ...finalOpts
+        });
+    }
+    public add_calendar_view(idOrDate: string, dateOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCalendarView(idOrDate, dateOrOpts, opts);
+    }
+    public calendar_view(idOrDate: string, dateOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCalendarView(idOrDate, dateOrOpts, opts);
+    }
+
+    public addPopupMenu(idOrItems: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let id: string;
+        let items: string[];
+        let finalOpts: Partial<any> = opts;
+
+        if (Array.isArray(idOrItems)) {
+            id = this.generateUniqueId("popup_menu");
+            items = idOrItems;
+            if (typeof itemsOrOpts === "object" && !Array.isArray(itemsOrOpts)) finalOpts = itemsOrOpts;
+        } else {
+            id = idOrItems;
+            if (Array.isArray(itemsOrOpts)) {
+                items = itemsOrOpts;
+            } else if (typeof itemsOrOpts === "string") {
+                items = itemsOrOpts.split(",").map(s => s.trim());
+            } else {
+                items = ["✂️ Cut  ⌘X", "📋 Copy  ⌘C", "📄 Paste  ⌘V", "---", "🗑️ Delete  ⌫"];
+                if (typeof itemsOrOpts === "object") finalOpts = itemsOrOpts;
+            }
+        }
+
+        return this.addVisualControl("popup_menu", 220, 230, {
+            id,
+            text: items.join(", "),
+            items,
+            ...finalOpts
+        });
+    }
+    public add_popup_menu(idOrItems: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPopupMenu(idOrItems, itemsOrOpts, opts);
+    }
+    public popup_menu(idOrItems: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPopupMenu(idOrItems, itemsOrOpts, opts);
+    }
+
+    public addMenuBar(idOrMenus?: string | Array<{ label: string; items: string[] }>, menusOrOpts?: Array<{ label: string; items: string[] }> | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let id: string;
+        let menus: Array<{ label: string; items: string[] }>;
+        let finalOpts: Partial<any> = opts;
+
+        if (typeof idOrMenus === "string") {
+            id = idOrMenus;
+            if (Array.isArray(menusOrOpts)) {
+                menus = menusOrOpts;
+            } else {
+                menus = [
+                    { label: "File", items: ["📄 New File  ⌘N", "📂 Open...  ⌘O", "💾 Save  ⌘S", "---", "🚪 Exit  ⌘Q"] },
+                    { label: "Edit", items: ["↩️ Undo  ⌘Z", "↪️ Redo  ⌘⇧Z", "---", "✂️ Cut  ⌘X", "📋 Copy  ⌘C", "📄 Paste  ⌘V"] },
+                    { label: "View", items: ["🔍 Zoom In  ⌘+", "🔎 Zoom Out  ⌘-", "---", "🖥️ Fullscreen  ⌃⌘F"] },
+                    { label: "Help", items: ["📖 Documentation", "---", "ℹ️ About Bun RAD Studio"] }
+                ];
+                if (typeof menusOrOpts === "object") finalOpts = menusOrOpts;
+            }
+        } else if (Array.isArray(idOrMenus)) {
+            id = this.generateUniqueId("menu_bar");
+            menus = idOrMenus;
+            if (typeof menusOrOpts === "object") finalOpts = menusOrOpts;
+        } else {
+            id = this.generateUniqueId("menu_bar");
+            menus = [
+                { label: "File", items: ["📄 New File  ⌘N", "📂 Open...  ⌘O", "💾 Save  ⌘S", "---", "🚪 Exit  ⌘Q"] },
+                { label: "Edit", items: ["↩️ Undo  ⌘Z", "↪️ Redo  ⌘⇧Z", "---", "✂️ Cut  ⌘X", "📋 Copy  ⌘C", "📄 Paste  ⌘V"] },
+                { label: "View", items: ["🔍 Zoom In  ⌘+", "🔎 Zoom Out  ⌘-", "---", "🖥️ Fullscreen  ⌃⌘F"] },
+                { label: "Help", items: ["📖 Documentation", "---", "ℹ️ About Bun RAD Studio"] }
+            ];
+            if (typeof idOrMenus === "object") finalOpts = idOrMenus;
+        }
+
+        return this.addVisualControl("menu_bar", this.width - (this.padding * 2), 36, {
+            id,
+            menus,
+            items: menus,
+            ...finalOpts
+        });
+    }
+    public add_menu_bar(idOrMenus?: any, menusOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addMenuBar(idOrMenus, menusOrOpts, opts);
+    }
+    public menu_bar(idOrMenus?: any, menusOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addMenuBar(idOrMenus, menusOrOpts, opts);
+    }
+
+    public addToolBar(idOrItems?: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let id: string;
+        let items: string[];
+        let finalOpts: Partial<any> = opts;
+
+        if (typeof idOrItems === "string" && (Array.isArray(itemsOrOpts) || typeof itemsOrOpts === "string")) {
+            id = idOrItems;
+            items = Array.isArray(itemsOrOpts) ? itemsOrOpts : itemsOrOpts.split(",").map(s => s.trim());
+        } else if (Array.isArray(idOrItems)) {
+            id = this.generateUniqueId("tool_bar");
+            items = idOrItems;
+            if (typeof itemsOrOpts === "object") finalOpts = itemsOrOpts;
+        } else {
+            id = typeof idOrItems === "string" ? idOrItems : this.generateUniqueId("tool_bar");
+            items = ["📄 New", "📂 Open", "💾 Save", "⚙️ Settings"];
+            if (typeof idOrItems === "object") finalOpts = idOrItems;
+            else if (typeof itemsOrOpts === "object") finalOpts = itemsOrOpts;
+        }
+
+        return this.addVisualControl("tool_bar", this.width - (this.padding * 2), 36, {
+            id,
+            text: items.join(", "),
+            items,
+            ...finalOpts
+        });
+    }
+    public add_tool_bar(idOrItems?: any, itemsOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolBar(idOrItems, itemsOrOpts, opts);
+    }
+    public tool_bar(idOrItems?: any, itemsOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolBar(idOrItems, itemsOrOpts, opts);
+    }
+
+    public setGlobalContextMenu(items: string[]): this {
+        (this as any)._globalContextMenuItems = items;
+        if (this.isWindowRunning) {
+            this.evalJS(`window.globalContextMenuItems = ${JSON.stringify(items)};`);
+        }
+        return this;
+    }
+    public onGlobalContextMenu(callback: EventCallback): this {
+        this.eventHandlersMap.set("global:context_menu_select", callback);
+        this.eventHandlersMap.set("global:oncontextmenuselect", callback);
+        return this;
+    }
+    public on_global_context_menu(callback: EventCallback): this {
+        return this.onGlobalContextMenu(callback);
+    }
+
+    // 7. Media, Code & Views
+    public addHtmlView(html: string, width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("html_view", Math.min(width, this.width - 40), height, {
+            text: html,
+            caption: html,
+            ...opts
+        });
+    }
+    public add_html_view(html: string, width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addHtmlView(html, width, height, opts);
+    }
+
+    public addBrowserView(url: string, width = 520, height = 260, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("browser_view", Math.min(width, this.width - 40), height, {
+            caption: url,
+            text: url,
+            ...opts
+        });
+    }
+    public add_browser_view(url: string, width = 520, height = 260, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addBrowserView(url, width, height, opts);
+    }
+
+    public addCodeEditor(code: string, language = "typescript", width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("code_editor", Math.min(width, this.width - 40), height, {
+            text: code,
+            placeholder: language,
+            caption: language,
+            ...opts
+        });
+    }
+    public add_code_editor(code: string, language = "typescript", width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCodeEditor(code, language, width, height, opts);
+    }
+
+    public addCodeStudio(title: string, code: string, language = "typescript", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("code_studio", this.width - (this.padding * 2), 240, {
+            caption: title,
+            text: code,
+            placeholder: language,
+            ...opts
+        });
+    }
+    public add_code_studio(title: string, code: string, language = "typescript", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCodeStudio(title, code, language, opts);
+    }
+
+    public addDiffView(original: string, modified: string, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("diff_view", Math.min(width, this.width - 40), height, {
+            text: original,
+            caption: modified,
+            ...opts
+        });
+    }
+    public add_diff_view(original: string, modified: string, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDiffView(original, modified, width, height, opts);
+    }
+
+    public addTerminalView(lines: string[] = ["$ bun --version", "1.2.4", "$ ready in 12ms"], width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("terminal_view", Math.min(width, this.width - 40), height, {
+            items: lines,
+            text: lines.join("\n"),
+            ...opts
+        });
+    }
+    public add_terminal_view(lines?: string[], width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTerminalView(lines, width, height, opts);
+    }
+
+    public addJsonTree(data: any, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("json_tree", Math.min(width, this.width - 40), height, {
+            jsonData: data,
+            text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
+            ...opts
+        });
+    }
+    public add_json_tree(data: any, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addJsonTree(data, width, height, opts);
+    }
+
+    public addAudioWaveform(id: string, bars = 32, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("audio_waveform", Math.min(340, this.width - 40), 64, {
+            id,
+            bars,
+            ...opts
+        });
+    }
+    public add_audio_waveform(id: string, bars = 32, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addAudioWaveform(id, bars, opts);
+    }
+
+    public addImageGallery(images: Array<{ src: string; caption?: string } | string>, width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("image_gallery", Math.min(width, this.width - 40), height, {
+            images,
+            ...opts
+        });
+    }
+    public add_image_gallery(images: Array<{ src: string; caption?: string } | string>, width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addImageGallery(images, width, height, opts);
+    }
+
+    public addMediaPlayer(src: string, title = "Media Playback", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("media_player", Math.min(420, this.width - 40), 96, {
+            caption: title,
+            text: src,
+            ...opts
+        });
+    }
+    public add_media_player(src: string, title = "Media Playback", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addMediaPlayer(src, title, opts);
+    }
+
+    // 8. Cards & Complex Dashboard Tiles
+    public addStatGrid(stats: Array<{ label: string; value: string; delta?: string; trend?: "up" | "down" }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("stat_grid", this.width - (this.padding * 2), 100, {
+            stats,
+            ...opts
+        });
+    }
+    public add_stat_grid(stats: Array<{ label: string; value: string; delta?: string; trend?: "up" | "down" }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addStatGrid(stats, opts);
+    }
+
+    public addScoreCard(title: string, score: number | string, subtitle = "", grade = "A+", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("score_card", 220, 110, {
+            caption: title,
+            value: score,
+            text: subtitle,
+            placeholder: grade,
+            ...opts
+        });
+    }
+    public add_score_card(title: string, score: number | string, subtitle = "", grade = "A+", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addScoreCard(title, score, subtitle, grade, opts);
+    }
+
+    public addAvatarCard(name: string, role: string, avatarUrl = "", status = "online", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("avatar_card", 240, 80, {
+            caption: name,
+            text: role,
+            placeholder: avatarUrl,
+            status,
+            ...opts
+        });
+    }
+    public add_avatar_card(name: string, role: string, avatarUrl = "", status = "online", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addAvatarCard(name, role, avatarUrl, status, opts);
+    }
+
+    public addUserProfileCard(user: { name: string; handle: string; avatar?: string; bio?: string; stats?: { followers: string; following: string; posts: string } }, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("user_profile_card", 280, 150, {
+            userProfile: user,
+            caption: user.name,
+            text: user.handle,
+            ...opts
+        });
+    }
+    public add_user_profile_card(user: { name: string; handle: string; avatar?: string; bio?: string; stats?: { followers: string; following: string; posts: string } }, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addUserProfileCard(user, opts);
+    }
+
+    public addProductCard(product: { title: string; price: string; rating?: number; reviews?: number; tag?: string; image?: string; description?: string }, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("product_card", 260, 220, {
+            productData: product,
+            caption: product.title,
+            value: product.price,
+            ...opts
+        });
+    }
+    public add_product_card(product: { title: string; price: string; rating?: number; reviews?: number; tag?: string; image?: string; description?: string }, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addProductCard(product, opts);
+    }
+
+    public addAppLauncherTile(title: string, icon = "⚡", description = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("app_launcher_tile", 180, 100, {
+            caption: title,
+            placeholder: icon,
+            text: description,
+            onClick,
+            ...opts
+        });
+    }
+    public add_app_launcher_tile(title: string, icon = "⚡", description = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addAppLauncherTile(title, icon, description, onClick, opts);
+    }
+
+    public addHttpRequestCard(method = "GET", url = "https://api.example.com/v1/data", status = 200, latency = "42ms", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("http_request_card", Math.min(440, this.width - 40), 96, {
+            method,
+            url,
+            status,
+            latency,
+            caption: `${method} ${url}`,
+            ...opts
+        });
+    }
+    public add_http_request_card(method = "GET", url = "https://api.example.com/v1/data", status = 200, latency = "42ms", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addHttpRequestCard(method, url, status, latency, opts);
+    }
+
+    public addResourceMonitor(id = "sys_res", cpu = 38, ram = 54, disk = 68, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("resource_monitor", Math.min(360, this.width - 40), 100, {
+            id,
+            cpu,
+            ram,
+            disk,
+            ...opts
+        });
+    }
+    public add_resource_monitor(id = "sys_res", cpu = 38, ram = 54, disk = 68, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addResourceMonitor(id, cpu, ram, disk, opts);
+    }
+
+    public addEnvVars(id = "env_list", vars: Record<string, string> = { NODE_ENV: "development", BUN_PORT: "3000", APP_DEBUG: "true" }, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("env_vars", Math.min(420, this.width - 40), 140, {
+            id,
+            envVars: vars,
+            ...opts
+        });
+    }
+    public add_env_vars(id = "env_list", vars?: Record<string, string>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addEnvVars(id, vars, opts);
+    }
+
+    public addStatusIndicator(label: string, status: "active" | "warning" | "error" | "offline" = "active", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("status_indicator", 160, 28, {
+            caption: label,
+            text: label,
+            status,
+            ...opts
+        });
+    }
+    public add_status_indicator(label: string, status?: "active" | "warning" | "error" | "offline", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addStatusIndicator(label, status, opts);
+    }
+
+    public addStatusDock(items: Array<{ icon: string; label: string; value: string }> = [
+        { icon: "🟢", label: "Backend", value: "Online" },
+        { icon: "⚡", label: "Latency", value: "18ms" },
+        { icon: "💾", label: "Memory", value: "48 MB" }
+    ], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("status_dock", this.width - (this.padding * 2), 48, {
+            dockItems: items,
+            ...opts
+        });
+    }
+    public add_status_dock(items?: Array<{ icon: string; label: string; value: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addStatusDock(items, opts);
+    }
+
+    // 9. Navigation & Accordion Containers
+    public addNavRail(items: Array<{ icon: string; label: string; id?: string; active?: boolean }>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("nav_rail", 72, Math.max(200, items.length * 60), {
+            navItems: items,
+            onClick: onSelect,
+            ...opts
+        });
+    }
+    public add_nav_rail(items: Array<{ icon: string; label: string; id?: string; active?: boolean }>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addNavRail(items, onSelect, opts);
+    }
+
+    public addDisclosure(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("disclosure", this.width - (this.padding * 2), expanded ? 120 : 42, {
+            caption: title,
+            text: content,
+            expanded,
+            ...opts
+        });
+    }
+    public add_disclosure(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDisclosure(title, content, expanded, opts);
+    }
+
+    public addCollapsibleSection(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDisclosure(title, content, expanded, opts);
+    }
+    public add_collapsible_section(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCollapsibleSection(title, content, expanded, opts);
+    }
+
+    public addAccordionGroup(items: Array<{ title: string; content: string; expanded?: boolean }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("accordion_group", this.width - (this.padding * 2), items.length * 48 + 60, {
+            accordionItems: items,
+            ...opts
+        });
+    }
+    public add_accordion_group(items: Array<{ title: string; content: string; expanded?: boolean }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addAccordionGroup(items, opts);
+    }
+
+    public addKanbanBoard(columns: Array<{ title: string; items: string[] }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("kanban_board", this.width - (this.padding * 2), 220, {
+            kanbanColumns: columns,
+            ...opts
+        });
+    }
+    public add_kanban_board(columns: Array<{ title: string; items: string[] }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addKanbanBoard(columns, opts);
+    }
+
+    public addActionRow(buttons: Array<{ label: string; onClick?: EventCallback; primary?: boolean; style?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("action_row", this.width - (this.padding * 2), 48, {
+            actionButtons: buttons,
+            ...opts
+        });
+    }
+    public add_action_row(buttons: Array<{ label: string; onClick?: EventCallback; primary?: boolean; style?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addActionRow(buttons, opts);
+    }
+
+    public addFieldsRow(fields: Array<{ label: string; id: string; placeholder?: string; value?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("fields_row", this.width - (this.padding * 2), 68, {
+            rowFields: fields,
+            ...opts
+        });
+    }
+    public add_fields_row(fields: Array<{ label: string; id: string; placeholder?: string; value?: string }>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addFieldsRow(fields, opts);
+    }
+
+    public addGroupBox(title: string, width?: number, height = 180, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("group_box", width || (this.width - (this.padding * 2)), height, {
+            caption: title,
+            text: title,
+            ...opts
+        });
+    }
+    public add_group_box(title: string, width?: number, height = 180, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addGroupBox(title, width, height, opts);
+    }
+
+    public addTabs(tabNames: string[], selectedIdx = 0, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("tabs", this.width - (this.padding * 2), 40, {
+            items: tabNames,
+            value: selectedIdx,
+            ...opts
+        });
+    }
+    public add_tabs(tabNames: string[], selectedIdx = 0, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTabs(tabNames, selectedIdx, opts);
+    }
+
+    public addScrollView(width?: number, height = 240, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("scroll_view", width || (this.width - (this.padding * 2)), height, {
+            ...opts
+        });
+    }
+    public add_scroll_view(width?: number, height = 240, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addScrollView(width, height, opts);
+    }
+
+    public addVerticalSpacer(height = 16): SimpleControlRef {
+        return this.addVisualControl("spacer_v", 1, height);
+    }
+    public add_vertical_spacer(height = 16): SimpleControlRef {
+        return this.addVerticalSpacer(height);
+    }
+
+    public addHorizontalSpacer(width = 16): SimpleControlRef {
+        return this.addVisualControl("spacer_h", width, 1);
+    }
+    public add_horizontal_spacer(width = 16): SimpleControlRef {
+        return this.addHorizontalSpacer(width);
+    }
+
+    public addSeparator(): SimpleControlRef {
+        return this.addDivider();
+    }
+    public add_separator(): SimpleControlRef {
+        return this.addSeparator();
+    }
+
+    public addToolbarItem(label: string, icon = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("toolbar_item", 100, 32, {
+            caption: label,
+            placeholder: icon,
+            onClick,
+            ...opts
+        });
+    }
+    public add_toolbar_item(label: string, icon = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolbarItem(label, icon, onClick, opts);
+    }
+
+    public addTrayIcon(tooltip: string, icon = "⚡", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("tray_icon", 36, 36, {
+            caption: tooltip,
+            placeholder: icon,
+            ...opts
+        });
+    }
+    public add_tray_icon(tooltip: string, icon = "⚡", opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTrayIcon(tooltip, icon, opts);
+    }
+
+    public addGrid(columns = 2, gap = 12, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("grid", this.width - (this.padding * 2), 120, {
+            columns,
+            gap,
+            ...opts
+        });
+    }
+    public add_grid(columns = 2, gap = 12, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addGrid(columns, gap, opts);
+    }
+
+    public addTreeNode(label: string, children: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addVisualControl("tree_node", 220, 32 + children.length * 24, {
+            caption: label,
+            items: children,
+            ...opts
+        });
+    }
+    public add_tree_node(label: string, children: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTreeNode(label, children, opts);
+    }
+
     public addTimer(intervalMs: number, onTick: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const id = opts.id || this.generateUniqueId("timer");
         const spec: any = {
@@ -1500,6 +2897,10 @@ export class SimpleWindow {
         });
     }
 
+    public alert(message: string, title = "Alert"): void {
+        this.showAlert(message, title);
+    }
+
     public copyToClipboard(text: string): void {
         if (this.isWindowRunning) {
             const safeText = JSON.stringify(text);
@@ -1536,6 +2937,92 @@ export class SimpleWindow {
                 }
             `);
         });
+    }
+
+    public async openFileDialog(title = "Open File", filter = ""): Promise<string | null> {
+        try {
+            if (process.platform === "darwin") {
+                const safeTitle = title.replace(/"/g, '\\"');
+                const proc = Bun.spawnSync(["osascript", "-e", `POSIX path of (choose file with prompt "${safeTitle}")`]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            } else if (process.platform === "linux") {
+                const proc = Bun.spawnSync(["zenity", "--file-selection", `--title=${title}`]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            } else if (process.platform === "win32") {
+                const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = '${title}'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
+                const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            }
+        } catch {
+            // fallback
+        }
+        return null;
+    }
+
+    public async saveFileDialog(title = "Save File", defaultName = "untitled.txt"): Promise<string | null> {
+        try {
+            if (process.platform === "darwin") {
+                const safeTitle = title.replace(/"/g, '\\"');
+                const safeName = defaultName.replace(/"/g, '\\"');
+                const proc = Bun.spawnSync(["osascript", "-e", `POSIX path of (choose file name with prompt "${safeTitle}" default name "${safeName}")`]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            } else if (process.platform === "linux") {
+                const proc = Bun.spawnSync(["zenity", "--file-selection", "--save", "--confirm-overwrite", `--title=${title}`, `--filename=${defaultName}`]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            } else if (process.platform === "win32") {
+                const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.SaveFileDialog; $f.Title = '${title}'; $f.FileName = '${defaultName}'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
+                const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            }
+        } catch {
+            // fallback
+        }
+        return null;
+    }
+
+    public async openFolderDialog(title = "Select Folder"): Promise<string | null> {
+        try {
+            if (process.platform === "darwin") {
+                const safeTitle = title.replace(/"/g, '\\"');
+                const proc = Bun.spawnSync(["osascript", "-e", `POSIX path of (choose folder with prompt "${safeTitle}")`]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            } else if (process.platform === "linux") {
+                const proc = Bun.spawnSync(["zenity", "--file-selection", "--directory", `--title=${title}`]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            } else if (process.platform === "win32") {
+                const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = '${title}'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.SelectedPath}`;
+                const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
+                const out = proc.stdout.toString().trim();
+                return out || null;
+            }
+        } catch {
+            // fallback
+        }
+        return null;
+    }
+
+    public open_file_dialog(title = "Open File", filter = ""): Promise<string | null> {
+        return this.openFileDialog(title, filter);
+    }
+    public save_file_dialog(title = "Save File", defaultName = "untitled.txt"): Promise<string | null> {
+        return this.saveFileDialog(title, defaultName);
+    }
+    public open_folder_dialog(title = "Select Folder"): Promise<string | null> {
+        return this.openFolderDialog(title);
+    }
+    public browse_file(title = "Open File", filter = ""): Promise<string | null> {
+        return this.openFileDialog(title, filter);
+    }
+    public browse_folder(title = "Select Folder"): Promise<string | null> {
+        return this.openFolderDialog(title);
     }
 
     public delay(ms: number, cb?: () => void): Promise<void> | void {
@@ -1645,8 +3132,17 @@ export class SimpleWindow {
             padding: this.padding,
             spacing: this.spacing,
             controls: this.controls,
-            non_visual_controls: this.nonVisualControls
+            non_visual_controls: this.nonVisualControls,
+            global_context_menu_items: (this as any)._globalContextMenuItems || []
         };
+    }
+
+    public toHtml(): string {
+        return this.generateHtml();
+    }
+
+    public to_html(): string {
+        return this.generateHtml();
     }
 
     public generateHtml(): string {
@@ -1731,13 +3227,25 @@ export class SimpleWindow {
                     if (window.handleWindowCloseIPC) window.handleWindowCloseIPC();
                 });
 
+                ${(this as any)._globalContextMenuItems ? `window.globalContextMenuItems = ${JSON.stringify((this as any)._globalContextMenuItems)};` : ''}
+
                 document.addEventListener("keydown", function(e) {
+                    // Disable browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
+                    if (
+                        e.key === "F5" ||
+                        e.code === "F5" ||
+                        ((e.metaKey || e.ctrlKey) && (e.key === "r" || e.key === "R" || e.code === "KeyR"))
+                    ) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
                     if ((e.metaKey || e.ctrlKey) && (e.key === "q" || e.key === "Q" || e.key === "w" || e.key === "W")) {
                         e.preventDefault();
                         if (window.quitApp) window.quitApp();
                         else if (window.handleWindowCloseIPC) window.handleWindowCloseIPC();
                     }
-                });
+                }, { capture: true });
 
                 document.addEventListener("change", function(e) {
                     const target = e.target;
@@ -2390,9 +3898,20 @@ export class SimpleWindow {
         return this.setValue(id, value);
     }
 
-    public addPropertyGrid(id: string, props: Record<string, string>): SimpleControlRef {
-        const text = Object.entries(props).map(([k, v]) => `${k}:${v}`).join(", ");
-        return this.addVisualControl("property_grid", 320, 160, { id, text, caption: text });
+    public addPropertyGrid(id: string, props: Record<string, string> | string, opts: Partial<any> = {}): SimpleControlRef {
+        const text = typeof props === "string" ? props : Object.entries(props).map(([k, v]) => `${k}:${v}`).join(", ");
+        return this.addVisualControl("property_grid", Math.min(450, this.width - 40), 230, {
+            id,
+            text,
+            caption: opts.caption || "Property Inspector",
+            ...opts
+        });
+    }
+    public add_property_grid(id: string, props: Record<string, string> | string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPropertyGrid(id, props, opts);
+    }
+    public property_grid(id: string, props: Record<string, string> | string, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addPropertyGrid(id, props, opts);
     }
 
     public setPropertyGridValue(id: string, key: string, value: string): this {
@@ -2659,6 +4178,75 @@ export class SimpleWindow {
     public searchField(placeholder = ""): SimpleControlRef {
         return this.addSearchInput(placeholder).id("default_search");
     }
+
+    public donut(title: string, percent = 75, subtitle = ""): SimpleControlRef {
+        return this.addDonutChart("donut_" + Date.now(), title, percent, subtitle);
+    }
+
+    public score_card(title: string, score: number | string, subtitle = "", grade = "A+"): SimpleControlRef {
+        return this.addScoreCard(title, score, subtitle, grade);
+    }
+
+    public search_field(placeholder = "Search..."): SimpleControlRef {
+        return this.addSearchField("search_" + Date.now(), placeholder);
+    }
+
+    public code_box(code: string, language = "typescript"): SimpleControlRef {
+        return this.addCodeEditor(code, language);
+    }
+
+    public banner(message: string, style: "info" | "success" | "warning" | "error" = "info"): SimpleControlRef {
+        return this.addBanner(message, style);
+    }
+
+    public stat_card(title: string, value: string, badge = "+12%"): SimpleControlRef {
+        return this.addMetricCard("stat_" + Date.now(), title, value, badge);
+    }
+
+    public stat_grid(stats: Array<{ label: string; value: string; delta?: string; trend?: "up" | "down" }>): SimpleControlRef {
+        return this.addStatGrid(stats);
+    }
+
+    public user_profile(name: string, handle: string, avatar = ""): SimpleControlRef {
+        return this.addUserProfileCard({ name, handle, avatar });
+    }
+
+    public product_card(product: { title: string; price: string; rating?: number; reviews?: number; tag?: string; image?: string; description?: string }): SimpleControlRef {
+        return this.addProductCard(product);
+    }
+
+    public heatmap(weeks = 12, data?: number[][]): SimpleControlRef {
+        return this.addActivityHeatmap("heatmap_" + Date.now(), weeks, data);
+    }
+
+    public radial_gauge(title: string, value = 50): SimpleControlRef {
+        return this.addRadialGauge("gauge_" + Date.now(), title, value);
+    }
+
+    public nav_rail(items: Array<{ icon: string; label: string; id?: string; active?: boolean }>): SimpleControlRef {
+        return this.addNavRail(items);
+    }
+
+    public media_player(src: string, title = "Media Playback"): SimpleControlRef {
+        return this.addMediaPlayer(src, title);
+    }
+
+    public activity_rings(rings?: Array<{ label: string; percent: number; color?: string }>): SimpleControlRef {
+        return this.addActivityRings("rings_" + Date.now(), rings);
+    }
+
+    public knob(val = 50, min = 0, max = 100): SimpleControlRef {
+        return this.addKnob("knob_" + Date.now(), min, max, val);
+    }
+
+    public floating_toolbar(tools: Array<{ icon?: string; label?: string; actionId?: string } | string>): SimpleControlRef {
+        return this.addFloatingToolbar(tools);
+    }
+
+    public password(initialVal = "", placeholder = "Enter password..."): SimpleControlRef {
+        return this.addPassword("pwd_" + Date.now(), placeholder, initialVal);
+    }
+
 
     // --- Typed Value Accessors ---
     public getBool(id: string): boolean {

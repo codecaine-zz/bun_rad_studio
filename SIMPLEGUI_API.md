@@ -463,6 +463,137 @@ win.addPinCode("pinAuth", 4);
 win.addColorPalette("palAccent", ["#0284c7", "#10b981", "#f59e0b", "#ef4444"], "#0284c7");
 ```
 
+### 🌟 VLang SimpleGUI Control Parity (55+ Controls & Nameless Shorthands)
+
+Ported with 100% visual and functional parity from [vlang_simplegui API Reference](https://github.com/codecaine-zz/vlang_simplegui/blob/master/docs/API.md):
+
+#### 1. Text, Search & Specialized Inputs
+- `win.addSearchField(id?, placeholder?, initialVal?, opts?)` / `win.add_search_field(...)`
+- `win.addPassword(id?, placeholder?, initialVal?, opts?)` / `win.add_password(...)`
+- `win.addCommandPalette(id?, placeholder?, opts?)` / `win.add_command_palette(...)`
+- `win.addTokenField(id?, tokens?, opts?)` / `win.add_token_field(...)`
+- `win.addTagInputField(id?, tags?, opts?)` / `win.add_tag_input_field(...)`
+- `win.addMaskedInput(id?, mask?, initialVal?, opts?)` / `win.add_masked_input(...)`
+- `win.addInlineEditableLabel(id?, text?, opts?)` / `win.add_inline_editable_label(...)`
+
+#### 2. Typography, Banners & Callouts
+- `win.addSectionHeader(title, subtitle?, opts?)` / `win.add_section_header(...)`
+- `win.addHotkeyBadge(keys, opts?)` / `win.add_hotkey_badge(...)`
+- `win.addLink(text, url?, opts?)` / `win.add_link(...)`
+- `win.addBanner(message, style?, opts?)` / `win.add_banner(...)`
+- `win.addStatusBanner(message, style?, opts?)` / `win.add_status_banner(...)`
+- `win.addInfoCallout(title, body, opts?)` / `win.add_info_callout(...)`
+- `win.addHeroBanner(title, subtitle?, badge?, opts?)` / `win.add_hero_banner(...)`
+
+#### 3. Buttons & Toolbars
+- `win.addImageButton(src, caption?, onClick?, opts?)` / `win.add_image_button(...)`
+- `win.addHelpButton(tooltipText?, onClick?, opts?)` / `win.add_help_button(...)`
+- `win.addSplitButton(caption, menuItems?, onClick?, opts?)` / `win.add_split_button(...)`
+- `win.addBadgeButton(caption, badgeCount?, onClick?, opts?)` / `win.add_badge_button(...)`
+- `win.addQuickActionBar(actions, onSelect?, opts?)` / `win.add_quick_action_bar(...)`
+- `win.addFloatingToolbar(tools, onSelect?, opts?)` / `win.add_floating_toolbar(...)`
+
+#### 4. Selection, Toggles & Pickers
+- `win.addRadio(label, groupName, checked?, opts?)` / `win.add_radio(...)`
+- `win.addRadioGroup(groupName, options, selected?, onChange?, opts?)` / `win.add_radio_group(...)`
+- `win.addPullDown(id, options, selected?, onChange?, opts?)` / `win.add_pull_down(...)`
+- `win.addComboBox(id, options, initialVal?, opts?)` / `win.add_combo_box(...)`
+- `win.addThemeMenu(id?, selected?, onChange?, opts?)` / `win.add_theme_menu(...)`
+- `win.addModeControl(id, modes?, selected?, onChange?, opts?)` / `win.add_mode_control(...)`
+- `win.addIconSegments(id, items, selectedIdx?, onChange?, opts?)` / `win.add_icon_segments(...)`
+- `win.addPillToggle(id, options?, selectedIdx?, onChange?, opts?)` / `win.add_pill_toggle(...)`
+- `win.addTagCloud(id, tags, selected?, onSelect?, opts?)` / `win.add_tag_cloud(...)`
+- `win.addTransferList(id, leftItems?, rightItems?, opts?)` / `win.add_transfer_list(...)`
+
+#### 5. Sliders, Progress & Telemetry
+- `win.addVerticalSlider(id, min?, max?, val?, opts?)` / `win.add_vertical_slider(...)`
+- `win.addRangeSlider(id, min?, max?, low?, high?, opts?)` / `win.add_range_slider(...)`
+- `win.addKnob(id, min?, max?, val?, opts?)` / `win.add_knob(...)`
+- `win.addProgressIndicator(id, value?, max?, opts?)` / `win.add_progress_indicator(...)`
+- `win.addLevelIndicator(id, value?, max?, opts?)` / `win.add_level_indicator(...)`
+- `win.addSpinner(size?, text?, opts?)` / `win.add_spinner(...)`
+- `win.addRating(id, value?, max?, opts?)` / `win.add_rating(...)`
+- `win.addStarRating(id, value?, max?, opts?)` / `win.add_star_rating(...)`
+- `win.addDonutChart(id, title, percent?, subtitle?, opts?)` / `win.add_donut_chart(...)`
+- `win.addActivityRings(id, rings?, opts?)` / `win.add_activity_rings(...)`
+- `win.addSegmentDistributionBar(id, segments, opts?)` / `win.add_segment_distribution_bar(...)`
+- `win.addFeedbackMood(id, selected?, onChange?, opts?)` / `win.add_feedback_mood(...)`
+- `win.addActivityHeatmap(id, weeks?, data?, opts?)` / `win.add_activity_heatmap(...)`
+
+#### 6. Pickers & File / Path
+- `win.addDateRangePicker(id, startDate?, endDate?, opts?)` / `win.add_date_range_picker(...)`
+- `win.addDateTimePicker(id, initialDate?, opts?)` / `win.add_date_time_picker(...)`
+- `win.addColorGrid(id, colors?, selected?, opts?)` / `win.add_color_grid(...)`
+- `win.addColorSwatchPanel(id, colors?, selected?, opts?)` / `win.add_color_swatch_panel(...)`
+- `win.addFilePickerField(id, placeholder?, filter?, opts?)` / `win.add_file_picker_field(...)`
+- `win.addPathControl(id, segments?, opts?)` / `win.add_path_control(...)`
+- `win.addDropZone(id, promptText?, opts?)` / `win.add_drop_zone(...)`
+
+#### 7. Media, Code & Views
+- `win.addHtmlView(html, width?, height?, opts?)` / `win.add_html_view(...)`
+- `win.addBrowserView(url, width?, height?, opts?)` / `win.add_browser_view(...)`
+- `win.addCodeEditor(code, language?, width?, height?, opts?)` / `win.add_code_editor(...)`
+- `win.addCodeStudio(title, code, language?, opts?)` / `win.add_code_studio(...)`
+- `win.addDiffView(original, modified, width?, height?, opts?)` / `win.add_diff_view(...)`
+- `win.addTerminalView(lines?, width?, height?, opts?)` / `win.add_terminal_view(...)`
+- `win.addJsonTree(data, width?, height?, opts?)` / `win.add_json_tree(...)`
+- `win.addAudioWaveform(id, bars?, opts?)` / `win.add_audio_waveform(...)`
+- `win.addImageGallery(images, width?, height?, opts?)` / `win.add_image_gallery(...)`
+- `win.addMediaPlayer(src, title?, opts?)` / `win.add_media_player(...)`
+
+#### 8. Cards & Dashboard Components
+- `win.addStatGrid(stats, opts?)` / `win.add_stat_grid(...)`
+- `win.addScoreCard(title, score, subtitle?, grade?, opts?)` / `win.add_score_card(...)`
+- `win.addAvatarCard(name, role, avatarUrl?, status?, opts?)` / `win.add_avatar_card(...)`
+- `win.addUserProfileCard(user, opts?)` / `win.add_user_profile_card(...)`
+- `win.addProductCard(product, opts?)` / `win.add_product_card(...)`
+- `win.addAppLauncherTile(title, icon?, description?, onClick?, opts?)` / `win.add_app_launcher_tile(...)`
+- `win.addHttpRequestCard(method?, url?, status?, latency?, opts?)` / `win.add_http_request_card(...)`
+- `win.addResourceMonitor(id?, cpu?, ram?, disk?, opts?)` / `win.add_resource_monitor(...)`
+- `win.addEnvVars(id?, vars?, opts?)` / `win.add_env_vars(...)`
+- `win.addStatusIndicator(label, status?, opts?)` / `win.add_status_indicator(...)`
+- `win.addStatusDock(items?, opts?)` / `win.add_status_dock(...)`
+
+#### 9. Navigation & Container Widgets
+- `win.addNavRail(items, onSelect?, opts?)` / `win.add_nav_rail(...)`
+- `win.addDisclosure(title, content, expanded?, opts?)` / `win.add_disclosure(...)`
+- `win.addCollapsibleSection(title, content, expanded?, opts?)` / `win.add_collapsible_section(...)`
+- `win.addAccordionGroup(items, opts?)` / `win.add_accordion_group(...)`
+- `win.addKanbanBoard(columns, opts?)` / `win.add_kanban_board(...)`
+- `win.addActionRow(buttons, opts?)` / `win.add_action_row(...)`
+- `win.addFieldsRow(fields, opts?)` / `win.add_fields_row(...)`
+- `win.addGroupBox(title, width?, height?, opts?)` / `win.add_group_box(...)`
+- `win.addTabs(tabNames, selectedIdx?, opts?)` / `win.add_tabs(...)`
+- `win.addScrollView(width?, height?, opts?)` / `win.add_scroll_view(...)`
+- `win.addVerticalSpacer(height?)` / `win.add_vertical_spacer(...)`
+- `win.addHorizontalSpacer(width?)` / `win.add_horizontal_spacer(...)`
+- `win.addSeparator()` / `win.add_separator()`
+- `win.addToolbarItem(label, icon?, onClick?, opts?)` / `win.add_toolbar_item(...)`
+- `win.addTrayIcon(tooltip, icon?, opts?)` / `win.add_tray_icon(...)`
+- `win.addGrid(columns?, gap?, opts?)` / `win.add_grid(...)`
+- `win.addTreeNode(label, children?, opts?)` / `win.add_tree_node(...)`
+
+#### 10. Nameless Shorthand Helpers
+```typescript
+win.donut("CPU Load", 74);
+win.score_card("System Health", "99.9%", "Optimal", "A+");
+win.search_field("Search files...");
+win.code_box("console.log('hi')", "typescript");
+win.banner("Changes saved", "success");
+win.stat_card("Uptime", "99.99%");
+win.stat_grid([{ label: "Active", value: "1,250" }]);
+win.user_profile("Sarah Connor", "@sarah");
+win.product_card({ title: "Pro Studio", price: "$49" });
+win.heatmap(12);
+win.radial_gauge("Memory Temp", 38);
+win.nav_rail([{ icon: "⚡", label: "Dashboard" }]);
+win.media_player("audio.mp3", "Theme");
+win.activity_rings();
+win.knob(50);
+win.floating_toolbar(["➕", "➖", "🗑️"]);
+win.password("secret123");
+```
+
 [⬆️ Back to Top](#table-of-contents)
 
 ---
@@ -1057,6 +1188,105 @@ win.endRow();
 
 // 6. Launch Desktop Application
 win.run();
+```
+
+---
+
+<a id="menus-and-context-menus"></a>
+## 15. 📋 Desktop Menu Bar, Toolbars & Context Menus
+
+SimpleGUI provides desktop-grade application menus and context menus with cascade navigation, keyboard shortcuts, and custom right-click actions:
+
+```typescript
+// 1. Top Application Menu Bar (cascading dropdowns + shortcuts)
+win.addMenuBar("main_menu", [
+    {
+        label: "File",
+        items: [
+            "📄 New File  ⌘N",
+            "📂 Open File...  ⌘O",
+            "---",
+            "💾 Save  ⌘S",
+            "🚪 Exit App  ⌘Q"
+        ]
+    },
+    {
+        label: "Edit",
+        items: [
+            "↩️ Undo  ⌘Z",
+            "↪️ Redo  ⌘⇧Z",
+            "---",
+            "✂️ Cut  ⌘X",
+            "📋 Copy  ⌘C",
+            "📄 Paste  ⌘V"
+        ]
+    },
+    {
+        label: "Tools",
+        items: [
+            "🧹 Format Document  ⌥⇧F",
+            "🩺 Diagnostics",
+            "⚙️ Preferences...  ⌘,"
+        ]
+    }
+]);
+
+// Handle menu item selections
+win.onClick("main_menu", (w, item) => {
+    console.log(`Menu clicked: ${item}`);
+    if (item === "File > 🚪 Exit App  ⌘Q") w.close();
+});
+
+// 2. Application Quick Toolbar
+win.addToolBar("main_tb", ["📄 New", "📂 Open", "💾 Save", "🧪 Test", "⚙️ Settings"]);
+win.onClick("main_tb", (w, action) => {
+    console.log(`Toolbar clicked: ${action}`);
+});
+
+// 3. Global Canvas Context Menu (triggers on right-click anywhere on canvas)
+win.setGlobalContextMenu([
+    "🔄 Refresh Workspace",
+    "📋 Copy Coordinates",
+    "🎨 Switch Theme",
+    "---",
+    "⚙️ Preferences..."
+]);
+win.onGlobalContextMenu((w, action) => {
+    console.log(`Global context menu action: ${action}`);
+});
+
+// 4. Control-Specific Right-Click Context Menus
+win.addCodeStudio("editor.ts", "console.log('Hello World');", "typescript")
+    .contextMenu([
+        "⚡ Format Code",
+        "📋 Copy All",
+        "---",
+        "🚀 Run with Bun"
+    ], (w, action) => {
+        console.log(`Editor context action: ${action}`);
+    });
+
+win.addTextInput("Enter text...", "Quick brown fox")
+    .id("txt_input")
+    .contextMenu([
+        "✂️ Cut  ⌘X",
+        "📋 Copy  ⌘C",
+        "📄 Paste  ⌘V",
+        "---",
+        "🔤 UPPERCASE",
+        "🔡 lowercase",
+        "🧹 Clear"
+    ], (w, action) => {
+        const val = w.getValue("txt_input") || "";
+        if (action.includes("UPPERCASE")) w.setValue("txt_input", val.toUpperCase());
+        else if (action.includes("lowercase")) w.setValue("txt_input", val.toLowerCase());
+        else if (action.includes("Clear")) w.setValue("txt_input", "");
+    });
+
+// 5. In-Canvas Standalone Menus
+win.addPopupMenu("pm_actions", ["Build Binary", "Run Tests", "Package App"]);
+win.addSplitButton("🚀 Deploy", ["Deploy to Staging", "Deploy to Prod", "Rollback"]);
+win.addPullDown("pd_export", ["Export JSON", "Export CSV", "Export PDF"]);
 ```
 
 ---

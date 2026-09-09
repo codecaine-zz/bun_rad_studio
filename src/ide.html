@@ -2196,6 +2196,27 @@
 			// Dismiss context menu on click elsewhere
 			window.addEventListener("click", () => hideContextMenu());
 
+			// Prevent default browser context menu to avoid accidental reload terminating IDE session
+			window.addEventListener("contextmenu", (e) => {
+				const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+				if (!isInput && !e.target.closest("#canvasViewport")) {
+					e.preventDefault();
+					return false;
+				}
+			}, { capture: true });
+
+			window.addEventListener("keydown", (e) => {
+				if (
+					e.key === "F5" ||
+					e.code === "F5" ||
+					((e.metaKey || e.ctrlKey) && (e.key === "r" || e.key === "R" || e.code === "KeyR"))
+				) {
+					e.preventDefault();
+					e.stopPropagation();
+					return false;
+				}
+			}, { capture: true });
+
 		function setupCustomTooltipEngine() {
 			let tip = document.getElementById("globalTooltip");
 			if (!tip) {
