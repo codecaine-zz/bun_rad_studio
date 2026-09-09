@@ -2120,8 +2120,13 @@
 				<tr><td><span class="hotkey-key">Shift + Arrows</span></td><td>Nudge control position by 8px (Grid snap)</td></tr>
 				<tr><td><span class="hotkey-key">Space + Drag</span> / <span class="hotkey-key">Middle Click Drag</span></td><td>Pan canvas workspace view</td></tr>
 				<tr><td><span class="hotkey-key">Ctrl / Cmd + Wheel</span></td><td>Smooth zoom canvas workspace</td></tr>
-				<tr><td><span class="hotkey-key">Cmd + Q</span> / <span class="hotkey-key">Alt + F4</span></td><td>Quit application</td></tr>
-				<tr><td><span class="hotkey-key">Fn + F</span> / <span class="hotkey-key">F11</span></td><td>Toggle Fullscreen window mode</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Q</span> / <span class="hotkey-key">Cmd + W</span> / <span class="hotkey-key">Alt + Alt</span></td><td>Close window / Quit application</td></tr>
+				<tr><td><span class="hotkey-key">Ctrl + Q</span> / <span class="hotkey-key">Ctrl + W</span> / <span class="hotkey-key">Alt + F4</span></td><td>Close window (Windows / Linux)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + M</span> / <span class="hotkey-key">Ctrl + M</span></td><td>Minimize window</td></tr>
+				<tr><td><span class="hotkey-key">Fn + F</span> / <span class="hotkey-key">F11</span> / <span class="hotkey-key">Cmd + Ctrl + F</span></td><td>Toggle Fullscreen window mode</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Shift + T</span> / <span class="hotkey-key">Ctrl + Shift + T</span></td><td>Toggle Always on Top (Pin)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Shift + C</span> / <span class="hotkey-key">Ctrl + Shift + C</span></td><td>Center window on screen</td></tr>
+				<tr><td><span class="hotkey-key">Cmd/Ctrl +</span> / <span class="hotkey-key">Cmd/Ctrl -</span> / <span class="hotkey-key">0</span></td><td>Zoom canvas workspace</td></tr>
 				<tr><td><span class="hotkey-key">Escape</span></td><td>Deselect all controls & close modals</td></tr>
 			</table>
 			<div style="display:flex; justify-content:flex-end;">
@@ -2274,22 +2279,123 @@
 		}
 
 			// Keyboard shortcuts engine
-			window.addEventListener("keydown", (e) => {
-				// Cmd+F (macOS) / Ctrl+F / Fn+F / F11 Toggle Fullscreen
-				if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") || e.key === "F11" || e.code === "F11" || ((e.key.toLowerCase() === "f" || e.code === "KeyF") && (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey))) {
-					e.preventDefault();
-					toggleFullscreen();
-					return;
+			let lastAltTime = 0;
+			let isFnPressed = false;
+
+			window.addEventListener("keyup", (e) => {
+				if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
+					isFnPressed = false;
 				}
-				// Cmd+Q (macOS) / Ctrl+Q or Alt+F4 (Windows/Linux) to quit app
-				if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "q") || (e.altKey && (e.key === "F4" || e.code === "F4"))) {
+			});
+
+			window.addEventListener("keydown", (e) => {
+				if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
+					isFnPressed = true;
+				}
+
+				// 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
+				if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
+					const now = Date.now();
+					if (now - lastAltTime > 50 && now - lastAltTime < 450) {
+						lastAltTime = 0;
+						e.preventDefault();
+						if (window.quitApp) window.quitApp();
+						else if (window.closeWindow) window.closeWindow();
+						else window.close();
+						return;
+					}
+					lastAltTime = now;
+				} else if (e.key !== "Alt" && e.code !== "AltLeft" && e.code !== "AltRight") {
+					lastAltTime = 0;
+				}
+
+				// 2. Cmd+Q / Cmd+W (macOS) / Ctrl+Q / Ctrl+W / Alt+F4 / Alt+W / Alt+Q (Windows/Linux) to close/quit app
+				if (
+					((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
+					(e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+				) {
 					e.preventDefault();
 					if (window.quitApp) {
 						window.quitApp();
+					} else if (window.closeWindow) {
+						window.closeWindow();
 					} else {
 						window.close();
 					}
 					return;
+				}
+
+				if (e.repeat) return;
+
+				const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
+				const isFKey = e.key === "f" || e.key === "F" || e.code === "KeyF" || (typeof e.key === "string" && e.key.toLowerCase() === "f");
+				const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+
+				// 3. Fullscreen shortcuts: Fn+F / Globe+F, F/f (when not in input), F11, Cmd+Ctrl+F, Cmd+F, Alt+Enter
+				if (
+					(!isInput && isFKey && !e.altKey) ||
+					(isFn && isFKey) ||
+					e.key === "F11" || e.code === "F11" ||
+					((e.metaKey || e.ctrlKey) && e.shiftKey && isFKey) ||
+					((e.metaKey && e.ctrlKey) && isFKey) ||
+					(e.altKey && (e.key === "Enter" || e.code === "Enter"))
+				) {
+					e.preventDefault();
+					e.stopPropagation();
+					toggleFullscreen();
+					return;
+				}
+
+				// 4. Minimize window: Cmd+M, Ctrl+M, Alt+M
+				if ((e.metaKey || e.ctrlKey || e.altKey) && (e.key.toLowerCase() === "m" || e.code === "KeyM")) {
+					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+					if (!isInput) {
+						e.preventDefault();
+						if (window.minimizeWindow) window.minimizeWindow();
+						return;
+					}
+				}
+
+				// 5. Always-on-top toggle: Cmd+Shift+T, Ctrl+Shift+T, Alt+T
+				if (
+					((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "t" || e.code === "KeyT")) ||
+					(e.altKey && !e.ctrlKey && !e.metaKey && (e.key.toLowerCase() === "t" || e.code === "KeyT"))
+				) {
+					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+					if (!isInput) {
+						e.preventDefault();
+						toggleAlwaysOnTop();
+						return;
+					}
+				}
+
+				// 6. Center window: Cmd+Shift+C, Ctrl+Shift+C
+				if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "c" || e.code === "KeyC")) {
+					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+					if (!isInput) {
+						e.preventDefault();
+						if (window.centerWindow) window.centerWindow();
+						else changeWindowPosition("center");
+						return;
+					}
+				}
+
+				// 7. Zoom shortcuts: Cmd/Ctrl + (+/- / 0)
+				if (e.metaKey || e.ctrlKey) {
+					if (e.key === "=" || e.key === "+" || e.code === "Equal" || e.code === "NumpadAdd") {
+						e.preventDefault();
+						zoomCanvas(0.1);
+						return;
+					} else if (e.key === "-" || e.key === "_" || e.code === "Minus" || e.code === "NumpadSubtract") {
+						e.preventDefault();
+						zoomCanvas(-0.1);
+						return;
+					} else if (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0") {
+						e.preventDefault();
+						canvasZoom = 1.0;
+						applyCanvasTransform();
+						return;
+					}
 				}
 
 				if (e.key === "Escape") {
@@ -2588,9 +2694,16 @@
 			}
 		}
 
+		let lastFullscreenTime = 0;
 		function toggleFullscreen() {
-			if (window.toggleNativeFullscreen) {
-				try { window.toggleNativeFullscreen(); } catch (e) {}
+			const now = Date.now();
+			if (now - lastFullscreenTime < 500) return;
+			lastFullscreenTime = now;
+
+			if (typeof window.toggleFullscreen === "function" && window.toggleFullscreen !== toggleFullscreen) {
+				try { window.toggleFullscreen(); return; } catch (e) {}
+			} else if (window.toggleNativeFullscreen) {
+				try { window.toggleNativeFullscreen(); return; } catch (e) {}
 			}
 			if (!document.fullscreenElement && !document.webkitFullscreenElement) {
 				if (document.documentElement.requestFullscreen) {

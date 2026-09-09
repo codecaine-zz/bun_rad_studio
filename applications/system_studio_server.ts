@@ -55,6 +55,17 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
         });
       }
 
+      // Route: Fullscreen Toggle Notification
+      if (url.pathname === "/api/fullscreen") {
+        return Response.json({ success: true, message: "Fullscreen toggled" }, { headers: corsHeaders });
+      }
+
+      // Route: Graceful Telemetry Server & Window Close / Shutdown
+      if (url.pathname === "/api/shutdown" || url.pathname === "/api/close") {
+        setTimeout(() => process.exit(0), 50);
+        return Response.json({ success: true, message: "System Information Studio closing..." }, { headers: corsHeaders });
+      }
+
       // Route: Real-Time Telemetry KPIs
       if (url.pathname === "/api/kpis") {
         try {

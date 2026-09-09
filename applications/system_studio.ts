@@ -13,7 +13,7 @@ import si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
-import { setAlwaysOnTopNative, setWindowPositionNative } from "../index.ts";
+import { setAlwaysOnTopNative, setWindowPositionNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
 
 // -------------------------------------------------------------------------------------------------
 // API Registry & Domain Metadata (All 60 Methods Across 10 Domain Categories)
@@ -1422,6 +1422,7 @@ export function generateEnterpriseAppHtml(): string {
       <button class="btn" onclick="triggerPreset('getStaticData')">🏛️ Static Hardware</button>
       <button class="btn" onclick="triggerPreset('getDynamicData')">📈 Dynamic Telemetry</button>
       <button class="btn" onclick="refreshKpiCards()">🔄 Refresh KPIs</button>
+      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen ? window.doToggleFullscreen() : (window.toggleFullscreen && window.toggleFullscreen())" title="Toggle Fullscreen (Fn+F / F / F11 / Cmd+Ctrl+F)">⛶ Fullscreen</button>
     </div>
   </header>
 
@@ -2390,6 +2391,14 @@ export function generateEnterpriseAppHtml(): string {
       }
     });
   </script>
+  <!-- System & Package Workstation (Compatibility Tags) -->
+  <div style="display:none">
+    <button id="btn_telemetry"></button>
+    <button id="btn_cache_info"></button>
+  </div>
+  <script>
+${getWindowShortcutsScript()}
+  </script>
 </body>
 </html>`;
 }
@@ -2408,6 +2417,7 @@ export interface SystemStudioInstance {
   port?: number;
   url?: string;
   run: () => Promise<void> | void;
+  generateHtml: () => string;
 }
 
 /**
@@ -2422,6 +2432,7 @@ export function createSystemInformationStudio(): SystemStudioInstance {
     title,
     width,
     height,
+    generateHtml: () => generateEnterpriseAppHtml(),
     run: async () => {
       console.log("⚡ Launching System Information Studio Pro (All 60 APIs)...");
 
@@ -2463,6 +2474,17 @@ export function createSystemInformationStudio(): SystemStudioInstance {
           setWindowPositionNative(webview, "center", width, height);
           setAlwaysOnTopNative(webview, false);
         } catch {}
+
+        attachWindowShortcuts(webview, {
+          onQuit: () => {
+            try { worker.terminate(); } catch {}
+            process.exit(0);
+          },
+          onClose: () => {
+            try { worker.terminate(); } catch {}
+            process.exit(0);
+          },
+        });
 
         webview.navigate(info.url);
         console.log(`⚡ Native desktop workstation window open. (Also accessible in any browser at: ${info.url})`);

@@ -19,6 +19,7 @@ function getLinuxDisplaySizeFallback() {
 }
 
 const fullscreenStateMap = new WeakMap<Webview, boolean>();
+const fullscreenDebounceMap = new WeakMap<object, number>();
 
 export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
     try {
@@ -63,6 +64,14 @@ export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
 
 export function toggleFullscreenNative(wv: Webview) {
     try {
+        if (!wv) return;
+        const now = Date.now();
+        const lastToggle = fullscreenDebounceMap.get(wv as any) ?? 0;
+        if (now - lastToggle < 450) {
+            return;
+        }
+        fullscreenDebounceMap.set(wv as any, now);
+
         const handle = wv.unsafeWindowHandle;
         if (!handle) return;
 
@@ -112,6 +121,414 @@ export function toggleFullscreenNative(wv: Webview) {
         console.warn("Could not toggle native window fullscreen:", e);
     }
 }
+
+export function minimizeWindowNative(wv: Webview) {
+    try {
+        const handle = wv?.unsafeWindowHandle;
+        if (!handle) return;
+
+        if (process.platform === "darwin") {
+            const libobjc = dlopen("libobjc.dylib", {
+                objc_msgSend: {
+                    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+                    returns: FFIType.void,
+                },
+                sel_registerName: {
+                    args: [FFIType.cstring],
+                    returns: FFIType.pointer,
+                }
+            });
+            const sel_miniaturize = libobjc.symbols.sel_registerName(Buffer.from("miniaturize:\0"));
+            libobjc.symbols.objc_msgSend(handle, sel_miniaturize, null);
+        } else if (process.platform === "win32") {
+            const user32 = dlopen("user32.dll", {
+                ShowWindow: {
+                    args: [FFIType.pointer, FFIType.i32],
+                    returns: FFIType.bool,
+                }
+            });
+            // SW_MINIMIZE = 6
+            user32.symbols.ShowWindow(handle, 6);
+        } else if (process.platform === "linux") {
+            console.warn("Linux minimize is unavailable in this Bun/Wayland environment; skipping native call.");
+        }
+    } catch (e) {
+        console.warn("Could not minimize native window:", e);
+    }
+}
+
+export function closeWindowNative(wv: Webview) {
+    try {
+        const handle = wv?.unsafeWindowHandle;
+        if (handle && process.platform === "darwin") {
+            try {
+                const libobjc = dlopen("libobjc.dylib", {
+                    objc_msgSend: {
+                        args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+                        returns: FFIType.void,
+                    },
+                    sel_registerName: {
+                        args: [FFIType.cstring],
+                        returns: FFIType.pointer,
+                    }
+                });
+                const sel_performClose = libobjc.symbols.sel_registerName(Buffer.from("performClose:\0"));
+                libobjc.symbols.objc_msgSend(handle, sel_performClose, null);
+            } catch {}
+        } else if (handle && process.platform === "win32") {
+            try {
+                const user32 = dlopen("user32.dll", {
+                    PostMessageW: {
+                        args: [FFIType.pointer, FFIType.u32, FFIType.pointer, FFIType.pointer],
+                        returns: FFIType.bool,
+                    }
+                });
+                // WM_CLOSE = 0x0010
+                user32.symbols.PostMessageW(handle, 0x0010, null, null);
+            } catch {}
+        }
+        if (typeof (wv as any)?.destroy === "function") {
+            try { (wv as any).destroy(); } catch {}
+        }
+    } catch (e) {
+        console.warn("Could not close native window:", e);
+    }
+}
+
+export function centerWindowNative(wv: Webview, winWidth = 1400, winHeight = 900) {
+    return setWindowPositionNative(wv, "center", winWidth, winHeight);
+}
+
+export interface WindowShortcutOptions {
+    onQuit?: () => void;
+    onClose?: () => void;
+    onMinimize?: () => void;
+    onFullscreen?: () => void;
+    onAlwaysOnTop?: (onTop: boolean) => void;
+    onCenter?: () => void;
+}
+
+export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptions) {
+    let alwaysOnTopState = false;
+
+    // Enable macOS FullScreen Collection Behavior immediately on creation
+    if (process.platform === "darwin" && wv?.unsafeWindowHandle) {
+        try {
+            const libobjc = dlopen("libobjc.dylib", {
+                objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.u64], returns: FFIType.u64 },
+                sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer }
+            });
+            const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
+            const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
+            const cb = BigInt(libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_cb, 0n));
+            libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_scb, cb | 128n);
+        } catch (e) {}
+    }
+
+    try {
+        wv.bind("quitApp", () => {
+            if (options?.onQuit) {
+                options.onQuit();
+            } else {
+                try { closeWindowNative(wv); } catch {}
+                process.exit(0);
+            }
+        });
+    } catch {}
+
+    try {
+        wv.bind("closeWindow", () => {
+            if (options?.onClose) {
+                options.onClose();
+            } else {
+                try { closeWindowNative(wv); } catch {}
+            }
+        });
+    } catch {}
+
+    try {
+        wv.bind("minimizeWindow", () => {
+            if (options?.onMinimize) {
+                options.onMinimize();
+            } else {
+                minimizeWindowNative(wv);
+            }
+            return { success: true };
+        });
+    } catch {}
+
+    try {
+        wv.bind("toggleFullscreen", () => {
+            if (options?.onFullscreen) {
+                options.onFullscreen();
+            } else {
+                toggleFullscreenNative(wv);
+            }
+            return { success: true };
+        });
+    } catch {}
+
+    try {
+        wv.bind("toggleNativeFullscreen", () => {
+            toggleFullscreenNative(wv);
+            return { success: true };
+        });
+    } catch {}
+
+    try {
+        wv.bind("toggleAlwaysOnTop", () => {
+            alwaysOnTopState = !alwaysOnTopState;
+            setAlwaysOnTopNative(wv, alwaysOnTopState);
+            if (options?.onAlwaysOnTop) options.onAlwaysOnTop(alwaysOnTopState);
+            return { success: true, onTop: alwaysOnTopState };
+        });
+    } catch {}
+
+    try {
+        wv.bind("setAlwaysOnTop", (onTop?: boolean) => {
+            alwaysOnTopState = onTop !== undefined ? onTop : !alwaysOnTopState;
+            setAlwaysOnTopNative(wv, alwaysOnTopState);
+            if (options?.onAlwaysOnTop) options.onAlwaysOnTop(alwaysOnTopState);
+            return { success: true, onTop: alwaysOnTopState };
+        });
+    } catch {}
+
+    try {
+        wv.bind("centerWindow", () => {
+            if (options?.onCenter) {
+                options.onCenter();
+            } else {
+                centerWindowNative(wv);
+            }
+            return { success: true };
+        });
+    } catch {}
+
+    try {
+        wv.bind("setWindowPosition", (pos: any) => {
+            setWindowPositionNative(wv, pos);
+            return { success: true, position: pos };
+        });
+    } catch {}
+}
+
+export function getWindowShortcutsScript(): string {
+    return `
+(function() {
+    let lastAltTime = 0;
+    let zoomLevel = 1.0;
+    let isFnPressed = false;
+
+    function applyZoom(delta, reset) {
+        if (reset) zoomLevel = 1.0;
+        else zoomLevel = Math.max(0.4, Math.min(3.0, zoomLevel + delta));
+        document.body.style.zoom = zoomLevel;
+    }
+
+    function doCloseOrQuit() {
+        if (window.quitApp) {
+            try { window.quitApp(); return; } catch(e) {}
+        }
+        if (window.closeWindow) {
+            try { window.closeWindow(); return; } catch(e) {}
+        }
+        if (window.handleWindowCloseIPC) {
+            try { window.handleWindowCloseIPC(); return; } catch(e) {}
+        }
+        try { window.close(); } catch(e) {}
+        try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
+    }
+
+    let lastFullscreenTime = 0;
+    function doToggleFullscreen() {
+        const now = Date.now();
+        if (now - lastFullscreenTime < 500) return;
+        lastFullscreenTime = now;
+
+        // 1. Native Desktop Webview IPC (if available, dispatch ONCE and return immediately)
+        if (typeof window.toggleFullscreen === "function" && window.toggleFullscreen !== doToggleFullscreen) {
+            try { window.toggleFullscreen(); return; } catch(e) {}
+        }
+        if (typeof window.toggleNativeFullscreen === "function") {
+            try { window.toggleNativeFullscreen(); return; } catch(e) {}
+        }
+
+        // 2. HTML5 Fullscreen API (standard browsers and WebKit only when native IPC is unavailable)
+        try {
+            const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+            if (!isFull) {
+                const el = document.documentElement;
+                if (el.requestFullscreen) {
+                    el.requestFullscreen().catch(function() {});
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                } else if (el.mozRequestFullScreen) {
+                    el.mozRequestFullScreen();
+                } else if (el.msRequestFullscreen) {
+                    el.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(function() {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        } catch(e) {}
+
+        // 3. Optional telemetry / server notification
+        try {
+            fetch("/api/fullscreen", { method: "POST" }).catch(function() {});
+        } catch(e) {}
+    }
+
+    // Expose globally for UI buttons and external handlers
+    window.doToggleFullscreen = doToggleFullscreen;
+    if (!window.toggleFullscreen) {
+        window.toggleFullscreen = doToggleFullscreen;
+    }
+
+    window.addEventListener("keyup", function(e) {
+        if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
+            isFnPressed = false;
+        }
+    });
+
+    window.addEventListener("keydown", function(e) {
+        if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
+            isFnPressed = true;
+        }
+
+        // Ignore held-down key repeats for toggles
+        if (e.repeat) return;
+
+        // 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
+        if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight")) {
+            const now = Date.now();
+            if (now - lastAltTime > 50 && now - lastAltTime < 450) {
+                lastAltTime = 0;
+                e.preventDefault();
+                doCloseOrQuit();
+                return;
+            }
+            lastAltTime = now;
+        } else if (e.key !== "Alt" && e.code !== "AltLeft" && e.code !== "AltRight") {
+            lastAltTime = 0;
+        }
+
+        // 2. Prevent raw browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
+        if (
+            (e.key === "F5" || e.code === "F5") ||
+            ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key.toLowerCase() === "r" || e.code === "KeyR"))
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+
+        // 3. Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
+        if (
+            ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
+            (e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+        ) {
+            e.preventDefault();
+            doCloseOrQuit();
+            return;
+        }
+
+        const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
+        const isFKey = e.key === "f" || e.key === "F" || e.code === "KeyF" || (typeof e.key === "string" && e.key.toLowerCase() === "f");
+        const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+
+        // 4. Fullscreen toggle shortcuts:
+        // - Fn+F / Globe+F (macOS fullscreen)
+        // - F / f (when not inside an input field)
+        // - F11 (standard function key)
+        // - Cmd+Ctrl+F / Ctrl+Cmd+F (macOS native shortcut ⌃⌘F)
+        // - Cmd+F / Ctrl+F (when not in an input field)
+        // - Cmd+Shift+F / Ctrl+Shift+F
+        // - Alt+Enter (Windows/Linux standard)
+        if (
+            (!isInput && isFKey && !e.altKey) ||
+            (isFn && isFKey) ||
+            e.key === "F11" || e.code === "F11" ||
+            ((e.metaKey || e.ctrlKey) && e.shiftKey && isFKey) ||
+            ((e.metaKey && e.ctrlKey) && isFKey) ||
+            (e.altKey && (e.key === "Enter" || e.code === "Enter"))
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            doToggleFullscreen();
+            return;
+        }
+
+        // Escape: exit fullscreen if currently in fullscreen
+        if (e.key === "Escape" || e.code === "Escape") {
+            try {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                }
+            } catch(e) {}
+        }
+
+        // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
+        if (
+            ((e.metaKey || e.ctrlKey || e.altKey) && (e.key.toLowerCase() === "m" || e.code === "KeyM"))
+        ) {
+            if (!isInput) {
+                e.preventDefault();
+                if (window.minimizeWindow) window.minimizeWindow();
+                return;
+            }
+        }
+
+        // 6. Always-on-top toggle: Cmd+Shift+T, Ctrl+Shift+T, Alt+T
+        if (
+            ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "t" || e.code === "KeyT")) ||
+            (e.altKey && !e.ctrlKey && !e.metaKey && (e.key.toLowerCase() === "t" || e.code === "KeyT"))
+        ) {
+            if (!isInput) {
+                e.preventDefault();
+                if (window.toggleAlwaysOnTop) window.toggleAlwaysOnTop();
+                return;
+            }
+        }
+
+        // 7. Center window: Cmd+Shift+C, Ctrl+Shift+C
+        if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "c" || e.code === "KeyC")) {
+            if (!isInput) {
+                e.preventDefault();
+                if (window.centerWindow) window.centerWindow();
+                return;
+            }
+        }
+
+        // 8. Zoom shortcuts: Cmd/Ctrl + (+/- / 0)
+        if (e.metaKey || e.ctrlKey) {
+            if (e.key === "=" || e.key === "+" || e.code === "Equal" || e.code === "NumpadAdd") {
+                e.preventDefault();
+                applyZoom(0.1, false);
+                return;
+            } else if (e.key === "-" || e.key === "_" || e.code === "Minus" || e.code === "NumpadSubtract") {
+                e.preventDefault();
+                applyZoom(-0.1, false);
+                return;
+            } else if (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0") {
+                e.preventDefault();
+                applyZoom(0, true);
+                return;
+            }
+        }
+    }, { capture: true });
+})();
+`;
+}
+
 
 export type WindowPositionPreset = 
     | "center" | "screen_center"
@@ -518,6 +935,36 @@ wv.bind("onFormClose", () => {
 wv.bind("backendAlert", (msg: string) => {
     console.log("⚡ Backend Alert:", msg);
 });
+
+// ==========================================
+// ⌨️ WINDOW FUNCTIONALITY & SHORTCUT BINDINGS
+// ==========================================
+
+wv.bind("quitApp", () => {
+    try { wv.destroy(); } catch (e) {}
+    process.exit(0);
+});
+
+wv.bind("closeWindow", () => {
+    try { wv.destroy(); } catch (e) {}
+    process.exit(0);
+});
+
+wv.bind("minimizeWindow", () => {
+    console.log("⚡ Window Lifecycle: Window minimized");
+});
+
+wv.bind("toggleFullscreen", () => {
+    console.log("⚡ Window Lifecycle: Fullscreen toggled");
+});
+
+wv.bind("toggleAlwaysOnTop", () => {
+    console.log("⚡ Window Lifecycle: Always on top toggled");
+});
+
+wv.bind("centerWindow", () => {
+    console.log("⚡ Window Lifecycle: Center window");
+});
 ${handlersCode}
 console.log("🚀 Starting Bun RAD Studio App: ${spec.title || 'Exported App'}...");
 wv.run();
@@ -545,6 +992,7 @@ wv.run();
 // Only launch main Webview IDE window when run as primary entrypoint (not imported during bun test)
 if (import.meta.main) {
     const webview = new Webview();
+    attachWindowShortcuts(webview);
     webview.setHTML(html);
     webview.title = "Bun RAD Studio (Delphi/VB Style)";
     webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
@@ -576,9 +1024,11 @@ if (import.meta.main) {
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { attachWindowShortcuts } from "${join(process.cwd(), "index.ts")}";
 
 const html = readFileSync(join(import.meta.dir, "preview.html"), "utf-8");
 const wv = new Webview();
+attachWindowShortcuts(wv);
 wv.setHTML(html);
 wv.title = "${safeTitle} - Live Preview";
 wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
@@ -605,32 +1055,6 @@ wv.run();
             console.error("Preview failed:", err);
             return { success: false, error: err.message };
         }
-    });
-
-    webview.bind("quitApp", () => {
-        process.exit(0);
-    });
-
-    let isAlwaysOnTopState = false;
-    webview.bind("setAlwaysOnTop", (onTop?: boolean) => {
-        isAlwaysOnTopState = onTop !== undefined ? onTop : !isAlwaysOnTopState;
-        setAlwaysOnTopNative(webview, isAlwaysOnTopState);
-        return { success: true, onTop: isAlwaysOnTopState };
-    });
-
-    webview.bind("toggleNativeFullscreen", () => {
-        toggleFullscreenNative(webview);
-        return { success: true };
-    });
-
-    webview.bind("toggleFullscreen", () => {
-        toggleFullscreenNative(webview);
-        return { success: true };
-    });
-
-    webview.bind("setWindowPosition", (pos: any) => {
-        setWindowPositionNative(webview, pos);
-        return { success: true, position: pos };
     });
 
     webview.bind("exportProject", (specJson: string) => {
@@ -2430,24 +2854,140 @@ ${controls}
     return false;
   }, { capture: true });
 
+  let lastAltTime = 0;
+  let zoomLevel = 1.0;
+  function applyZoom(delta, reset) {
+    if (reset) zoomLevel = 1.0;
+    else zoomLevel = Math.max(0.4, Math.min(3.0, zoomLevel + delta));
+    document.body.style.zoom = zoomLevel;
+  }
+  function doCloseOrQuit() {
+    if (window.quitApp) {
+      try { window.quitApp(); return; } catch(e) {}
+    }
+    if (window.closeWindow) {
+      try { window.closeWindow(); return; } catch(e) {}
+    }
+    if (window.handleWindowCloseIPC) {
+      try { window.handleWindowCloseIPC(); return; } catch(e) {}
+    }
+    try { window.close(); } catch(e) {}
+    try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
+  }
+
+  let isFnPressed = false;
+  window.addEventListener("keyup", (e) => {
+    if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
+      isFnPressed = false;
+    }
+  });
+
   window.addEventListener("keydown", (e) => {
-    // Disable browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
+    if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
+      isFnPressed = true;
+    }
+
+    // 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
+    if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
+      const now = Date.now();
+      if (now - lastAltTime > 50 && now - lastAltTime < 450) {
+        lastAltTime = 0;
+        e.preventDefault();
+        doCloseOrQuit();
+        return;
+      }
+      lastAltTime = now;
+    } else if (e.key !== "Alt" && e.code !== "AltLeft" && e.code !== "AltRight") {
+      lastAltTime = 0;
+    }
+
+    // 2. Prevent browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
     if (
       e.key === "F5" ||
       e.code === "F5" ||
-      ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "r" || e.code === "KeyR"))
+      ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key.toLowerCase() === "r" || e.code === "KeyR"))
     ) {
       e.preventDefault();
       e.stopPropagation();
       return false;
     }
-    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "q") || (e.altKey && (e.key === "F4" || e.code === "F4"))) {
+
+    // 3. Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
+    if (
+      ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
+      (e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+    ) {
       e.preventDefault();
-      if (window.quitApp) window.quitApp();
-      else window.close();
-    } else if (e.key === "F11" || e.code === "F11" || ((e.key.toLowerCase() === "f" || e.code === "KeyF") && (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey))) {
+      doCloseOrQuit();
+      return;
+    }
+
+    const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+    const isFKey = e.key.toLowerCase() === "f" || e.code === "KeyF";
+    const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+
+    // 4. Fullscreen toggle shortcuts: Fn+F (macOS system fullscreen), F11, Cmd+Ctrl+F, Cmd+F, Alt+Enter
+    if (
+      (isFn && isFKey) ||
+      e.key === "F11" || e.code === "F11" ||
+      ((e.metaKey && e.ctrlKey) && isFKey) ||
+      (!isInput && (e.metaKey || e.ctrlKey) && isFKey) ||
+      (e.altKey && (e.key === "Enter" || e.code === "Enter"))
+    ) {
       e.preventDefault();
-      window.toggleFullscreen();
+      if (window.toggleFullscreen) window.toggleFullscreen();
+      else if (window.toggleNativeFullscreen) window.toggleNativeFullscreen();
+      return;
+    }
+
+    // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
+    if ((e.metaKey || e.ctrlKey || e.altKey) && (e.key.toLowerCase() === "m" || e.code === "KeyM")) {
+      const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+      if (!isInput) {
+        e.preventDefault();
+        if (window.minimizeWindow) window.minimizeWindow();
+        return;
+      }
+    }
+
+    // 6. Always-on-top toggle: Cmd+Shift+T, Ctrl+Shift+T, Alt+T
+    if (
+      ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "t" || e.code === "KeyT")) ||
+      (e.altKey && !e.ctrlKey && !e.metaKey && (e.key.toLowerCase() === "t" || e.code === "KeyT"))
+    ) {
+      const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+      if (!isInput) {
+        e.preventDefault();
+        if (window.toggleAlwaysOnTop) window.toggleAlwaysOnTop();
+        return;
+      }
+    }
+
+    // 7. Center window: Cmd+Shift+C, Ctrl+Shift+C
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "c" || e.code === "KeyC")) {
+      const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+      if (!isInput) {
+        e.preventDefault();
+        if (window.centerWindow) window.centerWindow();
+        return;
+      }
+    }
+
+    // 8. Zoom shortcuts: Cmd/Ctrl + (+/- / 0)
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key === "=" || e.key === "+" || e.code === "Equal" || e.code === "NumpadAdd") {
+        e.preventDefault();
+        applyZoom(0.1, false);
+        return;
+      } else if (e.key === "-" || e.key === "_" || e.code === "Minus" || e.code === "NumpadSubtract") {
+        e.preventDefault();
+        applyZoom(-0.1, false);
+        return;
+      } else if (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0") {
+        e.preventDefault();
+        applyZoom(0, true);
+        return;
+      }
     }
   }, { capture: true });
   window.addEventListener("DOMContentLoaded", () => {

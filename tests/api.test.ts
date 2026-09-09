@@ -2,7 +2,7 @@ import { describe, test, expect, afterAll } from "bun:test";
 import { readFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
 import { Webview } from "webview-bun";
-import { generatePreviewHtml, exportProjectHelper, setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative } from "../index.ts";
+import { generatePreviewHtml, exportProjectHelper, setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, minimizeWindowNative, closeWindowNative, centerWindowNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
 
 const TEST_EXPORT_DIR = join(process.cwd(), ".test_export_output");
 
@@ -380,11 +380,22 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
     });
 
     test("6. Cross-Platform Native Window Helpers Validation", () => {
-        const dummyWebview = { unsafeWindowHandle: null } as any;
+        const dummyWebview = { unsafeWindowHandle: null, bind: () => {} } as any;
         expect(() => setAlwaysOnTopNative(dummyWebview, true)).not.toThrow();
         expect(() => toggleFullscreenNative(dummyWebview)).not.toThrow();
+        expect(() => minimizeWindowNative(dummyWebview)).not.toThrow();
+        expect(() => closeWindowNative(dummyWebview)).not.toThrow();
+        expect(() => centerWindowNative(dummyWebview, 800, 600)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, "center", 800, 600)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, { x: 100, y: 100 }, 800, 600)).not.toThrow();
+        expect(() => attachWindowShortcuts(dummyWebview)).not.toThrow();
+        const script = getWindowShortcutsScript();
+        expect(typeof script).toBe("string");
+        expect(script).toContain("alt+alt");
+        expect(script).toContain("toggleFullscreen");
+        expect(script).toContain("doToggleFullscreen");
+        expect(script).toContain("requestFullscreen");
+        expect(script).toContain("minimizeWindow");
     });
 
     test("6b. Linux native window helpers must not crash live windows", () => {

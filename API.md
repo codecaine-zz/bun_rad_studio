@@ -270,13 +270,41 @@ The `event_handlers` record maps event names to function names or JavaScript str
 Bun RAD Studio exposes native IPC methods between the frontend Webview and the Bun runtime using `webview.bind(...)`.
 
 ### 1. `runPreview(specJson: string): { success: boolean, error?: string }`
-Launches an independent, interactive **Live Preview Window** using the provided `FormSpec` JSON.
+Launches an independent, interactive **Live Preview Window** using the provided `FormSpec` JSON with full keyboard shortcuts attached.
 
 ### 2. `exportProject(specJson: string): { success: boolean, dir: string }`
 Generates a complete, standalone Bun project directory on disk under `./exported_project`.
 
-### 3. `quitApp(): void`
-Terminates the main RAD Studio IDE application process.
+### 3. `quitApp(): void` / `closeWindow(): void`
+Terminates the application process or closes the active Webview window cleanly.
+
+### 4. Cross-Platform Native Window Helpers (`index.ts`)
+
+| Native Helper Function | Description |
+| --- | --- |
+| `closeWindowNative(wv: Webview)` | Cleanly closes/terminates native Cocoa/Win32 window handle and destroys webview |
+| `minimizeWindowNative(wv: Webview)` | Native window minimize (Cocoa `miniaturize:` / Win32 `SW_MINIMIZE`) |
+| `toggleFullscreenNative(wv: Webview)` | Toggles window fullscreen mode across macOS, Windows, and Linux |
+| `setAlwaysOnTopNative(wv: Webview, onTop: boolean)` | Sets window float/topmost level (Cocoa `NSFloatingWindowLevel` / Win32 `HWND_TOPMOST`) |
+| `centerWindowNative(wv: Webview)` | Centers native window on primary screen display |
+| `setWindowPositionNative(wv: Webview, pos, ...)` | Positions window to preset (`center`, `top_left`, `top_right`, `bottom_left`, `bottom_right`) |
+| `attachWindowShortcuts(wv: Webview, options?)` | Automatically binds all window lifecycle & functionality IPC endpoints (`quitApp`, `closeWindow`, `minimizeWindow`, `toggleFullscreen`, `toggleAlwaysOnTop`, `centerWindow`) |
+| `getWindowShortcutsScript(): string` | Generates universal, zero-dependency client `<script>` with all desktop window shortcut key listeners |
+
+### 5. Universal Desktop Window Functionality Shortcuts
+
+All windows in Bun RAD Studio (IDE, SimpleWindow apps, live previews, exported applications, and telemetry workstations) support standard desktop shortcut keys:
+
+| Action | Shortcut Key(s) | Platforms |
+| --- | --- | --- |
+| **Close Window / Quit** | <kbd>Cmd</kbd>+<kbd>Q</kbd>, <kbd>Cmd</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>Alt</kbd> (Double Alt) | macOS |
+| **Close Window / Quit** | <kbd>Ctrl</kbd>+<kbd>Q</kbd>, <kbd>Ctrl</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>F4</kbd>, <kbd>Alt</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>Alt</kbd> | Windows / Linux |
+| **Minimize Window** | <kbd>Cmd</kbd>+<kbd>M</kbd>, <kbd>Ctrl</kbd>+<kbd>M</kbd>, <kbd>Alt</kbd>+<kbd>M</kbd> | All Platforms |
+| **Toggle Fullscreen** | <kbd>Fn</kbd>+<kbd>F</kbd> / <kbd>F</kbd> (unfocused), <kbd>F11</kbd>, <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Cmd</kbd>+<kbd>F</kbd>, <kbd>Alt</kbd>+<kbd>Enter</kbd>, <kbd>Esc</kbd> (Exit) | All Platforms |
+| **Always on Top (Pin)** | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <kbd>Alt</kbd>+<kbd>T</kbd> | All Platforms |
+| **Center Window** | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | All Platforms |
+| **Zoom Workspace / View** | <kbd>Cmd/Ctrl</kbd>+<kbd>+</kbd> (In), <kbd>Cmd/Ctrl</kbd>+<kbd>-</kbd> (Out), <kbd>Cmd/Ctrl</kbd>+<kbd>0</kbd> (Reset) | All Platforms |
+| **Escape (Dismiss Modal)** | <kbd>Escape</kbd> | All Platforms |
 
 ### Window Event Lifecycle Hooks
 Auto-generated TS templates and exported projects support window lifecycle bindings:
