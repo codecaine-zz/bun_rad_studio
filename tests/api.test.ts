@@ -1,6 +1,7 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { readFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
+import { Webview } from "webview-bun";
 import { generatePreviewHtml, exportProjectHelper, setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative } from "../index.ts";
 
 const TEST_EXPORT_DIR = join(process.cwd(), ".test_export_output");
@@ -384,6 +385,17 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(() => toggleFullscreenNative(dummyWebview)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, "center", 800, 600)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, { x: 100, y: 100 }, 800, 600)).not.toThrow();
+    });
+
+    test("6b. Linux native window helpers must not crash live windows", () => {
+        if (process.platform !== "linux") return;
+
+        const wv = new Webview();
+        expect(() => setAlwaysOnTopNative(wv, true)).not.toThrow();
+        expect(() => toggleFullscreenNative(wv)).not.toThrow();
+        expect(() => setWindowPositionNative(wv, "center", 800, 600)).not.toThrow();
+        expect(() => setWindowPositionNative(wv, { x: 100, y: 100 }, 800, 600)).not.toThrow();
+        wv.destroy();
     });
 
     test("7. Control HTML Translation Validation", () => {

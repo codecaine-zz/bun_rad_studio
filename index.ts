@@ -1,8 +1,22 @@
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { join } from "path";
 import { dlopen, FFIType } from "bun:ffi";
+
+function getLinuxDisplaySizeFallback() {
+    try {
+        const out = spawnSync("xrandr", ["--query"], { encoding: "utf8" });
+        const text = String(out.stdout || "");
+        const match = text.match(/(\d+)x(\d+)(?:\s+\+\d+\+\d+)?/);
+        if (match) {
+            return { width: Number(match[1]), height: Number(match[2]) };
+        }
+    } catch {
+        // Ignore and use a safe fallback
+    }
+    return { width: 1920, height: 1080 };
+}
 
 const fullscreenStateMap = new WeakMap<Webview, boolean>();
 
@@ -38,13 +52,9 @@ export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
             const insertAfter = onTop ? -1 : -2;
             user32.symbols.SetWindowPos(handle, insertAfter, 0, 0, 0, 0, 3);
         } else if (process.platform === "linux") {
-            const gtk = dlopen("libgtk-3.so.0", {
-                gtk_window_set_keep_above: {
-                    args: [FFIType.pointer, FFIType.i32],
-                    returns: FFIType.void,
-                }
-            });
-            gtk.symbols.gtk_window_set_keep_above(handle, onTop ? 1 : 0);
+            // Linux/Wayland builds in Bun can crash when directly calling GTK/GDK FFI.
+            // The safe fallback is to leave the window at normal stacking until a stable host API is available.
+            console.warn("Linux always-on-top is unavailable in this Bun/Wayland environment; skipping native call.");
         }
     } catch (e) {
         console.warn("Could not set window level:", e);
@@ -92,24 +102,11 @@ export function toggleFullscreenNative(wv: Webview) {
             // SW_MAXIMIZE = 3, SW_RESTORE = 9
             user32.symbols.ShowWindow(handle, isZoomed ? 9 : 3);
         } else if (process.platform === "linux") {
-            const gtk = dlopen("libgtk-3.so.0", {
-                gtk_window_fullscreen: {
-                    args: [FFIType.pointer],
-                    returns: FFIType.void,
-                },
-                gtk_window_unfullscreen: {
-                    args: [FFIType.pointer],
-                    returns: FFIType.void,
-                }
-            });
-            const isFS = fullscreenStateMap.get(wv) ?? false;
-            if (isFS) {
-                gtk.symbols.gtk_window_unfullscreen(handle);
-                fullscreenStateMap.set(wv, false);
-            } else {
-                gtk.symbols.gtk_window_fullscreen(handle);
-                fullscreenStateMap.set(wv, true);
-            }
+            // GTK/GDK direct FFI is unstable under Bun on Ubuntu/Wayland and can segfault.
+            // Keep the state in memory but avoid the unsafe native call.
+            const nextState = !(fullscreenStateMap.get(wv) ?? false);
+            fullscreenStateMap.set(wv, nextState);
+            console.warn("Linux fullscreen toggle is unavailable in this Bun/Wayland environment; skipping native call.");
         }
     } catch (e) {
         console.warn("Could not toggle native window fullscreen:", e);
@@ -149,20 +146,9 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
             screenW = user32.symbols.GetSystemMetrics(0);
             screenH = user32.symbols.GetSystemMetrics(1);
         } else if (process.platform === "linux") {
-            try {
-                const gdk = dlopen("libgdk-3.so.0", {
-                    gdk_screen_get_default: { args: [], returns: FFIType.pointer },
-                    gdk_screen_get_width: { args: [FFIType.pointer], returns: FFIType.i32 },
-                    gdk_screen_get_height: { args: [FFIType.pointer], returns: FFIType.i32 },
-                });
-                const defaultScreen = gdk.symbols.gdk_screen_get_default();
-                if (defaultScreen) {
-                    screenW = gdk.symbols.gdk_screen_get_width(defaultScreen);
-                    screenH = gdk.symbols.gdk_screen_get_height(defaultScreen);
-                }
-            } catch (e) {
-                // Fallback resolution 1920x1080 if GDK display query fails
-            }
+            const fallback = getLinuxDisplaySizeFallback();
+            screenW = fallback.width;
+            screenH = fallback.height;
         }
 
         let targetX = 40;
@@ -246,13 +232,9 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
                 // SWP_NOSIZE (1) | SWP_NOZORDER (4) = 5
                 user32.symbols.SetWindowPos(handle, null, Number(targetX), Number(targetTopY), 0, 0, 5);
             } else if (process.platform === "linux") {
-                const gtk = dlopen("libgtk-3.so.0", {
-                    gtk_window_move: {
-                        args: [FFIType.pointer, FFIType.i32, FFIType.i32],
-                        returns: FFIType.void,
-                    }
-                });
-                gtk.symbols.gtk_window_move(handle, Number(targetX), Number(targetTopY));
+                // Direct GTK/GDK FFI is unsafe under Bun on Ubuntu/Wayland and can segfault.
+                // Leave Linux windows in their current position instead of risking a crash.
+                console.warn("Linux window positioning is unavailable in this Bun/Wayland environment; skipping native move.");
             }
         }
     } catch (e) {
