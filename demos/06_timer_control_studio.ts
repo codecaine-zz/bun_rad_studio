@@ -219,7 +219,6 @@ const clientTimerScript = `
 html = html.replace("</body>", clientTimerScript + "\n</body>");
 
 const wv = new Webview();
-wv.setHTML(html);
 wv.title = "Bun RAD Studio - Demo 6: Timer Control & Telemetry Studio";
 wv.size = { width: 960, height: 700, hint: SizeHint.NONE };
 
@@ -261,6 +260,9 @@ wv.bind("on_sldInterval_change", (val: any) => {
         })();
     `);
 });
+
+// Set HTML AFTER all binds are registered
+wv.setHTML(html);
 
 console.log("🚀 Running Bun RAD Studio Demo 6: Non-Visual Timer Control & Telemetry Studio...");
 wv.run();

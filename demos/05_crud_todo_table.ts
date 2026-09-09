@@ -91,7 +91,6 @@ const formSpec = {
 
 const html = generatePreviewHtml(formSpec);
 const wv = new Webview();
-wv.setHTML(html);
 wv.title = "Bun RAD Studio - Demo 5: Dynamic Table Control Studio";
 wv.size = { width: 980, height: 720, hint: SizeHint.NONE };
 
@@ -180,10 +179,8 @@ const setupTableJS = `
 })();
 `;
 
-// Inject setup JS after HTML is rendered
-setTimeout(() => {
-    execJS(setupTableJS);
-}, 200);
+// Inject setup JS into HTML
+const finalHtml = html.replace("</body>", "<script>" + setupTableJS + "</script></body>");
 
 // 1. Add Row Handler
 wv.bind("on_btnAddRow_click", () => {
@@ -418,6 +415,9 @@ wv.bind("on_btnClear_click", () => {
         })();
     `);
 });
+
+// Set HTML AFTER all binds are registered
+wv.setHTML(finalHtml);
 
 console.log("🚀 Running Bun RAD Studio Demo 5: Dynamic Table & Data Grid Control Studio...");
 wv.run();

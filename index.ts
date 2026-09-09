@@ -1090,12 +1090,34 @@ export function generatePreviewHtml(spec: any): string {
             const calBg = cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b');
             const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
             const curDate = text || 'July 2026';
-            controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><input type="hidden" id="${c.id}" name="${c.id}" value="25"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="const s=this.nextElementSibling;const months=['January','February','March','April','May','June','July','August','September','October','November','December'];const cur=s.textContent.split(' ');let mIdx=months.indexOf(cur[0]);let y=parseInt(cur[1]||'2026',10);mIdx--;if(mIdx<0){mIdx=11;y--;}s.textContent=months[mIdx]+' '+y;if(window['${c.id}_onPrev'])window['${c.id}_onPrev'](s.textContent);">◄</button><span class="cal-title">${curDate}</span><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="const s=this.previousElementSibling;const months=['January','February','March','April','May','June','July','August','September','October','November','December'];const cur=s.textContent.split(' ');let mIdx=months.indexOf(cur[0]);let y=parseInt(cur[1]||'2026',10);mIdx++;if(mIdx>11){mIdx=0;y++;}s.textContent=months[mIdx]+' '+y;if(window['${c.id}_onNext'])window['${c.id}_onNext'](s.textContent);">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${[28,29,30,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28].slice(0,21).map((d: number, idx: number) => {
-                const isCurMonth = idx >= 3;
-                const isSelected = d === 25;
+            const selDay = Number(c.value) || 25;
+
+            const calMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const dateParts = curDate.trim().split(' ').filter(Boolean);
+            let calMIdx = calMonths.findIndex(m => m.toLowerCase() === (dateParts[0] || '').toLowerCase());
+            if (calMIdx === -1) calMIdx = 6;
+            const calYear = parseInt(dateParts[1] || '2026', 10);
+            const calFirstDay = new Date(calYear, calMIdx, 1).getDay();
+            const calDaysInMonth = new Date(calYear, calMIdx + 1, 0).getDate();
+            const calPrevMonthDays = new Date(calYear, calMIdx, 0).getDate();
+
+            let initialDays = '';
+            for (let i = 0; i < calFirstDay; i++) {
+                const d = calPrevMonthDays - calFirstDay + 1 + i;
+                initialDays += `<span class="cal-day cal-day-prev" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, -1);">${d}</span>`;
+            }
+            for (let d = 1; d <= calDaysInMonth; d++) {
+                const isSelected = (d === selDay);
                 const bgStyle = isSelected ? `background:${accent};color:#ffffff;font-weight:700;border-radius:50%;` : '';
-                return `<span class="cal-day" style="padding:4px 0;opacity:${isCurMonth ? (isSelected ? 1 : 0.9) : 0.35};cursor:pointer;${bgStyle}" onclick="this.parentNode.querySelectorAll('.cal-day').forEach(el=>{el.style.background='transparent';el.style.color='inherit';el.style.fontWeight='normal';el.style.borderRadius='0';});this.style.background='${accent}';this.style.color='#ffffff';this.style.fontWeight='700';this.style.borderRadius='50%';const hid=document.getElementById('${c.id}');if(hid)hid.value=${d};const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${d});">${d}</span>`;
-            }).join('')}</div></div>\n`;
+                initialDays += `<span class="cal-day cal-day-cur" data-day="${d}" style="padding:4px 0;opacity:0.95;cursor:pointer;${bgStyle}" onclick="window.selectCalendarDay(this, ${d});">${d}</span>`;
+            }
+            const totalCellsCount = (calFirstDay + calDaysInMonth) > 35 ? 42 : 35;
+            const nextFillerCount = totalCellsCount - (calFirstDay + calDaysInMonth);
+            for (let d = 1; d <= nextFillerCount; d++) {
+                initialDays += `<span class="cal-day cal-day-next" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, 1);">${d}</span>`;
+            }
+
+            controls += `<div id="${c.id}_wrapper"${titleAttr} data-cal-id="${c.id}" data-accent="${accent}" data-color="${color}" data-change-handler="${customChange}" style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><input type="hidden" id="${c.id}" name="${c.id}" value="${selDay}"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="window.navCalendar(this, -1);">◄</button><span class="cal-title">${curDate}</span><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="window.navCalendar(this, 1);">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="cal-days-grid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${initialDays}</div></div>\n`;
         } else if (t === 'color_swatch') {
             const colorsList = (text || '#0284c7, #38bdf8, #10b981, #f59e0b, #ef4444, #7c3aed, #ec4899').split(',').map((s: string) => s.trim());
             const curCol = c.value || colorsList[0] || '#0284c7';
@@ -1921,11 +1943,133 @@ ${controls}
     });
     c.innerHTML = html;
   };
-  window.setCalendarDate = function(id, headerText) {
-    const c = document.getElementById(id);
-    if (!c) return;
-    const span = c.querySelector('div:nth-child(1) span:nth-child(2)');
-    if (span) span.textContent = headerText;
+  window.renderCalendarGrid = function(idOrWrapper, yearMonthStr, selectedDay) {
+    const wrapper = typeof idOrWrapper === 'string'
+      ? (document.getElementById(idOrWrapper + '_wrapper') || (document.getElementById(idOrWrapper) ? document.getElementById(idOrWrapper).closest('[data-cal-id]') : null) || document.getElementById(idOrWrapper))
+      : idOrWrapper;
+    if (!wrapper) return;
+    const realId = wrapper.dataset.calId || (wrapper.id ? wrapper.id.replace(/_wrapper$/, '') : '');
+    const titleEl = wrapper.querySelector('.cal-title');
+    if (yearMonthStr && titleEl) {
+      titleEl.textContent = yearMonthStr;
+    }
+    const curTitle = (yearMonthStr || (titleEl ? titleEl.textContent : 'July 2026')).trim();
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const parts = curTitle.split(' ').filter(Boolean);
+    let mIdx = months.findIndex(function(m){ return m.toLowerCase() === (parts[0] || '').toLowerCase(); });
+    if (mIdx === -1) mIdx = 6;
+    const yNum = parseInt(parts[1] || '2026', 10);
+
+    const hiddenInput = document.getElementById(realId);
+    let selDay = selectedDay !== undefined ? Number(selectedDay) : (hiddenInput && hiddenInput.value ? Number(hiddenInput.value) : 1);
+    if (!selDay || isNaN(selDay)) selDay = 1;
+
+    const firstDay = new Date(yNum, mIdx, 1).getDay();
+    const daysInMonth = new Date(yNum, mIdx + 1, 0).getDate();
+    const prevMonthDays = new Date(yNum, mIdx, 0).getDate();
+    if (selDay > daysInMonth) selDay = daysInMonth;
+    if (hiddenInput && selectedDay !== undefined) hiddenInput.value = String(selDay);
+
+    const accent = wrapper.dataset.accent || '#38bdf8';
+    const grid = wrapper.querySelector('.cal-days-grid');
+    if (!grid) return;
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+      const d = prevMonthDays - firstDay + 1 + i;
+      html += '<span class="cal-day cal-day-prev" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, -1);">' + d + '</span>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isSel = (d === selDay);
+      const selStyle = isSel ? 'background:' + accent + ';color:#ffffff;font-weight:700;border-radius:50%;' : '';
+      html += '<span class="cal-day cal-day-cur" data-day="' + d + '" style="padding:4px 0;opacity:0.95;cursor:pointer;' + selStyle + '" onclick="window.selectCalendarDay(this, ' + d + ');">' + d + '</span>';
+    }
+    const totalCurrent = firstDay + daysInMonth;
+    const totalCells = totalCurrent > 35 ? 42 : 35;
+    const nextDays = totalCells - totalCurrent;
+    for (let d = 1; d <= nextDays; d++) {
+      html += '<span class="cal-day cal-day-next" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, 1);">' + d + '</span>';
+    }
+    grid.innerHTML = html;
+  };
+
+  window.selectCalendarDay = function(el, day) {
+    const wrapper = el ? (el.closest('[data-cal-id]') || el.closest('[id$="_wrapper"]')) : null;
+    if (!wrapper) return;
+    const realId = wrapper.dataset.calId || (wrapper.id ? wrapper.id.replace(/_wrapper$/, '') : '');
+    const accent = wrapper.dataset.accent || '#38bdf8';
+    wrapper.querySelectorAll('.cal-day').forEach(function(item) {
+      item.style.background = 'transparent';
+      item.style.color = 'inherit';
+      item.style.fontWeight = 'normal';
+      item.style.borderRadius = '0';
+    });
+    if (el) {
+      el.style.background = accent;
+      el.style.color = '#ffffff';
+      el.style.fontWeight = '700';
+      el.style.borderRadius = '50%';
+    }
+    const hid = document.getElementById(realId);
+    if (hid) hid.value = String(day);
+    const titleEl = wrapper.querySelector('.cal-title');
+    const curMonth = titleEl ? titleEl.textContent.trim() : '';
+    const statusText = 'Selected Date: ' + (curMonth ? curMonth + ' ' : '') + day;
+    if (window.setStatusBarText) {
+      window.setStatusBarText('desktop_status_bar', statusText);
+    }
+    if (window.showInteractionToast) {
+      window.showInteractionToast('Date Selected', (curMonth ? curMonth + ' ' : '') + 'Day ' + day);
+    }
+    const customChange = wrapper.dataset.changeHandler || '';
+    const fnC = window[customChange] || window[realId + '_onChange'] || window['on_' + realId + '_change'];
+    if (fnC) {
+      try { fnC(day); } catch(err) { console.error('Calendar change callback error:', err); }
+    }
+  };
+
+  window.navCalendar = function(btnEl, delta) {
+    const wrapper = typeof btnEl === 'string'
+      ? (document.getElementById(btnEl + '_wrapper') || document.getElementById(btnEl))
+      : (btnEl ? (btnEl.closest('[data-cal-id]') || btnEl.closest('[id$="_wrapper"]')) : null);
+    if (!wrapper) return;
+    const realId = wrapper.dataset.calId || (wrapper.id ? wrapper.id.replace(/_wrapper$/, '') : '');
+    const titleEl = wrapper.querySelector('.cal-title');
+    if (!titleEl) return;
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const cur = titleEl.textContent.trim().split(' ').filter(Boolean);
+    let mIdx = months.findIndex(function(m){ return m.toLowerCase() === (cur[0] || '').toLowerCase(); });
+    if (mIdx === -1) mIdx = 6;
+    let y = parseInt(cur[1] || '2026', 10);
+    mIdx += delta;
+    if (mIdx < 0) { mIdx = 11; y--; }
+    if (mIdx > 11) { mIdx = 0; y++; }
+    const newTitle = months[mIdx] + ' ' + y;
+    titleEl.textContent = newTitle;
+    window.renderCalendarGrid(wrapper, newTitle);
+    if (window.setStatusBarText) {
+      window.setStatusBarText('desktop_status_bar', 'Calendar: ' + newTitle);
+    }
+    if (window.showInteractionToast) {
+      window.showInteractionToast('Calendar Navigation', newTitle);
+    }
+    const fnNav = delta < 0 ? (window[realId + '_onPrev'] || window['on_' + realId + '_prev']) : (window[realId + '_onNext'] || window['on_' + realId + '_next']);
+    if (fnNav) {
+      try { fnNav(newTitle); } catch(err) { console.error('Calendar navigation callback error:', err); }
+    }
+  };
+
+  window.setCalendarDate = function(id, headerText, selectedDay) {
+    window.renderCalendarGrid(id, headerText, selectedDay);
+    if (headerText) {
+      const statusText = 'Calendar set to ' + headerText + (selectedDay !== undefined ? ' ' + selectedDay : '') + '.';
+      if (window.setStatusBarText) {
+        window.setStatusBarText('desktop_status_bar', statusText);
+      }
+      if (window.showInteractionToast) {
+        window.showInteractionToast('Calendar Updated', headerText + (selectedDay !== undefined ? ' Day ' + selectedDay : ''));
+      }
+    }
   };
   window.setColorSwatchColor = function(id, hexColor) {
     const c = document.getElementById(id);

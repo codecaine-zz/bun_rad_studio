@@ -70,7 +70,6 @@ const formSpec = {
 
 const html = generatePreviewHtml(formSpec);
 const wv = new Webview();
-wv.setHTML(html);
 wv.title = "Bun RAD Studio - Demo 2: Advanced Modern Controls";
 wv.size = { width: 960, height: 720, hint: SizeHint.NONE };
 
@@ -182,6 +181,9 @@ wv.bind("on_btnUpdateTree_click", () => {
         document.getElementById("lblHelperLog").textContent = "📁 Directory Tree updated with vibrant pulse highlight & NEW badges via setTreeNodes helper.";
     `);
 });
+
+// Set HTML AFTER all binds are registered
+wv.setHTML(html);
 
 console.log("🚀 Running Bun RAD Studio Demo 2: Advanced Modern Controls...");
 wv.run();

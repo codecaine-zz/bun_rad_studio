@@ -50,9 +50,36 @@ const formSpec = {
         { id: "dtpStart", type: "date_picker", left: 470, top: 260, width: 180, height: 36, value: "2026-07-24" },
 
         // Dynamic Action Buttons
-        { id: "btnSubmit", type: "button", caption: "🚀 Submit Form", left: 140, top: 400, width: 140, height: 40, background_color: "#38bdf8", font_color: "#0f172a", font_weight: "700" },
-        { id: "btnReset", type: "button", caption: "↺ Reset Form", left: 295, top: 400, width: 130, height: 40, background_color: "#334155" },
-        { id: "btnToggleLock", type: "button", caption: "🔒 Lock / Unlock Inputs", left: 440, top: 400, width: 170, height: 40, background_color: "#475569" },
+        {
+            id: "btnSubmit",
+            type: "button",
+            caption: "🚀 Submit Form",
+            left: 140, top: 400, width: 140, height: 40,
+            background_color: "#38bdf8", font_color: "#0f172a", font_weight: "700",
+            event_handlers: {
+                onClick: "const name = (document.getElementById('txtName') && document.getElementById('txtName').value) || 'Anonymous'; const email = (document.getElementById('txtEmail') && document.getElementById('txtEmail').value) || 'None'; if (document.getElementById('lblLog')) document.getElementById('lblLog').textContent = '✅ Account Created! Name: ' + name + ' | Email: ' + email + ' | Submitted at ' + new Date().toLocaleTimeString(); if (document.getElementById('lblStatus')) { document.getElementById('lblStatus').textContent = 'Status: Account successfully registered!'; document.getElementById('lblStatus').style.color = '#10b981'; } if (window.showInteractionToast) window.showInteractionToast('Account Created', name); if (window.on_btnSubmit_click) window.on_btnSubmit_click();"
+            }
+        },
+        {
+            id: "btnReset",
+            type: "button",
+            caption: "↺ Reset Form",
+            left: 295, top: 400, width: 130, height: 40,
+            background_color: "#334155",
+            event_handlers: {
+                onClick: "['txtName', 'txtEmail', 'txtPass', 'txtBio'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); if (document.getElementById('lblLog')) document.getElementById('lblLog').textContent = '↺ Form reset back to default states.'; if (document.getElementById('lblStatus')) { document.getElementById('lblStatus').textContent = 'Status: Form reset.'; document.getElementById('lblStatus').style.color = '#38bdf8'; } if (window.showInteractionToast) window.showInteractionToast('Form Reset', 'Fields cleared'); if (window.on_btnReset_click) window.on_btnReset_click();"
+            }
+        },
+        {
+            id: "btnToggleLock",
+            type: "button",
+            caption: "🔒 Lock / Unlock Inputs",
+            left: 440, top: 400, width: 170, height: 40,
+            background_color: "#475569",
+            event_handlers: {
+                onClick: "window._isLocked = !window._isLocked; const locked = window._isLocked; ['txtName', 'txtEmail', 'txtPass', 'txtBio', 'chkTerms', 'swtNotify', 'sldLevel', 'stpAge', 'dtpStart', 'btnSubmit'].forEach(id => { const el = document.getElementById(id); if (el) { el.disabled = locked; el.style.opacity = locked ? '0.4' : '1'; el.style.pointerEvents = locked ? 'none' : 'auto'; } }); if (document.getElementById('lblStatus')) { document.getElementById('lblStatus').textContent = locked ? 'Status: Controls LOCKED (Disabled)' : 'Status: Controls UNLOCKED (Enabled)'; document.getElementById('lblStatus').style.color = locked ? '#ef4444' : '#38bdf8'; } if (document.getElementById('lblLog')) document.getElementById('lblLog').textContent = locked ? '🔒 All form inputs locked.' : '🔓 All form inputs unlocked.'; if (window.showInteractionToast) window.showInteractionToast('Inputs Lock', locked ? 'Locked' : 'Unlocked'); if (window.on_btnToggleLock_click) window.on_btnToggleLock_click();"
+            }
+        },
 
         // Dynamic Helper Result Card
         { id: "pnlResult", type: "groupbox", title: "⚡ Live Helper Output Log", left: 24, top: 460, width: 770, height: 120 },
@@ -62,7 +89,6 @@ const formSpec = {
 
 const html = generatePreviewHtml(formSpec);
 const wv = new Webview();
-wv.setHTML(html);
 wv.title = "Bun RAD Studio - Demo 1: Standard Controls";
 wv.size = { width: 860, height: 640, hint: SizeHint.NONE };
 
@@ -107,11 +133,11 @@ wv.bind("on_btnToggleLock_click", () => {
     console.log("⚡ [IPC] Toggling control locked state:", isLocked);
     execJS(`
         const locked = ${isLocked};
-        ["txtName", "txtEmail", "txtPass", "txtBio", "btnSubmit"].forEach(id => {
+        ["txtName", "txtEmail", "txtPass", "txtBio", "chkTerms", "swtNotify", "sldLevel", "stpAge", "dtpStart", "btnSubmit"].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.disabled = locked;
-                el.style.opacity = locked ? "0.5" : "1";
+                el.style.opacity = locked ? "0.4" : "1";
                 el.style.pointerEvents = locked ? "none" : "auto";
             }
         });
@@ -128,6 +154,9 @@ wv.bind("on_sldLevel_change", () => {
         document.getElementById("lblLevel").textContent = "Experience Level (Years): " + val;
     `);
 });
+
+// Set HTML AFTER all binds are registered
+wv.setHTML(html);
 
 console.log("🚀 Running Bun RAD Studio Demo 1: Standard Controls...");
 wv.run();

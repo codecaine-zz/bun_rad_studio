@@ -71,7 +71,6 @@ const formSpec = {
 
 const html = generatePreviewHtml(formSpec);
 const wv = new Webview();
-wv.setHTML(html);
 wv.title = "Bun RAD Studio - Demo 3: DB Grid, Timer & Code View";
 wv.size = { width: 960, height: 700, hint: SizeHint.NONE };
 
@@ -106,6 +105,9 @@ wv.bind("on_btnRefreshDb_click", () => {
         document.getElementById("lblTimerLog").textContent = "↻ [Database] Refreshed dataset connection. All 5 records re-indexed.";
     `);
 });
+
+// Set HTML AFTER all binds are registered
+wv.setHTML(html);
 
 console.log("🚀 Running Bun RAD Studio Demo 3: DB Grid, Timer & Code View...");
 wv.run();

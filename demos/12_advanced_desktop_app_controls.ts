@@ -114,7 +114,9 @@ const formSpec = {
             x: 535, y: 550, width: 200, height: 38,
             text: "📅 Jump to August 2026",
             background_color: "#7c3aed",
-            event_handlers: { onClick: "on_btn_calendar_today_click" }
+            event_handlers: {
+                onClick: "if(window.setCalendarDate)window.setCalendarDate('app_calendar','August 2026',1);if(window.setStatusBarText)window.setStatusBarText('desktop_status_bar','Calendar set to August 1, 2026.');if(window.setToast)window.setToast('status_toast','Calendar Updated','Calendar jumped to August 2026.','success');if(window.on_btn_calendar_today_click)window.on_btn_calendar_today_click();"
+            }
         },
         {
             id: "btn_path_reset",
@@ -146,8 +148,6 @@ const webview = new Webview(true, {
 });
 webview.title = formSpec.title;
 
-webview.setHTML(htmlContent);
-
 // Helper script execution
 function execJS(code: string) {
     try {
@@ -166,7 +166,9 @@ webview.bind("on_desktop_toolbar_click", (action?: string) => {
         execJS(`if (window.setPropertyGridData) window.setPropertyGridData("prop_inspector", "Mode: Live Production, Threads: 8, FFI Window: Native Cocoa, FPS: 60");`);
         execJS(`if (window.setToast) window.setToast("status_toast", "Inspector Updated", "Set live production metrics.", "info");`);
     } else if (act.includes("Date")) {
-        execJS(`if (window.setCalendarDate) window.setCalendarDate("app_calendar", "August 2026");`);
+        currentCalendarMonth = "August 2026";
+        execJS(`if (window.setCalendarDate) window.setCalendarDate("app_calendar", "August 2026", 1);`);
+        execJS(`if (window.setToast) window.setToast("status_toast", "Calendar Updated", "Navigated to August 2026.", "success");`);
     } else if (act.includes("Swatch")) {
         execJS(`if (window.setColorSwatchColor) window.setColorSwatchColor("color_palette", "#10b981");`);
     } else if (act.includes("Path")) {
@@ -187,12 +189,26 @@ webview.bind("on_ctx_menu_click", (item?: string) => {
     `);
 });
 
+let currentCalendarMonth = "July 2026";
+
 webview.bind("on_app_calendar_change", (day?: number | string) => {
     const d = day || 25;
     console.log(`[IPC] Calendar Selected Day: ${d}`);
     execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Selected Date: July ${d}, 2026");
+        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Selected Date: ${currentCalendarMonth} ${d}");
     `);
+});
+
+webview.bind("app_calendar_onPrev", (monthStr?: string) => {
+    currentCalendarMonth = monthStr || "June 2026";
+    console.log(`[IPC] Calendar Navigated Prev: ${currentCalendarMonth}`);
+    execJS(`if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Calendar: ${currentCalendarMonth}");`);
+});
+
+webview.bind("app_calendar_onNext", (monthStr?: string) => {
+    currentCalendarMonth = monthStr || "August 2026";
+    console.log(`[IPC] Calendar Navigated Next: ${currentCalendarMonth}`);
+    execJS(`if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Calendar: ${currentCalendarMonth}");`);
 });
 
 webview.bind("on_color_palette_change", (colorHex?: string) => {
@@ -223,9 +239,11 @@ webview.bind("on_btn_inspect_update_click", () => {
 
 webview.bind("on_btn_calendar_today_click", () => {
     console.log("[IPC] Button Clicked: Jump to August 2026");
+    currentCalendarMonth = "August 2026";
     execJS(`
-        if (window.setCalendarDate) window.setCalendarDate("app_calendar", "August 2026");
-        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Calendar set to August 2026.");
+        if (window.setCalendarDate) window.setCalendarDate("app_calendar", "August 2026", 1);
+        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Calendar set to August 1, 2026.");
+        if (window.setToast) window.setToast("status_toast", "Calendar Updated", "Calendar jumped to August 2026.", "success");
     `);
 });
 
@@ -236,6 +254,9 @@ webview.bind("on_btn_path_reset_click", () => {
         if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "File path reset to project root.");
     `);
 });
+
+// Set page content after all bindings are registered
+webview.setHTML(htmlContent);
 
 // Run window loop
 webview.run();

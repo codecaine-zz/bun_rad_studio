@@ -50,7 +50,6 @@ const formSpec = {
 
 const html = generatePreviewHtml(formSpec);
 const wv = new Webview();
-wv.setHTML(html);
 wv.title = "Bun RAD Studio - Demo 4: Window Placement & Pin";
 wv.size = { width: 820, height: 540, hint: SizeHint.NONE };
 
@@ -153,6 +152,9 @@ wv.bind("on_btnQuitApp_click", () => {
     console.log("⚡ Exiting Demo 4 via Quit button...");
     process.exit(0);
 });
+
+// Set HTML AFTER all binds are registered
+wv.setHTML(html);
 
 console.log("🚀 Running Bun RAD Studio Demo 4: Native Window Placement & Pin...");
 wv.run();
