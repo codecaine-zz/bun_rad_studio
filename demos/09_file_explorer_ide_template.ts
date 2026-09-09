@@ -198,7 +198,7 @@ webview.bind("on_editor_tabs_change", (bufferName?: string) => {
     console.log(`⚡ [IPC] Editor Tab Switch: ${buf}`);
     currentBufferIndex = bufferList.indexOf(buf);
     if (currentBufferIndex === -1) currentBufferIndex = 0;
-    const item = bufferSnippets[buf] || bufferSnippets["App.ts"];
+    const item = bufferSnippets[buf] || bufferSnippets["App.ts"]!;
     const escCode = item.code.replace(/\n/g, "\\n").replace(/'/g, "\\'");
     execJS(`
         if (window.setTabsActive) window.setTabsActive("editor_tabs", "${buf}");
@@ -219,7 +219,7 @@ webview.bind("on_file_tree_select", (nodeName?: string) => {
     const cleanName = node.replace(/^[\s📂📁📄🖼️]+/, '').trim();
     if (bufferList.includes(cleanName)) {
         currentBufferIndex = bufferList.indexOf(cleanName);
-        const item = bufferSnippets[cleanName];
+        const item = bufferSnippets[cleanName] || bufferSnippets["App.ts"]!;
         const escCode = item.code.replace(/\n/g, "\\n").replace(/'/g, "\\'");
         execJS(`
             if (window.setTabsActive) window.setTabsActive("editor_tabs", "${cleanName}");
@@ -263,9 +263,9 @@ webview.bind("on_btn_run_build_click", () => {
 
 webview.bind("on_btn_next_buffer_click", () => {
     currentBufferIndex = (currentBufferIndex + 1) % bufferList.length;
-    const nextBuf = bufferList[currentBufferIndex];
+    const nextBuf = bufferList[currentBufferIndex] || "App.ts";
     console.log(`⚡ [IPC] Cycling Buffer to: ${nextBuf}`);
-    const item = bufferSnippets[nextBuf];
+    const item = bufferSnippets[nextBuf] || bufferSnippets["App.ts"]!;
     const escCode = item.code.replace(/\n/g, "\\n").replace(/'/g, "\\'");
     execJS(`
         if (window.setTabsActive) window.setTabsActive("editor_tabs", "${nextBuf}");

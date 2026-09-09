@@ -247,14 +247,14 @@ function handleToolbarClick(item: string) {
         updateStatusBar(`Kanban updated: ${cols}`);
     } else if (actStr.includes("Set Hotkey")) {
         shortcutIdx = (shortcutIdx + 1) % hotkeys.length;
-        const newHotkey = hotkeys[shortcutIdx];
+        const newHotkey = hotkeys[shortcutIdx] || "⌘ P";
         updateHotkey(newHotkey);
         updateAlertBanner(`⌨️ [Toolbar Action]: Set active keyboard shortcut to '${newHotkey}'`);
         updateCodeInspector("Toolbar - Set Hotkey", { action: "setShortcutRecorderValue", value: newHotkey });
         updateStatusBar(`Shortcut set to: ${newHotkey}`);
     } else if (actStr.includes("Split Action")) {
         splitActionIdx = (splitActionIdx + 1) % splitActions.length;
-        const newAction = splitActions[splitActionIdx];
+        const newAction = splitActions[splitActionIdx] || "Save File";
         updateSplitAction(newAction);
         updateAlertBanner(`➗ [Toolbar Action]: Changed Split Button primary action to '${newAction}'`);
         updateCodeInspector("Toolbar - Split Action", { action: "setSplitButtonAction", text: newAction });
@@ -314,7 +314,7 @@ function handleTabsChange(fileName: string) {
 function handleShortcutClick(shortcut: string) {
     console.log(`[IPC Action]: Shortcut recorder clicked -> "${shortcut}"`);
     shortcutIdx = (shortcutIdx + 1) % hotkeys.length;
-    const nextKey = hotkeys[shortcutIdx];
+    const nextKey = hotkeys[shortcutIdx] || "⌘ P";
     updateHotkey(nextKey);
     updateAlertBanner(`⌨️ [Shortcut Recorder Event]: Recorded new hotkey binding -> '${nextKey}'`);
     updateCodeInspector("Shortcut Recorder Clicked", { control_id: "shortcut_1", old_key: shortcut, new_key: nextKey });
@@ -331,7 +331,7 @@ function handleSplitClick(action: string) {
 function handleSplitMenu() {
     console.log(`[IPC Action]: Split Button Dropdown Menu Arrow Clicked!`);
     splitActionIdx = (splitActionIdx + 1) % splitActions.length;
-    const nextAct = splitActions[splitActionIdx];
+    const nextAct = splitActions[splitActionIdx] || "Save File";
     updateSplitAction(nextAct);
     updateAlertBanner(`➗ [Split Button Menu Event]: Dropdown selected option -> '${nextAct}'`);
     updateCodeInspector("Split Button Sub-Menu Selected", { control_id: "split_btn_1", new_selected_option: nextAct });

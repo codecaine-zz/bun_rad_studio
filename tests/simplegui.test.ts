@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { simplegui, SimpleWindow, createWindow, listThemes, getTheme, homeDir, documentsDir } from "../index.ts";
+import { simplegui, SimpleWindow, createWindow, listThemes, getTheme, saveTheme, homeDir, documentsDir } from "../index.ts";
 
 describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
 
@@ -169,6 +169,13 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
 
         // Themes & Paths
         expect(listThemes()).toContain("Apple Dark");
+        expect(listThemes()).toContain("CodeFreelance");
+        const cfTheme = getTheme("codefreelance");
+        expect(cfTheme.name).toBe("CodeFreelance");
+        expect(cfTheme.background_color).toBe("#050505");
+        expect(cfTheme.accent_color).toBe("#0fb36a");
+        expect(cfTheme.font_color).toBe("#ffffff");
+
         const theme = getTheme("Dracula");
         expect(theme.name).toBe("Dracula");
         expect(homeDir()).toBeDefined();
@@ -317,5 +324,46 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         win.resetForm();
         expect(win.getText("txtOverload")).toBe("");
     });
+
+    test("9. Interactive Theme Selector & Dynamic Theme Switching (addThemeSelector, getThemeKeys)", () => {
+        const win = createWindow("Theme Selector Test", 900, 700, {
+            appId: "theme_selector_test",
+            theme: "apple_dark",
+            autoSaveState: true
+        });
+
+        const themeKeys = simplegui.getThemeKeys();
+        expect(themeKeys).toContain("codefreelance");
+        expect(themeKeys).toContain("apple_dark");
+        expect(themeKeys).toContain("apple_light");
+        expect(themeKeys).toContain("midnight");
+
+        // Add theme selector
+        const selectorRef = win.addThemeSelector("dd_theme", "Theme:", false);
+        expect(selectorRef.spec.id).toBe("dd_theme");
+        expect(win.getValue("dd_theme")).toBe("apple_dark");
+
+        // Simulate theme change to codefreelance
+        win.setTheme("codefreelance", true);
+        expect(win.theme).toBe("codefreelance");
+        expect(win.backgroundColor).toBe("#050505");
+        expect(win.fontColor).toBe("#ffffff");
+        expect(win.accentColor).toBe("#0fb36a");
+
+        // Save form state and ensure __win_theme is preserved
+        win.saveAppFormState("theme_selector_test");
+        const newWin = createWindow("New Theme Window", 900, 700, {
+            appId: "theme_selector_test",
+            autoSaveState: true
+        });
+        newWin.addThemeSelector("dd_theme", "Theme:");
+        newWin.restoreAppFormState("theme_selector_test");
+
+        expect(newWin.theme).toBe("codefreelance");
+        expect(newWin.getValue("dd_theme")).toBe("codefreelance");
+        newWin.clearAppFormState("theme_selector_test");
+        saveTheme("sonoma_emerald");
+    });
 });
+
 

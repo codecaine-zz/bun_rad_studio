@@ -1,6 +1,8 @@
 import { SizeHint, Webview } from "webview-bun";
 import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setWindowPositionNative } from "../index.ts";
 import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 export function forceExit(code = 0): void {
     process.exit(code);
@@ -16,6 +18,13 @@ export interface SimpleWindowOptions {
     padding?: number;
     spacing?: number;
     alwaysOnTop?: boolean;
+    appId?: string;
+    app_id?: string;
+    autoSave?: boolean;
+    auto_save?: boolean;
+    autoSaveState?: boolean;
+    auto_save_state?: boolean;
+    fullscreen?: boolean;
 }
 
 export type EventCallback = (win: SimpleWindow, val?: any) => void;
@@ -162,6 +171,47 @@ export class SimpleControlRef {
         return this;
     }
 
+    bindState(key: string): this {
+        this.window.bindState(this.spec.id, key);
+        return this;
+    }
+    bind_state(key: string): this {
+        return this.bindState(key);
+    }
+    bindControl(key: string): this {
+        return this.bindState(key);
+    }
+    bind_control(key: string): this {
+        return this.bindState(key);
+    }
+    bindValue(key: string): this {
+        return this.bindState(key);
+    }
+    bind_value(key: string): this {
+        return this.bindState(key);
+    }
+    bindClick(cb: EventCallback): this {
+        this.window.bindClick(this.spec.id, cb);
+        return this;
+    }
+    bind_click(cb: EventCallback): this {
+        return this.bindClick(cb);
+    }
+    bindChange(cb: EventCallback): this {
+        this.window.bindChange(this.spec.id, cb);
+        return this;
+    }
+    bind_change(cb: EventCallback): this {
+        return this.bindChange(cb);
+    }
+    bindEnter(cb: EventCallback): this {
+        this.window.bindEnter(this.spec.id, cb);
+        return this;
+    }
+    bind_enter(cb: EventCallback): this {
+        return this.bindEnter(cb);
+    }
+
     getValue(): any {
         return this.window.getValue(this.spec.id);
     }
@@ -224,6 +274,220 @@ interface LayoutFrame {
     cardSpec?: any;
 }
 
+// =============================================================================
+// Path, Directory & Atomic File Utilities
+// =============================================================================
+
+export function resolveUserPath(filePath: string): string {
+    if (!filePath) return "";
+    let p = filePath;
+    const home = os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
+    if (p === "~") return home;
+    if (p.startsWith("~/") || p.startsWith("~\\")) {
+        p = path.join(home, p.slice(2));
+    }
+    p = p.replace(/\$\{([^}]+)\}/g, (_, name) => process.env[name] || "");
+    p = p.replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (_, name) => process.env[name] || "");
+    return path.resolve(p);
+}
+export const resolve_user_path = resolveUserPath;
+
+export function getAppConfigDir(appName: string): string {
+    const home = os.homedir() || process.env.HOME || "/Users";
+    if (process.platform === "win32") {
+        const appData = process.env.APPDATA || path.join(home, "AppData", "Roaming");
+        return path.join(appData, appName);
+    }
+    const xdgConfig = process.env.XDG_CONFIG_HOME || path.join(home, ".config");
+    return path.join(xdgConfig, appName);
+}
+export const get_app_config_dir = getAppConfigDir;
+
+export function getAppDataDir(appName: string): string {
+    const home = os.homedir() || process.env.HOME || "/Users";
+    if (process.platform === "darwin") {
+        return path.join(home, "Library", "Application Support", appName);
+    }
+    if (process.platform === "win32") {
+        const localAppData = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
+        return path.join(localAppData, appName);
+    }
+    const xdgData = process.env.XDG_DATA_HOME || path.join(home, ".local", "share");
+    return path.join(xdgData, appName);
+}
+export const get_app_data_dir = getAppDataDir;
+
+export function getAppCacheDir(appName: string): string {
+    const home = os.homedir() || process.env.HOME || "/Users";
+    if (process.platform === "darwin") {
+        return path.join(home, "Library", "Caches", appName);
+    }
+    if (process.platform === "win32") {
+        const localAppData = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
+        return path.join(localAppData, appName, "Cache");
+    }
+    const xdgCache = process.env.XDG_CACHE_HOME || path.join(home, ".cache");
+    return path.join(xdgCache, appName);
+}
+export const get_app_cache_dir = getAppCacheDir;
+
+export function getAppStateDir(appName: string): string {
+    const home = os.homedir() || process.env.HOME || "/Users";
+    if (process.platform === "darwin") {
+        return path.join(home, "Library", "Application Support", appName);
+    }
+    if (process.platform === "win32") {
+        const localAppData = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
+        return path.join(localAppData, appName);
+    }
+    const xdgState = process.env.XDG_STATE_HOME || path.join(home, ".local", "state");
+    return path.join(xdgState, appName);
+}
+export const get_app_state_dir = getAppStateDir;
+
+export function getAppLogDir(appName: string): string {
+    const home = os.homedir() || process.env.HOME || "/Users";
+    if (process.platform === "darwin") {
+        return path.join(home, "Library", "Logs", appName);
+    }
+    if (process.platform === "win32") {
+        const localAppData = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
+        return path.join(localAppData, appName, "Logs");
+    }
+    return path.join(getAppStateDir(appName), "log");
+}
+export const get_app_log_dir = getAppLogDir;
+
+export function getAppRuntimeDir(appName: string): string {
+    if (process.platform !== "win32" && process.env.XDG_RUNTIME_DIR) {
+        return path.join(process.env.XDG_RUNTIME_DIR, appName);
+    }
+    return path.join(os.tmpdir(), `${appName}_runtime`);
+}
+export const get_app_runtime_dir = getAppRuntimeDir;
+
+export function getAppConfigFile(appName: string, filename = "settings.json"): string {
+    return path.join(getAppConfigDir(appName), filename);
+}
+export const get_app_config_file = getAppConfigFile;
+
+export function getAppStateFile(appName: string, filename = "state.json"): string {
+    return path.join(getAppStateDir(appName), filename);
+}
+export const get_app_state_file = getAppStateFile;
+
+export function writeFileAtomic(filePath: string, content: string): void {
+    const resolved = resolveUserPath(filePath);
+    const parentDir = path.dirname(resolved);
+    if (parentDir && !fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+    }
+    const randId = `${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const tmpPath = `${resolved}.${randId}.tmp`;
+    fs.writeFileSync(tmpPath, content, "utf-8");
+    try {
+        if (process.platform === "win32" && fs.existsSync(resolved)) {
+            try { fs.unlinkSync(resolved); } catch (e) {}
+        }
+        fs.renameSync(tmpPath, resolved);
+    } catch (err) {
+        try { fs.unlinkSync(tmpPath); } catch (e) {}
+        throw err;
+    }
+}
+export const write_file_atomic = writeFileAtomic;
+
+export function saveStateToFile(filePath: string, store: Record<string, any>): void {
+    const json = JSON.stringify(store, null, 2);
+    writeFileAtomic(filePath, json);
+}
+export const save_state_to_file = saveStateToFile;
+
+export function loadStateFromFile(filePath: string): Record<string, string> {
+    const resolved = resolveUserPath(filePath);
+    if (!fs.existsSync(resolved)) {
+        throw new Error(`State file not found: ${resolved}`);
+    }
+    const content = fs.readFileSync(resolved, "utf-8");
+    if (!content.trim()) return {};
+    const parsed = JSON.parse(content);
+    const result: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+        result[k] = String(v ?? "");
+    }
+    return result;
+}
+export const load_state_from_file = loadStateFromFile;
+
+export function saveTheme(themeName: string): boolean {
+    try {
+        const themeDir = path.join(os.homedir() || process.env.HOME || "/Users", ".config", "simplegui");
+        const themeFile = path.join(themeDir, "theme.txt");
+        writeFileAtomic(themeFile, themeName.trim());
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+export const save_theme = saveTheme;
+
+export function getSavedTheme(): string {
+    try {
+        const themeFile = path.join(os.homedir() || process.env.HOME || "/Users", ".config", "simplegui", "theme.txt");
+        if (fs.existsSync(themeFile)) {
+            const content = fs.readFileSync(themeFile, "utf-8").trim();
+            if (content.length > 0) return content;
+        }
+    } catch (e) {}
+    return "";
+}
+export const get_saved_theme = getSavedTheme;
+
+export function shouldPersistControl(ctrl: any): boolean {
+    if (!ctrl) return false;
+    const name = ctrl.id || ctrl.name;
+    if (!name || typeof name !== "string" || name.length === 0 || name.startsWith("__")) {
+        return false;
+    }
+    const kind = String(ctrl.kind || ctrl.type || "").toLowerCase();
+    const supportedKinds = [
+        "input", "textbox", "textinput", "search_bar", "search", "search_field",
+        "file_picker", "date_picker", "time_picker", "number", "stepper",
+        "dropdown", "select", "combobox", "segmented", "radio",
+        "checkbox", "switch", "toggle",
+        "slider", "step_slider", "range_slider", "rating",
+        "textarea"
+    ];
+    if (!supportedKinds.includes(kind)) {
+        return false;
+    }
+
+    const lower = name.toLowerCase();
+
+    // Exclude output consoles, logs, terminals, diffs, previews
+    if (
+        lower.includes("output") || lower.includes("stdout") || lower.includes("stderr") ||
+        lower.includes("terminal") || lower.includes("console") || lower.includes("live_output") ||
+        lower.includes("preview") || lower.includes("diff") || lower.includes("logs") ||
+        lower.includes("log_area") || lower.includes("results") || lower.includes("msg_box") ||
+        lower.includes("status_bar") || lower.includes("status_lbl") || lower.includes("telemetry") ||
+        lower.includes("summary_card")
+    ) {
+        return false;
+    }
+
+    // Exclude sensitive credentials, passwords, tokens
+    if (
+        lower.includes("password") || lower.includes("secret") ||
+        lower.includes("auth_token") || lower.includes("private_key")
+    ) {
+        return false;
+    }
+
+    return true;
+}
+export const should_persist_control = shouldPersistControl;
+
 export class SimpleWindow {
     public title: string;
     public width: number;
@@ -235,6 +499,13 @@ export class SimpleWindow {
     public fontColor: string;
     public alwaysOnTop: boolean;
 
+    public stateStore: Record<string, string> = {};
+    public stateListeners: Map<string, Array<(win: SimpleWindow, val: string) => void>> = new Map();
+    public closeListeners: Array<(win: SimpleWindow) => boolean | void> = [];
+    public appId = "";
+    public autoSaveState = true;
+    public controlStateBindings: Map<string, string> = new Map();
+
     private controls: any[] = [];
     private nonVisualControls: any[] = [];
     private controlIdCounter: Record<string, number> = {};
@@ -244,6 +515,7 @@ export class SimpleWindow {
     public eventHandlersMap: Map<string, EventCallback> = new Map();
     private promptResolversMap: Map<string, (val: any) => void> = new Map();
 
+    public accentColor = "#0a84ff";
     private layoutStack: LayoutFrame[] = [];
     private currentY = 20;
 
@@ -253,34 +525,98 @@ export class SimpleWindow {
         this.height = options.height || height;
         this.padding = options.padding !== undefined ? options.padding : 20;
         this.spacing = options.spacing !== undefined ? options.spacing : 12;
-        this.theme = options.theme || "apple_dark";
+        this.appId = options.appId || options.app_id || "";
+        this.autoSaveState = options.autoSave ?? options.auto_save ?? options.autoSaveState ?? options.auto_save_state ?? true;
+
+        const savedGlobalTheme = getSavedTheme();
+        const preferredTheme = options.theme || (savedGlobalTheme ? savedGlobalTheme : "sonoma_emerald");
+        this.theme = preferredTheme;
         this.alwaysOnTop = options.alwaysOnTop || false;
 
         const resolvedTheme = this.resolveThemeColors(this.theme, options.background_color, options.font_color);
         this.backgroundColor = resolvedTheme.bg;
         this.fontColor = resolvedTheme.fg;
+        this.accentColor = resolvedTheme.accent;
 
         this.currentY = this.padding;
     }
 
-    private resolveThemeColors(name: string, customBg?: string, customFg?: string): { bg: string; fg: string } {
+    private resolveThemeColors(name: string, customBg?: string, customFg?: string): { bg: string; fg: string; accent: string } {
         const theme = getTheme(name);
-        return { bg: customBg || theme.background_color, fg: customFg || theme.font_color };
+        return {
+            bg: customBg || theme.background_color,
+            fg: customFg || theme.font_color,
+            accent: theme.accent_color || "#0a84ff"
+        };
     }
 
-    public setTheme(themeName: string): this {
+    public setTheme(themeName: string, persist = true): this {
         this.theme = themeName;
         const colors = this.resolveThemeColors(themeName);
         this.backgroundColor = colors.bg;
         this.fontColor = colors.fg;
+        this.accentColor = colors.accent;
+
+        if (persist) {
+            saveTheme(themeName);
+        }
 
         if (this.isWindowRunning) {
+            const themeObj = getTheme(themeName);
+            const isLight = !themeObj.is_dark;
+            const isCf = themeName.toLowerCase() === "codefreelance";
+            const fieldsetBg = isCf ? "rgba(18, 18, 18, 0.75)" : (isLight ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.03)");
+            const fieldsetBorder = isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.12)");
+            const cardBg = isCf ? "#121212" : (isLight ? "#ffffff" : "#1e293b");
+            const inputBg = isLight ? "#ffffff" : (isCf ? "#0f0f0f" : "rgba(0, 0, 0, 0.25)");
+            const inputBorder = isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.18)");
+
             this.evalJS(`
-                document.body.style.backgroundColor = "${colors.bg}";
-                document.body.style.color = "${colors.fg}";
+                (function() {
+                    document.body.style.backgroundColor = "${colors.bg}";
+                    document.body.style.color = "${colors.fg}";
+                    let styleEl = document.getElementById("simplegui-theme-dyn");
+                    if (!styleEl) {
+                        styleEl = document.createElement("style");
+                        styleEl.id = "simplegui-theme-dyn";
+                        document.head.appendChild(styleEl);
+                    }
+                    styleEl.textContent = \`
+                        body { background-color: ${colors.bg} !important; color: ${colors.fg} !important; }
+                        fieldset { background-color: ${fieldsetBg} !important; border-color: ${fieldsetBorder} !important; }
+                        legend { color: ${colors.accent} !important; }
+                        .simplegui-card, [data-card] { background-color: ${cardBg} !important; border-color: ${fieldsetBorder} !important; }
+                        input:not([type="checkbox"]):not([type="radio"]), textarea, select {
+                            background-color: ${inputBg} !important;
+                            color: ${colors.fg} !important;
+                            border-color: ${inputBorder} !important;
+                        }
+                        select:not([size]), .simplegui-select {
+                            background-color: ${inputBg} !important;
+                            color: ${colors.fg} !important;
+                            border-color: ${inputBorder} !important;
+                            background-image: url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'${encodeURIComponent(colors.accent)}\\' stroke-width=\\'2.5\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E') !important;
+                            background-repeat: no-repeat !important;
+                            background-position: right 10px center !important;
+                            background-size: 12px 12px !important;
+                            padding-right: 30px !important;
+                            cursor: pointer !important;
+                        }
+                        select:not([size]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
+                        select:not([size]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
+                        select option {
+                            background-color: ${themeName === 'codefreelance' ? '#121212' : (isLight ? '#ffffff' : '#1e293b')} !important;
+                            color: ${colors.fg} !important;
+                        }
+                        :focus-visible { outline-color: ${colors.accent} !important; }
+                    \`;
+                })();
             `);
         }
         return this;
+    }
+    public set_theme(themeName: string, persist = true): this {
+        return this.setTheme(themeName, persist);
     }
 
     public setAlwaysOnTop(onTop: boolean): this {
@@ -318,6 +654,7 @@ export class SimpleWindow {
         });
         return this;
     }
+    public begin_row(): this { return this.beginRow(); }
 
     public endRow(): this {
         const frame = this.layoutStack.pop();
@@ -332,6 +669,7 @@ export class SimpleWindow {
         }
         return this;
     }
+    public end_row(): this { return this.endRow(); }
 
     public beginGrid(cols = 2, gap = 12): this {
         const parentFrame = this.layoutStack[this.layoutStack.length - 1];
@@ -351,6 +689,7 @@ export class SimpleWindow {
         });
         return this;
     }
+    public begin_grid(cols = 2, gap = 12): this { return this.beginGrid(cols, gap); }
 
     public endGrid(): this {
         const frame = this.layoutStack.pop();
@@ -366,15 +705,20 @@ export class SimpleWindow {
         }
         return this;
     }
+    public end_grid(): this { return this.endGrid(); }
 
-    public beginCard(title?: string): this {
+    public beginCard(title?: string, subtitle?: string): this {
+        const theme = getTheme(this.theme);
+        const cardBg = theme.card_background || "rgba(255,255,255,0.03)";
+        const cardBorder = theme.card_border || "rgba(255,255,255,0.08)";
         const cardSpec: any = {
             id: this.generateUniqueId("groupbox"),
             control_type: "groupbox",
             type: "groupbox",
             title: title || "Group Panel",
             text: title || "Group Panel",
-            background_color: "rgba(255,255,255,0.03)",
+            background_color: cardBg,
+            border_color: cardBorder,
             border_radius: 10
         };
 
@@ -393,8 +737,12 @@ export class SimpleWindow {
             rowHeight: 0,
             cardSpec
         });
+        if (subtitle) {
+            this.addCaption(subtitle);
+        }
         return this;
     }
+    public begin_card(title?: string, subtitle?: string): this { return this.beginCard(title, subtitle); }
 
     public endCard(): this {
         const frame = this.layoutStack.pop();
@@ -424,6 +772,7 @@ export class SimpleWindow {
         }
         return this;
     }
+    public end_card(): this { return this.endCard(); }
 
     public beginFlex(direction: "row" | "column" = "row", justify = "start", align = "center"): this {
         if (direction === "row") {
@@ -432,6 +781,9 @@ export class SimpleWindow {
             return this;
         }
     }
+    public begin_flex(direction: "row" | "column" = "row", justify = "start", align = "center"): this {
+        return this.beginFlex(direction, justify, align);
+    }
 
     public endFlex(): this {
         if (this.layoutStack.length > 0 && this.layoutStack[this.layoutStack.length - 1]?.type === "row") {
@@ -439,6 +791,7 @@ export class SimpleWindow {
         }
         return this;
     }
+    public end_flex(): this { return this.endFlex(); }
 
     private generateUniqueId(type: string): string {
         const count = (this.controlIdCounter[type] || 0) + 1;
@@ -478,13 +831,33 @@ export class SimpleWindow {
             ctrl.y = ctrl.top;
             activeFrame.currentY += ctrl.height + this.spacing;
         } else if (activeFrame.type === "row") {
-            // Horizontal Row Layout
+            // Horizontal Row Layout with Responsive Auto-Wrap
+            const parentFrame = this.layoutStack[this.layoutStack.length - 2];
+            let maxX = this.width - (this.padding * 2);
+            if (parentFrame && parentFrame.type === "card" && parentFrame.cardSpec) {
+                maxX = (parentFrame.cardSpec.left || this.padding) + (parentFrame.cardSpec.width || (this.width - (this.padding * 2))) - 36;
+            }
+
+            // Prevent control from exceeding the entire container width
+            const maxContainerW = Math.max(80, maxX - activeFrame.startX);
+            if (ctrl.width > maxContainerW && !ctrl.user_explicit_width) {
+                ctrl.width = maxContainerW;
+            }
+
+            // Auto-wrap to next line if exceeding container bounds
+            if (activeFrame.currentX + ctrl.width > maxX && activeFrame.currentX > activeFrame.startX) {
+                activeFrame.currentY += activeFrame.rowHeight + this.spacing;
+                activeFrame.currentX = activeFrame.startX;
+                activeFrame.rowHeight = 0;
+            }
+
             ctrl.left = activeFrame.currentX;
             ctrl.top = activeFrame.currentY;
             ctrl.x = ctrl.left;
             ctrl.y = ctrl.top;
 
-            activeFrame.currentX += ctrl.width + this.spacing;
+            const itemSpacing = ctrl.control_type === "label" ? 8 : this.spacing;
+            activeFrame.currentX += ctrl.width + itemSpacing;
             activeFrame.rowHeight = Math.max(activeFrame.rowHeight, ctrl.height);
         } else if (activeFrame.type === "grid") {
             // Multi-Column Grid Layout
@@ -561,21 +934,77 @@ export class SimpleWindow {
     }
 
     // --- Control Builder Methods ---
-    public addLabel(text: string, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addVisualControl("label", 300, 24, { text, caption: text, ...opts });
+    public addLabel(idOrText: string, textOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let text = idOrText;
+        let explicitId: string | undefined;
+        let finalOpts: Partial<any> = opts;
+
+        if (typeof textOrOpts === "string") {
+            explicitId = idOrText;
+            text = textOrOpts;
+        } else if (textOrOpts && typeof textOrOpts === "object") {
+            finalOpts = textOrOpts;
+        }
+
+        const inRow = this.layoutStack.length > 0 && this.layoutStack[this.layoutStack.length - 1]?.type === "row";
+        const isStatus = (explicitId && (explicitId.toLowerCase().includes("status") || explicitId.toLowerCase().includes("telemetry"))) ||
+                         text.toLowerCase().startsWith("status:") ||
+                         text.toLowerCase().startsWith("status :") ||
+                         text.toLowerCase().startsWith("matches found:") ||
+                         text.toLowerCase().startsWith("ready  |") ||
+                         text.toLowerCase().startsWith("codefreelance engine:");
+
+        let defaultW: number;
+        if (isStatus) {
+            defaultW = Math.max(600, this.width - (this.padding * 2) - 10);
+        } else if (inRow) {
+            defaultW = Math.max(20, Math.ceil(text.length * 7.2 + 6));
+        } else {
+            defaultW = Math.max(300, Math.ceil(text.length * 7.2 + 6));
+        }
+
+        const ctrlOpts: Record<string, any> = { text, caption: text, ...finalOpts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        return this.addVisualControl("label", defaultW, 24, ctrlOpts);
     }
 
-    public addButton(text: string, onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
-        const ref = this.addVisualControl("button", 140, 36, {
+    public addButton(idOrText: string, textOrOnClick?: string | EventCallback, onClickOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+        let text = idOrText;
+        let explicitId: string | undefined;
+        let onClick: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof textOrOnClick === "string") {
+            explicitId = idOrText;
+            text = textOrOnClick;
+            if (typeof onClickOrOpts === "function") {
+                onClick = onClickOrOpts as EventCallback;
+                opts = optsArg;
+            } else if (typeof onClickOrOpts === "object" && onClickOrOpts !== null) {
+                opts = onClickOrOpts;
+            }
+        } else if (typeof textOrOnClick === "function") {
+            onClick = textOrOnClick as EventCallback;
+            if (typeof onClickOrOpts === "object" && onClickOrOpts !== null) opts = onClickOrOpts;
+        } else if (typeof textOrOnClick === "object" && textOrOnClick !== null) {
+            opts = textOrOnClick;
+        }
+
+        const defaultBtnBg = opts.background_color || this.accentColor || "#0284c7";
+        const isBrightGreen = defaultBtnBg === "#0fb36a" || defaultBtnBg === "#30d158" || defaultBtnBg === "#00ff00" || defaultBtnBg === "#4ade80";
+        const defaultBtnFg = opts.font_color || (isBrightGreen ? "#000000" : "#ffffff");
+        const ctrlOpts: Record<string, any> = {
             text,
             caption: text,
-            background_color: opts.background_color || "#0284c7",
-            font_color: opts.font_color || "#ffffff",
-            font_weight: "600",
+            background_color: defaultBtnBg,
+            font_color: defaultBtnFg,
+            font_weight: "700",
             border_radius: 6,
             cursor: "pointer",
             ...opts
-        });
+        };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("button", 140, 36, ctrlOpts);
         if (onClick) ref.onClick(onClick);
         return ref;
     }
@@ -615,10 +1044,35 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addCheckbox(label: string, checked = false, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
-        const ref = this.addVisualControl("checkbox", 260, 24, { text: label, caption: label, value: checked, checked, ...opts });
+    public addCheckbox(idOrLabel: string, labelOrChecked: string | boolean = false, checkedOrOnChange: boolean | EventCallback = false, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let label = idOrLabel;
+        let checked = false;
+        let changeHandler: EventCallback | undefined;
+
+        if (typeof labelOrChecked === "string") {
+            explicitId = idOrLabel;
+            label = labelOrChecked;
+            if (typeof checkedOrOnChange === "boolean") {
+                checked = checkedOrOnChange;
+                changeHandler = onChange;
+            } else if (typeof checkedOrOnChange === "function") {
+                changeHandler = checkedOrOnChange;
+            }
+        } else if (typeof labelOrChecked === "boolean") {
+            checked = labelOrChecked;
+            if (typeof checkedOrOnChange === "function") {
+                changeHandler = checkedOrOnChange;
+            }
+        }
+
+        const ctrlOpts: Record<string, any> = { text: label, caption: label, value: checked, checked, ...opts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const inRow = this.layoutStack.length > 0 && this.layoutStack[this.layoutStack.length - 1]?.type === "row";
+        const defaultW = inRow ? Math.min(220, Math.max(90, (label || "").length * 8 + 36)) : 260;
+        const ref = this.addVisualControl("checkbox", defaultW, 24, ctrlOpts);
         this.formValuesStore[ref.spec.id] = checked;
-        if (onChange) ref.onChange(onChange);
+        if (changeHandler) ref.onChange(changeHandler);
         return ref;
     }
 
@@ -647,31 +1101,95 @@ export class SimpleWindow {
         return this.addVisualControl("progress_bar", 280, 20, { value, max_value: max, ...opts });
     }
 
-    public addDropdown(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+    public addDropdown(idOrItems: string | string[], itemsOrSelected?: string[] | string | number | EventCallback, selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let items: string[] = [];
         let selected: string | number | undefined;
         let onChange: EventCallback | undefined;
         let opts: Record<string, any> = {};
 
-        if (typeof selectedOrOnChange === "function") {
-            onChange = selectedOrOnChange;
-            if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
-        } else {
-            selected = selectedOrOnChange;
-            if (typeof onChangeOrOpts === "function") {
-                onChange = onChangeOrOpts as EventCallback;
-                opts = optsArg;
-            } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
-                opts = onChangeOrOpts;
+        if (typeof idOrItems === "string" && Array.isArray(itemsOrSelected)) {
+            explicitId = idOrItems;
+            items = itemsOrSelected;
+            if (typeof selectedOrOnChange === "function") {
+                onChange = selectedOrOnChange;
+                if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+            } else {
+                selected = selectedOrOnChange;
+                if (typeof onChangeOrOpts === "function") {
+                    onChange = onChangeOrOpts as EventCallback;
+                    opts = optsArg;
+                } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
+                    opts = onChangeOrOpts;
+                }
+            }
+        } else if (Array.isArray(idOrItems)) {
+            items = idOrItems;
+            if (typeof itemsOrSelected === "function") {
+                onChange = itemsOrSelected as EventCallback;
+                if (typeof selectedOrOnChange === "object") opts = selectedOrOnChange as Record<string, any>;
+            } else {
+                selected = itemsOrSelected as string | number;
+                if (typeof selectedOrOnChange === "function") {
+                    onChange = selectedOrOnChange as EventCallback;
+                    if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+                } else if (typeof selectedOrOnChange === "object" && selectedOrOnChange !== null) {
+                    opts = selectedOrOnChange as Record<string, any>;
+                }
             }
         }
 
         const text = items.join(", ");
         const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
-        const ref = this.addVisualControl("select", 240, 36, { text, caption: text, value: initialVal, ...opts });
+        const ctrlOpts: Record<string, any> = { text, caption: text, value: initialVal, ...opts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("select", 240, 36, ctrlOpts);
         this.formValuesStore[ref.spec.id] = initialVal;
         this.listItemsStore[ref.spec.id] = [...items];
         if (onChange) ref.onChange(onChange);
         return ref;
+    }
+
+    public addThemeSelector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 160): SimpleControlRef {
+        const popularThemes = [
+            "sonoma_emerald",
+            "codefreelance",
+            "apple_dark",
+            "midnight",
+            "dracula",
+            "nord",
+            "cyberpunk",
+            "apple_light",
+            "github_dark"
+        ];
+        const allThemes = Object.keys(SIMPLEGUI_THEMES);
+        const themeList = popularOnly ? popularThemes : allThemes;
+
+        if (label && label.length > 0) {
+            this.addLabel("lbl_" + id, label);
+        }
+
+        const initialTheme = themeList.includes(this.theme) ? this.theme : (themeList[0] || "sonoma_emerald");
+        const ref = this.addDropdown(id, themeList, initialTheme);
+        if (width > 0) {
+            ref.width(width);
+        }
+
+        this.onChange(id, (w, val) => {
+            const chosen = String(val).trim();
+            if (chosen) {
+                w.setTheme(chosen, true);
+                if (w.autoSaveState) {
+                    w.saveAppFormStateOr();
+                }
+                w.toast(`Theme updated to: ${chosen}`);
+            }
+        });
+
+        return ref;
+    }
+    public add_theme_selector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 135): SimpleControlRef {
+        return this.addThemeSelector(id, label, popularOnly, width);
     }
 
     public addListBox(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
@@ -746,10 +1264,34 @@ export class SimpleWindow {
         return this.addVisualControl("status_badge", 120, 26, { text, caption: text, alert_type: type, ...opts });
     }
 
-    public addTable(headers: string[], rows: any[][], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+    public addTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let headers: string[] = [];
+        let rows: any[][] = [];
+        let clickHandler: EventCallback | undefined;
+
+        if (typeof idOrHeaders === "string" && Array.isArray(headersOrRows)) {
+            explicitId = idOrHeaders;
+            headers = headersOrRows as string[];
+            if (Array.isArray(rowsOrOnSelect)) {
+                rows = rowsOrOnSelect as any[][];
+                clickHandler = onSelect;
+            } else if (typeof rowsOrOnSelect === "function") {
+                clickHandler = rowsOrOnSelect;
+            }
+        } else if (Array.isArray(idOrHeaders)) {
+            headers = idOrHeaders as string[];
+            if (Array.isArray(headersOrRows)) {
+                rows = headersOrRows as any[][];
+                if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect;
+            }
+        }
+
         const headerCsv = headers.join(", ");
-        const ref = this.addVisualControl("data_table", 540, 180, { text: headerCsv, value: rows, ...opts });
-        if (onSelect) ref.onClick(onSelect);
+        const ctrlOpts: Record<string, any> = { text: headerCsv, value: rows, ...opts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("data_table", 540, 180, ctrlOpts);
+        if (clickHandler) ref.onClick(clickHandler);
         return ref;
     }
 
@@ -819,6 +1361,13 @@ export class SimpleWindow {
 
     public setValue(id: string, val: any): this {
         this.formValuesStore[id] = val;
+        const stateKey = this.controlStateBindings.get(id);
+        if (stateKey) {
+            const strVal = String(val ?? "");
+            if (this.getState(stateKey) !== strVal) {
+                this.setState(stateKey, strVal);
+            }
+        }
         if (this.isWindowRunning) {
             const escaped = typeof val === "string" ? JSON.stringify(val) : val;
             this.evalJS(`
@@ -1031,7 +1580,7 @@ export class SimpleWindow {
         return this.delay(ms) as Promise<void>;
     }
 
-    public async withBusyState(names: string[], statusText: string, callback: (win: SimpleWindow, done?: (completionStatus?: string) => void) => any | Promise<any>): Promise<this> {
+    public async withBusyState(names: string[], statusText: string, callback: (win: SimpleWindow, done: (completionStatus?: string) => void) => any | Promise<any>): Promise<this> {
         console.log(`[withBusyState] Starting... setting status to: ${statusText}`);
         let originalStatus = this.statusText;
         if (!originalStatus) {
@@ -1092,6 +1641,7 @@ export class SimpleWindow {
             height: this.height,
             background_color: this.backgroundColor,
             font_color: this.fontColor,
+            accent_color: this.accentColor,
             padding: this.padding,
             spacing: this.spacing,
             controls: this.controls,
@@ -1182,7 +1732,7 @@ export class SimpleWindow {
                 });
 
                 document.addEventListener("keydown", function(e) {
-                    if ((e.metaKey || e.ctrlKey) && (e.key === "q" || e.key === "Q")) {
+                    if ((e.metaKey || e.ctrlKey) && (e.key === "q" || e.key === "Q" || e.key === "w" || e.key === "W")) {
                         e.preventDefault();
                         if (window.quitApp) window.quitApp();
                         else if (window.handleWindowCloseIPC) window.handleWindowCloseIPC();
@@ -1224,6 +1774,10 @@ export class SimpleWindow {
     }
 
     public show(): void {
+        if (this.autoSaveState) {
+            this.restoreAppFormState();
+        }
+
         const html = this.generateHtml();
         this.webview = new Webview();
         this.webview.title = this.title;
@@ -1251,26 +1805,17 @@ export class SimpleWindow {
         });
 
         this.webview.bind("quitApp", () => {
-            this.isWindowRunning = false;
-            process.exit(0);
+            this.handleClose();
         });
 
         this.webview.bind("handleWindowCloseIPC", () => {
-            this.isWindowRunning = false;
-            process.exit(0);
+            this.handleClose();
         });
 
         const watchdog = setInterval(() => {
             if (this.isWindowRunning && Date.now() - lastHeartbeat > 800) {
                 clearInterval(watchdog);
-                this.isWindowRunning = false;
-                if (this.webview) {
-                    try {
-                        this.webview.destroy();
-                    } catch (e) {}
-                    this.webview = null;
-                }
-                forceExit(0);
+                this.handleClose();
             }
         }, 300);
 
@@ -1340,7 +1885,7 @@ export class SimpleWindow {
         this.webview.run();
         this.isWindowRunning = false;
         clearInterval(watchdog);
-        forceExit(0);
+        this.handleClose();
     }
 
     // --- Developer Helpers & Inspection Methods ---
@@ -1725,13 +2270,95 @@ export class SimpleWindow {
     }
 
     public addHeading(title: string, subtitle?: string): this {
+        const isInRow = this.layoutStack[this.layoutStack.length - 1]?.type === "row";
+        if (isInRow) {
+            const compactW = Math.max(160, Math.ceil(title.length * 9.5) + 12);
+            this.addLabel(title).font(18, this.accentColor || "#38bdf8", "700").width(compactW);
+            if (subtitle) {
+                this.addLabel(subtitle).font(12, "#94a3b8");
+            }
+            return this;
+        }
         const fullW = Math.max(300, this.width - (this.padding * 2));
-        this.addLabel(title).font(18, "#38bdf8", "700").width(fullW);
+        this.addLabel(title).font(18, this.accentColor || "#38bdf8", "700").width(fullW);
         if (subtitle) {
             this.addLabel(subtitle).font(12, "#94a3b8").width(fullW);
         }
         this.addDivider();
         return this;
+    }
+    public add_heading(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
+    public addHeader(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
+    public add_header(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
+
+    public addSubheading(text: string, color = "#e2e8f0"): SimpleControlRef {
+        const fullW = Math.max(300, this.width - (this.padding * 2));
+        return this.addLabel(text).font(14, color, "600").width(fullW);
+    }
+    public add_subheading(text: string, color = "#e2e8f0"): SimpleControlRef { return this.addSubheading(text, color); }
+
+    public addCaption(text: string, color = "#94a3b8"): SimpleControlRef {
+        const fullW = Math.max(300, this.width - (this.padding * 2));
+        return this.addLabel(text).font(12, color, "400").width(fullW);
+    }
+    public add_caption(text: string, color = "#94a3b8"): SimpleControlRef { return this.addCaption(text, color); }
+
+    public addStatusBar(idOrText: string, textOrBadge?: string, badge?: string): SimpleControlRef {
+        let id = "status_bar";
+        let text = "";
+        if (textOrBadge !== undefined) {
+            id = idOrText;
+            text = textOrBadge;
+        } else {
+            text = idOrText;
+            id = this.generateUniqueId("status_bar");
+        }
+        const fullW = Math.max(300, this.width - (this.padding * 2));
+        return this.addVisualControl("status_bar", fullW, 28, { id, text, caption: text, dock: "bottom" });
+    }
+    public add_status_bar(idOrText: string, textOrBadge?: string, badge?: string): SimpleControlRef {
+        return this.addStatusBar(idOrText, textOrBadge, badge);
+    }
+
+    public addStatusLabel(idOrText = "lbl_status", text?: string): SimpleControlRef {
+        let id = "lbl_status";
+        let content = idOrText;
+        if (text !== undefined) {
+            id = idOrText;
+            content = text;
+        }
+        const fullW = Math.max(600, this.width - (this.padding * 2) - 10);
+        return this.addLabel(id, content).width(fullW);
+    }
+    public add_status_label(idOrText = "lbl_status", text?: string): SimpleControlRef {
+        return this.addStatusLabel(idOrText, text);
+    }
+
+    public setStatusBarText(idOrText: string, text?: string): this {
+        let targetId = "status_bar";
+        let newText = "";
+        if (text !== undefined) {
+            targetId = idOrText;
+            newText = text;
+        } else {
+            newText = idOrText;
+            const existing = this.controls.find(c => c.control_type === "status_bar" || c.id.includes("status_bar"));
+            if (existing) targetId = existing.id;
+        }
+        this.setText(targetId, newText);
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                const el = document.getElementById(${JSON.stringify(targetId)});
+                if (el) {
+                    const textSpan = el.querySelector("span:nth-child(3)") || el.querySelector("span:last-child") || el;
+                    if (textSpan) textSpan.textContent = ${JSON.stringify(newText)};
+                }
+            `);
+        }
+        return this;
+    }
+    public set_status_bar_text(idOrText: string, text?: string): this {
+        return this.setStatusBarText(idOrText, text);
     }
 
     public addBreadcrumbs(id: string, segments: string[]): SimpleControlRef {
@@ -1779,6 +2406,81 @@ export class SimpleWindow {
                         if (valEl) valEl.textContent = "${value}";
                     }
                 }
+            `);
+        }
+        return this;
+    }
+
+    public addInput(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
+        return this.addTextInput(placeholder || initialValue, initialValue).id(id);
+    }
+    public add_input(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
+        return this.addInput(id, initialValue, placeholder);
+    }
+    public addTextarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
+        return this.addTextArea(placeholder || initialValue, initialValue).id(id);
+    }
+    public add_textarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
+        return this.addTextarea(id, initialValue, placeholder);
+    }
+    public beginGroupBox(title?: string, subtitle?: string): this {
+        return this.beginCard(title, subtitle);
+    }
+    public begin_group_box(title?: string, subtitle?: string): this {
+        return this.beginCard(title, subtitle);
+    }
+    public endGroupBox(): this {
+        return this.endCard();
+    }
+    public end_group_box(): this {
+        return this.endCard();
+    }
+    public setTableData(id: string, headers: string[], rows: any[][]): this {
+        const headerCsv = headers.join(", ");
+        this.setText(id, headerCsv);
+        this.setValue(id, rows);
+        if (this.isWindowRunning) {
+            const tableJson = JSON.stringify(rows);
+            const headersJson = JSON.stringify(headers);
+            this.evalJS(`
+                const container = document.getElementById("${id}");
+                if (container) {
+                    const table = container.querySelector("table") || container;
+                    const headers = ${headersJson};
+                    const rows = ${tableJson};
+                    let thead = '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+                    let tbody = rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('');
+                    table.innerHTML = '<thead>' + thead + '</thead><tbody>' + tbody + '</tbody>';
+                }
+            `);
+        }
+        return this;
+    }
+    public toast(message: string, durationMs = 3000): this {
+        if (this.isWindowRunning) {
+            this.evalJS(`
+                let t = document.getElementById("__simplegui_toast");
+                if (!t) {
+                    t = document.createElement("div");
+                    t.id = "__simplegui_toast";
+                    t.style.position = "fixed";
+                    t.style.bottom = "20px";
+                    t.style.right = "20px";
+                    t.style.backgroundColor = "rgba(15, 23, 42, 0.9)";
+                    t.style.color = "#f8fafc";
+                    t.style.padding = "10px 16px";
+                    t.style.borderRadius = "8px";
+                    t.style.boxShadow = "0 10px 25px rgba(0,0,0,0.5)";
+                    t.style.zIndex = "99999";
+                    t.style.transition = "opacity 0.3s ease";
+                    t.style.fontFamily = "sans-serif";
+                    t.style.fontSize = "13px";
+                    t.style.pointerEvents = "none";
+                    document.body.appendChild(t);
+                }
+                t.textContent = "${message.replace(/"/g, '\\"')}";
+                t.style.opacity = "1";
+                setTimeout(() => { if (t) t.style.opacity = "0"; }, ${durationMs});
             `);
         }
         return this;
@@ -2011,15 +2713,7 @@ export class SimpleWindow {
     }
 
     public close(): void {
-        this.isWindowRunning = false;
-        if (this.webview) {
-            try {
-                this.webview.destroy();
-            } catch (e) {
-                // Already destroyed
-            }
-            this.webview = null;
-        }
+        this.handleClose();
     }
     
     public exit(code = 0): void {
@@ -2050,6 +2744,8 @@ export class SimpleWindow {
     // --- vlang_simplegui API Parity Window Methods ---
     public has_control(id: string): boolean { return this.hasControl(id); }
     public list_controls(): string[] { return this.listControls(); }
+    public getControls(): any[] { return this.controls; }
+    public get_controls(): any[] { return this.controls; }
     public get_control_kind(id: string): string { return this.getControlKind(id); }
     public require_control(id: string): string { return this.requireControl(id); }
     public get_title(): string { return this.getTitle(); }
@@ -2165,7 +2861,6 @@ export class SimpleWindow {
     public set_ignores_mouse_events(enabled: boolean): this { return this; }
     public get_ignores_mouse_events(): boolean { return false; }
 
-    public set_theme(themeName: string): this { return this.setTheme(themeName); }
     public apply_theme(theme: SimpleGUITheme): this {
         this.backgroundColor = theme.background_color;
         this.fontColor = theme.font_color;
@@ -2553,12 +3248,24 @@ export class SimpleWindow {
     public setStatus(text: string): this {
         console.log(`[setStatus] Called with text: "${text}"`);
         this.statusText = text;
-        if (this.hasControl("lblStatus")) this.setText("lblStatus", text);
-        else if (this.hasControl("status")) this.setText("status", text);
+        const targetIds = ["lbl_status", "lblStatus", "status", "lbl_status_bar", "status_bar"];
+        for (const tid of targetIds) {
+            if (this.hasControl(tid)) {
+                this.setText(tid, text);
+                break;
+            }
+        }
         if (this.isWindowRunning) {
             this.evalJS(`
-                const el = document.getElementById("lblStatus") || document.getElementById("status");
-                if (el) el.textContent = ${JSON.stringify(text)};
+                const el = document.getElementById("lbl_status") ||
+                           document.getElementById("lblStatus") ||
+                           document.getElementById("status") ||
+                           document.getElementById("lbl_status_bar") ||
+                           document.getElementById("status_bar");
+                if (el) {
+                    const textSpan = el.querySelector("span:nth-child(3)") || el.querySelector("span:last-child") || el;
+                    if (textSpan) textSpan.textContent = ${JSON.stringify(text)};
+                }
             `);
         }
         return this;
@@ -2836,6 +3543,614 @@ export class SimpleWindow {
         }
     }
     public load_values_from_file(pathStr: string): void { this.loadValuesFromFile(pathStr); }
+
+    // =========================================================================
+    // Reactive & Key-Value State Store API
+    // =========================================================================
+
+    public setState(key: string, val: any): this {
+        const strVal = String(val ?? "");
+        this.stateStore[key] = strVal;
+
+        // Trigger registered state listeners
+        const listeners = this.stateListeners.get(key);
+        if (listeners) {
+            for (const cb of [...listeners]) {
+                try { cb(this, strVal); } catch (e) { console.error(`Error in state listener for '${key}':`, e); }
+            }
+        }
+
+        // Trigger two-way bound controls
+        for (const [ctrlId, stateKey] of this.controlStateBindings.entries()) {
+            if (stateKey === key) {
+                const currentCtrlVal = this.getValue(ctrlId);
+                if (String(currentCtrlVal ?? "") !== strVal) {
+                    this.setValue(ctrlId, strVal);
+                }
+            }
+        }
+
+        return this;
+    }
+    public set_state(key: string, val: any): this { return this.setState(key, val); }
+
+    public getState(key: string, defaultVal = ""): string {
+        return this.getStateOr(key, defaultVal);
+    }
+    public get_state(key: string, defaultVal = ""): string { return this.getState(key, defaultVal); }
+
+    public getStateOr(key: string, fallback: string): string {
+        if (key in this.stateStore) {
+            const val = this.stateStore[key];
+            if (val !== undefined && val !== "") return val;
+        }
+        return fallback;
+    }
+    public get_state_or(key: string, fallback: string): string { return this.getStateOr(key, fallback); }
+
+    public hasState(key: string): boolean {
+        return key in this.stateStore;
+    }
+    public has_state(key: string): boolean { return this.hasState(key); }
+
+    public removeState(key: string): this {
+        delete this.stateStore[key];
+        return this;
+    }
+    public remove_state(key: string): this { return this.removeState(key); }
+
+    public clearState(): this {
+        this.stateStore = {};
+        return this;
+    }
+    public clear_state(): this { return this.clearState(); }
+
+    public setStateInt(key: string, val: number): this {
+        return this.setState(key, String(Math.floor(val)));
+    }
+    public set_state_int(key: string, val: number): this { return this.setStateInt(key, val); }
+
+    public getStateInt(key: string, defaultVal = 0): number {
+        return this.getStateIntOr(key, defaultVal);
+    }
+    public get_state_int(key: string, defaultVal = 0): number { return this.getStateInt(key, defaultVal); }
+
+    public getStateIntOr(key: string, fallback: number): number {
+        if (key in this.stateStore) {
+            const trimmed = (this.stateStore[key] || "").trim();
+            if (trimmed.length > 0) {
+                const parsed = parseInt(trimmed, 10);
+                if (!isNaN(parsed)) return parsed;
+            }
+        }
+        return fallback;
+    }
+    public get_state_int_or(key: string, fallback: number): number { return this.getStateIntOr(key, fallback); }
+
+    public setStateBool(key: string, val: boolean): this {
+        return this.setState(key, val ? "true" : "false");
+    }
+    public set_state_bool(key: string, val: boolean): this { return this.setStateBool(key, val); }
+
+    public getStateBool(key: string, defaultVal = false): boolean {
+        return this.getStateBoolOr(key, defaultVal);
+    }
+    public get_state_bool(key: string, defaultVal = false): boolean { return this.getStateBool(key, defaultVal); }
+
+    public getStateBoolOr(key: string, fallback: boolean): boolean {
+        if (key in this.stateStore) {
+            const val = (this.stateStore[key] || "").toLowerCase().trim();
+            if (val === "true" || val === "1" || val === "yes" || val === "on") return true;
+            if (val === "false" || val === "0" || val === "no" || val === "off") return false;
+        }
+        return fallback;
+    }
+    public get_state_bool_or(key: string, fallback: boolean): boolean { return this.getStateBoolOr(key, fallback); }
+
+    public setStateFloat(key: string, val: number): this {
+        return this.setState(key, String(val));
+    }
+    public setStateF64(key: string, val: number): this { return this.setStateFloat(key, val); }
+    public set_state_f64(key: string, val: number): this { return this.setStateFloat(key, val); }
+
+    public getStateFloat(key: string, defaultVal = 0.0): number {
+        return this.getStateFloatOr(key, defaultVal);
+    }
+    public getStateF64(key: string, defaultVal = 0.0): number { return this.getStateFloat(key, defaultVal); }
+    public get_state_f64(key: string, defaultVal = 0.0): number { return this.getStateFloat(key, defaultVal); }
+
+    public getStateFloatOr(key: string, fallback: number): number {
+        if (key in this.stateStore) {
+            const trimmed = (this.stateStore[key] || "").trim();
+            if (trimmed.length > 0) {
+                const parsed = parseFloat(trimmed);
+                if (!isNaN(parsed)) return parsed;
+            }
+        }
+        return fallback;
+    }
+    public getStateF64Or(key: string, fallback: number): number { return this.getStateFloatOr(key, fallback); }
+    public get_state_f64_or(key: string, fallback: number): number { return this.getStateFloatOr(key, fallback); }
+
+    public toggleStateBool(key: string): boolean {
+        const next = !this.getStateBool(key);
+        this.setStateBool(key, next);
+        return next;
+    }
+    public toggle_state_bool(key: string): boolean { return this.toggleStateBool(key); }
+
+    public incrementStateInt(key: string, delta = 1): number {
+        const curr = this.getStateInt(key);
+        const next = curr + delta;
+        this.setStateInt(key, next);
+        return next;
+    }
+    public increment_state_int(key: string, delta = 1): number { return this.incrementStateInt(key, delta); }
+
+    public onStateChange(key: string, cb: (win: SimpleWindow, val: string) => void): this {
+        let list = this.stateListeners.get(key);
+        if (!list) {
+            list = [];
+            this.stateListeners.set(key, list);
+        }
+        list.push(cb);
+        if (key in this.stateStore) {
+            try { cb(this, this.stateStore[key] ?? ""); } catch (e) { console.error(e); }
+        }
+        return this;
+    }
+    public on_state_change(key: string, cb: (win: SimpleWindow, val: string) => void): this {
+        return this.onStateChange(key, cb);
+    }
+
+    // =========================================================================
+    // App State & Window Session Persistence API
+    // =========================================================================
+
+    public saveStateJson(filePath: string): void {
+        const resolved = resolveUserPath(filePath);
+        saveStateToFile(resolved, this.stateStore);
+    }
+    public save_state_json(filePath: string): void { this.saveStateJson(filePath); }
+
+    public loadStateJson(filePath: string): void {
+        const resolved = resolveUserPath(filePath);
+        const loaded = loadStateFromFile(resolved);
+        for (const [k, v] of Object.entries(loaded)) {
+            this.setState(k, v);
+        }
+    }
+    public load_state_json(filePath: string): void { this.loadStateJson(filePath); }
+
+    public saveAppState(appName?: string, fileName = "state.json"): void {
+        const appId = appName || this.getAppId();
+        const targetFile = getAppStateFile(appId, fileName);
+        this.saveStateJson(targetFile);
+    }
+    public save_app_state(appName?: string, fileName = "state.json"): void { this.saveAppState(appName, fileName); }
+
+    public saveAppStateOr(appName?: string, fileName = "state.json"): boolean {
+        try {
+            this.saveAppState(appName, fileName);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+    public save_app_state_or(appName?: string, fileName = "state.json"): boolean { return this.saveAppStateOr(appName, fileName); }
+
+    public loadAppState(appName?: string, fileName = "state.json"): boolean {
+        const appId = appName || this.getAppId();
+        let targetFile = getAppStateFile(appId, fileName);
+        if (!fs.existsSync(targetFile)) {
+            targetFile = getAppConfigFile(appId, fileName);
+            if (!fs.existsSync(targetFile)) {
+                return false;
+            }
+        }
+        this.loadStateJson(targetFile);
+        return true;
+    }
+    public load_app_state(appName?: string, fileName = "state.json"): boolean { return this.loadAppState(appName, fileName); }
+
+    public loadAppStateOr(appName?: string, fileName = "state.json"): boolean {
+        try {
+            return this.loadAppState(appName, fileName);
+        } catch (e) {
+            return false;
+        }
+    }
+    public load_app_state_or(appName?: string, fileName = "state.json"): boolean { return this.loadAppStateOr(appName, fileName); }
+
+    public hasSavedAppState(appName?: string, fileName = "state.json"): boolean {
+        const appId = appName || this.getAppId();
+        const targetFile = getAppStateFile(appId, fileName);
+        if (fs.existsSync(targetFile)) return true;
+        const configFile = getAppConfigFile(appId, fileName);
+        return fs.existsSync(configFile);
+    }
+    public has_saved_app_state(appName?: string, fileName = "state.json"): boolean { return this.hasSavedAppState(appName, fileName); }
+
+    public clearAppState(appName?: string, fileName = "state.json"): void {
+        const appId = appName || this.getAppId();
+        const targetFile = getAppStateFile(appId, fileName);
+        if (fs.existsSync(targetFile)) {
+            try { fs.unlinkSync(targetFile); } catch (e) {}
+        }
+        const configFile = getAppConfigFile(appId, fileName);
+        if (fs.existsSync(configFile)) {
+            try { fs.unlinkSync(configFile); } catch (e) {}
+        }
+    }
+    public clear_app_state(appName?: string, fileName = "state.json"): void { this.clearAppState(appName, fileName); }
+
+    public saveWindowSession(appName?: string): void {
+        const appId = appName || this.getAppId();
+        const sessionData: Record<string, any> = { ...this.stateStore };
+        sessionData["__win_width"] = this.width;
+        sessionData["__win_height"] = this.height;
+        sessionData["__win_theme"] = this.theme;
+        sessionData["__win_fullscreen"] = false;
+        const targetFile = getAppStateFile(appId, "session.json");
+        saveStateToFile(targetFile, sessionData);
+    }
+    public save_window_session(appName?: string): void { this.saveWindowSession(appName); }
+
+    public restoreWindowSession(appName?: string): boolean {
+        const appId = appName || this.getAppId();
+        let targetFile = getAppStateFile(appId, "session.json");
+        if (!fs.existsSync(targetFile)) {
+            targetFile = getAppConfigFile(appId, "session.json");
+            if (!fs.existsSync(targetFile)) return false;
+        }
+        try {
+            const content = fs.readFileSync(targetFile, "utf-8");
+            const loaded = JSON.parse(content);
+            for (const [k, v] of Object.entries(loaded)) {
+                if (k === "__win_theme") {
+                    this.setTheme(String(v), false);
+                } else if (k === "__win_fullscreen") {
+                    // fullscreen flag
+                } else if (k === "__win_width") {
+                    const w = parseInt(String(v), 10);
+                    if (w > 100) this.width = w;
+                } else if (k === "__win_height") {
+                    const h = parseInt(String(v), 10);
+                    if (h > 100) this.height = h;
+                } else {
+                    this.setState(k, v);
+                }
+            }
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+    public restore_window_session(appName?: string): boolean { return this.restoreWindowSession(appName); }
+
+    public enableAutoSaveState(appName?: string, fileName = "state.json"): this {
+        const appId = appName || this.getAppId();
+        this.onClose((w) => {
+            w.saveAppStateOr(appId, fileName);
+        });
+        return this;
+    }
+    public enable_auto_save_state(appName?: string, fileName = "state.json"): this {
+        return this.enableAutoSaveState(appName, fileName);
+    }
+
+    // =========================================================================
+    // Universal Theme & Form State Auto-Persistence API
+    // =========================================================================
+
+    public restoreSavedTheme(): this {
+        const saved = getSavedTheme();
+        if (saved) {
+            this.setTheme(saved, false);
+        }
+        return this;
+    }
+    public restore_saved_theme(): this { return this.restoreSavedTheme(); }
+
+    public getAppId(): string {
+        if (this.appId && this.appId.length > 0) {
+            return this.appId;
+        }
+        if (this.title && this.title.length > 0) {
+            const clean = this.title.toLowerCase().replace(/[\s\-]+/g, "_");
+            const res = clean.replace(/[^a-z0-9_]/g, "");
+            if (res.length > 0) return res;
+        }
+        if (process.argv && process.argv[1]) {
+            const base = path.basename(process.argv[1]).replace(/\.[^/.]+$/, "");
+            if (base.length > 0) return base;
+        }
+        return "default_app";
+    }
+    public get_app_id(): string { return this.getAppId(); }
+
+    public setAppId(id: string): this {
+        this.appId = id;
+        return this;
+    }
+    public set_app_id(id: string): this { return this.setAppId(id); }
+
+    public enableAutoSave(): this {
+        this.autoSaveState = true;
+        return this;
+    }
+    public enable_auto_save(): this { return this.enableAutoSave(); }
+
+    public disableAutoSave(): this {
+        this.autoSaveState = false;
+        return this;
+    }
+    public disable_auto_save(): this { return this.disableAutoSave(); }
+
+    public saveAppFormState(appName?: string): void {
+        const appId = appName || this.getAppId();
+        const data: Record<string, any> = {};
+
+        data["__win_width"] = this.width;
+        data["__win_height"] = this.height;
+        data["__win_theme"] = this.theme;
+        data["__win_fullscreen"] = false;
+
+        for (const [k, v] of Object.entries(this.stateStore)) {
+            data["__state_" + k] = v;
+        }
+
+        const controlsList: any[] = [];
+        const collect = (items: any[]) => {
+            for (const item of items) {
+                controlsList.push(item);
+                if (item.children) collect(item.children);
+            }
+        };
+        collect(this.controls);
+
+        for (const ctrl of controlsList) {
+            if (!shouldPersistControl(ctrl)) continue;
+            const cid = ctrl.id || ctrl.name;
+            const val = this.getValue(cid);
+            if (val !== undefined && val !== null) {
+                data[cid] = val;
+            }
+        }
+
+        const targetFile = getAppStateFile(appId, "form_state.json");
+        saveStateToFile(targetFile, data);
+    }
+    public save_app_form_state(appName?: string): void { this.saveAppFormState(appName); }
+
+    public saveAppFormStateOr(appName?: string): boolean {
+        try {
+            this.saveAppFormState(appName);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+    public save_app_form_state_or(appName?: string): boolean { return this.saveAppFormStateOr(appName); }
+
+    public restoreAppFormState(appName?: string): boolean {
+        const appId = appName || this.getAppId();
+        let targetFile = getAppStateFile(appId, "form_state.json");
+        if (!fs.existsSync(targetFile)) {
+            targetFile = getAppConfigFile(appId, "form_state.json");
+            if (!fs.existsSync(targetFile)) {
+                const savedTheme = getSavedTheme();
+                if (savedTheme && savedTheme !== this.theme) {
+                    this.setTheme(savedTheme, false);
+                }
+                return false;
+            }
+        }
+
+        let loaded: Record<string, any> = {};
+        try {
+            const content = fs.readFileSync(targetFile, "utf-8");
+            if (!content.trim()) return false;
+            loaded = JSON.parse(content);
+        } catch (e) {
+            return false;
+        }
+
+        if (loaded["__win_width"] !== undefined) {
+            const w = parseInt(String(loaded["__win_width"]), 10);
+            if (w >= 300 && w <= 4000) this.width = w;
+        }
+        if (loaded["__win_height"] !== undefined) {
+            const h = parseInt(String(loaded["__win_height"]), 10);
+            if (h >= 200 && h <= 3000) this.height = h;
+        }
+
+        if (loaded["__win_theme"] && typeof loaded["__win_theme"] === "string") {
+            this.setTheme(loaded["__win_theme"], false);
+        } else {
+            const savedTheme = getSavedTheme();
+            if (savedTheme) this.setTheme(savedTheme, false);
+        }
+
+        for (const [k, v] of Object.entries(loaded)) {
+            if (k.startsWith("__state_") && k.length > 8) {
+                this.setState(k.slice(8), v);
+            }
+        }
+
+        const controlsList: any[] = [];
+        const collect = (items: any[]) => {
+            for (const item of items) {
+                controlsList.push(item);
+                if (item.children) collect(item.children);
+            }
+        };
+        collect(this.controls);
+
+        for (const ctrl of controlsList) {
+            const cid = ctrl.id || ctrl.name;
+            if (cid in loaded) {
+                if (shouldPersistControl(ctrl)) {
+                    this.setValue(cid, loaded[cid]);
+                }
+            }
+
+            if (["dd_app_theme", "dd_theme", "dd_theme_selector", "theme_picker"].includes(cid)) {
+                this.setValue(cid, this.theme);
+            }
+        }
+
+        return true;
+    }
+    public restore_app_form_state(appName?: string): boolean { return this.restoreAppFormState(appName); }
+
+    public clearAppFormState(appName?: string): void {
+        const appId = appName || this.getAppId();
+        const stateFile = getAppStateFile(appId, "form_state.json");
+        if (fs.existsSync(stateFile)) {
+            try { fs.unlinkSync(stateFile); } catch (e) {}
+        }
+        const configFile = getAppConfigFile(appId, "form_state.json");
+        if (fs.existsSync(configFile)) {
+            try { fs.unlinkSync(configFile); } catch (e) {}
+        }
+    }
+    public clear_app_form_state(appName?: string): void { this.clearAppFormState(appName); }
+
+    // =========================================================================
+    // Two-Way Data & Event Binding API
+    // =========================================================================
+
+    public bindState(controlName: string, stateKey: string): this {
+        this.controlStateBindings.set(controlName, stateKey);
+
+        if (this.hasState(stateKey)) {
+            const initVal = this.getState(stateKey);
+            this.setValue(controlName, initVal);
+        } else {
+            const currentVal = this.getValue(controlName);
+            if (currentVal !== undefined && currentVal !== null) {
+                this.setState(stateKey, String(currentVal));
+            }
+        }
+
+        this.onStateChange(stateKey, (w, val) => {
+            if (String(w.getValue(controlName) ?? "") !== val) {
+                w.setValue(controlName, val);
+            }
+        });
+
+        this.onChange(controlName, (w, val) => {
+            const strVal = String(val ?? "");
+            if (w.getState(stateKey) !== strVal) {
+                w.setState(stateKey, strVal);
+            }
+        });
+
+        return this;
+    }
+    public bind_state(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    public bindControl(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    public bind_control(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    public bindValue(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    public bind_value(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+
+    public onClick(controlId: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, "onClick", callback);
+        return this;
+    }
+    public on_click(controlId: string, callback: EventCallback): this { return this.onClick(controlId, callback); }
+    public bindClick(controlId: string, callback: EventCallback): this { return this.onClick(controlId, callback); }
+    public bind_click(controlId: string, callback: EventCallback): this { return this.onClick(controlId, callback); }
+
+    public onChange(controlId: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, "onChange", callback);
+        return this;
+    }
+    public on_change(controlId: string, callback: EventCallback): this { return this.onChange(controlId, callback); }
+    public bindChange(controlId: string, callback: EventCallback): this { return this.onChange(controlId, callback); }
+    public bind_change(controlId: string, callback: EventCallback): this { return this.onChange(controlId, callback); }
+
+    public onEnter(controlId: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, "onEnter", callback);
+        return this;
+    }
+    public on_enter(controlId: string, callback: EventCallback): this { return this.onEnter(controlId, callback); }
+    public bindEnter(controlId: string, callback: EventCallback): this { return this.onEnter(controlId, callback); }
+    public bind_enter(controlId: string, callback: EventCallback): this { return this.onEnter(controlId, callback); }
+
+    public onHover(controlId: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, "onHover", callback);
+        return this;
+    }
+    public on_hover(controlId: string, callback: EventCallback): this { return this.onHover(controlId, callback); }
+    public bindHover(controlId: string, callback: EventCallback): this { return this.onHover(controlId, callback); }
+    public bind_hover(controlId: string, callback: EventCallback): this { return this.onHover(controlId, callback); }
+
+    public onDblClick(controlId: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, "onDoubleClick", callback);
+        return this;
+    }
+    public on_dblclick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    public bindDblClick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    public bind_dblclick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+
+    public onRightClick(controlId: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, "onContextMenu", callback);
+        return this;
+    }
+    public on_right_click(controlId: string, callback: EventCallback): this { return this.onRightClick(controlId, callback); }
+    public bindRightClick(controlId: string, callback: EventCallback): this { return this.onRightClick(controlId, callback); }
+    public bind_right_click(controlId: string, callback: EventCallback): this { return this.onRightClick(controlId, callback); }
+
+    public onEvent(controlId: string, eventName: string, callback: EventCallback): this {
+        this.bindControlEvent(controlId, eventName, callback);
+        return this;
+    }
+    public on_event(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
+    public bindEvent(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
+    public bind_event(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
+
+    public onShortcut(shortcut: string, callback: EventCallback): this {
+        const key = `shortcut_${shortcut.toLowerCase()}`;
+        this.eventHandlersMap.set(key, callback);
+        return this;
+    }
+    public on_shortcut(shortcut: string, callback: EventCallback): this { return this.onShortcut(shortcut, callback); }
+    public bindShortcut(shortcut: string, callback: EventCallback): this { return this.onShortcut(shortcut, callback); }
+    public bind_shortcut(shortcut: string, callback: EventCallback): this { return this.onShortcut(shortcut, callback); }
+    public bindKey(key: string, callback: EventCallback): this { return this.onShortcut(key, callback); }
+    public bind_key(key: string, callback: EventCallback): this { return this.bindKey(key, callback); }
+
+    // =========================================================================
+    // Window Lifecycle & Close Handling API
+    // =========================================================================
+
+    public onClose(cb: (win: SimpleWindow) => boolean | void): this {
+        this.closeListeners.push(cb);
+        return this;
+    }
+    public on_close(cb: (win: SimpleWindow) => boolean | void): this { return this.onClose(cb); }
+
+    public handleClose(): void {
+        for (const cb of this.closeListeners) {
+            try {
+                const res = cb(this);
+                if (res === false) return;
+            } catch (e) {
+                console.error("Error in onClose listener:", e);
+            }
+        }
+        if (this.autoSaveState) {
+            this.saveAppFormStateOr();
+        }
+        this.isWindowRunning = false;
+        if (this.webview) {
+            try { this.webview.destroy(); } catch (e) {}
+            this.webview = null;
+        }
+        forceExit(0);
+    }
 }
 
 // Production Theme Specification Lookup Table
@@ -2844,11 +4159,36 @@ export interface SimpleGUITheme {
     background_color: string;
     font_color: string;
     accent_color: string;
+    secondary_accent?: string;
+    card_background?: string;
+    card_border?: string;
     description: string;
     is_dark: boolean;
 }
 
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
+    "codefreelance": {
+        name: "CodeFreelance",
+        background_color: "#050505",
+        font_color: "#ffffff",
+        accent_color: "#0fb36a",
+        secondary_accent: "#bd00ff",
+        card_background: "#121212",
+        card_border: "#2a2a2a",
+        description: "Official CodeFreelance dark theme: #050505 obsidian canvas, #121212 cards, #0fb36a neon emerald green & #bd00ff purple accents (codefreelance.net)",
+        is_dark: true
+    },
+    "code_freelance": {
+        name: "CodeFreelance",
+        background_color: "#050505",
+        font_color: "#ffffff",
+        accent_color: "#0fb36a",
+        secondary_accent: "#bd00ff",
+        card_background: "#121212",
+        card_border: "#2a2a2a",
+        description: "Official CodeFreelance dark theme: #050505 obsidian canvas, #121212 cards, #0fb36a neon emerald green & #bd00ff purple accents (codefreelance.net)",
+        is_dark: true
+    },
     "apple_light": { name: "Apple Light", background_color: "#ffffff", font_color: "#1c1c1e", accent_color: "#007aff", description: "Clean macOS Aqua light canvas", is_dark: false },
     "apple_dark": { name: "Apple Dark", background_color: "#1c1c1e", font_color: "#f2f2f7", accent_color: "#0a84ff", description: "Vibrant macOS Dark Mode surface", is_dark: true },
     "midnight": { name: "Midnight Space Gray", background_color: "#161618", font_color: "#ebebf5", accent_color: "#0a84ff", description: "Pro dark titanium space gray theme", is_dark: true },
@@ -2872,6 +4212,13 @@ export function listThemes(): string[] {
     return Object.values(SIMPLEGUI_THEMES).map(t => t.name);
 }
 
+export function getThemeKeys(): string[] {
+    return Object.keys(SIMPLEGUI_THEMES);
+}
+export function get_theme_keys(): string[] {
+    return getThemeKeys();
+}
+
 export function getTheme(themeName: string): SimpleGUITheme {
     const key = themeName.toLowerCase().replace(/[\s\-_]+/g, "_");
     return SIMPLEGUI_THEMES[key] || SIMPLEGUI_THEMES["apple_light"]!;
@@ -2893,21 +4240,58 @@ export function newWindow(title = "SimpleGUI Application", width = 800, height =
     return createWindow(title, width, height, options);
 }
 
-export function new_simple_window(title = "SimpleGUI Application", width = 800, height = 600): SimpleWindow {
-    return createWindow(title, width, height);
+export function newSimpleWindow(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
+    return createWindow(title, width, height, options);
+}
+
+export function new_simple_window(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
+    return createWindow(title, width, height, options);
 }
 
 export const simplegui = {
     createWindow,
     newWindow,
+    newSimpleWindow,
     new_simple_window,
     listThemes,
+    getThemeKeys,
+    get_theme_keys,
     getTheme,
+    saveTheme,
+    save_theme,
+    getSavedTheme,
+    get_saved_theme,
     homeDir,
     tempDir,
     desktopDir,
     documentsDir,
     downloadsDir,
+    resolveUserPath,
+    resolve_user_path,
+    getAppConfigDir,
+    get_app_config_dir,
+    getAppDataDir,
+    get_app_data_dir,
+    getAppCacheDir,
+    get_app_cache_dir,
+    getAppStateDir,
+    get_app_state_dir,
+    getAppLogDir,
+    get_app_log_dir,
+    getAppRuntimeDir,
+    get_app_runtime_dir,
+    getAppConfigFile,
+    get_app_config_file,
+    getAppStateFile,
+    get_app_state_file,
+    writeFileAtomic,
+    write_file_atomic,
+    saveStateToFile,
+    save_state_to_file,
+    loadStateFromFile,
+    load_state_from_file,
+    shouldPersistControl,
+    should_persist_control,
     SimpleWindow,
     SimpleControlRef
 };

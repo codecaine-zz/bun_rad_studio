@@ -225,10 +225,10 @@ webview.bind("on_db_tabs_change", (tabName?: string) => {
 
 webview.bind("on_schema_tree_select", (nodeName?: string) => {
     const rawNode = nodeName || "users";
-    const tableName = rawNode.replace(/^[\s📂📁📄]+/, '').split(' ')[0];
+    const tableName = (rawNode.replace(/^[\s📂📁📄]+/, '').split(' ')[0] || "users") as keyof typeof sqlQueries;
     console.log(`[IPC] Schema Tree Selected Table: ${tableName}`);
     if (sqlQueries[tableName]) {
-        const query = sqlQueries[tableName].replace(/'/g, "\\'");
+        const query = (sqlQueries[tableName] || "").replace(/'/g, "\\'");
         execJS(`
             const ed = document.getElementById("sql_code_editor");
             if (ed) {

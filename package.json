@@ -31,7 +31,25 @@
     "demo:simplegui_all": "bun run demos/15_simplegui_all_controls_showcase.ts",
     "demo:parity": "bun run demos/16_simplegui_parity_api_demo.ts",
     "demo:layouts": "bun run demos/17_simplegui_layout_types_showcase.ts",
-    "demo:ergonomics": "bun run demos/18_simplegui_ergonomics_demo.ts"
+    "demo:ergonomics": "bun run demos/18_simplegui_ergonomics_demo.ts",
+    "demo:persistence": "bun run demos/19_state_persistence_and_binding_demo.ts",
+    "demo:codefreelance": "bun run demos/20_codefreelance_theme_demo.ts",
+    "app:omnitool": "bun run applications/omnitool_studio.ts",
+    "app:brew": "bun run applications/brew_studio.ts",
+    "app:jq": "bun run applications/jq_studio.ts",
+    "app:sqlite": "bun run applications/sqlite_studio.ts",
+    "app:tasks": "bun run applications/task_manager.ts",
+    "app:regex": "bun run applications/regex_studio.ts",
+    "app:api": "bun run applications/api_studio.ts",
+    "app:dataconvert": "bun run applications/dataconvert_studio.ts",
+    "app:crypto": "bun run applications/crypto_studio.ts",
+    "app:watchexec": "bun run applications/watchexec_studio.ts",
+    "app:bundler": "bun run applications/app_bundler_studio.ts",
+    "screenshots": "bun run scripts/capture_app_screenshots.ts",
+    "brew:install": "./install_homebrew_dependencies.sh",
+    "brew:check": "brew bundle check --file ./Brewfile",
+    "deps:check": "bun run scripts/install_dependencies.ts",
+    "deps:install": "bun run scripts/install_dependencies.ts --install"
   },
   "devDependencies": {
     "@types/bun": "latest"

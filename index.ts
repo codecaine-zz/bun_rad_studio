@@ -659,7 +659,26 @@ wv.run();
 }
 
 
-export { simplegui, SimpleWindow, SimpleControlRef, createWindow, newWindow, new_simple_window, listThemes, getTheme, homeDir, tempDir, desktopDir, documentsDir, downloadsDir } from "./src/simplegui.ts";
+export {
+    simplegui, SimpleWindow, SimpleControlRef, createWindow, newWindow, newSimpleWindow, new_simple_window,
+    listThemes, getThemeKeys, get_theme_keys, getTheme, saveTheme, save_theme, getSavedTheme, get_saved_theme,
+    homeDir, tempDir, desktopDir, documentsDir, downloadsDir,
+    resolveUserPath, resolve_user_path,
+    getAppConfigDir, get_app_config_dir,
+    getAppDataDir, get_app_data_dir,
+    getAppCacheDir, get_app_cache_dir,
+    getAppStateDir, get_app_state_dir,
+    getAppLogDir, get_app_log_dir,
+    getAppRuntimeDir, get_app_runtime_dir,
+    getAppConfigFile, get_app_config_file,
+    getAppStateFile, get_app_state_file,
+    writeFileAtomic, write_file_atomic,
+    saveStateToFile, save_state_to_file,
+    loadStateFromFile, load_state_from_file,
+    shouldPersistControl, should_persist_control
+} from "./src/simplegui.ts";
+
+export * from "./src/simplecli/index.ts";
 
 export function setStatusBarText(controlId: string, statusText: string) {}
 export function setKanbanColumns(controlId: string, columnsData: string) {}
@@ -676,8 +695,12 @@ export function generatePreviewHtml(spec: any): string {
 
     const isLight = bg === '#f8fafc' || bg === '#ffffff' || (bg.startsWith('#') && bg.length >= 7 && (parseInt(bg.slice(1,3), 16)*0.299 + parseInt(bg.slice(3,5), 16)*0.587 + parseInt(bg.slice(5,7), 16)*0.114) > 160);
 
-    let accent = '#38bdf8';
-    if (bg === '#000000' || fg === '#00ff00') {
+    let accent = spec.accent_color || '#38bdf8';
+    if (spec.accent_color) {
+        accent = spec.accent_color;
+    } else if (bg === '#050505') {
+        accent = '#0fb36a';
+    } else if (bg === '#000000' || fg === '#00ff00') {
         accent = '#00ff00';
     } else if (bg === '#0d0221' || fg === '#00f6ff') {
         accent = '#00f6ff';
@@ -687,7 +710,7 @@ export function generatePreviewHtml(spec: any): string {
         accent = '#3b82f6';
     }
 
-    const border = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)';
+    const border = bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)');
     const w = spec.width || 800;
     const h = spec.height || 600;
 
@@ -775,7 +798,7 @@ export function generatePreviewHtml(spec: any): string {
         const rawCbg = c.background_color || 'transparent';
         const cbg = c.background_color && c.background_color !== 'transparent'
             ? c.background_color
-            : (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)');
+            : (bg === '#050505' ? '#121212' : (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)'));
         const ev = buildEvents(c);
         const id = ` id="${c.id}"`;
         const disabled = c.enabled === false ? ' disabled' : '';
@@ -800,13 +823,18 @@ export function generatePreviewHtml(spec: any): string {
         const defRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:5px;';
 
         if (t === 'button') {
-            const btnBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0284c7';
+            const defaultBtnBg = spec.accent_color || accent || '#0284c7';
+            const btnBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : defaultBtnBg;
+            const btnColor = (btnBg === '#0fb36a' || btnBg === '#30d158' || btnBg === '#00ff00' || btnBg === '#4ade80') ? '#000000' : (color || '#ffffff');
             const bBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'solid'};` : 'border:none;';
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const mouseOverFilter = c.hover_color || c.hover_text_color ? '' : ` onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''"`;
-            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${color};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+            const mouseOverFilter = c.hover_color || c.hover_text_color ? '' : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
+            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
         } else if (t === 'label') {
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text}</div>\n`;
+            const isStatus = (c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
+                             (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:')));
+            const statusStyle = isStatus ? 'width:calc(100% - 40px) !important;max-width:calc(100% - 40px) !important;font-size:12px;opacity:0.9;' : '';
+            controls += `<div${id}${titleAttr}${ev} style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
         } else if (t === 'input' || t === 'search') {
             controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === 'search' ? 'search' : 'text'}" value="${text}" placeholder="${c.placeholder || ''}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
         } else if (t === 'password') {
@@ -911,14 +939,15 @@ export function generatePreviewHtml(spec: any): string {
 
             const isListBox = t === 'listbox';
             const sizeAttr = isListBox ? ` size="${c.size || 5}"` : '';
+            const chevronColor = encodeURIComponent(accent || '#38bdf8');
             const selectInnerStyle = isListBox
                 ? `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;box-sizing:border-box;`
-                : `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 24px 0 10px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%2338bdf8'/></svg>");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 6px;box-sizing:border-box;`;
+                : `width:100%;height:100%;background-color:${cbg};color:${color};${defBorder}${defRadius}padding:0 30px 0 10px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;font-weight:500;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'${chevronColor}\\' stroke-width=\\'2.5\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;background-size:12px 12px;box-shadow:0 1px 2px rgba(0,0,0,0.2);box-sizing:border-box;`;
 
             if (t === 'form_dropdown') {
-                controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select id="${c.id}"${sizeAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+                controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select id="${c.id}" class="simplegui-select"${sizeAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
             } else {
-                controls += `<div style="${base(c)}"><select id="${c.id}"${sizeAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+                controls += `<div style="${base(c)}"><select id="${c.id}" class="simplegui-select"${sizeAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
             }
         } else if (t === 'form_link') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;
@@ -1022,7 +1051,7 @@ export function generatePreviewHtml(spec: any): string {
             const propsList = rawProps.split(',').map((s: string) => s.trim().split(':')).filter((arr: string[]) => arr.length === 2);
             const pgRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || 'Property Inspector'}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;">${propsList.map((pair: string[]) => {
-                const k = pair[0].trim(); const v = pair[1].trim();
+                const k = (pair[0] || '').trim(); const v = (pair[1] || '').trim();
                 return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'}'" onmouseout="this.style.background=''"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
             }).join('')}</div></div>\n`;
         } else if (t === 'popup_menu') {
@@ -1067,7 +1096,7 @@ export function generatePreviewHtml(spec: any): string {
             ];
             const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
             controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#f8fafc' : '#0f172a')};${defBorder}${kbRadius}padding:8px;display:flex;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow-x:auto;">${cols.map((colStr: string, idx: number) => {
-                const cards = sampleCards[idx % sampleCards.length];
+                const cards = sampleCards[idx % sampleCards.length] || [];
                 return `<div style="flex:1;min-width:90px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'};border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;"><div style="font-size:10px;font-weight:700;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>${colStr}</span></div><div style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;">${cards.map((card: string) => `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${card.replace(/'/g, "\\'")}');" style="background:${isLight ? '#ffffff' : '#1e293b'};border:1px solid ${border};border-radius:4px;padding:4px 6px;font-size:10px;color:${color};font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:pointer;">${card}</div>`).join('')}</div></div>`;
             }).join('')}</div>\n`;
         } else if (t === 'shortcut_recorder') {
@@ -1258,6 +1287,29 @@ export function generatePreviewHtml(spec: any): string {
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+  select:not([size]), .simplegui-select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+    background-size: 12px 12px !important;
+    padding-right: 30px !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  }
+  select:not([size]):hover, .simplegui-select:hover {
+    border-color: ${accent} !important;
+  }
+  select:not([size]):focus, .simplegui-select:focus {
+    border-color: ${accent} !important;
+    outline: 2px solid ${accent} !important;
+    outline-offset: 1px !important;
+  }
+  select option {
+    background-color: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : '#1e293b')} !important;
+    color: ${fg} !important;
+    padding: 8px 12px !important;
+  }
   ${hoverStyles}
 </style>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">

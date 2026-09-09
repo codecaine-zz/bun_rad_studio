@@ -642,6 +642,98 @@ tempDir();                          // System temp directory path
 desktopDir();                       // Desktop folder path
 documentsDir();                     // Documents folder path
 downloadsDir();                     // Downloads folder path
+resolveUserPath("~/data.json");     // Expands ~ and env variables ($VAR, ${VAR})
+getAppConfigDir("my_app");          // OS standard configuration directory
+getAppDataDir("my_app");            // OS standard application data directory
+getAppStateDir("my_app");           // OS standard state directory
+getAppLogDir("my_app");             // OS standard log directory
+```
+
+### 🔄 Reactive State Store & Key-Value Management
+
+The `SimpleWindow` state store acts as a centralized reactive database for desktop applications. Any control or handler can update a key using `win.setState("key", "val")` and registered listeners created via `win.onStateChange("key", callback)` automatically fire, while bound controls sync in real-time.
+
+```typescript
+// Setting & Getting Reactive State
+win.setState("user_role", "Administrator");
+win.setStateInt("counter", 42);
+win.setStateBool("dark_mode", true);
+win.setStateFloat("font_scale", 1.25);
+
+// Check if state key exists
+if (win.hasState("user_role")) {
+    console.log("State key registered!");
+}
+
+const role = win.getState("user_role");                    // string
+const count = win.getStateInt("counter");                 // number
+const isDark = win.getStateBool("dark_mode");             // boolean
+const fallbackRole = win.getStateOr("role", "Guest");     // fallback if key unset
+
+win.toggleStateBool("dark_mode");        // Toggles boolean state
+win.incrementStateInt("counter", 1);     // Increments integer state
+
+// Reactive State Listeners
+win.onStateChange("counter", (w, val) => {
+    w.setText("lbl_counter_display", `Count: ${val}`);
+});
+```
+
+### 💾 App State Persistence & Standard OS User Directories
+
+SimpleGUI provides robust, crash-proof state persistence following recommended OS specifications for macOS (`~/Library/Application Support`), Windows (`%LOCALAPPDATA%`, `%APPDATA%`), and Linux (`$XDG_STATE_HOME`, `$XDG_CONFIG_HOME`). All state persistence writes atomically using temporary files and atomic renaming.
+
+```typescript
+// App state persistence in standard OS directories
+win.saveAppState("my_app");
+if (win.hasSavedAppState("my_app")) {
+    win.loadAppState("my_app");
+}
+win.clearAppState("my_app");
+
+// Window session persistence (dimensions, theme, state store)
+win.saveWindowSession("my_app");
+win.restoreWindowSession("my_app");
+
+// Automatic persistence on close
+win.enableAutoSaveState("my_app");
+
+// Custom path JSON persistence (with ~ and env variable expansion)
+win.saveStateJson("~/app_state.json");
+win.loadStateJson("~/app_state.json");
+
+// Standalone atomic persistence utilities
+import { saveStateToFile, loadStateFromFile } from "bun_rad_studio";
+saveStateToFile("~/config.json", stateMap);
+const loaded = loadStateFromFile("~/config.json");
+```
+
+### 🎨 Universal Theme Persistence & Form State Auto-Persistence
+
+- **Global Theme Persistence**: Every window defaults to the user's preferred saved theme (`getSavedTheme()`). Calling `win.setTheme(themeName)` automatically persists to `~/.config/simplegui/theme.txt`.
+- **Form State Auto-Persistence**: Automatically restores inputs on launch and persists on close (`form_state.json`).
+- **Intelligent Filtering (`shouldPersistControl`)**: Interactive controls (inputs, dropdowns, checkboxes, sliders) persist; ephemeral consoles, terminal logs, and sensitive passwords are never persisted.
+
+### 🔗 Two-Way Data & Event Binding (`bind`)
+
+```typescript
+// Two-Way Data Binding: UI control <-> State store
+win.bindState("input_user", "username");
+win.bindControl("chk_notifications", "notify_enabled");
+
+// Updating state anywhere in code automatically updates the UI control!
+win.setState("username", "Alan Turing");
+
+// Fluent method chaining on SimpleControlRef
+win.addTextInput("Job Title").id("txt_title").bindState("job_title");
+
+// Fluent Event Binding
+win.bindClick("btn_save", (w) => w.saveAppFormState());
+win.bindChange("theme_selector", (w, val) => w.setTheme(val));
+win.bindShortcut("Escape", (w) => w.close());
+win.onClose((w) => {
+    console.log("Window is closing!");
+});
 ```
 
 ---

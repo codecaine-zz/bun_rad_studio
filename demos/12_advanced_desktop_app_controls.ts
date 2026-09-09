@@ -142,9 +142,9 @@ const htmlContent = generatePreviewHtml(formSpec);
 const webview = new Webview(true, {
     width: formSpec.width,
     height: formSpec.height,
-    title: formSpec.title,
-    hints: SizeHint.NONE
+    hint: SizeHint.NONE
 });
+webview.title = formSpec.title;
 
 webview.setHTML(htmlContent);
 

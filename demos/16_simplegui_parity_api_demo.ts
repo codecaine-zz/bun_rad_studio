@@ -95,7 +95,7 @@ let themeToggle = 0;
 win.addButton("🎨 Cycle Theme", (w) => {
     const themesList = ["Sonoma Emerald", "Apple Light", "Catppuccin Mocha", "Midnight Space Gray", "Nord"];
     themeToggle = (themeToggle + 1) % themesList.length;
-    const selectedTheme = themesList[themeToggle];
+    const selectedTheme = themesList[themeToggle] || "Sonoma Emerald";
     w.set_theme(selectedTheme);
     w.setText("lblStatus", `Applied theme preset: "${selectedTheme}"`);
 }).bg("#d97706").color("#ffffff").bold().width(150).height(36);

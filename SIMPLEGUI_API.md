@@ -28,6 +28,10 @@ Welcome to **SimpleGUI**! SimpleGUI is a lightweight, fluent, and beginner-frien
    - [Typed Accessors (`getText`, `getBool`, `getInt`, `getFloat`)](#typed-accessors)
    - [Batch Operations (`enableControls`, `setAll`, `getAll`)](#batch-operations)
    - [File Persistence (`saveValuesToFile`, `loadValuesFromFile`)](#file-persistence)
+   - [Reactive State Store & Key-Value Management](#reactive-state-store)
+   - [App State Persistence & Standard OS User Directories](#app-state-persistence)
+   - [Universal Theme Persistence & Form State Auto-Persistence](#universal-theme-persistence)
+   - [Two-Way Data & Event Binding (`bind`)](#data-event-binding)
 10. [💬 8. In-Window Dialogs, Alerts & Prompts](#dialogs-alerts)
 11. [⏱️ 9. Async Workflows, Busy States & Timers](#async-busy-timers)
     - [Async Busy State (`withBusyState`)](#async-busy-state)
@@ -213,18 +217,39 @@ win.endGrid();
 ```
 
 <a id="layout-card"></a>
-### 4. Container Card (`beginCard` / `endCard`)
-Groups related controls inside a styled visual card box with rounded borders and a header title.
+### 4. Container Card (`beginCard` / `endCard` / `begin_card` / `end_card`)
+Groups related controls inside a styled visual card box with rounded borders, an optional header title, and an optional subtitle caption.
 
 ```typescript
-win.beginCard("👤 Profile Details");
+win.beginCard("👤 Profile Details", "Configure public-facing profile settings");
   win.addTextInput("Display Name").id("txtName");
   win.addTextInput("Email Address").id("txtEmail");
 win.endCard();
 ```
 
+<a id="layout-typography"></a>
+### 5. Typography Helpers (`addHeading`, `addSubheading`, `addCaption`)
+Streamlined header and subheader typography blocks matching modern design systems:
+
+```typescript
+win.addHeading("🚀 Mission Control", "Real-time orbital mechanics & telemetry");
+win.addSubheading("System Health");
+win.addCaption("Sensor updates refresh every 100ms automatically.");
+```
+
+<a id="layout-statusbar"></a>
+### 6. Window Status Bar (`addStatusBar` / `setStatusBarText`)
+Docked or inline status strip for instant application status feedback:
+
+```typescript
+win.addStatusBar("Status: Ready | All background workers active");
+
+// Dynamically update status text at runtime
+win.setStatusBarText("Status: Synchronizing with remote server (84%)...");
+```
+
 <a id="layout-absolute"></a>
-### 5. Absolute Placement (`.at(x, y)` / `.pos(x, y)`)
+### 7. Absolute Placement (`.at(x, y)` / `.pos(x, y)`)
 Override container layout positioning for precise X/Y pixel placement.
 
 ```typescript
@@ -514,6 +539,228 @@ win.saveValuesToFile("./user_settings.json");
 win.loadValuesFromFile("./user_settings.json");
 ```
 
+<a id="reactive-state-store"></a>
+### 🔄 Reactive State Store & Key-Value Management
+
+Updating a state value automatically triggers registered reactive listeners and updates bound UI controls across the entire window:
+
+```typescript
+// Setting & Getting Reactive State
+win.setState("user_role", "Administrator");
+win.setStateInt("counter", 42);
+win.setStateBool("dark_mode", true);
+win.setStateFloat("font_scale", 1.25);
+
+// Check if state key exists
+if (win.hasState("user_role")) {
+    console.log("State key registered!");
+}
+
+const role = win.getState("user_role");                    // string
+const count = win.getStateInt("counter");                 // number
+const isDark = win.getStateBool("dark_mode");             // boolean
+const fallbackRole = win.getStateOr("role", "Guest");     // fallback if key unset
+const fallbackCount = win.getStateIntOr("counter", 0);
+const fallbackFlag = win.getStateBoolOr("flag", false);
+const fallbackScale = win.getStateFloatOr("scale", 1.0);
+
+win.toggleStateBool("dark_mode");        // Toggles boolean state
+win.incrementStateInt("counter", 1);     // Increments integer state
+
+// Delete state entry or clear entire state store
+win.removeState("user_role");
+win.clearState();
+```
+
+#### Reactive State Listeners (`onStateChange`)
+
+```typescript
+win.onStateChange("counter", (w, val) => {
+    w.setText("lbl_counter_display", `Current Count: ${val}`);
+    w.setText("badge_count", `Count: ${val}`);
+});
+
+win.onStateChange("dark_mode", (w, val) => {
+    if (val === "true") {
+        w.setTheme("nord");
+    } else {
+        w.setTheme("apple_light");
+    }
+});
+```
+
+<a id="app-state-persistence"></a>
+### 💾 App State Persistence & Standard OS User Directories
+
+SimpleGUI provides robust, crash-proof state persistence following standard operating system directory conventions for macOS (`~/Library/Application Support`), Windows (`%LOCALAPPDATA%`, `%APPDATA%`), and Linux (`$XDG_STATE_HOME`, `$XDG_CONFIG_HOME`, `~/.local/state`).
+
+All state persistence methods write atomically using temporary files and atomic renaming, preventing corrupted state files across abrupt shutdowns.
+
+```typescript
+// 1. App-Level State Persistence in Recommended OS User Directories
+// Saves state to '<app_state_dir>/state.json'
+win.saveAppState("my_app");
+win.saveAppStateOr("my_app"); // Returns boolean success flag
+
+// Load state upon startup (automatically updates reactive listeners and bound controls)
+if (win.hasSavedAppState("my_app")) {
+    win.loadAppState("my_app");
+}
+
+// Clear persisted state
+win.clearAppState("my_app");
+
+// 2. Automatic State Persistence on Exit
+win.enableAutoSaveState("my_app");
+
+// 3. Window Session & Geometry Persistence (Dimensions, theme, fullscreen, state keys)
+win.saveWindowSession("my_app");
+win.restoreWindowSession("my_app"); // Restores width, height, theme, and state store
+
+// 4. Custom Path JSON Persistence (with automatic ~ and environment variable expansion)
+win.saveStateJson("~/app_state.json");
+win.loadStateJson("~/app_state.json");
+
+// 5. Standalone Atomic State Serialization (no window instance required)
+import { saveStateToFile, loadStateFromFile } from "bun_rad_studio";
+saveStateToFile("~/config.json", stateMap);
+const loadedMap = loadStateFromFile("~/config.json");
+```
+
+<a id="universal-theme-persistence"></a>
+### 🎨 Universal Theme Persistence & Form State Auto-Persistence
+
+SimpleGUI includes an automated persistence engine that works out-of-the-box across all applications with zero extra configuration:
+
+#### 1. Global Theme Persistence & Interactive Theme Switcher
+- **Interactive Theme Selector (`addThemeSelector`)**: Easily drop a theme selector into any header or toolbar with a single call: `win.addThemeSelector("dd_theme", "Theme:")`.
+- **Dynamic Runtime Theme Injection**: When the user picks a theme, SimpleGUI instantly updates `document.body.style.backgroundColor`, `document.body.style.color`, fieldsets, legends, cards, and inputs at runtime with zero page reloads!
+- **Automatic Theme Loading**: Every new window created with `createWindow()` / `new_simple_window()` automatically defaults to the user's preferred saved theme (`getSavedTheme()`).
+- **Immediate Theme Persistence**: Calling `win.setTheme(themeName)` automatically saves the selection to `~/.config/simplegui/theme.txt` via `saveTheme(themeName)`. When a user changes themes, that theme becomes active across all future application launches.
+- **Theme Dropdown Auto-Sync**: Any dropdown named `dd_app_theme`, `dd_theme`, `dd_theme_selector`, or `theme_picker` automatically synchronizes its selected item with the active window theme upon launch.
+
+```typescript
+import { getSavedTheme, saveTheme, listThemes, getThemeKeys } from "bun_rad_studio";
+
+// 1. One-line interactive theme selector
+win.beginRow();
+  win.addHeading("My Studio App");
+  win.addThemeSelector("dd_theme", "Theme:"); // Automatically changes theme and persists state!
+  win.addButton("btn_save", "💾 Save State", (w) => {
+    w.saveAppFormState();
+    w.toast("Workspace saved!");
+  });
+win.endRow();
+
+// 2. Global theme helper methods
+const themeKeys = getThemeKeys();    // ["codefreelance", "apple_dark", "nord", ...]
+const themeNames = listThemes();     // ["CodeFreelance", "Apple Dark", "Nord", ...]
+const currentTheme = getSavedTheme();// e.g. "codefreelance"
+saveTheme("codefreelance");          // Persists theme preference to disk
+win.restoreSavedTheme();             // Loads and applies saved theme to window
+win.setTheme("codefreelance", true); // Dynamically applies colors & persists
+```
+
+#### 2. Automatic Form & Session State Persistence (`form_state.json`)
+Every `SimpleWindow` has `autoSaveState: true` enabled by default:
+- **On Application Startup**: Automatically calls `win.restoreAppFormState()` before the HTML content is rendered. Window geometry (width/height), active theme, reactive state keys, and user form inputs are restored before the first frame displays.
+- **On Application Close (`close()`, `Cmd+Q`, `Cmd+W`, `Ctrl+Q`, `Ctrl+W`)**: Automatically calls `win.saveAppFormState()`.
+- **Application Identification (`appId`)**: The state file is saved under the application's unique ID. If not explicitly set with `win.setAppId("my_id")`, `win.getAppId()` automatically derives a clean snake_case identifier from the window title (e.g. `'OmniTool Studio Pro'` -> `'omnitool_studio_pro'`).
+
+```typescript
+// Form state methods
+win.saveAppFormState();         // Explicitly save form state
+win.saveAppFormStateOr();       // Non-throwing boolean version
+win.restoreAppFormState();      // Manually restore form state
+win.clearAppFormState();        // Clear persisted form state
+
+// App ID customization
+const appId = win.getAppId();    // Cleaned title or script name
+win.setAppId("custom_studio_v2");
+
+// Opting in / out of auto-persistence
+win.disableAutoSave();          // Disables auto save/restore on lifecycle
+win.enableAutoSave();           // Re-enables auto save/restore
+```
+
+#### 3. Intelligent Control Filtering (`shouldPersistControl`)
+To maintain a clean developer experience without stale command outputs or security leaks, SimpleGUI intelligently filters controls:
+
+| Control Type | Examples | Persisted? | Rationale |
+| :--- | :--- | :---: | :--- |
+| **Directory & Paths** | `txt_workspace`, `txt_watch_dir`, `txt_target` | **Yes** | Users expect their last working directory to stay configured. |
+| **Search Queries & Filters** | `txt_search`, `txt_query`, `txt_filter` | **Yes** | Keeps current work context across sessions. |
+| **CLI Arguments & Flags** | `txt_flags`, `txt_args`, `txt_exec_cmd` | **Yes** | Custom flags and command invocations are preserved. |
+| **Dropdown Modes & Presets** | `dd_mode`, `dd_preset`, `dd_format` | **Yes** | Selected tool modes, formats, and presets stay selected. |
+| **Checkbox Options & Toggles** | `chk_case`, `chk_hidden`, `chk_recursive` | **Yes** | Feature toggles remain active across sessions. |
+| **Sliders & Numeric Ranges** | `sl_depth`, `sl_rate`, `sl_volume` | **Yes** | Numeric preferences and tuners are restored. |
+| **User Notes & Templates** | `txt_notes`, `txt_script`, `txt_template` | **Yes** | Content in non-log textareas is preserved. |
+| **Window Geometry & Theme** | `width`, `height`, theme | **Yes** | Window size and theme palette are restored. |
+| **Output Logs & Consoles** | `txt_output`, `txt_stdout`, `txt_console` | **No** | Applications start clean without stale terminal output. |
+| **Sensitive Passwords** | `txt_password`, `txt_secret`, `auth_token` | **No** | Protects user security and credentials. |
+| **Stateless UI Elements** | `btn_*`, `lbl_*`, headings, dividers | **No** | Visual structure is defined by application code. |
+
+<a id="data-event-binding"></a>
+### 🔗 Two-Way Data & Event Binding (`bind`)
+
+SimpleGUI provides ergonomic binding mechanisms to connect UI controls directly to reactive state keys and handle UI events with concise method chaining:
+
+#### 1. Two-Way Control & State Store Binding (`bindState`)
+`bindState` (aliases: `bindControl`, `bindValue`) binds a UI control directly to a key in the application state store.
+- When `win.setState(key, val)` is called anywhere in your app, the control value automatically updates in the UI.
+- When the user edits or interacts with the control (typing text, toggling a checkbox, moving a slider), the state store key automatically updates!
+
+```typescript
+// 1. Create UI controls
+win.addTextInput("Full Name", "Ada Lovelace").id("input_user");
+win.addCheckbox("Enable Notifications", true).id("chk_notifications");
+win.addSlider(0, 100, 75).id("slider_volume");
+
+// 2. Bind controls to state keys (Two-Way Data Binding)
+win.bindState("input_user", "username");
+win.bindControl("chk_notifications", "notify_enabled");
+win.bindValue("slider_volume", "audio_volume");
+
+// Updating state anywhere in your code automatically syncs the UI control!
+win.setState("username", "Alan Turing");
+win.setStateBool("notify_enabled", false);
+
+// Reading state store gets the live user input!
+const user = win.getState("username");
+
+// Fluent chaining directly on SimpleControlRef:
+win.addTextInput("Job Title").id("txt_title").bindState("job_title");
+```
+
+#### 2. Fluent Event & Shortcut Binding Aliases
+
+```typescript
+// Bind click callback
+win.bindClick("btn_submit", (w) => {
+    w.info("Submitted", "Form processed successfully!");
+});
+
+// Bind value change callback
+win.bindChange("theme_picker", (w, val) => {
+    w.setTheme(val);
+});
+
+// Bind Enter key press on input field
+win.bindEnter("input_search", (w) => {
+    const q = w.getText("input_search");
+    console.log(`Search query: ${q}`);
+});
+
+// Bind hover, double-click, and right-click
+win.bindHover("card_box", () => console.log("Hovering"));
+win.bindDblClick("list_item", () => console.log("Double clicked"));
+win.bindRightClick("list_item", () => console.log("Context menu requested"));
+
+// Bind keyboard shortcuts
+win.bindShortcut("Escape", (w) => w.close());
+win.bindShortcut("Ctrl+S", (w) => w.saveAppFormState());
+```
+
 [⬆️ Back to Top](#table-of-contents)
 
 ---
@@ -607,12 +854,13 @@ win.copyToClipboard("Copied from SimpleGUI!");
 ---
 
 <a id="visual-themes"></a>
-## 13. 🎨 11. Built-in Visual Themes (17 Themes)
+## 13. 🎨 11. Built-in Visual Themes (18 Themes)
 
 Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)`:
 
 | Theme Key | Theme Name | Type | Vibe / Description |
 | --- | --- | --- | --- |
+| `codefreelance` | CodeFreelance | 🌙 Dark | Official CodeFreelance (#050505 obsidian base, #121212 cards, #0fb36a emerald & #bd00ff purple accents - codefreelance.net) |
 | `apple_dark` | Apple Dark | 🌙 Dark | Modern macOS Dark Mode canvas (Default) |
 | `apple_light` | Apple Light | ☀️ Light | Clean, bright macOS Aqua light canvas |
 | `midnight` | Midnight | 🌙 Dark | Deep space gray & titanium dark mode |
