@@ -1131,6 +1131,12 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      // Shutdown / Close workstation
+      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && (req.method === "POST" || req.method === "GET")) {
+        setTimeout(() => process.exit(0), 100);
+        return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
+      }
+
       return new Response("Not Found", { status: 404, headers: corsHeaders });
     },
   });
@@ -1142,13 +1148,14 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
 // Worker Message Handling (Isolated OS Background Thread)
 // -------------------------------------------------------------------------------------------------
 
-if (!Bun.isMainThread) {
-  const preferredPort = Number(process.env.PORT) || 0;
+if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "sqlite_studio")) {
+  const preferredPort = 0; // Dynamic ephemeral port prevents any collisions
   const initialDbPath = process.env.SQLITE_DB_PATH || ":memory:";
   const server = startSqliteStudioServer({ port: preferredPort, initialDbPath });
 
   (globalThis as any).postMessage({
     ready: true,
+    type: "sqlite_studio",
     port: server.port,
     url: `http://127.0.0.1:${server.port}`,
   });

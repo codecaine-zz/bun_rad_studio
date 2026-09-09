@@ -145,10 +145,11 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
 // Worker Sub-Process Auto-Bootstrap Mode
 // -------------------------------------------------------------------------------------------------
 
-if (!Bun.isMainThread) {
+if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "system_studio")) {
   const server = startSystemStudioServer({ port: 0 });
   (globalThis as any).postMessage({
     ready: true,
+    type: "system_studio",
     port: server.port,
     url: `http://127.0.0.1:${server.port}`,
   });

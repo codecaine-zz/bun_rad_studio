@@ -2770,6 +2770,9 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
             try { worker.terminate(); } catch {}
             process.exit(0);
           },
+          onFullscreen: () => {
+            toggleFullscreenNative(webview);
+          },
         });
 
         webview.navigate(info.url);

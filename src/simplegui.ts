@@ -3237,16 +3237,18 @@ export class SimpleWindow {
                     document.body.style.zoom = zoomLevel;
                 }
                 function doCloseOrQuit() {
-                    if (window.quitApp) {
+                    if (typeof window.quitApp === "function") {
                         try { window.quitApp(); return; } catch(e) {}
                     }
-                    if (window.closeWindow) {
+                    if (typeof window.closeWindow === "function") {
                         try { window.closeWindow(); return; } catch(e) {}
                     }
-                    if (window.handleWindowCloseIPC) {
+                    if (typeof window.handleWindowCloseIPC === "function") {
                         try { window.handleWindowCloseIPC(); return; } catch(e) {}
                     }
                     try { window.close(); } catch(e) {}
+                    try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
+                    try { fetch("/api/close", { method: "POST" }); } catch(e) {}
                 }
 
                 let lastFullscreenTime = 0;
@@ -3255,21 +3257,21 @@ export class SimpleWindow {
                     if (now - lastFullscreenTime < 500) return;
                     lastFullscreenTime = now;
 
-                    if (typeof window.toggleFullscreen === "function") {
-                        try { window.toggleFullscreen(); return; } catch(e) {}
-                    }
                     if (typeof window.toggleNativeFullscreen === "function") {
                         try { window.toggleNativeFullscreen(); return; } catch(e) {}
                     }
+                    if (typeof window.toggleFullscreen === "function" && window.toggleFullscreen !== doToggleFullscreen) {
+                        try { window.toggleFullscreen(); return; } catch(e) {}
+                    }
                     try {
-                        const isFull = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+                        const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
                         if (!isFull) {
                             const el = document.documentElement;
                             if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                            else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
+                            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
                         } else {
                             if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-                            else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
+                            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                         }
                     } catch(e) {}
                 }
@@ -3332,16 +3334,22 @@ export class SimpleWindow {
                     // - Fn+F / Globe+F (macOS fullscreen)
                     // - F / f (when not inside an input field)
                     // - F11 (standard function key)
+                    const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isFKey;
+                    const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isFKey;
+
+                    // 4. Fullscreen toggle shortcuts:
+                    // - Cmd+F / Ctrl+F (all windows / inputs)
                     // - Cmd+Ctrl+F / Ctrl+Cmd+F (macOS native shortcut ⌃⌘F)
-                    // - Cmd+F / Ctrl+F (when not in an input field)
                     // - Cmd+Shift+F / Ctrl+Shift+F
+                    // - Fn+F / Globe+F (macOS fullscreen)
+                    // - F11 (standard function key)
+                    // - Bare F / f (when not inside an input field)
                     // - Alt+Enter (Windows/Linux standard)
                     if (
-                        (!isInput && isFKey && !e.altKey) ||
+                        isCmdOrCtrlF ||
+                        (!isInput && isBareF) ||
                         (isFn && isFKey) ||
                         e.key === "F11" || e.code === "F11" ||
-                        ((e.metaKey || e.ctrlKey) && e.shiftKey && isFKey) ||
-                        ((e.metaKey && e.ctrlKey) && isFKey) ||
                         (e.altKey && (e.key === "Enter" || e.code === "Enter"))
                     ) {
                         e.preventDefault();
@@ -3353,9 +3361,9 @@ export class SimpleWindow {
                     // Escape: exit fullscreen if currently in fullscreen
                     if (e.key === "Escape" || e.code === "Escape") {
                         try {
-                            if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+                            if (document.fullscreenElement || document.webkitFullscreenElement) {
                                 if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
-                                else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
+                                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                             }
                         } catch(e) {}
                     }

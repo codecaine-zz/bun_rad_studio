@@ -333,31 +333,41 @@ export function getWindowShortcutsScript(): string {
     }
 
     function doCloseOrQuit() {
-        if (window.quitApp) {
+        if (typeof window.quitApp === "function") {
             try { window.quitApp(); return; } catch(e) {}
         }
-        if (window.closeWindow) {
+        if (typeof window.closeWindow === "function") {
             try { window.closeWindow(); return; } catch(e) {}
         }
-        if (window.handleWindowCloseIPC) {
+        if (typeof window.handleWindowCloseIPC === "function") {
             try { window.handleWindowCloseIPC(); return; } catch(e) {}
         }
         try { window.close(); } catch(e) {}
         try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
+        try { fetch("/api/close", { method: "POST" }); } catch(e) {}
+        try {
+            if (!document.getElementById("shutdownOverlay")) {
+                const overlay = document.createElement("div");
+                overlay.id = "shutdownOverlay";
+                overlay.style.cssText = "position:fixed;inset:0;background:rgba(8,11,18,0.94);backdrop-filter:blur(10px);z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:system-ui,-apple-system,sans-serif;";
+                overlay.innerHTML = "<div style='font-size:36px;margin-bottom:12px;'>⚡</div><div style='font-size:20px;font-weight:700;'>Workstation Stopped</div><div style='font-size:13px;color:#94a3b8;margin-top:8px;'>You can now safely close this window.</div>";
+                document.body.appendChild(overlay);
+            }
+        } catch(e) {}
     }
 
     let lastFullscreenTime = 0;
     function doToggleFullscreen() {
         const now = Date.now();
-        if (now - lastFullscreenTime < 500) return;
+        if (now - lastFullscreenTime < 450) return;
         lastFullscreenTime = now;
 
         // 1. Native Desktop Webview IPC (if available, dispatch ONCE and return immediately)
-        if (typeof window.toggleFullscreen === "function" && window.toggleFullscreen !== doToggleFullscreen) {
-            try { window.toggleFullscreen(); return; } catch(e) {}
-        }
         if (typeof window.toggleNativeFullscreen === "function") {
             try { window.toggleNativeFullscreen(); return; } catch(e) {}
+        }
+        if (typeof window.toggleFullscreen === "function" && window.toggleFullscreen !== doToggleFullscreen) {
+            try { window.toggleFullscreen(); return; } catch(e) {}
         }
 
         // 2. HTML5 Fullscreen API (standard browsers and WebKit only when native IPC is unavailable)
@@ -440,10 +450,19 @@ export function getWindowShortcutsScript(): string {
             return false;
         }
 
+        const keyLower = (e.key || "").toLowerCase();
+        const code = e.code || "";
+        const isQ = keyLower === "q" || code === "KeyQ";
+        const isW = keyLower === "w" || code === "KeyW";
+        const isF = keyLower === "f" || code === "KeyF";
+        const isM = keyLower === "m" || code === "KeyM";
+        const isT = keyLower === "t" || code === "KeyT";
+        const isC = keyLower === "c" || code === "KeyC";
+
         // 3. Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
         if (
-            ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
-            (e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+            ((e.metaKey || e.ctrlKey) && (isQ || isW)) ||
+            (e.altKey && (isQ || isW || e.key === "F4" || code === "F4"))
         ) {
             e.preventDefault();
             doCloseOrQuit();
@@ -451,24 +470,24 @@ export function getWindowShortcutsScript(): string {
         }
 
         const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
-        const isFKey = e.key === "f" || e.key === "F" || e.code === "KeyF" || (typeof e.key === "string" && e.key.toLowerCase() === "f");
         const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+        const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isF;
+        const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isF;
 
         // 4. Fullscreen toggle shortcuts:
-        // - Fn+F / Globe+F (macOS fullscreen)
-        // - F / f (when not inside an input field)
-        // - F11 (standard function key)
+        // - Cmd+F / Ctrl+F (all windows / editors)
         // - Cmd+Ctrl+F / Ctrl+Cmd+F (macOS native shortcut ⌃⌘F)
-        // - Cmd+F / Ctrl+F (when not in an input field)
         // - Cmd+Shift+F / Ctrl+Shift+F
+        // - Fn+F / Globe+F (macOS fullscreen)
+        // - F11 (standard function key)
+        // - F / f (when not inside an input field)
         // - Alt+Enter (Windows/Linux standard)
         if (
-            (!isInput && isFKey && !e.altKey) ||
-            (isFn && isFKey) ||
-            e.key === "F11" || e.code === "F11" ||
-            ((e.metaKey || e.ctrlKey) && e.shiftKey && isFKey) ||
-            ((e.metaKey && e.ctrlKey) && isFKey) ||
-            (e.altKey && (e.key === "Enter" || e.code === "Enter"))
+            isCmdOrCtrlF ||
+            (!isInput && isBareF) ||
+            (isFn && isF) ||
+            e.key === "F11" || code === "F11" ||
+            (e.altKey && (e.key === "Enter" || code === "Enter"))
         ) {
             e.preventDefault();
             e.stopPropagation();
@@ -477,7 +496,7 @@ export function getWindowShortcutsScript(): string {
         }
 
         // Escape: exit fullscreen if currently in fullscreen
-        if (e.key === "Escape" || e.code === "Escape") {
+        if (e.key === "Escape" || code === "Escape") {
             try {
                 if (document.fullscreenElement || document.webkitFullscreenElement) {
                     if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
@@ -487,9 +506,7 @@ export function getWindowShortcutsScript(): string {
         }
 
         // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
-        if (
-            ((e.metaKey || e.ctrlKey || e.altKey) && (e.key.toLowerCase() === "m" || e.code === "KeyM"))
-        ) {
+        if ((e.metaKey || e.ctrlKey || e.altKey) && isM) {
             if (!isInput) {
                 e.preventDefault();
                 if (window.minimizeWindow) window.minimizeWindow();
@@ -499,8 +516,8 @@ export function getWindowShortcutsScript(): string {
 
         // 6. Always-on-top toggle: Cmd+Shift+T, Ctrl+Shift+T, Alt+T
         if (
-            ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "t" || e.code === "KeyT")) ||
-            (e.altKey && !e.ctrlKey && !e.metaKey && (e.key.toLowerCase() === "t" || e.code === "KeyT"))
+            ((e.metaKey || e.ctrlKey) && e.shiftKey && isT) ||
+            (e.altKey && !e.ctrlKey && !e.metaKey && isT)
         ) {
             if (!isInput) {
                 e.preventDefault();
@@ -510,7 +527,7 @@ export function getWindowShortcutsScript(): string {
         }
 
         // 7. Center window: Cmd+Shift+C, Ctrl+Shift+C
-        if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "c" || e.code === "KeyC")) {
+        if ((e.metaKey || e.ctrlKey) && e.shiftKey && isC) {
             if (!isInput) {
                 e.preventDefault();
                 if (window.centerWindow) window.centerWindow();
@@ -2922,10 +2939,16 @@ ${controls}
       return false;
     }
 
+    const keyLower = (e.key || "").toLowerCase();
+    const code = e.code || "";
+    const isQ = keyLower === "q" || code === "KeyQ";
+    const isW = keyLower === "w" || code === "KeyW";
+    const isF = keyLower === "f" || code === "KeyF";
+
     // 3. Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
     if (
-      ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
-      (e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+      ((e.metaKey || e.ctrlKey) && (isQ || isW)) ||
+      (e.altKey && (isQ || isW || e.key === "F4" || code === "F4"))
     ) {
       e.preventDefault();
       doCloseOrQuit();
@@ -2933,20 +2956,21 @@ ${controls}
     }
 
     const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
-    const isFKey = e.key.toLowerCase() === "f" || e.code === "KeyF";
-    const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+    const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable);
+    const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isF;
+    const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isF;
 
-    // 4. Fullscreen toggle shortcuts: Fn+F (macOS system fullscreen), F11, Cmd+Ctrl+F, Cmd+F, Alt+Enter
+    // 4. Fullscreen toggle shortcuts: Cmd+F, Ctrl+F, Fn+F, F11, Cmd+Ctrl+F, Alt+Enter, bare F
     if (
+      isCmdOrCtrlF ||
+      (!isInput && isBareF) ||
       (isFn && isFKey) ||
       e.key === "F11" || e.code === "F11" ||
-      ((e.metaKey && e.ctrlKey) && isFKey) ||
-      (!isInput && (e.metaKey || e.ctrlKey) && isFKey) ||
       (e.altKey && (e.key === "Enter" || e.code === "Enter"))
     ) {
       e.preventDefault();
-      if (window.toggleFullscreen) window.toggleFullscreen();
-      else if (window.toggleNativeFullscreen) window.toggleNativeFullscreen();
+      if (window.toggleNativeFullscreen) window.toggleNativeFullscreen();
+      else if (window.toggleFullscreen) window.toggleFullscreen();
       return;
     }
 
@@ -3013,4 +3037,3 @@ ${controls}
 </body>
 </html>`;
 }
-

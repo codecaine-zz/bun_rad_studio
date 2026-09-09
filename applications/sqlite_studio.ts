@@ -21,14 +21,17 @@ import {
   attachWindowShortcuts,
   getWindowShortcutsScript,
 } from "../index.ts";
+import { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 
-export interface SystemStudioOptions {
+export interface SqliteStudioOptions {
   fullscreen?: boolean;
   width?: number;
   height?: number;
   alwaysOnTop?: boolean;
   initialDbPath?: string;
+  port?: number;
 }
+export type SystemStudioOptions = SqliteStudioOptions;
 
 export interface SqliteStudioInstance {
   title: string;
@@ -1969,16 +1972,23 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
     run: async () => {
       console.log("⚡ Launching SQLite Studio Pro (Enterprise Database Workstation)...");
 
-      // 1. Launch Isolated Background Database Engine Worker
+      // 1. Launch Isolated Background Database Worker Engine
+      // This runs on a dedicated OS thread with its own independent Bun event loop,
+      // guaranteeing zero deadlock and instant sub-millisecond responses while Webview runs on the main thread.
+      process.env.STUDIO_WORKER = "sqlite_studio";
+      if (activeDbPath) process.env.SQLITE_DB_PATH = activeDbPath;
+
       const workerUrl = new URL("./sqlite_studio_server.ts", import.meta.url);
       const worker = new Worker(workerUrl);
       app.worker = worker;
 
-      const info: { ready: boolean; port: number; url: string } = await new Promise((res, rej) => {
+      const info: { ready: boolean; port: number; url: string; type?: string } = await new Promise((res, rej) => {
         const timer = setTimeout(() => rej(new Error("Timeout initializing background database engine")), 8000);
         worker.onmessage = (e) => {
-          clearTimeout(timer);
-          res(e.data);
+          if (!e.data?.type || e.data.type === "sqlite_studio") {
+            clearTimeout(timer);
+            res(e.data);
+          }
         };
         worker.onerror = (err) => {
           clearTimeout(timer);
@@ -1989,6 +1999,11 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
       app.port = info.port;
       app.url = info.url;
       console.log(`⚡ Background Database Server active at: ${info.url}`);
+
+      // Warm check: Ensure TCP listener and HTTP server are accepting requests before Webview navigates
+      try {
+        await fetch(info.url);
+      } catch {}
 
       // 2. Native Webview Window
       try {
@@ -2018,6 +2033,9 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
             try { worker.terminate(); } catch {}
             process.exit(0);
           },
+          onFullscreen: () => {
+            toggleFullscreenNative(webview);
+          },
         });
 
         webview.navigate(info.url);
@@ -2028,7 +2046,7 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
       } catch (err: any) {
         console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
       } finally {
-        worker.terminate();
+        try { worker.terminate(); } catch {}
       }
     },
   };
