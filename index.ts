@@ -805,8 +805,10 @@ export function generatePreviewHtml(spec: any): string {
         const reqAttr = c.required ? ' required' : '';
         const maxLenAttr = c.max_length !== undefined && c.max_length !== null && c.max_length !== '' ? ` maxlength="${c.max_length}"` : '';
         const autoFocusAttr = c.auto_focus ? ' autofocus' : '';
-        const minAttr = c.min_value !== undefined && c.min_value !== null && c.min_value !== '' ? ` min="${c.min_value}"` : '';
-        const maxAttr = c.max_value !== undefined && c.max_value !== null && c.max_value !== '' ? ` max="${c.max_value}"` : '';
+        const minVal = c.min_value !== undefined ? c.min_value : c.min;
+        const minAttr = minVal !== undefined && minVal !== null && minVal !== '' ? ` min="${minVal}"` : '';
+        const maxVal = c.max_value !== undefined ? c.max_value : c.max;
+        const maxAttr = maxVal !== undefined && maxVal !== null && maxVal !== '' ? ` max="${maxVal}"` : '';
         const stepAttr = c.step !== undefined && c.step !== null && c.step !== '' ? ` step="${c.step}"` : '';
 
         if (c.hover_color || c.hover_text_color) {
@@ -914,7 +916,7 @@ export function generatePreviewHtml(spec: any): string {
             const justify = showTrend ? 'space-between' : 'center';
             const valSize = c.value_font_size || (showTrend ? 22 : 19);
             const valColor = c.value_color || color;
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:${pad};display:flex;flex-direction:column;justify-content:${justify};gap:2px;box-sizing:border-box;"><div style="font-size:${c.font_size || 10}px;color:${color};opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${text}</div><div style="font-size:${valSize}px;font-weight:800;color:${valColor};line-height:1.2;">${c.value||'—'}</div>${trendHtml}</div>\n`;
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:${pad};display:flex;flex-direction:column;justify-content:${justify};gap:2px;box-sizing:border-box;"><div style="font-size:${c.font_size || 10}px;color:${color};opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${text}</div><div style="font-size:${valSize}px;font-weight:800;color:${valColor};line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value||'—'}</div>${trendHtml}</div>\n`;
         } else if (t === 'alert_banner') {
             const alertCol = c.alert_type === 'error' ? '#ef4444' : c.alert_type === 'warning' ? '#f59e0b' : c.alert_type === 'success' ? '#10b981' : accent;
             const alertIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'success' ? '✅' : 'ℹ️';
