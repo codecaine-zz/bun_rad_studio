@@ -13,7 +13,7 @@ import si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
-import { setAlwaysOnTopNative, setWindowPositionNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
+import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
 
 // -------------------------------------------------------------------------------------------------
 // API Registry & Domain Metadata (All 60 Methods Across 10 Domain Categories)
@@ -902,20 +902,41 @@ export function generateEnterpriseAppHtml(): string {
     .workspace {
       display: flex;
       flex: 1;
+      min-height: 0;
       overflow: hidden;
+      position: relative;
     }
 
-    /* Left Sidebar: 360px Fixed Width (No Flutter, No Shift, No Cutoff) */
+    /* Left Sidebar: Adjustable Width with Smooth Scrolling & Zero Cutoff */
     aside {
-      width: 360px;
-      min-width: 360px;
-      max-width: 360px;
+      width: 380px;
+      min-width: 280px;
+      max-width: 650px;
       background: rgba(10, 15, 28, 0.98);
       border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
       overflow: hidden;
+      position: relative;
+    }
+
+    /* Draggable Splitter Handle */
+    .sidebar-resizer {
+      width: 6px;
+      margin-left: -3px;
+      cursor: col-resize;
+      background: transparent;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 60;
+      transition: background 0.15s ease;
+    }
+
+    .sidebar-resizer:hover,
+    .sidebar-resizer.resizing {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
     }
 
     .search-box {
@@ -955,16 +976,43 @@ export function generateEnterpriseAppHtml(): string {
       font-size: 12px;
     }
 
+    /* Sidebar Sub-Toolbar */
+    .sidebar-subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 0 2px;
+    }
+
+    .sidebar-mini-btn {
+      font-size: 10px;
+      padding: 2px 7px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .sidebar-mini-btn:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
     /* Category Filter Pills */
     .cat-filter-scroll {
       display: flex;
       gap: 4px;
       overflow-x: auto;
       padding-bottom: 2px;
-    }
-
-    .cat-filter-scroll::-webkit-scrollbar {
-      height: 3px;
+      scrollbar-width: thin;
     }
 
     .cat-pill-btn {
@@ -991,13 +1039,37 @@ export function generateEnterpriseAppHtml(): string {
       font-weight: 700;
     }
 
+    /* Category & Method List Pane with Scroll Feature */
     .cat-list {
-      flex: 1;
+      flex: 1 1 0;
+      min-height: 0;
+      height: 0;
       overflow-y: auto;
+      overflow-x: auto;
       padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 6px;
+      scrollbar-gutter: stable;
+    }
+
+    /* Modern sleek dark scrollbars across entire studio */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.5);
     }
 
     .cat-group {
@@ -1005,6 +1077,9 @@ export function generateEnterpriseAppHtml(): string {
       overflow: hidden;
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.04);
+      flex-shrink: 0;
+      min-width: 100%;
+      box-sizing: border-box;
     }
 
     .cat-header {
@@ -1018,11 +1093,32 @@ export function generateEnterpriseAppHtml(): string {
       justify-content: space-between;
       transition: background 0.1s;
       min-width: 0;
+      flex-shrink: 0;
+      min-height: 32px;
+      user-select: none;
     }
 
     .cat-header:hover {
       background: rgba(255, 255, 255, 0.06);
       color: var(--text-main);
+    }
+
+    .cat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .cat-arrow {
+      font-size: 9px;
+      color: var(--text-dim);
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+      width: 12px;
+      display: inline-block;
+      text-align: center;
     }
 
     .cat-header-title {
@@ -1064,6 +1160,8 @@ export function generateEnterpriseAppHtml(): string {
       transition: background 0.1s ease, color 0.1s ease;
       min-width: 0;
       white-space: nowrap;
+      flex-shrink: 0;
+      min-height: 28px;
     }
 
     .method-btn:hover {
@@ -1484,12 +1582,22 @@ export function generateEnterpriseAppHtml(): string {
 
   <!-- Workspace -->
   <div class="workspace">
-    <!-- Left Navigation Sidebar: 360px Fixed Width (No Flutter, No Text Cutoff) -->
-    <aside>
+    <!-- Left Navigation Sidebar: Adjustable Width with Smooth Scrolling & Zero Cutoff -->
+    <aside id="mainSidebar">
       <div class="search-box">
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
           <input type="text" class="search-input" id="searchApis" placeholder="Filter 60 APIs (e.g. cpu, docker, wifi)..." oninput="filterMethods(this.value)">
+        </div>
+
+        <!-- Sidebar Tools: Expand/Collapse & Width Controls -->
+        <div class="sidebar-subbar">
+          <button class="sidebar-mini-btn" id="btnToggleAllCats" onclick="toggleAllCategories()" title="Expand or Collapse All Categories">📁 Collapse All</button>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <button class="sidebar-mini-btn" onclick="adjustSidebarWidth(-30)" title="Shrink sidebar width">◀</button>
+            <button class="sidebar-mini-btn" onclick="toggleSidebarWidth()" title="Toggle standard / wide layout">↔ Width</button>
+            <button class="sidebar-mini-btn" onclick="adjustSidebarWidth(30)" title="Expand sidebar width">▶</button>
+          </div>
         </div>
 
         <!-- Category Filter Pills -->
@@ -1512,6 +1620,9 @@ export function generateEnterpriseAppHtml(): string {
         <!-- Rendered dynamically -->
       </div>
     </aside>
+
+    <!-- Draggable Sidebar Resizer Splitter -->
+    <div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize sidebar width | Double-click to toggle width"></div>
 
     <!-- Main Detail & Results Area -->
     <main>
@@ -1619,8 +1730,37 @@ export function generateEnterpriseAppHtml(): string {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Sidebar Rendering (360px Fixed Width, Zero Flutter, No Cutoff)
+    // Sidebar Rendering & Collapse/Expand Management
     // ---------------------------------------------------------------------------------------------
+    const collapsedCategories = new Set();
+
+    function toggleCategoryCollapse(cat, e) {
+      if (e) e.stopPropagation();
+      if (collapsedCategories.has(cat)) {
+        collapsedCategories.delete(cat);
+      } else {
+        collapsedCategories.add(cat);
+      }
+      updateCollapseButtonLabel();
+      renderSidebar();
+    }
+
+    function toggleAllCategories() {
+      if (collapsedCategories.size > 0) {
+        collapsedCategories.clear();
+      } else {
+        ALL_CATEGORIES.forEach(cat => collapsedCategories.add(cat));
+      }
+      updateCollapseButtonLabel();
+      renderSidebar();
+    }
+
+    function updateCollapseButtonLabel() {
+      const btn = document.getElementById("btnToggleAllCats");
+      if (!btn) return;
+      btn.textContent = collapsedCategories.size > 0 ? "📂 Expand All" : "📁 Collapse All";
+    }
+
     function renderSidebar() {
       const container = document.getElementById("catListContainer");
       container.innerHTML = "";
@@ -1641,37 +1781,147 @@ export function generateEnterpriseAppHtml(): string {
           if (methodsInCat.length === 0) return;
         }
 
+        const isCollapsed = query ? false : collapsedCategories.has(cat);
         const group = document.createElement("div");
         group.className = "cat-group";
 
         const header = document.createElement("div");
         header.className = "cat-header";
-        header.title = "Click to select and run " + cat;
-        header.style.cursor = "pointer";
-        header.innerHTML = \`<span class="cat-header-title">\${cat}</span><span class="cat-count-badge">\${methodsInCat.length}</span>\`;
-        header.onclick = () => {
-          if (methodsInCat.length > 0) {
+        header.title = (isCollapsed ? "Expand " : "Collapse ") + cat + " (Click arrow to toggle, or title to run first method)";
+        
+        const headerLeft = document.createElement("div");
+        headerLeft.className = "cat-header-left";
+        
+        const arrow = document.createElement("span");
+        arrow.className = "cat-arrow";
+        arrow.textContent = isCollapsed ? "▶" : "▼";
+        arrow.onclick = (e) => toggleCategoryCollapse(cat, e);
+        
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "cat-header-title";
+        titleSpan.textContent = cat;
+        titleSpan.title = cat;
+        titleSpan.onclick = () => {
+          if (isCollapsed) {
+            toggleCategoryCollapse(cat);
+          } else if (methodsInCat.length > 0) {
             selectMethod(methodsInCat[0].name, true);
           }
         };
+
+        headerLeft.appendChild(arrow);
+        headerLeft.appendChild(titleSpan);
+
+        const badge = document.createElement("span");
+        badge.className = "cat-count-badge";
+        badge.textContent = methodsInCat.length;
+        badge.title = methodsInCat.length + " methods in " + cat;
+        badge.onclick = (e) => toggleCategoryCollapse(cat, e);
+
+        header.appendChild(headerLeft);
+        header.appendChild(badge);
         group.appendChild(header);
 
-        const items = document.createElement("div");
-        items.className = "method-items";
+        if (!isCollapsed) {
+          const items = document.createElement("div");
+          items.className = "method-items";
 
-        methodsInCat.forEach(m => {
-          const btn = document.createElement("div");
-          btn.className = "method-btn" + (m.name === activeMethod ? " active" : "");
-          btn.id = "btn_m_" + m.name;
-          btn.title = m.name + "() - " + m.description;
-          btn.innerHTML = \`<span class="method-name-text">\${m.name}</span><span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0;">\${m.acceptsParam ? '⚙️' : ''}</span>\`;
-          btn.onclick = () => selectMethod(m.name, true);
-          items.appendChild(btn);
-        });
+          methodsInCat.forEach(m => {
+            const btn = document.createElement("div");
+            btn.className = "method-btn" + (m.name === activeMethod ? " active" : "");
+            btn.id = "btn_m_" + m.name;
+            btn.title = m.name + "() - " + m.description;
+            btn.innerHTML = \`<span class="method-name-text" title="\${m.name}()">\${m.name}</span><span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0; margin-left: 6px;">\${m.acceptsParam ? '⚙️' : ''}</span>\`;
+            btn.onclick = () => selectMethod(m.name, true);
+            items.appendChild(btn);
+          });
 
-        group.appendChild(items);
+          group.appendChild(items);
+        }
+
         container.appendChild(group);
       });
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Resizable Sidebar Controller
+    // ---------------------------------------------------------------------------------------------
+    function initSidebarResizer() {
+      const aside = document.getElementById("mainSidebar");
+      const resizer = document.getElementById("sidebarResizer");
+      if (!aside || !resizer) return;
+
+      const savedWidth = localStorage.getItem("system_studio_sidebar_width");
+      if (savedWidth) {
+        const w = parseInt(savedWidth, 10);
+        if (w >= 280 && w <= 700) {
+          aside.style.width = w + "px";
+        }
+      }
+
+      let isResizing = false;
+      let startX = 0;
+      let startW = 0;
+
+      resizer.addEventListener("mousedown", (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startW = aside.getBoundingClientRect().width;
+        resizer.classList.add("resizing");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isResizing) return;
+        const delta = e.clientX - startX;
+        const newW = Math.max(280, Math.min(650, startW + delta));
+        aside.style.width = newW + "px";
+        localStorage.setItem("system_studio_sidebar_width", String(newW));
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isResizing) {
+          isResizing = false;
+          resizer.classList.remove("resizing");
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        }
+      });
+
+      resizer.addEventListener("dblclick", () => {
+        toggleSidebarWidth();
+      });
+
+      // Mouse wheel horizontal scrolling on category filter bar
+      const catBar = document.getElementById("catFilterBar");
+      if (catBar) {
+        catBar.addEventListener("wheel", (e) => {
+          if (e.deltaY !== 0) {
+            e.preventDefault();
+            catBar.scrollLeft += e.deltaY;
+          }
+        }, { passive: false });
+      }
+    }
+
+    function toggleSidebarWidth() {
+      const aside = document.getElementById("mainSidebar");
+      if (!aside) return;
+      const curW = aside.getBoundingClientRect().width;
+      const targetW = curW > 420 ? 380 : 520;
+      aside.style.width = targetW + "px";
+      localStorage.setItem("system_studio_sidebar_width", String(targetW));
+    }
+
+    function adjustSidebarWidth(delta) {
+      const aside = document.getElementById("mainSidebar");
+      if (!aside) return;
+      const curW = aside.getBoundingClientRect().width;
+      const targetW = Math.max(280, Math.min(650, curW + delta));
+      aside.style.width = targetW + "px";
+      localStorage.setItem("system_studio_sidebar_width", String(targetW));
     }
 
     function filterByCategory(cat) {
@@ -2380,8 +2630,31 @@ export function generateEnterpriseAppHtml(): string {
       document.getElementById("footerClock").textContent = new Date().toLocaleTimeString();
     }, 1000);
 
+    window.doToggleFullscreen = function() {
+      if (window.toggleFullscreen) {
+        window.toggleFullscreen();
+      } else if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+
+    // If accessed via external browser tab, automatically enter fullscreen on first user interaction
+    let autoFullscreenAttempted = false;
+    function attemptBrowserFullscreen() {
+      if (autoFullscreenAttempted) return;
+      autoFullscreenAttempted = true;
+      if (!window.toggleFullscreen && !document.fullscreenElement && document.fullscreenEnabled) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+    window.addEventListener("click", attemptBrowserFullscreen, { once: true });
+    window.addEventListener("keydown", attemptBrowserFullscreen, { once: true });
+
     window.addEventListener("DOMContentLoaded", async () => {
       try {
+        initSidebarResizer();
         renderSidebar();
         await refreshKpiCards();
         await selectMethod("system", true);
@@ -2407,10 +2680,18 @@ ${getWindowShortcutsScript()}
 // Application Instance & Window Factory
 // -------------------------------------------------------------------------------------------------
 
+export interface SystemStudioOptions {
+  fullscreen?: boolean;
+  width?: number;
+  height?: number;
+  alwaysOnTop?: boolean;
+}
+
 export interface SystemStudioInstance {
   title: string;
   width: number;
   height: number;
+  fullscreen: boolean;
   webview?: Webview;
   server?: any;
   worker?: Worker;
@@ -2423,15 +2704,17 @@ export interface SystemStudioInstance {
 /**
  * Creates the Complete Enterprise-Grade System Information Studio Application
  */
-export function createSystemInformationStudio(): SystemStudioInstance {
-  const width = 1260;
-  const height = 900;
+export function createSystemInformationStudio(options: SystemStudioOptions = {}): SystemStudioInstance {
+  const fullscreen = options.fullscreen ?? true;
+  const width = options.width ?? 1260;
+  const height = options.height ?? 900;
   const title = "System Information Studio Pro -- Complete Cross-Platform Hardware Intelligence Suite";
 
   const app: SystemStudioInstance = {
     title,
     width,
     height,
+    fullscreen,
     generateHtml: () => generateEnterpriseAppHtml(),
     run: async () => {
       console.log("⚡ Launching System Information Studio Pro (All 60 APIs)...");
@@ -2472,7 +2755,10 @@ export function createSystemInformationStudio(): SystemStudioInstance {
 
         try {
           setWindowPositionNative(webview, "center", width, height);
-          setAlwaysOnTopNative(webview, false);
+          setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
+          if (fullscreen) {
+            toggleFullscreenNative(webview);
+          }
         } catch {}
 
         attachWindowShortcuts(webview, {
@@ -2487,7 +2773,7 @@ export function createSystemInformationStudio(): SystemStudioInstance {
         });
 
         webview.navigate(info.url);
-        console.log(`⚡ Native desktop workstation window open. (Also accessible in any browser at: ${info.url})`);
+        console.log(`⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). (Also accessible in any browser at: ${info.url})`);
 
         // Start native desktop message loop on main thread
         webview.run();
