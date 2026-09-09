@@ -161,7 +161,7 @@ function findExternalJq(): string | null {
 
 export function createJqStudio(): SimpleWindow {
   const externalJq = findExternalJq();
-  const win = newSimpleWindow("JQ Studio Pro -- Native JSON Query & Transformation Workbench", 1120, 880, {
+  const win = newSimpleWindow("JSON Query Studio Pro (JQ Studio Pro) -- Native JSON Query & Transformation Workbench", 1120, 880, {
     appId: "jq_studio",
     theme: getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
@@ -169,7 +169,7 @@ export function createJqStudio(): SimpleWindow {
 
   // Header Bar
   win.beginRow();
-  win.addHeading("JQ Studio Pro");
+  win.addHeading("JSON Query Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center");

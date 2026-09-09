@@ -9,6 +9,11 @@ import { createDataConvertStudio } from "../applications/dataconvert_studio";
 import { createCryptoStudio } from "../applications/crypto_studio";
 import { createWatchexecStudio } from "../applications/watchexec_studio";
 import { createAppBundlerStudio } from "../applications/app_bundler_studio";
+import { createNetworkStudio } from "../applications/network_studio";
+import { createGitStudio } from "../applications/git_studio";
+import { createMarkdownStudio } from "../applications/markdown_studio";
+import { createColorStudio } from "../applications/color_studio";
+import { createEnvStudio } from "../applications/env_studio";
 import { createCodeFreelanceShowcase } from "../demos/20_codefreelance_theme_demo";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
@@ -26,6 +31,11 @@ const apps: Record<string, () => any> = {
   "crypto_studio": createCryptoStudio,
   "watchexec_studio": createWatchexecStudio,
   "app_bundler_studio": createAppBundlerStudio,
+  "network_studio": createNetworkStudio,
+  "git_studio": createGitStudio,
+  "markdown_studio": createMarkdownStudio,
+  "color_studio": createColorStudio,
+  "env_studio": createEnvStudio,
   "codefreelance_theme": createCodeFreelanceShowcase,
 };
 

@@ -1,10 +1,10 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { writeFileSync, mkdirSync, existsSync, statSync } from "fs";
+import { join, resolve, basename } from "path";
 
 export function createAppBundlerStudio(): SimpleWindow {
-  const win = newSimpleWindow("App Bundler Studio Pro -- macOS .app Bundle & DMG Builder", 1140, 880, {
+  const win = newSimpleWindow("App Bundler Studio Pro -- Enterprise Binary & macOS .app Compiler", 1160, 920, {
     appId: "app_bundler_studio",
     theme: getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
@@ -15,93 +15,68 @@ export function createAppBundlerStudio(): SimpleWindow {
   win.addHeading("App Bundler Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save Config");
-  win.addButton("btn_center", "Center");
+  win.addButton("btn_center", "Center Window");
   win.endRow();
+  win.addCaption("Enterprise Standalone Executable Compiler (bun build --compile) & macOS .app Bundler");
 
   // App Identity Configuration
-  win.beginGroupBox("Application Identity & Bundle Metadata");
+  win.beginGroupBox("Application Identity & Compilation Targets");
   win.beginRow();
   win.addLabel("lbl_app_name", "Application Name:");
-  win.addInput("txt_app_name", "OmniTool Studio").width(240);
-  win.addLabel("lbl_bundle_id", "Bundle Identifier:");
-  win.addInput("txt_bundle_id", "com.codecaine.omnitool").width(260);
+  win.addInput("txt_app_name", "DevToolsStudio").width(220);
+  win.addLabel("lbl_target", "Target Binary:");
+  win.addDropdown(
+    "dd_target",
+    [
+      "Native Host (Auto)",
+      "bun-darwin-arm64 (macOS Apple Silicon)",
+      "bun-darwin-x64 (macOS Intel)",
+      "bun-linux-x64 (Linux Server)",
+      "bun-windows-x64 (Windows x64)",
+    ],
+    "Native Host (Auto)"
+  ).width(260);
+  win.addButton("btn_compile_binary", "⚡ Compile Standalone Binary");
   win.endRow();
 
   win.beginRow();
+  win.addLabel("lbl_exec_path", "Entry Script:");
+  win.addInput("txt_exec_path", "./applications/devtools_studio.ts").width(440);
   win.addLabel("lbl_version", "Version:");
   win.addInput("txt_version", "1.0.0").width(120);
-  win.addLabel("lbl_icon_preset", "Icon Preset:");
-  win.addDropdown("dd_icon_preset", [
-    "1. Developer Tools (Terminal/Code)",
-    "2. Database & Studio",
-    "3. Media & Graphics",
-    "4. Security & Cryptography",
-    "5. System Utility",
-  ], "1. Developer Tools (Terminal/Code)");
+  win.addButton("btn_build_bundle", "🍎 Build macOS .app");
   win.endRow();
 
   win.beginRow();
-  win.addLabel("lbl_exec_path", "Executable / Script Path:");
-  win.addInput("txt_exec_path", process.cwd() + "/applications/omnitool_studio.ts").width(520);
-  win.endRow();
-  win.endGroupBox();
-
-  // Bundle Options
-  win.beginGroupBox("macOS Packaging & Security Options");
-  win.beginRow();
-  win.addCheckbox("chk_codesign", "Ad-hoc Code Sign (codesign -s -)", true);
-  win.addCheckbox("chk_high_dpi", "High Resolution Capable (Retina NSHighResolutionCapable)", true);
-  win.addCheckbox("chk_dark_mode", "Dark Mode Supported (NSRequiresAquaSystemAppearance=NO)", true);
-  win.addCheckbox("chk_open_finder", "Reveal in Finder upon completion", false);
-  win.endRow();
-
-  win.beginRow();
-  win.addButton("btn_build_bundle", "🚀 Build .app Bundle");
-  win.addButton("btn_preview_plist", "Preview Info.plist");
-  win.addButton("btn_build_dmg", "💿 Build DMG Archive");
+  win.addCheckbox("chk_minify", "Minify Bytecode (--minify)", true);
+  win.addCheckbox("chk_sourcemap", "Include Sourcemaps", false);
+  win.addCheckbox("chk_codesign", "Ad-hoc Codesign (codesign -s -)", true);
+  win.addCheckbox("chk_retina", "Retina High-DPI Support", true);
   win.endRow();
   win.endGroupBox();
 
   // Preview Box
-  win.beginGroupBox("Generated Info.plist / Bundle Manifest Preview");
-  win.addTextarea("txt_plist_preview", `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleExecutable</key>
-  <string>OmniTool Studio</string>
-  <key>CFBundleIdentifier</key>
-  <string>com.codecaine.omnitool</string>
-  <key>CFBundleName</key>
-  <string>OmniTool Studio</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>1.0.0</string>
-  <key>NSHighResolutionCapable</key>
-  <true/>
-  <key>NSRequiresAquaSystemAppearance</key>
-  <false/>
-</dict>
-</plist>`);
+  win.beginGroupBox("Generated Bundle Manifest / Compiler Configuration");
+  win.addTextarea(
+    "txt_plist_preview",
+    `# Enterprise Compiler Spec
+Target Binary: Native Host
+Entrypoint:    ./applications/devtools_studio.ts
+Output Dir:    ./dist
+Flags:         --compile --minify
+Status:        Ready to produce self-contained single-executable zero-dependency binary.`
+  ).height(75);
   win.endGroupBox();
 
   // Telemetry Console
-  win.beginGroupBox("Bundler Execution & Build Log");
-  win.addConsole("bundler_console", 100);
+  win.beginGroupBox("Compiler Execution, Codesign & Artifact Telemetry");
+  win.addConsole("bundler_console", 110);
   win.endGroupBox();
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready  |  Target Output: ~/Desktop or ./dist  |  macOS Cocoa Ready");
+  win.addLabel("lbl_status", "Status: Ready  |  Output: ./dist  |  Compiler: Bun Built-In Bytecode Engine");
   win.endRow();
-
-  // Handlers
-  win.onClick("btn_center", () => win.center());
-  win.onClick("btn_save_state", (w) => {
-    w.saveAppFormState();
-    w.toast("App Bundler configuration saved successfully!");
-  });
 
   const generatePlist = (name: string, id: string, ver: string) => {
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -126,22 +101,57 @@ export function createAppBundlerStudio(): SimpleWindow {
 </plist>`;
   };
 
-  win.onClick("btn_preview_plist", () => {
-    const name = win.getValue("txt_app_name") || "MyApp";
-    const id = win.getValue("txt_bundle_id") || "com.app";
-    const ver = win.getValue("txt_version") || "1.0.0";
-    const plist = generatePlist(name, id, ver);
-    win.setText("txt_plist_preview", plist);
-    win.appendConsole("bundler_console", `[Bundler] Generated Info.plist preview for ${name}\n`, 1);
+  // Handlers
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Bundler configuration saved successfully!");
+  });
+
+  win.onClick("btn_compile_binary", async () => {
+    const name = win.getValue("txt_app_name") || "app";
+    const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
+    const targetChoice = win.getValue("dd_target") || "";
+    const minify = win.getValue("chk_minify");
+
+    const distDir = resolve(process.cwd(), "dist");
+    mkdirSync(distDir, { recursive: true });
+    const outBin = join(distDir, name);
+
+    let targetFlag = "";
+    if (targetChoice.includes("darwin-arm64")) targetFlag = "--target=bun-darwin-arm64";
+    else if (targetChoice.includes("darwin-x64")) targetFlag = "--target=bun-darwin-x64";
+    else if (targetChoice.includes("linux-x64")) targetFlag = "--target=bun-linux-x64";
+    else if (targetChoice.includes("windows-x64")) targetFlag = "--target=bun-windows-x64";
+
+    const compileCmd = `bun build ${entry} --compile --outfile="${outBin}" ${minify ? "--minify" : ""} ${targetFlag}`;
+
+    win.appendConsole("bundler_console", `[Compiler] Executing: ${compileCmd}...\n`, 1);
+    win.setStatus(`Compiling standalone binary ${name}...`);
+
+    const t0 = performance.now();
+    const [out, code] = Sys.exec(compileCmd);
+    const elapsed = (performance.now() - t0).toFixed(1);
+
+    if (code === 0 && existsSync(outBin)) {
+      const sz = (statSync(outBin).size / 1024 / 1024).toFixed(2);
+      win.appendConsole("bundler_console", `[Success] Single-executable compiled in ${elapsed}ms!\n  Artifact: ${outBin} (${sz} MB)\n`, 2);
+      win.setText("lbl_status", `Compiled: ${name} (${sz} MB)  |  Latency: ${elapsed}ms  |  Status: OK`);
+      win.setStatus(`Compiled in ${elapsed}ms (${sz} MB)`);
+      win.toast(`Compiled ${name} (${sz} MB)`);
+    } else {
+      win.appendConsole("bundler_console", `[Compile Error] ${out}\n`, 3);
+      win.setStatus("Compilation Failed");
+    }
   });
 
   win.onClick("btn_build_bundle", () => {
     const name = win.getValue("txt_app_name") || "MyApp";
-    const id = win.getValue("txt_bundle_id") || "com.app";
+    const id = `com.enterprise.${name.toLowerCase()}`;
     const ver = win.getValue("txt_version") || "1.0.0";
     const execPath = win.getValue("txt_exec_path") || "";
 
-    win.appendConsole("bundler_console", `[Bundler] Starting .app bundle creation for "${name}"...\n`, 1);
+    win.appendConsole("bundler_console", `[Bundler] Packaging macOS .app bundle for "${name}"...\n`, 1);
     win.setStatus(`Building ${name}.app...`);
 
     const distDir = join(process.cwd(), "dist");
@@ -156,26 +166,25 @@ export function createAppBundlerStudio(): SimpleWindow {
 
       const plist = generatePlist(name, id, ver);
       writeFileSync(join(contentsDir, "Info.plist"), plist);
+      win.setText("txt_plist_preview", plist);
 
       // Launcher script
       const launcherPath = join(macosDir, name);
       const launcherScript = `#!/bin/bash\nexec bun run "${execPath}" "$@"\n`;
       writeFileSync(launcherPath, launcherScript, { mode: 0o755 });
 
-      win.appendConsole("bundler_console", `[Bundler] Created bundle structure: ${appDir}\n`, 2);
-
-      const sign = win.getValue("chk_codesign") === "true" || win.getValue("chk_codesign") === true;
+      const sign = win.getValue("chk_codesign");
       if (sign) {
-        const [out, code] = Sys.exec(`codesign --force --deep --sign - "${appDir}"`);
-        win.appendConsole("bundler_console", `[Codesign] Ad-hoc signature applied (exit ${code})\n`, code === 0 ? 2 : 3);
+        const [out, code] = Sys.exec(`codesign --force --deep --sign - "${appDir}" 2>&1`);
+        win.appendConsole("bundler_console", `[Codesign] Ad-hoc signature: ${out} (exit ${code})\n`, code === 0 ? 2 : 3);
       }
 
-      win.appendConsole("bundler_console", `[Bundler] ${name}.app built successfully in dist/ directory!\n`, 2);
-      win.setStatus(`Build complete: ${name}.app`);
+      win.appendConsole("bundler_console", `[Success] ${name}.app assembled in dist/ directory.\n`, 2);
+      win.setStatus(`Assembled ${name}.app`);
       win.toast(`Built ${name}.app`);
     } catch (e: any) {
       win.appendConsole("bundler_console", `[Bundler Error] ${e.message}\n`, 3);
-      win.setStatus(`Build Error: ${e.message}`);
+      win.setStatus(`Bundle Error: ${e.message}`);
     }
   });
 
@@ -184,6 +193,6 @@ export function createAppBundlerStudio(): SimpleWindow {
 
 if (import.meta.main) {
   const win = createAppBundlerStudio();
-  console.log("Launching App Bundler Studio Pro...");
+  console.log("⚡ Launching App Bundler Studio Pro...");
   win.run();
 }

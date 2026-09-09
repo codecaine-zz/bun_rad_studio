@@ -1,7 +1,9 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
+import { writeFileSync } from "fs";
+import { resolve, basename } from "path";
 
 export function createRegexStudio(): SimpleWindow {
-  const win = newSimpleWindow("RegEx Studio Pro -- Real-Time Regular Expression Workbench", 1140, 880, {
+  const win = newSimpleWindow("Regex Studio Pro -- Enterprise Regular Expression Workbench", 1160, 920, {
     appId: "regex_studio",
     theme: getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
@@ -15,12 +17,12 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
 
   // Title Row
   win.beginRow();
-  win.addHeading("RegEx Studio Pro");
+  win.addHeading("Regex Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save Workspace");
   win.addButton("btn_center", "Center Window");
   win.endRow();
-  win.addCaption("Interactive Regular Expression Pattern & Substitution Engine");
+  win.addCaption("Enterprise Regular Expression Pattern Engine, Substitution Preview & Code Generator");
 
   // Pattern Configuration
   win.beginGroupBox("Pattern & Flags Configuration");
@@ -32,17 +34,23 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
 
   win.beginRow();
   win.addLabel("lbl_lib", "Preset Library:");
-  win.addDropdown("dd_lib", [
-    "1. Email Addresses",
-    "2. IPv4 Addresses",
-    "3. Semantic Versions (SemVer)",
-    "4. UUID v4 Tokens",
-    "5. HTTP/HTTPS URLs",
-    "6. ISO-8601 Dates",
-  ], "1. Email Addresses");
+  win.addDropdown(
+    "dd_lib",
+    [
+      "1. Email Addresses",
+      "2. IPv4 Addresses",
+      "3. Semantic Versions (SemVer)",
+      "4. UUID v4 Tokens",
+      "5. HTTP/HTTPS URLs",
+      "6. ISO-8601 Dates",
+    ],
+    "1. Email Addresses"
+  ).width(240);
   win.addLabel("lbl_replace", "Substitution:");
   win.addInput("txt_subst", "[$1 at $2]").width(220);
   win.addButton("btn_replace", "Preview Replace");
+  win.addButton("btn_gen_code", "💻 Code Snippet");
+  win.addButton("btn_export_matches", "📋 Export JSON");
   win.endRow();
 
   win.beginRow();
@@ -55,7 +63,7 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
 
   // Test String Input
   win.beginGroupBox("Test Target Corpus / Document");
-  win.addTextarea("txt_corpus", SAMPLE_TEXT);
+  win.addTextarea("txt_corpus", SAMPLE_TEXT).height(65);
   win.endGroupBox();
 
   // Matches Table & Replacement Preview
@@ -63,24 +71,26 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
   win.addTable("tbl_matches", ["Match #", "Matched Text", "Index", "Length", "Groups"], [
     ["1", "support@bunradstudio.io", "14", "22", "Group 1: support, Group 2: bunradstudio.io"],
     ["2", "dev-team@corp.net", "40", "17", "Group 1: dev-team, Group 2: corp.net"],
-  ]).height(125);
+  ]).height(105);
   win.endGroupBox();
 
   // Activity & Match Telemetry
   win.beginGroupBox("Regex Diagnostics & Substitution Output");
-  win.addConsole("regex_console", 65);
+  win.addConsole("regex_console", 85);
   win.endGroupBox();
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Matches Found: 2  |  Pattern: Valid ECMA RegExp  |  Engine: V8/JSC");
+  win.addLabel("lbl_status", "Matches Found: 2  |  Pattern: Valid ECMA RegExp  |  Engine: V8/JSC  |  Zero Homebrew");
   win.endRow();
+
+  let lastMatches: any[] = [];
 
   // Handlers
   win.onClick("btn_center", () => win.center());
   win.onClick("btn_save_state", (w) => {
     w.saveAppFormState();
-    w.toast("RegEx Studio workspace saved successfully!");
+    w.toast("Regex Studio workspace saved successfully!");
   });
 
   const evaluateRegex = () => {
@@ -97,6 +107,7 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
     if (isMultiline) flags += "m";
     if (isDotAll) flags += "s";
 
+    const t0 = performance.now();
     try {
       const regex = new RegExp(rawPattern, flags);
       const matches: RegExpExecArray[] = [];
@@ -113,6 +124,14 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
         if (single) matches.push(single);
       }
 
+      lastMatches = matches.map((m, idx) => ({
+        matchNum: idx + 1,
+        text: m[0],
+        index: m.index,
+        length: m[0].length,
+        groups: m.slice(1),
+      }));
+
       const rows = matches.map((m, idx) => {
         const groups = m.slice(1).map((g, gi) => `G${gi + 1}: ${g}`).join(", ");
         return [
@@ -124,11 +143,19 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
         ];
       });
 
-      win.setTableData("tbl_matches", ["Match #", "Matched Text", "Index", "Length", "Groups"], rows.length > 0 ? rows : [["0", "(No matches)", "0", "0", "-"]]);
-      win.appendConsole("regex_console", `[RegEx Studio] Evaluated /${rawPattern}/${flags} -> ${matches.length} matches found\n`, 2);
-      win.setStatus(`Matches Found: ${matches.length}`);
+      const elapsed = (performance.now() - t0).toFixed(2);
+      win.setTableData(
+        "tbl_matches",
+        ["Match #", "Matched Text", "Index", "Length", "Groups"],
+        rows.length > 0 ? rows : [["0", "(No matches found)", "0", "0", "-"]]
+      );
+      win.appendConsole("regex_console", `[RegEx Studio] Evaluated /${rawPattern}/${flags} in ${elapsed}ms -> ${matches.length} matches found\n`, 2);
+      win.setText("lbl_status", `Matches: ${matches.length}  |  Latency: ${elapsed}ms  |  Status: OK`);
+      win.setStatus(`Matches Found: ${matches.length} (${elapsed}ms)`);
+      win.toast(`Found ${matches.length} match(es)`);
     } catch (e: any) {
-      win.appendConsole("regex_console", `[RegEx Studio Error] ${e.message}\n`, 3);
+      const elapsed = (performance.now() - t0).toFixed(2);
+      win.appendConsole("regex_console", `[RegEx Error] ${e.message} (${elapsed}ms)\n`, 3);
       win.setStatus(`Syntax Error: ${e.message}`);
     }
   };
@@ -142,9 +169,33 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
     try {
       const regex = new RegExp(rawPattern, "g");
       const replaced = corpus.replace(regex, subst);
-      win.appendConsole("regex_console", `[Substitution Preview]:\n${replaced.slice(0, 300)}...\n`, 1);
+      win.appendConsole("regex_console", `[Substitution Preview]:\n${replaced.slice(0, 400)}\n\n`, 1);
+      win.toast("Substitution preview generated");
     } catch (e: any) {
       win.appendConsole("regex_console", `[RegEx Replace Error] ${e.message}\n`, 3);
+    }
+  });
+
+  win.onClick("btn_gen_code", () => {
+    const pattern = win.getValue("txt_pattern") || "";
+    const flags = "g";
+    const tsCode = `// TypeScript / Bun RegExp\nconst regex = new RegExp("${pattern.replace(/\\/g, "\\\\")}", "${flags}");\nconst matches = [...text.matchAll(regex)];\n`;
+    win.appendConsole("regex_console", `[Generated Code Snippet]\n${tsCode}\n`, 1);
+    win.toast("Generated TypeScript snippet");
+  });
+
+  win.onClick("btn_export_matches", () => {
+    if (lastMatches.length === 0) {
+      win.toast("No matches to export");
+      return;
+    }
+    const outPath = resolve(process.cwd(), "regex_matches.json");
+    try {
+      writeFileSync(outPath, JSON.stringify(lastMatches, null, 2), "utf8");
+      win.appendConsole("regex_console", `[Export] Saved ${lastMatches.length} matches to ${outPath}\n`, 2);
+      win.toast(`Exported ${basename(outPath)}`);
+    } catch (e: any) {
+      win.appendConsole("regex_console", `[Export Error] ${e.message}\n`, 3);
     }
   });
 
@@ -170,6 +221,6 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
 
 if (import.meta.main) {
   const win = createRegexStudio();
-  console.log("Launching RegEx Studio Pro...");
+  console.log("⚡ Launching Regex Studio Pro...");
   win.run();
 }

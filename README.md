@@ -8,7 +8,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [Application User Guides](docs/userguides/README.md) • [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)
 
@@ -157,6 +157,31 @@ bun run demo:productivity
 bun run demo:ergonomics
 bun run demo:simplegui
 ```
+
+---
+
+## ⚡ 16 Enterprise Production Workstations & Utilities
+
+In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of **16 production-grade developer desktop workstations** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
+
+| # | Application | User Guide | Focus & Capabilities | Launch Command |
+| :-: | :--- | :--- | :--- | :--- |
+| **01** | **Database Studio Pro** | [User Guide](docs/userguides/01_database_studio.md) | SQLite editor, schema DDL introspection, query plans (`EXPLAIN`), CSV/JSON/SQL export. | `bun run app:database` |
+| **02** | **System & Package Workstation** | [User Guide](docs/userguides/02_system_package_studio.md) | Hardware telemetry (RAM/CPUs/Uptime), Bun global cache analysis, npm/bun registry search. | `bun run app:system` |
+| **03** | **Task Watcher Studio** | [User Guide](docs/userguides/03_task_watcher_studio.md) | Native `fs.watch` event pipeline, extension filters, ignore rules, continuous build console. | `bun run app:watcher` |
+| **04** | **JSON Query Studio Pro** | [User Guide](docs/userguides/04_json_query_studio.md) | High-throughput JSON query engine, nested selectors, key projections, live query telemetry. | `bun run app:json` |
+| **05** | **DevTools Studio Pro** | [User Guide](docs/userguides/05_devtools_studio.md) | 6-in-1 suite: Ripgrep code search, Fd file tree finder, Sd regex replace, Watcher, Trash, JQ. | `bun run app:devtools` |
+| **06** | **Process Monitor Studio** | [User Guide](docs/userguides/06_process_monitor_studio.md) | macOS Activity Monitor inspection, PID search, CPU/RSS memory consumption, signal dispatch. | `bun run app:process` |
+| **07** | **API Studio Pro** | [User Guide](docs/userguides/07_api_studio.md) | HTTP/REST client (GET/POST/PUT/DELETE/PATCH), Bearer/Basic/ApiKey auth, cURL generator. | `bun run app:api` |
+| **08** | **Data Converter Studio** | [User Guide](docs/userguides/08_data_converter_studio.md) | Bidirectional transformer across CSV, TSV, JSON, YAML, Base64, and Markdown tables. | `bun run app:convert` |
+| **09** | **Crypto Studio Pro** | [User Guide](docs/userguides/09_crypto_studio.md) | SHA-256/512, MD5, HMAC, AES-256-GCM encryption/decryption, JWT decoder, password entropy. | `bun run app:crypto` |
+| **10** | **Regex Studio Pro** | [User Guide](docs/userguides/10_regex_studio.md) | Live regular expression tester, capture groups table, substitution preview, TypeScript export. | `bun run app:regex` |
+| **11** | **App Bundler Studio** | [User Guide](docs/userguides/11_app_bundler_studio.md) | Standalone binary compiler via `bun build --compile`, cross-platform targets, macOS `.app`. | `bun run app:bundler` |
+| **12** | **Network Forensics Studio** | [User Guide](docs/userguides/12_network_forensics_studio.md) | TCP socket port scanner (`node:net`), DNS records lookup (`A/AAAA/MX/TXT/NS`), HTTP TTFB. | `bun run app:network` |
+| **13** | **Git Workbench Pro** | [User Guide](docs/userguides/13_git_workbench_studio.md) | Working tree status, visual diff viewer (`git diff / --staged`), commit log, stage, commit. | `bun run app:git` |
+| **14** | **Markdown Studio Pro** | [User Guide](docs/userguides/14_markdown_studio.md) | Split-pane Markdown editor, instant live HTML preview, reading stats, standalone HTML export. | `bun run app:markdown` |
+| **15** | **Color & Design Token Studio** | [User Guide](docs/userguides/15_color_token_studio.md) | HEX/RGB/HSL converter, WCAG 2.1 AA/AAA contrast auditor, 50–950 tonal scale, token export. | `bun run app:color` |
+| **16** | **Environment Vault Studio** | [User Guide](docs/userguides/16_environment_vault_studio.md) | `.env` parser & validator, secret key detection & masking, diff against `.env.example`. | `bun run app:env` |
 
 ---
 

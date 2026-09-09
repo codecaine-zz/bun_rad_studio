@@ -4,7 +4,7 @@ import { watch, type FSWatcher, existsSync } from "fs";
 import { resolve } from "path";
 
 export function createWatchexecStudio(): SimpleWindow {
-  const win = newSimpleWindow("Bun Watch Studio -- Continuous Task & Test Watcher (Native)", 1140, 880, {
+  const win = newSimpleWindow("Task Watcher Studio (Bun Watch Studio) -- Continuous Task & Test Watcher (Native)", 1140, 880, {
     appId: "watchexec_studio",
     theme: getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
@@ -12,7 +12,7 @@ export function createWatchexecStudio(): SimpleWindow {
 
   // Title Row
   win.beginRow();
-  win.addHeading("Bun Watch Studio");
+  win.addHeading("Task Watcher Studio");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");

@@ -18,7 +18,7 @@ interface ToolInfo {
 async function bunNativeRipgrep(
   targetDir: string,
   pattern: string,
-  options: { caseSensitive?: boolean; maxResults?: number }
+  options: { caseSensitive?: boolean; maxResults?: number } = {}
 ): Promise<{ output: string; matches: number; filesScanned: number }> {
   const flags = options.caseSensitive ? "g" : "gi";
   let regex: RegExp;
@@ -129,7 +129,7 @@ async function bunNativeRipgrep(
 function bunNativeFd(
   targetDir: string,
   pattern: string,
-  options: { caseSensitive?: boolean; maxResults?: number }
+  options: { caseSensitive?: boolean; maxResults?: number } = {}
 ): { output: string; matches: number } {
   const flags = options.caseSensitive ? "" : "i";
   let regex: RegExp;
@@ -289,8 +289,10 @@ function bunNativeRip(targetPath: string): { output: string; success: boolean } 
   }
 }
 
+export { bunNativeRipgrep, bunNativeFd, bunNativeSd, bunNativeRip };
+
 export function createOmnitoolStudio(options: { headless?: boolean; screenshotPath?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("OmniTool Studio Pro -- Bun Native Modern Developer Suite", 1120, 880, {
+  const win = newSimpleWindow("DevTools Studio Pro (OmniTool Studio Pro) -- Bun Native Modern Developer Suite", 1120, 880, {
     appId: "omnitool_studio",
     theme: getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
@@ -308,7 +310,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
 
   // Header Banner
   win.beginRow();
-  win.addHeading("OmniTool Studio Pro");
+  win.addHeading("DevTools Studio Pro");
   win.addDropdown(
     "dd_mode",
     [
