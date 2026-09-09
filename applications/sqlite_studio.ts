@@ -609,6 +609,362 @@ export function generateSqliteStudioHtml(): string {
       font-weight: 700;
     }
 
+    /* Microsoft Access Query Designer (QBE) Styling */
+    .designer-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 14px 14px;
+      height: 100%;
+      overflow: auto;
+    }
+
+    .qbe-ribbon {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      flex-shrink: 0;
+    }
+
+    .qbe-ribbon-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .qbe-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border-subtle);
+      margin: 0 4px;
+    }
+
+    .qbe-view-switch {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .qbe-view-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .qbe-view-btn:hover {
+      color: var(--text-main);
+    }
+
+    .qbe-view-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--cyan);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .qbe-btn-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-dim);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .qbe-btn-toggle:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .qbe-btn-toggle.active {
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+    }
+
+    .qbe-btn-run {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff !important;
+      border: none;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+    }
+
+    .qbe-btn-run:hover {
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .qbe-select, .qbe-input {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 11px;
+      outline: none;
+    }
+
+    .qbe-select:focus, .qbe-input:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Relationship Canvas (Upper Pane) */
+    .qbe-workbench {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(10, 15, 29, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .qbe-tables-canvas {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      min-height: 160px;
+      max-height: 220px;
+    }
+
+    .qbe-table-card {
+      min-width: 200px;
+      max-width: 240px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .qbe-table-card-header {
+      background: rgba(30, 41, 59, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .qbe-table-card-fields {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex: 1;
+      padding: 4px;
+      gap: 2px;
+    }
+
+    .qbe-field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: background 0.1s ease;
+    }
+
+    .qbe-field-row:hover {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan);
+    }
+
+    /* Active Joins Bar */
+    .qbe-joins-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .qbe-join-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 5px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 5px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+    }
+
+    /* QBE Matrix Grid (Lower Pane) */
+    .qbe-matrix-container {
+      background: rgba(10, 15, 29, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow-x: auto;
+      flex: 1;
+      min-height: 240px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .qbe-matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .qbe-matrix-table tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .qbe-matrix-header-cell {
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      background: rgba(15, 23, 42, 0.98);
+      font-weight: 700;
+      color: var(--cyan);
+      padding: 6px 12px;
+      border-right: 2px solid var(--cyan);
+      white-space: nowrap;
+      min-width: 110px;
+      max-width: 110px;
+      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .qbe-matrix-col-cell {
+      padding: 4px 6px;
+      min-width: 160px;
+      max-width: 220px;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+
+    .qbe-matrix-col-cell select,
+    .qbe-matrix-col-cell input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      padding: 4px 6px;
+      color: var(--text-main);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .qbe-matrix-col-cell select:focus,
+    .qbe-matrix-col-cell input:focus {
+      border-color: var(--cyan);
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .qbe-show-checkbox {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .qbe-show-checkbox input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    /* Datasheet View Table */
+    .qbe-datasheet-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: rgba(10, 15, 29, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .qbe-datasheet-toolbar {
+      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .designer-sql-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+      flex: 1;
+    }
+
+    .designer-sql-preview {
+      width: 100%;
+      min-height: 240px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #7dd3fc;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      resize: vertical;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .designer-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      border: 1px dashed var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-dim);
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+
     /* Tab Content Area */
     .tab-content {
       flex: 1;
@@ -1055,6 +1411,7 @@ export function generateSqliteStudioHtml(): string {
       <!-- View Tabs -->
       <div class="view-tabs">
         <div class="tab-btn active" id="tabBtnGrid" onclick="switchTab('grid')">📊 Tabular Data Grid</div>
+        <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">🧩 Query Designer</div>
         <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer & DDL</div>
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan Visualizer</div>
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
@@ -1085,7 +1442,14 @@ export function generateSqliteStudioHtml(): string {
           </div>
         </div>
 
-        <!-- 2. Schema & DDL Designer -->
+        <!-- 2. Query Designer -->
+        <div class="tab-pane" id="tabDesigner">
+          <div class="designer-layout" id="designerContainer">
+            <div class="designer-empty">Load a schema to begin building a visual query.</div>
+          </div>
+        </div>
+
+        <!-- 3. Schema & DDL Designer -->
         <div class="tab-pane" id="tabSchema">
           <div class="schema-layout" id="schemaContainer">
             <div class="card">
@@ -1234,6 +1598,24 @@ export function generateSqliteStudioHtml(): string {
     let gridSortCol = "";
     let gridSortDir = "ASC";
     let activeTab = "grid";
+    let queryDesignerState = {
+      activeView: "design",
+      selectedTables: [],
+      joins: [],
+      columns: [],
+      showTotals: true,
+      distinct: false,
+      topLimit: 100,
+      savedQueries: [],
+      datasheet: null,
+      datasheetLoading: false,
+      selectedFields: {},
+      aggregates: {},
+      groupBy: {},
+      orderBy: "",
+      filters: [],
+      havingFilters: [],
+    };
 
     // ---------------------------------------------------------------------------------------------
     // Direct API Client
@@ -1292,6 +1674,10 @@ export function generateSqliteStudioHtml(): string {
       const targetPane = document.getElementById("tab" + tabId.charAt(0).toUpperCase() + tabId.slice(1));
       if (targetBtn) targetBtn.classList.add("active");
       if (targetPane) targetPane.classList.add("active");
+
+      if (tabId === "designer") {
+        renderQueryDesigner();
+      }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1327,7 +1713,9 @@ export function generateSqliteStudioHtml(): string {
       const schema = await apiRequest('/api/schema');
       if (!schema || !schema.tables) return;
       currentSchema = schema;
+      ensureQueryDesignerState();
       renderObjectTree();
+      renderQueryDesigner();
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1525,11 +1913,15 @@ export function generateSqliteStudioHtml(): string {
     // ---------------------------------------------------------------------------------------------
     async function selectTable(tableName) {
       activeTable = tableName;
+      if (!queryDesignerState.selectedTables.includes(tableName)) {
+        queryDesignerState.selectedTables = [tableName, ...queryDesignerState.selectedTables.filter(name => name !== tableName)];
+      }
       document.getElementById("gridTargetTitle").textContent = "Table: " + tableName;
       document.getElementById("sqlEditor").value = \`SELECT * FROM "\${tableName}" LIMIT 100;\`;
       gridPage = 1;
       await fetchTableData();
       renderSchemaDesigner(tableName);
+      renderQueryDesigner();
     }
 
     async function fetchTableData() {
@@ -1752,6 +2144,926 @@ export function generateSqliteStudioHtml(): string {
 
       container.appendChild(card);
       container.appendChild(ddlCard);
+    }
+
+    function quoteSqlIdentifier(value) {
+      return '"' + String(value).replace(/"/g, '""') + '"';
+    }
+
+    function formatAccessCriterion(qualifiedField, criterionStr) {
+      if (!criterionStr || !String(criterionStr).trim()) return "";
+      const trimmed = String(criterionStr).trim();
+      if (/^(=|<>|!=|>|<|>=|<=|LIKE|NOT LIKE|IN|NOT IN|BETWEEN|IS NULL|IS NOT NULL)/i.test(trimmed)) {
+        return qualifiedField + " " + trimmed;
+      }
+      if (/^['"].*['"]$/.test(trimmed)) {
+        return qualifiedField + " = " + trimmed;
+      }
+      if (!isNaN(Number(trimmed)) && trimmed !== "") {
+        return qualifiedField + " = " + trimmed;
+      }
+      return qualifiedField + " = '" + trimmed.replace(/'/g, "''") + "'";
+    }
+
+    function suggestDesignerJoin(leftTableName, rightTableName) {
+      if (!currentSchema) return null;
+      const leftMeta = currentSchema.tables.find(t => t.name === leftTableName);
+      const rightMeta = currentSchema.tables.find(t => t.name === rightTableName);
+      if (!leftMeta || !rightMeta) return null;
+
+      const fkMatch = (leftMeta.foreignKeys || []).find(fk => fk.table === rightTableName);
+      if (fkMatch) {
+        return {
+          leftTable: leftTableName,
+          rightTable: rightTableName,
+          leftField: fkMatch.from,
+          rightField: fkMatch.to,
+          type: "INNER",
+        };
+      }
+
+      const reverseMatch = (rightMeta.foreignKeys || []).find(fk => fk.table === leftTableName);
+      if (reverseMatch) {
+        return {
+          leftTable: leftTableName,
+          rightTable: rightTableName,
+          leftField: reverseMatch.to,
+          rightField: reverseMatch.from,
+          type: "INNER",
+        };
+      }
+
+      const leftFields = new Set((leftMeta.columns || []).map(c => c.name));
+      const sharedField = (rightMeta.columns || []).find(c => leftFields.has(c.name));
+      if (sharedField) {
+        return {
+          leftTable: leftTableName,
+          rightTable: rightTableName,
+          leftField: sharedField.name,
+          rightField: sharedField.name,
+          type: "INNER",
+        };
+      }
+
+      return null;
+    }
+
+    function buildDesignerJoinPairs() {
+      if (!currentSchema || !queryDesignerState.selectedTables.length) return [];
+      const pairs = [];
+      for (let i = 1; i < queryDesignerState.selectedTables.length; i++) {
+        const leftTable = queryDesignerState.selectedTables[i - 1];
+        const rightTable = queryDesignerState.selectedTables[i];
+        const suggestion = suggestDesignerJoin(leftTable, rightTable) || {
+          leftTable: leftTable,
+          rightTable: rightTable,
+          leftField: "id",
+          rightField: "id",
+          type: "INNER",
+        };
+        pairs.push({
+          key: leftTable + "." + rightTable,
+          leftTable: suggestion.leftTable,
+          rightTable: suggestion.rightTable,
+          leftField: suggestion.leftField,
+          rightField: suggestion.rightField,
+          type: suggestion.type || "INNER",
+        });
+      }
+      return pairs;
+    }
+
+    function ensureQueryDesignerState() {
+      if (!currentSchema || !currentSchema.tables || !currentSchema.tables.length) {
+        queryDesignerState.selectedTables = [];
+        queryDesignerState.joins = [];
+        queryDesignerState.columns = [];
+        return;
+      }
+
+      const tableNames = currentSchema.tables.map(t => t.name);
+      const selectedTables = (queryDesignerState.selectedTables || []).filter(name => tableNames.includes(name));
+      if (!selectedTables.length) {
+        selectedTables.push(tableNames[0]);
+      }
+      queryDesignerState.selectedTables = selectedTables;
+
+      if (!queryDesignerState.joins || !queryDesignerState.joins.length) {
+        queryDesignerState.joins = buildDesignerJoinPairs();
+      } else {
+        queryDesignerState.joins = queryDesignerState.joins.filter(j => selectedTables.includes(j.leftTable) && selectedTables.includes(j.rightTable));
+      }
+
+      if (!Array.isArray(queryDesignerState.columns)) {
+        queryDesignerState.columns = [];
+      }
+
+      queryDesignerState.columns = queryDesignerState.columns.filter(col => selectedTables.includes(col.table));
+
+      if (!queryDesignerState.columns.length && selectedTables.length > 0) {
+        const primary = selectedTables[0];
+        const meta = currentSchema.tables.find(t => t.name === primary);
+        if (meta && meta.columns) {
+          meta.columns.slice(0, Math.min(5, meta.columns.length)).forEach(c => {
+            queryDesignerState.columns.push({
+              id: "col-" + Math.random().toString(16).slice(2),
+              table: primary,
+              field: c.name,
+              alias: "",
+              total: queryDesignerState.showTotals ? "GroupBy" : "None",
+              sort: "",
+              show: true,
+              criteria: "",
+              or1: "",
+              or2: "",
+            });
+          });
+        }
+      }
+
+      if (!queryDesignerState.savedQueries) {
+        queryDesignerState.savedQueries = [];
+      }
+    }
+
+    function setDesignerActiveView(view) {
+      queryDesignerState.activeView = view;
+      if (view === "datasheet" && (!queryDesignerState.datasheet || queryDesignerState.datasheetLoading)) {
+        runDesignerQuery();
+      } else {
+        renderQueryDesigner();
+      }
+    }
+
+    function toggleDesignerTotals() {
+      queryDesignerState.showTotals = !queryDesignerState.showTotals;
+      (queryDesignerState.columns || []).forEach(col => {
+        if (queryDesignerState.showTotals) {
+          if (!col.total || col.total === "None") col.total = "GroupBy";
+        } else {
+          col.total = "None";
+        }
+      });
+      renderQueryDesigner();
+    }
+
+    function toggleDesignerDistinct() {
+      queryDesignerState.distinct = !queryDesignerState.distinct;
+      renderQueryDesigner();
+    }
+
+    function setDesignerTopLimit(limit) {
+      queryDesignerState.topLimit = Number(limit) || 0;
+      renderQueryDesigner();
+    }
+
+    function addDesignerTableFromPicker() {
+      const picker = document.getElementById("designerTablePicker");
+      if (picker && picker.value) {
+        addDesignerTable(picker.value);
+        picker.value = "";
+      }
+    }
+
+    function addDesignerTable(tableName) {
+      if (!tableName || queryDesignerState.selectedTables.includes(tableName)) return;
+      queryDesignerState.selectedTables.push(tableName);
+      if (queryDesignerState.selectedTables.length > 1) {
+        const prev = queryDesignerState.selectedTables[queryDesignerState.selectedTables.length - 2];
+        const sugg = suggestDesignerJoin(prev, tableName) || {
+          leftTable: prev,
+          rightTable: tableName,
+          leftField: "id",
+          rightField: "id",
+          type: "INNER",
+        };
+        queryDesignerState.joins.push({
+          key: prev + "." + tableName,
+          ...sugg,
+        });
+      }
+      renderQueryDesigner();
+    }
+
+    function removeDesignerTable(tableName) {
+      queryDesignerState.selectedTables = queryDesignerState.selectedTables.filter(t => t !== tableName);
+      queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.leftTable !== tableName && j.rightTable !== tableName);
+      queryDesignerState.columns = (queryDesignerState.columns || []).filter(col => col.table !== tableName);
+      renderQueryDesigner();
+    }
+
+    function autoJoinDesignerTables() {
+      queryDesignerState.joins = buildDesignerJoinPairs();
+      renderQueryDesigner();
+      showToast("Relationships auto-detected and linked");
+    }
+
+    function promptAddDesignerJoin() {
+      if (queryDesignerState.selectedTables.length < 2) {
+        showToast("Add at least 2 tables to create a join relationship");
+        return;
+      }
+      const t1 = queryDesignerState.selectedTables[0];
+      const t2 = queryDesignerState.selectedTables[1];
+      const m1 = currentSchema.tables.find(t => t.name === t1);
+      const m2 = currentSchema.tables.find(t => t.name === t2);
+      const f1 = (m1 && m1.columns && m1.columns[0]) ? m1.columns[0].name : "id";
+      const f2 = (m2 && m2.columns && m2.columns[0]) ? m2.columns[0].name : "id";
+      queryDesignerState.joins.push({
+        key: t1 + "." + f1 + "->" + t2 + "." + f2 + "-" + Date.now(),
+        leftTable: t1,
+        leftField: f1,
+        rightTable: t2,
+        rightField: f2,
+        type: "INNER",
+      });
+      renderQueryDesigner();
+      showToast("Added new join relationship");
+    }
+
+    function updateDesignerJoin(key, prop, value) {
+      queryDesignerState.joins = (queryDesignerState.joins || []).map(j => {
+        if (j.key === key) {
+          return { ...j, [prop]: value };
+        }
+        return j;
+      });
+      renderQueryDesigner();
+    }
+
+    function removeDesignerJoin(key) {
+      queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.key !== key);
+      renderQueryDesigner();
+    }
+
+    function addDesignerQbeColumn(table, field) {
+      if (!table) table = queryDesignerState.selectedTables[0] || "";
+      if (!field) {
+        const meta = currentSchema && currentSchema.tables.find(t => t.name === table);
+        field = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "*";
+      }
+      queryDesignerState.columns.push({
+        id: "col-" + Date.now() + "-" + Math.random().toString(16).slice(2),
+        table: table,
+        field: field,
+        alias: "",
+        total: queryDesignerState.showTotals ? "GroupBy" : "None",
+        sort: "",
+        show: true,
+        criteria: "",
+        or1: "",
+        or2: "",
+      });
+      renderQueryDesigner();
+    }
+
+    function updateDesignerQbeColumn(id, prop, value) {
+      const col = (queryDesignerState.columns || []).find(c => c.id === id);
+      if (!col) return;
+      col[prop] = value;
+      if (prop === "table") {
+        const meta = currentSchema && currentSchema.tables.find(t => t.name === value);
+        if (meta && meta.columns && meta.columns.length) {
+          col.field = meta.columns[0].name;
+        }
+      }
+      renderQueryDesigner();
+    }
+
+    function moveDesignerQbeColumn(id, delta) {
+      const idx = (queryDesignerState.columns || []).findIndex(c => c.id === id);
+      if (idx === -1) return;
+      const targetIdx = idx + delta;
+      if (targetIdx < 0 || targetIdx >= queryDesignerState.columns.length) return;
+      const temp = queryDesignerState.columns[idx];
+      queryDesignerState.columns[idx] = queryDesignerState.columns[targetIdx];
+      queryDesignerState.columns[targetIdx] = temp;
+      renderQueryDesigner();
+    }
+
+    function removeDesignerQbeColumn(id) {
+      queryDesignerState.columns = (queryDesignerState.columns || []).filter(c => c.id !== id);
+      renderQueryDesigner();
+    }
+
+    function clearDesignerQbe() {
+      queryDesignerState.columns = [];
+      renderQueryDesigner();
+      showToast("Cleared QBE grid columns");
+    }
+
+    function resetDesignerAll() {
+      queryDesignerState.selectedTables = [];
+      queryDesignerState.joins = [];
+      queryDesignerState.columns = [];
+      queryDesignerState.activeView = "design";
+      queryDesignerState.datasheet = null;
+      ensureQueryDesignerState();
+      renderQueryDesigner();
+      showToast("Reset Query Designer");
+    }
+
+    function runDesignerQuery() {
+      const sql = buildDesignerSql();
+      queryDesignerState.activeView = "datasheet";
+      queryDesignerState.datasheetLoading = true;
+      queryDesignerState.datasheetError = null;
+      renderQueryDesigner();
+
+      apiRequest('/api/query', { sql }).then(res => {
+        if (res && res.success) {
+          queryDesignerState.datasheet = {
+            rows: res.rows || [],
+            columns: res.columns || [],
+            latencyMs: res.latencyMs || 0,
+            error: null,
+          };
+        } else {
+          queryDesignerState.datasheet = {
+            rows: [],
+            columns: [],
+            latencyMs: 0,
+            error: res ? res.error : "Execution failed",
+          };
+        }
+      }).catch(err => {
+        queryDesignerState.datasheet = {
+          rows: [],
+          columns: [],
+          latencyMs: 0,
+          error: err.message,
+        };
+      }).finally(() => {
+        queryDesignerState.datasheetLoading = false;
+        renderQueryDesigner();
+      });
+    }
+
+    function exportDesignerDatasheet(format) {
+      if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
+        showToast("No data to export. Run the query first.");
+        return;
+      }
+      const rows = queryDesignerState.datasheet.rows;
+      const cols = queryDesignerState.datasheet.columns;
+      let content = "";
+      let filename = "query_results." + format;
+      let mime = "text/plain";
+
+      if (format === "json") {
+        content = JSON.stringify(rows, null, 2);
+        mime = "application/json";
+      } else {
+        const header = cols.join(",");
+        const body = rows.map(r => cols.map(c => {
+          const val = r[c] !== null && r[c] !== undefined ? String(r[c]) : "";
+          return val.includes(",") || val.includes('"') || val.includes("\\n") ? '"' + val.replace(/"/g, '""') + '"' : val;
+        }).join(",")).join("\\n");
+        content = header + "\\n" + body;
+        mime = "text/csv";
+      }
+
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Exported " + rows.length + " records as " + format.toUpperCase());
+    }
+
+    function loadDesignerSqlToEditor() {
+      const value = buildDesignerSql();
+      const editor = document.getElementById("sqlEditor");
+      if (editor) editor.value = value;
+      showToast("Designer SQL loaded into editor");
+    }
+
+    function copyDesignerSql() {
+      const value = buildDesignerSql();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(value);
+        showToast("SQL copied to clipboard");
+      }
+    }
+
+    function explainDesignerQuery() {
+      const sql = buildDesignerSql();
+      const editor = document.getElementById("sqlEditor");
+      if (editor) editor.value = sql;
+      runExplainPlan();
+    }
+
+    function saveDesignerQuery() {
+      const sql = buildDesignerSql();
+      const name = prompt("Save this query as:", "Query " + (queryDesignerState.savedQueries.length + 1));
+      if (!name) return;
+      queryDesignerState.savedQueries.unshift({ name, sql, createdAt: new Date().toISOString() });
+      queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(0, 10);
+      showToast("Saved query: " + name);
+      renderQueryDesigner();
+    }
+
+    function loadSavedDesignerQuery(index) {
+      const item = queryDesignerState.savedQueries[index];
+      if (!item) return;
+      document.getElementById("sqlEditor").value = item.sql;
+      showToast("Loaded saved query: " + item.name);
+    }
+
+    function buildDesignerSql() {
+      ensureQueryDesignerState();
+      if (!queryDesignerState.selectedTables || !queryDesignerState.selectedTables.length) {
+        return "-- Add a table from the toolbar to start building your query";
+      }
+
+      const selectedTables = queryDesignerState.selectedTables;
+      const baseTable = selectedTables[0];
+      const showTotals = queryDesignerState.showTotals;
+
+      const selectItems = [];
+      const groupByItems = [];
+      const whereConditions = [];
+      const havingConditions = [];
+      const orderByItems = [];
+
+      const activeColumns = (queryDesignerState.columns || []).filter(col => selectedTables.includes(col.table));
+
+      if (!activeColumns.length) {
+        selectItems.push("*");
+      } else {
+        activeColumns.forEach(col => {
+          const qualified = quoteSqlIdentifier(col.table) + "." + (col.field === "*" ? "*" : quoteSqlIdentifier(col.field));
+          const alias = col.alias ? quoteSqlIdentifier(col.alias) : (selectedTables.length > 1 ? quoteSqlIdentifier(col.table + "_" + col.field) : quoteSqlIdentifier(col.field));
+          const total = col.total || (showTotals ? "GroupBy" : "None");
+
+          let expr = qualified;
+          let isAggregate = false;
+
+          if (showTotals) {
+            if (["Sum", "Avg", "Min", "Max", "Count"].includes(total)) {
+              expr = total.toUpperCase() + "(" + qualified + ")";
+              isAggregate = true;
+            } else if (total === "Where") {
+              expr = null;
+            }
+          }
+
+          if (col.show !== false && expr !== null) {
+            selectItems.push(expr + (alias ? " AS " + alias : ""));
+          }
+
+          if (showTotals && (total === "GroupBy" || (!isAggregate && total !== "Where" && col.show !== false))) {
+            if (!groupByItems.includes(qualified) && col.field !== "*") {
+              groupByItems.push(qualified);
+            }
+          }
+
+          const conds = [];
+          if (col.criteria && col.criteria.trim()) conds.push(formatAccessCriterion(isAggregate ? expr : qualified, col.criteria));
+          if (col.or1 && col.or1.trim()) conds.push(formatAccessCriterion(isAggregate ? expr : qualified, col.or1));
+          if (col.or2 && col.or2.trim()) conds.push(formatAccessCriterion(isAggregate ? expr : qualified, col.or2));
+
+          if (conds.length > 0) {
+            const combined = conds.length === 1 ? conds[0] : "(" + conds.join(" OR ") + ")";
+            if (isAggregate) {
+              havingConditions.push(combined);
+            } else {
+              whereConditions.push(combined);
+            }
+          }
+
+          if (col.sort === "ASC" || col.sort === "DESC") {
+            orderByItems.push((isAggregate ? expr : qualified) + " " + col.sort);
+          }
+        });
+      }
+
+      if (!selectItems.length) selectItems.push("*");
+
+      const sqlLines = [];
+      sqlLines.push("SELECT" + (queryDesignerState.distinct ? " DISTINCT" : ""));
+      sqlLines.push("  " + selectItems.join(", "));
+      sqlLines.push("FROM " + quoteSqlIdentifier(baseTable));
+
+      (queryDesignerState.joins || []).forEach(join => {
+        if (!selectedTables.includes(join.leftTable) || !selectedTables.includes(join.rightTable)) return;
+        const joinType = (join.type || "INNER").toUpperCase();
+        if (joinType === "CROSS") {
+          sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(join.rightTable));
+        } else {
+          sqlLines.push(joinType + " JOIN " + quoteSqlIdentifier(join.rightTable) + " ON " + quoteSqlIdentifier(join.leftTable) + "." + quoteSqlIdentifier(join.leftField) + " = " + quoteSqlIdentifier(join.rightTable) + "." + quoteSqlIdentifier(join.rightField));
+        }
+      });
+
+      if (whereConditions.length > 0) {
+        sqlLines.push("WHERE " + whereConditions.join(" AND "));
+      }
+
+      if (showTotals && groupByItems.length > 0) {
+        sqlLines.push("GROUP BY " + groupByItems.join(", "));
+      }
+
+      if (showTotals && havingConditions.length > 0) {
+        sqlLines.push("HAVING " + havingConditions.join(" AND "));
+      }
+
+      if (orderByItems.length > 0) {
+        sqlLines.push("ORDER BY " + orderByItems.join(", "));
+      }
+
+      if (queryDesignerState.topLimit && queryDesignerState.topLimit > 0) {
+        sqlLines.push("LIMIT " + queryDesignerState.topLimit + ";");
+      } else {
+        sqlLines.push(";");
+      }
+
+      return sqlLines.join("\\n");
+    }
+
+    function renderQueryDesigner() {
+      const container = document.getElementById("designerContainer");
+      if (!container) return;
+      ensureQueryDesignerState();
+
+      if (!currentSchema || !currentSchema.tables || !currentSchema.tables.length) {
+        container.innerHTML = '<div class="designer-empty">Load a schema from the sidebar to begin building a query.</div>';
+        return;
+      }
+
+      const selectedTables = queryDesignerState.selectedTables || [];
+      const availableTables = currentSchema.tables
+        .map(t => t.name)
+        .filter(name => !selectedTables.includes(name));
+
+      // 1. Access Ribbon Toolbar
+      const ribbonHtml = \`
+        <div class="qbe-ribbon">
+          <div class="qbe-ribbon-group">
+            <div class="qbe-view-switch">
+              <button class="qbe-view-btn \${queryDesignerState.activeView === 'design' ? 'active' : ''}" onclick="setDesignerActiveView('design')" title="Design View (QBE Matrix & Relationships)">📐 Design</button>
+              <button class="qbe-view-btn \${queryDesignerState.activeView === 'sql' ? 'active' : ''}" onclick="setDesignerActiveView('sql')" title="SQL View (Direct SQL Preview)">💻 SQL</button>
+              <button class="qbe-view-btn \${queryDesignerState.activeView === 'datasheet' ? 'active' : ''}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
+            </div>
+            <div class="qbe-divider"></div>
+            <button class="btn btn-sm qbe-btn-run" onclick="runDesignerQuery()" title="Run query and view Datasheet">! Run</button>
+            <button class="qbe-btn-toggle \${queryDesignerState.showTotals ? 'active' : ''}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
+            <button class="qbe-btn-toggle \${queryDesignerState.distinct ? 'active' : ''}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
+            <span style="font-size: 11px; color: var(--text-dim); margin-left: 2px;">Top:</span>
+            <select class="qbe-select" onchange="setDesignerTopLimit(this.value)" style="width: 80px;">
+              <option value="0" \${queryDesignerState.topLimit === 0 ? 'selected' : ''}>All</option>
+              <option value="5" \${queryDesignerState.topLimit === 5 ? 'selected' : ''}>5</option>
+              <option value="10" \${queryDesignerState.topLimit === 10 ? 'selected' : ''}>10</option>
+              <option value="25" \${queryDesignerState.topLimit === 25 ? 'selected' : ''}>25</option>
+              <option value="50" \${queryDesignerState.topLimit === 50 ? 'selected' : ''}>50</option>
+              <option value="100" \${queryDesignerState.topLimit === 100 ? 'selected' : ''}>100</option>
+              <option value="500" \${queryDesignerState.topLimit === 500 ? 'selected' : ''}>500</option>
+              <option value="1000" \${queryDesignerState.topLimit === 1000 ? 'selected' : ''}>1000</option>
+            </select>
+          </div>
+          <div class="qbe-ribbon-group">
+            <select id="designerTablePicker" class="qbe-select" style="max-width: 140px;">
+              <option value="">+ Add Table</option>
+              \${availableTables.map(name => \`<option value="\${name}">\${name}</option>\`).join('')}
+            </select>
+            <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
+            <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables">🔗 Auto-Join</button>
+            <button class="btn btn-sm" onclick="promptAddDesignerJoin()" title="Create custom join relationship">+ Link</button>
+            <button class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
+            <button class="btn btn-sm" onclick="clearDesignerQbe()" title="Clear QBE columns">Clear</button>
+            <button class="btn btn-sm" onclick="saveDesignerQuery()" title="Save query">💾 Save</button>
+          </div>
+        </div>
+      \`;
+
+      // 2. View: SQL View
+      if (queryDesignerState.activeView === "sql") {
+        const sqlPreview = buildDesignerSql();
+        const savedList = (queryDesignerState.savedQueries || []).map((item, idx) => \`
+          <button class="btn btn-sm" onclick="loadSavedDesignerQuery(\${idx})">\${item.name}</button>
+        \`).join('') || '<span style="color: var(--text-dim); font-size: 11px;">No saved queries yet.</span>';
+
+        container.innerHTML = ribbonHtml + \`
+          <div class="designer-sql-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="card-title" style="margin-bottom:0;">Generated Microsoft Access-Compatible SQL</div>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-sm btn-primary" onclick="runDesignerQuery()">! Run in Datasheet</button>
+                <button class="btn btn-sm" onclick="loadDesignerSqlToEditor()">Load into Editor</button>
+                <button class="btn btn-sm" onclick="copyDesignerSql()">Copy SQL</button>
+                <button class="btn btn-sm" onclick="explainDesignerQuery()">Explain Plan</button>
+              </div>
+            </div>
+            <textarea class="designer-sql-preview" id="designerSqlPreview" readonly>\${sqlPreview}</textarea>
+            <div style="margin-top: 8px;">
+              <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">Saved Queries:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">\${savedList}</div>
+            </div>
+          </div>
+        \`;
+        return;
+      }
+
+      // 3. View: Datasheet View
+      if (queryDesignerState.activeView === "datasheet") {
+        const ds = queryDesignerState.datasheet;
+        let contentHtml = "";
+
+        if (queryDesignerState.datasheetLoading) {
+          contentHtml = \`
+            <div class="designer-empty">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                <div style="font-size: 20px;">⚡</div>
+                <div>Executing query against SQLite database...</div>
+              </div>
+            </div>
+          \`;
+        } else if (ds && ds.error) {
+          contentHtml = \`
+            <div style="padding: 20px;">
+              <div class="card" style="border-color: var(--rose);">
+                <div class="card-title" style="color: var(--rose);">⚠️ Query Execution Error</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); margin: 8px 0;">\${ds.error}</div>
+                <button class="btn btn-sm btn-primary" onclick="setDesignerActiveView('design')">Return to Design View</button>
+              </div>
+            </div>
+          \`;
+        } else if (ds && ds.rows) {
+          const rows = ds.rows;
+          const cols = ds.columns || (rows.length ? Object.keys(rows[0]) : []);
+
+          contentHtml = \`
+            <div class="grid-table-container" style="flex: 1;">
+              <table class="data-grid">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    \${cols.map(c => \`<th>\${c}</th>\`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  \${rows.length === 0 ? '<tr><td colspan="' + (cols.length + 1) + '" style="text-align:center; color:var(--text-dim); padding:20px;">0 records returned</td></tr>' : rows.map((r, idx) => \`
+                    <tr>
+                      <td style="color: var(--text-dim); font-size: 10px; text-align: center;">\${idx + 1}</td>
+                      \${cols.map(c => \`<td>\${r[c] !== null && r[c] !== undefined ? String(r[c]) : '<span style="color:var(--text-dim);">NULL</span>'}</td>\`).join('')}
+                    </tr>
+                  \`).join('')}
+                </tbody>
+              </table>
+            </div>
+          \`;
+        } else {
+          contentHtml = \`
+            <div class="designer-empty">
+              <div>Click <strong>! Run</strong> to execute your query and view live data.</div>
+            </div>
+          \`;
+        }
+
+        container.innerHTML = ribbonHtml + \`
+          <div class="qbe-datasheet-container">
+            <div class="qbe-datasheet-toolbar">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 700; color: var(--cyan);">📋 Datasheet View</span>
+                \${ds ? \`<span style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">\${ds.rows.length} rows (\${ds.latencyMs}ms)</span>\` : ''}
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn btn-sm" onclick="exportDesignerDatasheet('csv')">Export CSV</button>
+                <button class="btn btn-sm" onclick="exportDesignerDatasheet('json')">Export JSON</button>
+                <button class="btn btn-sm btn-primary" onclick="setDesignerActiveView('design')">📐 Design View</button>
+              </div>
+            </div>
+            \${contentHtml}
+          </div>
+        \`;
+        return;
+      }
+
+      // 4. View: Design View (Access Workbench + QBE Grid)
+      // Top Workbench: Table Cards
+      const tableCardsHtml = selectedTables.map(tableName => {
+        const meta = currentSchema.tables.find(t => t.name === tableName);
+        if (!meta) return "";
+        const columnsHtml = (meta.columns || []).map(c => \`
+          <div class="qbe-field-row" onclick="addDesignerQbeColumn('\${tableName}', '\${c.name}')" title="Click to add field to QBE Grid">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${c.pk ? '🔑 ' : ''}\${c.name}</span>
+            <span style="font-size: 9px; color: var(--text-dim);">\${c.type || 'ANY'}</span>
+          </div>
+        \`).join('');
+
+        return \`
+          <div class="qbe-table-card">
+            <div class="qbe-table-card-header">
+              <span>🗄️ \${tableName}</span>
+              <button class="sidebar-mini-btn" onclick="removeDesignerTable('\${tableName}')" title="Remove table">✕</button>
+            </div>
+            <div class="qbe-table-card-fields">\${columnsHtml}</div>
+          </div>
+        \`;
+      }).join('');
+
+      // Active Joins Strip
+      const joinsHtml = (queryDesignerState.joins || []).map(join => {
+        const leftMeta = currentSchema.tables.find(t => t.name === join.leftTable);
+        const rightMeta = currentSchema.tables.find(t => t.name === join.rightTable);
+        const leftFields = leftMeta && leftMeta.columns ? leftMeta.columns.map(c => c.name) : [];
+        const rightFields = rightMeta && rightMeta.columns ? rightMeta.columns.map(c => c.name) : [];
+        const joinTypes = [
+          { val: "INNER", label: "1: INNER (Matching rows)" },
+          { val: "LEFT", label: "2: LEFT (All from " + join.leftTable + ")" },
+          { val: "RIGHT", label: "3: RIGHT (All from " + join.rightTable + ")" },
+          { val: "CROSS", label: "4: CROSS (Cartesian)" },
+        ];
+
+        return \`
+          <div class="qbe-join-badge">
+            <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
+              \${joinTypes.map(j => \`<option value="\${j.val}" \${join.type === j.val ? 'selected' : ''}>\${j.label}</option>\`).join('')}
+            </select>
+            <span style="color: var(--text-main); font-weight: 600;">\${join.leftTable}.</span>
+            <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'leftField', this.value)">
+              \${leftFields.map(f => \`<option value="\${f}" \${join.leftField === f ? 'selected' : ''}>\${f}</option>\`).join('')}
+            </select>
+            <span style="color: var(--cyan); font-weight: bold;">=</span>
+            <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'rightField', this.value)">
+              \${rightFields.map(f => \`<option value="\${f}" \${join.rightField === f ? 'selected' : ''}>\${f}</option>\`).join('')}
+            </select>
+            <span style="color: var(--text-main); font-weight: 600;">.\${join.rightTable}</span>
+            <button class="sidebar-mini-btn" onclick="removeDesignerJoin('\${join.key}')" title="Delete join">✕</button>
+          </div>
+        \`;
+      }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>🔗 Auto-Join</strong> or <strong>+ Link</strong>.</div>';
+
+      // Lower Pane: Classic Microsoft Access QBE Matrix
+      const columns = queryDesignerState.columns || [];
+      const totalsList = ["GroupBy", "Sum", "Avg", "Min", "Max", "Count", "Where", "Expression"];
+
+      // Generate rows of the matrix
+      const headerRow = \`
+        <tr>
+          <td class="qbe-matrix-header-cell">Field:</td>
+          \${columns.map(col => {
+            const tableMeta = currentSchema.tables.find(t => t.name === col.table);
+            const fields = tableMeta && tableMeta.columns ? tableMeta.columns.map(c => c.name) : [];
+            return \`
+              <td class="qbe-matrix-col-cell">
+                <select onchange="updateDesignerQbeColumn('\${col.id}', 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
+                  <option value="*" \${col.field === '*' ? 'selected' : ''}>* (All Fields)</option>
+                  \${fields.map(f => \`<option value="\${f}" \${col.field === f ? 'selected' : ''}>\${f}</option>\`).join('')}
+                </select>
+              </td>
+            \`;
+          }).join('')}
+          <td class="qbe-matrix-col-cell" style="width: 60px; min-width: 60px; text-align: center;"></td>
+        </tr>
+      \`;
+
+      const tableRow = \`
+        <tr>
+          <td class="qbe-matrix-header-cell">Table:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell">
+              <select onchange="updateDesignerQbeColumn('\${col.id}', 'table', this.value)">
+                \${selectedTables.map(t => \`<option value="\${t}" \${col.table === t ? 'selected' : ''}>\${t}</option>\`).join('')}
+              </select>
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \`;
+
+      const totalRow = queryDesignerState.showTotals ? \`
+        <tr style="background: rgba(56, 189, 248, 0.03);">
+          <td class="qbe-matrix-header-cell" style="color: var(--emerald);">Σ Total:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell">
+              <select onchange="updateDesignerQbeColumn('\${col.id}', 'total', this.value)" style="font-weight: 600; color: \${col.total === 'GroupBy' ? 'var(--cyan)' : (['Sum', 'Count', 'Avg'].includes(col.total) ? 'var(--emerald)' : 'var(--text-main)')};">
+                \${totalsList.map(tot => \`<option value="\${tot}" \${col.total === tot ? 'selected' : ''}>\${tot}</option>\`).join('')}
+              </select>
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \` : "";
+
+      const sortRow = \`
+        <tr>
+          <td class="qbe-matrix-header-cell">Sort:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell">
+              <select onchange="updateDesignerQbeColumn('\${col.id}', 'sort', this.value)">
+                <option value="" \${!col.sort ? 'selected' : ''}>(not sorted)</option>
+                <option value="ASC" \${col.sort === 'ASC' ? 'selected' : ''}>Ascending</option>
+                <option value="DESC" \${col.sort === 'DESC' ? 'selected' : ''}>Descending</option>
+              </select>
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \`;
+
+      const showRow = \`
+        <tr>
+          <td class="qbe-matrix-header-cell">Show:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell qbe-show-checkbox">
+              <input type="checkbox" \${col.show !== false ? 'checked' : ''} onchange="updateDesignerQbeColumn('\${col.id}', 'show', this.checked)">
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \`;
+
+      const criteriaRow = \`
+        <tr>
+          <td class="qbe-matrix-header-cell">Criteria:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell">
+              <input value="\${(col.criteria || '').replace(/"/g, '&quot;')}" placeholder="e.g. > 100, VIP" onchange="updateDesignerQbeColumn('\${col.id}', 'criteria', this.value)">
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \`;
+
+      const or1Row = \`
+        <tr>
+          <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">or:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell">
+              <input value="\${(col.or1 || '').replace(/"/g, '&quot;')}" placeholder="or condition" onchange="updateDesignerQbeColumn('\${col.id}', 'or1', this.value)">
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \`;
+
+      const or2Row = \`
+        <tr>
+          <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">or:</td>
+          \${columns.map(col => \`
+            <td class="qbe-matrix-col-cell">
+              <input value="\${(col.or2 || '').replace(/"/g, '&quot;')}" placeholder="or condition" onchange="updateDesignerQbeColumn('\${col.id}', 'or2', this.value)">
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell"></td>
+        </tr>
+      \`;
+
+      const actionsRow = \`
+        <tr>
+          <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">Order / Del:</td>
+          \${columns.map((col, idx) => \`
+            <td class="qbe-matrix-col-cell" style="text-align: center;">
+              <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('\${col.id}', -1)" \${idx === 0 ? 'disabled' : ''} title="Move left">◀</button>
+              <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('\${col.id}', 1)" \${idx === columns.length - 1 ? 'disabled' : ''} title="Move right">▶</button>
+              <button class="sidebar-mini-btn" onclick="removeDesignerQbeColumn('\${col.id}')" title="Remove column">✕</button>
+            </td>
+          \`).join('')}
+          <td class="qbe-matrix-col-cell" style="text-align: center;">
+            <button class="btn btn-sm btn-primary" onclick="addDesignerQbeColumn()" title="Add column">+ Add</button>
+          </td>
+        </tr>
+      \`;
+
+      container.innerHTML = ribbonHtml + \`
+        <!-- Upper Relationship Workbench -->
+        <div class="qbe-workbench">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">RELATIONSHIP WORKBENCH (Click fields to add to QBE Grid)</span>
+            <span style="font-size: 10px; color: var(--cyan);">\${selectedTables.length} Tables Active</span>
+          </div>
+          <div class="qbe-tables-canvas">
+            \${tableCardsHtml}
+          </div>
+          <div class="qbe-joins-bar">
+            <div style="font-size: 10px; font-weight: 700; color: var(--text-dim);">JOIN PROPERTIES & RELATIONSHIPS:</div>
+            \${joinsHtml}
+          </div>
+        </div>
+
+        <!-- Lower QBE Design Grid -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">QUERY BY EXAMPLE (QBE) DESIGN GRID</span>
+          <span style="font-size: 10px; color: var(--text-dim);">\${columns.length} columns defined</span>
+        </div>
+        <div class="qbe-matrix-container">
+          <table class="qbe-matrix-table">
+            <tbody>
+              \${headerRow}
+              \${tableRow}
+              \${totalRow}
+              \${sortRow}
+              \${showRow}
+              \${criteriaRow}
+              \${or1Row}
+              \${or2Row}
+              \${actionsRow}
+            </tbody>
+          </table>
+        </div>
+      \`;
     }
 
     // ---------------------------------------------------------------------------------------------
