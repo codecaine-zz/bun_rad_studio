@@ -396,6 +396,9 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(script).toContain("doToggleFullscreen");
         expect(script).toContain("requestFullscreen");
         expect(script).toContain("minimizeWindow");
+        expect(script).toContain("contextmenu");
+        expect(script).toContain("preventDefault");
+        expect(script).toContain("F12");
     });
 
     test("6b. Linux native window helpers must not crash live windows", () => {

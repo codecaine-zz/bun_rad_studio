@@ -1499,7 +1499,7 @@ export function generateEnterpriseAppHtml(): string {
     }
   </style>
 </head>
-<body>
+<body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
 
   <!-- Header -->
   <header>

@@ -315,6 +315,13 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
 export function getWindowShortcutsScript(): string {
     return `
 (function() {
+    // Disable default right-click context menu across desktop windows to prevent inspect/reload from breaking desktop apps
+    window.addEventListener("contextmenu", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, { capture: true });
+
     let lastAltTime = 0;
     let zoomLevel = 1.0;
     let isFnPressed = false;
@@ -420,10 +427,13 @@ export function getWindowShortcutsScript(): string {
             lastAltTime = 0;
         }
 
-        // 2. Prevent raw browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
+        // 2. Prevent raw browser reload & inspect shortcuts (F5, Ctrl+R, Cmd+R, Shift+F5, Ctrl+Shift+R, F12, Ctrl+Shift+I, Cmd+Option+I, Cmd+Shift+C)
         if (
             (e.key === "F5" || e.code === "F5") ||
-            ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key.toLowerCase() === "r" || e.code === "KeyR"))
+            (e.key === "F12" || e.code === "F12") ||
+            ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "r" || e.code === "KeyR")) ||
+            ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "c" || e.code === "KeyC")) ||
+            (e.metaKey && e.altKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "j" || e.code === "KeyJ" || e.key.toLowerCase() === "c" || e.code === "KeyC"))
         ) {
             e.preventDefault();
             e.stopPropagation();

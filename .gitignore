@@ -47,3 +47,11 @@ bun-debug.log*
 *.user
 *.userosscache
 *.sln.docstates
+
+# SQLite Runtime Uploads & Database Artifacts
+.sqlite_uploads/
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+test_db_*.sqlite*
