@@ -301,7 +301,7 @@ webview.setHTML(htmlContent);
 
 // Background heartbeat sync for dashboard telemetry
 let heartbeatCounter = 0;
-setInterval(() => {
+const heartbeatTimer = setInterval(() => {
     heartbeatCounter++;
     const timeStr = new Date().toLocaleTimeString();
     const statusMsg = `Cluster US-East-1 | Telemetry: ${120 + (heartbeatCounter % 15)} msg/sec | Sync OK | ${timeStr}`;
@@ -311,5 +311,10 @@ setInterval(() => {
         `);
     } catch (e) {}
 }, 3000);
+heartbeatTimer.unref();
 
 webview.run();
+
+// Clean up background timer and exit process when window is closed
+clearInterval(heartbeatTimer);
+process.exit(0);

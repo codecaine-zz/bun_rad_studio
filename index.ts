@@ -908,7 +908,13 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${text}</span></div>\n`;
         } else if (t === 'metric_card') {
             const mRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:12px;display:flex;flex-direction:column;justify-content:space-between;"><div style="font-size:10px;color:${color};opacity:0.7;text-transform:uppercase;letter-spacing:0.5px;">${text}</div><div style="font-size:22px;font-weight:800;color:${color};">${c.value||'—'}</div><div style="font-size:10px;color:#10b981;">↑ ${c.trend||'0%'}</div></div>\n`;
+            const showTrend = c.trend !== undefined && c.trend !== null && c.trend !== '' && c.trend !== false && c.show_trend !== false;
+            const trendHtml = showTrend ? `<div style="font-size:10px;color:${c.trend_color || '#10b981'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">↑ ${c.trend}</div>` : '';
+            const pad = c.padding !== undefined ? `${c.padding}px` : (showTrend ? '10px 12px' : '6px 14px');
+            const justify = showTrend ? 'space-between' : 'center';
+            const valSize = c.value_font_size || (showTrend ? 22 : 19);
+            const valColor = c.value_color || color;
+            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:${pad};display:flex;flex-direction:column;justify-content:${justify};gap:2px;box-sizing:border-box;"><div style="font-size:${c.font_size || 10}px;color:${color};opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${text}</div><div style="font-size:${valSize}px;font-weight:800;color:${valColor};line-height:1.2;">${c.value||'—'}</div>${trendHtml}</div>\n`;
         } else if (t === 'alert_banner') {
             const alertCol = c.alert_type === 'error' ? '#ef4444' : c.alert_type === 'warning' ? '#f59e0b' : c.alert_type === 'success' ? '#10b981' : accent;
             const alertIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'success' ? '✅' : 'ℹ️';

@@ -25,13 +25,13 @@ const formSpec = {
     spacing: 14,
     controls: [
         // Header Title & Status
-        { id: "lblTitle", type: "label", caption: "📊 Dynamic Table & Data Grid Control Studio", left: 24, top: 18, width: 550, height: 28, font_size: 18, font_weight: "700" },
-        { id: "lblSub", type: "label", caption: "Interactive dynamic row & column manipulation with real-time state syncing", left: 24, top: 48, width: 550, height: 18, font_size: 11, font_color: "#38bdf8" },
+        { id: "lblTitle", type: "label", caption: "📊 Dynamic Table & Data Grid Control Studio", left: 24, top: 16, width: 480, height: 26, font_size: 18, font_weight: "700" },
+        { id: "lblSub", type: "label", caption: "Interactive dynamic row & column manipulation with real-time state syncing", left: 24, top: 44, width: 480, height: 18, font_size: 11, font_color: "#38bdf8" },
 
-        // KPI Summary Cards
-        { id: "metRows", type: "metric_card", text: "Total Rows", value: "5", trend: "+2 this session", left: 590, top: 15, width: 110, height: 55, border_radius: 8 },
-        { id: "metCols", type: "metric_card", text: "Total Cols", value: "6", trend: "Standard Schema", left: 710, top: 15, width: 110, height: 55, border_radius: 8 },
-        { id: "metBudget", type: "metric_card", text: "Total Payroll", value: "$780k", trend: "Active Team", left: 830, top: 15, width: 120, height: 55, border_radius: 8 },
+        // KPI Summary Cards (Clean, uncluttered, spacious cards)
+        { id: "metRows", type: "metric_card", text: "Total Rows", value: "5", left: 545, top: 14, width: 125, height: 52, border_radius: 8, background_color: "rgba(30, 41, 59, 0.75)", border_color: "rgba(56, 189, 248, 0.3)", value_color: "#38bdf8" },
+        { id: "metCols", type: "metric_card", text: "Total Cols", value: "6", left: 685, top: 14, width: 125, height: 52, border_radius: 8, background_color: "rgba(30, 41, 59, 0.75)", border_color: "rgba(168, 85, 247, 0.3)", value_color: "#c084fc" },
+        { id: "metBudget", type: "metric_card", text: "Total Payroll", value: "$780k", left: 825, top: 14, width: 125, height: 52, border_radius: 8, background_color: "rgba(30, 41, 59, 0.75)", border_color: "rgba(16, 185, 129, 0.3)", value_color: "#34d399" },
 
         // Left Control Panel (Row & Column Data Entry)
         { id: "grpInputs", type: "groupbox", title: "⚙️ Table Data Controls", left: 24, top: 80, width: 240, height: 440 },
@@ -58,10 +58,10 @@ const formSpec = {
         { id: "btnRemoveCol", type: "button", caption: "❌ Remove Last Col", left: 36, top: 500, width: 216, height: 32, background_color: "#475569" },
 
         // Top Table Bar (Search & Table Level Actions)
-        { id: "txtSearch", type: "search", placeholder: "🔍 Filter rows by name, role, dept...", left: 280, top: 80, width: 330, height: 36 },
-        { id: "btnSort", type: "button", caption: "🔀 Sort (Name)", left: 620, top: 80, width: 105, height: 36, background_color: "#334155" },
-        { id: "btnReset", type: "button", caption: "🔄 Reset Data", left: 735, top: 80, width: 105, height: 36, background_color: "#334155" },
-        { id: "btnClear", type: "button", caption: "🧹 Clear All", left: 850, top: 80, width: 100, height: 36, background_color: "#991b1b" },
+        { id: "txtSearch", type: "search", placeholder: "🔍 Filter rows by name, role, dept...", left: 280, top: 80, width: 325, height: 36 },
+        { id: "btnSort", type: "button", caption: "🔀 Sort (Name)", left: 620, top: 80, width: 100, height: 36, background_color: "#334155" },
+        { id: "btnReset", type: "button", caption: "🔄 Reset Data", left: 730, top: 80, width: 105, height: 36, background_color: "#334155" },
+        { id: "btnClear", type: "button", caption: "🧹 Clear All", left: 845, top: 80, width: 105, height: 36, background_color: "#991b1b" },
 
         // Dynamic Table Control
         {

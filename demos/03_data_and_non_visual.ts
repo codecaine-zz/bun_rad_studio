@@ -82,7 +82,7 @@ function execJS(code: string) {
 }
 
 // Simulate Non-Visual Timer Event Tick (1000ms)
-setInterval(() => {
+const tickTimer = setInterval(() => {
     tickCount++;
     loadVal = (loadVal + Math.floor(Math.random() * 11) - 5);
     if (loadVal < 20) loadVal = 25;
@@ -98,6 +98,7 @@ setInterval(() => {
         document.getElementById("lblTimerLog").textContent = "⏱️ [onTimer Event Tick #${tickCount}] CPU Load = ${loadVal}% | Grid Status = Active | Dataset Rows = 5 | Time: " + new Date().toLocaleTimeString();
     `);
 }, 1000);
+tickTimer.unref();
 
 // DB Navigator Refresh
 wv.bind("on_btnRefreshDb_click", () => {
@@ -111,3 +112,7 @@ wv.setHTML(html);
 
 console.log("🚀 Running Bun RAD Studio Demo 3: DB Grid, Timer & Code View...");
 wv.run();
+
+// Clean up background timer and exit process when window is closed
+clearInterval(tickTimer);
+process.exit(0);

@@ -464,7 +464,7 @@ webview.setHTML(htmlContent);
 
 // Background heartbeat sync for status bar telemetry
 let tickCounter = 1;
-setInterval(() => {
+const tickTimer = setInterval(() => {
     tickCounter++;
     const pageNum = (tickCounter % 5) + 1;
     const timeStr = new Date().toLocaleTimeString();
@@ -478,5 +478,10 @@ setInterval(() => {
         // Ignore during shutdown
     }
 }, 4000);
+tickTimer.unref();
 
 webview.run();
+
+// Clean up background timer and exit process when window is closed
+clearInterval(tickTimer);
+process.exit(0);
