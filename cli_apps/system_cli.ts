@@ -1,24 +1,31 @@
 #!/usr/bin/env bun
 /**
- * System & Package Workstation CLI
- * Zero Homebrew reliance -- Pure native Bun & Node subsystem hardware telemetry and package inspector
+ * System Information & Package Workstation CLI
+ * Complete Cross-Platform Hardware Intelligence & Subsystem Telemetry
+ * Powered by systeminformation (all 60 APIs) + Native Bun & Node Subsystems
  */
 import { SimpleCLI } from '../src/index.ts';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
 import { join } from 'node:path';
+import { executeSiMethod, SI_METHODS, SI_CATEGORIES } from '../applications/system_studio.ts';
 
-const app = SimpleCLI.newApp('system-cli', '1.0.0')
-  .setDescription('Hardware Telemetry, Bun Global Cache & Package Registry Inspector');
+const app = SimpleCLI.newApp('system-cli', '2.0.0')
+  .setDescription('Cross-Platform Hardware Telemetry, Subsystem Explorer & Package Registry Inspector');
 
 app.addFlagBool('telemetry', 't', false, 'Display full hardware and memory telemetry');
 app.addFlagBool('cache', 'c', false, 'Inspect Bun global package cache footprint');
 app.addFlagString('search', 's', '', 'Search packages on npm/bun registry');
 app.addFlagBool('json', 'j', false, 'Output telemetry or search results in JSON format');
+app.addFlagString('method', 'm', '', 'Execute specific systeminformation method (e.g. cpu, mem, fsSize)');
+app.addFlagString('category', 'C', '', 'Execute all methods in a system category');
+app.addFlagString('param', 'p', '', 'Optional parameter for the method (URL, query, process)');
+app.addFlagBool('audit', 'a', false, 'Run comprehensive full-system hardware and OS audit');
+app.addFlagBool('list-apis', 'l', false, 'List all 60 supported systeminformation APIs');
 
 if (!app.parseCli()) process.exit(0);
 
-app.banner('System & Package Workstation CLI', 'v1.0.0 - Hardware Telemetry & Registry Explorer');
+app.banner('System & Package Workstation CLI', 'v2.0.0 - Complete Cross-Platform Hardware Telemetry');
 
 const totalMem = os.totalmem();
 const freeMem = os.freemem();
@@ -86,7 +93,84 @@ async function main() {
   const isJson = app.getFlagBool('json');
   const searchQ = app.getFlagString('search');
   const checkCache = app.getFlagBool('cache');
+  const targetMethod = app.getFlagString('method');
+  const targetCategory = app.getFlagString('category');
+  const methodParam = app.getFlagString('param');
+  const doAudit = app.getFlagBool('audit');
+  const listApis = app.getFlagBool('list-apis');
 
+  // 1. List APIs
+  if (listApis) {
+    if (isJson) {
+      console.log(JSON.stringify(SI_METHODS, null, 2));
+    } else {
+      app.panel('Available SystemInformation APIs (60 Total)', 'Organized across 10 domain categories');
+      for (const cat of SI_CATEGORIES) {
+        const methodsInCat = Object.values(SI_METHODS).filter(m => m.category === cat);
+        app.info(`📁 ${cat} (${methodsInCat.length} methods):`);
+        app.table(
+          ['Method', 'Description', 'Accepts Param'],
+          methodsInCat.map(m => [m.name, m.description, m.acceptsParam ? 'Yes' : 'No'])
+        );
+      }
+    }
+    return;
+  }
+
+  // 2. Target Method Execution
+  if (targetMethod) {
+    const res = await executeSiMethod(targetMethod, methodParam || undefined);
+    if (isJson) {
+      console.log(JSON.stringify(res, null, 2));
+    } else {
+      if (res.success) {
+        app.success(`Executed '${res.method}' in ${res.elapsedMs}ms (${res.category}):`);
+        console.log(JSON.stringify(res.data, null, 2));
+      } else {
+        app.error(`Execution failed for '${targetMethod}': ${res.error}`);
+      }
+    }
+    return;
+  }
+
+  // 3. Category Execution
+  if (targetCategory) {
+    const methods = Object.values(SI_METHODS).filter(
+      m => m.category.toLowerCase().includes(targetCategory.toLowerCase())
+    );
+    if (methods.length === 0) {
+      app.error(`No category matching '${targetCategory}'. Use --list-apis to see available categories.`);
+      return;
+    }
+    app.info(`Running ${methods.length} methods in category '${methods[0].category}'...`);
+    const results: Record<string, any> = {};
+    for (const m of methods) {
+      const res = await executeSiMethod(m.name, m.defaultParam);
+      results[m.name] = res.success ? res.data : { error: res.error };
+    }
+    if (isJson) {
+      console.log(JSON.stringify(results, null, 2));
+    } else {
+      app.success(`Category '${methods[0].category}' execution complete:`);
+      console.log(JSON.stringify(results, null, 2));
+    }
+    return;
+  }
+
+  // 4. Comprehensive Full System Audit
+  if (doAudit) {
+    app.info('Running comprehensive system audit (getAllData)...');
+    const res = await executeSiMethod('getAllData');
+    if (isJson) {
+      console.log(JSON.stringify(res.data, null, 2));
+    } else {
+      app.success(`Audit completed in ${res.elapsedMs}ms:`);
+      console.log(JSON.stringify(res.data, null, 2));
+    }
+    return;
+  }
+
+  // 5. Registry Search
   if (searchQ) {
     const results = await searchRegistry(searchQ);
     if (isJson) {
@@ -101,6 +185,7 @@ async function main() {
     return;
   }
 
+  // 6. Cache Check
   if (checkCache) {
     const c = await inspectBunCache();
     if (isJson) {
@@ -116,11 +201,11 @@ async function main() {
     return;
   }
 
-  // Default: Telemetry
+  // 7. Default Hardware Telemetry
   if (isJson) {
     console.log(JSON.stringify(telemetryData, null, 2));
   } else {
-    app.panel('Hardware & System Telemetry', 'Subsystem readings via native node:os');
+    app.panel('Hardware & System Telemetry', 'Subsystem readings via systeminformation & native node:os');
     app.printKv({
       'Operating System': telemetryData.platform,
       'Hostname': telemetryData.hostname,
@@ -129,6 +214,7 @@ async function main() {
       'System Uptime': telemetryData.uptimeHours,
       'Bun Engine': `v${telemetryData.bunVersion}`,
       'Node Engine': telemetryData.nodeCompatVersion,
+      'API Surface': '60 systeminformation methods available (run `system-cli -l`)',
     });
   }
 }

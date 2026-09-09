@@ -91,6 +91,7 @@
   },
   "dependencies": {
     "jsdom": "^29.1.1",
+    "systeminformation": "^5.33.10",
     "webview-bun": "^2.4.0"
   }
 }
