@@ -418,7 +418,9 @@ export class SqliteManager {
     const t0 = performance.now();
     try {
       const cleanSql = trimmed.replace(/^EXPLAIN\s+QUERY\s+PLAN\s+/i, "");
-      const explainRows = (this.db.query(`EXPLAIN QUERY PLAN ${cleanSql}`).all() as any[]) || [];
+      const singleSql = cleanSql.split(";")[0].trim();
+      if (!singleSql) return { success: false, error: "SQL statement is required for explain" };
+      const explainRows = (this.db.query(`EXPLAIN QUERY PLAN ${singleSql};`).all() as any[]) || [];
       const latencyMs = Number((performance.now() - t0).toFixed(2));
 
       const queryPlan = explainRows.map((row) => {
@@ -470,14 +472,15 @@ export class SqliteManager {
 
     const t0 = performance.now();
     try {
-      // Validate table exists
+      // Validate table exists using parameterized query
       const exists = (this.db.query("SELECT name FROM sqlite_master WHERE (type='table' OR type='view') AND name = ?;").get(table) as any);
       if (!exists) {
         return { success: false, table, error: `Table or view '${table}' does not exist` };
       }
 
-      // Column metadata
-      const colsRaw = (this.db.query(`PRAGMA table_info("${table}");`).all() as any[]) || [];
+      // Column metadata with safely escaped table identifier
+      const escapedTable = table.replace(/"/g, '""');
+      const colsRaw = (this.db.query(`PRAGMA table_info("${escapedTable}");`).all() as any[]) || [];
       const columns = colsRaw.map((c) => c.name);
 
       // Where filter for search
@@ -485,13 +488,13 @@ export class SqliteManager {
       const params: any[] = [];
       if (options.search && options.search.trim() && columns.length > 0) {
         const searchVal = `%${options.search.trim()}%`;
-        const conditions = columns.map((col) => `CAST("${col}" AS TEXT) LIKE ?`);
+        const conditions = columns.map((col) => `CAST("${col.replace(/"/g, '""')}" AS TEXT) LIKE ?`);
         whereClause = `WHERE (${conditions.join(" OR ")})`;
         columns.forEach(() => params.push(searchVal));
       }
 
       // Total count
-      const countSql = `SELECT count(*) as total FROM "${table}" ${whereClause};`;
+      const countSql = `SELECT count(*) as total FROM "${escapedTable}" ${whereClause};`;
       const countStmt = this.db.query(countSql);
       const totalRows = Number((countStmt.get(...params) as any)?.total || 0);
 
@@ -499,11 +502,11 @@ export class SqliteManager {
       let orderClause = "";
       if (options.orderBy && columns.includes(options.orderBy)) {
         const dir = options.orderDir === "DESC" ? "DESC" : "ASC";
-        orderClause = `ORDER BY "${options.orderBy}" ${dir}`;
+        orderClause = `ORDER BY "${options.orderBy.replace(/"/g, '""')}" ${dir}`;
       }
 
       // Data fetch
-      const dataSql = `SELECT * FROM "${table}" ${whereClause} ${orderClause} LIMIT ? OFFSET ?;`;
+      const dataSql = `SELECT * FROM "${escapedTable}" ${whereClause} ${orderClause} LIMIT ? OFFSET ?;`;
       const dataStmt = this.db.query(dataSql);
       const rows = (dataStmt.all(...params, pageSize, offset) as Record<string, any>[]) || [];
       const latencyMs = Number((performance.now() - t0).toFixed(2));
@@ -530,39 +533,54 @@ export class SqliteManager {
     payload: { rowId?: any; pkColumn?: string; data?: Record<string, any> }
   ): { success: boolean; rowsAffected?: number; lastInsertRowid?: number; error?: string } {
     try {
+      // 1. Verify table exists in sqlite_master
+      const exists = (this.db.query("SELECT name FROM sqlite_master WHERE (type='table' OR type='view') AND name = ?;").get(table) as any);
+      if (!exists) {
+        return { success: false, error: `Table '${table}' does not exist` };
+      }
+
+      // 2. Fetch verified columns from schema
+      const escapedTable = table.replace(/"/g, '""');
+      const colsRaw = (this.db.query(`PRAGMA table_info("${escapedTable}");`).all() as any[]) || [];
+      const validCols = new Set(colsRaw.map(c => c.name));
+
       const pkCol = payload.pkColumn || "id";
+      if (!validCols.has(pkCol)) {
+        return { success: false, error: `Invalid primary key column '${pkCol}'` };
+      }
+      const escapedPkCol = pkCol.replace(/"/g, '""');
 
       if (action === "delete") {
         if (payload.rowId === undefined) throw new Error("rowId is required for deletion");
-        const res = this.db.run(`DELETE FROM "${table}" WHERE "${pkCol}" = ?;`, [payload.rowId]);
+        const res = this.db.run(`DELETE FROM "${escapedTable}" WHERE "${escapedPkCol}" = ?;`, [payload.rowId]);
         this.logAudit("DELETE", table, `Deleted ${pkCol}=${payload.rowId}`);
         return { success: true, rowsAffected: res.changes };
       }
 
       if (action === "update") {
         if (payload.rowId === undefined || !payload.data) throw new Error("rowId and data required for update");
-        const entries = Object.entries(payload.data).filter(([k]) => k !== pkCol);
+        const entries = Object.entries(payload.data).filter(([k]) => k !== pkCol && validCols.has(k));
         if (entries.length === 0) return { success: true, rowsAffected: 0 };
 
-        const setClause = entries.map(([k]) => `"${k}" = ?`).join(", ");
+        const setClause = entries.map(([k]) => `"${k.replace(/"/g, '""')}" = ?`).join(", ");
         const values = entries.map(([, v]) => v);
         values.push(payload.rowId);
 
-        const res = this.db.run(`UPDATE "${table}" SET ${setClause} WHERE "${pkCol}" = ?;`, values);
+        const res = this.db.run(`UPDATE "${escapedTable}" SET ${setClause} WHERE "${escapedPkCol}" = ?;`, values);
         this.logAudit("UPDATE", table, `Updated ${pkCol}=${payload.rowId} (${entries.length} cols)`);
         return { success: true, rowsAffected: res.changes };
       }
 
       if (action === "insert") {
         if (!payload.data) throw new Error("data object is required for insert");
-        const keys = Object.keys(payload.data);
-        if (keys.length === 0) throw new Error("At least one column is required for insert");
+        const keys = Object.keys(payload.data).filter(k => validCols.has(k));
+        if (keys.length === 0) throw new Error("At least one valid column is required for insert");
 
-        const cols = keys.map((k) => `"${k}"`).join(", ");
+        const cols = keys.map((k) => `"${k.replace(/"/g, '""')}"`).join(", ");
         const placeholders = keys.map(() => "?").join(", ");
         const values = keys.map((k) => payload.data![k]);
 
-        const res = this.db.run(`INSERT INTO "${table}" (${cols}) VALUES (${placeholders});`, values);
+        const res = this.db.run(`INSERT INTO "${escapedTable}" (${cols}) VALUES (${placeholders});`, values);
         this.logAudit("INSERT", table, `Inserted new row id=${res.lastInsertRowid}`);
         return { success: true, rowsAffected: res.changes, lastInsertRowid: Number(res.lastInsertRowid) };
       }
@@ -575,14 +593,22 @@ export class SqliteManager {
 
   public runPragma(pragmaName: string, value?: string): { success: boolean; result: any; error?: string } {
     try {
-      let sql = "";
+      const name = String(pragmaName || "").trim();
+      if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+        return { success: false, result: null, error: `Invalid pragma name: '${pragmaName}'` };
+      }
+
       if (value !== undefined && value !== null) {
-        sql = `PRAGMA ${pragmaName} = ${value};`;
+        const val = String(value).trim();
+        if (!/^(ON|OFF|NORMAL|FULL|OFF|DELETE|TRUNCATE|PERSIST|MEMORY|WAL|[0-9]+|'[^']*'|"[^"]*"|[a-zA-Z0-9_\-]+)$/i.test(val)) {
+          return { success: false, result: null, error: `Invalid or unsafe pragma value: '${value}'` };
+        }
+        const sql = `PRAGMA ${name} = ${val};`;
         this.db.run(sql);
-        const check = this.db.query(`PRAGMA ${pragmaName};`).get();
+        const check = this.db.query(`PRAGMA ${name};`).get();
         return { success: true, result: check };
       } else {
-        sql = `PRAGMA ${pragmaName};`;
+        const sql = `PRAGMA ${name};`;
         const res = this.db.query(sql).all();
         return { success: true, result: res };
       }
@@ -689,6 +715,113 @@ export class SqliteManager {
         FROM products p
         JOIN order_items oi ON oi.product_id = p.id
         GROUP BY p.category;
+      `);
+
+      // 1. 4-Table Join View: Extended Order Details with Customer and Product attributes
+      this.db.run(`
+        CREATE VIEW IF NOT EXISTS v_order_details_extended AS
+        SELECT 
+          o.id AS order_id,
+          o.order_number,
+          o.created_at AS order_date,
+          o.status AS order_status,
+          o.payment_method,
+          c.id AS customer_id,
+          c.name AS customer_name,
+          c.email AS customer_email,
+          c.company AS customer_company,
+          c.tier AS customer_tier,
+          p.id AS product_id,
+          p.sku AS product_sku,
+          p.name AS product_name,
+          p.category AS product_category,
+          oi.unit_price,
+          oi.quantity,
+          round(oi.quantity * oi.unit_price, 2) AS line_total
+        FROM orders o
+        JOIN customers c ON o.customer_id = c.id
+        JOIN order_items oi ON oi.order_id = o.id
+        JOIN products p ON oi.product_id = p.id;
+      `);
+
+      // 2. 3-Table Join View: Customer Lifetime Order Summary & Total Spend
+      this.db.run(`
+        CREATE VIEW IF NOT EXISTS v_customer_order_summary AS
+        SELECT 
+          c.id AS customer_id,
+          c.name AS customer_name,
+          c.company,
+          c.country,
+          c.tier,
+          count(DISTINCT o.id) AS total_orders,
+          coalesce(sum(oi.quantity), 0) AS total_items_purchased,
+          coalesce(round(sum(o.total_amount), 2), 0.0) AS total_spend,
+          coalesce(round(avg(o.total_amount), 2), 0.0) AS avg_order_value,
+          max(o.created_at) AS latest_order_date
+        FROM customers c
+        LEFT JOIN orders o ON o.customer_id = c.id
+        LEFT JOIN order_items oi ON oi.order_id = o.id
+        GROUP BY c.id;
+      `);
+
+      // 3. 3-Table Join View: Product Inventory & Revenue Performance
+      this.db.run(`
+        CREATE VIEW IF NOT EXISTS v_product_sales_performance AS
+        SELECT 
+          p.id AS product_id,
+          p.sku,
+          p.name AS product_name,
+          p.category,
+          p.price,
+          p.stock,
+          p.rating,
+          coalesce(sum(oi.quantity), 0) AS units_sold,
+          coalesce(round(sum(oi.quantity * oi.unit_price), 2), 0.0) AS gross_revenue,
+          count(DISTINCT o.id) AS orders_count
+        FROM products p
+        LEFT JOIN order_items oi ON oi.product_id = p.id
+        LEFT JOIN orders o ON oi.order_id = o.id
+        GROUP BY p.id;
+      `);
+
+      // 4. 3-Table Join View: Active / Pending Fulfillment Orders
+      this.db.run(`
+        CREATE VIEW IF NOT EXISTS v_pending_shipments AS
+        SELECT 
+          o.id AS order_id,
+          o.order_number,
+          o.created_at AS order_date,
+          o.status AS shipment_status,
+          o.payment_method,
+          c.name AS customer_name,
+          c.email AS customer_email,
+          c.company AS customer_company,
+          count(oi.id) AS distinct_products_count,
+          coalesce(sum(oi.quantity), 0) AS total_units_to_ship,
+          o.total_amount
+        FROM orders o
+        JOIN customers c ON o.customer_id = c.id
+        JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.status IN ('pending', 'processing')
+        GROUP BY o.id;
+      `);
+
+      // 5. 2-Table Join View: VIP Segment Completed Orders & Analytics
+      this.db.run(`
+        CREATE VIEW IF NOT EXISTS v_vip_customer_analytics AS
+        SELECT 
+          c.id AS customer_id,
+          c.name AS customer_name,
+          c.email,
+          c.company,
+          c.tier,
+          count(o.id) AS completed_orders_count,
+          coalesce(round(sum(o.total_amount), 2), 0.0) AS total_vip_revenue,
+          coalesce(round(avg(o.total_amount), 2), 0.0) AS avg_basket_size
+        FROM customers c
+        JOIN orders o ON o.customer_id = c.id
+        WHERE c.tier IN ('VIP', 'Enterprise', 'Pioneering', 'Honorary')
+        GROUP BY c.id;
       `);
 
       // Populate Seed Records
@@ -1094,8 +1227,9 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             }
             content = lines.join("\n");
           } else if (body.format === "sql") {
-            const tbl = body.tableName || "exported_records";
+            const tbl = (body.tableName || "exported_records").replace(/"/g, '""');
             const headers = Object.keys(body.rows[0] || {});
+            const escapedHeaders = headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(", ");
             const lines = body.rows.map((r) => {
               const vals = headers.map((h) => {
                 const v = r[h];
@@ -1103,7 +1237,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
                 if (typeof v === "number") return v;
                 return `'${String(v).replace(/'/g, "''")}'`;
               });
-              return `INSERT INTO "${tbl}" (${headers.map((h) => `"${h}"`).join(", ")}) VALUES (${vals.join(", ")});`;
+              return `INSERT INTO "${tbl}" (${escapedHeaders}) VALUES (${vals.join(", ")});`;
             });
             content = lines.join("\n");
           }

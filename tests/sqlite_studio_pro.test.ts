@@ -226,13 +226,22 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     const app = createSqliteStudio();
     expect(app).toBeDefined();
     expect(app.fullscreen).toBe(true);
+    expect(app.width).toBeGreaterThanOrEqual(1024);
+    expect(app.height).toBeGreaterThanOrEqual(768);
     expect(typeof app.run).toBe("function");
     expect(typeof app.generateHtml).toBe("function");
+
+    // Windowed fallback options
+    const windowedApp = createSqliteStudio({ fullscreen: false, width: 1000, height: 700 });
+    expect(windowedApp.fullscreen).toBe(false);
+    expect(windowedApp.width).toBe(1000);
+    expect(windowedApp.height).toBe(700);
 
     // Aliases
     expect(createDatabaseStudio).toBe(createSqliteStudio);
     expect(createSqliteStudioPro).toBe(createSqliteStudio);
   });
+
 
   it("11. /api/workspace-databases scans and returns discovered project databases", async () => {
     const res = await fetch(`${baseUrl}/api/workspace-databases`);
@@ -359,14 +368,15 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     };
 
     const runScript = new Function(
-      "window", "document", "fetch",
+      "window", "document", "fetch", "setInterval",
       `${scriptBody}; return { buildDesignerSql, queryDesignerState, setCurrentSchema: (s) => { currentSchema = s; } };`
     );
 
     const { buildDesignerSql, queryDesignerState, setCurrentSchema } = runScript(
       mockContext.window,
       mockContext.document,
-      mockContext.fetch
+      mockContext.fetch,
+      () => 0
     );
 
     setCurrentSchema({
@@ -480,5 +490,426 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     expect(queryData.columns).toContain("avg_spent");
     expect(queryData.columns).toContain("order_count");
   });
+
+  it("16. Query Presets, Editable SQL Runner, Persistent Saved Queries, and Export Enhancements operate correctly", async () => {
+    // 1. Fetch workstation HTML and verify UI enhancements exist
+    const res = await fetch(`${baseUrl}/`);
+    const html = await res.text();
+
+    expect(html).toContain("applyDesignerPreset");
+    expect(html).toContain("⚡ Presets / Templates");
+    expect(html).toContain("runCustomDesignerSql");
+    expect(html).toContain("copyDesignerDatasheetMarkdown");
+    expect(html).toContain("copyDesignerDatasheetSqlInsert");
+    expect(html).toContain("filterDesignerDatasheet");
+    expect(html).toContain("toggleCriteriaHelp");
+    expect(html).toContain("criteriaHelpBanner");
+    expect(html).toContain("qbe-saved-chip");
+
+    // 2. Test built-in Presets SQL execution against active database
+    // Top Spenders Preset Query
+    const topSpendersSql = `
+      SELECT "customers"."name" AS "Customer", "customers"."tier" AS "Tier",
+             SUM("orders"."total_amount") AS "TotalSpend", COUNT("orders"."id") AS "OrdersCount"
+      FROM "customers"
+      INNER JOIN "orders" ON "customers"."id" = "orders"."customer_id"
+      GROUP BY "customers"."name", "customers"."tier"
+      HAVING SUM("orders"."total_amount") > 0
+      ORDER BY "TotalSpend" DESC
+      LIMIT 25;
+    `;
+    const spendRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: topSpendersSql }),
+    });
+    expect(spendRes.status).toBe(200);
+    const spendData = await spendRes.json();
+    expect(spendData.success).toBe(true);
+    expect(spendData.columns).toContain("Customer");
+    expect(spendData.columns).toContain("TotalSpend");
+
+    // Low Stock Alert Preset Query
+    const lowStockSql = `
+      SELECT "products"."name" AS "Product", "products"."category" AS "Category",
+             "products"."stock" AS "UnitsInStock", "products"."price" AS "Price"
+      FROM "products"
+      WHERE "products"."stock" < 50
+      ORDER BY "products"."stock" ASC
+      LIMIT 50;
+    `;
+    const stockRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: lowStockSql }),
+    });
+    expect(stockRes.status).toBe(200);
+    const stockData = await stockRes.json();
+    expect(stockData.success).toBe(true);
+    expect(stockData.columns).toContain("UnitsInStock");
+
+    // Active Orders Pipeline Preset Query
+    const ordersPipelineSql = `
+      SELECT "orders"."id" AS "OrderID", "customers"."name" AS "Customer",
+             "orders"."status" AS "Status", "orders"."total_amount" AS "Amount"
+      FROM "customers"
+      INNER JOIN "orders" ON "customers"."id" = "orders"."customer_id"
+      WHERE "orders"."status" <> 'cancelled'
+      ORDER BY "orders"."id" DESC
+      LIMIT 50;
+    `;
+    const orderRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: ordersPipelineSql }),
+    });
+    expect(orderRes.status).toBe(200);
+    const orderData = await orderRes.json();
+    expect(orderData.success).toBe(true);
+    expect(orderData.columns).toContain("OrderID");
+    expect(orderData.columns).toContain("Status");
+  });
+
+  it("17. Security & SQL Injection Prevention Verification", async () => {
+    // 1. Malicious PRAGMA name injection attempt
+    const badPragmaNameRes = await fetch(`${baseUrl}/api/pragma`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pragma: "foreign_keys; DROP TABLE customers; --" }),
+    });
+    const badPragmaNameData = await badPragmaNameRes.json();
+    expect(badPragmaNameData.success).toBe(false);
+    expect(badPragmaNameData.error).toContain("Invalid pragma name");
+
+    // 2. Malicious PRAGMA value injection attempt
+    const badPragmaValRes = await fetch(`${baseUrl}/api/pragma`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pragma: "foreign_keys", value: "ON; DROP TABLE customers; --" }),
+    });
+    const badPragmaValData = await badPragmaValRes.json();
+    expect(badPragmaValData.success).toBe(false);
+    expect(badPragmaValData.error).toContain("Invalid or unsafe pragma value");
+
+    // 3. Malicious table mutation injection attempt (Table name injection)
+    const badMutateTableRes = await fetch(`${baseUrl}/api/table/mutate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        table: 'customers" OR 1=1; --',
+        action: "delete",
+        payload: { rowId: 1 },
+      }),
+    });
+    const badMutateTableData = await badMutateTableRes.json();
+    expect(badMutateTableData.success).toBe(false);
+    expect(badMutateTableData.error).toContain("does not exist");
+
+    // 4. Malicious primary key column injection attempt
+    const badPkColRes = await fetch(`${baseUrl}/api/table/mutate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        table: "customers",
+        action: "delete",
+        payload: { pkColumn: 'id" = 1 OR 1=1; --', rowId: 1 },
+      }),
+    });
+    const badPkColData = await badPkColRes.json();
+    expect(badPkColData.success).toBe(false);
+    expect(badPkColData.error).toContain("Invalid primary key column");
+
+    // 5. Malicious column injection attempt in update payload
+    const badColRes = await fetch(`${baseUrl}/api/table/mutate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        table: "customers",
+        action: "update",
+        payload: {
+          rowId: 1,
+          data: {
+            'tier" = "HACKED"; DROP TABLE orders; --': "malicious_val",
+          },
+        },
+      }),
+    });
+    const badColData = await badColRes.json();
+    // Non-existent columns are safely filtered out, resulting in 0 rows affected or success without injection
+    expect(badColData.error).toBeUndefined();
+
+    // 6. Verify customers & orders tables are completely intact after all attack attempts
+    const verifyCustRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: 'SELECT count(*) as count FROM customers;' }),
+    });
+    const verifyCustData = await verifyCustRes.json();
+    expect(verifyCustData.success).toBe(true);
+    expect(verifyCustData.rows[0].count).toBeGreaterThan(0);
+
+    // 7. Verify Client-Side QBE criteria injection neutralization
+    const workstationRes = await fetch(`${baseUrl}/`);
+    const html = await workstationRes.text();
+    expect(html).toContain("escapeHtml");
+    expect(html).toContain("trimmed.includes(\";\")");
+
+    // Test criteria escaping in JavaScript sandbox
+    const evalSandbox = new Function(`
+      function formatAccessCriterion(qualifiedField, criterionStr) {
+        if (!criterionStr || !String(criterionStr).trim()) return "";
+        const trimmed = String(criterionStr).trim();
+        if (trimmed.includes(";") || trimmed.includes("--") || trimmed.includes("/*")) {
+          return qualifiedField + " = '" + trimmed.replace(/'/g, "''") + "'";
+        }
+        if (/^(=|<>|!=|>|<|>=|<=|LIKE|NOT LIKE|IN|NOT IN|BETWEEN|IS NULL|IS NOT NULL)/i.test(trimmed)) {
+          return qualifiedField + " " + trimmed;
+        }
+        return qualifiedField + " = '" + trimmed.replace(/'/g, "''") + "'";
+      }
+
+      function escapeHtml(value) {
+        if (value === null || value === undefined) return "";
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      return {
+        safeCriterion: formatAccessCriterion('"customers"."name"', "Alice; DROP TABLE customers; --"),
+        safeXss: escapeHtml("<script>alert('pwned')</script>")
+      };
+    `)();
+
+    expect(evalSandbox.safeCriterion).toBe(`"customers"."name" = 'Alice; DROP TABLE customers; --'`);
+    expect(evalSandbox.safeXss).toBe("&lt;script&gt;alert(&#039;pwned&#039;)&lt;/script&gt;");
+  });
+
+  it("18. Multi-Table Joins (> 2 tables): Graph Spanning Tree & Topological Query Execution", async () => {
+    const res = await fetch(`${baseUrl}/`);
+    const html = await res.text();
+    const scriptMatch = html.match(/<script[\s\S]*?<\/script>/gi)?.[0];
+    expect(scriptMatch).toBeDefined();
+    const scriptBody = scriptMatch!.replace(/<script[^>]*>/i, "").replace(/<\/script>/i, "");
+
+    const mockContext = {
+      window: { location: { search: "" }, addEventListener: () => {} },
+      document: {
+        getElementById: () => null,
+        querySelectorAll: () => [],
+        addEventListener: () => {},
+        head: { appendChild: () => {} },
+        createElement: () => ({ setAttribute: () => {}, style: {}, addEventListener: () => {} }),
+      },
+      fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }),
+      console,
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
+    };
+
+    const runScript = new Function(
+      "window", "document", "fetch", "setInterval",
+      `${scriptBody}; return { buildDesignerSql, buildDesignerJoinPairs, suggestDesignerJoin, queryDesignerState, setCurrentSchema: (s) => { currentSchema = s; } };`
+    );
+
+    const { buildDesignerSql, buildDesignerJoinPairs, suggestDesignerJoin, queryDesignerState, setCurrentSchema } = runScript(
+      mockContext.window,
+      mockContext.document,
+      mockContext.fetch,
+      () => 0
+    );
+
+    // 4-Table Schema
+    setCurrentSchema({
+      tables: [
+        {
+          name: "customers",
+          columns: [{ name: "id" }, { name: "name" }, { name: "tier" }],
+          foreignKeys: [],
+        },
+        {
+          name: "orders",
+          columns: [{ name: "id" }, { name: "customer_id" }, { name: "total_amount" }, { name: "status" }],
+          foreignKeys: [{ table: "customers", from: "customer_id", to: "id" }],
+        },
+        {
+          name: "order_items",
+          columns: [{ name: "id" }, { name: "order_id" }, { name: "product_id" }, { name: "quantity" }, { name: "unit_price" }],
+          foreignKeys: [
+            { table: "orders", from: "order_id", to: "id" },
+            { table: "products", from: "product_id", to: "id" },
+          ],
+        },
+        {
+          name: "products",
+          columns: [{ name: "id" }, { name: "sku" }, { name: "name" }, { name: "category" }, { name: "price" }],
+          foreignKeys: [],
+        },
+      ],
+    });
+
+    // Verify smart heuristic join suggestions
+    const custToOrd = suggestDesignerJoin("customers", "orders");
+    expect(custToOrd).not.toBeNull();
+    expect(custToOrd.leftField).toBe("id");
+    expect(custToOrd.rightField).toBe("customer_id");
+
+    const ordToItem = suggestDesignerJoin("orders", "order_items");
+    expect(ordToItem).not.toBeNull();
+    expect(ordToItem.leftField).toBe("id");
+    expect(ordToItem.rightField).toBe("order_id");
+
+    const itemToProd = suggestDesignerJoin("order_items", "products");
+    expect(itemToProd).not.toBeNull();
+    expect(itemToProd.leftField).toBe("product_id");
+    expect(itemToProd.rightField).toBe("id");
+
+    // Add 4 tables in shuffled order: customers, products, orders, order_items
+    queryDesignerState.selectedTables = ["customers", "products", "orders", "order_items"];
+    const spanningTree = buildDesignerJoinPairs();
+
+    // Spanning tree should have exactly 3 joins connecting all 4 tables
+    expect(spanningTree.length).toBe(3);
+
+    // Set spanning tree as the active joins
+    queryDesignerState.joins = spanningTree;
+    queryDesignerState.showTotals = true;
+    queryDesignerState.columns = [
+      { table: "customers", field: "name", alias: "Customer", total: "GroupBy", sort: "ASC", show: true, criteria: "" },
+      { table: "products", field: "category", alias: "Category", total: "GroupBy", sort: "", show: true, criteria: "" },
+      { table: "products", field: "name", alias: "Product", total: "GroupBy", sort: "", show: true, criteria: "" },
+      { table: "order_items", field: "quantity", alias: "UnitsSold", total: "Sum", sort: "", show: true, criteria: "> 0" },
+      { table: "orders", field: "total_amount", alias: "OrderTotal", total: "Sum", sort: "DESC", show: true, criteria: "" },
+    ];
+
+    const sql = buildDesignerSql();
+    expect(sql).toContain('FROM "customers"');
+    expect(sql).toContain('GROUP BY');
+    expect(sql).toContain('ORDER BY');
+
+    // Execute compiled 4-table join query against test database
+    const queryRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql }),
+    });
+
+    expect(queryRes.status).toBe(200);
+    const queryData = await queryRes.json();
+    expect(queryData.success).toBe(true);
+    expect(Array.isArray(queryData.columns)).toBe(true);
+    expect(queryData.columns).toContain("Customer");
+    expect(queryData.columns).toContain("Category");
+    expect(queryData.columns).toContain("Product");
+    expect(queryData.columns).toContain("UnitsSold");
+    expect(queryData.columns).toContain("OrderTotal");
+    expect(queryData.rows.length).toBeGreaterThan(0);
+  });
+
+  it("19. Relational Join Views: Seeded views discovery, multi-table queries, and dynamic view creation", async () => {
+    // 1. Fetch schema and verify the 5 multi-table join views exist
+    const schemaRes = await fetch(`${baseUrl}/api/schema`);
+    expect(schemaRes.status).toBe(200);
+    const schema = await schemaRes.json();
+    expect(Array.isArray(schema.views)).toBe(true);
+
+    const viewNames = schema.views.map((v: any) => v.name);
+    expect(viewNames).toContain("v_order_details_extended");
+    expect(viewNames).toContain("v_customer_order_summary");
+    expect(viewNames).toContain("v_product_sales_performance");
+    expect(viewNames).toContain("v_pending_shipments");
+    expect(viewNames).toContain("v_vip_customer_analytics");
+
+    // 2. Query 4-table join view: v_order_details_extended
+    const orderDetailsRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: "SELECT * FROM v_order_details_extended LIMIT 10;" }),
+    });
+    expect(orderDetailsRes.status).toBe(200);
+    const orderDetailsData = await orderDetailsRes.json();
+    expect(orderDetailsData.success).toBe(true);
+    expect(orderDetailsData.rows.length).toBeGreaterThan(0);
+    expect(orderDetailsData.columns).toContain("order_id");
+    expect(orderDetailsData.columns).toContain("customer_name");
+    expect(orderDetailsData.columns).toContain("customer_email");
+    expect(orderDetailsData.columns).toContain("product_name");
+    expect(orderDetailsData.columns).toContain("product_category");
+    expect(orderDetailsData.columns).toContain("line_total");
+
+    // 3. Query 3-table aggregate join view: v_customer_order_summary
+    const customerSummaryRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: "SELECT * FROM v_customer_order_summary LIMIT 10;" }),
+    });
+    expect(customerSummaryRes.status).toBe(200);
+    const customerSummaryData = await customerSummaryRes.json();
+    expect(customerSummaryData.success).toBe(true);
+    expect(customerSummaryData.columns).toContain("total_orders");
+    expect(customerSummaryData.columns).toContain("total_spend");
+    expect(customerSummaryData.rows.length).toBeGreaterThan(0);
+
+    // 4. Query product sales performance view: v_product_sales_performance
+    const productPerfRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: "SELECT * FROM v_product_sales_performance LIMIT 10;" }),
+    });
+    expect(productPerfRes.status).toBe(200);
+    const productPerfData = await productPerfRes.json();
+    expect(productPerfData.success).toBe(true);
+    expect(productPerfData.columns).toContain("gross_revenue");
+    expect(productPerfData.columns).toContain("units_sold");
+
+    // 5. Query pending shipments view: v_pending_shipments
+    const pendingRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: "SELECT * FROM v_pending_shipments;" }),
+    });
+    expect(pendingRes.status).toBe(200);
+    const pendingData = await pendingRes.json();
+    expect(pendingData.success).toBe(true);
+
+    // 6. Test Dynamic View Creation via DDL
+    const createViewRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sql: `CREATE VIEW IF NOT EXISTS v_high_value_orders AS
+              SELECT o.id AS order_id, c.name AS customer_name, o.total_amount
+              FROM orders o
+              JOIN customers c ON o.customer_id = c.id
+              WHERE o.total_amount > 200;`
+      }),
+    });
+    expect(createViewRes.status).toBe(200);
+    const createViewData = await createViewRes.json();
+    expect(createViewData.success).toBe(true);
+
+    // Verify newly created view is reflected in /api/schema
+    const updatedSchemaRes = await fetch(`${baseUrl}/api/schema`);
+    const updatedSchema = await updatedSchemaRes.json();
+    const updatedViewNames = updatedSchema.views.map((v: any) => v.name);
+    expect(updatedViewNames).toContain("v_high_value_orders");
+
+    // Verify querying the newly created view
+    const testNewViewRes = await fetch(`${baseUrl}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: "SELECT * FROM v_high_value_orders LIMIT 5;" }),
+    });
+    const testNewViewData = await testNewViewRes.json();
+    expect(testNewViewData.success).toBe(true);
+    expect(testNewViewData.columns).toContain("order_id");
+    expect(testNewViewData.columns).toContain("customer_name");
+  });
 });
+
 

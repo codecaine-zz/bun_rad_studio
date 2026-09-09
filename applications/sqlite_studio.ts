@@ -14,6 +14,7 @@ import { Webview, SizeHint } from "webview-bun";
 import { Database } from "bun:sqlite";
 import { resolve, join } from "path";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
+import { dlopen, FFIType } from "bun:ffi";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -54,36 +55,48 @@ export interface SqliteStudioInstance {
 
 export const SQL_PRESETS = [
   {
-    name: "1. All Customers (Tier & Lifetime Spend)",
+    name: "1. 4-Table Join View: Extended Order Details",
+    sql: "SELECT * FROM v_order_details_extended ORDER BY line_total DESC LIMIT 50;",
+  },
+  {
+    name: "2. 3-Table Join View: Customer Lifetime Orders & Spend",
+    sql: "SELECT * FROM v_customer_order_summary ORDER BY total_spend DESC;",
+  },
+  {
+    name: "3. 3-Table Join View: Product Sales & Stock Performance",
+    sql: "SELECT * FROM v_product_sales_performance ORDER BY gross_revenue DESC;",
+  },
+  {
+    name: "4. 3-Table Join View: Pending Shipments Pipeline",
+    sql: "SELECT * FROM v_pending_shipments ORDER BY order_id ASC;",
+  },
+  {
+    name: "5. 2-Table Join View: VIP Segment Completed Orders",
+    sql: "SELECT * FROM v_vip_customer_analytics ORDER BY total_vip_revenue DESC;",
+  },
+  {
+    name: "6. All Customers (Tier & Lifetime Spend)",
     sql: "SELECT * FROM v_customer_orders ORDER BY lifetime_spend DESC;",
   },
   {
-    name: "2. Sales by Category Breakdown",
+    name: "7. Sales by Category Breakdown",
     sql: "SELECT * FROM v_sales_by_category ORDER BY gross_revenue DESC;",
   },
   {
-    name: "3. High-Value Orders (> $1,000)",
+    name: "8. High-Value Orders (> $1,000)",
     sql: "SELECT o.order_number, c.name AS customer, o.total_amount, o.status, o.payment_method\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nWHERE o.total_amount > 1000\nORDER BY o.total_amount DESC;",
   },
   {
-    name: "4. Products Low Stock Alert (< 50 units)",
+    name: "9. Products Low Stock Alert (< 50 units)",
     sql: "SELECT id, sku, name, category, price, stock, rating\nFROM products\nWHERE stock < 50\nORDER BY stock ASC;",
   },
   {
-    name: "5. Order Items Detail with Margin",
-    sql: "SELECT oi.id, o.order_number, p.name AS product_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS line_total\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nORDER BY line_total DESC\nLIMIT 20;",
-  },
-  {
-    name: "6. Database Schema Master Table",
+    name: "10. Database Schema Master Table",
     sql: "SELECT type, name, tbl_name, sql\nFROM sqlite_master\nWHERE name NOT LIKE 'sqlite_%'\nORDER BY type, name;",
   },
   {
-    name: "7. Audit Log Trail (Recent Mutations)",
+    name: "11. Audit Log Trail (Recent Mutations)",
     sql: "SELECT id, action, entity, details, timestamp\nFROM audit_logs\nORDER BY id DESC\nLIMIT 25;",
-  },
-  {
-    name: "8. Explain Query Plan (Customer Orders)",
-    sql: "EXPLAIN QUERY PLAN\nSELECT c.name, sum(o.total_amount)\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nGROUP BY c.name\nORDER BY sum(o.total_amount) DESC;",
   },
 ];
 
@@ -585,7 +598,12 @@ export function generateSqliteStudioHtml(): string {
       flex-shrink: 0;
     }
 
+    .editor-banner.collapsed .sql-input-box {
+      display: none;
+    }
+
     .tab-btn {
+      position: relative;
       padding: 6px 12px;
       font-size: 11px;
       font-weight: 600;
@@ -607,6 +625,7 @@ export function generateSqliteStudioHtml(): string {
       background: rgba(56, 189, 248, 0.15);
       color: var(--cyan);
       font-weight: 700;
+      box-shadow: inset 0 -2px 0 var(--cyan);
     }
 
     /* Microsoft Access Query Designer (QBE) Styling */
@@ -792,18 +811,31 @@ export function generateSqliteStudioHtml(): string {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 3px 6px;
+      padding: 4px 6px;
       border-radius: 4px;
       font-size: 11px;
       font-family: var(--font-mono);
       color: var(--text-main);
       cursor: pointer;
-      transition: background 0.1s ease;
+      transition: all 0.12s ease;
     }
 
     .qbe-field-row:hover {
-      background: rgba(56, 189, 248, 0.12);
+      background: rgba(56, 189, 248, 0.15);
       color: var(--cyan);
+      transform: translateX(2px);
+    }
+
+    .qbe-field-add-icon {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      color: var(--cyan);
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .qbe-field-row:hover .qbe-field-add-icon {
+      opacity: 1;
     }
 
     /* Active Joins Bar */
@@ -951,6 +983,38 @@ export function generateSqliteStudioHtml(): string {
       resize: vertical;
       line-height: 1.5;
       outline: none;
+    }
+
+    .qbe-saved-chip {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .qbe-saved-chip .btn {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .qbe-saved-chip .sidebar-mini-btn {
+      border: none;
+      padding: 4px 6px;
+      background: rgba(244, 63, 94, 0.12);
+      color: var(--rose);
+      cursor: pointer;
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .qbe-saved-chip .sidebar-mini-btn:hover {
+      background: rgba(244, 63, 94, 0.3);
     }
 
     .designer-empty {
@@ -1304,7 +1368,7 @@ export function generateSqliteStudioHtml(): string {
       <button class="btn" onclick="seedDatabase()">🌱 Seed Sample DB</button>
       <button class="btn" onclick="vacuumDatabase()">🧹 Vacuum DB</button>
       <button class="btn" onclick="checkIntegrity()">🛡️ Integrity Check</button>
-      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen()" title="Toggle Fullscreen">⛶ Fullscreen</button>
+      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen()" title="Toggle Fullscreen (F11 / ⌃⌘F)">⛶ Fullscreen</button>
     </div>
   </header>
 
@@ -1381,7 +1445,7 @@ export function generateSqliteStudioHtml(): string {
     <!-- Main Workspace -->
     <main>
       <!-- SQL Query Banner -->
-      <section class="editor-banner">
+      <section class="editor-banner" id="editorBanner">
         <div class="editor-top">
           <div class="preset-selector-wrap">
             <span style="font-size: 11px; color: var(--text-dim); font-weight: 600;">SQL Snippet:</span>
@@ -1389,7 +1453,10 @@ export function generateSqliteStudioHtml(): string {
               <option value="">-- Choose SQL Query Snippet --</option>
             </select>
           </div>
-          <div class="editor-timing" id="queryTiming">Ready to execute query</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="editor-timing" id="queryTiming">Ready to execute query</div>
+            <button class="sidebar-mini-btn" id="btnToggleEditor" onclick="toggleEditorCollapse()" title="Toggle SQL Editor visibility" style="padding: 2px 8px; font-size: 10px;">▲ Minimize</button>
+          </div>
         </div>
 
         <div class="sql-input-box">
@@ -1650,17 +1717,72 @@ export function generateSqliteStudioHtml(): string {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Fullscreen Support
+    // Fullscreen Support & Browser Auto-Fullscreen
     // ---------------------------------------------------------------------------------------------
     window.doToggleFullscreen = function() {
-      if (window.toggleFullscreen) {
-        window.toggleFullscreen();
-      } else if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
+      if (typeof window.toggleFullscreen === "function") {
+        try { window.toggleFullscreen(); return; } catch(e) {}
+      }
+      if (typeof window.toggleNativeFullscreen === "function") {
+        try { window.toggleNativeFullscreen(); return; } catch(e) {}
+      }
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
       } else {
-        document.exitFullscreen().catch(() => {});
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
       }
     };
+
+    // Automatically trigger initial fullscreen once Webview DOM is ready and event loop is running
+    function triggerInitialFullscreen() {
+      setTimeout(() => {
+        if (typeof window.requestInitialFullscreen === "function") {
+          try { window.requestInitialFullscreen(); return; } catch(e) {}
+        }
+        if (typeof window.toggleFullscreen === "function") {
+          try { window.toggleFullscreen(); return; } catch(e) {}
+        }
+      }, 150);
+    }
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", triggerInitialFullscreen);
+    } else {
+      triggerInitialFullscreen();
+    }
+
+    // If accessed via external browser tab, automatically enter fullscreen on first user interaction
+    let autoFullscreenAttempted = false;
+    function attemptBrowserFullscreen() {
+      if (autoFullscreenAttempted) return;
+      autoFullscreenAttempted = true;
+      if (!window.toggleFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+      }
+    }
+    window.addEventListener("click", attemptBrowserFullscreen, { once: true });
+    window.addEventListener("keydown", attemptBrowserFullscreen, { once: true });
+
+    function toggleEditorCollapse() {
+      const banner = document.getElementById("editorBanner");
+      const btn = document.getElementById("btnToggleEditor");
+      if (!banner || !btn) return;
+      banner.classList.toggle("collapsed");
+      const isCollapsed = banner.classList.contains("collapsed");
+      btn.textContent = isCollapsed ? "▼ Expand" : "▲ Minimize";
+      btn.title = isCollapsed ? "Expand SQL Editor" : "Minimize SQL Editor";
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Navigation & Tabs
@@ -2146,6 +2268,16 @@ export function generateSqliteStudioHtml(): string {
       container.appendChild(ddlCard);
     }
 
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return "";
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function quoteSqlIdentifier(value) {
       return '"' + String(value).replace(/"/g, '""') + '"';
     }
@@ -2153,6 +2285,10 @@ export function generateSqliteStudioHtml(): string {
     function formatAccessCriterion(qualifiedField, criterionStr) {
       if (!criterionStr || !String(criterionStr).trim()) return "";
       const trimmed = String(criterionStr).trim();
+      // Disallow semicolons and SQL comment markers to prevent statement injection
+      if (trimmed.includes(";") || trimmed.includes("--") || trimmed.includes("/*")) {
+        return qualifiedField + " = '" + trimmed.replace(/'/g, "''") + "'";
+      }
       if (/^(=|<>|!=|>|<|>=|<=|LIKE|NOT LIKE|IN|NOT IN|BETWEEN|IS NULL|IS NOT NULL)/i.test(trimmed)) {
         return qualifiedField + " " + trimmed;
       }
@@ -2165,72 +2301,189 @@ export function generateSqliteStudioHtml(): string {
       return qualifiedField + " = '" + trimmed.replace(/'/g, "''") + "'";
     }
 
+    function getSingularCandidate(tableName) {
+      if (!tableName) return "";
+      const lower = tableName.toLowerCase();
+      if (lower.endsWith("ies")) return lower.slice(0, -3) + "y";
+      if (lower.endsWith("es")) return lower.slice(0, -2);
+      if (lower.endsWith("s")) return lower.slice(0, -1);
+      return lower;
+    }
+
+    function getEntityMeta(name) {
+      if (!currentSchema) return null;
+      return (currentSchema.tables || []).find(t => t.name === name) || (currentSchema.views || []).find(v => v.name === name) || null;
+    }
+
     function suggestDesignerJoin(leftTableName, rightTableName) {
       if (!currentSchema) return null;
-      const leftMeta = currentSchema.tables.find(t => t.name === leftTableName);
-      const rightMeta = currentSchema.tables.find(t => t.name === rightTableName);
+      const leftMeta = getEntityMeta(leftTableName);
+      const rightMeta = getEntityMeta(rightTableName);
       if (!leftMeta || !rightMeta) return null;
 
+      // 1. Explicit foreign key from leftMeta to rightMeta
       const fkMatch = (leftMeta.foreignKeys || []).find(fk => fk.table === rightTableName);
       if (fkMatch) {
         return {
           leftTable: leftTableName,
           rightTable: rightTableName,
           leftField: fkMatch.from,
-          rightField: fkMatch.to,
+          rightField: fkMatch.to || "id",
           type: "INNER",
+          confidence: 100,
         };
       }
 
+      // 2. Reverse foreign key from rightMeta to leftMeta
       const reverseMatch = (rightMeta.foreignKeys || []).find(fk => fk.table === leftTableName);
       if (reverseMatch) {
         return {
           leftTable: leftTableName,
           rightTable: rightTableName,
-          leftField: reverseMatch.to,
+          leftField: reverseMatch.to || "id",
           rightField: reverseMatch.from,
           type: "INNER",
+          confidence: 100,
         };
       }
 
-      const leftFields = new Set((leftMeta.columns || []).map(c => c.name));
-      const sharedField = (rightMeta.columns || []).find(c => leftFields.has(c.name));
-      if (sharedField) {
+      // 3. Conventional naming: leftTable has singular(rightTable)_id column
+      const rightSingular = getSingularCandidate(rightTableName);
+      const candidateInLeft = (leftMeta.columns || []).find(c => c.name.toLowerCase() === (rightSingular + "_id") || c.name.toLowerCase() === (rightTableName.toLowerCase() + "_id"));
+      if (candidateInLeft) {
         return {
           leftTable: leftTableName,
           rightTable: rightTableName,
-          leftField: sharedField.name,
-          rightField: sharedField.name,
+          leftField: candidateInLeft.name,
+          rightField: "id",
           type: "INNER",
+          confidence: 90,
         };
       }
 
-      return null;
+      // Conventional naming: rightTable has singular(leftTable)_id column
+      const leftSingular = getSingularCandidate(leftTableName);
+      const candidateInRight = (rightMeta.columns || []).find(c => c.name.toLowerCase() === (leftSingular + "_id") || c.name.toLowerCase() === (leftTableName.toLowerCase() + "_id"));
+      if (candidateInRight) {
+        return {
+          leftTable: leftTableName,
+          rightTable: rightTableName,
+          leftField: "id",
+          rightField: candidateInRight.name,
+          type: "INNER",
+          confidence: 90,
+        };
+      }
+
+      // 4. Domain specific matching keys (excluding generic 'id' and standard audit fields)
+      const leftFields = (leftMeta.columns || []).map(c => c.name);
+      const rightFieldNames = new Set((rightMeta.columns || []).map(c => c.name));
+      const sharedDomainCol = leftFields.find(c => {
+        const lower = c.toLowerCase();
+        return rightFieldNames.has(c) && !["id", "created_at", "updated_at", "status", "active", "type", "description"].includes(lower);
+      });
+      if (sharedDomainCol) {
+        return {
+          leftTable: leftTableName,
+          rightTable: rightTableName,
+          leftField: sharedDomainCol,
+          rightField: sharedDomainCol,
+          type: "INNER",
+          confidence: 75,
+        };
+      }
+
+      // 5. Fallback if both have PK / first column
+      const lf = (leftMeta.columns && leftMeta.columns[0]) ? leftMeta.columns[0].name : "id";
+      const rf = (rightMeta.columns && rightMeta.columns[0]) ? rightMeta.columns[0].name : "id";
+      return {
+        leftTable: leftTableName,
+        rightTable: rightTableName,
+        leftField: lf,
+        rightField: rf,
+        type: "INNER",
+        confidence: 10,
+      };
     }
 
     function buildDesignerJoinPairs() {
-      if (!currentSchema || !queryDesignerState.selectedTables.length) return [];
-      const pairs = [];
-      for (let i = 1; i < queryDesignerState.selectedTables.length; i++) {
-        const leftTable = queryDesignerState.selectedTables[i - 1];
-        const rightTable = queryDesignerState.selectedTables[i];
-        const suggestion = suggestDesignerJoin(leftTable, rightTable) || {
-          leftTable: leftTable,
-          rightTable: rightTable,
-          leftField: "id",
-          rightField: "id",
-          type: "INNER",
-        };
-        pairs.push({
-          key: leftTable + "." + rightTable,
-          leftTable: suggestion.leftTable,
-          rightTable: suggestion.rightTable,
-          leftField: suggestion.leftField,
-          rightField: suggestion.rightField,
-          type: suggestion.type || "INNER",
-        });
+      if (!currentSchema || !queryDesignerState.selectedTables || !queryDesignerState.selectedTables.length) return [];
+      const tables = queryDesignerState.selectedTables;
+      if (tables.length === 1) return [];
+
+      // 1. Collect all pairwise relationship candidates with confidence scores
+      const candidateEdges = [];
+      for (let i = 0; i < tables.length; i++) {
+        for (let j = i + 1; j < tables.length; j++) {
+          const t1 = tables[i];
+          const t2 = tables[j];
+          const sugg = suggestDesignerJoin(t1, t2);
+          if (sugg) {
+            candidateEdges.push({
+              key: t1 + "." + sugg.leftField + "->" + t2 + "." + sugg.rightField,
+              leftTable: sugg.leftTable,
+              leftField: sugg.leftField,
+              rightTable: sugg.rightTable,
+              rightField: sugg.rightField,
+              type: sugg.type || "INNER",
+              confidence: sugg.confidence || 50,
+            });
+          }
+        }
       }
-      return pairs;
+
+      // 2. Minimum Spanning Tree (Prim's Algorithm) starting from the primary table
+      const connected = new Set([tables[0]]);
+      const unvisited = new Set(tables.slice(1));
+      const treeEdges = [];
+
+      while (unvisited.size > 0) {
+        let bestEdge = null;
+        let highestConfidence = -1;
+
+        for (const edge of candidateEdges) {
+          const leftIn = connected.has(edge.leftTable);
+          const rightIn = connected.has(edge.rightTable);
+          if ((leftIn && !rightIn && unvisited.has(edge.rightTable)) ||
+              (rightIn && !leftIn && unvisited.has(edge.leftTable))) {
+            if (edge.confidence > highestConfidence) {
+              highestConfidence = edge.confidence;
+              bestEdge = edge;
+            }
+          }
+        }
+
+        if (bestEdge) {
+          treeEdges.push(bestEdge);
+          connected.add(bestEdge.leftTable);
+          connected.add(bestEdge.rightTable);
+          unvisited.delete(bestEdge.leftTable);
+          unvisited.delete(bestEdge.rightTable);
+        } else {
+          // If a table is truly an isolated island, connect it to tables[0] via fallback
+          const island = unvisited.values().next().value;
+          const fallback = suggestDesignerJoin(tables[0], island) || {
+            leftTable: tables[0],
+            rightTable: island,
+            leftField: "id",
+            rightField: "id",
+            type: "INNER",
+          };
+          treeEdges.push({
+            key: tables[0] + "." + fallback.leftField + "->" + island + "." + fallback.rightField,
+            leftTable: fallback.leftTable,
+            leftField: fallback.leftField,
+            rightTable: fallback.rightTable,
+            rightField: fallback.rightField,
+            type: fallback.type || "INNER",
+            confidence: 10,
+          });
+          connected.add(island);
+          unvisited.delete(island);
+        }
+      }
+
+      return treeEdges;
     }
 
     function ensureQueryDesignerState() {
@@ -2241,10 +2494,13 @@ export function generateSqliteStudioHtml(): string {
         return;
       }
 
-      const tableNames = currentSchema.tables.map(t => t.name);
+      const tableNames = [
+        ...(currentSchema.tables || []).map(t => t.name),
+        ...(currentSchema.views || []).map(v => v.name)
+      ];
       const selectedTables = (queryDesignerState.selectedTables || []).filter(name => tableNames.includes(name));
       if (!selectedTables.length) {
-        selectedTables.push(tableNames[0]);
+        selectedTables.push(tableNames[0] || (currentSchema.tables[0] && currentSchema.tables[0].name));
       }
       queryDesignerState.selectedTables = selectedTables;
 
@@ -2262,7 +2518,7 @@ export function generateSqliteStudioHtml(): string {
 
       if (!queryDesignerState.columns.length && selectedTables.length > 0) {
         const primary = selectedTables[0];
-        const meta = currentSchema.tables.find(t => t.name === primary);
+        const meta = getEntityMeta(primary);
         if (meta && meta.columns) {
           meta.columns.slice(0, Math.min(5, meta.columns.length)).forEach(c => {
             queryDesignerState.columns.push({
@@ -2329,17 +2585,32 @@ export function generateSqliteStudioHtml(): string {
       if (!tableName || queryDesignerState.selectedTables.includes(tableName)) return;
       queryDesignerState.selectedTables.push(tableName);
       if (queryDesignerState.selectedTables.length > 1) {
-        const prev = queryDesignerState.selectedTables[queryDesignerState.selectedTables.length - 2];
-        const sugg = suggestDesignerJoin(prev, tableName) || {
-          leftTable: prev,
+        let bestTarget = null;
+        let bestSugg = null;
+        let bestConf = -1;
+        const candidates = queryDesignerState.selectedTables.slice(0, -1);
+
+        for (const target of candidates) {
+          const s = suggestDesignerJoin(target, tableName);
+          const c = s ? (s.confidence || 50) : 0;
+          if (c > bestConf) {
+            bestConf = c;
+            bestTarget = target;
+            bestSugg = s;
+          }
+        }
+
+        const finalSugg = bestSugg || {
+          leftTable: candidates[0],
           rightTable: tableName,
           leftField: "id",
           rightField: "id",
           type: "INNER",
         };
+
         queryDesignerState.joins.push({
-          key: prev + "." + tableName,
-          ...sugg,
+          key: finalSugg.leftTable + "." + finalSugg.leftField + "->" + tableName + "." + finalSugg.rightField + "-" + Date.now(),
+          ...finalSugg,
         });
       }
       renderQueryDesigner();
@@ -2355,30 +2626,51 @@ export function generateSqliteStudioHtml(): string {
     function autoJoinDesignerTables() {
       queryDesignerState.joins = buildDesignerJoinPairs();
       renderQueryDesigner();
-      showToast("Relationships auto-detected and linked");
+      showToast("Schema graph relationships auto-detected & connected (" + (queryDesignerState.joins || []).length + " links)");
     }
 
-    function promptAddDesignerJoin() {
+    function promptAddDesignerJoin(preferredLeft, preferredRight) {
       if (queryDesignerState.selectedTables.length < 2) {
         showToast("Add at least 2 tables to create a join relationship");
         return;
       }
-      const t1 = queryDesignerState.selectedTables[0];
-      const t2 = queryDesignerState.selectedTables[1];
-      const m1 = currentSchema.tables.find(t => t.name === t1);
-      const m2 = currentSchema.tables.find(t => t.name === t2);
-      const f1 = (m1 && m1.columns && m1.columns[0]) ? m1.columns[0].name : "id";
-      const f2 = (m2 && m2.columns && m2.columns[0]) ? m2.columns[0].name : "id";
-      queryDesignerState.joins.push({
-        key: t1 + "." + f1 + "->" + t2 + "." + f2 + "-" + Date.now(),
+      const tables = queryDesignerState.selectedTables;
+      let t1 = preferredLeft || tables[0];
+      let t2 = preferredRight;
+
+      if (!t2) {
+        for (let i = 0; i < tables.length; i++) {
+          if (tables[i] === t1) continue;
+          const hasDirect = (queryDesignerState.joins || []).some(j =>
+            (j.leftTable === t1 && j.rightTable === tables[i]) ||
+            (j.leftTable === tables[i] && j.rightTable === t1)
+          );
+          if (!hasDirect) {
+            t2 = tables[i];
+            break;
+          }
+        }
+      }
+      if (!t2) t2 = tables[1] || tables[0];
+
+      const sugg = suggestDesignerJoin(t1, t2) || {
         leftTable: t1,
-        leftField: f1,
         rightTable: t2,
-        rightField: f2,
+        leftField: "id",
+        rightField: "id",
         type: "INNER",
+      };
+
+      queryDesignerState.joins.push({
+        key: t1 + "." + sugg.leftField + "->" + t2 + "." + sugg.rightField + "-" + Date.now(),
+        leftTable: sugg.leftTable,
+        leftField: sugg.leftField,
+        rightTable: sugg.rightTable,
+        rightField: sugg.rightField,
+        type: sugg.type || "INNER",
       });
       renderQueryDesigner();
-      showToast("Added new join relationship");
+      showToast("Added relationship: " + t1 + " ↔ " + t2);
     }
 
     function updateDesignerJoin(key, prop, value) {
@@ -2391,6 +2683,35 @@ export function generateSqliteStudioHtml(): string {
       renderQueryDesigner();
     }
 
+    function updateDesignerJoinTable(key, side, newTableName) {
+      const join = (queryDesignerState.joins || []).find(j => j.key === key);
+      if (!join) return;
+      if (side === "leftTable") {
+        join.leftTable = newTableName;
+        const otherTable = join.rightTable;
+        const sugg = suggestDesignerJoin(newTableName, otherTable);
+        if (sugg) {
+          join.leftField = sugg.leftField;
+          join.rightField = sugg.rightField;
+        } else {
+          const meta = getEntityMeta(newTableName);
+          join.leftField = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "id";
+        }
+      } else {
+        join.rightTable = newTableName;
+        const otherTable = join.leftTable;
+        const sugg = suggestDesignerJoin(otherTable, newTableName);
+        if (sugg) {
+          join.leftField = sugg.leftField;
+          join.rightField = sugg.rightField;
+        } else {
+          const meta = getEntityMeta(newTableName);
+          join.rightField = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "id";
+        }
+      }
+      renderQueryDesigner();
+    }
+
     function removeDesignerJoin(key) {
       queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.key !== key);
       renderQueryDesigner();
@@ -2399,7 +2720,7 @@ export function generateSqliteStudioHtml(): string {
     function addDesignerQbeColumn(table, field) {
       if (!table) table = queryDesignerState.selectedTables[0] || "";
       if (!field) {
-        const meta = currentSchema && currentSchema.tables.find(t => t.name === table);
+        const meta = getEntityMeta(table);
         field = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "*";
       }
       queryDesignerState.columns.push({
@@ -2422,7 +2743,7 @@ export function generateSqliteStudioHtml(): string {
       if (!col) return;
       col[prop] = value;
       if (prop === "table") {
-        const meta = currentSchema && currentSchema.tables.find(t => t.name === value);
+        const meta = getEntityMeta(value);
         if (meta && meta.columns && meta.columns.length) {
           col.field = meta.columns[0].name;
         }
@@ -2499,6 +2820,144 @@ export function generateSqliteStudioHtml(): string {
       });
     }
 
+    function loadSavedQueriesFromStorage() {
+      try {
+        const raw = localStorage.getItem("sqlite_studio_saved_queries");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length) return parsed;
+        }
+      } catch (e) {}
+      return [
+        {
+          name: "Top Customers by Spend",
+          sql: 'SELECT "customers"."name" AS "Customer", "customers"."tier" AS "Tier", SUM("orders"."total_amount") AS "TotalSpend", COUNT("orders"."id") AS "OrdersCount" FROM "customers" INNER JOIN "orders" ON "customers"."id" = "orders"."customer_id" GROUP BY "customers"."name", "customers"."tier" HAVING SUM("orders"."total_amount") > 0 ORDER BY "TotalSpend" DESC LIMIT 25;',
+          createdAt: new Date().toISOString()
+        },
+        {
+          name: "Low Stock Inventory Alert",
+          sql: 'SELECT "products"."name" AS "Product", "products"."category" AS "Category", "products"."stock" AS "UnitsInStock", "products"."price" AS "Price" FROM "products" WHERE "products"."stock" < 50 ORDER BY "products"."stock" ASC LIMIT 50;',
+          createdAt: new Date().toISOString()
+        }
+      ];
+    }
+
+    function persistSavedQueries() {
+      try {
+        localStorage.setItem("sqlite_studio_saved_queries", JSON.stringify(queryDesignerState.savedQueries || []));
+      } catch (e) {}
+    }
+
+    function applyDesignerPreset(presetKey) {
+      if (!presetKey) return;
+      if (presetKey === "blank") {
+        resetDesignerAll();
+        return;
+      }
+      if (!currentSchema || !currentSchema.tables || !currentSchema.tables.length) {
+        showToast("Load or seed a database first");
+        return;
+      }
+
+      const tableNames = currentSchema.tables.map(t => t.name);
+
+      if (presetKey === "ecommerce_multi") {
+        if (tableNames.includes("customers") && tableNames.includes("orders") && tableNames.includes("order_items") && tableNames.includes("products")) {
+          queryDesignerState.selectedTables = ["customers", "orders", "order_items", "products"];
+          queryDesignerState.showTotals = true;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 50;
+          queryDesignerState.joins = buildDesignerJoinPairs();
+
+          queryDesignerState.columns = [
+            { id: "p1", table: "customers", field: "name", alias: "Customer", total: "GroupBy", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p2", table: "products", field: "category", alias: "Category", total: "GroupBy", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p3", table: "products", field: "name", alias: "Product", total: "GroupBy", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p4", table: "order_items", field: "quantity", alias: "TotalUnits", total: "Sum", sort: "", show: true, criteria: "> 0", or1: "", or2: "" },
+            { id: "p5", table: "orders", field: "total_amount", alias: "Revenue", total: "Sum", sort: "DESC", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded 4-Table Enterprise Template (Customers, Orders, Items, Products)");
+          return;
+        }
+      }
+
+      if (presetKey === "top_spenders") {
+        if (tableNames.includes("customers") && tableNames.includes("orders")) {
+          queryDesignerState.selectedTables = ["customers", "orders"];
+          queryDesignerState.showTotals = true;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 25;
+          queryDesignerState.joins = buildDesignerJoinPairs();
+          const custMeta = currentSchema.tables.find(t => t.name === "customers");
+          const ordMeta = currentSchema.tables.find(t => t.name === "orders");
+          const segField = custMeta && custMeta.columns.some(c => c.name === "segment") ? "segment" : (custMeta && custMeta.columns.some(c => c.name === "tier") ? "tier" : "email");
+          const amtField = ordMeta && ordMeta.columns.some(c => c.name === "total_amount") ? "total_amount" : "amount";
+
+          queryDesignerState.columns = [
+            { id: "p1", table: "customers", field: "name", alias: "Customer", total: "GroupBy", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p2", table: "customers", field: segField, alias: "Segment", total: "GroupBy", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p3", table: "orders", field: amtField, alias: "TotalSpend", total: "Sum", sort: "DESC", show: true, criteria: "> 0", or1: "", or2: "" },
+            { id: "p4", table: "orders", field: "id", alias: "OrdersCount", total: "Count", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Template: Top Customers by Spend");
+          return;
+        }
+      } else if (presetKey === "low_stock") {
+        if (tableNames.includes("products")) {
+          queryDesignerState.selectedTables = ["products"];
+          queryDesignerState.showTotals = false;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 50;
+          queryDesignerState.joins = [];
+          const prodMeta = currentSchema.tables.find(t => t.name === "products");
+          const stockField = prodMeta && prodMeta.columns.some(c => c.name === "stock_quantity") ? "stock_quantity" : "stock";
+
+          queryDesignerState.columns = [
+            { id: "p1", table: "products", field: "name", alias: "Product", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p2", table: "products", field: "category", alias: "Category", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p3", table: "products", field: stockField, alias: "UnitsInStock", total: "None", sort: "ASC", show: true, criteria: "< 50", or1: "", or2: "" },
+            { id: "p4", table: "products", field: "price", alias: "Price", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Template: Low Stock Inventory Alert");
+          return;
+        }
+      } else if (presetKey === "orders_status") {
+        if (tableNames.includes("customers") && tableNames.includes("orders")) {
+          queryDesignerState.selectedTables = ["customers", "orders"];
+          queryDesignerState.showTotals = false;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 50;
+          queryDesignerState.joins = buildDesignerJoinPairs();
+          const ordMeta = currentSchema.tables.find(t => t.name === "orders");
+          const amtField = ordMeta && ordMeta.columns.some(c => c.name === "total_amount") ? "total_amount" : "amount";
+
+          queryDesignerState.columns = [
+            { id: "p1", table: "orders", field: "id", alias: "OrderID", total: "None", sort: "DESC", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p2", table: "customers", field: "name", alias: "Customer", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "p3", table: "orders", field: "status", alias: "Status", total: "None", sort: "", show: true, criteria: "<> 'cancelled'", or1: "", or2: "" },
+            { id: "p4", table: "orders", field: amtField, alias: "Amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Template: Active Orders Pipeline");
+          return;
+        }
+      }
+
+      // Generic fallback for any user database
+      queryDesignerState.selectedTables = [tableNames[0]];
+      if (tableNames.length > 1) queryDesignerState.selectedTables.push(tableNames[1]);
+      queryDesignerState.joins = buildDesignerJoinPairs();
+      queryDesignerState.columns = [];
+      queryDesignerState.showTotals = false;
+      queryDesignerState.distinct = false;
+      ensureQueryDesignerState();
+      renderQueryDesigner();
+      showToast("Initialized query layout for " + queryDesignerState.selectedTables.join(" & "));
+    }
+
     function exportDesignerDatasheet(format) {
       if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
         showToast("No data to export. Run the query first.");
@@ -2533,6 +2992,71 @@ export function generateSqliteStudioHtml(): string {
       showToast("Exported " + rows.length + " records as " + format.toUpperCase());
     }
 
+    function copyDesignerDatasheetMarkdown() {
+      if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
+        showToast("No data to copy. Run the query first.");
+        return;
+      }
+      const rows = queryDesignerState.datasheet.rows;
+      const cols = queryDesignerState.datasheet.columns;
+      const header = "| " + cols.join(" | ") + " |";
+      const sep = "| " + cols.map(() => "---").join(" | ") + " |";
+      const body = rows.map(r => "| " + cols.map(c => {
+        const val = r[c] !== null && r[c] !== undefined ? String(r[c]) : "NULL";
+        return val.replace(/\|/g, "\\\\|");
+      }).join(" | ") + " |").join("\\n");
+      const md = header + "\\n" + sep + "\\n" + body;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(md);
+        showToast("Copied " + rows.length + " rows as Markdown table");
+      }
+    }
+
+    function copyDesignerDatasheetSqlInsert() {
+      if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
+        showToast("No data to copy. Run the query first.");
+        return;
+      }
+      const rows = queryDesignerState.datasheet.rows;
+      const cols = queryDesignerState.datasheet.columns;
+      const targetTable = queryDesignerState.selectedTables[0] || "results";
+      const colList = cols.map(c => quoteSqlIdentifier(c)).join(", ");
+      const inserts = rows.map(r => {
+        const vals = cols.map(c => {
+          const val = r[c];
+          if (val === null || val === undefined) return "NULL";
+          if (typeof val === "number") return val;
+          return "'" + String(val).replace(/'/g, "''") + "'";
+        }).join(", ");
+        return "INSERT INTO " + quoteSqlIdentifier(targetTable) + " (" + colList + ") VALUES (" + vals + ");";
+      }).join("\\n");
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(inserts);
+        showToast("Copied " + rows.length + " SQL INSERT statements");
+      }
+    }
+
+    function filterDesignerDatasheet(query) {
+      const container = document.querySelector(".qbe-datasheet-container tbody");
+      if (!container) return;
+      const q = (query || "").toLowerCase().trim();
+      const rows = container.querySelectorAll("tr");
+      rows.forEach(r => {
+        if (!q) {
+          r.style.display = "";
+          return;
+        }
+        r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+      });
+    }
+
+    function toggleCriteriaHelp() {
+      const banner = document.getElementById("criteriaHelpBanner");
+      if (banner) {
+        banner.style.display = banner.style.display === "none" ? "block" : "none";
+      }
+    }
+
     function loadDesignerSqlToEditor() {
       const value = buildDesignerSql();
       const editor = document.getElementById("sqlEditor");
@@ -2555,21 +3079,117 @@ export function generateSqliteStudioHtml(): string {
       runExplainPlan();
     }
 
+    function runCustomDesignerSql() {
+      const preview = document.getElementById("designerSqlPreview");
+      const sql = preview ? preview.value.trim() : buildDesignerSql();
+      if (!sql) return;
+      queryDesignerState.activeView = "datasheet";
+      queryDesignerState.datasheetLoading = true;
+      queryDesignerState.datasheetError = null;
+      renderQueryDesigner();
+
+      apiRequest('/api/query', { sql }).then(res => {
+        if (res && res.success) {
+          queryDesignerState.datasheet = {
+            rows: res.rows || [],
+            columns: res.columns || [],
+            latencyMs: res.latencyMs || 0,
+            error: null,
+          };
+        } else {
+          queryDesignerState.datasheet = {
+            rows: [],
+            columns: [],
+            latencyMs: 0,
+            error: res ? res.error : "Execution failed",
+          };
+        }
+      }).catch(err => {
+        queryDesignerState.datasheet = {
+          rows: [],
+          columns: [],
+          latencyMs: 0,
+          error: err.message,
+        };
+      }).finally(() => {
+        queryDesignerState.datasheetLoading = false;
+        renderQueryDesigner();
+      });
+    }
+
+    function resetDesignerSqlToQbe() {
+      const preview = document.getElementById("designerSqlPreview");
+      if (preview) {
+        preview.value = buildDesignerSql();
+        showToast("Reset SQL to QBE Designer query");
+      }
+    }
+
     function saveDesignerQuery() {
-      const sql = buildDesignerSql();
-      const name = prompt("Save this query as:", "Query " + (queryDesignerState.savedQueries.length + 1));
+      const preview = document.getElementById("designerSqlPreview");
+      const sql = (queryDesignerState.activeView === "sql" && preview && preview.value.trim()) ? preview.value.trim() : buildDesignerSql();
+      const defaultName = "Query " + ((queryDesignerState.savedQueries || []).length + 1);
+      const name = prompt("Save this query as:", defaultName);
       if (!name) return;
+      if (!queryDesignerState.savedQueries) queryDesignerState.savedQueries = [];
       queryDesignerState.savedQueries.unshift({ name, sql, createdAt: new Date().toISOString() });
-      queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(0, 10);
+      queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(0, 15);
+      persistSavedQueries();
       showToast("Saved query: " + name);
       renderQueryDesigner();
     }
 
+    async function saveDesignerAsView() {
+      const preview = document.getElementById("designerSqlPreview");
+      let querySql = (queryDesignerState.activeView === "sql" && preview && preview.value.trim()) ? preview.value.trim() : buildDesignerSql();
+      querySql = querySql.replace(/;+$/, "").trim();
+      if (!querySql || querySql.startsWith("--")) {
+        showToast("Cannot create view from empty query");
+        return;
+      }
+
+      const defaultViewName = "v_" + (queryDesignerState.selectedTables && queryDesignerState.selectedTables[0] ? queryDesignerState.selectedTables[0] : "custom") + "_view";
+      const viewName = prompt("Save query as a permanent SQL VIEW (enter view name):", defaultViewName);
+      if (!viewName) return;
+
+      const sanitized = viewName.trim().replace(/[^a-zA-Z0-9_]/g, "");
+      if (!sanitized) {
+        showToast("Invalid view name. Use letters, numbers, and underscores.");
+        return;
+      }
+
+      const ddl = "CREATE VIEW IF NOT EXISTS " + sanitized + " AS " + querySql + ";";
+      try {
+        const res = await apiRequest('/api/query', { sql: ddl });
+        if (res && res.error) {
+          showToast("Error creating view: " + res.error);
+        } else {
+          showToast("View " + sanitized + " created successfully!");
+          logAudit("[DDL] Created VIEW: " + sanitized);
+          await refreshAll();
+          selectTable(sanitized);
+        }
+      } catch (err) {
+        showToast("Failed to create view: " + (err.message || String(err)));
+      }
+    }
+
     function loadSavedDesignerQuery(index) {
-      const item = queryDesignerState.savedQueries[index];
+      const item = queryDesignerState.savedQueries && queryDesignerState.savedQueries[index];
       if (!item) return;
-      document.getElementById("sqlEditor").value = item.sql;
+      const editor = document.getElementById("sqlEditor");
+      if (editor) editor.value = item.sql;
+      const preview = document.getElementById("designerSqlPreview");
+      if (preview) preview.value = item.sql;
       showToast("Loaded saved query: " + item.name);
+    }
+
+    function deleteSavedDesignerQuery(index) {
+      if (!queryDesignerState.savedQueries || index < 0 || index >= queryDesignerState.savedQueries.length) return;
+      const removed = queryDesignerState.savedQueries.splice(index, 1);
+      persistSavedQueries();
+      renderQueryDesigner();
+      showToast("Deleted query: " + (removed[0] ? removed[0].name : ""));
     }
 
     function buildDesignerSql() {
@@ -2607,6 +3227,8 @@ export function generateSqliteStudioHtml(): string {
               isAggregate = true;
             } else if (total === "Where") {
               expr = null;
+            } else if (total === "Expression") {
+              expr = col.field;
             }
           }
 
@@ -2614,7 +3236,7 @@ export function generateSqliteStudioHtml(): string {
             selectItems.push(expr + (alias ? " AS " + alias : ""));
           }
 
-          if (showTotals && (total === "GroupBy" || (!isAggregate && total !== "Where" && col.show !== false))) {
+          if (showTotals && (total === "GroupBy" || (!isAggregate && total !== "Where" && total !== "Expression" && col.show !== false))) {
             if (!groupByItems.includes(qualified) && col.field !== "*") {
               groupByItems.push(qualified);
             }
@@ -2645,15 +3267,73 @@ export function generateSqliteStudioHtml(): string {
       const sqlLines = [];
       sqlLines.push("SELECT" + (queryDesignerState.distinct ? " DISTINCT" : ""));
       sqlLines.push("  " + selectItems.join(", "));
+
+      // Multi-table topological join resolution:
+      // Start with baseTable (the primary table), track joined tables
+      const joinedTables = new Set([baseTable]);
       sqlLines.push("FROM " + quoteSqlIdentifier(baseTable));
 
-      (queryDesignerState.joins || []).forEach(join => {
-        if (!selectedTables.includes(join.leftTable) || !selectedTables.includes(join.rightTable)) return;
-        const joinType = (join.type || "INNER").toUpperCase();
-        if (joinType === "CROSS") {
-          sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(join.rightTable));
+      const pendingJoins = [...(queryDesignerState.joins || []).filter(j => 
+        selectedTables.includes(j.leftTable) && selectedTables.includes(j.rightTable)
+      )];
+
+      while (pendingJoins.length > 0) {
+        let matchIdx = -1;
+        let isReversed = false;
+
+        for (let i = 0; i < pendingJoins.length; i++) {
+          const j = pendingJoins[i];
+          if (joinedTables.has(j.leftTable) && !joinedTables.has(j.rightTable)) {
+            matchIdx = i;
+            isReversed = false;
+            break;
+          } else if (joinedTables.has(j.rightTable) && !joinedTables.has(j.leftTable)) {
+            matchIdx = i;
+            isReversed = true;
+            break;
+          } else if (joinedTables.has(j.leftTable) && joinedTables.has(j.rightTable)) {
+            matchIdx = i;
+            isReversed = false;
+            break;
+          }
+        }
+
+        if (matchIdx !== -1) {
+          const j = pendingJoins.splice(matchIdx, 1)[0];
+          const joinType = (j.type || "INNER").toUpperCase();
+
+          if (joinedTables.has(j.leftTable) && joinedTables.has(j.rightTable)) {
+            continue;
+          }
+
+          if (isReversed) {
+            const effType = (joinType === "LEFT") ? "INNER" : joinType;
+            if (effType === "CROSS") {
+              sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.leftTable));
+            } else {
+              sqlLines.push(effType + " JOIN " + quoteSqlIdentifier(j.leftTable) + " ON " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField) + " = " + quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField));
+            }
+            joinedTables.add(j.leftTable);
+          } else {
+            if (joinType === "CROSS") {
+              sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.rightTable));
+            } else {
+              sqlLines.push(joinType + " JOIN " + quoteSqlIdentifier(j.rightTable) + " ON " + quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField) + " = " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField));
+            }
+            joinedTables.add(j.rightTable);
+          }
         } else {
-          sqlLines.push(joinType + " JOIN " + quoteSqlIdentifier(join.rightTable) + " ON " + quoteSqlIdentifier(join.leftTable) + "." + quoteSqlIdentifier(join.leftField) + " = " + quoteSqlIdentifier(join.rightTable) + "." + quoteSqlIdentifier(join.rightField));
+          const j = pendingJoins.shift();
+          const target = !joinedTables.has(j.rightTable) ? j.rightTable : j.leftTable;
+          sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(target));
+          joinedTables.add(target);
+        }
+      }
+
+      selectedTables.forEach(t => {
+        if (!joinedTables.has(t)) {
+          sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(t));
+          joinedTables.add(t);
         }
       });
 
@@ -2687,14 +3367,17 @@ export function generateSqliteStudioHtml(): string {
       if (!container) return;
       ensureQueryDesignerState();
 
-      if (!currentSchema || !currentSchema.tables || !currentSchema.tables.length) {
+      if (!currentSchema || (!currentSchema.tables && !currentSchema.views)) {
         container.innerHTML = '<div class="designer-empty">Load a schema from the sidebar to begin building a query.</div>';
         return;
       }
 
       const selectedTables = queryDesignerState.selectedTables || [];
-      const availableTables = currentSchema.tables
+      const tablesList = (currentSchema.tables || [])
         .map(t => t.name)
+        .filter(name => !selectedTables.includes(name));
+      const viewsList = (currentSchema.views || [])
+        .map(v => v.name)
         .filter(name => !selectedTables.includes(name));
 
       // 1. Access Ribbon Toolbar
@@ -2721,18 +3404,28 @@ export function generateSqliteStudioHtml(): string {
               <option value="500" \${queryDesignerState.topLimit === 500 ? 'selected' : ''}>500</option>
               <option value="1000" \${queryDesignerState.topLimit === 1000 ? 'selected' : ''}>1000</option>
             </select>
+            <select class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
+              <option value="">⚡ Presets / Templates</option>
+              <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
+              <option value="top_spenders">Top Spenders (Aggregated)</option>
+              <option value="low_stock">Low Stock Restock Alerts</option>
+              <option value="orders_status">Active Orders Pipeline</option>
+              <option value="blank">Blank Query (Reset)</option>
+            </select>
           </div>
           <div class="qbe-ribbon-group">
-            <select id="designerTablePicker" class="qbe-select" style="max-width: 140px;">
-              <option value="">+ Add Table</option>
-              \${availableTables.map(name => \`<option value="\${name}">\${name}</option>\`).join('')}
+            <select id="designerTablePicker" class="qbe-select" style="max-width: 155px;">
+              <option value="">+ Add Table / View</option>
+              \${tablesList.length ? \`<optgroup label="📋 Tables">\${tablesList.map(name => \`<option value="\${name}">\${name}</option>\`).join('')}</optgroup>\` : ''}
+              \${viewsList.length ? \`<optgroup label="👁️ Views">\${viewsList.map(name => \`<option value="\${name}">\${name} (View)</option>\`).join('')}</optgroup>\` : ''}
             </select>
             <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
-            <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables">🔗 Auto-Join</button>
+            <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">🔗 Smart Auto-Join All</button>
             <button class="btn btn-sm" onclick="promptAddDesignerJoin()" title="Create custom join relationship">+ Link</button>
             <button class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
             <button class="btn btn-sm" onclick="clearDesignerQbe()" title="Clear QBE columns">Clear</button>
-            <button class="btn btn-sm" onclick="saveDesignerQuery()" title="Save query">💾 Save</button>
+            <button class="btn btn-sm" onclick="saveDesignerQuery()" title="Save query in workspace memory">💾 Save</button>
+            <button class="btn btn-sm" onclick="saveDesignerAsView()" title="Persist this query as a permanent SQL VIEW in the database">👁️ Create View</button>
           </div>
         </div>
       \`;
@@ -2741,7 +3434,10 @@ export function generateSqliteStudioHtml(): string {
       if (queryDesignerState.activeView === "sql") {
         const sqlPreview = buildDesignerSql();
         const savedList = (queryDesignerState.savedQueries || []).map((item, idx) => \`
-          <button class="btn btn-sm" onclick="loadSavedDesignerQuery(\${idx})">\${item.name}</button>
+          <div class="qbe-saved-chip">
+            <button class="btn btn-sm" onclick="loadSavedDesignerQuery(\${idx})" title="Click to load saved SQL">\${item.name}</button>
+            <button class="sidebar-mini-btn" onclick="deleteSavedDesignerQuery(\${idx})" title="Delete saved query">✕</button>
+          </div>
         \`).join('') || '<span style="color: var(--text-dim); font-size: 11px;">No saved queries yet.</span>';
 
         container.innerHTML = ribbonHtml + \`
@@ -2749,13 +3445,14 @@ export function generateSqliteStudioHtml(): string {
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <div class="card-title" style="margin-bottom:0;">Generated Microsoft Access-Compatible SQL</div>
               <div style="display:flex; gap:6px;">
-                <button class="btn btn-sm btn-primary" onclick="runDesignerQuery()">! Run in Datasheet</button>
+                <button class="btn btn-sm btn-primary" onclick="runCustomDesignerSql()" title="Execute SQL directly in Datasheet">! Run Edited SQL</button>
+                <button class="btn btn-sm" onclick="resetDesignerSqlToQbe()" title="Reset SQL back to QBE generated SQL">🔄 Reset from QBE</button>
                 <button class="btn btn-sm" onclick="loadDesignerSqlToEditor()">Load into Editor</button>
                 <button class="btn btn-sm" onclick="copyDesignerSql()">Copy SQL</button>
                 <button class="btn btn-sm" onclick="explainDesignerQuery()">Explain Plan</button>
               </div>
             </div>
-            <textarea class="designer-sql-preview" id="designerSqlPreview" readonly>\${sqlPreview}</textarea>
+            <textarea class="designer-sql-preview" id="designerSqlPreview" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">\${sqlPreview}</textarea>
             <div style="margin-top: 8px;">
               <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">Saved Queries:</div>
               <div style="display: flex; flex-wrap: wrap; gap: 6px;">\${savedList}</div>
@@ -2806,7 +3503,7 @@ export function generateSqliteStudioHtml(): string {
                   \${rows.length === 0 ? '<tr><td colspan="' + (cols.length + 1) + '" style="text-align:center; color:var(--text-dim); padding:20px;">0 records returned</td></tr>' : rows.map((r, idx) => \`
                     <tr>
                       <td style="color: var(--text-dim); font-size: 10px; text-align: center;">\${idx + 1}</td>
-                      \${cols.map(c => \`<td>\${r[c] !== null && r[c] !== undefined ? String(r[c]) : '<span style="color:var(--text-dim);">NULL</span>'}</td>\`).join('')}
+                      \${cols.map(c => \`<td>\${r[c] !== null && r[c] !== undefined ? escapeHtml(String(r[c])) : '<span style="color:var(--text-dim);">NULL</span>'}</td>\`).join('')}
                     </tr>
                   \`).join('')}
                 </tbody>
@@ -2827,10 +3524,13 @@ export function generateSqliteStudioHtml(): string {
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-weight: 700; color: var(--cyan);">📋 Datasheet View</span>
                 \${ds ? \`<span style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">\${ds.rows.length} rows (\${ds.latencyMs}ms)</span>\` : ''}
+                <input type="text" placeholder="🔍 Filter rows..." oninput="filterDesignerDatasheet(this.value)" style="padding: 4px 8px; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 4px; color: var(--text-main); width: 130px; outline: none;">
               </div>
               <div style="display: flex; gap: 6px;">
-                <button class="btn btn-sm" onclick="exportDesignerDatasheet('csv')">Export CSV</button>
-                <button class="btn btn-sm" onclick="exportDesignerDatasheet('json')">Export JSON</button>
+                <button class="btn btn-sm" onclick="exportDesignerDatasheet('csv')" title="Download as CSV">Export CSV</button>
+                <button class="btn btn-sm" onclick="exportDesignerDatasheet('json')" title="Download as JSON">Export JSON</button>
+                <button class="btn btn-sm" onclick="copyDesignerDatasheetMarkdown()" title="Copy as Markdown table">📋 Markdown</button>
+                <button class="btn btn-sm" onclick="copyDesignerDatasheetSqlInsert()" title="Copy as SQL INSERT statements">📥 SQL Inserts</button>
                 <button class="btn btn-sm btn-primary" onclick="setDesignerActiveView('design')">📐 Design View</button>
               </div>
             </div>
@@ -2843,30 +3543,75 @@ export function generateSqliteStudioHtml(): string {
       // 4. View: Design View (Access Workbench + QBE Grid)
       // Top Workbench: Table Cards
       const tableCardsHtml = selectedTables.map(tableName => {
-        const meta = currentSchema.tables.find(t => t.name === tableName);
+        const meta = getEntityMeta(tableName);
         if (!meta) return "";
+        const isView = (currentSchema.views || []).some(v => v.name === tableName);
+        const icon = isView ? '👁️' : '🗄️';
         const columnsHtml = (meta.columns || []).map(c => \`
           <div class="qbe-field-row" onclick="addDesignerQbeColumn('\${tableName}', '\${c.name}')" title="Click to add field to QBE Grid">
             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${c.pk ? '🔑 ' : ''}\${c.name}</span>
-            <span style="font-size: 9px; color: var(--text-dim);">\${c.type || 'ANY'}</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="font-size: 9px; color: var(--text-dim);">\${c.type || 'ANY'}</span>
+              <span class="qbe-field-add-icon">+</span>
+            </div>
           </div>
         \`).join('');
 
         return \`
           <div class="qbe-table-card">
             <div class="qbe-table-card-header">
-              <span>🗄️ \${tableName}</span>
+              <span>\${icon} \${tableName}\${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ''}</span>
               <button class="sidebar-mini-btn" onclick="removeDesignerTable('\${tableName}')" title="Remove table">✕</button>
             </div>
             <div class="qbe-table-card-fields">\${columnsHtml}</div>
           </div>
         \`;
-      }).join('');
+      }).join('') || \`
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 22px 16px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-subtle); border-radius: 8px; text-align: center; width: 100%;">
+          <div style="font-size: 22px; margin-bottom: 6px;">🗂️</div>
+          <div style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px;">Relationship Canvas Ready</div>
+          <div style="font-size: 11px; color: var(--text-dim); max-width: 440px; margin-bottom: 12px;">Add tables using the &quot;+ Add Table&quot; selector above or load a pre-configured template:</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+            <button class="btn btn-sm" onclick="applyDesignerPreset('ecommerce_multi')" title="Load 4-table relational e-commerce query">🛒 4-Table E-Commerce</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('top_spenders')" title="Load Customer + Orders join query">🌟 Top Spenders</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('low_stock')" title="Load Products restock alert">📦 Low Stock Alerts</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('orders_status')" title="Load Orders pipeline">📈 Orders Pipeline</button>
+          </div>
+        </div>
+      \`;
 
-      // Active Joins Strip
-      const joinsHtml = (queryDesignerState.joins || []).map(join => {
-        const leftMeta = currentSchema.tables.find(t => t.name === join.leftTable);
-        const rightMeta = currentSchema.tables.find(t => t.name === join.rightTable);
+      // Multi-table Topology Status
+      const activeJoins = queryDesignerState.joins || [];
+      const tablesInJoins = new Set();
+      activeJoins.forEach(j => {
+        tablesInJoins.add(j.leftTable);
+        tablesInJoins.add(j.rightTable);
+      });
+      const unconnectedTables = selectedTables.filter(t => !tablesInJoins.has(t) && selectedTables.length > 1);
+
+      let topologyStatusHtml = "";
+      if (selectedTables.length > 1) {
+        if (unconnectedTables.length === 0) {
+          topologyStatusHtml = \`
+            <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--emerald); background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);">
+              <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--emerald);"></span>
+              <span>All \${selectedTables.length} tables connected in relational graph</span>
+            </div>
+          \`;
+        } else {
+          topologyStatusHtml = \`
+            <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--amber); background: rgba(245, 158, 11, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
+              <span>⚠️ \${unconnectedTables.join(', ')} unconnected</span>
+              <button class="btn btn-sm" onclick="autoJoinDesignerTables()" style="padding: 1px 6px; font-size: 9px;">🔗 Auto-Connect</button>
+            </div>
+          \`;
+        }
+      }
+
+      // Active Joins Strip with Editable Tables & Fields
+      const joinsHtml = activeJoins.map(join => {
+        const leftMeta = getEntityMeta(join.leftTable);
+        const rightMeta = getEntityMeta(join.rightTable);
         const leftFields = leftMeta && leftMeta.columns ? leftMeta.columns.map(c => c.name) : [];
         const rightFields = rightMeta && rightMeta.columns ? rightMeta.columns.map(c => c.name) : [];
         const joinTypes = [
@@ -2881,19 +3626,25 @@ export function generateSqliteStudioHtml(): string {
             <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
               \${joinTypes.map(j => \`<option value="\${j.val}" \${join.type === j.val ? 'selected' : ''}>\${j.label}</option>\`).join('')}
             </select>
-            <span style="color: var(--text-main); font-weight: 600;">\${join.leftTable}.</span>
+            <select class="qbe-select" onchange="updateDesignerJoinTable('\${join.key}', 'leftTable', this.value)" style="font-weight: 700; color: var(--text-main);">
+              \${selectedTables.map(t => \`<option value="\${t}" \${join.leftTable === t ? 'selected' : ''}>\${t}</option>\`).join('')}
+            </select>
+            <span style="color: var(--text-dim); font-weight: bold;">.</span>
             <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'leftField', this.value)">
               \${leftFields.map(f => \`<option value="\${f}" \${join.leftField === f ? 'selected' : ''}>\${f}</option>\`).join('')}
             </select>
-            <span style="color: var(--cyan); font-weight: bold;">=</span>
+            <span style="color: var(--cyan); font-weight: bold; margin: 0 4px;">=</span>
+            <select class="qbe-select" onchange="updateDesignerJoinTable('\${join.key}', 'rightTable', this.value)" style="font-weight: 700; color: var(--text-main);">
+              \${selectedTables.map(t => \`<option value="\${t}" \${join.rightTable === t ? 'selected' : ''}>\${t}</option>\`).join('')}
+            </select>
+            <span style="color: var(--text-dim); font-weight: bold;">.</span>
             <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'rightField', this.value)">
               \${rightFields.map(f => \`<option value="\${f}" \${join.rightField === f ? 'selected' : ''}>\${f}</option>\`).join('')}
             </select>
-            <span style="color: var(--text-main); font-weight: 600;">.\${join.rightTable}</span>
             <button class="sidebar-mini-btn" onclick="removeDesignerJoin('\${join.key}')" title="Delete join">✕</button>
           </div>
         \`;
-      }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>🔗 Auto-Join</strong> or <strong>+ Link</strong>.</div>';
+      }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>🔗 Smart Auto-Join All</strong> or <strong>+ Link</strong>.</div>';
 
       // Lower Pane: Classic Microsoft Access QBE Matrix
       const columns = queryDesignerState.columns || [];
@@ -2904,7 +3655,7 @@ export function generateSqliteStudioHtml(): string {
         <tr>
           <td class="qbe-matrix-header-cell">Field:</td>
           \${columns.map(col => {
-            const tableMeta = currentSchema.tables.find(t => t.name === col.table);
+            const tableMeta = getEntityMeta(col.table);
             const fields = tableMeta && tableMeta.columns ? tableMeta.columns.map(c => c.name) : [];
             return \`
               <td class="qbe-matrix-col-cell">
@@ -3038,15 +3789,29 @@ export function generateSqliteStudioHtml(): string {
             \${tableCardsHtml}
           </div>
           <div class="qbe-joins-bar">
-            <div style="font-size: 10px; font-weight: 700; color: var(--text-dim);">JOIN PROPERTIES & RELATIONSHIPS:</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <div style="font-size: 10px; font-weight: 700; color: var(--text-dim);">JOIN PROPERTIES &amp; RELATIONSHIPS (\${activeJoins.length} Active):</div>
+              \${topologyStatusHtml}
+            </div>
             \${joinsHtml}
           </div>
         </div>
 
         <!-- Lower QBE Design Grid -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">QUERY BY EXAMPLE (QBE) DESIGN GRID</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">QUERY BY EXAMPLE (QBE) DESIGN GRID</span>
+            <button class="btn btn-sm" onclick="toggleCriteriaHelp()" style="padding: 2px 8px; font-size: 10px;" title="View Microsoft Access &amp; SQLite Criteria Syntax">💡 Syntax Help</button>
+          </div>
           <span style="font-size: 10px; color: var(--text-dim);">\${columns.length} columns defined</span>
+        </div>
+        <div id="criteriaHelpBanner" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; margin: 4px 0 8px; font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+          <strong style="color: var(--cyan);">Access &amp; SQLite Criteria Cheat Sheet:</strong><br>
+          • <strong>Comparison:</strong> <code>&gt; 100</code>, <code>&lt;= 50</code>, <code>&lt;&gt; 'cancelled'</code>, <code>!= 'inactive'</code><br>
+          • <strong>Ranges:</strong> <code>BETWEEN 10 AND 50</code><br>
+          • <strong>Pattern Matches:</strong> <code>LIKE 'A%'</code> (starts with A), <code>LIKE '%corp%'</code> (contains corp)<br>
+          • <strong>Sets &amp; Nulls:</strong> <code>IN ('VIP', 'Enterprise')</code>, <code>IS NULL</code>, <code>IS NOT NULL</code><br>
+          • <strong>Text Literals:</strong> <code>VIP</code> or <code>'VIP'</code> (quotes auto-formatted if omitted)
         </div>
         <div class="qbe-matrix-container">
           <table class="qbe-matrix-table">
@@ -3213,12 +3978,30 @@ export function generateSqliteStudioHtml(): string {
     }
 
     setInterval(() => {
-      document.getElementById("footerClock").textContent = new Date().toLocaleTimeString();
+      const el = document.getElementById("footerClock");
+      if (el) el.textContent = new Date().toLocaleTimeString();
     }, 1000);
 
     window.addEventListener("DOMContentLoaded", async () => {
       initPresets();
       initSidebarResizer();
+      queryDesignerState.savedQueries = loadSavedQueriesFromStorage();
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "F11" || ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "F" || e.key === "f")) || (e.ctrlKey && e.metaKey && (e.key === "F" || e.key === "f"))) {
+          e.preventDefault();
+          window.doToggleFullscreen();
+          return;
+        }
+        if (activeTab === "designer" && (e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          if (queryDesignerState.activeView === "sql") {
+            runCustomDesignerSql();
+          } else {
+            runDesignerQuery();
+          }
+        }
+      });
 
       // Drag and Drop support
       const dropZone = document.getElementById("dbDropZone");
@@ -3267,10 +4050,35 @@ ${getWindowShortcutsScript()}
 // Desktop Workstation Window Factory
 // -------------------------------------------------------------------------------------------------
 
+function getScreenDimensions(): { width: number; height: number } {
+  let screenW = 1920;
+  let screenH = 1080;
+  try {
+    if (process.platform === "darwin") {
+      const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
+        CGMainDisplayID: { args: [], returns: FFIType.u32 },
+        CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+        CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+      });
+      const mainId = cg.symbols.CGMainDisplayID();
+      screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
+      screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 },
+      });
+      screenW = user32.symbols.GetSystemMetrics(0);
+      screenH = user32.symbols.GetSystemMetrics(1);
+    }
+  } catch {}
+  return { width: screenW, height: screenH };
+}
+
 export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStudioInstance {
   const fullscreen = options.fullscreen ?? true;
-  const width = options.width ?? 1260;
-  const height = options.height ?? 900;
+  const screen = getScreenDimensions();
+  const width = options.width ?? (fullscreen ? screen.width : 1260);
+  const height = options.height ?? (fullscreen ? screen.height : 900);
   const activeDbPath = options.initialDbPath || ":memory:";
   const title = "SQLite Studio Pro -- Enterprise Embedded Database Workstation";
 
@@ -3329,12 +4137,23 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
         webview.title = title;
 
         try {
-          setWindowPositionNative(webview, "center", width, height);
+          if (fullscreen) {
+            setWindowPositionNative(webview, { x: 0, y: 0 }, width, height);
+          } else {
+            setWindowPositionNative(webview, "center", width, height);
+          }
           setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
+
+        } catch {}
+
+        let hasInitialFullscreenTriggered = false;
+        webview.bind("requestInitialFullscreen", () => {
+          if (hasInitialFullscreenTriggered) return;
+          hasInitialFullscreenTriggered = true;
           if (fullscreen) {
             toggleFullscreenNative(webview);
           }
-        } catch {}
+        });
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
