@@ -70,17 +70,19 @@ function parseEnv(text: string): { vars: EnvVar[]; duplicates: string[]; syntaxE
   return { vars, duplicates, syntaxErrors };
 }
 
-export function createEnvStudio(): SimpleWindow {
+export function createEnvStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Environment & Secret Vault Studio Pro", 1140, 880, {
     appId: "env_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   // Header Title
   win.beginRow();
   win.addHeading("Environment & Secret Vault");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
   win.endRow();
@@ -261,11 +263,15 @@ export function createEnvStudio(): SimpleWindow {
     }
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createEnvStudio();
+  const win = createEnvStudio({ fullscreen: true });
   console.log("⚡ Launching Environment & Secret Vault Studio...");
   win.run();
 }

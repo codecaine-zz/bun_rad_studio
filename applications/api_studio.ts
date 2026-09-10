@@ -2,11 +2,13 @@ import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
-export function createApiStudio(): SimpleWindow {
+export function createApiStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+  const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("API Studio Pro -- Enterprise HTTP & REST API Workbench", 1160, 900, {
     appId: "api_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   // Title Row
@@ -15,6 +17,7 @@ export function createApiStudio(): SimpleWindow {
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save Request");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption("Enterprise HTTP Client, REST Endpoint Inspector & Load Benchmark Suite");
 
@@ -257,11 +260,13 @@ export function createApiStudio(): SimpleWindow {
     sendRequest();
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createApiStudio();
-  console.log("⚡ Launching API Studio Pro...");
+  const win = createApiStudio({ fullscreen: true });
+  console.log("⚡ Launching API Studio Pro (Fullscreen)...");
   win.run();
 }

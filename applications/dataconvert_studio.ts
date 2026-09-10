@@ -3,11 +3,13 @@ import { stdlib } from "../src/simplecli/stdlib";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
-export function createDataConvertStudio(): SimpleWindow {
+export function createDataConvertStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+  const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Data Converter Studio Pro -- Enterprise Data Interchange Suite", 1160, 900, {
     appId: "dataconvert_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   const SAMPLE_CSV = `name,role,department,salary
@@ -22,6 +24,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption("Enterprise Multi-Format Transformer: JSON, CSV, TSV, YAML, Markdown Tables & Base64");
 
@@ -196,13 +199,15 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     }
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
 export const createDataForgeStudio = createDataConvertStudio;
 
 if (import.meta.main) {
-  const win = createDataConvertStudio();
-  console.log("⚡ Launching Data Converter Studio Pro...");
+  const win = createDataConvertStudio({ fullscreen: true });
+  console.log("⚡ Launching Data Converter Studio Pro (Fullscreen)...");
   win.run();
 }

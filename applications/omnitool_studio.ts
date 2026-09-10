@@ -291,12 +291,13 @@ function bunNativeRip(targetPath: string): { output: string; success: boolean } 
 
 export { bunNativeRipgrep, bunNativeFd, bunNativeSd, bunNativeRip };
 
-export function createOmnitoolStudio(options: { headless?: boolean; screenshotPath?: string } = {}): SimpleWindow {
+export function createOmnitoolStudio(options: { headless?: boolean; screenshotPath?: string; fullscreen?: boolean } = {}): SimpleWindow {
   const win = newSimpleWindow("DevTools Studio Pro (OmniTool Studio Pro) -- Bun Native Modern Developer Suite", 1120, 880, {
     appId: "omnitool_studio",
     theme: getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
     alwaysOnTop: false,
+    fullscreen: options.fullscreen ?? true,
   });
 
   const tools: Record<string, ToolInfo> = {
@@ -324,6 +325,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     "1. Ripgrep (rg) - Code Search"
   ).width(260);
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center");
   win.endRow();
@@ -476,13 +478,17 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     }
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 export const createDevToolsStudio = createOmnitoolStudio;
 
 if (import.meta.main) {
-  const win = createDevToolsStudio();
+  const win = createDevToolsStudio({ fullscreen: true });
   console.log("Launching DevTools Studio Pro (Bun Native)...");
   win.run();
 }

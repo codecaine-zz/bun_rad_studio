@@ -137,11 +137,13 @@ const formSpec = {
     ]
 };
 
-const htmlContent = generatePreviewHtml(formSpec as any);
+export const htmlContent = generatePreviewHtml(formSpec as any);
+export { formSpec };
 
-const wv = new Webview(true);
-wv.title = formSpec.title;
-wv.size = { width: formSpec.width, height: formSpec.height, hint: SizeHint.NONE };
+export function runProductivityControlsStudio() {
+    const wv = new Webview(true);
+    wv.title = formSpec.title;
+    wv.size = { width: formSpec.width, height: formSpec.height, hint: SizeHint.NONE };
 
 // Helper to evaluate JS in the active demo window
 function evalJS(code: string) {
@@ -377,11 +379,16 @@ bindAll(["on_sparkline_click", "sparkline_1_onClick", "on_sparkline_1_click"], h
 bindAll(["on_metric_cmp_click", "metric_cmp_1_onClick", "on_metric_cmp_1_click"], handleMetricClick);
 bindAll(["on_activity_click", "activity_1_onClick", "on_activity_1_click"], handleActivityClick);
 
-wv.setHTML(htmlContent);
+    wv.setHTML(htmlContent);
 
-if (process.env.TEST_MODE === "1") {
-    console.log("⚡ Demo 13 compiled successfully in TEST_MODE.");
-    process.exit(0);
-} else {
-    wv.run();
+    if (process.env.TEST_MODE === "1") {
+        console.log("⚡ Demo 13 compiled successfully in TEST_MODE.");
+        process.exit(0);
+    } else {
+        wv.run();
+    }
+}
+
+if (import.meta.main) {
+    runProductivityControlsStudio();
 }

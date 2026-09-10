@@ -2,11 +2,12 @@ import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
-export function createRegexStudio(): SimpleWindow {
+export function createRegexStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Regex Studio Pro -- Enterprise Regular Expression Workbench", 1160, 920, {
     appId: "regex_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   const SAMPLE_TEXT = `Contact us at support@bunradstudio.io or dev-team@corp.net.
@@ -19,6 +20,7 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
   win.beginRow();
   win.addHeading("Regex Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save Workspace");
   win.addButton("btn_center", "Center Window");
   win.endRow();
@@ -216,11 +218,15 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
     evaluateRegex();
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createRegexStudio();
+  const win = createRegexStudio({ fullscreen: true });
   console.log("⚡ Launching Regex Studio Pro...");
   win.run();
 }

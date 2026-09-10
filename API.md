@@ -283,12 +283,16 @@ Terminates the application process or closes the active Webview window cleanly.
 | Native Helper Function | Description |
 | --- | --- |
 | `closeWindowNative(wv: Webview)` | Cleanly closes/terminates native Cocoa/Win32 window handle and destroys webview |
-| `minimizeWindowNative(wv: Webview)` | Native window minimize (Cocoa `miniaturize:` / Win32 `SW_MINIMIZE`) |
+| `minimizeWindowNative(wv: Webview)` | Native window minimize (exits fullscreen first if active, triggers Cocoa `performMiniaturize:` / `miniaturize:` / Win32 `SW_MINIMIZE`) |
+| `hideAppNative(wv?: Webview)` | Hides application window using macOS `[NSApp hide:]` |
 | `toggleFullscreenNative(wv: Webview)` | Toggles window fullscreen mode across macOS, Windows, and Linux |
+| `setFullscreenNative(wv: Webview, fullscreen: boolean)` | Explicitly enters or exits native fullscreen mode (`toggleFullScreen:` on Cocoa) |
+| `isFullscreenNative(wv: Webview): boolean` | Returns whether the native window is currently in fullscreen mode |
+| `getScreenDimensions(): { width: number; height: number }` | Queries main display resolution via CoreGraphics FFI (`CGDisplayPixelsWide`/`High`) or Win32 |
 | `setAlwaysOnTopNative(wv: Webview, onTop: boolean)` | Sets window float/topmost level (Cocoa `NSFloatingWindowLevel` / Win32 `HWND_TOPMOST`) |
-| `centerWindowNative(wv: Webview)` | Centers native window on primary screen display |
+| `centerWindowNative(wv: Webview, width?, height?)` | Centers native window on primary screen display |
 | `setWindowPositionNative(wv: Webview, pos, ...)` | Positions window to preset (`center`, `top_left`, `top_right`, `bottom_left`, `bottom_right`) |
-| `attachWindowShortcuts(wv: Webview, options?)` | Automatically binds all window lifecycle & functionality IPC endpoints (`quitApp`, `closeWindow`, `minimizeWindow`, `toggleFullscreen`, `toggleAlwaysOnTop`, `centerWindow`) |
+| `attachWindowShortcuts(wv: Webview, options?)` | Automatically binds all window lifecycle & functionality IPC endpoints (`quitApp`, `closeWindow`, `minimizeWindow`, `hideApp`, `toggleFullscreen`, `toggleAlwaysOnTop`, `centerWindow`) |
 | `getWindowShortcutsScript(): string` | Generates universal, zero-dependency client `<script>` with all desktop window shortcut key listeners |
 
 ### 5. Universal Desktop Window Functionality Shortcuts
@@ -299,8 +303,10 @@ All windows in Bun RAD Studio (IDE, SimpleWindow apps, live previews, exported a
 | --- | --- | --- |
 | **Close Window / Quit** | <kbd>Cmd</kbd>+<kbd>Q</kbd>, <kbd>Cmd</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>Alt</kbd> (Double Alt) | macOS |
 | **Close Window / Quit** | <kbd>Ctrl</kbd>+<kbd>Q</kbd>, <kbd>Ctrl</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>F4</kbd>, <kbd>Alt</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>Alt</kbd> | Windows / Linux |
-| **Minimize Window** | <kbd>Cmd</kbd>+<kbd>M</kbd>, <kbd>Ctrl</kbd>+<kbd>M</kbd>, <kbd>Alt</kbd>+<kbd>M</kbd> | All Platforms |
-| **Toggle Fullscreen** | <kbd>Fn</kbd>+<kbd>F</kbd> / <kbd>F</kbd> (unfocused), <kbd>F11</kbd>, <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Cmd</kbd>+<kbd>F</kbd>, <kbd>Alt</kbd>+<kbd>Enter</kbd>, <kbd>Esc</kbd> (Exit) | All Platforms |
+| **Minimize Window** | <kbd>Cmd</kbd>+<kbd>M</kbd>, <kbd>Ctrl</kbd>+<kbd>M</kbd>, <kbd>Alt</kbd>+<kbd>M</kbd> (auto-exits fullscreen space) | All Platforms |
+| **Hide Application** | <kbd>Cmd</kbd>+<kbd>H</kbd>, <kbd>Ctrl</kbd>+<kbd>H</kbd> (`[NSApp hide:]`) | macOS / Linux |
+| **Toggle Fullscreen** | <kbd>Cmd</kbd>+<kbd>F</kbd>, <kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Fn</kbd>+<kbd>F</kbd>, <kbd>F11</kbd>, <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Alt</kbd>+<kbd>Enter</kbd> | All Platforms |
+| **Exit Fullscreen** | <kbd>Escape</kbd> (exits native macOS fullscreen & DOM fullscreen) | All Platforms |
 | **Always on Top (Pin)** | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <kbd>Alt</kbd>+<kbd>T</kbd> | All Platforms |
 | **Center Window** | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | All Platforms |
 | **Zoom Workspace / View** | <kbd>Cmd/Ctrl</kbd>+<kbd>+</kbd> (In), <kbd>Cmd/Ctrl</kbd>+<kbd>-</kbd> (Out), <kbd>Cmd/Ctrl</kbd>+<kbd>0</kbd> (Reset) | All Platforms |

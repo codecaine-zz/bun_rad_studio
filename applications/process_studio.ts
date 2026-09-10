@@ -7,7 +7,7 @@ import { createProcessStudio, createTaskTracker } from "./task_manager";
 export { createProcessStudio, createTaskTracker };
 
 if (import.meta.main) {
-  const win = createProcessStudio();
+  const win = createProcessStudio({ fullscreen: true });
   console.log("⚡ Launching Process Monitor Studio...");
   win.run();
 }

@@ -40,11 +40,12 @@ function fetchProcesses(): ProcessItem[] {
   return items.sort((a, b) => b.cpu - a.cpu);
 }
 
-export function createTaskTracker(): SimpleWindow {
+export function createTaskTracker(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Task Manager Pro -- macOS Process & Resource Monitor", 1140, 880, {
     appId: "task_manager",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   const procs = fetchProcesses();
@@ -53,6 +54,7 @@ export function createTaskTracker(): SimpleWindow {
   win.beginRow();
   win.addHeading("Task Manager Pro");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save View");
   win.addButton("btn_refresh", "🔄 Refresh");
   win.addButton("btn_center", "Center Window");
@@ -154,13 +156,17 @@ export function createTaskTracker(): SimpleWindow {
     setTimeout(refreshList, 400);
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 export const createProcessStudio = createTaskTracker;
 
 if (import.meta.main) {
-  const win = createProcessStudio();
+  const win = createProcessStudio({ fullscreen: true });
   console.log("Launching Process Monitor Studio...");
   win.run();
 }

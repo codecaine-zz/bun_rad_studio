@@ -7,7 +7,7 @@ import { createDevToolsStudio, createOmnitoolStudio } from "./omnitool_studio";
 export { createDevToolsStudio, createOmnitoolStudio };
 
 if (import.meta.main) {
-  const win = createDevToolsStudio();
-  console.log("⚡ Launching DevTools Studio Pro...");
+  const win = createDevToolsStudio({ fullscreen: true });
+  console.log("⚡ Launching DevTools Studio Pro (Fullscreen)...");
   win.run();
 }

@@ -4372,10 +4372,13 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
 
         // Start native desktop message loop on main thread
         webview.run();
+        try { worker.terminate(); } catch {}
+        process.exit(0);
       } catch (err: any) {
         console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
       } finally {
         try { worker.terminate(); } catch {}
+        process.exit(0);
       }
     },
   };
@@ -4397,6 +4400,7 @@ export { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 
 if (import.meta.main) {
   const initialDb = process.argv[2] || ":memory:";
-  const app = createSqliteStudio({ initialDbPath: initialDb });
+  const app = createSqliteStudio({ initialDbPath: initialDb, fullscreen: true });
   await app.run();
+  process.exit(0);
 }

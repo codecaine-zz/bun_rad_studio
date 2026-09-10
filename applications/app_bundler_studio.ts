@@ -3,11 +3,13 @@ import { Sys } from "../src/simplecli/sys";
 import { writeFileSync, mkdirSync, existsSync, statSync } from "fs";
 import { join, resolve, basename } from "path";
 
-export function createAppBundlerStudio(): SimpleWindow {
+export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+  const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("App Bundler Studio Pro -- Enterprise Binary & macOS .app Compiler", 1160, 920, {
     appId: "app_bundler_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   // Title Row
@@ -16,6 +18,7 @@ export function createAppBundlerStudio(): SimpleWindow {
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption("Enterprise Standalone Executable Compiler (bun build --compile) & macOS .app Bundler");
 
@@ -188,11 +191,13 @@ Status:        Ready to produce self-contained single-executable zero-dependency
     }
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createAppBundlerStudio();
-  console.log("⚡ Launching App Bundler Studio Pro...");
+  const win = createAppBundlerStudio({ fullscreen: true });
+  console.log("⚡ Launching App Bundler Studio Pro (Fullscreen)...");
   win.run();
 }

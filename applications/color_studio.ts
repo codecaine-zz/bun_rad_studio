@@ -88,11 +88,13 @@ function getContrastRatio(fgHex: string, bgHex: string): number {
   return parseFloat(((bright + 0.05) / (dark + 0.05)).toFixed(2));
 }
 
-export function createColorStudio(): SimpleWindow {
+export function createColorStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+  const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Color Palette & Design Token Studio Pro", 1140, 880, {
     appId: "color_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   // Top Bar
@@ -101,6 +103,7 @@ export function createColorStudio(): SimpleWindow {
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption("Enterprise Design System Tokens, WCAG 2.1 Contrast Auditing & Palette Generator");
 
@@ -340,11 +343,13 @@ module.exports = {
     win.toast("Generated TypeScript tokens");
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createColorStudio();
-  console.log("⚡ Launching Color Palette & Design Token Studio...");
+  const win = createColorStudio({ fullscreen: true });
+  console.log("⚡ Launching Color Palette & Design Token Studio (Fullscreen)...");
   win.run();
 }

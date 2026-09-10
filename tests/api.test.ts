@@ -2,7 +2,7 @@ import { describe, test, expect, afterAll } from "bun:test";
 import { readFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
 import { Webview } from "webview-bun";
-import { generatePreviewHtml, exportProjectHelper, setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, minimizeWindowNative, closeWindowNative, centerWindowNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
+import { generatePreviewHtml, exportProjectHelper, setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, minimizeWindowNative, hideAppNative, closeWindowNative, centerWindowNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
 
 const TEST_EXPORT_DIR = join(process.cwd(), ".test_export_output");
 
@@ -386,6 +386,7 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(() => setFullscreenNative(dummyWebview, true)).not.toThrow();
         expect(isFullscreenNative(dummyWebview)).toBe(false);
         expect(() => minimizeWindowNative(dummyWebview)).not.toThrow();
+        expect(() => hideAppNative(dummyWebview)).not.toThrow();
         expect(() => closeWindowNative(dummyWebview)).not.toThrow();
         expect(() => centerWindowNative(dummyWebview, 800, 600)).not.toThrow();
         expect(() => setWindowPositionNative(dummyWebview, "center", 800, 600)).not.toThrow();
@@ -398,6 +399,7 @@ describe("⚡ Bun RAD Studio API & Data Specification Suite", () => {
         expect(script).toContain("doToggleFullscreen");
         expect(script).toContain("requestFullscreen");
         expect(script).toContain("minimizeWindow");
+        expect(script).toContain("hideApp");
         expect(script).toContain("contextmenu");
         expect(script).toContain("preventDefault");
         expect(script).toContain("F12");

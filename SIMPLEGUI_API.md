@@ -147,6 +147,7 @@ const customWin = createWindow("Developer Studio", 920, 680, {
 | `title` | `string` | `"SimpleGUI Application"` | Caption displayed in window title bar |
 | `width` | `number` | `800` | Window canvas width in pixels |
 | `height` | `number` | `600` | Window canvas height in pixels |
+| `fullscreen` | `boolean` | `false` | Launch window in borderless fullscreen mode (defaults to `true` for studio applications) |
 | `theme` | `string` | `"apple_dark"` | Active visual color palette key |
 | `padding` | `number` | `20` | Canvas outer edge margin padding |
 | `spacing` | `number` | `12` | Vertical gap between stacked components |
@@ -167,7 +168,10 @@ win.setAlwaysOnTop(true);
 // Toggle full-screen mode
 win.toggleFullscreen();
 
-// Close application window cleanly
+// Minimize application window (auto-exits fullscreen space if needed)
+win.minimize();
+
+// Close application window & terminate process cleanly
 win.quit();
 ```
 

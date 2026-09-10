@@ -37,17 +37,27 @@ const COMMON_PORTS = [
 ];
 
 function getLocalInterfaces(): NetworkInterfaceInfo[] {
+  // If screenshot mode is active, use clean non-sensitive demonstration interfaces
+  if (process.env.SCREENSHOT_MODE === "1") {
+    return [
+      { name: "lo0", ip: "127.0.0.1", family: "IPv4", mac: "🔒 [Protected]", internal: true },
+      { name: "en0", ip: "192.168.1.*** (Protected)", family: "IPv4", mac: "🔒 [Protected]", internal: false },
+      { name: "en1", ip: "10.0.0.*** (Protected)", family: "IPv4", mac: "🔒 [Protected]", internal: false },
+    ];
+  }
+
   const ifaces = os.networkInterfaces();
   const res: NetworkInterfaceInfo[] = [];
   for (const [name, list] of Object.entries(ifaces)) {
     if (!list) continue;
     for (const item of list) {
       if (item.family === "IPv4" || (item.family === "IPv6" && !item.address.startsWith("fe80:"))) {
+        const isLoopback = item.internal || item.address === "127.0.0.1" || item.address === "::1";
         res.push({
           name,
-          ip: item.address,
+          ip: isLoopback ? "127.0.0.1 (Loopback)" : "***.***.***.*** (Protected)",
           family: item.family,
-          mac: item.mac,
+          mac: "🔒 [Protected]",
           internal: item.internal,
         });
       }
@@ -169,7 +179,6 @@ export function checkCommonSocketsSync(host: string): PortScanResult[] {
 }
 
 function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterfaceInfo[]): string {
-  const primaryIpv4 = ifaces.find((i) => !i.internal && i.family === "IPv4")?.ip || "127.0.0.1";
   const primaryIface = ifaces.find((i) => !i.internal && i.family === "IPv4")?.name || "lo0";
 
   const ifaceRows = ifaces
@@ -180,7 +189,7 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
         <td style="padding: 6px 10px; font-weight: 600; color: #38bdf8;">${i.name}</td>
         <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #f1f5f9;">${i.ip}</td>
         <td style="padding: 6px 10px;"><span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${i.family}</span></td>
-        <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #94a3b8; font-size: 11px;">${i.mac || "N/A"}</td>
+        <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #94a3b8; font-size: 11px;">🔒 [Protected]</td>
         <td style="padding: 6px 10px;">${i.internal ? '<span style="color: #cbd5e1;">Loopback</span>' : '<span style="color: #4ade80; font-weight: 600;">Active Link</span>'}</td>
       </tr>`
     )
@@ -190,18 +199,18 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
       <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 20px;">⚡</span>
+          <span style="font-size: 20px;">🛡️</span>
           <div>
-            <div style="font-weight: 700; color: #34d399; font-size: 14px;">Network Forensics Engine Active</div>
-            <div style="font-size: 12px; color: #94a3b8;">Local IP: <b style="color: #f1f5f9;">${primaryIpv4}</b> (${primaryIface}) | Ready to probe target: <b style="color: #38bdf8;">${host}:${port}</b></div>
+            <div style="font-weight: 700; color: #34d399; font-size: 14px;">Network Forensics Engine Active (Privacy Guard Enabled)</div>
+            <div style="font-size: 12px; color: #94a3b8;">Local IP & MAC: <b style="color: #38bdf8;">Protected / Masked</b> (${primaryIface}) | Ready to probe target: <b style="color: #38bdf8;">${host}:${port}</b></div>
           </div>
         </div>
         <div style="text-align: right;">
-          <span style="background: #059669; color: #ffffff; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;">Ready</span>
+          <span style="background: #059669; color: #ffffff; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;">🛡️ Privacy Guard</span>
         </div>
       </div>
 
-      <div style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Detected Network Interfaces & Adapters:</div>
+      <div style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Detected Network Interfaces & Adapters (Privacy Shield Active):</div>
       <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
         <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
           <thead>
@@ -756,11 +765,12 @@ export function probeHttp(url: string): Promise<{ success: boolean; status?: num
   return Promise.resolve(probeHttpSync(url));
 }
 
-export function createNetworkStudio(): SimpleWindow {
+export function createNetworkStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Network Forensics Studio Pro -- Socket Scanner & DNS Inspector", 1140, 880, {
     appId: "network_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   const localIfaces = getLocalInterfaces();
@@ -779,49 +789,44 @@ export function createNetworkStudio(): SimpleWindow {
   // Target Input Row
   win.beginGroupBox("Target Host & Protocol Configuration");
   win.beginRow();
-  win.addLabel("lbl_host", "Target Host / Domain:");
-  win.addInput("txt_host", "google.com").width(240);
-  win.addLabel("lbl_port", "Port / Range:");
-  win.addInput("txt_port", "443").width(90);
+  win.addLabel("lbl_host", "Target:").width(55);
+  win.addInput("txt_host", "google.com").width(210);
+  win.addLabel("lbl_port", "Port:").width(45);
+  win.addInput("txt_port", "443").width(65);
   win.addButton("btn_ping_http", "⚡ HTTP Probe");
   win.addButton("btn_scan_socket", "🔌 Scan Port");
   win.addButton("btn_scan_all", "🌐 Scan Top Ports");
-  win.endRow();
-
-  // Quick Target Presets Row
-  win.beginRow();
-  win.addLabel("lbl_presets", "Quick Targets:").width(110);
-  win.addButton("btn_preset_localhost", "💻 Localhost (127.0.0.1:3000)");
-  win.addButton("btn_preset_cloudflare", "🌐 Cloudflare (1.1.1.1)");
-  win.addButton("btn_preset_google", "🔍 Google (google.com)");
-  win.addButton("btn_preset_github", "🐙 GitHub (github.com)");
+  win.addButton("btn_preset_localhost", "💻 Localhost");
+  win.addButton("btn_preset_cloudflare", "🌐 Cloudflare");
+  win.addButton("btn_preset_google", "🔍 Google");
+  win.addButton("btn_preset_github", "🐙 GitHub");
   win.endRow();
   win.endGroupBox();
 
   // DNS Actions Row
   win.beginGroupBox("DNS Forensics & Record Inspector (node:dns)");
   win.beginRow();
-  win.addButton("btn_dns_all", "⚡ Full DNS Audit");
+  win.addButton("btn_dns_all", "⚡ Full DNS Audit").bg("#0284c7");
   win.addButton("btn_dns_a", "A (IPv4)");
   win.addButton("btn_dns_aaaa", "AAAA (IPv6)");
   win.addButton("btn_dns_mx", "MX (Mail)");
   win.addButton("btn_dns_txt", "TXT Records");
   win.addButton("btn_dns_ns", "NS (NameServers)");
   win.addButton("btn_dns_soa", "SOA Record");
-  win.addButton("btn_clear_diag", "Clear Output");
-  win.addButton("btn_export_diag", "📋 Export Report");
+  win.addButton("btn_clear_diag", "🧹 Clear");
+  win.addButton("btn_export_diag", "📋 Export");
   win.endRow();
   win.endGroupBox();
 
   // Results View (HTML View for rich visual tables and live cards)
-  win.beginGroupBox("Network Diagnostics & Telemetry Stream");
-  win.addHtmlView(initialHtml, 1068, 280).id("txt_net_results");
+  win.beginGroupBox("Network Diagnostics & Telemetry Stream (Live Output)");
+  win.addHtmlView(initialHtml, 1068, 360).id("txt_net_results");
   win.setValue("txt_net_results", initialHtml);
   win.endGroupBox();
 
   // Telemetry Console
   win.beginGroupBox("Activity & Socket Connection Audit");
-  win.addConsole("net_console", 120);
+  win.addConsole("net_console", 100);
   win.endGroupBox();
 
   // Status Bar
@@ -843,11 +848,28 @@ export function createNetworkStudio(): SimpleWindow {
     w.toast("Network configuration saved!");
   });
 
-  const setResults = (html: string, raw: string) => {
+  const setResults = (html: string, raw: string, alertMsg?: string) => {
     win.setHtml("txt_net_results", html);
     win.setValue("txt_net_results", html);
     win.setValue("txt_net_results_raw", raw);
     console.log(`\n${raw}`);
+
+    // Auto-scroll results into view and pulse visual indicator so users immediately see updated data
+    win.evalJS(`
+      (function() {
+        const el = document.getElementById("txt_net_results");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          el.style.transition = "box-shadow 0.25s ease, border-color 0.25s ease";
+          el.style.boxShadow = "0 0 24px rgba(56, 189, 248, 0.7)";
+          el.style.borderColor = "#38bdf8";
+          setTimeout(() => {
+            el.style.boxShadow = "";
+            el.style.borderColor = "";
+          }, 1400);
+        }
+      })();
+    `);
   };
 
   win.onClick("btn_clear_diag", () => {
@@ -903,6 +925,7 @@ export function createNetworkStudio(): SimpleWindow {
     setResults(html, raw);
     win.appendConsole("net_console", `[Scan Result] ${host}:${port} is ${res.status} (${res.latencyMs}ms)\n`, res.status === "OPEN" ? 2 : 3);
     win.setStatus(`${host}:${port} -> ${res.status} (${res.latencyMs}ms)`);
+    win.toast(`Port ${port}: ${res.status} (${res.latencyMs}ms)`);
   });
 
   win.onClick("btn_scan_all", () => {
@@ -936,6 +959,7 @@ export function createNetworkStudio(): SimpleWindow {
     const openCount = results.filter((r) => r.status === "OPEN").length;
     win.appendConsole("net_console", `[Batch Scan] Finished auditing ${results.length} ports (${openCount} OPEN) in ${elapsed.toFixed(1)}ms\n`, 2);
     win.setStatus(`Scan completed: ${openCount} open ports found (${elapsed.toFixed(0)}ms)`);
+    win.toast(`✅ Scanned ${results.length} ports: ${openCount} OPEN (${elapsed.toFixed(0)}ms)`);
   });
 
   win.onClick("btn_ping_http", () => {
@@ -969,6 +993,7 @@ export function createNetworkStudio(): SimpleWindow {
       setResults(html, report);
       win.appendConsole("net_console", `[HTTP Probe] ${probeRes.status} in ${probeRes.elapsedMs}ms\n`, 2);
       win.setStatus(`HTTP ${probeRes.status} (${probeRes.elapsedMs}ms)`);
+      win.toast(`✅ HTTP Probe: ${probeRes.status} in ${probeRes.elapsedMs}ms`);
     } else {
       const errHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px;">
@@ -1018,9 +1043,11 @@ export function createNetworkStudio(): SimpleWindow {
       if (res.isNoData) {
         win.appendConsole("net_console", `[DNS Notice] No ${type} records configured for ${host} (${res.elapsedMs}ms)\n`, 4);
         win.setStatus(`DNS ${type}: No records (${res.elapsedMs}ms)`);
+        win.toast(`⚠️ DNS ${type}: No records found for ${host}`);
       } else {
         win.appendConsole("net_console", `[DNS Success] Retrieved ${type} records in ${res.elapsedMs}ms (${res.source})\n`, 2);
-        win.setStatus(`DNS ${type} OK (${res.elapsedMs}ms)`);
+        win.setStatus(`✅ DNS ${type} loaded (${res.elapsedMs}ms) for ${host}`);
+        win.toast(`✅ ${type} records loaded for ${host} (${res.elapsedMs}ms)`);
       }
     } catch (err: any) {
       const elapsed = parseFloat((performance.now() - t0).toFixed(1));
@@ -1058,6 +1085,7 @@ export function createNetworkStudio(): SimpleWindow {
       const activeCount = results.filter((r) => !r.isNoData && (Array.isArray(r.records) ? r.records.length > 0 : !!r.records)).length;
       win.appendConsole("net_console", `[DNS Audit] Completed ${host}: ${activeCount}/${results.length} record sets found (${totalElapsed}ms)\n`, 2);
       win.setStatus(`DNS Audit complete: ${activeCount} active sets (${totalElapsed}ms)`);
+      win.toast(`✅ Full DNS audit complete for ${host} (${totalElapsed}ms)`);
     } catch (err: any) {
       renderDnsError(host, "ALL", err, 0);
     }
@@ -1094,7 +1122,7 @@ if (import.meta.main) {
   const target = argTarget || "google.com";
 
   console.log(`⚡ Launching Network Forensics Studio Pro (Target: ${target})...`);
-  const win = createNetworkStudio();
+  const win = createNetworkStudio({ fullscreen: true });
   if (argTarget) {
     win.setValue("txt_host", argTarget);
   }

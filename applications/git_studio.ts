@@ -1,17 +1,19 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
 
-export function createGitStudio(): SimpleWindow {
+export function createGitStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Git Repository & Diff Workbench -- Enterprise Version Control GUI", 1160, 900, {
     appId: "git_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   // Header Title
   win.beginRow();
   win.addHeading("Git Workbench Pro");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_refresh", "🔄 Refresh Repo");
   win.addButton("btn_center", "Center Window");
@@ -191,11 +193,15 @@ export function createGitStudio(): SimpleWindow {
     refreshRepo();
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createGitStudio();
+  const win = createGitStudio({ fullscreen: true });
   console.log("⚡ Launching Git Workbench Pro...");
   win.run();
 }

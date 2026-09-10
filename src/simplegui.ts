@@ -1,5 +1,5 @@
 import { SizeHint, Webview } from "webview-bun";
-import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, closeWindowNative, attachWindowShortcuts } from "../index.ts";
+import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, hideAppNative, closeWindowNative, attachWindowShortcuts, getScreenDimensions } from "../index.ts";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -2886,6 +2886,20 @@ export class SimpleWindow {
         }
     }
 
+    public evalJS(code: string): void {
+        if (this.webview) {
+            try {
+                this.webview.eval(code);
+            } catch (e) {
+                console.error("[SimpleWindow.evalJS error]:", e);
+            }
+        }
+    }
+
+    public eval(code: string): void {
+        this.evalJS(code);
+    }
+
     public getValue(id: string): any {
         if (this.formValuesStore[id] !== undefined) {
             return this.formValuesStore[id];
@@ -3479,24 +3493,35 @@ export class SimpleWindow {
                     var attempts = 0;
                     function attempt() {
                         if (typeof window.requestInitialFullscreen === "function") {
-                            try { window.requestInitialFullscreen(); return; } catch(e) {}
+                            try {
+                                var p = window.requestInitialFullscreen();
+                                if (p && typeof p.then === "function") {
+                                    p.then(function(res) {
+                                        if ((!res || !res.isFullscreen) && attempts++ < 25) {
+                                            setTimeout(attempt, 150);
+                                        }
+                                    }).catch(function() {
+                                        if (attempts++ < 25) setTimeout(attempt, 150);
+                                    });
+                                    return;
+                                }
+                            } catch(e) {}
                         }
                         if (typeof window.toggleNativeFullscreen === "function") {
-                            try { window.toggleNativeFullscreen(); return; } catch(e) {}
+                            try { window.toggleNativeFullscreen(); } catch(e) {}
+                        } else if (typeof window.toggleFullscreen === "function") {
+                            try { window.toggleFullscreen(); } catch(e) {}
                         }
-                        if (typeof window.toggleFullscreen === "function") {
-                            try { window.toggleFullscreen(); return; } catch(e) {}
-                        }
-                        if (attempts++ < 30) {
-                            setTimeout(attempt, 50);
+                        if (attempts++ < 25) {
+                            setTimeout(attempt, 150);
                         }
                     }
-                    attempt();
+                    setTimeout(attempt, 80);
+                    window.addEventListener("DOMContentLoaded", function() { setTimeout(attempt, 120); });
+                    window.addEventListener("load", function() { setTimeout(attempt, 200); });
                 }
                 ${this.fullscreen ? `
                 triggerInitialFullscreen();
-                window.addEventListener("DOMContentLoaded", triggerInitialFullscreen);
-                window.addEventListener("load", triggerInitialFullscreen);
                 ` : ""}
 
                 let isFnPressed = false;
@@ -3569,43 +3594,55 @@ export class SimpleWindow {
                                 if (document.exitFullscreen) document.exitFullscreen().catch(function() {});
                                 else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                             }
+                            if (typeof window.toggleNativeFullscreen === "function") {
+                                try { window.toggleNativeFullscreen(); } catch(e) {}
+                            }
                         } catch(e) {}
                     }
 
+                    // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
                     if ((e.metaKey || e.ctrlKey || e.altKey) && (e.key === "m" || e.key === "M" || e.code === "KeyM")) {
-                        const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
-                        if (!isInput) {
-                            e.preventDefault();
-                            if (typeof window.minimizeWindow === "function") {
-                                try { window.minimizeWindow(); return; } catch(e) {}
-                            }
-                            return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (typeof window.minimizeWindow === "function") {
+                            try { window.minimizeWindow(); return; } catch(e) {}
                         }
+                        return;
                     }
 
+                    // 5b. Hide application window: Cmd+H, Ctrl+H
+                    if ((e.metaKey || e.ctrlKey) && (e.key === "h" || e.key === "H" || e.code === "KeyH")) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (typeof window.hideApp === "function") {
+                            try { window.hideApp(); return; } catch(e) {}
+                        } else if (typeof window.minimizeWindow === "function") {
+                            try { window.minimizeWindow(); return; } catch(e) {}
+                        }
+                        return;
+                    }
+
+                    // 6. Always-on-top toggle: Cmd+Shift+T, Ctrl+Shift+T, Alt+T
                     if (
                         ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "t" || e.key === "T" || e.code === "KeyT")) ||
                         (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "t" || e.key === "T" || e.code === "KeyT"))
                     ) {
-                        const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
-                        if (!isInput) {
-                            e.preventDefault();
-                            if (typeof window.toggleAlwaysOnTop === "function") {
-                                try { window.toggleAlwaysOnTop(); return; } catch(e) {}
-                            }
-                            return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (typeof window.toggleAlwaysOnTop === "function") {
+                            try { window.toggleAlwaysOnTop(); return; } catch(e) {}
                         }
+                        return;
                     }
 
+                    // 7. Center window: Cmd+Shift+C, Ctrl+Shift+C
                     if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
-                        const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
-                        if (!isInput) {
-                            e.preventDefault();
-                            if (typeof window.centerWindow === "function") {
-                                try { window.centerWindow(); return; } catch(e) {}
-                            }
-                            return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (typeof window.centerWindow === "function") {
+                            try { window.centerWindow(); return; } catch(e) {}
                         }
+                        return;
                     }
 
                     if (e.metaKey || e.ctrlKey) {
@@ -3697,10 +3734,19 @@ export class SimpleWindow {
             this.restoreAppFormState();
         }
 
+        if (this.fullscreen) {
+            const screen = getScreenDimensions();
+            this.width = screen.width;
+            this.height = screen.height;
+        }
+
         const html = this.generateHtml();
         this.webview = new Webview();
         this.webview.title = this.title;
         this.webview.size = { width: this.width, height: this.height, hint: SizeHint.NONE };
+        if (this.fullscreen) {
+            try { setWindowPositionNative(this.webview, { x: 0, y: 0 }, this.width, this.height); } catch {}
+        }
         attachWindowShortcuts(this.webview, {
             onQuit: () => this.handleClose(),
             onClose: () => this.handleClose(),
@@ -3714,17 +3760,6 @@ export class SimpleWindow {
         if (this.alwaysOnTop) {
             setAlwaysOnTopNative(this.webview, true);
         }
-
-        let hasInitialFs = false;
-        const doInitialFs = () => {
-            if (hasInitialFs) return { success: true };
-            hasInitialFs = true;
-            if (this.fullscreen && this.webview) {
-                try { setFullscreenNative(this.webview, true); } catch {}
-            }
-            return { success: true };
-        };
-        try { this.webview.bind("requestInitialFullscreen", doInitialFs); } catch (e) {}
 
         const handlePrompt = (reqId: string, result: any) => {
             const resolver = this.promptResolversMap.get(reqId);
@@ -3755,6 +3790,11 @@ export class SimpleWindow {
 
         this.webview.bind("minimizeWindow", () => {
             if (this.webview) minimizeWindowNative(this.webview);
+            return { success: true };
+        });
+
+        this.webview.bind("hideApp", () => {
+            if (this.webview) hideAppNative(this.webview);
             return { success: true };
         });
 
@@ -3874,6 +3914,7 @@ export class SimpleWindow {
         this.webview.run();
         this.isWindowRunning = false;
         this.handleClose();
+        forceExit(0);
     }
 
     // --- Developer Helpers & Inspection Methods ---
@@ -6224,10 +6265,7 @@ export class SimpleWindow {
             this.saveAppFormStateOr();
         }
         this.isWindowRunning = false;
-        if (this.webview) {
-            try { this.webview.destroy(); } catch (e) {}
-            this.webview = null;
-        }
+        this.webview = null;
         forceExit(0);
     }
 }

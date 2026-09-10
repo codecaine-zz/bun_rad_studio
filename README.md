@@ -64,10 +64,11 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Component Hierarchy & Tree**: View, filter, and select components in a real-time DOM hierarchy tree.
 
 ### 🖼️ Native Window Management & Placement API
-* **Native Fullscreen Mode**: Press **<kbd>Cmd</kbd> + <kbd>F</kbd>** / **<kbd>Fn</kbd> + <kbd>F</kbd>** / **<kbd>F11</kbd>** or click `⛶ Fullscreen` to toggle borderless native macOS Cocoa window fullscreen mode (`[NSWindow toggleFullScreen:nil]`).
-* **Stay On Top (Window Pinning)**: Click `📌 Pin: ON / OFF` or call `setAlwaysOnTop(true)` to float the application window above all other desktop applications (`NSFloatingWindowLevel`).
-* **Window Placement API**: Position application windows anywhere on screen using `setWindowPosition(pos)` or the `📍 Position` toolbar dropdown across 9 screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` coordinates.
-* **Application Quit**: Press **<kbd>Cmd</kbd> + <kbd>Q</kbd>** (macOS) or **<kbd>Alt</kbd> + <kbd>F4</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Q</kbd>** (Windows/Linux) to safely terminate application execution (`process.exit(0)`).
+* **Native Fullscreen Mode & Startup**: Every studio application launches in native fullscreen by default (`{ fullscreen: true }`) with automatic CoreGraphics/Win32 screen resolution auto-fitting (`(0,0)` origin) and a promise-aware verification loop. Press **<kbd>Cmd</kbd> + <kbd>F</kbd>** / **<kbd>Ctrl</kbd> + <kbd>F</kbd>** / **<kbd>Fn</kbd> + <kbd>F</kbd>** / **<kbd>F11</kbd>**, or click `⛶ Fullscreen` to toggle native borderless fullscreen mode.
+* **Smart Minimize & Hide**: Press **<kbd>Cmd</kbd> + <kbd>M</kbd>** / **<kbd>Ctrl</kbd> + <kbd>M</kbd>** to minimize the window. If the application is in a native macOS fullscreen space, it automatically exits fullscreen before miniaturizing to the Dock. Press **<kbd>Cmd</kbd> + <kbd>H</kbd>** / **<kbd>Ctrl</kbd> + <kbd>H</kbd>** to hide the application window (`[NSApp hide:]`).
+* **Stay On Top (Window Pinning)**: Click `📌 Pin: ON / OFF`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>**, or call `setAlwaysOnTop(true)` to float the application window above all other desktop applications (`NSFloatingWindowLevel`).
+* **Window Placement & Centering API**: Position application windows anywhere on screen using `setWindowPosition(pos)`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** to center, or use the `📍 Position` toolbar dropdown across 9 screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`).
+* **Guaranteed Process Termination**: Press **<kbd>Cmd</kbd> + <kbd>Q</kbd>** / **<kbd>Cmd</kbd> + <kbd>W</kbd>** (macOS) or **<kbd>Alt</kbd> + <kbd>F4</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Q</kbd>** / **<kbd>Ctrl</kbd> + <kbd>W</kbd>** (Windows/Linux), or double-tap **<kbd>Alt</kbd>** to immediately close the window and cleanly exit the terminal process (`process.exit(0)`).
 
 ### 🗄️ MS Access & Delphi Data-Aware RAD Controls
 * **Data-Aware Controls**: Access & Delphi style DB controls including `DBGrid` with sorting/paging, `DBNavigator` (First/Prev/Next/Last/Add/Delete/Post/Refresh), `DBInput`, and `DBDropdown` with live dataset field bindings.
@@ -368,8 +369,14 @@ win.run();
 | Shortcut | Action |
 | --- | --- |
 | **F5** | Launch Live App Preview Window |
-| **⌘ + F** / **Fn + F** / **F11** | Toggle Native Borderless Fullscreen Mode |
-| **⌘ + Q** / **Alt + F4** | Terminate & Quit Application (`process.exit(0)`) |
+| **⌘ + F** / **Ctrl + F** / **Fn + F** / **F11** | Toggle Native Borderless Fullscreen Mode |
+| **⌘ + M** / **Ctrl + M** / **Alt + M** | Minimize Application Window (auto-exits fullscreen space) |
+| **⌘ + H** / **Ctrl + H** | Hide Application Window (`[NSApp hide:]`) |
+| **⌘ + Shift + T** / **Ctrl + Shift + T** / **Alt + T** | Toggle Always on Top (Window Pinning) |
+| **⌘ + Shift + C** / **Ctrl + Shift + C** | Center Window on Screen |
+| **⌘ + Q** / **⌘ + W** / **Alt + F4** / **Ctrl + Q** | Terminate & Quit Application (`process.exit(0)`) |
+| **Alt + Alt** (Double-tap Alt) | Fast Close & Terminate Application |
+| **Cmd / Ctrl + (+ / - / 0)** | Zoom in, Zoom out, Reset zoom (100%) |
 | **⌘ + C** / **Ctrl + C** | Copy selected control(s) to clipboard buffer |
 | **⌘ + V** / **Ctrl + V** | Paste copied control(s) at cursor position |
 | **⌘ + D** / **Ctrl + D** | Duplicate selected control(s) |
@@ -381,7 +388,7 @@ win.run();
 | **Shift + Arrow Keys** | Nudge selected control(s) position by 8px (Grid snap) |
 | **Space + Mouse Drag** | Pan canvas workspace view |
 | **Cmd / Ctrl + Mouse Wheel** | Zoom canvas workspace (50% – 200%) |
-| **Escape** | Deselect controls / Cancel placement mode / Close modals |
+| **Escape** | Exit Fullscreen / Deselect controls / Close modals |
 
 ---
 

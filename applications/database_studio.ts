@@ -7,7 +7,7 @@ import { Database } from "bun:sqlite";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
-export function createSqliteStudio(initialDbPath: string = ":memory:"): SimpleWindow {
+export function createSqliteStudio(initialDbPath: string = ":memory:", options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   let activeDbPath = initialDbPath;
   let db = new Database(activeDbPath);
 
@@ -58,10 +58,12 @@ export function createSqliteStudio(initialDbPath: string = ":memory:"): SimpleWi
 
   initStarterSchema(db);
 
+  const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Database Studio Pro (SQLite Studio Pro) -- Enterprise SQLite Workbench & Query IDE", 1160, 900, {
     appId: "sqlite_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   // Top Title Bar
@@ -70,6 +72,7 @@ export function createSqliteStudio(initialDbPath: string = ":memory:"): SimpleWi
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption("Enterprise SQLite Workbench Powered by Native bun:sqlite -- Sub-Millisecond Embedded SQL Engine");
 
@@ -362,6 +365,8 @@ export function createSqliteStudio(initialDbPath: string = ":memory:"): SimpleWi
     executeSql();
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
@@ -371,7 +376,7 @@ export const createDatabaseStudio = createSqliteStudio;
 export { createSqliteStudioPro, startSqliteStudioServer } from "./sqlite_studio";
 
 if (import.meta.main) {
-  const win = createDatabaseStudio();
-  console.log("⚡ Launching Database Studio Pro (Enterprise SQLite)...");
+  const win = createDatabaseStudio(":memory:", { fullscreen: true });
+  console.log("⚡ Launching Database Studio Pro (Enterprise SQLite Fullscreen)...");
   win.run();
 }

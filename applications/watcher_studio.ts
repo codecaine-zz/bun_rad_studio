@@ -7,7 +7,7 @@ import { createWatcherStudio, createWatchexecStudio, createBunWatchStudio } from
 export { createWatcherStudio, createWatchexecStudio, createBunWatchStudio };
 
 if (import.meta.main) {
-  const win = createWatcherStudio();
+  const win = createWatcherStudio({ fullscreen: true });
   console.log("⚡ Launching Task Watcher Studio...");
   win.run();
 }

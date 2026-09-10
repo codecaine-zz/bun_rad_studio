@@ -1,5 +1,7 @@
 import { simplegui } from "../index.ts";
+import { SimpleWindow } from "../src/simplegui";
 
+export function createErgonomicsShowcase(): SimpleWindow {
 const win = simplegui.createWindow("⚡ SimpleGUI Ergonomics & Shortcuts Demo", 960, 730, {
     theme: "apple_dark"
 });
@@ -197,5 +199,11 @@ win.endRow();
 
 win.endCard();
 
-// Run application event loop
-win.run();
+    return win;
+}
+
+// Run application event loop when executed directly
+if (import.meta.main) {
+    const win = createErgonomicsShowcase();
+    win.run();
+}

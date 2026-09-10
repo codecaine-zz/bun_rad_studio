@@ -159,18 +159,20 @@ function findExternalJq(): string | null {
   return null;
 }
 
-export function createJqStudio(): SimpleWindow {
+export function createJqStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const externalJq = findExternalJq();
   const win = newSimpleWindow("JSON Query Studio Pro (JQ Studio Pro) -- Native JSON Query & Transformation Workbench", 1120, 880, {
     appId: "jq_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   // Header Bar
   win.beginRow();
   win.addHeading("JSON Query Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center");
   win.endRow();
@@ -321,13 +323,17 @@ export function createJqStudio(): SimpleWindow {
     executeQuery();
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 export const createJsonStudio = createJqStudio;
 
 if (import.meta.main) {
-  const win = createJsonStudio();
+  const win = createJsonStudio({ fullscreen: true });
   console.log("Launching JSON Query Studio Pro (Bun Native)...");
   win.run();
 }

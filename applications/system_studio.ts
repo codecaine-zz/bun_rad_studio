@@ -13,7 +13,7 @@ import si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
-import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
+import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript, getScreenDimensions } from "../index.ts";
 
 // -------------------------------------------------------------------------------------------------
 // API Registry & Domain Metadata (All 60 Methods Across 10 Domain Categories)
@@ -2706,8 +2706,9 @@ export interface SystemStudioInstance {
  */
 export function createSystemInformationStudio(options: SystemStudioOptions = {}): SystemStudioInstance {
   const fullscreen = options.fullscreen ?? true;
-  const width = options.width ?? 1260;
-  const height = options.height ?? 900;
+  const screen = getScreenDimensions();
+  const width = options.width ?? (fullscreen ? screen.width : 1260);
+  const height = options.height ?? (fullscreen ? screen.height : 900);
   const title = "System Information Studio Pro -- Complete Cross-Platform Hardware Intelligence Suite";
 
   const app: SystemStudioInstance = {
@@ -2754,7 +2755,11 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
         webview.title = title;
 
         try {
-          setWindowPositionNative(webview, "center", width, height);
+          if (fullscreen) {
+            setWindowPositionNative(webview, { x: 0, y: 0 }, width, height);
+          } else {
+            setWindowPositionNative(webview, "center", width, height);
+          }
           setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
         } catch {}
 
@@ -2778,10 +2783,13 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
 
         // Start native desktop message loop on main thread
         webview.run();
+        try { worker.terminate(); } catch {}
+        process.exit(0);
       } catch (err: any) {
         console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
       } finally {
-        worker.terminate();
+        try { worker.terminate(); } catch {}
+        process.exit(0);
       }
     },
   };
@@ -2803,7 +2811,9 @@ export { startSystemStudioServer } from "./system_studio_server.ts";
 // -------------------------------------------------------------------------------------------------
 
 if (import.meta.main) {
-  const app = createSystemInformationStudio();
+  const app = createSystemInformationStudio({ fullscreen: true });
   await app.run();
+  process.exit(0);
 }
+
 

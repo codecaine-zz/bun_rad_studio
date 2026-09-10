@@ -18,6 +18,7 @@ import {
   setFullscreenNative,
   attachWindowShortcuts,
   getWindowShortcutsScript,
+  getScreenDimensions,
 } from "../index.ts";
 import { startRedisStudioServer } from "./redis_studio_server.ts";
 
@@ -944,6 +945,7 @@ export function generateRedisStudioHtml(): string {
       <button class="btn btn-emerald" onclick="seedSampleData()">🌱 Seed Sample DB</button>
       <button class="btn" onclick="openConnectModal()">🔌 Host / DB</button>
       <button class="btn btn-primary" onclick="openAddKeyModal()">＋ Add Key</button>
+      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen ? window.doToggleFullscreen() : (window.toggleFullscreen && window.toggleFullscreen())" title="Toggle Fullscreen (Fn+F / F / F11 / Cmd+Ctrl+F)">⛶ Fullscreen</button>
     </div>
   </header>
 
@@ -2308,9 +2310,10 @@ ${getWindowShortcutsScript()}
 
 export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudioInstance {
   const title = "Redis Studio Pro - Enterprise In-Memory Database Workstation";
-  const width = options.width || 1280;
-  const height = options.height || 820;
   const fullscreen = options.fullscreen ?? true;
+  const screen = getScreenDimensions();
+  const width = options.width ?? (fullscreen ? screen.width : 1280);
+  const height = options.height ?? (fullscreen ? screen.height : 820);
   const initialUrl = options.url || "redis://127.0.0.1:6379";
   const initialDb = options.db || 0;
   const port = options.port || 5820;
@@ -2371,7 +2374,11 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         webview.title = title;
 
         try {
-          setWindowPositionNative(webview, "center", width, height);
+          if (fullscreen) {
+            setWindowPositionNative(webview, { x: 0, y: 0 }, width, height);
+          } else {
+            setWindowPositionNative(webview, "center", width, height);
+          }
           setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
         } catch {}
 
@@ -2394,10 +2401,13 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         console.log(`⚡ Native desktop Redis workstation open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). Accessible at: ${info.url}`);
 
         webview.run();
+        try { worker.terminate(); } catch {}
+        process.exit(0);
       } catch (err: any) {
         console.warn(`Desktop Webview unavailable (${err?.message || err}). Running in web mode at: ${info.url}`);
       } finally {
         try { worker.terminate(); } catch {}
+        process.exit(0);
       }
     },
   };
@@ -2418,6 +2428,7 @@ export { startRedisStudioServer } from "./redis_studio_server.ts";
 
 if (import.meta.main) {
   const url = process.argv[2] || "redis://127.0.0.1:6379";
-  const app = createRedisStudio({ url });
+  const app = createRedisStudio({ url, fullscreen: true });
   await app.run();
+  process.exit(0);
 }

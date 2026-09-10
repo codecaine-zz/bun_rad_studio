@@ -30,11 +30,13 @@ function decodeJwt(token: string): { header: any; payload: any } | null {
   }
 }
 
-export function createCryptoStudio(): SimpleWindow {
+export function createCryptoStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+  const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Crypto Studio Pro -- Cryptography, Security & Token Workbench", 1160, 920, {
     appId: "crypto_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   // Title Row
@@ -43,6 +45,7 @@ export function createCryptoStudio(): SimpleWindow {
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption("Enterprise Cryptography Workbench: Hashes, HMAC, AES-256 Ciphers, JWT Decoders & Entropy Auditing");
 
@@ -252,11 +255,13 @@ export function createCryptoStudio(): SimpleWindow {
     }
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createCryptoStudio();
-  console.log("⚡ Launching Crypto Studio Pro...");
+  const win = createCryptoStudio({ fullscreen: true });
+  console.log("⚡ Launching Crypto Studio Pro (Fullscreen)...");
   win.run();
 }

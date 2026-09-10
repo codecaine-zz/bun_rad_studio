@@ -2,15 +2,17 @@ import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
 import * as os from "os";
 
-export function createBunSystemStudio(): SimpleWindow {
+export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const bunVer = Bun.version;
   const bunRev = Bun.revision || "release";
   const platformStr = `${process.platform} (${process.arch})`;
+  const fullscreen = options.fullscreen ?? true;
 
   const win = newSimpleWindow("Bun System & Package Workstation -- Native Runtime & Package Manager", 1120, 880, {
     appId: "brew_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen,
   });
 
   // Top Title Bar
@@ -19,6 +21,7 @@ export function createBunSystemStudio(): SimpleWindow {
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption(`Native Bun Built-in System Runtime  |  Bun v${bunVer} (${bunRev})  |  Arch: ${platformStr}  |  Zero External Dependencies`);
 
@@ -247,6 +250,8 @@ System Health: OK (100% Native Bun System APIs)
     }
   });
 
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
   return win;
 }
 
@@ -255,7 +260,7 @@ export const createSystemStudio = createBunSystemStudio;
 export const createBrewStudio = createBunSystemStudio;
 
 if (import.meta.main) {
-  const win = createBunSystemStudio();
-  console.log("⚡ Launching Bun System & Package Workstation...");
+  const win = createBunSystemStudio({ fullscreen: true });
+  console.log("⚡ Launching Bun System & Package Workstation (Fullscreen)...");
   win.run();
 }

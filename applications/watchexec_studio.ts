@@ -3,17 +3,19 @@ import { watch, type FSWatcher, existsSync } from "fs";
 import { resolve } from "path";
 import { spawn, type ChildProcess } from "child_process";
 
-export function createWatchexecStudio(): SimpleWindow {
+export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Task Watcher Studio (Bun Watch Studio) -- Continuous Task & Test Watcher (Native)", 1140, 880, {
     appId: "watchexec_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   // Title Row
   win.beginRow();
   win.addHeading("Task Watcher Studio");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
@@ -267,6 +269,10 @@ export function createWatchexecStudio(): SimpleWindow {
     }
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
@@ -274,7 +280,7 @@ export const createWatcherStudio = createWatchexecStudio;
 export const createBunWatchStudio = createWatchexecStudio;
 
 if (import.meta.main) {
-  const win = createWatcherStudio();
+  const win = createWatcherStudio({ fullscreen: true });
   console.log("Launching Task Watcher Studio...");
   win.run();
 }

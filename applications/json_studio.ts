@@ -7,7 +7,7 @@ import { createJsonStudio, createJqStudio, evaluateBunJsonQuery } from "./jq_stu
 export { createJsonStudio, createJqStudio, evaluateBunJsonQuery };
 
 if (import.meta.main) {
-  const win = createJsonStudio();
+  const win = createJsonStudio({ fullscreen: true });
   console.log("⚡ Launching JSON Query Studio Pro...");
   win.run();
 }

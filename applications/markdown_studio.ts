@@ -89,17 +89,19 @@ function simpleMarkdownToHtml(md: string): string {
   return `<div style="font-family:system-ui,-apple-system,sans-serif;color:#cbd5e1;line-height:1.6;font-size:14px;padding:8px;">${html}</div>`;
 }
 
-export function createMarkdownStudio(): SimpleWindow {
+export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Markdown & Documentation Studio Pro -- Real-Time Preview Workbench", 1160, 900, {
     appId: "markdown_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "sonoma_emerald",
     autoSaveState: true,
+    fullscreen: options.fullscreen ?? true,
   });
 
   // Top Bar
   win.beginRow();
   win.addHeading("Markdown Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
   win.endRow();
@@ -243,11 +245,15 @@ export function createMarkdownStudio(): SimpleWindow {
     }
   });
 
+  win.onClick("btn_fullscreen", (w) => {
+    w.toggleFullscreen();
+  });
+
   return win;
 }
 
 if (import.meta.main) {
-  const win = createMarkdownStudio();
+  const win = createMarkdownStudio({ fullscreen: true });
   console.log("⚡ Launching Markdown & Documentation Studio...");
   win.run();
 }
