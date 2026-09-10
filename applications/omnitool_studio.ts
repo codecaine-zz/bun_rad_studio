@@ -291,10 +291,10 @@ function bunNativeRip(targetPath: string): { output: string; success: boolean } 
 
 export { bunNativeRipgrep, bunNativeFd, bunNativeSd, bunNativeRip };
 
-export function createOmnitoolStudio(options: { headless?: boolean; screenshotPath?: string; fullscreen?: boolean } = {}): SimpleWindow {
+export function createOmnitoolStudio(options: { headless?: boolean; screenshotPath?: string; fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("DevTools Studio Pro (OmniTool Studio Pro) -- Bun Native Modern Developer Suite", 1120, 880, {
     appId: "omnitool_studio",
-    theme: getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     alwaysOnTop: false,
     fullscreen: options.fullscreen ?? true,

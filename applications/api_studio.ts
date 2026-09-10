@@ -6,7 +6,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("API Studio Pro -- Enterprise HTTP & REST API Workbench", 1160, 900, {
     appId: "api_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,
   });

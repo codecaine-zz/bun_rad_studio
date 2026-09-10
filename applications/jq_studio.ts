@@ -163,7 +163,7 @@ export function createJqStudio(options: { fullscreen?: boolean; theme?: string }
   const externalJq = findExternalJq();
   const win = newSimpleWindow("JSON Query Studio Pro (JQ Studio Pro) -- Native JSON Query & Transformation Workbench", 1120, 880, {
     appId: "jq_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen: options.fullscreen ?? true,
   });

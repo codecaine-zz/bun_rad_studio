@@ -73,7 +73,7 @@ function parseEnv(text: string): { vars: EnvVar[]; duplicates: string[]; syntaxE
 export function createEnvStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Environment & Secret Vault Studio Pro", 1140, 880, {
     appId: "env_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen: options.fullscreen ?? true,
   });

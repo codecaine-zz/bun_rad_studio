@@ -10,7 +10,7 @@ export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: s
 
   const win = newSimpleWindow("Bun System & Package Workstation -- Native Runtime & Package Manager", 1120, 880, {
     appId: "brew_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,
   });

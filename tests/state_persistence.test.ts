@@ -236,6 +236,7 @@ describe("⚡ Reactive State Store & State Persistence Suite (Parity with simple
             expect(win.theme).toBe("cyberpunk");
         } finally {
             if (origTheme) saveTheme(origTheme);
+            else saveTheme("midnight");
         }
     });
 

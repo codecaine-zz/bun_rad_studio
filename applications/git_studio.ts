@@ -4,7 +4,7 @@ import { Sys } from "../src/simplecli/sys";
 export function createGitStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Git Repository & Diff Workbench -- Enterprise Version Control GUI", 1160, 900, {
     appId: "git_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen: options.fullscreen ?? true,
   });

@@ -92,7 +92,7 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Color Palette & Design Token Studio Pro", 1140, 880, {
     appId: "color_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,
   });

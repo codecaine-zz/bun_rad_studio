@@ -29,6 +29,9 @@ import { htmlContent as productivityHtml } from "../demos/13_productivity_contro
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { Sys } from "../src/simplecli/sys";
+import { saveTheme } from "../src/simplegui";
+
+saveTheme("midnight");
 
 // Map of all 24 production applications & showcases
 const apps: Record<string, () => { generateHtml: () => string }> = {

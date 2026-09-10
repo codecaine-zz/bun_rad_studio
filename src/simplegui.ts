@@ -140,6 +140,11 @@ export class SimpleControlRef {
         return this;
     }
 
+    opacity(percent: number): this {
+        this.spec.opacity = percent;
+        return this;
+    }
+
     enabled(flag = true): this {
         this.spec.enabled = flag;
         this.window.setControlEnabled(this.spec.id, flag);
@@ -542,7 +547,8 @@ export function isBrightAccentColor(hex?: string): boolean {
     const lower = hex.toLowerCase();
     const brights = new Set([
         "#0fb36a", "#30d158", "#00ff00", "#00ff41", "#4ade80",
-        "#8bac0f", "#ffb000", "#ff9900", "#ffff00", "#00d2c4", "#ff8800"
+        "#8bac0f", "#ffb000", "#ff9900", "#ffff00", "#00d2c4", "#ff8800",
+        "#ffd866", "#fabd2f", "#ffc600", "#60cdff", "#a7c080"
     ]);
     return brights.has(lower) || isBrightColor(hex);
 }
@@ -591,7 +597,7 @@ export class SimpleWindow {
         this.fullscreen = options.fullscreen ?? true;
 
         const savedGlobalTheme = getSavedTheme();
-        const preferredTheme = options.theme || (savedGlobalTheme ? savedGlobalTheme : "sonoma_emerald");
+        const preferredTheme = options.theme || (savedGlobalTheme ? savedGlobalTheme : "midnight");
         this.theme = preferredTheme;
         this.alwaysOnTop = options.alwaysOnTop || false;
 
@@ -638,6 +644,9 @@ export class SimpleWindow {
                 }
             } else if (type === "split_button" && !ctrl.custom_background) {
                 ctrl.background_color = btnBg;
+            } else if ((type === "groupbox" || type === "card") && !ctrl.custom_card_background) {
+                ctrl.background_color = themeObj.card_background || (themeObj.is_dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)");
+                ctrl.border_color = themeObj.card_border || (themeObj.is_dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)");
             }
         }
 
@@ -1363,10 +1372,19 @@ export class SimpleWindow {
 
     public addThemeSelector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 160, autoShortNames = true): SimpleControlRef {
         const popularThemes = [
-            "sonoma_emerald",
-            "codefreelance",
-            "apple_dark",
             "midnight",
+            "codefreelance",
+            "sonoma_emerald",
+            "monokai_pro",
+            "tokyo_night",
+            "one_dark_pro",
+            "gruvbox_dark",
+            "rose_pine",
+            "everforest",
+            "kanagawa",
+            "cobalt2",
+            "win11_slate",
+            "apple_dark",
             "dracula",
             "nord",
             "cyberpunk",
@@ -1382,7 +1400,10 @@ export class SimpleWindow {
             "amiga"
         ];
         const canonicalKeys = [
-            "sonoma_emerald", "codefreelance", "apple_dark", "midnight", "apple_light",
+            "midnight", "codefreelance", "sonoma_emerald", "apple_dark", "apple_light",
+            "monokai_pro", "tokyo_night", "one_dark_pro", "gruvbox_dark", "gruvbox_light",
+            "rose_pine", "everforest", "kanagawa", "cobalt2", "aura",
+            "win11_slate", "win11_light",
             "dracula", "nord", "cyberpunk", "github_dark", "github_light",
             "solarized_dark", "solarized_light", "navy_blue", "forest_green",
             "apple_sunset", "ventura_amber", "soft_pastel", "catppuccin",
@@ -1396,7 +1417,7 @@ export class SimpleWindow {
             this.addLabel("lbl_" + id, label);
         }
 
-        const initialTheme = themeList.includes(this.theme) ? this.theme : (themeList[0] || "sonoma_emerald");
+        const initialTheme = themeList.includes(this.theme) ? this.theme : (themeList[0] || "midnight");
         
         const itemLabels: Record<string, string> = {};
         for (const k of themeList) {
@@ -6326,6 +6347,248 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     "github_light": { name: "GitHub Light", short_name: "GitHub Light", background_color: "#ffffff", font_color: "#24292f", accent_color: "#0969da", description: "Clean GitHub light canvas palette", is_dark: false },
     "navy_blue": { name: "Navy Blue", short_name: "Navy", background_color: "#0f172a", font_color: "#f8fafc", accent_color: "#38bdf8", description: "Deep slate navy dark theme", is_dark: true },
     "forest_green": { name: "Forest Green", short_name: "Forest", background_color: "#14532d", font_color: "#f0fdf4", accent_color: "#4ade80", description: "Rich emerald green dark theme", is_dark: true },
+
+    // High-Quality Modern & Developer Themes
+    "monokai_pro": {
+        name: "Monokai Pro",
+        short_name: "Monokai",
+        background_color: "#2d2a2e",
+        font_color: "#fcfcfa",
+        accent_color: "#ffd866",
+        secondary_accent: "#ff6188",
+        card_background: "#221f22",
+        card_border: "#403e41",
+        description: "Monokai Pro refined dark spectrum with warm yellow and vivid magenta accents",
+        is_dark: true
+    },
+    "monokai": {
+        name: "Monokai Pro",
+        short_name: "Monokai",
+        background_color: "#2d2a2e",
+        font_color: "#fcfcfa",
+        accent_color: "#ffd866",
+        secondary_accent: "#ff6188",
+        card_background: "#221f22",
+        card_border: "#403e41",
+        description: "Monokai Pro refined dark spectrum with warm yellow and vivid magenta accents",
+        is_dark: true
+    },
+    "tokyo_night": {
+        name: "Tokyo Night",
+        short_name: "Tokyo Night",
+        background_color: "#1a1b26",
+        font_color: "#c0caf5",
+        accent_color: "#7aa2f7",
+        secondary_accent: "#bb9af7",
+        card_background: "#24283b",
+        card_border: "#414868",
+        description: "Tokyo Night dark neon indigo city theme with vibrant blue and lavender accents",
+        is_dark: true
+    },
+    "one_dark_pro": {
+        name: "One Dark Pro",
+        short_name: "One Dark",
+        background_color: "#21252b",
+        font_color: "#abb2bf",
+        accent_color: "#61afef",
+        secondary_accent: "#98c379",
+        card_background: "#282c34",
+        card_border: "#3e4451",
+        description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
+        is_dark: true
+    },
+    "one_dark": {
+        name: "One Dark Pro",
+        short_name: "One Dark",
+        background_color: "#21252b",
+        font_color: "#abb2bf",
+        accent_color: "#61afef",
+        secondary_accent: "#98c379",
+        card_background: "#282c34",
+        card_border: "#3e4451",
+        description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
+        is_dark: true
+    },
+    "gruvbox_dark": {
+        name: "Gruvbox Dark",
+        short_name: "Gruvbox",
+        background_color: "#282828",
+        font_color: "#ebdbb2",
+        accent_color: "#fabd2f",
+        secondary_accent: "#fe8019",
+        card_background: "#1d2021",
+        card_border: "#504945",
+        description: "Retro groove warm earthy dark palette with amber gold and terracotta orange",
+        is_dark: true
+    },
+    "gruvbox": {
+        name: "Gruvbox Dark",
+        short_name: "Gruvbox",
+        background_color: "#282828",
+        font_color: "#ebdbb2",
+        accent_color: "#fabd2f",
+        secondary_accent: "#fe8019",
+        card_background: "#1d2021",
+        card_border: "#504945",
+        description: "Retro groove warm earthy dark palette with amber gold and terracotta orange",
+        is_dark: true
+    },
+    "gruvbox_light": {
+        name: "Gruvbox Light",
+        short_name: "Gruv Light",
+        background_color: "#fbf1c7",
+        font_color: "#3c3836",
+        accent_color: "#b57614",
+        secondary_accent: "#af3a03",
+        card_background: "#f2e5bc",
+        card_border: "#d5c4a1",
+        description: "Retro groove parchment light canvas with earthy amber and walnut tones",
+        is_dark: false
+    },
+    "rose_pine": {
+        name: "Rosé Pine",
+        short_name: "Rosé Pine",
+        background_color: "#191724",
+        font_color: "#e0def4",
+        accent_color: "#eb6f92",
+        secondary_accent: "#9ccfd8",
+        card_background: "#21202e",
+        card_border: "#403d52",
+        description: "All-natural soft dark palette with dusty rose, pine foam, and warm gold",
+        is_dark: true
+    },
+    "everforest": {
+        name: "Everforest Dark",
+        short_name: "Everforest",
+        background_color: "#2d353b",
+        font_color: "#d3c6aa",
+        accent_color: "#a7c080",
+        secondary_accent: "#7fbbb3",
+        card_background: "#232a2e",
+        card_border: "#475258",
+        description: "Natural comfort forest dark mode engineered for zero eye strain",
+        is_dark: true
+    },
+    "everforest_dark": {
+        name: "Everforest Dark",
+        short_name: "Everforest",
+        background_color: "#2d353b",
+        font_color: "#d3c6aa",
+        accent_color: "#a7c080",
+        secondary_accent: "#7fbbb3",
+        card_background: "#232a2e",
+        card_border: "#475258",
+        description: "Natural comfort forest dark mode engineered for zero eye strain",
+        is_dark: true
+    },
+    "kanagawa": {
+        name: "Kanagawa",
+        short_name: "Kanagawa",
+        background_color: "#1f1f28",
+        font_color: "#dcd7ba",
+        accent_color: "#7e9cd8",
+        secondary_accent: "#ffa066",
+        card_background: "#16161d",
+        card_border: "#2a2a37",
+        description: "Japanese ukiyo-e wave art inspired dark sumi ink palette",
+        is_dark: true
+    },
+    "cobalt2": {
+        name: "Cobalt2",
+        short_name: "Cobalt2",
+        background_color: "#193549",
+        font_color: "#ffffff",
+        accent_color: "#ffc600",
+        secondary_accent: "#0088ff",
+        card_background: "#15232d",
+        card_border: "#1f4662",
+        description: "Wes Bos official Cobalt2 deep navy blue with brilliant canary yellow accents",
+        is_dark: true
+    },
+    "cobalt": {
+        name: "Cobalt2",
+        short_name: "Cobalt2",
+        background_color: "#193549",
+        font_color: "#ffffff",
+        accent_color: "#ffc600",
+        secondary_accent: "#0088ff",
+        card_background: "#15232d",
+        card_border: "#1f4662",
+        description: "Wes Bos official Cobalt2 deep navy blue with brilliant canary yellow accents",
+        is_dark: true
+    },
+    "win11_slate": {
+        name: "Windows 11 Fluent Slate",
+        short_name: "Win11 Slate",
+        background_color: "#202020",
+        font_color: "#ffffff",
+        accent_color: "#60cdff",
+        secondary_accent: "#0078d4",
+        card_background: "#2c2c2c",
+        card_border: "#383838",
+        description: "Modern Windows 11 Fluent Dark Acrylic with vibrant sky blue accents",
+        is_dark: true
+    },
+    "fluent_slate": {
+        name: "Windows 11 Fluent Slate",
+        short_name: "Win11 Slate",
+        background_color: "#202020",
+        font_color: "#ffffff",
+        accent_color: "#60cdff",
+        secondary_accent: "#0078d4",
+        card_background: "#2c2c2c",
+        card_border: "#383838",
+        description: "Modern Windows 11 Fluent Dark Acrylic with vibrant sky blue accents",
+        is_dark: true
+    },
+    "win11_light": {
+        name: "Windows 11 Mica Light",
+        short_name: "Mica Light",
+        background_color: "#f3f3f3",
+        font_color: "#1b1b1b",
+        accent_color: "#005fb8",
+        secondary_accent: "#0078d4",
+        card_background: "#ffffff",
+        card_border: "#e5e5e5",
+        description: "Modern Windows 11 Mica Light desktop with crisp Fluent typography",
+        is_dark: false
+    },
+    "mica_light": {
+        name: "Windows 11 Mica Light",
+        short_name: "Mica Light",
+        background_color: "#f3f3f3",
+        font_color: "#1b1b1b",
+        accent_color: "#005fb8",
+        secondary_accent: "#0078d4",
+        card_background: "#ffffff",
+        card_border: "#e5e5e5",
+        description: "Modern Windows 11 Mica Light desktop with crisp Fluent typography",
+        is_dark: false
+    },
+    "aura": {
+        name: "Aura Dark",
+        short_name: "Aura",
+        background_color: "#15141b",
+        font_color: "#edecee",
+        accent_color: "#a277ff",
+        secondary_accent: "#61ffca",
+        card_background: "#1f1d2b",
+        card_border: "#322f44",
+        description: "Lush mystical dark theme with ethereal neon purple and mint green accents",
+        is_dark: true
+    },
+    "aura_dark": {
+        name: "Aura Dark",
+        short_name: "Aura",
+        background_color: "#15141b",
+        font_color: "#edecee",
+        accent_color: "#a277ff",
+        secondary_accent: "#61ffca",
+        card_background: "#1f1d2b",
+        card_border: "#322f44",
+        description: "Lush mystical dark theme with ethereal neon purple and mint green accents",
+        is_dark: true
+    },
 
     // Nostalgic & Retro Themes ("Bring Back Memories")
     "win95": {

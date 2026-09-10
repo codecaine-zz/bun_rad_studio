@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "child_process";
 export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Task Watcher Studio (Bun Watch Studio) -- Continuous Task & Test Watcher (Native)", 1140, 880, {
     appId: "watchexec_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen: options.fullscreen ?? true,
   });

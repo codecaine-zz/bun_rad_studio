@@ -7,7 +7,7 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("App Bundler Studio Pro -- Enterprise Binary & macOS .app Compiler", 1160, 920, {
     appId: "app_bundler_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,
   });

@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { simplegui, SimpleWindow, createWindow, listThemes, getTheme, saveTheme, homeDir, documentsDir, autoShortThemeName, listShortThemes, isBrightAccentColor } from "../index.ts";
+import { createThemeShowcase } from "../demos/23_all_themes_all_controls_showcase.ts";
 
 describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
 
@@ -404,7 +405,7 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(newWin.theme).toBe("codefreelance");
         expect(newWin.getValue("dd_theme")).toBe("codefreelance");
         newWin.clearAppFormState("theme_selector_test");
-        saveTheme("sonoma_emerald");
+        saveTheme("midnight");
     });
 
     test("9b. Nostalgic Special Themes & Auto Short Theme Names (win95, gameboy, c64, matrix, amber_crt, synthwave)", () => {
@@ -507,6 +508,77 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(previewHtml).toContain('<option value="gameboy">Game Boy</option>');
         expect(previewHtml).toContain('<option value="c64">C64</option>');
         expect(previewHtml).toContain('<option value="matrix">Matrix</option>');
+    });
+
+    test("9c. High-Quality Modern & Developer Themes & All Controls Showcase Studio", () => {
+        // 1. Check existence of all 12 new high-quality themes
+        const themes = listThemes();
+        expect(themes).toContain("Monokai Pro");
+        expect(themes).toContain("Tokyo Night");
+        expect(themes).toContain("One Dark Pro");
+        expect(themes).toContain("Gruvbox Dark");
+        expect(themes).toContain("Gruvbox Light");
+        expect(themes).toContain("Rosé Pine");
+        expect(themes).toContain("Everforest Dark");
+        expect(themes).toContain("Kanagawa");
+        expect(themes).toContain("Cobalt2");
+        expect(themes).toContain("Windows 11 Fluent Slate");
+        expect(themes).toContain("Windows 11 Mica Light");
+        expect(themes).toContain("Aura Dark");
+
+        // 2. Test auto short theme names
+        expect(autoShortThemeName("monokai_pro")).toBe("Monokai");
+        expect(autoShortThemeName("tokyo_night")).toBe("Tokyo Night");
+        expect(autoShortThemeName("one_dark_pro")).toBe("One Dark");
+        expect(autoShortThemeName("gruvbox_dark")).toBe("Gruvbox");
+        expect(autoShortThemeName("gruvbox_light")).toBe("Gruv Light");
+        expect(autoShortThemeName("rose_pine")).toBe("Rosé Pine");
+        expect(autoShortThemeName("everforest")).toBe("Everforest");
+        expect(autoShortThemeName("kanagawa")).toBe("Kanagawa");
+        expect(autoShortThemeName("cobalt2")).toBe("Cobalt2");
+        expect(autoShortThemeName("win11_slate")).toBe("Win11 Slate");
+        expect(autoShortThemeName("win11_light")).toBe("Mica Light");
+        expect(autoShortThemeName("aura")).toBe("Aura");
+
+        // 3. Test theme retrieval by key and alias
+        expect(getTheme("monokai").name).toBe("Monokai Pro");
+        expect(getTheme("tokyo_night").name).toBe("Tokyo Night");
+        expect(getTheme("one_dark").name).toBe("One Dark Pro");
+        expect(getTheme("gruvbox").name).toBe("Gruvbox Dark");
+        expect(getTheme("cobalt").name).toBe("Cobalt2");
+        expect(getTheme("fluent_slate").name).toBe("Windows 11 Fluent Slate");
+        expect(getTheme("mica_light").name).toBe("Windows 11 Mica Light");
+        expect(getTheme("aura_dark").name).toBe("Aura Dark");
+
+        // 4. Test button contrast on bright accents
+        const win = createWindow("Modern Theme Contrast", 800, 600, { theme: "monokai_pro" });
+        const btn = win.addButton("btn_action", "Execute");
+        expect(win.accentColor).toBe("#ffd866");
+        expect(btn.spec.background_color).toBe("#ffd866");
+        expect(btn.spec.font_color).toBe("#000000");
+
+        win.setTheme("cobalt2", false);
+        expect(win.accentColor).toBe("#ffc600");
+        expect(btn.spec.background_color).toBe("#ffc600");
+        expect(btn.spec.font_color).toBe("#000000");
+
+        win.setTheme("win11_slate", false);
+        expect(win.accentColor).toBe("#60cdff");
+        expect(btn.spec.background_color).toBe("#60cdff");
+        expect(btn.spec.font_color).toBe("#000000");
+
+        // 5. Test createThemeShowcase generation with all controls
+        const showcase = createThemeShowcase("tokyo_night");
+        expect(showcase.theme).toBe("tokyo_night");
+        const html = showcase.generateHtml();
+        expect(html).toContain("Tokyo Night");
+        expect(html).toContain("tblServices");
+        expect(html).toContain("treeWorkspace");
+        expect(html).toContain("txtInput");
+        expect(html).toContain("txtPass");
+        expect(html).toContain("swtDaemon");
+        expect(html).toContain("segMode");
+        expect(html).toContain("dd_theme_selector");
     });
 
     test("10. Full VLang SimpleGUI Control Parity Suite (Visual Controls, Sizing, Props & Aliases)", () => {

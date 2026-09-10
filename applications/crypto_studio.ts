@@ -34,7 +34,7 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Crypto Studio Pro -- Cryptography, Security & Token Workbench", 1160, 920, {
     appId: "crypto_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,
   });

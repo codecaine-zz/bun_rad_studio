@@ -43,7 +43,7 @@ function fetchProcesses(): ProcessItem[] {
 export function createTaskTracker(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow("Task Manager Pro -- macOS Process & Resource Monitor", 1140, 880, {
     appId: "task_manager",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen: options.fullscreen ?? true,
   });

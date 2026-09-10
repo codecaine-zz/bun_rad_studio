@@ -7,7 +7,7 @@ export function createDataConvertStudio(options: { fullscreen?: boolean; theme?:
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Data Converter Studio Pro -- Enterprise Data Interchange Suite", 1160, 900, {
     appId: "dataconvert_studio",
-    theme: options.theme || getSavedTheme() || "sonoma_emerald",
+    theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,
   });

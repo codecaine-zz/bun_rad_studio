@@ -37,7 +37,7 @@ Welcome to **SimpleGUI**! SimpleGUI is a lightweight, fluent, and beginner-frien
     - [Async Busy State (`withBusyState`)](#async-busy-state)
     - [Timers (`addTimer` / `removeTimer`)](#timers-api)
 12. [📂 10. System Directories & Clipboard Utilities](#system-utilities)
-13. [🎨 11. Built-in Visual Themes (17 Themes)](#visual-themes)
+13. [🎨 11. Built-in Visual Themes (42 Built-in Themes)](#visual-themes)
 14. [📘 12. TypeScript Types & Interfaces Reference](#types-interfaces)
 15. [💡 13. Beginner's "How Do I...?" Cheat Sheet](#cheat-sheet)
 16. [⚠️ 14. Troubleshooting & Common Pitfalls](#troubleshooting)
@@ -1010,26 +1010,50 @@ win.copyToClipboard("Copied from SimpleGUI!");
 
 Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)`:
 
-| Theme Key | Theme Name | Type | Vibe / Description |
-| --- | --- | --- | --- |
-| `codefreelance` | CodeFreelance | 🌙 Dark | Official CodeFreelance (#050505 obsidian base, #121212 cards, #0fb36a emerald & #bd00ff purple accents - codefreelance.net) |
-| `apple_dark` | Apple Dark | 🌙 Dark | Modern macOS Dark Mode canvas (Default) |
-| `apple_light` | Apple Light | ☀️ Light | Clean, bright macOS Aqua light canvas |
-| `midnight` | Midnight | 🌙 Dark | Deep space gray & titanium dark mode |
-| `sonoma_emerald` | Sonoma Emerald | 🌙 Dark | macOS Sonoma forest green glass theme |
-| `ventura_amber` | Ventura Amber | 🌙 Dark | Warm golden sunset dark hues |
-| `apple_sunset` | Apple Sunset | 🌙 Dark | Cozy Mojave twilight palette |
-| `catppuccin` | Catppuccin | 🌙 Dark | Soothing pastel purple & lavender dark mode |
-| `nord` | Nord | 🌙 Dark | Arctic ice blue developer palette |
-| `dracula` | Dracula | 🌙 Dark | High-contrast vampire purple palette |
-| `cyberpunk` | Cyberpunk | 🌙 Dark | Vibrant neon pink and cyan dark theme |
-| `github_dark` | GitHub Dark | 🌙 Dark | Official GitHub dark code palette |
-| `github_light` | GitHub Light | ☀️ Light | Official clean GitHub light palette |
-| `navy_blue` | Navy Blue | 🌙 Dark | Deep blue ocean dark palette |
-| `forest_green` | Forest Green | 🌙 Dark | Natural emerald green dark palette |
-| `soft_pastel` | Soft Pastel | ☀️ Light | Warm studio light canvas |
-| `solarized_dark` | Solarized Dark | 🌙 Dark | Solarized dark engineering canvas |
-| `solarized_light` | Solarized Light | ☀️ Light | Solarized light engineering canvas |
+| Theme Key | Theme Name | Type | Accent | Vibe / Description |
+| --- | --- | --- | --- | --- |
+| `codefreelance` | CodeFreelance | 🌙 Dark | `#0fb36a` | Official CodeFreelance (#050505 obsidian base, #121212 cards, #0fb36a emerald & #bd00ff purple accents - codefreelance.net) |
+| `monokai_pro` | Monokai Pro | 🌙 Dark | `#ffd866` | Monokai Pro refined dark spectrum with warm yellow and vivid magenta accents |
+| `tokyo_night` | Tokyo Night | 🌙 Dark | `#7aa2f7` | Tokyo Night dark neon indigo city theme with vibrant blue and lavender accents |
+| `one_dark_pro` | One Dark Pro | 🌙 Dark | `#61afef` | Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues |
+| `gruvbox_dark` | Gruvbox Dark | 🌙 Dark | `#fabd2f` | Retro groove warm earthy dark palette with amber gold and terracotta orange |
+| `gruvbox_light` | Gruvbox Light | ☀️ Light | `#b57614` | Retro groove parchment light canvas with earthy amber and walnut tones |
+| `rose_pine` | Rosé Pine | 🌙 Dark | `#eb6f92` | All-natural soft dark palette with dusty rose, pine foam, and warm gold |
+| `everforest` | Everforest Dark | 🌙 Dark | `#a7c080` | Natural comfort forest dark mode engineered for zero eye strain |
+| `kanagawa` | Kanagawa | 🌙 Dark | `#7e9cd8` | Japanese ukiyo-e wave art inspired dark sumi ink palette |
+| `cobalt2` | Cobalt2 | 🌙 Dark | `#ffc600` | Wes Bos official Cobalt2 deep navy blue with brilliant canary yellow accents |
+| `win11_slate` | Windows 11 Fluent Slate | 🌙 Dark | `#60cdff` | Modern Windows 11 Fluent Dark Acrylic with vibrant sky blue accents |
+| `win11_light` | Windows 11 Mica Light | ☀️ Light | `#005fb8` | Modern Windows 11 Mica Light desktop with crisp Fluent typography |
+| `aura` | Aura Dark | 🌙 Dark | `#a277ff` | Lush mystical dark theme with ethereal neon purple and mint green accents |
+| `apple_dark` | Apple Dark | 🌙 Dark | `#0a84ff` | Modern macOS Dark Mode canvas (Default) |
+| `apple_light` | Apple Light | ☀️ Light | `#007aff` | Clean, bright macOS Aqua light canvas |
+| `midnight` | Midnight | 🌙 Dark | `#0a84ff` | Deep space gray & titanium dark mode |
+| `sonoma_emerald` | Sonoma Emerald | 🌙 Dark | `#30d158` | macOS Sonoma forest green glass theme |
+| `ventura_amber` | Ventura Amber | 🌙 Dark | `#ff9500` | Warm golden sunset dark hues |
+| `apple_sunset` | Apple Sunset | 🌙 Dark | `#ff6b00` | Cozy Mojave twilight palette |
+| `catppuccin` | Catppuccin | 🌙 Dark | `#cba6f7` | Soothing pastel purple & lavender dark mode |
+| `nord` | Nord | 🌙 Dark | `#88c0d0` | Arctic ice blue developer palette |
+| `dracula` | Dracula | 🌙 Dark | `#bd93f9` | High-contrast vampire purple palette |
+| `cyberpunk` | Cyberpunk | 🌙 Dark | `#ff007f` | Vibrant neon pink and cyan dark theme |
+| `github_dark` | GitHub Dark | 🌙 Dark | `#58a6ff` | Official GitHub dark code palette |
+| `github_light` | GitHub Light | ☀️ Light | `#0969da` | Official clean GitHub light palette |
+| `navy_blue` | Navy Blue | 🌙 Dark | `#38bdf8` | Deep blue ocean dark palette |
+| `forest_green` | Forest Green | 🌙 Dark | `#4ade80` | Natural emerald green dark palette |
+| `soft_pastel` | Soft Pastel | ☀️ Light | `#e07a5f` | Warm studio light canvas |
+| `solarized_dark` | Solarized Dark | 🌙 Dark | `#2aa198` | Solarized dark engineering canvas |
+| `solarized_light` | Solarized Light | ☀️ Light | `#268bd2` | Solarized light engineering canvas |
+| `win95` | Windows 95 | ☀️ Retro | `#000080` | Classic teal desktop with silver 3D beveled cards and titlebar navy |
+| `gameboy` | Game Boy 1989 | 🌙 Retro | `#8bac0f` | Nostalgic 4-shade monochrome dot matrix Game Boy DMG-01 screen |
+| `c64` | Commodore 64 | 🌙 Retro | `#7974ff` | Legendary 1982 Commodore 64 READY prompt and VIC-II blue palette |
+| `mac_classic` | Macintosh System 7 | ☀️ Retro | `#5555aa` | Vintage 1991 System 7 Platinum desktop with Chicago typography |
+| `amber_crt` | Phosphor Amber CRT | 🌙 Retro | `#ffb000` | Warm VT220 / Pip-Boy amber phosphor monochrome terminal cathode glow |
+| `matrix` | Matrix Phosphor | 🌙 Retro | `#00ff41` | Iconic 1999 digital rain phosphor green mainframe terminal |
+| `synthwave` | Synthwave '84 | 🌙 Retro | `#ff2a85` | 1980s neon synthwave, sunset magenta grid, and retro arcade glow |
+| `amiga` | Amiga Workbench | 🌙 Retro | `#ff8800` | Retro Amiga 500 Workbench 1.3 royal blue and orange accents |
+| `nextstep` | NeXTSTEP 1989 | 🌙 Retro | `#4a90e2` | Steve Jobs 1989 NeXTSTEP UNIX workstation dark minimalist elegance |
+| `mac_os_aqua` | Mac OS X Aqua | ☀️ Retro | `#0076fe` | Early 2001 OS X Cheetah glossy gel buttons and brushed pinstripes |
+| `hotdog_stand` | Hot Dog Stand | 🌙 Retro | `#ff0000` | Unforgettable Windows 3.1 1992 Hot Dog Stand yellow & red |
+| `playstation` | PlayStation 1994 | 🌙 Retro | `#00d2c4` | 1994 PSX console grey with geometric controller accents |
 
 [⬆️ Back to Top](#table-of-contents)
 
