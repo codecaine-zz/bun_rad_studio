@@ -136,13 +136,46 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_stash");
   });
 
-  it("14. Markdown Documentation Studio initializes with live HTML preview", () => {
+  it("14. Markdown Documentation Studio initializes with live HTML preview and interactive actions", () => {
     const win = createMarkdownStudio();
     const html = win.generateHtml();
     expect(html).toContain("Markdown Studio Pro");
     expect(html).toContain("btn_render");
     expect(html).toContain("btn_insert_table");
+    expect(html).toContain("btn_insert_code");
+    expect(html).toContain("btn_insert_alert");
+    expect(html).toContain("btn_reset_doc");
     expect(html).toContain("btn_export_html");
+
+    // Verify initial input and preview state
+    expect(win.getValue("txt_md_input")).toContain("# Enterprise Systems Architecture Blueprint");
+    expect(win.getValue("txt_md_preview")).toContain("<h1");
+    expect(win.getValue("txt_md_preview")).toContain("<table");
+    expect(win.getText("lbl_words")).toContain("Words:");
+
+    // Test button: insert table
+    const beforeTable = win.getValue("txt_md_input");
+    const insertTableHandler = (win as any).eventHandlersMap.get("btn_insert_table:onclick");
+    expect(insertTableHandler).toBeDefined();
+    insertTableHandler(win);
+    expect(win.getValue("txt_md_input")).toContain("Hardware Acceleration");
+    expect(win.getValue("txt_md_input").length).toBeGreaterThan(beforeTable.length);
+
+    // Test button: reset doc
+    const resetHandler = (win as any).eventHandlersMap.get("btn_reset_doc:onclick");
+    expect(resetHandler).toBeDefined();
+    resetHandler(win);
+    expect(win.getValue("txt_md_input")).toBe(beforeTable);
+
+    // Test real-time onChange updates
+    const changeHandler = (win as any).eventHandlersMap.get("txt_md_input:onchange");
+    expect(changeHandler).toBeDefined();
+    win.setValue("txt_md_input", "# Custom Title\n\n**Bold Text**\n\n- Item 1\n- Item 2");
+    changeHandler(win);
+    expect(win.getValue("txt_md_preview")).toContain("<h1");
+    expect(win.getValue("txt_md_preview")).toContain("Custom Title");
+    expect(win.getValue("txt_md_preview")).toContain("<strong style=\"color:#fff;\">Bold Text</strong>");
+    expect(win.getValue("txt_md_preview")).toContain("<li");
   });
 
   it("15. Color & Design Token Studio initializes with WCAG contrast audit", () => {

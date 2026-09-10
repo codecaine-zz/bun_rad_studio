@@ -40,12 +40,32 @@ function simpleMarkdownToHtml(md: string): string {
     .replace(/>/g, "&gt;");
 
   // Code blocks
-  html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_m, lang, code) => {
-    return `<pre style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;"><code>${code}</code></pre>`;
+  html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
+    return `<pre style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;margin:12px 0;"><code>${code}</code></pre>`;
   });
 
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#38bdf8;font-family:monospace;">$1</code>');
+
+  // Tables
+  html = html.replace(/((?:\|[^\n]+\|\r?\n)+)/g, (tableMatch) => {
+    const lines = tableMatch.trim().split(/\r?\n/).filter(l => l.trim().startsWith("|"));
+    if (lines.length < 2) return tableMatch;
+    const isSep = /^\|[\s\-:]+(\|[\s\-:]+)+\|?$/.test(lines[1].trim());
+    const headerLine = lines[0];
+    const dataLines = isSep ? lines.slice(2) : lines.slice(1);
+
+    const parseCells = (line: string) => line.split("|").slice(1, -1).map(c => c.trim());
+    const headers = parseCells(headerLine);
+    const ths = headers.map(h => `<th style="border:1px solid rgba(255,255,255,0.15);padding:6px 10px;background:rgba(255,255,255,0.06);color:#38bdf8;text-align:left;font-size:12px;">${h}</th>`).join("");
+    const trs = dataLines.map(row => {
+      const cells = parseCells(row);
+      const tds = cells.map(c => `<td style="border:1px solid rgba(255,255,255,0.15);padding:6px 10px;font-size:12px;">${c}</td>`).join("");
+      return `<tr>${tds}</tr>`;
+    }).join("");
+
+    return `<table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid rgba(255,255,255,0.15);"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+  });
 
   // Headings
   html = html.replace(/^### (.*$)/gim, '<h3 style="color:#38bdf8;margin:12px 0 6px 0;font-size:16px;">$1</h3>');
@@ -109,12 +129,12 @@ export function createMarkdownStudio(): SimpleWindow {
 
   // Markdown Editor
   win.beginGroupBox("Markdown Source Editor");
-  win.addTextarea("txt_md_input", DEFAULT_MARKDOWN);
+  win.addTextarea("txt_md_input", DEFAULT_MARKDOWN).height(150);
   win.endGroupBox();
 
   // Live HTML Preview
   win.beginGroupBox("Real-Time Rendered Document Preview");
-  win.addTextarea("txt_md_preview", simpleMarkdownToHtml(DEFAULT_MARKDOWN));
+  win.addHtmlView(simpleMarkdownToHtml(DEFAULT_MARKDOWN), 1088, 180, { id: "txt_md_preview" }).id("txt_md_preview").height(180);
   win.endGroupBox();
 
   // Telemetry Console
@@ -140,7 +160,7 @@ export function createMarkdownStudio(): SimpleWindow {
     const rendered = simpleMarkdownToHtml(text);
     const elapsed = (performance.now() - t0).toFixed(2);
 
-    win.setText("txt_md_preview", rendered);
+    win.setHtml("txt_md_preview", rendered);
 
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
@@ -152,11 +172,12 @@ export function createMarkdownStudio(): SimpleWindow {
     win.setText("lbl_lines", `Lines: ${lines}`);
     win.setText("lbl_read_time", `Reading Time: ~${readMin} min`);
 
-    win.appendConsole("md_console", `[Markdown Render] Parsed ${words} words, ${lines} lines in ${elapsed}ms\n`, 2);
+    win.appendConsole("md_console", `[Markdown Render] Parsed ${words} words, ${lines} lines in ${elapsed}ms\n`, 0);
     win.setText("lbl_status", `Words: ${words}  |  Rendered in ${elapsed}ms  |  Status: OK`);
     win.setStatus(`Rendered in ${elapsed}ms`);
   };
 
+  win.onChange("txt_md_input", renderDocument);
   win.onClick("btn_render", renderDocument);
 
   win.onClick("btn_reset_doc", () => {
@@ -188,6 +209,9 @@ export function createMarkdownStudio(): SimpleWindow {
     renderDocument();
     win.toast("Inserted note alert");
   });
+
+  // Perform initial render
+  renderDocument();
 
   win.onClick("btn_export_html", () => {
     const text = win.getValue("txt_md_input") || "";

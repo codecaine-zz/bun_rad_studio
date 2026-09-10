@@ -1220,10 +1220,17 @@ export class SimpleWindow {
             placeholder = optsOrPlaceholder;
         } else if (typeof optsOrPlaceholder === "object") {
             opts = optsOrPlaceholder;
+            if (opts.id) id = opts.id;
         }
 
         if (id) opts.id = id;
-        const ref = this.addVisualControl("textarea", 340, 80, { placeholder, value: initialValue, ...opts });
+        const ref = this.addVisualControl("textarea", 340, 80, {
+            placeholder,
+            value: initialValue,
+            text: initialValue,
+            ...opts
+        });
+        if (id) ref.spec.id = id;
         if (initialValue) this.formValuesStore[ref.spec.id] = initialValue;
         return ref;
     }
@@ -2885,7 +2892,7 @@ export class SimpleWindow {
                         : (rawEl.querySelector("input, select, textarea") || rawEl);
 
                     if (el.type === "checkbox" || el.type === "radio") {
-                        el.checked = Boolean(${val});
+                        el.checked = Boolean(${escaped});
                     } else if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") {
                         el.value = ${escaped};
                     } else {
@@ -2895,13 +2902,15 @@ export class SimpleWindow {
                         const innerBar = rawEl.querySelector("div > div");
 
                         if (swThumb && swTrack) {
-                            const on = Boolean(${val});
+                            const on = Boolean(${escaped});
                             swThumb.style.left = on ? "22px" : "2px";
                             swTrack.style.background = on ? "var(--accent, #0284c7)" : "rgba(255,255,255,0.15)";
                         } else if (span && rawEl.querySelectorAll("button").length >= 2) {
                             span.textContent = String(${escaped});
                         } else if (innerBar && rawEl.classList.contains("rad-progress")) {
                             innerBar.style.width = String(${escaped}) + "%";
+                        } else if (rawEl.classList.contains("simplegui-html-view") || rawEl.dataset.type === "html_view" || rawEl.getAttribute("data-control-type") === "html_view") {
+                            rawEl.innerHTML = String(${escaped});
                         } else if (rawEl.value !== undefined) {
                             rawEl.value = ${escaped};
                         } else {
@@ -2912,6 +2921,30 @@ export class SimpleWindow {
             `);
         }
         return this;
+    }
+
+    public setHtml(id: string, htmlContent: string): this {
+        this.formValuesStore[id] = htmlContent;
+        const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
+        if (ctrl) {
+            ctrl.text = htmlContent;
+            ctrl.caption = htmlContent;
+        }
+        if (this.isWindowRunning) {
+            const escaped = JSON.stringify(htmlContent);
+            this.evalJS(`
+                (function() {
+                    const el = document.getElementById("${id}");
+                    if (el) {
+                        el.innerHTML = ${escaped};
+                    }
+                })();
+            `);
+        }
+        return this;
+    }
+    public set_html(id: string, htmlContent: string): this {
+        return this.setHtml(id, htmlContent);
     }
 
     public getText(id: string): string {
@@ -4273,7 +4306,7 @@ export class SimpleWindow {
         return this.addInput(id, initialValue, placeholder);
     }
     public addTextarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
-        return this.addTextArea(placeholder || initialValue, initialValue).id(id);
+        return this.addTextArea(id, initialValue, placeholder);
     }
     public add_textarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
         return this.addTextarea(id, initialValue, placeholder);
@@ -5170,7 +5203,6 @@ export class SimpleWindow {
     public set_many_tooltips(values: Record<string, string>): this { return this.setManyTooltips(values); }
 
     public setStatus(text: string): this {
-        console.log(`[setStatus] Called with text: "${text}"`);
         this.statusText = text;
         const targetIds = ["lbl_status", "lblStatus", "status", "lbl_status_bar", "status_bar"];
         for (const tid of targetIds) {

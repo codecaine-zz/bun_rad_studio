@@ -1266,7 +1266,7 @@ export function generatePreviewHtml(spec: any): string {
     for (const c of (spec.controls || [])) {
         if (c.visible === false) continue;
         const t = c.control_type || c.type;
-        const text = c.text !== undefined ? c.text : (c.caption !== undefined ? c.caption : (c.title !== undefined ? c.title : ''));
+        const text = c.text !== undefined ? c.text : (c.caption !== undefined ? c.caption : (c.title !== undefined ? c.title : (c.value !== undefined ? c.value : '')));
         const color = c.font_color || fg;
         const rawCbg = c.background_color || 'transparent';
         const cbg = c.background_color && c.background_color !== 'transparent'
@@ -1317,11 +1317,11 @@ export function generatePreviewHtml(spec: any): string {
             const statusStyle = isStatus ? 'width:calc(100% - 40px) !important;max-width:calc(100% - 40px) !important;font-size:12px;opacity:0.9;' : '';
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
         } else if (t === 'input' || t === 'search') {
-            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === 'search' ? 'search' : 'text'}" value="${text}" placeholder="${c.placeholder || ''}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
+            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === 'search' ? 'search' : 'text'}" value="${text}" placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
         } else if (t === 'password') {
-            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="password" value="${text}" placeholder="${c.placeholder || ''}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
+            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="password" value="${text}" placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
         } else if (t === 'textarea') {
-            controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${text}</textarea>\n`;
+            controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${text}</textarea>\n`;
         } else if (t === 'checkbox') {
             const chk = c.checked ? 'checked' : '';
             controls += `<label${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
@@ -2000,7 +2000,7 @@ export function generatePreviewHtml(spec: any): string {
             const parts = (text || 'Root › Users › codecaine › Projects').split('›').map((s: string) => s.trim());
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 10px;gap:6px;color:${color};font-size:11px;overflow-x:auto;">${parts.map((prt: string, i: number) => `<span style="cursor:pointer;font-weight:${i === parts.length - 1 ? '700' : 'normal'};color:${i === parts.length - 1 ? accent : color};">${prt}</span>${i < parts.length - 1 ? '<span style="opacity:0.4;">/</span>' : ''}`).join('')}</div>\n`;
         } else if (t === 'html_view' || t === 'browser_view') {
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:12px;overflow:auto;color:${color};font-size:12px;">${text || '<div style="opacity:0.8;">HTML View Canvas</div>'}</div>\n`;
+            controls += `<div${id}${titleAttr} class="simplegui-html-view" data-control-type="${t}" style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:12px;overflow:auto;color:${color};font-size:12px;">${text || '<div style="opacity:0.8;">HTML View Canvas</div>'}</div>\n`;
         } else if (t === 'code_editor' || t === 'code_studio') {
             const fileName = c.caption || c.filename || 'app.ts';
             const lang = c.placeholder || c.language || 'typescript';
