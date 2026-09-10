@@ -136,6 +136,32 @@ export function generateSqliteStudioHtml(): string {
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    select, optgroup, option {
+      color-scheme: dark;
+    }
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 12px;
+      padding-right: 30px;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    select:hover {
+      border-color: var(--cyan);
+      box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.2), 0 0 0 1px rgba(56, 189, 248, 0.15);
+    }
+    option, optgroup {
+      background: rgba(15, 23, 42, 0.98);
+      color: var(--text-main);
+    }
     body {
       background-color: var(--bg-base);
       background-image: 
@@ -206,6 +232,42 @@ export function generateSqliteStudioHtml(): string {
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .theme-control {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(12, 18, 29, 0.96));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(56, 189, 248, 0.12);
+    }
+
+    .theme-control-label {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .theme-control::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      width: 10px;
+      height: 10px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 10px 10px;
+      color: var(--text-main);
+      pointer-events: none;
     }
 
     .btn {
@@ -536,10 +598,18 @@ export function generateSqliteStudioHtml(): string {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-subtle);
       border-radius: 6px;
-      padding: 4px 8px;
+      padding: 4px 28px 4px 8px;
       color: var(--text-main);
       font-size: 11px;
       outline: none;
+      color-scheme: dark;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 12px;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
     }
 
     .sql-input-box {
@@ -744,9 +814,19 @@ export function generateSqliteStudioHtml(): string {
       color: var(--text-main);
       border: 1px solid var(--border-subtle);
       border-radius: 6px;
-      padding: 5px 8px;
+      padding: 5px 28px 5px 8px;
       font-size: 11px;
       outline: none;
+      color-scheme: dark;
+    }
+    .qbe-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 12px;
+      cursor: pointer;
     }
 
     .qbe-select:focus, .qbe-input:focus {
@@ -1351,6 +1431,24 @@ export function generateSqliteStudioHtml(): string {
       background: rgba(56, 189, 248, 0.08);
       border-color: rgba(56, 189, 248, 0.3);
     }
+    #ddStudioTheme {
+      min-width: 170px;
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      padding-right: 26px;
+      color-scheme: dark;
+      cursor: pointer;
+      border: none;
+      box-shadow: none;
+      outline: none;
+      font-weight: 700;
+    }
+    #ddStudioTheme:hover,
+    #ddStudioTheme:focus {
+      outline: none;
+      color: var(--text-main);
+    }
   </style>
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
@@ -1363,7 +1461,9 @@ export function generateSqliteStudioHtml(): string {
     </div>
 
     <div class="header-actions">
-      <select id="ddStudioTheme" class="btn" onchange="applySqliteStudioTheme(this.value)" title="Switch Workstation Theme" style="padding: 5px 8px; font-weight: 600; cursor: pointer; background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid var(--border-subtle); outline: none;">
+      <div class="theme-control">
+        <span class="theme-control-label">Theme</span>
+        <select id="ddStudioTheme" class="btn" onchange="applySqliteStudioTheme(this.value)" title="Switch Workstation Theme" style="padding: 5px 20px 5px 4px; font-weight: 700; cursor: pointer; color: var(--text-main); border: none; background: transparent; outline: none;">
         <optgroup label="Modern Studio">
           <option value="midnight">🎨 Midnight</option>
           <option value="codefreelance">🎨 CodeFreelance</option>

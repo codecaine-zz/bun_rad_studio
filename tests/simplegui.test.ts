@@ -136,6 +136,15 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(html).toContain("window.onSimpleguiPromptResult");
     });
 
+    test("5b. Dropdowns render with dark native styling on Linux", () => {
+        const win = simplegui.createWindow("Linux Dropdown Theme Test", 600, 400);
+        win.addDropdown(["Alpha", "Beta", "Gamma"], "Beta").id("cmbOS");
+
+        const html = win.generateHtml();
+        expect(html).toContain("color-scheme: dark");
+        expect(html).toContain("select option");
+    });
+
     test("6. vlang_simplegui API Parity & Extended Features", () => {
         const win = simplegui.new_simple_window("V API Parity Window", 640, 480);
 

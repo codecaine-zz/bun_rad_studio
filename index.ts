@@ -2157,6 +2157,7 @@ export function generatePreviewHtml(spec: any): string {
   select:not([size]), .simplegui-select {
     appearance: none !important;
     -webkit-appearance: none !important;
+    color-scheme: ${isLight ? 'light' : 'dark'} !important;
     background-repeat: no-repeat !important;
     background-position: right 10px center !important;
     background-size: 12px 12px !important;
