@@ -19,6 +19,7 @@ import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
   toggleFullscreenNative,
+  setFullscreenNative,
   attachWindowShortcuts,
   getWindowShortcutsScript,
 } from "../index.ts";
@@ -4349,17 +4350,7 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
             setWindowPositionNative(webview, "center", width, height);
           }
           setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
-
         } catch {}
-
-        let hasInitialFullscreenTriggered = false;
-        webview.bind("requestInitialFullscreen", () => {
-          if (hasInitialFullscreenTriggered) return;
-          hasInitialFullscreenTriggered = true;
-          if (fullscreen) {
-            toggleFullscreenNative(webview);
-          }
-        });
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
@@ -4373,6 +4364,7 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
           onFullscreen: () => {
             toggleFullscreenNative(webview);
           },
+          fullscreen,
         });
 
         webview.navigate(info.url);

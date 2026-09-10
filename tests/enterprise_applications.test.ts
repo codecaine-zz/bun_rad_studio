@@ -116,7 +116,7 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_build_bundle");
   });
 
-  it("12. Network Forensics Studio initializes with port scan & DNS tools", () => {
+  it("12. Network Forensics Studio initializes with port scan & DNS tools", async () => {
     const win = createNetworkStudio();
     const html = win.generateHtml();
     expect(html).toContain("Network Forensics Studio");
@@ -124,6 +124,41 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_scan_all");
     expect(html).toContain("btn_dns_a");
     expect(html).toContain("btn_ping_http");
+    expect(html).toContain("btn_preset_localhost");
+
+    // Baseline network diagnostics are populated on launch
+    expect(win.getValue("txt_net_results")).toContain("Network Forensics Engine Active");
+    expect(win.getValue("txt_net_results")).toContain("Detected Network Interfaces");
+
+    // Test socket scan handler
+    const scanSocketHandler = (win as any).eventHandlersMap.get("btn_scan_socket:onclick");
+    expect(scanSocketHandler).toBeDefined();
+    await scanSocketHandler(win);
+    expect(win.getValue("txt_net_results")).toContain("Port Scan Audit");
+
+    // Test DNS query handlers
+    const dnsAHandler = (win as any).eventHandlersMap.get("btn_dns_a:onclick");
+    expect(dnsAHandler).toBeDefined();
+    await dnsAHandler(win);
+    expect(win.getValue("txt_net_results")).toContain("DNS");
+
+    // Test Full DNS Forensic Audit handler
+    const dnsAllHandler = (win as any).eventHandlersMap.get("btn_dns_all:onclick");
+    expect(dnsAllHandler).toBeDefined();
+    await dnsAllHandler(win);
+    expect(win.getValue("txt_net_results")).toContain("Complete DNS Forensic Dossier");
+    expect(win.getValue("txt_net_results")).toContain("Network Addresses");
+
+    // Test Mail (MX) & TXT handlers
+    const dnsMxHandler = (win as any).eventHandlersMap.get("btn_dns_mx:onclick");
+    expect(dnsMxHandler).toBeDefined();
+    await dnsMxHandler(win);
+    expect(win.getValue("txt_net_results")).toContain("DNS");
+
+    const dnsTxtHandler = (win as any).eventHandlersMap.get("btn_dns_txt:onclick");
+    expect(dnsTxtHandler).toBeDefined();
+    await dnsTxtHandler(win);
+    expect(win.getValue("txt_net_results")).toContain("DNS");
   });
 
   it("13. Git Workbench Pro initializes with commit logs & diff viewer", () => {
@@ -196,5 +231,36 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_mask");
     expect(html).toContain("btn_diff");
     expect(html).toContain("btn_gen_example");
+  });
+
+  it("17. All enterprise UI applications initialize fullscreen and responsive", () => {
+    const apps: [string, () => any][] = [
+      ["01_database", () => createDatabaseStudio(":memory:")],
+      ["02_system", createSystemStudio],
+      ["03_watcher", createWatcherStudio],
+      ["04_json", createJsonStudio],
+      ["05_devtools", createDevToolsStudio],
+      ["06_process", createProcessStudio],
+      ["07_api", createApiStudio],
+      ["08_dataconvert", createDataConvertStudio],
+      ["09_crypto", createCryptoStudio],
+      ["10_regex", createRegexStudio],
+      ["11_app_bundler", createAppBundlerStudio],
+      ["12_network", createNetworkStudio],
+      ["13_git", createGitStudio],
+      ["14_markdown", createMarkdownStudio],
+      ["15_color", createColorStudio],
+      ["16_env", createEnvStudio],
+    ];
+
+    for (const [name, factory] of apps) {
+      const app = factory();
+      const isFullscreen = (app as any).fullscreen ?? (app as any).options?.fullscreen;
+      expect(isFullscreen).toBe(true);
+
+      const html = app.generateHtml ? app.generateHtml() : (app.toHtml ? app.toHtml() : "");
+      expect(html.length).toBeGreaterThan(1000);
+      expect(html).toContain("requestInitialFullscreen");
+    }
   });
 });

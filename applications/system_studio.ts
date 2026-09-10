@@ -13,7 +13,7 @@ import si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
-import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
+import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript } from "../index.ts";
 
 // -------------------------------------------------------------------------------------------------
 // API Registry & Domain Metadata (All 60 Methods Across 10 Domain Categories)
@@ -2756,9 +2756,6 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
         try {
           setWindowPositionNative(webview, "center", width, height);
           setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
-          if (fullscreen) {
-            toggleFullscreenNative(webview);
-          }
         } catch {}
 
         attachWindowShortcuts(webview, {
@@ -2773,6 +2770,7 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
           onFullscreen: () => {
             toggleFullscreenNative(webview);
           },
+          fullscreen,
         });
 
         webview.navigate(info.url);

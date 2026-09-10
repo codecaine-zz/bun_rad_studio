@@ -1,5 +1,5 @@
 import { SizeHint, Webview } from "webview-bun";
-import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setWindowPositionNative, minimizeWindowNative, closeWindowNative, attachWindowShortcuts } from "../index.ts";
+import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, closeWindowNative, attachWindowShortcuts } from "../index.ts";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -62,6 +62,7 @@ export class SimpleControlRef {
             }
         }
         this.spec.id = idStr;
+        this.spec.name = idStr;
         return this;
     }
 
@@ -563,6 +564,7 @@ export class SimpleWindow {
     public closeListeners: Array<(win: SimpleWindow) => boolean | void> = [];
     public appId = "";
     public autoSaveState = true;
+    public fullscreen = true;
     public controlStateBindings: Map<string, string> = new Map();
 
     private controls: any[] = [];
@@ -586,6 +588,7 @@ export class SimpleWindow {
         this.spacing = options.spacing !== undefined ? options.spacing : 12;
         this.appId = options.appId || options.app_id || "";
         this.autoSaveState = options.autoSave ?? options.auto_save ?? options.autoSaveState ?? options.auto_save_state ?? true;
+        this.fullscreen = options.fullscreen ?? true;
 
         const savedGlobalTheme = getSavedTheme();
         const preferredTheme = options.theme || (savedGlobalTheme ? savedGlobalTheme : "sonoma_emerald");
@@ -729,6 +732,21 @@ export class SimpleWindow {
             setAlwaysOnTopNative(this.webview, onTop);
         }
         return this;
+    }
+
+    public setFullscreen(fullscreen = true): this {
+        this.fullscreen = fullscreen;
+        if (this.webview) {
+            setFullscreenNative(this.webview, fullscreen);
+        }
+        return this;
+    }
+
+    public isFullscreen(): boolean {
+        if (this.webview) {
+            return isFullscreenNative(this.webview);
+        }
+        return this.fullscreen;
     }
 
     public toggleFullscreen(): this {
@@ -2869,7 +2887,14 @@ export class SimpleWindow {
     }
 
     public getValue(id: string): any {
-        return this.formValuesStore[id];
+        if (this.formValuesStore[id] !== undefined) {
+            return this.formValuesStore[id];
+        }
+        const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
+        if (ctrl) {
+            return ctrl.text ?? ctrl.caption ?? ctrl.value ?? "";
+        }
+        return undefined;
     }
 
     public setValue(id: string, val: any): this {
@@ -2887,6 +2912,10 @@ export class SimpleWindow {
                 (function() {
                     const rawEl = document.getElementById("${id}");
                     if (!rawEl) return;
+                    if (rawEl.classList.contains("simplegui-html-view") || rawEl.dataset.type === "html_view" || rawEl.getAttribute("data-control-type") === "html_view") {
+                        rawEl.innerHTML = String(${escaped});
+                        return;
+                    }
                     const el = (rawEl.tagName === "INPUT" || rawEl.tagName === "SELECT" || rawEl.tagName === "TEXTAREA")
                         ? rawEl
                         : (rawEl.querySelector("input, select, textarea") || rawEl);
@@ -2895,6 +2924,7 @@ export class SimpleWindow {
                         el.checked = Boolean(${escaped});
                     } else if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") {
                         el.value = ${escaped};
+                        if (el.tagName === "TEXTAREA") el.scrollTop = el.scrollHeight;
                     } else {
                         const swThumb = rawEl.querySelector(".sw-thumb");
                         const swTrack = rawEl.querySelector(".sw-track");
@@ -3264,17 +3294,35 @@ export class SimpleWindow {
 
     // --- HTML & Window Build Engine ---
     public buildFormSpec(): any {
+        const specControls: any[] = [];
+        const processControls = (items: any[]) => {
+            for (const item of items) {
+                if (!item) continue;
+                const specItem = { ...item };
+                if (specItem.id && this.formValuesStore[specItem.id] !== undefined) {
+                    specItem.value = this.formValuesStore[specItem.id];
+                }
+                specControls.push(specItem);
+                if (item.children && Array.isArray(item.children)) {
+                    processControls(item.children);
+                }
+            }
+        };
+        processControls(this.controls);
+
         return {
             title: this.title,
             width: this.width,
             height: this.height,
+            theme: this.theme,
             background_color: this.backgroundColor,
             font_color: this.fontColor,
             accent_color: this.accentColor,
             padding: this.padding,
             spacing: this.spacing,
-            controls: this.controls,
+            controls: specControls,
             non_visual_controls: this.nonVisualControls,
+            menu_bar: (this as any)._menuBarSpec,
             global_context_menu_items: (this as any)._globalContextMenuItems || []
         };
     }
@@ -3313,6 +3361,7 @@ export class SimpleWindow {
               </div>
             </div>
             <script>
+            (function() {
                 window.onSimpleguiPromptResult = function(reqId, result) {
                     if (window.handlePromptResultIPC) {
                         window.handlePromptResultIPC(reqId, result);
@@ -3426,6 +3475,30 @@ export class SimpleWindow {
                     } catch(e) {}
                 }
 
+                function triggerInitialFullscreen() {
+                    var attempts = 0;
+                    function attempt() {
+                        if (typeof window.requestInitialFullscreen === "function") {
+                            try { window.requestInitialFullscreen(); return; } catch(e) {}
+                        }
+                        if (typeof window.toggleNativeFullscreen === "function") {
+                            try { window.toggleNativeFullscreen(); return; } catch(e) {}
+                        }
+                        if (typeof window.toggleFullscreen === "function") {
+                            try { window.toggleFullscreen(); return; } catch(e) {}
+                        }
+                        if (attempts++ < 30) {
+                            setTimeout(attempt, 50);
+                        }
+                    }
+                    attempt();
+                }
+                ${this.fullscreen ? `
+                triggerInitialFullscreen();
+                window.addEventListener("DOMContentLoaded", triggerInitialFullscreen);
+                window.addEventListener("load", triggerInitialFullscreen);
+                ` : ""}
+
                 let isFnPressed = false;
                 document.addEventListener("keyup", function(e) {
                     if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
@@ -3438,10 +3511,8 @@ export class SimpleWindow {
                         isFnPressed = true;
                     }
 
-                    // Ignore held-down key repeats for toggles
                     if (e.repeat) return;
 
-                    // 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
                     if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight")) {
                         const now = Date.now();
                         if (now - lastAltTime > 50 && now - lastAltTime < 450) {
@@ -3455,7 +3526,6 @@ export class SimpleWindow {
                         lastAltTime = 0;
                     }
 
-                    // 2. Disable browser reload shortcuts (F5, Cmd+R, Ctrl+R) that destroy webview IPC bindings
                     if (
                         e.key === "F5" ||
                         e.code === "F5" ||
@@ -3466,49 +3536,33 @@ export class SimpleWindow {
                         return false;
                     }
 
-                    // 3. Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
                     if (
                         ((e.metaKey || e.ctrlKey) && (e.key === "q" || e.key === "Q" || e.key === "w" || e.key === "W" || e.code === "KeyQ" || e.code === "KeyW")) ||
-                        (e.altKey && (e.key === "F4" || e.code === "F4" || e.key === "w" || e.key === "W" || e.key === "q" || e.key === "Q"))
+                        (e.altKey && (e.key === "F4" || e.code === "F4" || e.key === "w" || e.key === "W" || e.key === "q" || e.key === "Q" || e.code === "KeyW" || e.code === "KeyQ"))
                     ) {
                         e.preventDefault();
                         doCloseOrQuit();
                         return;
                     }
 
-                    const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
-                    const isFKey = e.key === "f" || e.key === "F" || e.code === "KeyF" || (typeof e.key === "string" && e.key.toLowerCase() === "f");
+                    const isF = e.key === "f" || e.key === "F" || e.code === "KeyF";
                     const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+                    const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable);
+                    const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isF;
+                    const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isF;
 
-                    // 4. Fullscreen toggle shortcuts:
-                    // - Fn+F / Globe+F (macOS fullscreen)
-                    // - F / f (when not inside an input field)
-                    // - F11 (standard function key)
-                    const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isFKey;
-                    const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isFKey;
-
-                    // 4. Fullscreen toggle shortcuts:
-                    // - Cmd+F / Ctrl+F (all windows / inputs)
-                    // - Cmd+Ctrl+F / Ctrl+Cmd+F (macOS native shortcut ⌃⌘F)
-                    // - Cmd+Shift+F / Ctrl+Shift+F
-                    // - Fn+F / Globe+F (macOS fullscreen)
-                    // - F11 (standard function key)
-                    // - Bare F / f (when not inside an input field)
-                    // - Alt+Enter (Windows/Linux standard)
                     if (
                         isCmdOrCtrlF ||
                         (!isInput && isBareF) ||
-                        (isFn && isFKey) ||
+                        (isFn && isF) ||
                         e.key === "F11" || e.code === "F11" ||
                         (e.altKey && (e.key === "Enter" || e.code === "Enter"))
                     ) {
                         e.preventDefault();
-                        e.stopPropagation();
                         doToggleFullscreen();
                         return;
                     }
 
-                    // Escape: exit fullscreen if currently in fullscreen
                     if (e.key === "Escape" || e.code === "Escape") {
                         try {
                             if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -3518,17 +3572,17 @@ export class SimpleWindow {
                         } catch(e) {}
                     }
 
-                    // 5. Minimize window: Cmd+M, Ctrl+M, Alt+M
                     if ((e.metaKey || e.ctrlKey || e.altKey) && (e.key === "m" || e.key === "M" || e.code === "KeyM")) {
                         const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
                         if (!isInput) {
                             e.preventDefault();
-                            if (window.minimizeWindow) window.minimizeWindow();
+                            if (typeof window.minimizeWindow === "function") {
+                                try { window.minimizeWindow(); return; } catch(e) {}
+                            }
                             return;
                         }
                     }
 
-                    // 6. Always-on-top toggle: Cmd+Shift+T, Ctrl+Shift+T, Alt+T
                     if (
                         ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "t" || e.key === "T" || e.code === "KeyT")) ||
                         (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "t" || e.key === "T" || e.code === "KeyT"))
@@ -3536,22 +3590,24 @@ export class SimpleWindow {
                         const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
                         if (!isInput) {
                             e.preventDefault();
-                            if (window.toggleAlwaysOnTop) window.toggleAlwaysOnTop();
+                            if (typeof window.toggleAlwaysOnTop === "function") {
+                                try { window.toggleAlwaysOnTop(); return; } catch(e) {}
+                            }
                             return;
                         }
                     }
 
-                    // 7. Center window: Cmd+Shift+C, Ctrl+Shift+C
                     if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
                         const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
                         if (!isInput) {
                             e.preventDefault();
-                            if (window.centerWindow) window.centerWindow();
+                            if (typeof window.centerWindow === "function") {
+                                try { window.centerWindow(); return; } catch(e) {}
+                            }
                             return;
                         }
                     }
 
-                    // 8. Zoom shortcuts: Cmd/Ctrl + (+/- / 0)
                     if (e.metaKey || e.ctrlKey) {
                         if (e.key === "=" || e.key === "+" || e.code === "Equal" || e.code === "NumpadAdd") {
                             e.preventDefault();
@@ -3569,31 +3625,64 @@ export class SimpleWindow {
                     }
                 }, { capture: true });
 
-                document.addEventListener("change", function(e) {
-                    const target = e.target;
-                    if (target && target.id) {
-                        const val = target.type === "checkbox" ? target.checked : target.value;
-                        const eventName = "on_" + target.id + "_change";
+                document.addEventListener("input", function(e) {
+                    const active = document.activeElement;
+                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
+                        const val = active.type === "checkbox" ? active.checked : active.value;
+                        const eventName = "on_" + active.id + "_change";
                         if (window[eventName]) {
                             window[eventName](val);
                         }
                     }
                 });
+
+                document.addEventListener("change", function(e) {
+                    const active = document.activeElement;
+                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
+                        const val = active.type === "checkbox" ? active.checked : active.value;
+                        const eventName = "on_" + active.id + "_change";
+                        if (window[eventName]) {
+                            window[eventName](val);
+                        }
+                    }
+                });
+
+                document.addEventListener("click", function(e) {
+                    const active = document.activeElement;
+                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
+                        const val = active.type === "checkbox" ? active.checked : active.value;
+                        const eventName = "on_" + active.id + "_change";
+                        if (window[eventName]) {
+                            window[eventName](val);
+                        }
+                    }
+                });
+            })();
             </script>
         `;
-        html = html.replace("</body>", `${scriptInject}</body>`);
+
+        const lastBodyIdx = html.lastIndexOf("</body>");
+        if (lastBodyIdx !== -1) {
+            html = html.substring(0, lastBodyIdx) + scriptInject + html.substring(lastBodyIdx);
+        } else {
+            html += scriptInject;
+        }
+
         return html;
     }
 
-    public evalJS(code: string): void {
-        if (this.webview) {
-            try {
-                this.webview.eval(code);
-            } catch (e) {
-                console.error("evalJS Error:", e);
-            }
-        }
+    public getControls(): any[] {
+        return [...this.controls];
     }
+
+    public getNonVisualControls(): any[] {
+        return [...this.nonVisualControls];
+    }
+
+    public getFormSpec(): FormSpec {
+        return this.buildFormSpec();
+    }
+
 
     public getWebview(): Webview | null {
         return this.webview;
@@ -3617,6 +3706,7 @@ export class SimpleWindow {
             onClose: () => this.handleClose(),
             onMinimize: () => { if (this.webview) minimizeWindowNative(this.webview); },
             onFullscreen: () => { if (this.webview) toggleFullscreenNative(this.webview); },
+            fullscreen: this.fullscreen,
         });
 
         this.isWindowRunning = true;
@@ -3624,6 +3714,17 @@ export class SimpleWindow {
         if (this.alwaysOnTop) {
             setAlwaysOnTopNative(this.webview, true);
         }
+
+        let hasInitialFs = false;
+        const doInitialFs = () => {
+            if (hasInitialFs) return { success: true };
+            hasInitialFs = true;
+            if (this.fullscreen && this.webview) {
+                try { setFullscreenNative(this.webview, true); } catch {}
+            }
+            return { success: true };
+        };
+        try { this.webview.bind("requestInitialFullscreen", doInitialFs); } catch (e) {}
 
         const handlePrompt = (reqId: string, result: any) => {
             const resolver = this.promptResolversMap.get(reqId);
@@ -3689,57 +3790,68 @@ export class SimpleWindow {
             return { success: true, position: pos };
         });
 
-        const watchdog = setInterval(() => {
-            if (this.isWindowRunning && Date.now() - lastHeartbeat > 800) {
-                clearInterval(watchdog);
-                this.handleClose();
-            }
-        }, 300);
-
         // Auto-bind state synchronization IPC handlers for all controls BEFORE setHTML
-        for (const ctrl of this.controls) {
-            if (!ctrl || !ctrl.id) continue;
+        const boundHandlers = new Set<string>();
+
+        const bindControlIpc = (ctrl: any) => {
+            if (!ctrl || !ctrl.id) return;
             const cid = ctrl.id;
 
             const changeBind = `on_${cid}_change`;
-            try {
-                this.webview.bind(changeBind, async (val: any) => {
-                    if (val !== undefined && val !== null) {
-                        this.formValuesStore[cid] = val;
-                    }
-                    const cb = this.eventHandlersMap.get(`${cid}:onchange`);
-                    if (cb) {
-                        try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${changeBind}:`, err); }
-                    }
-                });
-            } catch (e) {
-                // Ignore duplicate binds
+            if (!boundHandlers.has(changeBind)) {
+                boundHandlers.add(changeBind);
+                try {
+                    this.webview.bind(changeBind, async (val: any) => {
+                        if (val !== undefined && val !== null) {
+                            this.formValuesStore[cid] = val;
+                        }
+                        const cb = this.eventHandlersMap.get(`${cid}:onchange`);
+                        if (cb) {
+                            try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${changeBind}:`, err); }
+                        }
+                    });
+                } catch (e) {}
             }
 
             const clickBind = `on_${cid}_click`;
-            try {
-                this.webview.bind(clickBind, async (val: any) => {
-                    if (val !== undefined && val !== null) {
-                        this.formValuesStore[cid] = val;
-                    }
-                    const cb = this.eventHandlersMap.get(`${cid}:onclick`);
-                    if (cb) {
-                        try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${clickBind}:`, err); }
-                    }
-                });
-            } catch (e) {
-                // Ignore duplicate binds
+            if (!boundHandlers.has(clickBind)) {
+                boundHandlers.add(clickBind);
+                try {
+                    this.webview.bind(clickBind, async (val: any) => {
+                        if (val !== undefined && val !== null) {
+                            this.formValuesStore[cid] = val;
+                        }
+                        const cb = this.eventHandlersMap.get(`${cid}:onclick`);
+                        if (cb) {
+                            try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${clickBind}:`, err); }
+                        }
+                    });
+                } catch (e) {}
             }
-        }
+        };
 
-        // Bind any remaining explicitly registered control events to Webview IPC BEFORE setHTML
+        const collectAndBind = (items: any[]) => {
+            for (const item of items) {
+                if (!item) continue;
+                bindControlIpc(item);
+                if (item.children && Array.isArray(item.children)) {
+                    collectAndBind(item.children);
+                }
+            }
+        };
+
+        collectAndBind(this.controls);
+        collectAndBind(this.nonVisualControls);
+
+        // Bind all explicitly registered control events to Webview IPC BEFORE setHTML
         for (const [key, callback] of this.eventHandlersMap.entries()) {
             const [controlId, eventType] = key.split(":");
             if (!controlId || !eventType) continue;
             const eventLower = eventType.replace(/^on/i, "").toLowerCase();
-            if (eventLower === "change" || eventLower === "click") continue; // Already bound above
-
             const bindName = `on_${controlId}_${eventLower}`;
+            if (boundHandlers.has(bindName)) continue;
+            boundHandlers.add(bindName);
+
             try {
                 this.webview.bind(bindName, async (val: any) => {
                     if (val !== undefined && val !== null) {
@@ -3761,7 +3873,6 @@ export class SimpleWindow {
 
         this.webview.run();
         this.isWindowRunning = false;
-        clearInterval(watchdog);
         this.handleClose();
     }
 
@@ -4788,7 +4899,16 @@ export class SimpleWindow {
     public is_visible(): boolean { return this.isWindowRunning; }
     public is_minimized(): boolean { return false; }
     public is_maximized(): boolean { return false; }
-    public is_fullscreen(): boolean { return false; }
+    public is_fullscreen(): boolean { return this.fullscreen; }
+    public isFullscreen(): boolean { return this.fullscreen; }
+    public setFullscreen(val = true): this {
+        this.fullscreen = val;
+        if (this.isWindowRunning && this.webview) {
+            try { setFullscreenNative(this.webview, val); } catch {}
+        }
+        return this;
+    }
+    public set_fullscreen(val = true): this { return this.setFullscreen(val); }
     public is_active(): boolean { return this.isWindowRunning; }
 
     public bounce_dock(critical = false): this { return this; }
@@ -5746,7 +5866,7 @@ export class SimpleWindow {
         sessionData["__win_width"] = this.width;
         sessionData["__win_height"] = this.height;
         sessionData["__win_theme"] = this.theme;
-        sessionData["__win_fullscreen"] = false;
+        sessionData["__win_fullscreen"] = this.fullscreen;
         const targetFile = getAppStateFile(appId, "session.json");
         saveStateToFile(targetFile, sessionData);
     }
@@ -5766,7 +5886,7 @@ export class SimpleWindow {
                 if (k === "__win_theme") {
                     this.setTheme(String(v), false);
                 } else if (k === "__win_fullscreen") {
-                    // fullscreen flag
+                    if (typeof v === "boolean" && this.fullscreen === false) this.fullscreen = v;
                 } else if (k === "__win_width") {
                     const w = parseInt(String(v), 10);
                     if (w > 100) this.width = w;
@@ -5850,7 +5970,7 @@ export class SimpleWindow {
         data["__win_width"] = this.width;
         data["__win_height"] = this.height;
         data["__win_theme"] = this.theme;
-        data["__win_fullscreen"] = false;
+        data["__win_fullscreen"] = this.fullscreen;
 
         for (const [k, v] of Object.entries(this.stateStore)) {
             data["__state_" + k] = v;
@@ -5919,6 +6039,9 @@ export class SimpleWindow {
         if (loaded["__win_height"] !== undefined) {
             const h = parseInt(String(loaded["__win_height"]), 10);
             if (h >= 200 && h <= 3000) this.height = h;
+        }
+        if (loaded["__win_fullscreen"] !== undefined && this.fullscreen === false) {
+            this.fullscreen = Boolean(loaded["__win_fullscreen"]);
         }
 
         if (loaded["__win_theme"] && typeof loaded["__win_theme"] === "string") {

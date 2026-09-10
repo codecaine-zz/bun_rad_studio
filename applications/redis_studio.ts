@@ -15,6 +15,7 @@ import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
   toggleFullscreenNative,
+  setFullscreenNative,
   attachWindowShortcuts,
   getWindowShortcutsScript,
 } from "../index.ts";
@@ -2372,9 +2373,6 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         try {
           setWindowPositionNative(webview, "center", width, height);
           setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
-          if (fullscreen) {
-            toggleFullscreenNative(webview);
-          }
         } catch {}
 
         attachWindowShortcuts(webview, {
@@ -2389,6 +2387,7 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
           onFullscreen: () => {
             toggleFullscreenNative(webview);
           },
+          fullscreen,
         });
 
         webview.navigate(info.url);
