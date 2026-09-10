@@ -1108,7 +1108,12 @@ export {
     writeFileAtomic, write_file_atomic,
     saveStateToFile, save_state_to_file,
     loadStateFromFile, load_state_from_file,
-    shouldPersistControl, should_persist_control
+    shouldPersistControl, should_persist_control,
+    isBrightColor, is_bright_color,
+    isBrightAccentColor, is_bright_accent_color,
+    autoShortThemeName, auto_short_theme_name,
+    getShortThemeName, get_short_theme_name,
+    listShortThemes, list_short_themes
 } from "./src/simplegui.ts";
 
 export * from "./src/simplecli/index.ts";
@@ -1121,6 +1126,24 @@ export function setSparklineTableData(controlId: string, rowsCSV: string) {}
 export function setMetricComparison(controlId: string, title: string, curVal: string, targetStr: string, changeStr: string) {}
 export function setActivityFeedItems(controlId: string, itemsCSV: string) {}
 export function setWorkspaceTabs(controlId: string, filesCSV: string) {}
+
+export function isColorBright(hex?: string): boolean {
+    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return false;
+    const clean = hex.slice(1);
+    let r = 0, g = 0, b = 0;
+    if (clean.length === 3) {
+        r = parseInt(clean[0] + clean[0], 16);
+        g = parseInt(clean[1] + clean[1], 16);
+        b = parseInt(clean[2] + clean[2], 16);
+    } else if (clean.length >= 6) {
+        r = parseInt(clean.slice(0, 2), 16);
+        g = parseInt(clean.slice(2, 4), 16);
+        b = parseInt(clean.slice(4, 6), 16);
+    } else {
+        return false;
+    }
+    return (r * 0.299 + g * 0.587 + b * 0.114) > 180;
+}
 
 export function generatePreviewHtml(spec: any): string {
     const bg = spec.background_color || '#0f172a';
@@ -1142,6 +1165,10 @@ export function generatePreviewHtml(spec: any): string {
     } else if (bg === '#090d16') {
         accent = '#3b82f6';
     }
+
+    const defaultBtnBg = spec.accent_color || accent || '#0284c7';
+    const isBrightDefault = (defaultBtnBg === '#0fb36a' || defaultBtnBg === '#30d158' || defaultBtnBg === '#00ff00' || defaultBtnBg === '#4ade80') || isColorBright(defaultBtnBg);
+    const defaultBtnFg = isBrightDefault ? '#000000' : '#ffffff';
 
     const border = bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)');
     const w = spec.width || 800;
@@ -1274,13 +1301,16 @@ export function generatePreviewHtml(spec: any): string {
         const defRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:5px;';
 
         if (t === 'button') {
-            const defaultBtnBg = spec.accent_color || accent || '#0284c7';
+            const hasCustomBg = c.custom_background === true || (c.background_color && c.background_color !== 'transparent' && c.background_color !== defaultBtnBg && c.background_color !== spec.accent_color && !c._isThemeAccent);
+            const hasCustomFg = c.custom_color === true;
             const btnBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : defaultBtnBg;
-            const btnColor = (btnBg === '#0fb36a' || btnBg === '#30d158' || btnBg === '#00ff00' || btnBg === '#4ade80') ? '#000000' : (color || '#ffffff');
+            const isBright = (btnBg === '#0fb36a' || btnBg === '#30d158' || btnBg === '#00ff00' || btnBg === '#4ade80') || isColorBright(btnBg);
+            const btnColor = hasCustomFg && c.font_color ? c.font_color : (isBright ? '#000000' : (color || '#ffffff'));
             const bBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'solid'};` : 'border:none;';
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
             const mouseOverFilter = c.hover_color || c.hover_text_color ? '' : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
-            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+            const customAttr = hasCustomBg ? ' data-custom-bg="true"' : ' class="rad-button btn-theme-accent"';
+            controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
         } else if (t === 'label') {
             const isStatus = (c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
                              (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:')));
@@ -1391,9 +1421,12 @@ export function generatePreviewHtml(spec: any): string {
             const rawOpts = c.items || c.options || text || c.caption || 'Option 1, Option 2, Option 3';
             const optArray = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
             const curVal = c.value !== undefined ? String(c.value) : (optArray[0] || '');
-            const selOptions = optArray.map((opt: string) => {
-                const isSelected = opt === curVal ? ' selected' : '';
-                return `<option value="${opt.replace(/"/g, '&quot;')}"${isSelected}>${opt}</option>`;
+            const itemLabels = c.item_labels || {};
+            const selOptions = optArray.map((opt: any) => {
+                const val = typeof opt === 'object' && opt !== null ? (opt.value !== undefined ? String(opt.value) : String(opt.id || '')) : String(opt);
+                const label = typeof opt === 'object' && opt !== null ? (opt.label || opt.text || opt.name || val) : (itemLabels[val] || val);
+                const isSelected = val === curVal || (typeof opt === 'string' && opt === curVal) ? ' selected' : '';
+                return `<option value="${val.replace(/"/g, '&quot;')}"${isSelected}>${label}</option>`;
             }).join('');
 
             const isListBox = t === 'listbox';
@@ -2092,6 +2125,11 @@ export function generatePreviewHtml(spec: any): string {
 <title>${spec.title || 'Preview'}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
+  :root {
+    --accent: ${accent};
+    --btn-bg: ${defaultBtnBg};
+    --btn-fg: ${defaultBtnFg};
+  }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: auto; }
   body {
@@ -2104,6 +2142,11 @@ export function generatePreviewHtml(spec: any): string {
     overflow-x: hidden;
   }
   input, textarea, select, button { font-family: inherit; } .rad-mono { font-family: monospace; } * { spellcheck: false; }
+  button.btn-theme-accent,
+  button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]) {
+    background: var(--btn-bg, ${defaultBtnBg});
+    color: var(--btn-fg, ${defaultBtnFg});
+  }
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${accent}; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
   :focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }

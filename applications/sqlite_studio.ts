@@ -1363,6 +1363,34 @@ export function generateSqliteStudioHtml(): string {
     </div>
 
     <div class="header-actions">
+      <select id="ddStudioTheme" class="btn" onchange="applySqliteStudioTheme(this.value)" title="Switch Workstation Theme" style="padding: 5px 8px; font-weight: 600; cursor: pointer; background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid var(--border-subtle); outline: none;">
+        <optgroup label="Modern Studio">
+          <option value="midnight">🎨 Midnight</option>
+          <option value="codefreelance">🎨 CodeFreelance</option>
+          <option value="sonoma_emerald">🎨 Emerald</option>
+          <option value="dracula">🎨 Dracula</option>
+          <option value="nord">🎨 Nord</option>
+          <option value="cyberpunk">🎨 Cyberpunk</option>
+          <option value="apple_dark">🎨 Dark</option>
+          <option value="apple_light">🎨 Light</option>
+          <option value="solarized_dark">🎨 Solar Dark</option>
+          <option value="github_dark">🎨 GitHub Dark</option>
+        </optgroup>
+        <optgroup label="Retro & Nostalgia">
+          <option value="win95">💾 Win95</option>
+          <option value="gameboy">👾 Game Boy</option>
+          <option value="c64">🕹️ C64</option>
+          <option value="synthwave">🌆 Synthwave</option>
+          <option value="matrix">💻 Matrix</option>
+          <option value="amber_crt">📟 Amber CRT</option>
+          <option value="amiga">🎮 Amiga</option>
+          <option value="mac_classic">🖥️ System 7</option>
+          <option value="mac_os_aqua">💧 OS X Aqua</option>
+          <option value="nextstep">⬛ NeXTSTEP</option>
+          <option value="playstation">🎮 PlayStation</option>
+          <option value="hotdog_stand">🌭 Hot Dog</option>
+        </optgroup>
+      </select>
       <button class="btn btn-primary" onclick="openDatabaseDialog()" title="Browse, pick, or load SQLite database">📂 Open / Browse DB...</button>
       <button class="btn" onclick="runEditorQuery()">⚡ Run Query</button>
       <button class="btn" onclick="seedDatabase()">🌱 Seed Sample DB</button>
@@ -3982,7 +4010,85 @@ export function generateSqliteStudioHtml(): string {
       if (el) el.textContent = new Date().toLocaleTimeString();
     }, 1000);
 
+    window.applySqliteStudioTheme = function(themeName) {
+      try { localStorage.setItem('sqlite_studio_theme', themeName); } catch(e) {}
+      const themes = {
+        midnight: { bg: '#070a12', surface: '#0e1526', accent: '#38bdf8', accentGlow: 'rgba(56, 189, 248, 0.25)', btnColor: '#ffffff' },
+        codefreelance: { bg: '#050505', surface: '#121212', accent: '#0fb36a', accentGlow: 'rgba(15, 179, 106, 0.35)', btnColor: '#000000' },
+        sonoma_emerald: { bg: '#0d1f18', surface: '#132e24', accent: '#30d158', accentGlow: 'rgba(48, 209, 88, 0.35)', btnColor: '#000000' },
+        dracula: { bg: '#1e1f29', surface: '#282a36', accent: '#bd93f9', accentGlow: 'rgba(189, 147, 249, 0.3)', btnColor: '#ffffff' },
+        nord: { bg: '#242933', surface: '#2e3440', accent: '#88c0d0', accentGlow: 'rgba(136, 192, 208, 0.3)', btnColor: '#000000' },
+        cyberpunk: { bg: '#08080f', surface: '#121220', accent: '#ff007f', accentGlow: 'rgba(255, 0, 127, 0.35)', btnColor: '#ffffff' },
+        apple_dark: { bg: '#161618', surface: '#242426', accent: '#0a84ff', accentGlow: 'rgba(10, 132, 255, 0.3)', btnColor: '#ffffff' },
+        apple_light: { bg: '#f5f5f7', surface: '#ffffff', accent: '#007aff', accentGlow: 'rgba(0, 122, 255, 0.25)', btnColor: '#ffffff', textMain: '#1d1d1f', textMuted: '#6e6e73' },
+        solarized_dark: { bg: '#00212b', surface: '#002b36', accent: '#2aa198', accentGlow: 'rgba(42, 161, 152, 0.3)', btnColor: '#ffffff' },
+        github_dark: { bg: '#0d1117', surface: '#161b22', accent: '#58a6ff', accentGlow: 'rgba(88, 166, 255, 0.3)', btnColor: '#ffffff' },
+        // Retro & Nostalgic Themes
+        win95: { bg: '#008080', surface: '#c0c0c0', accent: '#000080', accentGlow: 'rgba(0, 0, 128, 0.4)', btnColor: '#ffffff', textMain: '#000000', textMuted: '#333333' },
+        windows_95: { bg: '#008080', surface: '#c0c0c0', accent: '#000080', accentGlow: 'rgba(0, 0, 128, 0.4)', btnColor: '#ffffff', textMain: '#000000', textMuted: '#333333' },
+        gameboy: { bg: '#0f380f', surface: '#1c4a1c', accent: '#8bac0f', accentGlow: 'rgba(139, 172, 15, 0.45)', btnColor: '#000000', textMain: '#9bbc0f', textMuted: '#8bac0f' },
+        game_boy: { bg: '#0f380f', surface: '#1c4a1c', accent: '#8bac0f', accentGlow: 'rgba(139, 172, 15, 0.45)', btnColor: '#000000', textMain: '#9bbc0f', textMuted: '#8bac0f' },
+        c64: { bg: '#40318d', surface: '#281b5c', accent: '#7974ff', accentGlow: 'rgba(121, 116, 255, 0.45)', btnColor: '#000000', textMain: '#7974ff', textMuted: '#a09eff' },
+        commodore_64: { bg: '#40318d', surface: '#281b5c', accent: '#7974ff', accentGlow: 'rgba(121, 116, 255, 0.45)', btnColor: '#000000', textMain: '#7974ff', textMuted: '#a09eff' },
+        mac_classic: { bg: '#ebe7df', surface: '#ffffff', accent: '#5555aa', accentGlow: 'rgba(85, 85, 170, 0.35)', btnColor: '#ffffff', textMain: '#1c1b18', textMuted: '#55524c' },
+        system7: { bg: '#ebe7df', surface: '#ffffff', accent: '#5555aa', accentGlow: 'rgba(85, 85, 170, 0.35)', btnColor: '#ffffff', textMain: '#1c1b18', textMuted: '#55524c' },
+        amber_crt: { bg: '#0a0600', surface: '#160d00', accent: '#ffb000', accentGlow: 'rgba(255, 176, 0, 0.45)', btnColor: '#000000', textMain: '#ffb000', textMuted: '#cc8c00' },
+        vt220: { bg: '#0a0600', surface: '#160d00', accent: '#ffb000', accentGlow: 'rgba(255, 176, 0, 0.45)', btnColor: '#000000', textMain: '#ffb000', textMuted: '#cc8c00' },
+        matrix: { bg: '#040a05', surface: '#08140a', accent: '#00ff41', accentGlow: 'rgba(0, 255, 65, 0.45)', btnColor: '#000000', textMain: '#00ff66', textMuted: '#00cc52' },
+        green_crt: { bg: '#040a05', surface: '#08140a', accent: '#00ff41', accentGlow: 'rgba(0, 255, 65, 0.45)', btnColor: '#000000', textMain: '#00ff66', textMuted: '#00cc52' },
+        synthwave: { bg: '#130924', surface: '#22113d', accent: '#ff2a85', accentGlow: 'rgba(255, 42, 133, 0.45)', btnColor: '#ffffff', textMain: '#fce7f3', textMuted: '#d946ef' },
+        outrun: { bg: '#130924', surface: '#22113d', accent: '#ff2a85', accentGlow: 'rgba(255, 42, 133, 0.45)', btnColor: '#ffffff', textMain: '#fce7f3', textMuted: '#d946ef' },
+        amiga: { bg: '#0055aa', surface: '#003870', accent: '#ff8800', accentGlow: 'rgba(255, 136, 0, 0.45)', btnColor: '#000000', textMain: '#ffffff', textMuted: '#ffcc88' },
+        workbench: { bg: '#0055aa', surface: '#003870', accent: '#ff8800', accentGlow: 'rgba(255, 136, 0, 0.45)', btnColor: '#000000', textMain: '#ffffff', textMuted: '#ffcc88' },
+        nextstep: { bg: '#262626', surface: '#333333', accent: '#4a90e2', accentGlow: 'rgba(74, 144, 226, 0.35)', btnColor: '#ffffff', textMain: '#dedede', textMuted: '#999999' },
+        mac_os_aqua: { bg: '#e6ebed', surface: '#ffffff', accent: '#0076fe', accentGlow: 'rgba(0, 118, 254, 0.35)', btnColor: '#ffffff', textMain: '#1d2429', textMuted: '#64748b' },
+        aqua_os_x: { bg: '#e6ebed', surface: '#ffffff', accent: '#0076fe', accentGlow: 'rgba(0, 118, 254, 0.35)', btnColor: '#ffffff', textMain: '#1d2429', textMuted: '#64748b' },
+        hotdog_stand: { bg: '#000000', surface: '#1c0000', accent: '#ff0000', accentGlow: 'rgba(255, 0, 0, 0.5)', btnColor: '#ffffff', textMain: '#ffffff', textMuted: '#ffff00' },
+        playstation: { bg: '#1e1e24', surface: '#2a2b34', accent: '#00d2c4', accentGlow: 'rgba(0, 210, 196, 0.4)', btnColor: '#000000', textMain: '#e4e5eb', textMuted: '#94a3b8' },
+        psx: { bg: '#1e1e24', surface: '#2a2b34', accent: '#00d2c4', accentGlow: 'rgba(0, 210, 196, 0.4)', btnColor: '#000000', textMain: '#e4e5eb', textMuted: '#94a3b8' }
+      };
+      const t = themes[themeName] || themes.midnight;
+      document.documentElement.style.setProperty('--bg-base', t.bg);
+      document.documentElement.style.setProperty('--bg-surface', t.surface);
+      document.documentElement.style.setProperty('--cyan', t.accent);
+      document.documentElement.style.setProperty('--cyan-glow', t.accentGlow);
+      document.documentElement.style.setProperty('--border-focus', t.accent);
+      if (t.textMain) document.documentElement.style.setProperty('--text-main', t.textMain);
+      else document.documentElement.style.setProperty('--text-main', '#f8fafc');
+      if (t.textMuted) document.documentElement.style.setProperty('--text-muted', t.textMuted);
+      else document.documentElement.style.setProperty('--text-muted', '#94a3b8');
+
+      let styleEl = document.getElementById('sqlite-dyn-theme');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'sqlite-dyn-theme';
+        document.head.appendChild(styleEl);
+      }
+      styleEl.textContent = \`
+        .btn-primary, .qbe-btn-run, .btn-highlight {
+          background: \${t.accent} !important;
+          color: \${t.btnColor} !important;
+          border-color: \${t.accent} !important;
+          box-shadow: 0 0 10px \${t.accentGlow} !important;
+        }
+        .btn-primary:hover, .qbe-btn-run:hover, .btn-highlight:hover {
+          filter: brightness(1.15) !important;
+        }
+        .qbe-view-btn.active, .qbe-btn-toggle.active {
+          background: \${t.accent} !important;
+          color: \${t.btnColor} !important;
+          border-color: \${t.accent} !important;
+        }
+      \`;
+      const sel = document.getElementById('ddStudioTheme');
+      if (sel && sel.value !== themeName) sel.value = themeName;
+    };
+
     window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const savedTheme = localStorage.getItem('sqlite_studio_theme') || 'midnight';
+        applySqliteStudioTheme(savedTheme);
+      } catch(e) {}
       initPresets();
       initSidebarResizer();
       queryDesignerState.savedQueries = loadSavedQueriesFromStorage();

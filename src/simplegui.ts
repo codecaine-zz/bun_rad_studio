@@ -517,6 +517,36 @@ export function shouldPersistControl(ctrl: any): boolean {
 }
 export const should_persist_control = shouldPersistControl;
 
+export function isBrightColor(hex?: string): boolean {
+    if (!hex || typeof hex !== "string" || !hex.startsWith("#")) return false;
+    const clean = hex.slice(1);
+    let r = 0, g = 0, b = 0;
+    if (clean.length === 3) {
+        r = parseInt(clean[0] + clean[0], 16);
+        g = parseInt(clean[1] + clean[1], 16);
+        b = parseInt(clean[2] + clean[2], 16);
+    } else if (clean.length >= 6) {
+        r = parseInt(clean.slice(0, 2), 16);
+        g = parseInt(clean.slice(2, 4), 16);
+        b = parseInt(clean.slice(4, 6), 16);
+    } else {
+        return false;
+    }
+    return (r * 0.299 + g * 0.587 + b * 0.114) > 180;
+}
+export const is_bright_color = isBrightColor;
+
+export function isBrightAccentColor(hex?: string): boolean {
+    if (!hex) return false;
+    const lower = hex.toLowerCase();
+    const brights = new Set([
+        "#0fb36a", "#30d158", "#00ff00", "#00ff41", "#4ade80",
+        "#8bac0f", "#ffb000", "#ff9900", "#ffff00", "#00d2c4", "#ff8800"
+    ]);
+    return brights.has(lower) || isBrightColor(hex);
+}
+export const is_bright_accent_color = isBrightAccentColor;
+
 export class SimpleWindow {
     public title: string;
     public width: number;
@@ -590,18 +620,37 @@ export class SimpleWindow {
             saveTheme(themeName);
         }
 
+        const themeObj = getTheme(themeName);
+        const isLight = !themeObj.is_dark;
+        const btnBg = colors.accent;
+        const isBrightAccent = isBrightAccentColor(btnBg);
+        const btnFg = isBrightAccent ? "#000000" : "#ffffff";
+
+        for (const ctrl of this.controls) {
+            const type = ctrl.control_type || ctrl.type;
+            if (type === "button" && !ctrl.custom_background) {
+                ctrl.background_color = btnBg;
+                if (!ctrl.custom_color) {
+                    ctrl.font_color = btnFg;
+                }
+            } else if (type === "split_button" && !ctrl.custom_background) {
+                ctrl.background_color = btnBg;
+            }
+        }
+
         if (this.isWindowRunning) {
-            const themeObj = getTheme(themeName);
-            const isLight = !themeObj.is_dark;
             const isCf = themeName.toLowerCase() === "codefreelance";
             const fieldsetBg = isCf ? "rgba(18, 18, 18, 0.75)" : (isLight ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.03)");
-            const fieldsetBorder = isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.12)");
-            const cardBg = isCf ? "#121212" : (isLight ? "#ffffff" : "#1e293b");
+            const fieldsetBorder = themeObj.card_border || (isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.12)"));
+            const cardBg = themeObj.card_background || (isCf ? "#121212" : (isLight ? "#ffffff" : "#1e293b"));
             const inputBg = isLight ? "#ffffff" : (isCf ? "#0f0f0f" : "rgba(0, 0, 0, 0.25)");
             const inputBorder = isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.18)");
 
             this.evalJS(`
                 (function() {
+                    document.documentElement.style.setProperty('--accent', '${colors.accent}');
+                    document.documentElement.style.setProperty('--btn-bg', '${btnBg}');
+                    document.documentElement.style.setProperty('--btn-fg', '${btnFg}');
                     document.body.style.backgroundColor = "${colors.bg}";
                     document.body.style.color = "${colors.fg}";
                     let styleEl = document.getElementById("simplegui-theme-dyn");
@@ -611,6 +660,11 @@ export class SimpleWindow {
                         document.head.appendChild(styleEl);
                     }
                     styleEl.textContent = \`
+                        :root {
+                            --accent: ${colors.accent};
+                            --btn-bg: ${btnBg};
+                            --btn-fg: ${btnFg};
+                        }
                         body { background-color: ${colors.bg} !important; color: ${colors.fg} !important; }
                         fieldset { background-color: ${fieldsetBg} !important; border-color: ${fieldsetBorder} !important; }
                         legend { color: ${colors.accent} !important; }
@@ -634,11 +688,30 @@ export class SimpleWindow {
                         select:not([size]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
                         select:not([size]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
                         select option {
-                            background-color: ${themeName === 'codefreelance' ? '#121212' : (isLight ? '#ffffff' : '#1e293b')} !important;
+                            background-color: ${themeObj.card_background || (isCf ? '#121212' : (isLight ? '#ffffff' : '#1e293b'))} !important;
                             color: ${colors.fg} !important;
                         }
                         :focus-visible { outline-color: ${colors.accent} !important; }
+                        button.btn-theme-accent,
+                        button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]) {
+                            background: ${btnBg} !important;
+                            background-color: ${btnBg} !important;
+                            color: ${btnFg} !important;
+                        }
+                        button.btn-theme-accent:hover,
+                        button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]):hover {
+                            filter: brightness(1.15) !important;
+                        }
+                        #simplegui-dialog-ok {
+                            background: ${btnBg} !important;
+                            color: ${btnFg} !important;
+                        }
                     \`;
+                    document.querySelectorAll('button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num])').forEach(function(b) {
+                        b.style.background = '${btnBg}';
+                        b.style.backgroundColor = '${btnBg}';
+                        b.style.color = '${btnFg}';
+                    });
                 })();
             `);
         }
@@ -1058,8 +1131,10 @@ export class SimpleWindow {
             opts = textOrOnClick;
         }
 
+        const hasCustomBg = !!opts.background_color;
+        const hasCustomFg = !!opts.font_color;
         const defaultBtnBg = opts.background_color || this.accentColor || "#0284c7";
-        const isBrightGreen = defaultBtnBg === "#0fb36a" || defaultBtnBg === "#30d158" || defaultBtnBg === "#00ff00" || defaultBtnBg === "#4ade80";
+        const isBrightGreen = isBrightAccentColor(defaultBtnBg);
         const defaultBtnFg = opts.font_color || (isBrightGreen ? "#000000" : "#ffffff");
         const ctrlOpts: Record<string, any> = {
             text,
@@ -1069,12 +1144,19 @@ export class SimpleWindow {
             font_weight: "700",
             border_radius: 6,
             cursor: "pointer",
+            custom_background: hasCustomBg,
+            custom_color: hasCustomFg,
+            _isThemeAccent: !hasCustomBg,
             ...opts
         };
         if (explicitId) ctrlOpts.id = explicitId;
         const ref = this.addVisualControl("button", 140, 36, ctrlOpts);
         if (onClick) ref.onClick(onClick);
         return ref;
+    }
+
+    public add_button(idOrText: string, textOrOnClick?: string | EventCallback, onClickOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+        return this.addButton(idOrText, textOrOnClick, onClickOrOpts, optsArg);
     }
 
     public addTextInput(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
@@ -1221,6 +1303,8 @@ export class SimpleWindow {
                     opts = optsArg;
                 } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
                     opts = onChangeOrOpts;
+                } else if (typeof optsArg === "object" && optsArg !== null) {
+                    opts = optsArg;
                 }
             }
         } else if (Array.isArray(idOrItems)) {
@@ -1250,7 +1334,7 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addThemeSelector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 160): SimpleControlRef {
+    public addThemeSelector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 160, autoShortNames = true): SimpleControlRef {
         const popularThemes = [
             "sonoma_emerald",
             "codefreelance",
@@ -1260,17 +1344,39 @@ export class SimpleWindow {
             "nord",
             "cyberpunk",
             "apple_light",
-            "github_dark"
+            "github_dark",
+            "win95",
+            "gameboy",
+            "c64",
+            "synthwave",
+            "mac_classic",
+            "amber_crt",
+            "matrix",
+            "amiga"
         ];
-        const allThemes = Object.keys(SIMPLEGUI_THEMES);
-        const themeList = popularOnly ? popularThemes : allThemes;
+        const canonicalKeys = [
+            "sonoma_emerald", "codefreelance", "apple_dark", "midnight", "apple_light",
+            "dracula", "nord", "cyberpunk", "github_dark", "github_light",
+            "solarized_dark", "solarized_light", "navy_blue", "forest_green",
+            "apple_sunset", "ventura_amber", "soft_pastel", "catppuccin",
+            "win95", "gameboy", "c64", "mac_classic", "amber_crt", "matrix",
+            "synthwave", "amiga", "nextstep", "mac_os_aqua", "hotdog_stand", "playstation"
+        ];
+        const allThemes = canonicalKeys.filter(k => SIMPLEGUI_THEMES[k]);
+        const themeList = popularOnly ? popularThemes : (allThemes.length > 0 ? allThemes : Object.keys(SIMPLEGUI_THEMES));
 
         if (label && label.length > 0) {
             this.addLabel("lbl_" + id, label);
         }
 
         const initialTheme = themeList.includes(this.theme) ? this.theme : (themeList[0] || "sonoma_emerald");
-        const ref = this.addDropdown(id, themeList, initialTheme);
+        
+        const itemLabels: Record<string, string> = {};
+        for (const k of themeList) {
+            itemLabels[k] = autoShortNames ? autoShortThemeName(k) : (SIMPLEGUI_THEMES[k]?.name || k);
+        }
+
+        const ref = this.addDropdown(id, themeList, initialTheme, { item_labels: itemLabels });
         if (width > 0) {
             ref.width(width);
         }
@@ -1282,14 +1388,15 @@ export class SimpleWindow {
                 if (w.autoSaveState) {
                     w.saveAppFormStateOr();
                 }
-                w.toast(`Theme updated to: ${chosen}`);
+                const display = autoShortNames ? autoShortThemeName(chosen) : chosen;
+                w.toast(`Theme updated to: ${display}`);
             }
         });
 
         return ref;
     }
-    public add_theme_selector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 135): SimpleControlRef {
-        return this.addThemeSelector(id, label, popularOnly, width);
+    public add_theme_selector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 135, autoShortNames = true): SimpleControlRef {
+        return this.addThemeSelector(id, label, popularOnly, width, autoShortNames);
     }
 
     public addListBox(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
@@ -3142,6 +3249,14 @@ export class SimpleWindow {
     }
 
     public to_html(): string {
+        return this.generateHtml();
+    }
+
+    public getHtml(): string {
+        return this.generateHtml();
+    }
+
+    public get_html(): string {
         return this.generateHtml();
     }
 
@@ -5963,6 +6078,7 @@ export class SimpleWindow {
 // Production Theme Specification Lookup Table
 export interface SimpleGUITheme {
     name: string;
+    short_name?: string;
     background_color: string;
     font_color: string;
     accent_color: string;
@@ -5976,6 +6092,7 @@ export interface SimpleGUITheme {
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     "codefreelance": {
         name: "CodeFreelance",
+        short_name: "CodeFreelance",
         background_color: "#050505",
         font_color: "#ffffff",
         accent_color: "#0fb36a",
@@ -5987,6 +6104,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     },
     "code_freelance": {
         name: "CodeFreelance",
+        short_name: "CodeFreelance",
         background_color: "#050505",
         font_color: "#ffffff",
         accent_color: "#0fb36a",
@@ -5996,28 +6114,345 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         description: "Official CodeFreelance dark theme: #050505 obsidian canvas, #121212 cards, #0fb36a neon emerald green & #bd00ff purple accents (codefreelance.net)",
         is_dark: true
     },
-    "apple_light": { name: "Apple Light", background_color: "#ffffff", font_color: "#1c1c1e", accent_color: "#007aff", description: "Clean macOS Aqua light canvas", is_dark: false },
-    "apple_dark": { name: "Apple Dark", background_color: "#1c1c1e", font_color: "#f2f2f7", accent_color: "#0a84ff", description: "Vibrant macOS Dark Mode surface", is_dark: true },
-    "midnight": { name: "Midnight Space Gray", background_color: "#161618", font_color: "#ebebf5", accent_color: "#0a84ff", description: "Pro dark titanium space gray theme", is_dark: true },
-    "apple_sunset": { name: "Apple Sunset", background_color: "#281a24", font_color: "#fdf7f4", accent_color: "#ff6b00", description: "Warm macOS Mojave twilight sunset hues", is_dark: true },
-    "sonoma_emerald": { name: "Sonoma Emerald", background_color: "#0d1f18", font_color: "#f0fdf4", accent_color: "#30d158", description: "macOS Sonoma dark forest glass palette", is_dark: true },
-    "ventura_amber": { name: "Ventura Amber", background_color: "#211815", font_color: "#fff8f0", accent_color: "#ff9500", description: "macOS Ventura golden sunset dark hues", is_dark: true },
-    "soft_pastel": { name: "Soft Pastel", background_color: "#faf6f0", font_color: "#2d2b2a", accent_color: "#e07a5f", description: "Apple Studio warm soft light theme", is_dark: false },
-    "catppuccin": { name: "Catppuccin Mocha", background_color: "#1e1e2e", font_color: "#cdd6f4", accent_color: "#cba6f7", description: "Soothing lavender catppuccin dark mode", is_dark: true },
-    "nord": { name: "Nord", background_color: "#2e3440", font_color: "#eceff4", accent_color: "#88c0d0", description: "Arctic frost nord developer palette", is_dark: true },
-    "dracula": { name: "Dracula", background_color: "#282a36", font_color: "#f8f8f2", accent_color: "#bd93f9", description: "High-contrast vampire purple palette", is_dark: true },
-    "cyberpunk": { name: "Cyberpunk", background_color: "#0d0d15", font_color: "#00f5d4", accent_color: "#ff007f", description: "Neon glow dark contrast palette", is_dark: true },
-    "solarized_light": { name: "Solarized Light", background_color: "#fdf6e3", font_color: "#657b83", accent_color: "#268bd2", description: "Precision engineered light palette", is_dark: false },
-    "solarized_dark": { name: "Solarized Dark", background_color: "#002b36", font_color: "#839496", accent_color: "#2aa198", description: "Precision engineered dark palette", is_dark: true },
-    "github_dark": { name: "GitHub Dark", background_color: "#0d1117", font_color: "#c9d1d9", accent_color: "#58a6ff", description: "Official GitHub dark interface palette", is_dark: true },
-    "github_light": { name: "GitHub Light", background_color: "#ffffff", font_color: "#24292f", accent_color: "#0969da", description: "Clean GitHub light canvas palette", is_dark: false },
-    "navy_blue": { name: "Navy Blue", background_color: "#0f172a", font_color: "#f8fafc", accent_color: "#38bdf8", description: "Deep slate navy dark theme", is_dark: true },
-    "forest_green": { name: "Forest Green", background_color: "#14532d", font_color: "#f0fdf4", accent_color: "#4ade80", description: "Rich emerald green dark theme", is_dark: true }
+    "apple_light": { name: "Apple Light", short_name: "Light", background_color: "#ffffff", font_color: "#1c1c1e", accent_color: "#007aff", description: "Clean macOS Aqua light canvas", is_dark: false },
+    "apple_dark": { name: "Apple Dark", short_name: "Dark", background_color: "#1c1c1e", font_color: "#f2f2f7", accent_color: "#0a84ff", description: "Vibrant macOS Dark Mode surface", is_dark: true },
+    "midnight": { name: "Midnight Space Gray", short_name: "Midnight", background_color: "#161618", font_color: "#ebebf5", accent_color: "#0a84ff", description: "Pro dark titanium space gray theme", is_dark: true },
+    "apple_sunset": { name: "Apple Sunset", short_name: "Sunset", background_color: "#281a24", font_color: "#fdf7f4", accent_color: "#ff6b00", description: "Warm macOS Mojave twilight sunset hues", is_dark: true },
+    "sonoma_emerald": { name: "Sonoma Emerald", short_name: "Emerald", background_color: "#0d1f18", font_color: "#f0fdf4", accent_color: "#30d158", description: "macOS Sonoma dark forest glass palette", is_dark: true },
+    "ventura_amber": { name: "Ventura Amber", short_name: "Ventura", background_color: "#211815", font_color: "#fff8f0", accent_color: "#ff9500", description: "macOS Ventura golden sunset dark hues", is_dark: true },
+    "soft_pastel": { name: "Soft Pastel", short_name: "Pastel", background_color: "#faf6f0", font_color: "#2d2b2a", accent_color: "#e07a5f", description: "Apple Studio warm soft light theme", is_dark: false },
+    "catppuccin": { name: "Catppuccin Mocha", short_name: "Catppuccin", background_color: "#1e1e2e", font_color: "#cdd6f4", accent_color: "#cba6f7", description: "Soothing lavender catppuccin dark mode", is_dark: true },
+    "nord": { name: "Nord", short_name: "Nord", background_color: "#2e3440", font_color: "#eceff4", accent_color: "#88c0d0", description: "Arctic frost nord developer palette", is_dark: true },
+    "dracula": { name: "Dracula", short_name: "Dracula", background_color: "#282a36", font_color: "#f8f8f2", accent_color: "#bd93f9", description: "High-contrast vampire purple palette", is_dark: true },
+    "cyberpunk": { name: "Cyberpunk", short_name: "Cyberpunk", background_color: "#0d0d15", font_color: "#00f5d4", accent_color: "#ff007f", description: "Neon glow dark contrast palette", is_dark: true },
+    "solarized_light": { name: "Solarized Light", short_name: "Solar Light", background_color: "#fdf6e3", font_color: "#657b83", accent_color: "#268bd2", description: "Precision engineered light palette", is_dark: false },
+    "solarized_dark": { name: "Solarized Dark", short_name: "Solar Dark", background_color: "#002b36", font_color: "#839496", accent_color: "#2aa198", description: "Precision engineered dark palette", is_dark: true },
+    "github_dark": { name: "GitHub Dark", short_name: "GitHub Dark", background_color: "#0d1117", font_color: "#c9d1d9", accent_color: "#58a6ff", description: "Official GitHub dark interface palette", is_dark: true },
+    "github_light": { name: "GitHub Light", short_name: "GitHub Light", background_color: "#ffffff", font_color: "#24292f", accent_color: "#0969da", description: "Clean GitHub light canvas palette", is_dark: false },
+    "navy_blue": { name: "Navy Blue", short_name: "Navy", background_color: "#0f172a", font_color: "#f8fafc", accent_color: "#38bdf8", description: "Deep slate navy dark theme", is_dark: true },
+    "forest_green": { name: "Forest Green", short_name: "Forest", background_color: "#14532d", font_color: "#f0fdf4", accent_color: "#4ade80", description: "Rich emerald green dark theme", is_dark: true },
+
+    // Nostalgic & Retro Themes ("Bring Back Memories")
+    "win95": {
+        name: "Windows 95",
+        short_name: "Win95",
+        background_color: "#008080",
+        font_color: "#000000",
+        accent_color: "#000080",
+        secondary_accent: "#c0c0c0",
+        card_background: "#c0c0c0",
+        card_border: "#808080",
+        description: "Iconic Windows 95 classic teal desktop with silver 3D beveled cards and titlebar navy",
+        is_dark: false
+    },
+    "windows_95": {
+        name: "Windows 95",
+        short_name: "Win95",
+        background_color: "#008080",
+        font_color: "#000000",
+        accent_color: "#000080",
+        secondary_accent: "#c0c0c0",
+        card_background: "#c0c0c0",
+        card_border: "#808080",
+        description: "Iconic Windows 95 classic teal desktop with silver 3D beveled cards and titlebar navy",
+        is_dark: false
+    },
+    "gameboy": {
+        name: "Game Boy 1989",
+        short_name: "Game Boy",
+        background_color: "#0f380f",
+        font_color: "#9bbc0f",
+        accent_color: "#8bac0f",
+        secondary_accent: "#306230",
+        card_background: "#1c4a1c",
+        card_border: "#306230",
+        description: "Nostalgic 4-shade monochrome dot matrix Game Boy DMG-01 screen",
+        is_dark: true
+    },
+    "game_boy": {
+        name: "Game Boy 1989",
+        short_name: "Game Boy",
+        background_color: "#0f380f",
+        font_color: "#9bbc0f",
+        accent_color: "#8bac0f",
+        secondary_accent: "#306230",
+        card_background: "#1c4a1c",
+        card_border: "#306230",
+        description: "Nostalgic 4-shade monochrome dot matrix Game Boy DMG-01 screen",
+        is_dark: true
+    },
+    "c64": {
+        name: "Commodore 64",
+        short_name: "C64",
+        background_color: "#40318d",
+        font_color: "#7974ff",
+        accent_color: "#7974ff",
+        secondary_accent: "#a09eff",
+        card_background: "#281b5c",
+        card_border: "#5848aa",
+        description: "Legendary 1982 Commodore 64 READY prompt and VIC-II blue palette",
+        is_dark: true
+    },
+    "commodore_64": {
+        name: "Commodore 64",
+        short_name: "C64",
+        background_color: "#40318d",
+        font_color: "#7974ff",
+        accent_color: "#7974ff",
+        secondary_accent: "#a09eff",
+        card_background: "#281b5c",
+        card_border: "#5848aa",
+        description: "Legendary 1982 Commodore 64 READY prompt and VIC-II blue palette",
+        is_dark: true
+    },
+    "mac_classic": {
+        name: "Macintosh System 7",
+        short_name: "System 7",
+        background_color: "#ebe7df",
+        font_color: "#1c1b18",
+        accent_color: "#5555aa",
+        secondary_accent: "#ded9cf",
+        card_background: "#ffffff",
+        card_border: "#a8a49c",
+        description: "Vintage 1991 System 7 Platinum desktop with Chicago typography and pinstripe accents",
+        is_dark: false
+    },
+    "system7": {
+        name: "Macintosh System 7",
+        short_name: "System 7",
+        background_color: "#ebe7df",
+        font_color: "#1c1b18",
+        accent_color: "#5555aa",
+        secondary_accent: "#ded9cf",
+        card_background: "#ffffff",
+        card_border: "#a8a49c",
+        description: "Vintage 1991 System 7 Platinum desktop with Chicago typography and pinstripe accents",
+        is_dark: false
+    },
+    "amber_crt": {
+        name: "Phosphor Amber CRT",
+        short_name: "Amber CRT",
+        background_color: "#0a0600",
+        font_color: "#ffb000",
+        accent_color: "#ffb000",
+        secondary_accent: "#ff9000",
+        card_background: "#160d00",
+        card_border: "#472800",
+        description: "Warm VT220 / Pip-Boy amber phosphor monochrome terminal cathode glow",
+        is_dark: true
+    },
+    "vt220": {
+        name: "Phosphor Amber CRT",
+        short_name: "Amber CRT",
+        background_color: "#0a0600",
+        font_color: "#ffb000",
+        accent_color: "#ffb000",
+        secondary_accent: "#ff9000",
+        card_background: "#160d00",
+        card_border: "#472800",
+        description: "Warm VT220 / Pip-Boy amber phosphor monochrome terminal cathode glow",
+        is_dark: true
+    },
+    "matrix": {
+        name: "Matrix Phosphor",
+        short_name: "Matrix",
+        background_color: "#040a05",
+        font_color: "#00ff66",
+        accent_color: "#00ff41",
+        secondary_accent: "#03a628",
+        card_background: "#08140a",
+        card_border: "#123d18",
+        description: "Iconic 1999 digital rain phosphor green mainframe terminal",
+        is_dark: true
+    },
+    "green_crt": {
+        name: "Matrix Phosphor",
+        short_name: "Matrix",
+        background_color: "#040a05",
+        font_color: "#00ff66",
+        accent_color: "#00ff41",
+        secondary_accent: "#03a628",
+        card_background: "#08140a",
+        card_border: "#123d18",
+        description: "Iconic 1999 digital rain phosphor green mainframe terminal",
+        is_dark: true
+    },
+    "synthwave": {
+        name: "Synthwave '84",
+        short_name: "Synthwave",
+        background_color: "#130924",
+        font_color: "#fce7f3",
+        accent_color: "#ff2a85",
+        secondary_accent: "#05d9e8",
+        card_background: "#22113d",
+        card_border: "#5c2494",
+        description: "1980s neon synthwave, sunset magenta grid, and retro arcade glow",
+        is_dark: true
+    },
+    "outrun": {
+        name: "Synthwave '84",
+        short_name: "Synthwave",
+        background_color: "#130924",
+        font_color: "#fce7f3",
+        accent_color: "#ff2a85",
+        secondary_accent: "#05d9e8",
+        card_background: "#22113d",
+        card_border: "#5c2494",
+        description: "1980s neon synthwave, sunset magenta grid, and retro arcade glow",
+        is_dark: true
+    },
+    "amiga": {
+        name: "Amiga Workbench",
+        short_name: "Amiga",
+        background_color: "#0055aa",
+        font_color: "#ffffff",
+        accent_color: "#ff8800",
+        secondary_accent: "#003b77",
+        card_background: "#003870",
+        card_border: "#0077ee",
+        description: "Retro Amiga 500 Workbench 1.3 royal blue, orange buttons, and Topaz white",
+        is_dark: true
+    },
+    "workbench": {
+        name: "Amiga Workbench",
+        short_name: "Amiga",
+        background_color: "#0055aa",
+        font_color: "#ffffff",
+        accent_color: "#ff8800",
+        secondary_accent: "#003b77",
+        card_background: "#003870",
+        card_border: "#0077ee",
+        description: "Retro Amiga 500 Workbench 1.3 royal blue, orange buttons, and Topaz white",
+        is_dark: true
+    },
+    "nextstep": {
+        name: "NeXTSTEP 1989",
+        short_name: "NeXTSTEP",
+        background_color: "#262626",
+        font_color: "#dedede",
+        accent_color: "#4a90e2",
+        secondary_accent: "#707070",
+        card_background: "#333333",
+        card_border: "#4d4d4d",
+        description: "Steve Jobs 1989 NeXTSTEP UNIX workstation dark minimalist elegance",
+        is_dark: true
+    },
+    "mac_os_aqua": {
+        name: "Mac OS X Aqua",
+        short_name: "OS X Aqua",
+        background_color: "#e6ebed",
+        font_color: "#1d2429",
+        accent_color: "#0076fe",
+        secondary_accent: "#ffffff",
+        card_background: "#ffffff",
+        card_border: "#bac7cd",
+        description: "Early 2001 OS X Cheetah glossy gel buttons and brushed pinstripes",
+        is_dark: false
+    },
+    "aqua_os_x": {
+        name: "Mac OS X Aqua",
+        short_name: "OS X Aqua",
+        background_color: "#e6ebed",
+        font_color: "#1d2429",
+        accent_color: "#0076fe",
+        secondary_accent: "#ffffff",
+        card_background: "#ffffff",
+        card_border: "#bac7cd",
+        description: "Early 2001 OS X Cheetah glossy gel buttons and brushed pinstripes",
+        is_dark: false
+    },
+    "hotdog_stand": {
+        name: "Hot Dog Stand",
+        short_name: "Hot Dog",
+        background_color: "#000000",
+        font_color: "#ffffff",
+        accent_color: "#ff0000",
+        secondary_accent: "#ffff00",
+        card_background: "#1c0000",
+        card_border: "#ffff00",
+        description: "Unforgettable Windows 3.1 1992 Hot Dog Stand high-contrast yellow & red",
+        is_dark: true
+    },
+    "playstation": {
+        name: "PlayStation 1994",
+        short_name: "PlayStation",
+        background_color: "#1e1e24",
+        font_color: "#e4e5eb",
+        accent_color: "#00d2c4",
+        secondary_accent: "#f44336",
+        card_background: "#2a2b34",
+        card_border: "#3f414f",
+        description: "1994 PSX console grey with iconic geometric controller accents",
+        is_dark: true
+    },
+    "psx": {
+        name: "PlayStation 1994",
+        short_name: "PlayStation",
+        background_color: "#1e1e24",
+        font_color: "#e4e5eb",
+        accent_color: "#00d2c4",
+        secondary_accent: "#f44336",
+        card_background: "#2a2b34",
+        card_border: "#3f414f",
+        description: "1994 PSX console grey with iconic geometric controller accents",
+        is_dark: true
+    }
 };
 
-export function listThemes(): string[] {
-    return Object.values(SIMPLEGUI_THEMES).map(t => t.name);
+export function autoShortThemeName(themeNameOrKey: string): string {
+    if (!themeNameOrKey || typeof themeNameOrKey !== "string") return "";
+    const trimmed = themeNameOrKey.trim();
+    const key = trimmed.toLowerCase().replace(/[\s\-_]+/g, "_");
+
+    if (SIMPLEGUI_THEMES[key]?.short_name) {
+        return SIMPLEGUI_THEMES[key]!.short_name!;
+    }
+    for (const t of Object.values(SIMPLEGUI_THEMES)) {
+        if (t.name.toLowerCase() === trimmed.toLowerCase() && t.short_name) {
+            return t.short_name;
+        }
+    }
+
+    let shortName = trimmed
+        .replace(/\b(?:Space Gray|Mocha|Phosphor|Monochrome|Palette|Terminal|Classic|Workstation)\b/gi, "")
+        .replace(/\b(?:1982|1987|1989|1991|1992|1994|1999|2001|'84)\b/gi, "")
+        .replace(/\bMacintosh\s+System\b/gi, "System")
+        .replace(/\bWindows\s+95\b/gi, "Win95")
+        .replace(/\bCommodore\s+64\b/gi, "C64")
+        .replace(/\bSonoma\s+Emerald\b/gi, "Emerald")
+        .replace(/\bVentura\s+Amber\b/gi, "Ventura")
+        .replace(/\bSoft\s+Pastel\b/gi, "Pastel")
+        .replace(/\bHot\s+Dog\s+Stand\b/gi, "Hot Dog")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (!shortName) {
+        shortName = key.split("_")[0] || trimmed;
+        shortName = shortName.charAt(0).toUpperCase() + shortName.slice(1);
+    }
+    return shortName;
 }
+export const auto_short_theme_name = autoShortThemeName;
+export const getShortThemeName = autoShortThemeName;
+export const get_short_theme_name = autoShortThemeName;
+
+export function listThemes(): string[] {
+    return Array.from(new Set(Object.values(SIMPLEGUI_THEMES).map(t => t.name)));
+}
+
+export function listShortThemes(): string[] {
+    const seen = new Set<string>();
+    const res: string[] = [];
+    for (const t of Object.values(SIMPLEGUI_THEMES)) {
+        const s = t.short_name || autoShortThemeName(t.name);
+        if (!seen.has(s)) {
+            seen.add(s);
+            res.push(s);
+        }
+    }
+    return res;
+}
+export const list_short_themes = listShortThemes;
 
 export function getThemeKeys(): string[] {
     return Object.keys(SIMPLEGUI_THEMES);
@@ -6027,8 +6462,21 @@ export function get_theme_keys(): string[] {
 }
 
 export function getTheme(themeName: string): SimpleGUITheme {
+    if (!themeName) return SIMPLEGUI_THEMES["apple_light"]!;
     const key = themeName.toLowerCase().replace(/[\s\-_]+/g, "_");
-    return SIMPLEGUI_THEMES[key] || SIMPLEGUI_THEMES["apple_light"]!;
+    if (SIMPLEGUI_THEMES[key]) return SIMPLEGUI_THEMES[key]!;
+
+    const lower = themeName.toLowerCase().trim();
+    for (const t of Object.values(SIMPLEGUI_THEMES)) {
+        if (t.short_name && (t.short_name.toLowerCase() === lower || t.short_name.toLowerCase().replace(/[\s\-_]+/g, "_") === key)) {
+            return t;
+        }
+        if (t.name.toLowerCase() === lower || t.name.toLowerCase().replace(/[\s\-_]+/g, "_") === key) {
+            return t;
+        }
+    }
+
+    return SIMPLEGUI_THEMES["apple_light"]!;
 }
 
 // OS Path Utilities

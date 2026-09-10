@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { simplegui, SimpleWindow, createWindow, listThemes, getTheme, saveTheme, homeDir, documentsDir } from "../index.ts";
+import { simplegui, SimpleWindow, createWindow, listThemes, getTheme, saveTheme, homeDir, documentsDir, autoShortThemeName, listShortThemes, isBrightAccentColor } from "../index.ts";
 
 describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
 
@@ -338,17 +338,50 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(themeKeys).toContain("apple_light");
         expect(themeKeys).toContain("midnight");
 
-        // Add theme selector
+        // Add theme selector and buttons
         const selectorRef = win.addThemeSelector("dd_theme", "Theme:", false);
         expect(selectorRef.spec.id).toBe("dd_theme");
         expect(win.getValue("dd_theme")).toBe("apple_dark");
 
-        // Simulate theme change to codefreelance
+        const themeBtn = win.addButton("btn_theme", "Theme Button");
+        const aliasBtn = win.add_button("btn_alias", "Alias Button");
+        const customBtn = win.addButton("btn_custom", "Delete", { background_color: "#ef4444", font_color: "#ffffff" });
+
+        // Initially in apple_dark (#0a84ff)
+        expect(themeBtn.spec.background_color).toBe("#0a84ff");
+        expect(aliasBtn.spec.background_color).toBe("#0a84ff");
+        expect(customBtn.spec.background_color).toBe("#ef4444");
+
+        // Simulate theme change to codefreelance (#0fb36a neon emerald)
         win.setTheme("codefreelance", true);
         expect(win.theme).toBe("codefreelance");
         expect(win.backgroundColor).toBe("#050505");
         expect(win.fontColor).toBe("#ffffff");
         expect(win.accentColor).toBe("#0fb36a");
+
+        // Standard buttons MUST update to CodeFreelance accent (#0fb36a) and bold black text (#000000)
+        expect(themeBtn.spec.background_color).toBe("#0fb36a");
+        expect(themeBtn.spec.font_color).toBe("#000000");
+        expect(aliasBtn.spec.background_color).toBe("#0fb36a");
+        expect(aliasBtn.spec.font_color).toBe("#000000");
+
+        // Custom colored buttons MUST preserve their custom color
+        expect(customBtn.spec.background_color).toBe("#ef4444");
+
+        // Switch to dracula (#bd93f9)
+        win.setTheme("dracula", false);
+        expect(themeBtn.spec.background_color).toBe("#bd93f9");
+        expect(themeBtn.spec.font_color).toBe("#ffffff");
+        expect(customBtn.spec.background_color).toBe("#ef4444");
+
+        // Verify HTML generated reflects theme variables & classes
+        const html = win.generateHtml();
+        expect(html).toContain("--btn-bg: #bd93f9;");
+        expect(html).toContain("btn-theme-accent");
+        expect(html).toContain('data-custom-bg="true"');
+
+        // Restore codefreelance for subsequent tests
+        win.setTheme("codefreelance", true);
 
         // Save form state and ensure __win_theme is preserved
         win.saveAppFormState("theme_selector_test");
@@ -363,6 +396,108 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(newWin.getValue("dd_theme")).toBe("codefreelance");
         newWin.clearAppFormState("theme_selector_test");
         saveTheme("sonoma_emerald");
+    });
+
+    test("9b. Nostalgic Special Themes & Auto Short Theme Names (win95, gameboy, c64, matrix, amber_crt, synthwave)", () => {
+        // 1. Check existence of nostalgic themes
+        const themes = listThemes();
+        expect(themes).toContain("Windows 95");
+        expect(themes).toContain("Game Boy 1989");
+        expect(themes).toContain("Commodore 64");
+        expect(themes).toContain("Phosphor Amber CRT");
+        expect(themes).toContain("Matrix Phosphor");
+        expect(themes).toContain("Synthwave '84");
+        expect(themes).toContain("Amiga Workbench");
+        expect(themes).toContain("Macintosh System 7");
+        expect(themes).toContain("Mac OS X Aqua");
+        expect(themes).toContain("NeXTSTEP 1989");
+        expect(themes).toContain("PlayStation 1994");
+        expect(themes).toContain("Hot Dog Stand");
+
+        // 2. Test auto short theme names
+        expect(autoShortThemeName("win95")).toBe("Win95");
+        expect(autoShortThemeName("Windows 95")).toBe("Win95");
+        expect(autoShortThemeName("gameboy")).toBe("Game Boy");
+        expect(autoShortThemeName("c64")).toBe("C64");
+        expect(autoShortThemeName("Commodore 64")).toBe("C64");
+        expect(autoShortThemeName("Phosphor Amber CRT")).toBe("Amber CRT");
+        expect(autoShortThemeName("Matrix Phosphor")).toBe("Matrix");
+        expect(autoShortThemeName("Synthwave '84")).toBe("Synthwave");
+        expect(autoShortThemeName("Sonoma Emerald")).toBe("Emerald");
+        expect(autoShortThemeName("Apple Dark")).toBe("Dark");
+        expect(autoShortThemeName("Midnight Space Gray")).toBe("Midnight");
+
+        const shortThemes = listShortThemes();
+        expect(shortThemes).toContain("Win95");
+        expect(shortThemes).toContain("Game Boy");
+        expect(shortThemes).toContain("C64");
+        expect(shortThemes).toContain("Amber CRT");
+        expect(shortThemes).toContain("Matrix");
+        expect(shortThemes).toContain("Synthwave");
+
+        // 3. getTheme resolution by key, alias, and short name
+        expect(getTheme("win95").name).toBe("Windows 95");
+        expect(getTheme("windows_95").name).toBe("Windows 95");
+        expect(getTheme("Win95").name).toBe("Windows 95");
+        expect(getTheme("gameboy").name).toBe("Game Boy 1989");
+        expect(getTheme("Game Boy").name).toBe("Game Boy 1989");
+        expect(getTheme("c64").name).toBe("Commodore 64");
+        expect(getTheme("C64").name).toBe("Commodore 64");
+        expect(getTheme("amber_crt").name).toBe("Phosphor Amber CRT");
+        expect(getTheme("Amber CRT").name).toBe("Phosphor Amber CRT");
+        expect(getTheme("matrix").name).toBe("Matrix Phosphor");
+        expect(getTheme("Matrix").name).toBe("Matrix Phosphor");
+
+        // 4. Test dynamic button contrast when switching to nostalgic themes
+        const win = createWindow("Retro Theme Test", 800, 600, { theme: "win95" });
+        const btn = win.addButton("btn_retro", "Start");
+        expect(win.theme).toBe("win95");
+        expect(win.accentColor).toBe("#000080"); // Classic Win95 Titlebar Navy
+        expect(btn.spec.background_color).toBe("#000080");
+        expect(btn.spec.font_color).toBe("#ffffff");
+
+        // Switch to Game Boy: lime accent #8bac0f with black font contrast
+        win.setTheme("gameboy", false);
+        expect(win.theme).toBe("gameboy");
+        expect(win.accentColor).toBe("#8bac0f");
+        expect(btn.spec.background_color).toBe("#8bac0f");
+        expect(btn.spec.font_color).toBe("#000000");
+
+        // Switch to Matrix: bright green accent #00ff41 with black font contrast
+        win.setTheme("matrix", false);
+        expect(win.theme).toBe("matrix");
+        expect(win.accentColor).toBe("#00ff41");
+        expect(btn.spec.background_color).toBe("#00ff41");
+        expect(btn.spec.font_color).toBe("#000000");
+
+        // Switch to Amber CRT: warm phosphor #ffb000 with black font contrast
+        win.setTheme("amber_crt", false);
+        expect(win.theme).toBe("amber_crt");
+        expect(win.accentColor).toBe("#ffb000");
+        expect(btn.spec.background_color).toBe("#ffb000");
+        expect(btn.spec.font_color).toBe("#000000");
+
+        // Switch to Synthwave: hot pink #ff2a85 with white font contrast
+        win.setTheme("synthwave", false);
+        expect(win.theme).toBe("synthwave");
+        expect(win.accentColor).toBe("#ff2a85");
+        expect(btn.spec.background_color).toBe("#ff2a85");
+        expect(btn.spec.font_color).toBe("#ffffff");
+
+        // 5. Check addThemeSelector with autoShortNames rendering
+        const retroWin = createWindow("Retro Selector Window", 800, 600, { theme: "win95" });
+        const selRef = retroWin.addThemeSelector("dd_retro_theme", "Theme:", false, 140, true);
+        expect(selRef.spec.id).toBe("dd_retro_theme");
+        expect(selRef.spec.item_labels["win95"]).toBe("Win95");
+        expect(selRef.spec.item_labels["gameboy"]).toBe("Game Boy");
+        expect(selRef.spec.item_labels["c64"]).toBe("C64");
+        expect(selRef.spec.item_labels["matrix"]).toBe("Matrix");
+
+        const previewHtml = retroWin.getHtml();
+        expect(previewHtml).toContain('<option value="win95" selected>Win95</option>');
+        expect(previewHtml).toContain('<option value="gameboy">Game Boy</option>');
+        expect(previewHtml).toContain('<option value="c64">C64</option>');
+        expect(previewHtml).toContain('<option value="matrix">Matrix</option>');
     });
 
     test("10. Full VLang SimpleGUI Control Parity Suite (Visual Controls, Sizing, Props & Aliases)", () => {
