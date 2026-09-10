@@ -323,6 +323,7 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 | `execJS(code)` | `(code: string) => void` | Safely evaluates client-side JavaScript in the webview window (`wv.eval(...)`) |
 | `getControlValue(id)` | `(id: string) => any` | Reads current value or text of any UI control |
 | `setControlText(id, text)` | `(id: string, text: string) => void` | Dynamically updates caption, label, or text of any UI control |
+| `setControlHtml(id, html)` / `setHtml(id, html)` | `(id: string, html: string) => void` | Injects formatted HTML markup into HTML views (`html_view`) in real time |
 | `setControlValue(id, value)` | `(id: string, value: any) => void` | Updates input value, slider value, checkbox state, or metric |
 | `setControlPlaceholder(id, placeholder)` | `(id: string, placeholder: string) => void` | Dynamically updates placeholder text for input fields, textareas, and code views |
 | `setControlReadOnly(id, readOnly)` | `(id: string, readOnly: boolean) => void` | Dynamically toggles read-only state for text inputs, textareas, and code views |
@@ -638,10 +639,26 @@ const price: number = win.getFloat("numPrice");
 
 // Typed setters
 win.setText("txtName", "Alice");
+win.setHtml("previewArea", "<h1>Rich Formatted Preview</h1>");
 win.setBool("chkActive", true);
 win.setInt("numAge", 30);
 win.setFloat("numPrice", 49.99);
 ```
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `win.setHtml(id, html)` | `(id: string, htmlContent: string) => void` | Injects formatted HTML markup directly into an `html_view` container element in real time. |
+| `win.set_html(id, html)` | `(id: string, htmlContent: string) => void` | Snake_case alias for `win.setHtml()`. |
+| `win.addHtmlView(id, initialHtml?)` | `(id: string, initialHtml?: string) => SimpleControlRef` | Creates a dedicated rich HTML rendering container for live previews, markdown docs, and embeds. |
+| `win.add_html_view(id, initialHtml?)` | `(id: string, initialHtml?: string) => SimpleControlRef` | Snake_case alias for `win.addHtmlView()`. |
+
+#### ⚡ Real-Time Keystroke & Input Synchronization
+
+All `<input>` (text, password, number) and `<textarea>` controls in `SimpleWindow` automatically attach both `oninput` and `onchange` bridge handlers. Keystrokes are synchronized immediately to Bun's `formValuesStore` over the Webview IPC bridge:
+- `win.onChange(id, handler)` callbacks fire immediately on every keystroke without requiring the user to blur/unfocus the control.
+- `win.getFormValues()` and `win.getValue(id)` always return the exact, up-to-the-millisecond typed text.
+
+
 
 ### 💬 In-Window Glassmorphic Modal Dialogs
 

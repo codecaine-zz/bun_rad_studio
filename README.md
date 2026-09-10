@@ -87,7 +87,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ### 🛠️ High-Level Backend & Client Helper Utilities
 Programmatically interact with and control form state from Bun TypeScript or client scripts:
-- `getControlValue(id)` / `setControlText(id, text)` / `setControlValue(id, value)`
+- `getControlValue(id)` / `setControlText(id, text)` / `setControlValue(id, value)` / `setControlHtml(id, html)`
 - `setControlEnabled(id, enabled)` / `setControlVisible(id, visible)`
 - `setSegmentedSelected(id, text)` / `setStatChart(id, opts)` / `setToast(id, title, msg, alertType)`
 - `setTimePickerValue(id, timeStr)` / `setAccordionOpen(id, open)` / `setTimelineSteps(id, stepsCSV)`
@@ -332,7 +332,9 @@ win.run();
 * **Multi-Window & Application Lifecycle**: Distinct `win.close()` / `win.close_window()` (closes current window handle without terminating process for multi-window support) and `win.exit()` / `win.quit()` / `win.exitApp()` / `win.quit_application()` (terminates process via `process.exit(code)`).
 * **Fluent Method Chaining**: Chain styling & behavior modifiers (`.width()`, `.height()`, `.bg()`, `.color()`, `.bold()`, `.align()`, `.tooltip()`, `.onClick()`, `.onChange()`).
 * **Form & Labeled Helpers**: `addFormField()`, `addFormPassword()`, `addFormDropdown()`, `addFormDatePicker()`, `addFormSwitch()`, `addFormSlider()`, `addFormNumber()`, `addHeading()`.
-* **Typed Value Accessors**: `getText(id)`, `setText(id, val)`, `getBool(id)`, `setBool(id, val)`, `getInt(id)`, `setInt(id, val)`, `getFloat(id)`, `setFloat(id, val)`.
+* **Typed Value Accessors**: `getText(id)`, `setText(id, val)`, `setHtml(id, html)`, `getBool(id)`, `setBool(id, val)`, `getInt(id)`, `setInt(id, val)`, `getFloat(id)`, `setFloat(id, val)`.
+* **Media, Code & HTML Views**: `addHtmlView(id, initialHtml)` / `add_html_view(...)` for dedicated rich HTML/Markdown renderers, `addCodeView()`, `addImageView()`.
+* **Real-Time Keystroke & Input Synchronization**: Immediate `oninput` bridge synchronization for `<input>` and `<textarea>` controls ensures typed values sync instantly to Bun's `formValuesStore` and trigger `onChange` listeners without requiring focus loss / blur.
 * **Auto-Reflowing Layout Containers**: `beginRow()` / `endRow()`, `beginGrid(cols)`, `endGrid()`, `beginCard(title)`, `endCard()`, `beginFlex()`, `endFlex()`.
 * **Form Value Serialization**: `win.getFormValues()`, `win.setFormValues()`, `win.getValue(id)`, `win.setValue(id, val)`.
 * **Native Dialogs & OS APIs**: `showAlert()`, `showConfirm()`, `showPrompt()`, `copyToClipboard()`, `setAlwaysOnTop()`, `toggleFullscreen()`.

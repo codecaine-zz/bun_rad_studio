@@ -530,7 +530,7 @@ Ported with 100% visual and functional parity from [vlang_simplegui API Referenc
 - `win.addDropZone(id, promptText?, opts?)` / `win.add_drop_zone(...)`
 
 #### 7. Media, Code & Views
-- `win.addHtmlView(html, width?, height?, opts?)` / `win.add_html_view(...)`
+- `win.addHtmlView(html, width?, height?, opts?)` / `win.add_html_view(...)` — Embedded HTML rendering container; dynamic updates via `win.setHtml(id, html)` or `win.setText(id, html)` render formatted markup in real time.
 - `win.addBrowserView(url, width?, height?, opts?)` / `win.add_browser_view(...)`
 - `win.addCodeEditor(code, language?, width?, height?, opts?)` / `win.add_code_editor(...)`
 - `win.addCodeStudio(title, code, language?, opts?)` / `win.add_code_studio(...)`
@@ -615,12 +615,16 @@ win.clearForm();
 ```
 
 <a id="typed-accessors"></a>
-### Typed Accessors (`getText`, `getBool`, `getInt`, `getFloat`)
+### Typed Accessors (`getText`, `setText`, `setHtml`, `getBool`, `getInt`, `getFloat`)
 
 ```typescript
 // String Accessors
 const name: string = win.getText("txtName");
 win.setText("txtName", "Sarah Connor");
+
+// Rich HTML View Accessors
+win.setHtml("previewDiv", "<h1>Formatted Preview</h1><p>Real-time markup</p>");
+win.set_html("previewDiv", "<h1>Formatted Preview</h1>"); // vlang parity alias
 
 // Boolean Accessors
 const active: boolean = win.getBool("swtActive");
@@ -632,6 +636,19 @@ win.setInt("numCount", 42);
 
 const score: number = win.getFloat("numScore");
 win.setFloat("numScore", 98.6);
+```
+
+<a id="realtime-input-sync"></a>
+### Real-Time Keystroke & Input Synchronization
+
+All text controls (`addTextInput`, `addInput`, `addTextArea`, `addTextarea`, `addSearch`, `addPasswordInput`) are wired with immediate real-time `oninput` bridge synchronization. Every keystroke instantly synchronizes the control's value with Bun's `formValuesStore` and invokes any bound `onChange` handler without requiring users to unfocus/blur the field:
+
+```typescript
+// Live preview updates on every keystroke
+win.onChange("txt_md_input", (w, val) => {
+    const rendered = markdownToHtml(val);
+    w.setHtml("txt_md_preview", rendered);
+});
 ```
 
 <a id="batch-operations"></a>
