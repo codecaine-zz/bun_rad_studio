@@ -20,7 +20,23 @@ export const CANONICAL_THEMES = [
     "ventura_amber",
     "soft_pastel",
 
-    // 3. New High-Quality Modern & Developer Themes
+    // 3. Brand-New AAA Designer & Studio Themes
+    "raycast_dark",
+    "linear_dark",
+    "vercel_dark",
+    "unreal_engine",
+    "arc_velvet",
+    "abyss",
+    "night_city",
+    "horizon",
+    "tailwind_dark",
+    "supabase",
+    "oled_black",
+    "titanium_slate",
+    "jetbrains_darcula",
+    "nordic_paper",
+
+    // 4. High-Quality Modern & Developer Themes
     "monokai_pro",
     "tokyo_night",
     "one_dark_pro",
@@ -34,7 +50,7 @@ export const CANONICAL_THEMES = [
     "win11_light",
     "aura",
 
-    // 4. Developer Community Themes
+    // 5. Developer Community Themes
     "catppuccin",
     "nord",
     "dracula",
@@ -46,7 +62,7 @@ export const CANONICAL_THEMES = [
     "navy_blue",
     "forest_green",
 
-    // 5. Nostalgic & Vintage Themes ("Bring Back Memories")
+    // 6. Nostalgic & Vintage Themes ("Bring Back Memories")
     "win95",
     "gameboy",
     "c64",

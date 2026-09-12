@@ -657,17 +657,22 @@ export class SimpleWindow {
 
         if (this.isWindowRunning) {
             const isCf = themeName.toLowerCase() === "codefreelance";
-            const fieldsetBg = isCf ? "rgba(18, 18, 18, 0.75)" : (isLight ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.03)");
-            const fieldsetBorder = themeObj.card_border || (isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.12)"));
             const cardBg = themeObj.card_background || (isCf ? "#121212" : (isLight ? "#ffffff" : "#1e293b"));
-            const inputBg = isLight ? "#ffffff" : (isCf ? "#0f0f0f" : "rgba(0, 0, 0, 0.25)");
-            const inputBorder = isCf ? "#2a2a2a" : (isLight ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.18)");
+            const cardBorder = themeObj.card_border || (isCf ? "#242424" : (isLight ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.12)"));
+            const fieldsetBg = cardBg;
+            const fieldsetBorder = cardBorder;
+            const inputBg = isLight ? "#ffffff" : (themeObj.is_dark ? (themeObj.background_color === "#000000" ? "#0f0f0f" : "rgba(0, 0, 0, 0.28)") : "rgba(0, 0, 0, 0.04)");
+            const inputBorder = cardBorder;
+            const secAccent = themeObj.secondary_accent || colors.accent;
 
             this.evalJS(`
                 (function() {
                     document.documentElement.style.setProperty('--accent', '${colors.accent}');
+                    document.documentElement.style.setProperty('--accent-secondary', '${secAccent}');
                     document.documentElement.style.setProperty('--btn-bg', '${btnBg}');
                     document.documentElement.style.setProperty('--btn-fg', '${btnFg}');
+                    document.documentElement.style.setProperty('--card-bg', '${cardBg}');
+                    document.documentElement.style.setProperty('--card-border', '${cardBorder}');
                     document.body.style.backgroundColor = "${colors.bg}";
                     document.body.style.color = "${colors.fg}";
                     let styleEl = document.getElementById("simplegui-theme-dyn");
@@ -679,18 +684,29 @@ export class SimpleWindow {
                     styleEl.textContent = \`
                         :root {
                             --accent: ${colors.accent};
+                            --accent-secondary: ${secAccent};
                             --btn-bg: ${btnBg};
                             --btn-fg: ${btnFg};
+                            --card-bg: ${cardBg};
+                            --card-border: ${cardBorder};
                         }
                         body { background-color: ${colors.bg} !important; color: ${colors.fg} !important; }
                         fieldset { background-color: ${fieldsetBg} !important; border-color: ${fieldsetBorder} !important; }
                         legend { color: ${colors.accent} !important; }
                         .simplegui-card, [data-card] { background-color: ${cardBg} !important; border-color: ${fieldsetBorder} !important; }
+                        table th { color: ${colors.accent} !important; }
                         input:not([type="checkbox"]):not([type="radio"]), textarea, select {
                             background-color: ${inputBg} !important;
                             color: ${colors.fg} !important;
                             border-color: ${inputBorder} !important;
                             color-scheme: ${isLight ? 'light' : 'dark'} !important;
+                        }
+                        input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus, select:focus {
+                            border-color: ${colors.accent} !important;
+                            outline-color: ${colors.accent} !important;
+                        }
+                        input[type=range]::-webkit-slider-thumb {
+                            background: ${colors.accent} !important;
                         }
                         select:not([size]), .simplegui-select {
                             background-color: ${inputBg} !important;
@@ -707,7 +723,7 @@ export class SimpleWindow {
                         select:not([size]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
                         select:not([size]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
                         select option {
-                            background-color: ${themeObj.card_background || (isCf ? '#121212' : (isLight ? '#ffffff' : '#1e293b'))} !important;
+                            background-color: ${cardBg} !important;
                             color: ${colors.fg} !important;
                         }
                         :focus-visible { outline-color: ${colors.accent} !important; }
@@ -1393,6 +1409,20 @@ export class SimpleWindow {
         const popularThemes = [
             "midnight",
             "codefreelance",
+            "raycast_dark",
+            "linear_dark",
+            "vercel_dark",
+            "unreal_engine",
+            "arc_velvet",
+            "abyss",
+            "night_city",
+            "horizon",
+            "tailwind_dark",
+            "supabase",
+            "oled_black",
+            "titanium_slate",
+            "jetbrains_darcula",
+            "nordic_paper",
             "sonoma_emerald",
             "monokai_pro",
             "tokyo_night",
@@ -1419,7 +1449,10 @@ export class SimpleWindow {
             "amiga"
         ];
         const canonicalKeys = [
-            "midnight", "codefreelance", "sonoma_emerald", "apple_dark", "apple_light",
+            "codefreelance", "midnight",
+            "raycast_dark", "linear_dark", "vercel_dark", "unreal_engine", "arc_velvet",
+            "abyss", "night_city", "horizon", "tailwind_dark", "supabase", "oled_black", "titanium_slate", "jetbrains_darcula", "nordic_paper",
+            "sonoma_emerald", "apple_dark", "apple_light",
             "monokai_pro", "tokyo_night", "one_dark_pro", "gruvbox_dark", "gruvbox_light",
             "rose_pine", "everforest", "kanagawa", "cobalt2", "aura",
             "win11_slate", "win11_light",
@@ -6442,6 +6475,9 @@ export interface SimpleGUITheme {
 }
 
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
+    // ==========================================
+    // 1. SIGNATURE BRAND THEME
+    // ==========================================
     "codefreelance": {
         name: "CodeFreelance",
         short_name: "CodeFreelance",
@@ -6450,7 +6486,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         accent_color: "#0fb36a",
         secondary_accent: "#bd00ff",
         card_background: "#121212",
-        card_border: "#2a2a2a",
+        card_border: "#242424",
         description: "Official CodeFreelance dark theme: #050505 obsidian canvas, #121212 cards, #0fb36a neon emerald green & #bd00ff purple accents (codefreelance.net)",
         is_dark: true
     },
@@ -6462,29 +6498,526 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         accent_color: "#0fb36a",
         secondary_accent: "#bd00ff",
         card_background: "#121212",
-        card_border: "#2a2a2a",
+        card_border: "#242424",
         description: "Official CodeFreelance dark theme: #050505 obsidian canvas, #121212 cards, #0fb36a neon emerald green & #bd00ff purple accents (codefreelance.net)",
         is_dark: true
     },
-    "apple_light": { name: "Apple Light", short_name: "Light", background_color: "#ffffff", font_color: "#1c1c1e", accent_color: "#007aff", description: "Clean macOS Aqua light canvas", is_dark: false },
-    "apple_dark": { name: "Apple Dark", short_name: "Dark", background_color: "#1c1c1e", font_color: "#f2f2f7", accent_color: "#0a84ff", description: "Vibrant macOS Dark Mode surface", is_dark: true },
-    "midnight": { name: "Midnight Space Gray", short_name: "Midnight", background_color: "#161618", font_color: "#ebebf5", accent_color: "#0a84ff", description: "Pro dark titanium space gray theme", is_dark: true },
-    "apple_sunset": { name: "Apple Sunset", short_name: "Sunset", background_color: "#281a24", font_color: "#fdf7f4", accent_color: "#ff6b00", description: "Warm macOS Mojave twilight sunset hues", is_dark: true },
-    "sonoma_emerald": { name: "Sonoma Emerald", short_name: "Emerald", background_color: "#0d1f18", font_color: "#f0fdf4", accent_color: "#30d158", description: "macOS Sonoma dark forest glass palette", is_dark: true },
-    "ventura_amber": { name: "Ventura Amber", short_name: "Ventura", background_color: "#211815", font_color: "#fff8f0", accent_color: "#ff9500", description: "macOS Ventura golden sunset dark hues", is_dark: true },
-    "soft_pastel": { name: "Soft Pastel", short_name: "Pastel", background_color: "#faf6f0", font_color: "#2d2b2a", accent_color: "#e07a5f", description: "Apple Studio warm soft light theme", is_dark: false },
-    "catppuccin": { name: "Catppuccin Mocha", short_name: "Catppuccin", background_color: "#1e1e2e", font_color: "#cdd6f4", accent_color: "#cba6f7", description: "Soothing lavender catppuccin dark mode", is_dark: true },
-    "nord": { name: "Nord", short_name: "Nord", background_color: "#2e3440", font_color: "#eceff4", accent_color: "#88c0d0", description: "Arctic frost nord developer palette", is_dark: true },
-    "dracula": { name: "Dracula", short_name: "Dracula", background_color: "#282a36", font_color: "#f8f8f2", accent_color: "#bd93f9", description: "High-contrast vampire purple palette", is_dark: true },
-    "cyberpunk": { name: "Cyberpunk", short_name: "Cyberpunk", background_color: "#0d0d15", font_color: "#00f5d4", accent_color: "#ff007f", description: "Neon glow dark contrast palette", is_dark: true },
-    "solarized_light": { name: "Solarized Light", short_name: "Solar Light", background_color: "#fdf6e3", font_color: "#657b83", accent_color: "#268bd2", description: "Precision engineered light palette", is_dark: false },
-    "solarized_dark": { name: "Solarized Dark", short_name: "Solar Dark", background_color: "#002b36", font_color: "#839496", accent_color: "#2aa198", description: "Precision engineered dark palette", is_dark: true },
-    "github_dark": { name: "GitHub Dark", short_name: "GitHub Dark", background_color: "#0d1117", font_color: "#c9d1d9", accent_color: "#58a6ff", description: "Official GitHub dark interface palette", is_dark: true },
-    "github_light": { name: "GitHub Light", short_name: "GitHub Light", background_color: "#ffffff", font_color: "#24292f", accent_color: "#0969da", description: "Clean GitHub light canvas palette", is_dark: false },
-    "navy_blue": { name: "Navy Blue", short_name: "Navy", background_color: "#0f172a", font_color: "#f8fafc", accent_color: "#38bdf8", description: "Deep slate navy dark theme", is_dark: true },
-    "forest_green": { name: "Forest Green", short_name: "Forest", background_color: "#14532d", font_color: "#f0fdf4", accent_color: "#4ade80", description: "Rich emerald green dark theme", is_dark: true },
 
-    // High-Quality Modern & Developer Themes
+    // ==========================================
+    // 2. APPLE & MACOS FLAGSHIP THEMES
+    // ==========================================
+    "apple_light": {
+        name: "Apple Light",
+        short_name: "Light",
+        background_color: "#f5f5f7",
+        font_color: "#1d1d1f",
+        accent_color: "#0071e3",
+        secondary_accent: "#5e5ce6",
+        card_background: "#ffffff",
+        card_border: "#e5e5e7",
+        description: "Clean Apple macOS Aqua light canvas with SF Pro typography and Cupertino system blue",
+        is_dark: false
+    },
+    "apple_dark": {
+        name: "Apple Dark",
+        short_name: "Dark",
+        background_color: "#161618",
+        font_color: "#f5f5f7",
+        accent_color: "#0a84ff",
+        secondary_accent: "#bf5af2",
+        card_background: "#242426",
+        card_border: "#38383a",
+        description: "Vibrant Apple macOS Dark Mode surface with titanium gray cards and iOS system blue",
+        is_dark: true
+    },
+    "midnight": {
+        name: "Midnight Space Gray",
+        short_name: "Midnight",
+        background_color: "#0f1115",
+        font_color: "#e6edf3",
+        accent_color: "#38bdf8",
+        secondary_accent: "#818cf8",
+        card_background: "#161922",
+        card_border: "#232936",
+        description: "Pro dark titanium space gray theme with deep slate surfaces and luminous sky blue",
+        is_dark: true
+    },
+    "apple_sunset": {
+        name: "Apple Sunset",
+        short_name: "Sunset",
+        background_color: "#221526",
+        font_color: "#fdf4f8",
+        accent_color: "#ff7733",
+        secondary_accent: "#e056fd",
+        card_background: "#2d1e33",
+        card_border: "#46314f",
+        description: "Warm macOS Mojave twilight sunset hues with rich plum surfaces and neon amber accents",
+        is_dark: true
+    },
+    "sonoma_emerald": {
+        name: "Sonoma Emerald",
+        short_name: "Emerald",
+        background_color: "#091811",
+        font_color: "#ecfdf5",
+        accent_color: "#30d158",
+        secondary_accent: "#34d399",
+        card_background: "#10261c",
+        card_border: "#1a3d2c",
+        description: "macOS Sonoma dark forest glass palette with radiant emerald and mint accents",
+        is_dark: true
+    },
+    "ventura_amber": {
+        name: "Ventura Amber",
+        short_name: "Ventura",
+        background_color: "#1c140e",
+        font_color: "#fffbeb",
+        accent_color: "#ff9500",
+        secondary_accent: "#f97316",
+        card_background: "#281e16",
+        card_border: "#3d2f24",
+        description: "macOS Ventura golden sunset dark hues with warm amber and roasted espresso cards",
+        is_dark: true
+    },
+    "soft_pastel": {
+        name: "Soft Pastel",
+        short_name: "Pastel",
+        background_color: "#f9f6f0",
+        font_color: "#292524",
+        accent_color: "#e07a5f",
+        secondary_accent: "#3d405b",
+        card_background: "#ffffff",
+        card_border: "#e7dfd5",
+        description: "Apple Studio warm soft linen light theme with terracotta coral and artisan cards",
+        is_dark: false
+    },
+
+    // ==========================================
+    // 3. HIGH-CRAFT DEVELOPER & STUDIO THEMES
+    // ==========================================
+    "raycast_dark": {
+        name: "Raycast Dark",
+        short_name: "Raycast",
+        background_color: "#0e0f12",
+        font_color: "#f3f4f6",
+        accent_color: "#ff6363",
+        secondary_accent: "#ff9494",
+        card_background: "#18191e",
+        card_border: "#282a32",
+        description: "Silicon Valley developer command palette with ultra-slick charcoal surfaces and laser red",
+        is_dark: true
+    },
+    "raycast": {
+        name: "Raycast Dark",
+        short_name: "Raycast",
+        background_color: "#0e0f12",
+        font_color: "#f3f4f6",
+        accent_color: "#ff6363",
+        secondary_accent: "#ff9494",
+        card_background: "#18191e",
+        card_border: "#282a32",
+        description: "Silicon Valley developer command palette with ultra-slick charcoal surfaces and laser red",
+        is_dark: true
+    },
+    "linear_dark": {
+        name: "Linear Studio",
+        short_name: "Linear",
+        background_color: "#0f1015",
+        font_color: "#e2e4ed",
+        accent_color: "#5e6ad2",
+        secondary_accent: "#8e9df6",
+        card_background: "#181922",
+        card_border: "#282a3a",
+        description: "High-craft Linear project workspace with deep obsidian cards and electric indigo accents",
+        is_dark: true
+    },
+    "linear": {
+        name: "Linear Studio",
+        short_name: "Linear",
+        background_color: "#0f1015",
+        font_color: "#e2e4ed",
+        accent_color: "#5e6ad2",
+        secondary_accent: "#8e9df6",
+        card_background: "#181922",
+        card_border: "#282a3a",
+        description: "High-craft Linear project workspace with deep obsidian cards and electric indigo accents",
+        is_dark: true
+    },
+    "vercel_dark": {
+        name: "Vercel Geist",
+        short_name: "Geist",
+        background_color: "#000000",
+        font_color: "#ededed",
+        accent_color: "#ffffff",
+        secondary_accent: "#0070f3",
+        card_background: "#0a0a0a",
+        card_border: "#242424",
+        description: "Ultra-minimalist Next.js & Vercel design system with pure monochrome contrast and electric blue",
+        is_dark: true
+    },
+    "vercel": {
+        name: "Vercel Geist",
+        short_name: "Geist",
+        background_color: "#000000",
+        font_color: "#ededed",
+        accent_color: "#ffffff",
+        secondary_accent: "#0070f3",
+        card_background: "#0a0a0a",
+        card_border: "#242424",
+        description: "Ultra-minimalist Next.js & Vercel design system with pure monochrome contrast and electric blue",
+        is_dark: true
+    },
+    "geist": {
+        name: "Vercel Geist",
+        short_name: "Geist",
+        background_color: "#000000",
+        font_color: "#ededed",
+        accent_color: "#ffffff",
+        secondary_accent: "#0070f3",
+        card_background: "#0a0a0a",
+        card_border: "#242424",
+        description: "Ultra-minimalist Next.js & Vercel design system with pure monochrome contrast and electric blue",
+        is_dark: true
+    },
+    "unreal_engine": {
+        name: "Unreal Engine 5",
+        short_name: "UE5",
+        background_color: "#18191c",
+        font_color: "#e1e2e6",
+        accent_color: "#0e86d4",
+        secondary_accent: "#e5a93c",
+        card_background: "#222328",
+        card_border: "#33353e",
+        description: "Epic Games Unreal Engine 5 professional workstation with dark graphite & Blueprint blue",
+        is_dark: true
+    },
+    "ue5": {
+        name: "Unreal Engine 5",
+        short_name: "UE5",
+        background_color: "#18191c",
+        font_color: "#e1e2e6",
+        accent_color: "#0e86d4",
+        secondary_accent: "#e5a93c",
+        card_background: "#222328",
+        card_border: "#33353e",
+        description: "Epic Games Unreal Engine 5 professional workstation with dark graphite & Blueprint blue",
+        is_dark: true
+    },
+    "arc_velvet": {
+        name: "Arc Velvet",
+        short_name: "Arc Velvet",
+        background_color: "#170f26",
+        font_color: "#f8f6fc",
+        accent_color: "#f72585",
+        secondary_accent: "#4cc9f0",
+        card_background: "#23183a",
+        card_border: "#3d2b63",
+        description: "Arc Browser velvet aesthetic with deep plum indigo and luminous neon magenta accents",
+        is_dark: true
+    },
+    "arc_browser": {
+        name: "Arc Velvet",
+        short_name: "Arc Velvet",
+        background_color: "#170f26",
+        font_color: "#f8f6fc",
+        accent_color: "#f72585",
+        secondary_accent: "#4cc9f0",
+        card_background: "#23183a",
+        card_border: "#3d2b63",
+        description: "Arc Browser velvet aesthetic with deep plum indigo and luminous neon magenta accents",
+        is_dark: true
+    },
+    "abyss": {
+        name: "Abyss Bioluminescence",
+        short_name: "Abyss",
+        background_color: "#030712",
+        font_color: "#f0fdfa",
+        accent_color: "#06b6d4",
+        secondary_accent: "#3b82f6",
+        card_background: "#0b1329",
+        card_border: "#16274e",
+        description: "Deep oceanic trench dark theme with radiant bioluminescent cyan and marine slate",
+        is_dark: true
+    },
+    "abyss_bio": {
+        name: "Abyss Bioluminescence",
+        short_name: "Abyss",
+        background_color: "#030712",
+        font_color: "#f0fdfa",
+        accent_color: "#06b6d4",
+        secondary_accent: "#3b82f6",
+        card_background: "#0b1329",
+        card_border: "#16274e",
+        description: "Deep oceanic trench dark theme with radiant bioluminescent cyan and marine slate",
+        is_dark: true
+    },
+    "deep_ocean": {
+        name: "Abyss Bioluminescence",
+        short_name: "Abyss",
+        background_color: "#030712",
+        font_color: "#f0fdfa",
+        accent_color: "#06b6d4",
+        secondary_accent: "#3b82f6",
+        card_background: "#0b1329",
+        card_border: "#16274e",
+        description: "Deep oceanic trench dark theme with radiant bioluminescent cyan and marine slate",
+        is_dark: true
+    },
+    "night_city": {
+        name: "Cyberpunk Night City",
+        short_name: "Night City",
+        background_color: "#0e0e13",
+        font_color: "#fcee0a",
+        accent_color: "#ff003c",
+        secondary_accent: "#00f0ff",
+        card_background: "#171720",
+        card_border: "#2e2e3f",
+        description: "AAA Cyberpunk 2077 Night City HUD with Trauma Team red, Samurai yellow and chrome cards",
+        is_dark: true
+    },
+    "cyberpunk_2077": {
+        name: "Cyberpunk Night City",
+        short_name: "Night City",
+        background_color: "#0e0e13",
+        font_color: "#fcee0a",
+        accent_color: "#ff003c",
+        secondary_accent: "#00f0ff",
+        card_background: "#171720",
+        card_border: "#2e2e3f",
+        description: "AAA Cyberpunk 2077 Night City HUD with Trauma Team red, Samurai yellow and chrome cards",
+        is_dark: true
+    },
+    "horizon": {
+        name: "Horizon Sunset",
+        short_name: "Horizon",
+        background_color: "#1c1e26",
+        font_color: "#fdf0ed",
+        accent_color: "#e95678",
+        secondary_accent: "#fab795",
+        card_background: "#232530",
+        card_border: "#34384a",
+        description: "Warm twilight horizon spectrum with glowing neon coral, peach and dusk plum",
+        is_dark: true
+    },
+    "solar_dusk": {
+        name: "Horizon Sunset",
+        short_name: "Horizon",
+        background_color: "#1c1e26",
+        font_color: "#fdf0ed",
+        accent_color: "#e95678",
+        secondary_accent: "#fab795",
+        card_background: "#232530",
+        card_border: "#34384a",
+        description: "Warm twilight horizon spectrum with glowing neon coral, peach and dusk plum",
+        is_dark: true
+    },
+    "tailwind_dark": {
+        name: "Tailwind Slate Emerald",
+        short_name: "Tailwind",
+        background_color: "#0b1120",
+        font_color: "#f1f5f9",
+        accent_color: "#10b981",
+        secondary_accent: "#06b6d4",
+        card_background: "#151e32",
+        card_border: "#24324f",
+        description: "Modern Tailwind CSS flagship developer theme with deep slate 950 and vibrant emerald",
+        is_dark: true
+    },
+    "tailwind_emerald": {
+        name: "Tailwind Slate Emerald",
+        short_name: "Tailwind",
+        background_color: "#0b1120",
+        font_color: "#f1f5f9",
+        accent_color: "#10b981",
+        secondary_accent: "#06b6d4",
+        card_background: "#151e32",
+        card_border: "#24324f",
+        description: "Modern Tailwind CSS flagship developer theme with deep slate 950 and vibrant emerald",
+        is_dark: true
+    },
+    "tailwind": {
+        name: "Tailwind Slate Emerald",
+        short_name: "Tailwind",
+        background_color: "#0b1120",
+        font_color: "#f1f5f9",
+        accent_color: "#10b981",
+        secondary_accent: "#06b6d4",
+        card_background: "#151e32",
+        card_border: "#24324f",
+        description: "Modern Tailwind CSS flagship developer theme with deep slate 950 and vibrant emerald",
+        is_dark: true
+    },
+    "supabase": {
+        name: "Supabase Dark",
+        short_name: "Supabase",
+        background_color: "#121212",
+        font_color: "#f8fafc",
+        accent_color: "#3ecf8e",
+        secondary_accent: "#70e1a5",
+        card_background: "#1c1c1c",
+        card_border: "#2e2e2e",
+        description: "Supabase cloud database dashboard with sleek dark obsidian and signature emerald",
+        is_dark: true
+    },
+    "supabase_dark": {
+        name: "Supabase Dark",
+        short_name: "Supabase",
+        background_color: "#121212",
+        font_color: "#f8fafc",
+        accent_color: "#3ecf8e",
+        secondary_accent: "#70e1a5",
+        card_background: "#1c1c1c",
+        card_border: "#2e2e2e",
+        description: "Supabase cloud database dashboard with sleek dark obsidian and signature emerald",
+        is_dark: true
+    },
+    "oled_black": {
+        name: "OLED Laser Black",
+        short_name: "OLED Laser",
+        background_color: "#000000",
+        font_color: "#ffffff",
+        accent_color: "#00e676",
+        secondary_accent: "#2979ff",
+        card_background: "#0a0a0a",
+        card_border: "#222222",
+        description: "Zero-power pure OLED black canvas with ultra-sharp laser green and high-contrast cards",
+        is_dark: true
+    },
+    "oled_laser": {
+        name: "OLED Laser Black",
+        short_name: "OLED Laser",
+        background_color: "#000000",
+        font_color: "#ffffff",
+        accent_color: "#00e676",
+        secondary_accent: "#2979ff",
+        card_background: "#0a0a0a",
+        card_border: "#222222",
+        description: "Zero-power pure OLED black canvas with ultra-sharp laser green and high-contrast cards",
+        is_dark: true
+    },
+    "pure_black": {
+        name: "OLED Laser Black",
+        short_name: "OLED Laser",
+        background_color: "#000000",
+        font_color: "#ffffff",
+        accent_color: "#00e676",
+        secondary_accent: "#2979ff",
+        card_background: "#0a0a0a",
+        card_border: "#222222",
+        description: "Zero-power pure OLED black canvas with ultra-sharp laser green and high-contrast cards",
+        is_dark: true
+    },
+    "titanium_slate": {
+        name: "Titanium Slate Pro",
+        short_name: "Titanium",
+        background_color: "#131417",
+        font_color: "#e5e5ea",
+        accent_color: "#ff6b22",
+        secondary_accent: "#98989d",
+        card_background: "#1c1d22",
+        card_border: "#2f3038",
+        description: "Apple Pro hardware grade aerospace titanium space black with aviation orange accents",
+        is_dark: true
+    },
+    "titanium": {
+        name: "Titanium Slate Pro",
+        short_name: "Titanium",
+        background_color: "#131417",
+        font_color: "#e5e5ea",
+        accent_color: "#ff6b22",
+        secondary_accent: "#98989d",
+        card_background: "#1c1d22",
+        card_border: "#2f3038",
+        description: "Apple Pro hardware grade aerospace titanium space black with aviation orange accents",
+        is_dark: true
+    },
+    "jetbrains_darcula": {
+        name: "JetBrains Darcula",
+        short_name: "Darcula",
+        background_color: "#2b2b2b",
+        font_color: "#a9b7c6",
+        accent_color: "#cc7832",
+        secondary_accent: "#6897bb",
+        card_background: "#313335",
+        card_border: "#45484a",
+        description: "Iconic JetBrains IntelliJ IDEA / PyCharm Darcula IDE workspace with warm syntax orange",
+        is_dark: true
+    },
+    "darcula_ide": {
+        name: "JetBrains Darcula",
+        short_name: "Darcula",
+        background_color: "#2b2b2b",
+        font_color: "#a9b7c6",
+        accent_color: "#cc7832",
+        secondary_accent: "#6897bb",
+        card_background: "#313335",
+        card_border: "#45484a",
+        description: "Iconic JetBrains IntelliJ IDEA / PyCharm Darcula IDE workspace with warm syntax orange",
+        is_dark: true
+    },
+    "jetbrains": {
+        name: "JetBrains Darcula",
+        short_name: "Darcula",
+        background_color: "#2b2b2b",
+        font_color: "#a9b7c6",
+        accent_color: "#cc7832",
+        secondary_accent: "#6897bb",
+        card_background: "#313335",
+        card_border: "#45484a",
+        description: "Iconic JetBrains IntelliJ IDEA / PyCharm Darcula IDE workspace with warm syntax orange",
+        is_dark: true
+    },
+    "nordic_paper": {
+        name: "Nordic Paper Light",
+        short_name: "Nordic Paper",
+        background_color: "#f7f7f5",
+        font_color: "#202124",
+        accent_color: "#2b5c8f",
+        secondary_accent: "#c2593f",
+        card_background: "#ffffff",
+        card_border: "#e0ded8",
+        description: "Nordic editorial paper light canvas with deep fjord blue and crisp typographic elegance",
+        is_dark: false
+    },
+    "nordic": {
+        name: "Nordic Paper Light",
+        short_name: "Nordic Paper",
+        background_color: "#f7f7f5",
+        font_color: "#202124",
+        accent_color: "#2b5c8f",
+        secondary_accent: "#c2593f",
+        card_background: "#ffffff",
+        card_border: "#e0ded8",
+        description: "Nordic editorial paper light canvas with deep fjord blue and crisp typographic elegance",
+        is_dark: false
+    },
+    "paper_light": {
+        name: "Nordic Paper Light",
+        short_name: "Nordic Paper",
+        background_color: "#f7f7f5",
+        font_color: "#202124",
+        accent_color: "#2b5c8f",
+        secondary_accent: "#c2593f",
+        card_background: "#ffffff",
+        card_border: "#e0ded8",
+        description: "Nordic editorial paper light canvas with deep fjord blue and crisp typographic elegance",
+        is_dark: false
+    },
+    "paper": {
+        name: "Nordic Paper Light",
+        short_name: "Nordic Paper",
+        background_color: "#f7f7f5",
+        font_color: "#202124",
+        accent_color: "#2b5c8f",
+        secondary_accent: "#c2593f",
+        card_background: "#ffffff",
+        card_border: "#e0ded8",
+        description: "Nordic editorial paper light canvas with deep fjord blue and crisp typographic elegance",
+        is_dark: false
+    },
+
+    // ==========================================
+    // 4. ICONIC COMMUNITY DEVELOPER PALETTES
+    // ==========================================
     "monokai_pro": {
         name: "Monokai Pro",
         short_name: "Monokai",
@@ -6725,8 +7258,130 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         description: "Lush mystical dark theme with ethereal neon purple and mint green accents",
         is_dark: true
     },
+    "catppuccin": {
+        name: "Catppuccin Mocha",
+        short_name: "Catppuccin",
+        background_color: "#1e1e2e",
+        font_color: "#cdd6f4",
+        accent_color: "#cba6f7",
+        secondary_accent: "#f5c2e7",
+        card_background: "#242438",
+        card_border: "#363753",
+        description: "Soothing lavender Catppuccin Mocha dark mode with pastel mauve and pink accents",
+        is_dark: true
+    },
+    "nord": {
+        name: "Nord",
+        short_name: "Nord",
+        background_color: "#2e3440",
+        font_color: "#eceff4",
+        accent_color: "#88c0d0",
+        secondary_accent: "#81a1c1",
+        card_background: "#3b4252",
+        card_border: "#4c566a",
+        description: "Arctic frost Nord developer palette with icy cyan and polar slate surfaces",
+        is_dark: true
+    },
+    "dracula": {
+        name: "Dracula",
+        short_name: "Dracula",
+        background_color: "#282a36",
+        font_color: "#f8f8f2",
+        accent_color: "#bd93f9",
+        secondary_accent: "#ff79c6",
+        card_background: "#21222c",
+        card_border: "#44475a",
+        description: "High-contrast vampire purple palette with gothic violet and neon pink accents",
+        is_dark: true
+    },
+    "cyberpunk": {
+        name: "Cyberpunk",
+        short_name: "Cyberpunk",
+        background_color: "#0a0b12",
+        font_color: "#00f5d4",
+        accent_color: "#ff007f",
+        secondary_accent: "#fee440",
+        card_background: "#121320",
+        card_border: "#282944",
+        description: "Neon glow dark contrast palette with electric magenta and laser cyan",
+        is_dark: true
+    },
+    "solarized_light": {
+        name: "Solarized Light",
+        short_name: "Solar Light",
+        background_color: "#fdf6e3",
+        font_color: "#586e75",
+        accent_color: "#268bd2",
+        secondary_accent: "#2aa198",
+        card_background: "#eee8d5",
+        card_border: "#d3cbb7",
+        description: "Precision engineered light palette for maximum reading comfort",
+        is_dark: false
+    },
+    "solarized_dark": {
+        name: "Solarized Dark",
+        short_name: "Solar Dark",
+        background_color: "#002b36",
+        font_color: "#93a1a1",
+        accent_color: "#2aa198",
+        secondary_accent: "#268bd2",
+        card_background: "#073642",
+        card_border: "#0b4c5c",
+        description: "Precision engineered dark palette with optimized teal-slate contrast",
+        is_dark: true
+    },
+    "github_dark": {
+        name: "GitHub Dark",
+        short_name: "GitHub Dark",
+        background_color: "#0d1117",
+        font_color: "#e6edf3",
+        accent_color: "#58a6ff",
+        secondary_accent: "#3fb950",
+        card_background: "#161b22",
+        card_border: "#30363d",
+        description: "Official GitHub dark interface palette with refined code repository slate cards",
+        is_dark: true
+    },
+    "github_light": {
+        name: "GitHub Light",
+        short_name: "GitHub Light",
+        background_color: "#f6f8fa",
+        font_color: "#1f2328",
+        accent_color: "#0969da",
+        secondary_accent: "#1a7f37",
+        card_background: "#ffffff",
+        card_border: "#d0d7de",
+        description: "Clean official GitHub light canvas palette with crisp borders and classic blue",
+        is_dark: false
+    },
+    "navy_blue": {
+        name: "Navy Blue",
+        short_name: "Navy",
+        background_color: "#0a0f1d",
+        font_color: "#f8fafc",
+        accent_color: "#38bdf8",
+        secondary_accent: "#6366f1",
+        card_background: "#111c33",
+        card_border: "#1e2f54",
+        description: "Executive maritime deep slate navy dark theme with oceanic blue surfaces",
+        is_dark: true
+    },
+    "forest_green": {
+        name: "Forest Green",
+        short_name: "Forest",
+        background_color: "#0b1f14",
+        font_color: "#f0fdf4",
+        accent_color: "#4ade80",
+        secondary_accent: "#86efac",
+        card_background: "#122e1f",
+        card_border: "#1a452f",
+        description: "Rich botanical evergreen forest dark theme with moss cards and radiant jade accents",
+        is_dark: true
+    },
 
-    // Nostalgic & Retro Themes ("Bring Back Memories")
+    // ==========================================
+    // 5. NOSTALGIC & VINTAGE RETRO PALETTES
+    // ==========================================
     "win95": {
         name: "Windows 95",
         short_name: "Win95",
@@ -7017,6 +7672,14 @@ export function autoShortThemeName(themeNameOrKey: string): string {
         .replace(/\bVentura\s+Amber\b/gi, "Ventura")
         .replace(/\bSoft\s+Pastel\b/gi, "Pastel")
         .replace(/\bHot\s+Dog\s+Stand\b/gi, "Hot Dog")
+        .replace(/\bJetBrains\s+Darcula\b/gi, "Darcula")
+        .replace(/\bNordic\s+Paper\s+Light\b/gi, "Nordic Paper")
+        .replace(/\bTailwind\s+Slate\s+Emerald\b/gi, "Tailwind")
+        .replace(/\bOLED\s+Laser\s+Black\b/gi, "OLED Laser")
+        .replace(/\bTitanium\s+Slate\s+Pro\b/gi, "Titanium")
+        .replace(/\bAbyss\s+Bioluminescence\b/gi, "Abyss")
+        .replace(/\bCyberpunk\s+Night\s+City\b/gi, "Night City")
+        .replace(/\bHorizon\s+Sunset\b/gi, "Horizon")
         .replace(/\s+/g, " ")
         .trim();
 

@@ -33,13 +33,18 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.beginRow();
     win.addLabel(`🎨 ${themeObj.name}`)
         .font(20, themeObj.accent_color, "800")
-        .width(320);
+        .width(280);
 
-    win.addBadge(themeObj.is_dark ? "🌙 DARK PALETTE" : "☀️ LIGHT PALETTE", themeObj.is_dark ? "info" : "warning")
-        .width(130);
+    win.addBadge(themeObj.is_dark ? "🌙 DARK" : "☀️ LIGHT", themeObj.is_dark ? "info" : "warning")
+        .width(100);
 
-    win.addBadge(`ACCENT ${themeObj.accent_color}`, "success")
-        .width(140);
+    win.addBadge(`PRI ${themeObj.accent_color}`, "success")
+        .width(120);
+
+    if (themeObj.secondary_accent) {
+        win.addBadge(`SEC ${themeObj.secondary_accent}`, "info")
+            .width(125);
+    }
 
     // Live interactive theme selector
     win.addThemeSelector("dd_theme_selector", "Theme:", false, 170);
@@ -259,9 +264,13 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
 
     win.addButton("✨ Switch Random Theme", (w) => {
         const keys = [
-            "sonoma_emerald", "codefreelance", "monokai_pro", "tokyo_night", "one_dark_pro",
-            "gruvbox_dark", "rose_pine", "everforest", "kanagawa", "cobalt2", "win11_slate",
-            "dracula", "nord", "cyberpunk", "win95", "gameboy", "c64", "matrix", "synthwave"
+            "codefreelance", "midnight", "raycast_dark", "linear_dark", "vercel_dark",
+            "unreal_engine", "arc_velvet", "abyss", "night_city", "horizon",
+            "tailwind_dark", "supabase", "oled_black", "titanium_slate", "jetbrains_darcula",
+            "nordic_paper", "sonoma_emerald", "monokai_pro", "tokyo_night", "one_dark_pro",
+            "gruvbox_dark", "rose_pine", "everforest", "kanagawa", "cobalt2",
+            "win11_slate", "apple_dark", "dracula", "nord", "cyberpunk", "apple_light",
+            "win95", "gameboy", "c64", "matrix", "synthwave"
         ];
         const next = keys[Math.floor(Math.random() * keys.length)] || "sonoma_emerald";
         w.setTheme(next, true);

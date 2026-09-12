@@ -1593,6 +1593,23 @@
 					<select class="prop-input" id="propFormTheme" onchange="updateFormTheme()" title="Switch application theme palette">
 						<option value="Dark">Dark Mode (Default)</option>
 						<option value="Light">Light Mode (Classic)</option>
+						<optgroup label="⚡ Flagship & AAA Studio Themes">
+							<option value="CodeFreelance">CodeFreelance (Emerald & Violet)</option>
+							<option value="Raycast Dark">Raycast Dark (Laser Red)</option>
+							<option value="Linear Studio">Linear Studio (Electric Indigo)</option>
+							<option value="Vercel Geist">Vercel Geist (Monochrome)</option>
+							<option value="Unreal Engine 5">Unreal Engine 5 (Graphite & Cyan)</option>
+							<option value="Arc Velvet">Arc Velvet (Plum & Magenta)</option>
+							<option value="Abyss">Abyss Bioluminescence</option>
+							<option value="Cyberpunk Night City">Cyberpunk Night City</option>
+							<option value="Horizon Sunset">Horizon Sunset</option>
+							<option value="Tailwind Slate Emerald">Tailwind Slate Emerald</option>
+							<option value="Supabase Dark">Supabase Dark</option>
+							<option value="OLED Laser Black">OLED Laser Black</option>
+							<option value="Titanium Slate Pro">Titanium Slate Pro</option>
+							<option value="JetBrains Darcula">JetBrains Darcula</option>
+							<option value="Nordic Paper Light">Nordic Paper Light</option>
+						</optgroup>
 						<optgroup label=" macOS Desktop Themes">
 							<option value="macOS Sonoma Dark">macOS Sonoma Dark</option>
 							<option value="macOS Ventura Light">macOS Ventura Light</option>
@@ -1608,7 +1625,16 @@
 							<option value="Windows 11 Fluent Slate">Windows 11 Fluent Slate</option>
 							<option value="Windows 11 Sun Valley">Windows 11 Sun Valley (Cobalt)</option>
 						</optgroup>
-						<optgroup label="🎨 Developer & Studio Themes">
+						<optgroup label="🎨 Developer & Community Themes">
+							<option value="Monokai Pro">Monokai Pro</option>
+							<option value="Tokyo Night">Tokyo Night</option>
+							<option value="One Dark Pro">One Dark Pro</option>
+							<option value="Gruvbox Dark">Gruvbox Dark</option>
+							<option value="Gruvbox Light">Gruvbox Light</option>
+							<option value="Rosé Pine">Rosé Pine</option>
+							<option value="Everforest Dark">Everforest Dark</option>
+							<option value="Kanagawa">Kanagawa</option>
+							<option value="Cobalt2">Cobalt2</option>
 							<option value="Catppuccin">Catppuccin Mocha</option>
 							<option value="Dracula">Dracula Studio</option>
 							<option value="Cyberpunk">Cyberpunk Neon</option>
@@ -3445,7 +3471,55 @@
 		}
 
 		function getThemeColors(theme) {
-			if (theme === "Light" || theme === "macOS Ventura Light") {
+			if (theme === "CodeFreelance") {
+				return { formBg: "#050505", formFg: "#ffffff", ctrlBg: "#121212", ctrlFg: "#ffffff", btnBg: "#0fb36a", btnFg: "#000000", panelBg: "#181818" };
+			} else if (theme === "Raycast Dark") {
+				return { formBg: "#0e0f12", formFg: "#f3f4f6", ctrlBg: "#18191e", ctrlFg: "#f3f4f6", btnBg: "#ff6363", btnFg: "#ffffff", panelBg: "#22242c" };
+			} else if (theme === "Linear Studio") {
+				return { formBg: "#0f1015", formFg: "#e2e4ed", ctrlBg: "#181922", ctrlFg: "#e2e4ed", btnBg: "#5e6ad2", btnFg: "#ffffff", panelBg: "#222432" };
+			} else if (theme === "Vercel Geist") {
+				return { formBg: "#000000", formFg: "#ededed", ctrlBg: "#0a0a0a", ctrlFg: "#ededed", btnBg: "#ffffff", btnFg: "#000000", panelBg: "#141414" };
+			} else if (theme === "Unreal Engine 5") {
+				return { formBg: "#18191c", formFg: "#e1e2e6", ctrlBg: "#222328", ctrlFg: "#e1e2e6", btnBg: "#0e86d4", btnFg: "#ffffff", panelBg: "#2c2d34" };
+			} else if (theme === "Arc Velvet") {
+				return { formBg: "#170f26", formFg: "#f8f6fc", ctrlBg: "#23183a", ctrlFg: "#f8f6fc", btnBg: "#f72585", btnFg: "#ffffff", panelBg: "#312250" };
+			} else if (theme === "Abyss") {
+				return { formBg: "#030712", formFg: "#f0fdfa", ctrlBg: "#0b1329", ctrlFg: "#f0fdfa", btnBg: "#06b6d4", btnFg: "#000000", panelBg: "#121e3f" };
+			} else if (theme === "Cyberpunk Night City") {
+				return { formBg: "#0e0e13", formFg: "#fcee0a", ctrlBg: "#171720", ctrlFg: "#fcee0a", btnBg: "#ff003c", btnFg: "#ffffff", panelBg: "#252535" };
+			} else if (theme === "Horizon Sunset") {
+				return { formBg: "#1c1e26", formFg: "#fdf0ed", ctrlBg: "#232530", ctrlFg: "#fdf0ed", btnBg: "#e95678", btnFg: "#ffffff", panelBg: "#2e3140" };
+			} else if (theme === "Tailwind Slate Emerald") {
+				return { formBg: "#0b1120", formFg: "#f1f5f9", ctrlBg: "#151e32", ctrlFg: "#f1f5f9", btnBg: "#10b981", btnFg: "#ffffff", panelBg: "#1e2b46" };
+			} else if (theme === "Supabase Dark") {
+				return { formBg: "#121212", formFg: "#f8fafc", ctrlBg: "#1c1c1c", ctrlFg: "#f8fafc", btnBg: "#3ecf8e", btnFg: "#000000", panelBg: "#262626" };
+			} else if (theme === "OLED Laser Black") {
+				return { formBg: "#000000", formFg: "#ffffff", ctrlBg: "#0a0a0a", ctrlFg: "#ffffff", btnBg: "#00e676", btnFg: "#000000", panelBg: "#1a1a1a" };
+			} else if (theme === "Titanium Slate Pro") {
+				return { formBg: "#131417", formFg: "#e5e5ea", ctrlBg: "#1c1d22", ctrlFg: "#e5e5ea", btnBg: "#ff6b22", btnFg: "#ffffff", panelBg: "#282930" };
+			} else if (theme === "JetBrains Darcula") {
+				return { formBg: "#2b2b2b", formFg: "#a9b7c6", ctrlBg: "#313335", ctrlFg: "#a9b7c6", btnBg: "#cc7832", btnFg: "#ffffff", panelBg: "#3c3f41" };
+			} else if (theme === "Nordic Paper Light") {
+				return { formBg: "#f7f7f5", formFg: "#202124", ctrlBg: "#ffffff", ctrlFg: "#202124", btnBg: "#2b5c8f", btnFg: "#ffffff", panelBg: "#ebe9e3" };
+			} else if (theme === "Monokai Pro") {
+				return { formBg: "#2d2a2e", formFg: "#fcfcfa", ctrlBg: "#221f22", ctrlFg: "#fcfcfa", btnBg: "#ffd866", btnFg: "#000000", panelBg: "#3a373b" };
+			} else if (theme === "Tokyo Night") {
+				return { formBg: "#1a1b26", formFg: "#c0caf5", ctrlBg: "#24283b", ctrlFg: "#c0caf5", btnBg: "#7aa2f7", btnFg: "#1a1b26", panelBg: "#2f354f" };
+			} else if (theme === "One Dark Pro") {
+				return { formBg: "#21252b", formFg: "#abb2bf", ctrlBg: "#282c34", ctrlFg: "#abb2bf", btnBg: "#61afef", btnFg: "#21252b", panelBg: "#323842" };
+			} else if (theme === "Gruvbox Dark") {
+				return { formBg: "#282828", formFg: "#ebdbb2", ctrlBg: "#1d2021", ctrlFg: "#ebdbb2", btnBg: "#fabd2f", btnFg: "#282828", panelBg: "#32302f" };
+			} else if (theme === "Gruvbox Light") {
+				return { formBg: "#fbf1c7", formFg: "#3c3836", ctrlBg: "#f2e5bc", ctrlFg: "#3c3836", btnBg: "#b57614", btnFg: "#fbf1c7", panelBg: "#ebdbb2" };
+			} else if (theme === "Rosé Pine") {
+				return { formBg: "#191724", formFg: "#e0def4", ctrlBg: "#21202e", ctrlFg: "#e0def4", btnBg: "#eb6f92", btnFg: "#191724", panelBg: "#2a283e" };
+			} else if (theme === "Everforest Dark") {
+				return { formBg: "#2d353b", formFg: "#d3c6aa", ctrlBg: "#232a2e", ctrlFg: "#d3c6aa", btnBg: "#a7c080", btnFg: "#2d353b", panelBg: "#374247" };
+			} else if (theme === "Kanagawa") {
+				return { formBg: "#1f1f28", formFg: "#dcd7ba", ctrlBg: "#16161d", ctrlFg: "#dcd7ba", btnBg: "#7e9cd8", btnFg: "#1f1f28", panelBg: "#2a2a37" };
+			} else if (theme === "Cobalt2") {
+				return { formBg: "#193549", formFg: "#ffffff", ctrlBg: "#15232d", ctrlFg: "#ffffff", btnBg: "#ffc600", btnFg: "#193549", panelBg: "#1f4662" };
+			} else if (theme === "Light" || theme === "macOS Ventura Light") {
 				return { formBg: "#f6f6f6", formFg: "#1d1d1f", ctrlBg: "#ffffff", ctrlFg: "#1d1d1f", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#e8e8ed" };
 			} else if (theme === "macOS Sonoma Dark" || theme === "Apple Dark") {
 				return { formBg: "#1e1e1e", formFg: "#f5f5f7", ctrlBg: "#2c2c2e", ctrlFg: "#ffffff", btnBg: "#0a84ff", btnFg: "#ffffff", panelBg: "#252528" };

@@ -158,52 +158,66 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 ![Synthwave '84 Theme Showcase](screenshots/themes/synthwave.png)
 ![Game Boy 1989 Theme Showcase](screenshots/themes/gameboy.png)
 
-#### 📋 Complete Built-in Themes Directory (42 Themes)
+#### 📋 Complete Built-in Themes Directory (56 Themes)
 
 | # | Theme Key | Name | Palette Type | Primary Accent | Screenshot | Vibe & Aesthetic |
 | :-: | :--- | :--- | :-: | :-: | :-: | :--- |
 | **01** | `codefreelance` | **CodeFreelance** | 🌙 Dark | `#0fb36a` | [View](screenshots/themes/codefreelance.png) | Official obsidian canvas, neon emerald & purple accents |
-| **02** | `monokai_pro` | **Monokai Pro** | 🌙 Dark | `#ffd866` | [View](screenshots/themes/monokai_pro.png) | Refined charcoal spectrum with vivid warm yellow |
-| **03** | `tokyo_night` | **Tokyo Night** | 🌙 Dark | `#7aa2f7` | [View](screenshots/themes/tokyo_night.png) | Neon indigo city night with cyan and lavender accents |
-| **04** | `one_dark_pro` | **One Dark Pro** | 🌙 Dark | `#61afef` | [View](screenshots/themes/one_dark_pro.png) | Iconic Atom/VS Code deep slate with syntax sky blue |
-| **05** | `gruvbox_dark` | **Gruvbox Dark** | 🌙 Dark | `#fabd2f` | [View](screenshots/themes/gruvbox_dark.png) | Retro groove warm earthy dark palette with amber gold |
-| **06** | `gruvbox_light` | **Gruvbox Light** | ☀️ Light | `#b57614` | [View](screenshots/themes/gruvbox_light.png) | Retro groove parchment light canvas with walnut tones |
-| **07** | `rose_pine` | **Rosé Pine** | 🌙 Dark | `#eb6f92` | [View](screenshots/themes/rose_pine.png) | All-natural soft dark palette with dusty rose & pine foam |
-| **08** | `everforest` | **Everforest Dark** | 🌙 Dark | `#a7c080` | [View](screenshots/themes/everforest.png) | Natural comfort forest dark mode for zero eye strain |
-| **09** | `kanagawa` | **Kanagawa** | 🌙 Dark | `#7e9cd8` | [View](screenshots/themes/kanagawa.png) | Japanese ukiyo-e wave art inspired dark sumi ink palette |
-| **10** | `cobalt2` | **Cobalt2** | 🌙 Dark | `#ffc600` | [View](screenshots/themes/cobalt2.png) | Wes Bos official deep cobalt navy with brilliant yellow |
-| **11** | `win11_slate` | **Windows 11 Fluent Slate** | 🌙 Dark | `#60cdff` | [View](screenshots/themes/win11_slate.png) | Modern Windows 11 Fluent Dark Acrylic with sky cyan |
-| **12** | `win11_light` | **Windows 11 Mica Light** | ☀️ Light | `#005fb8` | [View](screenshots/themes/win11_light.png) | Modern Windows 11 Mica Light desktop with Fluent typography |
-| **13** | `aura` | **Aura Dark** | 🌙 Dark | `#a277ff` | [View](screenshots/themes/aura.png) | Lush mystical dark theme with neon purple & mint accents |
-| **14** | `sonoma_emerald` | **Sonoma Emerald** | 🌙 Dark | `#30d158` | [View](screenshots/themes/sonoma_emerald.png) | macOS Sonoma dark forest glass palette |
-| **15** | `apple_dark` | **Apple Dark** | 🌙 Dark | `#0a84ff` | [View](screenshots/themes/apple_dark.png) | Vibrant macOS Dark Mode surface (Default) |
-| **16** | `apple_light` | **Apple Light** | ☀️ Light | `#007aff` | [View](screenshots/themes/apple_light.png) | Clean, bright macOS Aqua light canvas |
-| **17** | `midnight` | **Midnight Space Gray** | 🌙 Dark | `#0a84ff` | [View](screenshots/themes/midnight.png) | Pro dark titanium space gray workstation theme |
-| **18** | `apple_sunset` | **Apple Sunset** | 🌙 Dark | `#ff6b00` | [View](screenshots/themes/apple_sunset.png) | Warm macOS Mojave twilight sunset hues |
-| **19** | `ventura_amber` | **Ventura Amber** | 🌙 Dark | `#ff9500` | [View](screenshots/themes/ventura_amber.png) | macOS Ventura golden sunset dark hues |
-| **20** | `soft_pastel` | **Soft Pastel** | ☀️ Light | `#e07a5f` | [View](screenshots/themes/soft_pastel.png) | Apple Studio warm soft light canvas |
-| **21** | `catppuccin` | **Catppuccin Mocha** | 🌙 Dark | `#cba6f7` | [View](screenshots/themes/catppuccin.png) | Soothing lavender catppuccin dark mode |
-| **22** | `nord` | **Nord** | 🌙 Dark | `#88c0d0` | [View](screenshots/themes/nord.png) | Arctic frost nord developer palette |
-| **23** | `dracula` | **Dracula** | 🌙 Dark | `#bd93f9` | [View](screenshots/themes/dracula.png) | High-contrast vampire purple palette |
-| **24** | `cyberpunk` | **Cyberpunk** | 🌙 Dark | `#ff007f` | [View](screenshots/themes/cyberpunk.png) | Neon glow dark contrast palette |
-| **25** | `github_dark` | **GitHub Dark** | 🌙 Dark | `#58a6ff` | [View](screenshots/themes/github_dark.png) | Official GitHub dark interface palette |
-| **26** | `github_light` | **GitHub Light** | ☀️ Light | `#0969da` | [View](screenshots/themes/github_light.png) | Clean GitHub light canvas palette |
-| **27** | `solarized_dark` | **Solarized Dark** | 🌙 Dark | `#2aa198` | [View](screenshots/themes/solarized_dark.png) | Precision engineered solarized dark palette |
-| **28** | `solarized_light` | **Solarized Light** | ☀️ Light | `#268bd2` | [View](screenshots/themes/solarized_light.png) | Precision engineered solarized light palette |
-| **29** | `navy_blue` | **Navy Blue** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/navy_blue.png) | Deep slate navy dark theme |
-| **30** | `forest_green` | **Forest Green** | 🌙 Dark | `#4ade80` | [View](screenshots/themes/forest_green.png) | Rich emerald green dark theme |
-| **31** | `win95` | **Windows 95** | ☀️ Retro | `#000080` | [View](screenshots/themes/win95.png) | Iconic Windows 95 classic teal desktop & silver 3D cards |
-| **32** | `gameboy` | **Game Boy 1989** | 🌙 Retro | `#8bac0f` | [View](screenshots/themes/gameboy.png) | Nostalgic 4-shade monochrome dot matrix DMG-01 screen |
-| **33** | `c64` | **Commodore 64** | 🌙 Retro | `#7974ff` | [View](screenshots/themes/c64.png) | Legendary 1982 Commodore 64 READY prompt & VIC-II blue |
-| **34** | `mac_classic` | **Macintosh System 7** | ☀️ Retro | `#5555aa` | [View](screenshots/themes/mac_classic.png) | Vintage 1991 System 7 Platinum desktop with Chicago font |
-| **35** | `amber_crt` | **Phosphor Amber CRT** | 🌙 Retro | `#ffb000` | [View](screenshots/themes/amber_crt.png) | Warm VT220 / Pip-Boy amber phosphor monochrome terminal |
-| **36** | `matrix` | **Matrix Phosphor** | 🌙 Retro | `#00ff41` | [View](screenshots/themes/matrix.png) | Iconic 1999 digital rain phosphor green mainframe terminal |
-| **37** | `synthwave` | **Synthwave '84** | 🌙 Retro | `#ff2a85` | [View](screenshots/themes/synthwave.png) | 1980s neon synthwave, sunset magenta grid & arcade glow |
-| **38** | `amiga` | **Amiga Workbench** | 🌙 Retro | `#ff8800` | [View](screenshots/themes/amiga.png) | Retro Amiga 500 Workbench 1.3 royal blue & orange buttons |
-| **39** | `nextstep` | **NeXTSTEP 1989** | 🌙 Retro | `#4a90e2` | [View](screenshots/themes/nextstep.png) | Steve Jobs 1989 NeXTSTEP UNIX workstation dark elegance |
-| **40** | `mac_os_aqua` | **Mac OS X Aqua** | ☀️ Retro | `#0076fe` | [View](screenshots/themes/mac_os_aqua.png) | Early 2001 OS X Cheetah glossy gel buttons & pinstripes |
-| **41** | `hotdog_stand` | **Hot Dog Stand** | 🌙 Retro | `#ff0000` | [View](screenshots/themes/hotdog_stand.png) | Unforgettable Windows 3.1 1992 high-contrast yellow & red |
-| **42** | `playstation` | **PlayStation 1994** | 🌙 Retro | `#00d2c4` | [View](screenshots/themes/playstation.png) | 1994 PSX console grey with geometric controller accents |
+| **02** | `raycast_dark` | **Raycast Dark** | 🌙 Dark | `#ff6363` | [View](screenshots/themes/raycast_dark.png) | Silicon Valley dev command palette with laser red |
+| **03** | `linear_dark` | **Linear Studio** | 🌙 Dark | `#5e6ad2` | [View](screenshots/themes/linear_dark.png) | High-craft Linear workspace with electric indigo |
+| **04** | `vercel_dark` | **Vercel Geist** | 🌙 Dark | `#ffffff` | [View](screenshots/themes/vercel_dark.png) | Ultra-minimalist monochrome Next.js & Vercel contrast |
+| **05** | `unreal_engine` | **Unreal Engine 5** | 🌙 Dark | `#0e86d4` | [View](screenshots/themes/unreal_engine.png) | Epic Games 3D workstation dark graphite & Blueprint blue |
+| **06** | `arc_velvet` | **Arc Velvet** | 🌙 Dark | `#f72585` | [View](screenshots/themes/arc_velvet.png) | Arc Browser velvet aesthetic with plum & neon magenta |
+| **07** | `abyss` | **Abyss Bioluminescence** | 🌙 Dark | `#06b6d4` | [View](screenshots/themes/abyss.png) | Deep oceanic trench with glowing bioluminescent cyan |
+| **08** | `night_city` | **Cyberpunk Night City** | 🌙 Dark | `#ff003c` | [View](screenshots/themes/night_city.png) | AAA Cyberpunk 2077 HUD with Trauma Team red & yellow |
+| **09** | `horizon` | **Horizon Sunset** | 🌙 Dark | `#e95678` | [View](screenshots/themes/horizon.png) | Warm twilight horizon with neon peach, coral & dusk plum |
+| **10** | `tailwind_dark` | **Tailwind Slate Emerald** | 🌙 Dark | `#10b981` | [View](screenshots/themes/tailwind_dark.png) | Modern Tailwind CSS flagship slate 950 & emerald |
+| **11** | `supabase` | **Supabase Dark** | 🌙 Dark | `#3ecf8e` | [View](screenshots/themes/supabase.png) | Supabase cloud database obsidian & signature brand emerald |
+| **12** | `oled_black` | **OLED Laser Black** | 🌙 Dark | `#00e676` | [View](screenshots/themes/oled_black.png) | Zero-power pure OLED black canvas with laser green |
+| **13** | `titanium_slate` | **Titanium Slate Pro** | 🌙 Dark | `#ff6b22` | [View](screenshots/themes/titanium_slate.png) | Apple Pro titanium space black & aviation orange |
+| **14** | `jetbrains_darcula`| **JetBrains Darcula** | 🌙 Dark | `#cc7832` | [View](screenshots/themes/jetbrains_darcula.png) | Iconic IntelliJ IDEA & PyCharm Darcula IDE workspace |
+| **15** | `nordic_paper` | **Nordic Paper Light** | ☀️ Light | `#2b5c8f` | [View](screenshots/themes/nordic_paper.png) | Nordic editorial paper light canvas & deep fjord blue |
+| **16** | `monokai_pro` | **Monokai Pro** | 🌙 Dark | `#ffd866` | [View](screenshots/themes/monokai_pro.png) | Refined charcoal spectrum with vivid warm yellow |
+| **17** | `tokyo_night` | **Tokyo Night** | 🌙 Dark | `#7aa2f7` | [View](screenshots/themes/tokyo_night.png) | Neon indigo city night with cyan and lavender accents |
+| **18** | `one_dark_pro` | **One Dark Pro** | 🌙 Dark | `#61afef` | [View](screenshots/themes/one_dark_pro.png) | Iconic Atom/VS Code deep slate with syntax sky blue |
+| **19** | `gruvbox_dark` | **Gruvbox Dark** | 🌙 Dark | `#fabd2f` | [View](screenshots/themes/gruvbox_dark.png) | Retro groove warm earthy dark palette with amber gold |
+| **20** | `gruvbox_light` | **Gruvbox Light** | ☀️ Light | `#b57614` | [View](screenshots/themes/gruvbox_light.png) | Retro groove parchment light canvas with walnut tones |
+| **21** | `rose_pine` | **Rosé Pine** | 🌙 Dark | `#eb6f92` | [View](screenshots/themes/rose_pine.png) | All-natural soft dark palette with dusty rose & pine foam |
+| **22** | `everforest` | **Everforest Dark** | 🌙 Dark | `#a7c080` | [View](screenshots/themes/everforest.png) | Natural comfort forest dark mode for zero eye strain |
+| **23** | `kanagawa` | **Kanagawa** | 🌙 Dark | `#7e9cd8` | [View](screenshots/themes/kanagawa.png) | Japanese ukiyo-e wave art inspired dark sumi ink palette |
+| **24** | `cobalt2` | **Cobalt2** | 🌙 Dark | `#ffc600` | [View](screenshots/themes/cobalt2.png) | Wes Bos official deep cobalt navy with brilliant yellow |
+| **25** | `win11_slate` | **Windows 11 Fluent Slate** | 🌙 Dark | `#60cdff` | [View](screenshots/themes/win11_slate.png) | Modern Windows 11 Fluent Dark Acrylic with sky cyan |
+| **26** | `win11_light` | **Windows 11 Mica Light** | ☀️ Light | `#005fb8` | [View](screenshots/themes/win11_light.png) | Modern Windows 11 Mica Light desktop with Fluent typography |
+| **27** | `aura` | **Aura Dark** | 🌙 Dark | `#a277ff` | [View](screenshots/themes/aura.png) | Lush mystical dark theme with neon purple & mint accents |
+| **28** | `sonoma_emerald` | **Sonoma Emerald** | 🌙 Dark | `#30d158` | [View](screenshots/themes/sonoma_emerald.png) | macOS Sonoma dark forest glass palette |
+| **29** | `apple_dark` | **Apple Dark** | 🌙 Dark | `#0a84ff` | [View](screenshots/themes/apple_dark.png) | Vibrant macOS Dark Mode surface (Default) |
+| **30** | `apple_light` | **Apple Light** | ☀️ Light | `#0071e3` | [View](screenshots/themes/apple_light.png) | Clean, bright macOS Aqua light canvas |
+| **31** | `midnight` | **Midnight Space Gray** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/midnight.png) | Pro dark titanium space gray workstation theme |
+| **32** | `apple_sunset` | **Apple Sunset** | 🌙 Dark | `#ff7733` | [View](screenshots/themes/apple_sunset.png) | Warm macOS Mojave twilight sunset hues |
+| **33** | `ventura_amber` | **Ventura Amber** | 🌙 Dark | `#ff9500` | [View](screenshots/themes/ventura_amber.png) | macOS Ventura golden sunset dark hues |
+| **34** | `soft_pastel` | **Soft Pastel** | ☀️ Light | `#e07a5f` | [View](screenshots/themes/soft_pastel.png) | Apple Studio warm soft light canvas |
+| **35** | `catppuccin` | **Catppuccin Mocha** | 🌙 Dark | `#cba6f7` | [View](screenshots/themes/catppuccin.png) | Soothing lavender catppuccin dark mode |
+| **36** | `nord` | **Nord** | 🌙 Dark | `#88c0d0` | [View](screenshots/themes/nord.png) | Arctic frost nord developer palette |
+| **37** | `dracula` | **Dracula** | 🌙 Dark | `#bd93f9` | [View](screenshots/themes/dracula.png) | High-contrast vampire purple palette |
+| **38** | `cyberpunk` | **Cyberpunk** | 🌙 Dark | `#ff007f` | [View](screenshots/themes/cyberpunk.png) | Neon glow dark contrast palette |
+| **39** | `github_dark` | **GitHub Dark** | 🌙 Dark | `#58a6ff` | [View](screenshots/themes/github_dark.png) | Official GitHub dark interface palette |
+| **40** | `github_light` | **GitHub Light** | ☀️ Light | `#0969da` | [View](screenshots/themes/github_light.png) | Clean GitHub light canvas palette |
+| **41** | `solarized_dark` | **Solarized Dark** | 🌙 Dark | `#2aa198` | [View](screenshots/themes/solarized_dark.png) | Precision engineered solarized dark palette |
+| **42** | `solarized_light` | **Solarized Light** | ☀️ Light | `#268bd2` | [View](screenshots/themes/solarized_light.png) | Precision engineered solarized light palette |
+| **43** | `navy_blue` | **Navy Blue** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/navy_blue.png) | Deep slate navy dark theme |
+| **44** | `forest_green` | **Forest Green** | 🌙 Dark | `#4ade80` | [View](screenshots/themes/forest_green.png) | Rich emerald green dark theme |
+| **45** | `win95` | **Windows 95** | ☀️ Retro | `#000080` | [View](screenshots/themes/win95.png) | Iconic Windows 95 classic teal desktop & silver 3D cards |
+| **46** | `gameboy` | **Game Boy 1989** | 🌙 Retro | `#8bac0f` | [View](screenshots/themes/gameboy.png) | Nostalgic 4-shade monochrome dot matrix DMG-01 screen |
+| **47** | `c64` | **Commodore 64** | 🌙 Retro | `#7974ff` | [View](screenshots/themes/c64.png) | Legendary 1982 Commodore 64 READY prompt & VIC-II blue |
+| **48** | `mac_classic` | **Macintosh System 7** | ☀️ Retro | `#5555aa` | [View](screenshots/themes/mac_classic.png) | Vintage 1991 System 7 Platinum desktop with Chicago font |
+| **49** | `amber_crt` | **Phosphor Amber CRT** | 🌙 Retro | `#ffb000` | [View](screenshots/themes/amber_crt.png) | Warm VT220 / Pip-Boy amber phosphor monochrome terminal |
+| **50** | `matrix` | **Matrix Phosphor** | 🌙 Retro | `#00ff41` | [View](screenshots/themes/matrix.png) | Iconic 1999 digital rain phosphor green mainframe terminal |
+| **51** | `synthwave` | **Synthwave '84** | 🌙 Retro | `#ff2a85` | [View](screenshots/themes/synthwave.png) | 1980s neon synthwave, sunset magenta grid & arcade glow |
+| **52** | `amiga` | **Amiga Workbench** | 🌙 Retro | `#ff8800` | [View](screenshots/themes/amiga.png) | Retro Amiga 500 Workbench 1.3 royal blue & orange buttons |
+| **53** | `nextstep` | **NeXTSTEP 1989** | 🌙 Retro | `#4a90e2` | [View](screenshots/themes/nextstep.png) | Steve Jobs 1989 NeXTSTEP UNIX workstation dark elegance |
+| **54** | `mac_os_aqua` | **Mac OS X Aqua** | ☀️ Retro | `#0076fe` | [View](screenshots/themes/mac_os_aqua.png) | Early 2001 OS X Cheetah glossy gel buttons & pinstripes |
+| **55** | `hotdog_stand` | **Hot Dog Stand** | 🌙 Retro | `#ff0000` | [View](screenshots/themes/hotdog_stand.png) | Unforgettable Windows 3.1 1992 high-contrast yellow & red |
+| **56** | `playstation` | **PlayStation 1994** | 🌙 Retro | `#00d2c4` | [View](screenshots/themes/playstation.png) | 1994 PSX console grey with geometric controller accents |
 
 #### 💻 How to Use Themes in SimpleGUI
 ```typescript

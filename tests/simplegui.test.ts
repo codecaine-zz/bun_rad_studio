@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { simplegui, SimpleWindow, createWindow, listThemes, getTheme, saveTheme, homeDir, documentsDir, autoShortThemeName, listShortThemes, isBrightAccentColor } from "../index.ts";
+import { SIMPLEGUI_THEMES } from "../src/simplegui.ts";
 import { createThemeShowcase } from "../demos/23_all_themes_all_controls_showcase.ts";
 
 describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
@@ -579,6 +580,79 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(html).toContain("swtDaemon");
         expect(html).toContain("segMode");
         expect(html).toContain("dd_theme_selector");
+    });
+
+    test("9d. AAA Designer Themes Overhaul & Verification (14 New Themes & Enhanced Styling)", () => {
+        // 1. Check existence of all 14 new AAA themes
+        const themes = listThemes();
+        const expectedNewThemes = [
+            "Raycast Dark",
+            "Linear Studio",
+            "Vercel Geist",
+            "Unreal Engine 5",
+            "Arc Velvet",
+            "Abyss Bioluminescence",
+            "Cyberpunk Night City",
+            "Horizon Sunset",
+            "Tailwind Slate Emerald",
+            "Supabase Dark",
+            "OLED Laser Black",
+            "Titanium Slate Pro",
+            "JetBrains Darcula",
+            "Nordic Paper Light",
+        ];
+        for (const t of expectedNewThemes) {
+            expect(themes).toContain(t);
+        }
+
+        // 2. Test auto short theme names for new themes
+        expect(autoShortThemeName("raycast_dark")).toBe("Raycast");
+        expect(autoShortThemeName("linear_dark")).toBe("Linear");
+        expect(autoShortThemeName("vercel_dark")).toBe("Geist");
+        expect(autoShortThemeName("unreal_engine")).toBe("UE5");
+        expect(autoShortThemeName("arc_velvet")).toBe("Arc Velvet");
+        expect(autoShortThemeName("abyss_bio")).toBe("Abyss");
+        expect(autoShortThemeName("night_city")).toBe("Night City");
+        expect(autoShortThemeName("horizon")).toBe("Horizon");
+        expect(autoShortThemeName("tailwind_emerald")).toBe("Tailwind");
+        expect(autoShortThemeName("supabase_dark")).toBe("Supabase");
+        expect(autoShortThemeName("oled_laser")).toBe("OLED Laser");
+        expect(autoShortThemeName("titanium_slate")).toBe("Titanium");
+        expect(autoShortThemeName("jetbrains_darcula")).toBe("Darcula");
+        expect(autoShortThemeName("nordic_paper")).toBe("Nordic Paper");
+
+        // 3. Test theme retrieval by key and alias
+        expect(getTheme("raycast").name).toBe("Raycast Dark");
+        expect(getTheme("linear").name).toBe("Linear Studio");
+        expect(getTheme("vercel").name).toBe("Vercel Geist");
+        expect(getTheme("ue5").name).toBe("Unreal Engine 5");
+        expect(getTheme("cyberpunk_2077").name).toBe("Cyberpunk Night City");
+        expect(getTheme("darcula").name).toBe("JetBrains Darcula");
+        expect(getTheme("nordic").name).toBe("Nordic Paper Light");
+
+        // 4. Verify all canonical themes have card_background, card_border, and secondary_accent
+        for (const [key, theme] of Object.entries(SIMPLEGUI_THEMES)) {
+            expect(theme.card_background).toBeDefined();
+            expect(theme.card_border).toBeDefined();
+            expect(theme.secondary_accent).toBeDefined();
+            expect(theme.card_background?.startsWith("#") || theme.card_background?.startsWith("rgba")).toBe(true);
+            expect(theme.card_border?.startsWith("#") || theme.card_border?.startsWith("rgba")).toBe(true);
+            expect(theme.secondary_accent?.startsWith("#") || theme.secondary_accent?.startsWith("rgba")).toBe(true);
+        }
+
+        // 5. Test createThemeShowcase generation on new AAA themes
+        const cyberShowcase = createThemeShowcase("night_city");
+        expect(cyberShowcase.theme).toBe("night_city");
+        const cyberHtml = cyberShowcase.generateHtml();
+        expect(cyberHtml).toContain("Cyberpunk Night City");
+        expect(cyberHtml).toContain("#ff003c");
+        expect(cyberHtml).toContain("#00f0ff");
+
+        const nordicShowcase = createThemeShowcase("nordic_paper");
+        expect(nordicShowcase.theme).toBe("nordic_paper");
+        const nordicHtml = nordicShowcase.generateHtml();
+        expect(nordicHtml).toContain("Nordic Paper Light");
+        expect(nordicHtml).toContain("#2b5c8f");
     });
 
     test("10. Full VLang SimpleGUI Control Parity Suite (Visual Controls, Sizing, Props & Aliases)", () => {

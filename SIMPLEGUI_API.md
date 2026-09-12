@@ -1013,6 +1013,20 @@ Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)
 | Theme Key | Theme Name | Type | Accent | Vibe / Description |
 | --- | --- | --- | --- | --- |
 | `codefreelance` | CodeFreelance | 🌙 Dark | `#0fb36a` | Official CodeFreelance (#050505 obsidian base, #121212 cards, #0fb36a emerald & #bd00ff purple accents - codefreelance.net) |
+| `raycast_dark` | Raycast Dark | 🌙 Dark | `#ff6363` | Silicon Valley developer command palette with ultra-slick charcoal surfaces and laser red |
+| `linear_dark` | Linear Studio | 🌙 Dark | `#5e6ad2` | High-craft Linear project workspace with deep obsidian cards and electric indigo accents |
+| `vercel_dark` | Vercel Geist | 🌙 Dark | `#ffffff` | Ultra-minimalist Next.js & Vercel design system with pure monochrome contrast and electric blue |
+| `unreal_engine` | Unreal Engine 5 | 🌙 Dark | `#0e86d4` | Epic Games Unreal Engine 5 professional workstation with dark graphite & Blueprint blue |
+| `arc_velvet` | Arc Velvet | 🌙 Dark | `#f72585` | Arc Browser velvet aesthetic with deep plum indigo and luminous neon magenta accents |
+| `abyss` | Abyss Bioluminescence | 🌙 Dark | `#06b6d4` | Deep oceanic trench dark theme with radiant bioluminescent cyan and marine slate |
+| `night_city` | Cyberpunk Night City | 🌙 Dark | `#ff003c` | AAA Cyberpunk 2077 Night City HUD with Trauma Team red, Samurai yellow and chrome cards |
+| `horizon` | Horizon Sunset | 🌙 Dark | `#e95678` | Warm twilight horizon spectrum with glowing neon coral, peach and dusk plum |
+| `tailwind_dark` | Tailwind Slate Emerald | 🌙 Dark | `#10b981` | Modern Tailwind CSS flagship developer theme with deep slate 950 and vibrant emerald |
+| `supabase` | Supabase Dark | 🌙 Dark | `#3ecf8e` | Supabase cloud database dashboard with sleek dark obsidian and signature emerald |
+| `oled_black` | OLED Laser Black | 🌙 Dark | `#00e676` | Zero-power pure OLED black canvas with ultra-sharp laser green and high-contrast cards |
+| `titanium_slate` | Titanium Slate Pro | 🌙 Dark | `#ff6b22` | Apple Pro hardware grade aerospace titanium space black with aviation orange accents |
+| `jetbrains_darcula` | JetBrains Darcula | 🌙 Dark | `#cc7832` | Iconic JetBrains IntelliJ IDEA / PyCharm Darcula IDE workspace with warm syntax orange |
+| `nordic_paper` | Nordic Paper Light | ☀️ Light | `#2b5c8f` | Nordic editorial paper light canvas with deep fjord blue and crisp typographic elegance |
 | `monokai_pro` | Monokai Pro | 🌙 Dark | `#ffd866` | Monokai Pro refined dark spectrum with warm yellow and vivid magenta accents |
 | `tokyo_night` | Tokyo Night | 🌙 Dark | `#7aa2f7` | Tokyo Night dark neon indigo city theme with vibrant blue and lavender accents |
 | `one_dark_pro` | One Dark Pro | 🌙 Dark | `#61afef` | Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues |
@@ -1026,12 +1040,12 @@ Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)
 | `win11_light` | Windows 11 Mica Light | ☀️ Light | `#005fb8` | Modern Windows 11 Mica Light desktop with crisp Fluent typography |
 | `aura` | Aura Dark | 🌙 Dark | `#a277ff` | Lush mystical dark theme with ethereal neon purple and mint green accents |
 | `apple_dark` | Apple Dark | 🌙 Dark | `#0a84ff` | Modern macOS Dark Mode canvas (Default) |
-| `apple_light` | Apple Light | ☀️ Light | `#007aff` | Clean, bright macOS Aqua light canvas |
-| `midnight` | Midnight | 🌙 Dark | `#0a84ff` | Deep space gray & titanium dark mode |
+| `apple_light` | Apple Light | ☀️ Light | `#0071e3` | Clean, bright macOS Aqua light canvas |
+| `midnight` | Midnight Space Gray | 🌙 Dark | `#38bdf8` | Deep space gray & titanium dark mode |
 | `sonoma_emerald` | Sonoma Emerald | 🌙 Dark | `#30d158` | macOS Sonoma forest green glass theme |
 | `ventura_amber` | Ventura Amber | 🌙 Dark | `#ff9500` | Warm golden sunset dark hues |
-| `apple_sunset` | Apple Sunset | 🌙 Dark | `#ff6b00` | Cozy Mojave twilight palette |
-| `catppuccin` | Catppuccin | 🌙 Dark | `#cba6f7` | Soothing pastel purple & lavender dark mode |
+| `apple_sunset` | Apple Sunset | 🌙 Dark | `#ff7733` | Cozy Mojave twilight palette |
+| `catppuccin` | Catppuccin Mocha | 🌙 Dark | `#cba6f7` | Soothing pastel purple & lavender dark mode |
 | `nord` | Nord | 🌙 Dark | `#88c0d0` | Arctic ice blue developer palette |
 | `dracula` | Dracula | 🌙 Dark | `#bd93f9` | High-contrast vampire purple palette |
 | `cyberpunk` | Cyberpunk | 🌙 Dark | `#ff007f` | Vibrant neon pink and cyan dark theme |
