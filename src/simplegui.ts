@@ -156,6 +156,8 @@ export class SimpleControlRef {
 
     bold(isBold = true): this {
         this.spec.font_weight = isBold ? "700" : "400";
+        this.spec.is_bold = isBold;
+        this.spec.bold = isBold;
         return this;
     }
 
@@ -1986,7 +1988,7 @@ export class SimpleWindow {
         const onSelChange = finalOpts.onSelectionChange || finalOpts.on_selection_change;
 
         const headerCsv = headers.join(", ");
-        const ctrlOpts: Record<string, any> = { text: headerCsv, caption: headerCsv, value: rows, headers: [...headers], columns: [...headers], ...finalOpts };
+        const ctrlOpts: Record<string, any> = { text: headerCsv, caption: headerCsv, value: rows, rows, headers: [...headers], columns: [...headers], ...finalOpts };
         if (explicitId) ctrlOpts.id = explicitId;
         const defaultH = finalOpts.height !== undefined ? finalOpts.height : 180;
         const defaultW = finalOpts.width !== undefined ? finalOpts.width : 540;
@@ -6589,7 +6591,10 @@ export class SimpleWindow {
     public set_ignores_mouse_events(enabled: boolean): this { return this; }
     public get_ignores_mouse_events(): boolean { return false; }
 
-    public apply_theme(theme: SimpleGUITheme): this {
+    public apply_theme(theme: string | SimpleGUITheme): this {
+        if (typeof theme === "string") {
+            return this.setTheme(theme);
+        }
         this.backgroundColor = theme.background_color;
         this.fontColor = theme.font_color;
         this.evalJS(`document.body.style.backgroundColor = "${theme.background_color}"; document.body.style.color = "${theme.font_color}";`);
@@ -8246,11 +8251,11 @@ export class SimpleWindow {
     }
 
     public heading(title: string): SimpleControlRef {
-        return this.addHeading(title);
+        return this.addVisualControl("heading", 400, 36, { text: title, caption: title, font_size: 22, is_bold: true });
     }
 
     public subheading(title: string): SimpleControlRef {
-        return this.addSubheading(title);
+        return this.addVisualControl("subheading", 400, 28, { text: title, caption: title, font_size: 16, is_bold: true });
     }
 
     public divider(): SimpleControlRef {
@@ -8309,9 +8314,10 @@ export class SimpleWindow {
 
     // --- Table Operations ---
     public setTableRows(name: string, rows: any[][]): this {
-        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name || (!name && c.type === "table")));
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name || (!name && (c.type === "table" || c.type === "data_table"))));
         if (ctrl) {
             ctrl.rows = rows;
+            ctrl.value = rows;
             this.setTableData(ctrl.id, rows);
         }
         return this;
@@ -8323,7 +8329,10 @@ export class SimpleWindow {
     public addTableRow(name: string, row: any[]): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) {
-            const rows = Array.isArray(ctrl.rows) ? [...ctrl.rows, row] : [row];
+            const existing = ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : []);
+            const rows = Array.isArray(existing) ? [...existing, row] : [row];
+            ctrl.rows = rows;
+            ctrl.value = rows;
             return this.setTableRows(ctrl.id, rows);
         }
         return this;
@@ -8334,11 +8343,16 @@ export class SimpleWindow {
 
     public removeTableRow(name: string, rowIndex: number): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
-        if (ctrl && Array.isArray(ctrl.rows)) {
-            const rows = [...ctrl.rows];
-            if (rowIndex >= 0 && rowIndex < rows.length) {
-                rows.splice(rowIndex, 1);
-                return this.setTableRows(ctrl.id, rows);
+        if (ctrl) {
+            const existing = ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : []);
+            if (Array.isArray(existing)) {
+                const rows = [...existing];
+                if (rowIndex >= 0 && rowIndex < rows.length) {
+                    rows.splice(rowIndex, 1);
+                    ctrl.rows = rows;
+                    ctrl.value = rows;
+                    return this.setTableRows(ctrl.id, rows);
+                }
             }
         }
         return this;
@@ -8349,8 +8363,9 @@ export class SimpleWindow {
 
     public tableRowCount(name: string): number {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
-        if (ctrl && Array.isArray(ctrl.rows)) {
-            return ctrl.rows.length;
+        if (ctrl) {
+            const r = ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : null);
+            if (Array.isArray(r)) return r.length;
         }
         return 0;
     }
@@ -10457,12 +10472,19 @@ export const VLANG_THEME_NAMES: string[] = [
     'monokai_pro', 'tokyo_night', 'one_dark_pro', 'gruvbox_dark', 'gruvbox_light',
     'rose_pine', 'everforest', 'kanagawa', 'dracula', 'nord',
     'catppuccin', 'solarized_dark', 'solarized_light', 'github_dark', 'github_light',
-    'sonoma_dark', 'sonoma_light', 'sonoma_emerald', 'codefreelance',
-    'fluent_dark', 'fluent_light', 'win95', 'commodore64', 'amiga',
-    'macintosh_system7', 'gameboy', 'matrix_phosphor', 'amber_crt',
-    'synthwave84', 'cyberpunk', 'navy_blue', 'forest_green',
-    'sunset_orange', 'crimson', 'emerald', 'sapphire',
-    'amethyst', 'midnight', 'charcoal', 'slate', 'dark', 'light'
+    'sonoma_dark', 'sonoma_light', 'sonoma_emerald', 'codefreelance', 'fluent_dark',
+    'fluent_light', 'win95', 'commodore64', 'amiga', 'macintosh_system7',
+    'gameboy', 'matrix_phosphor', 'amber_crt', 'synthwave84', 'cyberpunk',
+    'navy_blue', 'forest_green', 'sunset_orange', 'crimson', 'emerald',
+    'sapphire', 'amethyst', 'midnight', 'charcoal', 'slate',
+    'dark', 'light', 'raycast_dark', 'linear_dark', 'vercel_dark',
+    'unreal_engine', 'arc_velvet', 'abyss', 'night_city', 'horizon',
+    'tailwind_dark', 'supabase', 'oled_black', 'titanium_slate', 'jetbrains_darcula',
+    'nordic_paper', 'cobalt2', 'win11_slate', 'win11_light', 'ubuntu_dark',
+    'ubuntu_light', 'adwaita_dark', 'adwaita_light', 'linux_mint', 'pop_os',
+    'fedora_dark', 'aura', 'apple_dark', 'apple_light', 'ventura_amber',
+    'apple_sunset', 'soft_pastel', 'nextstep', 'mac_os_aqua', 'hotdog_stand',
+    'playstation'
 ];
 
 export function getThemeNames(): string[] {

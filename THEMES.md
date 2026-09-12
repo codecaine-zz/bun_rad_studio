@@ -1108,3 +1108,75 @@ win.addThemeSelector("dd_theme", "Theme:", false, 160);
 ```bash
 bun run demo:themes <theme_name>
 ```
+
+---
+
+<a id="vlang-parity-themes"></a>
+## 👑 Vlang Webview RAD Studio 42 Desktop Themes Parity Matrix
+
+Full 1:1 cross-platform parity with all 42 desktop form themes from [`vlang_webview_rad_studio`](https://github.com/codecaine-zz/vlang_webview_rad_studio). All themes are accessible via `getTheme(name)`, `getThemeNames()`, `get_theme_names()`, or passed directly to `createWindow(..., { theme })`.
+
+| # | Theme Key | Display Name | Mode | Canvas BG | Text FG | Primary Accent | Secondary Accent | Card BG | Card Border |
+|---|---|---|---|---|---|---|---|---|---|
+| 01 | `monokai_pro` | **Monokai Pro** | 🌙 Dark | `#2d2a2e` | `#fcfcfa` | `#ffd866` | `#ff6188` | `#221f22` | `#403e41` |
+| 02 | `tokyo_night` | **Tokyo Night** | 🌙 Dark | `#1a1b26` | `#c0caf5` | `#7aa2f7` | `#bb9af7` | `#24283b` | `#414868` |
+| 03 | `one_dark_pro` | **One Dark Pro** | 🌙 Dark | `#21252b` | `#abb2bf` | `#61afef` | `#98c379` | `#282c34` | `#3e4451` |
+| 04 | `gruvbox_dark` | **Gruvbox Dark** | 🌙 Dark | `#282828` | `#ebdbb2` | `#fabd2f` | `#fe8019` | `#1d2021` | `#504945` |
+| 05 | `gruvbox_light` | **Gruvbox Light** | ☀️ Light | `#fbf1c7` | `#3c3836` | `#b57614` | `#af3a03` | `#f2e5bc` | `#d5c4a1` |
+| 06 | `rose_pine` | **Rosé Pine** | 🌙 Dark | `#191724` | `#e0def4` | `#eb6f92` | `#9ccfd8` | `#1f1d2e` | `#26233a` |
+| 07 | `everforest` | **Everforest** | 🌙 Dark | `#2d353b` | `#d3c6aa` | `#a7c080` | `#dbbc7f` | `#232a2e` | `#3d484d` |
+| 08 | `kanagawa` | **Kanagawa** | 🌙 Dark | `#1f1f28` | `#dcd7ba` | `#7e9cd8` | `#957fb8` | `#16161d` | `#2a2a37` |
+| 09 | `dracula` | **Dracula Official** | 🌙 Dark | `#282a36` | `#f8f8f2` | `#bd93f9` | `#ff79c6` | `#21222c` | `#44475a` |
+| 10 | `nord` | **Nord Arctic** | 🌙 Dark | `#2e3440` | `#eceff4` | `#88c0d0` | `#81a1c1` | `#3b4252` | `#434c5e` |
+| 11 | `catppuccin` | **Catppuccin Mocha** | 🌙 Dark | `#1e1e2e` | `#cdd6f4` | `#cba6f7` | `#f38ba8` | `#181825` | `#313244` |
+| 12 | `solarized_dark` | **Solarized Dark** | 🌙 Dark | `#002b36` | `#839496` | `#268bd2` | `#2aa198` | `#073642` | `#004b5c` |
+| 13 | `solarized_light` | **Solarized Light** | ☀️ Light | `#fdf6e3` | `#657b83` | `#268bd2` | `#2aa198` | `#eee8d5` | `#d33682` |
+| 14 | `github_dark` | **GitHub Dark Pro** | 🌙 Dark | `#0d1117` | `#c9d1d9` | `#58a6ff` | `#238636` | `#161b22` | `#30363d` |
+| 15 | `github_light` | **GitHub Light** | ☀️ Light | `#ffffff` | `#24292f` | `#0969da` | `#1a7f37` | `#f6f8fa` | `#d0d7de` |
+| 16 | `sonoma_dark` | **macOS Sonoma Dark** | 🌙 Dark | `#1e1e1e` | `#ffffff` | `#007aff` | `#5ac8fa` | `#2c2c2e` | `#3a3a3c` |
+| 17 | `sonoma_light` | **macOS Sonoma Light** | ☀️ Light | `#f6f6f6` | `#1d1d1f` | `#007aff` | `#5ac8fa` | `#ffffff` | `#d1d1d6` |
+| 18 | `sonoma_emerald` | **Sonoma Emerald** | 🌙 Dark | `#161d19` | `#f5f5f7` | `#30d158` | `#34c759` | `#1e2922` | `#2d4034` |
+| 19 | `codefreelance` | **CodeFreelance** | 🌙 Dark | `#050505` | `#ffffff` | `#0fb36a` | `#bd00ff` | `#121212` | `#242424` |
+| 20 | `fluent_dark` | **Windows 11 Fluent Dark** | 🌙 Dark | `#202020` | `#ffffff` | `#60cdff` | `#76b9ed` | `#2c2c2c` | `#383838` |
+| 21 | `fluent_light` | **Windows 11 Fluent Light** | ☀️ Light | `#f3f3f3` | `#1b1b1b` | `#005fb8` | `#0078d4` | `#ffffff` | `#e5e5e5` |
+| 22 | `win95` | **Windows 95 Classic** | ☀️ Light | `#008080` | `#000000` | `#000080` | `#c0c0c0` | `#c0c0c0` | `#ffffff` |
+| 23 | `commodore64` | **Commodore 64** | 🌙 Dark | `#40318d` | `#8b80db` | `#8b80db` | `#a098eb` | `#352874` | `#5c48b8` |
+| 24 | `amiga` | **Amiga Workbench** | 🌙 Dark | `#0055aa` | `#ffffff` | `#ffaa00` | `#ffffff` | `#003366` | `#ffaa00` |
+| 25 | `macintosh_system7` | **Macintosh System 7** | ☀️ Light | `#ffffff` | `#000000` | `#000000` | `#666666` | `#f0f0f0` | `#000000` |
+| 26 | `gameboy` | **Game Boy Monochrome** | ☀️ Light | `#8bac0f` | `#0f380f` | `#306230` | `#0f380f` | `#9bbc0f` | `#306230` |
+| 27 | `matrix_phosphor` | **Matrix Phosphor** | 🌙 Dark | `#0d1117` | `#00ff41` | `#00ff41` | `#008f11` | `#080c08` | `#003b00` |
+| 28 | `amber_crt` | **Amber CRT Monochrome** | 🌙 Dark | `#0a0600` | `#ffb000` | `#ffb000` | `#ff8800` | `#160d00` | `#472800` |
+| 29 | `synthwave84` | **Synthwave '84** | 🌙 Dark | `#262335` | `#f92aad` | `#f92aad` | `#36f9f6` | `#1a1824` | `#ff7edb` |
+| 30 | `cyberpunk` | **Cyberpunk 2077** | 🌙 Dark | `#0d0221` | `#00f6ff` | `#ff007f` | `#ffe600` | `#19053b` | `#7b2cbf` |
+| 31 | `navy_blue` | **Deep Oceanic Navy** | 🌙 Dark | `#0a1128` | `#e2e8f0` | `#00e5ff` | `#0077b6` | `#101f42` | `#1e3a8a` |
+| 32 | `forest_green` | **Nordic Pine Forest** | 🌙 Dark | `#0d1a12` | `#e8f5e9` | `#00e676` | `#2e7d32` | `#162a1e` | `#1b5e20` |
+| 33 | `sunset_orange` | **Sunset Orange** | 🌙 Dark | `#1a1412` | `#fff3e0` | `#ff6f00` | `#ff9800` | `#261e1b` | `#3d302a` |
+| 34 | `crimson` | **Crimson Velvet** | 🌙 Dark | `#1a0c0e` | `#ffebee` | `#ef4444` | `#f43f5e` | `#261216` | `#3d1c23` |
+| 35 | `emerald` | **Emerald Matrix** | 🌙 Dark | `#0a1a12` | `#e8f5e9` | `#10b981` | `#34d399` | `#10261b` | `#1b4332` |
+| 36 | `sapphire` | **Sapphire Deep** | 🌙 Dark | `#0a121e` | `#e3f2fd` | `#3b82f6` | `#60a5fa` | `#101d30` | `#1e3a5f` |
+| 37 | `amethyst` | **Amethyst Royal** | 🌙 Dark | `#140e1e` | `#f3e8ff` | `#a855f7` | `#c084fc` | `#1f1530` | `#3b2361` |
+| 38 | `midnight` | **Midnight Space Gray** | 🌙 Dark | `#0f1115` | `#e6edf3` | `#38bdf8` | `#818cf8` | `#161922` | `#232936` |
+| 39 | `charcoal` | **Charcoal Dark** | 🌙 Dark | `#1c1c1e` | `#ebebf5` | `#636366` | `#8e8e93` | `#2c2c2e` | `#3a3a3c` |
+| 40 | `slate` | **Slate Modern** | 🌙 Dark | `#0f172a` | `#f1f5f9` | `#64748b` | `#94a3b8` | `#1e293b` | `#334155` |
+| 41 | `dark` | **Default Dark** | 🌙 Dark | `#1e1e2e` | `#cdd6f4` | `#cba6f7` | `#f38ba8` | `#181825` | `#313244` |
+| 42 | `light` | **Default Light** | ☀️ Light | `#ffffff` | `#1a1a1a` | `#007aff` | `#5856d6` | `#f2f2f7` | `#c6c6c8` |
+
+### Vlang Theme Aliases Supported
+The following convenience aliases are resolved automatically:
+- `gruvbox` → `gruvbox_dark`
+- `one_dark` → `one_dark_pro`
+- `synthwave_84` → `synthwave84`
+- `catppuccin_mocha` → `catppuccin`
+- `macos_sonoma`, `macos_dark` → `sonoma_dark`
+- `macos_light` → `sonoma_light`
+- `windows_11_fluent`, `windows_11_dark` → `fluent_dark`
+- `windows_11_light` → `fluent_light`
+- `windows_95` → `win95`
+- `commodore_64`, `c64` → `commodore64`
+- `amiga_workbench`, `atari_st` → `amiga`
+- `mac_system_7`, `mac_classic` → `macintosh_system7`
+- `matrix` → `matrix_phosphor`
+- `amber` → `amber_crt`
+- `vibrant_neon` → `cyberpunk`
+- `vscode_dark`, `material_dark` → `one_dark_pro`
+- `sublime_text` → `monokai_pro`
