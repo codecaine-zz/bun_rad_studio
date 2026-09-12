@@ -875,22 +875,36 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
     }
 }
 
-// Main IDE entry point
-const htmlPath = join(process.cwd(), "src", "ide.html");
-let html = readFileSync(htmlPath, "utf-8");
+// Main IDE entry point helper
+export let html = "";
+export function getIdeHtml(): string {
+    const defaultSpec = JSON.stringify({
+        title: "Form1",
+        width: 800,
+        height: 600,
+        background_color: "#0f172a",
+        font_color: "#e2e8f0",
+        padding: 20,
+        spacing: 12,
+        controls: []
+    });
 
-// Inject the default empty FormSpec so the JS initialises properly
-const defaultSpec = JSON.stringify({
-    title: "Form1",
-    width: 800,
-    height: 600,
-    background_color: "#0f172a",
-    font_color: "#e2e8f0",
-    padding: 20,
-    spacing: 12,
-    controls: []
-});
-html = html.replace("__SPEC_JSON__", defaultSpec);
+    const candidates = [
+        join(process.cwd(), "src", "ide.html"),
+        join(import.meta.dir, "src", "ide.html"),
+        join(import.meta.dir, "ide.html"),
+        join(process.cwd(), "ide.html"),
+    ];
+    for (const p of candidates) {
+        if (existsSync(p)) {
+            try {
+                const raw = readFileSync(p, "utf-8");
+                return raw.replace("__SPEC_JSON__", defaultSpec);
+            } catch {}
+        }
+    }
+    return `<!DOCTYPE html><html><body style="background:#0f172a;color:#e2e8f0;font-family:system-ui;padding:20px;"><h1>Bun RAD Studio IDE</h1></body></html>`;
+}
 
 // Helper function for exporting project structure
 export function exportProjectHelper(specJson: string, customExportDir?: string) {
@@ -1209,6 +1223,7 @@ wv.run();
 if (import.meta.main) {
     const webview = new Webview();
     attachWindowShortcuts(webview);
+    html = getIdeHtml();
     webview.setHTML(html);
     webview.title = "Bun RAD Studio (Delphi/VB Style)";
     webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
@@ -1471,7 +1486,7 @@ export function generatePreviewHtml(spec: any): string {
     for (const c of (spec.controls || [])) {
         if (c.visible === false) continue;
         const t = c.control_type || c.type;
-        const text = c.text !== undefined ? c.text : (c.caption !== undefined ? c.caption : (c.title !== undefined ? c.title : (c.value !== undefined ? c.value : '')));
+        const text = (c.text !== undefined && c.text !== '') ? c.text : (c.value !== undefined && c.value !== '' ? c.value : (c.caption !== undefined && c.caption !== '' ? c.caption : (c.title !== undefined && c.title !== '' ? c.title : (c.text ?? c.value ?? c.caption ?? c.title ?? ''))));
         const color = c.font_color || fg;
         const rawCbg = c.background_color || 'transparent';
         const cbg = c.background_color && c.background_color !== 'transparent'

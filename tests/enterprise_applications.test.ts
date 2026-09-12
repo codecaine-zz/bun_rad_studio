@@ -108,12 +108,41 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_replace");
   });
 
-  it("11. App Bundler Studio Pro initializes with native bun compile target", () => {
+  it("11. App Bundler Studio Pro initializes with native bun compile target, app browser, and icon picker", () => {
     const win = createAppBundlerStudio();
     const html = win.generateHtml();
     expect(html).toContain("App Bundler Studio Pro");
     expect(html).toContain("btn_compile_binary");
     expect(html).toContain("btn_build_bundle");
+    expect(html).toContain("dd_preset_app");
+    expect(html).toContain("btn_load_app");
+    expect(html).toContain("btn_browse_app");
+    expect(html).toContain("btn_browse_script");
+    expect(html).toContain("btn_rescan");
+    expect(html).toContain("btn_open_dist");
+    expect(html).toContain("dd_preset_icon");
+    expect(html).toContain("txt_icon_path");
+    expect(html).toContain("btn_browse_icon");
+
+    // Test loading an application via change handler
+    const changeHandler = (win as any).eventHandlersMap.get("dd_preset_app:onchange");
+    expect(changeHandler).toBeDefined();
+    changeHandler(win, "./applications/sqlite_studio.ts");
+    expect(win.getValue("txt_exec_path")).toBe("./applications/sqlite_studio.ts");
+    expect(win.getValue("txt_app_name")).toBe("SqliteStudioPro");
+    expect(win.getValue("txt_plist_preview")).toContain("SqliteStudioPro");
+    // Verify auto-icon matching detected database_studio icon for sqlite_studio
+    expect(win.getValue("txt_icon_path")).toContain("database_studio");
+
+    // Test icon change handler
+    const iconChangeHandler = (win as any).eventHandlersMap.get("dd_preset_icon:onchange");
+    expect(iconChangeHandler).toBeDefined();
+    iconChangeHandler(win, "./icons/redis_studio.icns");
+    expect(win.getValue("txt_icon_path")).toBe("./icons/redis_studio.icns");
+    expect(win.getValue("txt_plist_preview")).toContain("./icons/redis_studio.icns");
+
+    const buildHandler = (win as any).eventHandlersMap.get("btn_build_bundle:onclick");
+    expect(buildHandler).toBeDefined();
   });
 
   it("12. Network Forensics Studio initializes with port scan & DNS tools", async () => {

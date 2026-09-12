@@ -4473,7 +4473,9 @@ export class SimpleWindow {
     }
 
     public addInput(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
-        return this.addTextInput(placeholder || initialValue, initialValue).id(id);
+        const ref = this.addVisualControl("input", 280, 36, { id, value: initialValue, text: initialValue, placeholder: placeholder || initialValue });
+        if (initialValue) this.formValuesStore[id] = initialValue;
+        return ref;
     }
     public add_input(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
         return this.addInput(id, initialValue, placeholder);
@@ -4565,7 +4567,10 @@ export class SimpleWindow {
 
     public appendConsole(id: string, text: string, level = 0): this {
         const current = this.getText(id);
-        const prefix = level === 1 ? "[WARN] " : (level === 2 ? "[ERROR] " : "[INFO] ");
+        let prefix = "";
+        if (!text.trim().startsWith("[")) {
+            prefix = level === 1 ? "[WARN] " : (level === 2 ? "[SUCCESS] " : (level === 3 ? "[ERROR] " : "[INFO] "));
+        }
         return this.setText(id, current ? `${current}\n${prefix}${text}` : `${prefix}${text}`);
     }
 

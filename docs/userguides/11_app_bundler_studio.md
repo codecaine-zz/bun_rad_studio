@@ -14,11 +14,16 @@ bun run app:bundler
 
 ## 🖥️ User Interface Overview
 
-1. **Compilation Source & Output Options**:
-   - **Entrypoint File**: Path to the TypeScript source file (e.g. `./index.ts`, `./applications/database_studio.ts`).
-   - **Output Binary Name**: Target binary name (e.g. `bun_rad_studio`, `sqlite_studio_app`).
+1. **Application Selection, Browsing & Preset Loading**:
+   - **Pre-Configured App Dropdown**: Quick-browse and select from detected Studio applications in `./applications/` (e.g. SQLite Studio, DevTools Studio, Redis Studio, etc.). Selecting an application automatically loads its entry script, infers the PascalCase application name, and updates compiler specs.
+   - **📥 Load App**: Explicitly loads the selected application from the dropdown into the form fields.
+   - **📂 Browse File... / 📂 Browse...**: Opens the native OS file picker (macOS Cocoa, Linux Zenity, Windows PowerShell) to select any TypeScript/JavaScript entry script from disk without typing.
+   - **🔄 Rescan**: Refreshes the discovered list of studio applications in `./applications/`.
+2. **Compilation Source & Output Options**:
+   - **Entry Script**: Path to the TypeScript source file (auto-filled on browse or dropdown select).
+   - **Application Name**: Clean PascalCase binary name (auto-derived from selected filename).
    - **Destination Directory**: Output directory (defaults to `./dist`).
-2. **Compilation Flags & Target Matrix**:
+3. **Compilation Flags & Target Matrix**:
    - **Target Architecture**:
      - `bun-darwin-arm64` (macOS Apple Silicon M1/M2/M3/M4)
      - `bun-darwin-x64` (macOS Intel)
@@ -26,23 +31,28 @@ bun run app:bundler
      - `bun-windows-x64` (Windows 64-bit Executable)
    - **Bytecode Minification**: Strips whitespace, minifies symbols, and reduces executable size.
    - **Sourcemap Generation**: Optional embedded sourcemaps for production stack traces.
-3. **macOS `.app` Bundle Packager**:
+4. **macOS `.app` Bundle Packager & Icon Management**:
    - **Bundle Identifier**: Reverse-domain ID (e.g. `com.enterprise.radstudio`).
    - **Version String**: Semantic version (e.g. `1.0.0`).
-   - **App Icon File**: Path to `.icns` or `.png` icon.
-   - **Package as macOS .app**: Automatically constructs the required directory hierarchy:
+   - **Pre-Configured Icon Dropdown**: Select from pre-made high-resolution icons in `./icons/` (e.g., `database_studio.icns`, `redis_studio.icns`, `system_studio.icns`, `devtools_studio.icns`, `app_default.icns`, etc.).
+   - **Application Icon Path**: Path to `.icns`, `.png`, or `.ico` icon file.
+   - **📂 Browse Icon...**: Opens the native OS file picker to choose any icon file from disk.
+   - **Automatic Icon Conversion**: On macOS, PNG icons are automatically converted into multi-tier Apple `.icns` packages using `sips` and `iconutil`.
+   - **Package as macOS .app**: Automatically constructs the required directory hierarchy and `Info.plist`:
      ```text
      MyApp.app/
        Contents/
          Info.plist
-         MacOS/MyApp (Native Binary)
-         Resources/AppIcon.icns
+         MacOS/MyApp (Native Mach-O Binary)
+         Resources/
+           AppIcon.icns
+           src/ide.html
      ```
-4. **Compilation Actions**:
+5. **Compilation Actions**:
    - **⚡ Compile Standalone Binary**: Triggers native `bun build --compile`.
    - **📦 Build macOS .app Bundle**: Builds the binary and wraps it in the application bundle.
    - **📂 Open Output Directory**: Reveals the built binary in macOS Finder.
-5. **Build Telemetry & Log Console**:
+6. **Build Telemetry & Log Console**:
    - Real-time compiler output, binary file size in megabytes, and build duration in milliseconds.
 
 ---

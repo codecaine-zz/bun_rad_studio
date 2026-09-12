@@ -2335,23 +2335,89 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
       if (initialUrl) process.env.REDIS_URL = initialUrl;
       if (initialDb !== undefined) process.env.REDIS_DB = String(initialDb);
 
-      const workerUrl = new URL("./redis_studio_server.ts", import.meta.url);
-      const worker = new Worker(workerUrl);
-      app.worker = worker;
+      let info: { ready: boolean; port: number; url: string; type?: string };
 
-      const info: { ready: boolean; port: number; url: string; type?: string } = await new Promise((res, rej) => {
-        const timer = setTimeout(() => rej(new Error("Timeout initializing background Redis engine")), 8000);
-        worker.onmessage = (e) => {
-          if (!e.data?.type || e.data.type === "redis_studio") {
+      let serverProc: any = null;
+
+      try {
+        const workerUrl = new URL("./redis_studio_server.ts", import.meta.url);
+        const worker = new Worker(workerUrl);
+        app.worker = worker;
+
+        info = await new Promise((res, rej) => {
+          const timer = setTimeout(() => rej(new Error("Timeout initializing background Redis engine")), 1500);
+          worker.onmessage = (e) => {
+            if (!e.data?.type || e.data.type === "redis_studio") {
+              clearTimeout(timer);
+              res(e.data);
+            }
+          };
+          worker.onerror = (err) => {
             clearTimeout(timer);
-            res(e.data);
+            rej(err);
+          };
+        });
+      } catch {
+        // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
+        const serverArgs = process.execPath.endsWith("bun")
+          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "redis_studio.ts"), "--server"]
+          : [process.execPath, "--server"];
+
+        const proc = Bun.spawn(serverArgs, {
+          stdout: "pipe",
+          stderr: "ignore",
+          env: {
+            ...process.env,
+            REDIS_URL: initialUrl || "",
+            REDIS_DB: initialDb !== undefined ? String(initialDb) : "0",
+          },
+        });
+        serverProc = proc;
+
+        const reader = proc.stdout.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let detectedPort = 0;
+
+        const timeout = setTimeout(() => {
+          try { reader.cancel(); } catch {}
+        }, 5000);
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value);
+          const m = buffer.match(/READY:(\d+)/);
+          if (m) {
+            detectedPort = parseInt(m[1], 10);
+            break;
           }
-        };
-        worker.onerror = (err) => {
-          clearTimeout(timer);
-          rej(err);
-        };
-      });
+        }
+        clearTimeout(timeout);
+
+        if (detectedPort > 0) {
+          info = {
+            ready: true,
+            port: detectedPort,
+            url: `http://127.0.0.1:${detectedPort}`,
+            type: "redis_studio",
+          };
+        } else {
+          const srv = startRedisStudioServer({
+            port: 0,
+            host: "127.0.0.1",
+            initialUrl,
+            initialDb,
+          });
+          app.server = srv;
+          info = {
+            ready: true,
+            port: srv.port,
+            url: `http://127.0.0.1:${srv.port}`,
+            type: "redis_studio",
+          };
+        }
+      }
 
       app.port = info.port;
       app.url = info.url;
@@ -2384,11 +2450,13 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { worker.terminate(); } catch {}
+            try { app.worker?.terminate(); } catch {}
+            try { serverProc?.kill(); } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { worker.terminate(); } catch {}
+            try { app.worker?.terminate(); } catch {}
+            try { serverProc?.kill(); } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -2401,12 +2469,14 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         console.log(`⚡ Native desktop Redis workstation open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). Accessible at: ${info.url}`);
 
         webview.run();
-        try { worker.terminate(); } catch {}
+        try { app.worker?.terminate(); } catch {}
+        try { serverProc?.kill(); } catch {}
         process.exit(0);
       } catch (err: any) {
         console.warn(`Desktop Webview unavailable (${err?.message || err}). Running in web mode at: ${info.url}`);
       } finally {
-        try { worker.terminate(); } catch {}
+        try { app.worker?.terminate(); } catch {}
+        try { serverProc?.kill(); } catch {}
         process.exit(0);
       }
     },
@@ -2426,7 +2496,18 @@ export { startRedisStudioServer } from "./redis_studio_server.ts";
 // Direct Standalone Execution
 // -------------------------------------------------------------------------------------------------
 
-if (import.meta.main) {
+if (process.argv.includes("--server")) {
+  const url = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+  const db = process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0;
+  const srv = startRedisStudioServer({
+    port: 0,
+    host: "127.0.0.1",
+    initialUrl: url,
+    initialDb: db,
+  });
+  console.log(`READY:${srv.port}`);
+  setInterval(() => {}, 60000);
+} else if (import.meta.main) {
   const url = process.argv[2] || "redis://127.0.0.1:6379";
   const app = createRedisStudio({ url, fullscreen: true });
   await app.run();

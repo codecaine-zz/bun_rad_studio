@@ -4305,23 +4305,84 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
       process.env.STUDIO_WORKER = "sqlite_studio";
       if (activeDbPath) process.env.SQLITE_DB_PATH = activeDbPath;
 
-      const workerUrl = new URL("./sqlite_studio_server.ts", import.meta.url);
-      const worker = new Worker(workerUrl);
-      app.worker = worker;
+      let info: { ready: boolean; port: number; url: string; type?: string };
 
-      const info: { ready: boolean; port: number; url: string; type?: string } = await new Promise((res, rej) => {
-        const timer = setTimeout(() => rej(new Error("Timeout initializing background database engine")), 8000);
-        worker.onmessage = (e) => {
-          if (!e.data?.type || e.data.type === "sqlite_studio") {
+      let serverProc: any = null;
+
+      try {
+        const workerUrl = new URL("./sqlite_studio_server.ts", import.meta.url);
+        const worker = new Worker(workerUrl);
+        app.worker = worker;
+
+        info = await new Promise((res, rej) => {
+          const timer = setTimeout(() => rej(new Error("Timeout initializing background database engine")), 1500);
+          worker.onmessage = (e) => {
+            if (!e.data?.type || e.data.type === "sqlite_studio") {
+              clearTimeout(timer);
+              res(e.data);
+            }
+          };
+          worker.onerror = (err) => {
             clearTimeout(timer);
-            res(e.data);
+            rej(err);
+          };
+        });
+      } catch {
+        // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
+        const serverArgs = process.execPath.endsWith("bun")
+          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "sqlite_studio.ts"), "--server"]
+          : [process.execPath, "--server"];
+
+        const proc = Bun.spawn(serverArgs, {
+          stdout: "pipe",
+          stderr: "ignore",
+          env: { ...process.env, SQLITE_STUDIO_DB: activeDbPath || ":memory:" },
+        });
+        serverProc = proc;
+
+        const reader = proc.stdout.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let detectedPort = 0;
+
+        const timeout = setTimeout(() => {
+          try { reader.cancel(); } catch {}
+        }, 5000);
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value);
+          const m = buffer.match(/READY:(\d+)/);
+          if (m) {
+            detectedPort = parseInt(m[1], 10);
+            break;
           }
-        };
-        worker.onerror = (err) => {
-          clearTimeout(timer);
-          rej(err);
-        };
-      });
+        }
+        clearTimeout(timeout);
+
+        if (detectedPort > 0) {
+          info = {
+            ready: true,
+            port: detectedPort,
+            url: `http://127.0.0.1:${detectedPort}`,
+            type: "sqlite_studio",
+          };
+        } else {
+          const srv = startSqliteStudioServer({
+            port: 0,
+            host: "127.0.0.1",
+            initialDbPath: activeDbPath || ":memory:",
+          });
+          app.server = srv;
+          info = {
+            ready: true,
+            port: srv.port,
+            url: `http://127.0.0.1:${srv.port}`,
+            type: "sqlite_studio",
+          };
+        }
+      }
 
       app.port = info.port;
       app.url = info.url;
@@ -4354,11 +4415,13 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { worker.terminate(); } catch {}
+            try { app.worker?.terminate(); } catch {}
+            try { serverProc?.kill(); } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { worker.terminate(); } catch {}
+            try { app.worker?.terminate(); } catch {}
+            try { serverProc?.kill(); } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -4372,12 +4435,14 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
 
         // Start native desktop message loop on main thread
         webview.run();
-        try { worker.terminate(); } catch {}
+        try { app.worker?.terminate(); } catch {}
+        try { serverProc?.kill(); } catch {}
         process.exit(0);
       } catch (err: any) {
         console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
       } finally {
-        try { worker.terminate(); } catch {}
+        try { app.worker?.terminate(); } catch {}
+        try { serverProc?.kill(); } catch {}
         process.exit(0);
       }
     },
@@ -4398,7 +4463,16 @@ export { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 // Standalone Direct Invocation
 // -------------------------------------------------------------------------------------------------
 
-if (import.meta.main) {
+if (process.argv.includes("--server")) {
+  const initialDb = process.env.SQLITE_STUDIO_DB || ":memory:";
+  const srv = startSqliteStudioServer({
+    port: 0,
+    host: "127.0.0.1",
+    initialDbPath: initialDb,
+  });
+  console.log(`READY:${srv.port}`);
+  setInterval(() => {}, 60000);
+} else if (import.meta.main) {
   const initialDb = process.argv[2] || ":memory:";
   const app = createSqliteStudio({ initialDbPath: initialDb, fullscreen: true });
   await app.run();
