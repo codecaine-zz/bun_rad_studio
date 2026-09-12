@@ -27,10 +27,20 @@ export interface TelemetrySummary {
   totalRssMb: number;
 }
 
+let cachedProcesses: ProcessItem[] = [];
+let lastProcessFetchTime = 0;
+let cachedPortMap = new Map<string, string[]>();
+let lastPortFetchTime = 0;
+
 /**
  * Fetch all network listening ports mapped by PID using macOS/Linux lsof.
+ * Cached for 3.5 seconds to avoid subprocess rate-limiting and high CPU churn.
  */
 function fetchListeningPortMap(): Map<string, string[]> {
+  const now = Date.now();
+  if (now - lastPortFetchTime < 3500 && cachedPortMap.size > 0) {
+    return cachedPortMap;
+  }
   const portMap = new Map<string, string[]>();
   try {
     const [out, code] = Sys.exec("lsof -iTCP -sTCP:LISTEN -n -P");
@@ -54,11 +64,13 @@ function fetchListeningPortMap(): Map<string, string[]> {
           }
         }
       }
+      cachedPortMap = portMap;
+      lastPortFetchTime = now;
     }
   } catch {
     // Non-fatal if lsof is restricted or unavailable
   }
-  return portMap;
+  return cachedPortMap.size > 0 ? cachedPortMap : portMap;
 }
 
 /**
@@ -161,10 +173,22 @@ function isDevServerProcess(command: string, name: string): boolean {
 
 /**
  * Fetch complete live process list with hardware resource metrics and listening network ports.
+ * Includes caching and resilience so rapid searches/clears never yield an empty list.
  */
 export function fetchProcesses(): ProcessItem[] {
+  const now = Date.now();
+  // Throttle ps execution to at most once per 250ms under rapid typing or clearing
+  if (now - lastProcessFetchTime < 250 && cachedProcesses.length > 0) {
+    return cachedProcesses;
+  }
+
   const [out, code] = Sys.exec("ps -axo pid,ppid,pcpu,pmem,rss,state,user,command");
-  if (code !== 0 || !out) return [];
+  if (code !== 0 || !out || out.trim().length < 50) {
+    if (cachedProcesses.length > 0) {
+      return cachedProcesses;
+    }
+    return [];
+  }
 
   const portMap = fetchListeningPortMap();
   const currentUser = process.env.USER || "";
@@ -209,7 +233,14 @@ export function fetchProcesses(): ProcessItem[] {
     }
   }
 
-  return items.sort((a, b) => b.cpu - a.cpu);
+  if (items.length > 0) {
+    items.sort((a, b) => b.cpu - a.cpu);
+    cachedProcesses = items;
+    lastProcessFetchTime = now;
+    return items;
+  }
+
+  return cachedProcesses;
 }
 
 /**
@@ -301,20 +332,20 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.beginGroupBox("Search, Filter & Rapid Port Controller");
   win.beginRow();
   win.addLabel("lbl_filter", "Search Filter:");
-  win.addInput("txt_filter", "");
-  win.addButton("btn_apply_filter", "🔍 Search");
-  win.addButton("btn_clear_filter", "✕ Clear");
-  win.addLabel("lbl_sort", "Sort By:");
-  win.addDropdown("dd_sort", ["CPU % (High to Low)", "Memory % (High to Low)", "RAM (MB)", "PID", "Process Name", "Port"], "CPU % (High to Low)");
+  win.addInput("txt_filter", "", "Filter name, PID, port, user, cmd...", { width: 220 });
+  win.addButton("btn_apply_filter", "🔍 Search", { width: 85 });
+  win.addButton("btn_clear_filter", "✕ Clear", { width: 75 });
+  win.addLabel("lbl_sort", "Sort:");
+  win.addDropdown("dd_sort", ["CPU % (High to Low)", "Memory % (High to Low)", "RAM (MB)", "PID", "Process Name", "Port"], "CPU % (High to Low)", { width: 170 });
   win.addLabel("lbl_limit", "Limit:");
-  win.addDropdown("dd_limit", ["Show All", "Top 200", "Top 100", "Top 50"], "Show All");
+  win.addDropdown("dd_limit", ["Show All", "Top 200", "Top 100", "Top 50"], "Show All", { width: 110 });
   win.endRow();
 
   win.beginRow();
   win.addLabel("lbl_port_help", "Kill by Port:");
-  win.addInput("txt_port", "3000");
-  win.addButton("btn_kill_port", "⚡ Kill Port Process");
-  win.addButton("btn_clean_dev", "🧹 Clean Rogue Dev Servers");
+  win.addInput("txt_port", "3000", "e.g. 3000", { width: 90 });
+  win.addButton("btn_kill_port", "⚡ Kill Port Process", { width: 155 });
+  win.addButton("btn_clean_dev", "🧹 Clean Rogue Dev Servers", { width: 200 });
   win.endRow();
   win.endGroupBox();
 
@@ -570,26 +601,48 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   // Real-time search filter input & buttons
   let filterDebounceTimer: any = null;
   win.onChange("txt_filter", (_, val) => {
-    if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = null;
+    }
+    const q = String(val ?? "").trim();
+    if (!q) {
+      win.formValuesStore["txt_filter"] = "";
+      refreshList(true);
+      return;
+    }
     filterDebounceTimer = setTimeout(() => {
       refreshList(true);
-    }, 280);
+    }, 240);
   });
 
   win.onEnter("txt_filter", () => {
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = null;
+    }
     refreshList(false);
   });
 
   win.onClick("btn_apply_filter", () => {
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = null;
+    }
     refreshList(false);
     const q = win.getValue("txt_filter");
     if (q) logConsole(`[Search] Searching for '${q}'...`, 1);
   });
 
   win.onClick("btn_clear_filter", () => {
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = null;
+    }
+    currentCategory = "all";
     win.setValue("txt_filter", "");
     refreshList(false);
-    win.toast("Filter cleared");
+    win.toast("Filter cleared — showing all processes");
     logConsole("[Search] Filter cleared, showing all processes", 1);
   });
 
@@ -772,19 +825,36 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
           if (!table) return;
           const tbody = table.querySelector("tbody");
           if (!tbody) return;
+
+          // Snapshot full master rows whenever unfiltered rows are present
+          if (!q && tbody.children.length > 5) {
+            window.__masterTableTbodyHtml = tbody.innerHTML;
+          }
+
+          // If query was cleared and table was truncated, restore snapshot immediately!
+          if (!q && tbody.children.length < 5 && window.__masterTableTbodyHtml) {
+            tbody.innerHTML = window.__masterTableTbodyHtml;
+          }
+
           const rows = tbody.querySelectorAll("tr");
           let visibleCount = 0;
+
+          if (!q) {
+            rows.forEach(tr => {
+              tr.style.display = "";
+              visibleCount++;
+            });
+            const statusEl = document.getElementById("lbl_status");
+            if (statusEl) {
+              statusEl.textContent = "Status: Monitoring " + visibleCount + " active processes";
+            }
+            return;
+          }
 
           const normQ = q.replace(/(.)\\1+/g, "$1");
           const terms = q.split(/\\s+/).filter(Boolean);
 
           rows.forEach(tr => {
-            if (!q) {
-              tr.style.display = "";
-              visibleCount++;
-              return;
-            }
-
             const text = (tr.textContent || "").toLowerCase();
             const normText = text.replace(/(.)\\1+/g, "$1");
             const pid = tr.getAttribute("data-pid") || "";
@@ -818,7 +888,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
           });
 
           const statusEl = document.getElementById("lbl_status");
-          if (statusEl && q) {
+          if (statusEl) {
             statusEl.textContent = "Filtered: " + visibleCount + " process(es) matching '" + q + "'";
           }
         };
@@ -826,6 +896,19 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
         filterInput.addEventListener("input", function() {
           window.applyClientSideTableFilter();
         });
+
+        const clearBtn = document.getElementById("btn_clear_filter");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", function() {
+            filterInput.value = "";
+            const table = container.querySelector("table");
+            const tbody = table ? table.querySelector("tbody") : null;
+            if (tbody && window.__masterTableTbodyHtml) {
+              tbody.innerHTML = window.__masterTableTbodyHtml;
+            }
+            window.applyClientSideTableFilter();
+          });
+        }
 
         window.applyClientSideTableFilter();
       }

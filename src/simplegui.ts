@@ -4485,13 +4485,15 @@ export class SimpleWindow {
         return this;
     }
 
-    public addInput(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
-        const ref = this.addVisualControl("input", 280, 36, { id, value: initialValue, text: initialValue, placeholder: placeholder || initialValue });
+    public addInput(id: string, initialValue = "", placeholder = "", opts: any = {}): SimpleControlRef {
+        const optObj = typeof opts === "number" ? { width: opts } : (opts || {});
+        const width = optObj.width !== undefined ? optObj.width : 280;
+        const ref = this.addVisualControl("input", width, 36, { id, value: initialValue, text: initialValue, placeholder: placeholder || initialValue, ...optObj });
         if (initialValue) this.formValuesStore[id] = initialValue;
         return ref;
     }
-    public add_input(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
-        return this.addInput(id, initialValue, placeholder);
+    public add_input(id: string, initialValue = "", placeholder = "", opts: any = {}): SimpleControlRef {
+        return this.addInput(id, initialValue, placeholder, opts);
     }
     public addTextarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
         return this.addTextArea(id, initialValue, placeholder);
