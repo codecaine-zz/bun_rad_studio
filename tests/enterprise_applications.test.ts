@@ -70,6 +70,21 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("Task Manager Pro");
     expect(html).toContain("btn_kill_term");
     expect(html).toContain("btn_kill_force");
+    expect(html).toContain("btn_kill_stop");
+    expect(html).toContain("btn_kill_cont");
+    expect(html).toContain("btn_kill_hup");
+    expect(html).toContain("btn_kill_port");
+    expect(html).toContain("btn_clean_dev");
+    expect(html).toContain("btn_cat_all");
+    expect(html).toContain("btn_cat_user");
+    expect(html).toContain("btn_cat_cpu");
+    expect(html).toContain("btn_cat_mem");
+    expect(html).toContain("btn_cat_dev");
+    expect(html).toContain("btn_cat_ports");
+    expect(html).toContain("btn_copy_pid");
+    expect(html).toContain("btn_copy_cmd");
+    expect(html).toContain("tbl_procs");
+    expect(html).toContain("task_console");
   });
 
   it("7. API Studio Pro initializes with cURL generator & auth presets", () => {

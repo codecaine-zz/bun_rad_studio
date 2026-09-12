@@ -572,6 +572,7 @@ export class SimpleWindow {
     public autoSaveState = true;
     public fullscreen = true;
     public controlStateBindings: Map<string, string> = new Map();
+    public customScripts: string[] = [];
 
     private controls: any[] = [];
     private nonVisualControls: any[] = [];
@@ -2978,6 +2979,9 @@ export class SimpleWindow {
                             rawEl.innerHTML = String(${escaped});
                         } else if (rawEl.value !== undefined) {
                             rawEl.value = ${escaped};
+                        } else if (rawEl.querySelector("table")) {
+                            // Guard against overwriting table containers with textContent
+                            return;
                         } else {
                             rawEl.textContent = String(${escaped});
                         }
@@ -3717,6 +3721,7 @@ export class SimpleWindow {
                 });
             })();
             </script>
+            ${this.customScripts.length > 0 ? this.customScripts.map(s => `<script>\n${s}\n</script>`).join("\n") : ""}
         `;
 
         const lastBodyIdx = html.lastIndexOf("</body>");
@@ -3727,6 +3732,14 @@ export class SimpleWindow {
         }
 
         return html;
+    }
+
+    public addScript(script: string): this {
+        this.customScripts.push(script);
+        if (this.isWindowRunning) {
+            this.evalJS(script);
+        }
+        return this;
     }
 
     public getControls(): any[] {
@@ -4500,21 +4513,86 @@ export class SimpleWindow {
     }
     public setTableData(id: string, headers: string[], rows: any[][]): this {
         const headerCsv = headers.join(", ");
-        this.setText(id, headerCsv);
-        this.setValue(id, rows);
+        this.formValuesStore[id] = rows;
+        const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
+        if (ctrl) {
+            ctrl.text = headerCsv;
+            ctrl.value = rows;
+        }
         if (this.isWindowRunning) {
             const tableJson = JSON.stringify(rows);
             const headersJson = JSON.stringify(headers);
             this.evalJS(`
-                const container = document.getElementById("${id}");
-                if (container) {
-                    const table = container.querySelector("table") || container;
+                (function() {
+                    const container = document.getElementById("${id}");
+                    if (!container) return;
+                    const prevScrollTop = container.scrollTop;
+                    const prevScrollLeft = container.scrollLeft;
+                    const targetPidInput = document.getElementById("txt_target_pid");
+                    const activePid = targetPidInput ? targetPidInput.value.trim() : (window.selectedRowPid || "");
+
+                    let table = container.querySelector("table");
+                    if (!table) {
+                        table = document.createElement("table");
+                        table.style.width = "100%";
+                        table.style.borderCollapse = "collapse";
+                        table.style.fontSize = "12px";
+                        container.innerHTML = "";
+                        container.appendChild(table);
+                    }
                     const headers = ${headersJson};
                     const rows = ${tableJson};
-                    let thead = '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
-                    let tbody = rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('');
+                    const isLight = document.body.classList.contains("light-theme") || (window.currentTheme && window.currentTheme.includes("light"));
+                    const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
+                    const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                    const border = 'rgba(128,128,128,0.2)';
+                    const accent = isLight ? '#0284c7' : '#38bdf8';
+                    const color = isLight ? '#0f172a' : '#f8fafc';
+                    table.style.color = color;
+
+                    function esc(str) {
+                        if (str === null || str === undefined) return '';
+                        return String(str)
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;');
+                    }
+
+                    let thead = '<tr style="background:' + (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)') + ';position:sticky;top:0;z-index:2;backdrop-filter:blur(6px);">' + 
+                        headers.map(h => '<th style="padding:8px 12px;text-align:left;font-weight:700;color:' + accent + ';border-bottom:1px solid ' + border + ';white-space:nowrap;">' + esc(h) + '</th>').join('') + '</tr>';
+                    
+                    let tbody = rows.map(r => {
+                        const cells = Array.isArray(r) ? r : Object.values(r);
+                        const rowPid = String(cells[0] || '').trim();
+                        const isSelected = activePid && rowPid === activePid;
+                        const bgStyle = isSelected ? ('background:' + selBg + ';') : '';
+                        const selClass = isSelected ? ' selected-tr' : '';
+
+                        return '<tr class="' + selClass + '" style="border-bottom:1px solid ' + border + ';cursor:pointer;transition:background 0.12s;' + bgStyle + '" ' +
+                            'data-pid="' + esc(rowPid) + '" ' +
+                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[\\'' + id + '_onClick\\']||window[\\'on_' + id + '_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
+                            'onmouseover="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'' + hoverBg + '\\'" ' +
+                            'onmouseout="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'\\'">' +
+                            cells.map((c, i) => {
+                                const alignStyle = (i >= 3 && i <= 5) ? 'text-align:right;' : 'text-align:left;';
+                                const monoStyle = (i === 0 || (i >= 3 && i <= 5)) ? 'font-family:monospace;' : '';
+                                return '<td style="padding:8px 12px;white-space:nowrap;' + alignStyle + monoStyle + '">' + esc(c) + '</td>';
+                            }).join('') + '</tr>';
+                    }).join('');
+
                     table.innerHTML = '<thead>' + thead + '</thead><tbody>' + tbody + '</tbody>';
-                }
+
+                    // Restore user scroll position so background refresh never jumps to top
+                    container.scrollTop = prevScrollTop;
+                    container.scrollLeft = prevScrollLeft;
+
+                    // Re-apply client-side filter if user is actively searching
+                    if (window.applyClientSideTableFilter) {
+                        window.applyClientSideTableFilter();
+                    }
+                })();
             `);
         }
         return this;
