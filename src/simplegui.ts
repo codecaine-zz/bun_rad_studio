@@ -1723,7 +1723,41 @@ export class SimpleWindow {
         return ref;
     }
 
-    public addThemeSelector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 160, autoShortNames = true): SimpleControlRef {
+    public addThemeSelector(
+        idOrLabel: string = "dd_theme",
+        labelOrPopularOnly: string | boolean = "Theme:",
+        popularOnlyOrAutoShortNames: boolean = false,
+        widthOrPopularOnly: number | boolean = 160,
+        autoShortNames = true
+    ): SimpleControlRef {
+        let id = "dd_theme";
+        let label = "Theme:";
+        let popularOnly = false;
+        let width = 160;
+        let useAutoShortNames = autoShortNames;
+
+        if (typeof labelOrPopularOnly === "boolean") {
+            label = idOrLabel;
+            id = "dd_theme";
+            popularOnly = labelOrPopularOnly;
+            if (typeof popularOnlyOrAutoShortNames === "boolean") {
+                useAutoShortNames = popularOnlyOrAutoShortNames;
+            }
+            if (typeof widthOrPopularOnly === "number") {
+                width = widthOrPopularOnly;
+            }
+        } else {
+            id = idOrLabel || "dd_theme";
+            label = typeof labelOrPopularOnly === "string" ? labelOrPopularOnly : "Theme:";
+            if (typeof popularOnlyOrAutoShortNames === "boolean") {
+                popularOnly = popularOnlyOrAutoShortNames;
+            }
+            if (typeof widthOrPopularOnly === "number") {
+                width = widthOrPopularOnly;
+            }
+            useAutoShortNames = autoShortNames;
+        }
+
         const popularThemes = [
             "midnight",
             "codefreelance",
@@ -1762,41 +1796,56 @@ export class SimpleWindow {
             "github_dark",
             "win95",
             "gameboy",
-            "c64",
-            "synthwave",
-            "mac_classic",
+            "commodore64",
+            "synthwave84",
+            "macintosh_system7",
             "amber_crt",
-            "matrix",
+            "matrix_phosphor",
             "amiga"
         ];
-        const canonicalKeys = [
-            "codefreelance", "midnight",
-            "raycast_dark", "linear_dark", "vercel_dark", "unreal_engine", "arc_velvet",
-            "abyss", "night_city", "horizon", "tailwind_dark", "supabase", "oled_black", "titanium_slate", "jetbrains_darcula", "nordic_paper",
-            "sonoma_emerald", "apple_dark", "apple_light",
-            "monokai_pro", "tokyo_night", "one_dark_pro", "gruvbox_dark", "gruvbox_light",
-            "rose_pine", "everforest", "kanagawa", "cobalt2", "aura",
-            "win11_slate", "win11_light",
-            "ubuntu_dark", "ubuntu_light", "adwaita_dark", "adwaita_light", "linux_mint", "pop_os", "fedora_dark",
-            "dracula", "nord", "cyberpunk", "github_dark", "github_light",
-            "solarized_dark", "solarized_light", "navy_blue", "forest_green",
-            "apple_sunset", "ventura_amber", "soft_pastel", "catppuccin",
-            "win95", "gameboy", "c64", "mac_classic", "amber_crt", "matrix",
-            "synthwave", "amiga", "nextstep", "mac_os_aqua", "hotdog_stand", "playstation"
-        ];
-        const allThemes = canonicalKeys.filter(k => SIMPLEGUI_THEMES[k]);
-        const themeList = popularOnly ? popularThemes : (allThemes.length > 0 ? allThemes : Object.keys(SIMPLEGUI_THEMES));
+        const rawThemeList = popularOnly
+            ? popularThemes.filter(k => SIMPLEGUI_THEMES[k])
+            : VLANG_THEME_NAMES.map(k => {
+                if (k === 'commodore64') return 'c64';
+                if (k === 'matrix_phosphor') return 'matrix';
+                if (k === 'synthwave84') return 'synthwave';
+                if (k === 'macintosh_system7') return 'mac_classic';
+                return k;
+            });
+
+        const itemLabels: Record<string, string> = {};
+        for (const k of rawThemeList) {
+            itemLabels[k] = useAutoShortNames ? autoShortThemeName(k) : (SIMPLEGUI_THEMES[k]?.name || k);
+        }
+        for (const [alias, target] of Object.entries(SIMPLEGUI_THEMES)) {
+            if (!itemLabels[alias]) {
+                itemLabels[alias] = useAutoShortNames ? autoShortThemeName(alias) : (target?.name || alias);
+            }
+        }
+
+        // Deduplicate so each visible label appears exactly once
+        const seenLabels = new Set<string>();
+        const themeList: string[] = [];
+        for (const k of rawThemeList) {
+            const labelText = itemLabels[k] || k;
+            if (!seenLabels.has(labelText)) {
+                seenLabels.add(labelText);
+                themeList.push(k);
+            }
+        }
+
+        // Sort themeList alphabetically by the display label shown to the user
+        themeList.sort((a, b) => {
+            const labelA = itemLabels[a] || a;
+            const labelB = itemLabels[b] || b;
+            return labelA.localeCompare(labelB, undefined, { sensitivity: "base" });
+        });
 
         if (label && label.length > 0) {
             this.addLabel("lbl_" + id, label);
         }
 
         const initialTheme = themeList.includes(this.theme) ? this.theme : (themeList[0] || "midnight");
-        
-        const itemLabels: Record<string, string> = {};
-        for (const k of themeList) {
-            itemLabels[k] = autoShortNames ? autoShortThemeName(k) : (SIMPLEGUI_THEMES[k]?.name || k);
-        }
 
         const ref = this.addDropdown(id, themeList, initialTheme, { item_labels: itemLabels });
         if (width > 0) {
@@ -1810,7 +1859,7 @@ export class SimpleWindow {
                 if (w.autoSaveState) {
                     w.saveAppFormStateOr();
                 }
-                const display = autoShortNames ? autoShortThemeName(chosen) : chosen;
+                const display = useAutoShortNames ? autoShortThemeName(chosen) : chosen;
                 w.toast(`Theme updated to: ${display}`);
             }
         });
@@ -8564,7 +8613,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     },
     "sunset_orange": {
         name: "Sunset Orange",
-        short_name: "Sunset",
+        short_name: "Sunset Orange",
         background_color: "#1a1412",
         font_color: "#fff3e0",
         accent_color: "#ff6f00",
@@ -8588,7 +8637,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     },
     "emerald": {
         name: "Emerald Matrix",
-        short_name: "Emerald",
+        short_name: "Emerald Matrix",
         background_color: "#0a1a12",
         font_color: "#e8f5e9",
         accent_color: "#10b981",
@@ -8648,7 +8697,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     },
     "dark": {
         name: "Default Dark",
-        short_name: "Dark",
+        short_name: "Default Dark",
         background_color: "#1e1e2e",
         font_color: "#cdd6f4",
         accent_color: "#cba6f7",
@@ -8660,7 +8709,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     },
     "light": {
         name: "Default Light",
-        short_name: "Light",
+        short_name: "Default Light",
         background_color: "#ffffff",
         font_color: "#1a1a1a",
         accent_color: "#007aff",
@@ -10443,7 +10492,7 @@ export const getShortThemeName = autoShortThemeName;
 export const get_short_theme_name = autoShortThemeName;
 
 export function listThemes(): string[] {
-    return Array.from(new Set(Object.values(SIMPLEGUI_THEMES).map(t => t.name)));
+    return Array.from(new Set(Object.values(SIMPLEGUI_THEMES).map(t => t.name))).sort((a, b) => a.localeCompare(b));
 }
 export const list_themes = listThemes;
 
@@ -10457,40 +10506,105 @@ export function listShortThemes(): string[] {
             res.push(s);
         }
     }
-    return res;
+    return res.sort((a, b) => a.localeCompare(b));
 }
 export const list_short_themes = listShortThemes;
 
 export function getThemeKeys(): string[] {
-    return Object.keys(SIMPLEGUI_THEMES);
+    return Object.keys(SIMPLEGUI_THEMES).sort((a, b) => a.localeCompare(b));
 }
 export function get_theme_keys(): string[] {
     return getThemeKeys();
 }
 
 export const VLANG_THEME_NAMES: string[] = [
-    'monokai_pro', 'tokyo_night', 'one_dark_pro', 'gruvbox_dark', 'gruvbox_light',
-    'rose_pine', 'everforest', 'kanagawa', 'dracula', 'nord',
-    'catppuccin', 'solarized_dark', 'solarized_light', 'github_dark', 'github_light',
-    'sonoma_dark', 'sonoma_light', 'sonoma_emerald', 'codefreelance', 'fluent_dark',
-    'fluent_light', 'win95', 'commodore64', 'amiga', 'macintosh_system7',
-    'gameboy', 'matrix_phosphor', 'amber_crt', 'synthwave84', 'cyberpunk',
-    'navy_blue', 'forest_green', 'sunset_orange', 'crimson', 'emerald',
-    'sapphire', 'amethyst', 'midnight', 'charcoal', 'slate',
-    'dark', 'light', 'raycast_dark', 'linear_dark', 'vercel_dark',
-    'unreal_engine', 'arc_velvet', 'abyss', 'night_city', 'horizon',
-    'tailwind_dark', 'supabase', 'oled_black', 'titanium_slate', 'jetbrains_darcula',
-    'nordic_paper', 'cobalt2', 'win11_slate', 'win11_light', 'ubuntu_dark',
-    'ubuntu_light', 'adwaita_dark', 'adwaita_light', 'linux_mint', 'pop_os',
-    'fedora_dark', 'aura', 'apple_dark', 'apple_light', 'ventura_amber',
-    'apple_sunset', 'soft_pastel', 'nextstep', 'mac_os_aqua', 'hotdog_stand',
-    'playstation'
+    'abyss',
+    'adwaita_dark',
+    'adwaita_light',
+    'amber_crt',
+    'amethyst',
+    'amiga',
+    'apple_dark',
+    'apple_light',
+    'apple_sunset',
+    'arc_velvet',
+    'aura',
+    'catppuccin',
+    'charcoal',
+    'cobalt2',
+    'codefreelance',
+    'commodore64',
+    'crimson',
+    'cyberpunk',
+    'dark',
+    'dracula',
+    'emerald',
+    'everforest',
+    'fedora_dark',
+    'fluent_dark',
+    'fluent_light',
+    'forest_green',
+    'gameboy',
+    'github_dark',
+    'github_light',
+    'gruvbox_dark',
+    'gruvbox_light',
+    'horizon',
+    'hotdog_stand',
+    'jetbrains_darcula',
+    'kanagawa',
+    'light',
+    'linear_dark',
+    'linux_mint',
+    'mac_os_aqua',
+    'macintosh_system7',
+    'matrix_phosphor',
+    'midnight',
+    'monokai_pro',
+    'navy_blue',
+    'nextstep',
+    'night_city',
+    'nord',
+    'nordic_paper',
+    'oled_black',
+    'one_dark_pro',
+    'playstation',
+    'pop_os',
+    'raycast_dark',
+    'rose_pine',
+    'sapphire',
+    'slate',
+    'soft_pastel',
+    'solarized_dark',
+    'solarized_light',
+    'sonoma_dark',
+    'sonoma_emerald',
+    'sonoma_light',
+    'sunset_orange',
+    'supabase',
+    'synthwave84',
+    'tailwind_dark',
+    'titanium_slate',
+    'tokyo_night',
+    'ubuntu_dark',
+    'ubuntu_light',
+    'unreal_engine',
+    'ventura_amber',
+    'vercel_dark',
+    'win11_light',
+    'win11_slate',
+    'win95'
 ];
 
 export function getThemeNames(): string[] {
-    return VLANG_THEME_NAMES;
+    return [...VLANG_THEME_NAMES].sort((a, b) => a.localeCompare(b));
 }
 export const get_theme_names = getThemeNames;
+
+export function getThemes(): string[] {
+    return getThemeNames();
+}
+export const get_themes = getThemes;
 
 export function getTheme(themeName: string): SimpleGUITheme {
     if (!themeName) return SIMPLEGUI_THEMES["monokai_pro"] || SIMPLEGUI_THEMES["apple_light"]!;
@@ -10577,6 +10691,8 @@ export const simplegui = {
     new_simple_window,
     listThemes,
     list_themes,
+    getThemes,
+    get_themes,
     getThemeNames,
     get_theme_names,
     VLANG_THEME_NAMES,

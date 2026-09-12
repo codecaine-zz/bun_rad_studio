@@ -6,11 +6,11 @@
  * KPI metric cards, containers, interactive event wiring, and telemetry.
  */
 
-import { simplegui, SimpleWindow, getThemeNames, getTheme } from "../index.ts";
+import { simplegui, SimpleWindow, getThemeNames, getThemes, getTheme } from "../index.ts";
 
 export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow {
     const win = simplegui.newWindow(
-        "Demo 25 - All 42 Themes & 70+ Controls Ultimate Mega-Showcase",
+        "Demo 25 - All 76 Themes & 70+ Controls Ultimate Mega-Showcase",
         1100,
         800,
         {
@@ -19,22 +19,19 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
     );
 
     win.heading("👑 The Ultimate RAD Studio Mega-Showcase");
-    win.subheading("70+ Delphi/VB Style Native Controls across all 42 Desktop Themes:");
+    win.subheading("70+ Delphi/VB Style Native Controls across all 76 Desktop Themes:");
     win.divider();
 
     win.row_start();
     win.kpi_card("Visual Controls", "70+ Types", "Anchors & Docking");
-    win.kpi_card("Built-in Themes", "42 Desktop", "Pixel-perfect CSS");
+    win.kpi_card("Built-in Themes", "76 Desktop", "Pixel-perfect CSS");
     win.kpi_card("Window Placement", "9 Presets", "Cocoa, Win32, GTK");
     win.kpi_card("FFI System APIs", "60+ Tools", "Native Telemetry");
     win.row_end();
 
-    win.box_start("42 Desktop Form Themes Selector & Style Mode");
+    win.box_start("76 Desktop Form Themes Selector & Style Mode");
     win.row_start();
-    win.dropdown(getThemeNames(), initialTheme, (w: SimpleWindow, val: string) => {
-        console.log(`[Showcase] Switching theme to: ${val}`);
-        w.setTheme(val);
-    });
+    win.addThemeSelector("dd_theme_selector", "", false, 240);
     win.radio("theme_mode", "Dark Engine", true, () => {});
     win.radio("theme_mode", "Light Engine", false, () => {});
     win.toggle("CSS Transitions", true, () => {});
@@ -45,7 +42,7 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
     win.row_start();
     win.input("User Input", "Hello, Cross-Platform Bun Webview!", () => {});
     win.password("Secure Input", "hunter2", () => {});
-    win.dropdown(["Desktop Client", "Cloud Node", "Embedded Edge"], "Desktop Client", () => {});
+    win.addDropdown("dd_client_mode", ["Desktop Client", "Cloud Node", "Embedded Edge"], "Desktop Client", () => {});
     win.row_end();
 
     win.row_start();
@@ -61,7 +58,7 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
     win.label("Active Workspace & Runtime Telemetry Notes:");
     win.textarea(
         "Telemetry Logs",
-        "Webview FFI bridge initialized.\n42 theme styles injected.\nHardware acceleration active.\nAnchors and docking layout operational.",
+        "Webview FFI bridge initialized.\n76 theme styles injected.\nHardware acceleration active.\nAnchors and docking layout operational.",
         () => {}
     );
     win.box_end();
@@ -76,7 +73,7 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
         ["Webview Engine", "WebKit / Edge / Webview2", "Active", "100%"],
         ["Window Management", "Cocoa / Win32 / GTK", "Active", "100%"],
         ["Hardware Telemetry", "sysctl / wmic / /proc", "Active", "100%"],
-        ["Theme Catalog", "42 Built-in CSS Engines", "Active", "100%"],
+        ["Theme Catalog", "76 Built-in CSS Engines", "Active", "100%"],
         ["RAD Form Designer", "Delphi Visual Anchors/Dock", "Active", "100%"],
     ];
     win.table(headers, rows, () => {});
@@ -87,7 +84,7 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
         w.alert("Studio Launcher", "Launching System Studio Pro...");
     });
     win.button("🔔 Desktop Notification", (w: SimpleWindow) => {
-        w.showNotification("RAD Studio", "All 42 Themes and 70+ Controls Fully Operational!");
+        w.showNotification("RAD Studio", "All 76 Themes and 70+ Controls Fully Operational!");
     });
     win.button("🎯 Center Window", (w: SimpleWindow) => {
         w.centerOnScreen();

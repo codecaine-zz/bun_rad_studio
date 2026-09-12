@@ -3,33 +3,98 @@ import {
     simplegui,
     SimpleWindow,
     getTheme,
+    getThemes,
+    get_themes,
     getThemeNames,
     get_theme_names,
+    getThemeKeys,
+    listThemes,
     VLANG_THEME_NAMES,
     generatePreviewHtml
 } from "../index.ts";
+import { createVlangShowcase } from "../demos/25_vlang_all_themes_showcase.ts";
 
 describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
     const EXPECTED_76_THEMES = [
-        'monokai_pro', 'tokyo_night', 'one_dark_pro', 'gruvbox_dark', 'gruvbox_light',
-        'rose_pine', 'everforest', 'kanagawa', 'dracula', 'nord',
-        'catppuccin', 'solarized_dark', 'solarized_light', 'github_dark', 'github_light',
-        'sonoma_dark', 'sonoma_light', 'sonoma_emerald', 'codefreelance', 'fluent_dark',
-        'fluent_light', 'win95', 'commodore64', 'amiga', 'macintosh_system7',
-        'gameboy', 'matrix_phosphor', 'amber_crt', 'synthwave84', 'cyberpunk',
-        'navy_blue', 'forest_green', 'sunset_orange', 'crimson', 'emerald',
-        'sapphire', 'amethyst', 'midnight', 'charcoal', 'slate',
-        'dark', 'light', 'raycast_dark', 'linear_dark', 'vercel_dark',
-        'unreal_engine', 'arc_velvet', 'abyss', 'night_city', 'horizon',
-        'tailwind_dark', 'supabase', 'oled_black', 'titanium_slate', 'jetbrains_darcula',
-        'nordic_paper', 'cobalt2', 'win11_slate', 'win11_light', 'ubuntu_dark',
-        'ubuntu_light', 'adwaita_dark', 'adwaita_light', 'linux_mint', 'pop_os',
-        'fedora_dark', 'aura', 'apple_dark', 'apple_light', 'ventura_amber',
-        'apple_sunset', 'soft_pastel', 'nextstep', 'mac_os_aqua', 'hotdog_stand',
-        'playstation'
+        'abyss',
+        'adwaita_dark',
+        'adwaita_light',
+        'amber_crt',
+        'amethyst',
+        'amiga',
+        'apple_dark',
+        'apple_light',
+        'apple_sunset',
+        'arc_velvet',
+        'aura',
+        'catppuccin',
+        'charcoal',
+        'cobalt2',
+        'codefreelance',
+        'commodore64',
+        'crimson',
+        'cyberpunk',
+        'dark',
+        'dracula',
+        'emerald',
+        'everforest',
+        'fedora_dark',
+        'fluent_dark',
+        'fluent_light',
+        'forest_green',
+        'gameboy',
+        'github_dark',
+        'github_light',
+        'gruvbox_dark',
+        'gruvbox_light',
+        'horizon',
+        'hotdog_stand',
+        'jetbrains_darcula',
+        'kanagawa',
+        'light',
+        'linear_dark',
+        'linux_mint',
+        'mac_os_aqua',
+        'macintosh_system7',
+        'matrix_phosphor',
+        'midnight',
+        'monokai_pro',
+        'navy_blue',
+        'nextstep',
+        'night_city',
+        'nord',
+        'nordic_paper',
+        'oled_black',
+        'one_dark_pro',
+        'playstation',
+        'pop_os',
+        'raycast_dark',
+        'rose_pine',
+        'sapphire',
+        'slate',
+        'soft_pastel',
+        'solarized_dark',
+        'solarized_light',
+        'sonoma_dark',
+        'sonoma_emerald',
+        'sonoma_light',
+        'sunset_orange',
+        'supabase',
+        'synthwave84',
+        'tailwind_dark',
+        'titanium_slate',
+        'tokyo_night',
+        'ubuntu_dark',
+        'ubuntu_light',
+        'unreal_engine',
+        'ventura_amber',
+        'vercel_dark',
+        'win11_light',
+        'win11_slate',
+        'win95'
     ];
 
-    it("1. getThemeNames() returns all 76 canonical V themes in exact order", () => {
+    it("1. getThemeNames() and getThemes() return all 76 canonical V themes sorted alphabetically", () => {
         const names = getThemeNames();
         expect(names.length).toBe(76);
         expect(names).toEqual(EXPECTED_76_THEMES);
@@ -37,6 +102,19 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const namesSnake = get_theme_names();
         expect(namesSnake).toEqual(EXPECTED_76_THEMES);
         expect(VLANG_THEME_NAMES).toEqual(EXPECTED_76_THEMES);
+
+        // getThemes() & get_themes()
+        expect(getThemes()).toEqual(EXPECTED_76_THEMES);
+        expect(get_themes()).toEqual(EXPECTED_76_THEMES);
+        expect(simplegui.getThemes()).toEqual(EXPECTED_76_THEMES);
+        expect(simplegui.get_themes()).toEqual(EXPECTED_76_THEMES);
+
+        // Verify sorted ordering
+        const isSorted = (arr: string[]) => arr.every((v, i) => i === 0 || arr[i - 1]!.localeCompare(v) <= 0);
+        expect(isSorted(getThemeNames())).toBe(true);
+        expect(isSorted(getThemes())).toBe(true);
+        expect(isSorted(getThemeKeys())).toBe(true);
+        expect(isSorted(listThemes())).toBe(true);
     });
 
     it("2. getTheme() resolves every one of the 76 themes with valid palettes", () => {
@@ -224,4 +302,53 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         win.applyThemeByName("commodore64");
         expect(win.theme).toBe("commodore64");
     });
+
+    it("11. Theme dropdowns are sorted alphabetically across all selectors and helpers", () => {
+        const win = simplegui.createWindow("Sorted Theme Selectors", 800, 600);
+
+        // 1. addThemeSelector dropdown items sorted alphabetically by display name
+        const selRef = win.addThemeSelector("dd_theme", "Theme:");
+        const items = selRef.spec.items || [];
+        const labels = selRef.spec.item_labels || {};
+        expect(items.length).toBeGreaterThanOrEqual(76);
+
+        const displayNames = items.map((k: string) => labels[k] || k);
+        const sortedDisplayNames = [...displayNames].sort((a: string, b: string) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" })
+        );
+        expect(displayNames).toEqual(sortedDisplayNames);
+
+        // 2. addThemeSelector overload support (e.g., ("🎨 Theme", false, true))
+        const customSel = win.addThemeSelector("🎨 Theme", false, true);
+        expect(customSel).toBeDefined();
+        const customItems = customSel.spec.items || [];
+        const customLabels = customSel.spec.item_labels || {};
+        const customDisplayNames = customItems.map((k: string) => customLabels[k] || k);
+        const sortedCustomDisplayNames = [...customDisplayNames].sort((a: string, b: string) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" })
+        );
+        expect(customDisplayNames).toEqual(sortedCustomDisplayNames);
+
+        // 3. getThemes() and listThemes() arrays are strictly sorted alphabetically
+        const allThemes = getThemes();
+        const sortedThemes = [...allThemes].sort((a, b) => a.localeCompare(b));
+        expect(allThemes).toEqual(sortedThemes);
+
+        const listThemesArr = listThemes();
+        const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
+        expect(listThemesArr).toEqual(sortedListThemes);
+
+        // 4. Demo 25 theme dropdown has exactly 76 unique themes with zero duplicates
+        const demo25Win = createVlangShowcase();
+        const demo25Html = demo25Win.getHtml();
+        const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
+        expect(themeMatch).toBeTruthy();
+        const demo25Options = [...themeMatch![1].matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
+        expect(demo25Options.length).toBe(76);
+        const uniqueValues = new Set(demo25Options.map(o => o.val));
+        const uniqueTexts = new Set(demo25Options.map(o => o.text));
+        expect(uniqueValues.size).toBe(76);
+        expect(uniqueTexts.size).toBe(76);
+    });
 });
+

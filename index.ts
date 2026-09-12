@@ -1298,7 +1298,7 @@ wv.run();
 
 export {
     simplegui, SimpleWindow, SimpleControlRef, createWindow, newWindow, newSimpleWindow, new_simple_window,
-    listThemes, list_themes, getThemeNames, get_theme_names, VLANG_THEME_NAMES, getThemeKeys, get_theme_keys, getTheme, saveTheme, save_theme, getSavedTheme, get_saved_theme,
+    listThemes, list_themes, getThemes, get_themes, getThemeNames, get_theme_names, VLANG_THEME_NAMES, getThemeKeys, get_theme_keys, getTheme, saveTheme, save_theme, getSavedTheme, get_saved_theme,
     homeDir, tempDir, desktopDir, documentsDir, downloadsDir,
     resolveUserPath, resolve_user_path,
     getAppConfigDir, get_app_config_dir,
