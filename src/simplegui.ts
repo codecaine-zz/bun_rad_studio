@@ -3184,7 +3184,8 @@ export class SimpleWindow {
         try {
             if (process.platform === "darwin") {
                 const safeTitle = title.replace(/"/g, '\\"');
-                const proc = Bun.spawnSync(["osascript", "-e", `POSIX path of (choose file with prompt "${safeTitle}")`]);
+                const script = `try\nactivate\nPOSIX path of (choose file with prompt "${safeTitle}")\non error\nreturn ""\nend try`;
+                const proc = Bun.spawnSync(["osascript", "-e", script]);
                 const out = proc.stdout.toString().trim();
                 return out || null;
             } else if (process.platform === "linux") {
@@ -3208,7 +3209,8 @@ export class SimpleWindow {
             if (process.platform === "darwin") {
                 const safeTitle = title.replace(/"/g, '\\"');
                 const safeName = defaultName.replace(/"/g, '\\"');
-                const proc = Bun.spawnSync(["osascript", "-e", `POSIX path of (choose file name with prompt "${safeTitle}" default name "${safeName}")`]);
+                const script = `try\nactivate\nPOSIX path of (choose file name with prompt "${safeTitle}" default name "${safeName}")\non error\nreturn ""\nend try`;
+                const proc = Bun.spawnSync(["osascript", "-e", script]);
                 const out = proc.stdout.toString().trim();
                 return out || null;
             } else if (process.platform === "linux") {
@@ -3231,7 +3233,8 @@ export class SimpleWindow {
         try {
             if (process.platform === "darwin") {
                 const safeTitle = title.replace(/"/g, '\\"');
-                const proc = Bun.spawnSync(["osascript", "-e", `POSIX path of (choose folder with prompt "${safeTitle}")`]);
+                const script = `try\nactivate\nPOSIX path of (choose folder with prompt "${safeTitle}")\non error\nreturn ""\nend try`;
+                const proc = Bun.spawnSync(["osascript", "-e", script]);
                 const out = proc.stdout.toString().trim();
                 return out || null;
             } else if (process.platform === "linux") {
@@ -4543,7 +4546,20 @@ export class SimpleWindow {
     public end_group_box(): this {
         return this.endCard();
     }
-    public setTableData(id: string, headers: string[], rows: any[][]): this {
+    public setTableData(id: string, headersOrRows: string[] | any[][], maybeRows?: any[][]): this {
+        let headers: string[];
+        let rows: any[][];
+        if (maybeRows !== undefined && Array.isArray(headersOrRows)) {
+            headers = headersOrRows as string[];
+            rows = maybeRows;
+        } else if (Array.isArray(headersOrRows)) {
+            const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
+            headers = ctrl && ctrl.text ? ctrl.text.split(",").map((s: string) => s.trim()) : [];
+            rows = headersOrRows as any[][];
+        } else {
+            headers = [];
+            rows = [];
+        }
         const headerCsv = headers.join(", ");
         this.formValuesStore[id] = rows;
         const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
@@ -4552,8 +4568,8 @@ export class SimpleWindow {
             ctrl.value = rows;
         }
         if (this.isWindowRunning) {
-            const tableJson = JSON.stringify(rows);
-            const headersJson = JSON.stringify(headers);
+            const tableJson = JSON.stringify(rows || []);
+            const headersJson = JSON.stringify(headers || []);
             this.evalJS(`
                 (function() {
                     const container = document.getElementById("${id}");
@@ -4682,6 +4698,10 @@ export class SimpleWindow {
             prefix = level === 1 ? "[WARN] " : (level === 2 ? "[SUCCESS] " : (level === 3 ? "[ERROR] " : "[INFO] "));
         }
         return this.setText(id, current ? `${current}\n${prefix}${text}` : `${prefix}${text}`);
+    }
+
+    public logConsole(id: string, text: string, level = 0): this {
+        return this.appendConsole(id, text, level);
     }
 
     public clearConsole(id: string): this {
