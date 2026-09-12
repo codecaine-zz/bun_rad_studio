@@ -31,18 +31,21 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     // 1. TOP HEADER & THEME SWITCHER BAR
     // ==========================================
     win.beginRow();
-    win.addLabel(`🎨 ${themeObj.name}`)
+    win.addLabel("lbl_theme_title", `🎨 ${themeObj.name}`)
         .font(20, themeObj.accent_color, "800")
         .width(280);
 
     win.addBadge(themeObj.is_dark ? "🌙 DARK" : "☀️ LIGHT", themeObj.is_dark ? "info" : "warning")
+        .id("bdg_theme_mode")
         .width(100);
 
     win.addBadge(`PRI ${themeObj.accent_color}`, "success")
+        .id("bdg_theme_pri")
         .width(120);
 
     if (themeObj.secondary_accent) {
         win.addBadge(`SEC ${themeObj.secondary_accent}`, "info")
+            .id("bdg_theme_sec")
             .width(125);
     }
 
@@ -50,9 +53,8 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.addThemeSelector("dd_theme_selector", "Theme:", false, 170);
     win.endRow();
 
-    win.addLabel(`${themeObj.description} • Unified single-form showcase with all 30+ RAD controls`)
-        .font(12, themeObj.font_color)
-        .opacity(75);
+    win.addLabel("lbl_theme_desc", `${themeObj.description} • Unified single-form showcase with all 30+ RAD controls`)
+        .font(12, themeObj.is_dark ? "#94a3b8" : "#334155");
 
     win.addDivider();
 
@@ -140,7 +142,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.beginRow();
     win.addLabel("Threads Stepper:").width(120);
     win.addStepper(1, 64, 16).id("stpThreads").width(120);
-    win.addLabel("Max Limit: 64").font(11).opacity(70);
+    win.addLabel("Max Limit: 64").font(11, themeObj.is_dark ? "#94a3b8" : "#334155");
     win.endRow();
 
     win.endCard();
@@ -270,7 +272,8 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
             "nordic_paper", "sonoma_emerald", "monokai_pro", "tokyo_night", "one_dark_pro",
             "gruvbox_dark", "rose_pine", "everforest", "kanagawa", "cobalt2",
             "win11_slate", "apple_dark", "dracula", "nord", "cyberpunk", "apple_light",
-            "win95", "gameboy", "c64", "matrix", "synthwave"
+            "win95", "gameboy", "c64", "matrix", "synthwave",
+            "mac_os_aqua", "win11_light", "github_light", "solarized_light", "soft_pastel"
         ];
         const next = keys[Math.floor(Math.random() * keys.length)] || "sonoma_emerald";
         w.setTheme(next, true);

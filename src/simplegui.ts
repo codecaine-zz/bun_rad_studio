@@ -636,6 +636,8 @@ export class SimpleWindow {
 
         const themeObj = getTheme(themeName);
         const isLight = !themeObj.is_dark;
+        const mutedColor = isLight ? "#334155" : "#94a3b8";
+        const legendColor = isLight ? "#0f172a" : colors.accent;
         const btnBg = colors.accent;
         const isBrightAccent = isBrightAccentColor(btnBg);
         const btnFg = isBrightAccent ? "#000000" : "#ffffff";
@@ -652,6 +654,12 @@ export class SimpleWindow {
             } else if ((type === "groupbox" || type === "card") && !ctrl.custom_card_background) {
                 ctrl.background_color = themeObj.card_background || (themeObj.is_dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)");
                 ctrl.border_color = themeObj.card_border || (themeObj.is_dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)");
+            } else if (!ctrl.custom_color) {
+                if (ctrl.is_caption || ctrl.is_card_subtitle) {
+                    ctrl.font_color = mutedColor;
+                } else {
+                    ctrl.font_color = colors.fg;
+                }
             }
         }
 
@@ -673,6 +681,8 @@ export class SimpleWindow {
                     document.documentElement.style.setProperty('--btn-fg', '${btnFg}');
                     document.documentElement.style.setProperty('--card-bg', '${cardBg}');
                     document.documentElement.style.setProperty('--card-border', '${cardBorder}');
+                    document.documentElement.style.setProperty('--theme-fg', '${colors.fg}');
+                    document.documentElement.style.setProperty('--theme-muted', '${mutedColor}');
                     document.body.style.backgroundColor = "${colors.bg}";
                     document.body.style.color = "${colors.fg}";
                     let styleEl = document.getElementById("simplegui-theme-dyn");
@@ -689,12 +699,82 @@ export class SimpleWindow {
                             --btn-fg: ${btnFg};
                             --card-bg: ${cardBg};
                             --card-border: ${cardBorder};
+                            --theme-fg: ${colors.fg};
+                            --theme-muted: ${mutedColor};
+                            --input-bg: ${inputBg};
+                            --input-border: ${inputBorder};
+                            --editable-bg: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'};
+                            --editable-border: ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'};
                         }
                         body { background-color: ${colors.bg} !important; color: ${colors.fg} !important; }
                         fieldset { background-color: ${fieldsetBg} !important; border-color: ${fieldsetBorder} !important; }
-                        legend { color: ${colors.accent} !important; }
+                        legend { color: ${legendColor} !important; font-weight: 700 !important; }
                         .simplegui-card, [data-card] { background-color: ${cardBg} !important; border-color: ${fieldsetBorder} !important; }
-                        table th { color: ${colors.accent} !important; }
+                        
+                        /* Themed Labels, Text, Checks, Editable Labels and Tables */
+                        .rad-label:not([data-custom-color]):not([data-caption="true"]),
+                        [data-theme-label="true"],
+                        label:not([data-custom-color]),
+                        .rad-checkbox-label,
+                        .rad-radio-label,
+                        .rad-switch-label,
+                        .rad-slider-title,
+                        .rad-editable-label-container,
+                        .label-display,
+                        .label-text,
+                        .rad-editable-input,
+                        .rad-masked-input-wrapper,
+                        .rad-masked-input-wrapper input,
+                        .stepper-val,
+                        table td,
+                        .tree-node:not(.selected-tree-node),
+                        .rad-tree-container span {
+                            color: ${colors.fg} !important;
+                        }
+                        
+                        /* Subtitles, Captions & Muted metadata */
+                        .rad-caption,
+                        .rad-card-subtitle,
+                        [data-caption="true"],
+                        .rad-muted-text {
+                            color: ${mutedColor} !important;
+                        }
+
+                        /* Inline Editable Label Container & Display */
+                        .rad-editable-label-container {
+                            background-color: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'} !important;
+                            border: 1px dashed ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'} !important;
+                            border-radius: 6px !important;
+                            color: ${colors.fg} !important;
+                            transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s !important;
+                        }
+                        .rad-editable-label-container:hover {
+                            border-color: ${colors.accent} !important;
+                            border-style: solid !important;
+                            background-color: ${inputBg} !important;
+                            box-shadow: 0 0 0 1px ${colors.accent} !important;
+                        }
+                        .rad-editable-label-container .label-display,
+                        .rad-editable-label-container .label-text {
+                            color: ${colors.fg} !important;
+                        }
+                        .rad-editable-badge {
+                            color: ${colors.accent} !important;
+                            background-color: ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'} !important;
+                            border: 1px solid ${isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.18)'} !important;
+                        }
+                        .rad-editable-input {
+                            background-color: ${inputBg} !important;
+                            color: ${colors.fg} !important;
+                            border: 1px solid ${colors.accent} !important;
+                            box-shadow: 0 0 0 2px ${colors.accent}44 !important;
+                        }
+
+                        table th { color: ${isLight ? '#0f172a' : colors.accent} !important; }
+                        table tr { border-color: ${cardBorder} !important; }
+                        table tr:hover:not(.selected-tr) { background: ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'} !important; }
+                        .selected-tree-node { color: ${isLight ? '#0f172a' : colors.accent} !important; font-weight: 700 !important; }
+
                         input:not([type="checkbox"]):not([type="radio"]), textarea, select {
                             background-color: ${inputBg} !important;
                             color: ${colors.fg} !important;
@@ -747,6 +827,79 @@ export class SimpleWindow {
                         b.style.backgroundColor = '${btnBg}';
                         b.style.color = '${btnFg}';
                     });
+                    document.querySelectorAll('.rad-label:not([data-custom-color]):not([data-caption="true"]), [data-theme-label="true"], label:not([data-custom-color])').forEach(function(l) {
+                        l.style.color = '${colors.fg}';
+                    });
+                    document.querySelectorAll('.rad-caption, .rad-card-subtitle, [data-caption="true"], .rad-muted-text').forEach(function(c) {
+                        c.style.color = '${mutedColor}';
+                    });
+                    document.querySelectorAll('.rad-editable-label-container').forEach(function(el) {
+                        el.style.backgroundColor = '${isLight ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)"}';
+                        el.style.borderColor = '${isLight ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 255, 255, 0.22)"}';
+                        el.style.color = '${colors.fg}';
+                    });
+                    document.querySelectorAll('.rad-editable-label-container .label-text, .rad-editable-label-container .label-display').forEach(function(el) {
+                        el.style.color = '${colors.fg}';
+                    });
+                    document.querySelectorAll('.rad-editable-badge').forEach(function(el) {
+                        el.style.color = '${colors.accent}';
+                        el.style.borderColor = '${isLight ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.18)"}';
+                    });
+                    document.querySelectorAll('.rad-editable-input').forEach(function(inp) {
+                        inp.style.backgroundColor = '${inputBg}';
+                        inp.style.color = '${colors.fg}';
+                        inp.style.borderColor = '${colors.accent}';
+                    });
+                    document.querySelectorAll('.rad-masked-input-wrapper, .rad-masked-input-wrapper input, .stepper-val').forEach(function(el) {
+                        el.style.color = '${colors.fg}';
+                    });
+                    document.querySelectorAll('table th').forEach(function(th) {
+                        th.style.color = '${isLight ? '#0f172a' : colors.accent}';
+                    });
+                    document.querySelectorAll('legend').forEach(function(lg) {
+                        lg.style.color = '${legendColor}';
+                    });
+                    document.querySelectorAll('table td, .tree-node:not(.selected-tree-node)').forEach(function(el) {
+                        el.style.color = '${colors.fg}';
+                    });
+                    document.querySelectorAll('fieldset > div, .simplegui-card > div, div[style*="border"]').forEach(function(row) {
+                        row.querySelectorAll('div:not([data-custom-color]):not([data-caption="true"])').forEach(function(el) {
+                            if (el.children.length === 0 && el.textContent.trim().length > 0) {
+                                el.style.color = '${colors.fg}';
+                            }
+                        });
+                    });
+                    var tTitle = document.getElementById("lbl_theme_title");
+                    if (tTitle) {
+                        tTitle.textContent = "🎨 ${themeObj.name}";
+                        tTitle.style.color = "${themeObj.accent_color}";
+                    }
+                    var bMode = document.getElementById("bdg_theme_mode");
+                    if (bMode) {
+                        bMode.textContent = "${themeObj.is_dark ? '🌙 DARK' : '☀️ LIGHT'}";
+                        bMode.style.background = "${themeObj.is_dark ? 'rgba(14,165,233,0.2)' : '#fef3c7'}";
+                        bMode.style.color = "${themeObj.is_dark ? '#38bdf8' : '#92400e'}";
+                        bMode.style.border = "${themeObj.is_dark ? '1px solid rgba(14,165,233,0.4)' : '1px solid #fde68a'}";
+                    }
+                    var bPri = document.getElementById("bdg_theme_pri");
+                    if (bPri) {
+                        bPri.textContent = "PRI ${themeObj.accent_color}";
+                        bPri.style.background = "${themeObj.is_dark ? 'rgba(16,185,129,0.2)' : '#dcfce7'}";
+                        bPri.style.color = "${themeObj.is_dark ? '#34d399' : '#15803d'}";
+                        bPri.style.border = "${themeObj.is_dark ? '1px solid rgba(16,185,129,0.4)' : '1px solid #86efac'}";
+                    }
+                    var bSec = document.getElementById("bdg_theme_sec");
+                    if (bSec) {
+                        bSec.textContent = "SEC ${themeObj.secondary_accent || themeObj.accent_color}";
+                        bSec.style.background = "${themeObj.is_dark ? 'rgba(14,165,233,0.2)' : '#e0f2fe'}";
+                        bSec.style.color = "${themeObj.is_dark ? '#38bdf8' : '#0369a1'}";
+                        bSec.style.border = "${themeObj.is_dark ? '1px solid rgba(14,165,233,0.4)' : '1px solid #7dd3fc'}";
+                    }
+                    var tDesc = document.getElementById("lbl_theme_desc");
+                    if (tDesc) {
+                        tDesc.textContent = "${themeObj.description.replace(/"/g, '\\"')} • Unified single-form showcase with all 30+ RAD controls";
+                        tDesc.style.color = "${mutedColor}";
+                    }
                 })();
             `);
         }
@@ -890,7 +1043,8 @@ export class SimpleWindow {
             cardSpec
         });
         if (subtitle) {
-            this.addCaption(subtitle);
+            const cap = this.addCaption(subtitle);
+            cap.spec.is_card_subtitle = true;
         }
         return this;
     }
@@ -4399,19 +4553,24 @@ export class SimpleWindow {
     }
 
     public addHeading(title: string, subtitle?: string): this {
+        const theme = getTheme(this.theme);
+        const muted = theme.is_dark ? "#94a3b8" : "#334155";
+        const headingColor = this.accentColor || (theme.is_dark ? "#38bdf8" : "#0066cc");
         const isInRow = this.layoutStack[this.layoutStack.length - 1]?.type === "row";
         if (isInRow) {
             const compactW = Math.max(160, Math.ceil(title.length * 9.5) + 12);
-            this.addLabel(title).font(18, this.accentColor || "#38bdf8", "700").width(compactW);
+            this.addLabel(title).font(18, headingColor, "700").width(compactW);
             if (subtitle) {
-                this.addLabel(subtitle).font(12, "#94a3b8");
+                const sub = this.addLabel(subtitle).font(12, muted, "500");
+                sub.spec.is_caption = true;
             }
             return this;
         }
         const fullW = Math.max(300, this.width - (this.padding * 2));
-        this.addLabel(title).font(18, this.accentColor || "#38bdf8", "700").width(fullW);
+        this.addLabel(title).font(18, headingColor, "700").width(fullW);
         if (subtitle) {
-            this.addLabel(subtitle).font(12, "#94a3b8").width(fullW);
+            const sub = this.addLabel(subtitle).font(12, muted, "500").width(fullW);
+            sub.spec.is_caption = true;
         }
         this.addDivider();
         return this;
@@ -4420,17 +4579,32 @@ export class SimpleWindow {
     public addHeader(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
     public add_header(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
 
-    public addSubheading(text: string, color = "#e2e8f0"): SimpleControlRef {
+    public addSubheading(text: string, color?: string): SimpleControlRef {
+        const theme = getTheme(this.theme);
+        const defaultSub = theme.is_dark ? "#e2e8f0" : "#0f172a";
+        const finalColor = color || defaultSub;
         const fullW = Math.max(300, this.width - (this.padding * 2));
-        return this.addLabel(text).font(14, color, "600").width(fullW);
+        const ref = this.addLabel(text).font(14, finalColor, "600").width(fullW);
+        if (!color) {
+            ref.spec.is_subheading = true;
+        }
+        return ref;
     }
-    public add_subheading(text: string, color = "#e2e8f0"): SimpleControlRef { return this.addSubheading(text, color); }
+    public add_subheading(text: string, color?: string): SimpleControlRef { return this.addSubheading(text, color); }
 
-    public addCaption(text: string, color = "#94a3b8"): SimpleControlRef {
+    public addCaption(text: string, color?: string): SimpleControlRef {
+        const theme = getTheme(this.theme);
+        const defaultMuted = theme.is_dark ? "#94a3b8" : "#334155";
+        const finalColor = color || defaultMuted;
         const fullW = Math.max(300, this.width - (this.padding * 2));
-        return this.addLabel(text).font(12, color, "400").width(fullW);
+        const ref = this.addLabel(text).font(12, finalColor, "500").width(fullW);
+        ref.spec.is_caption = true;
+        if (color) {
+            ref.spec.custom_color = true;
+        }
+        return ref;
     }
-    public add_caption(text: string, color = "#94a3b8"): SimpleControlRef { return this.addCaption(text, color); }
+    public add_caption(text: string, color?: string): SimpleControlRef { return this.addCaption(text, color); }
 
     public addStatusBar(idOrText: string, textOrBadge?: string, badge?: string): SimpleControlRef {
         let id = "status_bar";
@@ -6582,8 +6756,8 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Soft Pastel",
         short_name: "Pastel",
         background_color: "#f9f6f0",
-        font_color: "#292524",
-        accent_color: "#e07a5f",
+        font_color: "#1c1917",
+        accent_color: "#c05638",
         secondary_accent: "#3d405b",
         card_background: "#ffffff",
         card_border: "#e7dfd5",
@@ -7310,7 +7484,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Solarized Light",
         short_name: "Solar Light",
         background_color: "#fdf6e3",
-        font_color: "#586e75",
+        font_color: "#073642",
         accent_color: "#268bd2",
         secondary_accent: "#2aa198",
         card_background: "#eee8d5",
@@ -7322,7 +7496,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Solarized Dark",
         short_name: "Solar Dark",
         background_color: "#002b36",
-        font_color: "#93a1a1",
+        font_color: "#eee8d5",
         accent_color: "#2aa198",
         secondary_accent: "#268bd2",
         card_background: "#073642",
@@ -7434,7 +7608,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Commodore 64",
         short_name: "C64",
         background_color: "#40318d",
-        font_color: "#7974ff",
+        font_color: "#b8b5ff",
         accent_color: "#7974ff",
         secondary_accent: "#a09eff",
         card_background: "#281b5c",
@@ -7446,7 +7620,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Commodore 64",
         short_name: "C64",
         background_color: "#40318d",
-        font_color: "#7974ff",
+        font_color: "#b8b5ff",
         accent_color: "#7974ff",
         secondary_accent: "#a09eff",
         card_background: "#281b5c",
@@ -7590,9 +7764,9 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Mac OS X Aqua",
         short_name: "OS X Aqua",
         background_color: "#e6ebed",
-        font_color: "#1d2429",
-        accent_color: "#0076fe",
-        secondary_accent: "#ffffff",
+        font_color: "#0f172a",
+        accent_color: "#0066cc",
+        secondary_accent: "#ff9500",
         card_background: "#ffffff",
         card_border: "#bac7cd",
         description: "Early 2001 OS X Cheetah glossy gel buttons and brushed pinstripes",
@@ -7602,9 +7776,9 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         name: "Mac OS X Aqua",
         short_name: "OS X Aqua",
         background_color: "#e6ebed",
-        font_color: "#1d2429",
-        accent_color: "#0076fe",
-        secondary_accent: "#ffffff",
+        font_color: "#0f172a",
+        accent_color: "#0066cc",
+        secondary_accent: "#ff9500",
         card_background: "#ffffff",
         card_border: "#bac7cd",
         description: "Early 2001 OS X Cheetah glossy gel buttons and brushed pinstripes",

@@ -1535,7 +1535,9 @@ export function generatePreviewHtml(spec: any): string {
             const isStatus = (c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
                              (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:')));
             const statusStyle = isStatus ? 'width:calc(100% - 40px) !important;max-width:calc(100% - 40px) !important;font-size:12px;opacity:0.9;' : '';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
+            const customColorAttr = c.custom_color ? ' data-custom-color="true"' : ' data-theme-label="true"';
+            const captionAttr = c.is_caption || c.is_card_subtitle ? ' data-caption="true"' : '';
+            controls += `<div${id}${titleAttr}${ev}${customColorAttr}${captionAttr} class="rad-label" style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
         } else if (t === 'input' || t === 'search') {
             controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === 'search' ? 'search' : 'text'}" value="${text}" placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnE=window['${c.id}_onEnter']||window['on_${c.id}_enter']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnE)fnE(this.value);}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
         } else if (t === 'password') {
@@ -1544,19 +1546,21 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${text}</textarea>\n`;
         } else if (t === 'checkbox') {
             const chk = c.checked ? 'checked' : '';
-            controls += `<label${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
+            controls += `<label${id}${titleAttr} class="rad-checkbox-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
         } else if (t === 'radio') {
             const chk = c.checked ? 'checked' : '';
-            controls += `<label${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
+            controls += `<label${id}${titleAttr} class="rad-radio-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
         } else if (t === 'switch' || t === 'form_switch') {
             const on = c.checked;
             const trackCol = on ? accent : (isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)');
             const thumbX = on ? '22px' : '2px';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor||'pointer'};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === 'form_switch' ? `<span>${text}</span>` : ''}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== 'form_switch' ? `<span>${text}</span>` : ''}</div>\n`;
+            controls += `<div${id}${titleAttr} class="rad-switch-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor||'pointer'};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === 'form_switch' ? `<span>${text}</span>` : ''}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== 'form_switch' ? `<span>${text}</span>` : ''}</div>\n`;
         } else if (t === 'slider' || t === 'form_slider') {
             const val = c.value !== undefined ? c.value : 50;
-            const headerLabel = text ? `<span style="opacity:0.9;">${text}</span>` : '';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:${headerLabel ? 'space-between' : 'flex-end'};align-items:center;font-size:11px;font-weight:700;">${headerLabel}<span class="slider-val" style="color:${accent};font-family:monospace;font-size:12px;font-weight:bold;">${val}</span></div><input type="range"${minAttr || ' min="0"'}${maxAttr || ' max="100"'}${stepAttr} value="${val}"${ev} oninput="if(this.previousElementSibling&&this.previousElementSibling.querySelector('.slider-val'))this.previousElementSibling.querySelector('.slider-val').textContent=this.value;" style="width:100%;height:6px;accent-color:${accent};cursor:${c.cursor||'pointer'};"></div>\n`;
+            const hasExplicitText = (c.text !== undefined && c.text !== '' && c.text !== String(val)) || (c.caption !== undefined && c.caption !== '' && c.caption !== String(val)) || (c.title !== undefined && c.title !== '');
+            const sliderTitle = hasExplicitText ? (c.caption || c.title || c.text) : '';
+            const headerLabel = sliderTitle ? `<span class="rad-slider-title" data-theme-label="true" style="opacity:0.9;">${sliderTitle}</span>` : '';
+            controls += `<div${id}${titleAttr} class="rad-slider-wrapper" data-theme-label="true" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:${headerLabel ? 'space-between' : 'flex-end'};align-items:center;font-size:11px;font-weight:700;">${headerLabel}<span class="slider-val" style="color:${accent};font-family:monospace;font-size:12px;font-weight:bold;">${val}</span></div><input type="range"${minAttr || ' min="0"'}${maxAttr || ' max="100"'}${stepAttr} value="${val}"${ev} oninput="if(this.previousElementSibling&&this.previousElementSibling.querySelector('.slider-val'))this.previousElementSibling.querySelector('.slider-val').textContent=this.value;" style="width:100%;height:6px;accent-color:${accent};cursor:${c.cursor||'pointer'};"></div>\n`;
         } else if (t === 'number' || t === 'form_number') {
             const val = c.value !== undefined ? c.value : 0;
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ''}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" value="${val}" placeholder="${c.placeholder || ''}"${ev}${roAttr}${reqAttr}${minAttr}${maxAttr}${stepAttr}${autoFocusAttr} style="background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
@@ -1582,11 +1586,40 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} data-value="${val}" style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height-8,16)}px;">${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;color:${i<=val?'#f59e0b':starBg};transition:color 0.1s;" onclick="const parent=this.parentNode;parent.dataset.value='${i}';parent.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'});if(window['${c.id}_onChange'])window['${c.id}_onChange'](${i});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${i});" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="const cur=parseInt(this.parentNode.dataset.value||'${val}');this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<cur?'#f59e0b':'${starBg}'})">★</span>`).join('')}</div>\n`;
         } else if (t === 'stepper' || t === 'number_stepper') {
             const val = c.value !== undefined ? c.value : 5;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;color:${color};"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;">${val}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div>\n`;
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;color:${color};"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span class="stepper-val" style="font-weight:bold;font-size:12px;color:${color};">${val}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div>\n`;
         } else if (t === 'badge' || t === 'status_badge') {
-            const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : '#10b981';
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:20px;';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${badgeBg};color:${color};${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${text}</div>\n`;
+            let badgeBg = '#10b981';
+            let badgeFg = '#ffffff';
+            let badgeBorder = 'border:none;';
+            
+            const aType = c.alert_type || c.type || '';
+            if (c.background_color && c.background_color !== 'transparent') {
+                badgeBg = c.background_color;
+                const isBgBright = isColorBright(badgeBg);
+                badgeFg = c.font_color || (isBgBright ? '#0f172a' : '#ffffff');
+            } else if (aType === 'info') {
+                badgeBg = isLight ? '#e0f2fe' : 'rgba(14,165,233,0.2)';
+                badgeFg = isLight ? '#0369a1' : '#38bdf8';
+                badgeBorder = isLight ? 'border:1px solid #7dd3fc;' : 'border:1px solid rgba(14,165,233,0.4);';
+            } else if (aType === 'success') {
+                badgeBg = isLight ? '#dcfce7' : 'rgba(16,185,129,0.2)';
+                badgeFg = isLight ? '#15803d' : '#34d399';
+                badgeBorder = isLight ? 'border:1px solid #86efac;' : 'border:1px solid rgba(16,185,129,0.4);';
+            } else if (aType === 'warning') {
+                badgeBg = isLight ? '#fef3c7' : 'rgba(245,158,11,0.2)';
+                badgeFg = isLight ? '#92400e' : '#fbbf24';
+                badgeBorder = isLight ? 'border:1px solid #fde68a;' : 'border:1px solid rgba(245,158,11,0.4);';
+            } else if (aType === 'error') {
+                badgeBg = isLight ? '#fee2e2' : 'rgba(239,68,68,0.2)';
+                badgeFg = isLight ? '#991b1b' : '#f87171';
+                badgeBorder = isLight ? 'border:1px solid #fca5a5;' : 'border:1px solid rgba(239,68,68,0.4);';
+            } else {
+                badgeBg = isLight ? '#f1f5f9' : 'rgba(255,255,255,0.1)';
+                badgeFg = isLight ? '#0f172a' : '#f8fafc';
+                badgeBorder = isLight ? 'border:1px solid #cbd5e1;' : 'border:1px solid rgba(255,255,255,0.15);';
+            }
+            controls += `<div${id}${titleAttr} class="rad-badge" style="${base(c)}background:${badgeBg};color:${badgeFg};${badgeBorder}${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${text}</div>\n`;
         } else if (t === 'image') {
             const imgBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'dashed'};` : `border:1px dashed ${border};`;
             controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${imgBorder}${defRadius}display:flex;align-items:center;justify-content:center;color:${color};font-size:11px;">🖼️ ${text||'Image'}</div>\n`;
@@ -1599,7 +1632,8 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'groupbox') {
             const gbTitle = c.title || c.caption || text || 'Group';
             const gbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${accent};text-transform:uppercase;letter-spacing:0.5px;">${gbTitle}</legend></fieldset>\n`;
+            const legendColor = isLight ? '#0f172a' : accent;
+            controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${legendColor};text-transform:uppercase;letter-spacing:0.5px;">${gbTitle}</legend></fieldset>\n`;
         } else if (t === 'drop_zone') {
             const dzBorder = hasCustomBorder ? `border-width:${c.border_width || 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || 'dashed'};` : `border:2px dashed ${accent};`;
             const dzRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
@@ -1669,7 +1703,8 @@ export function generatePreviewHtml(spec: any): string {
             const gridBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#ffffff' : 'rgba(15,23,42,0.8)');
             const dbBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || accent};border-style:${c.border_style || 'solid'};` : `border:1px solid ${accent};`;
             const dbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${dbBorder}${dbRadius}background:${gridBg};box-shadow:0 4px 12px rgba(0,0,0,0.3);"><div style="padding:6px 12px;background:${isLight ? 'rgba(2,132,199,0.1)' : 'rgba(56,189,248,0.1)'};font-size:11px;font-weight:700;color:${accent};border-bottom:1px solid ${border};display:flex;justify-content:space-between;"><span>🗄️ ${text||'DBGrid: Dataset1'}</span><span>3 Records</span></div><table style="width:100%;border-collapse:collapse;font-size:11px;color:${color};"><thead><tr style="background:${cbg};">${['ID','Customer Name','Email','Balance'].map(h=>`<th style="padding:6px 10px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[['101','Acme Corp','sales@acme.com','$12,450'],['102','Starlight Ltd','info@starlight.io','$8,900'],['103','Nexus Tech','contact@nexus.dev','$15,200']].map(r=>`<tr style="border-bottom:1px solid ${border};" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.08)' : 'rgba(56,189,248,0.08)'}'" onmouseout="this.style.background=''">${r.map(cell=>`<td style="padding:6px 10px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
+            const thColor = isLight ? '#0f172a' : accent;
+            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${dbBorder}${dbRadius}background:${gridBg};box-shadow:0 4px 12px rgba(0,0,0,0.3);"><div style="padding:6px 12px;background:${isLight ? 'rgba(2,132,199,0.1)' : 'rgba(56,189,248,0.1)'};font-size:11px;font-weight:700;color:${accent};border-bottom:1px solid ${border};display:flex;justify-content:space-between;"><span>🗄️ ${text||'DBGrid: Dataset1'}</span><span>3 Records</span></div><table style="width:100%;border-collapse:collapse;font-size:11px;color:${color};"><thead><tr style="background:${cbg};">${['ID','Customer Name','Email','Balance'].map(h=>`<th style="padding:6px 10px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[['101','Acme Corp','sales@acme.com','$12,450'],['102','Starlight Ltd','info@starlight.io','$8,900'],['103','Nexus Tech','contact@nexus.dev','$15,200']].map(r=>`<tr style="border-bottom:1px solid ${border};" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.08)' : 'rgba(56,189,248,0.08)'}'" onmouseout="this.style.background=''">${r.map(cell=>`<td style="padding:6px 10px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
         } else if (t === 'db_navigator') {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:2px;gap:2px;">${[['⏮','First'],['◀','Prev'],['▶','Next'],['⏭','Last'],['➕','Add'],['✖','Delete'],['💾','Post'],['🔄','Refresh']].map(b=>`<button title="${b[1]}" style="flex:1;height:100%;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'};border:none;border-radius:4px;color:${color};font-size:12px;cursor:pointer;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.2)' : 'rgba(56,189,248,0.2)'}'" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}'">${b[0]}</button>`).join('')}</div>\n`;
         } else if (t === 'db_input') {
@@ -1691,8 +1726,9 @@ export function generatePreviewHtml(spec: any): string {
             const tableBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : cbg;
             const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
             const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+            const thColor = isLight ? '#0f172a' : accent;
             const esc = (s: any) => s === null || s === undefined ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};position:sticky;top:0;z-index:2;">${headers.map((h: any)=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${accent};border-bottom:1px solid ${border};white-space:nowrap;">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rawRows.map((r: any)=>{
+            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};position:sticky;top:0;z-index:2;">${headers.map((h: any)=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rawRows.map((r: any)=>{
                 const cells = Array.isArray(r) ? r : Object.values(r);
                 const rowPid = esc(String(cells[0] || '').trim());
                 return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" onclick="const tbody=this.closest('tbody');if(tbody){tbody.querySelectorAll('tr').forEach(tr=>{tr.classList.remove('selected-tr');tr.style.background=''});this.classList.add('selected-tr');this.style.background='${selBg}';window.selectedRowElement=this;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${rowPid}');}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${cells.map((cell: any, i: number)=>{
@@ -1717,12 +1753,13 @@ export function generatePreviewHtml(spec: any): string {
             const rawNodes = (text || '📂 Project Root, 📂 src, 📄 index.ts, 📄 styles.css, 📁 assets, 🖼️ logo.png').split(',').map((n: string) => n.trim());
             const treeBg = cbg;
             const selBg = isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)';
+            const selFg = isLight ? '#0f172a' : accent;
             controls += `<div${id}${titleAttr}${ev} class="rad-tree-container" data-selected="" style="${base(c)}background:${treeBg};${defBorder}${defRadius}padding:6px 8px;overflow:auto;display:flex;flex-direction:column;gap:2px;font-size:12px;color:${color};">${rawNodes.map((nodeText: string, idx: number) => {
                 const isFolder = nodeText.includes('📁') || nodeText.includes('Project Root') || nodeText.includes('src') || nodeText.includes('assets') || idx === 0;
                 const indent = idx === 0 ? 0 : (idx === 1 || idx === 4 ? 16 : 32);
                 const arrowIcon = isFolder ? '▼' : ' ';
                 const cleanName = nodeText;
-                return `<div class="tree-node${idx===0?' selected-tree-node':''}" data-node="${cleanName}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx===0 ? `background:${selBg};color:${accent};font-weight:600;` : ''}" onclick="event.stopPropagation();const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${accent}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](this.dataset.node);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.dataset.node);if(window['${c.id}_onNodeClick'])window['${c.id}_onNodeClick'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${cleanName}</span></div>`;
+                return `<div class="tree-node${idx===0?' selected-tree-node':''}" data-node="${cleanName}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx===0 ? `background:${selBg};color:${selFg};font-weight:600;` : ''}" onclick="event.stopPropagation();const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${selFg}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](this.dataset.node);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.dataset.node);if(window['${c.id}_onNodeClick'])window['${c.id}_onNodeClick'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${cleanName}</span></div>`;
             }).join('')}</div>\n`;
         } else if (t === 'avatar_group') {
             const avatars = (text || 'JD, AS, MK, +3').split(',').map((a: string) => a.trim());
@@ -2020,10 +2057,10 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'masked_input') {
             const mask = c.mask || '(999) 999-9999';
             const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" placeholder="${mask}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size||13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.5;font-family:monospace;">${mask}</span></div>\n`;
+            controls += `<div id="${c.id}_wrapper" class="rad-masked-input-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" placeholder="${mask}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size||13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.6;font-family:monospace;color:${color};">${mask}</span></div>\n`;
         } else if (t === 'inline_editable_label') {
             const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${rawCbg};color:${color};cursor:pointer;padding:0 6px;"><span class="label-display" style="font-size:${c.font_size||13}px;font-weight:600;">${text || 'Double-click to edit'} ✎</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" onblur="const span=this.previousElementSibling;span.textContent=this.value+' ✎';span.style.display='block';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();" style="display:none;width:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:2px 6px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
+            controls += `<div id="${c.id}_container"${titleAttr} class="rad-editable-label-container" data-theme-label="true" title="Double-click to edit" ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();inp.select();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 10px;box-sizing:border-box;"><div class="label-display" data-theme-label="true" style="font-size:${c.font_size||13}px;font-weight:600;display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;"><span class="label-text" style="color:${color};font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text || 'Click to edit text'}</span><span class="rad-editable-badge" style="font-size:10px;font-weight:700;color:${accent};">✎ EDIT</span></div><input id="${c.id}" name="${c.id}" class="rad-editable-input" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" onblur="const span=this.previousElementSibling;span.querySelector('.label-text').textContent=this.value;span.style.display='flex';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=this.previousElementSibling.querySelector('.label-text').textContent;this.blur();}" style="display:none;width:100%;padding:3px 8px;outline:none;font-size:${c.font_size||13}px;font-weight:600;"></div>\n`;
         } else if (t === 'section_header') {
             const subtitle = c.subtitle || c.caption || '';
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid ${border};padding-bottom:6px;"><div style="font-size:16px;font-weight:800;color:${accent};letter-spacing:-0.2px;">${text}</div>${subtitle ? `<div style="font-size:11px;color:${color};opacity:0.7;margin-top:2px;">${subtitle}</div>` : ''}</div>\n`;
@@ -2353,8 +2390,17 @@ export function generatePreviewHtml(spec: any): string {
 <style>
   :root {
     --accent: ${accent};
+    --accent-secondary: ${spec.secondary_accent || accent};
     --btn-bg: ${defaultBtnBg};
     --btn-fg: ${defaultBtnFg};
+    --theme-fg: ${fg};
+    --theme-muted: ${isLight ? '#334155' : '#94a3b8'};
+    --card-bg: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : '#1e293b')};
+    --card-border: ${border};
+    --input-bg: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : 'rgba(255, 255, 255, 0.05)')};
+    --input-border: ${border};
+    --editable-bg: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'};
+    --editable-border: ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'};
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: auto; }
@@ -2373,6 +2419,103 @@ export function generatePreviewHtml(spec: any): string {
     background: var(--btn-bg, ${defaultBtnBg});
     color: var(--btn-fg, ${defaultBtnFg});
   }
+
+  /* Themed Labels, Text, Checks, Editable Labels and Tables */
+  .rad-label:not([data-custom-color]):not([data-caption="true"]),
+  [data-theme-label="true"],
+  label:not([data-custom-color]),
+  .rad-checkbox-label,
+  .rad-radio-label,
+  .rad-switch-label,
+  .rad-slider-title,
+  .rad-editable-label-container,
+  .label-display,
+  .label-text,
+  .rad-editable-input,
+  .rad-masked-input-wrapper,
+  .rad-masked-input-wrapper input,
+  .stepper-val,
+  table td,
+  .tree-node:not(.selected-tree-node),
+  .rad-tree-container span {
+      color: var(--theme-fg, ${fg}) !important;
+  }
+
+  /* Inline Editable Label Container & Display */
+  .rad-editable-label-container {
+    background: var(--editable-bg, ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'}) !important;
+    border: 1px dashed var(--editable-border, ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'}) !important;
+    border-radius: 6px !important;
+    color: var(--theme-fg, ${fg}) !important;
+    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s !important;
+    box-sizing: border-box !important;
+  }
+  .rad-editable-label-container:hover {
+    border-color: var(--accent, ${accent}) !important;
+    border-style: solid !important;
+    background: var(--input-bg, ${isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)'}) !important;
+    box-shadow: 0 0 0 1px var(--accent, ${accent}) !important;
+  }
+  .rad-editable-label-container .label-display,
+  .rad-editable-label-container .label-text {
+    color: var(--theme-fg, ${fg}) !important;
+    font-weight: 600 !important;
+  }
+  .rad-editable-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: var(--accent, ${accent}) !important;
+    background: var(--editable-bg, ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}) !important;
+    border: 1px solid var(--editable-border, ${isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.18)'}) !important;
+    border-radius: 4px !important;
+    padding: 1px 6px !important;
+    letter-spacing: 0.3px !important;
+    flex-shrink: 0 !important;
+  }
+  .rad-editable-input {
+    background: var(--input-bg, ${isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)'}) !important;
+    color: var(--theme-fg, ${fg}) !important;
+    border: 1px solid var(--accent, ${accent}) !important;
+    border-radius: 5px !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--accent, ${accent})44 !important;
+    padding: 3px 8px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    font-family: inherit !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Subtitles, Captions & Muted metadata */
+  .rad-caption,
+  .rad-card-subtitle,
+  [data-caption="true"],
+  .rad-muted-text {
+      color: var(--theme-muted, ${isLight ? '#334155' : '#94a3b8'}) !important;
+  }
+
+  table th {
+      color: ${isLight ? '#0f172a' : accent} !important;
+  }
+  table tr {
+      border-color: ${border} !important;
+  }
+  table tr:hover:not(.selected-tr) {
+      background: ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'} !important;
+  }
+  legend {
+      color: ${isLight ? '#0f172a' : accent} !important;
+      font-weight: 700 !important;
+  }
+  .selected-tree-node {
+      color: ${isLight ? '#0f172a' : accent} !important;
+      font-weight: 700 !important;
+  }
+
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${accent}; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
   :focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }
