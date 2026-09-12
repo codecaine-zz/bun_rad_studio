@@ -20,6 +20,7 @@ This document provides a comprehensive technical reference for the **Bun RAD Stu
 
 ---
 
+<a id="1-formspec-data-model-schema"></a>
 ## 1. FormSpec Data Model Schema
 
 The entire state of a form layout in Bun RAD Studio is represented as a JSON object called `FormSpec`. This spec is synchronized between the visual canvas, the Object Inspector, code generators, and the Bun backend.
@@ -88,6 +89,7 @@ The entire state of a form layout in Bun RAD Studio is represented as a JSON obj
 
 ---
 
+<a id="2-control-specification-object"></a>
 ## 2. Control Specification Object
 
 Each component placed on the form canvas or tray is represented by a `ControlSpec` object.
@@ -166,6 +168,7 @@ The `event_handlers` record maps event names to function names or JavaScript str
 
 ---
 
+<a id="3-supported-component-reference"></a>
 ## 3. Supported Component Reference
 
 ### Visual Components
@@ -265,6 +268,8 @@ The `event_handlers` record maps event names to function names or JavaScript str
 
 ---
 
+<a id="4-webview-ipc--backend-bindings"></a>
+<a id="4-webview-ipc-backend-bindings"></a>
 ## 4. Webview IPC & Backend Bindings
 
 Bun RAD Studio exposes native IPC methods between the frontend Webview and the Bun runtime using `webview.bind(...)`.
@@ -384,6 +389,7 @@ Exported TypeScript templates and client scripts include built-in high-level hel
 
 ---
 
+<a id="5-code-generators"></a>
 ## 5. Code Generators
 
 Bun RAD Studio includes 6 real-time code output generators:
@@ -397,6 +403,7 @@ Bun RAD Studio includes 6 real-time code output generators:
 
 ---
 
+<a id="6-exported-project-architecture"></a>
 ## 6. Exported Project Architecture
 
 When you click **Export App**, Bun RAD Studio writes a complete, self-contained project:
@@ -417,6 +424,7 @@ bun run index.ts
 
 ---
 
+<a id="7-interactive-demos-suite-demos"></a>
 ## 7. Interactive Demos Suite (`demos/`)
 
 The repository includes 18 interactive executable demo scripts demonstrating all visual components, event listeners, helper utility wrappers, and the declarative SimpleGUI engine:
@@ -444,6 +452,7 @@ The repository includes 18 interactive executable demo scripts demonstrating all
 
 ---
 
+<a id="8-form-themes--color-palettes-macos--windows-11-desktop-themes"></a>
 ## 8. Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)
 
 Bun RAD Studio includes an automated visual theme engine (`updateFormTheme()`) that harmonizes application form background, text foreground, container panel background, interactive component backgrounds, and primary action button swatches across built-in presets.
@@ -502,6 +511,7 @@ When a theme is selected in the RAD IDE Inspector or applied programmatically, `
 
 ---
 
+<a id="9-quick-start--developer-recipes"></a>
 ## 9. Quick Start & Developer Recipes
 
 Below are complete, copy-pasteable TypeScript developer recipes demonstrating standard patterns for building desktop UI applications with Bun RAD Studio.
@@ -604,6 +614,7 @@ if (result.success) {
 
 ---
 
+<a id="10-simplegui-declarative-module-reference"></a>
 ## 10. SimpleGUI Declarative Module Reference
 
 The `SimpleGUI` module ([src/simplegui.ts](src/simplegui.ts) / exported via [index.ts](index.ts)) provides a lightweight, fluent declarative API matching `vlang_simplegui`. A dedicated, complete API reference guide is available at [SIMPLEGUI_API.md](SIMPLEGUI_API.md).
@@ -789,6 +800,9 @@ win.onClose((w) => {
 
 ---
 
+<a id="11--related-rad--gui-ecosystem-projects"></a>
+<a id="11-related-rad--gui-ecosystem-projects"></a>
+<a id="related-rad--gui-ecosystem-projects"></a>
 ## 11. 🌟 Related RAD & GUI Ecosystem Projects
 
 | Project | Description | Primary Use Case |

@@ -8,7 +8,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [Application User Guides](docs/userguides/README.md) • [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [Application User Guides](docs/userguides/README.md) • [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)
 
@@ -38,6 +38,8 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
   - [1. Clone & Install Dependencies](#1-clone--install-dependencies)
   - [2. Launch RAD Studio](#2-launch-rad-studio)
   - [3. Run Interactive Feature Demos](#3-run-interactive-feature-demos)
+- [⚡ 16 Enterprise Production Workstations & Utilities](#16-enterprise-production-workstations--utilities)
+  - [📸 Fd & Rip Studio Pro Desktop Workstations](#fd--rip-studio-pro-desktop-workstations)
 - [📦 Dist Build Process](#dist-build-process)
   - [Commands](#commands)
   - [`dist/` Output Structure](#dist-output-structure)
@@ -56,8 +58,10 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ---
 
+<a id="highlights--features"></a>
 ## 🌟 Highlights & Features
 
+<a id="visual-rad-form-designer"></a>
 ### 🚀 Visual RAD Form Designer
 * **Interactive Canvas**: Drag, nudge, resize, and align components visually on a high-DPI scaled canvas with pixel rulers and smart grid snapping (8px, 16px, 4px, or off).
 * **Delphi Anchors & Docking System**: Full support for component `Anchors` (`Top`, `Left`, `Right`, `Bottom`) and `Dock` modes (`None`, `Top`, `Bottom`, `Left`, `Right`, `Fill`) so forms dynamically reflow when resized.
@@ -66,6 +70,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Marquee Multi-Selection**: Left-click and drag across the canvas background to marquee select groups of components.
 * **Component Hierarchy & Tree**: View, filter, and select components in a real-time DOM hierarchy tree.
 
+<a id="native-window-management--placement-api"></a>
 ### 🖼️ Native Window Management & Placement API
 * **Native Fullscreen Mode & Startup**: Every studio application launches in native fullscreen by default (`{ fullscreen: true }`) with automatic CoreGraphics/Win32 screen resolution auto-fitting (`(0,0)` origin) and a promise-aware verification loop. Press **<kbd>Cmd</kbd> + <kbd>F</kbd>** / **<kbd>Ctrl</kbd> + <kbd>F</kbd>** / **<kbd>Fn</kbd> + <kbd>F</kbd>** / **<kbd>F11</kbd>**, or click `⛶ Fullscreen` to toggle native borderless fullscreen mode.
 * **Smart Minimize & Hide**: Press **<kbd>Cmd</kbd> + <kbd>M</kbd>** / **<kbd>Ctrl</kbd> + <kbd>M</kbd>** to minimize the window. If the application is in a native macOS fullscreen space, it automatically exits fullscreen before miniaturizing to the Dock. Press **<kbd>Cmd</kbd> + <kbd>H</kbd>** / **<kbd>Ctrl</kbd> + <kbd>H</kbd>** to hide the application window (`[NSApp hide:]`).
@@ -73,10 +78,12 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Window Placement & Centering API**: Position application windows anywhere on screen using `setWindowPosition(pos)`, press **<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>** to center, or use the `📍 Position` toolbar dropdown across 9 screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`).
 * **Guaranteed Process Termination**: Press **<kbd>Cmd</kbd> + <kbd>Q</kbd>** / **<kbd>Cmd</kbd> + <kbd>W</kbd>** (macOS) or **<kbd>Alt</kbd> + <kbd>F4</kbd>** / **<kbd>Ctrl</kbd> + <kbd>Q</kbd>** / **<kbd>Ctrl</kbd> + <kbd>W</kbd>** (Windows/Linux), or double-tap **<kbd>Alt</kbd>** to immediately close the window and cleanly exit the terminal process (`process.exit(0)`).
 
+<a id="ms-access--delphi-data-aware-rad-controls"></a>
 ### 🗄️ MS Access & Delphi Data-Aware RAD Controls
 * **Data-Aware Controls**: Access & Delphi style DB controls including `DBGrid` with sorting/paging, `DBNavigator` (First/Prev/Next/Last/Add/Delete/Post/Refresh), `DBInput`, and `DBDropdown` with live dataset field bindings.
 * **1-Click Database CRUD Form Wizard**: Instant 1-click wizard button that auto-generates a complete, ready-to-run Customer Accounts Database CRUD layout.
 
+<a id="70-modern-ui--rad-controls"></a>
 ### 🎨 70+ Modern UI & RAD Controls
 * **Standard Controls**: Buttons, Labels, Single-Line Inputs, Password Inputs, Textareas, Checkboxes, Radio Buttons, Toggles/Switches, Sliders, Number Steppers, Color Wells, Date Pickers, and File Pickers.
 * **Integrated Labeled Form Controls**: Form Field (`form_field`), Labeled Password (`form_password`), Labeled Textarea (`form_textarea`), Labeled Checkbox (`form_checkbox`), Labeled Radio (`form_radio`), Labeled Search Bar (`form_search`), Labeled Color Well (`form_color`), Labeled Time Picker (`form_time`), Labeled Stepper (`form_stepper`), Labeled Code Editor (`form_code`), Labeled File Drop Zone (`form_drop_zone`), Labeled Switch (`form_switch`), Labeled Slider (`form_slider`), Labeled Number (`form_number`), Labeled Date (`form_date`), Labeled Dropdown (`form_dropdown`), Labeled Link (`form_link`), and Labeled Progress (`form_progress`).
@@ -86,6 +93,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 * **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
+<a id="built-in-desktop-form-themes--visual-gallery-42-themes"></a>
 ### 🎨 Built-in Desktop Form Themes & Visual Gallery (42 Themes)
 Bun RAD Studio and SimpleGUI feature **42 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84).
 
@@ -213,6 +221,7 @@ win.addThemeSelector("dd_theme", "Theme:");
 win.setTheme("tokyo_night");
 ```
 
+<a id="high-level-backend--client-helper-utilities"></a>
 ### 🛠️ High-Level Backend & Client Helper Utilities
 Programmatically interact with and control form state from Bun TypeScript or client scripts:
 - `getControlValue(id)` / `setControlText(id, text)` / `setControlValue(id, value)` / `setControlHtml(id, html)`
@@ -225,6 +234,7 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 - `setKanbanColumns(id, colsCSV)` / `setShortcutRecorderValue(id, shortcutStr)` / `setSplitButtonAction(id, text)` / `setSparklineTableData(id, rowsCSV)` / `setMetricComparison(id, title, val, target, change)` / `setActivityFeedItems(id, itemsCSV)` / `setWorkspaceTabs(id, filesCSV)`
 - `setAlwaysOnTop(onTop)` / `setWindowPosition(pos)` / `quitApp()`
 
+<a id="auto-generated-code--multi-target-exporters"></a>
 ### ⚡ Auto-Generated Code & Multi-Target Exporters
 * **Live Bun TypeScript Exporter**: Real-time auto-generated Bun + `webview-bun` TypeScript code (`index.ts`) complete with typed backend method bindings (`wv.bind(...)`).
 * **React + Tailwind Exporter**: Export modern React TSX component code styled with Tailwind CSS.
@@ -235,12 +245,15 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 
 ---
 
+<a id="installation--quick-start"></a>
 ## 💻 Installation & Quick Start
 
+<a id="prerequisites"></a>
 ### Prerequisites
 * [Bun Runtime](https://bun.sh) (v1.0.0 or higher)
 * macOS, Windows, or Linux with WebKit/Webview support
 
+<a id="1-clone--install-dependencies"></a>
 ### 1. Clone & Install Dependencies
 ```bash
 git clone https://github.com/codecaine-zz/bun_rad_studio.git
@@ -248,6 +261,7 @@ cd bun_rad_studio
 bun install
 ```
 
+<a id="2-launch-rad-studio"></a>
 ### 2. Launch RAD Studio
 ```bash
 bun run index.ts
@@ -255,6 +269,7 @@ bun run index.ts
 bun start
 ```
 
+<a id="3-run-interactive-feature-demos"></a>
 ### 3. Run Interactive Feature Demos
 Explore pre-built executable demo applications demonstrating controls, events, dynamic helper functions, and the Declarative SimpleGUI engine:
 
@@ -293,6 +308,8 @@ bun run demo:simplegui
 
 ---
 
+<a id="16-enterprise-production-workstations--utilities"></a>
+<a id="enterprise-applications"></a>
 ## ⚡ 16 Enterprise Production Workstations & Utilities
 
 In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of **16 production-grade developer desktop workstations** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
@@ -315,9 +332,10 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of 
 | **14** | **Markdown Studio Pro** | [User Guide](docs/userguides/14_markdown_studio.md) | Split-pane Markdown editor, instant live HTML preview, reading stats, standalone HTML export. | `bun run app:markdown` |
 | **15** | **Color & Design Token Studio** | [User Guide](docs/userguides/15_color_token_studio.md) | HEX/RGB/HSL converter, WCAG 2.1 AA/AAA contrast auditor, 50–950 tonal scale, token export. | `bun run app:color` |
 | **16** | **Environment Vault Studio** | [User Guide](docs/userguides/16_environment_vault_studio.md) | `.env` parser & validator, secret key detection & masking, diff against `.env.example`. | `bun run app:env` |
-| **17** | **Fd Studio Pro** | [Application](applications/fd_studio.ts) | Native Bun ultra-fast filesystem traversal & search (`fd-find` replacement), regex/glob filters, batch exec. | `bun run app:fd` |
-| **18** | **Rip Studio Pro** | [Application](applications/rip_studio.ts) | Safe & ergonomic alternative to `rm`, graveyard quarantine, instant undo restoration, pre-deletion inspect. | `bun run app:rip` |
+| **17** | **Fd Studio Pro** | [User Guide](docs/userguides/17_fd_studio.md) | Native Bun ultra-fast filesystem traversal & search (`fd-find` replacement), regex/glob filters, batch exec. | `bun run app:fd` |
+| **18** | **Rip Studio Pro** | [User Guide](docs/userguides/18_rip_studio.md) | Safe & ergonomic alternative to `rm`, graveyard quarantine, instant undo restoration, pre-deletion inspect. | `bun run app:rip` |
 
+<a id="fd--rip-studio-pro-desktop-workstations"></a>
 ### 📸 Fd & Rip Studio Pro Desktop Workstations
 
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
@@ -327,10 +345,12 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of 
 
 ---
 
+<a id="dist-build-process"></a>
 ## 📦 Dist Build Process
 
 Bun RAD Studio ships a full distribution build pipeline powered by [scripts/build.ts](scripts/build.ts). Three build targets are available:
 
+<a id="commands"></a>
 ### Commands
 
 | Command | Description |
@@ -485,6 +505,8 @@ win.run();
 
 ---
 
+<a id="documentation-reference-apimd-vs-simplegui_apimd"></a>
+<a id="documentation-reference--apimd-vs-simplegui_apimd"></a>
 ## 📚 Documentation Reference: API.md vs. SIMPLEGUI_API.md
 
 **Bun RAD Studio** provides two distinct documentation guides depending on whether you are using the **Visual RAD Designer IDE** or the **Declarative `simplegui` Code-First Module**:
@@ -498,6 +520,7 @@ win.run();
 | **Code Exporters** | Multi-target generators (Bun TS, React + Tailwind, Vue 3, Python CustomTkinter, HTML5) | Direct native execution via Bun (`win.run()`) |
 | **Target Use Case** | Visual app design, form spec JSON inspection, multi-framework exporting | Rapid code-driven desktop app development without a visual designer |
 
+<a id="summary-of-api-files"></a>
 ### 📖 Summary of API Files
 
 * **[API.md](API.md)**: Technical specification for the **Visual RAD Designer Studio**. Documents the `FormSpec` JSON data schema, 70+ visual component definitions, low-level Webview IPC protocol, window placement APIs, and code generator architectures.
@@ -505,6 +528,7 @@ win.run();
 
 ---
 
+<a id="keyboard-shortcuts--power-actions"></a>
 ## ⌨️ Keyboard Shortcuts & Power Actions
 
 | Shortcut | Action |
@@ -533,6 +557,7 @@ win.run();
 
 ---
 
+<a id="project-structure"></a>
 ## 📂 Project Structure
 
 ```
@@ -559,7 +584,8 @@ bun_rad_studio/
 
 ---
 
-# Related GUI & RAD Desktop Projects
+<a id="related-rad--gui-ecosystem-projects"></a>
+## 🌟 Related RAD & GUI Ecosystem Projects
 
 Explore sister projects and complementary GUI frameworks, templates, and RAD visual design suites:
 
@@ -577,6 +603,7 @@ Explore sister projects and complementary GUI frameworks, templates, and RAD vis
 
 ---
 
+<a id="license"></a>
 ## 📄 License
 
 MIT License © Codecaine

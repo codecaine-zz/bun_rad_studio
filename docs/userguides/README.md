@@ -26,6 +26,8 @@ Each application in this suite is built to 30-year enterprise standards: zero ex
 | **14** | [Markdown Studio Pro](14_markdown_studio.md) | Split-pane Markdown editor, reading stats, standalone styled HTML document export. | `bun run app:markdown` | `bun run cli:markdown` |
 | **15** | [Color & Design Token Studio](15_color_token_studio.md) | HEX/RGB/HSL converter, WCAG 2.1 contrast auditor, 50–950 tonal scale, token export. | `bun run app:color` | `bun run cli:color` |
 | **16** | [Environment Vault Studio](16_environment_vault_studio.md) | `.env` parser & validator, secret key masking, diff against `.env.example`. | `bun run app:env` | `bun run cli:env` |
+| **17** | [Fd Studio Pro](17_fd_studio.md) | Ultra-fast filesystem search, glob/regex filters, batch exec command builder. | `bun run app:fd` | `bun run cli:fd` |
+| **18** | [Rip Studio Pro](18_rip_studio.md) | Safe & ergonomic rm replacement, graveyard quarantine, instant unbury restoration. | `bun run app:rip` | `bun run cli:rip` |
 
 ---
 
@@ -54,6 +56,8 @@ bun run app:git        # Git Workbench Pro
 bun run app:markdown   # Markdown Studio Pro
 bun run app:color      # Color & Design Token Studio
 bun run app:env        # Environment Vault Studio
+bun run app:fd         # Fd Studio Pro
+bun run app:rip        # Rip Studio Pro
 ```
 
 ### 💻 Headless / CI / Terminal CLI Mode
@@ -79,6 +83,8 @@ bun run cli:git        # Working tree status table, color diffs & commit log
 bun run cli:markdown   # Document stats, reading metrics & standalone HTML export
 bun run cli:color      # Color converter, WCAG contrast auditor & design tokens
 bun run cli:env        # .env validator, secret masker & .env.example diff inspector
+bun run cli:fd         # Ultra-fast filesystem traversal & file search
+bun run cli:rip        # Safe deletion graveyard, inspect & restore
 ```
 
 ### Backwards-Compatible Aliases
@@ -91,12 +97,13 @@ bun run app:jq          # -> app:json
 bun run app:omnitool    # -> app:devtools
 bun run app:tasks       # -> app:process
 bun run app:dataconvert # -> app:convert
+bun run app:find        # -> app:fd
 ```
 
 ---
 
 ## 🎨 Global Application Features
-All 16 applications share standard enterprise features:
+All 18 applications share standard enterprise features:
 - **Dynamic Theming**: Instant theme switching (Sonoma Emerald, Cupertino Blue, Midnight Indigo, Cyberpunk Neon, Classic Delphi, Dracula Slate, CodeFreelance Obsidian, etc.).
 - **Auto-Persistence**: Window position, geometry, and input values are automatically saved to standard OS application data paths (`~/.bun_rad_studio/state/`).
 - **One-Click Centering**: The `Center` button immediately repositions the window to the exact center of the active display.

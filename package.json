@@ -84,6 +84,7 @@
     "cli:markdown": "bun run cli_apps/markdown_cli.ts",
     "cli:color": "bun run cli_apps/color_cli.ts",
     "cli:env": "bun run cli_apps/env_cli.ts",
+    "cli:fd": "bun run cli_apps/fd_cli.ts",
     "cli:rip": "bun run cli_apps/rip_cli.ts",
     "screenshots": "bun run scripts/capture_app_screenshots.ts",
     "brew:install": "./install_homebrew_dependencies.sh",
