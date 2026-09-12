@@ -1455,7 +1455,7 @@ export function generatePreviewHtml(spec: any): string {
         const isFullWidthContainer = (ctrlType === 'groupbox' || ctrlType === 'card' || ctrlType === 'accordion') && posX <= 40 && c.width >= (w - (posX * 2) - 60);
         const isFullWidthControl = !isFullWidthContainer && posX <= 60 && c.width >= (w - 120) && [
             'textarea', 'html_view', 'browser_view', 'code_view', 'code_editor',
-            'data_table', 'db_grid', 'table', 'activity_feed', 'stat_chart',
+            'data_table', 'db_grid', 'table', 'tree_grid', 'tree_table', 'activity_feed', 'stat_chart',
             'tabs', 'workspace_tabs', 'status_bar', 'property_grid', 'kanban_board',
             'sparkline_table', 'drop_zone'
         ].includes(ctrlType);
@@ -1778,6 +1778,232 @@ export function generatePreviewHtml(spec: any): string {
             const syncScript = `<script>window['${c.id}_syncTable']=function(){const cont=document.getElementById('${c.id}');if(!cont)return;const tbl=cont.querySelector('table');if(!tbl)return;const selectedTrs=Array.from(tbl.querySelectorAll('tbody tr.selected-tr'));const pids=selectedTrs.map(r=>r.getAttribute('data-pid')||'');const allTrs=tbl.querySelectorAll('tbody tr');const selectAllChk=tbl.querySelector('thead .table-select-all');if(selectAllChk){selectAllChk.checked=allTrs.length>0&&selectedTrs.length===allTrs.length;selectAllChk.indeterminate=selectedTrs.length>0&&selectedTrs.length<allTrs.length;}const hid=document.getElementById('${c.id}_selected');if(hid)hid.value=pids.join(',');const fnSel=window['${c.id}_onSelectionChange']||window['on_${c.id}_selection_change']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnSel)fnSel(pids);};</script>`;
 
             controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};position:sticky;top:0;z-index:2;">${thCheckbox}${headers.map((h: any)=>`<th style="padding:8px 12px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;">${esc(h)}</th>`).join('')}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncScript}\n`;
+        } else if (t === 'tree_grid' || t === 'tree_table') {
+            const rawHeaders = c.columns || c.headers || (c.text ? String(c.text).split(',').map(s => s.trim()) : ['Name', 'Type', 'Size', 'Date Modified', 'Status']);
+            const headers = Array.isArray(rawHeaders) ? rawHeaders : String(rawHeaders).split(',').map(s => s.trim());
+            const rawRows = c.rows || c.data || c.dataset || c.items || c.nodes || (Array.isArray(c.value) ? c.value : []);
+
+            interface FlatTreeItem {
+                id: string;
+                parentId: string;
+                depth: number;
+                cells: any[];
+                icon?: string;
+                hasChildren: boolean;
+                expanded: boolean;
+                visible: boolean;
+            }
+
+            const flattenTreeItems = (items: any[], depth = 0, parentId = '', parentVisible = true): FlatTreeItem[] => {
+                let list: FlatTreeItem[] = [];
+                items.forEach((item: any, idx: number) => {
+                    let itemId = item && item.id !== undefined ? String(item.id) : (parentId ? `${parentId}_${idx}` : `node_${idx}`);
+                    let cells: any[] = [];
+                    let icon = item ? item.icon : undefined;
+                    let hasChildren = Boolean(item && item.children && Array.isArray(item.children) && item.children.length > 0) || Boolean(item && item.hasChildren);
+                    let expanded = item && item.expanded !== undefined ? Boolean(item.expanded) : true;
+                    let itemDepth = depth;
+
+                    if (Array.isArray(item)) {
+                        cells = [...item];
+                        const firstStr = String(cells[0] || '');
+                        const leadingMatch = firstStr.match(/^(\s+)/);
+                        if (leadingMatch) {
+                            itemDepth = Math.max(depth, Math.floor(leadingMatch[1].length / 2));
+                            cells[0] = firstStr.trim();
+                        }
+                    } else if (typeof item === 'object' && item !== null) {
+                        if (Array.isArray(item.cells)) cells = [...item.cells];
+                        else if (Array.isArray(item.values)) cells = [...item.values];
+                        else if (Array.isArray(item.data)) cells = [...item.data];
+                        else {
+                            const { id: _i, depth: _d, parentId: _p, children: _c, expanded: _e, icon: _ic, hasChildren: _hc, ...rest } = item;
+                            cells = Object.values(rest);
+                            if (cells.length === 0 && (item.name || item.text || item.title)) {
+                                cells = [item.name || item.text || item.title];
+                            }
+                        }
+                        if (item.depth !== undefined) itemDepth = Number(item.depth);
+                    } else {
+                        cells = [String(item)];
+                    }
+
+                    if (!icon) {
+                        const firstCellStr = String(cells[0] || '');
+                        if (firstCellStr.includes('📁') || firstCellStr.includes('📂')) {
+                            hasChildren = true;
+                        } else if (hasChildren) {
+                            icon = '📁';
+                        } else {
+                            icon = '📄';
+                        }
+                    }
+
+                    list.push({
+                        id: itemId,
+                        parentId: item && item.parentId ? String(item.parentId) : parentId,
+                        depth: itemDepth,
+                        cells,
+                        icon,
+                        hasChildren,
+                        expanded,
+                        visible: parentVisible
+                    });
+
+                    if (item && item.children && Array.isArray(item.children)) {
+                        list = list.concat(flattenTreeItems(item.children, itemDepth + 1, itemId, parentVisible && expanded));
+                    }
+                });
+                return list;
+            };
+
+            const flatRows: FlatTreeItem[] = flattenTreeItems(rawRows.length > 0 ? rawRows : [
+                { id: 'src', cells: ['src', 'Folder', '--', 'Today', 'Active'], icon: '📁', expanded: true, children: [
+                    { id: 'simplegui.ts', cells: ['simplegui.ts', 'TypeScript', '142 KB', 'Today', 'Modified'], icon: '📄' },
+                    { id: 'index.ts', cells: ['index.ts', 'TypeScript', '98 KB', 'Yesterday', 'Clean'], icon: '📄' }
+                ]},
+                { id: 'demos', cells: ['demos', 'Folder', '--', 'Today', 'Active'], icon: '📁', expanded: true, children: [
+                    { id: 'showcase.ts', cells: ['23_all_themes_all_controls_showcase.ts', 'TypeScript', '12 KB', 'Today', 'Active'], icon: '📄' }
+                ]},
+                { id: 'package.json', cells: ['package.json', 'JSON', '1.8 KB', 'Yesterday', 'Locked'], icon: '📄' },
+                { id: 'README.md', cells: ['README.md', 'Markdown', '15 KB', 'Today', 'Published'], icon: '📄' }
+            ]);
+
+            const isMulti = Boolean(c.multi_select || c.multiple || c.selection_mode === 'multiple');
+            const hasCheckboxes = Boolean(c.checkbox_selection || c.selectable_checkbox || c.checkboxes);
+            const tableBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : cbg;
+            const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
+            const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+            const thColor = isLight ? '#0f172a' : accent;
+            const esc = (s: any) => s === null || s === undefined ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+            const thCheckbox = hasCheckboxes
+                ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="treegrid-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .treegrid-row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></th>`
+                : '';
+
+            const tableRowsHtml = flatRows.map((r: FlatTreeItem, rIdx: number) => {
+                const rowPid = esc(r.id);
+                const tdCheckbox = hasCheckboxes
+                    ? `<td style="width:36px;padding:6px 6px;text-align:center;"><input type="checkbox" class="treegrid-row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
+                    : '';
+
+                const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.treegrid-row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.treegrid-row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click']||window['${c.id}_onSelect']||window['on_${c.id}_select'];if(fn)fn('${rowPid}');`;
+
+                const indentPx = r.depth * 18 + 4;
+                const toggleIcon = r.hasChildren
+                    ? `<span class="treegrid-toggle" onclick="event.stopPropagation();window['${c.id}_toggleRow']('${rowPid}');" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:9px;opacity:0.8;transition:transform 0.15s;transform:${r.expanded ? 'rotate(90deg)' : 'rotate(0deg)'};color:${accent};">▶</span>`
+                    : `<span class="treegrid-spacer" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;opacity:0.25;">•</span>`;
+
+                const iconHtml = r.icon ? `<span class="treegrid-node-icon" style="font-size:13px;display:inline-flex;align-items:center;margin-right:2px;">${r.icon}</span>` : '';
+                const firstCellText = esc(r.cells[0] || '');
+
+                const firstTd = `<td style="padding:6px 10px;white-space:nowrap;"><div style="display:flex;align-items:center;padding-left:${indentPx}px;gap:6px;">${toggleIcon}${iconHtml}<span class="treegrid-node-label" style="font-weight:${r.hasChildren ? '700' : 'normal'};color:${color};">${firstCellText}</span></div></td>`;
+
+                const otherTds = r.cells.slice(1).map((cell: any, cIdx: number) => {
+                    const actualColIdx = cIdx + 1;
+                    const cellStr = esc(cell);
+                    const isRightAlign = (headers[actualColIdx] && (headers[actualColIdx].toLowerCase().includes('size') || headers[actualColIdx].toLowerCase().includes('count') || headers[actualColIdx].toLowerCase().includes('amount') || headers[actualColIdx].toLowerCase().includes('price') || headers[actualColIdx].toLowerCase().includes('port')));
+                    const alignStyle = isRightAlign ? 'text-align:right;' : 'text-align:left;';
+                    const monoStyle = isRightAlign ? 'font-family:monospace;' : '';
+                    return `<td style="padding:6px 12px;white-space:nowrap;${alignStyle}${monoStyle};color:${color};opacity:0.9;">${cellStr}</td>`;
+                }).join('');
+
+                const displayStyle = r.visible ? '' : 'display:none;';
+                return `<tr class="treegrid-row" style="${displayStyle}border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-tree-id="${rowPid}" data-parent-id="${esc(r.parentId)}" data-depth="${r.depth}" data-has-children="${r.hasChildren ? 'true' : 'false'}" data-expanded="${r.expanded ? 'true' : 'false'}" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${firstTd}${otherTds}</tr>`;
+            }).join('');
+
+            const syncAndToggleScript = `<script>
+(function() {
+    window['${c.id}_syncTable'] = function() {
+        const cont = document.getElementById('${c.id}');
+        if (!cont) return;
+        const tbl = cont.querySelector('table');
+        if (!tbl) return;
+        const selectedTrs = Array.from(tbl.querySelectorAll('tbody tr.selected-tr'));
+        const pids = selectedTrs.map(r => r.getAttribute('data-tree-id') || r.getAttribute('data-pid') || '');
+        const allTrs = tbl.querySelectorAll('tbody tr');
+        const selectAllChk = tbl.querySelector('thead .treegrid-select-all');
+        if (selectAllChk) {
+            selectAllChk.checked = allTrs.length > 0 && selectedTrs.length === allTrs.length;
+            selectAllChk.indeterminate = selectedTrs.length > 0 && selectedTrs.length < allTrs.length;
+        }
+        const hid = document.getElementById('${c.id}_selected');
+        if (hid) hid.value = pids.join(',');
+        const fnSel = window['${c.id}_onSelectionChange'] || window['on_${c.id}_selection_change'] || window['${c.id}_onChange'] || window['on_${c.id}_change'];
+        if (fnSel) fnSel(pids);
+    };
+
+    window['${c.id}_toggleRow'] = function(rowId) {
+        const cont = document.getElementById('${c.id}');
+        if (!cont) return;
+        const tbl = cont.querySelector('table');
+        if (!tbl) return;
+        const tr = tbl.querySelector('tr[data-tree-id="' + rowId + '"]');
+        if (!tr) return;
+        const isExpanded = tr.getAttribute('data-expanded') === 'true';
+        const nextExpanded = !isExpanded;
+        tr.setAttribute('data-expanded', nextExpanded ? 'true' : 'false');
+
+        const toggleBtn = tr.querySelector('.treegrid-toggle');
+        if (toggleBtn) {
+            toggleBtn.style.transform = nextExpanded ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+
+        function setDescendants(parentId, show) {
+            const children = tbl.querySelectorAll('tr[data-parent-id="' + parentId + '"]');
+            children.forEach(function(child) {
+                child.style.display = show ? '' : 'none';
+                const childId = child.getAttribute('data-tree-id');
+                const childExpanded = child.getAttribute('data-expanded') === 'true';
+                if (show) {
+                    if (childExpanded) {
+                        setDescendants(childId, true);
+                    }
+                } else {
+                    setDescendants(childId, false);
+                }
+            });
+        }
+
+        setDescendants(rowId, nextExpanded);
+        const fnToggle = window['${c.id}_onToggle'] || window['on_${c.id}_toggle'];
+        if (fnToggle) fnToggle(rowId, nextExpanded);
+    };
+
+    window['${c.id}_expandAll'] = function() {
+        const cont = document.getElementById('${c.id}');
+        if (!cont) return;
+        cont.querySelectorAll('tr[data-has-children="true"]').forEach(function(tr) {
+            tr.setAttribute('data-expanded', 'true');
+            const arrow = tr.querySelector('.treegrid-toggle');
+            if (arrow) arrow.style.transform = 'rotate(90deg)';
+        });
+        cont.querySelectorAll('tbody tr').forEach(function(tr) {
+            tr.style.display = '';
+        });
+    };
+
+    window['${c.id}_collapseAll'] = function() {
+        const cont = document.getElementById('${c.id}');
+        if (!cont) return;
+        cont.querySelectorAll('tr[data-has-children="true"]').forEach(function(tr) {
+            tr.setAttribute('data-expanded', 'false');
+            const arrow = tr.querySelector('.treegrid-toggle');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        });
+        cont.querySelectorAll('tbody tr').forEach(function(tr) {
+            const depth = parseInt(tr.getAttribute('data-depth') || '0', 10);
+            if (depth > 0) tr.style.display = 'none';
+        });
+    };
+})();
+</script>`;
+
+            controls += `<div${id}${titleAttr} class="rad-treegrid-container" style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};position:sticky;top:0;z-index:2;">${thCheckbox}${headers.map((h: any) => {
+                const isRight = h && (h.toLowerCase().includes('size') || h.toLowerCase().includes('count') || h.toLowerCase().includes('amount') || h.toLowerCase().includes('price') || h.toLowerCase().includes('port'));
+                const alignStyle = isRight ? 'text-align:right;' : 'text-align:left;';
+                return `<th style="padding:8px 12px;${alignStyle}font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;">${esc(h)}</th>`;
+            }).join('')}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncAndToggleScript}\n`;
         } else if (t === 'segmented_control') {
             const items = (text || 'Overview, Analytics, Reports').split(',').map((s: string) => s.trim());
             const sel = c.value || items[0] || '';

@@ -324,6 +324,26 @@ export class SimpleControlRef {
     }
     get_selected_rows(): any[] { return this.getSelectedRows(); }
 
+    onToggle(handler: EventCallback): this {
+        return this.on("toggle", handler);
+    }
+    on_toggle(handler: EventCallback): this {
+        return this.onToggle(handler);
+    }
+
+    expandAll(): this {
+        if (this.window && (this.window as any).evalJs) {
+            (this.window as any).evalJs(`if(window['${this.spec.id}_expandAll'])window['${this.spec.id}_expandAll']();`);
+        }
+        return this;
+    }
+    collapseAll(): this {
+        if (this.window && (this.window as any).evalJs) {
+            (this.window as any).evalJs(`if(window['${this.spec.id}_collapseAll'])window['${this.spec.id}_collapseAll']();`);
+        }
+        return this;
+    }
+
     on_click(handler: EventCallback): this { return this.onClick(handler); }
     on_change(handler: EventCallback): this { return this.onChange(handler); }
     on_hover(handler: EventCallback): this { return this.onHoverExit ? this.onHover(handler) : this; }
@@ -1882,6 +1902,76 @@ export class SimpleWindow {
     }
     public add_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
+    }
+
+    public addTreeGrid(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let headers: string[] = [];
+        let rows: any[] = [];
+        let clickHandler: EventCallback | undefined;
+        let finalOpts: Record<string, any> = { ...opts };
+
+        if (typeof onSelect === "object" && onSelect !== null) {
+            finalOpts = { ...onSelect, ...opts };
+            clickHandler = undefined;
+        } else if (typeof onSelect === "function") {
+            clickHandler = onSelect;
+        }
+
+        if (typeof idOrHeaders === "string" && Array.isArray(headersOrRows)) {
+            explicitId = idOrHeaders;
+            headers = headersOrRows as string[];
+            if (Array.isArray(rowsOrOnSelect)) {
+                rows = rowsOrOnSelect as any[];
+            } else if (typeof rowsOrOnSelect === "function") {
+                clickHandler = rowsOrOnSelect;
+            } else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) {
+                finalOpts = { ...rowsOrOnSelect, ...finalOpts };
+            }
+        } else if (Array.isArray(idOrHeaders)) {
+            headers = idOrHeaders as string[];
+            if (Array.isArray(headersOrRows)) {
+                rows = headersOrRows as any[];
+                if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect;
+                else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) finalOpts = { ...rowsOrOnSelect, ...finalOpts };
+            }
+        } else if (typeof idOrHeaders === "string" && !headersOrRows) {
+            explicitId = idOrHeaders;
+        }
+
+        if (finalOpts.multiSelect !== undefined) {
+            finalOpts.multi_select = finalOpts.multiSelect;
+        }
+        if (finalOpts.checkboxSelection !== undefined) {
+            finalOpts.checkbox_selection = finalOpts.checkboxSelection;
+        }
+        const onSelChange = finalOpts.onSelectionChange || finalOpts.on_selection_change;
+        const onToggleHandler = finalOpts.onToggle || finalOpts.on_toggle;
+
+        const headerCsv = headers.join(", ");
+        const ctrlOpts: Record<string, any> = { text: headerCsv, caption: headerCsv, value: rows, rows, headers: [...headers], columns: [...headers], ...finalOpts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const defaultH = finalOpts.height !== undefined ? finalOpts.height : 200;
+        const defaultW = finalOpts.width !== undefined ? finalOpts.width : 560;
+        const ref = this.addVisualControl("tree_grid", defaultW, defaultH, ctrlOpts);
+        if (clickHandler) ref.onClick(clickHandler);
+        if (onSelChange && typeof onSelChange === "function") {
+            ref.on("selection_change", onSelChange);
+        }
+        if (onToggleHandler && typeof onToggleHandler === "function") {
+            ref.on("toggle", onToggleHandler);
+        }
+        return ref;
+    }
+
+    public add_tree_grid(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTreeGrid(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
+    }
+    public addTreeTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTreeGrid(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
+    }
+    public add_tree_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTreeGrid(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
 
     public addTreeView(nodes: string[], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {

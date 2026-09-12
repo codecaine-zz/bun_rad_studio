@@ -214,7 +214,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     // ==========================================
     // 4. DATA TABLES, DUAL TRANSFER & WORKSPACE
     // ==========================================
-    win.beginGrid(3, 16);
+    win.beginGrid(2, 16);
 
     win.beginCard("Multi-Select Data Table", "Row checkboxes, Ctrl/Shift range & header select-all");
     win.addTable(
@@ -236,6 +236,26 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
         ["API Gateway", "Redis Cache"],
         { height: 130 }
     );
+    win.endCard();
+
+    win.beginCard("Hierarchical TreeGrid", "Multi-column tree table, expand/collapse toggles & selection");
+    win.addTreeGrid(
+        ["Name", "Type", "Size", "Modified", "Status"],
+        [
+            { id: "proj_root", cells: ["bun_rad_studio", "Project Root", "--", "Today", "Active"], icon: "📦", expanded: true, children: [
+                { id: "dir_src", cells: ["src", "Directory", "--", "Today", "Active"], icon: "📂", expanded: true, children: [
+                    { id: "file_simplegui", cells: ["simplegui.ts", "TypeScript", "148 KB", "Today", "Modified"], icon: "📄" },
+                    { id: "file_index", cells: ["index.ts", "TypeScript", "102 KB", "Today", "Modified"], icon: "📄" }
+                ]},
+                { id: "dir_demos", cells: ["demos", "Directory", "--", "Today", "Active"], icon: "📂", expanded: true, children: [
+                    { id: "demo_showcase", cells: ["23_all_themes_all_controls_showcase.ts", "TypeScript", "12 KB", "Today", "Active"], icon: "📄" }
+                ]},
+                { id: "pkg_json", cells: ["package.json", "JSON Config", "1.8 KB", "Yesterday", "Locked"], icon: "📄" },
+                { id: "readme_md", cells: ["README.md", "Documentation", "16 KB", "Today", "Published"], icon: "📄" }
+            ]}
+        ],
+        { multiSelect: true }
+    ).id("treegridWorkspace").height(130);
     win.endCard();
 
     win.beginCard("Project Workspace Tree", "Hierarchical file explorer tree navigation");

@@ -1334,4 +1334,111 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
         expect(html).toContain("event.shiftKey");
         expect(html).toContain("selected-tr");
     });
+
+    test("19. TreeGrid Control: Hierarchical multi-column tables, expand/collapse toggles, and selection", () => {
+        const win = createWindow("TreeGrid Test Window", 900, 700);
+
+        let toggleEventFired = false;
+        let lastToggledId = "";
+        let lastToggledState = false;
+
+        // 1. Nested TreeGrid definition
+        const tg = win.addTreeGrid(
+            "tg_files",
+            ["Name", "Type", "Size", "Modified", "Status"],
+            [
+                {
+                    id: "root_src",
+                    cells: ["src", "Folder", "--", "Today", "Active"],
+                    icon: "📂",
+                    expanded: true,
+                    children: [
+                        { id: "file_gui", cells: ["simplegui.ts", "TypeScript", "148 KB", "Today", "Modified"], icon: "📄" },
+                        { id: "file_idx", cells: ["index.ts", "TypeScript", "102 KB", "Today", "Clean"], icon: "📄" }
+                    ]
+                },
+                {
+                    id: "root_docs",
+                    cells: ["docs", "Folder", "--", "Yesterday", "Published"],
+                    icon: "📁",
+                    expanded: false,
+                    children: [
+                        { id: "doc_readme", cells: ["README.md", "Markdown", "16 KB", "Yesterday", "Published"], icon: "📄" }
+                    ]
+                },
+                { id: "file_pkg", cells: ["package.json", "JSON", "1.8 KB", "2 days ago", "Locked"], icon: "📄" }
+            ],
+            (_w, id, state) => {
+                toggleEventFired = true;
+                lastToggledId = id;
+                lastToggledState = state;
+            },
+            { multiSelect: true, checkboxSelection: true }
+        );
+
+        expect(tg.spec.control_type).toBe("tree_grid");
+        expect(tg.spec.id).toBe("tg_files");
+        expect(tg.spec.multi_select).toBe(true);
+        expect(tg.spec.checkbox_selection).toBe(true);
+        expect(tg.spec.headers).toEqual(["Name", "Type", "Size", "Modified", "Status"]);
+
+        // 2. Alias checks: add_tree_grid, addTreeTable, add_tree_table
+        const tgAlias1 = win.add_tree_grid(["Col A", "Col B"]).id("tg_alias1");
+        expect(tgAlias1.spec.control_type).toBe("tree_grid");
+
+        const tgAlias2 = win.addTreeTable(["Col A", "Col B"]).id("tg_alias2");
+        expect(tgAlias2.spec.control_type).toBe("tree_grid");
+
+        const tgAlias3 = win.add_tree_table(["Col A", "Col B"]).id("tg_alias3");
+        expect(tgAlias3.spec.control_type).toBe("tree_grid");
+
+        // 3. Fluent chaining & helper methods
+        tg.onToggle((_w, id, state) => {
+            toggleEventFired = true;
+        });
+        expect(win.eventHandlersMap.has("tg_files:toggle")).toBe(true);
+
+        // 4. HTML generation and contract validation
+        const html = win.toHtml();
+
+        // Check container and hidden selection state input
+        expect(html).toContain('class="rad-treegrid-container"');
+        expect(html).toContain('id="tg_files_selected" name="tg_files_selected"');
+
+        // Check headers
+        expect(html).toContain('class="treegrid-select-all"');
+        expect(html).toContain('Name</th>');
+        expect(html).toContain('Type</th>');
+        expect(html).toContain('Size</th>');
+        expect(html).toContain('Modified</th>');
+        expect(html).toContain('Status</th>');
+
+        // Check hierarchical row attributes
+        expect(html).toContain('data-tree-id="root_src"');
+        expect(html).toContain('data-has-children="true"');
+        expect(html).toContain('data-depth="0"');
+        expect(html).toContain('data-expanded="true"');
+
+        expect(html).toContain('data-tree-id="file_gui"');
+        expect(html).toContain('data-parent-id="root_src"');
+        expect(html).toContain('data-depth="1"');
+        expect(html).toContain('data-has-children="false"');
+
+        expect(html).toContain('data-tree-id="root_docs"');
+        expect(html).toContain('data-expanded="false"');
+
+        // Check UI elements (arrows, icons, labels, indentations)
+        expect(html).toContain('class="treegrid-toggle"');
+        expect(html).toContain('class="treegrid-spacer"');
+        expect(html).toContain('class="treegrid-node-icon"');
+        expect(html).toContain('class="treegrid-node-label"');
+        expect(html).toContain('class="treegrid-row-chk"');
+
+        // Check client-side scripts
+        expect(html).toContain("window['tg_files_syncTable']");
+        expect(html).toContain("window['tg_files_toggleRow']");
+        expect(html).toContain("window['tg_files_expandAll']");
+        expect(html).toContain("window['tg_files_collapseAll']");
+    });
 });
+
