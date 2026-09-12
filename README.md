@@ -35,6 +35,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
 - [💻 Installation & Quick Start](#installation--quick-start)
   - [Prerequisites](#prerequisites)
+  - [Linux System Dependencies (`libwebkitgtk-6.0-4`)](#linux-system-dependencies-libwebkitgtk-60-4)
   - [1. Clone & Install Dependencies](#1-clone--install-dependencies)
   - [2. Launch RAD Studio](#2-launch-rad-studio)
   - [3. Run Interactive Feature Demos](#3-run-interactive-feature-demos)
@@ -284,6 +285,19 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 * [Bun Runtime](https://bun.sh) (v1.0.0 or higher)
 * macOS, Windows, or Linux with WebKit/Webview support
 
+<a id="linux-system-dependencies-libwebkitgtk-60-4"></a>
+#### 🐧 Linux System Dependencies (`libwebkitgtk-6.0-4`)
+When running the application directly from source with Bun (`bun start`, `bun run index.ts`, or any demo script) on Debian/Ubuntu-based distributions, `libwebkitgtk-6.0-4` is required for the webview window to initialize:
+
+```bash
+sudo apt install libwebkitgtk-6.0-4
+```
+
+> [!NOTE]
+> **Tested & Verified**: Tested on **Ubuntu** and **Kali Linux** in Parallels Desktop.
+>
+> **Pre-compiled Binaries**: If the code is already compiled into a standalone binary (e.g. via `bun run build:binary` or `bun build --compile`), the binary will run out of the box without needing the WebKit library (`libwebkitgtk-6.0-4`) to be installed!
+
 <a id="1-clone--install-dependencies"></a>
 ### 1. Clone & Install Dependencies
 ```bash
@@ -447,6 +461,9 @@ Or using the Bun CLI directly without a macOS `.app` bundle structure:
 ```bash
 bun build --compile index.ts
 ```
+
+> [!TIP]
+> **Linux Standalone Portability**: Once compiled into a standalone binary, the executable will work on Linux without needing `libwebkitgtk-6.0-4` to be installed on the host machine.
 
 ### Option 2: Full macOS `.app` Bundle with Custom Icons
 To package your project into a complete macOS `.app` application bundle using [bun_webview](https://github.com/codecaine-zz/bun_webview):
