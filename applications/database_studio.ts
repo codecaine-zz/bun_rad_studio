@@ -151,6 +151,18 @@ export function createSqliteStudio(initialDbPath: string = ":memory:", options: 
 
   let lastQueryRows: Record<string, any>[] = [];
 
+  // Populate initial results from live database
+  try {
+    const initQuery = db.query("SELECT id, name, language, department, stars, salary, active, created_at FROM developers ORDER BY stars DESC;");
+    const initRows = initQuery.all() as Record<string, any>[];
+    if (initRows.length > 0) {
+      lastQueryRows = initRows;
+      const headers = Object.keys(initRows[0] || {});
+      const data = initRows.map((r) => headers.map((h) => String(r[h] ?? "")));
+      win.setTableData("tbl_results", headers, data);
+    }
+  } catch {}
+
   // Handlers
   win.onClick("btn_center", () => win.center());
   win.onClick("btn_save_state", (w) => {
@@ -345,27 +357,59 @@ export function createSqliteStudio(initialDbPath: string = ":memory:", options: 
   });
 
   win.onChange("dd_sql_presets", (_w, selected: string) => {
+    let queryToRun = "";
     if (selected.includes("Select All")) {
-      win.setText("txt_sql_query", "SELECT id, name, language, department, stars, salary, active, created_at\nFROM developers\nORDER BY stars DESC;");
+      queryToRun = "SELECT id, name, language, department, stars, salary, active, created_at\nFROM developers\nORDER BY stars DESC;";
     } else if (selected.includes("High Compensation")) {
-      win.setText("txt_sql_query", "SELECT name, department, salary, language\nFROM developers\nWHERE salary >= 300000\nORDER BY salary DESC;");
+      queryToRun = "SELECT name, department, salary, language\nFROM developers\nWHERE salary >= 300000\nORDER BY salary DESC;";
     } else if (selected.includes("Department Salary")) {
-      win.setText("txt_sql_query", "SELECT department, count(*) as dev_count, avg(salary) as average_salary, sum(stars) as total_stars\nFROM developers\nGROUP BY department\nORDER BY average_salary DESC;");
+      queryToRun = "SELECT department, count(*) as dev_count, avg(salary) as average_salary, sum(stars) as total_stars\nFROM developers\nGROUP BY department\nORDER BY average_salary DESC;";
     } else if (selected.includes("Database Schema Master")) {
-      win.setText("txt_sql_query", "SELECT name, type, sql\nFROM sqlite_master\nWHERE type IN ('table', 'view')\nORDER BY type, name;");
+      queryToRun = "SELECT name, type, sql\nFROM sqlite_master\nWHERE type IN ('table', 'view')\nORDER BY type, name;";
     } else if (selected.includes("Table Columns DDL")) {
-      win.setText("txt_sql_query", "PRAGMA table_info(developers);");
+      queryToRun = "PRAGMA table_info(developers);";
     } else if (selected.includes("Table Indexes")) {
-      win.setText("txt_sql_query", "PRAGMA index_list(developers);");
+      queryToRun = "PRAGMA index_list(developers);";
     } else if (selected.includes("Audit Trail")) {
-      win.setText("txt_sql_query", "SELECT id, action, entity, timestamp, details\nFROM audit_logs\nORDER BY timestamp DESC;");
+      queryToRun = "SELECT id, action, entity, timestamp, details\nFROM audit_logs\nORDER BY timestamp DESC;";
     } else if (selected.includes("Explain Query Plan")) {
-      win.setText("txt_sql_query", "EXPLAIN QUERY PLAN\nSELECT * FROM developers\nWHERE stars > 80000\nORDER BY salary DESC;");
+      queryToRun = "EXPLAIN QUERY PLAN\nSELECT * FROM developers\nWHERE stars > 80000\nORDER BY salary DESC;";
     }
-    executeSql();
+    if (queryToRun) {
+      win.setText("txt_sql_query", queryToRun);
+      executeSql(queryToRun);
+    } else {
+      executeSql();
+    }
   });
 
   win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+
+  // Instant client-side SQL execution hotkey (Cmd+Enter / Ctrl+Enter) and sync
+  win.addScript(`
+    (function() {
+      const txt = document.getElementById("txt_sql_query");
+      const btn = document.getElementById("btn_run_sql");
+      if (txt) {
+        txt.addEventListener("keydown", function(e) {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            if (window.on_txt_sql_query_change) {
+              window.on_txt_sql_query_change(txt.value);
+            }
+            if (btn) btn.click();
+          }
+        });
+      }
+      if (btn) {
+        btn.addEventListener("mousedown", function() {
+          if (txt && window.on_txt_sql_query_change) {
+            window.on_txt_sql_query_change(txt.value);
+          }
+        });
+      }
+    })();
+  `);
 
   return win;
 }

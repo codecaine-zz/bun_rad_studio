@@ -26,6 +26,37 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_export_inserts");
     expect(html).toContain("btn_seed");
     expect(win.getControls().length).toBeGreaterThan(15);
+    
+    // Verifies initial table data is populated from SQLite database
+    const initialRows = win.getValue("tbl_results");
+    expect(Array.isArray(initialRows)).toBe(true);
+    expect(initialRows.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("1b. Database Studio Pro data grid updates upon query execution and preset selection", () => {
+    const win = createDatabaseStudio(":memory:");
+    
+    // Test preset change handler
+    const presetHandler = win.eventHandlersMap.get("dd_sql_presets:onchange");
+    expect(presetHandler).toBeDefined();
+    if (presetHandler) {
+      presetHandler(win, "2. High Compensation (SELECT name, department, salary FROM developers WHERE salary >= 300000)");
+      const updatedQuery = win.getValue("txt_sql_query");
+      expect(updatedQuery).toContain("salary >= 300000");
+      const updatedRows = win.getValue("tbl_results");
+      expect(Array.isArray(updatedRows)).toBe(true);
+      expect(updatedRows.length).toBeGreaterThanOrEqual(1);
+    }
+
+    // Test seed data button execution
+    const seedHandler = win.eventHandlersMap.get("btn_seed:onclick");
+    expect(seedHandler).toBeDefined();
+    if (seedHandler) {
+      seedHandler(win, "");
+      const seededRows = win.getValue("tbl_results");
+      expect(Array.isArray(seededRows)).toBe(true);
+      expect(seededRows.length).toBe(50);
+    }
   });
 
   it("2. System & Package Workstation initializes with hardware telemetry", () => {

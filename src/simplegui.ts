@@ -1380,7 +1380,7 @@ export class SimpleWindow {
 
         const text = items.join(", ");
         const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
-        const ctrlOpts: Record<string, any> = { text, caption: text, value: initialVal, ...opts };
+        const ctrlOpts: Record<string, any> = { text, caption: text, value: initialVal, items: [...items], options: [...items], ...opts };
         if (explicitId) ctrlOpts.id = explicitId;
         const ref = this.addVisualControl("select", 240, 36, ctrlOpts);
         this.formValuesStore[ref.spec.id] = initialVal;
@@ -1572,7 +1572,7 @@ export class SimpleWindow {
         }
 
         const headerCsv = headers.join(", ");
-        const ctrlOpts: Record<string, any> = { text: headerCsv, value: rows, ...finalOpts };
+        const ctrlOpts: Record<string, any> = { text: headerCsv, caption: headerCsv, value: rows, headers: [...headers], columns: [...headers], ...finalOpts };
         if (explicitId) ctrlOpts.id = explicitId;
         const defaultH = finalOpts.height !== undefined ? finalOpts.height : 180;
         const defaultW = finalOpts.width !== undefined ? finalOpts.width : 540;
@@ -4572,7 +4572,8 @@ export class SimpleWindow {
             const headersJson = JSON.stringify(headers || []);
             this.evalJS(`
                 (function() {
-                    const container = document.getElementById("${id}");
+                    const ctrlId = ${JSON.stringify(id)};
+                    const container = document.getElementById(ctrlId);
                     if (!container) return;
                     const prevScrollTop = container.scrollTop;
                     const prevScrollLeft = container.scrollLeft;
@@ -4620,7 +4621,7 @@ export class SimpleWindow {
 
                         return '<tr class="' + selClass + '" style="border-bottom:1px solid ' + border + ';cursor:pointer;transition:background 0.12s;' + bgStyle + '" ' +
                             'data-pid="' + esc(rowPid) + '" ' +
-                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[\\'' + id + '_onClick\\']||window[\\'on_' + id + '_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
+                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[ctrlId + \\'_onClick\\']||window[\\'on_\\' + ctrlId + \\'_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
                             'onmouseover="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'' + hoverBg + '\\'" ' +
                             'onmouseout="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'\\'">' +
                             cells.map((c, i) => {
