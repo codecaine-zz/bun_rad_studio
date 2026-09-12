@@ -1219,12 +1219,119 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(html).toContain("New File");
         expect(html).toContain("⌘N");
         expect(html).toContain("window.globalContextMenuItems = [\"Refresh\",\"Copy Coords\",\"Inspect\"];");
-        expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"");
+expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"");
         expect(html).toContain("data-ctrl-id=\"fld_test\"");
         expect(html).toContain("showContextMenu");
         expect(html).toContain("hideContextMenu");
     });
+
+    test("18. Enhanced Controls: Multi-Select ListBox, Dual Transfer List & Multi-Row Table Selection", () => {
+        const win = createWindow("Controls Enhancement Test", 1000, 800);
+
+        // --- A. Multi-Select ListBox Verification ---
+        const multiList = win.addMultiListBox(
+            ["Service A", "Service B", "Service C", "Service D"],
+            ["Service A", "Service C"]
+        ).id("lst_services");
+
+        expect(multiList.spec.control_type).toBe("listbox");
+        expect(multiList.spec.multiple).toBe(true);
+        expect(multiList.spec.multi_select).toBe(true);
+        expect(multiList.spec.selection_mode).toBe("multiple");
+        expect(win.getFormValues().lst_services).toEqual(["Service A", "Service C"]);
+        expect(multiList.getSelectedItems()).toEqual(["Service A", "Service C"]);
+
+        // Fluent chaining
+        const singleList = win.addListBox(["Option 1", "Option 2"]).id("lst_single");
+        expect(singleList.spec.multiple).toBeUndefined();
+        singleList.multiSelect(true);
+        expect(singleList.spec.multiple).toBe(true);
+
+        // --- B. Dual Transfer List Verification ---
+        let transferChangeFired = false;
+        let lastTransSelected: any = null;
+        const transfer = win.addTransferList(
+            "transfer_apps",
+            ["Photoshop", "Illustrator", "Premiere", "AfterEffects"],
+            ["Visual Studio Code", "Sublime Text"],
+            (_w, sel, avail) => {
+                transferChangeFired = true;
+                lastTransSelected = sel;
+            },
+            { height: 160 }
+        );
+
+        expect(transfer.spec.control_type).toBe("transfer_list");
+        expect(transfer.spec.id).toBe("transfer_apps");
+        expect(win.getFormValues().transfer_apps).toBe("Visual Studio Code,Sublime Text");
+        expect(win.getFormValues().transfer_apps_available).toBe("Photoshop,Illustrator,Premiere,AfterEffects");
+
+        // --- C. Multi-Select Table with Checkboxes Verification ---
+        let tableSelectionFired = false;
+        let selectedPids: string[] = [];
+        const table = win.addTable(
+            "tbl_users",
+            ["User ID", "Name", "Role", "Status"],
+            [
+                ["usr_01", "Alice Johnson", "Admin", "Active"],
+                ["usr_02", "Bob Smith", "Developer", "Active"],
+                ["usr_03", "Charlie Brown", "Reviewer", "Inactive"]
+            ],
+            {
+                multiSelect: true,
+                checkboxSelection: true,
+                onSelectionChange: (_w: any, pids: string[]) => {
+                    tableSelectionFired = true;
+                    selectedPids = pids;
+                }
+            }
+        );
+
+        expect(table.spec.control_type).toBe("data_table");
+        expect(table.spec.id).toBe("tbl_users");
+        expect(table.spec.multi_select).toBe(true);
+        expect(table.spec.checkbox_selection).toBe(true);
+
+        // Alias validation: addDataTable and add_data_table
+        const dtAlias = win.addDataTable(
+            ["ID", "Val"],
+            [["1", "Test"]]
+        ).checkboxSelection(true).multiSelect(true);
+        expect(dtAlias.spec.control_type).toBe("data_table");
+        expect(dtAlias.spec.checkbox_selection).toBe(true);
+        expect(dtAlias.spec.multi_select).toBe(true);
+
+        // --- D. HTML Preview Generation & DOM Contract Checks ---
+        const html = win.toHtml();
+
+        // 1. Listbox HTML checks
+        expect(html).toContain('<select id="lst_services" class="simplegui-listbox" size="5" multiple');
+        expect(html).toContain('value="Service A" selected');
+        expect(html).toContain('value="Service B"');
+        expect(html).toContain('value="Service C" selected');
+
+        // 2. Transfer List HTML checks
+        expect(html).toContain('id="transfer_apps_container"');
+        expect(html).toContain('id="transfer_apps" name="transfer_apps" value="Visual Studio Code,Sublime Text"');
+        expect(html).toContain('id="transfer_apps_available" name="transfer_apps_available" value="Photoshop,Illustrator,Premiere,AfterEffects"');
+        expect(html).toContain('class="transfer-avail-count"');
+        expect(html).toContain('class="transfer-sel-count"');
+        expect(html).toContain('title="Move Selected to Selected"');
+        expect(html).toContain('title="Move All to Selected"');
+        expect(html).toContain('title="Move Selected to Available"');
+        expect(html).toContain('title="Move All to Available"');
+        expect(html).toContain('ondblclick="const cont=this.closest(\'.transfer-container\');');
+        expect(html).toContain("window['transfer_apps_sync']");
+
+        // 3. Table Multi-Row HTML checks
+        expect(html).toContain('id="tbl_users_selected" name="tbl_users_selected"');
+        expect(html).toContain('class="table-select-all"');
+        expect(html).toContain('class="row-chk"');
+        expect(html).toContain('data-pid="usr_01"');
+        expect(html).toContain('data-row-index="0"');
+        expect(html).toContain("window['tbl_users_syncTable']");
+        expect(html).toContain("event.ctrlKey||event.metaKey");
+        expect(html).toContain("event.shiftKey");
+        expect(html).toContain("selected-tr");
+    });
 });
-
-
-

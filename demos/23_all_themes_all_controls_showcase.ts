@@ -130,13 +130,13 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.endRow();
 
     win.beginRow();
-    win.addLabel("List Box:").width(100);
-    win.addListBox([
+    win.addLabel("Multi-List Box:").width(100);
+    win.addMultiListBox([
         "Worker Pool: 16 Cores Active",
         "Memory Allocator: Mimalloc",
         "Network Engine: POSIX Async",
         "Compiler: Bun Native AST"
-    ], 0).id("lstWorkers").width(370).height(58);
+    ], ["Worker Pool: 16 Cores Active", "Memory Allocator: Mimalloc"]).id("lstWorkers").width(370).height(62);
     win.endRow();
 
     win.beginRow();
@@ -212,11 +212,11 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.endGrid();
 
     // ==========================================
-    // 4. DATA TABLES & WORKSPACE TREE SECTION
+    // 4. DATA TABLES, DUAL TRANSFER & WORKSPACE
     // ==========================================
-    win.beginGrid(2, 16);
+    win.beginGrid(3, 16);
 
-    win.beginCard("Data Table Component", "Grid headers, alternate zebra rows & formatted values");
+    win.beginCard("Multi-Select Data Table", "Row checkboxes, Ctrl/Shift range & header select-all");
     win.addTable(
         ["ID", "Service Node", "Protocol", "Port", "Latency", "Health"],
         [
@@ -224,11 +224,21 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
             [102, "Auth & Session Vault", "gRPC", "8443", "1.1 ms", "Healthy"],
             [103, "Redis Distributed Cache", "RESP3", "6379", "0.2 ms", "Optimal"],
             [104, "Postgres Analytics Replica", "TCP", "5432", "2.8 ms", "Syncing"]
-        ]
-    ).id("tblServices").height(115);
+        ],
+        { multiSelect: true, checkboxSelection: true }
+    ).id("tblServices").height(130);
     win.endCard();
 
-    win.beginCard("Project Workspace Tree & Code", "Hierarchical file explorer tree & embedded syntax snippet");
+    win.beginCard("Dual Transfer List", "Double-click item transfer, 4-button bar & live item counts");
+    win.addTransferList(
+        "transServices",
+        ["Kafka Broker", "Elasticsearch", "Prometheus", "MinIO Storage"],
+        ["API Gateway", "Redis Cache"],
+        { height: 130 }
+    );
+    win.endCard();
+
+    win.beginCard("Project Workspace Tree", "Hierarchical file explorer tree navigation");
     win.addTreeView([
         "📦 bun_rad_studio",
         " 📂 src",
@@ -238,7 +248,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
         "   📄 23_all_themes_all_controls_showcase.ts",
         " 📂 screenshots",
         "   📂 themes"
-    ]).id("treeWorkspace").height(115);
+    ]).id("treeWorkspace").height(130);
     win.endCard();
 
     win.endGrid();

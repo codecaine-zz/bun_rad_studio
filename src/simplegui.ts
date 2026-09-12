@@ -181,6 +181,18 @@ export class SimpleControlRef {
         return this;
     }
 
+    on(event: string, handler: EventCallback): this {
+        this.window.bindControlEvent(this.spec.id, event, handler);
+        return this;
+    }
+
+    onSelectionChange(handler: EventCallback): this {
+        return this.on("selection_change", handler);
+    }
+    on_selection_change(handler: EventCallback): this {
+        return this.on("selection_change", handler);
+    }
+
     contextMenu(items: string[] | string, onSelect?: EventCallback): this {
         const itemsArr = Array.isArray(items) ? items : items.split(",").map(s => s.trim());
         this.spec.context_menu_items = itemsArr;
@@ -282,9 +294,39 @@ export class SimpleControlRef {
     max(val: number): this { this.spec.max_value = val; return this; }
     step(val: number): this { this.spec.step = val; return this; }
 
+    multiSelect(enable = true): this {
+        this.spec.multiple = enable;
+        this.spec.multi_select = enable;
+        this.spec.selection_mode = enable ? "multiple" : "single";
+        return this;
+    }
+    multi_select(enable = true): this { return this.multiSelect(enable); }
+
+    checkboxSelection(enable = true): this {
+        this.spec.checkbox_selection = enable;
+        this.spec.selectable_checkbox = enable;
+        return this;
+    }
+    checkbox_selection(enable = true): this { return this.checkboxSelection(enable); }
+
+    getSelectedItems(): string[] {
+        const val = this.getValue();
+        if (Array.isArray(val)) return val.map(String);
+        if (typeof val === "string" && val.length > 0) return val.split(",").map(s => s.trim());
+        return [];
+    }
+    get_selected_items(): string[] { return this.getSelectedItems(); }
+
+    getSelectedRows(): any[] {
+        const val = this.getValue();
+        if (Array.isArray(val)) return val;
+        return [];
+    }
+    get_selected_rows(): any[] { return this.getSelectedRows(); }
+
     on_click(handler: EventCallback): this { return this.onClick(handler); }
     on_change(handler: EventCallback): this { return this.onChange(handler); }
-    on_hover(handler: EventCallback): this { return this.onHover(handler); }
+    on_hover(handler: EventCallback): this { return this.onHoverExit ? this.onHover(handler) : this; }
     on_hover_exit(handler: EventCallback): this { return this.onHoverExit(handler); }
     get_value(): any { return this.getValue(); }
     set_value(val: any): this { return this.setValue(val); }
@@ -1653,8 +1695,8 @@ export class SimpleWindow {
         return this.addThemeSelector(id, label, popularOnly, width, autoShortNames);
     }
 
-    public addListBox(items: string[], selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
-        let selected: string | number | undefined;
+    public addListBox(items: string[], selectedOrOnChange?: string | string[] | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        let selected: string | string[] | number | undefined;
         let onChange: EventCallback | undefined;
         let opts: Record<string, any> = {};
 
@@ -1671,17 +1713,70 @@ export class SimpleWindow {
             }
         }
 
+        const isMulti = Boolean(opts.multiple || opts.multi_select || opts.selection_mode === "multiple");
         const text = items.join(", ");
-        const initialVal = typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || "");
+        const initialVal = isMulti
+            ? (Array.isArray(selected) ? selected : (typeof selected === "string" ? selected.split(",").map(s => s.trim()) : (items.length > 0 ? [items[0]] : [])))
+            : (typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || ""));
         const height = opts.height || (opts.size ? opts.size * 24 + 10 : 120);
-        const ref = this.addVisualControl("listbox", 240, height, { text, caption: text, value: initialVal, items, size: opts.size || 5, ...opts });
+        const ref = this.addVisualControl("listbox", 240, height, {
+            text,
+            caption: text,
+            value: initialVal,
+            items,
+            size: opts.size || 5,
+            ...(isMulti ? { multiple: true, multi_select: true, selection_mode: "multiple" } : {}),
+            ...opts
+        });
         this.formValuesStore[ref.spec.id] = initialVal;
         this.listItemsStore[ref.spec.id] = [...items];
         if (onChange) ref.onChange(onChange);
         return ref;
     }
-    public add_list_box(items: string[], selected?: string | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+    public add_list_box(items: string[], selected?: string | string[] | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addListBox(items, selected, onChange, opts);
+    }
+
+    public addMultiListBox(items: string[], selectedOrOnChange?: string[] | string | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        let selected: string[] | string | undefined;
+        let onChange: EventCallback | undefined;
+        let opts: Record<string, any> = {};
+
+        if (typeof selectedOrOnChange === "function") {
+            onChange = selectedOrOnChange;
+            if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+        } else {
+            selected = selectedOrOnChange;
+            if (typeof onChangeOrOpts === "function") {
+                onChange = onChangeOrOpts as EventCallback;
+                opts = optsArg;
+            } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
+                opts = onChangeOrOpts;
+            }
+        }
+
+        const initialVal = Array.isArray(selected)
+            ? selected
+            : (typeof selected === "string" ? selected.split(",").map(s => s.trim()) : (items.length > 0 ? [items[0]] : []));
+        const height = opts.height || (opts.size ? opts.size * 24 + 10 : 130);
+        const ref = this.addVisualControl("listbox", 240, height, {
+            text: items.join(", "),
+            caption: items.join(", "),
+            value: initialVal,
+            items,
+            size: opts.size || 5,
+            multiple: true,
+            multi_select: true,
+            selection_mode: "multiple",
+            ...opts
+        });
+        this.formValuesStore[ref.spec.id] = initialVal;
+        this.listItemsStore[ref.spec.id] = [...items];
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+    public add_multi_list_box(items: string[], selected?: string[] | string, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addMultiListBox(items, selected, onChange, opts);
     }
 
     public addSegmentedControl(items: string[], selectedIndex = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
@@ -1758,6 +1853,14 @@ export class SimpleWindow {
             }
         }
 
+        if (finalOpts.multiSelect !== undefined) {
+            finalOpts.multi_select = finalOpts.multiSelect;
+        }
+        if (finalOpts.checkboxSelection !== undefined) {
+            finalOpts.checkbox_selection = finalOpts.checkboxSelection;
+        }
+        const onSelChange = finalOpts.onSelectionChange || finalOpts.on_selection_change;
+
         const headerCsv = headers.join(", ");
         const ctrlOpts: Record<string, any> = { text: headerCsv, caption: headerCsv, value: rows, headers: [...headers], columns: [...headers], ...finalOpts };
         if (explicitId) ctrlOpts.id = explicitId;
@@ -1765,7 +1868,20 @@ export class SimpleWindow {
         const defaultW = finalOpts.width !== undefined ? finalOpts.width : 540;
         const ref = this.addVisualControl("data_table", defaultW, defaultH, ctrlOpts);
         if (clickHandler) ref.onClick(clickHandler);
+        if (onSelChange && typeof onSelChange === "function") {
+            ref.on("selection_change", onSelChange);
+        }
         return ref;
+    }
+
+    public addDataTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
+    }
+    public add_data_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
+    }
+    public add_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
 
     public addTreeView(nodes: string[], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
@@ -2164,16 +2280,28 @@ export class SimpleWindow {
         return this.addTagCloud(id, tags, selected, onSelect, opts);
     }
 
-    public addTransferList(id: string, leftItems: string[] = [], rightItems: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
-        return this.addVisualControl("transfer_list", Math.min(480, this.width - 40), 160, {
+    public addTransferList(id: string, leftItems: string[] = [], rightItems: string[] = [], onChangeOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
+        let onChange: EventCallback | undefined;
+        let opts: Partial<any> = {};
+        if (typeof onChangeOrOpts === "function") {
+            onChange = onChangeOrOpts;
+            opts = optsArg;
+        } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
+            opts = onChangeOrOpts;
+        }
+        const ref = this.addVisualControl("transfer_list", Math.min(480, this.width - 40), opts.height || 170, {
             id,
             leftItems,
             rightItems,
             ...opts
         });
+        this.formValuesStore[id] = rightItems.join(",");
+        this.formValuesStore[`${id}_available`] = leftItems.join(",");
+        if (onChange) ref.onChange(onChange);
+        return ref;
     }
-    public add_transfer_list(id: string, leftItems: string[] = [], rightItems: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
-        return this.addTransferList(id, leftItems, rightItems, opts);
+    public add_transfer_list(id: string, leftItems: string[] = [], rightItems: string[] = [], onChangeOrOpts?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTransferList(id, leftItems, rightItems, onChangeOrOpts, opts);
     }
 
     // 5. Sliders, Numbers & Progress

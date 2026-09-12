@@ -30,7 +30,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
   - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
   - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
-  - [🎨 Built-in Desktop Form Themes & Visual Gallery (42 Themes)](#built-in-desktop-form-themes--visual-gallery-42-themes)
+  - [🎨 Built-in Desktop Form Themes & Visual Gallery (56 Themes)](#built-in-desktop-form-themes--visual-gallery-56-themes)
   - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
 - [💻 Installation & Quick Start](#installation--quick-start)
@@ -93,9 +93,11 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 * **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-<a id="built-in-desktop-form-themes--visual-gallery-42-themes"></a>
-### 🎨 Built-in Desktop Form Themes & Visual Gallery (42 Themes)
-Bun RAD Studio and SimpleGUI feature **42 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84).
+<a id="built-in-desktop-form-themes--visual-gallery-56-themes"></a>
+### 🎨 Built-in Desktop Form Themes & Visual Gallery (56 Themes)
+Bun RAD Studio and SimpleGUI feature **56 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84).
+
+👉 **[🖼️ View the Complete 56-Theme Visual Screenshot Gallery in THEMES.md](THEMES.md)** for direct side-by-side screenshots, color palettes, and quick launch commands for every theme!
 
 Every theme automatically harmonizes:
 - Form canvas backgrounds and typography foregrounds
