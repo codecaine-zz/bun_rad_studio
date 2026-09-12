@@ -114,9 +114,44 @@ export class SimpleControlRef {
 
     font(size: number, color?: string, weight?: string): this {
         this.spec.font_size = size;
+        this.spec.fontSize = size;
         if (color) this.spec.font_color = color;
         if (weight) this.spec.font_weight = weight;
         return this;
+    }
+
+    fontSize(size: number): this {
+        return this.font(size);
+    }
+
+    font_size(size: number): this {
+        return this.font(size);
+    }
+
+    fontColor(c: string): this {
+        return this.color(c);
+    }
+
+    font_color(c: string): this {
+        return this.color(c);
+    }
+
+    backgroundColor(c: string): this {
+        return this.bg(c);
+    }
+
+    background_color(c: string): this {
+        return this.bg(c);
+    }
+
+    expandFill(expand: boolean = true): this {
+        this.spec.expandFill = expand;
+        this.spec.expand_fill = expand;
+        return this;
+    }
+
+    expand_fill(expand: boolean = true): this {
+        return this.expandFill(expand);
     }
 
     bold(isBold = true): this {
@@ -685,6 +720,7 @@ export class SimpleWindow {
     private promptResolversMap: Map<string, (val: any) => void> = new Map();
 
     public accentColor = "#0a84ff";
+    public lastControlId: string = "";
     private layoutStack: LayoutFrame[] = [];
     private currentY = 20;
 
@@ -1396,6 +1432,7 @@ export class SimpleWindow {
             ...opts
         };
 
+        this.lastControlId = id;
         this.allocateControlPosition(spec, width, height);
         this.controls.push(spec);
 
@@ -6089,28 +6126,161 @@ export class SimpleWindow {
     }
 
     // --- Nameless Control Helpers ---
-    public input(initialVal = ""): SimpleControlRef {
-        return this.addTextInput("", initialVal).id("default_input");
+    public input(placeholderOrInitial = "", defaultValOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let placeholder = "";
+        let defaultVal = "";
+        let onChange: EventCallback | undefined;
+        let isNameless = false;
+        if (typeof defaultValOrOnChange === "function") {
+            placeholder = placeholderOrInitial;
+            onChange = defaultValOrOnChange;
+        } else if (typeof defaultValOrOnChange === "string") {
+            placeholder = placeholderOrInitial;
+            defaultVal = defaultValOrOnChange;
+            onChange = maybeOnChange;
+        } else {
+            defaultVal = placeholderOrInitial;
+            isNameless = true;
+        }
+        const ref = this.addTextInput(placeholder, defaultVal);
+        if (isNameless) ref.id("default_input");
+        if (onChange) ref.onChange(onChange);
+        return ref;
     }
 
-    public button(caption: string): SimpleControlRef {
-        return this.addButton(caption).id("default_button");
+    public button(caption: string, onClick?: EventCallback): SimpleControlRef {
+        const ref = this.addButton(caption).id("default_button");
+        if (onClick) ref.onClick(onClick);
+        return ref;
     }
 
-    public textarea(initialVal = ""): SimpleControlRef {
-        return this.addTextArea("", initialVal).id("default_textarea");
+    public textarea(placeholderOrInitial = "", defaultValOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let placeholder = "";
+        let defaultVal = "";
+        let onChange: EventCallback | undefined;
+        let isNameless = false;
+        if (typeof defaultValOrOnChange === "function") {
+            placeholder = placeholderOrInitial;
+            onChange = defaultValOrOnChange;
+        } else if (typeof defaultValOrOnChange === "string") {
+            placeholder = placeholderOrInitial;
+            defaultVal = defaultValOrOnChange;
+            onChange = maybeOnChange;
+        } else {
+            defaultVal = placeholderOrInitial;
+            isNameless = true;
+        }
+        const ref = this.addTextArea(placeholder, defaultVal);
+        if (isNameless) ref.id("default_textarea");
+        if (onChange) ref.onChange(onChange);
+        return ref;
     }
 
-    public checkbox(label: string, checked = false): SimpleControlRef {
-        return this.addCheckbox(label, checked).id("default_checkbox");
+    public checkbox(label: string, checkedOrOnChange?: boolean | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let checked = false;
+        let onChange: EventCallback | undefined;
+        if (typeof checkedOrOnChange === "function") {
+            onChange = checkedOrOnChange;
+        } else if (typeof checkedOrOnChange === "boolean") {
+            checked = checkedOrOnChange;
+            onChange = maybeOnChange;
+        }
+        const ref = this.addCheckbox(label, checked).id("default_checkbox");
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+
+    public radio(groupOrLabel: string, labelOrChecked?: string | boolean | EventCallback, checkedOrOnChange?: boolean | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let group = "default_radio_group";
+        let label = groupOrLabel;
+        let checked = false;
+        let onChange: EventCallback | undefined;
+        if (typeof labelOrChecked === "string") {
+            group = groupOrLabel;
+            label = labelOrChecked;
+            if (typeof checkedOrOnChange === "boolean") {
+                checked = checkedOrOnChange;
+                onChange = maybeOnChange;
+            } else if (typeof checkedOrOnChange === "function") {
+                onChange = checkedOrOnChange;
+            }
+        } else if (typeof labelOrChecked === "boolean") {
+            checked = labelOrChecked;
+            if (typeof checkedOrOnChange === "function") onChange = checkedOrOnChange;
+        } else if (typeof labelOrChecked === "function") {
+            onChange = labelOrChecked;
+        }
+        const ref = this.addVisualControl("radio", 180, 24, { text: label, caption: label, secondary_text: group, checked, value: label });
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+
+    public toggle(label: string, checkedOrOnChange?: boolean | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let checked = false;
+        let onChange: EventCallback | undefined;
+        if (typeof checkedOrOnChange === "function") {
+            onChange = checkedOrOnChange;
+        } else if (typeof checkedOrOnChange === "boolean") {
+            checked = checkedOrOnChange;
+            onChange = maybeOnChange;
+        }
+        const ref = this.addSwitch(label, checked);
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+
+    public slider(minOrOnChange?: number | EventCallback, maxOrVal?: number, defaultValOrOnChange?: number | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let min = 0;
+        let max = 100;
+        let val = 50;
+        let onChange: EventCallback | undefined;
+        if (typeof minOrOnChange === "function") {
+            onChange = minOrOnChange;
+        } else if (typeof minOrOnChange === "number") {
+            min = minOrOnChange;
+            if (typeof maxOrVal === "number") max = maxOrVal;
+            if (typeof defaultValOrOnChange === "number") val = defaultValOrOnChange;
+            else if (typeof defaultValOrOnChange === "function") onChange = defaultValOrOnChange;
+            if (maybeOnChange) onChange = maybeOnChange;
+        }
+        const ref = this.addSlider(min, max, val);
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+
+    public table(headersOrRows: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback, maybeOnSelect?: EventCallback): SimpleControlRef {
+        let headers: string[] = [];
+        let rows: any[][] = [];
+        let onSelect: EventCallback | undefined;
+        if (Array.isArray(headersOrRows) && headersOrRows.length > 0 && Array.isArray(headersOrRows[0])) {
+            rows = headersOrRows as any[][];
+            if (typeof rowsOrOnSelect === "function") onSelect = rowsOrOnSelect;
+        } else if (Array.isArray(headersOrRows)) {
+            headers = headersOrRows as string[];
+            if (Array.isArray(rowsOrOnSelect)) rows = rowsOrOnSelect;
+            if (typeof maybeOnSelect === "function") onSelect = maybeOnSelect;
+        }
+        const ref = this.addTable(headers, rows);
+        if (onSelect) ref.onClick(onSelect);
+        return ref;
     }
 
     public number(value = 0): SimpleControlRef {
         return this.addStepper(0, 9999, value).id("default_number");
     }
 
-    public dropdown(items: string[], selected = ""): SimpleControlRef {
-        return this.addDropdown(items, selected).id("default_dropdown");
+    public dropdown(items: string[], selectedOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let selected = items[0] || "";
+        let onChange: EventCallback | undefined;
+        if (typeof selectedOrOnChange === "function") {
+            onChange = selectedOrOnChange;
+        } else if (typeof selectedOrOnChange === "string") {
+            selected = selectedOrOnChange;
+            onChange = maybeOnChange;
+        }
+        const ref = this.addDropdown(items, selected).id("default_dropdown");
+        if (onChange) ref.onChange(onChange);
+        return ref;
     }
 
     public segmented(items: string[], selected = ""): SimpleControlRef {
@@ -6189,8 +6359,23 @@ export class SimpleWindow {
         return this.addFloatingToolbar(tools);
     }
 
-    public password(initialVal = "", placeholder = "Enter password..."): SimpleControlRef {
-        return this.addPassword("pwd_" + Date.now(), placeholder, initialVal);
+    public password(placeholderOrInitial = "", defaultValOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
+        let placeholder = "Enter password...";
+        let defaultVal = "";
+        let onChange: EventCallback | undefined;
+        if (typeof defaultValOrOnChange === "function") {
+            placeholder = placeholderOrInitial;
+            onChange = defaultValOrOnChange;
+        } else if (typeof defaultValOrOnChange === "string") {
+            placeholder = placeholderOrInitial;
+            defaultVal = defaultValOrOnChange;
+            onChange = maybeOnChange;
+        } else {
+            defaultVal = placeholderOrInitial;
+        }
+        const ref = this.addPassword("pwd_" + Date.now(), placeholder, defaultVal);
+        if (onChange) ref.onChange(onChange);
+        return ref;
     }
 
 
@@ -7694,6 +7879,558 @@ export class SimpleWindow {
         this.webview = null;
         forceExit(0);
     }
+
+    // =========================================================================
+    // Vlang Webview RAD Studio Complete Parity Controls & API Methods
+    // =========================================================================
+
+    private getLastControl(): any {
+        if (!this.lastControlId) return null;
+        return this.controls.find(c => c && (c.id === this.lastControlId || c.name === this.lastControlId)) || null;
+    }
+
+    // --- Window-Level Fluent Modifiers (operate on last created control) ---
+    public width(w: number): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) {
+            ctrl.width = w;
+            ctrl.user_explicit_width = true;
+        }
+        return this;
+    }
+
+    public height(h: number): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) ctrl.height = h;
+        return this;
+    }
+
+    public placeholder(p: string): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) ctrl.placeholder = p;
+        return this;
+    }
+
+    public tooltip(t: string): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) ctrl.tooltip = t;
+        return this;
+    }
+
+    public fontSize(sz: number): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) {
+            ctrl.fontSize = sz;
+            ctrl.font_size = sz;
+        }
+        return this;
+    }
+    public font_size(sz: number): this {
+        return this.fontSize(sz);
+    }
+
+    public bold(b: boolean = true): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) {
+            ctrl.is_bold = b;
+            ctrl.bold = b;
+        }
+        return this;
+    }
+
+    public fontColor(color: string): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) {
+            ctrl.font_color = color;
+            ctrl.color = color;
+        }
+        return this;
+    }
+    public font_color(color: string): this {
+        return this.fontColor(color);
+    }
+
+    public backgroundColor(color: string): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) {
+            ctrl.background_color = color;
+            ctrl.bg = color;
+        }
+        return this;
+    }
+    public background_color(color: string): this {
+        return this.backgroundColor(color);
+    }
+
+    public expandFill(expand: boolean = true): this {
+        const ctrl = this.getLastControl();
+        if (ctrl) {
+            ctrl.expandFill = expand;
+            ctrl.expand_fill = expand;
+        }
+        return this;
+    }
+    public expand_fill(expand: boolean = true): this {
+        return this.expandFill(expand);
+    }
+
+    public onclick(cb: EventCallback): this {
+        if (this.lastControlId) {
+            this.eventHandlersMap.set(`${this.lastControlId}:click`, cb);
+            this.eventHandlersMap.set(`click_${this.lastControlId}`, cb);
+        }
+        return this;
+    }
+
+    public onchange(cb: EventCallback): this {
+        if (this.lastControlId) {
+            this.eventHandlersMap.set(`${this.lastControlId}:change`, cb);
+            this.eventHandlersMap.set(`change_${this.lastControlId}`, cb);
+        }
+        return this;
+    }
+
+    public onenter(cb: EventCallback): this {
+        if (this.lastControlId) {
+            this.eventHandlersMap.set(`${this.lastControlId}:enter`, cb);
+            this.eventHandlersMap.set(`enter_${this.lastControlId}`, cb);
+        }
+        return this;
+    }
+
+    public onSelectItem(name: string, cb: EventCallback): this {
+        return this.on_change(name, cb);
+    }
+    public on_select_item(name: string, cb: EventCallback): this {
+        return this.onSelectItem(name, cb);
+    }
+
+    public setControlAlignment(name: string, alignment: string): this {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        if (ctrl) ctrl.alignment = alignment;
+        return this;
+    }
+    public set_control_alignment(name: string, alignment: string): this {
+        return this.setControlAlignment(name, alignment);
+    }
+    public getControlAlignment(name: string): string {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        return ctrl ? (ctrl.alignment || "left") : "left";
+    }
+    public get_control_alignment(name: string): string {
+        return this.getControlAlignment(name);
+    }
+
+    public setControlExpandFill(name: string, expand: boolean): this {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        if (ctrl) {
+            ctrl.expandFill = expand;
+            ctrl.expand_fill = expand;
+        }
+        return this;
+    }
+    public set_control_expand_fill(name: string, expand: boolean): this {
+        return this.setControlExpandFill(name, expand);
+    }
+    public getControlExpandFill(name: string): boolean {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        return !!(ctrl && (ctrl.expandFill || ctrl.expand_fill));
+    }
+    public get_control_expand_fill(name: string): boolean {
+        return this.getControlExpandFill(name);
+    }
+
+    public setDefaultButton(name: string): this {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        if (ctrl) ctrl.is_default = true;
+        return this;
+    }
+    public set_default_button(name: string): this {
+        return this.setDefaultButton(name);
+    }
+
+    // --- Containers & Layout Helpers ---
+    public beginFlexBox(name = "", direction: "row" | "column" = "row", justify = "start", align = "center"): this {
+        return this.beginFlex(direction, justify, align);
+    }
+    public begin_flex_box(name = "", direction: "row" | "column" = "row", justify = "start", align = "center"): this {
+        return this.beginFlexBox(name, direction, justify, align);
+    }
+    public endFlexBox(): this {
+        return this.endFlex();
+    }
+    public end_flex_box(): this {
+        return this.endFlex();
+    }
+
+    public row(nameOrCallback: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
+        const cb = typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
+        this.beginRow();
+        if (cb) cb(this);
+        this.endRow();
+        return this;
+    }
+
+    public card(nameOrCallback: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
+        const cb = typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
+        this.beginCard();
+        if (cb) cb(this);
+        this.endCard();
+        return this;
+    }
+
+    public cardWithTitle(nameOrTitle: string, titleOrCallback?: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
+        let title = typeof nameOrTitle === "string" ? nameOrTitle : "";
+        let cb: ((win: SimpleWindow) => void) | undefined;
+        if (typeof titleOrCallback === "function") {
+            cb = titleOrCallback;
+        } else if (typeof titleOrCallback === "string") {
+            title = titleOrCallback;
+            cb = maybeCallback;
+        }
+        this.beginCard();
+        if (title) {
+            this.addLabel(title, { font_size: 15, is_bold: true, margin_bottom: 8 });
+        }
+        if (cb) cb(this);
+        this.endCard();
+        return this;
+    }
+    public card_with_title(nameOrTitle: string, titleOrCallback?: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
+        return this.cardWithTitle(nameOrTitle, titleOrCallback, maybeCallback);
+    }
+
+    public group(name: string, title: string, callback: (win: SimpleWindow) => void): this {
+        return this.cardWithTitle(name, title, callback);
+    }
+
+    public rowStart(): this { return this.beginRow(); }
+    public row_start(): this { return this.beginRow(); }
+    public rowEnd(): this { return this.endRow(); }
+    public row_end(): this { return this.endRow(); }
+    public boxStart(title = ""): this {
+        this.beginCard();
+        if (title) {
+            this.addLabel(title, { font_size: 14, is_bold: true, margin_bottom: 8 });
+        }
+        return this;
+    }
+    public box_start(title = ""): this { return this.boxStart(title); }
+    public boxEnd(): this { return this.endCard(); }
+    public box_end(): this { return this.endCard(); }
+
+    // --- Control Addition Parity Methods ---
+    public add_label(name: string, text: string): SimpleControlRef {
+        return this.addLabel(text).id(name);
+    }
+
+    public add_checkbox(name: string, label: string, checked = false): SimpleControlRef {
+        return this.addCheckbox(label, checked).id(name);
+    }
+
+    public add_switch(name: string, label: string, checked = false): SimpleControlRef {
+        return this.addSwitch(label, checked).id(name);
+    }
+
+    public addToggle(name: string, label: string, checked = false): SimpleControlRef {
+        return this.addSwitch(label, checked).id(name);
+    }
+    public add_toggle(name: string, label: string, checked = false): SimpleControlRef {
+        return this.addToggle(name, label, checked);
+    }
+
+    public add_slider(nameOrMin: string | number = 0, minOrMax: number = 100, maxOrVal: number = 50, val?: number): SimpleControlRef {
+        if (typeof nameOrMin === "string") {
+            const min = minOrMax;
+            const max = maxOrVal;
+            const value = val !== undefined ? val : min;
+            return this.addSlider(min, max, value).id(nameOrMin);
+        }
+        return this.addSlider(nameOrMin, minOrMax, maxOrVal);
+    }
+
+    public add_stepper(name: string, min = 0, max = 100, value = 0): SimpleControlRef {
+        return this.addStepper(min, max, value).id(name);
+    }
+
+    public addNumberInput(name: string, min = 0, max = 100, value = 0): SimpleControlRef {
+        return this.addVisualControl("input", 120, 32, { id: name, min, max, value: String(value), text: String(value) });
+    }
+    public add_number_input(name: string, min = 0, max = 100, value = 0): SimpleControlRef {
+        return this.addNumberInput(name, min, max, value);
+    }
+
+    public add_progress_bar(name: string, value = 0): SimpleControlRef {
+        return this.addProgressIndicator(name, value, 100);
+    }
+    public addProgress(name: string, value = 0, max = 100): SimpleControlRef {
+        return this.addProgressIndicator(name, value, max);
+    }
+    public add_progress(name: string, value = 0, max = 100): SimpleControlRef {
+        return this.addProgress(name, value, max);
+    }
+
+    public add_circular_progress(name: string, value = 50): SimpleControlRef {
+        return this.addCircularProgress(name, value);
+    }
+
+    public addKpiCard(name: string, title: string, value: string, subtitle = ""): SimpleControlRef {
+        return this.addVisualControl("kpi_card", 220, 90, { id: name, text: title, caption: title, value, secondary_text: subtitle, change: subtitle });
+    }
+    public add_kpi_card(name: string, title: string, value: string, subtitle = ""): SimpleControlRef {
+        return this.addKpiCard(name, title, value, subtitle);
+    }
+
+    public add_badge(name: string, text: string, color = "#0a84ff"): SimpleControlRef {
+        return this.addBadge(name, text, color);
+    }
+
+    public add_divider(name = ""): SimpleControlRef {
+        return this.addVisualControl("divider", 400, 2, { id: name || undefined });
+    }
+    public addDividerLine(): SimpleControlRef {
+        return this.add_divider();
+    }
+    public add_divider_line(): SimpleControlRef {
+        return this.addDividerLine();
+    }
+
+    public addSpacer(nameOrHeight: string | number = 16, height = 16): SimpleControlRef {
+        let h = typeof nameOrHeight === "number" ? nameOrHeight : height;
+        let id = typeof nameOrHeight === "string" ? nameOrHeight : "";
+        return this.addVisualControl("raw_html", 100, h, { id: id || undefined, text: `<div style="height:${h}px;"></div>` });
+    }
+    public add_spacer(nameOrHeight: string | number = 16, height = 16): SimpleControlRef {
+        return this.addSpacer(nameOrHeight, height);
+    }
+    public addSpace(height = 16): SimpleControlRef {
+        return this.addSpacer("", height);
+    }
+    public add_space(height = 16): SimpleControlRef {
+        return this.addSpace(height);
+    }
+
+    public add_date_picker(name: string, date = ""): SimpleControlRef {
+        return this.addDatePicker(date).id(name);
+    }
+
+    public addColorPicker(name: string, defaultColor = "#0a84ff"): SimpleControlRef {
+        return this.addColorWell(name, defaultColor);
+    }
+    public add_color_picker(name: string, defaultColor = "#0a84ff"): SimpleControlRef {
+        return this.addColorPicker(name, defaultColor);
+    }
+
+    public add_image(name: string, src: string, width = 200, height = 150): SimpleControlRef {
+        return this.addImage(name, src, width, height);
+    }
+
+    public addMarkdown(name: string, mdText: string): SimpleControlRef {
+        return this.addVisualControl("markdown", 400, 100, { id: name, text: mdText, caption: mdText });
+    }
+    public add_markdown(name: string, mdText: string): SimpleControlRef {
+        return this.addMarkdown(name, mdText);
+    }
+
+    public add_code_view(name: string, code: string, language = "typescript"): SimpleControlRef {
+        return this.addCodeView(name, code, language);
+    }
+
+    public add_alert_banner(name: string, title: string, message: string, level = "info"): SimpleControlRef {
+        return this.addAlertBanner(name, title, message, level);
+    }
+
+    // --- Direct Chaining Helpers ---
+    public label(text: string): SimpleControlRef {
+        return this.addLabel(text);
+    }
+
+    public heading(title: string): SimpleControlRef {
+        return this.addHeading(title);
+    }
+
+    public subheading(title: string): SimpleControlRef {
+        return this.addSubheading(title);
+    }
+
+    public divider(): SimpleControlRef {
+        return this.add_divider();
+    }
+
+    public statusBar(text: string): SimpleControlRef {
+        return this.addStatusBar(text);
+    }
+    public status_bar(text: string): SimpleControlRef {
+        return this.statusBar(text);
+    }
+
+    public kpiCard(title: string, value: string, change = ""): SimpleControlRef {
+        return this.addKpiCard("", title, value, change);
+    }
+    public kpi_card(title: string, value: string, change = ""): SimpleControlRef {
+        return this.kpiCard(title, value, change);
+    }
+
+    public progress(val: number, max = 100): SimpleControlRef {
+        return this.addProgress("", val, max);
+    }
+
+    public rawHtml(html: string): SimpleControlRef {
+        return this.addVisualControl("raw_html", 400, 40, { text: html });
+    }
+    public raw_html(html: string): SimpleControlRef {
+        return this.rawHtml(html);
+    }
+
+    public input_named(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
+        const ref = this.addTextInput(placeholder, defaultVal).id(name);
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+    public inputNamed(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
+        return this.input_named(name, placeholder, defaultVal, onChange);
+    }
+
+    public textarea_named(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
+        const ref = this.addTextArea(placeholder, defaultVal).id(name);
+        if (onChange) ref.onChange(onChange);
+        return ref;
+    }
+    public textareaNamed(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
+        return this.textarea_named(name, placeholder, defaultVal, onChange);
+    }
+
+    public table_named(name: string, headers: string[], rows: any[][], onSelect?: EventCallback): SimpleControlRef {
+        return this.addTable(name, headers, rows, onSelect);
+    }
+    public tableNamed(name: string, headers: string[], rows: any[][], onSelect?: EventCallback): SimpleControlRef {
+        return this.table_named(name, headers, rows, onSelect);
+    }
+
+    // --- Table Operations ---
+    public setTableRows(name: string, rows: any[][]): this {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name || (!name && c.type === "table")));
+        if (ctrl) {
+            ctrl.rows = rows;
+            this.setTableData(ctrl.id, rows);
+        }
+        return this;
+    }
+    public set_table_rows(name: string, rows: any[][]): this {
+        return this.setTableRows(name, rows);
+    }
+
+    public addTableRow(name: string, row: any[]): this {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        if (ctrl) {
+            const rows = Array.isArray(ctrl.rows) ? [...ctrl.rows, row] : [row];
+            return this.setTableRows(ctrl.id, rows);
+        }
+        return this;
+    }
+    public add_table_row(name: string, row: any[]): this {
+        return this.addTableRow(name, row);
+    }
+
+    public removeTableRow(name: string, rowIndex: number): this {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        if (ctrl && Array.isArray(ctrl.rows)) {
+            const rows = [...ctrl.rows];
+            if (rowIndex >= 0 && rowIndex < rows.length) {
+                rows.splice(rowIndex, 1);
+                return this.setTableRows(ctrl.id, rows);
+            }
+        }
+        return this;
+    }
+    public remove_table_row(name: string, rowIndex: number): this {
+        return this.removeTableRow(name, rowIndex);
+    }
+
+    public tableRowCount(name: string): number {
+        const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
+        if (ctrl && Array.isArray(ctrl.rows)) {
+            return ctrl.rows.length;
+        }
+        return 0;
+    }
+    public table_row_count(name: string): number {
+        return this.tableRowCount(name);
+    }
+
+    public selectTableRow(name: string, rowIndex: number): this {
+        if (this.webview) {
+            this.webview.eval(`const t=document.getElementById("${name}");if(t){t.querySelectorAll("tbody tr").forEach((r,i)=>r.classList.toggle("sg-table-selected", i===${rowIndex}));}`);
+        }
+        return this;
+    }
+    public select_table_row(name: string, rowIndex: number): this {
+        return this.selectTableRow(name, rowIndex);
+    }
+
+    // --- Value Accessors ---
+    public getValueInt(name: string): number {
+        const val = this.getValue(name);
+        return parseInt(String(val ?? 0), 10) || 0;
+    }
+    public get_value_int(name: string): number {
+        return this.getValueInt(name);
+    }
+
+    public getChecked(name: string): boolean {
+        const val = this.getValue(name);
+        return val === true || val === "true" || val === 1 || val === "1";
+    }
+    public get_checked(name: string): boolean {
+        return this.getChecked(name);
+    }
+
+    public setChecked(name: string, val: boolean): this {
+        return this.setValue(name, val);
+    }
+    public set_checked(name: string, val: boolean): this {
+        return this.setChecked(name, val);
+    }
+
+    public get(name: string): string {
+        return String(this.getValue(name) ?? "");
+    }
+    public set(name: string, val: string): this {
+        return this.setValue(name, val);
+    }
+
+    // --- Theming Operations ---
+    public applyTheme(themeName: string): this {
+        return this.setTheme(themeName);
+    }
+    public applyThemeByName(themeName: string): this {
+        return this.applyTheme(themeName);
+    }
+    public apply_theme_by_name(themeName: string): this {
+        return this.applyThemeByName(themeName);
+    }
+
+    public isDarkTheme(): boolean {
+        const t = getTheme(this.theme);
+        return t ? t.is_dark : true;
+    }
+    public is_dark_theme(): boolean {
+        return this.isDarkTheme();
+    }
+
+    public setDarkTheme(dark: boolean): this {
+        return this.setTheme(dark ? "monokai_pro" : "apple_light");
+    }
+    public set_dark_theme(dark: boolean): this {
+        return this.setDarkTheme(dark);
+    }
+
+    public toggleWindowTheme(): this {
+        return this.setDarkTheme(!this.isDarkTheme());
+    }
+    public toggle_window_theme(): this {
+        return this.toggleWindowTheme();
+    }
 }
 
 // Production Theme Specification Lookup Table
@@ -7711,6 +8448,491 @@ export interface SimpleGUITheme {
 }
 
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
+    // ==========================================
+    // 3. V-LANG RAD STUDIO 42 PORTED THEMES
+    // ==========================================
+    "sonoma_dark": {
+        name: "macOS Sonoma Dark",
+        short_name: "Sonoma Dark",
+        background_color: "#1e1e1e",
+        font_color: "#ffffff",
+        accent_color: "#007aff",
+        secondary_accent: "#5ac8fa",
+        card_background: "#2c2c2e",
+        card_border: "#3a3a3c",
+        description: "macOS Sonoma dark translucent acrylic interface",
+        is_dark: true
+    },
+    "sonoma_light": {
+        name: "macOS Sonoma Light",
+        short_name: "Sonoma Light",
+        background_color: "#f6f6f6",
+        font_color: "#1d1d1f",
+        accent_color: "#007aff",
+        secondary_accent: "#5ac8fa",
+        card_background: "#ffffff",
+        card_border: "#d1d1d6",
+        description: "macOS Sonoma crisp light mode with vibrant blue accents",
+        is_dark: false
+    },
+    "fluent_dark": {
+        name: "Windows 11 Fluent Dark",
+        short_name: "Fluent Dark",
+        background_color: "#202020",
+        font_color: "#ffffff",
+        accent_color: "#60cdff",
+        secondary_accent: "#76b9ed",
+        card_background: "#2c2c2c",
+        card_border: "#383838",
+        description: "Windows 11 Fluent Design dark acrylic Mica theme with cyan accent",
+        is_dark: true
+    },
+    "fluent_light": {
+        name: "Windows 11 Fluent Light",
+        short_name: "Fluent Light",
+        background_color: "#f3f3f3",
+        font_color: "#1b1b1b",
+        accent_color: "#005fb8",
+        secondary_accent: "#0078d4",
+        card_background: "#ffffff",
+        card_border: "#e5e5e5",
+        description: "Windows 11 Fluent Design light canvas with signature blue",
+        is_dark: false
+    },
+    "commodore64": {
+        name: "Commodore 64",
+        short_name: "C64",
+        background_color: "#40318d",
+        font_color: "#8b80db",
+        accent_color: "#8b80db",
+        secondary_accent: "#a098eb",
+        card_background: "#352874",
+        card_border: "#5c48b8",
+        description: "8-bit nostalgic purple and lavender CRT monitor aesthetic",
+        is_dark: true
+    },
+    "macintosh_system7": {
+        name: "Macintosh System 7",
+        short_name: "System 7",
+        background_color: "#ffffff",
+        font_color: "#000000",
+        accent_color: "#000000",
+        secondary_accent: "#666666",
+        card_background: "#f0f0f0",
+        card_border: "#000000",
+        description: "Classic 1991 Apple Macintosh System 7 platinum desktop UI",
+        is_dark: false
+    },
+    "matrix_phosphor": {
+        name: "Matrix Phosphor",
+        short_name: "Matrix",
+        background_color: "#0d1117",
+        font_color: "#00ff41",
+        accent_color: "#00ff41",
+        secondary_accent: "#008f11",
+        card_background: "#080c08",
+        card_border: "#003b00",
+        description: "Digital rain monochrome green phosphor terminal",
+        is_dark: true
+    },
+    "synthwave84": {
+        name: "Synthwave '84",
+        short_name: "Synthwave",
+        background_color: "#262335",
+        font_color: "#f92aad",
+        accent_color: "#f92aad",
+        secondary_accent: "#36f9f6",
+        card_background: "#1a1824",
+        card_border: "#ff7edb",
+        description: "Retro 80s neon grid sunset with hot pink and laser cyan",
+        is_dark: true
+    },
+    "sunset_orange": {
+        name: "Sunset Orange",
+        short_name: "Sunset",
+        background_color: "#1a1412",
+        font_color: "#fff3e0",
+        accent_color: "#ff6f00",
+        secondary_accent: "#ff9800",
+        card_background: "#261e1b",
+        card_border: "#3d302a",
+        description: "Warm dusk twilight with glowing tangerine amber",
+        is_dark: true
+    },
+    "crimson": {
+        name: "Crimson Velvet",
+        short_name: "Crimson",
+        background_color: "#1a0c0e",
+        font_color: "#ffebee",
+        accent_color: "#ef4444",
+        secondary_accent: "#f43f5e",
+        card_background: "#261216",
+        card_border: "#3d1c23",
+        description: "Dramatic dark luxury crimson ruby and scarlet",
+        is_dark: true
+    },
+    "emerald": {
+        name: "Emerald Matrix",
+        short_name: "Emerald",
+        background_color: "#0a1a12",
+        font_color: "#e8f5e9",
+        accent_color: "#10b981",
+        secondary_accent: "#34d399",
+        card_background: "#10261b",
+        card_border: "#1b4332",
+        description: "Lush botanical forest emerald with jade highlights",
+        is_dark: true
+    },
+    "sapphire": {
+        name: "Sapphire Deep",
+        short_name: "Sapphire",
+        background_color: "#0a121e",
+        font_color: "#e3f2fd",
+        accent_color: "#3b82f6",
+        secondary_accent: "#60a5fa",
+        card_background: "#101d30",
+        card_border: "#1e3a5f",
+        description: "Deep oceanic midnight blue with bright cobalt accents",
+        is_dark: true
+    },
+    "amethyst": {
+        name: "Amethyst Royal",
+        short_name: "Amethyst",
+        background_color: "#140e1e",
+        font_color: "#f3e8ff",
+        accent_color: "#a855f7",
+        secondary_accent: "#c084fc",
+        card_background: "#1f1530",
+        card_border: "#3b2361",
+        description: "Regal dark violet and lavender crystal ambiance",
+        is_dark: true
+    },
+    "charcoal": {
+        name: "Charcoal Dark",
+        short_name: "Charcoal",
+        background_color: "#1c1c1e",
+        font_color: "#ebebf5",
+        accent_color: "#636366",
+        secondary_accent: "#8e8e93",
+        card_background: "#2c2c2e",
+        card_border: "#3a3a3c",
+        description: "Neutral graphite slate with minimalist monochrome tone",
+        is_dark: true
+    },
+    "slate": {
+        name: "Slate Modern",
+        short_name: "Slate",
+        background_color: "#0f172a",
+        font_color: "#f1f5f9",
+        accent_color: "#64748b",
+        secondary_accent: "#94a3b8",
+        card_background: "#1e293b",
+        card_border: "#334155",
+        description: "Modern cool slate with balanced low-fatigue contrast",
+        is_dark: true
+    },
+    "dark": {
+        name: "Default Dark",
+        short_name: "Dark",
+        background_color: "#1e1e2e",
+        font_color: "#cdd6f4",
+        accent_color: "#cba6f7",
+        secondary_accent: "#f38ba8",
+        card_background: "#181825",
+        card_border: "#313244",
+        description: "Default fallback theme",
+        is_dark: true
+    },
+    "light": {
+        name: "Default Light",
+        short_name: "Light",
+        background_color: "#ffffff",
+        font_color: "#1a1a1a",
+        accent_color: "#007aff",
+        secondary_accent: "#5856d6",
+        card_background: "#f2f2f7",
+        card_border: "#c6c6c8",
+        description: "Default standard clean light theme",
+        is_dark: false
+    },
+    // V-Lang Compatibility Aliases
+    "gruvbox": {
+        name: "Gruvbox Dark",
+        short_name: "Gruvbox",
+        background_color: "#282828",
+        font_color: "#ebdbb2",
+        accent_color: "#fabd2f",
+        secondary_accent: "#fe8019",
+        card_background: "#1d2021",
+        card_border: "#504945",
+        description: "Warm retro groove aesthetic with vivid yellow and orange accents",
+        is_dark: true
+    },
+    "one_dark": {
+        name: "One Dark Pro",
+        short_name: "One Dark",
+        background_color: "#21252b",
+        font_color: "#abb2bf",
+        accent_color: "#61afef",
+        secondary_accent: "#98c379",
+        card_background: "#282c34",
+        card_border: "#3e4451",
+        description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
+        is_dark: true
+    },
+    "synthwave_84": {
+        name: "Synthwave '84",
+        short_name: "Synthwave",
+        background_color: "#262335",
+        font_color: "#f92aad",
+        accent_color: "#f92aad",
+        secondary_accent: "#36f9f6",
+        card_background: "#1a1824",
+        card_border: "#ff7edb",
+        description: "Retro 80s neon grid sunset with hot pink and laser cyan",
+        is_dark: true
+    },
+    "catppuccin_mocha": {
+        name: "Catppuccin Mocha",
+        short_name: "Catppuccin",
+        background_color: "#1e1e2e",
+        font_color: "#cdd6f4",
+        accent_color: "#cba6f7",
+        secondary_accent: "#f38ba8",
+        card_background: "#181825",
+        card_border: "#313244",
+        description: "Soothing pastel high-contrast dark palette crafted for developer wellbeing",
+        is_dark: true
+    },
+    "macos_sonoma": {
+        name: "macOS Sonoma Dark",
+        short_name: "Sonoma Dark",
+        background_color: "#1e1e1e",
+        font_color: "#ffffff",
+        accent_color: "#007aff",
+        secondary_accent: "#5ac8fa",
+        card_background: "#2c2c2e",
+        card_border: "#3a3a3c",
+        description: "macOS Sonoma dark translucent acrylic interface",
+        is_dark: true
+    },
+    "macos_dark": {
+        name: "macOS Sonoma Dark",
+        short_name: "Sonoma Dark",
+        background_color: "#1e1e1e",
+        font_color: "#ffffff",
+        accent_color: "#007aff",
+        secondary_accent: "#5ac8fa",
+        card_background: "#2c2c2e",
+        card_border: "#3a3a3c",
+        description: "macOS Sonoma dark translucent acrylic interface",
+        is_dark: true
+    },
+    "macos_light": {
+        name: "macOS Sonoma Light",
+        short_name: "Sonoma Light",
+        background_color: "#f6f6f6",
+        font_color: "#1d1d1f",
+        accent_color: "#007aff",
+        secondary_accent: "#5ac8fa",
+        card_background: "#ffffff",
+        card_border: "#d1d1d6",
+        description: "macOS Sonoma crisp light mode with vibrant blue accents",
+        is_dark: false
+    },
+    "windows_11_fluent": {
+        name: "Windows 11 Fluent Dark",
+        short_name: "Fluent Dark",
+        background_color: "#202020",
+        font_color: "#ffffff",
+        accent_color: "#60cdff",
+        secondary_accent: "#76b9ed",
+        card_background: "#2c2c2c",
+        card_border: "#383838",
+        description: "Windows 11 Fluent Design dark acrylic Mica theme with cyan accent",
+        is_dark: true
+    },
+    "windows_11_dark": {
+        name: "Windows 11 Fluent Dark",
+        short_name: "Fluent Dark",
+        background_color: "#202020",
+        font_color: "#ffffff",
+        accent_color: "#60cdff",
+        secondary_accent: "#76b9ed",
+        card_background: "#2c2c2c",
+        card_border: "#383838",
+        description: "Windows 11 Fluent Design dark acrylic Mica theme with cyan accent",
+        is_dark: true
+    },
+    "windows_11_light": {
+        name: "Windows 11 Fluent Light",
+        short_name: "Fluent Light",
+        background_color: "#f3f3f3",
+        font_color: "#1b1b1b",
+        accent_color: "#005fb8",
+        secondary_accent: "#0078d4",
+        card_background: "#ffffff",
+        card_border: "#e5e5e5",
+        description: "Windows 11 Fluent Design light canvas with signature blue",
+        is_dark: false
+    },
+    "windows_95": {
+        name: "Windows 95 Classic",
+        short_name: "Win95",
+        background_color: "#008080",
+        font_color: "#000000",
+        accent_color: "#000080",
+        secondary_accent: "#c0c0c0",
+        card_background: "#c0c0c0",
+        card_border: "#ffffff",
+        description: "Classic Redmond 1995 teal desktop with beveled 3D borders",
+        is_dark: false
+    },
+    "commodore_64": {
+        name: "Commodore 64",
+        short_name: "C64",
+        background_color: "#40318d",
+        font_color: "#8b80db",
+        accent_color: "#8b80db",
+        secondary_accent: "#a098eb",
+        card_background: "#352874",
+        card_border: "#5c48b8",
+        description: "8-bit nostalgic purple and lavender CRT monitor aesthetic",
+        is_dark: true
+    },
+    "c64": {
+        name: "Commodore 64",
+        short_name: "C64",
+        background_color: "#40318d",
+        font_color: "#8b80db",
+        accent_color: "#8b80db",
+        secondary_accent: "#a098eb",
+        card_background: "#352874",
+        card_border: "#5c48b8",
+        description: "8-bit nostalgic purple and lavender CRT monitor aesthetic",
+        is_dark: true
+    },
+    "amiga_workbench": {
+        name: "Amiga Workbench",
+        short_name: "Amiga",
+        background_color: "#0055aa",
+        font_color: "#ffffff",
+        accent_color: "#ffaa00",
+        secondary_accent: "#ffffff",
+        card_background: "#003366",
+        card_border: "#ffaa00",
+        description: "AmigaOS 1.3 deep royal blue canvas with striking amber orange accents",
+        is_dark: true
+    },
+    "atari_st": {
+        name: "Amiga Workbench",
+        short_name: "Amiga",
+        background_color: "#0055aa",
+        font_color: "#ffffff",
+        accent_color: "#ffaa00",
+        secondary_accent: "#ffffff",
+        card_background: "#003366",
+        card_border: "#ffaa00",
+        description: "AmigaOS 1.3 deep royal blue canvas with striking amber orange accents",
+        is_dark: true
+    },
+    "mac_system_7": {
+        name: "Macintosh System 7",
+        short_name: "System 7",
+        background_color: "#ffffff",
+        font_color: "#000000",
+        accent_color: "#000000",
+        secondary_accent: "#666666",
+        card_background: "#f0f0f0",
+        card_border: "#000000",
+        description: "Classic 1991 Apple Macintosh System 7 platinum desktop UI",
+        is_dark: false
+    },
+    "mac_classic": {
+        name: "Macintosh System 7",
+        short_name: "System 7",
+        background_color: "#ffffff",
+        font_color: "#000000",
+        accent_color: "#000000",
+        secondary_accent: "#666666",
+        card_background: "#f0f0f0",
+        card_border: "#000000",
+        description: "Classic 1991 Apple Macintosh System 7 platinum desktop UI",
+        is_dark: false
+    },
+    "matrix": {
+        name: "Matrix Phosphor",
+        short_name: "Matrix",
+        background_color: "#0d1117",
+        font_color: "#00ff41",
+        accent_color: "#00ff41",
+        secondary_accent: "#008f11",
+        card_background: "#080c08",
+        card_border: "#003b00",
+        description: "Digital rain monochrome green phosphor terminal",
+        is_dark: true
+    },
+    "amber": {
+        name: "Amber CRT Monochrome",
+        short_name: "Amber CRT",
+        background_color: "#0a0600",
+        font_color: "#ffb000",
+        accent_color: "#ffb000",
+        secondary_accent: "#ff8800",
+        card_background: "#160d00",
+        card_border: "#472800",
+        description: "Vintage amber phosphor monochrome terminal with warm tungsten glow",
+        is_dark: true
+    },
+    "vibrant_neon": {
+        name: "Cyberpunk 2077",
+        short_name: "Cyberpunk",
+        background_color: "#0d0221",
+        font_color: "#00f6ff",
+        accent_color: "#ff007f",
+        secondary_accent: "#ffe600",
+        card_background: "#19053b",
+        card_border: "#7b2cbf",
+        description: "High-voltage synthwave night city with radioactive cyan and hot magenta",
+        is_dark: true
+    },
+    "vscode_dark": {
+        name: "One Dark Pro",
+        short_name: "One Dark",
+        background_color: "#21252b",
+        font_color: "#abb2bf",
+        accent_color: "#61afef",
+        secondary_accent: "#98c379",
+        card_background: "#282c34",
+        card_border: "#3e4451",
+        description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
+        is_dark: true
+    },
+    "sublime_text": {
+        name: "Monokai Pro",
+        short_name: "Monokai",
+        background_color: "#2d2a2e",
+        font_color: "#fcfcfa",
+        accent_color: "#ffd866",
+        secondary_accent: "#ff6188",
+        card_background: "#221f22",
+        card_border: "#403e41",
+        description: "Monokai Pro refined dark spectrum with warm yellow and vivid magenta accents",
+        is_dark: true
+    },
+    "material_dark": {
+        name: "One Dark Pro",
+        short_name: "One Dark",
+        background_color: "#21252b",
+        font_color: "#abb2bf",
+        accent_color: "#61afef",
+        secondary_accent: "#98c379",
+        card_background: "#282c34",
+        card_border: "#3e4451",
+        description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
+        is_dark: true
+    },
+
     // ==========================================
     // 1. SIGNATURE BRAND THEME
     // ==========================================
@@ -9208,6 +10430,7 @@ export const get_short_theme_name = autoShortThemeName;
 export function listThemes(): string[] {
     return Array.from(new Set(Object.values(SIMPLEGUI_THEMES).map(t => t.name)));
 }
+export const list_themes = listThemes;
 
 export function listShortThemes(): string[] {
     const seen = new Set<string>();
@@ -9230,10 +10453,57 @@ export function get_theme_keys(): string[] {
     return getThemeKeys();
 }
 
+export const VLANG_THEME_NAMES: string[] = [
+    'monokai_pro', 'tokyo_night', 'one_dark_pro', 'gruvbox_dark', 'gruvbox_light',
+    'rose_pine', 'everforest', 'kanagawa', 'dracula', 'nord',
+    'catppuccin', 'solarized_dark', 'solarized_light', 'github_dark', 'github_light',
+    'sonoma_dark', 'sonoma_light', 'sonoma_emerald', 'codefreelance',
+    'fluent_dark', 'fluent_light', 'win95', 'commodore64', 'amiga',
+    'macintosh_system7', 'gameboy', 'matrix_phosphor', 'amber_crt',
+    'synthwave84', 'cyberpunk', 'navy_blue', 'forest_green',
+    'sunset_orange', 'crimson', 'emerald', 'sapphire',
+    'amethyst', 'midnight', 'charcoal', 'slate', 'dark', 'light'
+];
+
+export function getThemeNames(): string[] {
+    return VLANG_THEME_NAMES;
+}
+export const get_theme_names = getThemeNames;
+
 export function getTheme(themeName: string): SimpleGUITheme {
-    if (!themeName) return SIMPLEGUI_THEMES["apple_light"]!;
-    const key = themeName.toLowerCase().replace(/[\s\-_]+/g, "_");
+    if (!themeName) return SIMPLEGUI_THEMES["monokai_pro"] || SIMPLEGUI_THEMES["apple_light"]!;
+    const key = themeName.toLowerCase().trim().replace(/[\s\-_]+/g, "_");
     if (SIMPLEGUI_THEMES[key]) return SIMPLEGUI_THEMES[key]!;
+
+    const aliasMap: Record<string, string> = {
+        'gruvbox': 'gruvbox_dark',
+        'one_dark': 'one_dark_pro',
+        'synthwave_84': 'synthwave84',
+        'catppuccin_mocha': 'catppuccin',
+        'macos_sonoma': 'sonoma_dark',
+        'macos_dark': 'sonoma_dark',
+        'macos_light': 'sonoma_light',
+        'windows_11_fluent': 'fluent_dark',
+        'windows_11_dark': 'fluent_dark',
+        'windows_11_light': 'fluent_light',
+        'windows_95': 'win95',
+        'commodore_64': 'commodore64',
+        'c64': 'commodore64',
+        'amiga_workbench': 'amiga',
+        'atari_st': 'amiga',
+        'mac_system_7': 'macintosh_system7',
+        'mac_classic': 'macintosh_system7',
+        'matrix': 'matrix_phosphor',
+        'amber': 'amber_crt',
+        'vibrant_neon': 'cyberpunk',
+        'vscode_dark': 'one_dark_pro',
+        'sublime_text': 'monokai_pro',
+        'material_dark': 'one_dark_pro',
+    };
+
+    if (aliasMap[key] && SIMPLEGUI_THEMES[aliasMap[key]]) {
+        return SIMPLEGUI_THEMES[aliasMap[key]]!;
+    }
 
     const lower = themeName.toLowerCase().trim();
     for (const t of Object.values(SIMPLEGUI_THEMES)) {
@@ -9245,7 +10515,13 @@ export function getTheme(themeName: string): SimpleGUITheme {
         }
     }
 
-    return SIMPLEGUI_THEMES["apple_light"]!;
+    for (const [k, t] of Object.entries(SIMPLEGUI_THEMES)) {
+        if (k.includes(key) || key.includes(k)) {
+            return t;
+        }
+    }
+
+    return SIMPLEGUI_THEMES["monokai_pro"] || SIMPLEGUI_THEMES["apple_light"]!;
 }
 
 // OS Path Utilities
@@ -9278,6 +10554,10 @@ export const simplegui = {
     newSimpleWindow,
     new_simple_window,
     listThemes,
+    list_themes,
+    getThemeNames,
+    get_theme_names,
+    VLANG_THEME_NAMES,
     getThemeKeys,
     get_theme_keys,
     getTheme,

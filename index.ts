@@ -1298,7 +1298,7 @@ wv.run();
 
 export {
     simplegui, SimpleWindow, SimpleControlRef, createWindow, newWindow, newSimpleWindow, new_simple_window,
-    listThemes, getThemeKeys, get_theme_keys, getTheme, saveTheme, save_theme, getSavedTheme, get_saved_theme,
+    listThemes, list_themes, getThemeNames, get_theme_names, VLANG_THEME_NAMES, getThemeKeys, get_theme_keys, getTheme, saveTheme, save_theme, getSavedTheme, get_saved_theme,
     homeDir, tempDir, desktopDir, documentsDir, downloadsDir,
     resolveUserPath, resolve_user_path,
     getAppConfigDir, get_app_config_dir,
@@ -1565,6 +1565,20 @@ export function generatePreviewHtml(spec: any): string {
             const mouseOverFilter = c.hover_color || c.hover_text_color ? '' : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
             const customAttr = hasCustomBg ? ' data-custom-bg="true"' : ' class="rad-button btn-theme-accent"';
             controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+        } else if (t === 'heading') {
+            controls += `<h1${id}${titleAttr}${ev} class="rad-heading" style="${base(c)}margin:0;font-size:${c.font_size || 22}px;font-weight:700;color:${color};background:${rawCbg};">${text}</h1>\n`;
+        } else if (t === 'subheading') {
+            controls += `<h2${id}${titleAttr}${ev} class="rad-subheading" style="${base(c)}margin:0;font-size:${c.font_size || 16}px;font-weight:600;opacity:0.85;color:${color};background:${rawCbg};">${text}</h2>\n`;
+        } else if (t === 'raw_html') {
+            controls += `<div${id}${titleAttr} class="rad-raw-html" style="${base(c)}">${text}</div>\n`;
+        } else if (t === 'markdown') {
+            controls += `<div${id}${titleAttr} class="rad-markdown" style="${base(c)}color:${color};line-height:1.6;"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;">${esc(text)}</pre></div>\n`;
+        } else if (t === 'kpi_card') {
+            const val = c.value !== undefined ? c.value : '';
+            const sub = c.secondary_text || c.change || '';
+            controls += `<div${id}${titleAttr} class="sg-kpi-card rad-kpi-card" style="${base(c)}background:${cbg};border:1px solid ${cardBorder};border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"><div style="font-size:12px;opacity:0.8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:${color};">${text}</div><div style="font-size:24px;font-weight:800;color:${accent};">${val}</div>${sub ? `<div style="font-size:12px;opacity:0.75;color:${color};">${sub}</div>` : ''}</div>\n`;
+        } else if (t === 'scroll_view') {
+            controls += `<div${id}${titleAttr} class="rad-scroll-view" style="${base(c)}max-height:${c.height || 300}px;overflow-y:auto;padding-right:8px;">${text}</div>\n`;
         } else if (t === 'label') {
             const isStatus = (c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
                              (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:')));

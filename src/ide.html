@@ -3552,6 +3552,24 @@
 		}
 
 		function getThemeColors(theme) {
+			const clean = (theme || "").toLowerCase().replace(/[\s\-_]+/g, "_");
+			if (clean === "sonoma_dark" || clean === "macos_sonoma") return { formBg: "#1e1e1e", formFg: "#ffffff", ctrlBg: "#2c2c2e", ctrlFg: "#ffffff", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#2c2c2e" };
+			if (clean === "sonoma_light") return { formBg: "#f6f6f6", formFg: "#1d1d1f", ctrlBg: "#ffffff", ctrlFg: "#1d1d1f", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#e5e5e7" };
+			if (clean === "fluent_dark" || clean === "windows_11_fluent") return { formBg: "#202020", formFg: "#ffffff", ctrlBg: "#2c2c2c", ctrlFg: "#ffffff", btnBg: "#60cdff", btnFg: "#000000", panelBg: "#2c2c2c" };
+			if (clean === "fluent_light") return { formBg: "#f3f3f3", formFg: "#1b1b1b", ctrlBg: "#ffffff", ctrlFg: "#1b1b1b", btnBg: "#005fb8", btnFg: "#ffffff", panelBg: "#e5e5e5" };
+			if (clean === "commodore64" || clean === "c64") return { formBg: "#40318d", formFg: "#8b80db", ctrlBg: "#352874", ctrlFg: "#8b80db", btnBg: "#8b80db", btnFg: "#40318d", panelBg: "#352874" };
+			if (clean === "macintosh_system7" || clean === "system7") return { formBg: "#ffffff", formFg: "#000000", ctrlBg: "#f0f0f0", ctrlFg: "#000000", btnBg: "#000000", btnFg: "#ffffff", panelBg: "#e0e0e0" };
+			if (clean === "matrix_phosphor" || clean === "matrix") return { formBg: "#0d1117", formFg: "#00ff41", ctrlBg: "#080c08", ctrlFg: "#00ff41", btnBg: "#00ff41", btnFg: "#000000", panelBg: "#080c08" };
+			if (clean === "synthwave84" || clean === "synthwave_84") return { formBg: "#262335", formFg: "#f92aad", ctrlBg: "#1a1824", ctrlFg: "#f92aad", btnBg: "#f92aad", btnFg: "#000000", panelBg: "#1a1824" };
+			if (clean === "sunset_orange") return { formBg: "#1a1412", formFg: "#fff3e0", ctrlBg: "#261e1b", ctrlFg: "#fff3e0", btnBg: "#ff6f00", btnFg: "#ffffff", panelBg: "#261e1b" };
+			if (clean === "crimson") return { formBg: "#1a0c0e", formFg: "#ffebee", ctrlBg: "#261216", ctrlFg: "#ffebee", btnBg: "#ef4444", btnFg: "#ffffff", panelBg: "#261216" };
+			if (clean === "emerald") return { formBg: "#0a1a12", formFg: "#e8f5e9", ctrlBg: "#10261b", ctrlFg: "#e8f5e9", btnBg: "#10b981", btnFg: "#000000", panelBg: "#10261b" };
+			if (clean === "sapphire") return { formBg: "#0a121e", formFg: "#e3f2fd", ctrlBg: "#101d30", ctrlFg: "#e3f2fd", btnBg: "#3b82f6", btnFg: "#ffffff", panelBg: "#101d30" };
+			if (clean === "amethyst") return { formBg: "#140e1e", formFg: "#f3e8ff", ctrlBg: "#1f1530", ctrlFg: "#f3e8ff", btnBg: "#a855f7", btnFg: "#ffffff", panelBg: "#1f1530" };
+			if (clean === "charcoal") return { formBg: "#1c1c1e", formFg: "#ebebf5", ctrlBg: "#2c2c2e", ctrlFg: "#ebebf5", btnBg: "#636366", btnFg: "#ffffff", panelBg: "#2c2c2e" };
+			if (clean === "slate") return { formBg: "#0f172a", formFg: "#f1f5f9", ctrlBg: "#1e293b", ctrlFg: "#f1f5f9", btnBg: "#64748b", btnFg: "#ffffff", panelBg: "#1e293b" };
+			if (clean === "dark") return { formBg: "#1e1e2e", formFg: "#cdd6f4", ctrlBg: "#181825", ctrlFg: "#cdd6f4", btnBg: "#cba6f7", btnFg: "#000000", panelBg: "#181825" };
+			if (clean === "light") return { formBg: "#ffffff", formFg: "#1a1a1a", ctrlBg: "#f2f2f7", ctrlFg: "#1a1a1a", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#f2f2f7" };
 			if (theme === "CodeFreelance") {
 				return { formBg: "#050505", formFg: "#ffffff", ctrlBg: "#121212", ctrlFg: "#ffffff", btnBg: "#0fb36a", btnFg: "#000000", panelBg: "#181818" };
 			} else if (theme === "Raycast Dark") {

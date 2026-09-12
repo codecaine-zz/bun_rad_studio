@@ -48,6 +48,16 @@ export const CANONICAL_THEMES = [
     "cobalt2",
     "win11_slate",
     "win11_light",
+
+    // Modern Linux Desktop Themes
+    "ubuntu_dark",
+    "ubuntu_light",
+    "adwaita_dark",
+    "adwaita_light",
+    "linux_mint",
+    "pop_os",
+    "fedora_dark",
+
     "aura",
 
     // 5. Developer Community Themes

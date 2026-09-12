@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>All 42 Themes & 70+ Controls Ultimate Mega-Showcase</title>
+	<style>
+		:root {
+			--bg-main: #2d2a2e;
+			--text-main: #fcfcfa;
+			--accent: #ffd866;
+			--secondary: #ff6188;
+			--bg-card: #221f22;
+			--border-card: #403e41;
+			--btn-text: #111111;
+			--color-scheme: dark;
+		}
+
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+
+		body {
+			background-color: var(--bg-main);
+			color: var(--text-main);
+			padding: 24px;
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+			min-height: 100vh;
+			user-select: none;
+			transition: background-color 0.25s ease, color 0.25s ease;
+		}
+
+		.sg-row {
+			display: flex;
+			gap: 16px;
+			align-items: center;
+			width: 100%;
+			flex-wrap: wrap;
+		}
+
+		.sg-heading {
+			font-size: 24px;
+			font-weight: 700;
+			color: var(--text-main);
+			letter-spacing: -0.5px;
+		}
+
+		.sg-subheading {
+			font-size: 18px;
+			font-weight: 600;
+			color: var(--accent);
+		}
+
+		.sg-label {
+			font-size: 14px;
+			opacity: 0.85;
+			line-height: 1.5;
+		}
+
+		.sg-btn {
+			background-color: var(--accent);
+			color: var(--btn-text);
+			border: none;
+			padding: 10px 18px;
+			border-radius: 6px;
+			font-weight: 600;
+			font-size: 14px;
+			cursor: pointer;
+			transition: all 0.15s ease;
+			align-self: flex-start;
+			white-space: nowrap;
+			flex-shrink: 0;
+		}
+
+		.sg-btn:hover {
+			filter: brightness(1.1);
+			transform: translateY(-1px);
+		}
+
+		.sg-btn:active {
+			transform: translateY(0);
+			filter: brightness(0.9);
+		}
+
+		.sg-input,
+		.sg-textarea,
+		.sg-select {
+			background-color: var(--bg-card);
+			border: 1px solid var(--border-card);
+			color: var(--text-main);
+			color-scheme: var(--color-scheme);
+			padding: 10px 14px;
+			border-radius: 6px;
+			font-size: 14px;
+			outline: none;
+			transition: border-color 0.15s ease, background-color 0.25s ease;
+			width: 100%;
+		}
+
+		.sg-input::placeholder,
+		.sg-textarea::placeholder {
+			color: var(--text-main);
+			opacity: 0.58;
+		}
+
+		.sg-select option {
+			background-color: var(--bg-card);
+			color: var(--text-main);
+		}
+
+		.sg-row>.sg-select {
+			flex: 1 1 220px;
+			min-width: 180px;
+			max-width: 380px;
+			width: auto;
+		}
+
+		.sg-row>.sg-input {
+			flex: 1 1 180px;
+			min-width: 140px;
+			width: auto;
+		}
+
+		.sg-input:focus,
+		.sg-textarea:focus,
+		.sg-select:focus {
+			border-color: var(--accent);
+			box-shadow: 0 0 0 2px rgba(120, 160, 255, 0.2);
+		}
+
+		.sg-textarea {
+			min-height: 100px;
+			resize: vertical;
+		}
+
+		.sg-checkbox-label,
+		.sg-toggle-label,
+		.sg-radio-label {
+			display: inline-flex;
+			align-items: center;
+			gap: 10px;
+			font-size: 14px;
+			cursor: pointer;
+			white-space: nowrap;
+			flex-shrink: 0;
+			user-select: none;
+		}
+
+		.sg-checkbox-label input[type="checkbox"] {
+			appearance: none;
+			-webkit-appearance: none;
+			width: 18px;
+			min-width: 18px;
+			height: 18px;
+			min-height: 18px;
+			border: 2px solid var(--border-card);
+			border-radius: 4px;
+			outline: none;
+			cursor: pointer;
+			position: relative;
+			flex-shrink: 0;
+			transition: all 0.15s ease;
+			background: var(--bg-card);
+			display: inline-grid;
+			place-content: center;
+		}
+
+		.sg-checkbox-label input[type="checkbox"]:checked {
+			background-color: var(--accent);
+			border-color: var(--accent);
+		}
+
+		.sg-checkbox-label input[type="checkbox"]:checked::after {
+			content: "";
+			width: 5px;
+			height: 9px;
+			border: solid var(--btn-text);
+			border-width: 0 2px 2px 0;
+			transform: rotate(45deg);
+			margin-bottom: 2px;
+		}
+
+		.sg-radio-label input[type="radio"],
+		.sg-radio-input {
+			appearance: none;
+			-webkit-appearance: none;
+			width: 18px;
+			min-width: 18px;
+			height: 18px;
+			min-height: 18px;
+			border: 2px solid var(--border-card);
+			border-radius: 50%;
+			outline: none;
+			cursor: pointer;
+			position: relative;
+			flex-shrink: 0;
+			transition: all 0.15s ease;
+			background: var(--bg-card);
+			display: inline-grid;
+			place-content: center;
+		}
+
+		.sg-radio-label input[type="radio"]:checked,
+		.sg-radio-input:checked {
+			border-color: var(--accent);
+		}
+
+		.sg-radio-label input[type="radio"]:checked::before,
+		.sg-radio-input:checked::before {
+			content: "";
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: var(--accent);
+		}
+
+		.sg-toggle-label {
+			position: relative;
+		}
+
+		.sg-toggle-input {
+			position: absolute;
+			opacity: 0;
+			width: 0;
+			height: 0;
+			pointer-events: none;
+		}
+
+		.sg-toggle-slider {
+			width: 44px;
+			min-width: 44px;
+			height: 24px;
+			min-height: 24px;
+			background-color: var(--border-card);
+			border-radius: 24px;
+			position: relative;
+			transition: all 0.25s ease;
+			flex-shrink: 0;
+			box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+		}
+
+		.sg-toggle-slider:before {
+			content: "";
+			position: absolute;
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			background: #ffffff;
+			left: 3px;
+			top: 3px;
+			transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+		}
+
+		.sg-toggle-input:checked+.sg-toggle-slider {
+			background-color: var(--accent);
+		}
+
+		.sg-toggle-input:checked+.sg-toggle-slider:before {
+			transform: translateX(20px);
+		}
+
+		.sg-slider {
+			width: 100%;
+			accent-color: var(--accent);
+		}
+
+		.sg-table-container {
+			border: 1px solid var(--border-card);
+			border-radius: 8px;
+			overflow: hidden;
+			background-color: var(--bg-card);
+			transition: all 0.25s ease;
+		}
+
+		.sg-table {
+			width: 100%;
+			border-collapse: collapse;
+			text-align: left;
+			font-size: 13px;
+		}
+
+		.sg-table th {
+			background: rgba(128, 128, 128, 0.12);
+			padding: 10px 14px;
+			font-weight: 600;
+			border-bottom: 1px solid var(--border-card);
+			color: var(--text-main);
+		}
+
+		.sg-table td {
+			padding: 9px 14px;
+			border-bottom: 1px solid var(--border-card);
+			color: var(--text-main);
+		}
+
+		.sg-table tr:hover td {
+			background-color: rgba(128, 128, 128, 0.12);
+			cursor: pointer;
+		}
+
+		.sg-progress-bar {
+			width: 100%;
+			height: 8px;
+			background-color: var(--border-card);
+			border-radius: 4px;
+			overflow: hidden;
+		}
+
+		.sg-progress-fill {
+			height: 100%;
+			background-color: var(--accent);
+			transition: width 0.3s ease;
+		}
+
+		.sg-kpi-card {
+			background-color: var(--bg-card);
+			border: 1px solid var(--border-card);
+			border-radius: 8px;
+			padding: 16px;
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+			transition: background-color 0.25s ease, border-color 0.25s ease;
+		}
+
+		.sg-kpi-title {
+			font-size: 12px;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			opacity: 0.7;
+		}
+
+		.sg-kpi-value {
+			font-size: 28px;
+			font-weight: 700;
+			color: var(--accent);
+			transition: color 0.25s ease;
+		}
+
+		.sg-kpi-change {
+			font-size: 12px;
+			color: var(--secondary);
+			font-weight: 500;
+			transition: color 0.25s ease;
+		}
+
+		.sg-divider {
+			border: none;
+			border-top: 1px solid var(--border-card);
+			margin: 6px 0;
+		}
+
+		.sg-statusbar {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background-color: var(--bg-card);
+			border-top: 1px solid var(--border-card);
+			padding: 6px 14px;
+			font-size: 12px;
+			color: var(--text-main);
+			opacity: 0.85;
+			transition: background-color 0.25s ease, border-color 0.25s ease;
+		}
+	</style>
+	<script>
+		window.vlangThemeMap = { "monokai_pro": { "name": "Monokai Pro", "background_color": "#2d2a2e", "font_color": "#fcfcfa", "accent_color": "#ffd866", "secondary_accent": "#ff6188", "card_background": "#221f22", "card_border": "#403e41", "btn_text": "#111111" }, "tokyo_night": { "name": "Tokyo Night", "background_color": "#1a1b26", "font_color": "#c0caf5", "accent_color": "#7aa2f7", "secondary_accent": "#bb9af7", "card_background": "#24283b", "card_border": "#414868", "btn_text": "#111111" }, "one_dark_pro": { "name": "One Dark Pro", "background_color": "#21252b", "font_color": "#abb2bf", "accent_color": "#61afef", "secondary_accent": "#98c379", "card_background": "#282c34", "card_border": "#3e4451", "btn_text": "#111111" }, "gruvbox_dark": { "name": "Gruvbox Dark", "background_color": "#282828", "font_color": "#ebdbb2", "accent_color": "#fabd2f", "secondary_accent": "#fe8019", "card_background": "#1d2021", "card_border": "#504945", "btn_text": "#111111" }, "gruvbox_light": { "name": "Gruvbox Light", "background_color": "#fbf1c7", "font_color": "#3c3836", "accent_color": "#b57614", "secondary_accent": "#af3a03", "card_background": "#f2e5bc", "card_border": "#d5c4a1", "btn_text": "#ffffff" }, "rose_pine": { "name": "Rosé Pine", "background_color": "#191724", "font_color": "#e0def4", "accent_color": "#ebbcba", "secondary_accent": "#31748f", "card_background": "#1f1d2e", "card_border": "#26233a", "btn_text": "#111111" }, "everforest": { "name": "Everforest", "background_color": "#2d353b", "font_color": "#d3c6aa", "accent_color": "#a7c080", "secondary_accent": "#7fbbb3", "card_background": "#232a2e", "card_border": "#3d484d", "btn_text": "#111111" }, "kanagawa": { "name": "Kanagawa", "background_color": "#1f1f28", "font_color": "#dcd7ba", "accent_color": "#7e9cd8", "secondary_accent": "#957fb8", "card_background": "#16161d", "card_border": "#2a2a37", "btn_text": "#111111" }, "dracula": { "name": "Dracula", "background_color": "#282a36", "font_color": "#f8f8f2", "accent_color": "#bd93f9", "secondary_accent": "#ff79c6", "card_background": "#1e1f29", "card_border": "#44475a", "btn_text": "#111111" }, "nord": { "name": "Nord", "background_color": "#2e3440", "font_color": "#eceff4", "accent_color": "#88c0d0", "secondary_accent": "#81a1c1", "card_background": "#242933", "card_border": "#3b4252", "btn_text": "#111111" }, "catppuccin": { "name": "Catppuccin Mocha", "background_color": "#1e1e2e", "font_color": "#cdd6f4", "accent_color": "#cba6f7", "secondary_accent": "#f38ba8", "card_background": "#181825", "card_border": "#313244", "btn_text": "#111111" }, "solarized_dark": { "name": "Solarized Dark", "background_color": "#002b36", "font_color": "#839496", "accent_color": "#2aa198", "secondary_accent": "#b58900", "card_background": "#073642", "card_border": "#586e75", "btn_text": "#ffffff" }, "solarized_light": { "name": "Solarized Light", "background_color": "#fdf6e3", "font_color": "#657b83", "accent_color": "#268bd2", "secondary_accent": "#d33682", "card_background": "#eee8d5", "card_border": "#93a1a1", "btn_text": "#ffffff" }, "github_dark": { "name": "GitHub Dark", "background_color": "#0d1117", "font_color": "#c9d1d9", "accent_color": "#58a6ff", "secondary_accent": "#238636", "card_background": "#161b22", "card_border": "#30363d", "btn_text": "#111111" }, "github_light": { "name": "GitHub Light", "background_color": "#ffffff", "font_color": "#24292f", "accent_color": "#0969da", "secondary_accent": "#1a7f37", "card_background": "#f6f8fa", "card_border": "#d0d7de", "btn_text": "#ffffff" }, "sonoma_dark": { "name": "macOS Sonoma Dark", "background_color": "#1e1e1e", "font_color": "#ffffff", "accent_color": "#007aff", "secondary_accent": "#5ac8fa", "card_background": "#2c2c2e", "card_border": "#3a3a3c", "btn_text": "#ffffff" }, "sonoma_light": { "name": "macOS Sonoma Light", "background_color": "#f5f5f7", "font_color": "#1d1d1f", "accent_color": "#007aff", "secondary_accent": "#34c759", "card_background": "#ffffff", "card_border": "#e5e5ea", "btn_text": "#ffffff" }, "sonoma_emerald": { "name": "Sonoma Emerald", "background_color": "#1a2421", "font_color": "#e8f5e9", "accent_color": "#00c853", "secondary_accent": "#69f0ae", "card_background": "#23332d", "card_border": "#2e443c", "btn_text": "#ffffff" }, "codefreelance": { "name": "CodeFreelance Pro", "background_color": "#0d111a", "font_color": "#f0f6fc", "accent_color": "#38bdf8", "secondary_accent": "#a855f7", "card_background": "#161e2e", "card_border": "#243048", "btn_text": "#111111" }, "fluent_dark": { "name": "Windows 11 Fluent Dark", "background_color": "#202020", "font_color": "#ffffff", "accent_color": "#60cdff", "secondary_accent": "#76b9ed", "card_background": "#2c2c2c", "card_border": "#383838", "btn_text": "#111111" }, "fluent_light": { "name": "Windows 11 Fluent Light", "background_color": "#f3f3f3", "font_color": "#000000", "accent_color": "#0067c0", "secondary_accent": "#005fb8", "card_background": "#ffffff", "card_border": "#e5e5e5", "btn_text": "#ffffff" }, "win95": { "name": "Windows 95 Classic", "background_color": "#008080", "font_color": "#000000", "accent_color": "#000080", "secondary_accent": "#808080", "card_background": "#c0c0c0", "card_border": "#ffffff", "btn_text": "#ffffff" }, "commodore64": { "name": "Commodore 64", "background_color": "#40318d", "font_color": "#8b80db", "accent_color": "#8b80db", "secondary_accent": "#a098eb", "card_background": "#352874", "card_border": "#5c48b8", "btn_text": "#ffffff" }, "amiga": { "name": "Commodore Amiga Workbench", "background_color": "#0055aa", "font_color": "#ffffff", "accent_color": "#ff8800", "secondary_accent": "#ffffff", "card_background": "#ffffff", "card_border": "#000000", "btn_text": "#111111" }, "macintosh_system7": { "name": "Macintosh System 7", "background_color": "#c4c4c4", "font_color": "#000000", "accent_color": "#336699", "secondary_accent": "#666666", "card_background": "#ffffff", "card_border": "#000000", "btn_text": "#ffffff" }, "gameboy": { "name": "Nintendo Game Boy DMG-01", "background_color": "#8b956d", "font_color": "#0f380f", "accent_color": "#306230", "secondary_accent": "#8bac0f", "card_background": "#9bbc0f", "card_border": "#306230", "btn_text": "#ffffff" }, "matrix_phosphor": { "name": "Matrix Green Phosphor", "background_color": "#0d110d", "font_color": "#00ff66", "accent_color": "#00ff66", "secondary_accent": "#008833", "card_background": "#131a13", "card_border": "#00aa44", "btn_text": "#111111" }, "amber_crt": { "name": "Amber CRT Terminal", "background_color": "#140c00", "font_color": "#ffb000", "accent_color": "#ff9000", "secondary_accent": "#cc7000", "card_background": "#1f1300", "card_border": "#8a5000", "btn_text": "#111111" }, "synthwave84": { "name": "Synthwave '84", "background_color": "#262335", "font_color": "#f92aad", "accent_color": "#f92aad", "secondary_accent": "#36f9f6", "card_background": "#1a1824", "card_border": "#ff7edb", "btn_text": "#ffffff" }, "cyberpunk": { "name": "Cyberpunk 2077", "background_color": "#0a0a10", "font_color": "#00f5d4", "accent_color": "#fee715", "secondary_accent": "#ff007f", "card_background": "#12121f", "card_border": "#2a2a44", "btn_text": "#111111" }, "navy_blue": { "name": "Navy Blue", "background_color": "#0a192f", "font_color": "#e6f1ff", "accent_color": "#64ffda", "secondary_accent": "#00b4d8", "card_background": "#112240", "card_border": "#233554", "btn_text": "#111111" }, "forest_green": { "name": "Forest Green", "background_color": "#0f2018", "font_color": "#e8f5e9", "accent_color": "#4ade80", "secondary_accent": "#22c55e", "card_background": "#162e24", "card_border": "#224a3a", "btn_text": "#111111" }, "sunset_orange": { "name": "Sunset Orange", "background_color": "#1a1412", "font_color": "#fff3e0", "accent_color": "#ff6f00", "secondary_accent": "#ff9800", "card_background": "#261e1b", "card_border": "#3d302a", "btn_text": "#ffffff" }, "crimson": { "name": "Crimson Velvet", "background_color": "#1a0c0e", "font_color": "#ffebee", "accent_color": "#ef4444", "secondary_accent": "#f43f5e", "card_background": "#261216", "card_border": "#3d1c23", "btn_text": "#ffffff" }, "emerald": { "name": "Emerald Jewel", "background_color": "#061a14", "font_color": "#e6fffa", "accent_color": "#10b981", "secondary_accent": "#059669", "card_background": "#0d2820", "card_border": "#163d32", "btn_text": "#ffffff" }, "sapphire": { "name": "Sapphire Royal", "background_color": "#081426", "font_color": "#e0f2fe", "accent_color": "#0284c7", "secondary_accent": "#38bdf8", "card_background": "#0f2038", "card_border": "#1b3356", "btn_text": "#ffffff" }, "amethyst": { "name": "Amethyst Purple", "background_color": "#160d24", "font_color": "#f3e8ff", "accent_color": "#a855f7", "secondary_accent": "#c084fc", "card_background": "#201335", "card_border": "#331f54", "btn_text": "#ffffff" }, "midnight": { "name": "Midnight Black", "background_color": "#000000", "font_color": "#f8fafc", "accent_color": "#38bdf8", "secondary_accent": "#818cf8", "card_background": "#111111", "card_border": "#262626", "btn_text": "#111111" }, "charcoal": { "name": "Charcoal Minimal", "background_color": "#18181b", "font_color": "#f4f4f5", "accent_color": "#a1a1aa", "secondary_accent": "#71717a", "card_background": "#27272a", "card_border": "#3f3f46", "btn_text": "#111111" }, "slate": { "name": "Slate Tech", "background_color": "#0f172a", "font_color": "#f8fafc", "accent_color": "#94a3b8", "secondary_accent": "#64748b", "card_background": "#1e293b", "card_border": "#334155", "btn_text": "#111111" }, "dark": { "name": "Standard Dark", "background_color": "#121212", "font_color": "#ffffff", "accent_color": "#38bdf8", "secondary_accent": "#0284c7", "card_background": "#1e1e1e", "card_border": "#2e2e2e", "btn_text": "#111111" }, "light": { "name": "Standard Light", "background_color": "#f8fafc", "font_color": "#0f172a", "accent_color": "#0284c7", "secondary_accent": "#38bdf8", "card_background": "#ffffff", "card_border": "#e2e8f0", "btn_text": "#ffffff" } };
+		window.applyTheme = function (themeName) {
+			if (window.vlangThemeMap && window.vlangThemeMap[themeName]) {
+				const t = window.vlangThemeMap[themeName];
+				const r = document.documentElement;
+				r.style.setProperty("--bg-main", t.background_color);
+				r.style.setProperty("--text-main", t.font_color);
+				r.style.setProperty("--accent", t.accent_color);
+				r.style.setProperty("--secondary", t.secondary_accent);
+				r.style.setProperty("--bg-card", t.card_background);
+				r.style.setProperty("--border-card", t.card_border);
+				r.style.setProperty("--btn-text", t.btn_text || "#ffffff");
+				document.body.style.backgroundColor = t.background_color;
+				document.body.style.color = t.font_color;
+			}
+		};
+		window.vlangTriggerClick = function (handlerId, controlId) {
+			if (window.vlangEventHandler) {
+				window.vlangEventHandler(handlerId, controlId);
+			}
+		};
+		window.vlangTriggerChange = function (handlerId, controlId, val) {
+			if (window.vlangThemeMap && window.vlangThemeMap[val]) {
+				window.applyTheme(val);
+			}
+			if (window.vlangSyncValue) {
+				window.vlangSyncValue(controlId, String(val));
+			}
+			if (window.vlangEventHandler) {
+				window.vlangEventHandler(handlerId, String(val));
+			}
+		};
+	</script>
+</head>
+
+<body>
+	<h1 class="sg-heading">👑 The Ultimate RAD Studio Mega-Showcase</h1>
+	<h2 class="sg-subheading">70+ Delphi/VB Style Native Controls across all 42 Desktop Themes:</h2>
+	<hr class="sg-divider" />
+	<div class="sg-row">
+		<div class="sg-kpi-card">
+			<div class="sg-kpi-title">Visual Controls</div>
+			<div class="sg-kpi-value">70+ Types</div>
+			<div class="sg-kpi-change">Anchors & Docking</div>
+		</div>
+		<div class="sg-kpi-card">
+			<div class="sg-kpi-title">Built-in Themes</div>
+			<div class="sg-kpi-value">42 Desktop</div>
+			<div class="sg-kpi-change">Pixel-perfect CSS</div>
+		</div>
+		<div class="sg-kpi-card">
+			<div class="sg-kpi-title">Window Placement</div>
+			<div class="sg-kpi-value">9 Presets</div>
+			<div class="sg-kpi-change">Cocoa, Win32, GTK</div>
+		</div>
+		<div class="sg-kpi-card">
+			<div class="sg-kpi-title">FFI System APIs</div>
+			<div class="sg-kpi-value">60+ Tools</div>
+			<div class="sg-kpi-change">Native Telemetry</div>
+		</div>
+	</div>
+	<div class="sg-kpi-card" style="margin-bottom:8px;">
+		<div class="sg-kpi-title" style="margin-bottom:8px;font-weight:700;">42 Desktop Form Themes Selector & Style
+			Mode</div>
+		<div class="sg-row"><select id="ddn_12" class="sg-select"
+				onchange="window.vlangTriggerChange('change_ddn_12', 'ddn_12', this.value)">
+				<option value="monokai_pro" selected>monokai_pro</option>
+				<option value="tokyo_night">tokyo_night</option>
+				<option value="one_dark_pro">one_dark_pro</option>
+				<option value="gruvbox_dark">gruvbox_dark</option>
+				<option value="gruvbox_light">gruvbox_light</option>
+				<option value="rose_pine">rose_pine</option>
+				<option value="everforest">everforest</option>
+				<option value="kanagawa">kanagawa</option>
+				<option value="dracula">dracula</option>
+				<option value="nord">nord</option>
+				<option value="catppuccin">catppuccin</option>
+				<option value="solarized_dark">solarized_dark</option>
+				<option value="solarized_light">solarized_light</option>
+				<option value="github_dark">github_dark</option>
+				<option value="github_light">github_light</option>
+				<option value="sonoma_dark">sonoma_dark</option>
+				<option value="sonoma_light">sonoma_light</option>
+				<option value="sonoma_emerald">sonoma_emerald</option>
+				<option value="codefreelance">codefreelance</option>
+				<option value="fluent_dark">fluent_dark</option>
+				<option value="fluent_light">fluent_light</option>
+				<option value="win95">win95</option>
+				<option value="commodore64">commodore64</option>
+				<option value="amiga">amiga</option>
+				<option value="macintosh_system7">macintosh_system7</option>
+				<option value="gameboy">gameboy</option>
+				<option value="matrix_phosphor">matrix_phosphor</option>
+				<option value="amber_crt">amber_crt</option>
+				<option value="synthwave84">synthwave84</option>
+				<option value="cyberpunk">cyberpunk</option>
+				<option value="navy_blue">navy_blue</option>
+				<option value="forest_green">forest_green</option>
+				<option value="sunset_orange">sunset_orange</option>
+				<option value="crimson">crimson</option>
+				<option value="emerald">emerald</option>
+				<option value="sapphire">sapphire</option>
+				<option value="amethyst">amethyst</option>
+				<option value="midnight">midnight</option>
+				<option value="charcoal">charcoal</option>
+				<option value="slate">slate</option>
+				<option value="dark">dark</option>
+				<option value="light">light</option>
+			</select><label class="sg-radio-label"><input id="rad_13" type="radio" name="theme_mode" value="Dark Engine"
+					class="sg-radio-input" checked
+					onchange="window.vlangTriggerChange('change_rad_13', 'rad_13', this.value)" /> <span>Dark
+					Engine</span></label><label class="sg-radio-label"><input id="rad_14" type="radio" name="theme_mode"
+					value="Light Engine" class="sg-radio-input"
+					onchange="window.vlangTriggerChange('change_rad_14', 'rad_14', this.value)" /> <span>Light
+					Engine</span></label><label class="sg-toggle-label"><input id="tog_15" type="checkbox"
+					class="sg-toggle-input" checked
+					onchange="window.vlangTriggerChange('change_tog_15', 'tog_15', this.checked ? 'true' : 'false')" /><span
+					class="sg-toggle-slider"></span> <span>CSS Transitions</span></label></div>
+	</div>
+	<div class="sg-kpi-card" style="margin-bottom:8px;">
+		<div class="sg-kpi-title" style="margin-bottom:8px;font-weight:700;">Interactive Component Playground</div>
+		<div class="sg-row"><input id="inp_20" type="text" class="sg-input" placeholder="User Input"
+				value="Hello, Cross-Platform V Webview!"
+				oninput="window.vlangTriggerChange('change_inp_20', 'inp_20', this.value)" /><input id="pwd_21"
+				type="password" class="sg-input" placeholder="Secure Input" value="hunter2"
+				oninput="window.vlangTriggerChange('change_pwd_21', 'pwd_21', this.value)" /><select id="ddn_22"
+				class="sg-select" onchange="window.vlangTriggerChange('change_ddn_22', 'ddn_22', this.value)">
+				<option value="Desktop Client" selected>Desktop Client</option>
+				<option value="Cloud Node">Cloud Node</option>
+				<option value="Embedded Edge">Embedded Edge</option>
+			</select></div>
+		<div class="sg-row"><label class="sg-checkbox-label"><input id="chk_25" type="checkbox"
+					onchange="window.vlangTriggerChange('change_chk_25', 'chk_25', this.checked ? 'true' : 'false')" />
+				<span>Auto-start at Boot</span></label><label class="sg-radio-label"><input id="rad_26" type="radio"
+					name="network_mode" value="Direct P2P" class="sg-radio-input" checked
+					onchange="window.vlangTriggerChange('change_rad_26', 'rad_26', this.value)" /> <span>Direct
+					P2P</span></label><label class="sg-radio-label"><input id="rad_27" type="radio" name="network_mode"
+					value="Relay Mesh" class="sg-radio-input"
+					onchange="window.vlangTriggerChange('change_rad_27', 'rad_27', this.value)" /> <span>Relay
+					Mesh</span></label><label class="sg-toggle-label"><input id="tog_28" type="checkbox"
+					class="sg-toggle-input" checked
+					onchange="window.vlangTriggerChange('change_tog_28', 'tog_28', this.checked ? 'true' : 'false')" /><span
+					class="sg-toggle-slider"></span> <span>Hardware Acceleration</span></label>
+			<div class="sg-slider-wrap"><input id="sld_29" type="range" class="sg-slider" min="0" max="100" value="85"
+					oninput="window.vlangTriggerChange('change_sld_29', 'sld_29', this.value)" /></div>
+		</div>
+		<p class="sg-label">Active Workspace & Runtime Telemetry Notes:</p><textarea id="txt_32" class="sg-textarea"
+			placeholder="Telemetry Logs" oninput="window.vlangTriggerChange('change_txt_32', 'txt_32', this.value)">Webview FFI bridge initialized.
+42 theme styles injected.
+Hardware acceleration active.
+Anchors and docking layout operational.</textarea>
+	</div>
+	<div class="sg-kpi-card" style="margin-bottom:8px;">
+		<div class="sg-kpi-title" style="margin-bottom:8px;font-weight:700;">Overall System Health & Performance (94%)
+		</div>
+		<div class="sg-progress-bar">
+			<div class="sg-progress-fill" style="width: 94.0%"></div>
+		</div>
+	</div>
+	<div class="sg-kpi-card" style="margin-bottom:8px;">
+		<div class="sg-kpi-title" style="margin-bottom:8px;font-weight:700;">System Telemetry & Architecture Parity
+		</div>
+		<div class="sg-table-container">
+			<table id="tbl_38" class="sg-table">
+				<thead>
+					<tr>
+						<th>Subsystem</th>
+						<th>Engine Driver</th>
+						<th>Status</th>
+						<th>Parity</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr onclick="window.vlangTriggerClick('click_tbl_38', '0')">
+						<td>Webview FFI</td>
+						<td>C/C++ Native Wrapper</td>
+						<td>Active</td>
+						<td>100%</td>
+					</tr>
+					<tr onclick="window.vlangTriggerClick('click_tbl_38', '1')">
+						<td>Window Management</td>
+						<td>Cocoa / Win32 / GTK</td>
+						<td>Active</td>
+						<td>100%</td>
+					</tr>
+					<tr onclick="window.vlangTriggerClick('click_tbl_38', '2')">
+						<td>Hardware Telemetry</td>
+						<td>sysctl / wmic / /proc</td>
+						<td>Active</td>
+						<td>100%</td>
+					</tr>
+					<tr onclick="window.vlangTriggerClick('click_tbl_38', '3')">
+						<td>Theme Catalog</td>
+						<td>42 Built-in CSS Engines</td>
+						<td>Active</td>
+						<td>100%</td>
+					</tr>
+					<tr onclick="window.vlangTriggerClick('click_tbl_38', '4')">
+						<td>RAD Form Designer</td>
+						<td>Delphi Visual Anchors/Dock</td>
+						<td>Active</td>
+						<td>100%</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<div class="sg-row"><button id="btn_41" class="sg-btn"
+			onclick="window.vlangTriggerClick('click_btn_41', 'btn_41')">🚀 Launch System Studio</button><button
+			id="btn_42" class="sg-btn" onclick="window.vlangTriggerClick('click_btn_42', 'btn_42')">🔔 Desktop
+			Notification</button><button id="btn_43" class="sg-btn"
+			onclick="window.vlangTriggerClick('click_btn_43', 'btn_43')">🎯 Center Window</button></div>
+	<div class="sg-statusbar">Vlang Webview RAD Studio Pro v2.0 | Delphi & VB Style Native IDE | All systems operational
+	</div>
+</body>
+
+</html>

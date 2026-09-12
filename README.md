@@ -30,7 +30,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
   - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
   - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
-  - [🎨 Built-in Desktop Form Themes & Visual Gallery (56 Themes)](#built-in-desktop-form-themes--visual-gallery-56-themes)
+  - [🎨 Built-in Desktop Form Themes & Visual Gallery (63 Themes)](#built-in-desktop-form-themes--visual-gallery-63-themes)
   - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
 - [💻 Installation & Quick Start](#installation--quick-start)
@@ -93,11 +93,11 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 * **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 * **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-<a id="built-in-desktop-form-themes--visual-gallery-56-themes"></a>
-### 🎨 Built-in Desktop Form Themes & Visual Gallery (56 Themes)
-Bun RAD Studio and SimpleGUI feature **56 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84).
+<a id="built-in-desktop-form-themes--visual-gallery-63-themes"></a>
+### 🎨 Built-in Desktop Form Themes & Visual Gallery (63 Themes)
+Bun RAD Studio and SimpleGUI feature **63 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
 
-👉 **[🖼️ View the Complete 56-Theme Visual Screenshot Gallery in THEMES.md](THEMES.md)** for direct side-by-side screenshots, color palettes, and quick launch commands for every theme!
+👉 **[🖼️ View the Complete 63-Theme Visual Screenshot Gallery in THEMES.md](THEMES.md)** for direct side-by-side screenshots, color palettes, and quick launch commands for every theme!
 
 Every theme automatically harmonizes:
 - Form canvas backgrounds and typography foregrounds
@@ -118,6 +118,7 @@ bun run demo:themes
 bun run demos/23_all_themes_all_controls_showcase.ts tokyo_night
 bun run demos/23_all_themes_all_controls_showcase.ts win95
 bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
+bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 ```
 
 #### 📸 Featured Theme Visual Showcases (All Controls on a Single Form)
@@ -153,14 +154,21 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 ![Windows 11 Fluent Slate Theme Showcase](screenshots/themes/win11_slate.png)
 ![Windows 11 Mica Light Theme Showcase](screenshots/themes/win11_light.png)
 
-##### 8. Retro & Nostalgic Computing ("Bring Back Memories")
+##### 8. Modern Linux Desktop Themes (Ubuntu Yaru, GNOME Libadwaita, Linux Mint & Pop!_OS)
+*Authentic Linux desktop styling with Ubuntu Yaru Dark/Light, GNOME Adwaita Dark/Light, Linux Mint Cinnamon, and System76 Pop!_OS*
+![Ubuntu Yaru Dark Theme Showcase](screenshots/themes/ubuntu_dark.png)
+![GNOME Adwaita Dark Theme Showcase](screenshots/themes/adwaita_dark.png)
+![Linux Mint Dark Theme Showcase](screenshots/themes/linux_mint.png)
+![Pop!_OS Dark Theme Showcase](screenshots/themes/pop_os.png)
+
+##### 9. Retro & Nostalgic Computing ("Bring Back Memories")
 *Windows 95 classic teal desktop, 1999 Matrix digital rain, and Synthwave '84 arcade neon*
 ![Windows 95 Theme Showcase](screenshots/themes/win95.png)
 ![Matrix Phosphor Theme Showcase](screenshots/themes/matrix.png)
 ![Synthwave '84 Theme Showcase](screenshots/themes/synthwave.png)
 ![Game Boy 1989 Theme Showcase](screenshots/themes/gameboy.png)
 
-#### 📋 Complete Built-in Themes Directory (56 Themes)
+#### 📋 Complete Built-in Themes Directory (63 Themes)
 
 | # | Theme Key | Name | Palette Type | Primary Accent | Screenshot | Vibe & Aesthetic |
 | :-: | :--- | :--- | :-: | :-: | :-: | :--- |
@@ -190,36 +198,43 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 | **24** | `cobalt2` | **Cobalt2** | 🌙 Dark | `#ffc600` | [View](screenshots/themes/cobalt2.png) | Wes Bos official deep cobalt navy with brilliant yellow |
 | **25** | `win11_slate` | **Windows 11 Fluent Slate** | 🌙 Dark | `#60cdff` | [View](screenshots/themes/win11_slate.png) | Modern Windows 11 Fluent Dark Acrylic with sky cyan |
 | **26** | `win11_light` | **Windows 11 Mica Light** | ☀️ Light | `#005fb8` | [View](screenshots/themes/win11_light.png) | Modern Windows 11 Mica Light desktop with Fluent typography |
-| **27** | `aura` | **Aura Dark** | 🌙 Dark | `#a277ff` | [View](screenshots/themes/aura.png) | Lush mystical dark theme with neon purple & mint accents |
-| **28** | `sonoma_emerald` | **Sonoma Emerald** | 🌙 Dark | `#30d158` | [View](screenshots/themes/sonoma_emerald.png) | macOS Sonoma dark forest glass palette |
-| **29** | `apple_dark` | **Apple Dark** | 🌙 Dark | `#0a84ff` | [View](screenshots/themes/apple_dark.png) | Vibrant macOS Dark Mode surface (Default) |
-| **30** | `apple_light` | **Apple Light** | ☀️ Light | `#0071e3` | [View](screenshots/themes/apple_light.png) | Clean, bright macOS Aqua light canvas |
-| **31** | `midnight` | **Midnight Space Gray** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/midnight.png) | Pro dark titanium space gray workstation theme |
-| **32** | `apple_sunset` | **Apple Sunset** | 🌙 Dark | `#ff7733` | [View](screenshots/themes/apple_sunset.png) | Warm macOS Mojave twilight sunset hues |
-| **33** | `ventura_amber` | **Ventura Amber** | 🌙 Dark | `#ff9500` | [View](screenshots/themes/ventura_amber.png) | macOS Ventura golden sunset dark hues |
-| **34** | `soft_pastel` | **Soft Pastel** | ☀️ Light | `#e07a5f` | [View](screenshots/themes/soft_pastel.png) | Apple Studio warm soft light canvas |
-| **35** | `catppuccin` | **Catppuccin Mocha** | 🌙 Dark | `#cba6f7` | [View](screenshots/themes/catppuccin.png) | Soothing lavender catppuccin dark mode |
-| **36** | `nord` | **Nord** | 🌙 Dark | `#88c0d0` | [View](screenshots/themes/nord.png) | Arctic frost nord developer palette |
-| **37** | `dracula` | **Dracula** | 🌙 Dark | `#bd93f9` | [View](screenshots/themes/dracula.png) | High-contrast vampire purple palette |
-| **38** | `cyberpunk` | **Cyberpunk** | 🌙 Dark | `#ff007f` | [View](screenshots/themes/cyberpunk.png) | Neon glow dark contrast palette |
-| **39** | `github_dark` | **GitHub Dark** | 🌙 Dark | `#58a6ff` | [View](screenshots/themes/github_dark.png) | Official GitHub dark interface palette |
-| **40** | `github_light` | **GitHub Light** | ☀️ Light | `#0969da` | [View](screenshots/themes/github_light.png) | Clean GitHub light canvas palette |
-| **41** | `solarized_dark` | **Solarized Dark** | 🌙 Dark | `#2aa198` | [View](screenshots/themes/solarized_dark.png) | Precision engineered solarized dark palette |
-| **42** | `solarized_light` | **Solarized Light** | ☀️ Light | `#268bd2` | [View](screenshots/themes/solarized_light.png) | Precision engineered solarized light palette |
-| **43** | `navy_blue` | **Navy Blue** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/navy_blue.png) | Deep slate navy dark theme |
-| **44** | `forest_green` | **Forest Green** | 🌙 Dark | `#4ade80` | [View](screenshots/themes/forest_green.png) | Rich emerald green dark theme |
-| **45** | `win95` | **Windows 95** | ☀️ Retro | `#000080` | [View](screenshots/themes/win95.png) | Iconic Windows 95 classic teal desktop & silver 3D cards |
-| **46** | `gameboy` | **Game Boy 1989** | 🌙 Retro | `#8bac0f` | [View](screenshots/themes/gameboy.png) | Nostalgic 4-shade monochrome dot matrix DMG-01 screen |
-| **47** | `c64` | **Commodore 64** | 🌙 Retro | `#7974ff` | [View](screenshots/themes/c64.png) | Legendary 1982 Commodore 64 READY prompt & VIC-II blue |
-| **48** | `mac_classic` | **Macintosh System 7** | ☀️ Retro | `#5555aa` | [View](screenshots/themes/mac_classic.png) | Vintage 1991 System 7 Platinum desktop with Chicago font |
-| **49** | `amber_crt` | **Phosphor Amber CRT** | 🌙 Retro | `#ffb000` | [View](screenshots/themes/amber_crt.png) | Warm VT220 / Pip-Boy amber phosphor monochrome terminal |
-| **50** | `matrix` | **Matrix Phosphor** | 🌙 Retro | `#00ff41` | [View](screenshots/themes/matrix.png) | Iconic 1999 digital rain phosphor green mainframe terminal |
-| **51** | `synthwave` | **Synthwave '84** | 🌙 Retro | `#ff2a85` | [View](screenshots/themes/synthwave.png) | 1980s neon synthwave, sunset magenta grid & arcade glow |
-| **52** | `amiga` | **Amiga Workbench** | 🌙 Retro | `#ff8800` | [View](screenshots/themes/amiga.png) | Retro Amiga 500 Workbench 1.3 royal blue & orange buttons |
-| **53** | `nextstep` | **NeXTSTEP 1989** | 🌙 Retro | `#4a90e2` | [View](screenshots/themes/nextstep.png) | Steve Jobs 1989 NeXTSTEP UNIX workstation dark elegance |
-| **54** | `mac_os_aqua` | **Mac OS X Aqua** | ☀️ Retro | `#0076fe` | [View](screenshots/themes/mac_os_aqua.png) | Early 2001 OS X Cheetah glossy gel buttons & pinstripes |
-| **55** | `hotdog_stand` | **Hot Dog Stand** | 🌙 Retro | `#ff0000` | [View](screenshots/themes/hotdog_stand.png) | Unforgettable Windows 3.1 1992 high-contrast yellow & red |
-| **56** | `playstation` | **PlayStation 1994** | 🌙 Retro | `#00d2c4` | [View](screenshots/themes/playstation.png) | 1994 PSX console grey with geometric controller accents |
+| **27** | `ubuntu_dark` | **Ubuntu Yaru Dark** | 🌙 Dark | `#e95420` | [View](screenshots/themes/ubuntu_dark.png) | Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents |
+| **28** | `ubuntu_light` | **Ubuntu Yaru Light** | ☀️ Light | `#e95420` | [View](screenshots/themes/ubuntu_light.png) | Clean Ubuntu Yaru modern Linux light desktop with crisp white surfaces, warm gray borders, and vibrant Ubuntu orange |
+| **29** | `adwaita_dark` | **GNOME Adwaita Dark** | 🌙 Dark | `#3584e4` | [View](screenshots/themes/adwaita_dark.png) | Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents |
+| **30** | `adwaita_light` | **GNOME Adwaita Light** | ☀️ Light | `#3584e4` | [View](screenshots/themes/adwaita_light.png) | Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature blue controls |
+| **31** | `linux_mint` | **Linux Mint Dark** | 🌙 Dark | `#87a556` | [View](screenshots/themes/linux_mint.png) | Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents |
+| **32** | `pop_os` | **Pop!_OS Dark** | 🌙 Dark | `#48b9c7` | [View](screenshots/themes/pop_os.png) | System76 Pop!_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents |
+| **33** | `fedora_dark` | **Fedora Blue** | 🌙 Dark | `#51a2da` | [View](screenshots/themes/fedora_dark.png) | Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue |
+| **34** | `aura` | **Aura Dark** | 🌙 Dark | `#a277ff` | [View](screenshots/themes/aura.png) | Lush mystical dark theme with neon purple & mint accents |
+| **35** | `sonoma_emerald` | **Sonoma Emerald** | 🌙 Dark | `#30d158` | [View](screenshots/themes/sonoma_emerald.png) | macOS Sonoma dark forest glass palette |
+| **36** | `apple_dark` | **Apple Dark** | 🌙 Dark | `#0a84ff` | [View](screenshots/themes/apple_dark.png) | Vibrant macOS Dark Mode surface (Default) |
+| **37** | `apple_light` | **Apple Light** | ☀️ Light | `#0071e3` | [View](screenshots/themes/apple_light.png) | Clean, bright macOS Aqua light canvas |
+| **38** | `midnight` | **Midnight Space Gray** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/midnight.png) | Pro dark titanium space gray workstation theme |
+| **39** | `apple_sunset` | **Apple Sunset** | 🌙 Dark | `#ff7733` | [View](screenshots/themes/apple_sunset.png) | Warm macOS Mojave twilight sunset hues |
+| **40** | `ventura_amber` | **Ventura Amber** | 🌙 Dark | `#ff9500` | [View](screenshots/themes/ventura_amber.png) | macOS Ventura golden sunset dark hues |
+| **41** | `soft_pastel` | **Soft Pastel** | ☀️ Light | `#e07a5f` | [View](screenshots/themes/soft_pastel.png) | Apple Studio warm soft light canvas |
+| **42** | `catppuccin` | **Catppuccin Mocha** | 🌙 Dark | `#cba6f7` | [View](screenshots/themes/catppuccin.png) | Soothing lavender catppuccin dark mode |
+| **43** | `nord` | **Nord** | 🌙 Dark | `#88c0d0` | [View](screenshots/themes/nord.png) | Arctic frost nord developer palette |
+| **44** | `dracula` | **Dracula** | 🌙 Dark | `#bd93f9` | [View](screenshots/themes/dracula.png) | High-contrast vampire purple palette |
+| **45** | `cyberpunk` | **Cyberpunk** | 🌙 Dark | `#ff007f` | [View](screenshots/themes/cyberpunk.png) | Neon glow dark contrast palette |
+| **46** | `github_dark` | **GitHub Dark** | 🌙 Dark | `#58a6ff` | [View](screenshots/themes/github_dark.png) | Official GitHub dark interface palette |
+| **47** | `github_light` | **GitHub Light** | ☀️ Light | `#0969da` | [View](screenshots/themes/github_light.png) | Clean GitHub light canvas palette |
+| **48** | `solarized_dark` | **Solarized Dark** | 🌙 Dark | `#2aa198` | [View](screenshots/themes/solarized_dark.png) | Precision engineered solarized dark palette |
+| **49** | `solarized_light` | **Solarized Light** | ☀️ Light | `#268bd2` | [View](screenshots/themes/solarized_light.png) | Precision engineered solarized light palette |
+| **50** | `navy_blue` | **Navy Blue** | 🌙 Dark | `#38bdf8` | [View](screenshots/themes/navy_blue.png) | Deep slate navy dark theme |
+| **51** | `forest_green` | **Forest Green** | 🌙 Dark | `#4ade80` | [View](screenshots/themes/forest_green.png) | Rich emerald green dark theme |
+| **52** | `win95` | **Windows 95** | ☀️ Retro | `#000080` | [View](screenshots/themes/win95.png) | Iconic Windows 95 classic teal desktop & silver 3D cards |
+| **53** | `gameboy` | **Game Boy 1989** | 🌙 Retro | `#8bac0f` | [View](screenshots/themes/gameboy.png) | Nostalgic 4-shade monochrome dot matrix DMG-01 screen |
+| **54** | `c64` | **Commodore 64** | 🌙 Retro | `#7974ff` | [View](screenshots/themes/c64.png) | Legendary 1982 Commodore 64 READY prompt & VIC-II blue |
+| **55** | `mac_classic` | **Macintosh System 7** | ☀️ Retro | `#5555aa` | [View](screenshots/themes/mac_classic.png) | Vintage 1991 System 7 Platinum desktop with Chicago font |
+| **56** | `amber_crt` | **Phosphor Amber CRT** | 🌙 Retro | `#ffb000` | [View](screenshots/themes/amber_crt.png) | Warm VT220 / Pip-Boy amber phosphor monochrome terminal |
+| **57** | `matrix` | **Matrix Phosphor** | 🌙 Retro | `#00ff41` | [View](screenshots/themes/matrix.png) | Iconic 1999 digital rain phosphor green mainframe terminal |
+| **58** | `synthwave` | **Synthwave '84** | 🌙 Retro | `#ff2a85` | [View](screenshots/themes/synthwave.png) | 1980s neon synthwave, sunset magenta grid & arcade glow |
+| **59** | `amiga` | **Amiga Workbench** | 🌙 Retro | `#ff8800` | [View](screenshots/themes/amiga.png) | Retro Amiga 500 Workbench 1.3 royal blue & orange buttons |
+| **60** | `nextstep` | **NeXTSTEP 1989** | 🌙 Retro | `#4a90e2` | [View](screenshots/themes/nextstep.png) | Steve Jobs 1989 NeXTSTEP UNIX workstation dark elegance |
+| **61** | `mac_os_aqua` | **Mac OS X Aqua** | ☀️ Retro | `#0076fe` | [View](screenshots/themes/mac_os_aqua.png) | Early 2001 OS X Cheetah glossy gel buttons & pinstripes |
+| **62** | `hotdog_stand` | **Hot Dog Stand** | 🌙 Retro | `#ff0000` | [View](screenshots/themes/hotdog_stand.png) | Unforgettable Windows 3.1 1992 high-contrast yellow & red |
+| **63** | `playstation` | **PlayStation 1994** | 🌙 Retro | `#00d2c4` | [View](screenshots/themes/playstation.png) | 1994 PSX console grey with geometric controller accents |
 
 #### 💻 How to Use Themes in SimpleGUI
 ```typescript

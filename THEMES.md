@@ -1,4 +1,4 @@
-# 🎨 Bun RAD Studio — Complete Theme Visual Gallery (56 Themes)
+# 🎨 Bun RAD Studio — Complete Theme Visual Gallery (63 Themes)
 
 <a id="top"></a>
 Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme below is built directly into the framework with pixel-perfect color harmony, curated typography, WCAG-tested high contrast, and custom styling for all 30+ desktop RAD controls.
@@ -9,6 +9,7 @@ Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme 
 > bun run demo:themes <theme_name>
 > # Examples:
 > bun run demo:themes codefreelance
+> bun run demo:themes ubuntu_dark
 > bun run demo:themes mac_os_aqua
 > bun run demo:themes monokai_pro
 > ```
@@ -22,7 +23,8 @@ Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme 
 - [💻 Popular Developer & IDE Syntax Themes (16 Themes)](#cat-developer)
 - [☀️ Clean Light & High-Contrast Themes (6 Themes)](#cat-light)
 - [🕹️ Retro & Nostalgic Computing Themes (10 Themes)](#cat-retro)
-- [⚡ Quick Reference Index Table (All 56 Themes)](#quick-reference-index)
+- [🐧 Modern Linux Desktop Themes (7 Themes)](#cat-linux)
+- [⚡ Quick Reference Index Table (All 63 Themes)](#quick-reference-index)
 - [💻 How to Use Any Theme in SimpleGUI Code](#how-to-use-any-theme-in-simplegui-code)
 
 ---
@@ -897,8 +899,118 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 
 ---
 
+<a id="cat-linux"></a>
+## 🐧 Modern Linux Desktop Themes
+
+Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!_OS, and Fedora Workstation.
+
+<a id="theme-ubuntu_dark"></a>
+### 57. Ubuntu Yaru Dark (`ubuntu_dark`)
+
+> Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents
+
+- **Mode**: 🌙 Dark | **Primary Accent**: `#e95420` | **Secondary**: `#77216f`
+- **Canvas**: `#242424` | **Card Background**: `#303030` | **Text**: `#ffffff`
+- **Live Preview Command**: `bun run demo:themes ubuntu_dark`
+
+![Ubuntu Yaru Dark Showcase](screenshots/themes/ubuntu_dark.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
+<a id="theme-ubuntu_light"></a>
+### 58. Ubuntu Yaru Light (`ubuntu_light`)
+
+> Clean Ubuntu Yaru modern Linux light desktop with crisp white surfaces, warm gray borders, and vibrant Ubuntu orange
+
+- **Mode**: ☀️ Light | **Primary Accent**: `#e95420` | **Secondary**: `#77216f`
+- **Canvas**: `#f7f7f7` | **Card Background**: `#ffffff` | **Text**: `#1e1e1e`
+- **Live Preview Command**: `bun run demo:themes ubuntu_light`
+
+![Ubuntu Yaru Light Showcase](screenshots/themes/ubuntu_light.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
+<a id="theme-adwaita_dark"></a>
+### 59. GNOME Adwaita Dark (`adwaita_dark`)
+
+> Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents
+
+- **Mode**: 🌙 Dark | **Primary Accent**: `#3584e4` | **Secondary**: `#1c71d8`
+- **Canvas**: `#242424` | **Card Background**: `#303030` | **Text**: `#ffffff`
+- **Live Preview Command**: `bun run demo:themes adwaita_dark`
+
+![GNOME Adwaita Dark Showcase](screenshots/themes/adwaita_dark.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
+<a id="theme-adwaita_light"></a>
+### 60. GNOME Adwaita Light (`adwaita_light`)
+
+> Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature blue controls
+
+- **Mode**: ☀️ Light | **Primary Accent**: `#3584e4` | **Secondary**: `#1c71d8`
+- **Canvas**: `#fafafa` | **Card Background**: `#ffffff` | **Text**: `#2e3436`
+- **Live Preview Command**: `bun run demo:themes adwaita_light`
+
+![GNOME Adwaita Light Showcase](screenshots/themes/adwaita_light.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
+<a id="theme-linux_mint"></a>
+### 61. Linux Mint Dark (`linux_mint`)
+
+> Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents
+
+- **Mode**: 🌙 Dark | **Primary Accent**: `#87a556` | **Secondary**: `#2ebd59`
+- **Canvas**: `#2f343f` | **Card Background**: `#242831` | **Text**: `#e0e2e4`
+- **Live Preview Command**: `bun run demo:themes linux_mint`
+
+![Linux Mint Dark Showcase](screenshots/themes/linux_mint.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
+<a id="theme-pop_os"></a>
+### 62. Pop!_OS Dark (`pop_os`)
+
+> System76 Pop!_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents
+
+- **Mode**: 🌙 Dark | **Primary Accent**: `#48b9c7` | **Secondary**: `#faa41a`
+- **Canvas**: `#202222` | **Card Background**: `#2c2e2e` | **Text**: `#f6f6f6`
+- **Live Preview Command**: `bun run demo:themes pop_os`
+
+![Pop!_OS Dark Showcase](screenshots/themes/pop_os.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
+<a id="theme-fedora_dark"></a>
+### 63. Fedora Blue (`fedora_dark`)
+
+> Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue
+
+- **Mode**: 🌙 Dark | **Primary Accent**: `#51a2da` | **Secondary**: `#294172`
+- **Canvas**: `#1f232a` | **Card Background**: `#292e38` | **Text**: `#ffffff`
+- **Live Preview Command**: `bun run demo:themes fedora_dark`
+
+![Fedora Blue Showcase](screenshots/themes/fedora_dark.png)
+
+<p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
+
+---
+
 <a id="quick-reference-index"></a>
-## ⚡ Quick Reference Index Table (All 56 Themes)
+## ⚡ Quick Reference Index Table (All 63 Themes)
 
 | # | Theme Key | Display Name | Mode | Primary Accent | Secondary | Background | Quick Screenshot |
 |---|---|---|---|---|---|---|---|
@@ -958,6 +1070,13 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 | **54** | `nextstep` | **NeXTSTEP 1989** | 🌙 Dark | `#4a90e2` | `#707070` | `#262626` | [🖼️ View Screenshot](#theme-nextstep) |
 | **55** | `hotdog_stand` | **Hot Dog Stand** | 🌙 Dark | `#ff0000` | `#ffff00` | `#000000` | [🖼️ View Screenshot](#theme-hotdog_stand) |
 | **56** | `playstation` | **PlayStation 1994** | 🌙 Dark | `#00d2c4` | `#f44336` | `#1e1e24` | [🖼️ View Screenshot](#theme-playstation) |
+| **57** | `ubuntu_dark` | **Ubuntu Yaru Dark** | 🌙 Dark | `#e95420` | `#77216f` | `#242424` | [🖼️ View Screenshot](#theme-ubuntu_dark) |
+| **58** | `ubuntu_light` | **Ubuntu Yaru Light** | ☀️ Light | `#e95420` | `#77216f` | `#f7f7f7` | [🖼️ View Screenshot](#theme-ubuntu_light) |
+| **59** | `adwaita_dark` | **GNOME Adwaita Dark** | 🌙 Dark | `#3584e4` | `#1c71d8` | `#242424` | [🖼️ View Screenshot](#theme-adwaita_dark) |
+| **60** | `adwaita_light` | **GNOME Adwaita Light** | ☀️ Light | `#3584e4` | `#1c71d8` | `#fafafa` | [🖼️ View Screenshot](#theme-adwaita_light) |
+| **61** | `linux_mint` | **Linux Mint Dark** | 🌙 Dark | `#87a556` | `#2ebd59` | `#2f343f` | [🖼️ View Screenshot](#theme-linux_mint) |
+| **62** | `pop_os` | **Pop!_OS Dark** | 🌙 Dark | `#48b9c7` | `#faa41a` | `#202222` | [🖼️ View Screenshot](#theme-pop_os) |
+| **63** | `fedora_dark` | **Fedora Blue** | 🌙 Dark | `#51a2da` | `#294172` | `#1f232a` | [🖼️ View Screenshot](#theme-fedora_dark) |
 
 ---
 
@@ -968,7 +1087,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 ```typescript
 import { createWindow } from "./index.ts";
 
-// Create a desktop window using any of the 56 built-in themes
+// Create a desktop window using any of the 63 built-in themes
 const win = createWindow("My Desktop Application", 840, 600, {
     theme: "mac_os_aqua" // or "codefreelance", "tokyo_night", "win95", etc.
 });

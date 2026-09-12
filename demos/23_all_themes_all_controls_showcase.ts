@@ -349,7 +349,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
         [
             { id: "todo", title: "To Do (2)", cards: [{ id: "c1", title: "Electron to Bun Migration", tag: "Architecture" }, { id: "c2", title: "Side-by-Side Diff", tag: "Feature" }] },
             { id: "progress", title: "In Progress (2)", cards: [{ id: "c3", title: "Command Palette (⌘K)", tag: "UI" }, { id: "c4", title: "Table Column Resizer", tag: "Core" }] },
-            { id: "done", title: "Done (3)", cards: [{ id: "c5", title: "56 Themes", tag: "Design" }, { id: "c6", title: "TreeGrid", tag: "Components" }, { id: "c7", title: "Unit Tests", tag: "QA" }] }
+            { id: "done", title: "Done (3)", cards: [{ id: "c5", title: "63 Themes", tag: "Design" }, { id: "c6", title: "TreeGrid", tag: "Components" }, { id: "c7", title: "Unit Tests", tag: "QA" }] }
         ],
         (w, cardId, colId) => {
             w.showInteractionToast("Card Moved", `${cardId} → ${colId}`);
