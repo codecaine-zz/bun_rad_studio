@@ -21,7 +21,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     const win = simplegui.createWindow(
         `⚡ Bun RAD Studio - All Controls Form Showcase [Theme: ${themeObj.name}]`,
         1180,
-        1260,
+        1920,
         {
             theme: themeName
         }
@@ -53,8 +53,37 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.addThemeSelector("dd_theme_selector", "Theme:", false, 170);
     win.endRow();
 
-    win.addLabel("lbl_theme_desc", `${themeObj.description} • Unified single-form showcase with all 30+ RAD controls`)
+    win.addLabel("lbl_theme_desc", `${themeObj.description} • Unified single-form showcase with all 35+ RAD controls`)
         .font(12, themeObj.is_dark ? "#94a3b8" : "#334155");
+
+    // ==========================================
+    // 1b. DESKTOP TOOLBAR & COMMAND PALETTE STRIP
+    // ==========================================
+    win.beginRow();
+    win.addToolBar("main_toolbar", [
+        { id: "tb_new", label: "New", icon: "📄" },
+        { id: "tb_open", label: "Open", icon: "📂" },
+        { id: "tb_save", label: "Save", icon: "💾" },
+        "---",
+        { id: "tb_bold", label: "Bold", icon: "𝗕", toggle: true, active: true },
+        { id: "tb_italic", label: "Italic", icon: "𝘐", toggle: true, active: false },
+        "---",
+        { id: "tb_run", label: "Run", icon: "▶" },
+        { id: "tb_build", label: "Build", icon: "📦" }
+    ], (w, item) => {
+        w.showInteractionToast("Toolbar", `Action: ${item}`);
+    }).width(720);
+
+    win.addCommandPalette("showcase_cmd", [
+        { id: "cmd_save", label: "File: Save All Changes", category: "File", shortcut: "⌘S", icon: "💾" },
+        { id: "cmd_theme", label: "Preferences: Switch Theme", category: "Preferences", shortcut: "⌘T", icon: "🎨" },
+        { id: "cmd_build", label: "Build: Compile Desktop Bundle", category: "Build", shortcut: "⌘B", icon: "📦" },
+        { id: "cmd_test", label: "Test: Run Full Test Suite (168 tests)", category: "Test", shortcut: "⌘⇧T", icon: "🧪" },
+        { id: "cmd_term", label: "Terminal: Open Integrated Console", category: "View", shortcut: "⌃`", icon: "💻" }
+    ], (w, cmdId) => {
+        w.showAlert(`Executed command: ${cmdId}`, "Command Palette");
+    }, { placeholder: "Search commands, files, actions (⌘K)...", shortcut: "⌘K" }).width(380);
+    win.endRow();
 
     win.addDivider();
 
@@ -274,7 +303,65 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     win.endGrid();
 
     // ==========================================
-    // 5. ACTION FOOTER BUTTONS
+    // 5. DEVELOPER PRO CONTROLS (DIFF, SPLITTER, TABS, KANBAN)
+    // ==========================================
+    win.beginGrid(2, 16);
+
+    win.beginCard("Side-by-Side Diff Viewer", "Before/after code changes with syntax-highlighted additions and deletions");
+    win.addDiffView(
+        "diffShowcase",
+        "function buildApp(options) {\n    const bundle = compile(options);\n    return bundle;\n}",
+        "function buildApp(options: AppConfig): BundleResult {\n    const bundle = compileFast(options);\n    logBundleStats(bundle);\n    return bundle;\n}",
+        { language: "typescript", originalTitle: "v1.0.0 (Released)", modifiedTitle: "v2.0.0 (Current)" }
+    ).height(130);
+    win.endCard();
+
+    win.beginCard("Interactive Resizable Splitter", "Draggable split divider with mouse-drag resizing between panes");
+    win.addSplitPane(
+        "splitShowcase",
+        {
+            left_title: "Component Tree",
+            left_content: "• AppContainer\n• NavigationToolbar\n• DataGrid\n• StatusBar",
+            right_title: "Active Inspector",
+            right_content: "Control: DataGrid\nRows: 1,420\nSorting: Enabled ▲\nResizing: Enabled ↔",
+            initialSplit: 0.35,
+            height: 130
+        }
+    );
+    win.endCard();
+
+    win.beginCard("Closable Workspace Tabs", "Document tab management with close buttons and auto-switching");
+    win.addTabs(
+        ["main.ts", "simplegui.ts", "theme_engine.ts", "README.md"],
+        0,
+        {
+            closable: true,
+            onTabClose: (w: any, tab: string) => {
+                w.showInteractionToast("Tab Closed", `Closed ${tab}`);
+            }
+        }
+    ).id("tabsWorkspace").height(38);
+    win.endCard();
+
+    win.beginCard("Kanban Sprint Board", "Native HTML5 drag-and-drop cards across workflow columns");
+    win.addKanbanBoard(
+        "kanbanShowcase",
+        [
+            { id: "todo", title: "To Do (2)", cards: [{ id: "c1", title: "Electron to Bun Migration", tag: "Architecture" }, { id: "c2", title: "Side-by-Side Diff", tag: "Feature" }] },
+            { id: "progress", title: "In Progress (2)", cards: [{ id: "c3", title: "Command Palette (⌘K)", tag: "UI" }, { id: "c4", title: "Table Column Resizer", tag: "Core" }] },
+            { id: "done", title: "Done (3)", cards: [{ id: "c5", title: "56 Themes", tag: "Design" }, { id: "c6", title: "TreeGrid", tag: "Components" }, { id: "c7", title: "Unit Tests", tag: "QA" }] }
+        ],
+        (w, cardId, colId) => {
+            w.showInteractionToast("Card Moved", `${cardId} → ${colId}`);
+        },
+        { height: 140 }
+    );
+    win.endCard();
+
+    win.endGrid();
+
+    // ==========================================
+    // 6. ACTION FOOTER BUTTONS
     // ==========================================
     win.beginRow();
 

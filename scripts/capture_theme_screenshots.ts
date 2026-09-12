@@ -105,7 +105,7 @@ for (let i = 0; i < CANONICAL_THEMES.length; i++) {
     writeFileSync(tempHtmlPath, html, "utf8");
 
     const outPath = join(OUTPUT_DIR, `${key}.png`);
-    const cmd = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${outPath}" --window-size=1200,1260 "file://${tempHtmlPath}" 2>/dev/null`;
+    const cmd = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${outPath}" --window-size=1200,1950 "file://${tempHtmlPath}" 2>/dev/null`;
     Sys.exec(cmd);
 
     const exists = existsSync(outPath);

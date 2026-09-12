@@ -344,6 +344,37 @@ export class SimpleControlRef {
         return this;
     }
 
+    closable(enable = true): this {
+        this.spec.closable = enable;
+        this.spec.closeable = enable;
+        return this;
+    }
+    sortable(enable = true): this {
+        this.spec.sortable = enable;
+        return this;
+    }
+    resizable(enable = true): this {
+        this.spec.resizable = enable;
+        return this;
+    }
+
+    onCommand(handler: EventCallback): this {
+        this.on("command", handler);
+        return this.on("select", handler);
+    }
+    onTabClose(handler: EventCallback): this {
+        return this.on("tab_close", handler);
+    }
+    onCardMove(handler: EventCallback): this {
+        return this.on("card_move", handler);
+    }
+    onResize(handler: EventCallback): this {
+        return this.on("resize", handler);
+    }
+    onSort(handler: EventCallback): this {
+        return this.on("sort", handler);
+    }
+
     on_click(handler: EventCallback): this { return this.onClick(handler); }
     on_change(handler: EventCallback): this { return this.onChange(handler); }
     on_hover(handler: EventCallback): this { return this.onHoverExit ? this.onHover(handler) : this; }
@@ -1993,6 +2024,182 @@ export class SimpleWindow {
         return this.addVisualControl("separator", this.width - (this.padding * 2), 2, { ...opts });
     }
 
+    public addCommandPalette(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let items: any[] = [];
+        let selectHandler: EventCallback | undefined;
+        let finalOpts: Record<string, any> = { ...opts };
+
+        if (typeof onSelect === "function") {
+            selectHandler = onSelect;
+        } else if (typeof onSelect === "object" && onSelect !== null) {
+            finalOpts = { ...onSelect, ...finalOpts };
+        }
+
+        if (typeof idOrItems === "string") {
+            explicitId = idOrItems;
+            if (Array.isArray(itemsOrOnSelect)) {
+                items = itemsOrOnSelect;
+            } else if (typeof itemsOrOnSelect === "function") {
+                selectHandler = itemsOrOnSelect;
+            } else if (typeof itemsOrOnSelect === "string") {
+                finalOpts.placeholder = itemsOrOnSelect;
+            } else if (typeof itemsOrOnSelect === "object" && itemsOrOnSelect !== null) {
+                finalOpts = { ...itemsOrOnSelect, ...finalOpts };
+            }
+        } else if (Array.isArray(idOrItems)) {
+            items = idOrItems;
+            if (typeof itemsOrOnSelect === "function") selectHandler = itemsOrOnSelect;
+            else if (typeof itemsOrOnSelect === "object" && itemsOrOnSelect !== null) finalOpts = { ...itemsOrOnSelect, ...finalOpts };
+        }
+
+        const ctrlOpts: Record<string, any> = { items, commands: items, ...finalOpts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("command_palette", finalOpts.width || Math.min(480, this.width - 40), finalOpts.height || 44, ctrlOpts);
+        if (selectHandler) ref.on("select", selectHandler);
+        return ref;
+    }
+    public add_command_palette(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCommandPalette(idOrItems, itemsOrOnSelect, onSelect, opts);
+    }
+    public addQuickOpen(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addCommandPalette(idOrItems, itemsOrOnSelect, onSelect, opts);
+    }
+
+    public addDiffView(idOrOriginal?: string, originalOrModified?: string | Partial<any>, modifiedOrOpts?: string | number | Partial<any>, widthOrOpts?: number | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let originalText = "";
+        let modifiedText = "";
+        let finalOpts: Record<string, any> = {};
+        let width = 540;
+        let height = 200;
+
+        if (typeof idOrOriginal === "string" && typeof originalOrModified === "string" && typeof modifiedOrOpts === "string") {
+            explicitId = idOrOriginal;
+            originalText = originalOrModified;
+            modifiedText = modifiedOrOpts;
+            if (typeof widthOrOpts === "object" && widthOrOpts !== null) finalOpts = { ...widthOrOpts };
+            else if (typeof opts === "object" && opts !== null) finalOpts = { ...opts };
+        } else if (typeof idOrOriginal === "string" && typeof originalOrModified === "string") {
+            originalText = idOrOriginal;
+            modifiedText = originalOrModified;
+            if (typeof modifiedOrOpts === "number") width = modifiedOrOpts;
+            else if (typeof modifiedOrOpts === "object" && modifiedOrOpts !== null) finalOpts = { ...modifiedOrOpts };
+
+            if (typeof widthOrOpts === "number") height = widthOrOpts;
+            else if (typeof widthOrOpts === "object" && widthOrOpts !== null) finalOpts = { ...finalOpts, ...widthOrOpts };
+
+            if (typeof opts === "object" && opts !== null) finalOpts = { ...finalOpts, ...opts };
+        } else if (typeof idOrOriginal === "string") {
+            explicitId = idOrOriginal;
+            if (typeof originalOrModified === "object" && originalOrModified !== null) finalOpts = { ...originalOrModified };
+        }
+
+        const ctrlOpts: Record<string, any> = {
+            text: originalText,
+            caption: modifiedText,
+            original: originalText,
+            modified: modifiedText,
+            value: modifiedText,
+            original_title: finalOpts.original_title || finalOpts.originalTitle,
+            modified_title: finalOpts.modified_title || finalOpts.modifiedTitle,
+            ...finalOpts
+        };
+        if (explicitId) ctrlOpts.id = explicitId;
+        return this.addVisualControl("diff_view", finalOpts.width || width, finalOpts.height || height, ctrlOpts);
+    }
+    public add_diff_view(idOrOriginal?: string, originalOrModified?: string | Partial<any>, modifiedOrOpts?: string | number | Partial<any>, widthOrOpts?: number | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDiffView(idOrOriginal, originalOrModified, modifiedOrOpts, widthOrOpts, opts);
+    }
+    public addDiffEditor(idOrOriginal?: string, originalOrModified?: string | Partial<any>, modifiedOrOpts?: string | number | Partial<any>, widthOrOpts?: number | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addDiffView(idOrOriginal, originalOrModified, modifiedOrOpts, widthOrOpts, opts);
+    }
+
+    public addToolBar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let items: any[] = [];
+        let clickHandler: EventCallback | undefined;
+        let finalOpts: Record<string, any> = { ...opts };
+
+        if (typeof onClick === "function") clickHandler = onClick;
+        else if (typeof onClick === "object" && onClick !== null) finalOpts = { ...onClick, ...finalOpts };
+
+        if (typeof idOrItems === "string" && (Array.isArray(itemsOrOnClick) || typeof itemsOrOnClick === "string")) {
+            explicitId = idOrItems;
+            items = Array.isArray(itemsOrOnClick) ? itemsOrOnClick : String(itemsOrOnClick).split(",").map(s => s.trim());
+        } else if (Array.isArray(idOrItems)) {
+            items = idOrItems;
+            if (typeof itemsOrOnClick === "function") clickHandler = itemsOrOnClick;
+            else if (typeof itemsOrOnClick === "object" && itemsOrOnClick !== null) finalOpts = { ...itemsOrOnClick, ...finalOpts };
+        } else if (typeof idOrItems === "string") {
+            explicitId = idOrItems;
+            if (typeof itemsOrOnClick === "function") clickHandler = itemsOrOnClick;
+            else if (typeof itemsOrOnClick === "object" && itemsOrOnClick !== null) finalOpts = { ...itemsOrOnClick, ...finalOpts };
+        } else {
+            items = ["📄 New", "📂 Open", "💾 Save", "⚙️ Settings"];
+        }
+
+        const ctrlOpts: Record<string, any> = { items, text: Array.isArray(items) ? items.map(it => typeof it === "string" ? it : (it.label || it.name || it.id)).join(", ") : String(items), ...finalOpts };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("tool_bar", finalOpts.width || (this.width - (this.padding * 2)), finalOpts.height || 36, ctrlOpts);
+        if (clickHandler) ref.onClick(clickHandler);
+        return ref;
+    }
+    public add_tool_bar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolBar(idOrItems, itemsOrOnClick, onClick, opts);
+    }
+    public addToolbar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolBar(idOrItems, itemsOrOnClick, onClick, opts);
+    }
+    public addActionBar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolBar(idOrItems, itemsOrOnClick, onClick, opts);
+    }
+    public tool_bar(idOrItems?: any, itemsOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addToolBar(idOrItems, itemsOrOpts, opts);
+    }
+
+    public addSplitPane(idOrLeft?: string, leftOrRight?: string | Partial<any>, rightOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let left = "";
+        let right = "";
+        let finalOpts: Record<string, any> = { ...opts };
+
+        if (typeof idOrLeft === "string" && (typeof leftOrRight === "string" || typeof rightOrOpts === "string")) {
+            if (typeof rightOrOpts === "string") {
+                explicitId = idOrLeft;
+                left = String(leftOrRight || "");
+                right = rightOrOpts;
+            } else {
+                left = idOrLeft;
+                right = String(leftOrRight || "");
+                if (typeof rightOrOpts === "object" && rightOrOpts !== null) finalOpts = { ...rightOrOpts, ...finalOpts };
+            }
+        } else if (typeof idOrLeft === "string") {
+            explicitId = idOrLeft;
+            if (typeof leftOrRight === "object" && leftOrRight !== null) finalOpts = { ...leftOrRight, ...finalOpts };
+        }
+
+        const text = `${left} | ${right}`;
+        const ctrlOpts: Record<string, any> = {
+            text,
+            left_content: left,
+            right_content: right,
+            initial_split: finalOpts.initial_split !== undefined ? finalOpts.initial_split : finalOpts.initialSplit,
+            ...finalOpts
+        };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("split_pane", finalOpts.width || 540, finalOpts.height || 180, ctrlOpts);
+        const onResize = finalOpts.onResize || finalOpts.on_resize;
+        if (onResize && typeof onResize === "function") ref.on("resize", onResize);
+        return ref;
+    }
+    public add_split_pane(idOrLeft?: string, leftOrRight?: string | Partial<any>, rightOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSplitPane(idOrLeft, leftOrRight, rightOrOpts, opts);
+    }
+    public addSplitter(idOrLeft?: string, leftOrRight?: string | Partial<any>, rightOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addSplitPane(idOrLeft, leftOrRight, rightOrOpts, opts);
+    }
+
     // ==========================================
     // --- VLang SimpleGUI Control Parity API ---
     // ==========================================
@@ -2022,18 +2229,6 @@ export class SimpleWindow {
     }
     public add_password(id?: string, placeholder = "Enter password...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addPassword(id, placeholder, initialVal, opts);
-    }
-
-    public addCommandPalette(id?: string, placeholder = "Type a command or search (Ctrl+K)...", opts: Partial<any> = {}): SimpleControlRef {
-        return this.addVisualControl("command_palette", Math.min(480, this.width - 40), 44, {
-            id,
-            placeholder,
-            caption: placeholder,
-            ...opts
-        });
-    }
-    public add_command_palette(id?: string, placeholder = "Type a command or search (Ctrl+K)...", opts: Partial<any> = {}): SimpleControlRef {
-        return this.addCommandPalette(id, placeholder, opts);
     }
 
     public addTokenField(id?: string, tokens: string[] = ["Bun", "TypeScript", "VLang"], opts: Partial<any> = {}): SimpleControlRef {
@@ -2835,39 +3030,6 @@ export class SimpleWindow {
         return this.addMenuBar(idOrMenus, menusOrOpts, opts);
     }
 
-    public addToolBar(idOrItems?: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
-        let id: string;
-        let items: string[];
-        let finalOpts: Partial<any> = opts;
-
-        if (typeof idOrItems === "string" && (Array.isArray(itemsOrOpts) || typeof itemsOrOpts === "string")) {
-            id = idOrItems;
-            items = Array.isArray(itemsOrOpts) ? itemsOrOpts : itemsOrOpts.split(",").map(s => s.trim());
-        } else if (Array.isArray(idOrItems)) {
-            id = this.generateUniqueId("tool_bar");
-            items = idOrItems;
-            if (typeof itemsOrOpts === "object") finalOpts = itemsOrOpts;
-        } else {
-            id = typeof idOrItems === "string" ? idOrItems : this.generateUniqueId("tool_bar");
-            items = ["📄 New", "📂 Open", "💾 Save", "⚙️ Settings"];
-            if (typeof idOrItems === "object") finalOpts = idOrItems;
-            else if (typeof itemsOrOpts === "object") finalOpts = itemsOrOpts;
-        }
-
-        return this.addVisualControl("tool_bar", this.width - (this.padding * 2), 36, {
-            id,
-            text: items.join(", "),
-            items,
-            ...finalOpts
-        });
-    }
-    public add_tool_bar(idOrItems?: any, itemsOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addToolBar(idOrItems, itemsOrOpts, opts);
-    }
-    public tool_bar(idOrItems?: any, itemsOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addToolBar(idOrItems, itemsOrOpts, opts);
-    }
-
     public setGlobalContextMenu(items: string[]): this {
         (this as any)._globalContextMenuItems = items;
         if (this.isWindowRunning) {
@@ -2929,17 +3091,6 @@ export class SimpleWindow {
     }
     public add_code_studio(title: string, code: string, language = "typescript", opts: Partial<any> = {}): SimpleControlRef {
         return this.addCodeStudio(title, code, language, opts);
-    }
-
-    public addDiffView(original: string, modified: string, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addVisualControl("diff_view", Math.min(width, this.width - 40), height, {
-            text: original,
-            caption: modified,
-            ...opts
-        });
-    }
-    public add_diff_view(original: string, modified: string, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addDiffView(original, modified, width, height, opts);
     }
 
     public addTerminalView(lines: string[] = ["$ bun --version", "1.2.4", "$ ready in 12ms"], width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
@@ -3175,14 +3326,38 @@ export class SimpleWindow {
         return this.addAccordionGroup(items, opts);
     }
 
-    public addKanbanBoard(columns: Array<{ title: string; items: string[] }>, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addVisualControl("kanban_board", this.width - (this.padding * 2), 220, {
-            kanbanColumns: columns,
-            ...opts
-        });
+    public addKanbanBoard(idOrColumns: string | Array<any>, columnsOrOnMove?: Array<any> | EventCallback | Partial<any>, onMoveOrOpts?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let cols: any[] = [];
+        let moveHandler: EventCallback | undefined;
+        let finalOpts: Record<string, any> = { ...opts };
+
+        if (typeof onMoveOrOpts === "function") moveHandler = onMoveOrOpts;
+        else if (typeof onMoveOrOpts === "object" && onMoveOrOpts !== null) finalOpts = { ...onMoveOrOpts, ...finalOpts };
+
+        if (typeof idOrColumns === "string") {
+            explicitId = idOrColumns;
+            if (Array.isArray(columnsOrOnMove)) cols = columnsOrOnMove;
+            else if (typeof columnsOrOnMove === "function") moveHandler = columnsOrOnMove;
+            else if (typeof columnsOrOnMove === "object" && columnsOrOnMove !== null) finalOpts = { ...columnsOrOnMove, ...finalOpts };
+        } else if (Array.isArray(idOrColumns)) {
+            cols = idOrColumns;
+            if (typeof columnsOrOnMove === "function") moveHandler = columnsOrOnMove;
+            else if (typeof columnsOrOnMove === "object" && columnsOrOnMove !== null) finalOpts = { ...columnsOrOnMove, ...finalOpts };
+        }
+
+        const ctrlOpts: Record<string, any> = {
+            kanbanColumns: cols,
+            columns: cols,
+            ...finalOpts
+        };
+        if (explicitId) ctrlOpts.id = explicitId;
+        const ref = this.addVisualControl("kanban_board", finalOpts.width || (this.width - (this.padding * 2)), finalOpts.height || 220, ctrlOpts);
+        if (moveHandler) ref.on("card_move", moveHandler);
+        return ref;
     }
-    public add_kanban_board(columns: Array<{ title: string; items: string[] }>, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addKanbanBoard(columns, opts);
+    public add_kanban_board(idOrColumns: string | Array<any>, columnsOrOnMove?: Array<any> | EventCallback | Partial<any>, onMoveOrOpts?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addKanbanBoard(idOrColumns, columnsOrOnMove, onMoveOrOpts, opts);
     }
 
     public addActionRow(buttons: Array<{ label: string; onClick?: EventCallback; primary?: boolean; style?: string }>, opts: Partial<any> = {}): SimpleControlRef {
@@ -3216,15 +3391,22 @@ export class SimpleWindow {
         return this.addGroupBox(title, width, height, opts);
     }
 
-    public addTabs(tabNames: string[], selectedIdx = 0, opts: Partial<any> = {}): SimpleControlRef {
+    public addTabs(tabNames: string[], selectedIdxOrOpts: number | Partial<any> = 0, opts: Partial<any> = {}): SimpleControlRef {
+        let selectedIdx = 0;
+        let finalOpts: Record<string, any> = { ...opts };
+        if (typeof selectedIdxOrOpts === "number") {
+            selectedIdx = selectedIdxOrOpts;
+        } else if (typeof selectedIdxOrOpts === "object" && selectedIdxOrOpts !== null) {
+            finalOpts = { ...selectedIdxOrOpts, ...finalOpts };
+        }
         return this.addVisualControl("tabs", this.width - (this.padding * 2), 40, {
             items: tabNames,
             value: selectedIdx,
-            ...opts
+            ...finalOpts
         });
     }
-    public add_tabs(tabNames: string[], selectedIdx = 0, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addTabs(tabNames, selectedIdx, opts);
+    public add_tabs(tabNames: string[], selectedIdxOrOpts: number | Partial<any> = 0, opts: Partial<any> = {}): SimpleControlRef {
+        return this.addTabs(tabNames, selectedIdxOrOpts, opts);
     }
 
     public addScrollView(width?: number, height = 240, opts: Partial<any> = {}): SimpleControlRef {

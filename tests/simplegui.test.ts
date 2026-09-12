@@ -1407,11 +1407,11 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
 
         // Check headers
         expect(html).toContain('class="treegrid-select-all"');
-        expect(html).toContain('Name</th>');
-        expect(html).toContain('Type</th>');
-        expect(html).toContain('Size</th>');
-        expect(html).toContain('Modified</th>');
-        expect(html).toContain('Status</th>');
+        expect(html).toContain('<span>Name</span>');
+        expect(html).toContain('<span>Type</span>');
+        expect(html).toContain('<span>Size</span>');
+        expect(html).toContain('<span>Modified</span>');
+        expect(html).toContain('<span>Status</span>');
 
         // Check hierarchical row attributes
         expect(html).toContain('data-tree-id="root_src"');
@@ -1439,6 +1439,224 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
         expect(html).toContain("window['tg_files_toggleRow']");
         expect(html).toContain("window['tg_files_expandAll']");
         expect(html).toContain("window['tg_files_collapseAll']");
+        expect(html).toContain("window['tg_files_sortTreeGrid']");
+    });
+
+    test("20. Pro UI & Developer Controls Suite: Command Palette, Diff Viewer, Toolbar, Splitter, Closable Tabs & Kanban DND", () => {
+        const win = createWindow("Pro UI Controls Test Window", 1200, 800);
+
+        // 1. Command Palette / Quick Open
+        let executedCommand = "";
+        const cmdPalette = win.addCommandPalette(
+            "cmd_main",
+            [
+                { id: "cmd_save", label: "File: Save All", category: "File", shortcut: "⌘S" },
+                { id: "cmd_theme", label: "Preferences: Color Theme", category: "Preferences", shortcut: "⌘K ⌘T" },
+                { id: "cmd_term", label: "Terminal: Create New", category: "View", shortcut: "⌃`" }
+            ],
+            (_w, id) => {
+                executedCommand = id;
+            },
+            { placeholder: "Type a command or search...", shortcut: "⌘K" }
+        );
+
+        expect(cmdPalette.spec.control_type).toBe("command_palette");
+        expect(cmdPalette.spec.id).toBe("cmd_main");
+        expect(cmdPalette.spec.commands.length).toBe(3);
+        expect(cmdPalette.spec.placeholder).toBe("Type a command or search...");
+        expect(cmdPalette.spec.shortcut).toBe("⌘K");
+
+        // Alias checks for Command Palette
+        const cmdAlias1 = win.add_command_palette("cmd_alias1");
+        expect(cmdAlias1.spec.control_type).toBe("command_palette");
+        const cmdAlias2 = win.addQuickOpen("cmd_alias2");
+        expect(cmdAlias2.spec.control_type).toBe("command_palette");
+
+        // 2. Side-by-Side Diff Viewer
+        const origCode = "function greet(name) {\n    console.log('Hello, ' + name);\n}";
+        const modCode = "function greet(name: string): void {\n    console.log(`Hello, ${name}!`);\n    return;\n}";
+        const diffView = win.addDiffView(
+            "diff_editor",
+            origCode,
+            modCode,
+            { language: "typescript", originalTitle: "index.ts (v1.0.0)", modifiedTitle: "index.ts (Current)" }
+        );
+
+        expect(diffView.spec.control_type).toBe("diff_view");
+        expect(diffView.spec.id).toBe("diff_editor");
+        expect(diffView.spec.original).toBe(origCode);
+        expect(diffView.spec.modified).toBe(modCode);
+        expect(diffView.spec.language).toBe("typescript");
+        expect(diffView.spec.original_title).toBe("index.ts (v1.0.0)");
+        expect(diffView.spec.modified_title).toBe("index.ts (Current)");
+
+        // Alias checks for Diff Viewer
+        const diffAlias1 = win.add_diff_view("diff_alias1", "a", "b");
+        expect(diffAlias1.spec.control_type).toBe("diff_view");
+        const diffAlias2 = win.addDiffEditor("diff_alias2", "a", "b");
+        expect(diffAlias2.spec.control_type).toBe("diff_view");
+
+        // 3. Desktop Toolbar / Action Bar
+        let toolbarClicked = "";
+        const toolbar = win.addToolBar(
+            "tb_editor",
+            [
+                { id: "tb_new", label: "New", icon: "📄" },
+                { id: "tb_open", label: "Open", icon: "📂" },
+                "---",
+                { id: "tb_bold", label: "Bold", icon: "𝗕", toggle: true, active: true },
+                { id: "tb_italic", label: "Italic", icon: "𝘐", toggle: true, active: false },
+                "---",
+                { id: "tb_run", label: "Run", icon: "▶" }
+            ],
+            (_w, id) => {
+                toolbarClicked = id;
+            }
+        );
+
+        expect(toolbar.spec.control_type).toBe("tool_bar");
+        expect(toolbar.spec.id).toBe("tb_editor");
+        expect(toolbar.spec.items.length).toBe(7);
+
+        // Alias checks for Toolbar
+        const tbAlias1 = win.add_tool_bar("tb_alias1");
+        expect(tbAlias1.spec.control_type).toBe("tool_bar");
+        const tbAlias2 = win.addToolbar("tb_alias2");
+        expect(tbAlias2.spec.control_type).toBe("tool_bar");
+        const tbAlias3 = win.addActionBar("tb_alias3");
+        expect(tbAlias3.spec.control_type).toBe("tool_bar");
+
+        // 4. Resizable Splitter Panes
+        let splitResized = false;
+        let lastSplitRatio = 0;
+        const splitter = win.addSplitPane(
+            "split_main",
+            {
+                orientation: "horizontal",
+                initialSplit: 0.35,
+                minLeft: 180,
+                minRight: 250,
+                onResize: (_w, ratio) => {
+                    splitResized = true;
+                    lastSplitRatio = ratio;
+                }
+            }
+        );
+
+        expect(splitter.spec.control_type).toBe("split_pane");
+        expect(splitter.spec.id).toBe("split_main");
+        expect(splitter.spec.orientation).toBe("horizontal");
+        expect(splitter.spec.initial_split).toBe(0.35);
+
+        // Alias checks for Split Pane
+        const splitAlias1 = win.add_split_pane("split_alias1");
+        expect(splitAlias1.spec.control_type).toBe("split_pane");
+        const splitAlias2 = win.addSplitter("split_alias2");
+        expect(splitAlias2.spec.control_type).toBe("split_pane");
+
+        // 5. Upgraded Closable Tabs
+        let closedTabTitle = "";
+        const closableTabs = win.addTabs(
+            ["Dashboard", "Settings", "Analytics"],
+            {
+                closable: true,
+                onTabClose: (_w: any, title: string) => {
+                    closedTabTitle = title;
+                }
+            }
+        ).id("tabs_closable");
+
+        expect(closableTabs.spec.closable).toBe(true);
+
+        // 6. Upgraded Kanban Board with Drag & Drop
+        let movedCardId = "";
+        let targetColId = "";
+        const kanban = win.addKanbanBoard(
+            "kanban_sprint",
+            [
+                { id: "todo", title: "To Do", cards: [{ id: "c1", title: "Task 1", tag: "Dev" }] },
+                { id: "inprogress", title: "In Progress", cards: [{ id: "c2", title: "Task 2", tag: "Design" }] },
+                { id: "done", title: "Done", cards: [{ id: "c3", title: "Task 3", tag: "QA" }] }
+            ],
+            (_w, cardId, colId) => {
+                movedCardId = cardId;
+                targetColId = colId;
+            }
+        );
+
+        expect(kanban.spec.control_type).toBe("kanban_board");
+        expect(kanban.spec.id).toBe("kanban_sprint");
+
+        // 7. Fluent Chaining Helpers Verification
+        const chainedRef = win.addButton("btn_chain", "Test")
+            .closable(true)
+            .sortable(true)
+            .resizable(true)
+            .onCommand((_w, cmd) => { executedCommand = cmd; })
+            .onTabClose((_w, t) => { closedTabTitle = t; })
+            .onCardMove((_w, c, col) => { movedCardId = c; targetColId = col; })
+            .onResize((_w, r) => { lastSplitRatio = r; })
+            .onSort((_w, col, dir) => {});
+
+        expect(chainedRef.spec.closable).toBe(true);
+        expect(chainedRef.spec.sortable).toBe(true);
+        expect(chainedRef.spec.resizable).toBe(true);
+        expect(win.eventHandlersMap.has("btn_chain:command")).toBe(true);
+        expect(win.eventHandlersMap.has("btn_chain:tab_close")).toBe(true);
+        expect(win.eventHandlersMap.has("btn_chain:card_move")).toBe(true);
+        expect(win.eventHandlersMap.has("btn_chain:resize")).toBe(true);
+        expect(win.eventHandlersMap.has("btn_chain:sort")).toBe(true);
+
+        // 8. HTML Preview Generation & DOM Integrity Verification
+        const html = win.toHtml();
+
+        // Command Palette DOM validation
+        expect(html).toContain('id="cmd_main_backdrop"');
+        expect(html).toContain('rad-cmd-palette-backdrop');
+        expect(html).toContain('class="cmd-palette-input"');
+        expect(html).toContain('Type a command or search...');
+        expect(html).toContain('File: Save All');
+        expect(html).toContain('Preferences: Color Theme');
+        expect(html).toContain('Terminal: Create New');
+        expect(html).toContain('⌘K ⌘T');
+        expect(html).toContain("window['cmd_main_open']");
+        expect(html).toContain("window['cmd_main_close']");
+        expect(html).toContain("window['cmd_main_filter']");
+        expect(html).toContain("window['cmd_main_select']");
+
+        // Diff Viewer DOM validation
+        expect(html).toContain('id="diff_editor"');
+        expect(html).toContain('rad-diff-container');
+        expect(html).toContain('index.ts (v1.0.0)');
+        expect(html).toContain('index.ts (Current)');
+        expect(html).toContain('diff-line-num');
+        expect(html).toContain('diff-del');
+        expect(html).toContain('diff-add');
+        expect(html).toContain('greet(name: string)');
+
+        // Toolbar DOM validation
+        expect(html).toContain('id="tb_editor"');
+        expect(html).toContain('class="rad-toolbar"');
+        expect(html).toContain('class="toolbar-separator"');
+        expect(html).toContain('data-toggle="true"');
+        expect(html).toContain('window[\'tb_editor_click\']');
+
+        // Splitter DOM validation
+        expect(html).toContain('id="split_main"');
+        expect(html).toContain('class="rad-split-pane"');
+        expect(html).toContain('class="split-pane-handle"');
+        expect(html).toContain("cursor:col-resize;");
+        expect(html).toContain('onSplitMove');
+
+        // Closable Tabs DOM validation
+        expect(html).toContain('class="tab-close-btn"');
+        expect(html).toContain('window[\'tabs_closable_closeTab\']');
+
+        // Kanban HTML5 Drag & Drop DOM validation
+        expect(html).toContain('class="rad-kanban-board"');
+        expect(html).toContain('draggable="true"');
+        expect(html).toContain('ondragstart="window[\'kanban_sprint_dragStart\'](event, \'c1\')"');
+        expect(html).toContain('ondrop="window[\'kanban_sprint_drop\'](event, \'todo\')"');
     });
 });
 
