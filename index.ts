@@ -1349,6 +1349,23 @@ export function isColorBright(hex?: string): boolean {
     return (r * 0.299 + g * 0.587 + b * 0.114) > 180;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+    if (!hex || typeof hex !== 'string') return `rgba(56, 189, 248, ${alpha})`;
+    const clean = hex.replace('#', '').trim();
+    if (clean.length === 3) {
+        const r = parseInt(clean[0] + clean[0], 16);
+        const g = parseInt(clean[1] + clean[1], 16);
+        const b = parseInt(clean[2] + clean[2], 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } else if (clean.length >= 6) {
+        const r = parseInt(clean.slice(0, 2), 16);
+        const g = parseInt(clean.slice(2, 4), 16);
+        const b = parseInt(clean.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return `rgba(56, 189, 248, ${alpha})`;
+}
+
 export function generatePreviewHtml(spec: any): string {
     const bg = spec.background_color || '#0f172a';
     const fg = spec.font_color || '#e2e8f0';
@@ -1371,16 +1388,27 @@ export function generatePreviewHtml(spec: any): string {
     }
 
     const defaultBtnBg = spec.accent_color || accent || '#0284c7';
-    const isBrightDefault = (defaultBtnBg === '#0fb36a' || defaultBtnBg === '#30d158' || defaultBtnBg === '#00ff00' || defaultBtnBg === '#4ade80') || isColorBright(defaultBtnBg);
+    const isBrightDefault = (defaultBtnBg === '#0fb36a' || defaultBtnBg === '#30d158' || defaultBtnBg === '#00ff00' || defaultBtnBg === '#4ade80' || defaultBtnBg === '#00ff41' || defaultBtnBg === '#ffb000' || defaultBtnBg === '#ffd866') || isColorBright(defaultBtnBg);
     const defaultBtnFg = isBrightDefault ? '#000000' : '#ffffff';
 
-    const border = bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)');
+    const isBrightAccent = (accent === '#0fb36a' || accent === '#30d158' || accent === '#00ff00' || accent === '#4ade80' || accent === '#00ff41' || accent === '#ffb000' || accent === '#ffd866') || isColorBright(accent);
+    const activeFg = isBrightAccent ? '#000000' : '#ffffff';
+
+    const cardBg = spec.card_background || (isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : (bg === '#0a0600' ? '#160d00' : (bg === '#040a05' ? '#08140a' : '#1e293b'))));
+    const isCardLight = isLight || isColorBright(cardBg);
+    const cardBorder = spec.card_border || (bg === '#050505' ? '#242424' : (bg === '#0a0600' ? '#472800' : (bg === '#040a05' ? '#123d18' : (isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'))));
+    const border = spec.border_color || spec.card_border || (bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)'));
     const w = spec.width || 800;
     const h = spec.height || 600;
-
     const buildEvents = (c: any) => {
         let ev = '';
-        const handlers: Record<string, string> = { ...(c.event_handlers || {}) };
+        const handlers: Record<string, string> = {
+            ...(c.event_handlers || {}),
+            ...(c.onclick ? { onClick: c.onclick } : {}),
+            ...(c.onClick ? { onClick: c.onClick } : {}),
+            ...(c.onchange ? { onChange: c.onchange } : {}),
+            ...(c.onChange ? { onChange: c.onChange } : {}),
+        };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
             const isInputType = [
@@ -1452,13 +1480,16 @@ export function generatePreviewHtml(spec: any): string {
         const posY = c.top !== undefined ? c.top : (c.y !== undefined ? c.y : 0);
 
         const ctrlType = (c.control_type || c.type || '').toLowerCase();
-        const isFullWidthContainer = (ctrlType === 'groupbox' || ctrlType === 'card' || ctrlType === 'accordion') && posX <= 40 && c.width >= (w - (posX * 2) - 60);
+        const isFullWidthContainer = (ctrlType === 'groupbox' || ctrlType === 'card' || ctrlType === 'content_card' || ctrlType === 'w3_card' || ctrlType === 'accordion') && posX <= 40 && c.width >= (w - (posX * 2) - 60);
         const isFullWidthControl = !isFullWidthContainer && posX <= 60 && c.width >= (w - 120) && [
             'textarea', 'html_view', 'browser_view', 'code_view', 'code_editor',
             'data_table', 'db_grid', 'table', 'tree_grid', 'tree_table', 'activity_feed', 'stat_chart',
             'diff_view', 'diff_editor', 'cmd_palette', 'command_palette', 'quick_open', 'toolbar', 'action_bar', 'split_pane',
             'tabs', 'workspace_tabs', 'status_bar', 'property_grid', 'kanban_board',
-            'sparkline_table', 'drop_zone'
+            'sparkline_table', 'drop_zone',
+            'sidebar', 'list_group', 'code_snippet', 'code_block', 'callout_panel', 'note_panel', 'slideshow',
+            'hero_display', 'rad_display', 'w3_display', 'w3_display_container',
+            'w3_sidebar', 'w3_list', 'w3_code', 'w3_panel', 'w3_slideshow'
         ].includes(ctrlType);
 
         let widthCss = `${c.width}px`;
@@ -1494,7 +1525,7 @@ export function generatePreviewHtml(spec: any): string {
         const rawCbg = c.background_color || 'transparent';
         const cbg = c.background_color && c.background_color !== 'transparent'
             ? c.background_color
-            : (bg === '#050505' ? '#121212' : (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)'));
+            : (spec.card_background ? spec.card_background : (bg === '#050505' ? '#121212' : (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)')));
         const ev = buildEvents(c);
         const ctxAttr = c.context_menu_items && Array.isArray(c.context_menu_items) && c.context_menu_items.length > 0
             ? ` data-context-menu="${c.context_menu_items.join('|').replace(/"/g, '&quot;')}" data-ctrl-id="${c.id}"`
@@ -2946,6 +2977,139 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'accordion_group') {
             const titles = (c.titles || (text ? text.split(',') : ['Section 1', 'Section 2', 'Section 3'])).map((s: string) => s.trim());
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;">${titles.map((tl: string, i: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:6px;overflow:hidden;"><div style="padding:6px 10px;font-size:11px;font-weight:700;color:${accent};cursor:pointer;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'};">${tl}</div></div>`).join('')}</div>\n`;
+        } else if (t === 'sidebar' || t === 'rad_sidebar' || t === 'w3_sidebar') {
+            const sbTitle = c.title || c.caption || text || 'Navigation';
+            const rawItems = c.items || c.menu_items || ['🏠 Dashboard', '📁 Projects', '👥 Team Members', '⚙️ Preferences', '❓ Help & Docs'];
+            const sbItems = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => s.trim());
+            const sbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            const activeIdx = c.selected_index !== undefined ? c.selected_index : 0;
+            const actBg = hexToRgba(accent, isLight ? 0.15 : 0.22);
+            controls += `<div${id}${titleAttr} class="rad-sidebar rad-elevation-2" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${sbRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="padding:12px 14px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;"><span style="font-weight:700;font-size:13px;color:${accent};">${esc(sbTitle)}</span><button onclick="const sb=this.closest('.rad-sidebar');if(sb)sb.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="background:transparent;border:none;color:${color};font-size:16px;cursor:pointer;opacity:0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&times;</button></div><div style="flex:1;overflow-y:auto;padding:6px 0;">${sbItems.map((it: any, i: number) => {
+                const label = typeof it === 'object' && it !== null ? (it.label || it.text || '') : String(it);
+                const isAct = i === activeIdx;
+                const itBg = isAct ? actBg : 'transparent';
+                const itCol = isAct ? accent : color;
+                const itWeight = isAct ? '700' : '500';
+                return `<button class="rad-sidebar-item" onclick="const p=this.parentNode;p.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}';b.style.fontWeight='500';});this.style.background='${actBg}';this.style.color='${accent}';this.style.fontWeight='700';const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(label)}');" style="width:100%;padding:9px 14px;text-align:left;background:${itBg};color:${itCol};font-weight:${itWeight};font-size:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background 0.15s;" onmouseover="if(this.style.color!=='${accent}')this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}'" onmouseout="if(this.style.color!=='${accent}')this.style.background='transparent'"><span>${esc(label)}</span><span style="opacity:0.4;font-size:10px;">›</span></button>`;
+            }).join('')}</div></div>\n`;
+        } else if (t === 'modal' || t === 'modal_dialog' || t === 'rad_modal' || t === 'w3_modal') {
+            const mTitle = c.title || c.caption || text || 'Modal Dialog';
+            const mMsg = c.message || c.content || c.placeholder || 'This is a modal dialog container. It provides customizable header, body content, and action buttons.';
+            const mRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:12px;';
+            const isDisplayed = c.is_open === true || c.isOpen === true;
+            const mHeadBg = hexToRgba(accent, isLight ? 0.1 : 0.16);
+            controls += `<div id="${c.id}" class="rad-modal-backdrop" style="display:${isDisplayed ? 'flex' : 'none'};position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;" onclick="if(event.target===this){this.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();}"><div class="rad-modal rad-elevation-2" style="width:${c.width || 480}px;max-width:92vw;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${mRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 48px rgba(0,0,0,0.55);animation:radModalPop 0.22s cubic-bezier(0.16,1,0.3,1);"><div style="padding:14px 18px;background:${mHeadBg};border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;"><span style="font-weight:700;font-size:13px;color:${accent};">${esc(mTitle)}</span><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="background:transparent;border:none;color:${color};font-size:20px;font-weight:bold;cursor:pointer;line-height:1;opacity:0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&times;</button></div><div style="padding:18px;flex:1;overflow-y:auto;font-size:12px;line-height:1.5;color:${color};white-space:pre-wrap;"><p style="margin:0;">${esc(mMsg)}</p></div><div style="padding:12px 18px;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;"><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onCancel']||window['on_${c.id}_cancel']||window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="padding:7px 14px;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};color:${color};border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onConfirm']||window['on_${c.id}_confirm']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('confirm');" style="padding:7px 16px;background:${accent};color:${activeFg};border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Confirm</button></div></div></div>\n`;
+        } else if (t === 'dropdown_menu' || t === 'rad_dropdown' || t === 'w3_dropdown' || t === 'w3_dropdown_menu') {
+            const dLabel = c.caption || text || 'Select Action';
+            const rawItems = c.items || ['Action One', 'Action Two', 'Action Three', 'Settings'];
+            const dItems = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => s.trim());
+            const dRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            controls += `<div${id}${titleAttr} class="rad-dropdown-host" style="${base(c)}"><button class="rad-dropdown-btn btn-theme-accent" onclick="event.stopPropagation();const p=this.parentNode;const c=p.querySelector('.rad-dropdown-menu');const isShow=c.style.display==='block';document.querySelectorAll('.rad-dropdown-menu, .w3-dropdown-content').forEach(el=>el.style.display='none');document.querySelectorAll('.rad-dropdown-host').forEach(el=>el.style.zIndex='10');c.style.display=isShow?'none':'block';p.style.zIndex=isShow?'10':'10000';" style="width:100%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : accent};color:${activeFg};border:1px solid ${cardBorder};${dRadius}padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:${c.font_size||12}px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><span>${esc(dLabel)}</span><span style="font-size:10px;margin-left:8px;">▼</span></button><div class="rad-dropdown-menu" style="background:${cardBg};border:1px solid ${cardBorder};top:calc(100% + 4px);left:0;min-width:100%;border-radius:6px;overflow:hidden;box-shadow:0 12px 28px rgba(0,0,0,0.4);z-index:10000;">${dItems.map((it: any) => {
+                const label = typeof it === 'object' && it !== null ? (it.label || it.text || '') : String(it);
+                const val = typeof it === 'object' && it !== null ? (it.value !== undefined ? it.value : it.label) : String(it);
+                return `<button class="rad-dropdown-item" onclick="event.stopPropagation();const dc=this.closest('.rad-dropdown-menu');if(dc)dc.style.display='none';const host=this.closest('.rad-dropdown-host');if(host)host.style.zIndex='10';const btn=host ? host.querySelector('button span') : null;if(btn)btn.textContent='${esc(label)}';const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(val)}');" style="width:100%;padding:8px 12px;text-align:left;background:transparent;color:${color};font-size:11px;border:none;cursor:pointer;display:block;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'}'" onmouseout="this.style.background='transparent'">${esc(label)}</button>`;
+            }).join('')}</div></div>\n`;
+        } else if (t === 'list_group' || t === 'rad_list_group' || t === 'w3_list' || t === 'w3_ul') {
+            const rawItems = c.items || [
+                { title: 'Project Specification', subtext: 'Updated 10m ago', badge: 'Active', icon: '📄' },
+                { title: 'Customer Database', subtext: '12.4k records synced', badge: 'Online', icon: '🗄️' },
+                { title: 'Security Audit Log', subtext: 'Zero critical issues', badge: 'Passed', icon: '🛡️' }
+            ];
+            const listItems = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => ({ title: s.trim() }));
+            const lRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            const badgeBg = hexToRgba(accent, isLight ? 0.12 : 0.2);
+            controls += `<div${id}${titleAttr} class="rad-card rad-list-group" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${lRadius}overflow-y:auto;"><ul class="rad-list-group-ul" style="list-style:none;padding:0;margin:0;">${listItems.map((it: any) => {
+                const title = typeof it === 'object' && it !== null ? (it.title || it.text || it.name || '') : String(it);
+                const sub = typeof it === 'object' && it !== null ? (it.subtext || it.subtitle || '') : '';
+                const badge = typeof it === 'object' && it !== null ? (it.badge || it.tag || '') : '';
+                const icon = typeof it === 'object' && it !== null ? (it.icon || '📌') : '📌';
+                return `<li style="padding:10px 14px;border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background 0.15s;" onclick="const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(title)}');" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)'}'" onmouseout="this.style.background='transparent'"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${icon}</span><div style="display:flex;flex-direction:column;"><span style="font-size:12px;font-weight:600;color:${color};">${esc(title)}</span>${sub ? `<span style="font-size:10px;opacity:0.65;color:${color};">${esc(sub)}</span>` : ''}</div></div>${badge ? `<span class="rad-pill-tag" style="background:${badgeBg};color:${accent};font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;">${esc(badge)}</span>` : ''}</li>`;
+            }).join('')}</ul></div>\n`;
+        } else if (t === 'content_card' || t === 'card' || t === 'rad_card' || t === 'w3_card') {
+            const cardTitle = c.title || c.caption || text || 'Card Title';
+            const cardDesc = c.description || c.message || c.placeholder || 'Cards provide a clean container with elevation shadow, header banner, and action buttons.';
+            const cardFooter = c.footer || c.subtext || '';
+            const btnText = c.button_text || c.action_label || 'Explore';
+            const cRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            const cardHeadBg = hexToRgba(accent, isLight ? 0.1 : 0.15);
+            controls += `<div${id}${titleAttr} class="rad-card rad-elevation-2 rad-content-card" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${cRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><header style="padding:10px 14px;background:${cardHeadBg};border-bottom:1px solid ${cardBorder};"><h4 style="margin:0;font-size:13px;font-weight:700;color:${accent};">${esc(cardTitle)}</h4></header><div style="padding:12px 14px;flex:1;font-size:11px;line-height:1.5;color:${color};overflow-y:auto;"><p style="margin:0;">${esc(cardDesc)}</p></div><footer style="padding:8px 14px;background:${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;gap:8px;">${cardFooter ? `<span style="font-size:10px;opacity:0.7;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(cardFooter)}</span>` : '<span style="flex:1;"></span>'}${c.button_visible === false ? '' : `<button onclick="const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${esc(btnText)}');" style="padding:5px 12px;background:${accent};color:${activeFg};border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${esc(btnText)}</button>`}</footer></div>\n`;
+        } else if (t === 'callout_panel' || t === 'note_panel' || t === 'rad_callout' || t === 'w3_panel') {
+            const pTitle = c.title || c.caption || 'Important Note';
+            const pMsg = c.message || text || 'Panels highlight important messages, alerts, or notes with a thick accent border bar.';
+            const pType = c.alert_type || c.variant || 'info';
+            const barCol = pType === 'error' || pType === 'danger' ? '#ef4444' : (pType === 'warning' ? '#f59e0b' : (pType === 'success' ? '#10b981' : accent));
+            const icon = pType === 'error' || pType === 'danger' ? '⛔ ' : (pType === 'warning' ? '⚠️ ' : (pType === 'success' ? '✓ ' : 'ℹ️ '));
+            const showIcon = !pTitle.includes('ℹ️') && !pTitle.includes('⚠️') && !pTitle.includes('✓') && !pTitle.includes('⛔') && !pTitle.includes('⚡') && !pTitle.includes('🚨');
+            const pRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:0 8px 8px 0;';
+            const panelBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : hexToRgba(barCol, isLight ? 0.08 : 0.14);
+            controls += `<div${id}${titleAttr} class="rad-callout-panel rad-callout-leftbar" onclick="const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn();" style="${base(c)}background:${panelBg};border-left:6px solid ${barCol};border-top:1px solid ${cardBorder};border-right:1px solid ${cardBorder};border-bottom:1px solid ${cardBorder};${pRadius}padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:3px;box-sizing:border-box;"><div style="font-size:12px;font-weight:700;color:${barCol};display:flex;align-items:center;gap:4px;"><span>${showIcon ? icon : ''}</span><span>${esc(pTitle)}</span></div><div style="font-size:11px;color:${color};line-height:1.4;">${esc(pMsg)}</div></div>\n`;
+        } else if (t === 'tooltip_box' || t === 'rad_tooltip' || t === 'w3_tooltip' || t === 'w3_tooltip_box') {
+            const tipText = c.tooltip || c.content || 'Tooltip info popup!';
+            const triggerText = text || 'Hover Me ℹ️';
+            const tRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            controls += `<div${id} class="rad-tooltip-container rad-tooltip" style="${base(c)}display:inline-flex;align-items:center;justify-content:center;"><button style="width:100%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')};color:${color};border:1px solid ${border};${tRadius}font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;">${esc(triggerText)}</button><span class="rad-tooltip-bubble" style="bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:500;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,0.4);border:1px solid ${hexToRgba(accent, 0.4)};pointer-events:none;">${esc(tipText)}</span></div>\n`;
+        } else if (t === 'animated_input' || t === 'rad_anim_input' || t === 'w3_animated_input') {
+            const aiVal = c.value !== undefined ? c.value : text;
+            const aiPlaceholder = c.placeholder || 'Click to expand...';
+            const aiRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            const inBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#ffffff' : (cardBg === '#050505' ? '#121212' : cardBg));
+            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;"><input class="rad-anim-input" type="text" value="${esc(aiVal)}" placeholder="${esc(aiPlaceholder)}"${disabled}${roAttr}${reqAttr}${maxLenAttr}${ev} oninput="const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(this.value);" style="width:65%;min-width:120px;max-width:100%;height:100%;background:${inBg};color:${color};border:1px solid ${border};${aiRadius}padding:0 12px;font-size:12px;outline:none;box-sizing:border-box;"></div>\n`;
+        } else if (t === 'hero_display' || t === 'display_container' || t === 'rad_display' || t === 'w3_display') {
+            const dTitle = c.title || c.caption || text || 'Hero Display';
+            const dSubtitle = c.subtitle || c.description || 'Modern visual container with high contrast typography and responsive layout.';
+            const dRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
+            const heroBg = c.background_color && c.background_color !== 'transparent'
+                ? c.background_color
+                : (isLight ? `linear-gradient(135deg, ${hexToRgba(accent, 0.12)}, #ffffff)` : `linear-gradient(135deg, ${hexToRgba(accent, 0.22)}, ${cardBg})`);
+            controls += `<div${id}${titleAttr} class="rad-display-hero rad-card" style="${base(c)}background:${heroBg};border:1px solid ${cardBorder};${dRadius}overflow:hidden;padding:24px 28px;display:flex;flex-direction:column;justify-content:center;position:relative;box-sizing:border-box;"><div style="position:absolute;top:10px;left:14px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">★ Featured</div><div style="position:absolute;top:10px;right:14px;background:${accent};color:${activeFg};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">PRO</div><div style="margin-top:10px;"><h2 style="font-size:22px;font-weight:800;color:${color};margin:0 0 6px 0;letter-spacing:-0.02em;">${esc(dTitle)}</h2><p style="font-size:12px;opacity:0.8;color:${color};margin:0;max-width:85%;line-height:1.5;">${esc(dSubtitle)}</p></div></div>\n`;
+        } else if (t === 'code_snippet' || t === 'code_block' || t === 'rad_code' || t === 'w3_code' || t === 'w3_code_block') {
+            const codeContent = c.code || text || 'const studio = new SimpleGUI({\n  responsive: true\n});';
+            const cdRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            const codeBg = isLight ? '#f8fafc' : (bg === '#050505' ? '#0d1117' : (bg === '#0a0600' || bg === '#040a05' ? cardBg : '#0f172a'));
+            controls += `<div${id}${titleAttr} class="rad-code-box rad-card" style="${base(c)}background:${codeBg};border:1px solid ${cardBorder};border-left:4px solid ${accent};${cdRadius}padding:10px 14px;position:relative;overflow:auto;box-sizing:border-box;"><div style="position:absolute;top:6px;right:8px;display:flex;gap:4px;"><button onclick="const pre=this.closest('.rad-code-box').querySelector('pre');if(pre){const t=pre.textContent||'';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>{this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}catch(e){}document.body.removeChild(ta);});}else{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}catch(e){}document.body.removeChild(ta);}}}" style="background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)'};color:${color};border:none;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer;">📋 Copy</button></div><pre style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;color:${isLight ? '#0f172a' : (bg === '#0a0600' ? '#ffb000' : (bg === '#040a05' ? '#00ff66' : '#a7f3d0'))};white-space:pre-wrap;line-height:1.4;">${esc(codeContent)}</pre></div>\n`;
+        } else if (t === 'count_badge' || t === 'circular_badge' || t === 'rad_badge' || t === 'w3_badge') {
+            const count = c.count !== undefined ? c.count : (text || '1');
+            const label = c.label || c.title || c.caption || '';
+            const isDanger = c.alert_type === 'danger' || c.color === 'danger' || c.alert_type === 'error' || c.color === 'error';
+            const isSuccess = c.alert_type === 'success' || c.color === 'success';
+            const isWarning = c.alert_type === 'warning' || c.color === 'warning';
+            const isInfo = c.alert_type === 'info' || c.color === 'info';
+            const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isDanger ? '#ef4444' : (isSuccess ? '#10b981' : (isWarning ? '#f59e0b' : (isInfo ? '#0284c7' : accent))));
+            const badgeFg = isColorBright(badgeBg) ? '#000000' : '#ffffff';
+            if (label || c.width > 48) {
+                const bRadius = c.border_radius !== undefined ? `${c.border_radius}px` : '16px';
+                controls += `<div${id}${titleAttr} class="rad-count-badge-pill" style="${base(c)}background:${hexToRgba(badgeBg, 0.16)};border:1px solid ${hexToRgba(badgeBg, 0.45)};border-radius:${bRadius};padding:0 10px;display:inline-flex;align-items:center;justify-content:space-between;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,0.15);"><span style="font-size:11px;font-weight:600;color:${color};">${esc(label)}</span><span style="background:${badgeBg};color:${badgeFg};border-radius:10px;padding:2px 7px;font-size:10px;font-weight:800;line-height:1;">${esc(String(count))}</span></div>\n`;
+            } else {
+                const badgeSize = Math.min(c.width, c.height, 36);
+                controls += `<div${id}${titleAttr} class="rad-count-badge" style="${base(c)}width:${badgeSize}px;height:${badgeSize}px;background:${badgeBg};color:${badgeFg};border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:${Math.max(10, Math.floor(badgeSize * 0.42))}px;box-shadow:0 2px 6px rgba(0,0,0,0.3);flex-shrink:0;">${esc(String(count))}</div>\n`;
+            }
+        } else if (t === 'button_group' || t === 'button_bar' || t === 'rad_button_group' || t === 'w3_button_group' || t === 'w3_button_bar') {
+            const rawBtns = c.buttons || (text ? text.split(',') : ['◀ Previous', '⏸ Pause', '▶ Next']);
+            const btns = Array.isArray(rawBtns) ? rawBtns : String(rawBtns).split(',').map((s: string) => s.trim());
+            const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
+            controls += `<div${id}${titleAttr} class="rad-btn-bar rad-btn-group" style="${base(c)}display:flex;align-items:stretch;border:1px solid ${border};${bRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);">${btns.map((btnItem: any, bIdx: number) => {
+                const isFirst = bIdx === 0;
+                const isLast = bIdx === btns.length - 1;
+                const borderRight = isLast ? 'none' : `1px solid ${border}`;
+                const btnLabel = typeof btnItem === 'object' && btnItem !== null ? (btnItem.label || btnItem.text || '') : String(btnItem).trim();
+                const btnVal = typeof btnItem === 'object' && btnItem !== null ? (btnItem.value !== undefined ? btnItem.value : btnItem.label) : String(btnItem).trim();
+                return `<button class="rad-btn-group-item" onclick="const p=this.parentNode;p.querySelectorAll('button').forEach(b=>{b.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'}';b.style.color='${color}';});this.style.background='${accent}';this.style.color='${activeFg}';const fn=window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(btnVal)}');" style="flex:1;background:${isFirst ? accent : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)')};color:${isFirst ? activeFg : color};border:none;border-right:${borderRight};font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 10px;transition:background 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">${esc(btnLabel)}</button>`;
+            }).join('')}</div>\n`;
+        } else if (t === 'slideshow' || t === 'carousel' || t === 'rad_slideshow' || t === 'w3_slideshow') {
+            const rawSlides = c.slides || [
+                { caption: 'Slide 1: Executive Analytics', desc: 'Real-time telemetry and revenue KPI monitoring.' },
+                { caption: 'Slide 2: Cloud Infrastructure', desc: 'High availability multi-region deployment nodes.' },
+                { caption: 'Slide 3: Automated Workflow', desc: 'Event-driven message queues and background workers.' }
+            ];
+            const slides = Array.isArray(rawSlides) ? rawSlides : [{ caption: 'Slide 1' }, { caption: 'Slide 2' }];
+            const sRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
+            const dotInactive = isCardLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.3)';
+            controls += `<div${id}${titleAttr} class="rad-slideshow rad-elevation-2" data-slide-index="0" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${sRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div class="slides-viewport" style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;">${slides.map((sl: any, sIdx: number) => {
+                const sTitle = typeof sl === 'object' && sl !== null ? (sl.caption || sl.title || `Slide ${sIdx+1}`) : String(sl);
+                const sDesc = typeof sl === 'object' && sl !== null ? (sl.desc || sl.description || '') : '';
+                const sImg = typeof sl === 'object' && sl !== null ? (sl.image || '') : '';
+                return `<div class="slide-item" data-slide="${sIdx}" style="display:${sIdx === 0 ? 'flex' : 'none'};flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;width:100%;height:100%;">${sImg ? `<img src="${esc(sImg)}" style="max-height:80px;max-width:90%;object-fit:contain;border-radius:4px;" />` : ''}<div style="font-size:13px;font-weight:800;color:${accent};">${esc(sTitle)}</div>${sDesc ? `<div style="font-size:11px;opacity:0.8;color:${color};max-width:80%;line-height:1.4;">${esc(sDesc)}</div>` : ''}</div>`;
+            }).join('')}<button class="rad-slideshow-prev" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let idx=parseInt(p.dataset.slideIndex||'0');slides[idx].style.display='none';idx=(idx-1+slides.length)%slides.length;slides[idx].style.display='flex';p.dataset.slideIndex=idx;const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent=(idx+1)+' / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===idx?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(idx);" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:2;">❮</button><button class="rad-slideshow-next" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let idx=parseInt(p.dataset.slideIndex||'0');slides[idx].style.display='none';idx=(idx+1)%slides.length;slides[idx].style.display='flex';p.dataset.slideIndex=idx;const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent=(idx+1)+' / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===idx?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(idx);" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:2;">❯</button></div><div style="padding:4px 10px;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)'};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;font-size:10px;"><span class="slide-count" style="font-family:monospace;font-weight:bold;color:${accent};">1 / ${slides.length}</span><div style="display:flex;gap:5px;">${slides.map((_, dotIdx) => `<span class="slide-dot" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let oldIdx=parseInt(p.dataset.slideIndex||'0');slides[oldIdx].style.display='none';slides[${dotIdx}].style.display='flex';p.dataset.slideIndex='${dotIdx}';const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent='${dotIdx+1} / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===${dotIdx}?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(${dotIdx});" style="width:8px;height:8px;border-radius:50%;background:${dotIdx === 0 ? accent : dotInactive};cursor:pointer;transition:background 0.2s;"></span>`).join('')}</div></div></div>\n`;
         } else {
             // Fallback for any other type
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
@@ -2995,10 +3159,10 @@ export function generatePreviewHtml(spec: any): string {
     --btn-fg: ${defaultBtnFg};
     --theme-fg: ${fg};
     --theme-muted: ${isLight ? '#334155' : '#94a3b8'};
-    --card-bg: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : '#1e293b')};
-    --card-border: ${border};
-    --input-bg: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : 'rgba(255, 255, 255, 0.05)')};
-    --input-border: ${border};
+    --card-bg: ${cardBg};
+    --card-border: ${cardBorder};
+    --input-bg: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : (bg === '#0a0600' ? '#160d00' : (bg === '#040a05' ? '#08140a' : 'rgba(255, 255, 255, 0.05)')) )};
+    --input-border: ${cardBorder};
     --editable-bg: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'};
     --editable-border: ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'};
   }
@@ -3118,6 +3282,109 @@ export function generatePreviewHtml(spec: any): string {
       color: ${isLight ? '#0f172a' : accent} !important;
       font-weight: 700 !important;
   }
+
+  /* ============================================================== */
+  /* ✨ STUDIO EXTENDED CONTROLS: MODERN ERGONOMIC DESIGN SYSTEM    */
+  /* ============================================================== */
+  .rad-card, .rad-elevation-1 {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .rad-card:hover, .rad-elevation-1:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+  .rad-elevation-2 {
+    box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.35), 0 6px 12px -2px rgba(0, 0, 0, 0.2);
+  }
+  .rad-sidebar {
+    height: 100%; position: absolute; z-index: 10; overflow: hidden; box-sizing: border-box;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .rad-sidebar-item {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px; text-align: left; border: none; white-space: normal; outline: 0; cursor: pointer;
+    border-radius: 6px; margin: 2px 0; transition: all 0.15s ease;
+  }
+  .rad-sidebar-item:hover {
+    background: ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'};
+  }
+  .rad-dropdown-host { position: relative; display: inline-block; }
+  .rad-dropdown-menu {
+    cursor: auto; display: none; position: absolute; min-width: 170px; margin: 0; padding: 4px; z-index: 999;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35); border-radius: 8px; backdrop-filter: blur(12px);
+    animation: radMenuReveal 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes radMenuReveal {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .rad-dropdown-item {
+    width: 100%; display: block; padding: 8px 12px; text-align: left; border: none;
+    border-radius: 5px; font-size: 11px; cursor: pointer; background: transparent; transition: background 0.12s;
+  }
+  .rad-dropdown-item:hover {
+    background: ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};
+  }
+  .rad-modal {
+    animation: radModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes radModalPop {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .rad-list-group-ul { list-style: none; padding: 0; margin: 0; }
+  .rad-list-group-ul li { transition: background 0.15s ease; }
+  .rad-tooltip-container { position: relative; display: inline-flex; }
+  .rad-tooltip-bubble {
+    display: none; position: absolute; z-index: 999;
+    animation: radTooltipFade 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .rad-tooltip-container:hover .rad-tooltip-bubble { display: inline-block !important; }
+  @keyframes radTooltipFade {
+    from { opacity: 0; transform: translate(-50%, 4px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .rad-anim-input {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  .rad-anim-input:focus {
+    width: 100% !important;
+    border-color: ${accent} !important;
+    box-shadow: 0 0 0 3px ${hexToRgba(accent, isLight ? 0.22 : 0.28)} !important;
+  }
+  .rad-code-box {
+    width: auto; position: relative; overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  }
+  .rad-count-badge {
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; line-height: 1;
+  }
+  .rad-pill-tag {
+    display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 700; border-radius: 9999px;
+  }
+  .rad-callout-panel {
+    padding: 12px 16px; margin: 0; box-sizing: border-box; transition: transform 0.15s ease;
+  }
+  .rad-btn-bar { width: 100%; display: flex; align-items: stretch; }
+  .rad-display-hero { position: relative; }
+  .rad-slideshow-prev:hover, .rad-slideshow-next:hover { filter: brightness(1.2); transform: translateY(-50%) scale(1.08) !important; }
+
+  /* Backwards compatibility aliases */
+  .w3-card, .w3-card-2 { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .w3-card-4 { box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  .w3-sidebar { height: 100%; position: absolute; z-index: 10; overflow: auto; box-sizing: border-box; }
+  .w3-dropdown-content { display: none; position: absolute; min-width: 160px; z-index: 99; }
+  .w3-animate-input { transition: width 0.3s ease-in-out; }
+  .w3-animate-input:focus { width: 100%; }
+  .w3-code { border-left: 4px solid #10b981; font-family: ui-monospace, Consolas, monospace; }
+  .w3-badge { border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+  .w3-tag { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 4px; }
+  .w3-panel { padding: 12px 16px; margin: 0; }
+  .w3-leftbar { border-left: 6px solid ${accent}; }
+  .w3-button { border: none; display: inline-block; padding: 8px 16px; cursor: pointer; }
+  .w3-bar { width: 100%; display: flex; align-items: center; }
+
 
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${accent}; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
@@ -3403,6 +3670,41 @@ ${controls}
       html += '<div class="popup-item" data-popup-id="' + id + '" data-popup-label="' + label.replace(/"/g, '&quot;') + '" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;cursor:pointer;" onclick="window.handlePopupItemClick(this);"><span>' + label + '</span>' + (shortcut ? '<span class="rad-mono" style="font-size:10px;opacity:0.5;">' + shortcut + '</span>' : '') + '</div>';
     });
     c.innerHTML = html;
+  };
+  window.addEventListener('click', function(e) {
+    if (!e.target.closest('.w3-dropdown-click') && !e.target.closest('.rad-dropdown-host')) {
+      document.querySelectorAll('.w3-dropdown-content, .rad-dropdown-menu').forEach(function(el) { el.style.display = 'none'; });
+      document.querySelectorAll('.rad-dropdown-host').forEach(function(el) { el.style.zIndex = '10'; });
+    }
+  });
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.rad-modal-backdrop').forEach(function(el) {
+        if (el.style.display === 'flex') {
+          el.style.display = 'none';
+          const fn = window[el.id + '_onClose'] || window['on_' + el.id + '_close'];
+          if (fn) fn();
+        }
+      });
+      document.querySelectorAll('.w3-dropdown-content, .rad-dropdown-menu').forEach(function(el) { el.style.display = 'none'; });
+      document.querySelectorAll('.rad-dropdown-host').forEach(function(el) { el.style.zIndex = '10'; });
+    }
+  });
+  window.openModal = function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'flex';
+      const fn = window[id + '_onOpen'] || window['on_' + id + '_open'];
+      if (fn) fn();
+    }
+  };
+  window.closeModal = function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+      const fn = window[id + '_onClose'] || window['on_' + id + '_close'];
+      if (fn) fn();
+    }
   };
   window.renderCalendarGrid = function(idOrWrapper, yearMonthStr, selectedDay) {
     const wrapper = typeof idOrWrapper === 'string'

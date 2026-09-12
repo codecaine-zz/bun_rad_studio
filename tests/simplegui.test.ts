@@ -655,6 +655,79 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         expect(nordicHtml).toContain("#2b5c8f");
     });
 
+    test("9e. Modern Linux Desktop Themes (Ubuntu Yaru, GNOME Adwaita, Linux Mint, Pop!_OS, Fedora)", () => {
+        // 1. Ubuntu Yaru Dark & Light
+        const ubuntu = getTheme("ubuntu");
+        expect(ubuntu.name).toBe("Ubuntu Yaru Dark");
+        expect(ubuntu.accent_color).toBe("#e95420");
+        expect(ubuntu.background_color).toBe("#242424");
+        expect(ubuntu.card_background).toBe("#303030");
+        expect(ubuntu.is_dark).toBe(true);
+
+        const ubuntuDark = getTheme("ubuntu_dark");
+        expect(ubuntuDark.name).toBe("Ubuntu Yaru Dark");
+
+        const yaru = getTheme("yaru");
+        expect(yaru.name).toBe("Ubuntu Yaru Dark");
+
+        const ubuntuLight = getTheme("ubuntu_light");
+        expect(ubuntuLight.name).toBe("Ubuntu Yaru Light");
+        expect(ubuntuLight.accent_color).toBe("#e95420");
+        expect(ubuntuLight.background_color).toBe("#f7f7f7");
+        expect(ubuntuLight.is_dark).toBe(false);
+
+        // 2. GNOME Adwaita Dark & Light
+        const adwaita = getTheme("adwaita");
+        expect(adwaita.name).toBe("GNOME Adwaita Dark");
+        expect(adwaita.accent_color).toBe("#3584e4");
+        expect(adwaita.is_dark).toBe(true);
+
+        const adwaitaLight = getTheme("adwaita_light");
+        expect(adwaitaLight.name).toBe("GNOME Adwaita Light");
+        expect(adwaitaLight.is_dark).toBe(false);
+
+        // 3. Linux Mint
+        const mint = getTheme("linux_mint");
+        expect(mint.name).toBe("Linux Mint Dark");
+        expect(mint.accent_color).toBe("#87a556");
+        expect(getTheme("mint").name).toBe("Linux Mint Dark");
+
+        // 4. Pop!_OS
+        const pop = getTheme("pop_os");
+        expect(pop.name).toBe("Pop!_OS Dark");
+        expect(pop.accent_color).toBe("#48b9c7");
+        expect(getTheme("cosmic_dark").name).toBe("Pop!_OS Dark");
+
+        // 5. Fedora Blue
+        const fedora = getTheme("fedora");
+        expect(fedora.name).toBe("Fedora Blue");
+        expect(fedora.accent_color).toBe("#51a2da");
+
+        // 6. Short name resolution
+        expect(autoShortThemeName("ubuntu_dark")).toBe("Ubuntu Dark");
+        expect(autoShortThemeName("ubuntu_light")).toBe("Ubuntu Light");
+        expect(autoShortThemeName("adwaita_dark")).toBe("Adwaita Dark");
+        expect(autoShortThemeName("linux_mint")).toBe("Linux Mint");
+        expect(autoShortThemeName("pop_os")).toBe("Pop!_OS");
+        expect(autoShortThemeName("fedora")).toBe("Fedora");
+
+        // 7. Full Window HTML generation with Ubuntu Yaru theme
+        const win = createWindow("Ubuntu Workstation", 900, 650, { theme: "ubuntu" });
+        win.addButton("btn_launch", "Launch Terminal").bold().width(180);
+        win.addHeroDisplay("hero_ubuntu", "Ubuntu 24.04 LTS", "The modern open source desktop");
+        win.addContentCard("card_pkg", "APT Package Manager", "Installed 2,145 packages", "Up to date", "Upgrade");
+        win.addCalloutPanel("panel_info", "Kernel 6.8", "Running on Linux generic kernel", "info");
+
+        const html = win.toHtml();
+        expect(html).toContain("--accent: #e95420");
+        expect(html).toContain("--card-bg: #303030");
+        expect(html).toContain("background: #242424");
+        expect(html).toContain("Launch Terminal");
+        expect(html).toContain("Ubuntu 24.04 LTS");
+        expect(html).not.toContain("background: undefined");
+        expect(html).not.toContain("color: undefined");
+    });
+
     test("10. Full VLang SimpleGUI Control Parity Suite (Visual Controls, Sizing, Props & Aliases)", () => {
         const win = createWindow("VLang Parity Test Window", 1000, 800);
 

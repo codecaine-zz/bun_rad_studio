@@ -254,6 +254,19 @@ The `event_handlers` record maps event names to function names or JavaScript str
 | `metric_comparison` | KPI Metric Comparison | 220 × 90 px | Executive KPI card comparing current value vs target with percentage delta |
 | `activity_feed` | Activity Feed | 280 × 140 px | Timestamped activity audit log stream with user avatars & status |
 | `file_tree_tabs` | Workspace Tab Bar | 320 × 36 px | Multi-file IDE tab bar with file icons, modified state dot (•), and close buttons |
+| `sidebar` | Sidebar Drawer | 200 × 260 px | Off-canvas navigation drawer with item links, active state, and close button |
+| `modal` | Modal Dialog | 320 × 180 px | Elevated dialog card container with header, content body, Cancel and Confirm actions |
+| `dropdown_menu` | Dropdown Menu | 160 × 36 px | Action button with click/hover reveal menu and outside-click auto-close |
+| `list_group` | Badged List Group | 280 × 160 px | Hoverable list container with item icons, subtitles, and status pill badges |
+| `content_card` | Content Card | 240 × 220 px | Elevated media container with header banner, preview slot, description, and action button |
+| `callout_panel` | Callout Panel | 280 × 80 px | Notification callout card with thick accent left bar and alert status styling |
+| `tooltip_box` | Tooltip Box | 140 × 36 px | Interactive trigger button with floating hover tooltip bubble |
+| `animated_input` | Animated Input | 240 × 36 px | Compact search/text input that widens smoothly on focus with accent glow |
+| `hero_display` | Hero Display | 280 × 160 px | Media display container with pinned corner status chips and center title |
+| `code_snippet` | Code Snippet | 300 × 110 px | Monospace syntax code block with accent bar and 1-click clipboard copy button |
+| `count_badge` | Count Badge | 32 × 32 px | Circular numeric notification pill badge |
+| `button_group` | Button Group | 240 × 36 px | Segmented button bar with shared borders and unified keyboard/mouse navigation |
+| `slideshow` | Slideshow Carousel | 300 × 180 px | Interactive multi-slide carousel with prev/next frosted glass buttons and dot counter |
 
 ### Non-Visual Tray Components
 
@@ -492,6 +505,20 @@ When a theme is selected in the RAD IDE Inspector or applied programmatically, `
 | `Windows 11 Acrylic Dark` | Fluent Dark Acrylic | `#202020` | `#ffffff` | `#2c2c2c` | `#ffffff` | `#60cdff` | `#000000` | `#181818` | Windows 11 Dark Acrylic design with sleek dark charcoal surface, high contrast controls, and electric blue accent. |
 | `Windows 11 Fluent Slate` | Fluent Slate Dark | `#1c2128` | `#adbac7` | `#22272e` | `#adbac7` | `#4796e6` | `#ffffff` | `#2d333b` | Windows 11 Slate theme featuring muted dark blue-gray card containers, steel blue buttons, and ergonomic low-eyestrain dark palette. |
 | `Windows 11 Sun Valley` | Sun Valley Cobalt | `#0f172a` | `#f8fafc` | `#1e293b` | `#ffffff` | `#38bdf8` | `#0f172a` | `#1e293b` | Windows 11 signature Sun Valley cobalt theme with deep midnight slate canvas, high-contrast dark blue panels, and sky blue accents. |
+
+---
+
+### Modern Linux Desktop Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `Ubuntu Yaru Dark` | Ubuntu Yaru Dark | `#242424` | `#ffffff` | `#303030` | `#ffffff` | `#e95420` | `#ffffff` | `#2e2e2e` | Official Ubuntu Yaru dark desktop design system with warm aubergine charcoal surfaces, dark slate cards, and iconic Ubuntu orange primary buttons. |
+| `Ubuntu Yaru Light` | Ubuntu Yaru Light | `#f7f7f7` | `#1e1e1e` | `#ffffff` | `#1e1e1e` | `#e95420` | `#ffffff` | `#ededed` | Official Ubuntu Yaru light desktop theme with clean neutral gray canvas, crisp white container cards, and vibrant Ubuntu orange accents. |
+| `GNOME Adwaita Dark` | Libadwaita Dark | `#242424` | `#ffffff` | `#303030` | `#ffffff` | `#3584e4` | `#ffffff` | `#2e2e2e` | Modern GNOME 40+ Libadwaita desktop theme with deep slate cards and signature Adwaita blue controls. |
+| `GNOME Adwaita Light` | Libadwaita Light | `#fafafa` | `#2e3436` | `#ffffff` | `#2e3436` | `#3584e4` | `#ffffff` | `#f0f0f0` | Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature Adwaita blue controls. |
+| `Linux Mint` | Mint-Y Cinnamon | `#2f343f` | `#e0e2e4` | `#242831` | `#e0e2e4` | `#87a556` | `#ffffff` | `#383f4d` | Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents. |
+| `Pop!_OS` | COSMIC Dark | `#202222` | `#f6f6f6` | `#2c2e2e` | `#f6f6f6` | `#48b9c7` | `#202222` | `#333636` | System76 Pop!_OS and COSMIC desktop theme with dark charcoal surfaces, teal accent buttons, and amber highlights. |
+| `Fedora Blue` | Fedora Workstation | `#1f232a` | `#ffffff` | `#292e38` | `#ffffff` | `#51a2da` | `#1f232a` | `#242932` | Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue. |
 
 ---
 

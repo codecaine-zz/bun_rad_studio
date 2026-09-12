@@ -266,6 +266,10 @@ export class SimpleControlRef {
 
     show(): this { return this.visible(true); }
     hide(): this { return this.visible(false); }
+    openModal(): this { this.window.openModal(this.spec.id); return this; }
+    closeModal(): this { this.window.closeModal(this.spec.id); return this; }
+    open_modal(): this { return this.openModal(); }
+    close_modal(): this { return this.closeModal(); }
     enable(): this { return this.enabled(true); }
     disable(): this { return this.enabled(false); }
     disabled(flag = true): this { return this.enabled(!flag); }
@@ -914,6 +918,34 @@ export class SimpleWindow {
                             background: ${btnBg} !important;
                             color: ${btnFg} !important;
                         }
+
+                        /* Extended Controls Dynamic Theme Styling */
+                        .rad-sidebar { background-color: ${cardBg} !important; border-color: ${cardBorder} !important; }
+                        .rad-sidebar > div:first-child { border-color: ${cardBorder} !important; }
+                        .rad-sidebar > div:first-child span { color: ${colors.accent} !important; }
+                        .rad-modal { background-color: ${cardBg} !important; border-color: ${cardBorder} !important; }
+                        .rad-modal > div:first-child { border-color: ${cardBorder} !important; }
+                        .rad-modal > div:first-child span { color: ${colors.accent} !important; }
+                        .rad-modal > div:last-child { border-color: ${cardBorder} !important; }
+                        .rad-dropdown-menu { background-color: ${cardBg} !important; border-color: ${cardBorder} !important; }
+                        .rad-dropdown-btn.btn-theme-accent { background: ${btnBg} !important; color: ${btnFg} !important; border-color: ${cardBorder} !important; }
+                        .rad-list-group { background-color: ${cardBg} !important; border-color: ${cardBorder} !important; }
+                        .rad-list-group li { border-color: ${cardBorder} !important; }
+                        .rad-content-card { background-color: ${cardBg} !important; border-color: ${cardBorder} !important; }
+                        .rad-content-card header { border-color: ${cardBorder} !important; }
+                        .rad-content-card header h4 { color: ${colors.accent} !important; }
+                        .rad-content-card footer { border-color: ${cardBorder} !important; }
+                        .rad-content-card footer button { background: ${btnBg} !important; color: ${btnFg} !important; }
+                        .rad-slideshow { background-color: ${cardBg} !important; border-color: ${cardBorder} !important; }
+                        .rad-slideshow > div:last-child { border-color: ${cardBorder} !important; }
+                        .rad-slideshow .slide-item div[style*="font-weight:800"], .rad-slideshow .slide-item div[style*="font-weight: 800"] { color: ${colors.accent} !important; }
+                        .rad-slideshow .slide-count { color: ${colors.accent} !important; }
+                        .rad-code-box { background-color: ${isLight ? '#f8fafc' : (colors.bg === '#050505' ? '#0d1117' : (colors.bg === '#0a0600' || colors.bg === '#040a05' ? cardBg : '#0f172a'))} !important; border-color: ${cardBorder} !important; border-left-color: ${colors.accent} !important; }
+                        .rad-code-box pre { color: ${isLight ? '#0f172a' : (colors.bg === '#0a0600' ? '#ffb000' : (colors.bg === '#040a05' ? '#00ff66' : '#a7f3d0'))} !important; }
+                        .rad-pill-tag { background: ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'} !important; color: ${colors.accent} !important; }
+                        .rad-btn-bar { border-color: ${cardBorder} !important; }
+                        .rad-btn-group-item:first-child { background: ${btnBg} !important; color: ${btnFg} !important; }
+                        .rad-anim-input:focus { border-color: ${colors.accent} !important; }
                     \`;
                     document.querySelectorAll('button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num])').forEach(function(b) {
                         b.style.background = '${btnBg}';
@@ -1680,6 +1712,9 @@ export class SimpleWindow {
             "kanagawa",
             "cobalt2",
             "win11_slate",
+            "ubuntu_dark",
+            "adwaita_dark",
+            "linux_mint",
             "apple_dark",
             "dracula",
             "nord",
@@ -1703,6 +1738,7 @@ export class SimpleWindow {
             "monokai_pro", "tokyo_night", "one_dark_pro", "gruvbox_dark", "gruvbox_light",
             "rose_pine", "everforest", "kanagawa", "cobalt2", "aura",
             "win11_slate", "win11_light",
+            "ubuntu_dark", "ubuntu_light", "adwaita_dark", "adwaita_light", "linux_mint", "pop_os", "fedora_dark",
             "dracula", "nord", "cyberpunk", "github_dark", "github_light",
             "solarized_dark", "solarized_light", "navy_blue", "forest_green",
             "apple_sunset", "ventura_amber", "soft_pastel", "catppuccin",
@@ -3501,10 +3537,631 @@ export class SimpleWindow {
         return new SimpleControlRef(spec, this);
     }
 
+    // ==============================================================
+    // ✨ STUDIO EXTENDED CONTROLS: MODERN ERGONOMIC FLUENT APIS
+    // ==============================================================
+
+    public addSidebar(
+        idOrTitleOrItems: string | any[] = "Navigation",
+        titleOrItemsOrOnClick?: string | any[] | EventCallback,
+        itemsOrOnClickOrOpts?: any[] | EventCallback | Partial<any>,
+        onClickOrOpts?: EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let title = "Navigation";
+        let items = ["🏠 Dashboard", "📁 Projects", "👥 Team", "⚙️ Preferences", "❓ Help & Docs"];
+        let onClick: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (Array.isArray(idOrTitleOrItems)) {
+            items = idOrTitleOrItems;
+            if (typeof titleOrItemsOrOnClick === "function") onClick = titleOrItemsOrOnClick as EventCallback;
+            else if (typeof titleOrItemsOrOnClick === "object" && titleOrItemsOrOnClick !== null) opts = titleOrItemsOrOnClick;
+        } else if (typeof idOrTitleOrItems === "string") {
+            if (typeof titleOrItemsOrOnClick === "string") {
+                explicitId = idOrTitleOrItems;
+                title = titleOrItemsOrOnClick;
+                if (Array.isArray(itemsOrOnClickOrOpts)) items = itemsOrOnClickOrOpts;
+                if (typeof onClickOrOpts === "function") onClick = onClickOrOpts;
+                else if (typeof onClickOrOpts === "object" && onClickOrOpts !== null) opts = onClickOrOpts;
+                if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+            } else if (Array.isArray(titleOrItemsOrOnClick)) {
+                title = idOrTitleOrItems;
+                items = titleOrItemsOrOnClick;
+                if (typeof itemsOrOnClickOrOpts === "function") onClick = itemsOrOnClickOrOpts as EventCallback;
+                else if (typeof itemsOrOnClickOrOpts === "object" && itemsOrOnClickOrOpts !== null) opts = itemsOrOnClickOrOpts;
+            } else {
+                title = idOrTitleOrItems;
+                if (typeof titleOrItemsOrOnClick === "function") onClick = titleOrItemsOrOnClick as EventCallback;
+                else if (typeof titleOrItemsOrOnClick === "object" && titleOrItemsOrOnClick !== null) opts = titleOrItemsOrOnClick;
+            }
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("sidebar");
+        const ref = this.addVisualControl("sidebar", 200, 260, {
+            id,
+            title,
+            caption: title,
+            text: title,
+            items,
+            ...opts
+        });
+        if (onClick) {
+            this.bindControlEvent(id, "onClick", onClick);
+        }
+        return ref;
+    }
+    public add_sidebar(...args: any[]) { return (this.addSidebar as any)(...args); }
+    public addW3Sidebar(...args: any[]) { return (this.addSidebar as any)(...args); }
+    public add_w3_sidebar(...args: any[]) { return (this.addSidebar as any)(...args); }
+
+    public addModal(
+        idOrTitleOrMsg = "Modal Dialog",
+        titleOrMsgOrOnConfirm?: string | EventCallback,
+        msgOrOnConfirmOrIsOpen?: string | EventCallback | boolean,
+        isOpenOrOnConfirmOrOpts?: boolean | EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let title = "Modal Dialog";
+        let message = "This is a modal dialog container.";
+        let isOpen = false;
+        let onConfirm: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof idOrTitleOrMsg === "string" && typeof titleOrMsgOrOnConfirm === "string" && typeof msgOrOnConfirmOrIsOpen === "string") {
+            explicitId = idOrTitleOrMsg;
+            title = titleOrMsgOrOnConfirm;
+            message = msgOrOnConfirmOrIsOpen;
+            if (typeof isOpenOrOnConfirmOrOpts === "boolean") isOpen = isOpenOrOnConfirmOrOpts;
+            else if (typeof isOpenOrOnConfirmOrOpts === "function") onConfirm = isOpenOrOnConfirmOrOpts;
+            else if (typeof isOpenOrOnConfirmOrOpts === "object" && isOpenOrOnConfirmOrOpts !== null) opts = isOpenOrOnConfirmOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (typeof idOrTitleOrMsg === "string" && typeof titleOrMsgOrOnConfirm === "string") {
+            title = idOrTitleOrMsg;
+            message = titleOrMsgOrOnConfirm;
+            if (typeof msgOrOnConfirmOrIsOpen === "boolean") isOpen = msgOrOnConfirmOrIsOpen;
+            else if (typeof msgOrOnConfirmOrIsOpen === "function") onConfirm = msgOrOnConfirmOrIsOpen;
+            else if (typeof msgOrOnConfirmOrIsOpen === "object" && msgOrOnConfirmOrIsOpen !== null) opts = msgOrOnConfirmOrIsOpen;
+        } else {
+            message = idOrTitleOrMsg;
+            if (typeof titleOrMsgOrOnConfirm === "function") onConfirm = titleOrMsgOrOnConfirm;
+            else if (typeof titleOrMsgOrOnConfirm === "object" && titleOrMsgOrOnConfirm !== null) opts = titleOrMsgOrOnConfirm;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("modal");
+        const prevCursorX = this.cursorX;
+        const prevCursorY = this.cursorY;
+        const ref = this.addVisualControl("modal", 480, 200, {
+            id,
+            title,
+            caption: title,
+            text: title,
+            message,
+            content: message,
+            is_open: isOpen,
+            isOpen,
+            ...opts
+        });
+        // Modals are fixed overlay backdrops and do not consume canvas vertical flow
+        this.cursorX = prevCursorX;
+        this.cursorY = prevCursorY;
+        if (onConfirm) {
+            this.bindControlEvent(id, "onConfirm", onConfirm);
+            this.bindControlEvent(id, "onClick", onConfirm);
+        }
+        return ref;
+    }
+    public add_modal(...args: any[]) { return (this.addModal as any)(...args); }
+    public addModalDialog(...args: any[]) { return (this.addModal as any)(...args); }
+    public add_modal_dialog(...args: any[]) { return (this.addModal as any)(...args); }
+    public addW3Modal(...args: any[]) { return (this.addModal as any)(...args); }
+    public add_w3_modal(...args: any[]) { return (this.addModal as any)(...args); }
+
+    public addDropdownMenu(
+        idOrLabelOrItems: string | any[] = "Select Action",
+        labelOrItemsOrOnSelect?: string | any[] | EventCallback,
+        itemsOrOnSelectOrOpts?: any[] | EventCallback | Partial<any>,
+        onSelectOrOpts?: EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let label = "Select Action";
+        let items = ["Action 1", "Action 2", "Settings"];
+        let onSelect: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (Array.isArray(idOrLabelOrItems)) {
+            items = idOrLabelOrItems;
+            if (typeof labelOrItemsOrOnSelect === "function") onSelect = labelOrItemsOrOnSelect as EventCallback;
+            else if (typeof labelOrItemsOrOnSelect === "object" && labelOrItemsOrOnSelect !== null) opts = labelOrItemsOrOnSelect;
+        } else if (typeof idOrLabelOrItems === "string") {
+            if (typeof labelOrItemsOrOnSelect === "string") {
+                explicitId = idOrLabelOrItems;
+                label = labelOrItemsOrOnSelect;
+                if (Array.isArray(itemsOrOnSelectOrOpts)) items = itemsOrOnSelectOrOpts;
+                if (typeof onSelectOrOpts === "function") onSelect = onSelectOrOpts;
+                else if (typeof onSelectOrOpts === "object" && onSelectOrOpts !== null) opts = onSelectOrOpts;
+                if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+            } else if (Array.isArray(labelOrItemsOrOnSelect)) {
+                label = idOrLabelOrItems;
+                items = labelOrItemsOrOnSelect;
+                if (typeof itemsOrOnSelectOrOpts === "function") onSelect = itemsOrOnSelectOrOpts as EventCallback;
+                else if (typeof itemsOrOnSelectOrOpts === "object" && itemsOrOnSelectOrOpts !== null) opts = itemsOrOnSelectOrOpts;
+            } else {
+                label = idOrLabelOrItems;
+                if (typeof labelOrItemsOrOnSelect === "function") onSelect = labelOrItemsOrOnSelect as EventCallback;
+                else if (typeof labelOrItemsOrOnSelect === "object" && labelOrItemsOrOnSelect !== null) opts = labelOrItemsOrOnSelect;
+            }
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("dropdown");
+        const ref = this.addVisualControl("dropdown_menu", 160, 36, {
+            id,
+            text: label,
+            caption: label,
+            items,
+            ...opts
+        });
+        if (onSelect) {
+            this.bindControlEvent(id, "onSelect", onSelect);
+            this.bindControlEvent(id, "onClick", onSelect);
+        }
+        return ref;
+    }
+    public add_dropdown_menu(...args: any[]) { return (this.addDropdownMenu as any)(...args); }
+    public addW3Dropdown(...args: any[]) { return (this.addDropdownMenu as any)(...args); }
+    public add_w3_dropdown(...args: any[]) { return (this.addDropdownMenu as any)(...args); }
+
+    public addListGroup(
+        idOrItems: string | any[] = [],
+        itemsOrOnSelect?: any[] | EventCallback,
+        onSelectOrOpts?: EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let items: any[] = [];
+        let onSelect: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof idOrItems === "string" && Array.isArray(itemsOrOnSelect)) {
+            explicitId = idOrItems;
+            items = itemsOrOnSelect;
+            if (typeof onSelectOrOpts === "function") onSelect = onSelectOrOpts;
+            else if (typeof onSelectOrOpts === "object" && onSelectOrOpts !== null) opts = onSelectOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (Array.isArray(idOrItems)) {
+            items = idOrItems;
+            if (typeof itemsOrOnSelect === "function") onSelect = itemsOrOnSelect as EventCallback;
+            else if (typeof itemsOrOnSelect === "object" && itemsOrOnSelect !== null) opts = itemsOrOnSelect;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("list_group");
+        const ref = this.addVisualControl("list_group", 280, 160, {
+            id,
+            items,
+            ...opts
+        });
+        if (onSelect) {
+            this.bindControlEvent(id, "onSelect", onSelect);
+            this.bindControlEvent(id, "onClick", onSelect);
+        }
+        return ref;
+    }
+    public add_list_group(...args: any[]) { return (this.addListGroup as any)(...args); }
+    public addBadgedList(...args: any[]) { return (this.addListGroup as any)(...args); }
+    public add_badged_list(...args: any[]) { return (this.addListGroup as any)(...args); }
+    public addW3List(...args: any[]) { return (this.addListGroup as any)(...args); }
+    public add_w3_list(...args: any[]) { return (this.addListGroup as any)(...args); }
+
+    public addContentCard(
+        idOrTitle = "Card Title",
+        titleOrDesc?: string | Partial<any>,
+        descOrFooter?: string | Partial<any>,
+        footerOrOpts?: string | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let title = "Card Title";
+        let desc = "Cards provide a clean container with elevation shadow, header banner, and action buttons.";
+        let footer = "";
+        let opts: Partial<any> = {};
+
+        if (typeof idOrTitle === "string" && typeof titleOrDesc === "string" && typeof descOrFooter === "string") {
+            explicitId = idOrTitle;
+            title = titleOrDesc;
+            desc = descOrFooter;
+            if (typeof footerOrOpts === "string") footer = footerOrOpts;
+            else if (typeof footerOrOpts === "object" && footerOrOpts !== null) opts = footerOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (typeof idOrTitle === "string" && typeof titleOrDesc === "string") {
+            title = idOrTitle;
+            desc = titleOrDesc;
+            if (typeof descOrFooter === "string") footer = descOrFooter;
+            else if (typeof descOrFooter === "object" && descOrFooter !== null) opts = descOrFooter;
+        } else {
+            title = idOrTitle;
+            if (typeof titleOrDesc === "object" && titleOrDesc !== null) opts = titleOrDesc;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("card");
+        return this.addVisualControl("content_card", 240, 220, {
+            id,
+            title,
+            caption: title,
+            text: title,
+            description: desc,
+            footer,
+            ...opts
+        });
+    }
+    public add_content_card(...args: any[]) { return (this.addContentCard as any)(...args); }
+    public addCard(...args: any[]) { return (this.addContentCard as any)(...args); }
+    public add_card(...args: any[]) { return (this.addContentCard as any)(...args); }
+    public addW3Card(...args: any[]) { return (this.addContentCard as any)(...args); }
+    public add_w3_card(...args: any[]) { return (this.addContentCard as any)(...args); }
+
+    public addCalloutPanel(
+        idOrTitleOrMsg = "Important Note",
+        titleOrMsgOrType?: string,
+        msgOrTypeOrOpts?: string | Partial<any>,
+        typeOrOpts?: string | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let title = "Important Note";
+        let message = "";
+        let alertType = "info";
+        let opts: Partial<any> = {};
+
+        if (typeof idOrTitleOrMsg === "string" && typeof titleOrMsgOrType === "string" && typeof msgOrTypeOrOpts === "string") {
+            explicitId = idOrTitleOrMsg;
+            title = titleOrMsgOrType;
+            message = msgOrTypeOrOpts;
+            if (typeof typeOrOpts === "string") alertType = typeOrOpts;
+            else if (typeof typeOrOpts === "object" && typeOrOpts !== null) opts = typeOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (typeof idOrTitleOrMsg === "string" && typeof titleOrMsgOrType === "string") {
+            title = idOrTitleOrMsg;
+            message = titleOrMsgOrType;
+            if (typeof msgOrTypeOrOpts === "string") alertType = msgOrTypeOrOpts;
+            else if (typeof msgOrTypeOrOpts === "object" && msgOrTypeOrOpts !== null) opts = msgOrTypeOrOpts;
+        } else {
+            message = idOrTitleOrMsg;
+            if (typeof titleOrMsgOrType === "object" && titleOrMsgOrType !== null) opts = titleOrMsgOrType;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("callout");
+        return this.addVisualControl("callout_panel", 280, 80, {
+            id,
+            title,
+            caption: title,
+            message,
+            text: message,
+            alert_type: opts.alert_type || alertType,
+            ...opts
+        });
+    }
+    public add_callout_panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    public addNotePanel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    public add_note_panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    public addW3Panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    public add_w3_panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+
+    public addTooltipBox(
+        idOrTrigger = "Hover Me ℹ️",
+        triggerOrTooltip?: string,
+        tooltipOrOpts?: string | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let triggerText = "Hover Me ℹ️";
+        let tooltipText = "Helpful information popup";
+        let opts: Partial<any> = {};
+
+        if (typeof idOrTrigger === "string" && typeof triggerOrTooltip === "string" && typeof tooltipOrOpts === "string") {
+            explicitId = idOrTrigger;
+            triggerText = triggerOrTooltip;
+            tooltipText = tooltipOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = optsArg;
+        } else if (typeof idOrTrigger === "string" && typeof triggerOrTooltip === "string") {
+            triggerText = idOrTrigger;
+            tooltipText = triggerOrTooltip;
+            if (typeof tooltipOrOpts === "object" && tooltipOrOpts !== null) opts = tooltipOrOpts;
+        } else {
+            triggerText = idOrTrigger;
+            if (typeof triggerOrTooltip === "object" && triggerOrTooltip !== null) opts = triggerOrTooltip;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("tooltip");
+        return this.addVisualControl("tooltip_box", 140, 36, {
+            id,
+            text: triggerText,
+            caption: triggerText,
+            tooltip: tooltipText,
+            content: tooltipText,
+            ...opts
+        });
+    }
+    public add_tooltip_box(...args: any[]) { return (this.addTooltipBox as any)(...args); }
+    public addW3Tooltip(...args: any[]) { return (this.addTooltipBox as any)(...args); }
+    public add_w3_tooltip(...args: any[]) { return (this.addTooltipBox as any)(...args); }
+
+    public addAnimatedInput(
+        idOrPlaceholder = "Click to expand...",
+        placeholderOrVal?: string,
+        valOrOnChange?: string | EventCallback,
+        onChangeOrOpts?: EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let placeholder = "Click to expand...";
+        let val = "";
+        let onChange: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof idOrPlaceholder === "string" && typeof placeholderOrVal === "string") {
+            explicitId = idOrPlaceholder;
+            placeholder = placeholderOrVal;
+            if (typeof valOrOnChange === "string") val = valOrOnChange;
+            else if (typeof valOrOnChange === "function") onChange = valOrOnChange;
+            if (typeof onChangeOrOpts === "function") onChange = onChangeOrOpts;
+            else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else {
+            placeholder = idOrPlaceholder;
+            if (typeof placeholderOrVal === "string") val = placeholderOrVal;
+            else if (typeof placeholderOrVal === "function") onChange = placeholderOrVal;
+            else if (typeof placeholderOrVal === "object" && placeholderOrVal !== null) opts = placeholderOrVal;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("anim_input");
+        const ref = this.addVisualControl("animated_input", 240, 36, {
+            id,
+            placeholder,
+            value: val,
+            text: val,
+            ...opts
+        });
+        if (onChange) {
+            this.bindControlEvent(id, "onChange", onChange);
+        }
+        return ref;
+    }
+    public add_animated_input(...args: any[]) { return (this.addAnimatedInput as any)(...args); }
+    public addW3AnimatedInput(...args: any[]) { return (this.addAnimatedInput as any)(...args); }
+    public add_w3_animated_input(...args: any[]) { return (this.addAnimatedInput as any)(...args); }
+
+    public addHeroDisplay(
+        idOrTitle = "Hero Display",
+        titleOrSubtitle?: string,
+        subtitleOrOpts?: string | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let title = "Hero Display";
+        let subtitle = "Modern visual container with high contrast typography and responsive layout.";
+        let opts: Partial<any> = {};
+
+        if (typeof idOrTitle === "string" && typeof titleOrSubtitle === "string" && typeof subtitleOrOpts === "string") {
+            explicitId = idOrTitle;
+            title = titleOrSubtitle;
+            subtitle = subtitleOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = optsArg;
+        } else if (typeof idOrTitle === "string" && typeof titleOrSubtitle === "string") {
+            title = idOrTitle;
+            subtitle = titleOrSubtitle;
+            if (typeof subtitleOrOpts === "object" && subtitleOrOpts !== null) opts = subtitleOrOpts;
+        } else {
+            title = idOrTitle;
+            if (typeof titleOrSubtitle === "object" && titleOrSubtitle !== null) opts = titleOrSubtitle;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("display");
+        const w = this.width - (this.padding * 2);
+        return this.addVisualControl("hero_display", w, 160, {
+            id,
+            title,
+            caption: title,
+            text: title,
+            subtitle,
+            description: subtitle,
+            ...opts
+        });
+    }
+    public add_hero_display(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    public addDisplayContainer(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    public add_display_container(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    public addW3Display(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    public add_w3_display(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+
+    public addCodeSnippet(
+        idOrCode = "const app = new StudioApp();",
+        codeOrLang?: string,
+        langOrOpts?: string | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let code = "const app = new StudioApp();";
+        let language = "typescript";
+        let opts: Partial<any> = {};
+
+        if (typeof idOrCode === "string" && typeof codeOrLang === "string") {
+            explicitId = idOrCode;
+            code = codeOrLang;
+            if (typeof langOrOpts === "string") language = langOrOpts;
+            else if (typeof langOrOpts === "object" && langOrOpts !== null) opts = langOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else {
+            code = idOrCode;
+            if (typeof codeOrLang === "string") language = codeOrLang;
+            else if (typeof codeOrLang === "object" && codeOrLang !== null) opts = codeOrLang;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("code_snippet");
+        return this.addVisualControl("code_snippet", 300, 110, {
+            id,
+            code,
+            text: code,
+            language,
+            ...opts
+        });
+    }
+    public add_code_snippet(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    public addCodeBlock(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    public add_code_block(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    public addW3Code(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    public add_w3_code(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+
+    public addCountBadge(
+        idOrLabelOrCount: string | number = 1,
+        labelOrCountOrColor?: string | number,
+        countOrColorOrOpts?: string | number | Partial<any>,
+        colorOrOpts?: string | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let label = "";
+        let count: string | number = 1;
+        let color = "primary";
+        let opts: Partial<any> = {};
+
+        if (typeof idOrLabelOrCount === "string" && typeof labelOrCountOrColor === "string" && (typeof countOrColorOrOpts === "number" || typeof countOrColorOrOpts === "string")) {
+            explicitId = idOrLabelOrCount;
+            label = labelOrCountOrColor;
+            count = countOrColorOrOpts;
+            if (typeof colorOrOpts === "string") color = colorOrOpts;
+            else if (typeof colorOrOpts === "object" && colorOrOpts !== null) opts = colorOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (typeof idOrLabelOrCount === "string" && (typeof labelOrCountOrColor === "number" || typeof labelOrCountOrColor === "string")) {
+            label = idOrLabelOrCount;
+            count = labelOrCountOrColor;
+            if (typeof countOrColorOrOpts === "string") color = countOrColorOrOpts;
+            else if (typeof countOrColorOrOpts === "object" && countOrColorOrOpts !== null) opts = countOrColorOrOpts;
+        } else {
+            count = idOrLabelOrCount;
+            if (typeof labelOrCountOrColor === "string") color = labelOrCountOrColor;
+            else if (typeof labelOrCountOrColor === "object" && labelOrCountOrColor !== null) opts = labelOrCountOrColor;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("count_badge");
+        const hasLabel = Boolean(label);
+        const w = hasLabel ? 130 : 32;
+        return this.addVisualControl("count_badge", w, 32, {
+            id,
+            label,
+            title: label,
+            caption: label,
+            count,
+            text: String(count),
+            color,
+            alert_type: color,
+            ...opts
+        });
+    }
+    public add_count_badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    public addCircularBadge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    public add_circular_badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    public addW3Badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    public add_w3_badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+
+    public addButtonGroup(
+        idOrButtons: string | any[] = ["Left", "Center", "Right"],
+        buttonsOrOnClick?: any[] | EventCallback,
+        onClickOrOpts?: EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let buttons = ["Left", "Center", "Right"];
+        let onClick: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof idOrButtons === "string" && Array.isArray(buttonsOrOnClick)) {
+            explicitId = idOrButtons;
+            buttons = buttonsOrOnClick;
+            if (typeof onClickOrOpts === "function") onClick = onClickOrOpts;
+            else if (typeof onClickOrOpts === "object" && onClickOrOpts !== null) opts = onClickOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (Array.isArray(idOrButtons)) {
+            buttons = idOrButtons;
+            if (typeof buttonsOrOnClick === "function") onClick = buttonsOrOnClick as EventCallback;
+            else if (typeof buttonsOrOnClick === "object" && buttonsOrOnClick !== null) opts = buttonsOrOnClick;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("button_group");
+        const ref = this.addVisualControl("button_group", 240, 36, {
+            id,
+            buttons,
+            ...opts
+        });
+        if (onClick) {
+            this.bindControlEvent(id, "onClick", onClick);
+        }
+        return ref;
+    }
+    public add_button_group(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    public addButtonBar(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    public add_button_bar(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    public addW3ButtonGroup(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    public add_w3_button_group(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+
+    public addSlideshow(
+        idOrSlides: string | any[] = [],
+        slidesOrOnChange?: any[] | EventCallback,
+        onChangeOrOpts?: EventCallback | Partial<any>,
+        optsArg: Partial<any> = {}
+    ): SimpleControlRef {
+        let explicitId: string | undefined;
+        let slides: any[] = [];
+        let onChange: EventCallback | undefined;
+        let opts: Partial<any> = {};
+
+        if (typeof idOrSlides === "string" && Array.isArray(slidesOrOnChange)) {
+            explicitId = idOrSlides;
+            slides = slidesOrOnChange;
+            if (typeof onChangeOrOpts === "function") onChange = onChangeOrOpts;
+            else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts;
+            if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
+        } else if (Array.isArray(idOrSlides)) {
+            slides = idOrSlides;
+            if (typeof slidesOrOnChange === "function") onChange = slidesOrOnChange as EventCallback;
+            else if (typeof slidesOrOnChange === "object" && slidesOrOnChange !== null) opts = slidesOrOnChange;
+        }
+
+        const id = explicitId || opts.id || this.generateUniqueId("slideshow");
+        const ref = this.addVisualControl("slideshow", 300, 180, {
+            id,
+            slides,
+            ...opts
+        });
+        if (onChange) {
+            this.bindControlEvent(id, "onChange", onChange);
+        }
+        return ref;
+    }
+    public add_slideshow(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    public addCarousel(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    public add_carousel(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    public addW3Slideshow(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    public add_w3_slideshow(...args: any[]) { return (this.addSlideshow as any)(...args); }
+
+    public openModal(modalId: string): this {
+        this.evalJS(`if(window.openModal)window.openModal('${modalId}');else{const el=document.getElementById('${modalId}');if(el)el.style.display='flex';}`);
+        return this;
+    }
+    public closeModal(modalId: string): this {
+        this.evalJS(`if(window.closeModal)window.closeModal('${modalId}');else{const el=document.getElementById('${modalId}');if(el)el.style.display='none';}`);
+        return this;
+    }
+
+
     // --- IPC Event Registration & Dispatching ---
     public bindControlEvent(controlId: string, eventType: string, callback: EventCallback): void {
-        const key = `${controlId}:${eventType.toLowerCase()}`;
-        this.eventHandlersMap.set(key, callback);
+        const raw = eventType.toLowerCase();
+        const norm = raw.startsWith("on") ? raw : `on${raw}`;
+        this.eventHandlersMap.set(`${controlId}:${norm}`, callback);
+        this.eventHandlersMap.set(`${controlId}:${raw}`, callback);
 
         if (this.webview) {
             const bindName = `on_${controlId}_${eventType.replace(/^on/i, "").toLowerCase()}`;
@@ -3969,6 +4626,7 @@ export class SimpleWindow {
         };
         processControls(this.controls);
 
+        const themeObj = getTheme(this.theme);
         return {
             title: this.title,
             width: this.width,
@@ -3977,6 +4635,9 @@ export class SimpleWindow {
             background_color: this.backgroundColor,
             font_color: this.fontColor,
             accent_color: this.accentColor,
+            secondary_accent: themeObj?.secondary_accent,
+            card_background: themeObj?.card_background,
+            card_border: themeObj?.card_border,
             padding: this.padding,
             spacing: this.spacing,
             controls: specControls,
@@ -6991,6 +7652,7 @@ export class SimpleWindow {
         this.bindControlEvent(controlId, eventName, callback);
         return this;
     }
+    public on(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
     public on_event(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
     public bindEvent(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
     public bind_event(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
@@ -7808,6 +8470,275 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         description: "Modern Windows 11 Mica Light desktop with crisp Fluent typography",
         is_dark: false
     },
+
+    // ==========================================
+    // MODERN LINUX DESKTOP THEMES
+    // ==========================================
+    "ubuntu_dark": {
+        name: "Ubuntu Yaru Dark",
+        short_name: "Ubuntu Dark",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#303030",
+        card_border: "#424242",
+        description: "Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents",
+        is_dark: true
+    },
+    "ubuntu": {
+        name: "Ubuntu Yaru Dark",
+        short_name: "Ubuntu",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#303030",
+        card_border: "#424242",
+        description: "Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents",
+        is_dark: true
+    },
+    "ubuntu_yaru": {
+        name: "Ubuntu Yaru Dark",
+        short_name: "Ubuntu",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#303030",
+        card_border: "#424242",
+        description: "Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents",
+        is_dark: true
+    },
+    "yaru_dark": {
+        name: "Ubuntu Yaru Dark",
+        short_name: "Yaru Dark",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#303030",
+        card_border: "#424242",
+        description: "Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents",
+        is_dark: true
+    },
+    "yaru": {
+        name: "Ubuntu Yaru Dark",
+        short_name: "Yaru",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#303030",
+        card_border: "#424242",
+        description: "Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents",
+        is_dark: true
+    },
+    "ubuntu_light": {
+        name: "Ubuntu Yaru Light",
+        short_name: "Ubuntu Light",
+        background_color: "#f7f7f7",
+        font_color: "#1e1e1e",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#ffffff",
+        card_border: "#dedede",
+        description: "Clean Ubuntu Yaru modern Linux light desktop with crisp white surfaces, warm gray borders, and vibrant Ubuntu orange",
+        is_dark: false
+    },
+    "yaru_light": {
+        name: "Ubuntu Yaru Light",
+        short_name: "Yaru Light",
+        background_color: "#f7f7f7",
+        font_color: "#1e1e1e",
+        accent_color: "#e95420",
+        secondary_accent: "#77216f",
+        card_background: "#ffffff",
+        card_border: "#dedede",
+        description: "Clean Ubuntu Yaru modern Linux light desktop with crisp white surfaces, warm gray borders, and vibrant Ubuntu orange",
+        is_dark: false
+    },
+    "adwaita_dark": {
+        name: "GNOME Adwaita Dark",
+        short_name: "Adwaita Dark",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#303030",
+        card_border: "#3d3d3d",
+        description: "Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents",
+        is_dark: true
+    },
+    "adwaita": {
+        name: "GNOME Adwaita Dark",
+        short_name: "Adwaita",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#303030",
+        card_border: "#3d3d3d",
+        description: "Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents",
+        is_dark: true
+    },
+    "gnome_dark": {
+        name: "GNOME Adwaita Dark",
+        short_name: "GNOME Dark",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#303030",
+        card_border: "#3d3d3d",
+        description: "Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents",
+        is_dark: true
+    },
+    "gnome": {
+        name: "GNOME Adwaita Dark",
+        short_name: "GNOME",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#303030",
+        card_border: "#3d3d3d",
+        description: "Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents",
+        is_dark: true
+    },
+    "libadwaita": {
+        name: "GNOME Adwaita Dark",
+        short_name: "Libadwaita",
+        background_color: "#242424",
+        font_color: "#ffffff",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#303030",
+        card_border: "#3d3d3d",
+        description: "Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents",
+        is_dark: true
+    },
+    "adwaita_light": {
+        name: "GNOME Adwaita Light",
+        short_name: "Adwaita Light",
+        background_color: "#fafafa",
+        font_color: "#2e3436",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#ffffff",
+        card_border: "#dcdcdc",
+        description: "Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature blue controls",
+        is_dark: false
+    },
+    "gnome_light": {
+        name: "GNOME Adwaita Light",
+        short_name: "GNOME Light",
+        background_color: "#fafafa",
+        font_color: "#2e3436",
+        accent_color: "#3584e4",
+        secondary_accent: "#1c71d8",
+        card_background: "#ffffff",
+        card_border: "#dcdcdc",
+        description: "Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature blue controls",
+        is_dark: false
+    },
+    "linux_mint": {
+        name: "Linux Mint Dark",
+        short_name: "Linux Mint",
+        background_color: "#2f343f",
+        font_color: "#e0e2e4",
+        accent_color: "#87a556",
+        secondary_accent: "#2ebd59",
+        card_background: "#242831",
+        card_border: "#3e4453",
+        description: "Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents",
+        is_dark: true
+    },
+    "mint_dark": {
+        name: "Linux Mint Dark",
+        short_name: "Mint Dark",
+        background_color: "#2f343f",
+        font_color: "#e0e2e4",
+        accent_color: "#87a556",
+        secondary_accent: "#2ebd59",
+        card_background: "#242831",
+        card_border: "#3e4453",
+        description: "Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents",
+        is_dark: true
+    },
+    "mint": {
+        name: "Linux Mint Dark",
+        short_name: "Mint",
+        background_color: "#2f343f",
+        font_color: "#e0e2e4",
+        accent_color: "#87a556",
+        secondary_accent: "#2ebd59",
+        card_background: "#242831",
+        card_border: "#3e4453",
+        description: "Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents",
+        is_dark: true
+    },
+    "pop_os": {
+        name: "Pop!_OS Dark",
+        short_name: "Pop!_OS",
+        background_color: "#202222",
+        font_color: "#f6f6f6",
+        accent_color: "#48b9c7",
+        secondary_accent: "#faa41a",
+        card_background: "#2c2e2e",
+        card_border: "#3d4040",
+        description: "System76 Pop!_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents",
+        is_dark: true
+    },
+    "cosmic_dark": {
+        name: "Pop!_OS Dark",
+        short_name: "COSMIC",
+        background_color: "#202222",
+        font_color: "#f6f6f6",
+        accent_color: "#48b9c7",
+        secondary_accent: "#faa41a",
+        card_background: "#2c2e2e",
+        card_border: "#3d4040",
+        description: "System76 Pop!_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents",
+        is_dark: true
+    },
+    "pop_dark": {
+        name: "Pop!_OS Dark",
+        short_name: "Pop!_OS",
+        background_color: "#202222",
+        font_color: "#f6f6f6",
+        accent_color: "#48b9c7",
+        secondary_accent: "#faa41a",
+        card_background: "#2c2e2e",
+        card_border: "#3d4040",
+        description: "System76 Pop!_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents",
+        is_dark: true
+    },
+    "fedora_dark": {
+        name: "Fedora Blue",
+        short_name: "Fedora",
+        background_color: "#1f232a",
+        font_color: "#ffffff",
+        accent_color: "#51a2da",
+        secondary_accent: "#294172",
+        card_background: "#292e38",
+        card_border: "#3b4250",
+        description: "Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue",
+        is_dark: true
+    },
+    "fedora": {
+        name: "Fedora Blue",
+        short_name: "Fedora",
+        background_color: "#1f232a",
+        font_color: "#ffffff",
+        accent_color: "#51a2da",
+        secondary_accent: "#294172",
+        card_background: "#292e38",
+        card_border: "#3b4250",
+        description: "Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue",
+        is_dark: true
+    },
+
     "aura": {
         name: "Aura Dark",
         short_name: "Aura",
@@ -8254,6 +9185,13 @@ export function autoShortThemeName(themeNameOrKey: string): string {
         .replace(/\bAbyss\s+Bioluminescence\b/gi, "Abyss")
         .replace(/\bCyberpunk\s+Night\s+City\b/gi, "Night City")
         .replace(/\bHorizon\s+Sunset\b/gi, "Horizon")
+        .replace(/\bUbuntu\s+Yaru\s+Dark\b/gi, "Ubuntu Dark")
+        .replace(/\bUbuntu\s+Yaru\s+Light\b/gi, "Ubuntu Light")
+        .replace(/\bGNOME\s+Adwaita\s+Dark\b/gi, "Adwaita Dark")
+        .replace(/\bGNOME\s+Adwaita\s+Light\b/gi, "Adwaita Light")
+        .replace(/\bLinux\s+Mint\s+Dark\b/gi, "Linux Mint")
+        .replace(/\bPop!_OS\s+Dark\b/gi, "Pop!_OS")
+        .replace(/\bFedora\s+Blue\b/gi, "Fedora")
         .replace(/\s+/g, " ")
         .trim();
 

@@ -1480,6 +1480,65 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Category 9: ✨ Studio Extended Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">✨ Extended Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('sidebar')" ondragstart="onDragStart(event, 'sidebar')" title="Sidebar Drawer: Off-canvas navigation drawer with item links and close action">
+						<span class="palette-icon">🧭</span>
+						<span>Sidebar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('modal')" ondragstart="onDragStart(event, 'modal')" title="Modal Dialog: Floating modal dialog container with header, message, and actions">
+						<span class="palette-icon">🪟</span>
+						<span>Modal Dialog</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('dropdown_menu')" ondragstart="onDragStart(event, 'dropdown_menu')" title="Dropdown Menu: Action button with click/hover reveal menu">
+						<span class="palette-icon">🔽</span>
+						<span>Dropdown Menu</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('list_group')" ondragstart="onDragStart(event, 'list_group')" title="Badged List Group: Hoverable list container with badges, avatars, and subtitles">
+						<span class="palette-icon">📜</span>
+						<span>List Group</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('content_card')" ondragstart="onDragStart(event, 'content_card')" title="Content Card: Elevated card container with media preview, description, and footer action">
+						<span class="palette-icon">🎴</span>
+						<span>Content Card</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('callout_panel')" ondragstart="onDragStart(event, 'callout_panel')" title="Callout Panel: Note and alert panel with colored left accent border">
+						<span class="palette-icon">📌</span>
+						<span>Callout Panel</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tooltip_box')" ondragstart="onDragStart(event, 'tooltip_box')" title="Tooltip Box: Interactive hover tooltip pop-up widget">
+						<span class="palette-icon">💬</span>
+						<span>Tooltip Box</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('animated_input')" ondragstart="onDragStart(event, 'animated_input')" title="Animated Input: Smooth expanding input that widens on focus">
+						<span class="palette-icon">🔍</span>
+						<span>Animated Input</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('hero_display')" ondragstart="onDragStart(event, 'hero_display')" title="Hero Display: Media container with pinned corner tags and centered title">
+						<span class="palette-icon">🖼️</span>
+						<span>Hero Display</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('code_snippet')" ondragstart="onDragStart(event, 'code_snippet')" title="Code Snippet: Syntax code box with copy-to-clipboard button">
+						<span class="palette-icon">💻</span>
+						<span>Code Snippet</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('count_badge')" ondragstart="onDragStart(event, 'count_badge')" title="Count Badge: Circular numeric notification count pill">
+						<span class="palette-icon">🔴</span>
+						<span>Count Badge</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('button_group')" ondragstart="onDragStart(event, 'button_group')" title="Button Group: Connected segmented button bar with shared borders">
+						<span class="palette-icon">🔲</span>
+						<span>Button Group</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('slideshow')" ondragstart="onDragStart(event, 'slideshow')" title="Slideshow Carousel: Interactive content carousel with arrows and dot indicators">
+						<span class="palette-icon">🎠</span>
+						<span>Slideshow</span>
+					</div>
+				</div>
+			</div>
 		</aside>
 
 		<!-- Center Canvas Viewport with Rulers -->
@@ -1624,6 +1683,15 @@
 							<option value="Windows 11 Acrylic Dark">Windows 11 Acrylic Dark</option>
 							<option value="Windows 11 Fluent Slate">Windows 11 Fluent Slate</option>
 							<option value="Windows 11 Sun Valley">Windows 11 Sun Valley (Cobalt)</option>
+						</optgroup>
+						<optgroup label="🐧 Modern Linux Desktop Themes">
+							<option value="Ubuntu Yaru Dark">Ubuntu Yaru Dark</option>
+							<option value="Ubuntu Yaru Light">Ubuntu Yaru Light</option>
+							<option value="GNOME Adwaita Dark">GNOME Adwaita Dark</option>
+							<option value="GNOME Adwaita Light">GNOME Adwaita Light</option>
+							<option value="Linux Mint">Linux Mint Dark</option>
+							<option value="Pop!_OS">Pop!_OS Dark</option>
+							<option value="Fedora Blue">Fedora Blue</option>
 						</optgroup>
 						<optgroup label="🎨 Developer & Community Themes">
 							<option value="Monokai Pro">Monokai Pro</option>
@@ -3198,12 +3266,25 @@
 			if (type === "metric_comparison") { defaultW = 220; defaultH = 90; }
 			if (type === "activity_feed") { defaultW = 280; defaultH = 140; }
 			if (type === "file_tree_tabs") { defaultW = 320; defaultH = 36; }
+			if (type === "sidebar" || type === "w3_sidebar") { defaultW = 200; defaultH = 260; }
+			if (type === "modal" || type === "modal_dialog" || type === "w3_modal") { defaultW = 320; defaultH = 180; }
+			if (type === "dropdown_menu" || type === "w3_dropdown") { defaultW = 160; defaultH = 36; }
+			if (type === "list_group" || type === "w3_list") { defaultW = 280; defaultH = 160; }
+			if (type === "content_card" || type === "card" || type === "w3_card") { defaultW = 240; defaultH = 220; }
+			if (type === "callout_panel" || type === "note_panel" || type === "w3_panel") { defaultW = 280; defaultH = 80; }
+			if (type === "tooltip_box" || type === "w3_tooltip") { defaultW = 140; defaultH = 36; }
+			if (type === "animated_input" || type === "w3_animated_input") { defaultW = 240; defaultH = 36; }
+			if (type === "hero_display" || type === "display_container" || type === "w3_display") { defaultW = 280; defaultH = 160; }
+			if (type === "code_snippet" || type === "code_block" || type === "w3_code") { defaultW = 300; defaultH = 110; }
+			if (type === "count_badge" || type === "circular_badge" || type === "w3_badge") { defaultW = 32; defaultH = 32; }
+			if (type === "button_group" || type === "button_bar" || type === "w3_button_group") { defaultW = 240; defaultH = 36; }
+			if (type === "slideshow" || type === "carousel" || type === "w3_slideshow") { defaultW = 300; defaultH = 180; }
 
 			const themeSelect = document.getElementById("propFormTheme");
 			const activeTheme = themeSelect ? themeSelect.value : "Dark";
 			const themeColors = getThemeColors(activeTheme);
 
-			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "form_checkbox", "form_radio", "form_search", "form_color", "form_time", "form_stepper", "form_code", "form_drop_zone", "tabs", "tool_bar", "status_bar", "split_pane", "pagination", "command_palette", "toggle_button", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select", "color_swatch", "file_path_bar", "kanban_board", "shortcut_recorder", "split_button", "sparkline_table", "metric_comparison", "activity_feed", "file_tree_tabs"];
+			const transparentTypes = ["label", "checkbox", "switch", "radio", "rating", "status_indicator", "circular_progress", "slider", "mode", "divider", "badge", "form_link", "alert_banner", "path", "form_field", "form_textarea", "form_password", "form_number", "form_slider", "form_dropdown", "form_date", "form_progress", "form_switch", "form_checkbox", "form_radio", "form_search", "form_color", "form_time", "form_stepper", "form_code", "form_drop_zone", "tabs", "tool_bar", "status_bar", "split_pane", "pagination", "command_palette", "toggle_button", "stepper", "tag", "metric_meter", "progress", "number", "date", "search", "segmented_control", "tree_view", "avatar_group", "breadcrumb", "timeline", "time_picker", "rich_select", "color_swatch", "file_path_bar", "kanban_board", "shortcut_recorder", "split_button", "sparkline_table", "metric_comparison", "activity_feed", "file_tree_tabs", "dropdown_menu", "tooltip_box", "animated_input", "count_badge", "button_group", "w3_dropdown", "w3_tooltip", "w3_animated_input", "w3_badge", "w3_button_group"];
 			let defaultBg = themeColors.ctrlBg;
 			if (transparentTypes.includes(type)) {
 				defaultBg = "transparent";
@@ -3539,6 +3620,20 @@
 				return { formBg: "#1c2128", formFg: "#adbac7", ctrlBg: "#22272e", ctrlFg: "#adbac7", btnBg: "#4796e6", btnFg: "#ffffff", panelBg: "#2d333b" };
 			} else if (theme === "Windows 11 Sun Valley") {
 				return { formBg: "#0f172a", formFg: "#f8fafc", ctrlBg: "#1e293b", ctrlFg: "#ffffff", btnBg: "#38bdf8", btnFg: "#0f172a", panelBg: "#1e293b" };
+			} else if (theme === "Ubuntu Yaru Dark" || theme === "Ubuntu") {
+				return { formBg: "#242424", formFg: "#ffffff", ctrlBg: "#303030", ctrlFg: "#ffffff", btnBg: "#e95420", btnFg: "#ffffff", panelBg: "#2e2e2e" };
+			} else if (theme === "Ubuntu Yaru Light") {
+				return { formBg: "#f7f7f7", formFg: "#1e1e1e", ctrlBg: "#ffffff", ctrlFg: "#1e1e1e", btnBg: "#e95420", btnFg: "#ffffff", panelBg: "#ededed" };
+			} else if (theme === "GNOME Adwaita Dark" || theme === "Adwaita") {
+				return { formBg: "#242424", formFg: "#ffffff", ctrlBg: "#303030", ctrlFg: "#ffffff", btnBg: "#3584e4", btnFg: "#ffffff", panelBg: "#2e2e2e" };
+			} else if (theme === "GNOME Adwaita Light") {
+				return { formBg: "#fafafa", formFg: "#2e3436", ctrlBg: "#ffffff", ctrlFg: "#2e3436", btnBg: "#3584e4", btnFg: "#ffffff", panelBg: "#f0f0f0" };
+			} else if (theme === "Linux Mint" || theme === "Linux Mint Dark") {
+				return { formBg: "#2f343f", formFg: "#e0e2e4", ctrlBg: "#242831", ctrlFg: "#e0e2e4", btnBg: "#87a556", btnFg: "#ffffff", panelBg: "#383f4d" };
+			} else if (theme === "Pop!_OS" || theme === "Pop!_OS Dark") {
+				return { formBg: "#202222", formFg: "#f6f6f6", ctrlBg: "#2c2e2e", ctrlFg: "#f6f6f6", btnBg: "#48b9c7", btnFg: "#202222", panelBg: "#333636" };
+			} else if (theme === "Fedora Blue") {
+				return { formBg: "#1f232a", formFg: "#ffffff", ctrlBg: "#292e38", ctrlFg: "#ffffff", btnBg: "#51a2da", btnFg: "#1f232a", panelBg: "#242932" };
 			} else if (theme === "Catppuccin") {
 				return { formBg: "#1e1e2e", formFg: "#cdd6f4", ctrlBg: "#313244", ctrlFg: "#cdd6f4", btnBg: "#cba6f7", btnFg: "#1e1e2e", panelBg: "#45475a" };
 			} else if (theme === "Dracula") {
@@ -4451,6 +4546,99 @@
 				div.style.fontWeight = "bold";
 				div.style.fontSize = "11px";
 				div.innerHTML = isChecked ? "🔒 Locked" : (text || "🔓 Unlocked");
+			} else if (type === "sidebar" || type === "w3_sidebar") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "hidden";
+				div.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
+				const items = ["🏠 Dashboard", "📁 Projects", "⚙️ Settings", "❓ Help"];
+				div.innerHTML = "<div style='padding:6px 10px; background:rgba(255,255,255,0.06); font-weight:bold; color:var(--accent); font-size:11px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between;'><span>" + (text || "Navigation") + "</span><span style='opacity:0.6;'>&times;</span></div><div style='display:flex; flex-direction:column; padding:4px 0;'>" + items.map((it, idx) => `<div style='padding:5px 10px; font-size:10px; ${idx===0 ? 'background:rgba(56,189,248,0.15); color:var(--accent); font-weight:bold;' : 'opacity:0.85;'}'>${it}</div>`).join('') + "</div>";
+			} else if (type === "modal" || type === "modal_dialog" || type === "w3_modal") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "hidden";
+				div.style.boxShadow = "0 8px 24px rgba(0,0,0,0.4)";
+				div.innerHTML = "<div style='padding:6px 10px; background:rgba(56,189,248,0.15); font-weight:bold; color:var(--accent); font-size:11px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between;'><span>" + (text || "Modal Dialog") + "</span><span style='opacity:0.7;'>&times;</span></div><div style='padding:8px 10px; font-size:10px; opacity:0.85; flex:1;'>Dialog content with clean modal styling.</div><div style='padding:4px 8px; background:rgba(0,0,0,0.2); border-top:1px solid var(--border-color); display:flex; justify-content:flex-end; gap:4px;'><button style='font-size:9px; padding:2px 6px; background:transparent; border:1px solid var(--border-color); color:inherit; border-radius:3px;'>Cancel</button><button style='font-size:9px; padding:2px 8px; background:var(--accent); color:#fff; border:none; border-radius:3px; font-weight:bold;'>OK</button></div>";
+			} else if (type === "dropdown_menu" || type === "w3_dropdown") {
+				div.style.backgroundColor = "transparent";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "visible";
+				div.innerHTML = "<button style='width:100%; height:100%; background:var(--accent); color:#fff; border:none; border-radius:6px; padding:0 10px; font-size:11px; font-weight:bold; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 6px rgba(0,0,0,0.2);'><span>" + (text || "Dropdown Menu") + "</span><span>▼</span></button>";
+			} else if (type === "list_group" || type === "w3_list") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "hidden";
+				const lItems = [["📄 Specifications", "v1.4", "var(--accent)"], ["🗄️ Database", "Online", "#10b981"], ["⚙️ Settings", "Ready", "#f59e0b"]];
+				div.innerHTML = lItems.map(it => `<div style='padding:6px 10px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; font-size:10px;'><span>${it[0]}</span><span style='background:${it[2]}22; color:${it[2]}; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:bold;'>${it[1]}</span></div>`).join('');
+			} else if (type === "content_card" || type === "card" || type === "w3_card") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "hidden";
+				div.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
+				div.innerHTML = "<div style='padding:6px 10px; background:rgba(56,189,248,0.15); font-weight:bold; color:var(--accent); font-size:11px; border-bottom:1px solid var(--border-color);'>" + (text || "Content Card") + "</div><div style='height:50px; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; font-size:11px; opacity:0.8;'>🖼️ Media Preview</div><div style='padding:8px 10px; font-size:10px; opacity:0.85; flex:1;'>Card description content paragraph.</div><div style='padding:4px 8px; border-top:1px solid var(--border-color); display:flex; justify-content:flex-end;'><button style='padding:2px 8px; font-size:9px; background:var(--accent); color:#fff; border:none; border-radius:3px; font-weight:bold;'>Action</button></div>";
+			} else if (type === "callout_panel" || type === "note_panel" || type === "w3_panel") {
+				div.style.backgroundColor = "rgba(56,189,248,0.12)";
+				div.style.borderLeft = "4px solid var(--accent)";
+				div.style.borderRadius = "0 6px 6px 0";
+				div.style.padding = "6px 10px";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "flex-start";
+				div.style.justifyContent = "center";
+				div.innerHTML = "<div style='font-weight:bold; font-size:11px; color:var(--accent);'>" + (text || "Important Note") + "</div><div style='font-size:10px; opacity:0.85;'>Highlighted callout message with colored accent bar.</div>";
+			} else if (type === "tooltip_box" || type === "w3_tooltip") {
+				div.style.backgroundColor = "transparent";
+				div.style.justifyContent = "center";
+				div.style.overflow = "visible";
+				div.innerHTML = "<button style='padding:4px 10px; background:rgba(255,255,255,0.08); border:1px solid var(--border-color); border-radius:6px; color:inherit; font-size:11px; font-weight:600;'>Hover Me ℹ️</button>";
+			} else if (type === "animated_input" || type === "w3_animated_input") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				div.style.justifyContent = "flex-start";
+				div.innerHTML = "<div style='width:130px; height:100%; background:" + (ctrl.background_color || "#1e293b") + "; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; display:flex; align-items:center; gap:6px; font-size:11px;'><span style='opacity:0.6;'>🔍</span><span style='opacity:0.6;'>Expandable...</span></div>";
+			} else if (type === "hero_display" || type === "display_container" || type === "w3_display") {
+				div.style.backgroundColor = ctrl.background_color || "rgba(15,23,42,0.8)";
+				div.style.borderRadius = "8px";
+				div.style.border = "1px solid var(--border-color)";
+				div.style.overflow = "hidden";
+				div.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+				div.innerHTML = "<div style='position:absolute; top:4px; left:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:8px; padding:1px 5px; border-radius:3px; font-weight:bold;'>Top Left</div><div style='position:absolute; top:4px; right:6px; background:var(--accent); color:#fff; font-size:8px; padding:1px 5px; border-radius:3px; font-weight:bold;'>Top Right</div><div style='display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%;'><span style='font-weight:bold; font-size:12px; color:var(--accent);'>" + (text || "Hero Display") + "</span><span style='font-size:9px; opacity:0.7;'>Overlays & Position Pins</span></div>";
+			} else if (type === "code_snippet" || type === "code_block" || type === "w3_code") {
+				div.style.backgroundColor = "#0d1117";
+				div.style.borderLeft = "4px solid #10b981";
+				div.style.borderRadius = "6px";
+				div.style.padding = "6px 8px";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "hidden";
+				div.innerHTML = "<div style='display:flex; justify-content:space-between; font-size:9px; color:#a7f3d0; opacity:0.7;'><span>Code Snippet</span><span>📋 Copy</span></div><div style='font-family:monospace; font-size:10px; color:#a7f3d0; margin-top:2px;'>const app = new StudioApp();</div>";
+			} else if (type === "count_badge" || type === "circular_badge" || type === "w3_badge") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				div.style.justifyContent = "center";
+				const bCol = ctrl.background_color || "#ef4444";
+				div.innerHTML = "<div style='width:28px; height:28px; border-radius:50%; background:" + bCol + "; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:11px; box-shadow:0 2px 6px rgba(0,0,0,0.3);'>" + (text || "8") + "</div>";
+			} else if (type === "button_group" || type === "button_bar" || type === "w3_button_group") {
+				div.style.backgroundColor = "transparent";
+				div.style.border = "none";
+				div.style.justifyContent = "center";
+				div.innerHTML = "<div style='display:flex; width:100%; height:100%; border-radius:6px; overflow:hidden; border:1px solid var(--border-color);'><button style='flex:1; background:var(--accent); color:#fff; border:none; border-right:1px solid rgba(255,255,255,0.2); font-size:10px; font-weight:bold;'>Left</button><button style='flex:1; background:rgba(255,255,255,0.06); color:inherit; border:none; border-right:1px solid rgba(255,255,255,0.2); font-size:10px; font-weight:bold;'>Middle</button><button style='flex:1; background:rgba(255,255,255,0.06); color:inherit; border:none; font-size:10px; font-weight:bold;'>Right</button></div>";
+			} else if (type === "slideshow" || type === "carousel" || type === "w3_slideshow") {
+				div.style.backgroundColor = ctrl.background_color || "#1e293b";
+				div.style.borderRadius = "8px";
+				div.style.border = "1px solid var(--border-color)";
+				div.style.flexDirection = "column";
+				div.style.alignItems = "stretch";
+				div.style.overflow = "hidden";
+				div.innerHTML = "<div style='flex:1; display:flex; align-items:center; justify-content:space-between; padding:0 8px;'><span style='font-size:12px; cursor:pointer;'>❮</span><div style='text-align:center;'><span style='font-weight:bold; font-size:11px; color:var(--accent);'>" + (text || "Slide 1") + "</span><div style='font-size:9px; opacity:0.7;'>Carousel View</div></div><span style='font-size:12px; cursor:pointer;'>❯</span></div><div style='padding:2px 8px; background:rgba(0,0,0,0.2); display:flex; justify-content:space-between; font-size:9px; opacity:0.8;'><span>1 / 3</span><span>● ○ ○</span></div>";
 			} else {
 				if (ctrl.background_color) div.style.backgroundColor = ctrl.background_color;
 				const fg = ctrl.font_color || "#ffffff";
@@ -5696,6 +5884,15 @@
 			html += "    .input-ctrl:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25); }\n";
 			html += "    .panel-ctrl { border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(255, 255, 255, 0.03); padding: 10px 14px; font-size: 14px; font-weight: 700; align-items: flex-start; justify-content: flex-start; }\n";
 			html += "    .badge-ctrl { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; }\n";
+			html += "    /* Studio Extended Controls Modern Styles */\n";
+			html += "    .rad-card { box-shadow: 0 4px 14px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; }\n";
+			html += "    .rad-elevation-2 { box-shadow: 0 16px 36px rgba(0,0,0,0.35); }\n";
+			html += "    .rad-dropdown-menu { display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 160px; background: #1e293b; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; z-index: 999; box-shadow: 0 10px 24px rgba(0,0,0,0.3); overflow: hidden; }\n";
+			html += "    .rad-tooltip-container { position: relative; display: inline-flex; }\n";
+			html += "    .rad-tooltip-bubble { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 11px; white-space: nowrap; box-shadow: 0 6px 16px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); z-index: 99; pointer-events: none; }\n";
+			html += "    .rad-tooltip-container:hover .rad-tooltip-bubble { display: inline-block !important; }\n";
+			html += "    .rad-anim-input { transition: width 0.3s ease-in-out; }\n";
+			html += "    .rad-anim-input:focus { width: 100% !important; border-color: #38bdf8 !important; box-shadow: 0 0 0 3px rgba(56,189,248,0.25) !important; }\n";
 			html += "  </style>\n</head>\n<body>\n\n";
 
 			html += "<main class=\"form-window\">\n";
@@ -5898,6 +6095,79 @@
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
 					html += "    <textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class=\"input-ctrl\" style=\"background-color:" + (c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117') + "; color:" + (c.font_color || '#7dd3fc') + "; font-family:'Fira Code','Courier New',monospace; font-size:" + c_fs + "px; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:10px; resize:none; outline:none; white-space:pre;\" id=\"" + c.id + "\" placeholder=\"" + (c.placeholder || "") + "\">" + text + "</textarea>\n";
 					html += "  </div>\n";
+				} else if (c.control_type === "sidebar" || c.control_type === "w3_sidebar") {
+					const sbItems = (c.items || ["🏠 Dashboard", "📁 Projects", "👥 Team", "⚙️ Settings", "❓ Help"]);
+					const itemsArr = Array.isArray(sbItems) ? sbItems : String(sbItems).split(',').map(s => s.trim());
+					html += "  <div class=\"control-item rad-card\" style=\"" + posStyle + " background:" + (c_bg !== 'transparent' ? c_bg : '#1e293b') + "; flex-direction:column; overflow:hidden;\">\n";
+					html += "    <div style=\"padding:10px 14px; background:rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;\"><span style=\"font-weight:700; font-size:12px; color:#38bdf8;\">" + (text || "Navigation") + "</span><button onclick=\"this.closest('.control-item').style.display='none'\" style=\"background:none; border:none; color:inherit; font-size:16px; cursor:pointer;\">&times;</button></div>\n";
+					html += "    <div style=\"flex:1; overflow-y:auto; padding:6px 0;\">" + itemsArr.map((it, i) => `<button style="width:100%; padding:8px 14px; text-align:left; background:${i===0?'rgba(56,189,248,0.15)':'transparent'}; color:${i===0?'#38bdf8':'inherit'}; border:none; font-size:11px; font-weight:${i===0?'700':'500'}; cursor:pointer; display:flex; justify-content:space-between;"><span>${it}</span><span style="opacity:0.4;">›</span></button>`).join('') + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "modal" || c.control_type === "modal_dialog" || c.control_type === "w3_modal") {
+					html += "  <div class=\"control-item rad-card rad-elevation-2\" style=\"" + posStyle + " background:" + (c_bg !== 'transparent' ? c_bg : '#1e293b') + "; flex-direction:column; overflow:hidden;\">\n";
+					html += "    <div style=\"padding:10px 14px; background:rgba(56,189,248,0.15); border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;\"><span style=\"font-weight:700; font-size:12px; color:#38bdf8;\">" + (text || "Modal Dialog") + "</span><button onclick=\"this.closest('.control-item').style.display='none'\" style=\"background:none; border:none; color:inherit; font-size:16px; cursor:pointer;\">&times;</button></div>\n";
+					html += "    <div style=\"padding:12px 14px; flex:1; font-size:11px; opacity:0.85;\">" + (c.message || c.placeholder || "Modal dialog container content.") + "</div>\n";
+					html += "    <div style=\"padding:8px 14px; background:rgba(0,0,0,0.2); border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:flex-end; gap:6px;\"><button onclick=\"this.closest('.control-item').style.display='none'\" style=\"padding:4px 10px; background:rgba(255,255,255,0.08); color:inherit; border:none; border-radius:4px; font-size:10px; cursor:pointer;\">Cancel</button><button onclick=\"this.closest('.control-item').style.display='none'\" style=\"padding:4px 12px; background:#38bdf8; color:#fff; border:none; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer;\">Confirm</button></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "dropdown_menu" || c.control_type === "w3_dropdown") {
+					const dItems = (c.items || ["Action One", "Action Two", "Settings"]);
+					const dArr = Array.isArray(dItems) ? dItems : String(dItems).split(',').map(s => s.trim());
+					html += "  <div class=\"control-item rad-dropdown-host\" style=\"" + posStyle + "\">\n";
+					html += "    <button onclick=\"event.stopPropagation(); const m=this.nextElementSibling; m.style.display=m.style.display==='block'?'none':'block';\" style=\"width:100%; height:100%; background:#38bdf8; color:#fff; border:none; border-radius:6px; padding:0 12px; display:flex; align-items:center; justify-content:space-between; font-weight:600; cursor:pointer;\"><span>" + (text || "Select Action") + "</span><span style=\"font-size:10px;\">▼</span></button>\n";
+					html += "    <div class=\"rad-dropdown-menu\">" + dArr.map(it => `<button onclick="event.stopPropagation(); this.closest('.rad-dropdown-menu').style.display='none'; this.closest('.control-item').querySelector('button span').textContent='${it}';" style="width:100%; padding:8px 12px; text-align:left; background:transparent; color:inherit; border:none; font-size:11px; cursor:pointer; display:block;">${it}</button>`).join('') + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "list_group" || c.control_type === "w3_list") {
+					const lItems = c.items || [{title:"Project Specs", sub:"v1.4", tag:"Active"}, {title:"Customer Database", sub:"12k rows", tag:"Online"}];
+					const lArr = Array.isArray(lItems) ? lItems : [{title: text || "Item 1", tag: "OK"}];
+					html += "  <div class=\"control-item rad-card\" style=\"" + posStyle + " background:" + (c_bg !== 'transparent' ? c_bg : '#1e293b') + "; flex-direction:column; overflow-y:auto;\">\n";
+					html += "    <div style=\"display:flex; flex-direction:column;\">" + lArr.map(it => `<div style="padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; font-size:11px;"><div><div style="font-weight:600;">${it.title||it.text||it}</div>${it.sub?`<div style="font-size:9px; opacity:0.65;">${it.sub}</div>`:''}</div>${it.tag?`<span style="background:rgba(56,189,248,0.18); color:#38bdf8; padding:2px 8px; border-radius:9999px; font-size:9px; font-weight:700;">${it.tag}</span>`:''}</div>`).join('') + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "content_card" || c.control_type === "card" || c.control_type === "w3_card") {
+					html += "  <div class=\"control-item rad-card rad-elevation-2\" style=\"" + posStyle + " background:" + (c_bg !== 'transparent' ? c_bg : '#1e293b') + "; flex-direction:column; overflow:hidden;\">\n";
+					html += "    <div style=\"padding:10px 14px; background:rgba(56,189,248,0.15); font-weight:700; color:#38bdf8; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.1);\">" + (text || "Content Card") + "</div>\n";
+					html += "    <div style=\"height:60px; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; font-size:12px; opacity:0.8;\">🖼️ Media slot</div>\n";
+					html += "    <div style=\"padding:10px 14px; flex:1; font-size:11px; opacity:0.85;\">" + (c.description || "Card content description.") + "</div>\n";
+					html += "    <div style=\"padding:6px 14px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:flex-end;\"><button style=\"padding:4px 12px; background:#38bdf8; color:#fff; border:none; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer;\">Explore</button></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "callout_panel" || c.control_type === "note_panel" || c.control_type === "w3_panel") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + " background:rgba(56,189,248,0.12); border-left:5px solid #38bdf8; border-radius:0 8px 8px 0; padding:10px 14px; flex-direction:column; align-items:flex-start; justify-content:center;\">\n";
+					html += "    <div style=\"font-weight:700; font-size:12px; color:#38bdf8;\">" + (c.title || "Important Note") + "</div>\n";
+					html += "    <div style=\"font-size:11px; opacity:0.85; margin-top:2px;\">" + (text || "Highlighted callout message.") + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "tooltip_box" || c.control_type === "w3_tooltip") {
+					html += "  <div class=\"control-item rad-tooltip-container\" style=\"" + posStyle + " justify-content:center;\">\n";
+					html += "    <button style=\"padding:6px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:inherit; font-size:11px; font-weight:600; cursor:pointer;\">" + (text || "Hover Me ℹ️") + "</button>\n";
+					html += "    <span class=\"rad-tooltip-bubble\">" + (c.tooltip || "Tooltip details popup") + "</span>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "animated_input" || c.control_type === "w3_animated_input") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + " justify-content:flex-start;\">\n";
+					html += "    <input type=\"text\" class=\"input-ctrl rad-anim-input\" placeholder=\"" + (c.placeholder || "Click to expand...") + "\" value=\"" + (text || "") + "\" style=\"width:140px; height:100%;\">\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "hero_display" || c.control_type === "display_container" || c.control_type === "w3_display") {
+					html += "  <div class=\"control-item rad-card\" style=\"" + posStyle + " background:linear-gradient(135deg, rgba(56,189,248,0.2), #0f172a); overflow:hidden;\">\n";
+					html += "    <div style=\"position:absolute; top:8px; left:10px; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700;\">★ Featured</div>\n";
+					html += "    <div style=\"position:absolute; top:8px; right:10px; background:#38bdf8; color:#fff; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700;\">NEW</div>\n";
+					html += "    <div style=\"display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%;\"><div style=\"font-size:15px; font-weight:800; color:#38bdf8;\">" + (text || "Hero Display") + "</div><div style=\"font-size:10px; opacity:0.7;\">Position Pinned Overlays</div></div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "code_snippet" || c.control_type === "code_block" || c.control_type === "w3_code") {
+					html += "  <div class=\"control-item rad-card\" style=\"" + posStyle + " background:#0d1117; border-left:4px solid #10b981; padding:10px 14px; position:relative; overflow:auto;\">\n";
+					html += "    <button onclick=\"navigator.clipboard.writeText(this.nextElementSibling.textContent); this.textContent='✓ Copied'; setTimeout(()=>this.textContent='📋 Copy',1500);\" style=\"position:absolute; top:6px; right:8px; background:rgba(255,255,255,0.1); border:none; color:inherit; border-radius:3px; padding:2px 6px; font-size:9px; cursor:pointer;\">📋 Copy</button>\n";
+					html += "    <pre style=\"margin:0; font-family:monospace; font-size:11px; color:#a7f3d0;\">" + (c.code || text || "const app = new StudioApp();") + "</pre>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "count_badge" || c.control_type === "circular_badge" || c.control_type === "w3_badge") {
+					html += "  <div class=\"control-item\" style=\"" + posStyle + " justify-content:center;\">\n";
+					html += "    <span style=\"width:28px; height:28px; border-radius:50%; background:" + (c_bg !== 'transparent' ? c_bg : '#ef4444') + "; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; box-shadow:0 2px 6px rgba(0,0,0,0.3);\">" + (text || "1") + "</span>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "button_group" || c.control_type === "button_bar" || c.control_type === "w3_button_group") {
+					const bList = c.buttons || (text ? text.split(',') : ["Left", "Center", "Right"]);
+					const bArr = Array.isArray(bList) ? bList : String(bList).split(',').map(s => s.trim());
+					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
+					html += "    <div style=\"display:flex; width:100%; height:100%; border:1px solid rgba(255,255,255,0.15); border-radius:6px; overflow:hidden;\">" + bArr.map((b, idx) => `<button style="flex:1; background:${idx===0?'#38bdf8':'rgba(255,255,255,0.06)'}; color:${idx===0?'#fff':'inherit'}; border:none; border-right:${idx===bArr.length-1?'none':'1px solid rgba(255,255,255,0.15)'}; font-size:10px; font-weight:700; cursor:pointer;">${b}</button>`).join('') + "</div>\n";
+					html += "  </div>\n";
+				} else if (c.control_type === "slideshow" || c.control_type === "carousel" || c.control_type === "w3_slideshow") {
+					html += "  <div class=\"control-item rad-card rad-elevation-2\" style=\"" + posStyle + " background:" + (c_bg !== 'transparent' ? c_bg : '#1e293b') + "; flex-direction:column; overflow:hidden;\">\n";
+					html += "    <div style=\"flex:1; display:flex; align-items:center; justify-content:space-between; padding:0 12px;\"><span style=\"font-size:14px; cursor:pointer; opacity:0.7;\">❮</span><div style=\"text-align:center;\"><div style=\"font-size:13px; font-weight:700; color:#38bdf8;\">" + (text || "Slide 1") + "</div><div style=\"font-size:9px; opacity:0.65;\">Carousel Container</div></div><span style=\"font-size:14px; cursor:pointer; opacity:0.7;\">❯</span></div>\n";
+					html += "    <div style=\"padding:4px 10px; background:rgba(0,0,0,0.2); border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; font-size:9px; opacity:0.8;\"><span>1 / 3</span><span>● ○ ○</span></div>\n";
+					html += "  </div>\n";
 				} else {
 					html += "  <div class=\"control-item\" style=\"" + posStyle + "\">\n";
 					html += "    <div id=\"" + c.id + "\" style=\"width:100%; height:100%; background-color:" + c_bg + "; color:" + c_fg + "; padding:6px; border-radius:6px;\">" + text + "</div>\n";
@@ -5905,7 +6175,13 @@
 				}
 			});
 
-			html += "</main>\n\n</body>\n</html>";
+			html += "</main>\n\n<script>\n";
+			html += "  window.addEventListener('click', function(e) {\n";
+			html += "    if (!e.target.closest('.rad-dropdown-host') && !e.target.closest('.w3-dropdown-click')) {\n";
+			html += "      document.querySelectorAll('.rad-dropdown-menu, .w3-dropdown-content').forEach(el => el.style.display = 'none');\n";
+			html += "    }\n";
+			html += "  });\n";
+			html += "</script>\n</body>\n</html>";
 			return html;
 		}
 

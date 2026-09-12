@@ -577,7 +577,22 @@ Ported with 100% visual and functional parity from [vlang_simplegui API Referenc
 - `win.addGrid(columns?, gap?, opts?)` / `win.add_grid(...)`
 - `win.addTreeNode(label, children?, opts?)` / `win.add_tree_node(...)`
 
-#### 10. Nameless Shorthand Helpers
+#### 10. Studio Extended Controls (Modern Ergonomic UI)
+- `win.addSidebar(title, items, onClick?, opts?)` / `win.add_sidebar(...)`: Off-canvas drawer navigation menu with item links, active selection indicators, and close action.
+- `win.addModal(title, message, onConfirm?, opts?)` / `win.add_modal(...)`: Modal dialog box with elevated drop shadow, close (&times;) button, content body, and action buttons.
+- `win.addDropdownMenu(label, items, onSelect?, opts?)` / `win.add_dropdown_menu(...)`: Action button with smooth reveal menu and outside-click auto-close.
+- `win.addListGroup(items, onSelect?, opts?)` / `win.add_list_group(...)`: List container with item icons, bold titles, subtitle notes, and right-aligned pill badges.
+- `win.addContentCard(title, description?, opts?)` / `win.add_content_card(...)` / `win.addCard(...)`: Elevated card container with header banner, media slot, description, and action button.
+- `win.addCalloutPanel(title, message?, alertType?, opts?)` / `win.add_callout_panel(...)`: Contextual notification panel with 6px solid accent left bar (supports `info`, `success`, `warning`, `error`).
+- `win.addTooltipBox(triggerText, tooltipText, opts?)` / `win.add_tooltip_box(...)`: Interactive trigger button with floating hover tooltip bubble.
+- `win.addAnimatedInput(placeholder?, value?, onChange?, opts?)` / `win.add_animated_input(...)`: Search/text input that expands smoothly on focus with glowing focus ring.
+- `win.addHeroDisplay(title, opts?)` / `win.add_hero_display(...)`: Hero media container with pinned corner status chips and center title.
+- `win.addCodeSnippet(code, opts?)` / `win.add_code_snippet(...)`: Syntax code box with monospace font, accent bar, and 1-click clipboard copy button.
+- `win.addCountBadge(count, opts?)` / `win.add_count_badge(...)`: Circular numeric count pill badge with glow.
+- `win.addButtonGroup(buttons, onClick?, opts?)` / `win.add_button_group(...)`: Connected segmented button bar with shared borders and active states.
+- `win.addSlideshow(slides, onChange?, opts?)` / `win.add_slideshow(...)`: Interactive carousel with prev/next navigation, slide counter, and dot indicators.
+
+#### 11. Nameless Shorthand Helpers
 ```typescript
 win.donut("CPU Load", 74);
 win.score_card("System Health", "99.9%", "Optimal", "A+");
@@ -1038,6 +1053,13 @@ Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)
 | `cobalt2` | Cobalt2 | 🌙 Dark | `#ffc600` | Wes Bos official Cobalt2 deep navy blue with brilliant canary yellow accents |
 | `win11_slate` | Windows 11 Fluent Slate | 🌙 Dark | `#60cdff` | Modern Windows 11 Fluent Dark Acrylic with vibrant sky blue accents |
 | `win11_light` | Windows 11 Mica Light | ☀️ Light | `#005fb8` | Modern Windows 11 Mica Light desktop with crisp Fluent typography |
+| `ubuntu_dark` | Ubuntu Yaru Dark | 🌙 Dark | `#e95420` | Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange |
+| `ubuntu_light` | Ubuntu Yaru Light | ☀️ Light | `#e95420` | Official Ubuntu Yaru modern Linux light desktop with crisp white surfaces and vibrant Ubuntu orange |
+| `adwaita_dark` | GNOME Adwaita Dark | 🌙 Dark | `#3584e4` | Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue controls |
+| `adwaita_light` | GNOME Adwaita Light | ☀️ Light | `#3584e4` | Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature blue controls |
+| `linux_mint` | Linux Mint Dark | 🌙 Dark | `#87a556` | Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents |
+| `pop_os` | Pop!_OS Dark | 🌙 Dark | `#48b9c7` | System76 Pop!_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents |
+| `fedora_dark` | Fedora Blue | 🌙 Dark | `#51a2da` | Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue |
 | `aura` | Aura Dark | 🌙 Dark | `#a277ff` | Lush mystical dark theme with ethereal neon purple and mint green accents |
 | `apple_dark` | Apple Dark | 🌙 Dark | `#0a84ff` | Modern macOS Dark Mode canvas (Default) |
 | `apple_light` | Apple Light | ☀️ Light | `#0071e3` | Clean, bright macOS Aqua light canvas |

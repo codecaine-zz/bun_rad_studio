@@ -388,7 +388,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
             "tailwind_dark", "supabase", "oled_black", "titanium_slate", "jetbrains_darcula",
             "nordic_paper", "sonoma_emerald", "monokai_pro", "tokyo_night", "one_dark_pro",
             "gruvbox_dark", "rose_pine", "everforest", "kanagawa", "cobalt2",
-            "win11_slate", "apple_dark", "dracula", "nord", "cyberpunk", "apple_light",
+            "win11_slate", "ubuntu_dark", "ubuntu_light", "adwaita_dark", "linux_mint", "pop_os", "apple_dark", "dracula", "nord", "cyberpunk", "apple_light",
             "win95", "gameboy", "c64", "matrix", "synthwave",
             "mac_os_aqua", "win11_light", "github_light", "solarized_light", "soft_pastel"
         ];

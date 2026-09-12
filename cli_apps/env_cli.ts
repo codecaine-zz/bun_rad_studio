@@ -20,7 +20,7 @@ if (!app.parseCli()) {
   process.exit(0);
 }
 
-const envPath = resolve(process.cwd(), app.getFlagString('file'));
+let envPath = resolve(process.cwd(), app.getFlagString('file'));
 const examplePath = resolve(process.cwd(), app.getFlagString('example'));
 const unmask = app.getFlagBool('unmask');
 
@@ -68,8 +68,12 @@ function maskSecret(val: string): string {
 }
 
 if (!existsSync(envPath)) {
-  app.alert(AlertKind.CAUTION, 'File Not Found', `Target env file not found at: ${envPath}`);
-  process.exit(1);
+  if ((app.getFlagString('file') === '.env' || app.getFlagString('file') === './.env') && existsSync(examplePath)) {
+    envPath = examplePath;
+  } else {
+    app.alert(AlertKind.CAUTION, 'File Not Found', `Target env file not found at: ${envPath}`);
+    process.exit(1);
+  }
 }
 
 const envContent = readFileSync(envPath, 'utf8');
