@@ -63,6 +63,8 @@
     "app:omnitool": "bun run applications/devtools_studio.ts",
     "app:tasks": "bun run applications/process_studio.ts",
     "app:taskmanager": "bun run applications/process_studio.ts",
+    "app:fd": "bun run applications/fd_studio.ts",
+    "app:find": "bun run applications/fd_studio.ts",
     "app:sqlite": "bun run applications/database_studio.ts",
     "app:dataconvert": "bun run applications/dataconvert_studio.ts",
     "cli:database": "bun run cli_apps/database_cli.ts",

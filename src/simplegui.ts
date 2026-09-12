@@ -79,22 +79,26 @@ export class SimpleControlRef {
     }
 
     size(width: number, height: number): this {
-        this.spec.width = width;
-        this.spec.height = height;
+        this.width(width);
+        this.height(height);
         return this;
     }
 
     width(w: number): this {
         const oldW = this.spec.width;
         this.spec.width = w;
-        if (oldW && oldW !== w) {
+        if (oldW && oldW !== w && this.window) {
             this.window.recalculateRowX(this.spec, oldW, w);
         }
         return this;
     }
 
     height(h: number): this {
+        const oldH = this.spec.height;
         this.spec.height = h;
+        if (oldH && oldH !== h && this.window) {
+            this.window.recalculateHeightY(this.spec, oldH, h);
+        }
         return this;
     }
 
@@ -1060,6 +1064,20 @@ export class SimpleWindow {
         }
     }
 
+    public recalculateHeightY(spec: any, oldHeight: number, newHeight: number): void {
+        const delta = newHeight - oldHeight;
+        const activeFrame = this.layoutStack[this.layoutStack.length - 1];
+        if (activeFrame) {
+            if (activeFrame.type === "card") {
+                activeFrame.currentY += delta;
+            } else if (activeFrame.type === "row") {
+                activeFrame.rowHeight = Math.max(activeFrame.rowHeight, newHeight);
+            }
+        } else {
+            this.currentY += delta;
+        }
+    }
+
     private addVisualControl(type: string, defaultW: number, defaultH: number, opts: any = {}): SimpleControlRef {
         const id = opts.id || this.generateUniqueId(type);
         const width = opts.width !== undefined ? opts.width : defaultW;
@@ -1520,33 +1538,45 @@ export class SimpleWindow {
         return this.addVisualControl("status_badge", 120, 26, { text, caption: text, alert_type: type, ...opts });
     }
 
-    public addTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
+    public addTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let headers: string[] = [];
         let rows: any[][] = [];
         let clickHandler: EventCallback | undefined;
+        let finalOpts: Record<string, any> = { ...opts };
+
+        if (typeof onSelect === "object" && onSelect !== null) {
+            finalOpts = { ...onSelect, ...opts };
+            clickHandler = undefined;
+        } else if (typeof onSelect === "function") {
+            clickHandler = onSelect;
+        }
 
         if (typeof idOrHeaders === "string" && Array.isArray(headersOrRows)) {
             explicitId = idOrHeaders;
             headers = headersOrRows as string[];
             if (Array.isArray(rowsOrOnSelect)) {
                 rows = rowsOrOnSelect as any[][];
-                clickHandler = onSelect;
             } else if (typeof rowsOrOnSelect === "function") {
                 clickHandler = rowsOrOnSelect;
+            } else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) {
+                finalOpts = { ...rowsOrOnSelect, ...finalOpts };
             }
         } else if (Array.isArray(idOrHeaders)) {
             headers = idOrHeaders as string[];
             if (Array.isArray(headersOrRows)) {
                 rows = headersOrRows as any[][];
                 if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect;
+                else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) finalOpts = { ...rowsOrOnSelect, ...finalOpts };
             }
         }
 
         const headerCsv = headers.join(", ");
-        const ctrlOpts: Record<string, any> = { text: headerCsv, value: rows, ...opts };
+        const ctrlOpts: Record<string, any> = { text: headerCsv, value: rows, ...finalOpts };
         if (explicitId) ctrlOpts.id = explicitId;
-        const ref = this.addVisualControl("data_table", 540, 180, ctrlOpts);
+        const defaultH = finalOpts.height !== undefined ? finalOpts.height : 180;
+        const defaultW = finalOpts.width !== undefined ? finalOpts.width : 540;
+        const ref = this.addVisualControl("data_table", defaultW, defaultH, ctrlOpts);
         if (clickHandler) ref.onClick(clickHandler);
         return ref;
     }
