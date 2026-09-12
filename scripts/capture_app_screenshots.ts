@@ -23,6 +23,8 @@ import { createSystemInformationStudio } from "../applications/system_studio";
 import { createTaskTracker } from "../applications/task_manager";
 import { createWatcherStudio } from "../applications/watcher_studio";
 import { createWatchexecStudio } from "../applications/watchexec_studio";
+import { createFdStudio } from "../applications/fd_studio";
+import { createRipStudio } from "../applications/rip_studio";
 import { createCodeFreelanceShowcase } from "../demos/20_codefreelance_theme_demo";
 import { createErgonomicsShowcase } from "../demos/18_simplegui_ergonomics_demo";
 import { htmlContent as productivityHtml } from "../demos/13_productivity_controls_studio";
@@ -33,7 +35,7 @@ import { saveTheme } from "../src/simplegui";
 
 saveTheme("midnight");
 
-// Map of all 24 production applications & showcases
+// Map of all production applications & showcases
 const apps: Record<string, () => { generateHtml: () => string }> = {
   "api_studio": createApiStudio,
   "app_bundler_studio": createAppBundlerStudio,
@@ -44,6 +46,7 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "dataconvert_studio": createDataConvertStudio,
   "devtools_studio": createDevToolsStudio,
   "env_studio": createEnvStudio,
+  "fd_studio": createFdStudio,
   "git_studio": createGitStudio,
   "jq_studio": createJqStudio,
   "json_studio": createJsonStudio,
@@ -53,6 +56,7 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "process_studio": createProcessStudio,
   "redis_studio": createRedisStudio,
   "regex_studio": createRegexStudio,
+  "rip_studio": createRipStudio,
   "sqlite_studio": createSqliteStudio,
   "system_studio": createSystemInformationStudio,
   "task_manager": createTaskTracker,

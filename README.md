@@ -315,6 +315,15 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of 
 | **14** | **Markdown Studio Pro** | [User Guide](docs/userguides/14_markdown_studio.md) | Split-pane Markdown editor, instant live HTML preview, reading stats, standalone HTML export. | `bun run app:markdown` |
 | **15** | **Color & Design Token Studio** | [User Guide](docs/userguides/15_color_token_studio.md) | HEX/RGB/HSL converter, WCAG 2.1 AA/AAA contrast auditor, 50–950 tonal scale, token export. | `bun run app:color` |
 | **16** | **Environment Vault Studio** | [User Guide](docs/userguides/16_environment_vault_studio.md) | `.env` parser & validator, secret key detection & masking, diff against `.env.example`. | `bun run app:env` |
+| **17** | **Fd Studio Pro** | [Application](applications/fd_studio.ts) | Native Bun ultra-fast filesystem traversal & search (`fd-find` replacement), regex/glob filters, batch exec. | `bun run app:fd` |
+| **18** | **Rip Studio Pro** | [Application](applications/rip_studio.ts) | Safe & ergonomic alternative to `rm`, graveyard quarantine, instant undo restoration, pre-deletion inspect. | `bun run app:rip` |
+
+### 📸 Fd & Rip Studio Pro Desktop Workstations
+
+| Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
+| :--- | :--- | :--- |
+| **Fd Studio Pro** | ![Fd Studio Desktop](screenshots/apps/fd_studio_desktop.png) | ![Fd Studio Responsive](screenshots/apps/fd_studio_responsive.png) |
+| **Rip Studio Pro** | ![Rip Studio Desktop](screenshots/apps/rip_studio_desktop.png) | ![Rip Studio Responsive](screenshots/apps/rip_studio_responsive.png) |
 
 ---
 

@@ -8,6 +8,7 @@ exported_project/
 dist/
 out/
 build/
+.temp_screens/
 *.tgz
 
 # OS System & Environment Files
