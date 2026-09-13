@@ -1,13 +1,8 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import {
-  lookupDomain,
-  runDoggoCoordinator,
-} from "../src/features/doggo/doggoCoordinator.ts";
-import {
   performAllLookup,
+  performDnsLookup,
   performDohLookup,
-  performDnsLookupSync,
-  performAllLookupSync,
   formatJsonOutput,
   formatDoggoTable,
   isIpAddress,
@@ -109,7 +104,7 @@ export function createDoggoStudio(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   // Resolution Logic
   // -----------------------------------------------------------------------------------------------
-  const executeDnsQuery = (forceAll = false) => {
+  const executeDnsQuery = async (forceAll = false) => {
     let target = win.getValue("txt_target")?.trim();
     if (!target) {
       win.setValue("lbl_status_bar", "⚠️ Please specify a target domain or IP.");
@@ -131,8 +126,10 @@ export function createDoggoStudio(options: { fullscreen?: boolean; theme?: strin
 
     try {
       const resp: DoggoResponse = queryType === "ALL"
-        ? performAllLookupSync(target, ns, doh, dohUrl)
-        : performDnsLookupSync(target, queryType, ns, doh, dohUrl);
+        ? await performAllLookup(target, ns, doh, dohUrl)
+        : doh
+          ? await performDohLookup(target, queryType, dohUrl)
+          : await performDnsLookup(target, queryType, ns);
 
       lastResponse = resp;
 
@@ -183,9 +180,15 @@ export function createDoggoStudio(options: { fullscreen?: boolean; theme?: strin
     win.clearConsole("console_doggo");
     win.setValue("lbl_status_bar", "Cleared.");
   });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("DNS configuration saved.");
+  });
 
   // Initial lookup
-  setTimeout(() => executeDnsQuery(false), 100);
+  setTimeout(() => void executeDnsQuery(false), 100);
 
   return win;
 }

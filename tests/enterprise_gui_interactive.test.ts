@@ -43,7 +43,7 @@ describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
     await trigger(win, "btn_copy_curl");
     expect(win.getValue("api_console")).toContain("curl -X GET");
 
-    // Test synchronous request dispatch via curl
+    // Test asynchronous request dispatch via curl
     await trigger(win, "btn_send");
     const respBody = win.getValue("txt_resp_body") || "";
     expect(respBody).toContain("userId");
@@ -87,7 +87,7 @@ describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
     await trigger(win, "btn_gc");
     expect(win.getValue("brew_console")).toContain("[Garbage Collector]");
 
-    // Test npm registry package info query via synchronous curl
+    // Test asynchronous npm registry package info query
     win.setValue("txt_pkg_name", "typescript");
     await trigger(win, "btn_info");
     const pkgInfo = win.getValue("txt_brew_out") || "";
@@ -401,7 +401,7 @@ describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
     const matches = win.getValue("tbl_matches") as string[][];
     expect(Array.isArray(matches)).toBe(true);
     expect(matches.length).toBe(3);
-    expect(matches[0][1]).toBe("Server 404");
+    expect(matches[0]![1]).toBe("Server 404");
     expect(win.getValue("regex_console")).toContain("[RegEx Studio] Evaluated");
 
     // Test regex replacement preview
@@ -446,7 +446,7 @@ describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
     expect(win.getValue("txt_filter")).toBe("");
 
     // Test process selection in table
-    const firstPid = procs[0][0];
+    const firstPid = procs[0]![0];
     await trigger(win, "sel_proc_ipc", "change", firstPid);
     expect(win.getValue("txt_target_pid")).toBe(firstPid);
   });

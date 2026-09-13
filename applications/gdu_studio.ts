@@ -124,9 +124,9 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
     win.setValue("txt_path", activePath);
 
     const sortSel = win.getValue("dd_sort");
-    let sortBy: "size" | "name" | "itemCount" | "mtime" = "size";
+    let sortBy: "size" | "name" | "count" | "mtime" = "size";
     if (sortSel?.includes("Name")) sortBy = "name";
-    else if (sortSel?.includes("Item Count")) sortBy = "itemCount";
+    else if (sortSel?.includes("Item Count")) sortBy = "count";
     else if (sortSel?.includes("Modified")) sortBy = "mtime";
 
     const si = win.getBool("chk_si");
@@ -139,6 +139,12 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
         sortBy,
         si,
         noHidden,
+        nonInteractive: true,
+        showItemCount: true,
+        showRelativeSize: true,
+        showDisks: false,
+        summarize: false,
+        ignoreDirs: [],
       });
 
       currentRoot = root;
@@ -261,6 +267,12 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ Failed to delete: ${err.message}`);
     }
+  });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Disk usage configuration saved.");
   });
 
   // Initial scan

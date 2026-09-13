@@ -52,7 +52,7 @@ const cwd = process.cwd();
 
 // Detect subcommands
 const firstArg = posArgs[0]?.toLowerCase();
-const isSubcommand = ['graveyard', 'seance', 'unbury', 'decompose', 'inspect', 'completions', 'stats'].includes(firstArg);
+const isSubcommand = ['graveyard', 'seance', 'unbury', 'decompose', 'inspect', 'completions', 'stats'].includes(firstArg ?? '');
 
 // -----------------------------------------------------------------------------
 // 1. Subcommand: completions

@@ -12,12 +12,12 @@ export interface CurlResponse {
   error?: string;
 }
 
-export function executeCurlRequestSync(
+export async function executeCurlRequest(
   method: string,
   url: string,
   headers: Record<string, string>,
   bodyStr?: string
-): CurlResponse {
+): Promise<CurlResponse> {
   const t0 = performance.now();
   const args = [
     "curl",
@@ -41,12 +41,19 @@ export function executeCurlRequestSync(
   args.push(url);
 
   try {
-    const proc = Bun.spawnSync(args);
+    const proc = Bun.spawn(args, {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [rawOut, rawError, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
     const elapsed = (performance.now() - t0).toFixed(1);
-    const rawOut = proc.stdout.toString();
 
-    if (!rawOut && proc.exitCode !== 0) {
-      const err = proc.stderr.toString().trim() || `Curl process exited with code ${proc.exitCode}`;
+    if (!rawOut && exitCode !== 0) {
+      const err = rawError.trim() || `Curl process exited with code ${exitCode}`;
       return { ok: false, status: 0, statusText: "Network Error", headers: [], body: `[Network Error]\n${err}`, elapsedMs: elapsed, error: err };
     }
 
@@ -66,17 +73,18 @@ export function executeCurlRequestSync(
     } else {
       let lastHeaderIdx = 0;
       for (let i = 0; i < blocks.length - 1; i++) {
-        if (/^HTTP\/\d/i.test(blocks[i].trim())) {
+        if (/^HTTP\/\d/i.test(blocks[i]?.trim() ?? "")) {
           lastHeaderIdx = i;
         }
       }
-      headerLines = blocks[lastHeaderIdx].split(/\r?\n/);
+      headerLines = (blocks[lastHeaderIdx] ?? "").split(/\r?\n/);
       body = blocks.slice(lastHeaderIdx + 1).join("\r\n\r\n");
     }
 
     const parsedHeaders: [string, string][] = [];
     for (let i = 1; i < headerLines.length; i++) {
       const line = headerLines[i];
+      if (!line) continue;
       const colon = line.indexOf(":");
       if (colon > 0) {
         parsedHeaders.push([line.slice(0, colon).trim(), line.slice(colon + 1).trim()]);
@@ -226,7 +234,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     })();
   `);
 
-  const sendRequest = () => {
+  const sendRequest = async () => {
     const method = win.getValue("dd_method") || "GET";
     const url = win.getValue("txt_url") || "";
     const bodyStr = win.getValue("txt_req_body") || "";
@@ -266,7 +274,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     }
 
     try {
-      const res = executeCurlRequestSync(method, url, headers, bodyStr);
+      const res = await executeCurlRequest(method, url, headers, bodyStr);
       lastResponseText = res.body;
 
       let formattedBody = res.body;
@@ -296,7 +304,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     }
   };
 
-  win.onClick("btn_send", () => sendRequest());
+  win.onClick("btn_send", sendRequest);
 
   win.onClick("btn_copy_curl", () => {
     const method = win.getValue("dd_method") || "GET";
@@ -334,7 +342,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     }
   });
 
-  win.onClick("btn_bench", () => {
+  win.onClick("btn_bench", async () => {
     const url = win.getValue("txt_url") || "";
     if (!url) return;
 
@@ -350,17 +358,24 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     `;
 
     try {
-      const proc = Bun.spawnSync(["bash", "-c", script]);
+      const proc = Bun.spawn(["bash", "-c", script], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const [stdout, stderr, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
       const totalElapsed = (performance.now() - t0).toFixed(1);
-      const latencies = proc.stdout
-        .toString()
+      const latencies = stdout
         .trim()
         .split("\n")
         .map((s) => parseFloat(s) * 1000)
         .filter((n) => !isNaN(n));
 
       if (latencies.length === 0) {
-        throw new Error(proc.stderr.toString().trim() || "Benchmark produced no data");
+        throw new Error(stderr.trim() || `Benchmark exited with code ${exitCode}`);
       }
 
       const avg = (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(1);
@@ -400,7 +415,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       win.setText("txt_url", "https://httpbin.org/delay/1");
       win.setText("dd_method", "GET");
     }
-    sendRequest();
+    void sendRequest();
   });
 
   win.onClick("btn_fullscreen", () => win.toggleFullscreen());

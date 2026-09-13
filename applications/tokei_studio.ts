@@ -106,7 +106,7 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   const analyzeCodebase = () => {
     const scanPath = win.getValue("txt_path")?.trim() || ".";
     const excludeStr = win.getValue("txt_exclude")?.trim();
-    const excludes = excludeStr ? excludeStr.split(",").map((s) => s.trim()) : undefined;
+    const excludes = excludeStr ? excludeStr.split(",").map((s: string) => s.trim()) : undefined;
     const hidden = win.getBool("chk_hidden");
     const showFiles = win.getBool("chk_files");
 
@@ -222,6 +222,12 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
     win.setTableData("tbl_tokei", []);
     win.clearConsole("console_tokei");
     win.setValue("lbl_status_bar", "Cleared.");
+  });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Code analysis configuration saved.");
   });
 
   // Initial scan

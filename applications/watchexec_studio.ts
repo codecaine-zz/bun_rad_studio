@@ -5,6 +5,7 @@ import {
   killRunningProcess,
 } from "../src/features/watchexec/watchexecDoers.ts";
 import type { WatchexecOptions } from "../src/features/watchexec/watchexecTypes.ts";
+import type { Subprocess } from "bun";
 import { watch } from "node:fs";
 import * as path from "node:path";
 
@@ -22,7 +23,7 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
   );
 
   let activeWatcher: { close: () => void } | null = null;
-  let activeProcess: any = null;
+  let activeProcess: Subprocess | null = null;
   let triggerCount = 0;
   const historyRows: string[][] = [];
 
@@ -106,7 +107,7 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
   // -----------------------------------------------------------------------------------------------
   // Watcher Engine Logic
   // -----------------------------------------------------------------------------------------------
-  const executeCommand = (triggeredFile?: string) => {
+  const executeCommand = async (triggeredFile?: string) => {
     const cmdStr = win.getValue("txt_exec_cmd")?.trim();
     if (!cmdStr) {
       win.setValue("lbl_status_bar", "⚠️ No execution command specified.");
@@ -133,37 +134,46 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
       win.appendConsole("watch_console", `[watchexec] Triggered by: ${triggeredFile}\n`);
     }
 
-    historyRows.unshift([
+    const historyRow = [
       timeStr,
       String(triggerCount),
       triggeredFile ? path.basename(triggeredFile) : "Manual",
       "RUNNING",
-    ]);
+    ];
+    historyRows.unshift(historyRow);
     win.setTableData("tbl_history", historyRows.slice(0, 50));
 
     try {
       const watchPath = win.getValue("txt_watch_path")?.trim() || ".";
       const env = buildWatchexecEnv(triggeredFile, watchPath);
 
-      const proc = Bun.spawnSync(["/bin/sh", "-c", cmdStr], {
+      const proc = Bun.spawn(["/bin/sh", "-c", cmdStr], {
         cwd: process.cwd(),
         env: { ...process.env, ...env },
+        stdout: "pipe",
+        stderr: "pipe",
       });
+      activeProcess = proc;
+      win.setValue("lbl_metric_pid", `Active PID: ${proc.pid}`);
 
-      const stdoutStr = proc.stdout ? proc.stdout.toString() : "";
-      const stderrStr = proc.stderr ? proc.stderr.toString() : "";
+      const [stdoutStr, stderrStr, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
       if (stdoutStr) win.appendConsole("watch_console", stdoutStr);
       if (stderrStr) win.appendConsole("watch_console", stderrStr);
 
-      const exitCode = proc.exitCode ?? 0;
-      win.setValue("lbl_metric_pid", "Active PID: None");
       win.appendConsole("watch_console", `\n[watchexec] Process exited with status ${exitCode}\n`);
-      win.setValue("lbl_status_bar", `✓ Process exited with code ${exitCode}.`);
-
-      if (historyRows[0]) {
-        historyRows[0][3] = exitCode === 0 ? "SUCCESS" : `FAILED (${exitCode})`;
-        win.setTableData("tbl_history", historyRows.slice(0, 50));
+      if (activeProcess === proc) {
+        activeProcess = null;
+        win.setValue("lbl_metric_pid", "Active PID: None");
+        win.setValue("lbl_status_bar", `✓ Process exited with code ${exitCode}.`);
+        historyRow[3] = exitCode === 0 ? "SUCCESS" : `FAILED (${exitCode})`;
+      } else {
+        historyRow[3] = "CANCELLED";
       }
+      win.setTableData("tbl_history", historyRows.slice(0, 50));
     } catch (err: any) {
       win.appendConsole("watch_console", `\n[watchexec ERROR] ${err.message}\n`);
       win.setValue("lbl_status_bar", `❌ Execution failed: ${err.message}`);
@@ -178,9 +188,9 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
 
     const watchPath = win.getValue("txt_watch_path")?.trim() || "./src";
     const extsStr = win.getValue("txt_exts")?.trim();
-    const extensions = extsStr ? extsStr.split(",").map((s) => s.trim().replace(/^\./, "")) : undefined;
+    const extensions = extsStr ? extsStr.split(",").map((s: string) => s.trim().replace(/^\./, "")) : undefined;
     const ignoreStr = win.getValue("txt_ignore")?.trim();
-    const ignorePatterns = ignoreStr ? ignoreStr.split(",").map((s) => s.trim()) : [];
+    const ignorePatterns = ignoreStr ? ignoreStr.split(",").map((s: string) => s.trim()) : [];
     const debounceMs = parseInt(win.getValue("txt_debounce") || "150", 10) || 150;
 
     let debounceTimer: Timer | null = null;
@@ -192,7 +202,7 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
         }
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          executeCommand(filename);
+          void executeCommand(filename);
         }, debounceMs);
       });
 
@@ -211,7 +221,7 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
       win.setValue("lbl_status_bar", `✓ Native watcher listening on "${watchPath}"...`);
 
       if (!win.getBool("chk_postpone")) {
-        executeCommand();
+        void executeCommand();
       }
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ Could not start watcher: ${err.message}`);
@@ -245,6 +255,12 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
 
   win.on("btn_clear_console", "click", () => {
     win.clearConsole("watch_console");
+  });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Watcher configuration saved.");
   });
 
   return win;

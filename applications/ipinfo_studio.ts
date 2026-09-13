@@ -296,6 +296,12 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     win.clearConsole("console_ipinfo");
     win.setValue("lbl_status_bar", "Cleared.");
   });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("IP lookup configuration saved.");
+  });
 
   // Client-side direct click binding that cancels native bubbling and double execution
   win.addScript(`

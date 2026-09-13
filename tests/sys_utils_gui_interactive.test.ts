@@ -96,7 +96,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     const records = win.getValue("tbl_records") as string[][];
     expect(Array.isArray(records)).toBe(true);
     expect(records.length).toBeGreaterThanOrEqual(1);
-    expect(records[0][0]).toBe("A");
+    expect(records[0]![0]).toBe("A");
     expect(win.getValue("lbl_metric_target")).toContain("example.com");
     expect(win.getValue("console_doggo")).toContain("example.com");
     expect(win.getValue("lbl_status_bar")).toContain("Received");
@@ -292,7 +292,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     expect(win.getValue("lbl_status")).toContain("Matches:");
 
     // Test selecting a row in tbl_results
-    await trigger(win, "tbl_results", "click", searchRows[0][0]);
+    await trigger(win, "tbl_results", "click", searchRows[0]![0]);
     expect(win.getValue("lbl_status")).toBeDefined();
 
     // Test type filter
@@ -320,6 +320,15 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
 
     expect(win.getValue("watch_console")).toContain("interactive test output");
     expect(win.getValue("lbl_metric_triggers")).toContain("Trigger Count: 1");
+
+    // Long-running commands stay asynchronous and can be cancelled from the UI.
+    win.setValue("txt_exec_cmd", "sleep 1");
+    const runningCommand = trigger(win, "btn_trigger_now");
+    expect(win.getValue("lbl_metric_pid")).not.toBe("Active PID: None");
+    await trigger(win, "btn_kill_run");
+    expect(win.getValue("lbl_status_bar")).toBe("Process killed.");
+    await runningCommand;
+    expect(win.getValue("lbl_status_bar")).toBe("Process killed.");
 
     // Test clear console
     await trigger(win, "btn_clear_console");

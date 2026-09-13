@@ -203,6 +203,13 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   win.on("btn_count_matches", "click", () => executeOperation("count"));
   win.on("btn_preview_diffs", "click", () => executeOperation("preview"));
   win.on("btn_apply_replace", "click", () => executeOperation("replace"));
+  win.on("btn_browse_target", "click", async () => {
+    const selectedPath = await win.openFileDialog("Select a target file");
+    if (selectedPath) {
+      win.setValue("txt_targets", selectedPath);
+      win.setValue("lbl_status_bar", `Selected target: ${selectedPath}`);
+    }
+  });
 
   win.on("btn_clear", "click", () => {
     win.setValue("txt_find", "");
@@ -221,6 +228,12 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
         win.appendConsole("console_diffs", diffText + "\n\n");
       }
     }
+  });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Search and replace configuration saved.");
   });
 
   return win;

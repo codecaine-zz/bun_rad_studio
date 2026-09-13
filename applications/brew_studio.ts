@@ -1,5 +1,4 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
-import { Sys } from "../src/simplecli/sys";
 import * as os from "os";
 
 export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
@@ -81,12 +80,21 @@ Zero Homebrew reliance: All operations powered by Bun built-in APIs.
   win.endRow();
 
   // Helper for running Bun CLI commands
-  const runBunCmd = (cmdStr: string, description: string) => {
+  const runBunCmd = async (cmdStr: string, description: string) => {
     win.appendConsole("brew_console", `[Bun System] ${description} ('${cmdStr}')...\n`, 1);
     win.setStatus(`Running: ${cmdStr}...`);
 
     const t0 = Date.now();
-    const [out, code] = Sys.exec(cmdStr);
+    const proc = Bun.spawn(["/bin/sh", "-c", cmdStr], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    const out = stdout || stderr;
     const elapsed = Date.now() - t0;
 
     win.setText("txt_brew_out", out || `(Command exited with code ${code})`);
@@ -138,32 +146,25 @@ Active Interfaces: ${netNames || "None"}
     win.setStatus("Telemetry Refreshed");
   });
 
-  // Helper for synchronous npm registry JSON queries via curl (zero event loop deadlock)
-  const fetchNpmRegistryJsonSync = (urlPath: string): any => {
+  const fetchNpmRegistryJson = async (urlPath: string): Promise<any> => {
     const url = `https://registry.npmjs.org/${urlPath.replace(/^\//, "")}`;
-    const proc = Bun.spawnSync([
-      "curl", "-s", "-L",
-      "--connect-timeout", "3",
-      "-m", "8",
-      "-H", "Accept: application/json",
-      "-A", "Bun-RAD-Studio/1.0",
-      url,
-    ]);
-    if (proc.exitCode !== 0) {
-      throw new Error(proc.stderr.toString().trim() || `Curl exited with code ${proc.exitCode}`);
-    }
-    const text = proc.stdout.toString().trim();
-    if (!text) throw new Error("Empty response received from npm registry");
-    return JSON.parse(text);
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Bun-RAD-Studio/1.0",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error(`Registry responded with HTTP ${response.status}`);
+    return response.json();
   };
 
-  // Search npm Registry via Synchronous cURL Engine
-  win.onClick("btn_search", () => {
+  win.onClick("btn_search", async () => {
     const query = win.getValue("txt_pkg_name") || "webview-bun";
     win.appendConsole("brew_console", `[npm Search] Querying registry for '${query}'...\n`, 1);
     win.setStatus(`Searching '${query}'...`);
     try {
-      const data = fetchNpmRegistryJsonSync(`-/v1/search?text=${encodeURIComponent(query)}&size=8`);
+      const data = await fetchNpmRegistryJson(`-/v1/search?text=${encodeURIComponent(query)}&size=8`);
       const results = (data.objects || []).map((o: any, idx: number) => {
         const p = o.package;
         return `${idx + 1}. ${p.name} (v${p.version})
@@ -183,13 +184,12 @@ Active Interfaces: ${netNames || "None"}
     }
   });
 
-  // Package Details Info via Synchronous cURL Engine
-  win.onClick("btn_info", () => {
+  win.onClick("btn_info", async () => {
     const pkg = (win.getValue("txt_pkg_name") || "webview-bun").trim();
     win.appendConsole("brew_console", `[Package Info] Fetching metadata for '${pkg}'...\n`, 1);
     win.setStatus(`Fetching info for '${pkg}'...`);
     try {
-      const data = fetchNpmRegistryJsonSync(encodeURIComponent(pkg));
+      const data = await fetchNpmRegistryJson(encodeURIComponent(pkg));
       const latestVer = data["dist-tags"]?.latest || "latest";
       const verData = data.versions?.[latestVer] || {};
 
@@ -222,13 +222,13 @@ ${Object.entries(verData.peerDependencies || {}).map(([k, v]) => `  - ${k}: ${v}
   win.onClick("btn_install", () => {
     const pkg = (win.getValue("txt_pkg_name") || "").trim();
     if (!pkg) return;
-    runBunCmd(`bun add ${pkg}`, `Installing ${pkg}`);
+    return runBunCmd(`bun add ${pkg}`, `Installing ${pkg}`);
   });
 
   win.onClick("btn_uninstall", () => {
     const pkg = (win.getValue("txt_pkg_name") || "").trim();
     if (!pkg) return;
-    runBunCmd(`bun remove ${pkg}`, `Removing ${pkg}`);
+    return runBunCmd(`bun remove ${pkg}`, `Removing ${pkg}`);
   });
 
   // Bun PM & Runtime Actions

@@ -142,7 +142,8 @@ async function main() {
       app.error(`No category matching '${targetCategory}'. Use --list-apis to see available categories.`);
       return;
     }
-    app.info(`Running ${methods.length} methods in category '${methods[0].category}'...`);
+    const category = methods[0]!.category;
+    app.info(`Running ${methods.length} methods in category '${category}'...`);
     const results: Record<string, any> = {};
     for (const m of methods) {
       const res = await executeSiMethod(m.name, m.defaultParam);
@@ -151,7 +152,7 @@ async function main() {
     if (isJson) {
       console.log(JSON.stringify(results, null, 2));
     } else {
-      app.success(`Category '${methods[0].category}' execution complete:`);
+      app.success(`Category '${category}' execution complete:`);
       console.log(JSON.stringify(results, null, 2));
     }
     return;

@@ -141,11 +141,12 @@ export async function performDohLookup(
 export async function performAllLookup(
   domain: string,
   nameserver?: string,
-  isDoh?: boolean
+  isDoh?: boolean,
+  dohUrl?: string
 ): Promise<DoggoResponse> {
   const types: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "NS"];
   const settled = await Promise.allSettled(
-    types.map((t) => (isDoh ? performDohLookup(domain, t) : performDnsLookup(domain, t, nameserver)))
+    types.map((t) => (isDoh ? performDohLookup(domain, t, dohUrl) : performDnsLookup(domain, t, nameserver)))
   );
   const successful = settled
     .filter((s): s is PromiseFulfilledResult<DoggoResponse> => s.status === "fulfilled")
@@ -153,7 +154,7 @@ export async function performAllLookup(
 
   const answers = successful.flatMap((l) => l.answers);
   const queryTimeMs = successful.length > 0 ? Math.max(...successful.map((l) => l.queryTimeMs)) : 0;
-  const server = successful[0]?.server ?? nameserver ?? "default";
+  const server = successful[0]?.server ?? (isDoh ? dohUrl : nameserver) ?? "default";
   return { domain, queryType: "ALL", answers, queryTimeMs, server, protocol: isDoh ? "DoH" : "UDP" };
 }
 

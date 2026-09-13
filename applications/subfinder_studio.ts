@@ -190,6 +190,12 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
     win.clearConsole("console_subs");
     win.setValue("lbl_status_bar", "Cleared.");
   });
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Subfinder configuration saved.");
+  });
 
   // Client-side script for instant visual loading feedback and smooth ergonomics
   win.addScript(`

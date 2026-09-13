@@ -267,6 +267,12 @@ export function createProcsStudio(options: { fullscreen?: boolean; theme?: strin
 
   win.on("btn_sigterm", "click", () => sendSignal("SIGTERM"));
   win.on("btn_sigkill", "click", () => sendSignal("SIGKILL"));
+  win.onClick("btn_fullscreen", () => win.toggleFullscreen());
+  win.onClick("btn_center", () => win.center());
+  win.onClick("btn_save_state", (w) => {
+    w.saveAppFormState();
+    w.toast("Process monitor configuration saved.");
+  });
 
   // Initial load
   setTimeout(() => refreshProcessList(), 100);
