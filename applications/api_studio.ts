@@ -2,6 +2,122 @@ import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
+export interface CurlResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  headers: [string, string][];
+  body: string;
+  elapsedMs: string;
+  error?: string;
+}
+
+export function executeCurlRequestSync(
+  method: string,
+  url: string,
+  headers: Record<string, string>,
+  bodyStr?: string
+): CurlResponse {
+  const t0 = performance.now();
+  const args = [
+    "curl",
+    "-s",
+    "-i",
+    "-L",
+    "--connect-timeout", "4",
+    "-m", "10",
+    "-X", method,
+    "-w", "\n__BUN_RAD_CURL_METADATA__\n%{http_code}\n%{time_total}\n",
+  ];
+
+  for (const [k, v] of Object.entries(headers)) {
+    args.push("-H", `${k}: ${v}`);
+  }
+
+  if (bodyStr && method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+    args.push("--data-raw", bodyStr);
+  }
+
+  args.push(url);
+
+  try {
+    const proc = Bun.spawnSync(args);
+    const elapsed = (performance.now() - t0).toFixed(1);
+    const rawOut = proc.stdout.toString();
+
+    if (!rawOut && proc.exitCode !== 0) {
+      const err = proc.stderr.toString().trim() || `Curl process exited with code ${proc.exitCode}`;
+      return { ok: false, status: 0, statusText: "Network Error", headers: [], body: `[Network Error]\n${err}`, elapsedMs: elapsed, error: err };
+    }
+
+    const parts = rawOut.split("\n__BUN_RAD_CURL_METADATA__\n");
+    const payload = parts[0] || "";
+    const meta = (parts[1] || "").trim().split("\n");
+    const statusCode = parseInt(meta[0] || "0", 10);
+    const curlElapsedMs = meta[1] ? (parseFloat(meta[1]) * 1000).toFixed(1) : elapsed;
+
+    // Header & body separation (handles redirects by taking the last header block)
+    const blocks = payload.split(/\r?\n\r?\n/);
+    let body = "";
+    let headerLines: string[] = [];
+
+    if (blocks.length <= 1) {
+      body = payload;
+    } else {
+      let lastHeaderIdx = 0;
+      for (let i = 0; i < blocks.length - 1; i++) {
+        if (/^HTTP\/\d/i.test(blocks[i].trim())) {
+          lastHeaderIdx = i;
+        }
+      }
+      headerLines = blocks[lastHeaderIdx].split(/\r?\n/);
+      body = blocks.slice(lastHeaderIdx + 1).join("\r\n\r\n");
+    }
+
+    const parsedHeaders: [string, string][] = [];
+    for (let i = 1; i < headerLines.length; i++) {
+      const line = headerLines[i];
+      const colon = line.indexOf(":");
+      if (colon > 0) {
+        parsedHeaders.push([line.slice(0, colon).trim(), line.slice(colon + 1).trim()]);
+      }
+    }
+
+    const statusText =
+      statusCode === 200
+        ? "OK"
+        : statusCode === 201
+        ? "Created"
+        : statusCode === 204
+        ? "No Content"
+        : statusCode >= 400 && statusCode < 500
+        ? "Client Error"
+        : statusCode >= 500
+        ? "Server Error"
+        : "Response";
+
+    return {
+      ok: statusCode >= 200 && statusCode < 300,
+      status: statusCode,
+      statusText,
+      headers: parsedHeaders,
+      body,
+      elapsedMs: curlElapsedMs,
+    };
+  } catch (e: any) {
+    const elapsed = (performance.now() - t0).toFixed(1);
+    return {
+      ok: false,
+      status: 0,
+      statusText: "Execution Failure",
+      headers: [],
+      body: `[Execution Error]\n${e.message}`,
+      elapsedMs: elapsed,
+      error: e.message,
+    };
+  }
+}
+
 export function createApiStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("API Studio Pro -- Enterprise HTTP & REST API Workbench", 1160, 900, {
@@ -95,14 +211,42 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     lastResponseText = "";
   });
 
-  const sendRequest = async () => {
+  win.addScript(`
+    (function() {
+      const btn = document.getElementById("btn_send");
+      if (btn && !btn.dataset.wired) {
+        btn.dataset.wired = "true";
+        btn.addEventListener("click", function() {
+          btn.disabled = true;
+          btn.innerHTML = "<span>⏳</span> Dispatching...";
+          const st = document.getElementById("lbl_status");
+          if (st) st.innerText = "Status: Connecting to endpoint...";
+        }, true);
+      }
+    })();
+  `);
+
+  const sendRequest = () => {
     const method = win.getValue("dd_method") || "GET";
     const url = win.getValue("txt_url") || "";
     const bodyStr = win.getValue("txt_req_body") || "";
     const headersRaw = win.getValue("txt_headers") || "";
 
+    const resetBtn = () => {
+      win.evalJS(`
+        (function() {
+          const btn = document.getElementById("btn_send");
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "⚡ Send Request";
+          }
+        })();
+      `);
+    };
+
     if (!url) {
       win.toast("Please enter a valid URL");
+      resetBtn();
       return;
     }
 
@@ -121,47 +265,34 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       });
     }
 
-    const t0 = performance.now();
     try {
-      const init: RequestInit = {
-        method,
-        headers,
-      };
-      if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && bodyStr) {
-        init.body = bodyStr;
-      }
+      const res = executeCurlRequestSync(method, url, headers, bodyStr);
+      lastResponseText = res.body;
 
-      const res = await fetch(url, init);
-      const elapsed = (performance.now() - t0).toFixed(1);
-      const text = await res.text();
-      lastResponseText = text;
-
-      let formattedBody = text;
+      let formattedBody = res.body;
       try {
-        const parsed = JSON.parse(text);
+        const parsed = JSON.parse(res.body);
         formattedBody = JSON.stringify(parsed, null, 2);
       } catch {}
 
       win.setText("txt_resp_body", formattedBody);
 
-      // Extract response headers
-      const respHeaders: string[] = [];
-      res.headers.forEach((v, k) => respHeaders.push(`  ${k}: ${v}`));
-
+      const headerPreview = res.headers.slice(0, 8).map(([k, v]) => `  ${k}: ${v}`).join("\n");
       win.appendConsole(
         "api_console",
-        `[HTTP Response] ${res.status} ${res.statusText} in ${elapsed}ms (${text.length} bytes)\n[Headers]\n${respHeaders.slice(0, 8).join("\n")}\n`,
+        `[HTTP Response] ${res.status} ${res.statusText} in ${res.elapsedMs}ms (${res.body.length} bytes)\n[Headers]\n${headerPreview}\n`,
         res.ok ? 2 : 3
       );
-      win.setText("lbl_status", `Status: HTTP ${res.status} ${res.statusText}  |  Latency: ${elapsed}ms  |  Size: ${text.length} bytes`);
-      win.setStatus(`HTTP ${res.status} (${elapsed}ms)`);
+      win.setText("lbl_status", `Status: HTTP ${res.status} ${res.statusText}  |  Latency: ${res.elapsedMs}ms  |  Size: ${res.body.length} bytes`);
+      win.setStatus(`HTTP ${res.status} (${res.elapsedMs}ms)`);
       win.toast(`HTTP ${res.status} ${res.statusText}`);
     } catch (e: any) {
-      const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_resp_body", `[Network Error]\n${e.message}`);
-      win.appendConsole("api_console", `[Connection Failure] ${e.message} (${elapsed}ms)\n`, 3);
+      win.appendConsole("api_console", `[Connection Failure] ${e.message}\n`, 3);
       win.setStatus(`Connection Error: ${e.message}`);
       win.toast(`Error: ${e.message}`);
+    } finally {
+      resetBtn();
     }
   };
 
@@ -203,7 +334,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     }
   });
 
-  win.onClick("btn_bench", async () => {
+  win.onClick("btn_bench", () => {
     const url = win.getValue("txt_url") || "";
     if (!url) return;
 
@@ -211,31 +342,43 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     win.setStatus("Running benchmark...");
 
     const t0 = performance.now();
-    const latencies: number[] = [];
+    const script = `
+      for i in {1..10}; do
+        curl -s -o /dev/null -w "%{time_total}\\n" --connect-timeout 2 -m 5 "${url.replace(/"/g, '\\"')}" &
+      done
+      wait
+    `;
 
-    const promises = Array.from({ length: 10 }).map(async () => {
-      const reqStart = performance.now();
-      try {
-        await fetch(url);
-        latencies.push(performance.now() - reqStart);
-      } catch {
-        latencies.push(9999);
+    try {
+      const proc = Bun.spawnSync(["bash", "-c", script]);
+      const totalElapsed = (performance.now() - t0).toFixed(1);
+      const latencies = proc.stdout
+        .toString()
+        .trim()
+        .split("\n")
+        .map((s) => parseFloat(s) * 1000)
+        .filter((n) => !isNaN(n));
+
+      if (latencies.length === 0) {
+        throw new Error(proc.stderr.toString().trim() || "Benchmark produced no data");
       }
-    });
 
-    await Promise.all(promises);
-    const totalElapsed = (performance.now() - t0).toFixed(1);
-    const avg = (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(1);
-    const min = Math.min(...latencies).toFixed(1);
-    const max = Math.max(...latencies).toFixed(1);
+      const avg = (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(1);
+      const min = Math.min(...latencies).toFixed(1);
+      const max = Math.max(...latencies).toFixed(1);
 
-    win.appendConsole(
-      "api_console",
-      `[Benchmark Completed] 10 requests completed in ${totalElapsed}ms\n  Average Latency: ${avg}ms\n  Fastest (Min):   ${min}ms\n  Slowest (Max):   ${max}ms\n`,
-      2
-    );
-    win.setStatus(`Benchmark complete (avg ${avg}ms)`);
-    win.toast(`Benchmark complete: avg ${avg}ms`);
+      win.appendConsole(
+        "api_console",
+        `[Benchmark Completed] ${latencies.length} requests completed in ${totalElapsed}ms\n  Average Latency: ${avg}ms\n  Fastest (Min):   ${min}ms\n  Slowest (Max):   ${max}ms\n`,
+        2
+      );
+      win.setStatus(`Benchmark complete (avg ${avg}ms)`);
+      win.toast(`Benchmark complete: avg ${avg}ms`);
+    } catch (e: any) {
+      win.appendConsole("api_console", `[Benchmark Error] ${e.message}\n`, 3);
+      win.setStatus("Benchmark Failed");
+      win.toast("Benchmark Failed");
+    }
   });
 
   win.onChange("dd_presets", (_w, choice: string) => {

@@ -1,6 +1,6 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
-import { existsSync, readdirSync, statSync, renameSync, mkdirSync } from "fs";
+import { existsSync, readdirSync, statSync, renameSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join, resolve, basename, relative } from "path";
 import { homedir } from "os";
 import { evaluateBunJsonQuery } from "./jq_studio";
@@ -15,11 +15,11 @@ interface ToolInfo {
 /**
  * Pure Bun File & Code Searcher (Ripgrep equivalent)
  */
-async function bunNativeRipgrep(
+function bunNativeRipgrep(
   targetDir: string,
   pattern: string,
   options: { caseSensitive?: boolean; maxResults?: number } = {}
-): Promise<{ output: string; matches: number; filesScanned: number }> {
+): { output: string; matches: number; filesScanned: number } {
   const flags = options.caseSensitive ? "g" : "gi";
   let regex: RegExp;
   try {
@@ -32,38 +32,6 @@ async function bunNativeRipgrep(
   let matchCount = 0;
   let fileCount = 0;
   const max = options.maxResults || 200;
-
-  function walk(dir: string) {
-    if (matchCount >= max) return;
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (matchCount >= max) break;
-      const name = entry.name;
-      if (name === "node_modules" || name === ".git" || name === "dist" || name === ".temp" || name === ".temp_screens") {
-        continue;
-      }
-
-      const fullPath = join(dir, name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-      } else if (entry.isFile()) {
-        fileCount++;
-        try {
-          const content = Bun.file(fullPath);
-          // Only inspect text files under 2MB
-          if (content.size > 2 * 1024 * 1024) continue;
-        } catch {
-          continue;
-        }
-      }
-    }
-  }
 
   // Synchronous recursive collection of target text files
   const filesToScan: string[] = [];
@@ -94,9 +62,9 @@ async function bunNativeRipgrep(
     if (matchCount >= max) break;
     fileCount++;
     try {
-      const file = Bun.file(fullPath);
-      if (file.size > 1.5 * 1024 * 1024) continue;
-      const text = await file.text();
+      const stat = statSync(fullPath);
+      if (stat.size > 1.5 * 1024 * 1024) continue;
+      const text = readFileSync(fullPath, "utf-8");
       const lines = text.split("\n");
       const rel = relative(targetDir, fullPath);
 
@@ -185,12 +153,12 @@ function bunNativeFd(
 /**
  * Pure Bun Search & Replace (Sd equivalent)
  */
-async function bunNativeSd(
+function bunNativeSd(
   targetPath: string,
   searchPattern: string,
   replaceWith: string,
   dryRun: boolean
-): Promise<{ output: string; filesChanged: number; replacements: number }> {
+): { output: string; filesChanged: number; replacements: number } {
   if (!existsSync(targetPath)) {
     return { output: `Target path does not exist: ${targetPath}`, filesChanged: 0, replacements: 0 };
   }
@@ -230,9 +198,9 @@ async function bunNativeSd(
 
   for (const f of files) {
     try {
-      const file = Bun.file(f);
-      if (file.size > 1024 * 1024) continue;
-      const text = await file.text();
+      const fstat = statSync(f);
+      if (fstat.size > 1024 * 1024) continue;
+      const text = readFileSync(f, "utf-8");
       const count = (text.match(regex) || []).length;
       if (count > 0) {
         filesChanged++;
@@ -240,7 +208,7 @@ async function bunNativeSd(
         summary.push(`${dryRun ? "🔍 [Dry Run]" : "✏️ [Replaced]"} ${relative(process.cwd(), f)}: ${count} occurrences`);
         if (!dryRun) {
           const updated = text.replace(regex, replaceWith);
-          await Bun.write(f, updated);
+          writeFileSync(f, updated, "utf-8");
         }
       }
     } catch {}
@@ -396,7 +364,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     win.appendConsole("omni_console", "[OmniTool] Results cleared\n", 4);
   });
 
-  win.onClick("btn_run_omni", async () => {
+  win.onClick("btn_run_omni", () => {
     const mode = win.getValue("dd_mode") || "";
     const pattern = win.getValue("txt_pattern") || "";
     const target = resolve(process.cwd(), win.getValue("txt_search_path") || ".");
@@ -410,7 +378,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     const t0 = performance.now();
 
     if (mode.includes("Ripgrep")) {
-      const res = await bunNativeRipgrep(target, pattern, { caseSensitive });
+      const res = bunNativeRipgrep(target, pattern, { caseSensitive });
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);
       win.appendConsole(
@@ -430,7 +398,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
       );
       win.setStatus(`Found ${res.matches} items in ${elapsed}ms`);
     } else if (mode.includes("Sd")) {
-      const res = await bunNativeSd(target, pattern, replacement, dryRun);
+      const res = bunNativeSd(target, pattern, replacement, dryRun);
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);
       win.appendConsole(
@@ -460,7 +428,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
       let jsonDoc: any = {};
       try {
         if (existsSync(target) && statSync(target).isFile()) {
-          jsonDoc = JSON.parse(await Bun.file(target).text());
+          jsonDoc = JSON.parse(readFileSync(target, "utf-8"));
         } else {
           jsonDoc = JSON.parse(pattern.startsWith("{") ? pattern : "{}");
         }

@@ -44,13 +44,14 @@ export function createDoggoStudio(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   // 2. Query Telemetry
   // -----------------------------------------------------------------------------------------------
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("DNS Resolution Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_target", "Target: -");
-  win.addLabel("lbl_metric_type", "Record: -");
-  win.addLabel("lbl_metric_rtt", "Query Latency: 0 ms");
-  win.addLabel("lbl_metric_ns", "Resolver: System");
-  win.addLabel("lbl_metric_answers", "Answers: 0");
+  win.addLabel("lbl_metric_target", isShot ? "Target: example.com" : "Target: -");
+  win.addLabel("lbl_metric_type", isShot ? "Record: A / AAAA" : "Record: -");
+  win.addLabel("lbl_metric_rtt", isShot ? "Query Latency: 42 ms" : "Query Latency: 0 ms");
+  win.addLabel("lbl_metric_ns", isShot ? "Resolver: 1.1.1.1 (DoH)" : "Resolver: System");
+  win.addLabel("lbl_metric_answers", isShot ? "Answers: 2" : "Answers: 0");
   win.endRow();
   win.endGroupBox();
 
@@ -84,7 +85,11 @@ export function createDoggoStudio(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Resolved DNS Records (Answers)");
   const tableHeaders = ["Type", "Name", "TTL", "Address / Target Data", "Priority"];
-  win.addTable("tbl_records", tableHeaders, [], { height: 280 });
+  const demoRecords = isShot ? [
+    ["A", "example.com", "300s", "93.184.216.34", "-"],
+    ["AAAA", "example.com", "300s", "2606:2800:220:1:248:1893:25c8:1946", "-"],
+  ] : [];
+  win.addTable("tbl_records", tableHeaders, demoRecords, { height: 280 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------

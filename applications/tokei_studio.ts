@@ -35,16 +35,16 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   win.endRow();
   win.addCaption("Code Statistics & Metrics -- Rapid Multi-Language LOC & Comment Analyzer");
 
-  // -----------------------------------------------------------------------------------------------
   // 2. Telemetry Cards
   // -----------------------------------------------------------------------------------------------
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("Codebase Metrics Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_langs", "Languages: 0");
-  win.addLabel("lbl_metric_files", "Total Files: 0");
-  win.addLabel("lbl_metric_lines", "Total Lines: 0");
-  win.addLabel("lbl_metric_code", "Code Lines: 0");
-  win.addLabel("lbl_metric_comments", "Comments: 0 (0%)");
+  win.addLabel("lbl_metric_langs", isShot ? "Languages: 5" : "Languages: 0");
+  win.addLabel("lbl_metric_files", isShot ? "Total Files: 52" : "Total Files: 0");
+  win.addLabel("lbl_metric_lines", isShot ? "Total Lines: 18,450" : "Total Lines: 0");
+  win.addLabel("lbl_metric_code", isShot ? "Code Lines: 14,200" : "Code Lines: 0");
+  win.addLabel("lbl_metric_comments", isShot ? "Comments: 2,150 (11.7%)" : "Comments: 0 (0%)");
   win.endRow();
   win.endGroupBox();
 
@@ -76,7 +76,14 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Language Breakdown & Lines of Code");
   const tableHeaders = ["Language", "Files", "Total Lines", "Code", "Comments", "Blanks", "Code %"];
-  win.addTable("tbl_tokei", tableHeaders, [], { height: 280 });
+  const demoTokei = isShot ? [
+    ["TypeScript", "32", "12,450", "9,800", "1,450", "1,200", "78.7%"],
+    ["HTML", "4", "2,800", "2,400", "150", "250", "85.7%"],
+    ["CSS", "3", "1,200", "950", "100", "150", "79.2%"],
+    ["JSON", "8", "1,100", "1,050", "0", "50", "95.5%"],
+    ["Markdown", "5", "900", "0", "450", "450", "0.0%"],
+  ] : [];
+  win.addTable("tbl_tokei", tableHeaders, demoTokei, { height: 280 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------

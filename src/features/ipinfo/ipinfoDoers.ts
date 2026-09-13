@@ -95,6 +95,22 @@ export function fetchIpDetails(
     };
   }
 
+  // If in screenshot mode and querying own public IP, return clean Google Public DNS demo data
+  if (process.env.SCREENSHOT_MODE === "1" && (!ip || ip === "myip")) {
+    return {
+      ip: "8.8.8.8",
+      hostname: "dns.google",
+      city: "Mountain View",
+      region: "California",
+      country: "US",
+      loc: "37.4056,-122.0775",
+      org: "AS15169 Google LLC",
+      postal: "94043",
+      timezone: "America/Los_Angeles",
+      readme: "Google Public DNS Demonstration",
+    };
+  }
+
   const cleanIp = ip && ip !== "myip" ? `${ip.trim()}/` : "";
   const query = token ? `?token=${token}` : "";
   const primaryUrl = `https://ipinfo.io/${cleanIp}json${query}`;
@@ -239,6 +255,13 @@ export function formatSubnetInfo(info: SubnetInfo): string {
 }
 
 export function getLocalInterfaces(): LocalInterfaceInfo[] {
+  if (process.env.SCREENSHOT_MODE === "1") {
+    return [
+      { name: "lo0", address: "127.0.0.1", family: "IPv4", netmask: "255.0.0.0", mac: "00:00:00:00:00:00", internal: true },
+      { name: "en0", address: "192.168.1.50", family: "IPv4", netmask: "255.255.255.0", mac: "02:00:00:00:00:01", internal: false },
+      { name: "en1", address: "10.0.0.15", family: "IPv4", netmask: "255.255.0.0", mac: "02:00:00:00:00:02", internal: false },
+    ];
+  }
   const ifaces = networkInterfaces();
   const result: LocalInterfaceInfo[] = [];
   for (const [name, list] of Object.entries(ifaces)) {

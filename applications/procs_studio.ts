@@ -46,13 +46,14 @@ export function createProcsStudio(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   // 2. Telemetry Cards
   // -----------------------------------------------------------------------------------------------
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("Process & Resource Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_total", "Total Procs: 0");
-  win.addLabel("lbl_metric_top_cpu", "Top CPU: -");
-  win.addLabel("lbl_metric_top_mem", "Top MEM: -");
-  win.addLabel("lbl_metric_ports", "Active Listeners: 0");
-  win.addLabel("lbl_metric_status", "Status: Ready");
+  win.addLabel("lbl_metric_total", isShot ? "Total Procs: 9" : "Total Procs: 0");
+  win.addLabel("lbl_metric_top_cpu", isShot ? "Top CPU: WindowServer (3.2%)" : "Top CPU: -");
+  win.addLabel("lbl_metric_top_mem", isShot ? "Top MEM: Chrome (4.5%)" : "Top MEM: -");
+  win.addLabel("lbl_metric_ports", isShot ? "Active Listeners: 4" : "Active Listeners: 0");
+  win.addLabel("lbl_metric_status", isShot ? "Status: Monitoring" : "Status: Ready");
   win.endRow();
   win.endGroupBox();
 
@@ -86,7 +87,18 @@ export function createProcsStudio(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Active Operating System Processes");
   const tableHeaders = ["PID", "PPID", "User", "CPU %", "MEM %", "State", "Time", "Ports", "Command"];
-  win.addTable("tbl_procs", tableHeaders, [], { height: 320 });
+  const demoProcs = isShot ? [
+    ["1", "0", "root", "0.1", "0.2", "Ss", "1:24.12", "-", "/sbin/launchd"],
+    ["210", "1", "_windowserver", "3.2", "2.8", "Ss", "4:18.90", "-", "/System/Library/CoreServices/WindowServer"],
+    ["1042", "1", "developer", "1.5", "1.4", "S", "0:14.22", ":3000", "bun run dev"],
+    ["1088", "1042", "developer", "0.8", "1.1", "S", "0:08.15", ":5173", "vite --host 0.0.0.0 --port 5173"],
+    ["2045", "1", "system", "0.1", "0.5", "S", "0:02.30", ":6379", "redis-server *:6379"],
+    ["3012", "1", "system", "0.2", "0.8", "S", "0:03.45", ":80, :443", "caddy run --config Caddyfile"],
+    ["4099", "1", "system", "0.4", "1.2", "S", "0:05.18", ":5432", "postgres -D /data/postgres"],
+    ["5120", "1", "developer", "0.6", "1.0", "S", "0:12.40", "-", "/Applications/Ghostty.app/Contents/MacOS/Ghostty"],
+    ["6780", "1", "developer", "2.4", "4.5", "S", "1:02.15", "-", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"],
+  ] : [];
+  win.addTable("tbl_procs", tableHeaders, demoProcs, { height: 320 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------

@@ -43,13 +43,14 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   // -----------------------------------------------------------------------------------------------
   // 2. Geolocation Telemetry
   // -----------------------------------------------------------------------------------------------
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("IP Geolocation Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_ip", "Target IP: -");
-  win.addLabel("lbl_metric_location", "Location: -");
-  win.addLabel("lbl_metric_org", "ASN / Org: -");
-  win.addLabel("lbl_metric_timezone", "Timezone: -");
-  win.addLabel("lbl_metric_status", "Status: Ready");
+  win.addLabel("lbl_metric_ip", isShot ? "Target IP: 8.8.8.8" : "Target IP: -");
+  win.addLabel("lbl_metric_location", isShot ? "Location: Mountain View, California, US" : "Location: -");
+  win.addLabel("lbl_metric_org", isShot ? "ASN / Org: AS15169 Google LLC" : "ASN / Org: -");
+  win.addLabel("lbl_metric_timezone", isShot ? "Timezone: America/Los_Angeles" : "Timezone: -");
+  win.addLabel("lbl_metric_status", isShot ? "Status: Resolved" : "Status: Ready");
   win.endRow();
   win.endGroupBox();
 
@@ -80,7 +81,18 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Network Properties & Forensic Metadata");
   const tableHeaders = ["Property", "Resolved Value", "Category", "Description"];
-  win.addTable("tbl_details", tableHeaders, [], { height: 260 });
+  const demoRows = isShot ? [
+    ["IP Address", "8.8.8.8", "Network", "Public IPv4 Anycast Address"],
+    ["Hostname", "dns.google", "DNS", "Reverse DNS PTR / Host Domain"],
+    ["City", "Mountain View", "Geolocation", "Municipal city name"],
+    ["Region", "California", "Geolocation", "State / Province"],
+    ["Country", "US", "Geolocation", "Two-letter ISO country code"],
+    ["Coordinates", "37.4056,-122.0775", "Geolocation", "Latitude & Longitude"],
+    ["Organization / ASN", "AS15169 Google LLC", "Routing", "Autonomous System & ISP Provider"],
+    ["Postal Code", "94043", "Geolocation", "Local postal zip code"],
+    ["Timezone", "America/Los_Angeles", "Locale", "IANA Timezone identifier"],
+  ] : [];
+  win.addTable("tbl_details", tableHeaders, demoRows, { height: 260 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
@@ -94,7 +106,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   // 6. Status Bar
   // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status_bar", "Ready. Enter an IP, domain, or CIDR block to begin.");
+  win.addLabel("lbl_status_bar", isShot ? "✓ Successfully resolved IP details for 8.8.8.8 (dns.google)." : "Ready. Enter an IP, domain, or CIDR block to begin.");
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------

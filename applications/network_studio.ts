@@ -734,31 +734,44 @@ function renderHttpProbeHtml(url: string, status: number, statusText: string, el
 }
 
 export function probeHttpSync(url: string): { success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string } {
-  const safeUrl = JSON.stringify(url);
-  const script = `
-    async function probe() {
-      const t0 = performance.now();
-      try {
-        const resp = await fetch(${safeUrl}, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(5000) });
-        const elapsed = (performance.now() - t0).toFixed(2);
-        const headers = [];
-        resp.headers.forEach((v, k) => headers.push([k, v]));
-        console.log(JSON.stringify({ success: true, status: resp.status, statusText: resp.statusText, elapsedMs: elapsed, headers }));
-      } catch (e) {
-        const elapsed = (performance.now() - t0).toFixed(2);
-        console.log(JSON.stringify({ success: false, error: e.message, elapsedMs: elapsed, headers: [] }));
+  const t0 = performance.now();
+  try {
+    const proc = Bun.spawnSync([
+      "curl", "-s", "-I", "-L",
+      "--connect-timeout", "2",
+      "-m", "4",
+      "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "-w", "\n__RAD_META__\n%{http_code}\n%{time_total}\n",
+      url,
+    ]);
+    const elapsedMs = (performance.now() - t0).toFixed(2);
+    const out = proc.stdout.toString();
+    if (!out && proc.exitCode !== 0) {
+      return { success: false, error: proc.stderr.toString().trim() || "Probe failed", elapsedMs, headers: [] };
+    }
+    const [headerText, metaText] = out.split("\n__RAD_META__\n");
+    const [codeStr] = (metaText || "").trim().split("\n");
+    const status = parseInt(codeStr || "0", 10);
+
+    // Parse headers
+    const lines = (headerText || "").split(/\r?\n/);
+    const headers: [string, string][] = [];
+    for (const line of lines) {
+      const idx = line.indexOf(":");
+      if (idx > 0) {
+        headers.push([line.slice(0, idx).trim(), line.slice(idx + 1).trim()]);
       }
     }
-    probe();
-  `;
-  try {
-    const proc = Bun.spawnSync(["bun", "-e", script]);
-    const out = proc.stdout.toString().trim();
-    if (out) return JSON.parse(out);
+    return {
+      success: status > 0,
+      status: status || 200,
+      statusText: status === 200 ? "OK" : `HTTP ${status}`,
+      elapsedMs,
+      headers,
+    };
   } catch (e: any) {
-    return { success: false, error: e.message, elapsedMs: "0", headers: [] };
+    return { success: false, error: e.message, elapsedMs: (performance.now() - t0).toFixed(2), headers: [] };
   }
-  return { success: false, error: "Probe failed", elapsedMs: "0", headers: [] };
 }
 
 export function probeHttp(url: string): Promise<{ success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string }> {

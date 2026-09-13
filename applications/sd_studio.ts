@@ -48,15 +48,15 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   win.endRow();
   win.addCaption("Intuitive Search & Displace -- Modern sed Alternative with Live Diffs & Regex Captures");
 
+  // -------------------------------------------------------------------------------------------  // 2. Telemetry Cards
   // -----------------------------------------------------------------------------------------------
-  // 2. Telemetry Cards
-  // -----------------------------------------------------------------------------------------------
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("Search & Replace Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_files", "Files Analyzed: 0");
-  win.addLabel("lbl_metric_matches", "Matches Found: 0");
-  win.addLabel("lbl_metric_modified", "Files Modified: 0");
-  win.addLabel("lbl_metric_status", "Engine: Ready");
+  win.addLabel("lbl_metric_files", isShot ? "Files Analyzed: 14" : "Files Analyzed: 0");
+  win.addLabel("lbl_metric_matches", isShot ? "Matches Found: 8" : "Matches Found: 0");
+  win.addLabel("lbl_metric_modified", isShot ? "Files Modified: 3 (Preview)" : "Files Modified: 0");
+  win.addLabel("lbl_metric_status", isShot ? "Engine: Preview Ready" : "Engine: Ready");
   win.endRow();
   win.endGroupBox();
 
@@ -66,9 +66,9 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   win.beginGroupBox("Pattern & Replacement Configuration");
   win.beginRow();
   win.addLabel("lbl_find", "Find Pattern:");
-  win.addInput("txt_find", "", "Regex (e.g. \\b\\w+Service) or literal text...", { width: 340 });
+  win.addInput("txt_find", isShot ? "function ([a-zA-Z0-9_]+)Async" : "", "Regex (e.g. \\b\\w+Service) or literal text...", { width: 340 });
   win.addLabel("lbl_replace", "Replace With:");
-  win.addInput("txt_replace", "", "Replacement text (supports $1, $2 captures)...", { width: 340 });
+  win.addInput("txt_replace", isShot ? "function $1Sync" : "", "Replacement text (supports $1, $2 captures)...", { width: 340 });
   win.endRow();
 
   win.beginRow();
@@ -98,7 +98,12 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Modified & Matching Files");
   const tableHeaders = ["File Path", "Matches", "Diff Hunks", "Status"];
-  win.addTable("tbl_files", tableHeaders, [], { height: 200 });
+  const demoFiles = isShot ? [
+    ["src/features/ipinfo/ipinfoDoers.ts", "3 matches", "2 hunks", "Preview OK"],
+    ["src/features/procs/procsDoers.ts", "3 matches", "2 hunks", "Preview OK"],
+    ["src/features/gdu/gduDoers.ts", "2 matches", "1 hunk", "Preview OK"],
+  ] : [];
+  win.addTable("tbl_files", tableHeaders, demoFiles, { height: 260 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------

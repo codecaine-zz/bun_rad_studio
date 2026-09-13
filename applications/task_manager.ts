@@ -176,6 +176,19 @@ function isDevServerProcess(command: string, name: string): boolean {
  * Includes caching and resilience so rapid searches/clears never yield an empty list.
  */
 export function fetchProcesses(): ProcessItem[] {
+  if (process.env.SCREENSHOT_MODE === "1") {
+    return [
+      { pid: "1", ppid: "0", cpu: 0.1, mem: 0.2, rssMb: "12.4 MB", rssKb: 12697, state: "Ss", user: "root", name: "launchd", command: "/sbin/launchd", ports: [], isUserApp: false, isDevServer: false },
+      { pid: "210", ppid: "1", cpu: 3.2, mem: 2.8, rssMb: "245.8 MB", rssKb: 251699, state: "Ss", user: "_windowserver", name: "WindowServer", command: "/System/Library/CoreServices/WindowServer", ports: [], isUserApp: false, isDevServer: false },
+      { pid: "1042", ppid: "1", cpu: 1.5, mem: 1.4, rssMb: "85.2 MB", rssKb: 87244, state: "S", user: "developer", name: "bun", command: "bun run dev", ports: [":3000"], isUserApp: true, isDevServer: true },
+      { pid: "1088", ppid: "1042", cpu: 0.8, mem: 1.1, rssMb: "64.0 MB", rssKb: 65536, state: "S", user: "developer", name: "vite", command: "vite --host 0.0.0.0 --port 5173", ports: [":5173"], isUserApp: true, isDevServer: true },
+      { pid: "2045", ppid: "1", cpu: 0.1, mem: 0.5, rssMb: "32.0 MB", rssKb: 32768, state: "S", user: "system", name: "redis-server", command: "redis-server *:6379", ports: [":6379"], isUserApp: false, isDevServer: true },
+      { pid: "3012", ppid: "1", cpu: 0.2, mem: 0.8, rssMb: "48.5 MB", rssKb: 49664, state: "S", user: "system", name: "caddy", command: "caddy run --config Caddyfile", ports: [":80", ":443"], isUserApp: false, isDevServer: true },
+      { pid: "4099", ppid: "1", cpu: 0.4, mem: 1.2, rssMb: "96.0 MB", rssKb: 98304, state: "S", user: "system", name: "postgres", command: "postgres -D /data/postgres", ports: [":5432"], isUserApp: false, isDevServer: true },
+      { pid: "5120", ppid: "1", cpu: 0.6, mem: 1.0, rssMb: "110.0 MB", rssKb: 112640, state: "S", user: "developer", name: "Ghostty", command: "/Applications/Ghostty.app/Contents/MacOS/Ghostty", ports: [], isUserApp: true, isDevServer: false },
+      { pid: "6780", ppid: "1", cpu: 2.4, mem: 4.5, rssMb: "520.0 MB", rssKb: 532480, state: "S", user: "developer", name: "Google Chrome", command: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ports: [], isUserApp: true, isDevServer: false },
+    ];
+  }
   const now = Date.now();
   // Throttle ps execution to at most once per 250ms under rapid typing or clearing
   if (now - lastProcessFetchTime < 250 && cachedProcesses.length > 0) {

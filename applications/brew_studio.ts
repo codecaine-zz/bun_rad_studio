@@ -138,15 +138,32 @@ Active Interfaces: ${netNames || "None"}
     win.setStatus("Telemetry Refreshed");
   });
 
-  // Search npm Registry via Native Fetch API
-  win.onClick("btn_search", async () => {
+  // Helper for synchronous npm registry JSON queries via curl (zero event loop deadlock)
+  const fetchNpmRegistryJsonSync = (urlPath: string): any => {
+    const url = `https://registry.npmjs.org/${urlPath.replace(/^\//, "")}`;
+    const proc = Bun.spawnSync([
+      "curl", "-s", "-L",
+      "--connect-timeout", "3",
+      "-m", "8",
+      "-H", "Accept: application/json",
+      "-A", "Bun-RAD-Studio/1.0",
+      url,
+    ]);
+    if (proc.exitCode !== 0) {
+      throw new Error(proc.stderr.toString().trim() || `Curl exited with code ${proc.exitCode}`);
+    }
+    const text = proc.stdout.toString().trim();
+    if (!text) throw new Error("Empty response received from npm registry");
+    return JSON.parse(text);
+  };
+
+  // Search npm Registry via Synchronous cURL Engine
+  win.onClick("btn_search", () => {
     const query = win.getValue("txt_pkg_name") || "webview-bun";
     win.appendConsole("brew_console", `[npm Search] Querying registry for '${query}'...\n`, 1);
     win.setStatus(`Searching '${query}'...`);
     try {
-      const res = await fetch(`https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(query)}&size=8`);
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      const data: any = await res.json();
+      const data = fetchNpmRegistryJsonSync(`-/v1/search?text=${encodeURIComponent(query)}&size=8`);
       const results = (data.objects || []).map((o: any, idx: number) => {
         const p = o.package;
         return `${idx + 1}. ${p.name} (v${p.version})
@@ -166,15 +183,13 @@ Active Interfaces: ${netNames || "None"}
     }
   });
 
-  // Package Details Info via Native Fetch API
-  win.onClick("btn_info", async () => {
+  // Package Details Info via Synchronous cURL Engine
+  win.onClick("btn_info", () => {
     const pkg = (win.getValue("txt_pkg_name") || "webview-bun").trim();
     win.appendConsole("brew_console", `[Package Info] Fetching metadata for '${pkg}'...\n`, 1);
     win.setStatus(`Fetching info for '${pkg}'...`);
     try {
-      const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(pkg)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      const data: any = await res.json();
+      const data = fetchNpmRegistryJsonSync(encodeURIComponent(pkg));
       const latestVer = data["dist-tags"]?.latest || "latest";
       const verData = data.versions?.[latestVer] || {};
 

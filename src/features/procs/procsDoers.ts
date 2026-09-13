@@ -31,6 +31,18 @@ export function parsePsOutput(raw: string): ProcessInfo[] {
 }
 
 export function fetchRawProcessList(): string {
+  if (process.env.SCREENSHOT_MODE === "1") {
+    return `PID PPID USER %CPU %MEM STAT TIME COMMAND
+1 0 root 0.1 0.2 Ss 1:24.12 /sbin/launchd
+210 1 _windowserver 3.2 2.8 Ss 4:18.90 /System/Library/CoreServices/WindowServer
+1042 1 developer 1.5 1.4 S 0:14.22 bun run dev
+1088 1042 developer 0.8 1.1 S 0:08.15 vite --host 0.0.0.0 --port 5173
+2045 1 system 0.1 0.5 S 0:02.30 redis-server *:6379
+3012 1 system 0.2 0.8 S 0:03.45 caddy run --config Caddyfile
+4099 1 system 0.4 1.2 S 0:05.18 postgres -D /data/postgres
+5120 1 developer 0.6 1.0 S 0:12.40 /Applications/Ghostty.app/Contents/MacOS/Ghostty
+6780 1 developer 2.4 4.5 S 1:02.15 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome`;
+  }
   try {
     const proc = Bun.spawnSync(["ps", "-axo", "pid,ppid,user,%cpu,%mem,stat,time,command"]);
     return proc.stdout ? proc.stdout.toString() : "";

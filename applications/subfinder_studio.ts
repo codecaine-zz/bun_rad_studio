@@ -32,14 +32,16 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
 
   // -----------------------------------------------------------------------------------------------
   // 2. Recon Telemetry
+  // 2. Reconnaissance Telemetry
   // -----------------------------------------------------------------------------------------------
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("Reconnaissance Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_domain", "Domain: -");
-  win.addLabel("lbl_metric_found", "Discovered: 0");
-  win.addLabel("lbl_metric_live", "Live DNS: 0");
-  win.addLabel("lbl_metric_http", "HTTP OK: 0");
-  win.addLabel("lbl_metric_status", "Engine: Ready");
+  win.addLabel("lbl_metric_domain", isShot ? "Domain: example.com" : "Domain: -");
+  win.addLabel("lbl_metric_found", isShot ? "Discovered: 4" : "Discovered: 0");
+  win.addLabel("lbl_metric_live", isShot ? "Live DNS: 4" : "Live DNS: 0");
+  win.addLabel("lbl_metric_http", isShot ? "HTTP OK: 3" : "HTTP OK: 0");
+  win.addLabel("lbl_metric_status", isShot ? "Engine: Complete" : "Engine: Ready");
   win.endRow();
   win.endGroupBox();
 
@@ -72,7 +74,13 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Discovered Subdomains & Live Host Telemetry");
   const tableHeaders = ["Subdomain", "IP Address", "HTTP Status", "Page Title", "Open Ports", "OSINT Sources"];
-  win.addTable("tbl_subs", tableHeaders, [], { height: 320 });
+  const demoSubs = isShot ? [
+    ["api.example.com", "93.184.216.34", "200 OK", "Example API Gateway", "80, 443", "crt.sh, AlienVault"],
+    ["auth.example.com", "93.184.216.35", "200 OK", "SSO Login Portal", "443", "crt.sh, Hackertarget"],
+    ["cdn.example.com", "93.184.216.36", "200 OK", "Static Asset Delivery", "80, 443", "crt.sh, Anubis"],
+    ["dev.example.com", "93.184.216.37", "403 Forbidden", "Access Denied", "8080", "crt.sh"],
+  ] : [];
+  win.addTable("tbl_subs", tableHeaders, demoSubs, { height: 320 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------

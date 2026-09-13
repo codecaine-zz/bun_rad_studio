@@ -7,8 +7,12 @@ import { Database } from "bun:sqlite";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
-export function createSqliteStudio(initialDbPath: string = ":memory:", options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  let activeDbPath = initialDbPath;
+export function createSqliteStudio(
+  initialDbPathOrOptions: string | { fullscreen?: boolean; theme?: string } = ":memory:",
+  maybeOptions: { fullscreen?: boolean; theme?: string } = {}
+): SimpleWindow {
+  let activeDbPath = typeof initialDbPathOrOptions === "string" ? initialDbPathOrOptions : ":memory:";
+  const options = typeof initialDbPathOrOptions === "object" && initialDbPathOrOptions !== null ? initialDbPathOrOptions : maybeOptions;
   let db = new Database(activeDbPath);
 
   // Initialize corporate starter schema

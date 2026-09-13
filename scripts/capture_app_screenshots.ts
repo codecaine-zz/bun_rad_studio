@@ -25,6 +25,13 @@ import { createWatcherStudio } from "../applications/watcher_studio";
 import { createWatchexecStudio } from "../applications/watchexec_studio";
 import { createFdStudio } from "../applications/fd_studio";
 import { createRipStudio } from "../applications/rip_studio";
+import { createIpInfoStudio } from "../applications/ipinfo_studio";
+import { createDoggoStudio } from "../applications/doggo_studio";
+import { createGduStudio } from "../applications/gdu_studio";
+import { createProcsStudio } from "../applications/procs_studio";
+import { createSdStudio } from "../applications/sd_studio";
+import { createSubfinderStudio } from "../applications/subfinder_studio";
+import { createTokeiStudio } from "../applications/tokei_studio";
 import { createCodeFreelanceShowcase } from "../demos/20_codefreelance_theme_demo";
 import { createErgonomicsShowcase } from "../demos/18_simplegui_ergonomics_demo";
 import { htmlContent as productivityHtml } from "../demos/13_productivity_controls_studio";
@@ -45,21 +52,28 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "database_studio": () => createDatabaseStudio(":memory:"),
   "dataconvert_studio": createDataConvertStudio,
   "devtools_studio": createDevToolsStudio,
+  "doggo_studio": createDoggoStudio,
   "env_studio": createEnvStudio,
   "fd_studio": createFdStudio,
+  "gdu_studio": createGduStudio,
   "git_studio": createGitStudio,
+  "ipinfo_studio": createIpInfoStudio,
   "jq_studio": createJqStudio,
   "json_studio": createJsonStudio,
   "markdown_studio": createMarkdownStudio,
   "network_studio": createNetworkStudio,
   "omnitool_studio": createOmnitoolStudio,
   "process_studio": createProcessStudio,
+  "procs_studio": createProcsStudio,
   "redis_studio": createRedisStudio,
   "regex_studio": createRegexStudio,
   "rip_studio": createRipStudio,
+  "sd_studio": createSdStudio,
   "sqlite_studio": createSqliteStudio,
+  "subfinder_studio": createSubfinderStudio,
   "system_studio": createSystemInformationStudio,
   "task_manager": createTaskTracker,
+  "tokei_studio": createTokeiStudio,
   "watcher_studio": createWatcherStudio,
   "watchexec_studio": createWatchexecStudio,
   "codefreelance_theme": createCodeFreelanceShowcase,

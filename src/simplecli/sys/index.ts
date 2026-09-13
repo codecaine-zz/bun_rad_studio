@@ -212,10 +212,12 @@ export class Sys {
   }
 
   public static osHostname(): string {
+    if (process.env.SCREENSHOT_MODE === "1") return "studio-workstation";
     return os.hostname();
   }
 
   public static osHomedir(): string {
+    if (process.env.SCREENSHOT_MODE === "1") return "/Users/developer";
     return os.homedir();
   }
 
@@ -393,6 +395,9 @@ export class Sys {
   // ===========================================================================
 
   public static networkInterfaces(): Record<string, string[]> {
+    if (process.env.SCREENSHOT_MODE === "1") {
+      return { lo0: ["127.0.0.1"], en0: ["192.168.1.100"] };
+    }
     const ifaces = os.networkInterfaces();
     const result: Record<string, string[]> = {};
     for (const [name, addrs] of Object.entries(ifaces)) {
@@ -404,6 +409,7 @@ export class Sys {
   }
 
   public static localIp(): string {
+    if (process.env.SCREENSHOT_MODE === "1") return "192.168.1.100";
     const ifaces = os.networkInterfaces();
     for (const addrs of Object.values(ifaces)) {
       if (addrs) {
@@ -418,6 +424,7 @@ export class Sys {
   }
 
   public static macAddress(): string {
+    if (process.env.SCREENSHOT_MODE === "1") return "02:00:00:00:00:01";
     const ifaces = os.networkInterfaces();
     for (const addrs of Object.values(ifaces)) {
       if (addrs) {
@@ -432,6 +439,7 @@ export class Sys {
   }
 
   public static wifiSsid(): string {
+    if (process.env.SCREENSHOT_MODE === "1") return "Studio-Mesh-5G";
     const p = os.platform();
     if (p === 'darwin') {
       const out = Sys.execOr('/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I', '');

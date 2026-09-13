@@ -559,7 +559,7 @@ Status:        Ready to produce self-contained single-executable zero-dependency
     }
   });
 
-  const handleBrowse = async (w: SimpleWindow) => {
+  const handleBrowse = (w: SimpleWindow) => {
     w.setStatus("Opening file browser...");
     const picked = pickApplicationFile();
     if (picked) {
@@ -579,7 +579,7 @@ Status:        Ready to produce self-contained single-executable zero-dependency
     }
   });
 
-  win.onClick("btn_browse_icon", async (w) => {
+  win.onClick("btn_browse_icon", (w) => {
     w.setStatus("Opening icon browser...");
     const picked = pickIconFile();
     if (picked) {
@@ -647,7 +647,7 @@ Status:        Ready to produce self-contained single-executable zero-dependency
   win.onChange("txt_exec_path", (w) => updatePreview(w));
   win.onChange("txt_icon_path", (w) => updatePreview(w));
 
-  win.onClick("btn_compile_binary", async () => {
+  win.onClick("btn_compile_binary", () => {
     const rawName = win.getValue("txt_app_name") || "app";
     const name = rawName.replace(/[/\\:*?"<>|]/g, "_").trim() || "app";
     const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
@@ -696,7 +696,7 @@ Status:        Ready to produce self-contained single-executable zero-dependency
     }
   });
 
-  win.onClick("btn_build_bundle", async () => {
+  win.onClick("btn_build_bundle", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
     const name = rawName.replace(/[/\\:*?"<>|]/g, "_").trim() || "MyApp";
     const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
