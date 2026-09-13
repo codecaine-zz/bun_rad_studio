@@ -5,6 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "postinstall": "bun run scripts/fix_windows_webview_runtime.ts",
     "build": "bun run scripts/build.ts lib",
     "build:binary": "bun run scripts/build.ts binary",
     "build:all": "bun run scripts/build.ts all",
