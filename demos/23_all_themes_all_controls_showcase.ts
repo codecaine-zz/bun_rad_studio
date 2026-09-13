@@ -71,7 +71,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
         { id: "tb_run", label: "Run", icon: "▶" },
         { id: "tb_build", label: "Build", icon: "📦" }
     ], (w, item) => {
-        w.showInteractionToast("Toolbar", `Action: ${item}`);
+        w.toast(`Toolbar - Action: ${item}`);
     }).width(720);
 
     win.addCommandPalette("showcase_cmd", [
@@ -337,7 +337,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
         {
             closable: true,
             onTabClose: (w: any, tab: string) => {
-                w.showInteractionToast("Tab Closed", `Closed ${tab}`);
+                w.toast(`Tab Closed - Closed ${tab}`);
             }
         }
     ).id("tabsWorkspace").height(38);
@@ -352,7 +352,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
             { id: "done", title: "Done (3)", cards: [{ id: "c5", title: "63 Themes", tag: "Design" }, { id: "c6", title: "TreeGrid", tag: "Components" }, { id: "c7", title: "Unit Tests", tag: "QA" }] }
         ],
         (w, cardId, colId) => {
-            w.showInteractionToast("Card Moved", `${cardId} → ${colId}`);
+            w.toast(`Card Moved - ${cardId} → ${colId}`);
         },
         { height: 140 }
     );
