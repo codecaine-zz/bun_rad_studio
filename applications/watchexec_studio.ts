@@ -1,286 +1,259 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
-import { watch, type FSWatcher, existsSync } from "fs";
-import { resolve } from "path";
-import { spawn, type ChildProcess } from "child_process";
+import {
+  shouldTrigger,
+  buildWatchexecEnv,
+  killRunningProcess,
+} from "../src/features/watchexec/watchexecDoers.ts";
+import type { WatchexecOptions } from "../src/features/watchexec/watchexecTypes.ts";
+import { watch } from "node:fs";
+import * as path from "node:path";
 
 export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Task Watcher Studio (Bun Watch Studio) -- Continuous Task & Test Watcher (Native)", 1140, 880, {
-    appId: "watchexec_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen: options.fullscreen ?? true,
-  });
+  const win = newSimpleWindow(
+    "Task Watcher Studio (Watchexec Studio Pro) -- Bun Watch Studio",
+    1240,
+    940,
+    {
+      appId: "watchexec_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen: options.fullscreen ?? true,
+    }
+  );
 
-  // Title Row
+  let activeWatcher: { close: () => void } | null = null;
+  let activeProcess: any = null;
+  let triggerCount = 0;
+  const historyRows: string[][] = [];
+
+  // -----------------------------------------------------------------------------------------------
+  // 1. Header Toolbar
+  // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addHeading("Task Watcher Studio");
+  win.addHeading("Task Watcher Studio (Watchexec Pro)");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Zero Homebrew Reliance -- Powered by Native Bun & fs.watch System APIs");
+  win.addCaption("Bun Watch Studio -- Continuous Task & Test Watcher (fs.watch System API)");
 
-  // Watcher Configuration
-  win.beginGroupBox("Watch Targets & Trigger Configuration");
+  // -----------------------------------------------------------------------------------------------
+  // 2. Watcher Telemetry
+  // -----------------------------------------------------------------------------------------------
+  win.beginGroupBox("Watcher & Execution Telemetry");
   win.beginRow();
-  win.addLabel("lbl_path", "Watch Directory:");
-  win.addInput("txt_watch_path", "./src");
-  win.addLabel("lbl_cmd", "Execute Command:");
-  win.addInput("txt_exec_cmd", "bun test");
-  win.addButton("btn_trigger_now", "⚡ Run Command Now");
-  win.endRow();
-
-  win.beginRow();
-  win.addLabel("lbl_exts", "File Extensions:");
-  win.addInput("txt_exts", "ts,js,json,html,css").width(220);
-  win.addLabel("lbl_ignore", "Ignore Patterns:");
-  win.addInput("txt_ignore", "node_modules,.git,dist,.temp,.system_generated,coverage,.cache").width(240);
-  win.endRow();
-
-  win.beginRow();
-  win.addCheckbox("chk_clear", "Clear Screen on Run", true);
-  win.addCheckbox("chk_timestamp", "Show High-Resolution Timestamps", true);
-  win.endRow();
-
-  win.beginRow();
-  win.addButton("btn_start_watch", "▶️ Start Native Watcher");
-  win.addButton("btn_stop_watch", "⏹️ Stop Watcher");
-  win.addButton("btn_kill_run", "🛑 Stop Task");
-  win.addButton("btn_clear_console", "Clear Console");
+  win.addLabel("lbl_metric_status", "Watcher State: IDLE");
+  win.addLabel("lbl_metric_triggers", "Trigger Count: 0");
+  win.addLabel("lbl_metric_last_file", "Last Event: None");
+  win.addLabel("lbl_metric_pid", "Active PID: None");
   win.endRow();
   win.endGroupBox();
 
-  // Console Telemetry
+  // -----------------------------------------------------------------------------------------------
+  // 3. Configuration
+  // -----------------------------------------------------------------------------------------------
+  win.beginGroupBox("Watch Targets & Trigger Options");
+  win.beginRow();
+  win.addLabel("lbl_path", "Watch Directory:");
+  win.addInput("txt_watch_path", "./src", "Path to watch...", { width: 300 });
+  win.addLabel("lbl_cmd", "Execute Command:");
+  win.addInput("txt_exec_cmd", "echo 'Watcher triggered'", "Command to run on file change...", { width: 340 });
+  win.addButton("btn_trigger_now", "⚡ Run Now", { width: 110 });
+  win.endRow();
+
+  win.beginRow();
+  win.addLabel("lbl_exts", "Extensions:");
+  win.addInput("txt_exts", "ts,js,json,html,css", "e.g. ts,js", { width: 180 });
+  win.addLabel("lbl_ignore", "Ignore Patterns:");
+  win.addInput("txt_ignore", "node_modules,.git,dist,.graveyard,.cache", "Ignore patterns...", { width: 260 });
+  win.addLabel("lbl_debounce", "Debounce (ms):");
+  win.addInput("txt_debounce", "150", "e.g. 100, 200", { width: 80 });
+  win.addCheckbox("chk_clear", "Clear Console on Run", true);
+  win.addCheckbox("chk_postpone", "Postpone Initial Run", true);
+  win.endRow();
+
+  win.beginRow();
+  win.addButton("btn_start_watch", "▶️ Start Native Watcher", { width: 180 });
+  win.addButton("btn_stop_watch", "⏹️ Stop Watcher", { width: 140 });
+  win.addButton("btn_kill_run", "🛑 Kill Process", { width: 130 });
+  win.addButton("btn_clear_console", "✕ Clear Console", { width: 130 });
+  win.endRow();
+  win.endGroupBox();
+
+  // -----------------------------------------------------------------------------------------------
+  // 4. Execution Console
+  // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Continuous Execution & Build Console");
   win.addConsole("watch_console", 280);
   win.endGroupBox();
 
-  // Status Bar
+  // -----------------------------------------------------------------------------------------------
+  // 5. Trigger History Table
+  // -----------------------------------------------------------------------------------------------
+  win.beginGroupBox("File Modification History");
+  const tableHeaders = ["Timestamp", "Trigger #", "Modified File", "Status"];
+  win.addTable("tbl_history", tableHeaders, [], { height: 160 });
+  win.endGroupBox();
+
+  // -----------------------------------------------------------------------------------------------
+  // 6. Status Bar
+  // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status", "Engine: Bun Native fs.watch (Zero Homebrew)  |  Status: Idle  |  Runs: 0");
+  win.addLabel("lbl_status_bar", "Ready. Configure targets and click Start Native Watcher.");
   win.endRow();
 
-  let runCount = 0;
-  let activeWatcher: FSWatcher | null = null;
-  let activeProcess: ChildProcess | null = null;
-  let debounceTimer: any = null;
-
-  const killActiveProcess = () => {
-    if (activeProcess && !activeProcess.killed) {
-      const pid = activeProcess.pid;
-      try {
-        if (process.platform !== "win32" && pid) {
-          process.kill(-pid, "SIGTERM");
-        } else {
-          activeProcess.kill("SIGTERM");
-        }
-      } catch {
-        try { activeProcess.kill("SIGTERM"); } catch {}
-      }
-      activeProcess = null;
-    }
-  };
-
-  // Handlers
-  win.onClick("btn_center", () => win.center());
-  win.onClick("btn_save_state", (w) => {
-    w.saveAppFormState();
-    w.toast("Watch configuration saved successfully!");
-  });
-
-  const triggerRun = (reason = "Manual Trigger") => {
-    runCount++;
-    const cmd = (win.getValue("txt_exec_cmd") || "bun test").trim();
-    const clearOnRun = win.getValue("chk_clear");
-    if (clearOnRun) {
-      win.setText("watch_console", "");
-    }
-
-    if (activeProcess && !activeProcess.killed) {
-      win.appendConsole("watch_console", `[Terminated prior running process for new execution]\n`, 3);
-      killActiveProcess();
-    }
-
-    const timeStr = new Date().toLocaleTimeString();
-    win.appendConsole("watch_console", `\n[${timeStr}] [Run #${runCount} - ${reason}] Executing: ${cmd}...\n`, 1);
-    win.setStatus(`Running: ${cmd.slice(0, 30)}...`);
-
-    const t0 = performance.now();
-    try {
-      const proc = spawn(cmd, {
-        shell: true,
-        cwd: process.cwd(),
-        env: { ...process.env, FORCE_COLOR: "1" },
-        detached: process.platform !== "win32",
-      });
-      activeProcess = proc;
-
-      proc.stdout?.on("data", (chunk: Buffer) => {
-        win.appendConsole("watch_console", chunk.toString(), 2);
-      });
-
-      proc.stderr?.on("data", (chunk: Buffer) => {
-        win.appendConsole("watch_console", chunk.toString(), 3);
-      });
-
-      proc.on("error", (err: Error) => {
-        win.appendConsole("watch_console", `[Execution Error]: ${err.message}\n`, 3);
-      });
-
-      proc.on("close", (code: number | null) => {
-        const exitCode = code ?? 0;
-        const elapsed = (performance.now() - t0).toFixed(1);
-        win.appendConsole(
-          "watch_console",
-          `[Exit: ${exitCode}] Command finished in ${elapsed}ms\n`,
-          exitCode === 0 ? 2 : 3
-        );
-        win.setText(
-          "lbl_status",
-          `Engine: Bun Native fs.watch  |  Status: ${activeWatcher ? "Active" : "Idle"}  |  Runs: ${runCount}  |  Last Exit: ${exitCode} (${elapsed}ms)`
-        );
-        win.setStatus(`Run #${runCount} complete (${elapsed}ms)`);
-        if (activeProcess === proc) {
-          activeProcess = null;
-        }
-      });
-    } catch (err: any) {
-      win.appendConsole("watch_console", `[Spawn Error]: ${err?.message || err}\n`, 3);
-      win.setStatus(`Run #${runCount} failed`);
-      activeProcess = null;
-    }
-  };
-
-  win.onClick("btn_trigger_now", () => triggerRun("Manual Trigger"));
-
-  win.onClick("btn_kill_run", () => {
-    if (activeProcess && !activeProcess.killed) {
-      killActiveProcess();
-      win.appendConsole("watch_console", "[Task Watcher] Process cancelled by user.\n", 3);
-      win.setStatus("Process cancelled");
-      win.toast("Active task terminated");
-    } else {
-      win.toast("No active task running");
-    }
-  });
-
-  win.onClick("btn_start_watch", () => {
-    if (activeWatcher) {
-      activeWatcher.close();
-      activeWatcher = null;
-    }
-
-    const rawPath = win.getValue("txt_watch_path") || "./src";
-    const targetDir = resolve(process.cwd(), rawPath);
-
-    if (!existsSync(targetDir)) {
-      win.appendConsole("watch_console", `[Error] Target watch directory does not exist: ${targetDir}\n`, 3);
-      win.toast("Directory does not exist: " + rawPath);
+  // -----------------------------------------------------------------------------------------------
+  // Watcher Engine Logic
+  // -----------------------------------------------------------------------------------------------
+  const executeCommand = (triggeredFile?: string) => {
+    const cmdStr = win.getValue("txt_exec_cmd")?.trim();
+    if (!cmdStr) {
+      win.setValue("lbl_status_bar", "⚠️ No execution command specified.");
       return;
     }
 
-    const extsStr = win.getValue("txt_exts") || "ts,js,json";
-    const exts = new Set(
-      extsStr
-        .split(",")
-        .map((e: string) => e.trim().toLowerCase().replace(/^\./, ""))
-        .filter(Boolean)
-    );
+    if (win.getBool("chk_clear")) {
+      win.clearConsole("watch_console");
+    }
 
-    const ignoreStr = win.getValue("txt_ignore") || "node_modules,.git,dist,.temp,.system_generated,coverage,.cache";
-    const ignoreList = ignoreStr
-      .split(",")
-      .map((i: string) => i.trim())
-      .filter(Boolean);
+    // Terminate existing process if active
+    if (activeProcess) {
+      killRunningProcess(activeProcess);
+      activeProcess = null;
+    }
+
+    triggerCount++;
+    const timeStr = new Date().toLocaleTimeString();
+    win.setValue("lbl_metric_triggers", `Trigger Count: ${triggerCount}`);
+    win.setValue("lbl_metric_last_file", triggeredFile ? `Last Event: ${path.basename(triggeredFile)}` : "Last Event: Manual Run");
+
+    win.appendConsole("watch_console", `\n[${timeStr}] ⚡ [watchexec] Running: ${cmdStr}\n`);
+    if (triggeredFile) {
+      win.appendConsole("watch_console", `[watchexec] Triggered by: ${triggeredFile}\n`);
+    }
+
+    historyRows.unshift([
+      timeStr,
+      String(triggerCount),
+      triggeredFile ? path.basename(triggeredFile) : "Manual",
+      "RUNNING",
+    ]);
+    win.setTableData("tbl_history", historyRows.slice(0, 50));
 
     try {
-      activeWatcher = watch(targetDir, { recursive: true }, (_eventType, filename) => {
-        if (!filename) return;
+      const watchPath = win.getValue("txt_watch_path")?.trim() || ".";
+      const env = buildWatchexecEnv(triggeredFile, watchPath);
 
-        const normalized = filename.replace(/\\/g, "/");
-        // Check ignores
-        for (const ig of ignoreList) {
-          if (normalized.includes(ig)) return;
-        }
-
-        // Check extensions
-        if (exts.size > 0) {
-          const ext = normalized.split(".").pop()?.toLowerCase() || "";
-          if (!exts.has(ext)) return;
-        }
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          win.appendConsole("watch_console", `[fs.watch] Detected change in: ${filename}\n`, 4);
-          triggerRun(`File Changed: ${filename}`);
-        }, 300);
+      const proc = Bun.spawnSync(["/bin/sh", "-c", cmdStr], {
+        cwd: process.cwd(),
+        env: { ...process.env, ...env },
       });
 
-      win.appendConsole(
-        "watch_console",
-        `[Bun Native Watcher] Watching '${targetDir}' recursively with fs.watch...\n`,
-        2
-      );
-      win.appendConsole(
-        "watch_console",
-        `[Filters] Extensions: [${Array.from(exts).join(", ")}] | Ignores: [${ignoreList.join(", ")}]\n`,
-        1
-      );
-      win.setText(
-        "lbl_status",
-        `Engine: Bun Native fs.watch  |  Status: Watching '${rawPath}'  |  Runs: ${runCount}`
-      );
-      win.setStatus("Active Native File Watcher");
-      win.toast("Bun native file watcher active");
+      const stdoutStr = proc.stdout ? proc.stdout.toString() : "";
+      const stderrStr = proc.stderr ? proc.stderr.toString() : "";
+      if (stdoutStr) win.appendConsole("watch_console", stdoutStr);
+      if (stderrStr) win.appendConsole("watch_console", stderrStr);
 
-      // Initial run on startup
-      triggerRun("Initial Watcher Run");
-    } catch (e: any) {
-      win.appendConsole("watch_console", `[Watcher Error]: ${e.message}\n`, 3);
-      win.setStatus("Watcher Failed to Start");
+      const exitCode = proc.exitCode ?? 0;
+      win.setValue("lbl_metric_pid", "Active PID: None");
+      win.appendConsole("watch_console", `\n[watchexec] Process exited with status ${exitCode}\n`);
+      win.setValue("lbl_status_bar", `✓ Process exited with code ${exitCode}.`);
+
+      if (historyRows[0]) {
+        historyRows[0][3] = exitCode === 0 ? "SUCCESS" : `FAILED (${exitCode})`;
+        win.setTableData("tbl_history", historyRows.slice(0, 50));
+      }
+    } catch (err: any) {
+      win.appendConsole("watch_console", `\n[watchexec ERROR] ${err.message}\n`);
+      win.setValue("lbl_status_bar", `❌ Execution failed: ${err.message}`);
     }
-  });
+  };
 
-  win.onClick("btn_stop_watch", () => {
-    killActiveProcess();
+  const startWatcher = () => {
     if (activeWatcher) {
       activeWatcher.close();
       activeWatcher = null;
-      clearTimeout(debounceTimer);
-      win.appendConsole("watch_console", `[Bun Native Watcher] Watcher halted.\n`, 4);
-      win.setText("lbl_status", `Engine: Bun Native fs.watch  |  Status: Halted  |  Runs: ${runCount}`);
-      win.setStatus("Watcher stopped");
-      win.toast("Watcher stopped");
+    }
+
+    const watchPath = win.getValue("txt_watch_path")?.trim() || "./src";
+    const extsStr = win.getValue("txt_exts")?.trim();
+    const extensions = extsStr ? extsStr.split(",").map((s) => s.trim().replace(/^\./, "")) : undefined;
+    const ignoreStr = win.getValue("txt_ignore")?.trim();
+    const ignorePatterns = ignoreStr ? ignoreStr.split(",").map((s) => s.trim()) : [];
+    const debounceMs = parseInt(win.getValue("txt_debounce") || "150", 10) || 150;
+
+    let debounceTimer: Timer | null = null;
+
+    try {
+      const fsWatcher = watch(watchPath, { recursive: true }, (_eventType, filename) => {
+        if (!filename || !shouldTrigger(filename, extensions, ignorePatterns)) {
+          return;
+        }
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          executeCommand(filename);
+        }, debounceMs);
+      });
+
+      activeWatcher = {
+        close: () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          fsWatcher.close();
+          if (activeProcess) {
+            killRunningProcess(activeProcess);
+            activeProcess = null;
+          }
+        },
+      };
+
+      win.setValue("lbl_metric_status", "Watcher State: ACTIVE");
+      win.setValue("lbl_status_bar", `✓ Native watcher listening on "${watchPath}"...`);
+
+      if (!win.getBool("chk_postpone")) {
+        executeCommand();
+      }
+    } catch (err: any) {
+      win.setValue("lbl_status_bar", `❌ Could not start watcher: ${err.message}`);
+    }
+  };
+
+  const stopWatcher = () => {
+    if (activeWatcher) {
+      activeWatcher.close();
+      activeWatcher = null;
+      win.setValue("lbl_metric_status", "Watcher State: STOPPED");
+      win.setValue("lbl_status_bar", "Watcher stopped.");
+    }
+  };
+
+  win.on("btn_start_watch", "click", () => startWatcher());
+  win.on("btn_stop_watch", "click", () => stopWatcher());
+  win.on("btn_trigger_now", "click", () => executeCommand());
+
+  win.on("btn_kill_run", "click", () => {
+    if (activeProcess) {
+      killRunningProcess(activeProcess);
+      activeProcess = null;
+      win.setValue("lbl_metric_pid", "Active PID: None");
+      win.appendConsole("watch_console", `\n[watchexec] Process terminated by user.\n`);
+      win.setValue("lbl_status_bar", "Process killed.");
     } else {
-      win.toast("Watcher is not currently running");
+      win.setValue("lbl_status_bar", "No process currently running.");
     }
   });
 
-  win.onClick("btn_clear_console", () => {
-    win.setText("watch_console", "");
-  });
-
-  win.onClose(() => {
-    killActiveProcess();
-    if (activeWatcher) {
-      activeWatcher.close();
-      activeWatcher = null;
-    }
-  });
-
-  win.onClick("btn_fullscreen", (w) => {
-    w.toggleFullscreen();
+  win.on("btn_clear_console", "click", () => {
+    win.clearConsole("watch_console");
   });
 
   return win;
 }
 
-export const createWatcherStudio = createWatchexecStudio;
-export const createBunWatchStudio = createWatchexecStudio;
+export { createWatchexecStudio as createWatcherStudio, createWatchexecStudio as createBunWatchStudio };
 
 if (import.meta.main) {
-  const win = createWatcherStudio({ fullscreen: true });
-  console.log("Launching Task Watcher Studio...");
+  const win = createWatchexecStudio({ fullscreen: true });
+  console.log("⚡ Launching Watchexec Studio Pro...");
   win.run();
 }

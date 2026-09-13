@@ -1447,7 +1447,7 @@ export function generatePreviewHtml(spec: any): string {
             let codeToExec = '';
             if (isFuncName) {
                 const valExpr = "this.tagName==='SELECT'&&this.multiple?Array.from(this.selectedOptions).map(o=>o.value):(this.type==='checkbox'?this.checked:(this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:'')))";
-                codeToExec = `if(event&&!event.isTrusted)return;if(this.disabled)return;if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
+                codeToExec = `if(this.disabled)return;if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
             } else {
                 codeToExec = clean;
             }

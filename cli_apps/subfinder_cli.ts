@@ -1,16 +1,15 @@
 #!/usr/bin/env bun
-import { SimpleCLI } from '../src/index.ts';
+import { parseSubfinderArguments } from "../src/features/subfinder/subfinderCli.ts";
+import { runSubfinderCoordinator } from "../src/features/subfinder/subfinderCoordinator.ts";
 
-const app = SimpleCLI.newApp('subfinder-cli', '1.0.0')
-  .setDescription('Subdomain Discovery & DNS Enumeration Tool');
+async function main(): Promise<void> {
+  const options = parseSubfinderArguments(process.argv.slice(2));
+  const output = await runSubfinderCoordinator(options);
+  for (const line of output) {
+    console.log(line);
+  }
+}
 
-app.addFlagString('domain', 'd', 'example.com', 'Target root domain');
-
-if (!app.parseCli()) process.exit(0);
-
-app.banner('Subdomain Discovery Studio', 'v1.0.0 - Reconnaissance');
-
-const domain = app.getFlagString('domain') || 'example.com';
-const subs = ['api', 'auth', 'admin', 'mail', 'cdn', 'vpn', 'staging'].map(s => `${s}.${domain}`);
-
-app.table(['Discovered Subdomain', 'Resolution Status', 'IP Address'], subs.map(s => [s, 'ACTIVE', '93.184.216.34']));
+if (import.meta.main) {
+  await main();
+}

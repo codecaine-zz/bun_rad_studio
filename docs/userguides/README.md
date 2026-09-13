@@ -28,6 +28,14 @@ Each application in this suite is built to 30-year enterprise standards: zero ex
 | **16** | [Environment Vault Studio](16_environment_vault_studio.md) | `.env` parser & validator, secret key masking, diff against `.env.example`. | `bun run app:env` | `bun run cli:env` |
 | **17** | [Fd Studio Pro](17_fd_studio.md) | Ultra-fast filesystem search, glob/regex filters, batch exec command builder. | `bun run app:fd` | `bun run cli:fd` |
 | **18** | [Rip Studio Pro](18_rip_studio.md) | Safe & ergonomic rm replacement, graveyard quarantine, instant unbury restoration. | `bun run app:rip` | `bun run cli:rip` |
+| **19** | [Sd Studio Pro](19_sd_studio.md) | Visual find & replace (sed alternative), unified live diffs, regex capture groups, backups. | `bun run app:sd` | `bun run cli:sd` |
+| **20** | [Procs Studio Pro](20_procs_studio.md) | Modern ps replacement, process table, CPU/Memory telemetry, listening ports, tree view. | `bun run app:procs` | `bun run cli:procs` |
+| **21** | [Watchexec Studio Pro](21_watchexec_studio.md) | Continuous file watcher, task runner, extension filters, debounce, streaming console. | `bun run app:watchexec` | `bun run cli:watchexec` |
+| **22** | [Tokei Studio Pro](22_tokei_studio.md) | Code & LOC counter across 50+ languages, comment ratios, per-file breakdown, Markdown/JSON. | `bun run app:tokei` | `bun run cli:tokei` |
+| **23** | [Gdu Studio Pro](23_gdu_studio.md) | Disk usage analyzer, storage explorer, visual proportion bars, directory drill-down, cleanup. | `bun run app:gdu` | `bun run cli:gdu` |
+| **24** | [IpInfo Studio Pro](24_ipinfo_studio.md) | IP address geolocation, ASN details, CIDR subnet calculator, local network interfaces. | `bun run app:ipinfo` | `bun run cli:ipinfo` |
+| **25** | [Subfinder Studio Pro](25_subfinder_studio.md) | Passive multi-source subdomain discovery, active DNS checks, HTTP/HTTPS title & status probes. | `bun run app:subfinder` | `bun run cli:subfinder` |
+| **26** | [Doggo Studio Pro](26_doggo_studio.md) | Modern DNS client for humans, standard records, custom nameservers, DoH, reverse PTR lookups. | `bun run app:doggo` | `bun run cli:doggo` |
 
 ---
 
@@ -50,14 +58,22 @@ bun run app:crypto     # Crypto Studio Pro
 bun run app:regex      # Regex Studio Pro
 bun run app:bundler    # App Bundler Studio
 
-# New Productivity Suites
+# Productivity & System Workstations
 bun run app:network    # Network Forensics Studio
 bun run app:git        # Git Workbench Pro
 bun run app:markdown   # Markdown Studio Pro
 bun run app:color      # Color & Design Token Studio
 bun run app:env        # Environment Vault Studio
-bun run app:fd         # Fd Studio Pro
-bun run app:rip        # Rip Studio Pro
+bun run app:fd         # Fd Studio Pro (find replacement)
+bun run app:rip        # Rip Studio Pro (rm replacement)
+bun run app:sd         # Sd Studio Pro (sed replacement)
+bun run app:procs      # Procs Studio Pro (ps replacement)
+bun run app:watchexec  # Watchexec Studio Pro (watcher runner)
+bun run app:tokei      # Tokei Studio Pro (code counter)
+bun run app:gdu        # Gdu Studio Pro (disk analyzer)
+bun run app:ipinfo     # IpInfo Studio Pro (geolocation & CIDR)
+bun run app:subfinder  # Subfinder Studio Pro (subdomain recon)
+bun run app:doggo      # Doggo Studio Pro (modern DNS client)
 ```
 
 ### 💻 Headless / CI / Terminal CLI Mode
@@ -85,6 +101,14 @@ bun run cli:color      # Color converter, WCAG contrast auditor & design tokens
 bun run cli:env        # .env validator, secret masker & .env.example diff inspector
 bun run cli:fd         # Ultra-fast filesystem traversal & file search
 bun run cli:rip        # Safe deletion graveyard, inspect & restore
+bun run cli:sd         # Find & replace in files with live diffs
+bun run cli:procs      # Modern process viewer & interactive TUI
+bun run cli:watchexec  # Continuous file watcher and command runner
+bun run cli:tokei      # Fast code & LOC counter
+bun run cli:gdu        # Fast disk usage analyzer & interactive explorer
+bun run cli:ipinfo     # IP geolocation, ASN lookup & CIDR calculator
+bun run cli:subfinder  # Passive subdomain discovery tool
+bun run cli:doggo      # Modern DNS client with DoH support
 ```
 
 ### Backwards-Compatible Aliases

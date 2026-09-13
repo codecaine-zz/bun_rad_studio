@@ -383,10 +383,10 @@ export function safeMove(source: string, destination: string): void {
 // Inspect Mode (-i / --inspect)
 // -----------------------------------------------------------------------------
 
-export async function inspectTargets(
+export function inspectTargetsSync(
   targets: string[],
   options: { cwd?: string; graveyardDir?: string } = {}
-): Promise<InspectResult> {
+): InspectResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const items: InspectItem[] = [];
   const warnings: string[] = [];
@@ -521,14 +521,21 @@ export async function inspectTargets(
   };
 }
 
+export async function inspectTargets(
+  targets: string[],
+  options: { cwd?: string; graveyardDir?: string } = {}
+): Promise<InspectResult> {
+  return inspectTargetsSync(targets, options);
+}
+
 // -----------------------------------------------------------------------------
 // Bury Mode (Safe Deletion into Graveyard)
 // -----------------------------------------------------------------------------
 
-export async function buryTargets(
+export function buryTargetsSync(
   targets: string[],
   options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
-): Promise<BuryResult> {
+): BuryResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   const { entriesDir } = ensureGraveyardStructure(graveyardDir);
@@ -628,14 +635,21 @@ export async function buryTargets(
   };
 }
 
+export async function buryTargets(
+  targets: string[],
+  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
+): Promise<BuryResult> {
+  return buryTargetsSync(targets, options);
+}
+
 // -----------------------------------------------------------------------------
 // Unbury Mode (Undo / Restore from Graveyard)
 // -----------------------------------------------------------------------------
 
-export async function unburyTargets(
+export function unburyTargetsSync(
   targets?: string[],
   options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
-): Promise<UnburyResult> {
+): UnburyResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   const manifest = loadManifest(graveyardDir);
@@ -728,6 +742,13 @@ export async function unburyTargets(
   };
 }
 
+export async function unburyTargets(
+  targets?: string[],
+  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
+): Promise<UnburyResult> {
+  return unburyTargetsSync(targets, options);
+}
+
 // -----------------------------------------------------------------------------
 // Séance Mode (-s / --seance)
 // -----------------------------------------------------------------------------
@@ -759,14 +780,14 @@ export function seanceGraveyard(
 // Decompose Mode (-d / --decompose: Permanent Purge)
 // -----------------------------------------------------------------------------
 
-export async function decomposeGraveyard(
+export function decomposeGraveyardSync(
   options: {
     graveyardDir?: string;
     targets?: string[];
     olderThanMs?: number;
     all?: boolean;
   } = {}
-): Promise<DecomposeResult> {
+): DecomposeResult {
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   const { entriesDir } = ensureGraveyardStructure(graveyardDir);
   const manifest = loadManifest(graveyardDir);
@@ -837,6 +858,17 @@ export async function decomposeGraveyard(
     freedHumanSize: formatHumanSize(freedBytes),
     items: deletedItems,
   };
+}
+
+export async function decomposeGraveyard(
+  options: {
+    graveyardDir?: string;
+    targets?: string[];
+    olderThanMs?: number;
+    all?: boolean;
+  } = {}
+): Promise<DecomposeResult> {
+  return decomposeGraveyardSync(options);
 }
 
 // -----------------------------------------------------------------------------

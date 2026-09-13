@@ -1,18 +1,15 @@
 #!/usr/bin/env bun
-import { SimpleCLI } from '../src/index.ts';
+import { parseSdArguments, printSdHelp } from "../src/features/sd/sdCli.ts";
+import { runSdCoordinator } from "../src/features/sd/sdCoordinator.ts";
 
-const app = SimpleCLI.newApp('sd-cli', '1.0.0')
-  .setDescription('Search & Replace Text Utility with Line Diffs');
+async function main(): Promise<void> {
+  const options = parseSdArguments(process.argv.slice(2));
+  const output = await runSdCoordinator(options);
+  for (const line of output) {
+    console.log(line);
+  }
+}
 
-app.addFlagString('find', 'f', 'staging', 'Find substring or regex');
-app.addFlagString('replace', 'r', 'production', 'Replacement string');
-
-if (!app.parseCli()) process.exit(0);
-
-app.banner('Search & Replace Studio (sd-cli)', 'v1.0.0');
-
-const oldText = 'env: staging\nport: 8080\ndebug: true';
-const newText = oldText.replace(new RegExp(app.getFlagString('find'), 'g'), app.getFlagString('replace'));
-
-app.step(1, 'Colorized Transformation Diff');
-app.diff(oldText, newText);
+if (import.meta.main) {
+  await main();
+}

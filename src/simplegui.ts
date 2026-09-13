@@ -5057,37 +5057,58 @@ export class SimpleWindow {
                 }, { capture: true });
 
                 document.addEventListener("input", function(e) {
-                    const active = document.activeElement;
-                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
-                        const val = active.type === "checkbox" ? active.checked : active.value;
-                        const eventName = "on_" + active.id + "_change";
-                        if (window[eventName]) {
+                    const target = e.target || document.activeElement;
+                    if (target && target.id && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
+                        const val = target.type === "checkbox" ? target.checked : target.value;
+                        const eventName = "on_" + target.id + "_change";
+                        if (typeof window[eventName] === "function") {
                             window[eventName](val);
                         }
                     }
                 });
 
                 document.addEventListener("change", function(e) {
-                    const active = document.activeElement;
-                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
-                        const val = active.type === "checkbox" ? active.checked : active.value;
-                        const eventName = "on_" + active.id + "_change";
-                        if (window[eventName]) {
+                    const target = e.target || document.activeElement;
+                    if (target && target.id && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
+                        const val = target.type === "checkbox" ? target.checked : target.value;
+                        const eventName = "on_" + target.id + "_change";
+                        if (typeof window[eventName] === "function") {
                             window[eventName](val);
                         }
                     }
                 });
 
+                // Synchronize all form controls on any click in capture phase before button handlers run
                 document.addEventListener("click", function(e) {
-                    const active = document.activeElement;
-                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
-                        const val = active.type === "checkbox" ? active.checked : active.value;
-                        const eventName = "on_" + active.id + "_change";
-                        if (window[eventName]) {
-                            window[eventName](val);
+                    const inputs = document.querySelectorAll("input, textarea, select");
+                    for (let i = 0; i < inputs.length; i++) {
+                        const el = inputs[i];
+                        if (el && el.id) {
+                            const val = el.type === "checkbox" ? el.checked : el.value;
+                            const fn = window["on_" + el.id + "_change"];
+                            if (typeof fn === "function") {
+                                fn(val);
+                            }
                         }
                     }
-                });
+                }, { capture: true });
+
+                document.addEventListener("keydown", function(e) {
+                    if (e.key === "Enter" || e.code === "Enter") {
+                        const target = e.target || document.activeElement;
+                        if (target && target.id && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+                            const val = target.type === "checkbox" ? target.checked : target.value;
+                            const changeName = "on_" + target.id + "_change";
+                            if (typeof window[changeName] === "function") {
+                                window[changeName](val);
+                            }
+                            const enterName = "on_" + target.id + "_enter";
+                            if (typeof window[enterName] === "function") {
+                                window[enterName](val);
+                            }
+                        }
+                    }
+                }, { capture: true });
             })();
             </script>
             ${this.customScripts.length > 0 ? this.customScripts.map(s => `<script>\n${s}\n</script>`).join("\n") : ""}
@@ -5267,6 +5288,22 @@ export class SimpleWindow {
                         const cb = this.eventHandlersMap.get(`${cid}:onclick`);
                         if (cb) {
                             try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${clickBind}:`, err); }
+                        }
+                    });
+                } catch (e) {}
+            }
+
+            const enterBind = `on_${cid}_enter`;
+            if (!boundHandlers.has(enterBind)) {
+                boundHandlers.add(enterBind);
+                try {
+                    this.webview.bind(enterBind, async (val: any) => {
+                        if (val !== undefined && val !== null) {
+                            this.formValuesStore[cid] = val;
+                        }
+                        const cb = this.eventHandlersMap.get(`${cid}:onenter`) || this.eventHandlersMap.get(`${cid}:enter`);
+                        if (cb) {
+                            try { await cb(this, val); } catch (err) { console.error(`Error in IPC event ${enterBind}:`, err); }
                         }
                     });
                 } catch (e) {}
@@ -5910,7 +5947,9 @@ export class SimpleWindow {
             rows = maybeRows;
         } else if (Array.isArray(headersOrRows)) {
             const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
-            headers = ctrl && ctrl.text ? ctrl.text.split(",").map((s: string) => s.trim()) : [];
+            headers = ctrl && Array.isArray(ctrl.headers) && ctrl.headers.length > 0
+                ? ctrl.headers
+                : (ctrl && ctrl.text ? ctrl.text.split(",").map((s: string) => s.trim()) : []);
             rows = headersOrRows as any[][];
         } else {
             headers = [];

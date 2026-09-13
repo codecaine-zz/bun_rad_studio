@@ -379,6 +379,14 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of 
 | **16** | **Environment Vault Studio** | [User Guide](docs/userguides/16_environment_vault_studio.md) | `.env` parser & validator, secret key detection & masking, diff against `.env.example`. | `bun run app:env` |
 | **17** | **Fd Studio Pro** | [User Guide](docs/userguides/17_fd_studio.md) | Native Bun ultra-fast filesystem traversal & search (`fd-find` replacement), regex/glob filters, batch exec. | `bun run app:fd` |
 | **18** | **Rip Studio Pro** | [User Guide](docs/userguides/18_rip_studio.md) | Safe & ergonomic alternative to `rm`, graveyard quarantine, instant undo restoration, pre-deletion inspect. | `bun run app:rip` |
+| **19** | **Sd Studio Pro** | [User Guide](docs/userguides/19_sd_studio.md) | Intuitive find & replace (`sed` alternative) with live unified diffs, regex capture groups, and backup files. | `bun run app:sd` |
+| **20** | **Procs Monitor Studio Pro** | [User Guide](docs/userguides/20_procs_studio.md) | Modern `ps` replacement with live process table, CPU/Memory telemetry, listening TCP ports, signal control, and tree view. | `bun run app:procs` |
+| **21** | **Watchexec Studio Pro** | [User Guide](docs/userguides/21_watchexec_studio.md) | Continuous file watcher and command runner with debounce, pattern filters, ignore rules, and streaming console. | `bun run app:watchexec` |
+| **22** | **Tokei Studio Pro** | [User Guide](docs/userguides/22_tokei_studio.md) | Fast code & LOC counter across 50+ languages with comment ratios, per-file breakdown, Markdown and JSON export. | `bun run app:tokei` |
+| **23** | **Gdu Disk Studio Pro** | [User Guide](docs/userguides/23_gdu_studio.md) | Fast disk usage analyzer and mounted disk explorer with visual proportion bars, directory drill-down, and cleanup. | `bun run app:gdu` |
+| **24** | **IpInfo Forensics Studio Pro** | [User Guide](docs/userguides/24_ipinfo_studio.md) | IP address geolocation, ASN details, CIDR subnet calculator, and local network interfaces. | `bun run app:ipinfo` |
+| **25** | **Subfinder Discovery Studio Pro** | [User Guide](docs/userguides/25_subfinder_studio.md) | Passive multi-source subdomain discovery with active DNS verification and HTTP/HTTPS probing. | `bun run app:subfinder` |
+| **26** | **Doggo DNS Studio Pro** | [User Guide](docs/userguides/26_doggo_studio.md) | Modern DNS client for humans with standard record queries, custom resolvers, DNS-over-HTTPS (DoH), and reverse PTR lookups. | `bun run app:doggo` |
 
 <a id="fd--rip-studio-pro-desktop-workstations"></a>
 ### 📸 Fd & Rip Studio Pro Desktop Workstations

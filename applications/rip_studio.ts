@@ -3,10 +3,14 @@ import {
   getGraveyardDir,
   loadManifest,
   inspectTargets,
+  inspectTargetsSync,
   buryTargets,
+  buryTargetsSync,
   unburyTargets,
+  unburyTargetsSync,
   seanceGraveyard,
   decomposeGraveyard,
+  decomposeGraveyardSync,
   getGraveyardStats,
   formatHumanSize,
   type GraveyardItem,
@@ -310,7 +314,7 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   });
 
   // Inspect Target
-  win.onClick("btn_inspect_target", async () => {
+  win.onClick("btn_inspect_target", () => {
     const target = (win.getValue("txt_bury_target") || "").trim();
     if (!target) {
       win.toast("Please enter a target path to inspect.");
@@ -318,7 +322,7 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     }
 
     logConsole(`[Inspect] Analyzing target: ${target}...`, 1);
-    const result = await inspectTargets([target], { graveyardDir });
+    const result = inspectTargetsSync([target], { graveyardDir });
     const item = result.items[0];
 
     if (!item) {
@@ -352,7 +356,7 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   });
 
   // Safe Bury Target
-  win.onClick("btn_bury_target", async () => {
+  win.onClick("btn_bury_target", () => {
     const target = (win.getValue("txt_bury_target") || "").trim();
     if (!target) {
       win.toast("Please enter a target path to bury.");
@@ -360,7 +364,7 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     }
 
     logConsole(`[Bury] Quarantining target into graveyard: ${target}...`, 1);
-    const result = await buryTargets([target], { graveyardDir });
+    const result = buryTargetsSync([target], { graveyardDir });
 
     if (result.buriedItems.length > 0) {
       const b = result.buriedItems[0];
@@ -379,14 +383,14 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   });
 
   // Unbury Selected
-  win.onClick("btn_unbury_selected", async () => {
+  win.onClick("btn_unbury_selected", () => {
     if (!selectedItem) {
       win.toast("Please select a buried item from the table first.");
       return;
     }
 
     logConsole(`[Unbury] Restoring '${selectedItem.name}' to ${selectedItem.originalPath}...`, 1);
-    const result = await unburyTargets([selectedItem.id], { graveyardDir });
+    const result = unburyTargetsSync([selectedItem.id], { graveyardDir });
 
     if (result.restoredItems.length > 0) {
       const u = result.restoredItems[0];
@@ -405,9 +409,9 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   });
 
   // Unbury Last
-  win.onClick("btn_unbury_last", async () => {
+  win.onClick("btn_unbury_last", () => {
     logConsole("[Unbury] Restoring most recently buried item...", 1);
-    const result = await unburyTargets(undefined, { graveyardDir });
+    const result = unburyTargetsSync(undefined, { graveyardDir });
 
     if (result.restoredItems.length > 0) {
       const u = result.restoredItems[0];
@@ -421,14 +425,14 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   });
 
   // Decompose Selected
-  win.onClick("btn_decompose_selected", async () => {
+  win.onClick("btn_decompose_selected", () => {
     if (!selectedItem) {
       win.toast("Please select an item to decompose.");
       return;
     }
 
     logConsole(`[Decompose] Permanently deleting '${selectedItem.name}' from graveyard...`, 2);
-    const result = await decomposeGraveyard({ graveyardDir, targets: [selectedItem.id] });
+    const result = decomposeGraveyardSync({ graveyardDir, targets: [selectedItem.id] });
 
     if (result.deletedCount > 0) {
       logConsole(`[Decompose ✓] Permanently purged '${selectedItem.name}' (${result.freedHumanSize} freed).`, 1);
@@ -441,9 +445,9 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   });
 
   // Decompose All (Empty Graveyard)
-  win.onClick("btn_decompose_all", async () => {
+  win.onClick("btn_decompose_all", () => {
     logConsole("[Decompose All] Emptying entire graveyard...", 2);
-    const result = await decomposeGraveyard({ graveyardDir, all: true });
+    const result = decomposeGraveyardSync({ graveyardDir, all: true });
     logConsole(`[Decompose All ✓] Purged ${result.deletedCount} items, freed ${result.freedHumanSize}.`, 1);
     win.toast(`Graveyard emptied. Freed ${result.freedHumanSize}.`);
     selectedItem = null;
