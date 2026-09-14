@@ -8,7 +8,26 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [Application User Guides](docs/userguides/README.md) • [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [⚡ Project Launcher](#-instant-unified-project-workstation-launcher-bun-run-applauncher) • [Application User Guides](docs/userguides/README.md) • [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+
+> [!TIP]
+> ### ⚡ Instant Unified Project Workstation Launcher (`bun run app:launcher`)
+> **Quickly test and launch every single tool in this repository with 1-click:**
+> ```bash
+> # 🚀 Open the Desktop GUI Workstation Launcher (134 Tools Auto-Detected)
+> bun run app:launcher
+>
+> # 🛠️ Or search & run from Terminal (CLI Companion)
+> bun run cli:launcher --list
+> bun run cli:launcher --search sqlite
+> ```
+> *Auto-detects and launches all **34 Studio Applications**, **75 CLI Utilities**, and **25 Showcase Demos** with real-time process monitoring, 1-click execution, and native Terminal client spawning!*
+
+### ⚡ Launcher Studio Pro (`bun run app:launcher`)
+
+![Launcher Studio Pro Desktop Screenshot](screenshots/apps/launcher_studio_desktop.png)
+
+### 🎨 Visual RAD Form Designer & IDE (`bun start`)
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)
 
@@ -384,9 +403,13 @@ bun install
 
 <a id="2-launch-rad-studio"></a>
 
-### 2. Launch RAD Studio
+### 2. Launch RAD Studio & Workstations
 
 ```bash
+# ⚡ A. Quick Launch Any Tool via Launcher Studio Pro:
+bun run app:launcher
+
+# 🚀 B. Launch the Visual RAD IDE Designer:
 bun run index.ts
 # or
 bun start

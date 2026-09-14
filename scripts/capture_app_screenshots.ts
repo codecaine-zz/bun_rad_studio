@@ -32,6 +32,7 @@ import { createProcsStudio } from "../applications/procs_studio";
 import { createSdStudio } from "../applications/sd_studio";
 import { createSubfinderStudio } from "../applications/subfinder_studio";
 import { createTokeiStudio } from "../applications/tokei_studio";
+import { createLauncherStudio } from "../applications/launcher_studio";
 import { createContextMenuAndMenuDemo } from "../demos/22_context_menu_and_menu_demo";
 import { createCodeFreelanceShowcase } from "../demos/20_codefreelance_theme_demo";
 import { createErgonomicsShowcase } from "../demos/18_simplegui_ergonomics_demo";
@@ -61,6 +62,7 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "ipinfo_studio": createIpInfoStudio,
   "jq_studio": createJqStudio,
   "json_studio": createJsonStudio,
+  "launcher_studio": createLauncherStudio,
   "markdown_studio": createMarkdownStudio,
   "network_studio": createNetworkStudio,
   "omnitool_studio": createOmnitoolStudio,

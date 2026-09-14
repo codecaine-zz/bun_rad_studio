@@ -41,6 +41,8 @@
     "demo:themes": "bun run demos/23_all_themes_all_controls_showcase.ts",
     "demo:theme_showcase": "bun run demos/23_all_themes_all_controls_showcase.ts",
     "capture:themes": "bun run scripts/capture_theme_screenshots.ts",
+    "app:launcher": "bun run applications/launcher_studio.ts",
+    "cli:launcher": "bun run cli_apps/launcher_cli.ts",
     "app:system": "bun run applications/system_studio.ts",
     "app:watcher": "bun run applications/watcher_studio.ts",
     "app:watch": "bun run applications/watcher_studio.ts",

@@ -1,0 +1,29 @@
+{
+  "favorites": [],
+  "launchHistory": {
+    "mac_antigravity_ide": {
+      "lastLaunched": 1789388596642,
+      "count": 1
+    },
+    "cli_system_cli": {
+      "lastLaunched": 1789389567547,
+      "count": 8
+    },
+    "rad_api_studio": {
+      "lastLaunched": 1789389099854,
+      "count": 1
+    },
+    "rad_task_manager": {
+      "lastLaunched": 1789389251920,
+      "count": 1
+    },
+    "cli_gdu_cli": {
+      "lastLaunched": 1789389286042,
+      "count": 2
+    },
+    "demo_06_timer_control_studio": {
+      "lastLaunched": 1789389316593,
+      "count": 1
+    }
+  }
+}
