@@ -1674,7 +1674,8 @@ export class SimpleWindow {
             ...opts
         };
         if (explicitId) ctrlOpts.id = explicitId;
-        const ref = this.addVisualControl("button", 140, 36, ctrlOpts);
+        const defaultWidth = opts.width || Math.max(140, Math.ceil(text.length * 8.5) + 36);
+        const ref = this.addVisualControl("button", defaultWidth, opts.height || 36, ctrlOpts);
         if (onClick) ref.onClick(onClick);
         return ref;
     }
@@ -5427,9 +5428,18 @@ export class SimpleWindow {
                             flex: 0 1 auto !important;
                             min-width: 110px !important;
                         }
-                        .rad-row button {
+                        .rad-row button,
+                        .rad-header-right button,
+                        .rad-card button,
+                        #rad_responsive_root button {
                             flex: 0 0 auto !important;
+                            width: auto !important;
+                            min-width: max-content !important;
+                            max-width: 100% !important;
+                            padding: 7px 16px !important;
                             white-space: nowrap !important;
+                            box-sizing: border-box !important;
+                            overflow: visible !important;
                         }
                         .rad-row label, .rad-row span {
                             flex: 0 0 auto !important;
@@ -5449,6 +5459,9 @@ export class SimpleWindow {
                             padding: 6px 12px !important;
                             border-radius: 6px !important;
                             border: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
+                            overflow: hidden !important;
+                            text-overflow: ellipsis !important;
+                            white-space: nowrap !important;
                         }
                         .rad-bottom-bar {
                             border-top: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
@@ -5470,6 +5483,17 @@ export class SimpleWindow {
                         target.style.right = "auto";
                         target.style.bottom = "auto";
                         target.style.margin = "0";
+
+                        const btn = target.tagName === "BUTTON" ? target : target.querySelector("button");
+                        if (btn) {
+                            target.style.width = "auto";
+                            target.style.minWidth = "max-content";
+                            btn.style.width = "auto";
+                            btn.style.minWidth = "max-content";
+                            btn.style.padding = "7px 16px";
+                            btn.style.whiteSpace = "nowrap";
+                            btn.style.overflow = "visible";
+                        }
                         return target;
                     }
 
