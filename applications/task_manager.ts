@@ -287,7 +287,7 @@ export function computeTelemetry(procs: ProcessItem[]): TelemetrySummary {
 }
 
 export function createTaskTracker(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Task Manager Pro -- macOS Real-Time Process & Resource Monitor", 1200, 920, {
+  const win = newSimpleWindow("Task Manager Pro -- macOS Real-Time Process & Resource Monitor", 1200, 1320, {
     appId: "task_manager",
     theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,

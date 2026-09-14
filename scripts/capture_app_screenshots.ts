@@ -32,6 +32,7 @@ import { createProcsStudio } from "../applications/procs_studio";
 import { createSdStudio } from "../applications/sd_studio";
 import { createSubfinderStudio } from "../applications/subfinder_studio";
 import { createTokeiStudio } from "../applications/tokei_studio";
+import { createContextMenuAndMenuDemo } from "../demos/22_context_menu_and_menu_demo";
 import { createCodeFreelanceShowcase } from "../demos/20_codefreelance_theme_demo";
 import { createErgonomicsShowcase } from "../demos/18_simplegui_ergonomics_demo";
 import { htmlContent as productivityHtml } from "../demos/13_productivity_controls_studio";
@@ -77,6 +78,7 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "watcher_studio": createWatcherStudio,
   "watchexec_studio": createWatchexecStudio,
   "codefreelance_theme": createCodeFreelanceShowcase,
+  "context_menu_studio": createContextMenuAndMenuDemo,
 };
 
 const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -101,18 +103,21 @@ for (const [name, factory] of Object.entries(apps)) {
   console.log(`[Processing] Generating UI for ${name}...`);
   const appInstance = factory();
   const html = appInstance.generateHtml();
+  const winW = (appInstance as any).width || 1200;
+  const winH = (appInstance as any).height || 850;
 
   const tempHtmlPath = join(TEMP_HTML_DIR, `${name}.html`);
   writeFileSync(tempHtmlPath, html, "utf8");
 
-  // A. Desktop High-Resolution (1200x850)
+  // A. Desktop High-Resolution (exact app window dimensions)
   const desktopOut = join(OUTPUT_DIR, `${name}_desktop.png`);
-  const cmdDesktop = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${desktopOut}" --window-size=1200,850 "file://${tempHtmlPath}" 2>/dev/null`;
+  const cmdDesktop = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${desktopOut}" --window-size=${winW},${winH} "file://${tempHtmlPath}" 2>/dev/null`;
   Sys.exec(cmdDesktop);
 
-  // B. Responsive Medium Desktop / Compact View (960x720)
+  // B. Responsive Medium Desktop / Compact View (960px width)
+  const respH = Math.max(720, Math.round(winH * (960 / winW)));
   const responsiveOut = join(OUTPUT_DIR, `${name}_responsive.png`);
-  const cmdResponsive = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${responsiveOut}" --window-size=960,720 "file://${tempHtmlPath}" 2>/dev/null`;
+  const cmdResponsive = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${responsiveOut}" --window-size=960,${respH} "file://${tempHtmlPath}" 2>/dev/null`;
   Sys.exec(cmdResponsive);
 
   const exists = existsSync(desktopOut);

@@ -23,7 +23,7 @@
 import { newSimpleWindow, SimpleWindow } from "../src/simplegui";
 
 export function createContextMenuAndMenuDemo(): SimpleWindow {
-  const win = newSimpleWindow("Desktop Menu & Context Menu Studio", 1260, 820, {
+  const win = newSimpleWindow("Desktop Menu & Context Menu Studio", 1260, 1020, {
     appId: "context_menu_studio",
     theme: "sonoma_emerald",
     autoSaveState: true,
@@ -131,9 +131,9 @@ export function createContextMenuAndMenuDemo(): SimpleWindow {
     "🚀 Deploy",
     "🎯 Center",
     "⚙️ Settings"
-  ]).width(600);
+  ]).width(720);
   win.addHotkeyBadge(["Cmd", "Shift", "P"]).width(125).tooltip("Command Palette (Cmd+Shift+P)");
-  win.addThemeSelector("dd_theme", "Theme:").width(180);
+  win.addThemeSelector("dd_theme", "Theme:").width(140);
   win.endRow();
 
   // 4. Live Interaction Hint & Telemetry Banner
@@ -145,7 +145,7 @@ export function createContextMenuAndMenuDemo(): SimpleWindow {
   win.endRow();
 
   // 5. Main Side-by-Side Dashboard Layout (Fits perfectly within viewport)
-  win.beginRow();
+  win.beginGrid(2, 16);
 
   // -------------------------------------------------------------
   // LEFT COLUMN: Interactive Context Menu Targets (Width: 600px)
@@ -342,7 +342,7 @@ console.log("Calculated:", calculateVelocity(100, 4));`;
 
   win.endCard();
 
-  win.endRow();
+  win.endGrid();
 
   // 6. Bottom Status Dock
   win.addStatusDock([

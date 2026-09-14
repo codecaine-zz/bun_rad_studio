@@ -779,7 +779,7 @@ export function probeHttp(url: string): Promise<{ success: boolean; status?: num
 }
 
 export function createNetworkStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Network Forensics Studio Pro -- Socket Scanner & DNS Inspector", 1140, 880, {
+  const win = newSimpleWindow("Network Forensics Studio Pro -- Socket Scanner & DNS Inspector", 1140, 1060, {
     appId: "network_studio",
     theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,

@@ -90,7 +90,7 @@ function simpleMarkdownToHtml(md: string): string {
 }
 
 export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Markdown & Documentation Studio Pro -- Real-Time Preview Workbench", 1160, 900, {
+  const win = newSimpleWindow("Markdown & Documentation Studio Pro -- Real-Time Preview Workbench", 1160, 980, {
     appId: "markdown_studio",
     theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,

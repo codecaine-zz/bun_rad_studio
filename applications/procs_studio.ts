@@ -17,7 +17,7 @@ export function createProcsStudio(options: { fullscreen?: boolean; theme?: strin
   const win = newSimpleWindow(
     "Procs Studio Pro -- Modern Process Viewer & Task Manager",
     1260,
-    940,
+    1100,
     {
       appId: "procs_studio",
       theme: options.theme || getSavedTheme() || "midnight",

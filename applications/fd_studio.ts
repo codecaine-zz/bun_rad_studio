@@ -16,7 +16,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
   const win = newSimpleWindow(
     "Fd Studio Pro -- Native High-Performance File & Directory Finder",
     1240,
-    940,
+    1200,
     {
       appId: "fd_studio",
       theme: options.theme || getSavedTheme() || "midnight",

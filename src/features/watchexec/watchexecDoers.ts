@@ -1,4 +1,6 @@
 import { extname } from "node:path";
+import { spawnSync } from "node:child_process";
+import * as os from "node:os";
 import type { Subprocess } from "bun";
 
 export function matchesExtension(
@@ -41,12 +43,57 @@ export function clearTerminal(): void {
   process.stdout.write("\x1bc");
 }
 
-export function killRunningProcess(proc: Subprocess | null): void {
-  if (proc && !proc.killed) {
+export function killProcessTree(pid: number, signal: NodeJS.Signals = "SIGTERM"): void {
+  if (!pid || pid <= 0) return;
+  const platform = os.platform();
+
+  if (platform === "win32") {
     try {
-      proc.kill("SIGTERM");
-    } catch {
-      // Process already terminated
+      spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], { stdio: "ignore" });
+    } catch {}
+    return;
+  }
+
+  // Unix (macOS / Linux): find and terminate child processes recursively
+  try {
+    const res = spawnSync("pgrep", ["-P", String(pid)], { encoding: "utf8" });
+    if (res.stdout) {
+      const childPids = res.stdout
+        .split(/\s+/)
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => !isNaN(n) && n > 0);
+      for (const childPid of childPids) {
+        killProcessTree(childPid, signal);
+      }
+    }
+  } catch {}
+
+  // Kill the process group (negative PID)
+  try {
+    process.kill(-pid, signal);
+  } catch {}
+
+  // Kill the process itself
+  try {
+    process.kill(pid, signal);
+  } catch {}
+}
+
+export function killRunningProcess(proc: Subprocess | null): void {
+  if (proc) {
+    const pid = proc.pid;
+    if (pid && pid > 0) {
+      killProcessTree(pid, "SIGTERM");
+      try {
+        proc.kill("SIGTERM");
+      } catch {}
+      try {
+        proc.kill("SIGKILL");
+      } catch {}
+    } else {
+      try {
+        proc.kill("SIGTERM");
+      } catch {}
     }
   }
 }

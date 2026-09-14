@@ -1,7 +1,7 @@
 import { new_simple_window, listThemes, getTheme, homeDir, tempDir, desktopDir, documentsDir, downloadsDir } from "../src/simplegui.ts";
 
 // Create window using vlang_simplegui snake_case constructor
-const win = new_simple_window("vlang_simplegui Parity API Test Studio", 860, 740);
+const win = new_simple_window("vlang_simplegui Parity API Test Studio", 860, 900);
 win.set_theme("Catppuccin Mocha");
 win.set_padding(20);
 win.set_spacing(12);

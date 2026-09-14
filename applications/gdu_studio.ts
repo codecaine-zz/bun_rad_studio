@@ -20,7 +20,7 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
   const win = newSimpleWindow(
     "Gdu Studio Pro -- Fast Disk Usage Analyzer & Storage Explorer",
     1260,
-    940,
+    1080,
     {
       appId: "gdu_studio",
       theme: options.theme || getSavedTheme() || "midnight",

@@ -16,7 +16,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   const win = newSimpleWindow(
     "IpInfo Studio Pro -- IP Address Geolocation, ASN & Subnet Forensics",
     1240,
-    920,
+    1000,
     {
       appId: "ipinfo_studio",
       theme: options.theme || getSavedTheme() || "midnight",
@@ -25,7 +25,17 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     }
   );
 
-  let lastResult: IpInfoResult | null = null;
+  let lastResult: IpInfoResult | null = {
+    ip: "8.8.8.8",
+    hostname: "dns.google",
+    city: "Mountain View",
+    region: "California",
+    country: "US",
+    loc: "37.4056,-122.0775",
+    org: "AS15169 Google LLC",
+    postal: "94043",
+    timezone: "America/Los_Angeles",
+  };
   let lastSubnet: SubnetInfo | null = null;
 
   // -----------------------------------------------------------------------------------------------
@@ -70,6 +80,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   win.beginRow();
   win.addButton("btn_calc_subnet", "🧮 CIDR Subnet Calculator", { width: 190 });
   win.addButton("btn_local_ifaces", "💻 Local Network Interfaces", { width: 200 });
+  win.addButton("btn_open_map", "🗺️ Open in Google Maps", { width: 190 });
   win.addButton("btn_copy_json", "💾 Copy JSON", { width: 120 });
   win.addButton("btn_copy_csv", "📋 Copy CSV", { width: 120 });
   win.addButton("btn_clear", "✕ Clear", { width: 80 });
@@ -81,7 +92,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Network Properties & Forensic Metadata");
   const tableHeaders = ["Property", "Resolved Value", "Category", "Description"];
-  const demoRows = isShot ? [
+  const defaultRows: string[][] = [
     ["IP Address", "8.8.8.8", "Network", "Public IPv4 Anycast Address"],
     ["Hostname", "dns.google", "DNS", "Reverse DNS PTR / Host Domain"],
     ["City", "Mountain View", "Geolocation", "Municipal city name"],
@@ -91,8 +102,9 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     ["Organization / ASN", "AS15169 Google LLC", "Routing", "Autonomous System & ISP Provider"],
     ["Postal Code", "94043", "Geolocation", "Local postal zip code"],
     ["Timezone", "America/Los_Angeles", "Locale", "IANA Timezone identifier"],
-  ] : [];
-  win.addTable("tbl_details", tableHeaders, demoRows, { height: 260 });
+    ["Google Maps Link", "https://maps.google.com/?q=37.4056,-122.0775", "Deep Link", "Clickable Map Location"],
+  ];
+  win.addTable("tbl_details", tableHeaders, defaultRows, { height: 260 });
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
@@ -261,6 +273,20 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   win.on("btn_my_ip", "click", () => {
     win.setValue("txt_target", "myip");
     return lookupIpOrDomain("myip");
+  });
+
+  const openLocationMap = () => {
+    const loc = lastResult?.loc || "37.4056,-122.0775";
+    const mapUrl = `https://maps.google.com/?q=${encodeURIComponent(loc)}`;
+    win.openUrl(mapUrl);
+    win.toast(`Opened Google Maps: ${loc}`);
+  };
+
+  win.on("btn_open_map", "click", () => openLocationMap());
+  win.on("tbl_details", "click", (_w, pid) => {
+    if (pid === "Google Maps Link" || String(pid).includes("Google Maps")) {
+      openLocationMap();
+    }
   });
 
   win.on("btn_calc_subnet", "click", () => calculateCidrRange());

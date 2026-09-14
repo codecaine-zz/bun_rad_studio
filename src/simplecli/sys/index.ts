@@ -567,10 +567,34 @@ export class Sys {
   }
 
   public static openUrl(urlOrPath: string): boolean {
-    const p = os.platform();
-    const cmd = p === 'darwin' ? 'open' : (p === 'win32' ? 'start' : 'xdg-open');
-    const [_, code] = Sys.exec(`${cmd} "${urlOrPath}"`);
-    return code === 0;
+    try {
+      const p = os.platform();
+      let cmd: string;
+      let args: string[];
+
+      if (p === 'darwin') {
+        cmd = 'open';
+        args = [urlOrPath];
+      } else if (p === 'win32') {
+        cmd = 'cmd';
+        args = ['/c', 'start', '""', urlOrPath];
+      } else {
+        cmd = 'xdg-open';
+        args = [urlOrPath];
+      }
+
+      const proc = spawn(cmd, args, {
+        detached: true,
+        stdio: 'ignore',
+      });
+      proc.unref();
+      return true;
+    } catch {
+      const p = os.platform();
+      const cmd = p === 'darwin' ? 'open' : (p === 'win32' ? 'start' : 'xdg-open');
+      const [_, code] = Sys.exec(`${cmd} "${urlOrPath}"`);
+      return code === 0;
+    }
   }
 
   // ===========================================================================

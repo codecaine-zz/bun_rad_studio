@@ -19,7 +19,7 @@ import { newSimpleWindow, SimpleWindow, getTheme } from "../src/simplegui";
 export function createCodeFreelanceShowcase(): SimpleWindow {
   const cf = getTheme("codefreelance");
 
-  const win = newSimpleWindow("CodeFreelance -- Daily Workouts & High-Performance Engineering", 1140, 880, {
+  const win = newSimpleWindow("CodeFreelance -- Daily Workouts & High-Performance Engineering", 1140, 960, {
     appId: "codefreelance_showcase",
     theme: "codefreelance",
     autoSaveState: true,

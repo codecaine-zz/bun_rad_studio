@@ -5,9 +5,9 @@ import type { SubdomainResult } from "../src/features/subfinder/subfinderTypes.t
 
 export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow(
-    "Subfinder Studio Pro -- Passive Subdomain Discovery & Reconnaissance",
+    "Subfinder Studio Pro -- Fast Passive Subdomain Discovery Engine",
     1260,
-    940,
+    1040,
     {
       appId: "subfinder_studio",
       theme: options.theme || getSavedTheme() || "midnight",

@@ -28,7 +28,7 @@
 import { newSimpleWindow, SimpleWindow } from "../src/simplegui";
 
 export function createExtendedControlsShowcase(): SimpleWindow {
-  const win = newSimpleWindow("Studio Extended Controls Showcase", 1200, 1060, {
+  const win = newSimpleWindow("Studio Extended Controls Showcase", 1200, 1800, {
     appId: "studio_extended_controls",
     theme: "apple_dark",
     autoSaveState: true,

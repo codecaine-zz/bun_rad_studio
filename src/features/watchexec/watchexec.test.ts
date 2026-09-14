@@ -6,9 +6,11 @@ import {
   shouldTrigger,
   spawnCommand,
   killRunningProcess,
+  killProcessTree,
   buildWatchexecEnv,
   formatShellCommand,
 } from "./watchexecDoers.ts";
+import { createWatchexecStudio } from "../../../applications/watchexec_studio.ts";
 
 describe("watchexec doers", () => {
   it("matches extensions correctly", () => {
@@ -46,6 +48,19 @@ describe("watchexec doers", () => {
     killRunningProcess(proc);
     const exitCode = await proc.exited;
     expect(exitCode).not.toBe(0);
+  });
+
+  it("terminates entire process trees via killProcessTree", async () => {
+    const proc = Bun.spawn(["/bin/sh", "-c", "sleep 10"], { stdout: "ignore", stderr: "ignore" });
+    expect(proc.pid).toBeGreaterThan(0);
+    killProcessTree(proc.pid);
+    const exitCode = await proc.exited;
+    expect(exitCode).not.toBe(0);
+  });
+
+  it("Watchexec Studio Pro window attaches onClose lifecycle listener", () => {
+    const win = createWatchexecStudio({ fullscreen: false });
+    expect(win.closeListeners.length).toBeGreaterThanOrEqual(1);
   });
 
   it("builds watchexec environment variables", () => {

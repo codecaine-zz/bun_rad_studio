@@ -24,7 +24,7 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   const win = newSimpleWindow(
     "Rip Studio Pro -- Safe & Ergonomic Alternative to rm",
     1260,
-    940,
+    1100,
     {
       appId: "rip_studio",
       theme: options.theme || getSavedTheme() || "midnight",

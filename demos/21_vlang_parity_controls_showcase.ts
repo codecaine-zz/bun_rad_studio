@@ -23,7 +23,7 @@
 import { newSimpleWindow, SimpleWindow } from "../src/simplegui";
 
 export function createVLangParityShowcase(): SimpleWindow {
-  const win = newSimpleWindow("VLang SimpleGUI Control Parity Studio", 1200, 920, {
+  const win = newSimpleWindow("VLang SimpleGUI Control Parity Studio", 1200, 1340, {
     appId: "vlang_parity_studio",
     theme: "sonoma_emerald",
     autoSaveState: true,

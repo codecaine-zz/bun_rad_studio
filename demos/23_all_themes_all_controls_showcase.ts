@@ -21,7 +21,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
     const win = simplegui.createWindow(
         `⚡ Bun RAD Studio - All Controls Form Showcase [Theme: ${themeObj.name}]`,
         1180,
-        1920,
+        2020,
         {
             theme: themeName
         }

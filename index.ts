@@ -1819,7 +1819,12 @@ export function generatePreviewHtml(spec: any): string {
                 return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells.map((cell: any, i: number) => {
                     const alignStyle = (i >= 3 && i <= 5) ? 'text-align:right;' : 'text-align:left;';
                     const monoStyle = (i === 0 || (i >= 3 && i <= 5)) ? 'font-family:monospace;' : '';
-                    return `<td style="padding:8px 12px;white-space:nowrap;${alignStyle}${monoStyle}">${esc(cell)}</td>`;
+                    const strVal = cell === null || cell === undefined ? '' : String(cell);
+                    const isUrl = strVal.startsWith('http://') || strVal.startsWith('https://');
+                    const cellHtml = isUrl
+                        ? `<a href="${esc(strVal)}" target="_blank" rel="noopener noreferrer" style="color:${accent};text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl==='function'){window.openUrl('${esc(strVal)}');}else if(typeof window.openExternal==='function'){window.openExternal('${esc(strVal)}');}return false;">${esc(strVal)}</a>`
+                        : esc(strVal);
+                    return `<td style="padding:8px 12px;white-space:nowrap;${alignStyle}${monoStyle}">${cellHtml}</td>`;
                 }).join('')}</tr>`;
             }).join('');
 
@@ -2488,7 +2493,7 @@ export function generatePreviewHtml(spec: any): string {
                 const activeColor = accent;
                 const baseBg = isActive ? activeBg : (isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)');
                 const baseFg = isActive ? activeColor : color;
-                return `<button type="button" title="${tooltip}" data-toggle="${isToggle}" data-active="${isActive}" onclick="if(this.dataset.toggle==='true'){const a=this.dataset.active!=='true';this.dataset.active=a?'true':'false';this.style.background=a?'${activeBg}':'${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)'}';this.style.color=a?'${activeColor}':'${color}';}const fn=window['${customHandler}']||window['${c.id}_click']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="height:28px;padding:0 8px;background:${baseBg};border:1px solid ${isActive ? accent : 'transparent'};border-radius:4px;color:${baseFg};font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.12s;white-space:nowrap;" onmouseover="if(this.dataset.active!=='true')this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'}';" onmouseout="if(this.dataset.active!=='true')this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)'}';">${icon ? `<span>${icon}</span>` : ''}<span>${label}</span></button>`;
+                return `<button type="button" title="${tooltip}" data-toggle="${isToggle}" data-active="${isActive}" onclick="if(this.dataset.toggle==='true'){const a=this.dataset.active!=='true';this.dataset.active=a?'true':'false';this.style.background=a?'${activeBg}':'${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)'}';this.style.color=a?'${activeColor}':'${color}';}const fn=window['${customHandler}']||window['${c.id}_click']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="height:28px;padding:0 8px;background:${baseBg};border:1px solid ${isActive ? accent : 'transparent'};border-radius:4px;color:${baseFg};font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.12s;white-space:nowrap;flex-shrink:0;" onmouseover="if(this.dataset.active!=='true')this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'}';" onmouseout="if(this.dataset.active!=='true')this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)'}';">${icon ? `<span>${icon}</span>` : ''}<span>${label}</span></button>`;
             }).join('')}</div>\n`;
         } else if (t === 'status_bar') {
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#e2e8f0' : '#090d16')};border-top:1px solid ${border};padding:0 12px;font-size:11px;color:${color};"><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">🟢 Ready</span><span style="opacity:0.4;">|</span><span>${text || 'UTF-8 | Line 1, Col 1'}</span></div><div style="display:flex;align-items:center;gap:8px;opacity:0.75;"><span>Bun RAD v1.3</span><span>100%</span></div></div>\n`;
@@ -4162,6 +4167,26 @@ ${controls}
     if (window.hideContextMenu) window.hideContextMenu();
     document.querySelectorAll('.menu-dropdown').forEach(function(d) { d.style.display = 'none'; });
   });
+
+  // Global external link click interceptor to open in user OS browser via window.openUrl
+  document.addEventListener("click", function(e) {
+    var target = e.target;
+    if (!target) return;
+    var anchor = target.closest ? target.closest('a') : (target.tagName === 'A' ? target : null);
+    if (anchor && anchor.href) {
+      var href = anchor.getAttribute('href') || anchor.href;
+      if (href && (href.indexOf('http://') === 0 || href.indexOf('https://') === 0 || href.indexOf('mailto:') === 0)) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.openUrl === 'function') {
+          try { window.openUrl(href); } catch(err) {}
+        } else if (typeof window.openExternal === 'function') {
+          try { window.openExternal(href); } catch(err) {}
+        }
+        return false;
+      }
+    }
+  }, true);
 
   window.addEventListener("mousedown", function(e) {
     if (e && e.button !== 0) return;

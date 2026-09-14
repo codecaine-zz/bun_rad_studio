@@ -48,8 +48,15 @@ export function startWatcher(
   return {
     close: () => {
       if (timer) clearTimeout(timer);
-      watchers.forEach((w) => w.close());
-      killRunningProcess(state.currentProcess);
+      watchers.forEach((w) => {
+        try {
+          w.close();
+        } catch {}
+      });
+      if (state.currentProcess) {
+        killRunningProcess(state.currentProcess);
+        state.currentProcess = null;
+      }
     },
   };
 }
@@ -64,5 +71,23 @@ export async function runWatchexecCoordinator(
     execute();
   }
 
-  return startWatcher(options, state, execute);
+  const watcher = startWatcher(options, state, execute);
+
+  const cleanup = () => {
+    try {
+      watcher.close();
+    } catch {}
+  };
+
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanup();
+    process.exit(0);
+  });
+
+  return watcher;
 }

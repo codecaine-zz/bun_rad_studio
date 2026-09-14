@@ -12,7 +12,7 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   const win = newSimpleWindow(
     "Tokei Studio Pro -- Fast Code & Lines-of-Code (LOC) Counter",
     1240,
-    920,
+    1060,
     {
       appId: "tokei_studio",
       theme: options.theme || getSavedTheme() || "midnight",

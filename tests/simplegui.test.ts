@@ -1731,5 +1731,83 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
         expect(html).toContain('ondragstart="window[\'kanban_sprint_dragStart\'](event, \'c1\')"');
         expect(html).toContain('ondrop="window[\'kanban_sprint_drop\'](event, \'todo\')"');
     });
+
+    test("21. Header and Label Sizing & Scaling (No Truncation)", () => {
+        const win = simplegui.createWindow("Header Test", 920, 800);
+
+        // Root-level label without explicit size
+        const titleLbl = win.addLabel("⚡ SimpleGUI Complete Controls Suite")
+            .font(20, "#38bdf8", "700");
+
+        // Should expand to full available width (920 - 40 = 880) and auto-scale height
+        expect(titleLbl.spec.width).toBe(880);
+        expect(titleLbl.spec.height).toBeGreaterThanOrEqual(30);
+
+        const subLbl = win.addLabel("Comprehensive showcase of controls, layout containers, timers, and themes built with simplegui")
+            .font(12, "#94a3b8");
+        expect(subLbl.spec.width).toBe(880);
+        expect(subLbl.spec.top).toBe(titleLbl.spec.top + titleLbl.spec.height + win.spacing);
+
+        // Explicit width/height override
+        const explicitLbl = win.addLabel("Custom Sized").width(400).height(45);
+        expect(explicitLbl.spec.width).toBe(400);
+        expect(explicitLbl.spec.height).toBe(45);
+    });
+
+    test("22. Container-Aware Bounds and Toolbar Width Verification", () => {
+        const win = simplegui.createWindow("Container Bounds Test", 1000, 800);
+
+        // Root available width
+        expect(win.getAvailableWidth()).toBe(960); // 1000 - 40
+
+        // Inside a card
+        win.beginCard("Test Card", "Subtitle inside card");
+        const cardAvailableW = win.getAvailableWidth();
+        expect(cardAvailableW).toBe(960 - 32); // 928
+
+        const caption = win.addCaption("Inner Caption");
+        expect(caption.spec.width).toBe(928);
+
+        const sub = win.addSubheading("Inner Subheading");
+        expect(sub.spec.width).toBe(928);
+        win.endCard();
+
+        // Root width restored
+        expect(win.getAvailableWidth()).toBe(960);
+
+        // Toolbar width preservation
+        const tb = win.addToolBar("test_tb", [
+            "📄 New", "📂 Open", "💾 Save", "🧪 Test",
+            "🧹 Clear", "🚀 Deploy", "🎯 Center", "⚙️ Settings"
+        ]).width(720);
+        expect(tb.spec.width).toBe(720);
+        expect(tb.spec.items.length).toBe(8);
+    });
+
+    test("23. Sys.openUrl and Table Link Rendering & External URL Interception", () => {
+        const win = simplegui.createWindow("Link & Map Test", 1000, 800);
+
+        // Verify openUrl methods exist on SimpleWindow
+        expect(typeof win.openUrl).toBe("function");
+        expect(typeof win.open_url).toBe("function");
+        expect(typeof win.openExternal).toBe("function");
+
+        // Add table with an HTTP/HTTPS URL
+        win.addTable("tbl_links", ["Key", "Link"], [
+            ["Google Maps", "https://maps.google.com/?q=37.4056,-122.0775"],
+            ["Local Host", "http://localhost:3000/dashboard"]
+        ]);
+
+        const html = win.generateHtml();
+
+        // Check that URLs are rendered as interactive clickable anchor tags
+        expect(html).toContain('href="https://maps.google.com/?q=37.4056,-122.0775"');
+        expect(html).toContain('window.openUrl(');
+        expect(html).toContain('target="_blank"');
+
+        // Check that the global click interceptor for external links is present in the HTML
+        expect(html).toContain('window.openUrl(href)');
+    });
 });
+
 

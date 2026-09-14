@@ -12,7 +12,7 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
     const win = simplegui.newWindow(
         "Demo 25 - All 76 Themes & 70+ Controls Ultimate Mega-Showcase",
         1100,
-        800,
+        1200,
         {
             theme: initialTheme
         }

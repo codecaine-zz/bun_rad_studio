@@ -24,7 +24,7 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   const win = newSimpleWindow(
     "Sd Studio Pro -- Intuitive Search & Displace (Find & Replace Engine)",
     1240,
-    920,
+    1200,
     {
       appId: "sd_studio",
       theme: options.theme || getSavedTheme() || "midnight",

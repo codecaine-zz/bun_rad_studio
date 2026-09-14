@@ -13,7 +13,7 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
   const win = newSimpleWindow(
     "Task Watcher Studio (Watchexec Studio Pro) -- Bun Watch Studio",
     1240,
-    940,
+    1100,
     {
       appId: "watchexec_studio",
       theme: options.theme || getSavedTheme() || "midnight",
@@ -161,6 +161,9 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
         new Response(proc.stderr).text(),
         proc.exited,
       ]);
+      if (!win.isRunning()) {
+        return;
+      }
       if (stdoutStr) win.appendConsole("watch_console", stdoutStr);
       if (stderrStr) win.appendConsole("watch_console", stderrStr);
 
@@ -228,13 +231,26 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
     }
   };
 
-  const stopWatcher = () => {
+  const stopAll = () => {
     if (activeWatcher) {
-      activeWatcher.close();
+      try {
+        activeWatcher.close();
+      } catch {}
       activeWatcher = null;
-      win.setValue("lbl_metric_status", "Watcher State: STOPPED");
-      win.setValue("lbl_status_bar", "Watcher stopped.");
     }
+    if (activeProcess) {
+      try {
+        killRunningProcess(activeProcess);
+      } catch {}
+      activeProcess = null;
+    }
+  };
+
+  const stopWatcher = () => {
+    stopAll();
+    win.setValue("lbl_metric_status", "Watcher State: STOPPED");
+    win.setValue("lbl_metric_pid", "Active PID: None");
+    win.setValue("lbl_status_bar", "Watcher stopped.");
   };
 
   win.on("btn_start_watch", "click", () => startWatcher());
@@ -261,6 +277,25 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
   win.onClick("btn_save_state", (w) => {
     w.saveAppFormState();
     w.toast("Watcher configuration saved.");
+  });
+
+  // Ensure watcher and any running subprocess tree are cleanly stopped on window close or process termination
+  win.onClose(() => {
+    stopAll();
+  });
+
+  const onProcessSignal = () => {
+    stopAll();
+    process.exit(0);
+  };
+
+  process.on("exit", () => {
+    stopAll();
+  });
+  process.on("SIGINT", onProcessSignal);
+  process.on("SIGTERM", onProcessSignal);
+  process.on("beforeExit", () => {
+    stopAll();
   });
 
   return win;

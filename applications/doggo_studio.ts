@@ -13,7 +13,7 @@ export function createDoggoStudio(options: { fullscreen?: boolean; theme?: strin
   const win = newSimpleWindow(
     "Doggo Studio Pro -- DNS Client for Humans & Resolution Diagnostics",
     1240,
-    920,
+    1040,
     {
       appId: "doggo_studio",
       theme: options.theme || getSavedTheme() || "midnight",

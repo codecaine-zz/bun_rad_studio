@@ -1,5 +1,6 @@
 import { SizeHint, Webview } from "webview-bun";
 import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, hideAppNative, closeWindowNative, attachWindowShortcuts, getScreenDimensions } from "../index.ts";
+import { Sys } from "./simplecli/sys/index.ts";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -85,6 +86,7 @@ export class SimpleControlRef {
     }
 
     width(w: number): this {
+        this.spec.user_explicit_width = true;
         const oldW = this.spec.width;
         this.spec.width = w;
         if (oldW && oldW !== w && this.window) {
@@ -94,6 +96,7 @@ export class SimpleControlRef {
     }
 
     height(h: number): this {
+        this.spec.user_explicit_height = true;
         const oldH = this.spec.height;
         this.spec.height = h;
         if (oldH && oldH !== h && this.window) {
@@ -117,6 +120,30 @@ export class SimpleControlRef {
         this.spec.fontSize = size;
         if (color) this.spec.font_color = color;
         if (weight) this.spec.font_weight = weight;
+
+        const ctrlType = this.spec.control_type || this.spec.type;
+        if (ctrlType === "label") {
+            const isBold = weight === "700" || weight === "800" || weight === "bold";
+            const charW = size * (isBold ? 0.75 : 0.65);
+            const textLen = (this.spec.text || "").length;
+            const neededW = Math.ceil(textLen * charW + 16);
+
+            if (!this.spec.user_explicit_width && neededW > (this.spec.width || 0)) {
+                const maxW = this.window ? this.window.getAvailableWidth() : 880;
+                this.spec.width = Math.min(maxW, neededW);
+            }
+
+            if (!this.spec.user_explicit_height && size > 14) {
+                const neededH = Math.max(24, Math.ceil(size * 1.45 + 2));
+                if (neededH > (this.spec.height || 0)) {
+                    const oldH = this.spec.height || 24;
+                    this.spec.height = neededH;
+                    if (this.window) {
+                        this.window.recalculateHeightY(this.spec, oldH, neededH);
+                    }
+                }
+            }
+        }
         return this;
     }
 
@@ -1262,6 +1289,37 @@ export class SimpleWindow {
     }
     public end_flex(): this { return this.endFlex(); }
 
+    public getAvailableWidth(): number {
+        for (let i = this.layoutStack.length - 1; i >= 0; i--) {
+            const frame = this.layoutStack[i];
+            if (frame.type === "card" && frame.cardSpec) {
+                const cardW = frame.cardSpec.width || (this.width - (this.padding * 2));
+                return Math.max(100, cardW - 32);
+            }
+            if (frame.type === "grid") {
+                const parentFrame = i > 0 ? this.layoutStack[i - 1] : undefined;
+                let containerW = this.width - (this.padding * 2);
+                if (parentFrame && parentFrame.type === "card" && parentFrame.cardSpec) {
+                    containerW = Math.max(100, (parentFrame.cardSpec.width || (this.width - (this.padding * 2))) - 32);
+                }
+                const cols = frame.cols || 2;
+                const gap = frame.gap || 12;
+                const availableW = containerW - ((cols - 1) * gap);
+                return Math.max(100, Math.floor(availableW / cols));
+            }
+            if (frame.type === "row") {
+                const parentFrame = i > 0 ? this.layoutStack[i - 1] : undefined;
+                let maxX = this.width - this.padding;
+                if (parentFrame && parentFrame.type === "card" && parentFrame.cardSpec) {
+                    maxX = (parentFrame.cardSpec.left || this.padding) + (parentFrame.cardSpec.width || (this.width - (this.padding * 2))) - 20;
+                }
+                const rem = maxX - frame.currentX;
+                if (rem > 100) return rem;
+            }
+        }
+        return Math.max(100, this.width - (this.padding * 2));
+    }
+
     private generateUniqueId(type: string): string {
         const count = (this.controlIdCounter[type] || 0) + 1;
         this.controlIdCounter[type] = count;
@@ -1282,6 +1340,10 @@ export class SimpleWindow {
 
         if (!activeFrame) {
             // Default Vertical Layout Flow
+            const maxW = Math.max(100, this.width - (this.padding * 2));
+            if (ctrl.control_type === "label" && !ctrl.user_explicit_width) {
+                ctrl.width = maxW;
+            }
             ctrl.left = this.padding;
             ctrl.top = this.currentY;
             ctrl.x = ctrl.left;
@@ -1423,6 +1485,7 @@ export class SimpleWindow {
             width,
             height,
             user_explicit_width: opts.width !== undefined,
+            user_explicit_height: opts.height !== undefined,
             text: opts.text || opts.caption || "",
             caption: opts.caption || opts.text || "",
             font_size: opts.font_size || 13,
@@ -2145,7 +2208,7 @@ export class SimpleWindow {
     }
 
     public addDivider(opts: Partial<any> = {}): SimpleControlRef {
-        return this.addVisualControl("separator", this.width - (this.padding * 2), 2, { ...opts });
+        return this.addVisualControl("separator", this.getAvailableWidth(), 2, { ...opts });
     }
 
     public addCommandPalette(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
@@ -5093,6 +5156,26 @@ export class SimpleWindow {
                     }
                 }, { capture: true });
 
+                // Intercept clicks on links (<a href="http...">) to open in user's OS browser via window.openUrl
+                document.addEventListener("click", function(e) {
+                    const target = e.target;
+                    if (!target) return;
+                    const anchor = target.closest ? target.closest("a") : (target.tagName === "A" ? target : null);
+                    if (anchor && anchor.href) {
+                        const href = anchor.getAttribute("href") || anchor.href;
+                        if (href && (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:"))) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (typeof window.openUrl === "function") {
+                                try { window.openUrl(href); } catch(err) {}
+                            } else if (typeof window.openExternal === "function") {
+                                try { window.openExternal(href); } catch(err) {}
+                            }
+                            return false;
+                        }
+                    }
+                }, { capture: true });
+
                 document.addEventListener("keydown", function(e) {
                     if (e.key === "Enter" || e.code === "Enter") {
                         const target = e.target || document.activeElement;
@@ -5252,6 +5335,18 @@ export class SimpleWindow {
         this.webview.bind("setWindowPosition", (pos: any) => {
             if (this.webview) setWindowPositionNative(this.webview, pos, this.width, this.height);
             return { success: true, position: pos };
+        });
+
+        this.webview.bind("openUrl", (url: string) => {
+            return this.openUrl(url);
+        });
+
+        this.webview.bind("openExternal", (url: string) => {
+            return this.openUrl(url);
+        });
+
+        this.webview.bind("open_url", (url: string) => {
+            return this.openUrl(url);
         });
 
         // Auto-bind state synchronization IPC handlers for all controls BEFORE setHTML
@@ -5459,6 +5554,18 @@ export class SimpleWindow {
 
     public centerWindow(): this {
         return this.center();
+    }
+
+    public openUrl(url: string): boolean {
+        return Sys.openUrl(url);
+    }
+
+    public open_url(url: string): boolean {
+        return this.openUrl(url);
+    }
+
+    public openExternal(url: string): boolean {
+        return this.openUrl(url);
     }
 
     public alignWindow(position: string): this {
@@ -5752,7 +5859,7 @@ export class SimpleWindow {
             }
             return this;
         }
-        const fullW = Math.max(300, this.width - (this.padding * 2));
+        const fullW = this.getAvailableWidth();
         this.addLabel(title).font(18, headingColor, "700").width(fullW);
         if (subtitle) {
             const sub = this.addLabel(subtitle).font(12, muted, "500").width(fullW);
@@ -5769,7 +5876,7 @@ export class SimpleWindow {
         const theme = getTheme(this.theme);
         const defaultSub = theme.is_dark ? "#e2e8f0" : "#0f172a";
         const finalColor = color || defaultSub;
-        const fullW = Math.max(300, this.width - (this.padding * 2));
+        const fullW = this.getAvailableWidth();
         const ref = this.addLabel(text).font(14, finalColor, "600").width(fullW);
         if (!color) {
             ref.spec.is_subheading = true;
@@ -5782,7 +5889,7 @@ export class SimpleWindow {
         const theme = getTheme(this.theme);
         const defaultMuted = theme.is_dark ? "#94a3b8" : "#334155";
         const finalColor = color || defaultMuted;
-        const fullW = Math.max(300, this.width - (this.padding * 2));
+        const fullW = this.getAvailableWidth();
         const ref = this.addLabel(text).font(12, finalColor, "500").width(fullW);
         ref.spec.is_caption = true;
         if (color) {
@@ -5816,7 +5923,7 @@ export class SimpleWindow {
             id = idOrText;
             content = text;
         }
-        const fullW = Math.max(600, this.width - (this.padding * 2) - 10);
+        const fullW = this.getAvailableWidth();
         return this.addLabel(id, content).width(fullW);
     }
     public add_status_label(idOrText = "lbl_status", text?: string): SimpleControlRef {
@@ -6022,7 +6129,12 @@ export class SimpleWindow {
                             cells.map((c, i) => {
                                 const alignStyle = (i >= 3 && i <= 5) ? 'text-align:right;' : 'text-align:left;';
                                 const monoStyle = (i === 0 || (i >= 3 && i <= 5)) ? 'font-family:monospace;' : '';
-                                return '<td style="padding:8px 12px;white-space:nowrap;' + alignStyle + monoStyle + '">' + esc(c) + '</td>';
+                                const strVal = c === null || c === undefined ? '' : String(c);
+                                const isUrl = strVal.startsWith('http://') || strVal.startsWith('https://');
+                                const cellHtml = isUrl
+                                    ? ('<a href="' + esc(strVal) + '" target="_blank" rel="noopener noreferrer" style="color:' + accent + ';text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl===\\'function\\'){window.openUrl(\\'' + esc(strVal) + '\\');}else if(typeof window.openExternal===\\'function\\'){window.openExternal(\\'' + esc(strVal) + '\\');}return false;">' + esc(strVal) + '</a>')
+                                    : esc(strVal);
+                                return '<td style="padding:8px 12px;white-space:nowrap;' + alignStyle + monoStyle + '">' + cellHtml + '</td>';
                             }).join('') + '</tr>';
                     }).join('');
 
@@ -6527,6 +6639,7 @@ export class SimpleWindow {
     
     public exit(code = 0): void {
         this.isWindowRunning = false;
+        this.handleClose();
         process.exit(code);
     }
 
@@ -10721,6 +10834,14 @@ export function newSimpleWindow(title = "SimpleGUI Application", width = 800, he
 
 export function new_simple_window(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
     return createWindow(title, width, height, options);
+}
+
+export function openUrl(url: string): boolean {
+    return Sys.openUrl(url);
+}
+
+export function openExternal(url: string): boolean {
+    return Sys.openUrl(url);
 }
 
 export const simplegui = {
