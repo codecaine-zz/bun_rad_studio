@@ -232,9 +232,56 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   // Application Logic & Helpers
   // -----------------------------------------------------------------------------------------------
 
+  const renderConsoleHtml = () => {
+    win.evalJS(`
+      (function() {
+        const consoleEl = document.getElementById("fd_console");
+        if (!consoleEl) return;
+        const raw = String(consoleEl.textContent || "");
+        const lines = raw.split(/\n/).filter((line) => line.trim().length > 0);
+
+        function escapeHtml(value) {
+          return value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        const html = lines.length
+          ? lines.map((line) => {
+              let badgeClass = "info";
+              let badgeLabel = "INFO";
+              const normalized = line.toUpperCase();
+              if (normalized.includes("SUCCESS") || normalized.includes("✅")) {
+                badgeClass = "success";
+                badgeLabel = "SUCCESS";
+              } else if (normalized.includes("ERROR") || normalized.includes("❌")) {
+                badgeClass = "error";
+                badgeLabel = "ERROR";
+              } else if (normalized.includes("WARN") || normalized.includes("⚠️")) {
+                badgeClass = "warn";
+                badgeLabel = "WARN";
+              }
+
+              const stripped = line.replace(/^\[[^\]]*\]\s*/, "");
+              const message = stripped.replace(/\[[A-Z]+\]\s*/g, "");
+              return '<div class="fd-console-line"><span class="fd-console-badge ' + badgeClass + '">' + badgeLabel + '</span><span class="fd-console-text">' + escapeHtml(message) + '</span></div>';
+            }).join("")
+          : '<div class="fd-console-line fd-console-empty">Console ready.</div>';
+
+        consoleEl.innerHTML = html;
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      })();
+    `);
+  };
+
   const logConsole = (msg: string, style = 1) => {
     const time = new Date().toLocaleTimeString();
-    win.appendConsole("fd_console", `[${time}] ${msg}\n`, style);
+    const badge = style === 2 ? "✅ SUCCESS" : style === 3 ? "❌ ERROR" : style === 1 ? "⚠️ WARN" : "ℹ️ INFO";
+    win.appendConsole("fd_console", `[${time}] [${badge}] ${msg}\n`, style);
+    renderConsoleHtml();
   };
 
   const updateSelectedInspector = (item: FdItem) => {
@@ -1108,7 +1155,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
 
   win.onClick("btn_clear_console", () => {
     win.clearConsole("fd_console");
-    logConsole("[Fd Studio Pro] Activity console cleared.", 1);
+    win.evalJS(`
+      (function() {
+        const consoleEl = document.getElementById("fd_console");
+        if (!consoleEl) return;
+        consoleEl.innerHTML = '<div class="fd-console-line fd-console-empty">Console cleared.</div>';
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      })();
+    `);
   });
 
   // -----------------------------------------------------------------------------------------------
@@ -1124,8 +1178,10 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         styleEl.id = "fd_responsive_styles";
         styleEl.textContent = [
           ":root {",
-          "  --fd-table-h: 380px;",
-          "  --fd-console-h: 130px;",
+          "  --fd-table-h: 360px;",
+          "  --fd-console-h: 170px;",
+          "  --fd-accent: #38bdf8;",
+          "  --fd-accent-soft: rgba(56, 189, 248, 0.14);",
           "}",
           "html, body {",
           "  width: 100% !important;",
@@ -1151,7 +1207,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           ".fd-card {",
           "  background: var(--card-bg, #161922) !important;",
           "  border: 1px solid var(--card-border, #232936) !important;",
-          "  border-radius: 10px !important;",
+          "  border-radius: 12px !important;",
           "  padding: 12px 14px !important;",
           "  box-sizing: border-box !important;",
           "  width: 100% !important;",
@@ -1159,6 +1215,16 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           "  flex-direction: column !important;",
           "  gap: 10px !important;",
           "  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;",
+          "}",
+          ".fd-card-header {",
+          "  font-size: 11px !important;",
+          "  font-weight: 700 !important;",
+          "  color: var(--fd-accent, #38bdf8) !important;",
+          "  text-transform: uppercase !important;",
+          "  letter-spacing: 0.65px !important;",
+          "  user-select: none !important;",
+          "  border-bottom: 1px solid rgba(255,255,255,0.08) !important;",
+          "  padding-bottom: 6px !important;",
           "}",
           ".fd-row input[type='text'], .fd-row input[type='search'] {",
           "  flex: 1 1 160px !important;",
@@ -1239,15 +1305,65 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           "  border-collapse: collapse !important;",
           "}",
           "#fd_console {",
-          "  position: relative !important;",
+          "  position: sticky !important;",
+          "  top: 12px !important;",
           "  left: auto !important;",
-          "  top: auto !important;",
           "  width: 100% !important;",
           "  max-width: 100% !important;",
-          "  height: var(--fd-console-h, 130px) !important;",
-          "  min-height: 80px !important;",
+          "  height: var(--fd-console-h, 170px) !important;",
+          "  min-height: 120px !important;",
           "  overflow: auto !important;",
           "  box-sizing: border-box !important;",
+          "  background: rgba(12, 17, 26, 0.95) !important;",
+          "  border: 1px solid rgba(56, 189, 248, 0.38) !important;",
+          "  border-radius: 10px !important;",
+          "  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), inset 0 0 18px rgba(56, 189, 248, 0.08) !important;",
+          "  z-index: 20 !important;",
+          "}",
+          ".fd-console-line {",
+          "  display: block !important;",
+          "  margin: 2px 0 !important;",
+          "  line-height: 1.45 !important;",
+          "  white-space: pre-wrap !important;",
+          "  word-break: break-word !important;",
+          "}",
+          ".fd-console-badge {",
+          "  display: inline-block !important;",
+          "  padding: 2px 7px !important;",
+          "  border-radius: 999px !important;",
+          "  font-size: 10px !important;",
+          "  font-weight: 700 !important;",
+          "  letter-spacing: 0.04em !important;",
+          "  text-transform: uppercase !important;",
+          "  margin-right: 8px !important;",
+          "  vertical-align: middle !important;",
+          "}",
+          ".fd-console-badge.success {",
+          "  background: rgba(16, 185, 129, 0.18) !important;",
+          "  color: #b8f7d3 !important;",
+          "  border: 1px solid rgba(16, 185, 129, 0.45) !important;",
+          "}",
+          ".fd-console-badge.warn {",
+          "  background: rgba(250, 204, 21, 0.16) !important;",
+          "  color: #fef3c7 !important;",
+          "  border: 1px solid rgba(250, 204, 21, 0.4) !important;",
+          "}",
+          ".fd-console-badge.error {",
+          "  background: rgba(239, 68, 68, 0.15) !important;",
+          "  color: #fecaca !important;",
+          "  border: 1px solid rgba(239, 68, 68, 0.45) !important;",
+          "}",
+          ".fd-console-badge.info {",
+          "  background: rgba(59, 130, 246, 0.15) !important;",
+          "  color: #bfdbfe !important;",
+          "  border: 1px solid rgba(59, 130, 246, 0.4) !important;",
+          "}",
+          ".fd-console-text {",
+          "  color: #e5ecf7 !important;",
+          "}",
+          ".fd-console-empty {",
+          "  color: rgba(229, 236, 247, 0.6) !important;",
+          "  font-style: italic !important;",
           "}",
           "#txt_pattern {",
           "  flex: 3 1 240px !important;",
@@ -1367,14 +1483,25 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         ]);
         root.appendChild(filtersCard);
 
-        // 4. Matching Files & Directories Card
+        // 4. Preview & Command Output Card (kept higher so action feedback is visible without scrolling)
+        const consoleNode = getNode("fd_console");
+        const statusNode = getNode("lbl_status");
+        if (statusNode) statusNode.style.width = "auto";
+
+        const consoleCard = createCard("Preview & Command Output", [
+          consoleNode,
+          createRow(["btn_clear_console", statusNode])
+        ]);
+        root.appendChild(consoleCard);
+
+        // 5. Matching Files & Directories Card
         const tableNode = getNode("tbl_results");
         const resultsCard = createCard("Matching Files & Directories (Click any item to inspect & preview)", [
           tableNode
         ]);
         root.appendChild(resultsCard);
 
-        // 5. Selected File Inspector & Single-Item Actions Card
+        // 6. Selected File Inspector & Single-Item Actions Card
         const selName = getNode("lbl_selected_name");
         const selStats = getNode("lbl_selected_stats");
         const selHash = getNode("lbl_selected_hash");
@@ -1389,14 +1516,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         ]);
         root.appendChild(inspectorCard);
 
-        // 6. Batch Operations, Bulk File Management & Export Toolkit Card
+        // 7. Batch Operations, Bulk File Management & Export Toolkit Card
         const batchCard = createCard("Batch Operations, Bulk File Management & Export Toolkit", [
           createRow(["lbl_dest", "txt_dest_dir", "btn_copy_all_files", "btn_move_all", "btn_archive_all"]),
           createRow(["btn_copy_all_rel", "btn_copy_all_abs", "btn_export_json", "btn_export_csv", "btn_bury_all", "btn_delete_all"])
         ]);
         root.appendChild(batchCard);
 
-        // 7. Graveyard Quarantine & Recovery Card (Rip Engine)
+        // 8. Graveyard Quarantine & Recovery Card (Rip Engine)
         const ripTotalNode = getNode("lbl_rip_metric_total");
         const ripSizeNode = getNode("lbl_rip_metric_size");
         const ripTodayNode = getNode("lbl_rip_metric_today");
@@ -1429,17 +1556,6 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
             }
           });
         }
-
-        // 8. Preview & Command Output Card
-        const consoleNode = getNode("fd_console");
-        const statusNode = getNode("lbl_status");
-        if (statusNode) statusNode.style.width = "auto";
-
-        const consoleCard = createCard("Preview & Command Output", [
-          consoleNode,
-          createRow(["btn_clear_console", statusNode])
-        ]);
-        root.appendChild(consoleCard);
 
         // Mount responsive root
         document.body.insertBefore(root, document.body.firstChild);

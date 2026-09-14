@@ -185,6 +185,13 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(run.stdout).toBe("TEST: /path/to/test.txt");
   });
 
+  it("14b. Batch command execution runs each file in the template and includes all results", () => {
+    const run = runFdCommand("echo {/}", ["/tmp/alpha.ts", "/tmp/beta.ts"]);
+    expect(run.exitCode).toBe(0);
+    expect(run.stdout).toContain("alpha.ts");
+    expect(run.stdout).toContain("beta.ts");
+  });
+
   // ---------------------------------------------------------------------------
   // 3. Fd Studio Pro Desktop GUI & HTML Suite
   // ---------------------------------------------------------------------------

@@ -321,6 +321,43 @@ export function interpolateExecCommand(cmdTemplate: string, filePath: string): s
     .replace(/{\/\.}/g, quoteIfSpaced(baseNoExt));
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function expandBatchExecCommand(cmdTemplate: string, filePaths: string[]): string {
+  let tmpl = cmdTemplate.trim();
+  if (!tmpl.includes("{}") && !tmpl.includes("{/}") && !tmpl.includes("{//}") && !tmpl.includes("{.}") && !tmpl.includes("{/.}")) {
+    tmpl = `${tmpl} {}`;
+  }
+
+  const stringify = (v: string) => /[\s"'$`\\;<>|&]/.test(v) ? `"${v.replace(/(["\\$`])/g, "\\$1")}"` : v;
+  const asPathValue = (value: string) => stringify(value);
+
+  const replacements = [
+    { token: "{}", value: filePaths.map(asPathValue).join(" ") },
+    { token: "{/}", value: filePaths.map((p) => stringify(path.basename(p))).join(" ") },
+    { token: "{//}", value: filePaths.map((p) => stringify(path.dirname(p))).join(" ") },
+    { token: "{.}", value: filePaths.map((p) => {
+      const base = path.basename(p);
+      const ext = path.extname(p);
+      return stringify(path.join(path.dirname(p), base.slice(0, base.length - ext.length)));
+    }).join(" ") },
+    { token: "{/.}", value: filePaths.map((p) => {
+      const base = path.basename(p);
+      const ext = path.extname(p);
+      return stringify(base.slice(0, base.length - ext.length));
+    }).join(" ") },
+  ];
+
+  let expanded = tmpl;
+  for (const { token, value } of replacements) {
+    expanded = expanded.replace(new RegExp(escapeRegExp(token), "g"), value);
+  }
+
+  return expanded;
+}
+
 /**
  * Execute a fast native filesystem search with complete fd-find feature set.
  * Fully synchronous to prevent microtask deadlock in native desktop Webview runloop.
@@ -627,18 +664,9 @@ export function runFdCommand(commandTemplate: string, filePaths: string[]): { st
 
   try {
     const isBatch = filePaths.length > 1;
-    let fullCommand = "";
-
-    if (isBatch && !commandTemplate.includes("{/}")) {
-      const quoted = filePaths.map(p => `"${p.replace(/(["\\$`])/g, "\\$1")}"`).join(" ");
-      let tmpl = commandTemplate.trim();
-      if (!tmpl.includes("{}")) {
-        tmpl = `${tmpl} {}`;
-      }
-      fullCommand = tmpl.replace(/{}/g, quoted);
-    } else {
-      fullCommand = interpolateExecCommand(commandTemplate, filePaths[0] || "");
-    }
+    const fullCommand = isBatch
+      ? expandBatchExecCommand(commandTemplate, filePaths)
+      : interpolateExecCommand(commandTemplate, filePaths[0] || "");
 
     const res = Bun.spawnSync(["/bin/sh", "-c", fullCommand], {
       stdin: "ignore",
