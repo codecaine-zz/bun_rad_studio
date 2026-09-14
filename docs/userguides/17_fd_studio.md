@@ -46,13 +46,21 @@ Fd Studio Pro features an ergonomic, high-efficiency desktop layout:
    - **File Size Filter**: Restrict by size, e.g. `+10M` (greater than 10 MB) or `-100k` (smaller than 100 KB).
 4. **Results Table & Live Telemetry**:
    - Interactive data grid displaying Relative Path, File Type, Human-Readable Size, Permissions (`rwxr-xr-x`), and Last Modified Timestamp.
+   - Per-row instant action buttons:
+     - **📂 Open / Inspect**: Reveal file or directory in finder or preview.
+     - **🪦 Safe Bury (Rip)**: Safely quarantines the file/folder into the Rip Engine Graveyard (`~/.local/share/graveyard`) with cryptographically hashed metadata and zero data loss.
    - High-contrast execution metrics: total matches found, directories scanned, and elapsed search duration.
-5. **Batch Execution Command Builder**:
+5. **Rip Studio Pro Engine & Safe Quarantine Graveyard**:
+   - **↺ Undo Rip (Restore)**: Instant one-click restoration of the most recently buried item back to its original filesystem location.
+   - **🪦 Graveyard Drawer / Modal**: Inspect active graveyard cemetery burials, item origin paths, burial timestamps, and original sizes.
+   - **Séance Restoration**: Restore individual quarantined items or empty the graveyard permanently.
+6. **Batch Execution & Safe Burial**:
    - Construct batch commands using placeholders:
      - `{}`: Full item path.
      - `{/}`: Basename / filename only.
      - `//`: Parent directory path.
-   - Execute commands in parallel or sequentially with live terminal output capture.
+   - **🪦 Safe Bury All (Rip)**: Batch quarantine all discovered search results in a single click with confirmation.
+   - Execute custom commands in parallel or sequentially with live terminal output capture.
 
 ---
 
@@ -64,7 +72,15 @@ Fd Studio Pro features an ergonomic, high-efficiency desktop layout:
 3. Toggle **Files Only**.
 4. Click **⚡ Find Files**.
 
-### 2. Batch Processing Discovered Files
+### 2. Safely Deleting (Burying) Temporary Files with Zero Fear
+1. Search for build artifacts or temporary files:
+   - Pattern: `*.tmp` or `*.log`
+2. Review the results table.
+3. Click **🪦 Safe Bury** on any specific file, or click **🪦 Safe Bury All (Rip)** to quarantine all matches at once.
+4. Items are moved instantaneously into the Rip Graveyard quarantine instead of being permanently erased.
+5. Need to undo? Click **↺ Undo Rip (Restore)** at the top right of the toolbar, or open **🪦 Graveyard** to view and resurrect specific items.
+
+### 3. Batch Processing Discovered Files
 1. Set your search pattern (e.g. `*.log`).
 2. In **Batch Command**, enter:
    ```bash
@@ -87,3 +103,4 @@ bun run cli:fd --extension json --size "+1M"
 # Execute command on each result
 bun run cli:fd "*.tmp" --exec "rm -f {}"
 ```
+

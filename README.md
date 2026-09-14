@@ -42,8 +42,8 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
   - [1. Clone & Install Dependencies](#1-clone--install-dependencies)
   - [2. Launch RAD Studio](#2-launch-rad-studio)
   - [3. Run Interactive Feature Demos](#3-run-interactive-feature-demos)
-- [⚡ 16 Enterprise Production Workstations & Utilities](#16-enterprise-production-workstations--utilities)
-  - [📸 Fd & Rip Studio Pro Desktop Workstations](#fd--rip-studio-pro-desktop-workstations)
+- [⚡ 26 Enterprise Production Workstations & Utilities](#26-enterprise-production-workstations--utilities)
+  - [📸 Application Visual Gallery & Screenshots](#application-visual-gallery--screenshots)
 - [📦 Dist Build Process](#dist-build-process)
   - [Commands](#commands)
   - [`dist/` Output Structure](#dist-output-structure)
@@ -433,12 +433,12 @@ bun run demo:simplegui
 
 ---
 
-<a id="16-enterprise-production-workstations--utilities"></a>
+<a id="26-enterprise-production-workstations--utilities"></a>
 <a id="enterprise-applications"></a>
 
-## ⚡ 16 Enterprise Production Workstations & Utilities
+## ⚡ 26 Enterprise Production Workstations & Utilities
 
-In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of **16 production-grade developer desktop workstations** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
+In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **26 production-grade developer desktop workstations** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
 
 |   #    | Application                        | User Guide                                                   | Focus & Capabilities                                                                                                        | Launch Command          |
 | :----: | :--------------------------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :---------------------- |
@@ -458,7 +458,7 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of 
 | **14** | **Markdown Studio Pro**            | [User Guide](docs/userguides/14_markdown_studio.md)          | Split-pane Markdown editor, instant live HTML preview, reading stats, standalone HTML export.                               | `bun run app:markdown`  |
 | **15** | **Color & Design Token Studio**    | [User Guide](docs/userguides/15_color_token_studio.md)       | HEX/RGB/HSL converter, WCAG 2.1 AA/AAA contrast auditor, 50–950 tonal scale, token export.                                  | `bun run app:color`     |
 | **16** | **Environment Vault Studio**       | [User Guide](docs/userguides/16_environment_vault_studio.md) | `.env` parser & validator, secret key detection & masking, diff against `.env.example`.                                     | `bun run app:env`       |
-| **17** | **Fd Studio Pro**                  | [User Guide](docs/userguides/17_fd_studio.md)                | Native Bun ultra-fast filesystem traversal & search (`fd-find` replacement), regex/glob filters, batch exec.                | `bun run app:fd`        |
+| **17** | **Fd Studio Pro**                  | [User Guide](docs/userguides/17_fd_studio.md)                | Native Bun ultra-fast filesystem search (`fd-find` replacement), regex/glob filters, Rip safe burial quarantine & recovery, batch exec. | `bun run app:fd`        |
 | **18** | **Rip Studio Pro**                 | [User Guide](docs/userguides/18_rip_studio.md)               | Safe & ergonomic alternative to `rm`, graveyard quarantine, instant undo restoration, pre-deletion inspect.                 | `bun run app:rip`       |
 | **19** | **Sd Studio Pro**                  | [User Guide](docs/userguides/19_sd_studio.md)                | Intuitive find & replace (`sed` alternative) with live unified diffs, regex capture groups, and backup files.               | `bun run app:sd`        |
 | **20** | **Procs Monitor Studio Pro**       | [User Guide](docs/userguides/20_procs_studio.md)             | Modern `ps` replacement with live process table, CPU/Memory telemetry, listening TCP ports, signal control, and tree view.  | `bun run app:procs`     |
@@ -469,14 +469,57 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a suite of 
 | **25** | **Subfinder Discovery Studio Pro** | [User Guide](docs/userguides/25_subfinder_studio.md)         | Passive multi-source subdomain discovery with active DNS verification and HTTP/HTTPS probing.                               | `bun run app:subfinder` |
 | **26** | **Doggo DNS Studio Pro**           | [User Guide](docs/userguides/26_doggo_studio.md)             | Modern DNS client for humans with standard record queries, custom resolvers, DNS-over-HTTPS (DoH), and reverse PTR lookups. | `bun run app:doggo`     |
 
-<a id="fd--rip-studio-pro-desktop-workstations"></a>
+<a id="application-visual-gallery--screenshots"></a>
 
-### 📸 Fd & Rip Studio Pro Desktop Workstations
+### 📸 Application Visual Gallery & Screenshots
 
-| Workstation        | Desktop Preview (1200×850)                                     | Responsive Preview (960×720)                                         |
-| :----------------- | :------------------------------------------------------------- | :------------------------------------------------------------------- |
-| **Fd Studio Pro**  | ![Fd Studio Desktop](screenshots/apps/fd_studio_desktop.png)   | ![Fd Studio Responsive](screenshots/apps/fd_studio_responsive.png)   |
-| **Rip Studio Pro** | ![Rip Studio Desktop](screenshots/apps/rip_studio_desktop.png) | ![Rip Studio Responsive](screenshots/apps/rip_studio_responsive.png) |
+Explore live desktop and responsive viewport previews for all 26 enterprise production workstations:
+
+#### 🔍 Filesystem, Search & Process Operations
+
+| Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
+| :--- | :--- | :--- |
+| **Fd Studio Pro**<br>[User Guide](docs/userguides/17_fd_studio.md)<br>`bun run app:fd` | ![Fd Studio Desktop](screenshots/apps/fd_studio_desktop.png) | ![Fd Studio Responsive](screenshots/apps/fd_studio_responsive.png) |
+| **Rip Studio Pro**<br>[User Guide](docs/userguides/18_rip_studio.md)<br>`bun run app:rip` | ![Rip Studio Desktop](screenshots/apps/rip_studio_desktop.png) | ![Rip Studio Responsive](screenshots/apps/rip_studio_responsive.png) |
+| **Sd Studio Pro**<br>[User Guide](docs/userguides/19_sd_studio.md)<br>`bun run app:sd` | ![Sd Studio Desktop](screenshots/apps/sd_studio_desktop.png) | ![Sd Studio Responsive](screenshots/apps/sd_studio_responsive.png) |
+| **Procs Studio Pro**<br>[User Guide](docs/userguides/20_procs_studio.md)<br>`bun run app:procs` | ![Procs Studio Desktop](screenshots/apps/procs_studio_desktop.png) | ![Procs Studio Responsive](screenshots/apps/procs_studio_responsive.png) |
+| **Watchexec Studio Pro**<br>[User Guide](docs/userguides/21_watchexec_studio.md)<br>`bun run app:watchexec` | ![Watchexec Studio Desktop](screenshots/apps/watchexec_studio_desktop.png) | ![Watchexec Studio Responsive](screenshots/apps/watchexec_studio_responsive.png) |
+| **Gdu Disk Studio Pro**<br>[User Guide](docs/userguides/23_gdu_studio.md)<br>`bun run app:gdu` | ![Gdu Studio Desktop](screenshots/apps/gdu_studio_desktop.png) | ![Gdu Studio Responsive](screenshots/apps/gdu_studio_responsive.png) |
+
+#### 🗄️ Data, Storage & Query Engines
+
+| Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
+| :--- | :--- | :--- |
+| **Database Studio Pro**<br>[User Guide](docs/userguides/01_database_studio.md)<br>`bun run app:database` | ![Database Studio Desktop](screenshots/apps/database_studio_desktop.png) | ![Database Studio Responsive](screenshots/apps/database_studio_responsive.png) |
+| **JSON Query Studio Pro**<br>[User Guide](docs/userguides/04_json_query_studio.md)<br>`bun run app:json` | ![JSON Query Studio Desktop](screenshots/apps/json_studio_desktop.png) | ![JSON Query Studio Responsive](screenshots/apps/json_studio_responsive.png) |
+| **Data Converter Studio**<br>[User Guide](docs/userguides/08_data_converter_studio.md)<br>`bun run app:convert` | ![Data Converter Studio Desktop](screenshots/apps/dataconvert_studio_desktop.png) | ![Data Converter Studio Responsive](screenshots/apps/dataconvert_studio_responsive.png) |
+
+#### 🌐 Networking, DNS & Security Forensics
+
+| Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
+| :--- | :--- | :--- |
+| **Network Forensics Studio**<br>[User Guide](docs/userguides/12_network_forensics_studio.md)<br>`bun run app:network` | ![Network Forensics Studio Desktop](screenshots/apps/network_studio_desktop.png) | ![Network Forensics Studio Responsive](screenshots/apps/network_studio_responsive.png) |
+| **IpInfo Forensics Studio Pro**<br>[User Guide](docs/userguides/24_ipinfo_studio.md)<br>`bun run app:ipinfo` | ![IpInfo Studio Desktop](screenshots/apps/ipinfo_studio_desktop.png) | ![IpInfo Studio Responsive](screenshots/apps/ipinfo_studio_responsive.png) |
+| **Subfinder Discovery Studio Pro**<br>[User Guide](docs/userguides/25_subfinder_studio.md)<br>`bun run app:subfinder` | ![Subfinder Studio Desktop](screenshots/apps/subfinder_studio_desktop.png) | ![Subfinder Studio Responsive](screenshots/apps/subfinder_studio_responsive.png) |
+| **Doggo DNS Studio Pro**<br>[User Guide](docs/userguides/26_doggo_studio.md)<br>`bun run app:doggo` | ![Doggo Studio Desktop](screenshots/apps/doggo_studio_desktop.png) | ![Doggo Studio Responsive](screenshots/apps/doggo_studio_responsive.png) |
+| **Crypto Studio Pro**<br>[User Guide](docs/userguides/09_crypto_studio.md)<br>`bun run app:crypto` | ![Crypto Studio Desktop](screenshots/apps/crypto_studio_desktop.png) | ![Crypto Studio Responsive](screenshots/apps/crypto_studio_responsive.png) |
+| **Environment Vault Studio**<br>[User Guide](docs/userguides/16_environment_vault_studio.md)<br>`bun run app:env` | ![Environment Vault Studio Desktop](screenshots/apps/env_studio_desktop.png) | ![Environment Vault Studio Responsive](screenshots/apps/env_studio_responsive.png) |
+
+#### 🛠️ Developer Productivity, Code & System Workstations
+
+| Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
+| :--- | :--- | :--- |
+| **DevTools Studio Pro (6-in-1)**<br>[User Guide](docs/userguides/05_devtools_studio.md)<br>`bun run app:devtools` | ![DevTools Studio Desktop](screenshots/apps/devtools_studio_desktop.png) | ![DevTools Studio Responsive](screenshots/apps/devtools_studio_responsive.png) |
+| **System & Package Workstation**<br>[User Guide](docs/userguides/02_system_package_studio.md)<br>`bun run app:system` | ![System Studio Desktop](screenshots/apps/system_studio_desktop.png) | ![System Studio Responsive](screenshots/apps/system_studio_responsive.png) |
+| **Task Watcher Studio**<br>[User Guide](docs/userguides/03_task_watcher_studio.md)<br>`bun run app:watcher` | ![Watcher Studio Desktop](screenshots/apps/watcher_studio_desktop.png) | ![Watcher Studio Responsive](screenshots/apps/watcher_studio_responsive.png) |
+| **Process Monitor Studio**<br>[User Guide](docs/userguides/06_process_monitor_studio.md)<br>`bun run app:process` | ![Process Monitor Desktop](screenshots/apps/process_studio_desktop.png) | ![Process Monitor Responsive](screenshots/apps/process_studio_responsive.png) |
+| **API Studio Pro**<br>[User Guide](docs/userguides/07_api_studio.md)<br>`bun run app:api` | ![API Studio Desktop](screenshots/apps/api_studio_desktop.png) | ![API Studio Responsive](screenshots/apps/api_studio_responsive.png) |
+| **Regex Studio Pro**<br>[User Guide](docs/userguides/10_regex_studio.md)<br>`bun run app:regex` | ![Regex Studio Desktop](screenshots/apps/regex_studio_desktop.png) | ![Regex Studio Responsive](screenshots/apps/regex_studio_responsive.png) |
+| **App Bundler Studio**<br>[User Guide](docs/userguides/11_app_bundler_studio.md)<br>`bun run app:bundler` | ![App Bundler Studio Desktop](screenshots/apps/app_bundler_studio_desktop.png) | ![App Bundler Studio Responsive](screenshots/apps/app_bundler_studio_responsive.png) |
+| **Git Workbench Pro**<br>[User Guide](docs/userguides/13_git_workbench_studio.md)<br>`bun run app:git` | ![Git Workbench Desktop](screenshots/apps/git_studio_desktop.png) | ![Git Workbench Responsive](screenshots/apps/git_studio_responsive.png) |
+| **Markdown Studio Pro**<br>[User Guide](docs/userguides/14_markdown_studio.md)<br>`bun run app:markdown` | ![Markdown Studio Desktop](screenshots/apps/markdown_studio_desktop.png) | ![Markdown Studio Responsive](screenshots/apps/markdown_studio_responsive.png) |
+| **Color & Design Token Studio**<br>[User Guide](docs/userguides/15_color_token_studio.md)<br>`bun run app:color` | ![Color Studio Desktop](screenshots/apps/color_studio_desktop.png) | ![Color Studio Responsive](screenshots/apps/color_studio_responsive.png) |
+| **Tokei Studio Pro**<br>[User Guide](docs/userguides/22_tokei_studio.md)<br>`bun run app:tokei` | ![Tokei Studio Desktop](screenshots/apps/tokei_studio_desktop.png) | ![Tokei Studio Responsive](screenshots/apps/tokei_studio_responsive.png) |
 
 ---
 

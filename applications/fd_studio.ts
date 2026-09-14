@@ -9,10 +9,20 @@ import {
   type FdSearchOptions,
   type FdFileType,
 } from "./fd_engine";
+import {
+  getGraveyardDir,
+  buryTargetsSync,
+  unburyTargetsSync,
+  seanceGraveyard,
+  decomposeGraveyardSync,
+  getGraveyardStats,
+  formatHumanSize,
+  type GraveyardItem,
+} from "./rip_engine";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
-export function createFdStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createFdStudio(options: { fullscreen?: boolean; theme?: string; graveyardDir?: string } = {}): SimpleWindow {
   const win = newSimpleWindow(
     "Fd Studio Pro -- Native High-Performance File & Directory Finder",
     1240,
@@ -26,11 +36,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
     }
   );
 
+  const graveyardDir = getGraveyardDir(options.graveyardDir);
   let currentResults: FdItem[] = [];
   let selectedItem: FdItem | null = null;
   let activeTypeFilter: FdFileType | "all" = "all";
   let activeWatcher: { close: () => void } | null = null;
   let watcherDebounceTimer: Timer | null = null;
+  let graveyardItems: GraveyardItem[] = [];
+  let selectedGraveyardItem: GraveyardItem | null = null;
 
   // -----------------------------------------------------------------------------------------------
   // 1. Header Toolbar
@@ -38,11 +51,13 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
   win.beginRow();
   win.addHeading("Fd Studio Pro");
   win.addThemeSelector("dd_theme", "Theme:");
+  win.addButton("btn_unbury_last", "↺ Undo Rip (Restore)");
+  win.addButton("btn_toggle_graveyard", "🪦 Graveyard (0)");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Zero Homebrew Reliance -- 100% Native Bun System APIs for Ultra-Fast Traversal");
+  win.addCaption("Zero Homebrew Reliance -- 100% Native Bun System APIs for Ultra-Fast Traversal & Safe Quarantine");
 
   // -----------------------------------------------------------------------------------------------
   // 2. Search & Target Configuration
@@ -123,6 +138,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
   win.addButton("btn_reveal", "📂 Reveal in Finder");
   win.addButton("btn_preview_content", "👁️ Preview Content");
   win.addButton("btn_move_one", "📦 Move Item");
+  win.addButton("btn_bury_one", "🪦 Safe Bury (Rip)");
   win.addButton("btn_delete_one", "🗑️ Delete Item");
   win.endRow();
 
@@ -151,12 +167,41 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
   win.addButton("btn_copy_all_abs", "📋 Copy All Full Paths");
   win.addButton("btn_export_json", "💾 Export JSON");
   win.addButton("btn_export_csv", "📊 Export CSV");
+  win.addButton("btn_bury_all", "🪦 Safe Bury All (Rip)");
   win.addButton("btn_delete_all", "💥 Delete All Matches");
   win.endRow();
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
-  // 6. Content Preview & Activity Console
+  // 7. Graveyard Quarantine & Recovery (Rip Engine)
+  // -----------------------------------------------------------------------------------------------
+  win.beginGroupBox("Graveyard Quarantine & Recovery (Rip Engine)");
+  win.beginRow();
+  win.addLabel("lbl_rip_metric_total", "Buried Items: 0");
+  win.addLabel("lbl_rip_metric_size", "Total Size: 0 B");
+  win.addLabel("lbl_rip_metric_today", "Buried Today: 0");
+  const homeDir = process.env.HOME || "";
+  const displayGraveyard = homeDir && graveyardDir.startsWith(homeDir) ? "~" + graveyardDir.slice(homeDir.length) : graveyardDir;
+  win.addLabel("lbl_rip_metric_path", `Graveyard: ${displayGraveyard}`);
+  win.endRow();
+
+  const graveyardHeaders = ["ID", "Name", "Type", "Size", "Buried Date", "Original Path", "Status"];
+  win.addTable("tbl_graveyard", graveyardHeaders, [], { height: 220 });
+
+  win.beginRow();
+  win.addLabel("lbl_rip_selected", "Selected Buried Item: (None Selected)");
+  win.endRow();
+
+  win.beginRow();
+  win.addButton("btn_unbury_selected", "↺ Restore Selected (Unbury)");
+  win.addButton("btn_decompose_selected", "⚰️ Decompose (Permanent Delete)");
+  win.addButton("btn_decompose_all", "🧹 Empty Graveyard");
+  win.addButton("btn_refresh_graveyard", "🔄 Refresh Graveyard");
+  win.endRow();
+  win.endGroupBox();
+
+  // -----------------------------------------------------------------------------------------------
+  // 8. Content Preview & Activity Console
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Preview & Command Output");
   win.addConsole("fd_console", 110);
@@ -172,6 +217,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
     const item = currentResults.find((r) => r.path === String(filePath) || r.relativePath === String(filePath));
     if (item) {
       updateSelectedInspector(item);
+    }
+  });
+
+  win.bindControlEvent("sel_graveyard_ipc", "change", (_, graveyardId) => {
+    if (!graveyardId) return;
+    const item = graveyardItems.find((g) => g.id === String(graveyardId) || g.name === String(graveyardId));
+    if (item) {
+      updateSelectedGraveyardInspector(item);
     }
   });
 
@@ -202,6 +255,58 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
       }
     } else {
       win.setText("lbl_selected_hash", "SHA-256: N/A");
+    }
+  };
+
+  const updateSelectedGraveyardInspector = (item: GraveyardItem | null) => {
+    selectedGraveyardItem = item;
+    if (!item) {
+      win.setText("lbl_rip_selected", "Selected Buried Item: (None Selected)");
+      return;
+    }
+    const typeLabel = item.type === "directory" ? "Directory" : "File";
+    const dateLabel = item.buriedAt ? item.buriedAt.slice(0, 19).replace("T", " ") : "—";
+    win.setText(
+      "lbl_rip_selected",
+      `Selected: ${item.name} (${item.humanSize}, ${typeLabel}) | Buried: ${dateLabel} | From: ${item.originalPath}`
+    );
+  };
+
+  const refreshGraveyard = () => {
+    try {
+      const stats = getGraveyardStats(graveyardDir);
+      graveyardItems = seanceGraveyard({ graveyardDir });
+
+      win.setText("lbl_rip_metric_total", `Buried Items: ${stats.totalFiles}`);
+      win.setText("lbl_rip_metric_size", `Total Size: ${formatHumanSize(stats.totalSizeBytes)}`);
+      win.setText("lbl_rip_metric_today", `Buried Today: ${stats.buriedToday}`);
+      win.setText("btn_toggle_graveyard", `🪦 Graveyard (${stats.totalFiles})`);
+
+      const rows = graveyardItems.map((g) => ({
+        rowId: g.id,
+        cells: [
+          g.id,
+          g.name,
+          g.type === "directory" ? "dir" : "file",
+          g.humanSize,
+          g.buriedAt ? g.buriedAt.slice(0, 19).replace("T", " ") : "—",
+          g.originalPath,
+          g.status,
+        ],
+      }));
+
+      win.setTableData("tbl_graveyard", graveyardHeaders, rows);
+
+      if (selectedGraveyardItem) {
+        const stillPresent = graveyardItems.find((g) => g.id === selectedGraveyardItem!.id);
+        updateSelectedGraveyardInspector(stillPresent || null);
+      } else if (graveyardItems.length > 0) {
+        updateSelectedGraveyardInspector(graveyardItems[0]);
+      } else {
+        updateSelectedGraveyardInspector(null);
+      }
+    } catch (err: any) {
+      logConsole(`[Graveyard Error]: ${err.message}`, 3);
     }
   };
 
@@ -570,6 +675,31 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
     }
   });
 
+  // Safe Bury Single Selected Item (Rip Engine)
+  win.onClick("btn_bury_one", () => {
+    if (!selectedItem) {
+      win.toast("Please select an item first to bury.");
+      return;
+    }
+    const targetPath = selectedItem.path;
+    const targetName = selectedItem.name;
+    try {
+      const res = buryTargetsSync([targetPath], { graveyardDir });
+      if (res.buried.length > 0) {
+        logConsole(`[Rip Engine] Safely buried '${targetName}' into Rip graveyard (${formatHumanSize(res.totalBytesFreed)} freed)`, 2);
+        win.toast(`Safely buried '${targetName}' (Rip)`);
+        refreshGraveyard();
+        performSearch();
+      } else if (res.errors.length > 0) {
+        logConsole(`[Rip Engine Error]: ${res.errors[0].error}`, 3);
+        win.toast(`Failed to bury: ${res.errors[0].error}`);
+      }
+    } catch (err: any) {
+      logConsole(`[Rip Error]: ${err.message}`, 3);
+      win.toast(`Failed to bury item: ${err.message}`);
+    }
+  });
+
   // Delete Single Selected Item
   win.onClick("btn_delete_one", () => {
     if (!selectedItem) {
@@ -835,6 +965,28 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
     }
   });
 
+  // Batch Safe Bury All Matched Items (Rip Engine)
+  win.onClick("btn_bury_all", () => {
+    if (currentResults.length === 0) {
+      win.toast("No matching items to bury.");
+      return;
+    }
+    const paths = currentResults.map((r) => r.path);
+    try {
+      const res = buryTargetsSync(paths, { graveyardDir });
+      logConsole(
+        `[Rip Engine] Batch buried ${res.buried.length} of ${paths.length} items into graveyard (${formatHumanSize(res.totalBytesFreed)} freed, ${res.errors.length} errors)`,
+        res.errors.length > 0 ? 3 : 2
+      );
+      win.toast(`Batch buried ${res.buried.length} items into Rip graveyard!`);
+      refreshGraveyard();
+      performSearch();
+    } catch (err: any) {
+      logConsole(`[Rip Batch Error]: ${err.message}`, 3);
+      win.toast(`Batch bury failed: ${err.message}`);
+    }
+  });
+
   // Batch Delete All Matched Items
   win.onClick("btn_delete_all", () => {
     if (currentResults.length === 0) {
@@ -856,6 +1008,102 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
     logConsole(`[Batch Delete] Deleted ${deletedCount} of ${countToDelete} items (${errorCount} errors)`, errorCount > 0 ? 3 : 2);
     win.toast(`Batch deleted ${deletedCount} items.`);
     performSearch();
+  });
+
+  // Graveyard: Undo / Restore Most Recent Rip
+  win.onClick("btn_unbury_last", () => {
+    try {
+      const allBuried = seanceGraveyard({ graveyardDir }).filter((i) => i.status === "buried");
+      if (allBuried.length === 0) {
+        win.toast("Graveyard is empty. Nothing to restore.");
+        return;
+      }
+      const lastBuried = allBuried[0];
+      const res = unburyTargetsSync([lastBuried.id], { graveyardDir });
+      if (res.restored.length > 0) {
+        logConsole(`[Rip Engine] Restored '${lastBuried.name}' back to '${lastBuried.originalPath}'`, 2);
+        win.toast(`Restored '${lastBuried.name}'!`);
+        refreshGraveyard();
+        performSearch();
+      } else if (res.errors.length > 0) {
+        logConsole(`[Rip Undo Error]: ${res.errors[0].error}`, 3);
+        win.toast(`Restore failed: ${res.errors[0].error}`);
+      }
+    } catch (err: any) {
+      logConsole(`[Rip Undo Error]: ${err.message}`, 3);
+      win.toast(`Restore failed: ${err.message}`);
+    }
+  });
+
+  // Graveyard Table row click
+  win.onClick("tbl_graveyard", (_, rowIdentifier) => {
+    const item = graveyardItems.find(
+      (g) => g.id === rowIdentifier || g.name === rowIdentifier || g.originalPath === rowIdentifier
+    );
+    if (item) updateSelectedGraveyardInspector(item);
+  });
+
+  // Restore Selected Buried Item
+  win.onClick("btn_unbury_selected", () => {
+    if (!selectedGraveyardItem) {
+      win.toast("Please select a buried item from the graveyard table first.");
+      return;
+    }
+    try {
+      const res = unburyTargetsSync([selectedGraveyardItem.id], { graveyardDir });
+      if (res.restored.length > 0) {
+        logConsole(`[Rip Engine] Restored '${selectedGraveyardItem.name}' -> '${selectedGraveyardItem.originalPath}'`, 2);
+        win.toast(`Restored '${selectedGraveyardItem.name}' to original path!`);
+        refreshGraveyard();
+        performSearch();
+      } else if (res.errors.length > 0) {
+        logConsole(`[Rip Restore Error]: ${res.errors[0].error}`, 3);
+        win.toast(`Restore failed: ${res.errors[0].error}`);
+      }
+    } catch (err: any) {
+      logConsole(`[Rip Restore Error]: ${err.message}`, 3);
+      win.toast(`Restore failed: ${err.message}`);
+    }
+  });
+
+  // Decompose Selected Buried Item (Permanent Deletion)
+  win.onClick("btn_decompose_selected", () => {
+    if (!selectedGraveyardItem) {
+      win.toast("Please select a buried item to decompose.");
+      return;
+    }
+    const name = selectedGraveyardItem.name;
+    try {
+      const res = decomposeGraveyardSync({ graveyardDir, itemIds: [selectedGraveyardItem.id] });
+      logConsole(`[Rip Engine] Decomposed (permanently deleted) '${name}' from graveyard (${formatHumanSize(res.totalBytesFreed)} freed)`, 2);
+      win.toast(`Permanently deleted '${name}' from graveyard.`);
+      selectedGraveyardItem = null;
+      refreshGraveyard();
+    } catch (err: any) {
+      logConsole(`[Rip Decompose Error]: ${err.message}`, 3);
+      win.toast(`Decompose failed: ${err.message}`);
+    }
+  });
+
+  // Empty Entire Graveyard
+  win.onClick("btn_decompose_all", () => {
+    try {
+      const res = decomposeGraveyardSync({ graveyardDir, all: true });
+      logConsole(`[Rip Engine] Emptied graveyard. Decomposed ${res.decomposed.length} items (${formatHumanSize(res.totalBytesFreed)} freed).`, 2);
+      win.toast(`Emptied graveyard (${res.decomposed.length} items).`);
+      selectedGraveyardItem = null;
+      refreshGraveyard();
+    } catch (err: any) {
+      logConsole(`[Rip Empty Error]: ${err.message}`, 3);
+      win.toast(`Empty graveyard failed: ${err.message}`);
+    }
+  });
+
+  // Refresh Graveyard Telemetry
+  win.onClick("btn_refresh_graveyard", () => {
+    refreshGraveyard();
+    win.toast("Graveyard telemetry refreshed.");
+    logConsole("[Rip Engine] Graveyard quarantine telemetry refreshed.", 1);
   });
 
   win.onClick("btn_clear_console", () => {
@@ -897,7 +1145,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
           "  padding: 14px 18px !important;",
           "  box-sizing: border-box !important;",
           "}",
-          "#groupbox_1, #groupbox_2, #groupbox_3, #groupbox_4, #groupbox_5, #groupbox_6 {",
+          "#groupbox_1, #groupbox_2, #groupbox_3, #groupbox_4, #groupbox_5, #groupbox_6, #groupbox_7, fieldset {",
           "  display: none !important;",
           "}",
           ".fd-card {",
@@ -911,6 +1159,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
           "  flex-direction: column !important;",
           "  gap: 10px !important;",
           "  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;",
+          "}",
+          ".fd-row input[type='text'], .fd-row input[type='search'] {",
+          "  flex: 1 1 160px !important;",
+          "  min-width: 100px !important;",
+          "}",
+          ".fd-row select {",
+          "  flex: 0 1 auto !important;",
+          "  min-width: 110px !important;",
           "}",
           ".fd-card-header {",
           "  font-size: 11px !important;",
@@ -927,6 +1183,12 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
           "  align-items: center !important;",
           "  width: 100% !important;",
           "  box-sizing: border-box !important;",
+          "}",
+          ".fd-row button, .fd-header-right button {",
+          "  width: auto !important;",
+          "  min-width: max-content !important;",
+          "  white-space: nowrap !important;",
+          "  padding: 7px 14px !important;",
           "}",
           ".fd-header-bar {",
           "  display: flex !important;",
@@ -957,7 +1219,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
           "  bottom: auto !important;",
           "  margin: 0 !important;",
           "}",
-          "#tbl_results {",
+          "#tbl_results, #tbl_graveyard {",
           "  position: relative !important;",
           "  left: auto !important;",
           "  top: auto !important;",
@@ -971,7 +1233,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
           "  background: var(--card-bg, #161922) !important;",
           "  box-sizing: border-box !important;",
           "}",
-          "#tbl_results table {",
+          "#tbl_results table, #tbl_graveyard table {",
           "  width: 100% !important;",
           "  min-width: 650px !important;",
           "  border-collapse: collapse !important;",
@@ -1075,11 +1337,15 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
         headerRight.className = "fd-header-right";
         const themeLbl = getNode("lbl_dd_theme");
         const themeDd = getNode("dd_theme");
+        const btnUnburyLast = getNode("btn_unbury_last");
+        const btnToggleGraveyard = getNode("btn_toggle_graveyard");
         const btnFull = getNode("btn_fullscreen");
         const btnSave = getNode("btn_save_state");
         const btnCenter = getNode("btn_center");
         if (themeLbl) { themeLbl.style.width = "auto"; headerRight.appendChild(themeLbl); }
         if (themeDd) headerRight.appendChild(themeDd);
+        if (btnUnburyLast) headerRight.appendChild(btnUnburyLast);
+        if (btnToggleGraveyard) headerRight.appendChild(btnToggleGraveyard);
         if (btnFull) headerRight.appendChild(btnFull);
         if (btnSave) headerRight.appendChild(btnSave);
         if (btnCenter) headerRight.appendChild(btnCenter);
@@ -1118,7 +1384,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
 
         const inspectorCard = createCard("Selected File Inspector & Single-Item Actions", [
           createRow([selName, selStats, selHash]),
-          createRow(["btn_copy_rel", "btn_copy_abs", "btn_reveal", "btn_preview_content", "btn_move_one", "btn_delete_one"]),
+          createRow(["btn_copy_rel", "btn_copy_abs", "btn_reveal", "btn_preview_content", "btn_move_one", "btn_bury_one", "btn_delete_one"]),
           createRow(["lbl_exec_tmpl", "txt_exec_cmd", "btn_exec_one", "btn_exec_all"])
         ]);
         root.appendChild(inspectorCard);
@@ -1126,11 +1392,45 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
         // 6. Batch Operations, Bulk File Management & Export Toolkit Card
         const batchCard = createCard("Batch Operations, Bulk File Management & Export Toolkit", [
           createRow(["lbl_dest", "txt_dest_dir", "btn_copy_all_files", "btn_move_all", "btn_archive_all"]),
-          createRow(["btn_copy_all_rel", "btn_copy_all_abs", "btn_export_json", "btn_export_csv", "btn_delete_all"])
+          createRow(["btn_copy_all_rel", "btn_copy_all_abs", "btn_export_json", "btn_export_csv", "btn_bury_all", "btn_delete_all"])
         ]);
         root.appendChild(batchCard);
 
-        // 7. Preview & Command Output Card
+        // 7. Graveyard Quarantine & Recovery Card (Rip Engine)
+        const ripTotalNode = getNode("lbl_rip_metric_total");
+        const ripSizeNode = getNode("lbl_rip_metric_size");
+        const ripTodayNode = getNode("lbl_rip_metric_today");
+        const ripPathNode = getNode("lbl_rip_metric_path");
+        const ripSelNode = getNode("lbl_rip_selected");
+        if (ripTotalNode) ripTotalNode.style.width = "auto";
+        if (ripSizeNode) ripSizeNode.style.width = "auto";
+        if (ripTodayNode) ripTodayNode.style.width = "auto";
+        if (ripPathNode) ripPathNode.style.width = "auto";
+        if (ripSelNode) ripSelNode.style.width = "auto";
+
+        const graveyardTableNode = getNode("tbl_graveyard");
+        const graveyardCard = createCard("Graveyard Quarantine & Recovery (Rip Engine)", [
+          createRow([ripTotalNode, ripSizeNode, ripTodayNode, ripPathNode]),
+          graveyardTableNode,
+          createRow([ripSelNode]),
+          createRow(["btn_unbury_selected", "btn_decompose_selected", "btn_decompose_all", "btn_refresh_graveyard"])
+        ]);
+        graveyardCard.id = "card_graveyard";
+        root.appendChild(graveyardCard);
+
+        if (btnToggleGraveyard) {
+          btnToggleGraveyard.addEventListener("click", function() {
+            if (graveyardCard) {
+              const isHidden = graveyardCard.style.display === "none";
+              graveyardCard.style.display = isHidden ? "flex" : "none";
+              if (isHidden) {
+                graveyardCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              }
+            }
+          });
+        }
+
+        // 8. Preview & Command Output Card
         const consoleNode = getNode("fd_console");
         const statusNode = getNode("lbl_status");
         if (statusNode) statusNode.style.width = "auto";
@@ -1158,11 +1458,20 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
         // Table Row Selection
         window.onTableRowClick = function(tr) {
           if (!tr) return;
+          const table = tr.closest("table");
+          const isGraveyard = table && table.closest("#tbl_graveyard");
           const cells = tr.querySelectorAll("td");
-          const name = cells[0]?.textContent?.trim() || "";
-          const relPath = cells[3]?.textContent?.trim() || "";
-          if (window.on_sel_file_ipc_change) {
-            window.on_sel_file_ipc_change(relPath || name);
+          if (isGraveyard) {
+            const id = cells[0]?.textContent?.trim() || "";
+            if (window.on_sel_graveyard_ipc_change) {
+              window.on_sel_graveyard_ipc_change(id);
+            }
+          } else {
+            const name = cells[0]?.textContent?.trim() || "";
+            const relPath = cells[3]?.textContent?.trim() || "";
+            if (window.on_sel_file_ipc_change) {
+              window.on_sel_file_ipc_change(relPath || name);
+            }
           }
         };
       }
@@ -1190,8 +1499,9 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string }
   process.on("SIGTERM", onProcessShutdown);
   process.on("beforeExit", () => stopAll());
 
-  // Pre-populate search immediately on creation so initial table is populated on first frame
+  // Pre-populate search and graveyard immediately on creation so initial tables are populated on first frame
   performSearch();
+  refreshGraveyard();
 
   return win;
 }

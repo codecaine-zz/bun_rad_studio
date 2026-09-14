@@ -220,6 +220,15 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(html).toContain("btn_delete_all");
     expect(html).toContain("btn_toggle_watch");
     expect(html).toContain("chk_watch");
+    expect(html).toContain("btn_bury_one");
+    expect(html).toContain("btn_bury_all");
+    expect(html).toContain("btn_unbury_last");
+    expect(html).toContain("btn_toggle_graveyard");
+    expect(html).toContain("tbl_graveyard");
+    expect(html).toContain("btn_unbury_selected");
+    expect(html).toContain("btn_decompose_selected");
+    expect(html).toContain("btn_decompose_all");
+    expect(html).toContain("btn_refresh_graveyard");
   });
 
   it("16. Fd Studio file management toolkit handles copy, move, export, and delete operations", () => {
@@ -270,9 +279,87 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // 4. CLI Execution Parity Tests
+  // 4. Rip Studio Pro Functionality in Fd Studio Pro Tests
   // ---------------------------------------------------------------------------
-  it("18. fd-cli executes via CLI and outputs formatted results and json", () => {
+  it("18. Fd Studio Pro safely buries a matched file into the Rip graveyard and updates telemetry", () => {
+    const testGraveyard = path.resolve("./.tmp_test_graveyard_fd_1");
+    const testSandbox = path.resolve("./.tmp_test_sandbox_fd_1");
+    if (fs.existsSync(testGraveyard)) fs.rmSync(testGraveyard, { recursive: true, force: true });
+    if (fs.existsSync(testSandbox)) fs.rmSync(testSandbox, { recursive: true, force: true });
+
+    fs.mkdirSync(testSandbox, { recursive: true });
+    const victimPath = path.join(testSandbox, "victim.txt");
+    fs.writeFileSync(victimPath, "safe burial content", "utf-8");
+
+    const win = createFdStudio({ fullscreen: false, graveyardDir: testGraveyard });
+    win.setValue("txt_pattern", "victim\\.txt");
+    win.setValue("txt_root", testSandbox);
+
+    // Trigger search
+    const clickSearch = (win as any).eventHandlersMap.get("btn_search:onclick");
+    clickSearch(win);
+
+    // Trigger bury one
+    expect(fs.existsSync(victimPath)).toBe(true);
+    const clickBury = (win as any).eventHandlersMap.get("btn_bury_one:onclick");
+    clickBury(win);
+
+    // Victim should no longer exist at original path
+    expect(fs.existsSync(victimPath)).toBe(false);
+
+    // Trigger unbury last (undo)
+    const clickUndo = (win as any).eventHandlersMap.get("btn_unbury_last:onclick");
+    clickUndo(win);
+
+    // Victim should be restored!
+    expect(fs.existsSync(victimPath)).toBe(true);
+    expect(fs.readFileSync(victimPath, "utf-8")).toBe("safe burial content");
+
+    // Cleanup
+    fs.rmSync(testGraveyard, { recursive: true, force: true });
+    fs.rmSync(testSandbox, { recursive: true, force: true });
+  });
+
+  it("19. Fd Studio Pro batch buries multiple files and decomposes them permanently", () => {
+    const testGraveyard = path.resolve("./.tmp_test_graveyard_fd_2");
+    const testSandbox = path.resolve("./.tmp_test_sandbox_fd_2");
+    if (fs.existsSync(testGraveyard)) fs.rmSync(testGraveyard, { recursive: true, force: true });
+    if (fs.existsSync(testSandbox)) fs.rmSync(testSandbox, { recursive: true, force: true });
+
+    fs.mkdirSync(testSandbox, { recursive: true });
+    fs.writeFileSync(path.join(testSandbox, "a.log"), "log a", "utf-8");
+    fs.writeFileSync(path.join(testSandbox, "b.log"), "log b", "utf-8");
+    fs.writeFileSync(path.join(testSandbox, "c.log"), "log c", "utf-8");
+
+    const win = createFdStudio({ fullscreen: false, graveyardDir: testGraveyard });
+    win.setValue("txt_pattern", "\\.log$");
+    win.setValue("txt_root", testSandbox);
+
+    // Search
+    const clickSearch = (win as any).eventHandlersMap.get("btn_search:onclick");
+    clickSearch(win);
+
+    // Batch bury all
+    const clickBuryAll = (win as any).eventHandlersMap.get("btn_bury_all:onclick");
+    clickBuryAll(win);
+
+    expect(fs.existsSync(path.join(testSandbox, "a.log"))).toBe(false);
+    expect(fs.existsSync(path.join(testSandbox, "b.log"))).toBe(false);
+    expect(fs.existsSync(path.join(testSandbox, "c.log"))).toBe(false);
+
+    // Empty graveyard
+    const clickEmpty = (win as any).eventHandlersMap.get("btn_decompose_all:onclick");
+    clickEmpty(win);
+
+    // Cleanup
+    fs.rmSync(testGraveyard, { recursive: true, force: true });
+    fs.rmSync(testSandbox, { recursive: true, force: true });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 5. CLI Execution Parity Tests
+  // ---------------------------------------------------------------------------
+  it("20. fd-cli executes via CLI and outputs formatted results and json", () => {
     const [jsonOut, jsonCode] = Sys.exec("bun run cli_apps/fd_cli.ts fd_engine . --json");
     expect(jsonCode).toBe(0);
     const parsed = JSON.parse(jsonOut);

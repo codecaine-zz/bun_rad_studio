@@ -26,7 +26,7 @@ Each application in this suite is built to 30-year enterprise standards: zero ex
 | **14** | [Markdown Studio Pro](14_markdown_studio.md) | Split-pane Markdown editor, reading stats, standalone styled HTML document export. | `bun run app:markdown` | `bun run cli:markdown` |
 | **15** | [Color & Design Token Studio](15_color_token_studio.md) | HEX/RGB/HSL converter, WCAG 2.1 contrast auditor, 50–950 tonal scale, token export. | `bun run app:color` | `bun run cli:color` |
 | **16** | [Environment Vault Studio](16_environment_vault_studio.md) | `.env` parser & validator, secret key masking, diff against `.env.example`. | `bun run app:env` | `bun run cli:env` |
-| **17** | [Fd Studio Pro](17_fd_studio.md) | Ultra-fast filesystem search, glob/regex filters, batch exec command builder. | `bun run app:fd` | `bun run cli:fd` |
+| **17** | [Fd Studio Pro](17_fd_studio.md) | Ultra-fast filesystem search, glob/regex filters, Rip safe burial quarantine & recovery, batch exec builder. | `bun run app:fd` | `bun run cli:fd` |
 | **18** | [Rip Studio Pro](18_rip_studio.md) | Safe & ergonomic rm replacement, graveyard quarantine, instant unbury restoration. | `bun run app:rip` | `bun run cli:rip` |
 | **19** | [Sd Studio Pro](19_sd_studio.md) | Visual find & replace (sed alternative), unified live diffs, regex capture groups, backups. | `bun run app:sd` | `bun run cli:sd` |
 | **20** | [Procs Studio Pro](20_procs_studio.md) | Modern ps replacement, process table, CPU/Memory telemetry, listening ports, tree view. | `bun run app:procs` | `bun run cli:procs` |
