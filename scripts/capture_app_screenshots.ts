@@ -111,13 +111,13 @@ for (const [name, factory] of Object.entries(apps)) {
 
   // A. Desktop High-Resolution (exact app window dimensions)
   const desktopOut = join(OUTPUT_DIR, `${name}_desktop.png`);
-  const cmdDesktop = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${desktopOut}" --window-size=${winW},${winH} "file://${tempHtmlPath}" 2>/dev/null`;
+  const cmdDesktop = `"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${desktopOut}" --window-size=${winW},${winH} "file://${tempHtmlPath}" 2>/dev/null`;
   Sys.exec(cmdDesktop);
 
   // B. Responsive Medium Desktop / Compact View (960px width)
   const respH = Math.max(720, Math.round(winH * (960 / winW)));
   const responsiveOut = join(OUTPUT_DIR, `${name}_responsive.png`);
-  const cmdResponsive = `"${CHROME_BIN}" --headless --disable-gpu --screenshot="${responsiveOut}" --window-size=960,${respH} "file://${tempHtmlPath}" 2>/dev/null`;
+  const cmdResponsive = `"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${responsiveOut}" --window-size=960,${respH} "file://${tempHtmlPath}" 2>/dev/null`;
   Sys.exec(cmdResponsive);
 
   const exists = existsSync(desktopOut);
@@ -136,7 +136,7 @@ console.log(`[Processing Root Showcase Screenshots]...`);
 const ideHtmlPath = join(ROOT_DIR, "src", "ide.html");
 const ideOut = join(ROOT_DIR, "screenshot.png");
 console.log(`  Capturing IDE Visual Designer (${ideOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --screenshot="${ideOut}" --window-size=1280,880 "file://${ideHtmlPath}" 2>/dev/null`);
+Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${ideOut}" --window-size=1280,880 "file://${ideHtmlPath}" 2>/dev/null`);
 console.log(`  ✔ IDE Designer: ${ideOut} (${(Bun.file(ideOut).size / 1024).toFixed(1)} KB)`);
 
 // B. Modern Productivity UI Controls Studio (screenshot_productivity.png)
@@ -144,7 +144,7 @@ const productivityHtmlPath = join(TEMP_HTML_DIR, "productivity_showcase.html");
 writeFileSync(productivityHtmlPath, productivityHtml, "utf8");
 const prodOut = join(ROOT_DIR, "screenshot_productivity.png");
 console.log(`  Capturing Productivity Controls Studio (${prodOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --screenshot="${prodOut}" --window-size=1200,850 "file://${productivityHtmlPath}" 2>/dev/null`);
+Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${prodOut}" --window-size=1200,850 "file://${productivityHtmlPath}" 2>/dev/null`);
 console.log(`  ✔ Productivity Controls: ${prodOut} (${(Bun.file(prodOut).size / 1024).toFixed(1)} KB)`);
 
 // C. SimpleGUI Ergonomics & Shortcuts Demo (screenshot_ergonomics.png)
@@ -153,7 +153,7 @@ const ergonomicsHtmlPath = join(TEMP_HTML_DIR, "ergonomics_showcase.html");
 writeFileSync(ergonomicsHtmlPath, ergonomicsHtml, "utf8");
 const ergoOut = join(ROOT_DIR, "screenshot_ergonomics.png");
 console.log(`  Capturing Ergonomics Demo (${ergoOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --screenshot="${ergoOut}" --window-size=1200,850 "file://${ergonomicsHtmlPath}" 2>/dev/null`);
+Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${ergoOut}" --window-size=1200,850 "file://${ergonomicsHtmlPath}" 2>/dev/null`);
 console.log(`  ✔ Ergonomics Showcase: ${ergoOut} (${(Bun.file(ergoOut).size / 1024).toFixed(1)} KB)\n`);
 
 console.log(`========================================================================`);

@@ -62,6 +62,7 @@
     "app:watchexec": "bun run applications/watcher_studio.ts",
     "app:jq": "bun run applications/json_studio.ts",
     "app:omnitool": "bun run applications/devtools_studio.ts",
+    "app:task": "bun run applications/process_studio.ts",
     "app:tasks": "bun run applications/process_studio.ts",
     "app:taskmanager": "bun run applications/process_studio.ts",
     "app:fd": "bun run applications/fd_studio.ts",
