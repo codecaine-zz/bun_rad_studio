@@ -1808,8 +1808,8 @@ export function generatePreviewHtml(spec: any): string {
                 : '';
 
             const tableRowsHtml = rawRows.map((r: any, rIdx: number) => {
-                const cells = Array.isArray(r) ? r : Object.values(r);
-                const rowPid = esc(String(cells[0] || '').trim());
+                const cells = Array.isArray(r) ? r : (r && r.cells ? r.cells : Object.values(r));
+                const rowPid = esc(String(r && r.rowId !== undefined ? r.rowId : (r && r.pid !== undefined ? r.pid : (cells[0] || ''))).trim());
                 const tdCheckbox = hasCheckboxes
                     ? `<td style="width:36px;padding:8px 6px;text-align:center;"><input type="checkbox" class="row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
                     : '';

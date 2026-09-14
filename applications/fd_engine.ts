@@ -277,18 +277,48 @@ class GitignoreMatcher {
  * - `{/.}`: basename without extension
  */
 export function interpolateExecCommand(cmdTemplate: string, filePath: string): string {
+  let tmpl = cmdTemplate.trim();
+  if (!tmpl.includes("{}") && !tmpl.includes("{/}") && !tmpl.includes("{//}") && !tmpl.includes("{.}") && !tmpl.includes("{/.}")) {
+    tmpl = `${tmpl} {}`;
+  }
+
   const base = path.basename(filePath);
   const dir = path.dirname(filePath);
   const ext = path.extname(filePath);
   const baseNoExt = base.slice(0, base.length - ext.length);
   const pathNoExt = path.join(dir, baseNoExt);
 
-  return cmdTemplate
-    .replace(/{}/g, filePath)
-    .replace(/{\/}/g, base)
-    .replace(/{\/\/}/g, dir)
-    .replace(/{\.}/g, pathNoExt)
-    .replace(/{\/\.}/g, baseNoExt);
+  function quoteIfSpaced(val: string): string {
+    if (/[\s"'$`\\;<>|&]/.test(val)) {
+      return `"${val.replace(/(["\\$`])/g, "\\$1")}"`;
+    }
+    return val;
+  }
+
+  function quoteForDouble(val: string): string {
+    return `"${val.replace(/(["\\$`])/g, "\\$1")}"`;
+  }
+
+  function quoteForSingle(val: string): string {
+    return `'${val.replace(/'/g, "'\\''")}'`;
+  }
+
+  return tmpl
+    .replace(/"{}"/g, quoteForDouble(filePath))
+    .replace(/'{}'/g, quoteForSingle(filePath))
+    .replace(/{}/g, quoteIfSpaced(filePath))
+    .replace(/"{\/}"/g, quoteForDouble(base))
+    .replace(/'{\/}'/g, quoteForSingle(base))
+    .replace(/{\/}/g, quoteIfSpaced(base))
+    .replace(/"{\/\/}"/g, quoteForDouble(dir))
+    .replace(/'{\/\/}'/g, quoteForSingle(dir))
+    .replace(/{\/\/}/g, quoteIfSpaced(dir))
+    .replace(/"{\.}"/g, quoteForDouble(pathNoExt))
+    .replace(/'{\.}'/g, quoteForSingle(pathNoExt))
+    .replace(/{\.}/g, quoteIfSpaced(pathNoExt))
+    .replace(/"{\/\.}"/g, quoteForDouble(baseNoExt))
+    .replace(/'{\/\.}'/g, quoteForSingle(baseNoExt))
+    .replace(/{\/\.}/g, quoteIfSpaced(baseNoExt));
 }
 
 /**
@@ -596,18 +626,25 @@ export function runFdCommand(commandTemplate: string, filePaths: string[]): { st
   }
 
   try {
-    const isBatch = commandTemplate.includes("{}") && filePaths.length > 1;
+    const isBatch = filePaths.length > 1;
     let fullCommand = "";
 
     if (isBatch && !commandTemplate.includes("{/}")) {
-      // Replace {} with space-separated list of quoted paths
-      const quoted = filePaths.map(p => `"${p.replace(/"/g, '\\"')}"`).join(" ");
-      fullCommand = commandTemplate.replace(/{}/g, quoted);
+      const quoted = filePaths.map(p => `"${p.replace(/(["\\$`])/g, "\\$1")}"`).join(" ");
+      let tmpl = commandTemplate.trim();
+      if (!tmpl.includes("{}")) {
+        tmpl = `${tmpl} {}`;
+      }
+      fullCommand = tmpl.replace(/{}/g, quoted);
     } else {
       fullCommand = interpolateExecCommand(commandTemplate, filePaths[0] || "");
     }
 
-    const res = Bun.spawnSync(["/bin/sh", "-c", fullCommand]);
+    const res = Bun.spawnSync(["/bin/sh", "-c", fullCommand], {
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     const stdoutBuf = res.stdout ? Buffer.from(res.stdout).toString("utf-8") : "";
     const stderrBuf = res.stderr ? Buffer.from(res.stderr).toString("utf-8") : "";
     return { stdout: stdoutBuf.trim(), stderr: stderrBuf.trim(), exitCode: res.exitCode };

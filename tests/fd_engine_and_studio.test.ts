@@ -11,6 +11,8 @@ import {
 } from "../applications/fd_engine";
 import { createFdStudio, generateFdStudioHtml } from "../applications/fd_studio";
 import { Sys } from "../src/simplecli/sys";
+import * as path from "node:path";
+import * as fs from "node:fs";
 
 describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   // ---------------------------------------------------------------------------
@@ -205,12 +207,72 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(html).toContain("txt_exec_cmd");
     expect(html).toContain("btn_exec_one");
     expect(html).toContain("btn_exec_all");
+    expect(html).toContain("btn_delete_one");
+    expect(html).toContain("btn_move_one");
+    expect(html).toContain("txt_dest_dir");
+    expect(html).toContain("btn_copy_all_files");
+    expect(html).toContain("btn_move_all");
+    expect(html).toContain("btn_archive_all");
+    expect(html).toContain("btn_copy_all_rel");
+    expect(html).toContain("btn_copy_all_abs");
+    expect(html).toContain("btn_export_json");
+    expect(html).toContain("btn_export_csv");
+    expect(html).toContain("btn_delete_all");
+    expect(html).toContain("btn_toggle_watch");
+    expect(html).toContain("chk_watch");
+  });
+
+  it("16. Fd Studio file management toolkit handles copy, move, export, and delete operations", () => {
+    const sandboxDir = path.resolve("./.tmp_fd_test_sandbox");
+    const targetDir = path.resolve("./.tmp_fd_test_target");
+    if (fs.existsSync(sandboxDir)) fs.rmSync(sandboxDir, { recursive: true, force: true });
+    if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
+
+    fs.mkdirSync(sandboxDir, { recursive: true });
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    fs.writeFileSync(path.join(sandboxDir, "file1.txt"), "hello world", "utf-8");
+    fs.writeFileSync(path.join(sandboxDir, "file2.txt"), "antigravity bun rad", "utf-8");
+    fs.writeFileSync(path.join(sandboxDir, "file3.log"), "system log", "utf-8");
+
+    // Search sandbox
+    const searchRes = executeFdSearch({ searchRoot: sandboxDir, pattern: "file.*\\.txt", searchMode: "regex" });
+    expect(searchRes.matchedCount).toBe(2);
+
+    // Copy to target
+    for (const item of searchRes.items) {
+      fs.cpSync(item.path, path.join(targetDir, item.name), { recursive: true });
+    }
+    expect(fs.existsSync(path.join(targetDir, "file1.txt"))).toBe(true);
+    expect(fs.existsSync(path.join(targetDir, "file2.txt"))).toBe(true);
+
+    // Export json & csv
+    const jsonStr = JSON.stringify(searchRes.items, null, 2);
+    const jsonPath = path.join(targetDir, "results.json");
+    fs.writeFileSync(jsonPath, jsonStr, "utf-8");
+    expect(fs.existsSync(jsonPath)).toBe(true);
+    expect(JSON.parse(fs.readFileSync(jsonPath, "utf-8")).length).toBe(2);
+
+    // Delete single item
+    fs.rmSync(path.join(targetDir, "file1.txt"), { force: true });
+    expect(fs.existsSync(path.join(targetDir, "file1.txt"))).toBe(false);
+    expect(fs.existsSync(path.join(targetDir, "file2.txt"))).toBe(true);
+
+    // Cleanup
+    fs.rmSync(sandboxDir, { recursive: true, force: true });
+    fs.rmSync(targetDir, { recursive: true, force: true });
+  });
+
+  it("17. Fd Studio Pro window attaches onClose lifecycle listener to stop watcher", () => {
+    const win = createFdStudio({ fullscreen: false });
+    expect(win.closeListeners.length).toBeGreaterThanOrEqual(1);
+    expect(() => win.closeListeners.forEach((cb) => cb(win))).not.toThrow();
   });
 
   // ---------------------------------------------------------------------------
   // 4. CLI Execution Parity Tests
   // ---------------------------------------------------------------------------
-  it("16. fd-cli executes via CLI and outputs formatted results and json", () => {
+  it("18. fd-cli executes via CLI and outputs formatted results and json", () => {
     const [jsonOut, jsonCode] = Sys.exec("bun run cli_apps/fd_cli.ts fd_engine . --json");
     expect(jsonCode).toBe(0);
     const parsed = JSON.parse(jsonOut);

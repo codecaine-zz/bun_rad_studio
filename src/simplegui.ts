@@ -26,6 +26,7 @@ export interface SimpleWindowOptions {
     autoSaveState?: boolean;
     auto_save_state?: boolean;
     fullscreen?: boolean;
+    responsive?: boolean;
 }
 
 export type EventCallback = (win: SimpleWindow, val?: any) => void;
@@ -473,6 +474,16 @@ interface LayoutFrame {
     cardSpec?: any;
 }
 
+export interface SimpleguiLayoutSection {
+    type: "header_bar" | "card" | "row" | "standalone";
+    id?: string;
+    title?: string;
+    subtitle?: string;
+    rows?: Array<{ id: string; controls: string[] }>;
+    controls?: string[];
+    items?: string[];
+}
+
 // =============================================================================
 // Path, Directory & Atomic File Utilities
 // =============================================================================
@@ -753,6 +764,12 @@ export class SimpleWindow {
     private layoutStack: LayoutFrame[] = [];
     private currentY = 20;
 
+    public _layoutSections: SimpleguiLayoutSection[] = [];
+    private _currentCardSection: SimpleguiLayoutSection | null = null;
+    private _currentRowSection: { id: string; controls: string[] } | null = null;
+    private _sectionRowCounter = 0;
+    public responsiveLayout = true;
+
     constructor(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}) {
         this.title = options.title || title;
         this.width = options.width || width;
@@ -762,6 +779,7 @@ export class SimpleWindow {
         this.appId = options.appId || options.app_id || "";
         this.autoSaveState = options.autoSave ?? options.auto_save ?? options.autoSaveState ?? options.auto_save_state ?? true;
         this.fullscreen = options.fullscreen ?? true;
+        this.responsiveLayout = options.responsive ?? true;
 
         const savedGlobalTheme = getSavedTheme();
         const preferredTheme = options.theme || (savedGlobalTheme ? savedGlobalTheme : "midnight");
@@ -1135,6 +1153,10 @@ export class SimpleWindow {
 
     // --- Layout Containers ---
     public beginRow(): this {
+        this._sectionRowCounter++;
+        const rowId = "rad_row_" + this._sectionRowCounter;
+        this._currentRowSection = { id: rowId, controls: [] };
+
         const parentFrame = this.layoutStack[this.layoutStack.length - 1];
         const startX = parentFrame ? (parentFrame.type === "card" ? parentFrame.startX : (parentFrame.startX || this.padding)) : this.padding;
         const startY = parentFrame ? parentFrame.currentY : this.currentY;
@@ -1152,6 +1174,20 @@ export class SimpleWindow {
     public begin_row(): this { return this.beginRow(); }
 
     public endRow(): this {
+        if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
+            if (this._currentCardSection) {
+                this._currentCardSection.rows = this._currentCardSection.rows || [];
+                this._currentCardSection.rows.push(this._currentRowSection);
+            } else {
+                this._layoutSections.push({
+                    type: "row",
+                    id: this._currentRowSection.id,
+                    controls: [...this._currentRowSection.controls]
+                });
+            }
+        }
+        this._currentRowSection = null;
+
         const frame = this.layoutStack.pop();
         if (frame && frame.type === "row") {
             const nextY = frame.currentY + frame.rowHeight + this.spacing;
@@ -1203,6 +1239,15 @@ export class SimpleWindow {
     public end_grid(): this { return this.endGrid(); }
 
     public beginCard(title?: string, subtitle?: string): this {
+        if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
+            this._layoutSections.push({
+                type: "row",
+                id: this._currentRowSection.id,
+                controls: [...this._currentRowSection.controls]
+            });
+            this._currentRowSection = null;
+        }
+
         const theme = getTheme(this.theme);
         const cardBg = theme.card_background || "rgba(255,255,255,0.03)";
         const cardBorder = theme.card_border || "rgba(255,255,255,0.08)";
@@ -1215,6 +1260,15 @@ export class SimpleWindow {
             background_color: cardBg,
             border_color: cardBorder,
             border_radius: 10
+        };
+
+        this._currentCardSection = {
+            type: "card",
+            id: cardSpec.id,
+            title: title || "Group Panel",
+            subtitle: subtitle,
+            rows: [],
+            items: []
         };
 
         this.allocateControlPosition(cardSpec, this.width - (this.padding * 2), 100);
@@ -1241,6 +1295,16 @@ export class SimpleWindow {
     public begin_card(title?: string, subtitle?: string): this { return this.beginCard(title, subtitle); }
 
     public endCard(): this {
+        if (this._currentRowSection && this._currentRowSection.controls.length > 0 && this._currentCardSection) {
+            this._currentCardSection.rows = this._currentCardSection.rows || [];
+            this._currentCardSection.rows.push(this._currentRowSection);
+            this._currentRowSection = null;
+        }
+        if (this._currentCardSection) {
+            this._layoutSections.push(this._currentCardSection);
+            this._currentCardSection = null;
+        }
+
         const frame = this.layoutStack.pop();
         if (frame && frame.type === "card" && frame.cardSpec) {
             const innerHeight = frame.currentY - frame.cardSpec.top + 12;
@@ -1327,6 +1391,21 @@ export class SimpleWindow {
     }
 
     private allocateControlPosition(ctrl: any, defaultW: number, defaultH: number): void {
+        if (ctrl && ctrl.id && ctrl.control_type !== "groupbox" && ctrl.type !== "groupbox") {
+            if (this._currentRowSection) {
+                this._currentRowSection.controls.push(ctrl.id);
+            } else if (this._currentCardSection) {
+                this._currentCardSection.items = this._currentCardSection.items || [];
+                this._currentCardSection.items.push(ctrl.id);
+            } else {
+                this._layoutSections.push({
+                    type: "standalone",
+                    id: ctrl.id,
+                    controls: [ctrl.id]
+                });
+            }
+        }
+
         if (ctrl.width === undefined) ctrl.width = defaultW;
         if (ctrl.height === undefined) ctrl.height = defaultH;
 
@@ -4815,6 +4894,19 @@ export class SimpleWindow {
     }
 
     public generateHtml(): string {
+        if (this._currentCardSection) {
+            this._layoutSections.push(this._currentCardSection);
+            this._currentCardSection = null;
+        }
+        if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
+            this._layoutSections.push({
+                type: "row",
+                id: this._currentRowSection.id,
+                controls: [...this._currentRowSection.controls]
+            });
+            this._currentRowSection = null;
+        }
+
         const spec = this.buildFormSpec();
         let html = generatePreviewHtml(spec);
 
@@ -5123,6 +5215,7 @@ export class SimpleWindow {
                     const target = e.target || document.activeElement;
                     if (target && target.id && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
                         const val = target.type === "checkbox" ? target.checked : target.value;
+                        target._lastSyncedVal = val;
                         const eventName = "on_" + target.id + "_change";
                         if (typeof window[eventName] === "function") {
                             window[eventName](val);
@@ -5134,6 +5227,7 @@ export class SimpleWindow {
                     const target = e.target || document.activeElement;
                     if (target && target.id && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
                         const val = target.type === "checkbox" ? target.checked : target.value;
+                        target._lastSyncedVal = val;
                         const eventName = "on_" + target.id + "_change";
                         if (typeof window[eventName] === "function") {
                             window[eventName](val);
@@ -5141,14 +5235,14 @@ export class SimpleWindow {
                     }
                 });
 
-                // Synchronize all form controls on any click in capture phase before button handlers run
+                // Synchronize currently focused input/textarea on click before button handlers run if changed
                 document.addEventListener("click", function(e) {
-                    const inputs = document.querySelectorAll("input, textarea, select");
-                    for (let i = 0; i < inputs.length; i++) {
-                        const el = inputs[i];
-                        if (el && el.id) {
-                            const val = el.type === "checkbox" ? el.checked : el.value;
-                            const fn = window["on_" + el.id + "_change"];
+                    const active = document.activeElement;
+                    if (active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+                        const val = active.type === "checkbox" ? active.checked : active.value;
+                        if (active._lastSyncedVal !== val) {
+                            active._lastSyncedVal = val;
+                            const fn = window["on_" + active.id + "_change"];
                             if (typeof fn === "function") {
                                 fn(val);
                             }
@@ -5197,11 +5291,335 @@ export class SimpleWindow {
             ${this.customScripts.length > 0 ? this.customScripts.map(s => `<script>\n${s}\n</script>`).join("\n") : ""}
         `;
 
+        const hasCustomResponsive = this.customScripts.some(s => s.includes("initFdStudioResponsiveEngine") || s.includes("fd_root"));
+        const shouldInjectResponsive = this.responsiveLayout && !hasCustomResponsive && this._layoutSections.length > 0;
+
+        const responsiveScript = shouldInjectResponsive ? `
+            <script>
+            window.__RAD_LAYOUT_SECTIONS__ = ${JSON.stringify(this._layoutSections)};
+            (function() {
+                function initSimpleguiUniversalResponsiveEngine() {
+                    if (document.getElementById("fd_root") || window.__FD_STUDIO_ACTIVE__ || document.getElementById("rad_responsive_root") || !window.__RAD_LAYOUT_SECTIONS__ || window.__RAD_LAYOUT_SECTIONS__.length === 0) return;
+
+                    const styleEl = document.createElement("style");
+                    styleEl.id = "rad_universal_responsive_styles";
+                    styleEl.textContent = \`
+                        :root {
+                            --rad-table-h: 340px;
+                            --rad-console-h: 180px;
+                        }
+                        html, body {
+                            width: 100% !important;
+                            min-height: 100% !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            overflow-x: hidden !important;
+                            overflow-y: auto !important;
+                            box-sizing: border-box !important;
+                        }
+                        #rad_responsive_root {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            gap: 12px !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            padding: 14px 18px !important;
+                            box-sizing: border-box !important;
+                        }
+                        .rad-card {
+                            background: var(--card-bg, rgba(255,255,255,0.03)) !important;
+                            border: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
+                            border-radius: 10px !important;
+                            padding: 12px 14px !important;
+                            box-sizing: border-box !important;
+                            width: 100% !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            gap: 10px !important;
+                            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+                        }
+                        .rad-card-header {
+                            font-size: 11px !important;
+                            font-weight: 700 !important;
+                            color: var(--accent, #38bdf8) !important;
+                            text-transform: uppercase !important;
+                            letter-spacing: 0.6px !important;
+                            user-select: none !important;
+                        }
+                        .rad-card-subtitle {
+                            font-size: 11px !important;
+                            opacity: 0.75 !important;
+                            margin-top: -4px !important;
+                        }
+                        .rad-row {
+                            display: flex !important;
+                            flex-wrap: wrap !important;
+                            gap: 8px !important;
+                            align-items: center !important;
+                            width: 100% !important;
+                            box-sizing: border-box !important;
+                        }
+                        .rad-header-bar {
+                            display: flex !important;
+                            flex-wrap: wrap !important;
+                            justify-content: space-between !important;
+                            align-items: center !important;
+                            gap: 12px !important;
+                            width: 100% !important;
+                            padding: 4px 2px 8px 2px !important;
+                            border-bottom: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
+                        }
+                        .rad-header-left {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            gap: 2px !important;
+                        }
+                        .rad-header-right {
+                            display: flex !important;
+                            flex-wrap: wrap !important;
+                            align-items: center !important;
+                            gap: 8px !important;
+                        }
+                        .rad-rel-item {
+                            position: relative !important;
+                            left: auto !important;
+                            top: auto !important;
+                            right: auto !important;
+                            bottom: auto !important;
+                            margin: 0 !important;
+                        }
+                        .rad-responsive-table {
+                            position: relative !important;
+                            left: auto !important;
+                            top: auto !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            height: var(--rad-table-h, 340px) !important;
+                            min-height: 180px !important;
+                            overflow: auto !important;
+                            border: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
+                            border-radius: 8px !important;
+                            background: var(--card-bg, rgba(255,255,255,0.03)) !important;
+                            box-sizing: border-box !important;
+                        }
+                        .rad-responsive-table table {
+                            width: 100% !important;
+                            min-width: 600px !important;
+                            border-collapse: collapse !important;
+                        }
+                        .rad-responsive-console {
+                            position: relative !important;
+                            left: auto !important;
+                            top: auto !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            height: var(--rad-console-h, 180px) !important;
+                            min-height: 80px !important;
+                            overflow: auto !important;
+                            box-sizing: border-box !important;
+                            resize: vertical !important;
+                        }
+                        .rad-row input[type="text"], .rad-row input[type="search"] {
+                            flex: 1 1 180px !important;
+                            min-width: 120px !important;
+                        }
+                        .rad-row select {
+                            flex: 0 1 auto !important;
+                            min-width: 110px !important;
+                        }
+                        .rad-row button {
+                            flex: 0 0 auto !important;
+                            white-space: nowrap !important;
+                        }
+                        .rad-row label, .rad-row span {
+                            flex: 0 0 auto !important;
+                            white-space: nowrap !important;
+                        }
+                        .rad-checkbox-label {
+                            display: inline-flex !important;
+                            align-items: center !important;
+                            gap: 6px !important;
+                            margin-right: 12px !important;
+                            flex: 0 0 auto !important;
+                        }
+                        .rad-metric-pill {
+                            flex: 1 1 140px !important;
+                            min-width: 120px !important;
+                            background: var(--editable-bg, rgba(255,255,255,0.03)) !important;
+                            padding: 6px 12px !important;
+                            border-radius: 6px !important;
+                            border: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
+                        }
+                        .rad-bottom-bar {
+                            border-top: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
+                            padding-top: 6px !important;
+                        }
+                    \`;
+                    document.head.appendChild(styleEl);
+
+                    function getNode(id) {
+                        const el = document.getElementById(id);
+                        if (!el) return null;
+                        const target = (el.parentElement && el.parentElement !== document.body && el.parentElement.id !== "rad_responsive_root" && el.parentElement.id !== "fd_root" && el.parentElement.style.position === "absolute")
+                            ? el.parentElement
+                            : el;
+                        target.classList.add("rad-rel-item");
+                        target.style.position = "relative";
+                        target.style.left = "auto";
+                        target.style.top = "auto";
+                        target.style.right = "auto";
+                        target.style.bottom = "auto";
+                        target.style.margin = "0";
+                        return target;
+                    }
+
+                    const sections = window.__RAD_LAYOUT_SECTIONS__ || [];
+                    const root = document.createElement("div");
+                    root.id = "rad_responsive_root";
+
+                    for (const sec of sections) {
+                        if (sec.type === "card" && sec.id) {
+                            const oldFs = document.getElementById(sec.id);
+                            if (oldFs) oldFs.style.display = "none";
+                        }
+                    }
+
+                    for (let i = 0; i < sections.length; i++) {
+                        const sec = sections[i];
+                        if (!sec) continue;
+
+                        if (i === 0 && (sec.type === "row" || sec.type === "header_bar")) {
+                            const headerBar = document.createElement("div");
+                            headerBar.className = "rad-header-bar";
+                            const headerLeft = document.createElement("div");
+                            headerLeft.className = "rad-header-left";
+                            const headerRight = document.createElement("div");
+                            headerRight.className = "rad-header-right";
+
+                            for (let cIdx = 0; cIdx < (sec.controls || []).length; cIdx++) {
+                                const cid = sec.controls[cIdx];
+                                const node = getNode(cid);
+                                if (!node) continue;
+                                const isTitle = cIdx === 0 || node.tagName.startsWith("H") || node.style.fontWeight === "bold" || parseInt(node.style.fontSize || "0", 10) >= 16;
+                                if (isTitle && !cid.startsWith("dd_") && !cid.startsWith("btn_")) {
+                                    node.style.fontWeight = "800";
+                                    node.style.fontSize = "20px";
+                                    node.style.height = "auto";
+                                    node.style.width = "auto";
+                                    headerLeft.appendChild(node);
+                                } else {
+                                    node.style.width = "auto";
+                                    headerRight.appendChild(node);
+                                }
+                            }
+
+                            if (i + 1 < sections.length && sections[i + 1].type === "standalone") {
+                                const nextSec = sections[i + 1];
+                                const nextId = nextSec.controls?.[0] || nextSec.id;
+                                const nextNode = getNode(nextId);
+                                if (nextNode) {
+                                    nextNode.style.fontSize = "11px";
+                                    nextNode.style.opacity = "0.75";
+                                    nextNode.style.height = "auto";
+                                    nextNode.style.width = "auto";
+                                    headerLeft.appendChild(nextNode);
+                                    i++;
+                                }
+                            }
+
+                            headerBar.appendChild(headerLeft);
+                            headerBar.appendChild(headerRight);
+                            root.appendChild(headerBar);
+                        } else if (sec.type === "card") {
+                            const card = document.createElement("div");
+                            card.className = "rad-card";
+                            if (sec.id) card.id = "rad_card_" + sec.id;
+                            if (sec.title) {
+                                const h = document.createElement("div");
+                                h.className = "rad-card-header";
+                                h.textContent = sec.title;
+                                card.appendChild(h);
+                            }
+                            if (sec.subtitle) {
+                                const sub = document.createElement("div");
+                                sub.className = "rad-card-subtitle";
+                                sub.textContent = sec.subtitle;
+                                card.appendChild(sub);
+                            }
+
+                            for (const r of (sec.rows || [])) {
+                                const rowDiv = document.createElement("div");
+                                rowDiv.className = "rad-row";
+                                const isMetricRow = r.controls.every(function(cid) { return cid.startsWith("lbl_metric_"); });
+                                for (const cid of r.controls) {
+                                    const node = getNode(cid);
+                                    if (!node) continue;
+                                    if (isMetricRow || cid.startsWith("lbl_metric_")) {
+                                        node.classList.add("rad-metric-pill");
+                                    }
+                                    rowDiv.appendChild(node);
+                                }
+                                card.appendChild(rowDiv);
+                            }
+
+                            for (const item of (sec.items || [])) {
+                                const node = getNode(item);
+                                if (!node) continue;
+                                if (node.tagName === "TEXTAREA" || node.querySelector("textarea")) {
+                                    node.classList.add("rad-responsive-console");
+                                } else if (node.querySelector("table") || node.tagName === "TABLE" || (typeof node.id === "string" && node.id.startsWith("tbl_"))) {
+                                    node.classList.add("rad-responsive-table");
+                                }
+                                card.appendChild(node);
+                            }
+
+                            root.appendChild(card);
+                        } else if (sec.type === "row") {
+                            const isBottom = i === sections.length - 1;
+                            const rowDiv = document.createElement("div");
+                            rowDiv.className = "rad-row" + (isBottom ? " rad-bottom-bar" : "");
+                            for (const cid of (sec.controls || [])) {
+                                const node = getNode(cid);
+                                if (node) rowDiv.appendChild(node);
+                            }
+                            root.appendChild(rowDiv);
+                        } else if (sec.type === "standalone") {
+                            for (const cid of (sec.controls || [])) {
+                                const node = getNode(cid);
+                                if (node) root.appendChild(node);
+                            }
+                        }
+                    }
+
+                    document.body.insertBefore(root, document.body.firstChild);
+
+                    function updateDynamicViewportHeights() {
+                        const vh = window.innerHeight || document.documentElement.clientHeight || 900;
+                        const tableH = Math.max(200, Math.floor(vh * 0.34));
+                        const consoleH = Math.max(90, Math.min(260, Math.floor(vh * 0.16)));
+                        document.documentElement.style.setProperty('--rad-table-h', tableH + 'px');
+                        document.documentElement.style.setProperty('--rad-console-h', consoleH + 'px');
+                    }
+                    window.addEventListener('resize', updateDynamicViewportHeights);
+                    updateDynamicViewportHeights();
+                }
+
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", initSimpleguiUniversalResponsiveEngine);
+                } else {
+                    initSimpleguiUniversalResponsiveEngine();
+                }
+                setTimeout(initSimpleguiUniversalResponsiveEngine, 20);
+            })();
+            </script>
+        ` : "";
+
+        const fullInject = scriptInject + responsiveScript;
         const lastBodyIdx = html.lastIndexOf("</body>");
         if (lastBodyIdx !== -1) {
-            html = html.substring(0, lastBodyIdx) + scriptInject + html.substring(lastBodyIdx);
+            html = html.substring(0, lastBodyIdx) + fullInject + html.substring(lastBodyIdx);
         } else {
-            html += scriptInject;
+            html += fullInject;
         }
 
         return html;
@@ -6068,6 +6486,9 @@ export class SimpleWindow {
         if (ctrl) {
             ctrl.text = headerCsv;
             ctrl.value = rows;
+            ctrl.rows = rows;
+            ctrl.headers = [...headers];
+            ctrl.columns = [...headers];
         }
         if (this.isWindowRunning) {
             const tableJson = JSON.stringify(rows || []);
@@ -6115,8 +6536,8 @@ export class SimpleWindow {
                         headers.map(h => '<th style="padding:8px 12px;text-align:left;font-weight:700;color:' + accent + ';border-bottom:1px solid ' + border + ';white-space:nowrap;">' + esc(h) + '</th>').join('') + '</tr>';
                     
                     let tbody = rows.map(r => {
-                        const cells = Array.isArray(r) ? r : Object.values(r);
-                        const rowPid = String(cells[0] || '').trim();
+                        const cells = Array.isArray(r) ? r : (r && r.cells ? r.cells : Object.values(r));
+                        const rowPid = String(r && r.rowId !== undefined ? r.rowId : (r && r.pid !== undefined ? r.pid : (cells[0] || ''))).trim();
                         const isSelected = activePid && rowPid === activePid;
                         const bgStyle = isSelected ? ('background:' + selBg + ';') : '';
                         const selClass = isSelected ? ' selected-tr' : '';
