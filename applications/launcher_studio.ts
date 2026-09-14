@@ -672,32 +672,172 @@ export function scanAllApplications(): {
 // -------------------------------------------------------------------------------------------------
 
 /**
- * Spawns an interactive Terminal window on the user's desktop running the given command
+ * Detects the best available terminal emulator on Linux systems
+ */
+export function getAvailableLinuxTerminal(): {
+  binary: string;
+  buildArgs: (cmd: string, cwd: string) => string[];
+} | null {
+  const check = (bin: string): boolean => {
+    try {
+      const p = Bun.spawnSync(["which", bin]);
+      return p.exitCode === 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const envTerm = process.env.TERMINAL;
+  if (envTerm && check(envTerm)) {
+    return {
+      binary: envTerm,
+      buildArgs: (cmd, cwd) => [envTerm, "-e", "bash", "-c", `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`],
+    };
+  }
+
+  const terminals: Array<{
+    binary: string;
+    buildArgs: (cmd: string, cwd: string) => string[];
+  }> = [
+    {
+      binary: "gnome-terminal",
+      buildArgs: (cmd, cwd) => ["gnome-terminal", `--working-directory=${cwd}`, "--", "bash", "-c", `${cmd}; exec bash`],
+    },
+    {
+      binary: "ptyxis",
+      buildArgs: (cmd, cwd) => ["ptyxis", `--working-directory=${cwd}`, "--", "bash", "-c", `${cmd}; exec bash`],
+    },
+    {
+      binary: "konsole",
+      buildArgs: (cmd, cwd) => ["konsole", "--workdir", cwd, "-e", "bash", "-c", `${cmd}; exec bash`],
+    },
+    {
+      binary: "xfce4-terminal",
+      buildArgs: (cmd, cwd) => ["xfce4-terminal", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+    },
+    {
+      binary: "mate-terminal",
+      buildArgs: (cmd, cwd) => ["mate-terminal", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+    },
+    {
+      binary: "kitty",
+      buildArgs: (cmd, cwd) => ["kitty", "--directory", cwd, "bash", "-c", `${cmd}; exec bash`],
+    },
+    {
+      binary: "alacritty",
+      buildArgs: (cmd, cwd) => ["alacritty", "--working-directory", cwd, "-e", "bash", "-c", `${cmd}; exec bash`],
+    },
+    {
+      binary: "foot",
+      buildArgs: (cmd, cwd) => ["foot", "-D", cwd, "bash", "-c", `${cmd}; exec bash`],
+    },
+    {
+      binary: "terminator",
+      buildArgs: (cmd, cwd) => ["terminator", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+    },
+    {
+      binary: "tilix",
+      buildArgs: (cmd, cwd) => ["tilix", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+    },
+    {
+      binary: "lxterminal",
+      buildArgs: (cmd, cwd) => ["lxterminal", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+    },
+    {
+      binary: "x-terminal-emulator",
+      buildArgs: (cmd, cwd) => ["x-terminal-emulator", "-e", "bash", "-c", `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`],
+    },
+    {
+      binary: "xterm",
+      buildArgs: (cmd, cwd) => ["xterm", "-e", "bash", "-c", `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`],
+    },
+  ];
+
+  for (const term of terminals) {
+    if (check(term.binary)) {
+      return term;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Spawns an interactive Terminal window on the user's desktop running the given command.
+ * Guarantees a single terminal window without opening extraneous blank windows on macOS & Linux.
  */
 export function launchInTerminal(
   command: string,
-  cwd = process.cwd()
-): { success: boolean; message: string } {
+  cwd = process.cwd(),
+  options: { dryRun?: boolean } = {}
+): { success: boolean; message: string; terminalEmulator?: string } {
   try {
+    if (options.dryRun) {
+      return { success: true, message: `[Dry Run] Validated terminal launch for: ${command}` };
+    }
+
     if (process.platform === "darwin") {
       const cleanCmd = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const cleanCwd = cwd.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-      const script = `tell application "Terminal" to activate\ntell application "Terminal" to do script "cd \\"${cleanCwd}\\" && ${cleanCmd}"`;
+
+      // Smart AppleScript:
+      // 1. Checks if Terminal.app process is already running.
+      // 2. If not running, activates it and waits briefly for the initial startup window.
+      // 3. Reuses an idle/blank window if one is available, or opens exactly 1 new window.
+      // 4. Eliminates the double-window bug (blank startup window + cli window).
+      const script = `tell application "System Events"
+  set terminalRunning to (exists (processes where bundle identifier is "com.apple.Terminal"))
+end tell
+
+tell application "Terminal"
+  if not terminalRunning then
+    activate
+    repeat 20 times
+      if (count of (windows whose visible is true)) > 0 then exit repeat
+      delay 0.05
+    end repeat
+  end if
+  
+  set visWindows to (windows whose visible is true)
+  if (count of visWindows) > 0 and not (busy of tab 1 of (item 1 of visWindows)) then
+    do script "cd \\"${cleanCwd}\\" && ${cleanCmd}" in (item 1 of visWindows)
+  else
+    do script "cd \\"${cleanCwd}\\" && ${cleanCmd}"
+  end if
+  activate
+end tell`;
+
       const proc = Bun.spawnSync(["osascript", "-e", script]);
       if (proc.exitCode === 0) {
-        return { success: true, message: `Opened CLI in macOS Terminal: ${command}` };
+        return { success: true, message: `Opened CLI in macOS Terminal: ${command}`, terminalEmulator: "Terminal.app" };
+      } else {
+        const err = proc.stderr?.toString() || proc.stdout?.toString() || "Unknown osascript error";
+        return { success: false, message: `Failed to launch Terminal on macOS: ${err}` };
       }
     } else if (process.platform === "win32") {
       Bun.spawn(["cmd.exe", "/c", "start", "cmd.exe", "/k", command], { cwd, detached: true });
-      return { success: true, message: `Opened CLI in Command Prompt: ${command}` };
+      return { success: true, message: `Opened CLI in Command Prompt: ${command}`, terminalEmulator: "cmd.exe" };
     } else {
-      Bun.spawn(["x-terminal-emulator", "-e", command], { cwd, detached: true });
-      return { success: true, message: `Opened CLI in Terminal: ${command}` };
+      // Linux & Unix-like desktop environments
+      const linuxTerm = getAvailableLinuxTerminal();
+      if (linuxTerm) {
+        const args = linuxTerm.buildArgs(command, cwd);
+        Bun.spawn(args, { cwd, detached: true });
+        return {
+          success: true,
+          message: `Opened CLI in ${linuxTerm.binary}: ${command}`,
+          terminalEmulator: linuxTerm.binary,
+        };
+      }
+
+      return {
+        success: false,
+        message: `No supported Linux terminal emulator found (tested gnome-terminal, ptyxis, konsole, xfce4-terminal, kitty, alacritty, foot, terminator, tilix, x-terminal-emulator, xterm). Please set the $TERMINAL environment variable.`,
+      };
     }
   } catch (err: any) {
     return { success: false, message: err.message };
   }
-  return { success: false, message: `Terminal launch not supported on ${process.platform}` };
 }
 
 export async function launchApplication(
@@ -954,8 +1094,10 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   );
 
   win.beginGroupBox("Select & Launch Any Tool in this Project");
+
+  // Action Dispatcher Buttons & CLI Arguments Row
   win.beginRow();
-  win.addLabel("lbl_pick", "Select Tool:");
+  win.addLabel("lbl_pick", "Selected Tool:");
   win.addDropdown("dd_select_app", dropdownItems, dropdownItems[0] || "None", { width: 440 });
   win.addLabel("lbl_args", "CLI Flags / Args:");
   win.addInput("txt_cli_args", "--help", "Arguments e.g. --telemetry, --search...", { width: 170 });
@@ -966,6 +1108,31 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.addButton("btn_reveal", "📂 Reveal Script");
   win.addButton("btn_copy", "📋 Copy Cmd");
   win.endRow();
+
+  // Interactive Workspace Tools ListBox Row
+  win.beginRow();
+  win.addLabel(
+    "lbl_listbox_info",
+    "📋 Interactive Project Tools ListBox (Click any item to select & update launcher, double-click to launch):"
+  );
+  win.endRow();
+
+  win.beginRow();
+  win.addListBox(
+    "lst_apps",
+    dropdownItems,
+    dropdownItems[0] || "None",
+    (w, val: any) => {
+      const found = findAppFromSelection(val);
+      if (found) {
+        selectedApp = found;
+        updateSelectedView(w, found);
+      }
+    },
+    { size: 6, width: 1180, height: 140 }
+  );
+  win.endRow();
+
   win.endGroupBox();
 
   // 5. Search & Filter Bar
@@ -1041,11 +1208,57 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Helper Functions
   // -----------------------------------------------------------------------------------------------
 
+  function findAppFromSelection(val: any): DetectedApp | null {
+    if (val === null || val === undefined) return null;
+    const str = Array.isArray(val) ? String(val[0] || "").trim() : String(val).trim();
+    if (!str || str === "None") return null;
+
+    // 1. Direct ID match
+    let found = currentApps.find((a) => a.id === str);
+    if (found) return found;
+
+    // 2. Exact displayPath match (e.g. within parentheses or trailing)
+    found = currentApps.find((a) => str.includes(`(${a.displayPath})`) || str.endsWith(a.displayPath));
+    if (found) return found;
+
+    // 3. Match on full displayPath
+    found = currentApps.find((a) => str.includes(a.displayPath));
+    if (found) return found;
+
+    // 4. Match on displayName
+    found = currentApps.find((a) => str.includes(a.displayName));
+    if (found) return found;
+
+    // 5. Match on script name
+    found = currentApps.find((a) => str.includes(a.name));
+    if (found) return found;
+
+    return null;
+  }
+
   function updateSelectedView(w: SimpleWindow, app: DetectedApp) {
     selectedApp = app;
     const itemStr = `[${app.sourceLabel}] ${app.displayName} (${app.displayPath})`;
+
+    // Synchronize ListBox Selection
+    w.setValue("lst_apps", itemStr);
+
+    // Synchronize Dropdown Selection
     w.setValue("dd_select_app", itemStr);
-    w.setStatus(`Selected: ${app.displayName} (${app.displayPath})`);
+
+    // Set intelligent preset arguments if empty or default
+    if (app.source === "cli_tool") {
+      const curArgs = (w.getValue("txt_cli_args") || "").trim();
+      if (!curArgs || curArgs === "--help") {
+        if (app.id.includes("system")) {
+          w.setValue("txt_cli_args", "--telemetry");
+        } else {
+          w.setValue("txt_cli_args", "--help");
+        }
+      }
+    }
+
+    w.setStatus(`Selected Tool: ${app.displayName} (${app.displayPath}) [${app.category}]`);
 
     const summary = [
       `=== Tool Selected: ${app.displayName} ===`,
@@ -1134,6 +1347,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
     const rows = currentApps.map(formatRow);
     w.setTableData("tbl_apps", tableHeaders, rows);
+
+    const filteredItems = currentApps.map(
+      (a) => `[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`
+    );
+    w.setListItems("lst_apps", filteredItems);
+    w.setListItems("dd_select_app", filteredItems);
+
     w.setText(
       "lbl_status",
       `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}`
@@ -1168,6 +1388,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     currentApps = fresh.apps;
     const rows = currentApps.map(formatRow);
     w.setTableData("tbl_apps", tableHeaders, rows);
+
+    const freshItems = currentApps.map(
+      (a) => `[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`
+    );
+    w.setListItems("lst_apps", freshItems);
+    w.setListItems("dd_select_app", freshItems);
+
     w.setValue("lbl_kpi_total", `⚡ Total Tools: ${fresh.kpis.total}`);
     w.setValue("lbl_kpi_studios", `🖥️ Studio Applications: ${fresh.kpis.radStudios}`);
     w.setValue("lbl_kpi_cli", `🛠️ CLI Utilities: ${fresh.kpis.cliTools}`);
@@ -1177,10 +1404,52 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.toast(`Rescanned: ${fresh.kpis.total} tools ready`);
   });
 
+  // ListBox selection change and click
+  win.onChange("lst_apps", (w, val: any) => {
+    const matched = findAppFromSelection(val);
+    if (matched) {
+      selectedApp = matched;
+      updateSelectedView(w, matched);
+    }
+  });
+
+  win.onClick("lst_apps", (w, val: any) => {
+    const matched = findAppFromSelection(val);
+    if (matched) {
+      selectedApp = matched;
+      updateSelectedView(w, matched);
+    }
+  });
+
+  win.onDoubleClick("lst_apps", (w, val: any) => {
+    const matched = findAppFromSelection(val);
+    if (matched) {
+      selectedApp = matched;
+      updateSelectedView(w, matched);
+      executeToolLaunch(matched, w, undefined, matched.source === "cli_tool");
+    }
+  });
+
+  // Table selection change and click
+  win.onClick("tbl_apps", (w, val: any) => {
+    const matched = findAppFromSelection(val);
+    if (matched) {
+      selectedApp = matched;
+      updateSelectedView(w, matched);
+    }
+  });
+
+  win.onChange("tbl_apps", (w, val: any) => {
+    const matched = findAppFromSelection(val);
+    if (matched) {
+      selectedApp = matched;
+      updateSelectedView(w, matched);
+    }
+  });
+
   // Dropdown selection change
   win.onChange("dd_select_app", (w, val: any) => {
-    const str = String(val || "");
-    const matched = currentApps.find((a) => str.includes(a.displayPath) || str.includes(a.displayName));
+    const matched = findAppFromSelection(val);
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
@@ -1190,8 +1459,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Primary Launch Button
   win.onClick("btn_launch", (w) => {
     if (!selectedApp) {
-      const ddVal = w.getValue("dd_select_app") || "";
-      selectedApp = currentApps.find((a) => ddVal.includes(a.displayPath) || ddVal.includes(a.displayName)) || currentApps[0] || null;
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
     }
     if (!selectedApp) {
       w.toast("Please select a tool to launch.");
@@ -1203,8 +1473,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Dedicated Open in Terminal Button
   win.onClick("btn_terminal", (w) => {
     if (!selectedApp) {
-      const ddVal = w.getValue("dd_select_app") || "";
-      selectedApp = currentApps.find((a) => ddVal.includes(a.displayPath) || ddVal.includes(a.displayName)) || currentApps[0] || null;
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
     }
     if (!selectedApp) {
       w.toast("Please select a tool to launch.");
@@ -1216,8 +1487,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Dedicated Run Inline Button
   win.onClick("btn_run_inline", (w) => {
     if (!selectedApp) {
-      const ddVal = w.getValue("dd_select_app") || "";
-      selectedApp = currentApps.find((a) => ddVal.includes(a.displayPath) || ddVal.includes(a.displayName)) || currentApps[0] || null;
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
     }
     if (!selectedApp) {
       w.toast("Please select a tool to run.");
@@ -1228,6 +1500,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // Kill Button
   win.onClick("btn_kill", (w) => {
+    if (!selectedApp) {
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
+    }
     if (!selectedApp) {
       w.toast("No tool selected.");
       return;
@@ -1245,6 +1522,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Reveal Button
   win.onClick("btn_reveal", (w) => {
     if (!selectedApp) {
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
+    }
+    if (!selectedApp) {
       w.toast("No tool selected.");
       return;
     }
@@ -1255,6 +1537,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // Copy Command Button
   win.onClick("btn_copy", (w) => {
+    if (!selectedApp) {
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
+    }
     if (!selectedApp) {
       w.toast("No tool selected.");
       return;

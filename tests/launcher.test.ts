@@ -6,6 +6,7 @@ import {
   deriveAppMetadata,
   launchApplication,
   launchInTerminal,
+  getAvailableLinuxTerminal,
   killApplication,
   createLauncherStudio,
 } from "../applications/launcher_studio";
@@ -102,10 +103,25 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
 
   it("provides launchInTerminal utility for desktop terminal execution", () => {
     expect(typeof launchInTerminal).toBe("function");
+    expect(typeof getAvailableLinuxTerminal).toBe("function");
+
+    // Dry-run validation works identically on all platforms
+    const dryRes = launchInTerminal("echo 'Bun RAD Studio Test'", process.cwd(), { dryRun: true });
+    expect(dryRes.success).toBe(true);
+    expect(dryRes.message).toContain("[Dry Run]");
+
     if (process.platform === "darwin") {
       const res = launchInTerminal("echo 'Bun RAD Studio Launcher Test'");
       expect(res.success).toBe(true);
       expect(res.message).toContain("Opened CLI in macOS Terminal");
+      expect(res.terminalEmulator).toBe("Terminal.app");
+    } else if (process.platform === "linux") {
+      const linuxTerm = getAvailableLinuxTerminal();
+      if (linuxTerm) {
+        expect(typeof linuxTerm.binary).toBe("string");
+        const args = linuxTerm.buildArgs("echo 'test'", "/tmp");
+        expect(args.length).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 
@@ -114,14 +130,55 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       const res = await launchApplication("system_cli", "--version", { openTerminal: true });
       expect(res.success).toBe(true);
       expect(res.output).toContain("Launched in Terminal");
+    } else if (process.platform === "linux") {
+      const res = await launchApplication("system_cli", "--version", { openTerminal: true });
+      expect(res).toBeDefined();
     }
   });
 
-  it("initializes SimpleWindow GUI layout and generates valid HTML", () => {
+  it("initializes SimpleWindow GUI layout and generates valid HTML with ListBox", () => {
     const win = createLauncherStudio({ fullscreen: false });
     expect(win).toBeDefined();
     const html = win.generateHtml();
     expect(html.length).toBeGreaterThan(10000);
     expect(html).toContain("Project Application & CLI Launcher");
+    expect(html).toContain('id="lst_apps"');
+    expect(html).toContain("simplegui-listbox");
+    expect(html).toContain('id="dd_select_app"');
+    expect(html).toContain('id="tbl_apps"');
+  });
+
+  it("updates launcher app when an item is selected in the listbox", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    expect(win).toBeDefined();
+
+    // Trigger ListBox change with a specific tool (e.g. redis_studio or git_cli)
+    const listboxHandler = (win as any).eventHandlersMap?.get("lst_apps:onchange");
+    expect(listboxHandler).toBeDefined();
+
+    listboxHandler(win, "[Studio] Redis Studio (applications/redis_studio.ts)");
+
+    // Verify Dropdown and ListBox are synchronized
+    const ddVal = win.getValue("dd_select_app");
+    expect(ddVal).toContain("Redis Studio");
+    expect(ddVal).toContain("applications/redis_studio.ts");
+
+    const lstVal = win.getValue("lst_apps");
+    expect(lstVal).toContain("Redis Studio");
+
+    // Verify details output updated
+    const outputText = win.getText("txt_output");
+    expect(outputText).toContain("Redis Studio");
+    expect(outputText).toContain("redis_studio.ts");
+
+    // Verify status updated
+    const statusText = win.getText("lbl_status");
+    expect(statusText).toContain("Redis Studio");
+
+    // Select a CLI tool in the listbox
+    listboxHandler(win, "[CLI Tool] System CLI (cli_apps/system_cli.ts)");
+    expect(win.getValue("dd_select_app")).toContain("System CLI");
+    expect(win.getValue("txt_cli_args")).toBe("--telemetry");
+    expect(win.getText("txt_output")).toContain("System CLI");
   });
 });

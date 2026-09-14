@@ -62,6 +62,9 @@ export class SimpleControlRef {
                     }
                 }
             }
+            if (typeof (this.window as any)._renameControlInLayoutSections === "function") {
+                (this.window as any)._renameControlInLayoutSections(oldId, idStr);
+            }
         }
         this.spec.id = idStr;
         this.spec.name = idStr;
@@ -475,13 +478,16 @@ interface LayoutFrame {
 }
 
 export interface SimpleguiLayoutSection {
-    type: "header_bar" | "card" | "row" | "standalone";
+    type: "header_bar" | "card" | "row" | "standalone" | "grid";
     id?: string;
     title?: string;
     subtitle?: string;
     rows?: Array<{ id: string; controls: string[] }>;
     controls?: string[];
     items?: string[];
+    cols?: number;
+    gap?: number;
+    cards?: SimpleguiLayoutSection[];
 }
 
 // =============================================================================
@@ -765,10 +771,48 @@ export class SimpleWindow {
     private currentY = 20;
 
     public _layoutSections: SimpleguiLayoutSection[] = [];
+    private _currentGridSection: SimpleguiLayoutSection | null = null;
     private _currentCardSection: SimpleguiLayoutSection | null = null;
     private _currentRowSection: { id: string; controls: string[] } | null = null;
     private _sectionRowCounter = 0;
     public responsiveLayout = true;
+
+    public _renameControlInLayoutSections(oldId: string, newId: string): void {
+        const renameInList = (list: string[]) => {
+            for (let i = 0; i < list.length; i++) {
+                if (list[i] === oldId) list[i] = newId;
+            }
+        };
+        const renameInSec = (sec: SimpleguiLayoutSection) => {
+            if (sec.id === oldId) sec.id = newId;
+            if (sec.controls) renameInList(sec.controls);
+            if (sec.items) renameInList(sec.items);
+            if (sec.rows) {
+                for (const r of sec.rows) {
+                    if (r.id === oldId) r.id = newId;
+                    if (r.controls) renameInList(r.controls);
+                }
+            }
+            if (sec.cards) {
+                for (const c of sec.cards) {
+                    renameInSec(c);
+                }
+            }
+        };
+        if (this._currentRowSection) {
+            if (this._currentRowSection.id === oldId) this._currentRowSection.id = newId;
+            if (this._currentRowSection.controls) renameInList(this._currentRowSection.controls);
+        }
+        if (this._currentCardSection) {
+            renameInSec(this._currentCardSection);
+        }
+        if (this._currentGridSection) {
+            renameInSec(this._currentGridSection);
+        }
+        for (const sec of this._layoutSections) {
+            renameInSec(sec);
+        }
+    }
 
     constructor(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}) {
         this.title = options.title || title;
@@ -1203,6 +1247,27 @@ export class SimpleWindow {
     public end_row(): this { return this.endRow(); }
 
     public beginGrid(cols = 2, gap = 12): this {
+        if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
+            if (this._currentCardSection) {
+                this._currentCardSection.rows = this._currentCardSection.rows || [];
+                this._currentCardSection.rows.push(this._currentRowSection);
+            } else {
+                this._layoutSections.push({
+                    type: "row",
+                    id: this._currentRowSection.id,
+                    controls: [...this._currentRowSection.controls]
+                });
+            }
+            this._currentRowSection = null;
+        }
+
+        this._currentGridSection = {
+            type: "grid",
+            cols,
+            gap,
+            cards: []
+        };
+
         const parentFrame = this.layoutStack[this.layoutStack.length - 1];
         const startX = parentFrame ? (parentFrame.type === "card" ? parentFrame.startX : (parentFrame.startX || this.padding)) : this.padding;
         const startY = parentFrame ? parentFrame.currentY : this.currentY;
@@ -1223,6 +1288,11 @@ export class SimpleWindow {
     public begin_grid(cols = 2, gap = 12): this { return this.beginGrid(cols, gap); }
 
     public endGrid(): this {
+        if (this._currentGridSection) {
+            this._layoutSections.push(this._currentGridSection);
+            this._currentGridSection = null;
+        }
+
         const frame = this.layoutStack.pop();
         if (frame && frame.type === "grid") {
             const gridH = frame.rowHeight > 0 ? (frame.rowHeight + (frame.gap || 12)) : 0;
@@ -1301,7 +1371,12 @@ export class SimpleWindow {
             this._currentRowSection = null;
         }
         if (this._currentCardSection) {
-            this._layoutSections.push(this._currentCardSection);
+            if (this._currentGridSection) {
+                this._currentGridSection.cards = this._currentGridSection.cards || [];
+                this._currentGridSection.cards.push(this._currentCardSection);
+            } else {
+                this._layoutSections.push(this._currentCardSection);
+            }
             this._currentCardSection = null;
         }
 
@@ -1453,7 +1528,7 @@ export class SimpleWindow {
             // when there is still reasonable space on this row.
             const remainingW = maxX - activeFrame.currentX;
             if (!ctrl.user_explicit_width) {
-                if (ctrl.width > remainingW && remainingW >= 140 && activeFrame.currentX > activeFrame.startX) {
+                if (ctrl.width > remainingW && remainingW >= 75 && activeFrame.currentX > activeFrame.startX) {
                     ctrl.width = remainingW;
                 } else if (ctrl.width > (maxX - activeFrame.startX)) {
                     ctrl.width = Math.max(80, maxX - activeFrame.startX);
@@ -1620,10 +1695,10 @@ export class SimpleWindow {
                          text.toLowerCase().startsWith("codefreelance engine:");
 
         let defaultW: number;
-        if (isStatus) {
-            defaultW = Math.max(600, this.width - (this.padding * 2) - 10);
-        } else if (inRow) {
+        if (inRow) {
             defaultW = Math.max(20, Math.ceil(text.length * 7.2 + 6));
+        } else if (isStatus) {
+            defaultW = Math.max(600, this.width - (this.padding * 2) - 10);
         } else {
             defaultW = Math.max(300, Math.ceil(text.length * 7.2 + 6));
         }
@@ -2013,21 +2088,43 @@ export class SimpleWindow {
         return this.addThemeSelector(id, label, popularOnly, width, autoShortNames);
     }
 
-    public addListBox(items: string[], selectedOrOnChange?: string | string[] | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+    public addListBox(idOrItems: string | string[], itemsOrSelected?: string[] | string | string[] | number | EventCallback, selectedOrOnChange?: string | string[] | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let items: string[] = [];
         let selected: string | string[] | number | undefined;
         let onChange: EventCallback | undefined;
         let opts: Record<string, any> = {};
 
-        if (typeof selectedOrOnChange === "function") {
-            onChange = selectedOrOnChange;
-            if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
-        } else {
-            selected = selectedOrOnChange;
-            if (typeof onChangeOrOpts === "function") {
-                onChange = onChangeOrOpts as EventCallback;
-                opts = optsArg;
-            } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
-                opts = onChangeOrOpts;
+        if (typeof idOrItems === "string" && Array.isArray(itemsOrSelected)) {
+            explicitId = idOrItems;
+            items = itemsOrSelected;
+            if (typeof selectedOrOnChange === "function") {
+                onChange = selectedOrOnChange;
+                if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts;
+            } else {
+                selected = selectedOrOnChange;
+                if (typeof onChangeOrOpts === "function") {
+                    onChange = onChangeOrOpts as EventCallback;
+                    opts = optsArg;
+                } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
+                    opts = onChangeOrOpts;
+                } else if (typeof optsArg === "object" && optsArg !== null) {
+                    opts = optsArg;
+                }
+            }
+        } else if (Array.isArray(idOrItems)) {
+            items = idOrItems;
+            if (typeof itemsOrSelected === "function") {
+                onChange = itemsOrSelected as EventCallback;
+                if (typeof selectedOrOnChange === "object" && selectedOrOnChange !== null) opts = selectedOrOnChange as Record<string, any>;
+            } else {
+                selected = itemsOrSelected as string | string[] | number;
+                if (typeof selectedOrOnChange === "function") {
+                    onChange = selectedOrOnChange as EventCallback;
+                    if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts as Record<string, any>;
+                } else if (typeof selectedOrOnChange === "object" && selectedOrOnChange !== null) {
+                    opts = selectedOrOnChange;
+                }
             }
         }
 
@@ -2037,39 +2134,70 @@ export class SimpleWindow {
             ? (Array.isArray(selected) ? selected : (typeof selected === "string" ? selected.split(",").map(s => s.trim()) : (items.length > 0 ? [items[0]] : [])))
             : (typeof selected === "number" ? (items[selected] || "") : (selected || items[0] || ""));
         const height = opts.height || (opts.size ? opts.size * 24 + 10 : 120);
-        const ref = this.addVisualControl("listbox", 240, height, {
+        const width = opts.width || 240;
+        const ref = this.addVisualControl("listbox", width, height, {
             text,
             caption: text,
             value: initialVal,
             items,
             size: opts.size || 5,
+            ...(explicitId ? { id: explicitId } : {}),
             ...(isMulti ? { multiple: true, multi_select: true, selection_mode: "multiple" } : {}),
             ...opts
         });
+        if (explicitId) {
+            ref.spec.id = explicitId;
+            ref.spec.name = explicitId;
+        }
         this.formValuesStore[ref.spec.id] = initialVal;
         this.listItemsStore[ref.spec.id] = [...items];
-        if (onChange) ref.onChange(onChange);
+        if (onChange) {
+            ref.onChange(onChange);
+            ref.onClick(onChange);
+        }
         return ref;
     }
-    public add_list_box(items: string[], selected?: string | string[] | number, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addListBox(items, selected, onChange, opts);
+    public add_list_box(idOrItems: string | string[], itemsOrSelected?: string[] | string | string[] | number | EventCallback, selectedOrOnChange?: string | string[] | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        return this.addListBox(idOrItems, itemsOrSelected, selectedOrOnChange, onChangeOrOpts, optsArg);
     }
 
-    public addMultiListBox(items: string[], selectedOrOnChange?: string[] | string | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+    public addMultiListBox(idOrItems: string | string[], itemsOrSelected?: string[] | string | EventCallback, selectedOrOnChange?: string[] | string | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        let explicitId: string | undefined;
+        let items: string[] = [];
         let selected: string[] | string | undefined;
         let onChange: EventCallback | undefined;
         let opts: Record<string, any> = {};
 
-        if (typeof selectedOrOnChange === "function") {
-            onChange = selectedOrOnChange;
-            if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
-        } else {
-            selected = selectedOrOnChange;
-            if (typeof onChangeOrOpts === "function") {
-                onChange = onChangeOrOpts as EventCallback;
-                opts = optsArg;
-            } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
-                opts = onChangeOrOpts;
+        if (typeof idOrItems === "string" && Array.isArray(itemsOrSelected)) {
+            explicitId = idOrItems;
+            items = itemsOrSelected;
+            if (typeof selectedOrOnChange === "function") {
+                onChange = selectedOrOnChange;
+                if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts;
+            } else {
+                selected = selectedOrOnChange as string[] | string;
+                if (typeof onChangeOrOpts === "function") {
+                    onChange = onChangeOrOpts as EventCallback;
+                    opts = optsArg;
+                } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
+                    opts = onChangeOrOpts;
+                } else if (typeof optsArg === "object" && optsArg !== null) {
+                    opts = optsArg;
+                }
+            }
+        } else if (Array.isArray(idOrItems)) {
+            items = idOrItems;
+            if (typeof itemsOrSelected === "function") {
+                onChange = itemsOrSelected as EventCallback;
+                if (typeof selectedOrOnChange === "object" && selectedOrOnChange !== null) opts = selectedOrOnChange as Record<string, any>;
+            } else {
+                selected = itemsOrSelected as string[] | string;
+                if (typeof selectedOrOnChange === "function") {
+                    onChange = selectedOrOnChange as EventCallback;
+                    if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts as Record<string, any>;
+                } else if (typeof selectedOrOnChange === "object" && selectedOrOnChange !== null) {
+                    opts = selectedOrOnChange;
+                }
             }
         }
 
@@ -2077,7 +2205,8 @@ export class SimpleWindow {
             ? selected
             : (typeof selected === "string" ? selected.split(",").map(s => s.trim()) : (items.length > 0 ? [items[0]] : []));
         const height = opts.height || (opts.size ? opts.size * 24 + 10 : 130);
-        const ref = this.addVisualControl("listbox", 240, height, {
+        const width = opts.width || 240;
+        const ref = this.addVisualControl("listbox", width, height, {
             text: items.join(", "),
             caption: items.join(", "),
             value: initialVal,
@@ -2086,15 +2215,23 @@ export class SimpleWindow {
             multiple: true,
             multi_select: true,
             selection_mode: "multiple",
+            ...(explicitId ? { id: explicitId } : {}),
             ...opts
         });
+        if (explicitId) {
+            ref.spec.id = explicitId;
+            ref.spec.name = explicitId;
+        }
         this.formValuesStore[ref.spec.id] = initialVal;
         this.listItemsStore[ref.spec.id] = [...items];
-        if (onChange) ref.onChange(onChange);
+        if (onChange) {
+            ref.onChange(onChange);
+            ref.onClick(onChange);
+        }
         return ref;
     }
-    public add_multi_list_box(items: string[], selected?: string[] | string, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
-        return this.addMultiListBox(items, selected, onChange, opts);
+    public add_multi_list_box(idOrItems: string | string[], itemsOrSelected?: string[] | string | EventCallback, selectedOrOnChange?: string[] | string | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
+        return this.addMultiListBox(idOrItems, itemsOrSelected, selectedOrOnChange, onChangeOrOpts, optsArg);
     }
 
     public addSegmentedControl(items: string[], selectedIndex = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
@@ -4895,6 +5032,15 @@ export class SimpleWindow {
     }
 
     public generateHtml(): string {
+        if (this._currentGridSection) {
+            if (this._currentCardSection) {
+                this._currentGridSection.cards = this._currentGridSection.cards || [];
+                this._currentGridSection.cards.push(this._currentCardSection);
+                this._currentCardSection = null;
+            }
+            this._layoutSections.push(this._currentGridSection);
+            this._currentGridSection = null;
+        }
         if (this._currentCardSection) {
             this._layoutSections.push(this._currentCardSection);
             this._currentCardSection = null;
@@ -5420,18 +5566,33 @@ export class SimpleWindow {
                             box-sizing: border-box !important;
                             resize: vertical !important;
                         }
-                        .rad-row input[type="text"], .rad-row input[type="search"] {
+                        .rad-grid-container {
+                            display: grid !important;
+                            width: 100% !important;
+                            box-sizing: border-box !important;
+                            align-items: stretch !important;
+                        }
+                        @media (max-width: 768px) {
+                            .rad-grid-container {
+                                grid-template-columns: 1fr !important;
+                            }
+                        }
+                        .rad-switch-label {
+                            flex: 0 0 auto !important;
+                        }
+                        .rad-row input[type="text"], .rad-row input[type="search"], .rad-row input[type="number"], .rad-row input[type="password"] {
                             flex: 1 1 180px !important;
                             min-width: 120px !important;
                         }
                         .rad-row select {
-                            flex: 0 1 auto !important;
+                            flex: 1 1 140px !important;
                             min-width: 110px !important;
                         }
-                        .rad-row button,
-                        .rad-header-right button,
-                        .rad-card button,
-                        #rad_responsive_root button {
+                        .rad-row > button,
+                        .rad-header-right > button,
+                        .rad-card > button,
+                        .rad-header-left > button,
+                        #rad_responsive_root > button {
                             flex: 0 0 auto !important;
                             width: auto !important;
                             min-width: max-content !important;
@@ -5441,8 +5602,27 @@ export class SimpleWindow {
                             box-sizing: border-box !important;
                             overflow: visible !important;
                         }
-                        .rad-row label, .rad-row span {
+                        div:has(> .stepper-val) {
+                            box-sizing: border-box !important;
                             flex: 0 0 auto !important;
+                        }
+                        div:has(> .stepper-val) button {
+                            width: 24px !important;
+                            height: 24px !important;
+                            min-width: 24px !important;
+                            max-width: 24px !important;
+                            padding: 0 !important;
+                            display: inline-flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                        }
+                        hr {
+                            width: 100% !important;
+                            margin: 4px 0 !important;
+                        }
+                        .rad-row label, .rad-row span:not(.stepper-val):not(.sw-thumb):not(.sw-track), .rad-row .rad-label {
+                            flex: 0 0 auto !important;
+                            width: auto !important;
                             white-space: nowrap !important;
                         }
                         .rad-checkbox-label {
@@ -5484,15 +5664,12 @@ export class SimpleWindow {
                         target.style.bottom = "auto";
                         target.style.margin = "0";
 
-                        const btn = target.tagName === "BUTTON" ? target : target.querySelector("button");
-                        if (btn) {
+                        if (target.tagName === "BUTTON") {
                             target.style.width = "auto";
                             target.style.minWidth = "max-content";
-                            btn.style.width = "auto";
-                            btn.style.minWidth = "max-content";
-                            btn.style.padding = "7px 16px";
-                            btn.style.whiteSpace = "nowrap";
-                            btn.style.overflow = "visible";
+                            target.style.padding = "7px 16px";
+                            target.style.whiteSpace = "nowrap";
+                            target.style.overflow = "visible";
                         }
                         return target;
                     }
@@ -5501,11 +5678,61 @@ export class SimpleWindow {
                     const root = document.createElement("div");
                     root.id = "rad_responsive_root";
 
-                    for (const sec of sections) {
-                        if (sec.type === "card" && sec.id) {
-                            const oldFs = document.getElementById(sec.id);
+                    function hideOldCardFieldsets(s) {
+                        if (s.type === "card" && s.id) {
+                            const oldFs = document.getElementById(s.id);
                             if (oldFs) oldFs.style.display = "none";
+                        } else if (s.type === "grid" && s.cards) {
+                            for (const c of s.cards) hideOldCardFieldsets(c);
                         }
+                    }
+                    for (const sec of sections) {
+                        hideOldCardFieldsets(sec);
+                    }
+
+                    function renderCard(cardSec) {
+                        const card = document.createElement("div");
+                        card.className = "rad-card";
+                        if (cardSec.id) card.id = "rad_card_" + cardSec.id;
+                        if (cardSec.title) {
+                            const h = document.createElement("div");
+                            h.className = "rad-card-header";
+                            h.textContent = cardSec.title;
+                            card.appendChild(h);
+                        }
+                        if (cardSec.subtitle) {
+                            const sub = document.createElement("div");
+                            sub.className = "rad-card-subtitle";
+                            sub.textContent = cardSec.subtitle;
+                            card.appendChild(sub);
+                        }
+
+                        for (const r of (cardSec.rows || [])) {
+                            const rowDiv = document.createElement("div");
+                            rowDiv.className = "rad-row";
+                            const isMetricRow = r.controls.every(function(cid) { return cid.startsWith("lbl_metric_"); });
+                            for (const cid of r.controls) {
+                                const node = getNode(cid);
+                                if (!node) continue;
+                                if (isMetricRow || cid.startsWith("lbl_metric_")) {
+                                    node.classList.add("rad-metric-pill");
+                                }
+                                rowDiv.appendChild(node);
+                            }
+                            card.appendChild(rowDiv);
+                        }
+
+                        for (const item of (cardSec.items || [])) {
+                            const node = getNode(item);
+                            if (!node) continue;
+                            if (node.tagName === "TEXTAREA" || node.querySelector("textarea")) {
+                                node.classList.add("rad-responsive-console");
+                            } else if (node.querySelector("table") || node.tagName === "TABLE" || (typeof node.id === "string" && node.id.startsWith("tbl_"))) {
+                                node.classList.add("rad-responsive-table");
+                            }
+                            card.appendChild(node);
+                        }
+                        return card;
                     }
 
                     for (let i = 0; i < sections.length; i++) {
@@ -5554,50 +5781,18 @@ export class SimpleWindow {
                             headerBar.appendChild(headerLeft);
                             headerBar.appendChild(headerRight);
                             root.appendChild(headerBar);
+                        } else if (sec.type === "grid") {
+                            const gridDiv = document.createElement("div");
+                            gridDiv.className = "rad-grid-container";
+                            const cols = sec.cols || 2;
+                            const gap = sec.gap !== undefined ? sec.gap : 16;
+                            gridDiv.style.cssText = "display: grid !important; grid-template-columns: repeat(" + cols + ", minmax(0, 1fr)) !important; gap: " + gap + "px !important; width: 100% !important; align-items: stretch !important;";
+                            for (const cardSec of (sec.cards || [])) {
+                                gridDiv.appendChild(renderCard(cardSec));
+                            }
+                            root.appendChild(gridDiv);
                         } else if (sec.type === "card") {
-                            const card = document.createElement("div");
-                            card.className = "rad-card";
-                            if (sec.id) card.id = "rad_card_" + sec.id;
-                            if (sec.title) {
-                                const h = document.createElement("div");
-                                h.className = "rad-card-header";
-                                h.textContent = sec.title;
-                                card.appendChild(h);
-                            }
-                            if (sec.subtitle) {
-                                const sub = document.createElement("div");
-                                sub.className = "rad-card-subtitle";
-                                sub.textContent = sec.subtitle;
-                                card.appendChild(sub);
-                            }
-
-                            for (const r of (sec.rows || [])) {
-                                const rowDiv = document.createElement("div");
-                                rowDiv.className = "rad-row";
-                                const isMetricRow = r.controls.every(function(cid) { return cid.startsWith("lbl_metric_"); });
-                                for (const cid of r.controls) {
-                                    const node = getNode(cid);
-                                    if (!node) continue;
-                                    if (isMetricRow || cid.startsWith("lbl_metric_")) {
-                                        node.classList.add("rad-metric-pill");
-                                    }
-                                    rowDiv.appendChild(node);
-                                }
-                                card.appendChild(rowDiv);
-                            }
-
-                            for (const item of (sec.items || [])) {
-                                const node = getNode(item);
-                                if (!node) continue;
-                                if (node.tagName === "TEXTAREA" || node.querySelector("textarea")) {
-                                    node.classList.add("rad-responsive-console");
-                                } else if (node.querySelector("table") || node.tagName === "TABLE" || (typeof node.id === "string" && node.id.startsWith("tbl_"))) {
-                                    node.classList.add("rad-responsive-table");
-                                }
-                                card.appendChild(node);
-                            }
-
-                            root.appendChild(card);
+                            root.appendChild(renderCard(sec));
                         } else if (sec.type === "row") {
                             const isBottom = i === sections.length - 1;
                             const rowDiv = document.createElement("div");
@@ -8472,6 +8667,8 @@ export class SimpleWindow {
         this.bindControlEvent(controlId, "onDoubleClick", callback);
         return this;
     }
+    public onDoubleClick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    public on_double_click(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
     public on_dblclick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
     public bindDblClick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
     public bind_dblclick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }

@@ -1429,6 +1429,11 @@ export function generatePreviewHtml(spec: any): string {
                 if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
                     handlers.onChange = `on_${c.id}_change`;
                 }
+                if (ctrlType === 'listbox') {
+                    if (!handlers.onClick && !handlers.onclick) {
+                        handlers.onClick = handlers.onChange || `on_${c.id}_click`;
+                    }
+                }
             } else {
                 if (!handlers.onClick && !handlers.onclick) {
                     handlers.onClick = `on_${c.id}_click`;
@@ -1580,8 +1585,8 @@ export function generatePreviewHtml(spec: any): string {
         } else if (t === 'scroll_view') {
             controls += `<div${id}${titleAttr} class="rad-scroll-view" style="${base(c)}max-height:${c.height || 300}px;overflow-y:auto;padding-right:8px;">${text}</div>\n`;
         } else if (t === 'label') {
-            const isStatus = (c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
-                             (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:')));
+            const isStatus = !c.user_explicit_width && ((c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
+                             (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:'))));
             const statusStyle = isStatus ? 'width:calc(100% - 40px) !important;max-width:calc(100% - 40px) !important;font-size:12px;opacity:0.9;' : '';
             const customColorAttr = c.custom_color ? ' data-custom-color="true"' : ' data-theme-label="true"';
             const captionAttr = c.is_caption || c.is_card_subtitle ? ' data-caption="true"' : '';
