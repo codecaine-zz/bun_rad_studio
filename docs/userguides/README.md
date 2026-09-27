@@ -36,6 +36,7 @@ Each application in this suite is built to 30-year enterprise standards: zero ex
 | **24** | [IpInfo Studio Pro](24_ipinfo_studio.md) | IP address geolocation, ASN details, CIDR subnet calculator, local network interfaces. | `bun run app:ipinfo` | `bun run cli:ipinfo` |
 | **25** | [Subfinder Studio Pro](25_subfinder_studio.md) | Passive multi-source subdomain discovery, active DNS checks, HTTP/HTTPS title & status probes. | `bun run app:subfinder` | `bun run cli:subfinder` |
 | **26** | [Doggo Studio Pro](26_doggo_studio.md) | Modern DNS client for humans, standard records, custom nameservers, DoH, reverse PTR lookups. | `bun run app:doggo` | `bun run cli:doggo` |
+| **27** | [Universal Calculator & Computing Studio](27_calculator_studio.md) | Apple-grade scientific calculator, 17-unit converter, time-series charts, 64-bit programmer lab & calculus studio. | `bun run app:calculator` | `bun run cli:calculator` |
 
 ---
 
@@ -74,6 +75,7 @@ bun run app:gdu        # Gdu Studio Pro (disk analyzer)
 bun run app:ipinfo     # IpInfo Studio Pro (geolocation & CIDR)
 bun run app:subfinder  # Subfinder Studio Pro (subdomain recon)
 bun run app:doggo      # Doggo Studio Pro (modern DNS client)
+bun run app:calculator # Universal Calculator & Computing Studio Pro
 ```
 
 ### 💻 Headless / CI / Terminal CLI Mode
@@ -109,6 +111,7 @@ bun run cli:gdu        # Fast disk usage analyzer & interactive explorer
 bun run cli:ipinfo     # IP geolocation, ASN lookup & CIDR calculator
 bun run cli:subfinder  # Passive subdomain discovery tool
 bun run cli:doggo      # Modern DNS client with DoH support
+bun run cli:calculator # Universal Calculator & Math Evaluator CLI
 ```
 
 ### Backwards-Compatible Aliases

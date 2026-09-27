@@ -3,6 +3,7 @@ process.env.SCREENSHOT_MODE = "1";
 import { createApiStudio } from "../applications/api_studio";
 import { createAppBundlerStudio } from "../applications/app_bundler_studio";
 import { createBrewStudio } from "../applications/brew_studio";
+import { createCalculatorStudio } from "../applications/calculator_studio";
 import { createColorStudio } from "../applications/color_studio";
 import { createCryptoStudio } from "../applications/crypto_studio";
 import { createDatabaseStudio } from "../applications/database_studio";
@@ -49,6 +50,7 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "api_studio": createApiStudio,
   "app_bundler_studio": createAppBundlerStudio,
   "brew_studio": createBrewStudio,
+  "calculator_studio": createCalculatorStudio,
   "color_studio": createColorStudio,
   "crypto_studio": createCryptoStudio,
   "database_studio": () => createDatabaseStudio(":memory:"),

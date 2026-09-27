@@ -15,6 +15,7 @@ import { createGitStudio } from "../applications/git_studio";
 import { createMarkdownStudio } from "../applications/markdown_studio";
 import { createColorStudio } from "../applications/color_studio";
 import { createEnvStudio } from "../applications/env_studio";
+import { createCalculatorStudio } from "../applications/calculator_studio";
 
 describe("⚡ Enterprise 16-Application Suite Specification", () => {
   it("1. Database Studio Pro initializes with enterprise schema & query plans", () => {
@@ -308,6 +309,22 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_gen_example");
   });
 
+  it("16b. Universal Calculator & Computing Studio initializes with all 10+ workspaces", () => {
+    const win = createCalculatorStudio();
+    const html = win.generateHtml();
+    expect(html).toContain("Orbit Universal Computing Suite");
+    expect(html).toContain("Unit &amp; Currency");
+    expect(html).toContain("Programmer Lab");
+    expect(html).toContain("Graphic Charts");
+    expect(html).toContain("Calculus &amp; Grapher");
+    expect(html).toContain("Matrix &amp; Linear Alg");
+    expect(html).toContain("Geometry &amp; Triangles");
+    expect(html).toContain("Wealth &amp; FIRE");
+    expect(html).toContain("Physics &amp; Solvers");
+    expect(html).toContain("Electronics &amp; Circuits");
+    expect(html).toContain("requestInitialFullscreen");
+  });
+
   it("17. All enterprise UI applications initialize fullscreen and responsive", () => {
     const apps: [string, () => any][] = [
       ["01_database", () => createDatabaseStudio(":memory:")],
@@ -326,6 +343,7 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
       ["14_markdown", createMarkdownStudio],
       ["15_color", createColorStudio],
       ["16_env", createEnvStudio],
+      ["17_calculator", createCalculatorStudio],
     ];
 
     for (const [name, factory] of apps) {

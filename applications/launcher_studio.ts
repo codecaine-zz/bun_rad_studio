@@ -161,6 +161,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "📝",
     description: "Real-time dual-pane WYSIWYG Markdown editor with live HTML preview & exports",
   },
+  calculator_studio: {
+    displayName: "Universal Calculator & Computing Studio",
+    category: "Productivity & Text",
+    icon: "🧮",
+    description: "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab & calculus studio",
+  },
   color_studio: {
     displayName: "Color Palette Studio Pro",
     category: "Design & UX",

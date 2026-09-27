@@ -10,6 +10,7 @@ out/
 build/
 .temp_screens/
 *.tgz
+.launcher_history.json
 
 # OS System & Environment Files
 .DS_Store

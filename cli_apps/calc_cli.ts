@@ -8,8 +8,16 @@ app.addFlagString('val', 'v', '255', 'Numeric value (prefix with 0x for Hex, 0b 
 app.addFlagString('op', 'o', '', 'Bitwise operation (e.g. NOT, AND, OR, XOR, SHL, SHR)');
 app.addFlagString('val2', 'w', '', 'Second operand for binary bitwise operation');
 app.addFlagBool('interactive', 'x', false, 'Launch interactive programmer calculator');
+app.addFlagBool('gui', 'g', false, 'Launch Universal Calculator Studio desktop GUI');
 
 if (!app.parseCli()) process.exit(0);
+
+if (app.getFlagBool('gui')) {
+  const { createCalculatorStudio } = await import('../applications/calculator_studio.ts');
+  const studio = createCalculatorStudio({ fullscreen: true });
+  await studio.run();
+  process.exit(0);
+}
 
 app.banner('Programmer Calculator CLI', 'v1.0.0 - Radix & Bitwise Engine');
 

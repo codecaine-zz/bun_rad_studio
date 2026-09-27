@@ -1,0 +1,2130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Orbit Universal Computing Suite — Apple-grade scientific calculator, unit & currency converter, interactive time-series graphic charts, programmer bitwise lab, matrix linear algebra, calculus analysis, wealth planning, and physics solvers.">
+    <title>Orbit Universal Computing Suite &amp; Graphic Studio</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css?v=2.7.0">
+</head>
+<body>
+    <a class="skip-link" href="#workspace">Skip to calculator</a>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <a class="hub-button" href="/" aria-label="Back to hub">
+                <span aria-hidden="true">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <a class="brand" href="/" aria-label="Return to Orbit home">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="2" width="16" height="20" rx="3.5" />
+                        <line x1="8" y1="6" x2="16" y2="6" stroke-width="2" />
+                        <circle cx="8.5" cy="11" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="12" cy="11" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="15.5" cy="11" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="8.5" cy="15" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="12" cy="15" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="15.5" cy="15" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="8.5" cy="18.5" r="1" fill="currentColor" stroke="none" />
+                        <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" />
+                        <rect x="14.5" y="17.5" width="2" height="2" rx="0.5" fill="currentColor" stroke="none" />
+                    </svg>
+                </span>
+                <span>
+                    <strong>ORBIT</strong>
+                    <small>COMPUTING SUITE &amp; STUDIO</small>
+                </span>
+            </a>
+        </div>
+            <!-- Audio Oscilloscope Mini Visualizer -->
+            <canvas id="audioOscilloscope" class="audio-oscilloscope" width="64" height="24" title="Audio Waveform"></canvas>
+            <!-- Sound Synthesizer Profile Selector -->
+            <div class="sound-profile-wrap">
+                <select id="soundProfileSelect" class="sound-select" aria-label="Audio feedback profile" title="Audio feedback profile">
+                    <option value="none">🔇 Sound Off</option>
+                    <option value="cupertino" selected>🔊 Cupertino Haptic</option>
+                    <option value="mechanical">⌨ Mechanical Thock</option>
+                    <option value="synth">⚡ Retro Synth</option>
+                </select>
+            </div>
+            <!-- Spotlight Omni Search Palette -->
+            <button class="icon-button omni-trigger-btn" id="omniTrigger" type="button" aria-label="Spotlight Command Palette" title="Command Palette (⌘K or /)">
+                <span aria-hidden="true">🔍 ⌘K</span>
+            </button>
+            <!-- Workspace Backup / Restore -->
+            <button class="icon-button" id="workspaceBackupBtn" type="button" aria-label="Backup and Restore workspace" title="Backup / Restore session (JSON)">
+                <span aria-hidden="true">💾 Backup</span>
+            </button>
+            <!-- Zen Fullscreen -->
+            <button class="icon-button" id="zenToggle" type="button" aria-label="Zen mode fullscreen" title="Zen full display mode">
+                <span aria-hidden="true">⛶ Zen</span>
+            </button>
+            <!-- Keyboard Shortcuts -->
+            <button class="icon-button" id="shortcutsToggle" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
+                <span aria-hidden="true">⌘ Keys</span>
+            </button>
+            <span class="offline-badge"><span></span> 100% Offline</span>
+            <!-- Theme Toggle -->
+            <button class="icon-button" id="themeToggle" type="button" aria-label="Switch color theme" title="Switch color theme">
+                <span class="theme-icon" aria-hidden="true">Moon</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="app-shell" id="workspace">
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar" aria-label="Calculator modes">
+            <div class="sidebar-scrollable">
+                <p class="sidebar-category-title">Core Workspaces</p>
+                <nav class="mode-nav">
+                    <button class="mode-button active" type="button" data-mode="converter">
+                        <span class="mode-icon" aria-hidden="true">⇄</span>
+                        <span><strong>Unit &amp; Currency</strong><small>17 measurement types</small></span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="calculator">
+                        <span class="mode-icon" aria-hidden="true">ƒx</span>
+                        <span><strong>Scientific Studio</strong><small>Trig, powers &amp; constants</small></span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="programmer">
+                        <span class="mode-icon prog-icon" aria-hidden="true">01</span>
+                        <span><strong>Programmer Lab</strong><small>64-bit flipper, Hex &amp; Bin</small></span>
+                        <span class="new-pill">PRO</span>
+                    </button>
+                </nav>
+
+                <p class="sidebar-category-title">Visual Data &amp; Math</p>
+                <nav class="mode-nav">
+                    <button class="mode-button" type="button" data-mode="charts">
+                        <span class="mode-icon chart-icon" aria-hidden="true">📈</span>
+                        <span><strong>Graphic Charts</strong><small>Days, JSON &amp; Forecasts</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="calculus">
+                        <span class="mode-icon" aria-hidden="true">∫</span>
+                        <span><strong>Calculus &amp; Grapher</strong><small>Derivatives, Integrals &amp; Roots</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="matrix">
+                        <span class="mode-icon" aria-hidden="true">⊞</span>
+                        <span><strong>Matrix &amp; Linear Alg</strong><small>2×2 to 4×4 &amp; Ax = b Solver</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="geometry">
+                        <span class="mode-icon" aria-hidden="true">△</span>
+                        <span><strong>Geometry &amp; Triangles</strong><small>Solvers, Areas &amp; 3D Solids</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                </nav>
+
+                <p class="sidebar-category-title">Finance &amp; Science</p>
+                <nav class="mode-nav">
+                    <button class="mode-button" type="button" data-mode="finance">
+                        <span class="mode-icon fin-icon" aria-hidden="true">💎</span>
+                        <span><strong>Wealth &amp; FIRE</strong><small>Retirement, Paycheck &amp; Loan</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="physics">
+                        <span class="mode-icon phys-icon" aria-hidden="true">⚡</span>
+                        <span><strong>Physics &amp; Solvers</strong><small>Constants, Ohm &amp; Trajectory</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="circuits">
+                        <span class="mode-icon" aria-hidden="true">🎛</span>
+                        <span><strong>Electronics &amp; Circuits</strong><small>Resistor Bands, LC &amp; RC</small></span>
+                        <span class="new-pill">NEW</span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="advanced">
+                        <span class="mode-icon" aria-hidden="true">◎</span>
+                        <span><strong>Smart Utilities</strong><small>BMI, GPA, Stats &amp; Dates</small></span>
+                    </button>
+                    <button class="mode-button" type="button" data-mode="history">
+                        <span class="mode-icon" aria-hidden="true">↺</span>
+                        <span><strong>Paper Tape Journal</strong><small>Audit roll &amp; annotations</small></span>
+                        <span class="history-count" id="historyCount">0</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="sidebar-note">
+                <span aria-hidden="true">✓</span>
+                <p><strong>Private by design</strong>All calculations and datasets execute 100% locally in your browser.</p>
+            </div>
+        </aside>
+
+        <!-- CONTENT AREA -->
+        <section class="content">
+
+            <!-- ============================================================
+                 1. UNIT & CURRENCY CONVERTER PANEL
+                 ============================================================ -->
+            <section class="tool-panel active" id="converterPanel" data-panel="converter" aria-labelledby="converterTitle">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Instant conversion</p>
+                        <h1 id="converterTitle">Convert anything, beautifully.</h1>
+                        <p>17 measurement dimensions plus global world currencies with live magnitude visualizer.</p>
+                    </div>
+                    <button class="ghost-button" id="clearConverter" type="button">Clear</button>
+                </div>
+
+                <div class="category-wrap">
+                    <label class="category-search-label" for="categorySearch">Search conversions</label>
+                    <div class="category-search-wrap">
+                        <input id="categorySearch" class="category-search" type="search" placeholder="Search units or categories (e.g. km, lbs, celsius, currency, joules)..." autocomplete="off" aria-label="Search categories and units">
+                    </div>
+                    <div class="category-list" id="categoryList" role="tablist" aria-label="Conversion categories"></div>
+                </div>
+
+                <div class="converter-card">
+                    <div class="converter-side">
+                        <label for="fromValue">From</label>
+                        <div class="value-input-wrap">
+                            <input id="fromValue" class="value-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1" aria-describedby="conversionStatus">
+                            <span class="unit-symbol" id="fromSymbol">m</span>
+                        </div>
+                        <label class="select-label" for="fromUnit">Unit</label>
+                        <select id="fromUnit"></select>
+                    </div>
+
+                    <button class="swap-button" id="swapUnits" type="button" aria-label="Swap units" title="Swap units">
+                        <span aria-hidden="true">⇄</span>
+                    </button>
+
+                    <div class="converter-side result-side">
+                        <label for="toValue">To</label>
+                        <div class="value-input-wrap result-wrap">
+                            <input id="toValue" class="value-input" type="text" readonly value="0.001">
+                            <button class="copy-button" id="copyResult" type="button" aria-label="Copy converted result" title="Copy converted result">Result</button>
+                            <span class="unit-symbol" id="toSymbol">km</span>
+                        </div>
+                        <label class="select-label" for="toUnit">Unit</label>
+                        <select id="toUnit"></select>
+                    </div>
+                </div>
+
+                <!-- Unit Visual Scale Comparison Bar -->
+                <div class="visual-comparison-card" id="unitVisualCard" aria-label="Visual unit scale comparison">
+                    <div class="visual-comparison-header">
+                        <span class="eyebrow">Visual Magnitude Ratio</span>
+                        <span class="ratio-badge" id="unitRatioBadge">1 m = 0.001 km</span>
+                    </div>
+                    <div class="visual-bars-group">
+                        <div class="visual-bar-item">
+                            <div class="visual-bar-meta">
+                                <span class="bar-unit-name" id="barFromLabel">1 Meter</span>
+                                <span class="bar-pct" id="barFromPct">100%</span>
+                            </div>
+                            <div class="visual-track">
+                                <div class="visual-fill from-fill" id="barFromFill" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                        <div class="visual-bar-item">
+                            <div class="visual-bar-meta">
+                                <span class="bar-unit-name" id="barToLabel">0.001 Kilometer</span>
+                                <span class="bar-pct" id="barToPct">0.1%</span>
+                            </div>
+                            <div class="visual-track">
+                                <div class="visual-fill to-fill" id="barToFill" style="width: 0.1%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="converter-numpad" aria-label="Touch number pad">
+                    <button type="button" class="numpad-key" data-numpad="7">7</button>
+                    <button type="button" class="numpad-key" data-numpad="8">8</button>
+                    <button type="button" class="numpad-key" data-numpad="9">9</button>
+                    <button type="button" class="numpad-key operator" data-numpad="/">÷</button>
+
+                    <button type="button" class="numpad-key" data-numpad="4">4</button>
+                    <button type="button" class="numpad-key" data-numpad="5">5</button>
+                    <button type="button" class="numpad-key" data-numpad="6">6</button>
+                    <button type="button" class="numpad-key operator" data-numpad="*">×</button>
+
+                    <button type="button" class="numpad-key" data-numpad="1">1</button>
+                    <button type="button" class="numpad-key" data-numpad="2">2</button>
+                    <button type="button" class="numpad-key" data-numpad="3">3</button>
+                    <button type="button" class="numpad-key operator" data-numpad="-">−</button>
+
+                    <button type="button" class="numpad-key wide" data-numpad="0">0</button>
+                    <button type="button" class="numpad-key" data-numpad=".">.</button>
+                    <button type="button" class="numpad-key action" data-action="clear">C</button>
+                    <button type="button" class="numpad-key operator" data-numpad="+">+</button>
+
+                    <button type="button" class="numpad-key action" data-action="sign">±</button>
+                    <button type="button" class="numpad-key action" data-action="backspace">⌫</button>
+                    <button type="button" class="numpad-key action copy" data-action="copy-source" title="Copy the entered value">Copy</button>
+                    <button type="button" class="numpad-key action copy" data-action="paste-source" title="Paste value into the source field">Paste</button>
+                    <button type="button" class="numpad-key equals" data-action="copy-result" title="Copy the converted result">Result</button>
+                </div>
+
+                <div class="conversion-summary" id="conversionStatus" aria-live="polite">
+                    <span class="summary-dot" aria-hidden="true"></span>
+                    <strong id="conversionEquation">1 meter = 0.001 kilometer</strong>
+                    <span id="conversionPrecision">High precision</span>
+                </div>
+
+                <div class="formula-panel" aria-live="polite">
+                    <div class="subheading compact-header">
+                        <div>
+                            <p class="eyebrow">How the math works</p>
+                            <h2>Formula guide</h2>
+                        </div>
+                    </div>
+                    <div class="formula-box">
+                        <code id="formulaDisplay">1 × (1 ÷ 1000) = 0.001</code>
+                        <p id="formulaExplanation">Both units are measured against the same base. A kilometer is 1000 times larger than a meter, so 1 meter becomes 0.001 kilometer.</p>
+                    </div>
+                </div>
+
+                <section class="quick-reference" aria-labelledby="quickTitle">
+                    <div class="subheading">
+                        <div>
+                            <p class="eyebrow">At a glance</p>
+                            <h2 id="quickTitle">Quick reference</h2>
+                        </div>
+                        <span id="referenceLabel">Based on 1 meter</span>
+                    </div>
+                    <div class="reference-grid" id="referenceGrid"></div>
+                </section>
+            </section>
+
+            <!-- ============================================================
+                 2. SCIENTIFIC CALCULATOR STUDIO PANEL
+                 ============================================================ -->
+            <section class="tool-panel" id="calculatorPanel" data-panel="calculator" aria-labelledby="calculatorTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Scientific workspace</p>
+                        <h1 id="calculatorTitle">Calculate with confidence.</h1>
+                        <p>Full trigonometry, powers, memory registers, physical constants bar, and tactile sound.</p>
+                    </div>
+                    <div class="angle-toggle" aria-label="Angle mode">
+                        <button class="active" type="button" data-angle="deg">DEG</button>
+                        <button type="button" data-angle="rad">RAD</button>
+                    </div>
+                </div>
+
+                <!-- Constants Quick Insert Bar -->
+                <div class="constants-quick-bar" aria-label="Physical Constants">
+                    <span class="constants-bar-label">Constants:</span>
+                    <button type="button" class="const-chip" data-const="pi" title="Pi (3.14159...)">π</button>
+                    <button type="button" class="const-chip" data-const="e" title="Euler's e (2.71828...)">e</button>
+                    <button type="button" class="const-chip" data-const="299792458" title="Speed of Light c (m/s)">c</button>
+                    <button type="button" class="const-chip" data-const="6.626e-34" title="Planck constant h">h</button>
+                    <button type="button" class="const-chip" data-const="6.674e-11" title="Gravitational constant G">G</button>
+                    <button type="button" class="const-chip" data-const="1.381e-23" title="Boltzmann constant kB">kB</button>
+                    <button type="button" class="const-chip" data-const="6.022e23" title="Avogadro constant NA">NA</button>
+                    <button type="button" class="const-chip" data-const="9.80665" title="Standard Gravity g">g</button>
+                </div>
+
+                <div class="calculator-card">
+                    <div class="calculator-display">
+                        <div class="calc-top-row">
+                            <span class="calc-memory-indicator" id="calcMemoryIndicator" title="Memory register">M = 0</span>
+                            <div class="expression" id="expressionDisplay" aria-label="Current expression">0</div>
+                        </div>
+                        <div class="calculation-result" id="calculationResult" aria-live="polite">0</div>
+                    </div>
+                    <div class="keypad" id="keypad">
+                        <!-- Row 0: Apple Memory Register Row -->
+                        <button class="key memory-key" type="button" data-action="memory-clear" title="Memory Clear">mc</button>
+                        <button class="key memory-key" type="button" data-action="memory-add" title="Memory Add">m+</button>
+                        <button class="key memory-key" type="button" data-action="memory-subtract" title="Memory Subtract">m−</button>
+                        <button class="key memory-key" type="button" data-action="memory-recall" title="Memory Recall">mr</button>
+                        <button class="key danger-key" type="button" data-action="clear">AC</button>
+
+                        <button class="key function-key" type="button" data-key="sin(">sin</button>
+                        <button class="key function-key" type="button" data-key="cos(">cos</button>
+                        <button class="key function-key" type="button" data-key="tan(">tan</button>
+                        <button class="key function-key" type="button" data-key="sqrt(">√</button>
+                        <button class="key function-key" type="button" data-action="backspace">⌫</button>
+
+                        <button class="key function-key" type="button" data-key="ln(">ln</button>
+                        <button class="key function-key" type="button" data-key="log(">log</button>
+                        <button class="key function-key" type="button" data-key="pi">π</button>
+                        <button class="key function-key" type="button" data-key="e">e</button>
+                        <button class="key operator-key" type="button" data-key="/">÷</button>
+
+                        <button class="key" type="button" data-key="7">7</button>
+                        <button class="key" type="button" data-key="8">8</button>
+                        <button class="key" type="button" data-key="9">9</button>
+                        <button class="key function-key" type="button" data-key="(">(</button>
+                        <button class="key operator-key" type="button" data-key="*">×</button>
+
+                        <button class="key" type="button" data-key="4">4</button>
+                        <button class="key" type="button" data-key="5">5</button>
+                        <button class="key" type="button" data-key="6">6</button>
+                        <button class="key function-key" type="button" data-key=")">)</button>
+                        <button class="key operator-key" type="button" data-key="-">−</button>
+
+                        <button class="key" type="button" data-key="1">1</button>
+                        <button class="key" type="button" data-key="2">2</button>
+                        <button class="key" type="button" data-key="3">3</button>
+                        <button class="key function-key" type="button" data-key="^">xʸ</button>
+                        <button class="key operator-key" type="button" data-key="+">+</button>
+
+                        <button class="key function-key" type="button" data-action="sign">±</button>
+                        <button class="key" type="button" data-key="0">0</button>
+                        <button class="key" type="button" data-key=".">.</button>
+                        <button class="key equals-key" type="button" data-action="equals">=</button>
+                    </div>
+                </div>
+                <p class="keyboard-hint">Keyboard: type numbers, operators (+, -, *, /), Enter to solve, Escape to clear.</p>
+            </section>
+
+            <!-- ============================================================
+                 3. PROGRAMMER & BITWISE LABORATORY PANEL (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="programmerPanel" data-panel="programmer" aria-labelledby="progTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Low-level Computing</p>
+                        <h1 id="progTitle">Programmer &amp; Bitwise Lab.</h1>
+                        <p>64-bit interactive bit-flipper, Hex/Dec/Oct/Bin synchronous conversion, shifts, and endianness.</p>
+                    </div>
+                    <div class="heading-actions">
+                        <button class="ghost-button" id="progClearBtn" type="button">Zero All (0)</button>
+                        <button class="ghost-button" id="progInvertBtn" type="button">Invert (~NOT)</button>
+                    </div>
+                </div>
+
+                <div class="programmer-workspace">
+                    <!-- Word Size & Signed Control -->
+                    <div class="prog-top-controls">
+                        <div class="control-cluster">
+                            <span class="control-label">Word Size:</span>
+                            <div class="segmented-control" id="progWordSize">
+                                <button class="segmented-item active" type="button" data-bits="64">64-bit (QWORD)</button>
+                                <button class="segmented-item" type="button" data-bits="32">32-bit (DWORD)</button>
+                                <button class="segmented-item" type="button" data-bits="16">16-bit (WORD)</button>
+                                <button class="segmented-item" type="button" data-bits="8">8-bit (BYTE)</button>
+                            </div>
+                        </div>
+
+                        <div class="control-cluster">
+                            <span class="control-label">Endianness:</span>
+                            <div class="segmented-control" id="progEndianSelect">
+                                <button class="segmented-item active" type="button" data-endian="little">Little-Endian</button>
+                                <button class="segmented-item" type="button" data-endian="big">Big-Endian</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Synchronized Multi-Base Radix Card -->
+                    <div class="prog-radix-card">
+                        <div class="radix-row" data-radix="hex">
+                            <span class="radix-badge">HEX</span>
+                            <input id="progHexInput" class="radix-input" type="text" value="0x0000000000002A3C" spellcheck="false" autocomplete="off">
+                            <button type="button" class="radix-copy-btn" data-copy-target="progHexInput" title="Copy Hex">Copy</button>
+                        </div>
+                        <div class="radix-row active-radix" data-radix="dec">
+                            <span class="radix-badge">DEC</span>
+                            <input id="progDecInput" class="radix-input" type="text" value="10812" spellcheck="false" autocomplete="off">
+                            <button type="button" class="radix-copy-btn" data-copy-target="progDecInput" title="Copy Dec">Copy</button>
+                        </div>
+                        <div class="radix-row" data-radix="oct">
+                            <span class="radix-badge">OCT</span>
+                            <input id="progOctInput" class="radix-input" type="text" value="0o25074" spellcheck="false" autocomplete="off">
+                            <button type="button" class="radix-copy-btn" data-copy-target="progOctInput" title="Copy Oct">Copy</button>
+                        </div>
+                        <div class="radix-row" data-radix="bin">
+                            <span class="radix-badge">BIN</span>
+                            <input id="progBinInput" class="radix-input" type="text" value="0000000000000000000000000000000000000000000000000010101000111100" spellcheck="false" autocomplete="off">
+                            <button type="button" class="radix-copy-btn" data-copy-target="progBinInput" title="Copy Bin">Copy</button>
+                        </div>
+                        <div class="radix-row" data-radix="char">
+                            <span class="radix-badge">CHAR</span>
+                            <input id="progCharInput" class="radix-input" type="text" value="'<' (60 / 0x3C)" spellcheck="false" autocomplete="off" placeholder="Type a character e.g. A, €, 7">
+                            <button type="button" class="radix-copy-btn" data-copy-target="progCharInput" title="Copy Char">Copy</button>
+                        </div>
+                    </div>
+
+                    <!-- 64-BIT INTERACTIVE BIT-FLIPPER GRID -->
+                    <div class="bit-flipper-card">
+                        <div class="bit-flipper-header">
+                            <div>
+                                <span class="eyebrow">Interactive Bit Matrix</span>
+                                <h2>64-Bit Tactile Flipper</h2>
+                            </div>
+                            <span class="ascii-preview" id="progAsciiPreview">ASCII: <strong id="asciiCharDisplay">'.'</strong></span>
+                        </div>
+
+                        <div class="bit-matrix-grid" id="bitMatrixGrid">
+                            <!-- 64 Interactive Bits dynamically rendered with byte boundaries -->
+                        </div>
+                    </div>
+
+                    <!-- Bitwise Operations & Shifts Bar -->
+                    <div class="prog-ops-bar">
+                        <div class="ops-cluster">
+                            <span class="control-label">Bitwise:</span>
+                            <button class="utility-button" id="bitOpAnd" type="button">AND (&amp;)</button>
+                            <button class="utility-button" id="bitOpOr" type="button">OR (|)</button>
+                            <button class="utility-button" id="bitOpXor" type="button">XOR (^)</button>
+                            <button class="utility-button" id="bitOpNot" type="button">NOT (~)</button>
+                        </div>
+                        <div class="ops-cluster">
+                            <span class="control-label">Shifts:</span>
+                            <button class="utility-button" id="bitShiftLeft" type="button">&lt;&lt; 1 (LSH)</button>
+                            <button class="utility-button" id="bitShiftRight" type="button">&gt;&gt; 1 (RSH)</button>
+                            <button class="utility-button" id="bitRotateLeft" type="button">&lt;&lt;&lt; ROL</button>
+                            <button class="utility-button" id="bitRotateRight" type="button">&gt;&gt;&gt; ROR</button>
+                            <button class="utility-button" id="bitByteSwap" type="button">Swap Bytes</button>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Bitwise Operator HUD -->
+                    <div class="prog-op-hud" id="progOpHud" hidden>
+                        <div class="prog-op-hud-header">
+                            <div class="prog-op-hud-title-wrap">
+                                <span class="prog-op-badge" id="progOpBadge">AND (&amp;)</span>
+                                <span class="prog-op-subtext" id="progOpPrompt">Enter operand/mask to apply to current value:</span>
+                            </div>
+                            <button class="prog-op-close" id="progCancelOpBtn" type="button" title="Close / Cancel">✕</button>
+                        </div>
+                        <div class="prog-op-hud-body">
+                            <div class="prog-op-input-group">
+                                <input type="text" id="progOperandInput" class="prog-op-input" placeholder="e.g. 0xFF, 255, 0b11110000" autocomplete="off" spellcheck="false">
+                                <button class="primary-button prog-op-apply" id="progApplyOpBtn" type="button">Apply (=)</button>
+                            </div>
+                            <div class="prog-quick-masks">
+                                <span class="quick-masks-label">Quick Presets:</span>
+                                <button type="button" class="mask-chip" data-mask="0xFF">0xFF (8-bit)</button>
+                                <button type="button" class="mask-chip" data-mask="0xFFFF">0xFFFF (16-bit)</button>
+                                <button type="button" class="mask-chip" data-mask="0xFFFFFFFF">0xFFFFFFFF (32-bit)</button>
+                                <button type="button" class="mask-chip" data-mask="0xAA">0xAA (10101010)</button>
+                                <button type="button" class="mask-chip" data-mask="0x55">0x55 (01010101)</button>
+                                <button type="button" class="mask-chip" data-mask="0x0F">0x0F (Nibble)</button>
+                                <button type="button" class="mask-chip" data-mask="0x80">0x80 (MSB 8)</button>
+                                <button type="button" class="mask-chip" data-mask="0x01">0x01 (Bit 0)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 1. LIVE ALU METRICS & BIT-TWIDDLING HACKS CARD -->
+                    <div class="prog-card prog-diagnostics-card">
+                        <div class="prog-card-header">
+                            <div>
+                                <span class="eyebrow">ALU Diagnostics &amp; Bit Hacks</span>
+                                <h3>Bit-Twiddling &amp; Parity Analysis</h3>
+                            </div>
+                            <span class="badge-subtle" id="progParityBadge">Even Parity</span>
+                        </div>
+                        <div class="alu-metrics-grid">
+                            <div class="alu-metric-item">
+                                <span class="alu-metric-label">Popcount (Set Bits)</span>
+                                <strong class="alu-metric-value" id="aluPopcount">0</strong>
+                            </div>
+                            <div class="alu-metric-item">
+                                <span class="alu-metric-label">Leading Zeros (CLZ)</span>
+                                <strong class="alu-metric-value" id="aluClz">64</strong>
+                            </div>
+                            <div class="alu-metric-item">
+                                <span class="alu-metric-label">Trailing Zeros (CTZ)</span>
+                                <strong class="alu-metric-value" id="aluCtz">0</strong>
+                            </div>
+                            <div class="alu-metric-item">
+                                <span class="alu-metric-label">Power of 2?</span>
+                                <strong class="alu-metric-value" id="aluPow2">No</strong>
+                            </div>
+                            <div class="alu-metric-item">
+                                <span class="alu-metric-label">Signed (2's Comp)</span>
+                                <strong class="alu-metric-value" id="aluSignedDec">0</strong>
+                            </div>
+                            <div class="alu-metric-item">
+                                <span class="alu-metric-label">1's Complement</span>
+                                <strong class="alu-metric-value" id="aluOnesComp">0x...</strong>
+                            </div>
+                        </div>
+                        <div class="twiddling-hacks-bar">
+                            <span class="quick-masks-label">Bit Twiddling:</span>
+                            <button type="button" class="utility-button" id="hackIsolateLowest" title="x &amp; (-x)">Isolate Lowest Bit</button>
+                            <button type="button" class="utility-button" id="hackClearLowest" title="x &amp; (x - 1)">Clear Lowest Bit</button>
+                            <button type="button" class="utility-button" id="hackReverseBits" title="Mirror bits">Reverse Bits</button>
+                            <button type="button" class="utility-button" id="hackGrayCode" title="x ^ (x &gt;&gt; 1)">To Gray Code</button>
+                            <button type="button" class="utility-button" id="hackNextPow2" title="Round up to power of 2">Next 2ⁿ</button>
+                        </div>
+                    </div>
+
+                    <!-- 2. IEEE-754 FLOATING POINT DISSECTOR CARD -->
+                    <div class="prog-card prog-float-card">
+                        <div class="prog-card-header">
+                            <div>
+                                <span class="eyebrow">Low-Level Dissector</span>
+                                <h3>IEEE-754 Floating-Point Breakdown</h3>
+                            </div>
+                            <div class="segmented-control" id="floatPrecisionSelect">
+                                <button type="button" class="segmented-item active" data-prec="32">Float32 (Single)</button>
+                                <button type="button" class="segmented-item" data-prec="64">Float64 (Double)</button>
+                            </div>
+                        </div>
+                        <div class="float-dissector-body">
+                            <div class="float-visual-strip" id="floatVisualStrip">
+                                <div class="float-segment float-sign-seg" title="Sign Bit">
+                                    <span class="float-seg-title">SIGN (1b)</span>
+                                    <strong class="float-seg-val" id="floatSignBit">0 (+)</strong>
+                                </div>
+                                <div class="float-segment float-exp-seg" title="Exponent Bits">
+                                    <span class="float-seg-title" id="floatExpTitle">EXPONENT (8b)</span>
+                                    <strong class="float-seg-val" id="floatExpBits">00000000</strong>
+                                    <span class="float-seg-sub" id="floatExpCalc">e = 0 (bias 127)</span>
+                                </div>
+                                <div class="float-segment float-mantissa-seg" title="Mantissa / Fraction Bits">
+                                    <span class="float-seg-title" id="floatMantTitle">MANTISSA / FRACTION (23b)</span>
+                                    <strong class="float-seg-val" id="floatMantBits">00000000000000000000000</strong>
+                                    <span class="float-seg-sub" id="floatMantCalc">1.000000</span>
+                                </div>
+                            </div>
+                            <div class="float-eval-row">
+                                <div class="float-input-wrap">
+                                    <label for="floatDecimalInput">Float Decimal Input:</label>
+                                    <input type="text" id="floatDecimalInput" class="float-dec-input" placeholder="e.g. 3.14159, -0.05, 1e-4" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="float-eval-result">
+                                    <span class="control-label">Interpreted Value:</span>
+                                    <strong class="float-eval-value" id="floatEvalDisplay">+0.0</strong>
+                                    <span class="float-status-badge" id="floatStatusBadge">Zero</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. NETWORK IPV4 & COLOR & CHECKSUM INSPECTOR GRID -->
+                    <div class="prog-inspectors-grid">
+                        <!-- IPv4 Subnet Calculator -->
+                        <div class="prog-card prog-subcard">
+                            <div class="prog-card-header">
+                                <div>
+                                    <span class="eyebrow">Networking</span>
+                                    <h4>IPv4 &amp; Subnet Dissector</h4>
+                                </div>
+                                <span class="badge-subtle" id="ipv4ClassBadge">Class A</span>
+                            </div>
+                            <div class="subnet-fields-list">
+                                <div class="subnet-row">
+                                    <span>IP Address:</span>
+                                    <input type="text" id="ipDottedDisplay" class="subnet-ip-input" value="0.0.42.60" placeholder="192.168.1.1" autocomplete="off" spellcheck="false" title="Type any IPv4 address">
+                                </div>
+                                <div class="subnet-row">
+                                    <span>CIDR Prefix:</span>
+                                    <div class="cidr-stepper">
+                                        <input type="range" id="cidrRange" min="0" max="32" value="24" class="cidr-slider">
+                                        <strong id="cidrLabel">/24</strong>
+                                    </div>
+                                </div>
+                                <div class="subnet-row">
+                                    <span>Subnet Mask:</span>
+                                    <strong id="ipSubnetMask">255.255.255.0</strong>
+                                </div>
+                                <div class="subnet-row">
+                                    <span>Network ID:</span>
+                                    <strong id="ipNetworkId">0.0.42.0</strong>
+                                </div>
+                                <div class="subnet-row">
+                                    <span>Broadcast IP:</span>
+                                    <strong id="ipBroadcast">0.0.42.255</strong>
+                                </div>
+                                <div class="subnet-row">
+                                    <span>Usable Range:</span>
+                                    <strong id="ipHostRange">0.0.42.1 - 0.0.42.254</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RGBA Color & Hash Signatures -->
+                        <div class="prog-card prog-subcard">
+                            <div class="prog-card-header">
+                                <div>
+                                    <span class="eyebrow">Visual &amp; Hashing</span>
+                                    <h4>Color &amp; Checksums</h4>
+                                </div>
+                                <label class="color-swatch-label" title="Click to choose a color">
+                                    <input type="color" id="colorPickerInput" value="#002A3C" class="color-picker-hidden">
+                                    <div class="color-swatch-pill" id="colorSwatchPill" style="background-color: #002A3C;"></div>
+                                </label>
+                            </div>
+                            <div class="color-inspect-body">
+                                <div class="color-channels-grid">
+                                    <div class="channel-box"><span class="ch-name">R</span><input type="number" min="0" max="255" id="colorChanR" class="channel-input" value="0" title="Red (0-255)"></div>
+                                    <div class="channel-box"><span class="ch-name">G</span><input type="number" min="0" max="255" id="colorChanG" class="channel-input" value="42" title="Green (0-255)"></div>
+                                    <div class="channel-box"><span class="ch-name">B</span><input type="number" min="0" max="255" id="colorChanB" class="channel-input" value="60" title="Blue (0-255)"></div>
+                                    <div class="channel-box"><span class="ch-name">A</span><input type="number" min="0" max="255" id="colorChanA" class="channel-input" value="255" title="Alpha (0-255)"></div>
+                                </div>
+                                <div class="color-codes-list">
+                                    <div class="color-code-item">
+                                        <span>CSS:</span>
+                                        <code id="colorCssDisplay">rgb(0, 42, 60)</code>
+                                        <button type="button" class="copy-tiny-btn" id="copyCssColor">Copy</button>
+                                    </div>
+                                    <div class="color-code-item">
+                                        <span>CRC-32:</span>
+                                        <code id="hashCrc32">0x4B3A8912</code>
+                                        <button type="button" class="copy-tiny-btn" id="copyCrc32">Copy</button>
+                                    </div>
+                                    <div class="color-code-item">
+                                        <span>Adler-32:</span>
+                                        <code id="hashAdler32">0x00A30067</code>
+                                        <button type="button" class="copy-tiny-btn" id="copyAdler32">Copy</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. MULTI-LANGUAGE CODE GENERATOR (INCLUDING V / VLANG) -->
+                    <div class="prog-card prog-codegen-card">
+                        <div class="prog-card-header">
+                            <div>
+                                <span class="eyebrow">Export Code Snippets</span>
+                                <h3>Multi-Language Declarations</h3>
+                            </div>
+                            <button type="button" class="primary-button" id="copySnippetBtn">📋 Copy Snippet</button>
+                        </div>
+                        <div class="codegen-langs-tabs" id="codegenLangsTabs">
+                            <button type="button" class="lang-tab active" data-lang="vlang">V (Vlang)</button>
+                            <button type="button" class="lang-tab" data-lang="c">C / C++</button>
+                            <button type="button" class="lang-tab" data-lang="rust">Rust</button>
+                            <button type="button" class="lang-tab" data-lang="go">Go</button>
+                            <button type="button" class="lang-tab" data-lang="python">Python</button>
+                            <button type="button" class="lang-tab" data-lang="typescript">TypeScript</button>
+                            <button type="button" class="lang-tab" data-lang="asm">Assembly (x86_64)</button>
+                            <button type="button" class="lang-tab" data-lang="verilog">Verilog</button>
+                        </div>
+                        <div class="codegen-code-box">
+                            <pre><code id="codegenDisplay" class="codegen-code">const mask = u64(0x0000000000002A3C)</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 4. GRAPHIC CHARTS & TIME-SERIES STUDIO PANEL (BEAST MODE)
+                 ============================================================ -->
+            <section class="tool-panel" id="chartsPanel" data-panel="charts" aria-labelledby="chartsTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Apple Visual Analytics &amp; Forecasting</p>
+                        <h1 id="chartsTitle">Graphic Charts &amp; Data Studio.</h1>
+                        <p>Time-series arrays of days, JSON visualizer, forecasting moving averages, and linear regression.</p>
+                    </div>
+                    <div class="heading-actions">
+                        <button class="ghost-button" id="loadChartSample" type="button">Cycle Sample</button>
+                        <button class="ghost-button" id="exportChartPng" type="button">Export PNG</button>
+                        <button class="ghost-button" id="exportChartCsv" type="button">Export CSV</button>
+                    </div>
+                </div>
+
+                <div class="charts-workspace">
+                    <!-- Segmented Controls Bar -->
+                    <div class="charts-controls-bar">
+                        <div class="control-cluster">
+                            <span class="control-label">Preset:</span>
+                            <div class="segmented-control" id="chartPresetSelect" role="tablist" aria-label="Data presets">
+                                <button class="segmented-item active" type="button" data-preset="7days">7 Days</button>
+                                <button class="segmented-item" type="button" data-preset="30days">30 Days</button>
+                                <button class="segmented-item" type="button" data-preset="90days">90 Days</button>
+                                <button class="segmented-item" type="button" data-preset="custom">Custom JSON</button>
+                            </div>
+                        </div>
+
+                        <div class="control-cluster">
+                            <span class="control-label">Type:</span>
+                            <div class="segmented-control" id="chartTypeSelect" role="tablist" aria-label="Chart types">
+                                <button class="segmented-item active" type="button" data-chart-type="area">Area Spline</button>
+                                <button class="segmented-item" type="button" data-chart-type="bar">Pill Bars</button>
+                                <button class="segmented-item" type="button" data-chart-type="ring">Activity Ring</button>
+                                <button class="segmented-item" type="button" data-chart-type="stepped">Stepped</button>
+                            </div>
+                        </div>
+
+                        <div class="control-cluster">
+                            <span class="control-label">Color:</span>
+                            <div class="chart-theme-picker" aria-label="Chart accent palette">
+                                <button class="theme-dot active" type="button" data-palette="green" title="Apple Mint (#30d158)"></button>
+                                <button class="theme-dot" type="button" data-palette="blue" title="Electric Blue (#0071e3)"></button>
+                                <button class="theme-dot" type="button" data-palette="orange" title="Fitness Orange (#ff9f0a)"></button>
+                                <button class="theme-dot" type="button" data-palette="purple" title="Siri Purple (#bf5af2)"></button>
+                            </div>
+                        </div>
+
+                        <!-- Data Science & Forecasting Toggles -->
+                        <div class="control-cluster">
+                            <span class="control-label">Analytics:</span>
+                            <label class="toggle-chip" title="7-day moving average overlay">
+                                <input type="checkbox" id="toggleMovingAvg">
+                                <span>7d EMA</span>
+                            </label>
+                            <label class="toggle-chip" title="Linear trendline projection">
+                                <input type="checkbox" id="toggleTrendline">
+                                <span>Trendline</span>
+                            </label>
+                        </div>
+
+                        <!-- Statistical Regression Model Fit -->
+                        <div class="control-cluster">
+                            <span class="control-label">Regression:</span>
+                            <select id="chartRegressionModel" class="chart-mini-select" aria-label="Regression model fit" title="Statistical Regression Fit">
+                                <option value="none">No Fit</option>
+                                <option value="linear">Linear (y = mx + b)</option>
+                                <option value="exponential">Exponential (y = a·eᵇˣ)</option>
+                                <option value="quadratic">Polynomial 2° (ax²+bx+c)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Main Apple Chart Canvas Stage with Floating Tooltip Scrubber -->
+                    <div class="chart-stage-card" id="chartStage">
+                        <div class="chart-stage-header">
+                            <div>
+                                <span class="chart-eyebrow" id="hudCategoryTag">HEALTH &amp; ACTIVITY</span>
+                                <h2 class="chart-main-title" id="hudChartTitle">7-Day Step Count &amp; Physical Activity</h2>
+                            </div>
+                            <div class="chart-stat-pill">
+                                <span class="pill-number" id="hudHighlightValue">11,240 <small>avg/day</small></span>
+                                <span class="pill-badge positive" id="hudTrendBadge">▲ +14.2% trend</span>
+                            </div>
+                        </div>
+
+                        <div class="canvas-relative-container">
+                            <canvas id="dataChartCanvas" width="1000" height="420" aria-label="Interactive graphic chart"></canvas>
+                            <!-- Apple Floating Glass Tooltip -->
+                            <div class="apple-chart-tooltip" id="appleChartTooltip" hidden>
+                                <div class="tt-header" id="ttDayLabel">Wednesday, Oct 15</div>
+                                <div class="tt-body">
+                                    <div class="tt-main-val" id="ttMainVal">12,850</div>
+                                    <div class="tt-delta positive" id="ttDeltaVal">▲ +18.4% vs prev</div>
+                                </div>
+                                <div class="tt-footer" id="ttAvgDiff">+14% above 7-day average</div>
+                            </div>
+                        </div>
+
+                        <!-- Regression Equation & R² HUD -->
+                        <div class="regression-hud-row" id="regressionHudRow" hidden>
+                            <div class="reg-pill"><strong>Model:</strong> <span id="hudRegModelName">Linear</span></div>
+                            <div class="reg-pill"><strong>Formula:</strong> <span id="hudRegEquation">y = 142.3x + 9,800</span></div>
+                            <div class="reg-pill"><strong>Goodness of Fit R²:</strong> <span id="hudRegR2">0.942</span></div>
+                        </div>
+
+                        <div class="chart-scrubber-footer">
+                            <span class="scrubber-legend-dot"></span>
+                            <span id="hudScrubberHint">Hover or scrub across chart to inspect daily data points</span>
+                        </div>
+                    </div>
+
+                    <!-- Bento Metrics Grid (Apple Health / Stocks Style) -->
+                    <div class="bento-grid">
+                        <div class="bento-card">
+                            <div class="bento-header">
+                                <span class="bento-icon">📊</span>
+                                <span class="bento-label">Daily Average</span>
+                            </div>
+                            <div class="bento-val" id="bentoAvg">--</div>
+                            <span class="bento-sub" id="bentoAvgSub">Mean across days</span>
+                        </div>
+                        <div class="bento-card">
+                            <div class="bento-header">
+                                <span class="bento-icon">∑</span>
+                                <span class="bento-label">Total Sum</span>
+                            </div>
+                            <div class="bento-val" id="bentoTotal">--</div>
+                            <span class="bento-sub" id="bentoTotalSub">Cumulative volume</span>
+                        </div>
+                        <div class="bento-card">
+                            <div class="bento-header">
+                                <span class="bento-icon">▲</span>
+                                <span class="bento-label">Peak Day</span>
+                            </div>
+                            <div class="bento-val" id="bentoMax">--</div>
+                            <span class="bento-sub" id="bentoMaxSub">Highest recorded</span>
+                        </div>
+                        <div class="bento-card">
+                            <div class="bento-header">
+                                <span class="bento-icon">▼</span>
+                                <span class="bento-label">Lowest Day</span>
+                            </div>
+                            <div class="bento-val" id="bentoMin">--</div>
+                            <span class="bento-sub" id="bentoMinSub">Minimum recorded</span>
+                        </div>
+                        <div class="bento-card">
+                            <div class="bento-header">
+                                <span class="bento-icon">⚡</span>
+                                <span class="bento-label">Momentum</span>
+                            </div>
+                            <div class="bento-val" id="bentoTrend">--</div>
+                            <span class="bento-sub" id="bentoTrendSub">First to last day</span>
+                        </div>
+                        <div class="bento-card">
+                            <div class="bento-header">
+                                <span class="bento-icon">σ</span>
+                                <span class="bento-label">Std Deviation</span>
+                            </div>
+                            <div class="bento-val" id="bentoStdDev">--</div>
+                            <span class="bento-sub" id="bentoStdDevSub">Dataset variance</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Data Studio: Days Table & Raw JSON Editor -->
+                    <div class="data-studio-card">
+                        <div class="studio-header">
+                            <div class="segmented-control small" id="dataTabToggle">
+                                <button class="segmented-item active" type="button" data-studio-tab="table">Interactive Days Table</button>
+                                <button class="segmented-item" type="button" data-studio-tab="json">Raw JSON &amp; Days Array</button>
+                            </div>
+                            <div class="studio-actions">
+                                <button class="ghost-button small" id="generateRandomDataBtn" type="button">🎲 Randomize</button>
+                                <button class="ghost-button small" id="formatJsonBtn" type="button">Format JSON</button>
+                                <button class="ghost-button small" id="addDayRowBtn" type="button">+ Add Day</button>
+                                <button class="ghost-button small" id="clearDataBtn" type="button">Reset</button>
+                            </div>
+                        </div>
+
+                        <!-- Tab 1: Interactive Table -->
+                        <div class="studio-tab-content active" id="tabDaysTable">
+                            <div class="days-table-wrap">
+                                <table class="days-table" id="daysDataTable">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Day / Date</th>
+                                            <th>Value</th>
+                                            <th>Visual Share</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="daysTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Raw JSON Editor -->
+                        <div class="studio-tab-content" id="tabRawJson" hidden>
+                            <div class="json-editor-wrap">
+                                <textarea id="rawJsonInput" class="code-textarea" rows="8" spellcheck="false" placeholder='[{"day": "Mon", "value": 8420}, {"day": "Tue", "value": 10540}, ...]'></textarea>
+                                <div class="json-status-bar">
+                                    <span class="json-validation-badge" id="jsonValidationBadge">✓ Valid JSON dataset</span>
+                                    <span class="json-points-count" id="jsonPointsCount">7 points</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 5. CALCULUS & EQUATION ANALYSIS STUDIO (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="calculusPanel" data-panel="calculus" aria-labelledby="calcStudioTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Calculus &amp; Mathematical Analysis</p>
+                        <h1 id="calcStudioTitle">Calculus &amp; Equation Studio.</h1>
+                        <p>Numerical derivatives, Simpson's definite integrals with shaded area canvas, and Newton-Raphson root solver.</p>
+                    </div>
+                </div>
+
+                <div class="calculus-grid">
+                    <!-- Main Calculus Canvas with Shaded Integral -->
+                    <div class="advanced-card calculus-canvas-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Function &amp; Integral Visualizer</p>
+                                <h2>f(x) &amp; Shaded Area ∫ f(x) dx</h2>
+                            </div>
+                            <div class="graph-zoom-controls">
+                                <button type="button" class="zoom-btn" id="calcZoomIn" title="Zoom in">+</button>
+                                <button type="button" class="zoom-btn" id="calcZoomOut" title="Zoom out">−</button>
+                                <button type="button" class="zoom-btn" id="calcResetZoom" title="Reset view">⟲</button>
+                            </div>
+                        </div>
+
+                        <div class="graph-mode-selector-wrap">
+                            <div class="segmented-control" id="graphModeSelect" role="tablist" aria-label="Graphing mode">
+                                <button class="segmented-item active" type="button" data-gmode="cartesian">Cartesian f(x)</button>
+                                <button class="segmented-item" type="button" data-gmode="dual">Dual f(x) &amp; g(x)</button>
+                                <button class="segmented-item" type="button" data-gmode="polar">Polar r(θ)</button>
+                                <button class="segmented-item" type="button" data-gmode="parametric">Parametric [x(t), y(t)]</button>
+                            </div>
+                        </div>
+
+                        <!-- Cartesian Controls -->
+                        <div class="graph-controls-cluster" id="ctrlCartesian">
+                            <div class="graph-controls">
+                                <label for="calcEqnInput">f(x) =</label>
+                                <input id="calcEqnInput" type="text" value="x^3 - 3*x" spellcheck="false" aria-label="Calculus equation">
+                                <button type="button" id="calcPlotBtn" class="ghost-button">Analyze</button>
+                            </div>
+                            <div class="equation-presets" id="calcPresets">
+                                <button type="button" class="preset-chip active" data-calceqn="x^3 - 3*x">x³ − 3x</button>
+                                <button type="button" class="preset-chip" data-calceqn="sin(x)*cos(x)">sin(x)cos(x)</button>
+                                <button type="button" class="preset-chip" data-calceqn="e^(-x^2)">e^(−x²)</button>
+                                <button type="button" class="preset-chip" data-calceqn="1/(1+x^2)">1/(1+x²)</button>
+                                <button type="button" class="preset-chip" data-calceqn="x^2 - 4">x² − 4</button>
+                                <button type="button" class="preset-chip" data-calceqn="sqrt(4 - x^2)">√(4 − x²)</button>
+                            </div>
+                        </div>
+
+                        <!-- Dual Function Controls -->
+                        <div class="graph-controls-cluster" id="ctrlDual" hidden>
+                            <div class="graph-controls">
+                                <label for="calcEqnInputG" style="color: var(--apple-orange);">g(x) =</label>
+                                <input id="calcEqnInputG" type="text" value="2*x - 1" spellcheck="false" aria-label="Secondary equation">
+                                <button type="button" id="calcIntersectBtn" class="ghost-button">Find Intersections</button>
+                            </div>
+                            <div class="utility-output secondary-output" id="dualIntersectsResult" style="margin-top: 6px;">Intersections: x ≈ −1.88, 0.35, 1.53</div>
+                        </div>
+
+                        <!-- Polar Controls -->
+                        <div class="graph-controls-cluster" id="ctrlPolar" hidden>
+                            <div class="graph-controls">
+                                <label for="calcEqnInputPolar">r(θ) =</label>
+                                <input id="calcEqnInputPolar" type="text" value="1 - cos(theta)" spellcheck="false" aria-label="Polar equation">
+                                <button type="button" id="calcPolarPlotBtn" class="ghost-button">Plot Polar</button>
+                            </div>
+                            <div class="equation-presets" id="polarPresets">
+                                <button type="button" class="preset-chip active" data-polareqn="1 - cos(theta)">Cardioid: 1 − cos(θ)</button>
+                                <button type="button" class="preset-chip" data-polareqn="sin(2*theta)">4-Leaf Rose: sin(2θ)</button>
+                                <button type="button" class="preset-chip" data-polareqn="0.3*theta">Spiral: 0.3θ</button>
+                                <button type="button" class="preset-chip" data-polareqn="cos(3*theta)">3-Leaf Rose: cos(3θ)</button>
+                            </div>
+                        </div>
+
+                        <!-- Parametric Controls -->
+                        <div class="graph-controls-cluster" id="ctrlParametric" hidden>
+                            <div class="graph-controls">
+                                <label for="calcParamX">x(t) =</label>
+                                <input id="calcParamX" type="text" value="cos(3*t)" spellcheck="false" style="max-width: 140px;">
+                                <label for="calcParamY">y(t) =</label>
+                                <input id="calcParamY" type="text" value="sin(2*t)" spellcheck="false" style="max-width: 140px;">
+                                <button type="button" id="calcParamPlotBtn" class="ghost-button">Plot Parametric</button>
+                            </div>
+                            <div class="equation-presets" id="paramPresets">
+                                <button type="button" class="preset-chip active" data-paramx="cos(3*t)" data-paramy="sin(2*t)">Lissajous: 3:2</button>
+                                <button type="button" class="preset-chip" data-paramx="cos(t)^3" data-paramy="sin(t)^3">Astroid</button>
+                                <button type="button" class="preset-chip" data-paramx="16*sin(t)^3" data-paramy="13*cos(t)-5*cos(2*t)-2*cos(3*t)">Heart</button>
+                            </div>
+                        </div>
+
+                        <div class="canvas-relative-container">
+                            <canvas id="calculusCanvas" width="900" height="400" aria-label="Calculus graph"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Definite Integral Solver -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Integration</p>
+                                <h2>Definite Integral ∫ [a, b]</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="integralA">Lower limit (a)</label>
+                                <input id="integralA" type="number" value="-1" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="integralB">Upper limit (b)</label>
+                                <input id="integralB" type="number" value="2" step="0.1">
+                            </div>
+                            <button id="calcIntegralBtn" class="utility-button" type="button">Compute Integral</button>
+                        </div>
+                        <div class="utility-output" id="integralResult">∫ f(x)dx = 0.7500</div>
+                        <div class="utility-output secondary-output" id="integralSub">Simpson's 1/3 Rule (n=1000 subdivisions)</div>
+                    </div>
+
+                    <!-- Numerical Derivative & Tangent Line -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Differentiation</p>
+                                <h2>Derivative f'(x₀) &amp; Tangent</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="derivX0">Point (x₀)</label>
+                                <input id="derivX0" type="number" value="1.5" step="0.1">
+                            </div>
+                            <button id="calcDerivBtn" class="utility-button" type="button">Compute Derivative</button>
+                        </div>
+                        <div class="utility-output" id="derivResult">f'(1.5) = 3.7500 · Slope m = 3.75</div>
+                        <div class="utility-output secondary-output" id="derivTangentLine">Tangent equation: y = 3.75x − 6.75</div>
+                    </div>
+
+                    <!-- Newton-Raphson Root Solver & Extrema -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Roots &amp; Extrema</p>
+                                <h2>Roots &amp; Critical Points</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="rootGuess">Initial guess (x₀)</label>
+                                <input id="rootGuess" type="number" value="1.8" step="0.1">
+                            </div>
+                            <button id="calcRootBtn" class="utility-button" type="button">Find Root</button>
+                        </div>
+                        <div class="utility-output" id="rootResult">Root: x = 1.7321 · f(x) ≈ 0.0000</div>
+                        <div class="utility-output secondary-output" id="extremaResult">Local Min: (1.00, −2.00) · Local Max: (−1.00, 2.00)</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 6. MATRIX & LINEAR ALGEBRA LABORATORY (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="matrixPanel" data-panel="matrix" aria-labelledby="matrixLabTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Linear Algebra</p>
+                        <h1 id="matrixLabTitle">Matrix &amp; Linear Systems Lab.</h1>
+                        <p>Dynamic 2×2, 3×3, 4×4 matrices, determinants, inverses, eigenvalues, and Gaussian elimination Ax = b solver.</p>
+                    </div>
+                    <div class="segmented-control" id="matrixDimSelect">
+                        <button class="segmented-item active" type="button" data-dim="2">2 × 2</button>
+                        <button class="segmented-item" type="button" data-dim="3">3 × 3</button>
+                        <button class="segmented-item" type="button" data-dim="4">4 × 4</button>
+                    </div>
+                </div>
+
+                <div class="matrix-lab-grid">
+                    <!-- Matrix A Input -->
+                    <div class="advanced-card matrix-box-card">
+                        <div class="matrix-box-header">
+                            <h3>Matrix A</h3>
+                            <button class="ghost-button small" id="matrixARandomBtn" type="button">Randomize</button>
+                        </div>
+                        <div class="matrix-grid-input" id="matrixAGrid"></div>
+                    </div>
+
+                    <!-- Matrix B Input -->
+                    <div class="advanced-card matrix-box-card">
+                        <div class="matrix-box-header">
+                            <h3>Matrix B</h3>
+                            <button class="ghost-button small" id="matrixBRandomBtn" type="button">Randomize</button>
+                        </div>
+                        <div class="matrix-grid-input" id="matrixBGrid"></div>
+                    </div>
+                </div>
+
+                <!-- Matrix Operations Bar -->
+                <div class="matrix-actions-bar">
+                    <button class="utility-button" id="matOpAdd" type="button">A + B</button>
+                    <button class="utility-button" id="matOpSub" type="button">A − B</button>
+                    <button class="utility-button" id="matOpMul" type="button">A × B</button>
+                    <button class="utility-button" id="matOpTransposeA" type="button">Transpose (Aᵀ)</button>
+                    <button class="utility-button" id="matOpDetA" type="button">Determinant det(A)</button>
+                    <button class="utility-button" id="matOpInvA" type="button">Inverse (A⁻¹)</button>
+                    <button class="utility-button" id="matOpTraceA" type="button">Trace Tr(A)</button>
+                </div>
+
+                <!-- Matrix Computation Output Result -->
+                <div class="matrix-output-card" id="matrixOutputCard">
+                    <span class="eyebrow">Resulting Matrix / Scalar</span>
+                    <div class="matrix-result-display" id="matrixResultDisplay">
+                        Select an operation above to view the resulting matrix or properties.
+                    </div>
+                </div>
+
+                <!-- Linear Systems Solver Ax = b -->
+                <div class="advanced-card linear-system-card">
+                    <div class="subheading compact-header">
+                        <div>
+                            <p class="eyebrow">Linear Equations Solver</p>
+                            <h2>System Solver: A · x = b</h2>
+                        </div>
+                        <button class="utility-button" id="solveLinearSystemBtn" type="button">Solve for Vector x</button>
+                    </div>
+                    <div class="system-vector-row">
+                        <label for="vectorBInput">Target Vector b (comma-separated):</label>
+                        <input id="vectorBInput" type="text" value="5, 12" placeholder="e.g. 5, 12" class="vector-input-line">
+                    </div>
+                    <div class="utility-output" id="linearSystemResult">Solution: x = [1.40, 2.20]</div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 7. GEOMETRY & TRIGONOMETRY STUDIO (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="geometryPanel" data-panel="geometry" aria-labelledby="geometryTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Geometry &amp; Trigonometry Studio</p>
+                        <h1 id="geometryTitle">Geometry &amp; Triangles.</h1>
+                        <p>Universal triangle solver with real-time canvas visualization, circle sectors, and 3D solid geometry.</p>
+                    </div>
+                </div>
+
+                <div class="geometry-grid">
+                    <!-- Triangle Solver Card with Dynamic Canvas -->
+                    <div class="advanced-card triangle-solver-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Triangles &amp; Trigonometry</p>
+                                <h2>Interactive Triangle Studio</h2>
+                            </div>
+                        </div>
+
+                        <div class="segmented-control" id="triInputModeSelect" role="tablist" style="margin-bottom: 14px;">
+                            <button class="segmented-item active" type="button" data-trimode="sss">3 Sides (SSS)</button>
+                            <button class="segmented-item" type="button" data-trimode="sas">2 Sides + Angle (SAS)</button>
+                            <button class="segmented-item" type="button" data-trimode="asa">2 Angles + Side (ASA)</button>
+                        </div>
+
+                        <div class="utility-grid">
+                            <div class="utility-item" id="triWrapA">
+                                <label for="triInputA" id="triLabelA">Side a</label>
+                                <input id="triInputA" type="number" value="7" step="0.1" min="0.1">
+                            </div>
+                            <div class="utility-item" id="triWrapB">
+                                <label for="triInputB" id="triLabelB">Side b</label>
+                                <input id="triInputB" type="number" value="8" step="0.1" min="0.1">
+                            </div>
+                            <div class="utility-item" id="triWrapC">
+                                <label for="triInputC" id="triLabelC">Side c</label>
+                                <input id="triInputC" type="number" value="9" step="0.1" min="0.1">
+                            </div>
+                        </div>
+
+                        <div class="canvas-relative-container" style="margin: 14px 0;">
+                            <canvas id="triangleCanvas" width="800" height="280" aria-label="Dynamic triangle visualization"></canvas>
+                        </div>
+
+                        <div class="utility-output" id="triangleResult">Area: 26.83 · Perimeter: 24.00 · Inradius r: 2.24</div>
+                        <div class="utility-output secondary-output" id="triangleAnglesResult">Angles: α = 48.19° · β = 58.41° · γ = 73.40° (Circumradius R: 4.69)</div>
+                    </div>
+
+                    <!-- Circle & Arc Geometry Card -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Circles &amp; Arcs</p>
+                                <h2>Circle, Sector &amp; Segment</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="circleRadius">Radius (r)</label>
+                                <input id="circleRadius" type="number" value="10" step="0.5" min="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="circleAngle">Central Angle θ (°)</label>
+                                <input id="circleAngle" type="number" value="60" step="1" min="0.1" max="360">
+                            </div>
+                        </div>
+                        <button id="calculateCircleBtn" class="utility-button" type="button">Compute Circle Properties</button>
+                        <div class="utility-output" id="circleResult">Arc Length: 10.47 · Chord: 10.00 · Sector Area: 52.36</div>
+                        <div class="utility-output secondary-output" id="circleSub">Circle Area: 314.16 · Segment Area: 9.06 · Sagitta: 1.34</div>
+                    </div>
+
+                    <!-- 3D Solids Geometry Card -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Solid Geometry</p>
+                                <h2>3D Solids Volume &amp; Area</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="solidShapeSelect">Solid Shape</label>
+                                <select id="solidShapeSelect">
+                                    <option value="sphere">Sphere</option>
+                                    <option value="cylinder" selected>Cylinder</option>
+                                    <option value="cone">Cone</option>
+                                    <option value="torus">Torus (Donut)</option>
+                                    <option value="box">Rectangular Prism</option>
+                                </select>
+                            </div>
+                            <div class="utility-item" id="solidDim1Wrap">
+                                <label for="solidDim1" id="solidDim1Label">Radius r</label>
+                                <input id="solidDim1" type="number" value="5" step="0.5" min="0.1">
+                            </div>
+                            <div class="utility-item" id="solidDim2Wrap">
+                                <label for="solidDim2" id="solidDim2Label">Height h</label>
+                                <input id="solidDim2" type="number" value="12" step="0.5" min="0.1">
+                            </div>
+                        </div>
+                        <button id="calculateSolidBtn" class="utility-button" type="button">Compute Volume &amp; Area</button>
+                        <div class="utility-output" id="solidResult">Volume V: 942.48 · Total Surface Area: 534.07</div>
+                        <div class="utility-output secondary-output" id="solidSub">Lateral Area: 376.99 · Base Area: 78.54</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 7. WEALTH & FINANCIAL INTELLIGENCE PANEL (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="financePanel" data-panel="finance" aria-labelledby="financeTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Wealth Intelligence &amp; Planning</p>
+                        <h1 id="financeTitle">Wealth &amp; FIRE Planner.</h1>
+                        <p>Retirement nest egg trajectory, paycheck tax breakdown donut, and loan amortization.</p>
+                    </div>
+                </div>
+
+                <div class="finance-grid">
+                    <!-- 401(k) / FIRE Retirement Planner with Canvas Growth -->
+                    <div class="advanced-card retirement-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">FIRE &amp; 401(k)</p>
+                                <h2>Retirement Nest Egg Trajectory</h2>
+                            </div>
+                        </div>
+
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="retCurrentAge">Current age</label>
+                                <input id="retCurrentAge" type="number" value="28" step="1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="retTargetAge">Retirement age</label>
+                                <input id="retTargetAge" type="number" value="60" step="1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="retCurrentSavings">Current savings ($)</label>
+                                <input id="retCurrentSavings" type="number" value="45000" step="1000">
+                            </div>
+                            <div class="utility-item">
+                                <label for="retMonthlySavings">Monthly contribution ($)</label>
+                                <input id="retMonthlySavings" type="number" value="1200" step="50">
+                            </div>
+                            <div class="utility-item">
+                                <label for="retExpectedReturn">Expected return %</label>
+                                <input id="retExpectedReturn" type="number" value="8" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="retAnnualSpend">Retirement spend ($/yr)</label>
+                                <input id="retAnnualSpend" type="number" value="70000" step="1000">
+                            </div>
+                        </div>
+
+                        <div class="canvas-relative-container" style="margin: 16px 0;">
+                            <canvas id="retirementGrowthCanvas" width="900" height="220" aria-label="Retirement trajectory"></canvas>
+                        </div>
+
+                        <div class="utility-output" id="retirementResult">Projected nest egg at age 60: $2,450,890</div>
+                        <div class="utility-output secondary-output" id="fireMilestoneResult">FIRE Target (4% rule): $1,750,000 · Milestone reached at Age 54</div>
+                    </div>
+
+                    <!-- Salary & Paycheck Tax Breakdown -->
+                    <div class="advanced-card paycheck-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Take-Home Pay</p>
+                                <h2>Salary &amp; Tax Breakdown</h2>
+                            </div>
+                        </div>
+
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="grossSalary">Gross annual salary ($)</label>
+                                <input id="grossSalary" type="number" value="115000" step="1000">
+                            </div>
+                            <div class="utility-item">
+                                <label for="stateTaxRate">Estimated state tax %</label>
+                                <input id="stateTaxRate" type="number" value="5" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="preTax401k">Pre-tax 401(k) %</label>
+                                <input id="preTax401k" type="number" value="6" step="0.5">
+                            </div>
+                        </div>
+
+                        <div class="paycheck-donut-wrap">
+                            <canvas id="paycheckDonutCanvas" width="220" height="220" aria-label="Salary breakdown"></canvas>
+                            <div class="paycheck-breakdown-list" id="paycheckBreakdownList"></div>
+                        </div>
+
+                        <div class="utility-output" id="paycheckResult">Net monthly take-home: $6,645.20 ($3,067 bi-weekly)</div>
+                    </div>
+
+                    <!-- Historical US Inflation Time Machine (1913-2026) -->
+                    <div class="advanced-card inflation-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Macroeconomics</p>
+                                <h2>Inflation Time Machine (CPI 1913–2026)</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="inflationAmount">Base amount ($)</label>
+                                <input id="inflationAmount" type="number" value="100" step="10">
+                            </div>
+                            <div class="utility-item">
+                                <label for="inflationYearStart">From year</label>
+                                <input id="inflationYearStart" type="number" value="1980" min="1913" max="2026" step="1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="inflationYearEnd">To year</label>
+                                <input id="inflationYearEnd" type="number" value="2026" min="1913" max="2026" step="1">
+                            </div>
+                        </div>
+                        <button id="calculateInflationBtn" class="utility-button" type="button">Calculate Purchasing Power</button>
+                        <div class="utility-output" id="inflationResult">$100.00 in 1980 has the purchasing power of $392.40 in 2026</div>
+                        <div class="utility-output secondary-output" id="inflationSub">+292.4% cumulative inflation · 3.01% annualized average rate</div>
+                    </div>
+
+                    <!-- Dividend Reinvestment (DRIP) Visualizer -->
+                    <div class="advanced-card drip-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Compounding Cashflow</p>
+                                <h2>Dividend Reinvestment (DRIP)</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="dripInitial">Starting portfolio ($)</label>
+                                <input id="dripInitial" type="number" value="25000" step="1000">
+                            </div>
+                            <div class="utility-item">
+                                <label for="dripAnnualAdd">Annual contribution ($)</label>
+                                <input id="dripAnnualAdd" type="number" value="6000" step="500">
+                            </div>
+                            <div class="utility-item">
+                                <label for="dripYield">Dividend yield %</label>
+                                <input id="dripYield" type="number" value="3.8" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="dripGrowth">Dividend growth rate %</label>
+                                <input id="dripGrowth" type="number" value="6.0" step="0.5">
+                            </div>
+                            <div class="utility-item">
+                                <label for="dripApprec">Capital appreciation %</label>
+                                <input id="dripApprec" type="number" value="4.5" step="0.5">
+                            </div>
+                            <div class="utility-item">
+                                <label for="dripYears">Investment horizon (yrs)</label>
+                                <input id="dripYears" type="number" value="20" step="1">
+                            </div>
+                        </div>
+                        <button id="calculateDripBtn" class="utility-button" type="button">Simulate DRIP Growth</button>
+                        <div class="utility-output" id="dripResult">Final value: $438,200 · Annual dividend income: $19,450/yr</div>
+                        <div class="utility-output secondary-output" id="dripSub">Total invested: $145,000 · Compound gain: $293,200 (66.9% from compounding)</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 8. PHYSICS & ENGINEERING CONSTANTS & SOLVERS (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="physicsPanel" data-panel="physics" aria-labelledby="physicsTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Physics &amp; Engineering</p>
+                        <h1 id="physicsTitle">Physical Constants &amp; Solvers.</h1>
+                        <p>Universal fundamental constants, projectile motion trajectory simulator, Ohm's law, and relativistic dilation.</p>
+                    </div>
+                </div>
+
+                <div class="physics-grid">
+                    <!-- Physical Constants Comprehensive Drawer -->
+                    <div class="advanced-card constants-drawer-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Fundamental Physics</p>
+                                <h2>Universal Constants Table</h2>
+                            </div>
+                        </div>
+                        <div class="constants-table-wrap">
+                            <table class="constants-table">
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Name</th>
+                                        <th>Value</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="constantsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Projectile Motion Simulation Canvas -->
+                    <div class="advanced-card projectile-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Kinematics</p>
+                                <h2>Projectile Trajectory Simulation</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="projVelocity">Launch velocity v₀ (m/s)</label>
+                                <input id="projVelocity" type="number" value="45" step="1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="projAngle">Angle θ (°)</label>
+                                <input id="projAngle" type="number" value="45" step="1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="projHeight">Initial height h₀ (m)</label>
+                                <input id="projHeight" type="number" value="2" step="0.5">
+                            </div>
+                        </div>
+                        <div class="canvas-relative-container" style="margin: 14px 0;">
+                            <canvas id="projectileCanvas" width="600" height="200" aria-label="Projectile trajectory"></canvas>
+                        </div>
+                        <div class="utility-output" id="projectileResult">Max Height: 53.6m · Range: 208.5m · Flight Time: 6.5s</div>
+                    </div>
+
+                    <!-- Ohm's Law & Electrical Power -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Electronics</p>
+                                <h2>Ohm's Law &amp; Power Solver</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="ohmVoltage">Voltage V (Volts)</label>
+                                <input id="ohmVoltage" type="number" value="12" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="ohmCurrent">Current I (Amps)</label>
+                                <input id="ohmCurrent" type="number" value="2.5" step="0.1">
+                            </div>
+                        </div>
+                        <button id="calculateOhmBtn" class="utility-button" type="button">Compute Resistance &amp; Power</button>
+                        <div class="utility-output" id="ohmResult">Resistance R: 4.80 Ω · Power P: 30.00 W</div>
+                    </div>
+
+                    <!-- Relativistic Time Dilation -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Special Relativity</p>
+                                <h2>Time Dilation &amp; Lorentz Factor</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="relVelocity">Velocity as fraction of c (v/c)</label>
+                                <input id="relVelocity" type="number" value="0.95" step="0.01" min="0" max="0.9999">
+                            </div>
+                            <div class="utility-item">
+                                <label for="relTime">Rest time (seconds)</label>
+                                <input id="relTime" type="number" value="1" step="0.1">
+                            </div>
+                        </div>
+                        <button id="calculateRelativityBtn" class="utility-button" type="button">Calculate Dilation</button>
+                        <div class="utility-output" id="relativityResult">Lorentz Factor γ: 3.2026 · Dilated Time: 3.20 s</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 9. ELECTRONICS & CIRCUITS STUDIO (NEW!)
+                 ============================================================ -->
+            <section class="tool-panel" id="circuitsPanel" data-panel="circuits" aria-labelledby="circuitsTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Electronics &amp; Circuit Engineering</p>
+                        <h1 id="circuitsTitle">Electronics &amp; Circuits.</h1>
+                        <p>Resistor color code band decoder with graphic canvas resistor, LC resonance, RC filters, and SMD codes.</p>
+                    </div>
+                </div>
+
+                <div class="circuits-grid">
+                    <!-- Resistor Color Code Band Decoder Card with Dynamic Canvas -->
+                    <div class="advanced-card resistor-decoder-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Color Band Decoding</p>
+                                <h2>Resistor Color Code Decoder</h2>
+                            </div>
+                        </div>
+
+                        <div class="segmented-control" id="resistorBandModeSelect" role="tablist" style="margin-bottom: 14px;">
+                            <button class="segmented-item active" type="button" data-bands="4">4-Band Resistor</button>
+                            <button class="segmented-item" type="button" data-bands="5">5-Band Resistor</button>
+                        </div>
+
+                        <div class="utility-grid" id="resistorBandsGrid">
+                            <div class="utility-item">
+                                <label for="resBand1">Band 1 (1st digit)</label>
+                                <select id="resBand1">
+                                    <option value="1">1 - Brown</option>
+                                    <option value="2">2 - Red</option>
+                                    <option value="3">3 - Orange</option>
+                                    <option value="4" selected>4 - Yellow</option>
+                                    <option value="5">5 - Green</option>
+                                    <option value="6">6 - Blue</option>
+                                    <option value="7">7 - Violet</option>
+                                    <option value="8">8 - Gray</option>
+                                    <option value="9">9 - White</option>
+                                </select>
+                            </div>
+                            <div class="utility-item">
+                                <label for="resBand2">Band 2 (2nd digit)</label>
+                                <select id="resBand2">
+                                    <option value="0">0 - Black</option>
+                                    <option value="1">1 - Brown</option>
+                                    <option value="2">2 - Red</option>
+                                    <option value="3">3 - Orange</option>
+                                    <option value="4">4 - Yellow</option>
+                                    <option value="5">5 - Green</option>
+                                    <option value="6">6 - Blue</option>
+                                    <option value="7" selected>7 - Violet</option>
+                                    <option value="8">8 - Gray</option>
+                                    <option value="9">9 - White</option>
+                                </select>
+                            </div>
+                            <div class="utility-item" id="resBand3Wrap" hidden>
+                                <label for="resBand3">Band 3 (3rd digit)</label>
+                                <select id="resBand3">
+                                    <option value="0" selected>0 - Black</option>
+                                    <option value="1">1 - Brown</option>
+                                    <option value="2">2 - Red</option>
+                                    <option value="3">3 - Orange</option>
+                                    <option value="4">4 - Yellow</option>
+                                    <option value="5">5 - Green</option>
+                                    <option value="6">6 - Blue</option>
+                                    <option value="7">7 - Violet</option>
+                                    <option value="8">8 - Gray</option>
+                                    <option value="9">9 - White</option>
+                                </select>
+                            </div>
+                            <div class="utility-item">
+                                <label for="resMultiplier">Multiplier</label>
+                                <select id="resMultiplier">
+                                    <option value="0.01">×0.01 (Silver)</option>
+                                    <option value="0.1">×0.1 (Gold)</option>
+                                    <option value="1">×1 (Black)</option>
+                                    <option value="10">×10 (Brown)</option>
+                                    <option value="100" selected>×100 (Red)</option>
+                                    <option value="1000">×1k (Orange)</option>
+                                    <option value="10000">×10k (Yellow)</option>
+                                    <option value="100000">×100k (Green)</option>
+                                    <option value="1000000">×1M (Blue)</option>
+                                </select>
+                            </div>
+                            <div class="utility-item">
+                                <label for="resTolerance">Tolerance</label>
+                                <select id="resTolerance">
+                                    <option value="0.05">±0.05% (Gray)</option>
+                                    <option value="0.1">±0.1% (Violet)</option>
+                                    <option value="0.25">±0.25% (Blue)</option>
+                                    <option value="0.5">±0.5% (Green)</option>
+                                    <option value="1">±1% (Brown)</option>
+                                    <option value="2">±2% (Red)</option>
+                                    <option value="5" selected>±5% (Gold)</option>
+                                    <option value="10">±10% (Silver)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Resistor Realistic Canvas -->
+                        <div class="canvas-relative-container" style="margin: 14px 0;">
+                            <canvas id="resistorCanvas" width="800" height="150" aria-label="Visual resistor representation"></canvas>
+                        </div>
+
+                        <div class="utility-output" id="resistorResult">Resistance: 4.70 kΩ ± 5% (Gold)</div>
+                        <div class="utility-output secondary-output" id="resistorLimits">Range: 4.465 kΩ to 4.935 kΩ</div>
+                    </div>
+
+                    <!-- LC Resonance & RC Filter Calculator -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">RF &amp; Filters</p>
+                                <h2>LC Resonance &amp; RC Filter</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="circuitL">Inductance L (mH)</label>
+                                <input id="circuitL" type="number" value="10" step="0.5" min="0.001">
+                            </div>
+                            <div class="utility-item">
+                                <label for="circuitC">Capacitance C (nF)</label>
+                                <input id="circuitC" type="number" value="47" step="1" min="0.001">
+                            </div>
+                            <div class="utility-item">
+                                <label for="circuitR">Resistance R (Ω)</label>
+                                <input id="circuitR" type="number" value="1000" step="50" min="0.1">
+                            </div>
+                        </div>
+                        <button id="calculateCircuitBtn" class="utility-button" type="button">Compute Resonance &amp; Cutoff</button>
+                        <div class="utility-output" id="circuitResult">Resonant Frequency f₀: 7.34 kHz (T = 136.2 µs)</div>
+                        <div class="utility-output secondary-output" id="circuitSub">RC Cutoff Frequency fc: 3.39 kHz · Impedance Z₀: 461.27 Ω</div>
+                    </div>
+
+                    <!-- SMD Resistor Code & Voltage Divider -->
+                    <div class="advanced-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Design Tools</p>
+                                <h2>Voltage Divider &amp; SMD Code</h2>
+                            </div>
+                        </div>
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="vdivVin">Input Voltage Vin (V)</label>
+                                <input id="vdivVin" type="number" value="5.0" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="vdivR1">R1 (Ω)</label>
+                                <input id="vdivR1" type="number" value="10000" step="100">
+                            </div>
+                            <div class="utility-item">
+                                <label for="vdivR2">R2 (Ω)</label>
+                                <input id="vdivR2" type="number" value="10000" step="100">
+                            </div>
+                            <div class="utility-item">
+                                <label for="smdInput">SMD Code (e.g. 472, 1002)</label>
+                                <input id="smdInput" type="text" value="472" maxlength="5">
+                            </div>
+                        </div>
+                        <button id="calculateVdivBtn" class="utility-button" type="button">Solve Divider &amp; SMD</button>
+                        <div class="utility-output" id="vdivResult">Output Vout: 2.50 V · Current: 0.25 mA</div>
+                        <div class="utility-output secondary-output" id="smdResult">SMD Code '472' = 4.70 kΩ (47 × 10²)</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 9. SMART UTILITIES & HELPERS PANEL
+                 ============================================================ -->
+            <section class="tool-panel" id="advancedPanel" data-panel="advanced" aria-labelledby="advancedTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Smart Everyday Utilities</p>
+                        <h1 id="advancedTitle">Smart Utilities &amp; Health.</h1>
+                        <p>BMI gauge, date difference with business days, GPA with letter grades, distribution stats, and finance.</p>
+                    </div>
+                </div>
+
+                <div class="advanced-grid">
+                    <!-- Compound Interest Card with Live Growth Chart -->
+                    <div class="advanced-card compound-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Finance</p>
+                                <h2>Compound Interest &amp; Growth Chart</h2>
+                            </div>
+                        </div>
+
+                        <div class="utility-grid secondary-grid">
+                            <div class="utility-item">
+                                <label for="compoundInitial">Initial principal ($)</label>
+                                <input id="compoundInitial" type="number" value="5000" step="100">
+                            </div>
+                            <div class="utility-item">
+                                <label for="compoundMonthly">Monthly contribution ($)</label>
+                                <input id="compoundMonthly" type="number" value="300" step="50">
+                            </div>
+                            <div class="utility-item">
+                                <label for="compoundRate">Annual return rate %</label>
+                                <input id="compoundRate" type="number" value="7.5" step="0.1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="compoundYears">Time span (years)</label>
+                                <input id="compoundYears" type="number" value="15" step="1">
+                            </div>
+                            <div class="utility-item">
+                                <label for="compoundFrequency">Compounding</label>
+                                <select id="compoundFrequency">
+                                    <option value="1">Annually</option>
+                                    <option value="2">Semiannually</option>
+                                    <option value="4">Quarterly</option>
+                                    <option value="12" selected>Monthly</option>
+                                    <option value="365">Daily</option>
+                                </select>
+                            </div>
+                            <button id="calculateCompound" class="utility-button" type="button">Calculate Growth</button>
+                        </div>
+
+                        <div class="compound-chart-container">
+                            <canvas id="compoundGrowthCanvas" width="600" height="200" aria-label="Compound growth trajectory"></canvas>
+                        </div>
+
+                        <div class="utility-output" id="compoundResult">Future value: $108,795.42</div>
+                        <div class="utility-output secondary-output" id="compoundSummary">Total principal: $59,000.00 · Interest earned: $49,795.42</div>
+                    </div>
+
+                    <!-- Mortgage & Loan Payment Card with Payoff Breakdown -->
+                    <div class="advanced-card loan-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Real Estate &amp; Loans</p>
+                                <h2>Mortgage &amp; Loan Amortization</h2>
+                            </div>
+                        </div>
+
+                        <div class="utility-grid">
+                            <div class="utility-item">
+                                <label for="pmtPrincipal">Home / Loan principal ($)</label>
+                                <input id="pmtPrincipal" type="number" value="350000" step="1000">
+                            </div>
+                            <div class="utility-item">
+                                <label for="pmtRate">Annual APR %</label>
+                                <input id="pmtRate" type="number" value="6.25" step="0.05">
+                            </div>
+                            <div class="utility-item">
+                                <label for="pmtYears">Term (years)</label>
+                                <input id="pmtYears" type="number" value="30" step="1">
+                            </div>
+                            <button id="calculateMortgage" class="utility-button" type="button">Calculate Mortgage</button>
+                        </div>
+
+                        <div class="loan-breakdown-bar" id="loanBreakdownBar">
+                            <div class="loan-bar-principal" id="loanBarPrincipal" style="width: 48%;" title="Principal Portion"></div>
+                            <div class="loan-bar-interest" id="loanBarInterest" style="width: 52%;" title="Interest Portion"></div>
+                        </div>
+
+                        <div class="utility-output" id="mortgageResult">Monthly payment: $2,155.38</div>
+
+                        <!-- General Loan sub-calculator -->
+                        <div class="utility-grid quaternary-grid" style="margin-top: 18px;">
+                            <div class="mini-calculator">
+                                <h3>General Loan</h3>
+                                <div class="utility-item">
+                                    <label for="loanPrincipal">Principal</label>
+                                    <input id="loanPrincipal" type="number" value="25000" step="500">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="loanRate">APR %</label>
+                                    <input id="loanRate" type="number" value="5.5" step="0.1">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="loanYears">Years</label>
+                                    <input id="loanYears" type="number" value="5" step="1">
+                                </div>
+                                <button id="calculateLoan" class="utility-button" type="button">Calculate Loan</button>
+                                <div class="utility-output" id="loanResult">Monthly: $477.53 · Interest: $3,651.80</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health & Statistics Card -->
+                    <div class="advanced-card health-stats-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Health &amp; Analysis</p>
+                                <h2>BMI &amp; Statistical Engine</h2>
+                            </div>
+                        </div>
+
+                        <div class="utility-grid tertiary-grid">
+                            <!-- BMI Calculator -->
+                            <div class="mini-calculator">
+                                <h3>BMI with Color Gauge</h3>
+                                <div class="utility-item">
+                                    <label for="bmiWeight">Weight (kg)</label>
+                                    <input id="bmiWeight" type="number" value="70" step="0.1">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="bmiHeight">Height (cm)</label>
+                                    <input id="bmiHeight" type="number" value="175" step="0.1">
+                                </div>
+                                <div class="bmi-gauge-wrap">
+                                    <div class="bmi-gauge-track">
+                                        <div class="bmi-seg under" title="Underweight (&lt;18.5)"></div>
+                                        <div class="bmi-seg normal" title="Normal (18.5-24.9)"></div>
+                                        <div class="bmi-seg over" title="Overweight (25-29.9)"></div>
+                                        <div class="bmi-seg obese" title="Obese (≥30)"></div>
+                                    </div>
+                                    <div class="bmi-pointer" id="bmiPointer" style="left: 45%;"></div>
+                                </div>
+                                <button id="calculateBmi" class="utility-button" type="button">Compute BMI</button>
+                                <div class="utility-output" id="bmiResult">BMI: 22.86 · Healthy weight range</div>
+                            </div>
+
+                            <!-- Statistical Engine with Visual Histogram & Box Plot -->
+                            <div class="mini-calculator">
+                                <h3>Data Statistics &amp; Distribution</h3>
+                                <div class="utility-item">
+                                    <label for="statsInput">Numbers (comma or space separated)</label>
+                                    <input id="statsInput" type="text" value="12, 18, 21, 24, 29, 30, 32, 41, 45, 52" aria-label="Comma-separated numbers">
+                                </div>
+                                <canvas id="statsHistogramCanvas" width="360" height="90" aria-label="Distribution histogram"></canvas>
+                                <canvas id="statsBoxPlotCanvas" width="360" height="55" aria-label="Box and whisker plot" style="margin-top: 6px;"></canvas>
+                                <button id="calculateStats" class="utility-button" type="button">Summarize</button>
+                                <div class="utility-output" id="statsResult">Mean: 30.40 · Median: 29.50 · SD: 11.89</div>
+                                <div class="utility-output secondary-output" id="statsDetailResult">Min: 12 · Max: 52 · Range: 40 · Sum: 304 · IQR: 18.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Color Science & WCAG Contrast Studio Card -->
+                    <div class="advanced-card color-science-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Design &amp; Accessibility</p>
+                                <h2>Color Science &amp; WCAG Contrast Studio</h2>
+                            </div>
+                        </div>
+
+                        <div class="color-science-grid">
+                            <div class="color-picker-column">
+                                <div class="utility-item">
+                                    <label for="colorFg">Foreground / Text Color</label>
+                                    <div class="color-input-cluster">
+                                        <input type="color" id="colorFgPicker" value="#ffffff" class="color-swatch-input">
+                                        <input type="text" id="colorFgText" value="#ffffff" maxlength="7" spellcheck="false" class="color-hex-text">
+                                    </div>
+                                </div>
+                                <div class="utility-item">
+                                    <label for="colorBg">Background Color</label>
+                                    <div class="color-input-cluster">
+                                        <input type="color" id="colorBgPicker" value="#0071e3" class="color-swatch-input">
+                                        <input type="text" id="colorBgText" value="#0071e3" maxlength="7" spellcheck="false" class="color-hex-text">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live WCAG Accessibility Card Preview -->
+                            <div class="color-preview-card" id="colorPreviewCard" style="background-color: #0071e3; color: #ffffff;">
+                                <div class="cp-title">Orbit Typography Preview</div>
+                                <div class="cp-sub">The quick brown fox jumps over the lazy dog. 1234567890.</div>
+                                <div class="cp-badges">
+                                    <span class="wcag-badge pass" id="wcagBadgeNormal">Normal Text: AAA</span>
+                                    <span class="wcag-badge pass" id="wcagBadgeLarge">Large Text: AAA</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="utility-output" id="colorContrastResult">Contrast Ratio: 4.88:1 · WCAG AA Compliant</div>
+                        <div class="utility-output secondary-output" id="colorConversionResult">RGB(0, 113, 227) · HSL(210°, 100%, 45%) · CMYK(100%, 50%, 0%, 11%)</div>
+                    </div>
+
+                    <!-- Daily Utilities Card (Date Diff, GPA, Tip, Discount, ROI, Age) -->
+                    <div class="advanced-card daily-tools-card">
+                        <div class="subheading compact-header">
+                            <div>
+                                <p class="eyebrow">Calculators</p>
+                                <h2>Smart Everyday Tools</h2>
+                            </div>
+                        </div>
+
+                        <div class="utility-grid quaternary-grid">
+                            <!-- Date Difference (Repaired) -->
+                            <div class="mini-calculator">
+                                <h3>Precise Date Difference</h3>
+                                <div class="utility-item">
+                                    <label for="dateStart">Start date</label>
+                                    <input id="dateStart" type="date" value="2024-01-01">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="dateEnd">End date</label>
+                                    <input id="dateEnd" type="date" value="2026-09-27">
+                                </div>
+                                <button id="calculateDateDiff" class="utility-button" type="button">Count Difference</button>
+                                <div class="utility-output" id="dateDiffResult">1,000 days · 2y 8m 26d</div>
+                                <div class="utility-output secondary-output" id="dateDiffSub">142 weeks · 714 business days</div>
+                            </div>
+
+                            <!-- GPA Calculator (Letters + Numbers) -->
+                            <div class="mini-calculator">
+                                <h3>GPA (Letters or Numbers)</h3>
+                                <div class="utility-item">
+                                    <label for="gpaGrades">Grades (e.g. A, B+, 3.7, A-)</label>
+                                    <input id="gpaGrades" type="text" value="A, A-, B+, 4.0" aria-label="Grades list">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="gpaCredits">Credits (e.g. 4, 3, 3, 4)</label>
+                                    <input id="gpaCredits" type="text" value="4, 3, 3, 4" aria-label="Credits list">
+                                </div>
+                                <button id="calculateGpa" class="utility-button" type="button">Calculate GPA</button>
+                                <div class="utility-output" id="gpaResult">GPA: 3.79 · Magna Cum Laude</div>
+                            </div>
+
+                            <!-- Percentage Calculator -->
+                            <div class="mini-calculator">
+                                <h3>Percentage 3-in-1</h3>
+                                <div class="utility-item">
+                                    <label for="percentValue">Value</label>
+                                    <input id="percentValue" type="number" value="250" step="1">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="percentRate">Percent %</label>
+                                    <input id="percentRate" type="number" value="20" step="0.1">
+                                </div>
+                                <button id="calculatePercent" class="utility-button" type="button">Find % of value</button>
+                                <div class="utility-output" id="percentResult">50.00 (20% of 250)</div>
+                            </div>
+
+                            <!-- Tip Split -->
+                            <div class="mini-calculator">
+                                <h3>Tip Split</h3>
+                                <div class="utility-item">
+                                    <label for="tipBill">Bill ($)</label>
+                                    <input id="tipBill" type="number" value="95.00" step="0.01">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="tipPercent">Tip %</label>
+                                    <input id="tipPercent" type="number" value="20" step="1">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="tipPeople">People</label>
+                                    <input id="tipPeople" type="number" value="3" step="1">
+                                </div>
+                                <button id="calculateTip" class="utility-button" type="button">Split Bill</button>
+                                <div class="utility-output" id="tipResult">Total: $114.00 · Each: $38.00</div>
+                            </div>
+
+                            <!-- Discount + Tax -->
+                            <div class="mini-calculator">
+                                <h3>Discount &amp; Sales Tax</h3>
+                                <div class="utility-item">
+                                    <label for="discountPrice">Original price ($)</label>
+                                    <input id="discountPrice" type="number" value="150" step="1">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="discountPercent">Discount %</label>
+                                    <input id="discountPercent" type="number" value="25" step="0.5">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="taxPercent">Sales tax %</label>
+                                    <input id="taxPercent" type="number" value="8.5" step="0.1">
+                                </div>
+                                <button id="calculateDiscount" class="utility-button" type="button">Compute Total</button>
+                                <div class="utility-output" id="discountResult">Final price: $122.06 · Saved: $37.50</div>
+                            </div>
+
+                            <!-- ROI & Investment Return -->
+                            <div class="mini-calculator">
+                                <h3>ROI &amp; Capital Gain</h3>
+                                <div class="utility-item">
+                                    <label for="roiInitial">Initial cost ($)</label>
+                                    <input id="roiInitial" type="number" value="10000" step="100">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="roiFinal">Final value ($)</label>
+                                    <input id="roiFinal" type="number" value="14500" step="100">
+                                </div>
+                                <button id="calculateRoi" class="utility-button" type="button">Calculate Return</button>
+                                <div class="utility-output" id="roiResult">ROI: +45.00% · Profit: $4,500.00</div>
+                            </div>
+
+                            <!-- Age Calculator -->
+                            <div class="mini-calculator">
+                                <h3>Age &amp; Milestone</h3>
+                                <div class="utility-item">
+                                    <label for="ageBirth">Birth date</label>
+                                    <input id="ageBirth" type="date" value="1998-06-20">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="ageTarget">Target date</label>
+                                    <input id="ageTarget" type="date">
+                                </div>
+                                <button id="calculateAge" class="utility-button" type="button">Calculate Age</button>
+                                <div class="utility-output" id="ageResult">Age: 28 years, 3 months, 7 days</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 10. PAPER TAPE & HISTORY JOURNAL PANEL
+                 ============================================================ -->
+            <section class="tool-panel" id="historyPanel" data-panel="history" aria-labelledby="historyTitle" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Audit Journal</p>
+                        <h1 id="historyTitle">Paper Tape &amp; Calculation Roll.</h1>
+                        <p>Continuous audit roll of your calculations with notes, copy, and exportable receipt.</p>
+                    </div>
+                    <div class="heading-actions">
+                        <button class="ghost-button" id="exportHistoryTxt" type="button">Export TXT Tape</button>
+                        <button class="ghost-button" id="clearHistory" type="button">Clear History</button>
+                    </div>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </section>
+
+        </section>
+    </main>
+
+    <!-- KEYBOARD SHORTCUTS MODAL -->
+    <div class="shortcuts-modal-backdrop" id="shortcutsModal" hidden>
+        <div class="shortcuts-modal-card">
+            <div class="shortcuts-modal-header">
+                <h2>Keyboard Shortcuts</h2>
+                <button type="button" class="close-modal-btn" id="closeShortcutsBtn">✕</button>
+            </div>
+            <div class="shortcuts-list">
+                <div class="shortcut-item"><kbd>0</kbd>–<kbd>9</kbd><span>Input digits</span></div>
+                <div class="shortcut-item"><kbd>+</kbd> <kbd>−</kbd> <kbd>*</kbd> <kbd>/</kbd><span>Operators</span></div>
+                <div class="shortcut-item"><kbd>Enter</kbd> or <kbd>=</kbd><span>Calculate result</span></div>
+                <div class="shortcut-item"><kbd>Backspace</kbd><span>Delete last character</span></div>
+                <div class="shortcut-item"><kbd>Esc</kbd><span>Clear all</span></div>
+                <div class="shortcut-item"><kbd>1</kbd>–<kbd>8</kbd> + <kbd>Alt</kbd><span>Switch workspace modes</span></div>
+                <div class="shortcut-item"><kbd>?</kbd><span>Toggle this cheat sheet</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPOTLIGHT OMNI COMMAND PALETTE MODAL -->
+    <div class="omni-modal-backdrop" id="omniModal" hidden>
+        <div class="omni-modal-card" role="dialog" aria-modal="true" aria-label="Omni Command Palette">
+            <div class="omni-search-header">
+                <span class="omni-search-icon" aria-hidden="true">🔍</span>
+                <input type="text" id="omniSearchInput" class="omni-input" placeholder="Search tools, convert, or evaluate math (e.g. 45*12, 100 kg to lbs, FIRE)..." autocomplete="off" spellcheck="false">
+                <kbd class="omni-esc-badge" id="closeOmniBadge">Esc</kbd>
+            </div>
+
+            <!-- Instant Live Math Calculation Card -->
+            <div class="omni-eval-card" id="omniEvalCard" hidden>
+                <div class="omni-eval-label">Instant Calculation Result</div>
+                <div class="omni-eval-value" id="omniEvalValue">= 540</div>
+                <div class="omni-eval-actions">
+                    <button type="button" class="omni-action-pill" id="omniCopyEvalBtn">Copy Result</button>
+                    <button type="button" class="omni-action-pill" id="omniSendToSciBtn">Send to Scientific</button>
+                </div>
+            </div>
+
+            <!-- Filtered Commands & Workspaces List -->
+            <div class="omni-results-list" id="omniResultsList"></div>
+
+            <div class="omni-footer">
+                <span><kbd>↑</kbd> <kbd>↓</kbd> to navigate</span>
+                <span><kbd>↵</kbd> to select</span>
+                <span><kbd>Esc</kbd> to close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORKSPACE BACKUP & RESTORE MODAL -->
+    <div class="shortcuts-modal-backdrop" id="backupModal" hidden>
+        <div class="shortcuts-modal-card">
+            <div class="shortcuts-modal-header">
+                <h2>Workspace Session State</h2>
+                <button type="button" class="close-modal-btn" id="closeBackupBtn">✕</button>
+            </div>
+            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 16px;">Export your complete computing environment, charts, paper tape history, and settings to an offline JSON archive, or restore a previous session.</p>
+            <div class="backup-actions-grid">
+                <button type="button" class="utility-button" id="exportSessionJsonBtn">Download Orbit State (.json)</button>
+                <label class="utility-button ghost-button" style="text-align: center; cursor: pointer; display: inline-block;">
+                    Restore from JSON File
+                    <input type="file" id="importSessionFile" accept=".json" style="display: none;">
+                </label>
+                <button type="button" class="utility-button ghost-button" id="loadEngineeringPresetBtn">Load Engineering Preset</button>
+                <button type="button" class="utility-button ghost-button" id="loadFinancePresetBtn">Load Finance / FIRE Preset</button>
+                <button type="button" class="utility-button ghost-button" id="resetWorkspaceBtn" style="color: var(--apple-red); border-color: var(--apple-red-soft);">Reset All Workspaces</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast" role="status" aria-live="polite">Copied to clipboard</div>
+
+    <script src="app.js?v=2.7.0"></script>
+</body>
+</html>

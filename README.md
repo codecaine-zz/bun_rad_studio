@@ -491,12 +491,13 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 | **24** | **IpInfo Forensics Studio Pro**    | [User Guide](docs/userguides/24_ipinfo_studio.md)            | IP address geolocation, ASN details, CIDR subnet calculator, and local network interfaces.                                  | `bun run app:ipinfo`    |
 | **25** | **Subfinder Discovery Studio Pro** | [User Guide](docs/userguides/25_subfinder_studio.md)         | Passive multi-source subdomain discovery with active DNS verification and HTTP/HTTPS probing.                               | `bun run app:subfinder` |
 | **26** | **Doggo DNS Studio Pro**           | [User Guide](docs/userguides/26_doggo_studio.md)             | Modern DNS client for humans with standard record queries, custom resolvers, DNS-over-HTTPS (DoH), and reverse PTR lookups. | `bun run app:doggo`     |
+| **27** | **Universal Calculator Studio Pro** | [User Guide](docs/userguides/27_calculator_studio.md)         | Apple-grade scientific calculator, 17-unit converter, time-series charts, 64-bit programmer lab & calculus studio.           | `bun run app:calculator`|
 
 <a id="application-visual-gallery--screenshots"></a>
 
 ### 📸 Application Visual Gallery & Screenshots
 
-Explore live desktop and responsive viewport previews for all 26 enterprise production workstations:
+Explore live desktop and responsive viewport previews for all 27 enterprise production workstations:
 
 #### 🔍 Filesystem, Search & Process Operations
 
@@ -543,6 +544,7 @@ Explore live desktop and responsive viewport previews for all 26 enterprise prod
 | **Markdown Studio Pro**<br>[User Guide](docs/userguides/14_markdown_studio.md)<br>`bun run app:markdown` | ![Markdown Studio Desktop](screenshots/apps/markdown_studio_desktop.png) | ![Markdown Studio Responsive](screenshots/apps/markdown_studio_responsive.png) |
 | **Color & Design Token Studio**<br>[User Guide](docs/userguides/15_color_token_studio.md)<br>`bun run app:color` | ![Color Studio Desktop](screenshots/apps/color_studio_desktop.png) | ![Color Studio Responsive](screenshots/apps/color_studio_responsive.png) |
 | **Tokei Studio Pro**<br>[User Guide](docs/userguides/22_tokei_studio.md)<br>`bun run app:tokei` | ![Tokei Studio Desktop](screenshots/apps/tokei_studio_desktop.png) | ![Tokei Studio Responsive](screenshots/apps/tokei_studio_responsive.png) |
+| **Universal Calculator & Computing Studio**<br>[User Guide](docs/userguides/27_calculator_studio.md)<br>`bun run app:calculator` | ![Universal Calculator Desktop](screenshots/apps/calculator_studio_desktop.png) | ![Universal Calculator Responsive](screenshots/apps/calculator_studio_responsive.png) |
 
 ---
 
