@@ -3,12 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
   <title>Dr. Codecaine - Overclocked Retro Arcade</title>
   <meta name="description" content="Triple-A remastered Dr. Codecaine capsule puzzle game. Features polyphonic 8-bit Fever and Chill synthesizers, glossy 3D capsules, expressive pathogen AI, tactile arcade touch controls, and combos.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    // Suppress cdn.tailwindcss development notice in console
+    const _origWarn = console.warn;
+    console.warn = function(...args) {
+      if (typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
+      _origWarn.apply(console, args);
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -124,6 +136,10 @@
   <!-- Top Header Navigation -->
   <header class="w-full max-w-4xl flex items-center justify-between py-1.5 px-3 bg-slate-900/90 rounded-2xl border border-slate-800 backdrop-blur shadow-lg flex-shrink-0">
     <div class="flex items-center gap-2 sm:gap-2.5">
+      <a href="/" class="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 hover:text-cyan-300 border border-slate-700 transition flex items-center gap-1 text-xs font-semibold" title="Return to Apps Hub">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+        <span class="hidden sm:inline">Hub</span>
+      </a>
 
       <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-400 to-cyan-400 p-0.5 shadow-md flex items-center justify-center flex-shrink-0">
         <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-lg sm:text-xl">
@@ -412,31 +428,6 @@
   </div>
 
   <script>
-    // Safe storage polyfill for Webview/sandboxed environments
-    (function() {
-      try {
-        var k = '__test__';
-        window.localStorage.setItem(k, '1');
-        window.localStorage.removeItem(k);
-      } catch(e) {
-        var mem = {};
-        try {
-          Object.defineProperty(window, 'localStorage', {
-            value: {
-              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
-              setItem: function(k, v) { mem[k] = String(v); },
-              removeItem: function(k) { delete mem[k]; },
-              clear: function() { mem = {}; },
-              key: function(i) { return Object.keys(mem)[i] || null; },
-              get length() { return Object.keys(mem).length; }
-            },
-            writable: true,
-            configurable: true
-          });
-        } catch(err) {}
-      }
-    })();
-
     /**
      * Triple-A Web Audio API Polyphonic Synthesizer Engine
      * Features:
@@ -890,11 +881,7 @@
     let holdPill = null;
     let canHold = true;
     let score = 0;
-    let highScore = 25000;
-    try {
-      const stored = localStorage.getItem('dr_codecaine_highscore');
-      if (stored) highScore = parseInt(stored, 10) || 25000;
-    } catch(e) {}
+    let highScore = parseInt(localStorage.getItem('dr_codecaine_highscore') || '25000', 10);
     let level = 1;
     let virusesRemaining = 0;
     let virusCountByColor = { 1: 0, 2: 0, 3: 0 };
@@ -911,6 +898,24 @@
     let boardSquashY = 1;
     let feverHue = 0;
     let particles = [];
+    function spawnSparkles(x, y, color = '#ffd700', count = 10) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 1.5;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1,
+          life: 1.0,
+          decay: Math.random() * 0.04 + 0.03,
+          color: color,
+          size: Math.random() * 4 + 2,
+          isStar: true
+        });
+      }
+    }
+    window.spawnSparkles = spawnSparkles;
     let floatingTexts = [];
     let ambientBubbles = [];
     let animationFrameId = null;
@@ -1234,7 +1239,11 @@
                 virusCountByColor[grid[r][c].color]--;
               }
               grid[r][c] = null;
-              spawnSparkles(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2, '#ff3366', 10);
+              if (typeof spawnSparkles === 'function') {
+                spawnSparkles(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2, '#ff3366', 10);
+              } else if (typeof spawnParticleExplosion === 'function') {
+                spawnParticleExplosion(c, r, 1);
+              }
             }
           }
         }
@@ -1559,6 +1568,25 @@
         });
       }
     }
+
+    function spawnSparkles(x, y, color = '#ffd700', count = 10) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 1.5;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1,
+          life: 1.0,
+          decay: Math.random() * 0.04 + 0.03,
+          color: color,
+          size: Math.random() * 4 + 2,
+          isStar: true
+        });
+      }
+    }
+    window.spawnSparkles = spawnSparkles;
 
     function updateAndDrawParticles() {
       // Floating text popups
@@ -2323,12 +2351,11 @@
       const startX = (canvasEl.width - previewSize * 2) / 2;
       const startY = (canvasEl.height - previewSize) / 2;
 
+      targetCtx.save();
+      targetCtx.translate(startX, startY);
       drawCell(targetCtx, 0, 0, previewSize, { color: capsule.colorA, part: 'left', type: 'pill', isBomb: capsule.isBomb });
       drawCell(targetCtx, 1, 0, previewSize, { color: capsule.colorB, part: 'right', type: 'pill', isBomb: capsule.isBomb });
-
-      const imgData = targetCtx.getImageData(0, 0, previewSize * 2, previewSize);
-      targetCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-      targetCtx.putImageData(imgData, startX, startY);
+      targetCtx.restore();
     }
 
     function drawNextPiece() {
@@ -2721,22 +2748,11 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    function bootGame() {
-      if (window.__drCodecaineBooted) return;
-      window.__drCodecaineBooted = true;
-      if (highScoreDisplay) {
-        highScoreDisplay.textContent = String(highScore).padStart(6, '0');
-      }
+    window.onload = function() {
+      highScoreDisplay.textContent = String(highScore).padStart(6, '0');
       startLevel(1);
       requestAnimationFrame(gameLoop);
-    }
-
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      bootGame();
-    } else {
-      window.addEventListener('DOMContentLoaded', bootGame);
-      window.addEventListener('load', bootGame);
-    }
+    };
   </script>
 </body>
 </html>
