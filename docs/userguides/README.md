@@ -37,6 +37,13 @@ Each application in this suite is built to 30-year enterprise standards: zero ex
 | **25** | [Subfinder Studio Pro](25_subfinder_studio.md) | Passive multi-source subdomain discovery, active DNS checks, HTTP/HTTPS title & status probes. | `bun run app:subfinder` | `bun run cli:subfinder` |
 | **26** | [Doggo Studio Pro](26_doggo_studio.md) | Modern DNS client for humans, standard records, custom nameservers, DoH, reverse PTR lookups. | `bun run app:doggo` | `bun run cli:doggo` |
 | **27** | [Universal Calculator & Computing Studio](27_calculator_studio.md) | Apple-grade scientific calculator, 17-unit converter, time-series charts, 64-bit programmer lab & calculus studio. | `bun run app:calculator` | `bun run cli:calculator` |
+| **28** | [Dr. Codecaine Arcade](28_dr_codecaine_arcade.md) | Triple-A remastered capsule puzzle game with polyphonic synthesizers, pathogen AI & tactile controls. | `bun run app:dr_codecaine` | — |
+| **29** | [Interval Timer & Workout Suite](29_interval_timer_suite.md) | High-performance interval timer with Keith Baar isometric tendon training protocols & audio engine. | `bun run app:interval_timer` | — |
+| **30** | [Adventures of Lolo Remaster](30_lolo_remaster.md) | Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & integrated manual. | `bun run app:lolo` | — |
+| **31** | [Rodent's Revenge Deluxe](31_rodents_revenge_deluxe.md) | Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high-DPI canvas. | `bun run app:rodents_revenge` | — |
+| **32** | [Neon Word Search Labyrinth](32_word_search_labyrinth.md) | AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries. | `bun run app:word_search` | — |
+| **33** | [World Time Zones Studio Pro](33_world_time_zones_studio.md) | Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization. | `bun run app:world_time_zones` | — |
+| **34** | [Cyberpunk Pac-Man Arcade](34_pacman_arcade.md) | Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects. | `bun run app:pacman` | — |
 
 ---
 
@@ -76,6 +83,13 @@ bun run app:ipinfo     # IpInfo Studio Pro (geolocation & CIDR)
 bun run app:subfinder  # Subfinder Studio Pro (subdomain recon)
 bun run app:doggo      # Doggo Studio Pro (modern DNS client)
 bun run app:calculator # Universal Calculator & Computing Studio Pro
+bun run app:dr_codecaine # Dr. Codecaine Arcade
+bun run app:interval_timer # Interval Timer & Workout Suite
+bun run app:lolo        # Adventures of Lolo Remaster
+bun run app:pacman      # Cyberpunk Pac-Man Arcade
+bun run app:rodents_revenge # Rodent's Revenge Deluxe
+bun run app:word_search # Neon Word Search Labyrinth
+bun run app:world_time_zones # World Time Zones Studio Pro
 ```
 
 ### 💻 Headless / CI / Terminal CLI Mode

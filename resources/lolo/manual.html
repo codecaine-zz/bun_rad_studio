@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventures of Lolo: Cyberpunk Remaster - Official Field Manual</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#030712',
+                            card: '#0b1329',
+                            cyan: '#00f0ff',
+                            pink: '#ff007f',
+                            purple: '#9d00ff',
+                            amber: '#ffb703',
+                            green: '#00ff66'
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #030712;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(255, 0, 127, 0.05) 0%, transparent 40%),
+                linear-gradient(rgba(3, 7, 18, 0.85) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(3, 7, 18, 0.85) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+        }
+
+        .orbitron-font { font-family: 'Orbitron', sans-serif; }
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+
+        .cyber-glass {
+            background: rgba(11, 19, 41, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .cyber-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cyber-card:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 240, 255, 0.15);
+        }
+
+        .cyber-glow-cyan {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+        }
+
+        .cyber-glow-pink {
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.35);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .cyber-glass, .cyber-card {
+                background: white !important;
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+                backdrop-filter: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            #sidebar {
+                display: none !important;
+            }
+            main {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
+
+        /* Scanline FX */
+        .scanlines {
+            position: relative;
+        }
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 20;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-200 antialiased flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 cyber-glass border-b border-cyan-500/30 px-4 sm:px-6 py-3 no-print">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 p-0.5 shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                            <i class="fa-solid fa-gamepad text-cyan-400 text-lg"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="orbitron-font font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 text-sm sm:text-base">
+                                ADVENTURES OF LOLO
+                            </span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold orbitron-font bg-pink-500/20 border border-pink-500/40 text-pink-400">
+                                REMASTER
+                            </span>
+                        </div>
+                        <p class="text-[10px] font-mono text-slate-400">Tactical Cyberpunk Field Manual • Rev 4.8</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Quick Action Links -->
+            <div class="flex items-center gap-2.5">
+                <div class="relative hidden sm:block w-48 lg:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="text" id="manual-search" placeholder="Search manual..." 
+                        class="w-full bg-slate-950/80 border border-cyan-500/30 rounded-xl pl-8 pr-3 py-1.5 text-xs text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-mono">
+                </div>
+
+                <button onclick="window.print()" title="Print Field Manual"
+                    class="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-white transition-all text-xs">
+                    <i class="fa-solid fa-print"></i>
+                </button>
+
+                <a href="index.html" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white font-bold orbitron-font text-xs hover:shadow-lg hover:shadow-cyan-500/30 hover:scale-[1.02] transition-all border border-cyan-300/40">
+                    <i class="fa-solid fa-play text-[10px]"></i>
+                    <span>Launch Game</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container with Sidebar Navigation -->
+    <div class="max-w-7xl mx-auto w-full flex-1 flex flex-col md:flex-row gap-6 p-4 sm:p-6 lg:p-8">
+        
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside id="sidebar" class="w-full md:w-64 shrink-0 space-y-4 no-print">
+            <div class="sticky top-20 cyber-glass rounded-2xl p-4 border border-cyan-500/30 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <span class="orbitron-font text-xs font-bold text-cyan-400 tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-compass text-pink-400"></i> TABLE OF CONTENTS
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-500">10 SECTIONS</span>
+                </div>
+
+                <nav class="space-y-1 text-xs font-medium" id="toc-nav">
+                    <a href="#prologue" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">01</span>
+                        <span>Prologue & Lore</span>
+                    </a>
+                    <a href="#directives" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">02</span>
+                        <span>Core Directives & Rules</span>
+                    </a>
+                    <a href="#controls" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">03</span>
+                        <span>Key Commands & Controls</span>
+                    </a>
+                    <a href="#bestiary" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">04</span>
+                        <span>Hostile Threat Dossier</span>
+                    </a>
+                    <a href="#terrains" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">05</span>
+                        <span>Terrains & Physics</span>
+                    </a>
+                    <a href="#campaign" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">06</span>
+                        <span>100-Stage Campaign</span>
+                    </a>
+                    <a href="#handcrafted" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">07</span>
+                        <span>Handcrafted AAA Stages</span>
+                    </a>
+                    <a href="#architect" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">08</span>
+                        <span>Architect & Chamber Vault</span>
+                    </a>
+                    <a href="#secrets" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">09</span>
+                        <span>Tactical Secrets & Tips</span>
+                    </a>
+                    <a href="#telemetry" class="toc-link flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-slate-900/80 transition-all">
+                        <span class="font-mono text-[10px] text-cyan-500">10</span>
+                        <span>Audio & Visual Subsystems</span>
+                    </a>
+                </nav>
+
+                <div class="pt-3 border-t border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                    <span>SYS STATUS:</span>
+                    <span class="text-emerald-400 flex items-center gap-1 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> ONLINE
+                    </span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 space-y-10 min-w-0">
+
+            <!-- Hero Banner -->
+            <section class="cyber-glass rounded-3xl p-6 sm:p-8 border border-cyan-500/40 relative overflow-hidden scanlines">
+                <div class="relative z-10 space-y-3">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
+                        <i class="fa-solid fa-shield-halved text-pink-400"></i> TOP SECRET // CYBER OPERATIVE EYES ONLY
+                    </div>
+                    <h1 class="orbitron-font text-2xl sm:text-4xl font-black text-white tracking-wide leading-tight">
+                        ADVENTURES OF LOLO<br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-pink-500">
+                            CYBERPUNK REMASTER
+                        </span>
+                    </h1>
+                    <p class="text-sm text-slate-300 max-w-2xl font-sans leading-relaxed">
+                        The definitive tactical operational dossier and chamber navigation handbook. Complete guide to the 100-stage campaign, AI mathematical solver, environmental physics, hostile threat matrix, and Level Architect vault.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
+                        <span class="bg-slate-900/90 text-cyan-300 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <i class="fa-solid fa-microchip mr-1.5 text-cyan-400"></i> 100 Operations
+                        </span>
+                        <span class="bg-slate-900/90 text-pink-300 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <i class="fa-solid fa-robot mr-1.5 text-pink-400"></i> 9 Hostile Types
+                        </span>
+                        <span class="bg-slate-900/90 text-purple-300 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <i class="fa-solid fa-bolt mr-1.5 text-purple-400"></i> AI Path Solver
+                        </span>
+                        <span class="bg-slate-900/90 text-amber-300 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <i class="fa-solid fa-box-archive mr-1.5 text-amber-400"></i> 8 AAA Vault Stages
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 1: PROLOGUE & LORE -->
+            <section id="prologue" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">01</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">PROLOGUE &amp; WORLD LORE</h2>
+                </div>
+                
+                <div class="cyber-card rounded-2xl p-6 space-y-4 text-sm leading-relaxed text-slate-300">
+                    <p>
+                        In the neon-drenched dystopia of the late 21st century, the <strong class="text-cyan-300">Great Algorithm Collapse</strong> corrupted the planetary cybernetic grid. Autonomous rogue sub-routines seized control of the megastructure fortress known as the <strong class="text-pink-300">Eggerland Citadel</strong>. At the core of this impenetrable digital labyrinth sits <strong class="text-red-400">King Egger</strong>, an omnipotent rogue mainframe entity who has captured and encrypted <strong class="text-purple-300">Princess Lala</strong>, the sovereign consciousness of Eden City.
+                    </p>
+                    <p>
+                        You are deployed as <strong class="text-cyan-400 font-bold">LOLO</strong> (Low-latency Optical Logic Operative), a high-agility tactical cyber-sphere equipped with an omni-directional repulsor chassis and high-energy plasma stasis emitters. Your mission: infiltrate 100 interconnected logic chambers across 5 escalating security sectors, decrypt the memory cores, disarm autonomous sentry algorithms, breach the Citadel Gate, and liberate Lala before the system purge becomes irreversible.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                        <div class="bg-slate-950/80 p-3.5 rounded-xl border border-cyan-500/20 space-y-1">
+                            <span class="text-xs font-mono text-cyan-400 font-bold">OPERATIVE CODENAME</span>
+                            <h4 class="orbitron-font font-bold text-white text-sm">LOLO-01</h4>
+                            <p class="text-xs text-slate-400">High-speed spherical logic operative with sub-millisecond inertia and temporal rewind drive.</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3.5 rounded-xl border border-pink-500/20 space-y-1">
+                            <span class="text-xs font-mono text-pink-400 font-bold">PRIMARY TARGET</span>
+                            <h4 class="orbitron-font font-bold text-white text-sm">KING EGGER</h4>
+                            <p class="text-xs text-slate-400">Hostile neural architect presiding over 100 chambers of mathematical deathtraps.</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3.5 rounded-xl border border-purple-500/20 space-y-1">
+                            <span class="text-xs font-mono text-purple-400 font-bold">OBJECTIVE</span>
+                            <h4 class="orbitron-font font-bold text-white text-sm">CITADEL EXTRACTION</h4>
+                            <p class="text-xs text-slate-400">Collect memory cores, unseal the quantum jewel chest, and evacuate via the warp gate.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: CORE DIRECTIVES & RULES -->
+            <section id="directives" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">02</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">CORE DIRECTIVES &amp; MISSION RULES</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-lg">
+                                <i class="fa-solid fa-heart"></i>
+                            </div>
+                            <div>
+                                <h3 class="orbitron-font font-bold text-white text-sm">1. Collect All Heart Framers</h3>
+                                <p class="text-xs text-slate-400 font-mono">Memory Core Extraction</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Every chamber contains red glowing Heart Framers. You must collect every single Heart Framer to unlock the central chamber chest. Some Heart Framers contain compressed plasma ammo batteries that grant you <strong class="text-cyan-300">2 stasis blaster shots</strong>!
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg">
+                                <i class="fa-solid fa-gem"></i>
+                            </div>
+                            <div>
+                                <h3 class="orbitron-font font-bold text-white text-sm">2. Decrypt the Jewel Chest</h3>
+                                <p class="text-xs text-slate-400 font-mono">Quantum Key Recovery</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Once all Heart Framers are secured, the sealed Jewel Chest opens and emits a radiant golden pulse. Stepping onto the Jewel Chest retrieves the extraction key, instantly putting all active hostiles into a deactivated stasis state and opening the exit gate.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg">
+                                <i class="fa-solid fa-door-open"></i>
+                            </div>
+                            <div>
+                                <h3 class="orbitron-font font-bold text-white text-sm">3. Evacuate via Warp Gate</h3>
+                                <p class="text-xs text-slate-400 font-mono">Chamber Completion</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            After taking the Jewel Chest, navigate to the open chamber door (located along the upper perimeter). Stepping through the doorway triggers an orbital teleportation beam, rewarding score points and advancing you to the next sector operation.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-lg">
+                                <i class="fa-solid fa-life-ring"></i>
+                            </div>
+                            <div>
+                                <h3 class="orbitron-font font-bold text-white text-sm">4. Egg Raft Sailing Physics</h3>
+                                <p class="text-xs text-slate-400 font-mono">Liquid Moat Navigation</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Pushing an encased enemy egg into water or molten magma creates a buoyant floating raft. Step onto the egg to sail across liquid currents! Caution: water currents will carry the raft downstream, and eggs gradually sink after a short period.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: KEY COMMANDS & CONTROLS -->
+            <section id="controls" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">03</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">KEY COMMANDS &amp; CONTROLS MATRIX</h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-cyan-500/30 bg-slate-950/90 text-cyan-300 orbitron-font text-[11px]">
+                                <th class="p-3">KEYBOARD</th>
+                                <th class="p-3">ACTION</th>
+                                <th class="p-3">CATEGORY</th>
+                                <th class="p-3">TACTICAL FUNCTION</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80 font-mono">
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-cyan-500/40 text-cyan-300 px-2 py-1 rounded font-bold">WASD / Arrow Keys</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Move Operative</td>
+                                <td class="p-3 text-cyan-400">Navigation</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Cardinal movement across the grid. Pushes alloy blocks, emerald prisms, and enemy eggs.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-pink-500/40 text-pink-300 px-2 py-1 rounded font-bold">SPACE / X</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Stasis Blaster</td>
+                                <td class="p-3 text-pink-400">Combat</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Fires plasma shot. 1st shot encases target into pushable egg. 2nd shot disintegrates egg off the grid.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-cyan-500/40 text-cyan-300 px-2 py-1 rounded font-bold">Z</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Temporal Rewind (Undo)</td>
+                                <td class="p-3 text-cyan-400">Tactical</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Reverses time by 1 move. Zero score penalty with unlimited multi-step memory.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-pink-500/40 text-pink-300 px-2 py-1 rounded font-bold">R</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Chamber Reset</td>
+                                <td class="p-3 text-pink-400">Tactical</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Re-teleports Lolo from orbit and reloads chamber to initial state.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-purple-500/40 text-purple-300 px-2 py-1 rounded font-bold">H</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Holographic Ghost Guide</td>
+                                <td class="p-3 text-purple-400">Assistance</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Calculates shortest-path solution in real time and renders an animated ghost runner with neon breadcrumbs.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded font-bold">F1 / ?</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Field Manual</td>
+                                <td class="p-3 text-slate-400">System</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Toggles the in-game Cyber Operative Field Manual HUD overlay.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded font-bold">M</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Sector Map</td>
+                                <td class="p-3 text-slate-400">Navigation</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Opens tactical overview of the 5 megastructure sectors with progress tracking.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded font-bold">L</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Stage Select</td>
+                                <td class="p-3 text-slate-400">Navigation</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Opens the 100-stage campaign selector with codenames, star badges, and best times.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded font-bold">E</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Architect Studio</td>
+                                <td class="p-3 text-slate-400">Creation</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Enters custom level design mode with full tile/block/enemy palettes and Chamber Vault.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded font-bold">D</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Daily Cyber Hack</td>
+                                <td class="p-3 text-slate-400">Challenge</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Loads the synchronized daily seeded puzzle shared globally across all operatives.</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/50 transition-colors">
+                                <td class="p-3"><span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-1 rounded font-bold">O</span></td>
+                                <td class="p-3 text-white font-bold orbitron-font">Random Synthesis Lab</td>
+                                <td class="p-3 text-slate-400">Procedural</td>
+                                <td class="p-3 text-slate-300 font-sans text-xs">Opens procedural generator with seed rolls, archetype selectors, and mathematical solver verification.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION 4: HOSTILE THREAT DOSSIER (BESTIARY) -->
+            <section id="bestiary" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">04</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">HOSTILE THREAT INTELLIGENCE DOSSIER (BESTIARY)</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <!-- SNAKEY -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-emerald-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">SNAKEY</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">THREAT: 1/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Reconnaissance Viper Drone</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Completely passive stationary hostile. Does not move or attack. Primary role in chamber tactics is serving as an egg shield to block line-of-sight laser turrets or being pushed into liquid moats as a floating ferry raft.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-emerald-400">
+                            <strong>Countermeasure:</strong> 1 shot = egg raft/cover. 2 shots = clear path.
+                        </div>
+                    </div>
+
+                    <!-- GOL -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-amber-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">GOL</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">THREAT: 3/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Thermobaric Plasma Hydra</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Remains dormant until the final Heart Framer is collected. Once all hearts are taken, Gol opens its eyes and breathes fatal fireballs whenever Lolo crosses its cardinal line-of-sight corridor.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-amber-400">
+                            <strong>Countermeasure:</strong> Encase into egg before final heart, or place block in front.
+                        </div>
+                    </div>
+
+                    <!-- SKULL -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-red-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">SKULL</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">THREAT: 4/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Nanite Cyber Sentry</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Stationary bone-pile sentry during initial phase. Instantly awakens upon collecting the last Heart Framer, aggressively hunting Lolo at high speed using shortest-path tracking.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-red-400">
+                            <strong>Countermeasure:</strong> Stasis encasement or trap behind blocks before final heart.
+                        </div>
+                    </div>
+
+                    <!-- ALMA -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-orange-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">ALMA</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">THREAT: 4/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Rolling Kinetic Juggernaut</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Active patrol bot that roams corridors continuously. When it detects Lolo along an aligned axis, it morphs into a high-speed bowling ball and charges directly at the operative.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-orange-400">
+                            <strong>Countermeasure:</strong> Break line-of-sight around corners or bait into dead ends.
+                        </div>
+                    </div>
+
+                    <!-- MEDUSA -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-red-600">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">MEDUSA</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-600/20 text-red-400 border border-red-500/30">THREAT: 5/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Optical Disintegration Turret</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Immobile optical death machine. Any operative stepping into Medusa's cardinal line of sight (up, down, left, right) without solid obstruction is instantly vaporized with zero delay.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-red-400">
+                            <strong>Countermeasure:</strong> Must be shielded with alloy blocks, trees, or egg shells.
+                        </div>
+                    </div>
+
+                    <!-- DON MEDUSA -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-pink-600">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">DON MEDUSA</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-pink-600/20 text-pink-400 border border-pink-500/30">THREAT: 5+/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Patrolling Mobile Gorgon</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            A mobile Medusa variant that constantly patrols horizontal or vertical rails. Lethal optical rays project perpendicular to its movement axis. Extreme timing and dynamic cover required!
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-pink-400">
+                            <strong>Countermeasure:</strong> Pin behind push blocks to restrict its patrol highway.
+                        </div>
+                    </div>
+
+                    <!-- LEEPER -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-blue-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">LEEPER</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">THREAT: 2/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Kinetic Energy Siphon</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Agile bipedal entity that chases Lolo. Does not kill upon contact; instead, touching Lolo causes Leeper to drain kinetic energy, curling into an impenetrable, permanent sleeping boulder!
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-blue-400">
+                            <strong>Tactical Secret:</strong> Bait Leeper into a 1-tile corridor to plug enemy firing lanes.
+                        </div>
+                    </div>
+
+                    <!-- ROCKY -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-yellow-600">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">ROCKY</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400 border border-yellow-500/30">THREAT: 3/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Heavy Kinetic Deflector</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            A dense armored automaton that marches back and forth. Does not directly deal lethal damage, but violently shoves Lolo backwards on contact, pushing operatives into Medusa rays or water!
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-yellow-400">
+                            <strong>Countermeasure:</strong> Step aside into alcoves or encase in stasis egg.
+                        </div>
+                    </div>
+
+                    <!-- SERPENT -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-cyan-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">SERPENT</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">THREAT: 4/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Aquatic Sub-Surface Stalker</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Lurks submerged underneath water and nanite slime tiles. Surfaces periodically to snap at operatives walking along adjacent liquid shorelines.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-cyan-400">
+                            <strong>Countermeasure:</strong> Traverse liquid on egg rafts without lingering on banks.
+                        </div>
+                    </div>
+
+                    <!-- DOPPELGANGER -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-purple-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">DOPPELGÄNGER</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">THREAT: 3/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Holographic Mirror Operative</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Simulates and mirrors Lolo's exact movement vectors. Pushes alloy blocks and triggers remote pressure plates. Does not harm Lolo, but serves as a vital cooperative puzzle ally and spatial puzzle obstacle!
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-purple-400">
+                            <strong>Tactical Role:</strong> Guide into remote alcoves to weigh down distant switches.
+                        </div>
+                    </div>
+
+                    <!-- TESLA SENTINEL -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-cyan-400">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">TESLA SENTINEL</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">THREAT: 5/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">High-Voltage EMP Conduit</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Generates continuous ionizing lightning arcs along cardinal lines of sight. If its arc strikes water, it electrifies the entire connected pool with high-voltage current! Lethal on contact.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-cyan-400">
+                            <strong>Countermeasure:</strong> Push an alloy block or egg into the beam to sever the arc.
+                        </div>
+                    </div>
+
+                    <!-- MAGNETRON -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-violet-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">MAGNETRON</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">THREAT: 3/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Gravitational Vector Drone</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Levitates in place emitting periodic magnetic distortion pulses along its facing corridor. Pulls or pushes movable alloy blocks 1 tile closer, altering cover configurations dynamically.
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-violet-400">
+                            <strong>Countermeasure:</strong> Anchor corridors using heavy titanium or immovable blocks.
+                        </div>
+                    </div>
+
+                    <!-- PHASE WEAVER -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-pink-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">PHASE WEAVER</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30">THREAT: 2/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Quantum Teleporting Prism</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            A non-hostile quantum prism entity that hops across open floor coordinates every few moves. Acts as a dynamic laser shield, intermittently blocking Medusa and Gol sightlines!
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-pink-400">
+                            <strong>Tactical Role:</strong> Time your sprints across danger corridors while it shields you.
+                        </div>
+                    </div>
+
+                    <!-- STEALTH SPECTER -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2.5 border-t-2 border-t-emerald-500">
+                        <div class="flex items-center justify-between">
+                            <span class="orbitron-font font-bold text-white text-sm">STEALTH SPECTER</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">THREAT: 4/5</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono">Cloaked Cyber-Stalker</p>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Operates with active adaptive camouflage (nearly 90% transparent). Stalks Lolo silently across the chamber. Revealed when disturbing water/lava ripples, walking on slime footprints, or crossing laser beams!
+                        </p>
+                        <div class="bg-slate-950/80 p-2 rounded-lg text-[11px] font-mono text-emerald-400">
+                            <strong>Countermeasure:</strong> Track fluid ripples and slime footprints to pinpoint its path.
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- SECTION 5: TERRAINS & PHYSICS -->
+            <section id="terrains" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">05</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">CYBER TERRAINS &amp; PHYSICAL PHENOMENA</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-water text-blue-400 text-sm"></i> Water Moats &amp; Thermal Lava
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Impassable to foot travel. Dropping push blocks or stasis eggs creates buoyant rafts. Lava features dynamic incandescent heat cracks and fiery ember convection.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-arrows-split-up-and-left text-pink-400 text-sm"></i> Force Floor Conveyors
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Vector-propulsion tiles that propel objects and operatives in the arrow direction. Walking against conveyor flow is strictly restricted or causes heavy friction resistance.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-gem text-emerald-400 text-sm"></i> Emerald Prism Deflectors
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Crystalline blocks that reflect incoming high-energy laser beams at sharp 90-degree angles. Pushable by Lolo to divert beam routing around corners.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-bomb text-red-400 text-sm"></i> Demolition Ordnance (Bombs)
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Volatile explosive blocks. Pushing a bomb into cracked masonry or walls causes an immediate high-yield demolition blast, breaching new paths and clearing rubble.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-atom text-purple-400 text-sm"></i> Quantum Singularity Portals
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Sub-atomic displacement nodes that instantly warp any traversing entity to the corresponding paired singularity node across the chamber.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-biohazard text-lime-400 text-sm"></i> Nanite Slime Pools
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Bioluminescent green sludge. Traversable on foot, but applies a 50% movement friction drag and emits floating organic spore particles.
+                        </p>
+                    </div>
+
+                    <!-- PRESSURE PLATES & LASER GATES -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 border-t-2 border-t-cyan-400">
+                        <div class="flex items-center gap-2.5 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-circle-dot text-cyan-400 text-sm"></i> Pressure Plates &amp; Laser Security Gates
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Dual color-coded logic channels (Cyan &amp; Magenta). Stepping on or weighing down a Pressure Plate disarms the matching high-intensity Laser Gate, clearing safe passage.
+                        </p>
+                    </div>
+
+                    <!-- BLINK / PHASE FLOORS -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 border-t-2 border-t-purple-500">
+                        <div class="flex items-center gap-2.5 text-purple-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-cubes-stacked text-purple-400 text-sm"></i> Blink / Phase Rhythm Floors
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Cycles rhythmically between solid holographic floor (70 ticks) and empty abyss (50 ticks). Watch the perimeter countdown ring! Standing on a blink floor when it de-phases drops the operative into the abyss.
+                        </p>
+                    </div>
+
+                    <!-- SHATTER-GLASS PANELS -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 border-t-2 border-t-teal-400">
+                        <div class="flex items-center gap-2.5 text-teal-300 font-bold orbitron-font">
+                            <i class="fa-solid fa-gem text-teal-400 text-sm"></i> Shatter-Glass Decaying Panels
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            High-tension crystalline panels. Stepping onto glass the 1st time causes audible structural stress fractures. Stepping on it a 2nd time shatters the tile completely into a water pit!
+                        </p>
+                    </div>
+
+                    <!-- WEAPON TURRET SOCKETS -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 border-t-2 border-t-amber-500">
+                        <div class="flex items-center gap-2.5 text-amber-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-crosshairs text-amber-400 text-sm"></i> Weapon Turret Sockets
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Heavy titanium circular mounts. Pushing an encased enemy egg onto the socket locks it in place, converting the captive egg into an automated defense cannon firing periodic plasma bolts down its lane!
+                        </p>
+                    </div>
+
+                    <!-- ELEMENTAL SYNERGIES -->
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 border-t-2 border-t-orange-500 md:col-span-2">
+                        <div class="flex items-center gap-2.5 text-orange-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-atom text-orange-400 text-sm"></i> Cross-System Elemental Synergies
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-orange-500/20 space-y-1">
+                                <span class="font-bold text-orange-300 font-mono text-[11px]">🔥 THERMAL COMBUSTION</span>
+                                <p class="text-[11px] text-slate-300">Explosions or plasma fire hitting Nanite Sludge ignites the slime into flames, burning it away into clean concrete floor!</p>
+                            </div>
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-cyan-500/20 space-y-1">
+                                <span class="font-bold text-cyan-300 font-mono text-[11px]">⚡ ELECTRIFIED WATER</span>
+                                <p class="text-[11px] text-slate-300">Tesla Sentinel arcs striking water electrify connected pools with lethal current until severed by a block or egg.</p>
+                            </div>
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-pink-500/20 space-y-1">
+                                <span class="font-bold text-pink-300 font-mono text-[11px]">🛶 RAFT HIJACKING</span>
+                                <p class="text-[11px] text-slate-300">Aggressive chasers (Almas and awakened Skulls) can step onto floating egg rafts to navigate liquid moats!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 6: 100-STAGE CAMPAIGN ROADMAP -->
+            <section id="campaign" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">06</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">100-STAGE CAMPAIGN SECTOR ROADMAP</h2>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono text-xs font-bold">SECTOR 1</span>
+                                <h3 class="orbitron-font font-bold text-white text-base">THE PERIMETER OUTSKIRTS (STAGES 1–20)</h3>
+                            </div>
+                            <span class="font-mono text-xs text-slate-400">11×11 Grid</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Introductory cyber chambers testing tactical push physics, stasis egg management, and basic Medusa sentry navigation. Features handcrafted milestones including <strong class="text-cyan-300">Stage 16 (Neon Reflector Array)</strong>, <strong class="text-pink-300">Stage 17 (Gorgon Sentry Box)</strong>, <strong class="text-amber-300">Stage 18 (Molten Magma Ferry)</strong>, and climaxing at <strong class="text-purple-300">Stage 20 (Sector 2 Apex Fortress)</strong>.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono text-xs font-bold">SECTOR 2</span>
+                                <h3 class="orbitron-font font-bold text-white text-base">THE NEON LABYRINTH (STAGES 21–40)</h3>
+                            </div>
+                            <span class="font-mono text-xs text-slate-400">11×11 to 13×13 Grid</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Introduction of directional vector conveyors, explosive demolition blast walls, and strategic Leeper funnels. Milestone operations include <strong class="text-cyan-300">Stage 21 (Vector Matrix Hub)</strong>, <strong class="text-red-300">Stage 22 (Demolition Blast Nexus)</strong>, <strong class="text-emerald-300">Stage 24 (Leeper Slumber Chokepoint)</strong>, and the heavily defended <strong class="text-purple-300">Stage 25 (Sector 3 Citadel Gate)</strong>.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-xs font-bold">SECTOR 3</span>
+                                <h3 class="orbitron-font font-bold text-white text-base">INDUSTRIAL FOUNDRY &amp; SLIME CHANNELS (STAGES 41–60)</h3>
+                            </div>
+                            <span class="font-mono text-xs text-slate-400">13×13 to 15×15 Grid</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Massive grid expansion to 15×15. Dense block networks, multi-stage magma moats, dual patrolling Don Medusa corridors, and rolling Alma chokepoints that demand split-second timing.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono text-xs font-bold">SECTOR 4</span>
+                                <h3 class="orbitron-font font-bold text-white text-base">THE QUANTUM MATRIX (STAGES 61–80)</h3>
+                            </div>
+                            <span class="font-mono text-xs text-slate-400">15×15 Grid</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Interconnected quantum portal grids, high-speed multi-Skull hunting packs, and extreme Sokoban alloy sliding locks where a single misplaced push permanently seals victory.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/30 font-mono text-xs font-bold">SECTOR 5</span>
+                                <h3 class="orbitron-font font-bold text-white text-base">APEX CITADEL &amp; OMEGA CORE (STAGES 81–100)</h3>
+                            </div>
+                            <span class="font-mono text-xs text-slate-400">17×17 to 19×19 Mega-Grid</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            The ultimate 19×19 mathematical crucible. Features King Egger's apex security algorithms: 10 active hostiles, triple Medusa sentry boxes, cross-cutting magma waterways, and the final extraction showdown at <strong class="text-pink-400">Stage 100: Omega Citadel Core</strong>.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 7: HANDCRAFTED AAA STAGES -->
+            <section id="handcrafted" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">07</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">HANDCRAFTED AAA MASTER STAGES (STAGES 16–25)</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 16</span>
+                            <span class="text-[10px] font-mono text-slate-400">26 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Neon Reflector Array</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Demands pushing emerald prisms to route laser beams around obstacles while stasis-blocking a lethal Medusa sentry box.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 17</span>
+                            <span class="text-[10px] font-mono text-slate-400">32 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Gorgon Sentry Box</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Dual Medusa crossfire pin requiring push-block alignment to create narrow safe-walking corridors.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 18</span>
+                            <span class="text-[10px] font-mono text-slate-400">42 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Molten Magma Ferry</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Pushing a Snakey egg into water to sail across a boiling magma moat with water current bypass.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 19</span>
+                            <span class="text-[10px] font-mono text-slate-400">38 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Sokoban Alloy Lock</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Multi-block sliding lock where incorrect push order traps blocks against walls and prevents reaching the jewel chest.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 20</span>
+                            <span class="text-[10px] font-mono text-slate-400">48 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Sector 2 Apex Fortress</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            High-speed Don Medusa highway timing, corner Medusa turret, and Gol stasis shielding to extract under fire.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 21</span>
+                            <span class="text-[10px] font-mono text-slate-400">34 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Vector Matrix Hub</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            One-way force floor directional conveyor puzzle requiring careful calculation of push trajectories.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 22</span>
+                            <span class="text-[10px] font-mono text-slate-400">40 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Demolition Blast Nexus</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Demolition bomb blast wall breaches paired with egg-raft liquid crossings over deep channels.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 24</span>
+                            <span class="text-[10px] font-mono text-slate-400">45 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Leeper Slumber Chokepoint</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Luring a Leeper into a 1-tile corridor chokepoint to permanently plug aggressive hostile paths.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 md:col-span-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-cyan-400">STAGE 25</span>
+                            <span class="text-[10px] font-mono text-slate-400">55 Moves • 11×11</span>
+                        </div>
+                        <h4 class="orbitron-font font-bold text-white text-sm">Sector 3 Citadel Gate</h4>
+                        <p class="text-slate-300 leading-relaxed">
+                            Multi-tiered fortress defense combining Don Medusa pacing, Gol stasis timing, and emerald laser deflector arrays guarding the gateway to Sector 3.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 8: LEVEL ARCHITECT & CHAMBER VAULT -->
+            <section id="architect" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">08</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">LEVEL ARCHITECT STUDIO &amp; CHAMBER VAULT</h2>
+                </div>
+
+                <div class="cyber-card rounded-2xl p-5 space-y-4 text-xs leading-relaxed text-slate-300">
+                    <p>
+                        The in-engine <strong class="text-cyan-300">Level Architect Studio</strong> allows operatives to design, playtest, and mathematically validate custom chambers. Access it anytime with key <kbd class="bg-slate-900 border border-slate-700 text-cyan-300 px-1.5 py-0.5 rounded font-mono">E</kbd> or the top header button.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                            <span class="text-cyan-400 font-bold orbitron-font text-[11px]">TILE PALETTE</span>
+                            <p class="text-slate-400 text-[11px]">Floor, Wall, Water, Lava, Slime, High Grass, One-Way Force Floors (Up, Down, Left, Right).</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                            <span class="text-pink-400 font-bold orbitron-font text-[11px]">BLOCK PALETTE</span>
+                            <p class="text-slate-400 text-[11px]">Alloy Push Blocks, Laser Prisms, Demolition Bombs, Quantum Singularity Warp Portals.</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                            <span class="text-amber-400 font-bold orbitron-font text-[11px]">HOSTILE ROSTER</span>
+                            <p class="text-slate-400 text-[11px]">Snakey, Gol, Skull, Alma, Medusa, Don Medusa, Leeper, Rocky, Serpent.</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                            <span class="text-emerald-400 font-bold orbitron-font text-[11px]">AI MATH SOLVER</span>
+                            <p class="text-slate-400 text-[11px]">Pre-flight solvability checker verifies reachability and safety before export.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800 space-y-2">
+                        <h4 class="orbitron-font font-bold text-white text-xs text-amber-300">
+                            ⭐ CURATED AAA CHAMBER VAULT (PRE-INSTALLED)
+                        </h4>
+                        <p class="text-slate-400 text-xs">
+                            The Chamber Vault includes 8 curated AAA mastercustom stages verified 100% solvable:
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">1. Gorgon Crossfire</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">2. Heavy Sokoban</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">3. Laser Pinball</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">4. Magma Ferry</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">5. Vector Hub</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">6. Demolition Nexus</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">7. Moby Vortex</span>
+                            <span class="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">8. Leeper Chokepoint</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 pt-1">
+                            Operatives can restore default stages at any time with the <strong class="text-cyan-300">Restore Defaults</strong> button in the Chamber Vault or deep-link stages directly via URL (<code class="text-cyan-300">?custom=0</code> to <code class="text-cyan-300">?custom=7</code>).
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 9: TACTICAL SECRETS & TIPS -->
+            <section id="secrets" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">09</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">TACTICAL SECRETS &amp; SPEEDRUNNING PRO TIPS</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2 text-pink-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-shield"></i> 1. The Stasis Line-of-Sight Shield
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Encasement in an egg makes an enemy behave as a solid push block. Position an egg directly in front of a Medusa or active Gol to completely nullify their deadly line-of-sight firing rays while you collect nearby hearts.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2 text-cyan-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-arrows-rotate"></i> 2. Double-Shot Despawn Cycling
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Firing a second plasma shot destroys the egg. After a brief delay, the enemy respawns back at its original spawn tile. Use this to remove a threatening hostile from an exit doorway and reset it to its far starting location!
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2 text-amber-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-crosshairs"></i> 3. Corner &amp; Half-Step Sniping
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Projectiles travel cleanly down cardinal corridors. By positioning Lolo around a corner or firing just as an enemy enters alignment, you can encase hostiles without exposing yourself to their retaliation.
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2">
+                        <div class="flex items-center gap-2 text-emerald-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-bed"></i> 4. Leeper Funnel Barrier
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            When a Leeper touches Lolo, it falls asleep forever. Stand in front of an aggressive Alma or Skull lane and let the Leeper touch you; its sleeping body becomes an unbreakable barrier that locks the other enemy away for the entire stage!
+                        </p>
+                    </div>
+
+                    <div class="cyber-card rounded-2xl p-4 space-y-2 md:col-span-2">
+                        <div class="flex items-center gap-2 text-purple-400 font-bold orbitron-font">
+                            <i class="fa-solid fa-clock-rotate-left"></i> 5. Zero-Penalty Temporal Undoing (Key Z)
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            Don't fear experimentation! The temporal rewind drive stores every physical state without score penalty or move count inflation. Test egg placement or raft drifts, then rewind 5 moves back if the timing is tight.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 10: AUDIO & VISUAL SUBSYSTEMS -->
+            <section id="telemetry" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3 pb-2 border-b border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/40">10</div>
+                    <h2 class="orbitron-font text-xl font-bold text-white tracking-wide">AUDIO &amp; VISUAL SUBSYSTEMS</h2>
+                </div>
+
+                <div class="cyber-card rounded-2xl p-5 space-y-4 text-xs leading-relaxed text-slate-300">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="bg-slate-950/80 p-3.5 rounded-xl border border-cyan-500/20 space-y-1">
+                            <span class="text-xs font-mono text-cyan-400 font-bold">FFT EQUALIZER</span>
+                            <h4 class="orbitron-font font-bold text-white text-xs">Real-Time Web Audio FFT</h4>
+                            <p class="text-[11px] text-slate-400">64-bin FFT analyser with dancing neon audio bars and peak-hold meters reacting to in-game music and sound fx.</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3.5 rounded-xl border border-pink-500/20 space-y-1">
+                            <span class="text-xs font-mono text-pink-400 font-bold">ATMOSPHERIC WEATHER</span>
+                            <h4 class="orbitron-font font-bold text-white text-xs">Dynamic Weather Engine</h4>
+                            <p class="text-[11px] text-slate-400">4 procedural weather modes: Cyber Rain, Magma Embers, Bio-Spores, and Neon Bokeh Motes that react to board terrain.</p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3.5 rounded-xl border border-purple-500/20 space-y-1">
+                            <span class="text-xs font-mono text-purple-400 font-bold">FLUID WAVE DYNAMICS</span>
+                            <h4 class="orbitron-font font-bold text-white text-xs">2D Wave Equation Solver</h4>
+                            <p class="text-[11px] text-slate-400">Discrete 2D sub-grid fluid simulation producing interactive ripples, specular caustics, and molten magma fissures.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom CTA Footer -->
+            <section class="cyber-glass rounded-3xl p-6 sm:p-8 border border-cyan-500/40 text-center space-y-4 no-print">
+                <h3 class="orbitron-font text-lg sm:text-2xl font-bold text-white">OPERATIVE BRIEFING COMPLETE</h3>
+                <p class="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
+                    The Eggerland Citadel awaits. Infiltrate the perimeter, disarm autonomous hostiles, solve the 100 chambers of logic, and liberate Lala!
+                </p>
+                <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <a href="index.html" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white font-bold orbitron-font text-xs hover:shadow-lg hover:shadow-cyan-500/30 hover:scale-105 transition-all border border-cyan-300/40">
+                        <i class="fa-solid fa-gamepad mr-2"></i> Enter Citadel (Play Game)
+                    </a>
+                    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white font-bold orbitron-font text-xs hover:border-cyan-400 transition-all">
+                        <i class="fa-solid fa-arrow-up mr-2"></i> Back to Top
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Minimal Footer -->
+    <footer class="cyber-glass border-t border-slate-800 py-4 px-6 text-center text-xs font-mono text-slate-500 no-print">
+        <p>Adventures of Lolo: Cyberpunk Remaster • Tactical Field Manual • Eden City Cyber Defense Network</p>
+    </footer>
+
+    <!-- Audio & Interactive Search Script -->
+    <script>
+        // Real-time Search Filtering
+        const searchInput = document.getElementById('manual-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const sections = document.querySelectorAll('main section');
+                
+                sections.forEach(sec => {
+                    if (!query) {
+                        sec.style.display = '';
+                        return;
+                    }
+                    const text = sec.textContent.toLowerCase();
+                    if (text.includes(query)) {
+                        sec.style.display = '';
+                    } else {
+                        sec.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Active TOC Highlighting
+        const tocLinks = document.querySelectorAll('.toc-link');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            const sections = document.querySelectorAll('main section[id]');
+            sections.forEach(sec => {
+                const top = sec.offsetTop - 120;
+                if (window.scrollY >= top) {
+                    current = sec.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('bg-slate-900', 'text-cyan-300', 'border-l-2', 'border-cyan-400');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('bg-slate-900', 'text-cyan-300', 'border-l-2', 'border-cyan-400');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

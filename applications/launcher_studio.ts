@@ -167,6 +167,48 @@ const KNOWN_STUDIO_META: Record<
     icon: "🧮",
     description: "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab & calculus studio",
   },
+  dr_codecaine_studio: {
+    displayName: "Dr. Codecaine Arcade",
+    category: "Games & Entertainment",
+    icon: "💊",
+    description: "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
+  },
+  interval_timer_studio: {
+    displayName: "Interval Timer & Workout Suite",
+    category: "Productivity & Text",
+    icon: "⏱️",
+    description: "High-performance interval timer with Keith Baar isometric tendon training protocols & audio engine",
+  },
+  lolo_studio: {
+    displayName: "Adventures of Lolo Remaster",
+    category: "Games & Entertainment",
+    icon: "👾",
+    description: "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+  },
+  pacman_studio: {
+    displayName: "Cyberpunk Pac-Man Arcade",
+    category: "Games & Entertainment",
+    icon: "🟡",
+    description: "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+  },
+  rodents_revenge_studio: {
+    displayName: "Rodent's Revenge Deluxe",
+    category: "Games & Entertainment",
+    icon: "🧀",
+    description: "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+  },
+  word_search_studio: {
+    displayName: "Neon Word Search Labyrinth",
+    category: "Games & Entertainment",
+    icon: "🔤",
+    description: "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
+  },
+  world_time_zones_studio: {
+    displayName: "World Time Zones Studio Pro",
+    category: "Productivity & Text",
+    icon: "🌐",
+    description: "Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization",
+  },
   color_studio: {
     displayName: "Color Palette Studio Pro",
     category: "Design & UX",

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Rodent's Revenge app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="mouse" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#93c5fd"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <rect x="11" y="11" width="106" height="106" rx="18" fill="none" stroke="#fbbf24" stroke-width="3" opacity="0.9"/>
+  <path d="M36 85 L23 54 L44 38 L64 48 L78 28 L96 39 L99 61 L81 78 L65 89 Z" fill="#0f172a" stroke="#fbbf24" stroke-width="2.5" opacity="0.82"/>
+  <path d="M46 58 L62 52 L82 58 L94 72 L83 90 L60 93 L40 82 Z" fill="#1e293b" stroke="#f8fafc" stroke-width="2" opacity="0.9"/>
+  <path d="M56 46 L51 39 L60 34 L68 39 L64 48 Z" fill="#f8fafc" opacity="0.9"/>
+  <circle cx="74" cy="58" r="15" fill="url(#gold)" stroke="#fef3c7" stroke-width="3"/>
+  <circle cx="68" cy="58" r="3" fill="#7c2d12"/>
+  <circle cx="80" cy="58" r="3" fill="#7c2d12"/>
+  <path d="M69 64 Q74 68 79 64" fill="none" stroke="#7c2d12" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="52" y="75" width="18" height="10" rx="4" fill="#0f172a"/>
+  <rect x="58" y="69" width="8" height="18" rx="4" fill="#0f172a"/>
+  <path d="M28 88c5-12 16-18 29-18 10 0 19 2 26 9l-12 25H40z" fill="url(#mouse)" stroke="#dbeafe" stroke-width="2.5"/>
+  <path d="M45 75c-6-4-12-10-15-18" fill="none" stroke="#dbeafe" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M60 75c1-9 8-15 18-15" fill="none" stroke="#dbeafe" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M90 78l18 9-14 19-18-10z" fill="#f59e0b" opacity="0.9"/>
+  <path d="M96 77l12 6-7 15-14-7z" fill="#fbbf24" opacity="0.95"/>
+  <circle cx="107" cy="82" r="2.5" fill="#7c2d12"/>
+  <path d="M35 102h58" stroke="#22c55e" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  <path d="M35 102h58" stroke="#a7f3d0" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+</svg>

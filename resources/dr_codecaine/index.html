@@ -1,0 +1,2742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>Dr. Codecaine - Overclocked Retro Arcade</title>
+  <meta name="description" content="Triple-A remastered Dr. Codecaine capsule puzzle game. Features polyphonic 8-bit Fever and Chill synthesizers, glossy 3D capsules, expressive pathogen AI, tactile arcade touch controls, and combos.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Press+Start+2P&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --color-red: #ff3366;
+      --color-yellow: #ffcc00;
+      --color-blue: #00d2ff;
+      --bg-dark: #090d1a;
+      --bottle-border: #334155;
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(0, 210, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 90%, rgba(255, 51, 102, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(255, 204, 0, 0.06) 0%, transparent 40%);
+      padding-top: max(6px, env(safe-area-inset-top));
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      padding-left: max(8px, env(safe-area-inset-left));
+      padding-right: max(8px, env(safe-area-inset-right));
+    }
+
+    .retro-font {
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    .fun-font {
+      font-family: 'Fredoka One', cursive;
+    }
+
+    /* Bottle glass reflection, metallic rim and neon glow */
+    .bottle-glass {
+      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.01) 40%, rgba(0, 210, 255, 0.03) 100%),
+                  radial-gradient(ellipse at 50% 8%, rgba(56, 189, 248, 0.16), transparent 75%);
+      box-shadow: inset 0 0 30px rgba(0, 210, 255, 0.2), 0 25px 60px rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Custom scanline arcade effect */
+    .scanlines {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.28) 50%
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+
+    /* Touch buttons with enhanced tactile response */
+    .arcade-btn {
+      touch-action: manipulation;
+      transition: transform 0.08s ease, filter 0.1s ease;
+    }
+    .arcade-btn:active {
+      transform: scale(0.92);
+      filter: brightness(1.25);
+    }
+
+    /* Animated petri dish virus bob */
+    @keyframes floatBob {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-7px) rotate(5deg); }
+    }
+    .animate-bob {
+      animation: floatBob 3s ease-in-out infinite;
+    }
+
+    /* Responsive canvas bottle sizing */
+    #gameCanvas {
+      height: 48vh;
+      max-height: 48dvh;
+      width: auto;
+      aspect-ratio: 1 / 2;
+    }
+
+    @media (min-height: 750px) {
+      #gameCanvas {
+        height: 52vh;
+        max-height: 52dvh;
+      }
+    }
+
+    @media (min-width: 768px) {
+      #gameCanvas {
+        height: 64vh;
+        max-height: 64dvh;
+      }
+    }
+  </style>
+</head>
+<body class="w-full h-full flex flex-col justify-between items-center select-none text-slate-100">
+
+  <!-- Top Header Navigation -->
+  <header class="w-full max-w-4xl flex items-center justify-between py-1.5 px-3 bg-slate-900/90 rounded-2xl border border-slate-800 backdrop-blur shadow-lg flex-shrink-0">
+    <div class="flex items-center gap-2 sm:gap-2.5">
+
+      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-400 to-cyan-400 p-0.5 shadow-md flex items-center justify-center flex-shrink-0">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-lg sm:text-xl">
+          💊
+        </div>
+      </div>
+
+      <div>
+        <h1 class="text-base sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-300 to-rose-400 fun-font leading-tight">
+          DR. CODECAINE <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 hidden xs:inline">Triple-A</span>
+        </h1>
+        <p class="text-[11px] text-slate-400 hidden sm:block">Match 4+ horizontal or vertical capsules to debug!</p>
+      </div>
+    </div>
+
+    <!-- Quick Audio, Track Selector & Mode Actions -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Active BGM Track Tag -->
+      <button id="btnTrackCycle" class="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 flex items-center gap-1" title="Cycle Music Theme">
+        <span>🎵</span>
+        <span id="trackLabel">FEVER</span>
+      </button>
+
+      <button id="btnSoundToggle" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Toggle Sound">
+        <svg id="soundIconOn" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+        <svg id="soundIconOff" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+      </button>
+
+      <button id="btnPause" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Pause Game">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </button>
+
+      <button id="btnSettings" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 transition" title="Game Settings">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-4xl flex-1 flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4 my-auto relative min-h-0">
+    
+    <!-- Left Column / Mobile Top Mini-Bar -->
+    <div class="w-full md:w-56 flex md:flex-col gap-2 justify-between items-stretch flex-shrink-0">
+      
+      <!-- Hold Piece Card -->
+      <div class="flex-1 md:flex-initial bg-slate-900/90 border border-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-md flex flex-col items-center justify-center">
+        <div class="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wider mb-1 uppercase flex items-center gap-1">
+          <span>HOLD</span>
+          <span class="hidden md:inline text-[9px] bg-slate-800 text-slate-300 px-1 py-0.5 rounded">[C]</span>
+        </div>
+        <div class="w-16 h-10 md:w-24 md:h-16 bg-slate-950/80 border border-slate-800 rounded-lg md:rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner">
+          <canvas id="holdCanvas" width="96" height="64" class="w-full h-full object-contain"></canvas>
+          <div id="holdEmptyText" class="absolute text-slate-600 text-[9px] md:text-[10px] font-bold">EMPTY</div>
+        </div>
+      </div>
+
+      <!-- Score & Level Stats -->
+      <div class="flex-1 md:flex-initial bg-slate-900/90 border border-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-md flex flex-col justify-center gap-1 md:gap-2">
+        <div class="flex justify-between items-baseline border-b border-slate-800/80 pb-0.5 md:pb-1">
+          <span class="text-[10px] md:text-xs text-slate-400 font-semibold">SCORE</span>
+          <span id="scoreDisplay" class="font-bold text-xs md:text-lg text-amber-300 tracking-wide font-mono">000000</span>
+        </div>
+        <div class="flex justify-between items-baseline border-b border-slate-800/80 pb-0.5 md:pb-1 hidden md:flex">
+          <span class="text-xs text-slate-400 font-semibold">HIGH</span>
+          <span id="highScoreDisplay" class="font-bold text-sm text-slate-300 font-mono">025000</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-[10px] md:text-xs text-slate-400 font-semibold">STAGE</span>
+          <span id="stageDisplay" class="font-bold text-xs md:text-base text-cyan-400">LVL 01</span>
+        </div>
+        <div class="flex justify-between items-baseline hidden md:flex">
+          <span class="text-xs text-slate-400 font-semibold">SPEED</span>
+          <span id="speedDisplay" class="font-bold text-[10px] uppercase px-1.5 py-0.5 bg-slate-800 rounded text-amber-400">NORMAL</span>
+        </div>
+      </div>
+
+      <!-- Mega-Cure Fever Super Gauge -->
+      <div class="hidden md:flex flex-col bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-md">
+        <div class="flex justify-between items-center text-xs font-bold mb-1.5">
+          <span class="text-purple-400 flex items-center gap-1">
+            <span>⚡ MEGA CURE</span>
+          </span>
+          <span id="feverPercent" class="text-[10px] text-purple-300">0%</span>
+        </div>
+        <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-purple-900/40">
+          <div id="feverBar" class="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-300 rounded-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Center Column: Bottle + Canvas -->
+    <div class="relative flex flex-col items-center justify-center flex-shrink min-h-0">
+      
+      <!-- Bottle Top Neck Opening -->
+      <div class="w-20 md:w-24 h-4 md:h-5 bg-slate-800 border-t-2 border-x-2 border-slate-600 rounded-t-lg relative flex items-center justify-center shadow-inner flex-shrink-0">
+        <div class="w-12 md:w-16 h-2 md:h-3 bg-slate-950 rounded-full border border-cyan-500/40"></div>
+      </div>
+
+      <!-- Main Bottle Grid Container -->
+      <div class="relative rounded-2xl p-1.5 sm:p-2.5 bottle-glass border-2 sm:border-4 border-slate-700/80 shadow-2xl overflow-hidden flex items-center justify-center">
+        
+        <!-- Retro Grid Canvas with Touch Gesture Handling -->
+        <canvas id="gameCanvas" width="320" height="640" class="block rounded-lg shadow-inner bg-slate-950/95 cursor-pointer"></canvas>
+
+        <!-- CRT Scanline Overlay -->
+        <div id="scanlineOverlay" class="absolute inset-0 scanlines opacity-20 pointer-events-none rounded-2xl"></div>
+
+        <!-- Combo Splash Notification Overlay -->
+        <div id="comboBanner" class="absolute inset-x-0 top-1/3 flex flex-col items-center pointer-events-none transition-all duration-300 transform scale-0 opacity-0 z-20">
+          <span id="comboTitle" class="text-2xl sm:text-3xl font-black text-amber-300 fun-font drop-shadow-[0_4px_16px_rgba(245,158,11,0.9)]">COMBO x2!</span>
+          <span id="comboBonus" class="text-xs sm:text-sm font-bold text-white bg-slate-900/90 px-3 py-1 rounded-full border border-amber-500/50 mt-1 shadow-lg">+400 PTS</span>
+        </div>
+
+        <!-- In-game Pause / Overlay Screen -->
+        <div id="pauseOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm hidden flex flex-col items-center justify-center gap-3 z-30 p-4 text-center">
+          <div class="text-2xl sm:text-3xl font-black text-white fun-font tracking-wider">GAME PAUSED</div>
+          <p class="text-slate-400 text-xs max-w-xs">Execution paused. Ready to diagnose more bugs?</p>
+          <div class="flex flex-col gap-2 w-44 mt-1">
+            <button id="btnResume" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:brightness-110 shadow-lg shadow-cyan-500/25">RESUME</button>
+            <button id="btnRestartGame" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">RESTART LEVEL</button>
+          </div>
+        </div>
+
+        <!-- Game Over / Victory Modal -->
+        <div id="endGameOverlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md hidden flex flex-col items-center justify-center gap-3 z-40 p-4 text-center">
+          <div id="endGameEmoji" class="text-5xl animate-bounce">🏆</div>
+          <div id="endGameTitle" class="text-2xl sm:text-3xl font-black text-amber-400 fun-font">STAGE CLEAR!</div>
+          <p id="endGameDesc" class="text-slate-300 text-xs max-w-xs">All pathogens sterilized successfully!</p>
+          
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 w-48 flex flex-col gap-1 text-xs">
+            <div class="flex justify-between text-slate-400">Score: <span id="endScore" class="font-bold text-white">0</span></div>
+            <div class="flex justify-between text-slate-400">Viruses: <span id="endViruses" class="font-bold text-cyan-400">0</span></div>
+            <div class="flex justify-between text-slate-400">Combo: <span id="endCombo" class="font-bold text-amber-400">0x</span></div>
+          </div>
+
+          <div class="flex flex-col gap-2 w-48 mt-1">
+            <button id="btnNextOrRetry" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold hover:brightness-110 shadow-lg shadow-amber-500/25">NEXT LEVEL</button>
+            <button id="btnMainMenu" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700">STAGE 1</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Right Column / Mobile Top Mini-Bar (Next, Doctor, & Virus Count) -->
+    <div class="w-full md:w-56 flex md:flex-col gap-2 justify-between items-stretch flex-shrink-0">
+      
+      <!-- Animated Dr. Codecaine Character Card (Desktop) -->
+      <div class="hidden md:flex bg-slate-900/90 border border-slate-800 rounded-2xl p-2 shadow-md flex-col items-center justify-center relative overflow-hidden">
+        <canvas id="drCanvas" width="160" height="90" class="w-full h-auto object-contain"></canvas>
+      </div>
+
+      <!-- Next Capsule Preview -->
+      <div class="flex-1 md:flex-initial bg-slate-900/90 border border-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-md flex flex-col items-center justify-center">
+        <div class="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wider mb-1 uppercase">NEXT</div>
+        <div class="w-16 h-10 md:w-24 md:h-16 bg-slate-950/80 border border-slate-800 rounded-lg md:rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner">
+          <canvas id="nextCanvas" width="96" height="64" class="w-full h-full object-contain"></canvas>
+        </div>
+      </div>
+
+      <!-- Animated Petri Dish with Expressive Bacteria Characters -->
+      <div class="flex-1 md:flex-initial bg-slate-900/90 border border-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-md flex flex-col items-center justify-center">
+        <div class="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wider mb-1 uppercase flex items-center justify-between w-full">
+          <span>VIRUSES</span>
+          <span class="text-rose-400 font-extrabold flex items-center gap-1 font-mono">
+            <span id="virusCountDisplay">08</span>
+            <span class="text-[9px] text-slate-500 font-normal">LEFT</span>
+          </span>
+        </div>
+
+        <!-- Petri Glass Canvas with Lively 60fps Microbes -->
+        <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 sm:border-4 border-slate-700 bg-slate-950 relative flex items-center justify-center shadow-inner overflow-hidden">
+          <canvas id="petriCanvas" width="140" height="140" class="w-full h-full object-contain"></canvas>
+        </div>
+
+        <div class="flex justify-between w-full mt-1.5 px-2 text-[10px] font-bold">
+          <span class="text-rose-400 flex items-center gap-1">🔴 <span id="countRed">3</span></span>
+          <span class="text-amber-300 flex items-center gap-1">🟡 <span id="countYellow">3</span></span>
+          <span class="text-sky-400 flex items-center gap-1">🔵 <span id="countBlue">2</span></span>
+        </div>
+
+      </div>
+
+      <!-- Quick Control Help (Desktop) -->
+      <div class="hidden md:block bg-slate-900/70 border border-slate-800 rounded-2xl p-3 text-[11px] text-slate-400 space-y-1">
+        <div class="font-bold text-slate-300 mb-1">KEYBOARD / TOUCH:</div>
+        <div class="flex justify-between"><span>Move Left / Right</span><span class="text-slate-200">← / → or Tap/Hold</span></div>
+        <div class="flex justify-between"><span>Rotate</span><span class="text-slate-200">↑ / Tap Board</span></div>
+        <div class="flex justify-between"><span>Soft Drop</span><span class="text-slate-200">↓ / Hold Down</span></div>
+        <div class="flex justify-between"><span>Hard Drop</span><span class="text-slate-200">SPACE / Slam</span></div>
+        <div class="flex justify-between"><span>Hold Capsule</span><span class="text-slate-200">C / HOLD btn</span></div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Arcade Touch Button Controls -->
+  <section class="w-full max-w-md flex flex-col gap-1.5 px-2 pt-1 pb-1 flex-shrink-0 z-10">
+    <div class="grid grid-cols-5 gap-1.5 sm:gap-2">
+      <button id="touchHold" class="arcade-btn h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-800 border border-slate-700 active:bg-slate-700 flex flex-col items-center justify-center shadow-md">
+        <span class="text-[11px] sm:text-xs font-black text-cyan-400">HOLD</span>
+      </button>
+      <button id="touchLeft" class="arcade-btn h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-800 border border-slate-700 active:bg-slate-700 flex items-center justify-center shadow-md">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button id="touchDown" class="arcade-btn h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-800 border border-slate-700 active:bg-slate-700 flex items-center justify-center shadow-md">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <button id="touchRight" class="arcade-btn h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-800 border border-slate-700 active:bg-slate-700 flex items-center justify-center shadow-md">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <button id="touchRotate" class="arcade-btn h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 active:brightness-90 flex flex-col items-center justify-center shadow-lg text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </button>
+    </div>
+    
+    <button id="touchHardDrop" class="arcade-btn w-full h-9 sm:h-10 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-300 active:bg-slate-700 font-bold text-[11px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm">
+      <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 13l-7 7-7-7m14-8l-7 7-7-7"/></svg>
+      <span>HARD DROP (SLAM)</span>
+    </button>
+  </section>
+
+  <!-- Settings Modal Dialog -->
+  <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>⚙️</span> Game Settings
+        </h3>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+
+      <!-- Music Theme Track -->
+      <div>
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Soundtrack Theme</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-track="fever" class="track-btn py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10">FEVER</button>
+          <button data-track="chill" class="track-btn py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">CHILL</button>
+          <button data-track="off" class="track-btn py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">OFF</button>
+        </div>
+      </div>
+
+      <!-- Stage Selector -->
+      <div>
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Starting Level (1 - 20)</label>
+        <div class="flex items-center gap-3">
+          <input type="range" id="levelRange" min="1" max="20" value="1" class="w-full accent-cyan-400 cursor-pointer">
+          <span id="levelRangeVal" class="text-base font-bold text-cyan-400 w-8 text-right">01</span>
+        </div>
+      </div>
+
+      <!-- Speed Option -->
+      <div>
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Game Speed</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-speed="low" class="speed-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">LOW</button>
+          <button data-speed="med" class="speed-opt py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10">NORMAL</button>
+          <button data-speed="hi" class="speed-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700">TURBO</button>
+        </div>
+      </div>
+
+      <!-- Ghost Piece Option -->
+      <div class="flex items-center justify-between py-1">
+        <div>
+          <div class="text-xs font-semibold text-slate-200">Ghost Capsule Guide</div>
+          <div class="text-[10px] text-slate-400">Shows where the pill will land</div>
+        </div>
+        <input type="checkbox" id="toggleGhost" checked class="w-5 h-5 accent-cyan-400 rounded cursor-pointer">
+      </div>
+
+      <!-- CRT Scanline Filter -->
+      <div class="flex items-center justify-between py-1">
+        <div>
+          <div class="text-xs font-semibold text-slate-200">CRT Arcade Scanlines</div>
+          <div class="text-[10px] text-slate-400">Authentic arcade monitor scan effect</div>
+        </div>
+        <input type="checkbox" id="toggleScanlines" checked class="w-5 h-5 accent-purple-400 rounded cursor-pointer">
+      </div>
+
+      <button id="btnApplySettings" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-lg shadow-cyan-500/20 hover:brightness-110 mt-1">
+        APPLY &amp; NEW GAME
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Safe storage polyfill for Webview/sandboxed environments
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+    })();
+
+    /**
+     * Triple-A Web Audio API Polyphonic Synthesizer Engine
+     * Features:
+     * - Multi-voice polyphony: Lead melody, Harmony/Counterpoint, Walking Bassline, Percussion Noise Drums
+     * - Authentic dual themes: 'FEVER' (high energy swing) and 'CHILL' (cool jazz groove)
+     * - Stereophonic harmonic SFX (rotation chimes, multi-tone match chords, squishy virus death)
+     */
+    class TripleASoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.musicGain = null;
+        this.sfxGain = null;
+        this.muted = false;
+        this.musicEnabled = true;
+        this.currentTrack = 'fever'; // 'fever', 'chill', 'off'
+        this.bgmTimer = null;
+        this.step = 0;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        // Master Lowpass Filter for pause muffle and overdrive acid sweep
+        this.lowPassFilter = this.ctx.createBiquadFilter();
+        this.lowPassFilter.type = 'lowpass';
+        this.lowPassFilter.frequency.setValueAtTime(20000, this.ctx.currentTime);
+        this.lowPassFilter.Q.setValueAtTime(1.2, this.ctx.currentTime);
+
+        // Master gain
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+        this.masterGain.connect(this.lowPassFilter);
+        this.lowPassFilter.connect(this.ctx.destination);
+
+        // Music bus
+        this.musicGain = this.ctx.createGain();
+        this.musicGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        this.musicGain.connect(this.masterGain);
+
+        // SFX bus
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        this.sfxGain.connect(this.masterGain);
+      }
+
+      resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      setPauseMuffle(isPaused) {
+        if (!this.ctx || !this.lowPassFilter) return;
+        const t = this.ctx.currentTime;
+        this.lowPassFilter.frequency.cancelScheduledValues(t);
+        if (isPaused) {
+          this.lowPassFilter.frequency.exponentialRampToValueAtTime(300, t + 0.15);
+        } else {
+          this.lowPassFilter.frequency.exponentialRampToValueAtTime(20000, t + 0.15);
+        }
+      }
+
+      setOverdrive(enabled) {
+        this.isOverdrive = !!enabled;
+        if (!this.ctx || !this.lowPassFilter) return;
+        try {
+          const t = this.ctx.currentTime;
+          this.lowPassFilter.frequency.cancelScheduledValues(t);
+          this.lowPassFilter.Q.cancelScheduledValues(t);
+          if (enabled) {
+            this.lowPassFilter.frequency.setValueAtTime(this.lowPassFilter.frequency.value, t);
+            this.lowPassFilter.frequency.exponentialRampToValueAtTime(14000, t + 0.15);
+            this.lowPassFilter.Q.setValueAtTime(this.lowPassFilter.Q.value, t);
+            this.lowPassFilter.Q.linearRampToValueAtTime(4.0, t + 0.15);
+            if (this.musicGain) {
+              this.musicGain.gain.setValueAtTime(0.32, t);
+            }
+          } else {
+            this.lowPassFilter.frequency.setValueAtTime(this.lowPassFilter.frequency.value, t);
+            this.lowPassFilter.frequency.exponentialRampToValueAtTime(20000, t + 0.15);
+            this.lowPassFilter.Q.setValueAtTime(this.lowPassFilter.Q.value, t);
+            this.lowPassFilter.Q.linearRampToValueAtTime(1.2, t + 0.15);
+            if (this.musicGain) {
+              this.musicGain.gain.setValueAtTime(0.25, t);
+            }
+          }
+        } catch (e) {}
+      }
+
+      getPanner(panVal = 0) {
+        if (!this.ctx) return null;
+        if (this.ctx.createStereoPanner) {
+          const p = this.ctx.createStereoPanner();
+          p.pan.setValueAtTime(Math.max(-1, Math.min(1, panVal)), this.ctx.currentTime);
+          return p;
+        }
+        return null;
+      }
+
+      // Play polyphonic note with optional stereo pan
+      playNote(freq, type = 'square', duration = 0.12, gainVal = 0.2, dest = null, pan = 0) {
+        if (this.muted || !this.ctx || freq <= 0) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+          const target = dest || this.sfxGain;
+          const panner = this.getPanner(pan);
+          if (panner) {
+            osc.connect(gain);
+            gain.connect(panner);
+            panner.connect(target);
+          } else {
+            osc.connect(gain);
+            gain.connect(target);
+          }
+
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e){}
+      }
+
+      // Drum noise synthesizer for rhythm channel
+      playDrum(type = 'snare', duration = 0.08) {
+        if (this.muted || !this.ctx || !this.musicEnabled) return;
+        try {
+          if (type === 'kick') {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+            osc.connect(gain);
+            gain.connect(this.musicGain);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.12);
+          } else {
+            // Snare / HiHat Noise
+            const bufferSize = this.ctx.sampleRate * duration;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = type === 'hihat' ? 'highpass' : 'bandpass';
+            filter.frequency.setValueAtTime(type === 'hihat' ? 5000 : 1200, this.ctx.currentTime);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(type === 'hihat' ? 0.08 : 0.18, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.musicGain);
+            noise.start();
+          }
+        } catch(e){}
+      }
+
+      // SFX Suite with true stereo panning
+      playRotate(pan = 0) {
+        this.playNote(587.33, 'square', 0.05, 0.15, null, pan); // D5
+        setTimeout(() => this.playNote(880, 'square', 0.06, 0.15, null, pan), 35); // A5
+      }
+
+      playMove(pan = 0) {
+        this.playNote(349.23, 'triangle', 0.03, 0.1, null, pan); // F4
+      }
+
+      playLand(pan = 0) {
+        this.playNote(130.81, 'triangle', 0.08, 0.22, null, pan); // C3
+      }
+
+      playMatch(combo = 1, pan = 0) {
+        // Ascending chord cascade based on combo tier
+        const baseRoot = 523.25; // C5
+        const semitoneShift = (combo - 1) * 2;
+        const root = baseRoot * Math.pow(2, semitoneShift / 12);
+        
+        // Major Triad Arpeggio
+        this.playNote(root, 'triangle', 0.18, 0.25, null, pan);
+        setTimeout(() => this.playNote(root * 1.25, 'triangle', 0.18, 0.25, null, pan), 60); // E
+        setTimeout(() => this.playNote(root * 1.5, 'square', 0.22, 0.2, null, pan), 120);  // G
+        setTimeout(() => this.playNote(root * 2.0, 'sine', 0.25, 0.22, null, pan), 180);  // C6
+      }
+
+      playSquish(pan = 0) {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(65, this.ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.28, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+
+          const panner = this.getPanner(pan);
+          if (panner) {
+            osc.connect(gain);
+            gain.connect(panner);
+            panner.connect(this.sfxGain);
+          } else {
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+          }
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.3);
+        } catch(e){}
+      }
+
+      playThrow() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(740, this.ctx.currentTime + 0.18);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.18);
+        } catch(e){}
+      }
+
+      playZap() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(920, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(240, this.ctx.currentTime + 0.16);
+          gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.16);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.16);
+        } catch(e){}
+      }
+
+      playMicrobeFaint() {
+        if (this.muted || !this.ctx) return;
+        const notes = [659, 587, 523, 440, 392];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playNote(freq, 'triangle', 0.12, 0.22), idx * 60);
+        });
+      }
+
+      playFeverReady() {
+        [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
+          setTimeout(() => this.playNote(freq, 'square', 0.16, 0.22), i * 75);
+        });
+      }
+
+      playMegaBomb() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const t = this.ctx.currentTime;
+          // Sub-bass 808 drop
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(185, t);
+          osc.frequency.exponentialRampToValueAtTime(26, t + 0.6);
+          gain.gain.setValueAtTime(0.85, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start();
+          osc.stop(t + 0.6);
+
+          // Explosive resonant noise rumble
+          const bufSize = this.ctx.sampleRate * 0.5;
+          const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.25));
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buf;
+          const flt = this.ctx.createBiquadFilter();
+          flt.type = 'lowpass';
+          flt.frequency.setValueAtTime(1600, t);
+          flt.frequency.exponentialRampToValueAtTime(80, t + 0.5);
+          const nGain = this.ctx.createGain();
+          nGain.gain.setValueAtTime(0.55, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          noise.connect(flt);
+          flt.connect(nGain);
+          nGain.connect(this.sfxGain);
+          noise.start();
+        } catch(e){}
+      }
+
+      playVictory() {
+        const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        fanfare.forEach((freq, i) => {
+          setTimeout(() => this.playNote(freq, 'triangle', 0.25, 0.25), i * 110);
+        });
+      }
+
+      playGameOver() {
+        [392.00, 369.99, 349.23, 293.66, 261.63].forEach((freq, i) => {
+          setTimeout(() => this.playNote(freq, 'sawtooth', 0.28, 0.25), i * 140);
+        });
+      }
+
+      // Polyphonic Arcade Background Tracker
+      startBGM() {
+        if (!this.musicEnabled || this.muted || this.bgmTimer || this.currentTrack === 'off') return;
+
+        // FEVER THEME: High-energy swing in C Minor / C Pentatonic
+        // Multi-voice: [Lead Melody, Harmony, Bass, Drum]
+        const feverScore = [
+          // Bar 1
+          { lead: 523, harm: 261, bass: 130, drum: 'kick' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 587, harm: 329, bass: 164, drum: 'snare' },
+          { lead: 659, harm: 392, bass: 130, drum: 'hihat' },
+          { lead: 784, harm: 440, bass: 196, drum: 'kick' },
+          { lead: 659, harm: 392, bass: 0,   drum: 'hihat' },
+          { lead: 523, harm: 261, bass: 164, drum: 'snare' },
+          { lead: 440, harm: 220, bass: 130, drum: 'hihat' },
+          // Bar 2
+          { lead: 392, harm: 196, bass: 130, drum: 'kick' },
+          { lead: 440, harm: 220, bass: 0,   drum: 'hihat' },
+          { lead: 523, harm: 261, bass: 174, drum: 'snare' },
+          { lead: 659, harm: 329, bass: 0,   drum: 'hihat' },
+          { lead: 587, harm: 293, bass: 196, drum: 'kick' },
+          { lead: 523, harm: 261, bass: 0,   drum: 'hihat' },
+          { lead: 587, harm: 293, bass: 146, drum: 'snare' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          // Bar 3
+          { lead: 659, harm: 329, bass: 164, drum: 'kick' },
+          { lead: 784, harm: 392, bass: 0,   drum: 'hihat' },
+          { lead: 880, harm: 440, bass: 220, drum: 'snare' },
+          { lead: 1046,harm: 523, bass: 0,   drum: 'hihat' },
+          { lead: 880, harm: 440, bass: 220, drum: 'kick' },
+          { lead: 784, harm: 392, bass: 0,   drum: 'hihat' },
+          { lead: 659, harm: 329, bass: 164, drum: 'snare' },
+          { lead: 523, harm: 261, bass: 130, drum: 'hihat' },
+          // Bar 4 (Turnaround)
+          { lead: 587, harm: 293, bass: 146, drum: 'kick' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 659, harm: 329, bass: 164, drum: 'snare' },
+          { lead: 587, harm: 293, bass: 146, drum: 'hihat' },
+          { lead: 523, harm: 261, bass: 130, drum: 'kick' },
+          { lead: 0,   harm: 0,   bass: 130, drum: 'hihat' },
+          { lead: 523, harm: 261, bass: 130, drum: 'snare' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' }
+        ];
+
+        // CHILL THEME: Cool jazz lounge syncopation
+        const chillScore = [
+          { lead: 440, harm: 220, bass: 110, drum: 'kick' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 554, harm: 277, bass: 110, drum: 'hihat' },
+          { lead: 659, harm: 329, bass: 164, drum: 'snare' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 554, harm: 277, bass: 110, drum: 'kick' },
+          { lead: 440, harm: 220, bass: 164, drum: 'snare' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 493, harm: 246, bass: 123, drum: 'kick' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 587, harm: 293, bass: 123, drum: 'hihat' },
+          { lead: 739, harm: 369, bass: 185, drum: 'snare' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' },
+          { lead: 587, harm: 293, bass: 123, drum: 'kick' },
+          { lead: 493, harm: 246, bass: 185, drum: 'snare' },
+          { lead: 0,   harm: 0,   bass: 0,   drum: 'hihat' }
+        ];
+
+        const score = this.currentTrack === 'chill' ? chillScore : feverScore;
+        const tempo = this.currentTrack === 'chill' ? 175 : 140;
+
+        this.bgmTimer = setInterval(() => {
+          if (!this.musicEnabled || this.muted || this.currentTrack === 'off') return;
+          const beat = score[this.step % score.length];
+
+          // Lead melody (square wave with slight pulse envelope)
+          if (beat.lead > 0) {
+            this.playNote(beat.lead, 'square', 0.11, 0.16, this.musicGain);
+          }
+          // Harmony counterpoint (triangle/square)
+          if (beat.harm > 0) {
+            this.playNote(beat.harm, 'triangle', 0.12, 0.12, this.musicGain);
+          }
+          // Walking bass (punchy low triangle)
+          if (beat.bass > 0) {
+            this.playNote(beat.bass, 'triangle', 0.15, 0.22, this.musicGain);
+          }
+          // Chiptune Percussion (kick / snare / hi-hat)
+          if (beat.drum) {
+            this.playDrum(beat.drum);
+          }
+
+          this.step++;
+        }, tempo);
+      }
+
+      stopBGM() {
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+
+      setTrack(track) {
+        this.currentTrack = track;
+        this.stopBGM();
+        this.step = 0;
+        if (track !== 'off') {
+          this.startBGM();
+        }
+      }
+    }
+
+    const sound = new TripleASoundEngine();
+
+    const COLS = 8;
+    const ROWS = 16;
+    const CELL_SIZE = 40; // 8 * 40 = 320w, 16 * 40 = 640h
+
+    // Colors: 0 = empty, 1 = Red, 2 = Yellow, 3 = Blue, 4 = Rainbow (Mega-Cure Wild)
+    const COLOR_DEFS = {
+      1: { name: 'Red', main: '#ff3366', dark: '#99002b', light: '#ff99b3', glow: 'rgba(255, 51, 102, 0.85)' },
+      2: { name: 'Yellow', main: '#ffcc00', dark: '#997a00', light: '#ffeb80', glow: 'rgba(255, 204, 0, 0.85)' },
+      3: { name: 'Blue', main: '#00d2ff', dark: '#006680', light: '#99edff', glow: 'rgba(0, 210, 255, 0.85)' },
+      4: { name: 'Rainbow', main: '#c084fc', dark: '#7e22ce', light: '#f3e8ff', glow: 'rgba(192, 132, 252, 0.9)' }
+    };
+
+    let grid = [];
+    let activePill = null;
+    let nextPill = null;
+    let holdPill = null;
+    let canHold = true;
+    let score = 0;
+    let highScore = 25000;
+    try {
+      const stored = localStorage.getItem('dr_codecaine_highscore');
+      if (stored) highScore = parseInt(stored, 10) || 25000;
+    } catch(e) {}
+    let level = 1;
+    let virusesRemaining = 0;
+    let virusCountByColor = { 1: 0, 2: 0, 3: 0 };
+    let gameState = 'START';
+    let fallSpeed = 650;
+    let speedPreset = 'med';
+    let lastDropTime = 0;
+    let showGhost = true;
+    let feverCharge = 0;
+    let isFeverOverdrive = false;
+    let chromaticAberration = 0;
+    let screenShake = 0;
+    let boardSquashX = 1;
+    let boardSquashY = 1;
+    let feverHue = 0;
+    let particles = [];
+    let floatingTexts = [];
+    let ambientBubbles = [];
+    let animationFrameId = null;
+    let comboCount = 0;
+    let maxComboThisGame = 0;
+
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d');
+    const holdCanvas = document.getElementById('holdCanvas');
+    const holdCtx = holdCanvas.getContext('2d');
+    const nextCanvas = document.getElementById('nextCanvas');
+    const nextCtx = nextCanvas.getContext('2d');
+    const drCanvas = document.getElementById('drCanvas');
+    const drCtx = drCanvas ? drCanvas.getContext('2d') : null;
+    const petriCanvas = document.getElementById('petriCanvas');
+    const petriCtx = petriCanvas ? petriCanvas.getContext('2d') : null;
+
+    let electricArcs = [];
+    let shockwaves = [];
+    let throwAnimation = null;
+    let drArmTimer = 0;
+
+    const petriViruses = [
+      { id: 1, name: 'Red', color: '#ff3366', light: '#ff8099', x: 38, y: 70, state: 'DANCE', timer: 0, panicTimer: 0, defeated: false, defeatedTimer: 0 },
+      { id: 2, name: 'Yellow', color: '#ffcc00', light: '#ffeb80', x: 70, y: 104, state: 'DANCE', timer: 1.2, panicTimer: 0, defeated: false, defeatedTimer: 0 },
+      { id: 3, name: 'Blue', color: '#00d2ff', light: '#99edff', x: 102, y: 70, state: 'DANCE', timer: 2.4, panicTimer: 0, defeated: false, defeatedTimer: 0 }
+    ];
+
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const stageDisplay = document.getElementById('stageDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const virusCountDisplay = document.getElementById('virusCountDisplay');
+    const countRed = document.getElementById('countRed');
+    const countYellow = document.getElementById('countYellow');
+    const countBlue = document.getElementById('countBlue');
+    const feverBar = document.getElementById('feverBar');
+    const feverPercent = document.getElementById('feverPercent');
+    const comboBanner = document.getElementById('comboBanner');
+    const comboTitle = document.getElementById('comboTitle');
+    const comboBonus = document.getElementById('comboBonus');
+    const trackLabel = document.getElementById('trackLabel');
+
+    // Initialize bottle ambient bubbles
+    for (let i = 0; i < 18; i++) {
+      ambientBubbles.push({
+        x: Math.random() * 320,
+        y: Math.random() * 640,
+        r: Math.random() * 2.5 + 1,
+        vy: -(Math.random() * 0.4 + 0.2),
+        alpha: Math.random() * 0.4 + 0.1
+      });
+    }
+
+    class Capsule {
+      constructor(colorA, colorB, isBomb = false) {
+        this.x = 3;
+        this.y = 0;
+        this.colorA = colorA;
+        this.colorB = colorB;
+        this.rot = 0;
+        this.isBomb = isBomb;
+      }
+
+      getSegments() {
+        if (this.rot === 0) {
+          return [
+            { x: this.x, y: this.y, color: this.colorA, part: 'left', isBomb: this.isBomb },
+            { x: this.x + 1, y: this.y, color: this.colorB, part: 'right', isBomb: this.isBomb }
+          ];
+        } else if (this.rot === 1) {
+          return [
+            { x: this.x, y: this.y, color: this.colorA, part: 'top', isBomb: this.isBomb },
+            { x: this.x, y: this.y + 1, color: this.colorB, part: 'bottom', isBomb: this.isBomb }
+          ];
+        } else if (this.rot === 2) {
+          return [
+            { x: this.x, y: this.y, color: this.colorB, part: 'left', isBomb: this.isBomb },
+            { x: this.x + 1, y: this.y, color: this.colorA, part: 'right', isBomb: this.isBomb }
+          ];
+        } else {
+          return [
+            { x: this.x, y: this.y, color: this.colorB, part: 'top', isBomb: this.isBomb },
+            { x: this.x, y: this.y + 1, color: this.colorA, part: 'bottom', isBomb: this.isBomb }
+          ];
+        }
+      }
+    }
+
+    function initGrid() {
+      grid = [];
+      for (let r = 0; r < ROWS; r++) {
+        const row = [];
+        for (let c = 0; c < COLS; c++) {
+          row.push(null);
+        }
+        grid.push(row);
+      }
+    }
+
+    function populateViruses(lvl) {
+      const totalViruses = Math.min(84, (lvl + 1) * 4);
+      virusesRemaining = totalViruses;
+      virusCountByColor = { 1: 0, 2: 0, 3: 0 };
+
+      const minRow = Math.max(3, 16 - Math.floor(lvl / 2) - 8);
+      let placed = 0;
+
+      while (placed < totalViruses) {
+        const r = Math.floor(Math.random() * (ROWS - minRow)) + minRow;
+        const c = Math.floor(Math.random() * COLS);
+
+        if (!grid[r][c]) {
+          const color = (placed % 3) + 1;
+          if (!wouldCreatePreMatch(r, c, color)) {
+            grid[r][c] = {
+              type: 'virus',
+              color: color,
+              part: 'single',
+              animOffset: Math.random() * Math.PI * 2,
+              blinkTimer: Math.random() * 100,
+              expression: 'normal' // 'normal', 'nervous', 'laughing'
+            };
+            virusCountByColor[color]++;
+            placed++;
+          }
+        }
+      }
+      updateVirusStats();
+    }
+
+    function wouldCreatePreMatch(r, c, col) {
+      if (c > 1 && grid[r][c-1]?.color === col && grid[r][c-2]?.color === col) return true;
+      if (c < COLS - 2 && grid[r][c+1]?.color === col && grid[r][c+2]?.color === col) return true;
+      if (r > 1 && grid[r-1][c]?.color === col && grid[r-2][c]?.color === col) return true;
+      if (r < ROWS - 2 && grid[r+1][c]?.color === col && grid[r+2][c]?.color === col) return true;
+      return false;
+    }
+
+    function updateVirusStats() {
+      virusCountDisplay.textContent = String(virusesRemaining).padStart(2, '0');
+      countRed.textContent = virusCountByColor[1];
+      countYellow.textContent = virusCountByColor[2];
+      countBlue.textContent = virusCountByColor[3];
+
+      petriViruses.forEach(v => {
+        if (virusCountByColor[v.id] <= 0 && !v.defeated) {
+          v.defeated = true;
+          v.state = 'DEFEATED';
+          sound.playMicrobeFaint();
+        } else if (virusCountByColor[v.id] > 0) {
+          v.defeated = false;
+          if (v.state === 'DEFEATED') v.state = 'DANCE';
+        }
+      });
+    }
+
+    function getRandomPillColor() {
+      if (feverCharge >= 100 && Math.random() < 0.35) {
+        return 4; // Rainbow Wildcard!
+      }
+      return Math.floor(Math.random() * 3) + 1;
+    }
+
+    function createNewCapsule() {
+      const isBomb = isFeverOverdrive;
+      return new Capsule(getRandomPillColor(), getRandomPillColor(), isBomb);
+    }
+
+    function isValidPosition(capsule, offsetX = 0, offsetY = 0, targetRot = capsule.rot) {
+      const testCapsule = new Capsule(capsule.colorA, capsule.colorB, capsule.isBomb);
+      testCapsule.x = capsule.x + offsetX;
+      testCapsule.y = capsule.y + offsetY;
+      testCapsule.rot = targetRot;
+
+      const segs = testCapsule.getSegments();
+      for (const s of segs) {
+        if (s.x < 0 || s.x >= COLS || s.y < 0 || s.y >= ROWS) return false;
+        if (grid[s.y][s.x] !== null) return false;
+      }
+      return true;
+    }
+
+    function tryRotateActive(direction = 1) {
+      if (!activePill || gameState !== 'PLAYING') return;
+
+      const nextRot = (activePill.rot + direction + 4) % 4;
+      const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
+
+      if (isValidPosition(activePill, 0, 0, nextRot)) {
+        activePill.rot = nextRot;
+        sound.playRotate(pan);
+        return;
+      }
+
+      // Wall-kicks
+      const kicks = [[-1, 0], [1, 0], [0, -1]];
+      for (const [kx, ky] of kicks) {
+        if (isValidPosition(activePill, kx, ky, nextRot)) {
+          activePill.x += kx;
+          activePill.y += ky;
+          activePill.rot = nextRot;
+          sound.playRotate(pan);
+          return;
+        }
+      }
+    }
+
+    function holdCurrentCapsule() {
+      if (!canHold || !activePill || gameState !== 'PLAYING') return;
+
+      const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
+      sound.playRotate(pan);
+      if (!holdPill) {
+        holdPill = new Capsule(activePill.colorA, activePill.colorB, activePill.isBomb);
+        activePill = nextPill;
+        nextPill = createNewCapsule();
+      } else {
+        const temp = new Capsule(activePill.colorA, activePill.colorB, activePill.isBomb);
+        activePill = new Capsule(holdPill.colorA, holdPill.colorB, holdPill.isBomb);
+        holdPill = temp;
+      }
+
+      activePill.x = 3;
+      activePill.y = 0;
+      activePill.rot = 0;
+      canHold = false;
+      document.getElementById('holdEmptyText').classList.add('hidden');
+      drawHoldPiece();
+      drawNextPiece();
+    }
+
+    function getGhostY() {
+      if (!activePill) return 0;
+      let dropOffset = 0;
+      while (isValidPosition(activePill, 0, dropOffset + 1)) {
+        dropOffset++;
+      }
+      return activePill.y + dropOffset;
+    }
+
+    function moveLeft() {
+      if (!activePill || gameState !== 'PLAYING') return;
+      if (isValidPosition(activePill, -1, 0)) {
+        activePill.x--;
+        const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
+        sound.playMove(pan);
+      }
+    }
+
+    function moveRight() {
+      if (!activePill || gameState !== 'PLAYING') return;
+      if (isValidPosition(activePill, 1, 0)) {
+        activePill.x++;
+        const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
+        sound.playMove(pan);
+      }
+    }
+
+    function softDrop() {
+      if (!activePill || gameState !== 'PLAYING') return;
+      if (isValidPosition(activePill, 0, 1)) {
+        activePill.y++;
+        addScore(1);
+        const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
+        sound.playMove(pan);
+      } else {
+        lockPill();
+      }
+    }
+
+    function hardDrop() {
+      if (!activePill || gameState !== 'PLAYING') return;
+      let droppedCells = 0;
+      while (isValidPosition(activePill, 0, 1)) {
+        activePill.y++;
+        droppedCells++;
+      }
+      addScore(droppedCells * 2);
+      spawnSlamDust(activePill.x, activePill.y);
+      boardSquashX = 1.08;
+      boardSquashY = 0.92;
+      lockPill();
+    }
+
+    function lockPill() {
+      const pan = ((activePill.x + 0.5) / COLS) * 2 - 1;
+      sound.playLand(pan);
+      boardSquashX = 1.06;
+      boardSquashY = 0.94;
+
+      const segs = activePill.getSegments();
+      const segA = segs[0];
+      const segB = segs[1];
+
+      // 3x3 Mega-Cure Bomb Detonation!
+      if (activePill.isBomb) {
+        sound.playMegaBomb();
+        screenShake = 18;
+        chromaticAberration = 14;
+
+        shockwaves.push({
+          x: ((segA.x + segB.x) / 2 + 0.5) * CELL_SIZE,
+          y: ((segA.y + segB.y) / 2 + 0.5) * CELL_SIZE,
+          radius: 8,
+          alpha: 1.0,
+          color: 'rgba(244, 63, 94, '
+        });
+
+        // Clear 3x3 surrounding cells
+        const minX = Math.max(0, Math.min(segA.x, segB.x) - 1);
+        const maxX = Math.min(COLS - 1, Math.max(segA.x, segB.x) + 1);
+        const minY = Math.max(0, Math.min(segA.y, segB.y) - 1);
+        const maxY = Math.min(ROWS - 1, Math.max(segA.y, segB.y) + 1);
+
+        for (let r = minY; r <= maxY; r++) {
+          for (let c = minX; c <= maxX; c++) {
+            if (grid[r][c]) {
+              if (grid[r][c].type === 'virus') {
+                virusesRemaining--;
+                virusCountByColor[grid[r][c].color]--;
+              }
+              grid[r][c] = null;
+              spawnSparkles(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2, '#ff3366', 10);
+            }
+          }
+        }
+
+        addScore(3000);
+        showComboToast('MEGA-BOMB', 3000);
+        updateVirusStats();
+
+        feverCharge = 0;
+        isFeverOverdrive = false;
+        feverBar.style.width = '0%';
+        feverPercent.textContent = '0%';
+        feverBar.classList.remove('animate-pulse');
+        sound.setOverdrive(false);
+
+        activePill = null;
+        canHold = true;
+        gameState = 'DROPPING';
+        processGravityAndMatches();
+        return;
+      }
+
+      grid[segA.y][segA.x] = {
+        type: 'pill',
+        color: segA.color,
+        part: segA.part,
+        partnerX: segB.x,
+        partnerY: segB.y
+      };
+
+      grid[segB.y][segB.x] = {
+        type: 'pill',
+        color: segB.color,
+        part: segB.part,
+        partnerX: segA.x,
+        partnerY: segA.y
+      };
+
+      activePill = null;
+      canHold = true;
+      comboCount = 0;
+
+      if (grid[0][3] !== null || grid[0][4] !== null) {
+        triggerGameOver();
+        return;
+      }
+
+      gameState = 'DROPPING';
+      processGravityAndMatches();
+    }
+
+    async function processGravityAndMatches() {
+      try {
+        let changed = true;
+
+        while (changed) {
+          const pillsFell = applyGravityStep();
+          if (pillsFell) {
+            await sleep(110);
+            continue;
+          }
+
+          const matchFound = await checkAndClearMatches();
+          if (!matchFound) {
+            changed = false;
+          }
+        }
+
+        if (virusesRemaining <= 0) {
+          triggerVictory();
+          return;
+        }
+
+        activePill = nextPill;
+        nextPill = createNewCapsule();
+        drawNextPiece();
+
+        if (!isValidPosition(activePill, 0, 0)) {
+          triggerGameOver();
+          return;
+        }
+
+        gameState = 'PLAYING';
+      } catch (err) {
+        console.error('Error during gravity and match resolution:', err);
+        if (virusesRemaining <= 0) {
+          triggerVictory();
+        } else {
+          if (!activePill) {
+            activePill = nextPill || createNewCapsule();
+            nextPill = createNewCapsule();
+            drawNextPiece();
+          }
+          gameState = 'PLAYING';
+        }
+      }
+    }
+
+    function applyGravityStep() {
+      let moved = false;
+
+      for (let r = ROWS - 2; r >= 0; r--) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = grid[r][c];
+          if (!cell || cell.type === 'virus') continue;
+
+          if (cell.part === 'single') {
+            if (grid[r + 1][c] === null) {
+              grid[r + 1][c] = cell;
+              grid[r][c] = null;
+              moved = true;
+            }
+          } else if (cell.part === 'top') {
+            const partner = grid[r + 1]?.[c];
+            if (partner && partner.part === 'bottom') {
+              if (r + 2 < ROWS && grid[r + 2][c] === null) {
+                grid[r + 2][c] = partner;
+                grid[r + 1][c] = cell;
+                grid[r][c] = null;
+                grid[r + 1][c].partnerY = r + 2;
+                grid[r + 2][c].partnerY = r + 1;
+                moved = true;
+              }
+            }
+          } else if (cell.part === 'left') {
+            const partner = grid[r]?.[c + 1];
+            if (partner && partner.part === 'right') {
+              if (grid[r + 1][c] === null && grid[r + 1][c + 1] === null) {
+                grid[r + 1][c] = cell;
+                grid[r + 1][c + 1] = partner;
+                grid[r][c] = null;
+                grid[r][c + 1] = null;
+                grid[r + 1][c].partnerY = r + 1;
+                grid[r + 1][c + 1].partnerY = r + 1;
+                moved = true;
+              }
+            }
+          }
+        }
+      }
+      return moved;
+    }
+
+    async function checkAndClearMatches() {
+      const toClear = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+      let matchesFound = false;
+
+      const colorsMatch = (c1, c2) => {
+        if (!c1 || !c2) return false;
+        if (c1 === 4 || c2 === 4) return true;
+        return c1 === c2;
+      };
+
+      // Horizontal
+      for (let r = 0; r < ROWS; r++) {
+        let matchLen = 1;
+        for (let c = 0; c < COLS; c++) {
+          const curr = grid[r][c];
+          const next = c < COLS - 1 ? grid[r][c + 1] : null;
+
+          if (curr && next && colorsMatch(curr.color, next.color)) {
+            matchLen++;
+          } else {
+            if (matchLen >= 4) {
+              matchesFound = true;
+              for (let k = 0; k < matchLen; k++) toClear[r][c - k] = true;
+            }
+            matchLen = 1;
+          }
+        }
+      }
+
+      // Vertical
+      for (let c = 0; c < COLS; c++) {
+        let matchLen = 1;
+        for (let r = 0; r < ROWS; r++) {
+          const curr = grid[r][c];
+          const next = r < ROWS - 1 ? grid[r + 1][c] : null;
+
+          if (curr && next && colorsMatch(curr.color, next.color)) {
+            matchLen++;
+          } else {
+            if (matchLen >= 4) {
+              matchesFound = true;
+              for (let k = 0; k < matchLen; k++) toClear[r - k][c] = true;
+            }
+            matchLen = 1;
+          }
+        }
+      }
+
+      if (!matchesFound) return false;
+
+      comboCount++;
+      if (comboCount > maxComboThisGame) maxComboThisGame = comboCount;
+
+      const avgC = (toClear.flatMap((row, r) => row.map((v, c) => v ? c : -1)).filter(c => c >= 0).reduce((a, b) => a + b, 0) || 3.5) / 4;
+      const pan = ((avgC + 0.5) / COLS) * 2 - 1;
+      sound.playMatch(comboCount, pan);
+      chromaticAberration = Math.max(chromaticAberration, comboCount >= 2 ? 8 : 4);
+
+      // Generate Neon Lightning Arcs between adjacent cleared tiles
+      const clearedTiles = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (toClear[r][c]) clearedTiles.push({ c, r, color: grid[r][c]?.color || 1 });
+        }
+      }
+      for (let i = 0; i < clearedTiles.length; i++) {
+        for (let j = i + 1; j < clearedTiles.length; j++) {
+          const t1 = clearedTiles[i];
+          const t2 = clearedTiles[j];
+          if (Math.abs(t1.c - t2.c) + Math.abs(t1.r - t2.r) === 1) {
+            electricArcs.push({
+              x1: t1.c * CELL_SIZE + CELL_SIZE / 2,
+              y1: t1.r * CELL_SIZE + CELL_SIZE / 2,
+              x2: t2.c * CELL_SIZE + CELL_SIZE / 2,
+              y2: t2.r * CELL_SIZE + CELL_SIZE / 2,
+              color: COLOR_DEFS[t1.color]?.main || '#38bdf8',
+              life: 16
+            });
+          }
+        }
+      }
+      sound.playZap();
+
+      // Trigger panic in Petri dish microbes
+      petriViruses.forEach(v => { v.panicTimer = 55; });
+
+      // Bullet-time freeze on multi-combos
+      if (comboCount >= 2) {
+        shockwaves.push({
+          x: 160,
+          y: 320,
+          radius: 12,
+          maxRadius: 240,
+          alpha: 1.0,
+          color: 'rgba(245, 158, 11, '
+        });
+        await sleep(65);
+      }
+
+      let virusesDestroyedThisMatch = 0;
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (toClear[r][c]) {
+            const cell = grid[r][c];
+            spawnParticleExplosion(c, r, cell.color);
+
+            if (cell.type === 'virus') {
+              virusesDestroyedThisMatch++;
+              virusesRemaining--;
+              if (cell.color <= 3) virusCountByColor[cell.color]--;
+              sound.playSquish();
+            } else if (cell.type === 'pill' && cell.part !== 'single') {
+              const px = cell.partnerX;
+              const py = cell.partnerY;
+              if (grid[py]?.[px] && !toClear[py][px]) {
+                grid[py][px].part = 'single';
+                grid[py][px].partnerX = undefined;
+                grid[py][px].partnerY = undefined;
+              }
+            }
+
+            grid[r][c] = null;
+          }
+        }
+      }
+
+      const basePts = (virusesDestroyedThisMatch * 200) + 100;
+      const comboMultiplier = Math.pow(2, comboCount - 1);
+      const totalGain = basePts * comboMultiplier;
+      addScore(totalGain, 160, 260);
+
+      addFeverCharge(15 * comboCount);
+
+      if (comboCount >= 2) {
+        showComboToast(comboCount, totalGain);
+      }
+
+      updateVirusStats();
+      await sleep(180);
+      return true;
+    }
+
+    function spawnParticleExplosion(c, r, colorId) {
+      const centerX = c * CELL_SIZE + CELL_SIZE / 2;
+      const centerY = r * CELL_SIZE + CELL_SIZE / 2;
+      const colorDef = COLOR_DEFS[colorId] || COLOR_DEFS[1];
+
+      for (let i = 0; i < 18; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1.0,
+          decay: Math.random() * 0.04 + 0.025,
+          color: colorDef.main,
+          size: Math.random() * 5 + 3,
+          isStar: Math.random() < 0.3
+        });
+      }
+    }
+
+    function spawnSlamDust(cx, cy) {
+      const x = cx * CELL_SIZE + CELL_SIZE;
+      const y = (cy + 1) * CELL_SIZE;
+      for (let i = 0; i < 10; i++) {
+        particles.push({
+          x: x + (Math.random() * 30 - 15),
+          y: y,
+          vx: (Math.random() - 0.5) * 5,
+          vy: -Math.random() * 2 - 1,
+          life: 0.8,
+          decay: 0.04,
+          color: '#cbd5e1',
+          size: 3.5
+        });
+      }
+    }
+
+    function updateAndDrawParticles() {
+      // Floating text popups
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y += ft.vy;
+        ft.alpha -= 0.025;
+        if (ft.alpha <= 0) {
+          floatingTexts.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.fillStyle = ft.color;
+        ctx.font = 'bold 16px "Fredoka One", cursive';
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      }
+
+      // Spark particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.14;
+        p.life -= p.decay;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        if (p.isStar) {
+          // Draw 4-point star spark
+          ctx.fillRect(p.x - p.size, p.y - 1, p.size * 2, 2);
+          ctx.fillRect(p.x - 1, p.y - p.size, 2, p.size * 2);
+        } else {
+          ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function addScore(pts, x = null, y = null) {
+      score += pts;
+      scoreDisplay.textContent = String(score).padStart(6, '0');
+      if (score > highScore) {
+        highScore = score;
+        highScoreDisplay.textContent = String(highScore).padStart(6, '0');
+        localStorage.setItem('dr_codecaine_highscore', highScore);
+      }
+
+      if (x !== null && y !== null) {
+        floatingTexts.push({
+          text: `+${pts}`,
+          x: x,
+          y: y,
+          vy: -1.2,
+          alpha: 1.0,
+          color: pts >= 800 ? '#f59e0b' : '#38bdf8'
+        });
+      }
+    }
+
+    function addFeverCharge(amount) {
+      feverCharge = Math.min(100, feverCharge + amount);
+      feverBar.style.width = `${feverCharge}%`;
+      feverPercent.textContent = `${Math.floor(feverCharge)}%`;
+
+      if (feverCharge >= 100 && !isFeverOverdrive) {
+        isFeverOverdrive = true;
+        sound.playFeverReady();
+        sound.setOverdrive(true);
+        feverBar.classList.add('animate-pulse');
+        showComboToast('FEVER OVERDRIVE', 'MEGA-BOMBS ACTIVE!');
+      }
+    }
+
+    function showComboToast(multiplier, bonus) {
+      comboTitle.textContent = `COMBO x${multiplier}!`;
+      comboBonus.textContent = `+${bonus} PTS`;
+      comboBanner.classList.remove('scale-0', 'opacity-0');
+      comboBanner.classList.add('scale-110', 'opacity-100');
+      setTimeout(() => {
+        comboBanner.classList.remove('scale-110', 'opacity-100');
+        comboBanner.classList.add('scale-0', 'opacity-0');
+      }, 900);
+    }
+
+    // High-gloss 3D Pill & Expressive Pathogen Drawing
+    function drawCell(targetCtx, x, y, size, cell, isGhost = false) {
+      const px = x * size;
+      const py = y * size;
+      const color = COLOR_DEFS[cell.color] || COLOR_DEFS[1];
+
+      targetCtx.save();
+      if (isGhost) {
+        targetCtx.globalAlpha = 0.28;
+      }
+
+      if (cell.type === 'virus') {
+        // Expressive Animated Microbe
+        const time = Date.now() * 0.005 + (cell.animOffset || 0);
+        const wiggleX = Math.sin(time) * 1.5;
+        const wiggleY = Math.cos(time * 0.8) * 1.5;
+
+        const cx = px + size / 2 + wiggleX;
+        const cy = py + size / 2 + wiggleY;
+
+        // Pathogen outer body with radial 3D lighting
+        const radGrad = targetCtx.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, size * 0.4);
+        radGrad.addColorStop(0, color.light);
+        radGrad.addColorStop(0.7, color.main);
+        radGrad.addColorStop(1, color.dark);
+
+        targetCtx.fillStyle = radGrad;
+        targetCtx.beginPath();
+        targetCtx.arc(cx, cy, size * 0.38, 0, Math.PI * 2);
+        targetCtx.fill();
+        targetCtx.strokeStyle = color.light;
+        targetCtx.lineWidth = 1.8;
+        targetCtx.stroke();
+
+        // 4 outer viral spikes
+        const spikes = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
+        spikes.forEach(ang => {
+          const sx = cx + Math.cos(ang) * (size * 0.42);
+          const sy = cy + Math.sin(ang) * (size * 0.42);
+          targetCtx.beginPath();
+          targetCtx.arc(sx, sy, 3, 0, Math.PI * 2);
+          targetCtx.fillStyle = color.light;
+          targetCtx.fill();
+        });
+
+        // Eyes: check if active pill is dropping directly above this column
+        const isThreatened = activePill && activePill.x <= x && x <= activePill.x + 1;
+        const eyeLookY = isThreatened ? -3 : 0;
+
+        // Sclera
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.beginPath();
+        targetCtx.arc(cx - 5, cy - 2 + eyeLookY, 4.2, 0, Math.PI * 2);
+        targetCtx.arc(cx + 5, cy - 2 + eyeLookY, 4.2, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        // Pupils look around or look UP in fright!
+        const lookDir = isThreatened ? 0 : Math.sin(time * 0.5) * 1.5;
+        targetCtx.fillStyle = '#000000';
+        targetCtx.beginPath();
+        targetCtx.arc(cx - 5 + lookDir, cy - 2 + eyeLookY, 2, 0, Math.PI * 2);
+        targetCtx.arc(cx + 5 + lookDir, cy - 2 + eyeLookY, 2, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        // Mouth (O-face if threatened, cheeky smile otherwise)
+        targetCtx.strokeStyle = '#000000';
+        targetCtx.lineWidth = 1.8;
+        targetCtx.beginPath();
+        if (isThreatened) {
+          targetCtx.arc(cx, cy + 6, 2.5, 0, Math.PI * 2);
+        } else {
+          targetCtx.arc(cx, cy + 6, 3.5, 0, Math.PI);
+        }
+        targetCtx.stroke();
+
+      } else {
+        // High-Gloss 3D Pill Capsule
+        const pad = 2;
+        const w = size - pad * 2;
+        const h = size - pad * 2;
+        const bx = px + pad;
+        const by = py + pad;
+
+        // Cylindrical capsule gradient
+        const pillGrad = targetCtx.createLinearGradient(bx, by, bx, by + h);
+        pillGrad.addColorStop(0, color.light);
+        pillGrad.addColorStop(0.35, color.main);
+        pillGrad.addColorStop(1, color.dark);
+
+        targetCtx.fillStyle = pillGrad;
+        targetCtx.beginPath();
+
+        if (cell.part === 'single') {
+          targetCtx.roundRect(bx, by, w, h, 14);
+        } else if (cell.part === 'left') {
+          targetCtx.roundRect(bx, by, w + pad, h, [14, 0, 0, 14]);
+        } else if (cell.part === 'right') {
+          targetCtx.roundRect(bx - pad, by, w + pad, h, [0, 14, 14, 0]);
+        } else if (cell.part === 'top') {
+          targetCtx.roundRect(bx, by, w, h + pad, [14, 14, 0, 0]);
+        } else if (cell.part === 'bottom') {
+          targetCtx.roundRect(bx, by - pad, w, h + pad, [0, 0, 14, 14]);
+        }
+        targetCtx.fill();
+
+        if (!isGhost) {
+          // Specular 3D Reflection Highlight
+          targetCtx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+          targetCtx.beginPath();
+          targetCtx.ellipse(bx + w * 0.35, by + h * 0.3, w * 0.22, h * 0.14, -Math.PI / 5, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // Capsule connector joint ring
+          if (cell.part !== 'single') {
+            targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            targetCtx.lineWidth = 2;
+            targetCtx.stroke();
+          }
+
+          if (cell.isBomb) {
+            targetCtx.font = '15px sans-serif';
+            targetCtx.textAlign = 'center';
+            targetCtx.textBaseline = 'middle';
+            targetCtx.fillText('💣', bx + w / 2, by + h / 2);
+          }
+        } else {
+          // Holographic Ghost outline
+          targetCtx.strokeStyle = color.glow;
+          targetCtx.lineWidth = 2;
+          targetCtx.shadowColor = color.main;
+          targetCtx.shadowBlur = 8;
+          targetCtx.stroke();
+          targetCtx.shadowBlur = 0;
+        }
+      }
+
+      targetCtx.restore();
+    }
+
+    function drawLightning(targetCtx, x1, y1, x2, y2, color = '#38bdf8') {
+      targetCtx.save();
+      targetCtx.strokeStyle = color;
+      targetCtx.lineWidth = 2.5;
+      targetCtx.shadowColor = color;
+      targetCtx.shadowBlur = 10;
+
+      const dist = Math.hypot(x2 - x1, y2 - y1);
+      const steps = Math.max(3, Math.floor(dist / 8));
+      targetCtx.beginPath();
+      targetCtx.moveTo(x1, y1);
+
+      for (let i = 1; i < steps; i++) {
+        const frac = i / steps;
+        const lx = x1 + (x2 - x1) * frac + (Math.random() - 0.5) * 8;
+        const ly = y1 + (y2 - y1) * frac + (Math.random() - 0.5) * 8;
+        targetCtx.lineTo(lx, ly);
+      }
+      targetCtx.lineTo(x2, y2);
+      targetCtx.stroke();
+      targetCtx.restore();
+    }
+
+    function renderDrCodecaine(timestamp) {
+      if (!drCtx || !drCanvas) return;
+      drCtx.clearRect(0, 0, drCanvas.width, drCanvas.height);
+
+      const t = timestamp * 0.003;
+      const bob = Math.sin(t * 2.5) * 2;
+
+      // Platform / Desk
+      drCtx.fillStyle = '#0f172a';
+      drCtx.fillRect(10, 72, 140, 16);
+      drCtx.strokeStyle = '#38bdf8';
+      drCtx.lineWidth = 1.5;
+      drCtx.strokeRect(10, 72, 140, 16);
+
+      drCtx.save();
+      drCtx.translate(65, 42 + bob);
+
+      // Lab Coat Body
+      drCtx.fillStyle = '#ffffff';
+      drCtx.beginPath();
+      drCtx.roundRect(-16, -2, 32, 30, 4);
+      drCtx.fill();
+      drCtx.strokeStyle = '#94a3b8';
+      drCtx.lineWidth = 1.5;
+      drCtx.stroke();
+
+      // Cyan Inner Shirt & Tie
+      drCtx.fillStyle = '#06b6d4';
+      drCtx.beginPath();
+      drCtx.moveTo(-6, -2);
+      drCtx.lineTo(6, -2);
+      drCtx.lineTo(0, 8);
+      drCtx.closePath();
+      drCtx.fill();
+
+      // Stethoscope
+      drCtx.strokeStyle = '#64748b';
+      drCtx.lineWidth = 1.5;
+      drCtx.beginPath();
+      drCtx.arc(0, 6, 8, 0, Math.PI);
+      drCtx.stroke();
+
+      // Doctor Face
+      drCtx.fillStyle = '#fed7aa'; // skin tone
+      drCtx.beginPath();
+      drCtx.arc(0, -14, 12, 0, Math.PI * 2);
+      drCtx.fill();
+
+      // Doctor Hair (Retro Dark Brown)
+      drCtx.fillStyle = '#451a03';
+      drCtx.beginPath();
+      drCtx.arc(0, -18, 12, Math.PI * 0.9, Math.PI * 2.1);
+      drCtx.fill();
+
+      // Head Reflector Mirror (Signature retro Dr. Mario look!)
+      drCtx.fillStyle = '#e0f2fe';
+      drCtx.beginPath();
+      drCtx.arc(5, -23, 4.5, 0, Math.PI * 2);
+      drCtx.fill();
+      drCtx.strokeStyle = '#38bdf8';
+      drCtx.lineWidth = 1;
+      drCtx.stroke();
+      drCtx.fillStyle = '#ffffff';
+      drCtx.beginPath();
+      drCtx.arc(4, -24, 1.2, 0, Math.PI * 2);
+      drCtx.fill();
+
+      // Eyes & Moustache
+      drCtx.fillStyle = '#0f172a';
+      drCtx.fillRect(-5, -15, 2.5, 2.5);
+      drCtx.fillRect(2, -15, 2.5, 2.5);
+
+      drCtx.fillStyle = '#451a03';
+      drCtx.fillRect(-4, -10, 8, 3); // Moustache
+
+      // Throwing Arm vs Holding Arm
+      const armAngle = drArmTimer > 0 ? -Math.PI * 0.45 : (Math.sin(t * 2) * 0.15);
+      if (drArmTimer > 0) drArmTimer--;
+
+      drCtx.save();
+      drCtx.translate(14, 4);
+      drCtx.rotate(armAngle);
+      drCtx.fillStyle = '#ffffff';
+      drCtx.fillRect(0, -3, 14, 6);
+      drCtx.fillStyle = '#fed7aa';
+      drCtx.beginPath();
+      drCtx.arc(14, 0, 3.5, 0, Math.PI * 2);
+      drCtx.fill();
+
+      // Hand holding next pill if idle
+      if (drArmTimer <= 0 && nextPill) {
+        const cA = COLOR_DEFS[nextPill.colorA] || COLOR_DEFS[1];
+        const cB = COLOR_DEFS[nextPill.colorB] || COLOR_DEFS[2];
+        drCtx.save();
+        drCtx.translate(16, -6);
+        drCtx.rotate(0.2);
+        // Left half
+        drCtx.fillStyle = cA.main;
+        drCtx.fillRect(-6, -4, 6, 8);
+        // Right half
+        drCtx.fillStyle = cB.main;
+        drCtx.fillRect(0, -4, 6, 8);
+        drCtx.restore();
+      }
+
+      drCtx.restore();
+      drCtx.restore();
+
+      // Nameplate
+      drCtx.fillStyle = '#94a3b8';
+      drCtx.font = 'bold 9px "Outfit", sans-serif';
+      drCtx.textAlign = 'center';
+      drCtx.fillText('DR. CODECAINE', 80, 84);
+    }
+
+    function renderPetriDish(timestamp) {
+      if (!petriCtx || !petriCanvas) return;
+      petriCtx.clearRect(0, 0, petriCanvas.width, petriCanvas.height);
+
+      const W = petriCanvas.width;
+      const H = petriCanvas.height;
+      const cx = W / 2;
+      const cy = H / 2;
+      const r = W / 2 - 4;
+
+      // Brass Magnifying Glass Frame
+      const brassGrad = petriCtx.createLinearGradient(0, 0, W, H);
+      brassGrad.addColorStop(0, '#f59e0b');
+      brassGrad.addColorStop(0.5, '#78350f');
+      brassGrad.addColorStop(1, '#fbbf24');
+      petriCtx.strokeStyle = brassGrad;
+      petriCtx.lineWidth = 6;
+      petriCtx.beginPath();
+      petriCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      petriCtx.stroke();
+
+      // Deep Petri Dish fluid
+      const fluidGrad = petriCtx.createRadialGradient(cx, cy, 10, cx, cy, r);
+      fluidGrad.addColorStop(0, '#0a1024');
+      fluidGrad.addColorStop(0.7, '#070d1e');
+      fluidGrad.addColorStop(1, '#020617');
+      petriCtx.fillStyle = fluidGrad;
+      petriCtx.beginPath();
+      petriCtx.arc(cx, cy, r - 3, 0, Math.PI * 2);
+      petriCtx.fill();
+
+      // Lens Reflection Arc
+      petriCtx.save();
+      petriCtx.beginPath();
+      petriCtx.arc(cx, cy, r - 6, -Math.PI * 0.75, -Math.PI * 0.25);
+      petriCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      petriCtx.lineWidth = 2.5;
+      petriCtx.stroke();
+      petriCtx.restore();
+
+      // Render the 3 Expressive Microbes
+      const t = timestamp * 0.003;
+      for (const v of petriViruses) {
+        if (v.panicTimer > 0) v.panicTimer--;
+
+        petriCtx.save();
+        petriCtx.translate(v.x, v.y);
+
+        if (v.state === 'DEFEATED') {
+          v.timer += 0.08;
+          petriCtx.rotate(v.timer * 4);
+          petriCtx.scale(Math.max(0.2, 1 - v.timer * 0.08), Math.max(0.2, 1 - v.timer * 0.08));
+          petriCtx.globalAlpha = Math.max(0.15, 1 - v.timer * 0.12);
+        } else if (v.panicTimer > 0) {
+          const shakeX = (Math.random() - 0.5) * 4;
+          const shakeY = (Math.random() - 0.5) * 4;
+          petriCtx.translate(shakeX, shakeY);
+        } else {
+          // Dancing bob to tempo
+          const danceY = Math.sin(t * 4 + v.timer) * 3.5;
+          const danceSquash = 1 + Math.cos(t * 4 + v.timer) * 0.08;
+          petriCtx.translate(0, danceY);
+          petriCtx.scale(1 / danceSquash, danceSquash);
+        }
+
+        // Virus body
+        const col = COLOR_DEFS[v.id];
+        petriCtx.fillStyle = col.main;
+
+        if (v.id === 1) {
+          // Red Virus: Spiky, horns
+          petriCtx.beginPath();
+          petriCtx.arc(0, 0, 15, 0, Math.PI * 2);
+          petriCtx.fill();
+          // Horns
+          petriCtx.beginPath();
+          petriCtx.moveTo(-8, -13); petriCtx.lineTo(-12, -22); petriCtx.lineTo(-4, -14);
+          petriCtx.moveTo(8, -13); petriCtx.lineTo(12, -22); petriCtx.lineTo(4, -14);
+          petriCtx.fill();
+        } else if (v.id === 2) {
+          // Yellow Virus: Rounded square with antenna
+          petriCtx.beginPath();
+          petriCtx.roundRect(-14, -14, 28, 28, 6);
+          petriCtx.fill();
+          // Top tuft antenna
+          petriCtx.fillRect(-2, -18, 4, 6);
+          petriCtx.beginPath();
+          petriCtx.arc(0, -18, 3, 0, Math.PI * 2);
+          petriCtx.fill();
+        } else {
+          // Blue Virus: Round with droplet bumps
+          petriCtx.beginPath();
+          petriCtx.arc(0, 0, 14, 0, Math.PI * 2);
+          petriCtx.fill();
+          // Cheek bumps
+          petriCtx.arc(-13, 2, 5, 0, Math.PI * 2);
+          petriCtx.arc(13, 2, 5, 0, Math.PI * 2);
+          petriCtx.fill();
+        }
+
+        petriCtx.strokeStyle = col.dark;
+        petriCtx.lineWidth = 1.5;
+        petriCtx.stroke();
+
+        // Eyes & Expression
+        if (v.state === 'DEFEATED') {
+          // Spiral dizziness eyes
+          petriCtx.strokeStyle = '#0f172a';
+          petriCtx.lineWidth = 1.5;
+          petriCtx.beginPath();
+          petriCtx.arc(-5, -2, 3, 0, Math.PI * 2);
+          petriCtx.arc(5, -2, 3, 0, Math.PI * 2);
+          petriCtx.stroke();
+        } else if (v.panicTimer > 0) {
+          // Wide terrified eyes
+          petriCtx.fillStyle = '#ffffff';
+          petriCtx.beginPath();
+          petriCtx.arc(-5, -3, 4.5, 0, Math.PI * 2);
+          petriCtx.arc(5, -3, 4.5, 0, Math.PI * 2);
+          petriCtx.fill();
+          petriCtx.fillStyle = '#0f172a';
+          petriCtx.beginPath();
+          petriCtx.arc(-5, -3, 1.8, 0, Math.PI * 2);
+          petriCtx.arc(5, -3, 1.8, 0, Math.PI * 2);
+          petriCtx.fill();
+          // Flying sweat drops
+          petriCtx.fillStyle = '#38bdf8';
+          petriCtx.beginPath();
+          petriCtx.arc(16, -10, 2.5, 0, Math.PI * 2);
+          petriCtx.fill();
+        } else {
+          // Dancing / smiling eyes
+          petriCtx.fillStyle = '#0f172a';
+          petriCtx.beginPath();
+          petriCtx.arc(-5, -2, 2.5, 0, Math.PI * 2);
+          petriCtx.arc(5, -2, 2.5, 0, Math.PI * 2);
+          petriCtx.fill();
+          // White gleam
+          petriCtx.fillStyle = '#ffffff';
+          petriCtx.beginPath();
+          petriCtx.arc(-6, -3, 1, 0, Math.PI * 2);
+          petriCtx.arc(4, -3, 1, 0, Math.PI * 2);
+          petriCtx.fill();
+          // Happy mouth
+          petriCtx.strokeStyle = '#0f172a';
+          petriCtx.lineWidth = 1.5;
+          petriCtx.beginPath();
+          petriCtx.arc(0, 3, 4, 0, Math.PI);
+          petriCtx.stroke();
+        }
+
+        petriCtx.restore();
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+      ctx.save();
+
+      // Screen shake
+      if (screenShake > 0) {
+        const sx = (Math.random() - 0.5) * screenShake;
+        const sy = (Math.random() - 0.5) * screenShake;
+        ctx.translate(sx, sy);
+        screenShake *= 0.88;
+        if (screenShake < 0.2) screenShake = 0;
+      }
+
+      // Board landing impact squash & stretch
+      if (boardSquashX !== 1 || boardSquashY !== 1) {
+        ctx.translate(gameCanvas.width / 2, gameCanvas.height);
+        ctx.scale(boardSquashX, boardSquashY);
+        ctx.translate(-gameCanvas.width / 2, -gameCanvas.height);
+        boardSquashX += (1 - boardSquashX) * 0.18;
+        boardSquashY += (1 - boardSquashY) * 0.18;
+        if (Math.abs(1 - boardSquashX) < 0.005) { boardSquashX = 1; boardSquashY = 1; }
+      }
+
+      // Rainbow hyper-drive matrix grid in background during Fever Overdrive!
+      if (isFeverOverdrive) {
+        feverHue = (feverHue + 4) % 360;
+        ctx.save();
+        ctx.strokeStyle = `hsla(${feverHue}, 100%, 65%, 0.22)`;
+        ctx.lineWidth = 1.5;
+        for (let c = 0; c <= COLS; c++) {
+          ctx.beginPath();
+          ctx.moveTo(c * CELL_SIZE, 0);
+          ctx.lineTo(c * CELL_SIZE, ROWS * CELL_SIZE);
+          ctx.stroke();
+        }
+        for (let r = 0; r <= ROWS; r++) {
+          ctx.beginPath();
+          ctx.moveTo(0, r * CELL_SIZE);
+          ctx.lineTo(COLS * CELL_SIZE, r * CELL_SIZE);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Glass bottle wall caustics (left & right specular highlights)
+      const leftCaustic = ctx.createLinearGradient(0, 0, 16, 0);
+      leftCaustic.addColorStop(0, 'rgba(255, 255, 255, 0.16)');
+      leftCaustic.addColorStop(0.5, 'rgba(56, 189, 248, 0.05)');
+      leftCaustic.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = leftCaustic;
+      ctx.fillRect(0, 0, 16, 640);
+
+      const rightCaustic = ctx.createLinearGradient(320, 0, 304, 0);
+      rightCaustic.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
+      rightCaustic.addColorStop(0.5, 'rgba(56, 189, 248, 0.04)');
+      rightCaustic.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = rightCaustic;
+      ctx.fillRect(304, 0, 16, 640);
+
+      // Subtle bottle background grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (let c = 0; c <= COLS; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * CELL_SIZE, 0);
+        ctx.lineTo(c * CELL_SIZE, ROWS * CELL_SIZE);
+        ctx.stroke();
+      }
+      for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * CELL_SIZE);
+        ctx.lineTo(COLS * CELL_SIZE, r * CELL_SIZE);
+        ctx.stroke();
+      }
+
+      // Rising ambient neon micro-bubbles in bottle glass
+      for (const b of ambientBubbles) {
+        b.y += b.vy;
+        if (b.y < 0) {
+          b.y = 640;
+          b.x = Math.random() * 320;
+        }
+        ctx.save();
+        ctx.globalAlpha = b.alpha;
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Draw all settled grid items
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (grid[r][c]) {
+            drawCell(ctx, c, r, CELL_SIZE, grid[r][c]);
+          }
+        }
+      }
+
+      // Ghost Capsule Guide & Holographic Laser Beams
+      if (showGhost && activePill && gameState === 'PLAYING') {
+        const ghostY = getGhostY();
+        const ghostCap = new Capsule(activePill.colorA, activePill.colorB);
+        ghostCap.x = activePill.x;
+        ghostCap.y = ghostY;
+        ghostCap.rot = activePill.rot;
+
+        // Vertical laser guideline beams down the columns
+        ctx.save();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        for (const s of activePill.getSegments()) {
+          const lx = s.x * CELL_SIZE + CELL_SIZE / 2;
+          const topY = (s.y + 1) * CELL_SIZE;
+          const botY = ghostY * CELL_SIZE;
+          if (botY > topY) {
+            ctx.beginPath();
+            ctx.moveTo(lx, topY);
+            ctx.lineTo(lx, botY);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+
+        // Holographic floor reflection pulse
+        ctx.save();
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+        for (const s of ghostCap.getSegments()) {
+          ctx.beginPath();
+          ctx.ellipse(s.x * CELL_SIZE + CELL_SIZE / 2, (s.y + 1) * CELL_SIZE - 2, CELL_SIZE * 0.45, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        for (const s of ghostCap.getSegments()) {
+          drawCell(ctx, s.x, s.y, CELL_SIZE, { color: s.color, part: s.part, type: 'pill' }, true);
+        }
+      }
+
+      // Currently Falling Active Pill
+      if (activePill) {
+        for (const s of activePill.getSegments()) {
+          drawCell(ctx, s.x, s.y, CELL_SIZE, { color: s.color, part: s.part, type: 'pill' });
+        }
+      }
+
+      // Neon Electric Lightning Arcs on Matches
+      for (let i = electricArcs.length - 1; i >= 0; i--) {
+        const arc = electricArcs[i];
+        drawLightning(ctx, arc.x1, arc.y1, arc.x2, arc.y2, arc.color);
+        arc.life--;
+        if (arc.life <= 0) electricArcs.splice(i, 1);
+      }
+
+      // Expanding Shockwaves
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        ctx.save();
+        ctx.strokeStyle = `${sw.color}${sw.alpha})`;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+        sw.radius += 12;
+        sw.alpha -= 0.05;
+        if (sw.alpha <= 0) shockwaves.splice(i, 1);
+      }
+
+      // Capsule Throwing Arc from Doctor
+      if (throwAnimation) {
+        throwAnimation.progress += 0.06;
+        throwAnimation.rot += 0.35;
+        const t = throwAnimation.progress;
+        if (t >= 1) {
+          throwAnimation = null;
+        } else {
+          const arcX = 140 + Math.sin(t * Math.PI) * 45;
+          const arcY = -25 + t * 45 - Math.sin(t * Math.PI) * 20;
+
+          ctx.save();
+          ctx.translate(arcX, arcY);
+          ctx.rotate(throwAnimation.rot);
+
+          const cA = COLOR_DEFS[throwAnimation.pill?.colorA || 1];
+          const cB = COLOR_DEFS[throwAnimation.pill?.colorB || 2];
+          ctx.fillStyle = cA.main;
+          ctx.fillRect(-12, -7, 12, 14);
+          ctx.fillStyle = cB.main;
+          ctx.fillRect(0, -7, 12, 14);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(-12, -7, 24, 14);
+          ctx.restore();
+
+          // Sparkle trail
+          particles.push({
+            x: arcX + (Math.random() - 0.5) * 8,
+            y: arcY + (Math.random() - 0.5) * 8,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            color: Math.random() < 0.5 ? '#38bdf8' : '#fbbf24',
+            size: 3,
+            life: 0.8,
+            decay: 0.08
+          });
+        }
+      }
+
+      // Particles & Floating Scores
+      updateAndDrawParticles();
+
+      ctx.restore();
+
+      // Chromatic Aberration RGB Screen Distortion Impact
+      if (chromaticAberration > 0.5) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = Math.min(0.4, chromaticAberration * 0.04);
+        ctx.drawImage(gameCanvas, -chromaticAberration * 2, 0);
+        ctx.drawImage(gameCanvas, chromaticAberration * 2, 0);
+        ctx.restore();
+        chromaticAberration *= 0.86;
+        if (chromaticAberration < 0.1) chromaticAberration = 0;
+      }
+    }
+
+    function drawPreviewCapsule(targetCtx, canvasEl, capsule) {
+      targetCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      if (!capsule) return;
+
+      const previewSize = 28;
+      const startX = (canvasEl.width - previewSize * 2) / 2;
+      const startY = (canvasEl.height - previewSize) / 2;
+
+      drawCell(targetCtx, 0, 0, previewSize, { color: capsule.colorA, part: 'left', type: 'pill', isBomb: capsule.isBomb });
+      drawCell(targetCtx, 1, 0, previewSize, { color: capsule.colorB, part: 'right', type: 'pill', isBomb: capsule.isBomb });
+
+      const imgData = targetCtx.getImageData(0, 0, previewSize * 2, previewSize);
+      targetCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      targetCtx.putImageData(imgData, startX, startY);
+    }
+
+    function drawNextPiece() {
+      drawPreviewCapsule(nextCtx, nextCanvas, nextPill);
+    }
+
+    function drawHoldPiece() {
+      drawPreviewCapsule(holdCtx, holdCanvas, holdPill);
+    }
+
+    function gameLoop(timestamp) {
+      if (gameState === 'PLAYING') {
+        if (!lastDropTime) lastDropTime = timestamp;
+        const progress = timestamp - lastDropTime;
+
+        if (progress > fallSpeed) {
+          if (isValidPosition(activePill, 0, 1)) {
+            activePill.y++;
+          } else {
+            lockPill();
+          }
+          lastDropTime = timestamp;
+        }
+      }
+
+      render();
+      renderDrCodecaine(timestamp);
+      renderPetriDish(timestamp);
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function triggerGameOver() {
+      gameState = 'GAMEOVER';
+      sound.stopBGM();
+      sound.playGameOver();
+
+      document.getElementById('endGameEmoji').textContent = '💀';
+      document.getElementById('endGameTitle').textContent = 'OUTBREAK FAILED!';
+      document.getElementById('endGameTitle').className = 'text-3xl font-black text-rose-500 fun-font';
+      document.getElementById('endGameDesc').textContent = 'The viruses overran the test bottle neck.';
+      document.getElementById('endScore').textContent = score;
+      document.getElementById('endViruses').textContent = (Math.min(84, (level + 1) * 4) - virusesRemaining);
+      document.getElementById('endCombo').textContent = `${maxComboThisGame}x`;
+      document.getElementById('btnNextOrRetry').textContent = 'RETRY STAGE';
+
+      document.getElementById('endGameOverlay').classList.remove('hidden');
+    }
+
+    function triggerVictory() {
+      gameState = 'VICTORY';
+      sound.stopBGM();
+      sound.playVictory();
+
+      document.getElementById('endGameEmoji').textContent = '🏆';
+      document.getElementById('endGameTitle').textContent = 'STAGE STERILIZED!';
+      document.getElementById('endGameTitle').className = 'text-3xl font-black text-amber-400 fun-font';
+      document.getElementById('endGameDesc').textContent = `System patched! High-dose debugging complete, Dr. Codecaine! Stage ${level} cleared!`;
+      document.getElementById('endScore').textContent = score;
+      document.getElementById('endViruses').textContent = Math.min(84, (level + 1) * 4);
+      document.getElementById('endCombo').textContent = `${maxComboThisGame}x`;
+      document.getElementById('btnNextOrRetry').textContent = 'NEXT LEVEL';
+
+      document.getElementById('endGameOverlay').classList.remove('hidden');
+    }
+
+    function startLevel(lvl) {
+      level = lvl;
+      stageDisplay.textContent = `LVL ${String(level).padStart(2, '0')}`;
+      initGrid();
+      populateViruses(level);
+
+      electricArcs = [];
+      shockwaves = [];
+      throwAnimation = null;
+      drArmTimer = 0;
+      petriViruses.forEach(v => {
+        v.state = 'DANCE';
+        v.defeated = false;
+        v.timer = Math.random() * 2;
+        v.panicTimer = 0;
+      });
+
+      feverCharge = 0;
+      isFeverOverdrive = false;
+      if (feverBar) {
+        feverBar.style.width = '0%';
+        feverBar.classList.remove('animate-pulse');
+      }
+      if (feverPercent) {
+        feverPercent.textContent = '0%';
+      }
+      sound.setOverdrive(false);
+
+      const baseSpeeds = { low: 800, med: 600, hi: 400 };
+      fallSpeed = Math.max(120, (baseSpeeds[speedPreset] || 600) - (level * 18));
+
+      activePill = createNewCapsule();
+      nextPill = createNewCapsule();
+      holdPill = null;
+      canHold = true;
+      document.getElementById('holdEmptyText').classList.remove('hidden');
+
+      drawNextPiece();
+      drawHoldPiece();
+
+      gameState = 'PLAYING';
+      lastDropTime = performance.now();
+
+      document.getElementById('endGameOverlay').classList.add('hidden');
+      document.getElementById('pauseOverlay').classList.add('hidden');
+
+      sound.init();
+      sound.resume();
+      sound.startBGM();
+    }
+
+    // Touch repeat button DAS
+    function attachRepeatButton(buttonId, actionFn, initialDelay = 180, repeatInterval = 80) {
+      const btn = document.getElementById(buttonId);
+      if (!btn) return;
+      let timer = null;
+      let repeatTimer = null;
+
+      const start = (e) => {
+        if (e.cancelable) e.preventDefault();
+        sound.init();
+        sound.resume();
+        actionFn();
+
+        timer = setTimeout(() => {
+          repeatTimer = setInterval(() => {
+            actionFn();
+          }, repeatInterval);
+        }, initialDelay);
+      };
+
+      const stop = (e) => {
+        if (timer) clearTimeout(timer);
+        if (repeatTimer) clearInterval(repeatTimer);
+        timer = null;
+        repeatTimer = null;
+      };
+
+      btn.addEventListener('touchstart', start, { passive: false });
+      btn.addEventListener('touchend', stop);
+      btn.addEventListener('touchcancel', stop);
+      btn.addEventListener('mousedown', start);
+      window.addEventListener('mouseup', stop);
+    }
+
+    attachRepeatButton('touchLeft', moveLeft, 190, 80);
+    attachRepeatButton('touchRight', moveRight, 190, 80);
+    attachRepeatButton('touchDown', softDrop, 150, 60);
+
+    const bindTouchAction = (id, fn) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const handler = (e) => {
+        if (e.cancelable) e.preventDefault();
+        sound.init();
+        sound.resume();
+        fn();
+      };
+      el.addEventListener('touchstart', handler, { passive: false });
+      el.addEventListener('click', handler);
+    };
+
+    bindTouchAction('touchRotate', () => tryRotateActive(1));
+    bindTouchAction('touchHold', holdCurrentCapsule);
+    bindTouchAction('touchHardDrop', hardDrop);
+
+    // Canvas swipe & tap gestures
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let isTouchSwiping = false;
+
+    gameCanvas.addEventListener('touchstart', (e) => {
+      if (e.cancelable) e.preventDefault();
+      sound.init();
+      sound.resume();
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchStartTime = performance.now();
+        isTouchSwiping = false;
+      } else if (e.touches.length === 2) {
+        holdCurrentCapsule();
+      }
+    }, { passive: false });
+
+    gameCanvas.addEventListener('touchmove', (e) => {
+      if (e.cancelable) e.preventDefault();
+      if (!activePill || gameState !== 'PLAYING') return;
+
+      const t = e.touches[0];
+      const deltaX = t.clientX - touchStartX;
+      const deltaY = t.clientY - touchStartY;
+      const threshold = 26;
+
+      if (Math.abs(deltaX) > threshold) {
+        if (deltaX > 0) moveRight();
+        else moveLeft();
+        touchStartX = t.clientX;
+        isTouchSwiping = true;
+      } else if (deltaY > threshold) {
+        softDrop();
+        touchStartY = t.clientY;
+        isTouchSwiping = true;
+      }
+    }, { passive: false });
+
+    gameCanvas.addEventListener('touchend', (e) => {
+      if (e.cancelable) e.preventDefault();
+      const touchDuration = performance.now() - touchStartTime;
+      if (!isTouchSwiping && touchDuration < 280) {
+        tryRotateActive(1);
+      }
+    }, { passive: false });
+
+    // Keyboard handlers
+    window.addEventListener('keydown', (e) => {
+      sound.init();
+      sound.resume();
+
+      if (e.repeat && ['ArrowUp', 'KeyW', 'KeyX', 'KeyC', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return;
+
+      switch (e.code) {
+        case 'ArrowLeft':
+        case 'KeyA':
+          moveLeft();
+          e.preventDefault();
+          break;
+        case 'ArrowRight':
+        case 'KeyD':
+          moveRight();
+          e.preventDefault();
+          break;
+        case 'ArrowDown':
+        case 'KeyS':
+          softDrop();
+          e.preventDefault();
+          break;
+        case 'ArrowUp':
+        case 'KeyW':
+        case 'KeyX':
+          tryRotateActive(1);
+          e.preventDefault();
+          break;
+        case 'KeyZ':
+          tryRotateActive(-1);
+          e.preventDefault();
+          break;
+        case 'Space':
+          hardDrop();
+          e.preventDefault();
+          break;
+        case 'KeyC':
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          holdCurrentCapsule();
+          e.preventDefault();
+          break;
+        case 'KeyP':
+          togglePause();
+          e.preventDefault();
+          break;
+        case 'KeyM':
+          toggleMute();
+          e.preventDefault();
+          break;
+      }
+    });
+
+    function togglePause() {
+      if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        sound.setPauseMuffle(true);
+        document.getElementById('pauseOverlay').classList.remove('hidden');
+      } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        sound.setPauseMuffle(false);
+        lastDropTime = performance.now();
+        document.getElementById('pauseOverlay').classList.add('hidden');
+      }
+    }
+
+    function toggleMute() {
+      sound.init();
+      sound.muted = !sound.muted;
+      document.getElementById('soundIconOn').classList.toggle('hidden', sound.muted);
+      document.getElementById('soundIconOff').classList.toggle('hidden', !sound.muted);
+      if (sound.muted) {
+        sound.stopBGM();
+      } else {
+        sound.startBGM();
+      }
+    }
+
+    // Quick track switcher
+    document.getElementById('btnTrackCycle').addEventListener('click', () => {
+      sound.init();
+      sound.resume();
+      if (sound.currentTrack === 'fever') {
+        sound.setTrack('chill');
+        trackLabel.textContent = 'CHILL';
+      } else if (sound.currentTrack === 'chill') {
+        sound.setTrack('off');
+        trackLabel.textContent = 'OFF';
+      } else {
+        sound.setTrack('fever');
+        trackLabel.textContent = 'FEVER';
+      }
+    });
+
+    document.getElementById('btnPause').addEventListener('click', togglePause);
+    document.getElementById('btnResume').addEventListener('click', togglePause);
+    document.getElementById('btnSoundToggle').addEventListener('click', toggleMute);
+
+    document.getElementById('btnRestartGame').addEventListener('click', () => {
+      startLevel(level);
+    });
+
+    document.getElementById('btnNextOrRetry').addEventListener('click', () => {
+      if (virusesRemaining <= 0) startLevel(level + 1);
+      else startLevel(level);
+    });
+
+    document.getElementById('btnMainMenu').addEventListener('click', () => {
+      score = 0;
+      addScore(0);
+      startLevel(1);
+    });
+
+    // Settings Modal
+    const settingsModal = document.getElementById('settingsModal');
+    const levelRange = document.getElementById('levelRange');
+    const levelRangeVal = document.getElementById('levelRangeVal');
+
+    document.getElementById('btnSettings').addEventListener('click', () => {
+      if (gameState === 'PLAYING') togglePause();
+      settingsModal.classList.remove('hidden');
+    });
+
+    document.getElementById('btnCloseSettings').addEventListener('click', () => {
+      settingsModal.classList.add('hidden');
+    });
+
+    levelRange.addEventListener('input', (e) => {
+      levelRangeVal.textContent = String(e.target.value).padStart(2, '0');
+    });
+
+    // Track selector in settings
+    document.querySelectorAll('.track-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.track-btn').forEach(b => {
+          b.className = 'track-btn py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700';
+        });
+        btn.className = 'track-btn py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10';
+        const trk = btn.getAttribute('data-track');
+        sound.setTrack(trk);
+        trackLabel.textContent = trk.toUpperCase();
+      });
+    });
+
+    // Speed option selections
+    document.querySelectorAll('.speed-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.speed-opt').forEach(b => {
+          b.className = 'speed-opt py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700';
+        });
+        btn.className = 'speed-opt py-1.5 rounded-xl border border-amber-500/50 text-xs font-bold text-amber-400 bg-amber-500/10';
+        speedPreset = btn.getAttribute('data-speed');
+        speedDisplay.textContent = speedPreset === 'hi' ? 'TURBO' : (speedPreset === 'low' ? 'SLOW' : 'NORMAL');
+      });
+    });
+
+    document.getElementById('btnApplySettings').addEventListener('click', () => {
+      showGhost = document.getElementById('toggleGhost').checked;
+      document.getElementById('scanlineOverlay').style.display = document.getElementById('toggleScanlines').checked ? 'block' : 'none';
+      const targetLvl = parseInt(levelRange.value, 10);
+      settingsModal.classList.add('hidden');
+      score = 0;
+      addScore(0);
+      startLevel(targetLvl);
+    });
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function bootGame() {
+      if (window.__drCodecaineBooted) return;
+      window.__drCodecaineBooted = true;
+      if (highScoreDisplay) {
+        highScoreDisplay.textContent = String(highScore).padStart(6, '0');
+      }
+      startLevel(1);
+      requestAnimationFrame(gameLoop);
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      bootGame();
+    } else {
+      window.addEventListener('DOMContentLoaded', bootGame);
+      window.addEventListener('load', bootGame);
+    }
+  </script>
+</body>
+</html>

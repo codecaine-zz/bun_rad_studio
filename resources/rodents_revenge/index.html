@@ -1,0 +1,2579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Rodent's Revenge is a fast-paced puzzle arcade game where you trap cats, chase cheese, and survive escalating levels across a neon maze.">
+  <title>Rodent's Revenge - Deluxe Master Edition</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap');
+
+    :root {
+      --font-display: 'Fredoka', cursive, sans-serif;
+      --font-retro: 'Press Start 2P', monospace;
+      --font-ui: 'Outfit', sans-serif;
+    }
+
+    body {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: var(--font-display);
+    }
+
+    .font-retro { font-family: var(--font-retro); }
+    .font-ui { font-family: var(--font-ui); }
+
+    .btn-tactile {
+      transition: all 0.08s ease;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.35);
+    }
+    .btn-tactile:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+    }
+
+    .pixelated {
+      image-rendering: pixelated;
+    }
+
+    .modal-backdrop {
+      background-color: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(6px);
+    }
+
+    @keyframes pulse-gold {
+      0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 28px rgba(245, 158, 11, 0.85); }
+    }
+    .gold-glow {
+      animation: pulse-gold 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between overflow-x-hidden selection:bg-amber-400 selection:text-slate-900">
+
+  <!-- Header with Global Stats and Quick Options -->
+  <header class="w-full max-w-4xl px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-20">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 border border-amber-300/40 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">
+        🧀
+      </div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-amber-300 via-orange-300 to-yellow-400 bg-clip-text text-transparent flex items-center gap-2">
+          Rodent's Revenge
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-ui font-bold uppercase tracking-wider">Deluxe</span>
+        </h1>
+        <p class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+          <span id="threat-indicator" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="threat-status">Patrolling territory safely</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats HUD -->
+    <div class="flex items-center gap-2 sm:gap-3 bg-slate-950/80 border border-slate-800/80 rounded-xl px-3 py-1.5 shadow-inner text-xs sm:text-sm">
+      <div class="flex flex-col items-center min-w-[50px]">
+        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Score</span>
+        <span id="hud-score" class="font-bold text-amber-300 font-mono tracking-tight">0</span>
+      </div>
+      <div class="w-px h-6 bg-slate-800"></div>
+      <div class="flex flex-col items-center min-w-[36px]">
+        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Level</span>
+        <span id="hud-level" class="font-bold text-emerald-400 font-mono">1</span>
+      </div>
+      <div class="w-px h-6 bg-slate-800"></div>
+      <div class="flex flex-col items-center min-w-[48px]">
+        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Cats Left</span>
+        <span id="hud-cats" class="font-bold text-rose-400 font-mono">3</span>
+      </div>
+      <div class="w-px h-6 bg-slate-800"></div>
+      <div class="flex flex-col items-center min-w-[55px]">
+        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Lives</span>
+        <div id="hud-lives" class="flex gap-0.5 text-sm">
+          <span>🐭</span><span>🐭</span><span>🐭</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick action toggles -->
+    <div class="flex items-center gap-1.5">
+      <button id="btn-music" title="Toggle Adaptive BGM (M)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
+        🎵
+      </button>
+      <button id="btn-theme" title="Toggle Theme (Modern / Win95 Retro)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
+        🎨
+      </button>
+      <button id="btn-sound" title="Toggle Sound FX" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
+        🔊
+      </button>
+      <button id="btn-trophies" title="View Achievements" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition text-sm flex items-center justify-center font-bold">
+        🏆
+      </button>
+      <button id="btn-help" title="Rules & How to Play" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
+        ❓
+      </button>
+      <button id="btn-pause" title="Pause Game (Space)" class="p-2 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/30 transition text-sm flex items-center justify-center font-bold px-3">
+        ⏸️
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative">
+    
+    <!-- Canvas Wrapper with Dynamic Ambient Glow -->
+    <div id="canvas-wrapper" class="relative rounded-2xl p-2 bg-gradient-to-b from-slate-800/90 to-slate-900 border-2 border-slate-700/80 shadow-2xl shadow-black/80 max-w-full">
+      
+      <!-- In-canvas Toast Message & Achievement Unlocker -->
+      <div id="game-toast" class="absolute top-5 left-1/2 -translate-x-1/2 pointer-events-none z-20 transition-all duration-300 opacity-0 transform -translate-y-3 bg-slate-900/95 border border-amber-500/60 text-amber-300 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-xl shadow-amber-500/20 flex items-center gap-2 backdrop-blur-md">
+        <span id="toast-icon">🧀</span>
+        <span id="toast-text">Trap cats to make cheese!</span>
+      </div>
+
+      <!-- Combo Indicator -->
+      <div id="combo-badge" class="hidden absolute top-5 left-4 z-20 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full shadow-lg transform -rotate-3 animate-pulse">
+        COMBO x<span id="combo-val">2</span>! 🔥
+      </div>
+
+      <!-- Freeze countdown badge -->
+      <div id="freeze-indicator" class="hidden absolute top-5 right-4 z-20 bg-cyan-950/90 border border-cyan-400 text-cyan-300 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 animate-pulse backdrop-blur-sm">
+        <span>❄️</span>
+        <span>CATS FROZEN: <span id="freeze-timer">5</span>s</span>
+      </div>
+
+      <!-- Main Game Canvas -->
+      <canvas id="gameCanvas" width="600" height="600" class="rounded-xl block bg-slate-950 cursor-pointer max-w-full touch-none"></canvas>
+
+      <!-- Pause Overlay -->
+      <div id="pause-overlay" class="hidden absolute inset-0 rounded-2xl bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-30">
+        <div class="text-5xl animate-bounce">⏸️</div>
+        <h2 class="text-2xl font-black text-white tracking-widest font-ui">GAME PAUSED</h2>
+        <p class="text-xs text-slate-400">Plan your moves carefully, clever mouse!</p>
+        <div class="flex gap-2">
+          <button id="btn-resume" class="btn-tactile px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm border-b-2 border-emerald-800">
+            Resume Run
+          </button>
+          <button id="btn-select-level" class="btn-tactile px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold rounded-xl text-sm border border-slate-700">
+            Warp Level
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Powerups & Tactical Helpers Toolbar -->
+    <div class="w-full max-w-xl mt-3 flex items-center justify-between px-2 gap-2 flex-wrap sm:flex-nowrap">
+      
+      <!-- Powerup Buttons with Shortcut Keys -->
+      <div class="flex items-center gap-2">
+        <button id="btn-bomb" title="Demolish adjacent stuck block (Key: B)" class="btn-tactile px-2.5 py-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-700/60 rounded-xl text-xs font-bold text-rose-300 flex items-center gap-1.5">
+          <span>🧨</span>
+          <span>Bomb (<span id="bomb-count">1</span>)</span>
+        </button>
+        <button id="btn-freeze" title="Freeze all cats for 5 seconds (Key: F)" class="btn-tactile px-2.5 py-1.5 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-700/60 rounded-xl text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+          <span>❄️</span>
+          <span>Freeze (<span id="freeze-count">1</span>)</span>
+        </button>
+        <button id="btn-undo" title="Rewind last turn (Key: U)" class="btn-tactile px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <span>↩️</span>
+          <span>Undo (<span id="undo-count">3</span>)</span>
+        </button>
+      </div>
+
+      <!-- Upgraded 8-Directional Virtual D-Pad -->
+      <div class="grid grid-cols-3 gap-1 bg-slate-900/90 rounded-2xl border border-slate-800 p-1.5 shadow-inner">
+        <button data-dir="UP_LEFT" title="Up-Left (Q / Numpad 7)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800/80 hover:bg-amber-600 active:bg-amber-500 text-slate-400 rounded-lg flex items-center justify-center text-xs">↖</button>
+        <button data-dir="UP" title="Up (W / ↑ / Numpad 8)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800 hover:bg-amber-600 active:bg-amber-500 text-slate-200 rounded-lg flex items-center justify-center text-sm font-bold">▲</button>
+        <button data-dir="UP_RIGHT" title="Up-Right (E / Numpad 9)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800/80 hover:bg-amber-600 active:bg-amber-500 text-slate-400 rounded-lg flex items-center justify-center text-xs">↗</button>
+        
+        <button data-dir="LEFT" title="Left (A / ← / Numpad 4)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800 hover:bg-amber-600 active:bg-amber-500 text-slate-200 rounded-lg flex items-center justify-center text-sm font-bold">◀</button>
+        <div id="dpad-center" class="w-9 h-9 rounded-lg bg-slate-950 border border-slate-700/60 flex items-center justify-center text-xs text-amber-400 font-bold select-none cursor-pointer" title="Quick Wait/Rest">🐭</div>
+        <button data-dir="RIGHT" title="Right (D / → / Numpad 6)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800 hover:bg-amber-600 active:bg-amber-500 text-slate-200 rounded-lg flex items-center justify-center text-sm font-bold">▶</button>
+        
+        <button data-dir="DOWN_LEFT" title="Down-Left (Z / Numpad 1)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800/80 hover:bg-amber-600 active:bg-amber-500 text-slate-400 rounded-lg flex items-center justify-center text-xs">↙</button>
+        <button data-dir="DOWN" title="Down (S / ↓ / Numpad 2)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800 hover:bg-amber-600 active:bg-amber-500 text-slate-200 rounded-lg flex items-center justify-center text-sm font-bold">▼</button>
+        <button data-dir="DOWN_RIGHT" title="Down-Right (C / Numpad 3)" class="dpad-btn btn-tactile w-9 h-9 bg-slate-800/80 hover:bg-amber-600 active:bg-amber-500 text-slate-400 rounded-lg flex items-center justify-center text-xs">↘</button>
+      </div>
+
+      <!-- Quick Retry button -->
+      <button id="btn-retry" title="Restart Level (Key: R)" class="btn-tactile px-3 py-2 bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/40 rounded-xl text-xs font-bold text-rose-300 flex items-center gap-1.5">
+        <span>🔄</span>
+        <span>Restart</span>
+      </button>
+
+    </div>
+
+  </main>
+
+  <!-- Footer with Full Controls Reference -->
+  <footer class="w-full max-w-4xl px-4 py-2 border-t border-slate-900 bg-slate-950/80 text-center text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+    <span>8-Way: <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">Q W E A S D Z C</kbd> or <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">Arrows / NumPad</kbd></span>
+    <span class="text-slate-400">Powerups: <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">F</kbd> Freeze, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">B</kbd> Bomb, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">U</kbd> Undo, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">M</kbd> Music</span>
+  </footer>
+
+  <!-- Level Complete / Victory Modal -->
+  <div id="modal-level-complete" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl relative transform transition-all scale-95">
+      <div class="text-5xl mb-2 animate-bounce">🧀🎉</div>
+      <h3 class="text-2xl font-black text-amber-400 tracking-wide font-ui">LEVEL CLEARED!</h3>
+      <p class="text-xs text-slate-300 mt-1" id="level-complete-desc">All cats turned into delicious cheese wheels!</p>
+      
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 my-4 space-y-1.5 text-xs text-left">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Level Clear Bonus:</span>
+          <span id="summary-level-bonus" class="text-emerald-400 font-mono font-bold">+500</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Cheese Feasted:</span>
+          <span id="summary-cheese-eaten" class="text-amber-400 font-mono font-bold">+300</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Speed / Time Bonus:</span>
+          <span id="summary-speed-bonus" class="text-cyan-400 font-mono font-bold">+150</span>
+        </div>
+        <div class="h-px bg-slate-800 my-1"></div>
+        <div class="flex justify-between text-sm font-bold">
+          <span class="text-white">Total Score:</span>
+          <span id="summary-total-score" class="text-amber-300 font-mono">1,250</span>
+        </div>
+      </div>
+
+      <button id="btn-next-level" class="btn-tactile w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-sm shadow-lg shadow-amber-500/25">
+        Next Challenge →
+      </button>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="modal-game-over" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-rose-500/50 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl relative transform transition-all scale-95">
+      <div class="text-5xl mb-2 animate-pulse">🪤💥</div>
+      <h3 class="text-2xl font-black text-rose-400 tracking-wide font-ui">MOUSE CORNERED!</h3>
+      <p class="text-xs text-slate-300 mt-1" id="game-over-desc">The felines got the upper paw this time.</p>
+      
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 my-4 space-y-1.5 text-xs text-left">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Final Score:</span>
+          <span id="summary-final-score" class="text-amber-300 font-mono font-bold">0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Highest Level Reached:</span>
+          <span id="summary-final-level" class="text-emerald-400 font-mono font-bold">1</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Personal Best:</span>
+          <span id="summary-high-score" class="text-purple-400 font-mono font-bold">0</span>
+        </div>
+      </div>
+
+      <button id="btn-play-again" class="btn-tactile w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm">
+        Try Again 🚀
+      </button>
+    </div>
+  </div>
+
+  <!-- Level Warp Selection Modal -->
+  <div id="modal-warp" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-xs w-full p-5 text-center shadow-2xl">
+      <h3 class="text-lg font-bold text-white mb-2">Select Starting Level</h3>
+      <p class="text-xs text-slate-400 mb-4">Jump directly to higher challenge tiers:</p>
+      <div class="grid grid-cols-4 gap-2 mb-4">
+        <button data-level="1" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">1</button>
+        <button data-level="3" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">3</button>
+        <button data-level="5" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">5</button>
+        <button data-level="7" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">7</button>
+        <button data-level="9" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">9</button>
+        <button data-level="12" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">12</button>
+        <button data-level="15" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">15</button>
+        <button data-level="20" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">20</button>
+      </div>
+      <button id="btn-close-warp" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <!-- Achievements / Trophy Modal -->
+  <div id="modal-trophies" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-left max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🏆</span>
+          <h3 class="text-lg font-bold text-white">Deluxe Achievements</h3>
+        </div>
+        <button id="btn-close-trophies" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
+      </div>
+      <div id="achievements-list" class="py-4 space-y-2.5 text-xs text-slate-300">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- How to Play / Instructions Modal -->
+  <div id="modal-help" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📖</span>
+          <h3 class="text-lg font-bold text-white">How to Play Rodent's Revenge</h3>
+        </div>
+        <button id="btn-close-help" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
+      </div>
+
+      <div class="py-4 space-y-3 text-xs text-slate-300 leading-relaxed">
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">🐭</div>
+          <div>
+            <strong class="text-white">The Agile Mouse:</strong> Move 8-directionally with <kbd class="px-1 py-0.5 bg-slate-800 rounded text-amber-300">QWEASDZC</kbd>, Arrow Keys, or touch swipe.
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">🟩</div>
+          <div>
+            <strong class="text-white">Push Long Trains of Blocks:</strong> You can push multiple connected blocks at once, as long as there is an empty tile at the far end!
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">🐱</div>
+          <div>
+            <strong class="text-white">Box in Every Cat:</strong> Trap cats so they have zero escape squares. They instantly turn into delicious cheese wheels!
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">👑</div>
+          <div>
+            <strong class="text-white">Special Archetypes:</strong> Watch out for the giant <strong>King Fat Cat Boss</strong>, sneaky <strong>Ninja Siamese</strong> that jump gaps, and sleepy orange tabbies!
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">⏳</div>
+          <div>
+            <strong class="text-white">Cheese Hardening:</strong> Eat the cheese fast! If left unattended, it will petrify into an impassable solid block.
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+          💡 <strong>Pro Strategy:</strong> Corner cats into 1x1 pockets against the wall. Use <strong class="text-white">Freeze (F)</strong> when swarmed or <strong class="text-white">Dynamite (B)</strong> if you trap yourself.
+        </div>
+      </div>
+
+      <button id="btn-got-it" class="btn-tactile w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs">
+        Ready for the Revenge! 🧀
+      </button>
+    </div>
+  </div>
+
+  <script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.musicEnabled = false;
+        this.musicTimer = null;
+        this.bgmStep = 0;
+        this.tempo = 180; // ms per step
+        this.urgencyMode = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      setUrgency(urgent) {
+        this.urgencyMode = urgent;
+        this.tempo = urgent ? 130 : 180;
+      }
+
+      toggleMusic() {
+        this.init();
+        this.musicEnabled = !this.musicEnabled;
+        if (this.musicEnabled) {
+          this.startBgmLoop();
+        } else {
+          this.stopBgmLoop();
+        }
+        return this.musicEnabled;
+      }
+
+      startBgmLoop() {
+        if (!this.musicEnabled || !this.ctx) return;
+        this.stopBgmLoop();
+        
+        // Multi-tier melody lines for rich chiptune track
+        const bassProgression = [110, 110, 146.83, 130.81, 164.81, 146.83, 110, 130.81, 98, 110, 130.81, 146.83];
+        const leadProgression = [440, 523.25, 587.33, 659.25, 587.33, 523.25, 493.88, 440, 659.25, 698.46, 783.99, 880];
+
+        const tick = () => {
+          if (!this.musicEnabled || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          const bFreq = bassProgression[this.bgmStep % bassProgression.length];
+          const mFreq = leadProgression[(this.bgmStep + 1) % leadProgression.length];
+
+          // Bass groove
+          const bOsc = this.ctx.createOscillator();
+          const bGain = this.ctx.createGain();
+          bOsc.type = this.urgencyMode ? 'sawtooth' : 'triangle';
+          bOsc.frequency.setValueAtTime(bFreq, now);
+          bGain.gain.setValueAtTime(0.04, now);
+          bGain.gain.exponentialRampToValueAtTime(0.001, now + (this.tempo / 1000) * 0.9);
+          bOsc.connect(bGain);
+          bGain.connect(this.ctx.destination);
+          bOsc.start(now);
+          bOsc.stop(now + (this.tempo / 1000) * 0.9);
+
+          // Fast arpeggiated lead
+          if (this.bgmStep % 2 === 0 || this.urgencyMode) {
+            const mOsc = this.ctx.createOscillator();
+            const mGain = this.ctx.createGain();
+            mOsc.type = 'square';
+            mOsc.frequency.setValueAtTime(mFreq, now);
+            mGain.gain.setValueAtTime(0.02, now);
+            mGain.gain.exponentialRampToValueAtTime(0.001, now + (this.tempo / 1000) * 0.6);
+            mOsc.connect(mGain);
+            mGain.connect(this.ctx.destination);
+            mOsc.start(now);
+            mOsc.stop(now + (this.tempo / 1000) * 0.6);
+          }
+
+          this.bgmStep++;
+          this.musicTimer = setTimeout(tick, this.tempo);
+        };
+        tick();
+      }
+
+      stopBgmLoop() {
+        if (this.musicTimer) {
+          clearTimeout(this.musicTimer);
+          this.musicTimer = null;
+        }
+      }
+
+      playScurry() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const now = this.ctx.currentTime;
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(340, now);
+          osc.frequency.exponentialRampToValueAtTime(520, now + 0.04);
+          gain.gain.setValueAtTime(0.05, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        } catch (e) {}
+      }
+
+      playPush() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const now = this.ctx.currentTime;
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.linearRampToValueAtTime(70, now + 0.1);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } catch (e) {}
+      }
+
+      playCatMeow(pitch = 1) {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const now = this.ctx.currentTime;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400 * pitch, now);
+          osc.frequency.exponentialRampToValueAtTime(680 * pitch, now + 0.12);
+          osc.frequency.exponentialRampToValueAtTime(310 * pitch, now + 0.32);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.12, now + 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.32);
+        } catch (e) {}
+      }
+
+      playPurr() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(45, now);
+          osc.frequency.linearRampToValueAtTime(55, now + 0.2);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } catch (e) {}
+      }
+
+      playCheeseSparkle() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const now = this.ctx.currentTime + (idx * 0.05);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.14, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.2);
+          });
+        } catch (e) {}
+      }
+
+      playEatCheese() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const now = this.ctx.currentTime;
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(987.77, now + 0.12);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } catch (e) {}
+      }
+
+      playBombExplosion() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } catch (e) {}
+      }
+
+      playFreeze() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(220, now + 0.25);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } catch (e) {}
+      }
+
+      playHarden() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(110, now + 0.18);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } catch (e) {}
+      }
+
+      playTrapSnap() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const bufferSize = this.ctx.sampleRate * 0.08;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          noise.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(now);
+        } catch (e) {}
+      }
+
+      playLevelVictory() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const chord = [440, 554.37, 659.25, 880, 1108.73];
+          chord.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const now = this.ctx.currentTime + (idx * 0.07);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.45);
+          });
+        } catch (e) {}
+      }
+
+      playDeath() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const now = this.ctx.currentTime;
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(360, now);
+          osc.frequency.linearRampToValueAtTime(90, now + 0.45);
+          gain.gain.setValueAtTime(0.28, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } catch (e) {}
+      }
+    }
+
+    const sound = new SoundEngine();
+  </script>
+
+  <script>
+    const EMPTY = 0;
+    const WALL = 1;
+    const BLOCK = 2;
+    const MOUSE = 3;
+    const CAT = 4;
+    const CHEESE = 5;
+    const TRAP = 6;
+    const SINKHOLE = 7;
+    const YARN = 8;
+    const GOLD_CHEESE = 9;
+
+    const DIRS = {
+      UP: { dx: 0, dy: -1 },
+      DOWN: { dx: 0, dy: 1 },
+      LEFT: { dx: -1, dy: 0 },
+      RIGHT: { dx: 1, dy: 0 },
+      UP_LEFT: { dx: -1, dy: -1 },
+      UP_RIGHT: { dx: 1, dy: -1 },
+      DOWN_LEFT: { dx: -1, dy: 1 },
+      DOWN_RIGHT: { dx: 1, dy: 1 }
+    };
+
+    // In-game achievements definition
+    const ACHIEVEMENTS = [
+      { id: 'first_cheese', title: 'First Bite', desc: 'Trap your very first cat into a cheese wheel', icon: '🧀', unlocked: false },
+      { id: 'triple_combo', title: 'Cheese Connoisseur', desc: 'Reach a 3x cheese snack combo chain', icon: '🔥', unlocked: false },
+      { id: 'bomb_expert', title: 'Demolition Rodent', desc: 'Use a bomb to free yourself from a trap', icon: '🧨', unlocked: false },
+      { id: 'boss_slayer', title: 'King Tamer', desc: 'Trap and defeat the giant King Fat Cat Boss', icon: '👑', unlocked: false },
+      { id: 'flawless_five', title: 'Untouchable', desc: 'Clear Level 5 without losing a single life', icon: '🛡️', unlocked: false },
+      { id: 'yarn_dodger', title: 'Agile Reflexes', desc: 'Survive a level with active rolling yarn balls', icon: '🧶', unlocked: false }
+    ];
+  </script>
+
+  <script>
+    class RodentsRevenge {
+      constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.cols = 15;
+        this.rows = 15;
+        this.tileSize = 40;
+        this.theme = 'modern';
+
+        this.score = 0;
+        this.level = 1;
+        this.lives = 3;
+        this.highScore = 0;
+        this.isPaused = false;
+        this.isGameOver = false;
+
+        this.undoStack = [];
+        this.maxUndos = 3;
+        this.undosRemaining = 3;
+
+        this.bombs = 1;
+        this.freezes = 1;
+        this.freezeTimeRemaining = 0;
+        this.comboCount = 0;
+        this.lastScoreTime = 0;
+        this.levelStartTime = performance.now();
+
+        // Mouse Player representation
+        this.player = {
+          x: 7,
+          y: 7,
+          renderX: 7,
+          renderY: 7,
+          facing: 'DOWN',
+          walkCycle: 0,
+          isMoving: false,
+          earRotate: 0,
+          scaredTimer: 0
+        };
+
+        this.cats = [];
+        this.cheeses = [];
+        this.yarns = [];
+        this.grid = [];
+        this.floatingTexts = [];
+        this.particles = [];
+        this.shakeTimer = 0;
+        this.shakeMagnitude = 0;
+
+        this.lastCatMove = performance.now();
+        this.catMoveInterval = 750;
+        this.cheeseEatenCount = 0;
+        this.achievements = [...ACHIEVEMENTS];
+
+        this.initCanvasSize();
+        this.initLevel(this.level);
+        this.bindEvents();
+        this.updateHUD();
+      }
+
+      initCanvasSize() {
+        const maxDisplaySize = Math.min(window.innerWidth - 32, 540);
+        const size = Math.max(300, maxDisplaySize);
+        this.canvas.width = 600;
+        this.canvas.height = 600;
+        this.tileSize = this.canvas.width / this.cols;
+      }
+
+      showToast(msg, icon = '🧀') {
+        const toastEl = document.getElementById('game-toast');
+        const iconEl = document.getElementById('toast-icon');
+        const textEl = document.getElementById('toast-text');
+        if (!toastEl || !iconEl || !textEl) return;
+
+        iconEl.textContent = icon;
+        textEl.textContent = msg;
+        toastEl.classList.remove('opacity-0', '-translate-y-3');
+        toastEl.classList.add('opacity-100', 'translate-y-0');
+
+        if (this.toastTimer) clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => {
+          toastEl.classList.remove('opacity-100', 'translate-y-0');
+          toastEl.classList.add('opacity-0', '-translate-y-3');
+        }, 2200);
+      }
+
+      unlockAchievement(id) {
+        const ach = this.achievements.find(a => a.id === id);
+        if (ach && !ach.unlocked) {
+          ach.unlocked = true;
+          this.showToast(`Achievement: ${ach.title}!`, '🏆');
+          sound.playLevelVictory();
+        }
+      }
+
+      triggerScreenShake(magnitude = 4, duration = 8) {
+        this.shakeMagnitude = magnitude;
+        this.shakeTimer = duration;
+      }
+
+      createSparkles(x, y, color = '#fbbf24', count = 16) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * 3.5;
+          this.particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 2 + Math.random() * 3,
+            color,
+            alpha: 1,
+            decay: 0.03 + Math.random() * 0.04
+          });
+        }
+      }
+
+      createDust(x, y) {
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.5 + Math.random() * 1.5;
+          this.particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 1.5 + Math.random() * 2,
+            color: '#94a3b8',
+            alpha: 0.6,
+            decay: 0.05
+          });
+        }
+      }
+
+      initLevel(lvl) {
+        this.level = lvl;
+        this.cats = [];
+        this.cheeses = [];
+        this.yarns = [];
+        this.particles = [];
+        this.floatingTexts = [];
+        this.undoStack = [];
+        this.undosRemaining = this.maxUndos;
+        this.cheeseEatenCount = 0;
+        this.freezeTimeRemaining = 0;
+        this.levelStartTime = performance.now();
+        this.bombs = Math.min(4, 1 + Math.floor(lvl / 3));
+        this.freezes = Math.min(3, 1 + Math.floor(lvl / 4));
+        this.catMoveInterval = Math.max(320, 780 - (lvl * 35));
+
+        // Build solid perimeter
+        this.grid = Array.from({ length: this.rows }, (_, r) =>
+          Array.from({ length: this.cols }, (_, c) => {
+            if (r === 0 || r === this.rows - 1 || c === 0 || c === this.cols - 1) {
+              return WALL;
+            }
+            return EMPTY;
+          })
+        );
+
+        // Player starting coordinate
+        this.player.x = Math.floor(this.cols / 2);
+        this.player.y = Math.floor(this.rows / 2);
+        this.player.renderX = this.player.x;
+        this.player.renderY = this.player.y;
+        this.player.facing = 'DOWN';
+
+        const catCount = Math.min(12, 2 + lvl);
+        const blockDensity = Math.max(0.25, 0.44 - (lvl * 0.012));
+        const trapCount = lvl >= 3 ? Math.min(5, lvl - 1) : 0;
+        const sinkholeCount = lvl >= 4 ? Math.min(4, Math.floor(lvl / 2)) : 0;
+        const yarnCount = lvl >= 6 ? Math.min(2, Math.floor(lvl / 5)) : 0;
+        const hasBoss = (lvl % 5 === 0);
+
+        // Populate Blocks
+        for (let r = 1; r < this.rows - 1; r++) {
+          for (let c = 1; c < this.cols - 1; c++) {
+            const distFromPlayer = Math.hypot(c - this.player.x, r - this.player.y);
+            if (distFromPlayer < 2.2) continue;
+            if (Math.random() < blockDensity) {
+              this.grid[r][c] = BLOCK;
+            }
+          }
+        }
+
+        // Place Mousetraps
+        let placedTraps = 0;
+        while (placedTraps < trapCount) {
+          const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
+          const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+          if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 3) {
+            this.grid[ry][rx] = TRAP;
+            placedTraps++;
+          }
+        }
+
+        // Place Sinkholes
+        let placedHoles = 0;
+        while (placedHoles < sinkholeCount) {
+          const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
+          const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+          if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 3) {
+            this.grid[ry][rx] = SINKHOLE;
+            placedHoles++;
+          }
+        }
+
+        // Spawn Cats & Boss Archetypes
+        const breeds = ['tabby', 'tuxedo', 'calico', 'siamese', 'black'];
+        let placedCats = 0;
+        let attempts = 0;
+
+        // If Boss Level, spawn King Fat Cat Boss first
+        if (hasBoss) {
+          let bx = 2, by = 2;
+          this.cats.push({
+            id: 'boss-king',
+            x: bx,
+            y: by,
+            renderX: bx,
+            renderY: by,
+            facing: 'RIGHT',
+            state: 'stalking',
+            archetype: 'boss',
+            breed: 'calico',
+            walkCycle: 0,
+            isMoving: false,
+            blinkTimer: 140,
+            isBlinking: false,
+            blinkDuration: 0,
+            tailAngle: 0,
+            tailSpeed: 0.04,
+            earTwitchTimer: 180,
+            earTwitchAngle: 0,
+            prowlHeight: 0,
+            scratchTimer: 0
+          });
+          this.showToast(`BOSS BATTLE: King Fat Cat approaches!`, '👑');
+          placedCats++;
+        }
+
+        while (placedCats < catCount && attempts < 600) {
+          attempts++;
+          const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
+          const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+          const dist = Math.hypot(rx - this.player.x, ry - this.player.y);
+          if (this.grid[ry][rx] === EMPTY && dist > 3.5 && !this.cats.some(cat => cat.x === rx && cat.y === ry)) {
+            const breed = breeds[placedCats % breeds.length];
+            // Archetype assignment: Ninja (fast), Sleepy (starts dormant), or Normal
+            let archetype = 'normal';
+            if (lvl >= 4 && Math.random() < 0.25) archetype = 'ninja';
+            else if (lvl >= 3 && Math.random() < 0.2) archetype = 'sleepy';
+
+            this.cats.push({
+              id: Math.random().toString(36).substring(2, 9),
+              x: rx,
+              y: ry,
+              renderX: rx,
+              renderY: ry,
+              facing: Math.random() > 0.5 ? 'LEFT' : 'RIGHT',
+              state: archetype === 'sleepy' ? 'asleep' : 'stalking',
+              archetype: archetype,
+              breed: breed,
+              walkCycle: Math.random() * Math.PI * 2,
+              isMoving: false,
+              blinkTimer: 100 + Math.random() * 200,
+              isBlinking: false,
+              blinkDuration: 0,
+              tailAngle: 0,
+              tailSpeed: 0.05 + Math.random() * 0.03,
+              earTwitchTimer: 120 + Math.random() * 240,
+              earTwitchAngle: 0,
+              prowlHeight: 0,
+              scratchTimer: 0
+            });
+            placedCats++;
+          }
+        }
+
+        // Spawn Bouncing Yarn Hazards
+        for (let i = 0; i < yarnCount; i++) {
+          this.yarns.push({
+            x: 2 + i * 4,
+            y: 2,
+            dx: Math.random() > 0.5 ? 1 : -1,
+            dy: Math.random() > 0.5 ? 1 : -1
+          });
+        }
+
+        if (!hasBoss) {
+          this.showToast(`Level ${lvl}! Box in ${this.cats.length} felines!`, '🧀');
+        }
+
+        this.saveUndoState();
+        this.updateHUD();
+      }
+
+      useBomb() {
+        if (this.isPaused || this.isGameOver || this.bombs <= 0) return;
+        sound.init();
+        
+        const facingDir = DIRS[this.player.facing] || DIRS.DOWN;
+        let targetX = this.player.x + facingDir.dx;
+        let targetY = this.player.y + facingDir.dy;
+
+        if (this.grid[targetY]?.[targetX] !== BLOCK) {
+          const neighbors = [
+            { x: this.player.x, y: this.player.y - 1 },
+            { x: this.player.x, y: this.player.y + 1 },
+            { x: this.player.x - 1, y: this.player.y },
+            { x: this.player.x + 1, y: this.player.y }
+          ];
+          const found = neighbors.find(n => this.grid[n.y]?.[n.x] === BLOCK);
+          if (found) {
+            targetX = found.x;
+            targetY = found.y;
+          } else {
+            this.showToast("No adjacent block to blow up!", "⚠️");
+            return;
+          }
+        }
+
+        this.grid[targetY][targetX] = EMPTY;
+        this.bombs--;
+        sound.playBombExplosion();
+        this.triggerScreenShake(7);
+        this.createSparkles(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize + this.tileSize / 2, '#ef4444', 32);
+        this.showToast("KABOOM! Block pulverized!", "🧨");
+        this.unlockAchievement('bomb_expert');
+        this.checkTrappedCats();
+        this.updateHUD();
+      }
+
+      useFreeze() {
+        if (this.isPaused || this.isGameOver || this.freezes <= 0) return;
+        if (this.freezeTimeRemaining > 0) return;
+        sound.init();
+        this.freezes--;
+        this.freezeTimeRemaining = 5000;
+        sound.playFreeze();
+        this.showToast("Cats frozen in place for 5 seconds!", "❄️");
+        document.getElementById('freeze-indicator').classList.remove('hidden');
+        this.updateHUD();
+      }
+
+      saveUndoState() {
+        if (this.undoStack.length >= 8) {
+          this.undoStack.shift();
+        }
+        const state = {
+          grid: this.grid.map(row => [...row]),
+          player: { ...this.player },
+          cats: this.cats.map(c => ({ ...c })),
+          cheeses: this.cheeses.map(ch => ({ ...ch })),
+          yarns: this.yarns.map(y => ({ ...y })),
+          score: this.score
+        };
+        this.undoStack.push(state);
+      }
+
+      applyUndo() {
+        if (this.undosRemaining <= 0) {
+          this.showToast("No undos remaining for this level!", "⚠️");
+          return;
+        }
+        if (this.undoStack.length <= 1) {
+          this.showToast("Cannot undo initial position!", "⚠️");
+          return;
+        }
+
+        this.undoStack.pop();
+        const prev = this.undoStack[this.undoStack.length - 1];
+        if (prev) {
+          this.grid = prev.grid.map(row => [...row]);
+          this.player = { ...prev.player };
+          this.cats = prev.cats.map(c => ({
+            ...c,
+            renderX: c.x,
+            renderY: c.y
+          }));
+          this.cheeses = prev.cheeses.map(ch => ({ ...ch }));
+          this.yarns = prev.yarns.map(y => ({ ...y }));
+          this.score = prev.score;
+          this.undosRemaining--;
+          sound.playScurry();
+          this.showToast("Turn rewound!", "↩️");
+          this.updateHUD();
+        }
+      }
+
+      tryMovePlayer(dirKey) {
+        if (this.isPaused || this.isGameOver) return;
+        const dir = DIRS[dirKey];
+        if (!dir) return;
+
+        sound.init();
+        this.player.facing = dirKey;
+        this.player.walkCycle += 0.35;
+        this.player.isMoving = true;
+
+        const targetX = this.player.x + dir.dx;
+        const targetY = this.player.y + dir.dy;
+
+        if (targetX < 0 || targetX >= this.cols || targetY < 0 || targetY >= this.rows) return;
+
+        const targetCell = this.grid[targetY][targetX];
+
+        // 1. Wall blocked
+        if (targetCell === WALL) return;
+
+        // 2. Cat caught
+        if (this.cats.some(cat => cat.x === targetX && cat.y === targetY && cat.state !== 'asleep')) {
+          this.triggerDeath("A prowling cat caught you! Keep your distance.");
+          return;
+        }
+
+        // 3. Step on mousetrap
+        if (targetCell === TRAP) {
+          sound.playTrapSnap();
+          this.triggerDeath("Snap! You walked right into a mousetrap.");
+          return;
+        }
+
+        // 4. Step in sinkhole
+        if (targetCell === SINKHOLE) {
+          this.triggerDeath("You fell straight into a deep sinkhole!");
+          return;
+        }
+
+        // 5. Eat Cheese
+        const cheeseIndex = this.cheeses.findIndex(c => c.x === targetX && c.y === targetY);
+        if (cheeseIndex !== -1) {
+          const eatenCheese = this.cheeses[cheeseIndex];
+          this.cheeses.splice(cheeseIndex, 1);
+          this.cheeseEatenCount++;
+
+          const now = performance.now();
+          if (now - this.lastScoreTime < 2800) {
+            this.comboCount++;
+          } else {
+            this.comboCount = 1;
+          }
+          this.lastScoreTime = now;
+
+          if (this.comboCount >= 3) {
+            this.unlockAchievement('triple_combo');
+          }
+
+          const basePts = (eatenCheese.isGold ? 300 : 120) * this.level;
+          const multiplier = Math.min(5, this.comboCount);
+          const pts = basePts * multiplier;
+          this.score += pts;
+          
+          sound.playEatCheese();
+          this.createSparkles(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize + this.tileSize / 2, '#fbbf24', 18);
+          this.addFloatingText(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize, `+${pts}${multiplier > 1 ? ` (x${multiplier}!)` : ''}`, '#fbbf24');
+          
+          this.player.x = targetX;
+          this.player.y = targetY;
+          this.saveUndoState();
+          this.updateHUD();
+          return;
+        }
+
+        // 6. Step into empty tile
+        if (targetCell === EMPTY) {
+          this.player.x = targetX;
+          this.player.y = targetY;
+          sound.playScurry();
+          this.wakeAdjacentSleepyCats();
+          this.saveUndoState();
+          this.checkTrappedCats();
+          this.updateHUD();
+          return;
+        }
+
+        // 7. Pushing Blocks (Orthogonal only in authentic rules)
+        if (targetCell === BLOCK && !['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(dirKey)) {
+          return;
+        }
+
+        if (targetCell === BLOCK) {
+          let pushLine = [{ x: targetX, y: targetY }];
+          let scanX = targetX + dir.dx;
+          let scanY = targetY + dir.dy;
+
+          while (scanX >= 0 && scanX < this.cols && scanY >= 0 && scanY < this.rows) {
+            const cell = this.grid[scanY][scanX];
+            if (cell === BLOCK) {
+              pushLine.push({ x: scanX, y: scanY });
+              scanX += dir.dx;
+              scanY += dir.dy;
+            } else {
+              break;
+            }
+          }
+
+          const destX = scanX;
+          const destY = scanY;
+
+          if (destX < 0 || destX >= this.cols || destY < 0 || destY >= this.rows) return;
+          const endCell = this.grid[destY][destX];
+
+          // Push into Wall or Live Cat -> blocked
+          if (endCell === WALL || this.cats.some(c => c.x === destX && c.y === destY)) {
+            return;
+          }
+
+          // Push into Sinkhole -> fills it
+          if (endCell === SINKHOLE) {
+            this.pushBlocksAlongLine(pushLine, dir);
+            this.grid[destY][destX] = EMPTY;
+            sound.playPush();
+            this.showToast("Sinkhole filled with block!", "🕳️");
+            this.player.x = targetX;
+            this.player.y = targetY;
+            this.wakeAdjacentSleepyCats();
+            this.saveUndoState();
+            this.checkTrappedCats();
+            this.updateHUD();
+            return;
+          }
+
+          // Push into Mousetrap -> disarms it
+          if (endCell === TRAP) {
+            this.pushBlocksAlongLine(pushLine, dir);
+            this.grid[destY][destX] = BLOCK;
+            sound.playTrapSnap();
+            sound.playPush();
+            this.showToast("Mousetrap safely disarmed!", "🪤");
+            this.player.x = targetX;
+            this.player.y = targetY;
+            this.wakeAdjacentSleepyCats();
+            this.saveUndoState();
+            this.checkTrappedCats();
+            this.updateHUD();
+            return;
+          }
+
+          // Push into Empty tile (or cheese)
+          if (endCell === EMPTY || this.cheeses.some(c => c.x === destX && c.y === destY)) {
+            this.cheeses = this.cheeses.filter(c => !(c.x === destX && c.y === destY));
+
+            this.pushBlocksAlongLine(pushLine, dir);
+            sound.playPush();
+            this.triggerScreenShake(3);
+
+            this.player.x = targetX;
+            this.player.y = targetY;
+
+            this.wakeAdjacentSleepyCats();
+            this.saveUndoState();
+            this.checkTrappedCats();
+            this.updateHUD();
+          }
+        }
+      }
+
+      pushBlocksAlongLine(line, dir) {
+        for (let i = line.length - 1; i >= 0; i--) {
+          const b = line[i];
+          this.grid[b.y][b.x] = EMPTY;
+          this.grid[b.y + dir.dy][b.x + dir.dx] = BLOCK;
+          this.createDust(
+            (b.x + dir.dx) * this.tileSize + this.tileSize / 2,
+            (b.y + dir.dy) * this.tileSize + this.tileSize / 2
+          );
+        }
+      }
+
+      wakeAdjacentSleepyCats() {
+        for (const cat of this.cats) {
+          if (cat.state === 'asleep') {
+            const dist = Math.hypot(cat.x - this.player.x, cat.y - this.player.y);
+            if (dist < 2.5) {
+              cat.state = 'stalking';
+              sound.playCatMeow(1.2);
+              this.showToast("Sleepy cat awoken!", "🐱");
+            }
+          }
+        }
+      }
+
+      updateCatAnimations() {
+        for (const cat of this.cats) {
+          const dx = cat.x - cat.renderX;
+          const dy = cat.y - cat.renderY;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist > 0.01) {
+            const speed = (cat.archetype === 'ninja' ? 0.38 : (cat.archetype === 'boss' ? 0.18 : 0.28));
+            cat.renderX += dx * speed;
+            cat.renderY += dy * speed;
+            cat.walkCycle += (cat.archetype === 'ninja' ? 0.4 : 0.25);
+            cat.isMoving = true;
+          } else {
+            cat.renderX = cat.x;
+            cat.renderY = cat.y;
+            cat.isMoving = false;
+            cat.walkCycle += 0.03;
+          }
+
+          const availableMoves = this.getAvailableCatMoves(cat.x, cat.y, cat.archetype === 'ninja');
+          const isCornered = availableMoves.length <= 1;
+          const tailIntensity = isCornered ? 0.18 : (cat.isMoving ? 0.1 : 0.04);
+          cat.tailAngle += tailIntensity;
+
+          cat.blinkTimer--;
+          if (cat.blinkTimer <= 0) {
+            cat.isBlinking = true;
+            cat.blinkDuration = 8;
+            cat.blinkTimer = 160 + Math.random() * 220;
+          }
+          if (cat.isBlinking) {
+            cat.blinkDuration--;
+            if (cat.blinkDuration <= 0) cat.isBlinking = false;
+          }
+
+          cat.earTwitchTimer--;
+          if (cat.earTwitchTimer <= 0) {
+            cat.earTwitchAngle = (Math.random() - 0.5) * 0.45;
+            cat.earTwitchTimer = 90 + Math.random() * 180;
+          } else {
+            cat.earTwitchAngle *= 0.88;
+          }
+
+          const distToMouse = Math.hypot(cat.x - this.player.x, cat.y - this.player.y);
+          const targetCrouch = (distToMouse <= 2.5 && cat.state !== 'asleep') ? 2.5 : 0;
+          cat.prowlHeight += (targetCrouch - cat.prowlHeight) * 0.15;
+
+          if (isCornered) {
+            cat.scratchTimer = (cat.scratchTimer + 0.3) % (Math.PI * 2);
+          }
+        }
+      }
+
+      updateCats(currentTime) {
+        if (this.isPaused || this.isGameOver) return;
+
+        this.updateCatAnimations();
+
+        // Calculate proximity threat to mouse
+        let closestDist = Infinity;
+        for (const cat of this.cats) {
+          if (cat.state !== 'asleep') {
+            const d = Math.hypot(cat.x - this.player.x, cat.y - this.player.y);
+            if (d < closestDist) closestDist = d;
+          }
+        }
+
+        const threatIndicator = document.getElementById('threat-indicator');
+        const threatStatus = document.getElementById('threat-status');
+        if (closestDist <= 1.8) {
+          sound.setUrgency(true);
+          threatIndicator.className = 'inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping';
+          threatStatus.textContent = 'DANGER! Cat closing in!';
+          threatStatus.className = 'text-rose-400 font-bold';
+        } else if (closestDist <= 3.2) {
+          sound.setUrgency(false);
+          threatIndicator.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+          threatStatus.textContent = 'Alert: Stalking shadows nearby';
+          threatStatus.className = 'text-amber-300';
+        } else {
+          sound.setUrgency(false);
+          threatIndicator.className = 'inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+          threatStatus.textContent = 'Patrolling territory safely';
+          threatStatus.className = 'text-slate-400';
+        }
+
+        // Freeze countdown logic
+        if (this.freezeTimeRemaining > 0) {
+          this.freezeTimeRemaining -= 16;
+          const secs = Math.ceil(this.freezeTimeRemaining / 1000);
+          document.getElementById('freeze-timer').textContent = secs.toString();
+          if (this.freezeTimeRemaining <= 0) {
+            document.getElementById('freeze-indicator').classList.add('hidden');
+          }
+          return;
+        }
+
+        // Cheese timer countdown
+        for (let i = this.cheeses.length - 1; i >= 0; i--) {
+          const ch = this.cheeses[i];
+          ch.timer -= 16;
+          if (ch.timer <= 0) {
+            this.cheeses.splice(i, 1);
+            this.grid[ch.y][ch.x] = BLOCK;
+            sound.playHarden();
+            this.addFloatingText(ch.x * this.tileSize + this.tileSize / 2, ch.y * this.tileSize, "PETRIFIED!", "#34d399");
+            this.showToast("Cheese hardened into a solid block!", "🧀");
+          }
+        }
+
+        if (currentTime - this.lastCatMove < this.catMoveInterval) return;
+        this.lastCatMove = currentTime;
+
+        for (const cat of this.cats) {
+          if (cat.state === 'asleep') continue;
+
+          const isNinja = cat.archetype === 'ninja';
+          const validMoves = this.getAvailableCatMoves(cat.x, cat.y, isNinja);
+          if (validMoves.length === 0) continue;
+
+          let bestMove = null;
+          let minDistance = Infinity;
+
+          validMoves.sort(() => Math.random() - 0.5);
+
+          for (const move of validMoves) {
+            if (move.x === this.player.x && move.y === this.player.y) {
+              cat.x = move.x;
+              cat.y = move.y;
+              this.triggerDeath("A cat pounced onto you!");
+              return;
+            }
+
+            const dist = Math.hypot(move.x - this.player.x, move.y - this.player.y);
+            if (dist < minDistance) {
+              minDistance = dist;
+              bestMove = move;
+            }
+          }
+
+          if (bestMove) {
+            cat.facing = bestMove.x < cat.x ? 'LEFT' : 'RIGHT';
+            cat.x = bestMove.x;
+            cat.y = bestMove.y;
+          }
+        }
+
+        this.updateYarns();
+        this.checkTrappedCats();
+      }
+
+      getAvailableCatMoves(cx, cy, canLeapSinkholes = false) {
+        const moves = [];
+        const offsets = [
+          { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+        ];
+
+        for (const off of offsets) {
+          const nx = cx + off.dx;
+          const ny = cy + off.dy;
+
+          if (nx < 0 || nx >= this.cols || ny < 0 || ny >= this.rows) continue;
+
+          const cell = this.grid[ny][nx];
+          if (cell === EMPTY) {
+            if (!this.cats.some(c => c.x === nx && c.y === ny)) {
+              moves.push({ x: nx, y: ny });
+            }
+          } else if (cell === SINKHOLE && canLeapSinkholes) {
+            // Ninja Siamese leap ability
+            const leapX = nx + off.dx;
+            const leapY = ny + off.dy;
+            if (leapX >= 0 && leapX < this.cols && leapY >= 0 && leapY < this.rows) {
+              if (this.grid[leapY][leapX] === EMPTY && !this.cats.some(c => c.x === leapX && c.y === leapY)) {
+                moves.push({ x: leapX, y: leapY });
+              }
+            }
+          }
+        }
+        return moves;
+      }
+
+      checkTrappedCats() {
+        let transformedAny = false;
+
+        for (let i = this.cats.length - 1; i >= 0; i--) {
+          const cat = this.cats[i];
+          const isNinja = cat.archetype === 'ninja';
+          const availableMoves = this.getAvailableCatMoves(cat.x, cat.y, isNinja);
+
+          if (availableMoves.length === 0) {
+            const trappedX = cat.x;
+            const trappedY = cat.y;
+            const isBoss = cat.archetype === 'boss';
+
+            this.cats.splice(i, 1);
+            
+            // Boss yields golden cheese!
+            this.cheeses.push({
+              x: trappedX,
+              y: trappedY,
+              timer: 15000,
+              maxTimer: 15000,
+              isGold: isBoss
+            });
+
+            const trapPoints = (isBoss ? 1000 : 250) * this.level;
+            this.score += trapPoints;
+            transformedAny = true;
+
+            if (isBoss) {
+              this.unlockAchievement('boss_slayer');
+            }
+            this.unlockAchievement('first_cheese');
+
+            sound.playCheeseSparkle();
+            this.triggerScreenShake(isBoss ? 9 : 5);
+            this.createSparkles(
+              trappedX * this.tileSize + this.tileSize / 2,
+              trappedY * this.tileSize + this.tileSize / 2,
+              isBoss ? '#f59e0b' : '#38bdf8',
+              isBoss ? 45 : 24
+            );
+            this.addFloatingText(trappedX * this.tileSize + this.tileSize / 2, trappedY * this.tileSize, `+${trapPoints}`, isBoss ? '#f59e0b' : '#38bdf8');
+            this.showToast(`Cat trapped! +${trapPoints} pts → CHEESE!`, '🧀');
+          }
+        }
+
+        if (transformedAny) {
+          this.updateHUD();
+          if (this.cats.length === 0) {
+            setTimeout(() => this.triggerLevelComplete(), 600);
+          }
+        }
+      }
+
+      updateYarns() {
+        for (const yarn of this.yarns) {
+          let nextX = yarn.x + yarn.dx;
+          let nextY = yarn.y + yarn.dy;
+
+          if (nextX <= 0 || nextX >= this.cols - 1 || this.grid[yarn.y][nextX] === WALL || this.grid[yarn.y][nextX] === BLOCK) {
+            yarn.dx = -yarn.dx;
+            nextX = yarn.x + yarn.dx;
+          }
+          if (nextY <= 0 || nextY >= this.rows - 1 || this.grid[nextY][yarn.x] === WALL || this.grid[nextY][yarn.x] === BLOCK) {
+            yarn.dy = -yarn.dy;
+            nextY = yarn.y + yarn.dy;
+          }
+
+          yarn.x = Math.max(1, Math.min(this.cols - 2, nextX));
+          yarn.y = Math.max(1, Math.min(this.rows - 2, nextY));
+
+          if (yarn.x === this.player.x && yarn.y === this.player.y) {
+            this.triggerDeath("Hit by a heavy rolling yarn ball!");
+            return;
+          }
+        }
+      }
+
+      triggerDeath(reason) {
+        sound.playDeath();
+        this.triggerScreenShake(8);
+        this.lives--;
+        this.updateHUD();
+
+        if (this.lives > 0) {
+          this.showToast(`${reason} Lives left: ${this.lives}`, '⚠️');
+          this.player.x = Math.floor(this.cols / 2);
+          this.player.y = Math.floor(this.rows / 2);
+          this.grid[this.player.y][this.player.x] = EMPTY;
+        } else {
+          this.isGameOver = true;
+          if (this.score > this.highScore) {
+            this.highScore = this.score;
+          }
+          document.getElementById('summary-final-score').textContent = this.score.toLocaleString();
+          document.getElementById('summary-final-level').textContent = this.level.toString();
+          document.getElementById('summary-high-score').textContent = this.highScore.toLocaleString();
+          document.getElementById('game-over-desc').textContent = reason;
+          document.getElementById('modal-game-over').classList.remove('hidden');
+        }
+      }
+
+      triggerLevelComplete() {
+        sound.playLevelVictory();
+        const durationSec = Math.max(1, Math.floor((performance.now() - this.levelStartTime) / 1000));
+        const speedBonus = Math.max(50, 400 - durationSec * 10);
+        const levelBonus = 500 * this.level;
+        const cheeseBonus = this.cheeseEatenCount * 200;
+        
+        this.score += (levelBonus + speedBonus);
+
+        if (this.level === 5 && this.lives === 3) {
+          this.unlockAchievement('flawless_five');
+        }
+        if (this.yarns.length > 0) {
+          this.unlockAchievement('yarn_dodger');
+        }
+
+        document.getElementById('summary-level-bonus').textContent = `+${levelBonus.toLocaleString()}`;
+        document.getElementById('summary-cheese-eaten').textContent = `+${cheeseBonus.toLocaleString()}`;
+        document.getElementById('summary-speed-bonus').textContent = `+${speedBonus.toLocaleString()} (${durationSec}s)`;
+        document.getElementById('summary-total-score').textContent = this.score.toLocaleString();
+        document.getElementById('modal-level-complete').classList.remove('hidden');
+      }
+
+      nextLevel() {
+        document.getElementById('modal-level-complete').classList.add('hidden');
+        this.initLevel(this.level + 1);
+      }
+
+      restartGame() {
+        document.getElementById('modal-game-over').classList.add('hidden');
+        this.score = 0;
+        this.lives = 3;
+        this.isGameOver = false;
+        this.initLevel(1);
+      }
+
+      render() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.player.renderX += (this.player.x - this.player.renderX) * 0.35;
+        this.player.renderY += (this.player.y - this.player.renderY) * 0.35;
+
+        let offsetX = 0;
+        let offsetY = 0;
+        if (this.shakeTimer > 0) {
+          this.shakeTimer--;
+          offsetX = (Math.random() - 0.5) * this.shakeMagnitude;
+          offsetY = (Math.random() - 0.5) * this.shakeMagnitude;
+        }
+
+        this.ctx.save();
+        this.ctx.translate(offsetX, offsetY);
+
+        this.renderFloor();
+        this.renderGridObjects();
+        this.renderCheeses();
+        this.renderYarns();
+        this.renderCats();
+        this.renderPlayer();
+        this.renderParticles();
+        this.renderFloatingTexts();
+
+        this.ctx.restore();
+      }
+
+      renderParticles() {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= p.decay;
+
+          if (p.alpha <= 0) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+
+          this.ctx.save();
+          this.ctx.globalAlpha = Math.max(0, p.alpha);
+          this.ctx.fillStyle = p.color;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+        }
+      }
+
+      drawBevel(x, y, w, h, light, dark, width = 2) {
+        this.ctx.fillStyle = light;
+        this.ctx.fillRect(x, y, w, width);
+        this.ctx.fillRect(x, y, width, h);
+
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(x, y + h - width, w, width);
+        this.ctx.fillRect(x + w - width, y, width, h);
+      }
+
+      roundRect(x, y, w, h, radius = 4, fill = true, stroke = false) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + radius, y);
+        this.ctx.lineTo(x + w - radius, y);
+        this.ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        this.ctx.lineTo(x + w, y + h - radius);
+        this.ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        this.ctx.lineTo(x + radius, y + h);
+        this.ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        this.ctx.lineTo(x, y + radius);
+        this.ctx.quadraticCurveTo(x, y, x + radius, y);
+        this.ctx.closePath();
+        if (fill) this.ctx.fill();
+        if (stroke) this.ctx.stroke();
+      }
+
+      renderFloor() {
+        const isRetro = this.theme === 'retro';
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            const x = c * this.tileSize;
+            const y = r * this.tileSize;
+            if (isRetro) {
+              this.ctx.fillStyle = (r + c) % 2 === 0 ? '#c0c0c0' : '#d4d4d4';
+              this.ctx.fillRect(x, y, this.tileSize, this.tileSize);
+              this.ctx.strokeStyle = '#a0a0a0';
+              this.ctx.lineWidth = 1;
+              this.ctx.strokeRect(x, y, this.tileSize, this.tileSize);
+            } else {
+              this.ctx.fillStyle = (r + c) % 2 === 0 ? '#0f172a' : '#111827';
+              this.ctx.fillRect(x, y, this.tileSize, this.tileSize);
+              this.ctx.strokeStyle = '#1e293b';
+              this.ctx.lineWidth = 1;
+              this.ctx.strokeRect(x, y, this.tileSize, this.tileSize);
+            }
+          }
+        }
+      }
+
+      renderGridObjects() {
+        const isRetro = this.theme === 'retro';
+
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            const cell = this.grid[r][c];
+            const x = c * this.tileSize;
+            const y = r * this.tileSize;
+            const size = this.tileSize;
+
+            if (cell === WALL) {
+              if (isRetro) {
+                this.ctx.fillStyle = '#808080';
+                this.ctx.fillRect(x, y, size, size);
+                this.drawBevel(x, y, size, size, '#ffffff', '#404040', 2);
+              } else {
+                this.ctx.fillStyle = '#1e293b';
+                this.ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+                this.ctx.strokeStyle = '#334155';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
+                this.ctx.fillStyle = '#0f172a';
+                this.ctx.fillRect(x + 4, y + size / 2 - 1, size - 8, 2);
+              }
+            } else if (cell === BLOCK) {
+              if (isRetro) {
+                this.ctx.fillStyle = '#008000';
+                this.ctx.fillRect(x, y, size, size);
+                this.drawBevel(x, y, size, size, '#00ff00', '#004000', 3);
+                this.ctx.fillStyle = '#00a000';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + size / 2, y + 6);
+                this.ctx.lineTo(x + size - 6, y + size / 2);
+                this.ctx.lineTo(x + size / 2, y + size - 6);
+                this.ctx.lineTo(x + 6, y + size / 2);
+                this.ctx.fill();
+              } else {
+                const grad = this.ctx.createLinearGradient(x, y, x + size, y + size);
+                grad.addColorStop(0, '#059669');
+                grad.addColorStop(1, '#047857');
+                this.ctx.fillStyle = grad;
+                this.roundRect(x + 2, y + 2, size - 4, size - 4, 6, true, false);
+
+                this.ctx.fillStyle = 'rgba(255,255,255,0.22)';
+                this.roundRect(x + 4, y + 4, size - 8, size / 3, 3, true, false);
+
+                this.ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(x + size / 2, y + size / 2, size / 5, 0, Math.PI * 2);
+                this.ctx.stroke();
+              }
+            } else if (cell === TRAP) {
+              this.renderTrap(x, y, size, isRetro);
+            } else if (cell === SINKHOLE) {
+              this.renderSinkhole(x, y, size, isRetro);
+            }
+          }
+        }
+      }
+
+      renderTrap(x, y, size, isRetro) {
+        if (isRetro) {
+          this.ctx.fillStyle = '#8b5a2b';
+          this.ctx.fillRect(x + 4, y + 6, size - 8, size - 12);
+          this.ctx.fillStyle = '#ffff00';
+          this.ctx.fillRect(x + size / 2 - 2, y + size / 2 - 2, 4, 4);
+          this.ctx.strokeStyle = '#c0c0c0';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x + 6, y + 8, size - 12, size - 16);
+        } else {
+          this.ctx.fillStyle = '#78350f';
+          this.roundRect(x + 4, y + 6, size - 8, size - 12, 4, true, false);
+          this.ctx.strokeStyle = '#e2e8f0';
+          this.ctx.lineWidth = 2.5;
+          this.ctx.strokeRect(x + 7, y + 9, size - 14, size - 18);
+          this.ctx.fillStyle = '#f59e0b';
+          this.ctx.beginPath();
+          this.ctx.arc(x + size / 2, y + size / 2, 4, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+      }
+
+      renderSinkhole(x, y, size, isRetro) {
+        this.ctx.fillStyle = isRetro ? '#000000' : '#030712';
+        this.ctx.beginPath();
+        this.ctx.arc(x + size / 2, y + size / 2, size / 2.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = isRetro ? '#404040' : '#374151';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+      }
+
+      renderCheeses() {
+        for (const ch of this.cheeses) {
+          const cx = ch.x * this.tileSize + this.tileSize / 2;
+          const cy = ch.y * this.tileSize + this.tileSize / 2;
+          const r = this.tileSize / (ch.isGold ? 2.2 : 2.6);
+
+          this.ctx.save();
+          this.ctx.shadowColor = ch.isGold ? '#eab308' : '#f59e0b';
+          this.ctx.shadowBlur = ch.isGold ? 16 : 10;
+
+          const ratio = Math.max(0, ch.timer / (ch.maxTimer || 15000));
+          this.ctx.strokeStyle = ratio > 0.3 ? (ch.isGold ? '#facc15' : 'rgba(245, 158, 11, 0.6)') : 'rgba(239, 68, 68, 0.8)';
+          this.ctx.lineWidth = 2.5;
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, r + 4, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * ratio));
+          this.ctx.stroke();
+
+          this.ctx.fillStyle = ch.isGold ? '#fbbf24' : '#f59e0b';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, r, -0.4, Math.PI - 0.4);
+          this.ctx.lineTo(cx, cy);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          this.ctx.fillStyle = ch.isGold ? '#f59e0b' : '#d97706';
+          this.ctx.beginPath();
+          this.ctx.arc(cx - 3, cy + 2, 2.5, 0, Math.PI * 2);
+          this.ctx.arc(cx + 4, cy - 2, 2, 0, Math.PI * 2);
+          this.ctx.arc(cx + 1, cy + 5, 1.8, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.restore();
+        }
+      }
+
+      renderYarns() {
+        for (const yarn of this.yarns) {
+          const cx = yarn.x * this.tileSize + this.tileSize / 2;
+          const cy = yarn.y * this.tileSize + this.tileSize / 2;
+          const r = this.tileSize / 2.8;
+
+          this.ctx.save();
+          this.ctx.fillStyle = '#ec4899';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.strokeStyle = '#fbcfe8';
+          this.ctx.lineWidth = 1.8;
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, r * 0.7, 0.4, 2.4);
+          this.ctx.arc(cx, cy, r * 0.5, 3.2, 5.2);
+          this.ctx.stroke();
+          this.ctx.restore();
+        }
+      }
+
+      renderCats() {
+        const isRetro = this.theme === 'retro';
+
+        for (const cat of this.cats) {
+          const cx = cat.renderX * this.tileSize + this.tileSize / 2;
+          const cy = cat.renderY * this.tileSize + this.tileSize / 2 + (cat.prowlHeight || 0);
+          const size = this.tileSize;
+          const dir = cat.facing === 'LEFT' ? -1 : 1;
+          const isBoss = cat.archetype === 'boss';
+
+          const moves = this.getAvailableCatMoves(cat.x, cat.y, cat.archetype === 'ninja');
+          const isAlarmed = moves.length === 1 && cat.state !== 'asleep';
+          const isTrapped = moves.length === 0 && cat.state !== 'asleep';
+
+          if (isRetro) {
+            const x = cx - size / 2;
+            const y = cy - size / 2;
+            this.ctx.save();
+
+            const retroTailAngle = Math.sin(cat.tailAngle) * 6;
+            this.ctx.strokeStyle = isBoss ? '#991b1b' : '#1e3a8a';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(cx - (dir * 8), cy + 6);
+            this.ctx.lineTo(cx - (dir * 14) + retroTailAngle, cy - 2);
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = isBoss ? '#dc2626' : '#2563eb';
+            this.ctx.fillRect(x + 8, y + 8, size - 16, size - 16);
+
+            const legStep = Math.sin(cat.walkCycle) * 3;
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(x + 7, y + size - 8 + legStep, 4, 4);
+            this.ctx.fillRect(x + size - 11, y + size - 8 - legStep, 4, 4);
+
+            this.ctx.fillStyle = isBoss ? '#b91c1c' : '#1d4ed8';
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 8, y + 8);
+            this.ctx.lineTo(x + 12, y + 3);
+            this.ctx.lineTo(x + 16, y + 8);
+            this.ctx.moveTo(x + size - 16, y + 8);
+            this.ctx.lineTo(x + size - 12, y + 3);
+            this.ctx.lineTo(x + size - 8, y + 8);
+            this.ctx.fill();
+
+            if (!cat.isBlinking && cat.state !== 'asleep') {
+              this.ctx.fillStyle = isAlarmed ? '#ef4444' : '#facc15';
+              this.ctx.fillRect(x + 10, y + 12, 3, 3);
+              this.ctx.fillRect(x + size - 13, y + 12, 3, 3);
+            }
+
+            this.ctx.restore();
+            continue;
+          }
+
+          // Modern Lifelike Rendering
+          this.ctx.save();
+          this.ctx.translate(cx, cy);
+          if (dir === -1) this.ctx.scale(-1, 1);
+          if (isBoss) this.ctx.scale(1.25, 1.25); // Boss size boost
+
+          let mainCoat = '#ea580c';
+          let darkMarkings = '#9a3412';
+          let lightBelly = '#ffedd5';
+          let eyeColor = '#10b981';
+          let noseColor = '#f472b6';
+
+          if (cat.breed === 'tuxedo') {
+            mainCoat = '#1e293b';
+            darkMarkings = '#0f172a';
+            lightBelly = '#f8fafc';
+            eyeColor = '#eab308';
+          } else if (cat.breed === 'calico') {
+            mainCoat = '#f8fafc';
+            darkMarkings = '#c2410c';
+            lightBelly = '#334155';
+            eyeColor = '#84cc16';
+          } else if (cat.breed === 'siamese') {
+            mainCoat = '#fef3c7';
+            darkMarkings = '#451a03';
+            lightBelly = '#fef08a';
+            eyeColor = '#06b6d4';
+          } else if (cat.breed === 'black') {
+            mainCoat = '#0f172a';
+            darkMarkings = '#020617';
+            lightBelly = '#1e293b';
+            eyeColor = '#facc15';
+          }
+
+          if (cat.archetype === 'ninja') {
+            eyeColor = '#a855f7';
+          } else if (isBoss) {
+            eyeColor = '#ef4444';
+          }
+
+          const breath = Math.sin(cat.walkCycle * 0.7) * 0.8;
+          const walkTilt = cat.isMoving ? Math.sin(cat.walkCycle) * 0.08 : 0;
+          this.ctx.rotate(walkTilt);
+
+          // Sleeping ZZZ effect
+          if (cat.state === 'asleep') {
+            this.ctx.save();
+            this.ctx.fillStyle = '#38bdf8';
+            this.ctx.font = 'bold 9px Outfit, sans-serif';
+            const zOff = Math.sin(performance.now() / 300) * 3;
+            this.ctx.fillText("Zzz...", 4, -12 + zOff);
+            this.ctx.restore();
+          }
+
+          // Tail
+          const tailBaseX = -10;
+          const tailBaseY = 4 + breath;
+          const tailSway = Math.sin(cat.tailAngle) * (isAlarmed ? 9 : 5);
+          const tailTipY = isAlarmed ? -14 : -8 + Math.cos(cat.tailAngle * 0.8) * 4;
+
+          this.ctx.save();
+          this.ctx.strokeStyle = cat.breed === 'siamese' ? darkMarkings : mainCoat;
+          this.ctx.lineWidth = isAlarmed ? 4.5 : 3.2;
+          this.ctx.lineCap = 'round';
+          this.ctx.beginPath();
+          this.ctx.moveTo(tailBaseX, tailBaseY);
+          this.ctx.bezierCurveTo(
+            tailBaseX - 8, tailBaseY + 2,
+            tailBaseX - 12 + tailSway, tailBaseY - 6,
+            tailBaseX - 16 + tailSway * 1.3, tailTipY
+          );
+          this.ctx.stroke();
+          this.ctx.restore();
+
+          // Paws / Legs
+          const frontLegOffset = cat.isMoving ? Math.sin(cat.walkCycle) * 5 : 0;
+          const backLegOffset = cat.isMoving ? Math.cos(cat.walkCycle) * 5 : 0;
+
+          this.ctx.fillStyle = darkMarkings;
+          this.ctx.beginPath();
+          this.ctx.ellipse(-7 + backLegOffset, 12, 3.5, 4.5, 0.2, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.beginPath();
+          this.ctx.ellipse(6 - frontLegOffset, 12, 3.2, 4.2, -0.2, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Torso & Haunches
+          this.ctx.fillStyle = mainCoat;
+          this.ctx.beginPath();
+          this.ctx.ellipse(-6, 3 + breath, 8, 9, -0.2, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.beginPath();
+          this.ctx.ellipse(0, 4 + breath, 10, 7.5, 0.1, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.fillStyle = lightBelly;
+          this.ctx.beginPath();
+          this.ctx.ellipse(4, 5 + breath, 5, 5, 0.3, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          if (cat.breed === 'tabby') {
+            this.ctx.strokeStyle = darkMarkings;
+            this.ctx.lineWidth = 1.6;
+            this.ctx.beginPath();
+            this.ctx.moveTo(-4, 0 + breath);
+            this.ctx.lineTo(-2, 7 + breath);
+            this.ctx.moveTo(1, -1 + breath);
+            this.ctx.lineTo(3, 6 + breath);
+            this.ctx.stroke();
+          }
+
+          // Foreground Paws
+          this.ctx.fillStyle = (cat.breed === 'tuxedo' || cat.breed === 'calico') ? '#ffffff' : mainCoat;
+          this.ctx.beginPath();
+          this.ctx.ellipse(7 + frontLegOffset, 12.5, 3.2, 3.8, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.beginPath();
+          this.ctx.ellipse(-6 - backLegOffset, 12.5, 3.4, 4, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Head
+          const headX = 6;
+          const headY = -3 + breath;
+
+          this.ctx.fillStyle = (cat.breed === 'siamese') ? darkMarkings : mainCoat;
+          this.ctx.beginPath();
+          this.ctx.arc(headX, headY, 8.5, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Cheek tufts
+          this.ctx.beginPath();
+          this.ctx.moveTo(headX - 6, headY + 3);
+          this.ctx.lineTo(headX - 10, headY + 5);
+          this.ctx.lineTo(headX - 6, headY + 7);
+          this.ctx.moveTo(headX + 6, headY + 3);
+          this.ctx.lineTo(headX + 9, headY + 5);
+          this.ctx.lineTo(headX + 5, headY + 7);
+          this.ctx.fill();
+
+          // Ears
+          const earFold = isAlarmed || isTrapped ? -0.45 : cat.earTwitchAngle;
+
+          this.ctx.save();
+          this.ctx.translate(headX - 3, headY - 6);
+          this.ctx.rotate(-0.25 + earFold);
+          this.ctx.fillStyle = darkMarkings;
+          this.ctx.beginPath();
+          this.ctx.moveTo(-4, 2);
+          this.ctx.lineTo(-2, -9);
+          this.ctx.lineTo(4, 1);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fda4af';
+          this.ctx.beginPath();
+          this.ctx.moveTo(-2, 1);
+          this.ctx.lineTo(-1, -6);
+          this.ctx.lineTo(3, 1);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.restore();
+
+          this.ctx.save();
+          this.ctx.translate(headX + 4, headY - 6);
+          this.ctx.rotate(0.2 + earFold);
+          this.ctx.fillStyle = mainCoat;
+          this.ctx.beginPath();
+          this.ctx.moveTo(-3, 2);
+          this.ctx.lineTo(2, -9);
+          this.ctx.lineTo(5, 2);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fda4af';
+          this.ctx.beginPath();
+          this.ctx.moveTo(-1.5, 1);
+          this.ctx.lineTo(1.5, -6);
+          this.ctx.lineTo(3.5, 1);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.restore();
+
+          // Eyes & Eyelids
+          const eyeY = headY - 1;
+          const leftEyeX = headX - 1.5;
+          const rightEyeX = headX + 4.5;
+
+          if (cat.isBlinking || cat.state === 'asleep') {
+            this.ctx.strokeStyle = '#0f172a';
+            this.ctx.lineWidth = 1.5;
+            this.ctx.lineCap = 'round';
+            this.ctx.beginPath();
+            this.ctx.moveTo(leftEyeX - 2, eyeY);
+            this.ctx.lineTo(leftEyeX + 2, eyeY);
+            this.ctx.moveTo(rightEyeX - 2, eyeY);
+            this.ctx.lineTo(rightEyeX + 2, eyeY);
+            this.ctx.stroke();
+          } else {
+            [leftEyeX, rightEyeX].forEach((ex) => {
+              this.ctx.fillStyle = '#020617';
+              this.ctx.beginPath();
+              this.ctx.ellipse(ex, eyeY, 2.8, 3.2, 0.15, 0, Math.PI * 2);
+              this.ctx.fill();
+
+              this.ctx.fillStyle = eyeColor;
+              this.ctx.beginPath();
+              this.ctx.ellipse(ex, eyeY, 2.2, 2.6, 0.1, 0, Math.PI * 2);
+              this.ctx.fill();
+
+              this.ctx.fillStyle = '#000000';
+              if (isAlarmed || isTrapped) {
+                this.ctx.beginPath();
+                this.ctx.arc(ex, eyeY, 1.8, 0, Math.PI * 2);
+                this.ctx.fill();
+              } else {
+                this.ctx.beginPath();
+                this.ctx.ellipse(ex + 0.3, eyeY, 0.8, 2.2, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+              }
+
+              this.ctx.fillStyle = '#ffffff';
+              this.ctx.beginPath();
+              this.ctx.arc(ex - 0.7, eyeY - 1, 0.7, 0, Math.PI * 2);
+              this.ctx.fill();
+            });
+          }
+
+          // Muzzle & Whiskers
+          const muzzleX = headX + 3.5;
+          const muzzleY = headY + 3;
+
+          this.ctx.fillStyle = (cat.breed === 'siamese' || cat.breed === 'black') ? darkMarkings : lightBelly;
+          this.ctx.beginPath();
+          this.ctx.arc(muzzleX - 1.8, muzzleY, 2.2, 0, Math.PI * 2);
+          this.ctx.arc(muzzleX + 1.2, muzzleY, 2.2, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.fillStyle = noseColor;
+          this.ctx.beginPath();
+          this.ctx.moveTo(muzzleX - 1.2, muzzleY - 1.4);
+          this.ctx.lineTo(muzzleX + 0.6, muzzleY - 1.4);
+          this.ctx.lineTo(muzzleX - 0.3, muzzleY);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Crown for Boss King Fat Cat
+          if (isBoss) {
+            this.ctx.fillStyle = '#fbbf24';
+            this.ctx.strokeStyle = '#d97706';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(headX - 6, headY - 8);
+            this.ctx.lineTo(headX - 4, headY - 14);
+            this.ctx.lineTo(headX, headY - 10);
+            this.ctx.lineTo(headX + 4, headY - 14);
+            this.ctx.lineTo(headX + 6, headY - 8);
+            this.ctx.closePath();
+            this.ctx.fill();
+            this.ctx.stroke();
+          }
+
+          this.ctx.restore();
+        }
+      }
+
+      renderPlayer() {
+        const isRetro = this.theme === 'retro';
+        const cx = this.player.renderX * this.tileSize + this.tileSize / 2;
+        const cy = this.player.renderY * this.tileSize + this.tileSize / 2;
+        const size = this.tileSize;
+
+        if (isRetro) {
+          this.ctx.fillStyle = '#808080';
+          this.ctx.fillRect(cx - size / 4, cy - size / 4, size / 2, size / 2);
+          this.ctx.fillStyle = '#ffc0cb';
+          this.ctx.fillRect(cx - size / 3, cy - size / 3, 5, 5);
+          this.ctx.fillRect(cx + size / 3 - 5, cy - size / 3, 5, 5);
+          this.ctx.fillStyle = '#000000';
+          this.ctx.fillRect(cx - 2, cy - 2, 4, 4);
+          return;
+        }
+
+        // Modern Expressive Hero Mouse
+        this.ctx.save();
+        const scurryOffset = this.player.isMoving ? Math.sin(this.player.walkCycle * 2) * 2 : 0;
+
+        // Tail
+        this.ctx.strokeStyle = '#f472b6';
+        this.ctx.lineWidth = 2.5;
+        this.ctx.lineCap = 'round';
+        this.ctx.beginPath();
+        const tailOffset = (Math.sin(performance.now() / 150) * 4);
+        this.ctx.moveTo(cx, cy + 8);
+        this.ctx.quadraticCurveTo(cx - 10, cy + 14 + tailOffset, cx - 14, cy + 8);
+        this.ctx.stroke();
+
+        // Mouse Feet
+        this.ctx.fillStyle = '#f472b6';
+        this.ctx.beginPath();
+        this.ctx.ellipse(cx - 5 + scurryOffset, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(cx + 5 - scurryOffset, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Body
+        this.ctx.fillStyle = '#94a3b8';
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, size / 3.2, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Rotating Ears (Ears listen to the closest cat!)
+        let closestCatAngle = 0;
+        let minDist = Infinity;
+        for (const cat of this.cats) {
+          const d = Math.hypot(cat.x - this.player.x, cat.y - this.player.y);
+          if (d < minDist) {
+            minDist = d;
+            closestCatAngle = Math.atan2(cat.y - this.player.y, cat.x - this.player.x);
+          }
+        }
+        const earSway = Math.sin(closestCatAngle) * 0.25;
+
+        // Left Ear
+        this.ctx.save();
+        this.ctx.translate(cx - 9, cy - 9);
+        this.ctx.rotate(earSway);
+        this.ctx.fillStyle = '#64748b';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#f472b6';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 3.8, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+
+        // Right Ear
+        this.ctx.save();
+        this.ctx.translate(cx + 9, cy - 9);
+        this.ctx.rotate(-earSway);
+        this.ctx.fillStyle = '#64748b';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#f472b6';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 3.8, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+
+        // Big alert mouse eyes
+        const eyeSize = minDist <= 2 ? 3.4 : 2.5; // Eyes bulge when cat is nearby!
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.beginPath();
+        this.ctx.arc(cx - 4, cy - 1, eyeSize, 0, Math.PI * 2);
+        this.ctx.arc(cx + 4, cy - 1, eyeSize, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(cx - 4.5, cy - 1.5, 1, 0, Math.PI * 2);
+        this.ctx.arc(cx + 3.5, cy - 1.5, 1, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Snout & Pink Nose
+        this.ctx.fillStyle = '#f43f5e';
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy + 5, 2.5, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Tiny Mouse Whiskers
+        this.ctx.strokeStyle = '#e2e8f0';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx - 2, cy + 5);
+        this.ctx.lineTo(cx - 10, cy + 3);
+        this.ctx.moveTo(cx - 2, cy + 6);
+        this.ctx.lineTo(cx - 9, cy + 7);
+        this.ctx.moveTo(cx + 2, cy + 5);
+        this.ctx.lineTo(cx + 10, cy + 3);
+        this.ctx.moveTo(cx + 2, cy + 6);
+        this.ctx.lineTo(cx + 9, cy + 7);
+        this.ctx.stroke();
+
+        this.ctx.restore();
+      }
+
+      addFloatingText(x, y, text, color) {
+        this.floatingTexts.push({
+          x, y,
+          text,
+          color,
+          life: 42,
+          maxLife: 42
+        });
+      }
+
+      renderFloatingTexts() {
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+          const ft = this.floatingTexts[i];
+          ft.y -= 0.8;
+          ft.life--;
+
+          if (ft.life <= 0) {
+            this.floatingTexts.splice(i, 1);
+            continue;
+          }
+
+          this.ctx.save();
+          this.ctx.font = 'bold 13px Outfit, sans-serif';
+          this.ctx.fillStyle = ft.color;
+          this.ctx.textAlign = 'center';
+          this.ctx.shadowColor = 'rgba(0,0,0,0.85)';
+          this.ctx.shadowBlur = 4;
+          this.ctx.globalAlpha = ft.life / ft.maxLife;
+          this.ctx.fillText(ft.text, ft.x, ft.y);
+          this.ctx.restore();
+        }
+      }
+
+      updateHUD() {
+        document.getElementById('hud-score').textContent = this.score.toLocaleString();
+        document.getElementById('hud-level').textContent = this.level.toString();
+        document.getElementById('hud-cats').textContent = this.cats.length.toString();
+        document.getElementById('undo-count').textContent = this.undosRemaining.toString();
+        document.getElementById('bomb-count').textContent = this.bombs.toString();
+        document.getElementById('freeze-count').textContent = this.freezes.toString();
+
+        const comboEl = document.getElementById('combo-badge');
+        const comboVal = document.getElementById('combo-val');
+        if (this.comboCount > 1) {
+          comboVal.textContent = this.comboCount.toString();
+          comboEl.classList.remove('hidden');
+        } else {
+          comboEl.classList.add('hidden');
+        }
+
+        const livesContainer = document.getElementById('hud-lives');
+        livesContainer.innerHTML = '';
+        for (let i = 0; i < this.lives; i++) {
+          livesContainer.innerHTML += `<span>🐭</span>`;
+        }
+      }
+
+      togglePause() {
+        this.isPaused = !this.isPaused;
+        const overlay = document.getElementById('pause-overlay');
+        const pauseBtn = document.getElementById('btn-pause');
+        if (this.isPaused) {
+          overlay.classList.remove('hidden');
+          pauseBtn.textContent = '▶️';
+        } else {
+          overlay.classList.add('hidden');
+          pauseBtn.textContent = '⏸️';
+        }
+      }
+
+      toggleTheme() {
+        this.theme = this.theme === 'modern' ? 'retro' : 'modern';
+        const canvas = document.getElementById('gameCanvas');
+        if (this.theme === 'retro') {
+          canvas.classList.add('pixelated');
+          this.showToast('Nostalgic Win95 theme activated!', '💾');
+        } else {
+          canvas.classList.remove('pixelated');
+          this.showToast('Modern Vector theme activated!', '✨');
+        }
+      }
+
+      renderAchievementsModal() {
+        const list = document.getElementById('achievements-list');
+        list.innerHTML = '';
+        this.achievements.forEach(ach => {
+          const item = document.createElement('div');
+          item.className = `flex items-center gap-3 p-2.5 rounded-xl border ${ach.unlocked ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' : 'bg-slate-950/60 border-slate-800 text-slate-500'}`;
+          item.innerHTML = `
+            <div class="text-2xl p-2 rounded-lg ${ach.unlocked ? 'bg-amber-500/20' : 'bg-slate-800'}">${ach.icon}</div>
+            <div class="flex-1">
+              <div class="font-bold flex items-center gap-2">
+                <span>${ach.title}</span>
+                ${ach.unlocked ? '<span class="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider">Unlocked!</span>' : ''}
+              </div>
+              <div class="text-[11px] opacity-80">${ach.desc}</div>
+            </div>
+          `;
+          list.appendChild(item);
+        });
+      }
+
+      bindEvents() {
+        window.addEventListener('resize', () => this.initCanvasSize());
+
+        window.addEventListener('keydown', (e) => {
+          if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
+            e.preventDefault();
+          }
+
+          if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === '8') this.tryMovePlayer('UP');
+          else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === '2') this.tryMovePlayer('DOWN');
+          else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A' || e.key === '4') this.tryMovePlayer('LEFT');
+          else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D' || e.key === '6') this.tryMovePlayer('RIGHT');
+          else if (e.key === 'q' || e.key === 'Q' || e.key === '7') this.tryMovePlayer('UP_LEFT');
+          else if (e.key === 'e' || e.key === 'E' || e.key === '9') this.tryMovePlayer('UP_RIGHT');
+          else if (e.key === 'z' || e.key === 'Z' || e.key === '1') this.tryMovePlayer('DOWN_LEFT');
+          else if (e.key === 'c' || e.key === 'C' || e.key === '3') this.tryMovePlayer('DOWN_RIGHT');
+          else if (e.key === 'b' || e.key === 'B') this.useBomb();
+          else if (e.key === 'f' || e.key === 'F') this.useFreeze();
+          else if (e.key === 'u' || e.key === 'U') this.applyUndo();
+          else if (e.key === 'm' || e.key === 'M') {
+            const on = sound.toggleMusic();
+            document.getElementById('btn-music').textContent = on ? '🎶' : '🎵';
+          }
+          else if (e.key === 'p' || e.key === 'P' || e.key === ' ') this.togglePause();
+          else if (e.key === 'r' || e.key === 'R') this.initLevel(this.level);
+        });
+
+        // Swipe & touch controls
+        let touchStartX = 0;
+        let touchStartY = 0;
+        this.canvas.addEventListener('touchstart', (e) => {
+          const t = e.touches[0];
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+        }, { passive: true });
+
+        this.canvas.addEventListener('touchend', (e) => {
+          const t = e.changedTouches[0];
+          const dx = t.clientX - touchStartX;
+          const dy = t.clientY - touchStartY;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+
+          if (Math.max(absDx, absDy) > 20) {
+            if (absDx > 25 && absDy > 25) {
+              if (dx > 0 && dy < 0) this.tryMovePlayer('UP_RIGHT');
+              else if (dx < 0 && dy < 0) this.tryMovePlayer('UP_LEFT');
+              else if (dx > 0 && dy > 0) this.tryMovePlayer('DOWN_RIGHT');
+              else if (dx < 0 && dy > 0) this.tryMovePlayer('DOWN_LEFT');
+            } else if (absDx > absDy) {
+              this.tryMovePlayer(dx > 0 ? 'RIGHT' : 'LEFT');
+            } else {
+              this.tryMovePlayer(dy > 0 ? 'DOWN' : 'UP');
+            }
+          }
+        }, { passive: true });
+
+        // D-Pad buttons
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+          const dir = btn.dataset.dir;
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.tryMovePlayer(dir);
+          });
+        });
+
+        document.getElementById('dpad-center').addEventListener('click', () => {
+          this.wakeAdjacentSleepyCats();
+          this.showToast("Mouse waited a beat...", "🐭");
+        });
+
+        // Powerup buttons
+        document.getElementById('btn-bomb').addEventListener('click', () => this.useBomb());
+        document.getElementById('btn-freeze').addEventListener('click', () => this.useFreeze());
+        document.getElementById('btn-undo').addEventListener('click', () => this.applyUndo());
+        document.getElementById('btn-retry').addEventListener('click', () => this.initLevel(this.level));
+        document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
+        document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
+        document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
+
+        // Music toggle
+        const musicBtn = document.getElementById('btn-music');
+        musicBtn.addEventListener('click', () => {
+          const on = sound.toggleMusic();
+          musicBtn.textContent = on ? '🎶' : '🎵';
+          musicBtn.classList.toggle('text-amber-400', on);
+          this.showToast(on ? "Adaptive Chiptune Playing!" : "Music Paused", on ? "🎶" : "🎵");
+        });
+
+        // Audio toggle
+        const soundBtn = document.getElementById('btn-sound');
+        soundBtn.addEventListener('click', () => {
+          sound.enabled = !sound.enabled;
+          soundBtn.textContent = sound.enabled ? '🔊' : '🔇';
+          this.showToast(sound.enabled ? "Sound On" : "Sound Muted", sound.enabled ? "🔊" : "🔇");
+        });
+
+        // Help Modal
+        const helpModal = document.getElementById('modal-help');
+        document.getElementById('btn-help').addEventListener('click', () => helpModal.classList.remove('hidden'));
+        document.getElementById('btn-close-help').addEventListener('click', () => helpModal.classList.add('hidden'));
+        document.getElementById('btn-got-it').addEventListener('click', () => helpModal.classList.add('hidden'));
+
+        // Trophies / Achievements Modal
+        const trophyModal = document.getElementById('modal-trophies');
+        document.getElementById('btn-trophies').addEventListener('click', () => {
+          this.renderAchievementsModal();
+          trophyModal.classList.remove('hidden');
+        });
+        document.getElementById('btn-close-trophies').addEventListener('click', () => trophyModal.classList.add('hidden'));
+
+        // Level Warp Modal
+        const warpModal = document.getElementById('modal-warp');
+        document.getElementById('btn-select-level').addEventListener('click', () => {
+          document.getElementById('pause-overlay').classList.add('hidden');
+          warpModal.classList.remove('hidden');
+        });
+        document.getElementById('btn-close-warp').addEventListener('click', () => {
+          warpModal.classList.add('hidden');
+          document.getElementById('pause-overlay').classList.remove('hidden');
+        });
+
+        document.querySelectorAll('.warp-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const targetLvl = parseInt(btn.dataset.level, 10);
+            warpModal.classList.add('hidden');
+            this.isPaused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('btn-pause').textContent = '⏸️';
+            this.initLevel(targetLvl);
+          });
+        });
+
+        document.getElementById('btn-next-level').addEventListener('click', () => this.nextLevel());
+        document.getElementById('btn-play-again').addEventListener('click', () => this.restartGame());
+      }
+    }
+
+    let gameInstance = null;
+    function gameLoop(now) {
+      if (gameInstance) {
+        gameInstance.updateCats(now);
+        gameInstance.render();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.onload = function() {
+      gameInstance = new RodentsRevenge();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>

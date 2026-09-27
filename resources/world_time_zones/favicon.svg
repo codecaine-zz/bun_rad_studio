@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="wtz-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#081420"/>
+      <stop offset="100%" stop-color="#03070d"/>
+    </linearGradient>
+    <filter id="wtz-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#wtz-bg)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#00f0ff" stroke-opacity="0.35" stroke-width="1.5"/>
+
+  <!-- Globe Sphere -->
+  <circle cx="32" cy="32" r="20" fill="#0c1b2c" stroke="#00f0ff" stroke-width="2" filter="url(#wtz-glow)"/>
+
+  <!-- Longitude & Latitude Curves -->
+  <ellipse cx="32" cy="32" rx="9" ry="20" fill="none" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+  <line x1="32" y1="12" x2="32" y2="52" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+  <line x1="12" y1="32" x2="52" y2="32" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+  <ellipse cx="32" cy="22" rx="17" ry="4" fill="none" stroke="#00f0ff" stroke-width="1" opacity="0.4"/>
+  <ellipse cx="32" cy="42" rx="17" ry="4" fill="none" stroke="#00f0ff" stroke-width="1" opacity="0.4"/>
+
+  <!-- Central Clock Hands (Time Zone Dial) -->
+  <circle cx="32" cy="32" r="2.5" fill="#00ff88" filter="url(#wtz-glow)"/>
+  <!-- Hour Hand -->
+  <line x1="32" y1="32" x2="40" y2="24" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round" filter="url(#wtz-glow)"/>
+  <!-- Minute Hand -->
+  <line x1="32" y1="32" x2="32" y2="18" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Global City Dots (UTC Nodes) -->
+  <circle cx="21" cy="24" r="1.8" fill="#ff0077" filter="url(#wtz-glow)"/>
+  <circle cx="43" cy="38" r="1.8" fill="#00ff88" filter="url(#wtz-glow)"/>
+  <circle cx="27" cy="40" r="1.8" fill="#00f0ff" filter="url(#wtz-glow)"/>
+</svg>

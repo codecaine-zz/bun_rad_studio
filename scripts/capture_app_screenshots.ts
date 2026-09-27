@@ -34,6 +34,13 @@ import { createSdStudio } from "../applications/sd_studio";
 import { createSubfinderStudio } from "../applications/subfinder_studio";
 import { createTokeiStudio } from "../applications/tokei_studio";
 import { createLauncherStudio } from "../applications/launcher_studio";
+import { createDrCodecaineStudio } from "../applications/dr_codecaine_studio";
+import { createIntervalTimerStudio } from "../applications/interval_timer_studio";
+import { createLoloStudio } from "../applications/lolo_studio";
+import { createPacmanStudio } from "../applications/pacman_studio";
+import { createRodentsRevengeStudio } from "../applications/rodents_revenge_studio";
+import { createWordSearchStudio } from "../applications/word_search_studio";
+import { createWorldTimeZonesStudio } from "../applications/world_time_zones_studio";
 import { createContextMenuAndMenuDemo } from "../demos/22_context_menu_and_menu_demo";
 import { createCodeFreelanceShowcase } from "../demos/20_codefreelance_theme_demo";
 import { createErgonomicsShowcase } from "../demos/18_simplegui_ergonomics_demo";
@@ -83,6 +90,13 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "watchexec_studio": createWatchexecStudio,
   "codefreelance_theme": createCodeFreelanceShowcase,
   "context_menu_studio": createContextMenuAndMenuDemo,
+  "dr_codecaine": createDrCodecaineStudio,
+  "interval_timer": createIntervalTimerStudio,
+  "lolo": createLoloStudio,
+  "pacman": createPacmanStudio,
+  "rodents_revenge": createRodentsRevengeStudio,
+  "word_search": createWordSearchStudio,
+  "world_time_zones": createWorldTimeZonesStudio,
 };
 
 const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -101,9 +115,13 @@ console.log(`Destination:   ${OUTPUT_DIR}`);
 console.log(`Total Apps:    ${Object.keys(apps).length}\n`);
 
 const results: { name: string; desktopPath: string; responsivePath: string; size: string }[] = [];
+const filterArgs = process.argv.slice(2).filter(a => !a.startsWith("-"));
+const targetEntries = filterArgs.length > 0
+  ? Object.entries(apps).filter(([k]) => filterArgs.includes(k) || filterArgs.includes(k.replace("_studio", "")))
+  : Object.entries(apps);
 
 // 1. Capture screenshots for each application
-for (const [name, factory] of Object.entries(apps)) {
+for (const [name, factory] of targetEntries) {
   console.log(`[Processing] Generating UI for ${name}...`);
   const appInstance = factory();
   const html = appInstance.generateHtml();
@@ -134,7 +152,8 @@ for (const [name, factory] of Object.entries(apps)) {
 }
 
 // 2. Capture root showcases & README screenshots
-console.log(`[Processing Root Showcase Screenshots]...`);
+if (filterArgs.length === 0) {
+  console.log(`[Processing Root Showcase Screenshots]...`);
 
 // A. IDE Visual Designer screenshot (screenshot.png)
 const ideHtmlPath = join(ROOT_DIR, "src", "ide.html");
@@ -159,6 +178,7 @@ const ergoOut = join(ROOT_DIR, "screenshot_ergonomics.png");
 console.log(`  Capturing Ergonomics Demo (${ergoOut})...`);
 Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${ergoOut}" --window-size=1200,850 "file://${ergonomicsHtmlPath}" 2>/dev/null`);
 console.log(`  ✔ Ergonomics Showcase: ${ergoOut} (${(Bun.file(ergoOut).size / 1024).toFixed(1)} KB)\n`);
+}
 
 console.log(`========================================================================`);
 console.log(`✨ All ${results.length} application screenshots + 3 root showcases updated!`);

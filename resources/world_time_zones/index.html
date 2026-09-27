@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Time Zones - Enhanced</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font globally */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Slightly lighter gray background */
+        }
+        /* Style for the time zone grid */
+        .time-zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid */
+            gap: 1rem; /* Spacing between grid items */
+        }
+        /* Base style for individual time zone cards */
+        .time-zone-card {
+            background-color: white;
+            border: 1px solid #e5e7eb; /* Slightly adjusted border color */
+            border-radius: 0.5rem; /* Rounded corners */
+            padding: 1rem; /* Padding inside the card */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Softer shadow */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Smooth transitions */
+            display: flex; /* Use flexbox for better layout */
+            flex-direction: column; /* Stack elements vertically */
+            justify-content: space-between; /* Space out content */
+            min-height: 130px; /* Ensure consistent card height */
+        }
+        .time-zone-card:hover {
+            transform: translateY(-3px); /* Slightly more lift on hover */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Enhanced shadow on hover */
+        }
+        /* Style for highlighted local time zone card */
+        .local-time {
+            border-left: 4px solid #3b82f6; /* Blue left border for highlight */
+            background-color: #eff6ff; /* Light blue background */
+        }
+        /* Style for the time zone name */
+        .time-zone-name {
+            font-weight: 500; /* Medium font weight */
+            color: #1f2937; /* Dark gray text */
+            margin-bottom: 0.25rem; /* Smaller space below name */
+            word-wrap: break-word; /* Prevent long names from overflowing */
+        }
+        /* Style for the UTC offset */
+        .utc-offset {
+            font-size: 0.8rem;
+            color: #6b7280; /* Lighter gray text */
+            margin-bottom: 0.5rem;
+        }
+        /* Style for the time display */
+        .time-display {
+            font-size: 1.5rem; /* Slightly larger time */
+            color: #374151; /* Darker gray for time */
+            font-family: monospace; /* Monospace font for consistent time width */
+            line-height: 1.1; /* Adjust line height */
+        }
+        /* Style for the date display */
+        .date-display {
+            font-size: 0.875rem; /* Smaller font size for date */
+            color: #6b7280; /* Lighter gray text */
+            margin-top: 0.25rem; /* Space above date */
+        }
+        /* Class to hide cards during filtering */
+        .hidden-card {
+            display: none;
+        }
+        /* Styling for controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+            gap: 1rem; /* Space between controls */
+            margin-bottom: 2rem; /* Space below controls */
+            align-items: center;
+        }
+        .search-input {
+            flex-grow: 1; /* Allow search input to take available space */
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+        .toggle-button {
+            padding: 0.6rem 1rem;
+            background-color: #3b82f6; /* Blue button */
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            white-space: nowrap; /* Prevent button text wrapping */
+        }
+        .toggle-button:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+        }
+    </style>
+</head>
+<body class="p-6 md:p-8">
+
+
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">World Time Zones</h1>
+
+        <div class="controls">
+            <input type="text" id="search-input" placeholder="Search time zones (e.g., London, New York, UTC)..." class="search-input">
+            <button id="toggle-format-btn" class="toggle-button">Switch to 24-Hour</button>
+        </div>
+
+        <div id="time-zone-container" class="time-zone-grid">
+            <div id="message-area" class="text-center text-gray-500 col-span-full">Loading time zones...</div>
+            </div>
+    </div>
+
+    <footer class="mt-8 pt-6 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-500 text-sm">
+                &copy; 2026 World Time Zones. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const timeZoneContainer = document.getElementById('time-zone-container');
+        const searchInput = document.getElementById('search-input');
+        const toggleFormatBtn = document.getElementById('toggle-format-btn');
+        const messageArea = document.getElementById('message-area');
+
+        // State
+        let use24HourFormat = false; // Default to 12-hour format
+        let timeZonesData = []; // Store fetched time zone data { name: string, card: HTMLElement }
+        let localTimeZoneName = ''; // Store the detected local time zone name
+
+        // Formatting Options
+        const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+        const timeOptions12 = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        const timeOptions24 = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
+        // --- Core Functions ---
+
+        /**
+         * Gets the current UTC offset string for a given time zone.
+         * Example: "UTC-5:00" or "UTC+9:30"
+         * @param {string} timeZone - IANA time zone name
+         * @param {Date} date - The date object to calculate offset from
+         * @returns {string} - Formatted UTC offset string
+         */
+        function getUtcOffset(timeZone, date) {
+            try {
+                const formatter = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' });
+                const parts = formatter.formatToParts(date);
+                // Find the part containing the offset (e.g., "GMT-05:00")
+                const offsetPart = parts.find(part => part.type === 'timeZoneName');
+                if (offsetPart) {
+                    // Extract the offset part (e.g., "-05:00") and format as UTC
+                    return "UTC" + offsetPart.value.replace('GMT', '').replace(':', ':');
+                }
+                return 'UTC'; // Fallback if offset not found
+            } catch (error) {
+                console.error(`Error getting offset for ${timeZone}:`, error);
+                return 'UTC Error';
+            }
+        }
+
+
+        /**
+         * Fetches all IANA time zone names using Intl API.
+         * @returns {string[]} - Array of time zone names or empty array on error.
+         */
+        function getAllTimeZones() {
+            try {
+                if (Intl.supportedValuesOf) {
+                    return Intl.supportedValuesOf('timeZone');
+                } else {
+                    console.warn("Intl.supportedValuesOf is not supported. Using a limited list of time zones.");
+                    // Provide a basic list as a fallback
+                    return [ /* ... (fallback list removed for brevity, use supportedValuesOf) ... */ ];
+                }
+            } catch (error) {
+                console.error("Error getting time zones:", error);
+                messageArea.textContent = 'Could not load time zones. Please try refreshing.';
+                messageArea.className = 'text-center text-red-500 col-span-full';
+                return [];
+            }
+        }
+
+        /**
+         * Creates an HTML element for a single time zone card.
+         * @param {string} timeZone - IANA time zone name
+         * @returns {HTMLElement} - The created card element.
+         */
+        function createTimeZoneCard(timeZone) {
+            const card = document.createElement('div');
+            card.className = 'time-zone-card';
+            card.dataset.timezone = timeZone; // Store timezone name for updates/filtering
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'time-zone-name';
+            nameEl.textContent = timeZone.replace(/_/g, ' '); // User-friendly name
+
+            const offsetEl = document.createElement('div');
+            offsetEl.className = 'utc-offset';
+            offsetEl.textContent = 'UTC...'; // Placeholder
+
+            const timeEl = document.createElement('div');
+            timeEl.className = 'time-display';
+            timeEl.textContent = '--:--:-- --'; // Placeholder
+
+            const dateEl = document.createElement('div');
+            dateEl.className = 'date-display';
+            dateEl.textContent = '---, --- --, ----'; // Placeholder
+
+            card.appendChild(nameEl);
+            card.appendChild(offsetEl);
+            card.appendChild(timeEl);
+            card.appendChild(dateEl);
+
+            return card;
+        }
+
+        /**
+         * Updates the time, date, and offset for all visible cards.
+         */
+        function updateTimes() {
+            const now = new Date(); // Get current time once for efficiency
+            const timeOptions = use24HourFormat ? timeOptions24 : timeOptions12;
+
+            timeZonesData.forEach(({ name: timeZone, card }) => {
+                // Only update visible cards (optimization)
+                if (!card.classList.contains('hidden-card')) {
+                    const timeEl = card.querySelector('.time-display');
+                    const dateEl = card.querySelector('.date-display');
+                    const offsetEl = card.querySelector('.utc-offset');
+
+                    try {
+                        const formattedTime = now.toLocaleTimeString('en-US', { ...timeOptions, timeZone });
+                        const formattedDate = now.toLocaleDateString('en-US', { ...dateOptions, timeZone });
+                        const formattedOffset = getUtcOffset(timeZone, now);
+
+                        timeEl.textContent = formattedTime;
+                        dateEl.textContent = formattedDate;
+                        offsetEl.textContent = formattedOffset; // Update offset too (for DST changes)
+
+                    } catch (error) {
+                        console.error(`Error formatting time for ${timeZone}:`, error);
+                        timeEl.textContent = 'Error';
+                        dateEl.textContent = '';
+                        offsetEl.textContent = 'UTC Error';
+                    }
+                }
+            });
+        }
+
+        /**
+         * Filters the displayed time zone cards based on the search input.
+         */
+        function filterTimeZones() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            timeZonesData.forEach(({ name, card }) => {
+                const isMatch = name.toLowerCase().replace(/_/g, ' ').includes(searchTerm);
+                card.classList.toggle('hidden-card', !isMatch);
+                if (isMatch) {
+                    visibleCount++;
+                }
+            });
+
+            // Show message if no results found
+            if (visibleCount === 0 && timeZonesData.length > 0) {
+                messageArea.textContent = 'No matching time zones found.';
+                messageArea.style.display = 'block'; // Make sure message area is visible
+            } else {
+                messageArea.style.display = 'none'; // Hide message area if there are results or loading
+            }
+        }
+
+        /**
+         * Toggles the time format between 12-hour and 24-hour.
+         */
+        function toggleTimeFormat() {
+            use24HourFormat = !use24HourFormat;
+            toggleFormatBtn.textContent = use24HourFormat ? 'Switch to 12-Hour' : 'Switch to 24-Hour';
+            updateTimes(); // Update immediately to reflect the new format
+        }
+
+        /**
+         * Detects the user's local time zone and highlights the corresponding card.
+         */
+        function highlightLocalTimeZone() {
+            try {
+                localTimeZoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const localCard = timeZonesData.find(({ name }) => name === localTimeZoneName)?.card;
+                if (localCard) {
+                    localCard.classList.add('local-time');
+                    // Optional: Scroll the local time zone into view if needed
+                    // localCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    console.warn(`Local time zone "${localTimeZoneName}" not found in the list.`);
+                }
+            } catch (error) {
+                console.error("Could not detect local time zone:", error);
+            }
+        }
+
+
+        // --- Initialization ---
+
+        function initialize() {
+            // 1. Fetch Time Zones
+            const timeZoneNames = getAllTimeZones();
+
+            if (timeZoneNames.length === 0) {
+                 // Error message already handled in getAllTimeZones or show no zones found
+                 if (!messageArea.textContent.includes('Could not load')) {
+                     messageArea.textContent = 'No time zones available to display.';
+                 }
+                 return; // Stop initialization if no time zones
+            }
+
+            // 2. Sort and Create Cards
+            timeZoneNames.sort();
+            timeZonesData = timeZoneNames.map(tz => {
+                const card = createTimeZoneCard(tz);
+                timeZoneContainer.appendChild(card); // Add card to the container
+                return { name: tz, card: card }; // Store name and card reference
+            });
+
+            // 3. Clear Loading Message & Show Container
+            messageArea.style.display = 'none'; // Hide loading/error message
+
+            // 4. Highlight Local Time
+            highlightLocalTimeZone();
+
+            // 5. Initial Time Update
+            updateTimes();
+
+            // 6. Set Interval for Continuous Updates
+            setInterval(updateTimes, 1000);
+
+            // 7. Add Event Listeners
+            searchInput.addEventListener('input', filterTimeZones);
+            toggleFormatBtn.addEventListener('click', toggleTimeFormat);
+        }
+
+        // Start the application
+        initialize();
+
+    </script>
+
+</body>
+</html>

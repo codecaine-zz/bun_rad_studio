@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Neon Search">
+    <meta name="format-detection" content="telephone=no">
+    <title>Neon Word Search - Cyber Labyrinth Edition</title>
+    <meta name="description" content="AAA Production Quality Word Search with Web Audio synthesizer, neon particle visual effects, high-DPI canvas selection ribbons, procedural word engines, and zero-scroll iOS responsive layout.">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Press+Start+2P&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #05070c;
+            --surface-color: #0b1018;
+            --surface-card: #111724;
+            --border-color: #1b263b;
+            --neon-cyan: #00f0ff;
+            --neon-pink: #ff0077;
+            --neon-green: #00ff9d;
+            --neon-yellow: #ffd43b;
+            --neon-purple: #b026ff;
+            --neon-orange: #ff7700;
+            --font-arcade: 'Press Start 2P', monospace;
+            --font-title: 'Orbitron', -apple-system, sans-serif;
+            --font-hud: 'Rajdhani', -apple-system, sans-serif;
+
+            /* Safe area insets for iOS devices */
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+            background-color: var(--bg-color);
+            color: #e2e8f0;
+            font-family: var(--font-hud);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(255, 0, 119, 0.07) 0%, transparent 45%),
+                linear-gradient(rgba(11, 16, 24, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(11, 16, 24, 0.4) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+        }
+
+        /* Top Navbar */
+        .arcade-nav {
+            width: 100%;
+            background: rgba(11, 16, 24, 0.95);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-color);
+            padding: max(4px, var(--sat)) max(8px, var(--sar)) 4px max(8px, var(--sal));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 100;
+            flex-shrink: 0;
+            height: 40px;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            font-family: var(--font-hud);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            color: #fff;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+        }
+
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+
+        .nav-btn.active {
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            background: rgba(0, 240, 255, 0.12);
+        }
+
+        .brand-title {
+            font-family: var(--font-title);
+            font-size: 0.88rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .brand-title span {
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px rgba(255, 0, 119, 0.6);
+        }
+
+        .brand-tag {
+            font-family: var(--font-arcade);
+            font-size: 0.38rem;
+            padding: 1px 3px;
+            border-radius: 4px;
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 255, 157, 0.35);
+        }
+
+        /* Stage Wrapper - Takes ALL remaining screen height */
+        .stage-wrapper {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: calc(100dvh - 40px);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3px max(6px, var(--sar)) max(3px, var(--sab)) max(6px, var(--sal));
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* HUD Bar */
+        .hud-bar {
+            width: 100%;
+            max-width: 620px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 3px 8px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            text-align: center;
+            flex-shrink: 0;
+            margin-bottom: 3px;
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .stat-label {
+            font-family: var(--font-arcade);
+            font-size: 0.38rem;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-val {
+            font-family: var(--font-arcade);
+            font-size: 0.74rem;
+            color: #fff;
+        }
+
+        .stat-val.highlight {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+
+        .stat-val.streak {
+            color: var(--neon-yellow);
+            text-shadow: 0 0 8px rgba(255, 212, 59, 0.6);
+        }
+
+        /* Grid Stage Container - Expands to Max Square */
+        .grid-stage {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .grid-box {
+            position: relative;
+            background: #030509;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 240, 255, 0.1);
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        /* Scanline Overlay */
+        .grid-box::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.08) 0px, rgba(0, 0, 0, 0.08) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+            opacity: 0.45;
+            z-index: 5;
+        }
+
+        /* Overlaid High-DPI Canvas for Glowing Selection Capsules & VFX */
+        #vfxCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        /* DOM Grid of Letters */
+        #wordGrid {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 2;
+            touch-action: none;
+        }
+
+        .grid-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-title);
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            user-select: none;
+            transition: color 0.15s, transform 0.1s;
+            position: relative;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .grid-cell.active-drag {
+            color: #ffffff;
+            font-weight: 900;
+            transform: scale(1.15);
+            text-shadow: 0 0 12px var(--neon-cyan);
+            z-index: 4;
+        }
+
+        .grid-cell.found-cell {
+            color: #ffffff;
+            font-weight: 900;
+            text-shadow: 0 0 8px currentColor;
+        }
+
+        .grid-cell.hint-pulse {
+            animation: hintRadar 0.8s infinite alternate;
+            color: var(--neon-yellow) !important;
+            font-weight: 900;
+        }
+
+        @keyframes hintRadar {
+            0% { transform: scale(1); text-shadow: 0 0 4px var(--neon-yellow); }
+            100% { transform: scale(1.3); text-shadow: 0 0 16px var(--neon-yellow), 0 0 24px #ff7700; }
+        }
+
+        /* Words Container & Controls */
+        .bottom-section {
+            width: 100%;
+            max-width: 620px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        /* Word Chips Carousel / Tray */
+        .words-tray {
+            width: 100%;
+            max-height: 86px;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            align-content: flex-start;
+            padding: 4px 6px;
+            background: rgba(11, 16, 24, 0.7);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            scrollbar-width: thin;
+        }
+
+        .word-chip {
+            padding: 3px 7px;
+            font-family: var(--font-hud);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #cbd5e1;
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .word-chip:hover {
+            border-color: var(--neon-cyan);
+            color: #fff;
+        }
+
+        .word-chip:active {
+            transform: scale(0.95);
+        }
+
+        .word-chip.found {
+            color: #fff;
+            text-decoration: line-through;
+            border-color: currentColor;
+            opacity: 0.85;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .word-chip.hinted {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+            animation: pulseHintChip 0.7s infinite alternate;
+        }
+
+        @keyframes pulseHintChip {
+            0% { transform: scale(1); box-shadow: 0 0 2px var(--neon-yellow); }
+            100% { transform: scale(1.06); box-shadow: 0 0 10px var(--neon-yellow); }
+        }
+
+        /* Actions Row */
+        .actions-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .action-btn {
+            background: var(--surface-card);
+            color: #cbd5e1;
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-family: var(--font-hud);
+            font-weight: 600;
+            font-size: 0.78rem;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            color: #fff;
+            border-color: var(--neon-cyan);
+            background: rgba(0, 240, 255, 0.08);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--neon-cyan), #0284c7);
+            color: #000;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Victory Overlay */
+        .game-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 7, 12, 0.94);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 25;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .overlay-title {
+            font-family: var(--font-title);
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 18px rgba(0, 255, 157, 0.8);
+            letter-spacing: 1px;
+        }
+
+        .overlay-stars {
+            font-size: 1.4rem;
+            letter-spacing: 4px;
+            color: #ffd43b;
+            text-shadow: 0 0 10px rgba(255, 212, 59, 0.6);
+        }
+
+        .overlay-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 8px 14px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 300px;
+            font-family: var(--font-hud);
+        }
+
+        .overlay-stats-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .overlay-stats-item span:first-child {
+            font-size: 0.68rem;
+            color: #94a3b8;
+        }
+
+        .overlay-stats-item span:last-child {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .play-btn {
+            background: linear-gradient(135deg, var(--neon-cyan), #0284c7);
+            color: #000;
+            font-family: var(--font-hud);
+            font-size: 0.95rem;
+            font-weight: 700;
+            padding: 8px 22px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            touch-action: manipulation;
+            box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .play-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Floating Score Popups */
+        .score-popup {
+            position: absolute;
+            font-family: var(--font-title);
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+            pointer-events: none;
+            z-index: 30;
+            animation: floatScore 1s forwards ease-out;
+        }
+
+        @keyframes floatScore {
+            0% { opacity: 0; transform: translateY(0) scale(0.6); }
+            20% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1); }
+        }
+
+        /* Settings & Help Modals */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.84);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: var(--surface-color);
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.25);
+            border-radius: 12px;
+            padding: 18px;
+            max-width: 420px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .modal-title {
+            font-family: var(--font-title);
+            font-size: 0.95rem;
+            color: var(--neon-cyan);
+            letter-spacing: 0.5px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .setting-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+
+        .select-field {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            font-family: var(--font-hud);
+            font-weight: 600;
+            font-size: 16px; /* 16px prevents iOS Safari auto-zoom */
+            padding: 4px 8px;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+            max-width: 180px;
+        }
+
+        .select-field:focus {
+            border-color: var(--neon-cyan);
+        }
+
+        .help-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .help-list kbd {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: var(--neon-yellow);
+            font-family: var(--font-arcade);
+            font-size: 0.65rem;
+        }
+
+        /* Fullscreen / Zen Mode */
+        body.zen-fullscreen .arcade-nav {
+            display: none !important;
+        }
+
+        body.zen-fullscreen .stage-wrapper {
+            padding: max(4px, var(--sat)) max(6px, var(--sar)) max(4px, var(--sab)) max(6px, var(--sal));
+        }
+
+        .floating-exit-fs {
+            display: none;
+            position: fixed;
+            top: max(8px, var(--sat));
+            right: max(8px, var(--sar));
+            z-index: 500;
+            background: rgba(11, 16, 24, 0.85);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-family: var(--font-hud);
+            font-size: 0.78rem;
+            font-weight: 700;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            cursor: pointer;
+        }
+
+        body.zen-fullscreen .floating-exit-fs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Confetti Canvas */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Responsive Mobile Breakpoints */
+        @media (max-width: 520px) {
+            .arcade-nav {
+                padding: max(3px, var(--sat)) max(6px, var(--sar)) 3px max(6px, var(--sal));
+            }
+            .brand-tag {
+                display: none;
+            }
+            .nav-btn {
+                padding: 4px 6px;
+                font-size: 0.76rem;
+            }
+            .nav-btn .btn-label {
+                display: none;
+            }
+            .hud-bar {
+                padding: 2px 4px;
+            }
+            .stat-label {
+                font-size: 0.35rem;
+            }
+            .stat-val {
+                font-size: 0.7rem;
+            }
+            .words-tray {
+                max-height: 72px;
+            }
+            .word-chip {
+                padding: 2px 6px;
+                font-size: 0.7rem;
+            }
+            .action-btn {
+                padding: 4px 7px;
+                font-size: 0.74rem;
+            }
+        }
+
+        /* Landscape Layout Support */
+        @media (orientation: landscape) and (max-height: 560px) {
+            .stage-wrapper {
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                padding: 4px max(8px, var(--sar)) max(4px, var(--sab)) max(8px, var(--sal));
+            }
+
+            .grid-stage {
+                flex: 1 1 auto;
+                height: 100%;
+                width: auto;
+            }
+
+            .bottom-section {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 100%;
+                width: 250px;
+                max-width: 250px;
+                flex-shrink: 0;
+                margin-top: 0;
+            }
+
+            .words-tray {
+                max-height: calc(100vh - 120px);
+                flex: 1;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Floating Exit Fullscreen Button -->
+    <button type="button" class="floating-exit-fs" id="floatingExitFs" title="Exit Fullscreen">
+        <span>⛶</span> Exit Full
+    </button>
+
+    <!-- Top Navbar -->
+    <header class="arcade-nav" id="arcadeNav">
+        <div style="display:flex; align-items:center; gap:6px;">
+            <div class="brand-title">
+                NEON<span>_SEARCH</span>
+                <span class="brand-tag">v2.5</span>
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:4px;">
+            <button type="button" class="nav-btn" id="droneToggle" title="Ambient Synth Drone">
+                <span>🎵</span> <span class="btn-label" id="droneText">BGM</span>
+            </button>
+            <button type="button" class="nav-btn" id="soundToggle" title="Toggle Sound FX">
+                <span id="soundIcon">🔊</span>
+            </button>
+            <button type="button" class="nav-btn" id="settingsBtn" title="Game Settings">
+                <span>⚙</span> <span class="btn-label">Settings</span>
+            </button>
+            <button type="button" class="nav-btn" id="helpBtn" title="How to Play">
+                <span>?</span>
+            </button>
+            <button type="button" class="nav-btn" id="fullscreenBtn" title="Toggle Fullscreen">
+                <span>⛶</span> <span class="btn-label" id="fullscreenText">Full</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Stage -->
+    <main class="stage-wrapper" id="stageWrapper">
+        <!-- HUD Telemetry Bar -->
+        <div class="hud-bar" id="hudBar">
+            <div class="hud-stat">
+                <span class="stat-label">FOUND</span>
+                <span class="stat-val highlight" id="foundVal">0 / 0</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">SCORE</span>
+                <span class="stat-val" id="scoreVal">0</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">STREAK</span>
+                <span class="stat-val streak" id="streakVal">x1</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">TIMER</span>
+                <span class="stat-val" id="timerVal">00:00</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">HINTS</span>
+                <span class="stat-val" id="hintsVal" style="color:var(--neon-yellow);">3</span>
+            </div>
+        </div>
+
+        <!-- Grid Stage - Dynamic Responsive Max-Square Fit -->
+        <div class="grid-stage" id="gridStage">
+            <div class="grid-box" id="gridBox">
+                <canvas id="vfxCanvas"></canvas>
+                <div id="wordGrid"></div>
+
+                <!-- Victory Overlay -->
+                <div class="game-overlay" id="victoryOverlay" style="display: none;">
+                    <div class="overlay-title">SECTOR CLEARED!</div>
+                    <div class="overlay-stars" id="overlayStars">★★★</div>
+                    <div class="overlay-stats-grid">
+                        <div class="overlay-stats-item">
+                            <span>FINAL SCORE</span>
+                            <span id="resScore" style="color:var(--neon-yellow);">0</span>
+                        </div>
+                        <div class="overlay-stats-item">
+                            <span>TIME ELAPSED</span>
+                            <span id="resTime">00:00</span>
+                        </div>
+                        <div class="overlay-stats-item">
+                            <span>MAX STREAK</span>
+                            <span id="resStreak">x1</span>
+                        </div>
+                        <div class="overlay-stats-item">
+                            <span>CATEGORY</span>
+                            <span id="resCat">CYBER</span>
+                        </div>
+                    </div>
+                    <p style="font-size:0.85rem; color:#cbd5e1; max-width:300px; margin-top:4px;">
+                        All hidden data sequences decoded. Sector integrity restored.
+                    </p>
+                    <div style="display:flex; gap:8px; margin-top:4px;">
+                        <button type="button" class="play-btn" id="nextGameBtn">NEW LABYRINTH</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Words Tray & Action Bar -->
+        <div class="bottom-section" id="bottomSection">
+            <div class="words-tray" id="wordsTray" title="Tap any word to use a Hint!"></div>
+            
+            <div class="actions-row">
+                <button type="button" class="action-btn primary" id="newGameBtn">
+                    <span>⚡</span> New Game
+                </button>
+                <button type="button" class="action-btn" id="hintBtn" title="Reveal the start of an unfound word">
+                    <span>💡</span> Hint
+                </button>
+                <button type="button" class="action-btn" id="categoryQuickBtn" title="Switch word category">
+                    <span>🌐</span> <span id="quickCatLabel">Cyber</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-backdrop" id="settingsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">⚙ PUZZLE CONFIGURATION</div>
+                <button type="button" class="modal-close" id="settingsClose">&times;</button>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Word Category</span>
+                <select id="categorySelect" class="select-field" aria-label="Word Category">
+                    <option value="cyber" selected>Cyber & Tech</option>
+                    <option value="cosmos">Cosmos & Sci-Fi</option>
+                    <option value="arcade">Arcade & Gaming</option>
+                    <option value="nature">Nature & Elements</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Grid Dimensions</span>
+                <select id="gridSizeSelect" class="select-field" aria-label="Grid Size">
+                    <option value="10">Casual (10 x 10)</option>
+                    <option value="12" selected>Standard (12 x 12)</option>
+                    <option value="14">Master (14 x 14)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Color Palette</span>
+                <select id="themeSelect" class="select-field" aria-label="Color Theme">
+                    <option value="cyber" selected>Neon Cyber</option>
+                    <option value="sunset">Solar Sunset</option>
+                    <option value="emerald">Emerald Matrix</option>
+                    <option value="arctic">Arctic Frost</option>
+                </select>
+            </div>
+            <div class="setting-row" style="margin-top: 8px;">
+                <span class="setting-label">High-Res Wallpaper</span>
+                <button type="button" class="action-btn" id="exportBtn">
+                    <span>📷</span> Export PNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-backdrop" id="helpModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">HOW TO PLAY</div>
+                <button type="button" class="modal-close" id="helpClose">&times;</button>
+            </div>
+            <div class="help-list">
+                <div><kbd>DRAG</kbd> Touch/click and drag across any word in any of the 8 directions (Horizontal, Vertical, Diagonal)</div>
+                <div><kbd>HARP</kbd> Enjoy the melodic musical arpeggios as you drag across letters</div>
+                <div><kbd>HINT</kbd> Tap any word in the list or click the Hint button to beacon its first letter</div>
+                <div><kbd>STREAK</kbd> Finding words in quick succession multiplies your score bonus</div>
+                <div><kbd>FULL</kbd> Tap Fullscreen for immersive edge-to-edge gameplay</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // 1. AAA WEB AUDIO SYNTHESIZER & AMBIENT DRONE ENGINE
+        // =====================================================
+        let audioCtx = null;
+        let soundOn = true;
+        let droneActive = false;
+        let droneNodes = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
+
+        function unlockAudioOnFirstInteraction() {
+            const unlock = () => {
+                getAudioContext();
+                window.removeEventListener('touchstart', unlock, true);
+                window.removeEventListener('touchend', unlock, true);
+                window.removeEventListener('pointerdown', unlock, true);
+                window.removeEventListener('click', unlock, true);
+            };
+            window.addEventListener('touchstart', unlock, { capture: true, passive: true });
+            window.addEventListener('touchend', unlock, { capture: true, passive: true });
+            window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+            window.addEventListener('click', unlock, { capture: true, passive: true });
+        }
+        unlockAudioOnFirstInteraction();
+
+        // Pentatonic Scale for Arpeggiated Drag Strumming (C4 - C6)
+        const PENTATONIC_SCALE = [
+            261.63, // C4
+            293.66, // D4
+            329.63, // E4
+            392.00, // G4
+            440.00, // A4
+            523.25, // C5
+            587.33, // D5
+            659.25, // E5
+            783.99, // G5
+            880.00, // A5
+            1046.50 // C6
+        ];
+
+        function playSynthTone(freq, type = 'sine', duration = 0.08, gainVal = 0.12, pitchDecay = false) {
+            if (!soundOn) return;
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            try {
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                if (pitchDecay) {
+                    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * 0.4), ctx.currentTime + duration);
+                }
+                g.gain.setValueAtTime(gainVal, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+                osc.connect(g);
+                g.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        const SFX = {
+            letterTick: (index) => {
+                const freq = PENTATONIC_SCALE[Math.min(index, PENTATONIC_SCALE.length - 1)];
+                playSynthTone(freq, 'triangle', 0.14, 0.15);
+            },
+            wordFound: () => {
+                // Radiant multi-timbral chord
+                const chord = [523.25, 659.25, 783.99, 1046.50];
+                chord.forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'sine', 0.35, 0.14), i * 40);
+                });
+            },
+            invalid: () => {
+                playSynthTone(140, 'sawtooth', 0.12, 0.14, true);
+            },
+            hint: () => {
+                [880, 1174, 1480].forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'sine', 0.22, 0.12), i * 60);
+                });
+            },
+            victory: () => {
+                const fanfare = [392, 523.25, 659.25, 783.99, 1046.50, 1318.51];
+                fanfare.forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'triangle', 0.4, 0.16), i * 90);
+                });
+            }
+        };
+
+        // Procedural Chill Synthpad Drone BGM
+        function toggleDrone() {
+            droneActive = !droneActive;
+            const droneBtn = document.getElementById('droneToggle');
+            const droneText = document.getElementById('droneText');
+            if (droneBtn) droneBtn.classList.toggle('active', droneActive);
+            if (droneText) droneText.textContent = droneActive ? 'ON' : 'BGM';
+
+            if (!droneActive) {
+                if (droneNodes) {
+                    try {
+                        droneNodes.gain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+                        setTimeout(() => {
+                            droneNodes.oscs.forEach(o => { try { o.stop(); } catch(e){} });
+                            droneNodes = null;
+                        }, 500);
+                    } catch(e){}
+                }
+                return;
+            }
+
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            try {
+                const masterGain = ctx.createGain();
+                masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+                masterGain.gain.linearRampToValueAtTime(0.035, ctx.currentTime + 1.2);
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(450, ctx.currentTime);
+                filter.Q.setValueAtTime(3, ctx.currentTime);
+
+                const freqs = [65.41, 130.81, 196.00, 261.63]; // C2, C3, G3, C4
+                const oscs = freqs.map((f, i) => {
+                    const osc = ctx.createOscillator();
+                    osc.type = i % 2 === 0 ? 'triangle' : 'sine';
+                    osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 1.5, ctx.currentTime);
+                    osc.connect(filter);
+                    osc.start();
+                    return osc;
+                });
+
+                filter.connect(masterGain);
+                masterGain.connect(ctx.destination);
+                droneNodes = { oscs, filter, gain: masterGain };
+            } catch(e) {}
+        }
+
+        // =====================================================
+        // 2. CONFETTI CELEBRATION ENGINE
+        // =====================================================
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const cCtx = confettiCanvas.getContext('2d');
+        let confetti = [];
+        let confettiAnim = null;
+
+        function resizeConfetti() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeConfetti);
+        resizeConfetti();
+
+        function launchConfetti() {
+            confetti = [];
+            const colors = ['#00f0ff', '#ff0077', '#00ff9d', '#ffd43b', '#b026ff', '#ffffff', '#ff7700'];
+            for (let i = 0; i < 110; i++) {
+                confetti.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.5) * 20 - 5,
+                    size: 4 + Math.random() * 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1,
+                    rot: Math.random() * Math.PI,
+                    rotSpeed: (Math.random() - 0.5) * 0.2,
+                    decay: 0.01 + Math.random() * 0.008
+                });
+            }
+            if (!confettiAnim) animateConfetti();
+        }
+
+        function animateConfetti() {
+            cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            for (let i = confetti.length - 1; i >= 0; i--) {
+                const p = confetti[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.22;
+                p.alpha -= p.decay;
+                p.rot += p.rotSpeed;
+
+                if (p.alpha <= 0) {
+                    confetti.splice(i, 1);
+                } else {
+                    cCtx.save();
+                    cCtx.translate(p.x, p.y);
+                    cCtx.rotate(p.rot);
+                    cCtx.fillStyle = p.color;
+                    cCtx.globalAlpha = p.alpha;
+                    cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    cCtx.restore();
+                }
+            }
+            if (confetti.length > 0) confettiAnim = requestAnimationFrame(animateConfetti);
+            else confettiAnim = null;
+        }
+
+        // =====================================================
+        // 3. WORD BANKS & THEMED CATEGORIES
+        // =====================================================
+        const CATEGORIES = {
+            cyber: {
+                name: "Cyber & Tech",
+                words: [
+                    "ALGORITHM", "QUANTUM", "FIREWALL", "ENCRYPTION", "NEURAL", "SYNAPSE",
+                    "MATRIX", "KERNEL", "CIPHER", "PROTOCOL", "BITCOIN", "DATABASE",
+                    "BITMAP", "HACKER", "PYTHON", "REACT", "DOCKER", "CLOUD", "LINUX",
+                    "CYBER", "TERMINAL", "PAYLOAD", "OPTIC", "ROBOTIC", "BYTE", "VECTOR",
+                    "CIRCUIT", "GATEWAY", "SUBROUTINE", "FIRMWARE"
+                ]
+            },
+            cosmos: {
+                name: "Cosmos & Sci-Fi",
+                words: [
+                    "GALAXY", "NEBULA", "PULSAR", "ECLIPSE", "HORIZON", "QUASAR",
+                    "SUPERNOVA", "VOYAGER", "ORBITAL", "ANDROMEDA", "COSMOS", "ASTEROID",
+                    "GRAVITY", "CELESTIAL", "STARSHIP", "JUPITER", "PARADOX", "QUANTUM",
+                    "CORONA", "SPACETIME", "SOLAR", "ZENITH", "METEOR", "TITAN", "INTERSTELLAR"
+                ]
+            },
+            arcade: {
+                name: "Arcade & Gaming",
+                words: [
+                    "PIXEL", "COMBO", "JOYSTICK", "STEALTH", "GLITCH", "RESPAWN",
+                    "DUNGEON", "CRITICAL", "LEVEL", "SHADOW", "AVATAR", "CHRONO",
+                    "SHURIKEN", "ARCADE", "QUEST", "BLASTER", "SHIELD", "POWERUP",
+                    "HIGHWAY", "WARRIOR", "PLATFORM", "RETRO", "VORTEX", "NINJA"
+                ]
+            },
+            nature: {
+                name: "Nature & Elements",
+                words: [
+                    "TSUNAMI", "AURORA", "VOLCANO", "GLACIER", "CYCLONE", "MONSOON",
+                    "LIGHTNING", "BLIZZARD", "CRYSTAL", "CASCADE", "AVALANCHE", "ZEPHYR",
+                    "WILDERNESS", "SOLAR", "RAINBOW", "GEYSER", "OCEAN", "TROPICAL",
+                    "EVERGREEN", "HORIZON", "CANYON", "SAVANNA", "WHIRLPOOL"
+                ]
+            }
+        };
+
+        const PALETTES = [
+            '#00f0ff', // Cyan
+            '#ff0077', // Pink
+            '#00ff9d', // Emerald
+            '#ffd43b', // Amber
+            '#b026ff', // Purple
+            '#ff7700', // Orange
+            '#38bdf8', // Ice Blue
+            '#a6ff00', // Lime
+            '#f43f5e', // Rose
+            '#818cf8'  // Indigo
+        ];
+
+        // 8 Directional Vectors
+        const DIRECTIONS = [
+            { dr: 0, dc: 1 },   // Right
+            { dr: 1, dc: 0 },   // Down
+            { dr: 1, dc: 1 },   // Down-Right
+            { dr: -1, dc: 1 },  // Up-Right
+            { dr: 0, dc: -1 },  // Left
+            { dr: -1, dc: 0 },  // Up
+            { dr: -1, dc: -1 }, // Up-Left
+            { dr: 1, dc: -1 }   // Down-Left
+        ];
+
+        // =====================================================
+        // 4. GAME STATE & VARIABLES
+        // =====================================================
+        let currentCategory = 'cyber';
+        let gridSize = 12;
+        let currentTheme = 'cyber';
+
+        let grid = [];
+        let placedWords = [];
+        let foundWords = new Set();
+        let wordColors = {};
+
+        let score = 0;
+        let streak = 0;
+        let maxStreak = 0;
+        let lastWordFoundTime = 0;
+        let hintsLeft = 3;
+
+        let startTime = 0;
+        let timerInterval = null;
+        let elapsedTime = 0;
+        let gameActive = true;
+        let gameWon = false;
+
+        // Touch & Mouse Drag State
+        let isDragging = false;
+        let dragStart = null;
+        let currentDragCells = [];
+        let particles = [];
+        let floatingScores = [];
+
+        // DOM Elements
+        const gridStage = document.getElementById('gridStage');
+        const gridBox = document.getElementById('gridBox');
+        const wordGrid = document.getElementById('wordGrid');
+        const vfxCanvas = document.getElementById('vfxCanvas');
+        const vCtx = vfxCanvas.getContext('2d');
+        const wordsTray = document.getElementById('wordsTray');
+        const foundVal = document.getElementById('foundVal');
+        const scoreVal = document.getElementById('scoreVal');
+        const streakVal = document.getElementById('streakVal');
+        const timerVal = document.getElementById('timerVal');
+        const hintsVal = document.getElementById('hintsVal');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const categoryQuickBtn = document.getElementById('categoryQuickBtn');
+        const quickCatLabel = document.getElementById('quickCatLabel');
+        const categorySelect = document.getElementById('categorySelect');
+        const gridSizeSelect = document.getElementById('gridSizeSelect');
+        const themeSelect = document.getElementById('themeSelect');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const overlayStars = document.getElementById('overlayStars');
+        const resScore = document.getElementById('resScore');
+        const resTime = document.getElementById('resTime');
+        const resStreak = document.getElementById('resStreak');
+        const resCat = document.getElementById('resCat');
+        const nextGameBtn = document.getElementById('nextGameBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const soundToggle = document.getElementById('soundToggle');
+        const soundIcon = document.getElementById('soundIcon');
+        const droneToggleBtn = document.getElementById('droneToggle');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenText = document.getElementById('fullscreenText');
+        const floatingExitFs = document.getElementById('floatingExitFs');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsClose = document.getElementById('settingsClose');
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const helpClose = document.getElementById('helpClose');
+
+        // =====================================================
+        // 5. DYNAMIC FULL-SCREEN RETINA RESIZING (ZERO-SCROLL)
+        // =====================================================
+        function setupGridDimensions() {
+            if (!gridStage || !gridBox) return;
+            const stageRect = gridStage.getBoundingClientRect();
+            const availW = Math.max(120, stageRect.width - 8);
+            const availH = Math.max(120, stageRect.height - 8);
+            const size = Math.floor(Math.min(availW, availH));
+
+            gridBox.style.width = size + 'px';
+            gridBox.style.height = size + 'px';
+
+            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            vfxCanvas.width = Math.round(size * dpr);
+            vfxCanvas.height = Math.round(size * dpr);
+
+            // Recompute cell font size
+            const cellSize = size / gridSize;
+            const fontSize = Math.max(11, Math.floor(cellSize * 0.46));
+            document.querySelectorAll('.grid-cell').forEach(cell => {
+                cell.style.fontSize = fontSize + 'px';
+            });
+        }
+
+        if (window.ResizeObserver && gridStage) {
+            const ro = new ResizeObserver(() => setupGridDimensions());
+            ro.observe(gridStage);
+        }
+        window.addEventListener('resize', setupGridDimensions);
+        window.addEventListener('orientationchange', () => setTimeout(setupGridDimensions, 80));
+
+        // =====================================================
+        // 6. PROCEDURAL PUZZLE GENERATOR
+        // =====================================================
+        function initNewGame() {
+            gameActive = true;
+            gameWon = false;
+            victoryOverlay.style.display = 'none';
+
+            score = 0;
+            streak = 0;
+            maxStreak = 0;
+            hintsLeft = 3;
+            scoreVal.textContent = '0';
+            streakVal.textContent = 'x1';
+            hintsVal.textContent = '3';
+
+            clearInterval(timerInterval);
+            startTime = Date.now();
+            elapsedTime = 0;
+            timerVal.textContent = '00:00';
+            timerInterval = setInterval(() => {
+                elapsedTime = Date.now() - startTime;
+                const sec = Math.floor(elapsedTime / 1000);
+                const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                const s = (sec % 60).toString().padStart(2, '0');
+                timerVal.textContent = `${m}:${s}`;
+            }, 500);
+
+            generatePuzzle();
+            renderDOMGrid();
+            renderWordsTray();
+            updateHUD();
+            setupGridDimensions();
+        }
+
+        function generatePuzzle() {
+            grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(''));
+            placedWords = [];
+            foundWords.clear();
+            wordColors = {};
+
+            const cat = CATEGORIES[currentCategory];
+            quickCatLabel.textContent = cat.name.split(' ')[0];
+            const candidatePool = [...cat.words].filter(w => w.length >= 3 && w.length <= gridSize);
+            shuffleArray(candidatePool);
+
+            // Determine target number of words based on size
+            const targetWordCount = gridSize === 10 ? 10 : (gridSize === 12 ? 13 : 16);
+            let colorIdx = 0;
+
+            for (const word of candidatePool) {
+                if (placedWords.length >= targetWordCount) break;
+                const placed = tryPlaceWord(word);
+                if (placed) {
+                    wordColors[word] = PALETTES[colorIdx % PALETTES.length];
+                    colorIdx++;
+                }
+            }
+
+            // Fill empty cells with random uppercase letters
+            const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    if (grid[r][c] === '') {
+                        grid[r][c] = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+                    }
+                }
+            }
+        }
+
+        function tryPlaceWord(word) {
+            const wordToPlace = Math.random() < 0.35 ? word.split('').reverse().join('') : word;
+            const shuffledDirs = [...DIRECTIONS];
+            shuffleArray(shuffledDirs);
+
+            for (let attempt = 0; attempt < 80; attempt++) {
+                const dir = shuffledDirs[Math.floor(Math.random() * shuffledDirs.length)];
+                const maxR = gridSize - 1 - Math.max(0, (wordToPlace.length - 1) * dir.dr);
+                const minR = Math.abs(Math.min(0, (wordToPlace.length - 1) * dir.dr));
+                const maxC = gridSize - 1 - Math.max(0, (wordToPlace.length - 1) * dir.dc);
+                const minC = Math.abs(Math.min(0, (wordToPlace.length - 1) * dir.dc));
+
+                if (maxR < minR || maxC < minC) continue;
+                const r = Math.floor(Math.random() * (maxR - minR + 1)) + minR;
+                const c = Math.floor(Math.random() * (maxC - minC + 1)) + minC;
+
+                let canPlace = true;
+                const cells = [];
+                for (let i = 0; i < wordToPlace.length; i++) {
+                    const cr = r + i * dir.dr;
+                    const cc = c + i * dir.dc;
+                    const existing = grid[cr][cc];
+                    if (existing !== '' && existing !== wordToPlace[i]) {
+                        canPlace = false;
+                        break;
+                    }
+                    cells.push({ r: cr, c: cc });
+                }
+
+                if (canPlace) {
+                    for (let i = 0; i < wordToPlace.length; i++) {
+                        grid[cells[i].r][cells[i].c] = wordToPlace[i];
+                    }
+                    // Always record the canonical unreversed word
+                    placedWords.push({ word, cells });
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        }
+
+        // =====================================================
+        // 7. DOM RENDERING
+        // =====================================================
+        function renderDOMGrid() {
+            wordGrid.innerHTML = '';
+            wordGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            wordGrid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    cell.textContent = grid[r][c];
+                    wordGrid.appendChild(cell);
+                }
+            }
+        }
+
+        function renderWordsTray() {
+            wordsTray.innerHTML = '';
+            const sorted = [...placedWords].sort((a, b) => a.word.localeCompare(b.word));
+
+            sorted.forEach(pw => {
+                const chip = document.createElement('div');
+                chip.className = 'word-chip';
+                chip.id = `chip-${pw.word}`;
+                chip.innerHTML = `<span>●</span> ${pw.word}`;
+
+                // Tapping a word chip reveals a hint
+                chip.addEventListener('click', () => triggerHintForWord(pw));
+                wordsTray.appendChild(chip);
+            });
+        }
+
+        function updateHUD() {
+            foundVal.textContent = `${foundWords.size} / ${placedWords.length}`;
+            scoreVal.textContent = score;
+            streakVal.textContent = `x${Math.max(1, streak)}`;
+            hintsVal.textContent = hintsLeft;
+        }
+
+        // =====================================================
+        // 8. TOUCH & DRAG WORD SELECTION ENGINE
+        // =====================================================
+        function getCellCoordsFromClientXY(clientX, clientY) {
+            const rect = gridBox.getBoundingClientRect();
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+                return null;
+            }
+            const c = Math.floor(((clientX - rect.left) / rect.width) * gridSize);
+            const r = Math.floor(((clientY - rect.top) / rect.height) * gridSize);
+            if (r >= 0 && r < gridSize && c >= 0 && c < gridSize) {
+                return { r, c };
+            }
+            return null;
+        }
+
+        function computeLineCells(start, end) {
+            const dr = end.r - start.r;
+            const dc = end.c - start.c;
+            const absDr = Math.abs(dr);
+            const absDc = Math.abs(dc);
+
+            // Must be straight line: horizontal, vertical, or 45-degree diagonal
+            let stepR = 0;
+            let stepC = 0;
+            let steps = 0;
+
+            if (dr === 0 && dc !== 0) {
+                // Horizontal
+                stepC = Math.sign(dc);
+                steps = absDc;
+            } else if (dc === 0 && dr !== 0) {
+                // Vertical
+                stepR = Math.sign(dr);
+                steps = absDr;
+            } else if (absDr === absDc && absDr !== 0) {
+                // Diagonal
+                stepR = Math.sign(dr);
+                stepC = Math.sign(dc);
+                steps = absDr;
+            } else {
+                return [start];
+            }
+
+            const cells = [];
+            for (let i = 0; i <= steps; i++) {
+                cells.push({ r: start.r + i * stepR, c: start.c + i * stepC });
+            }
+            return cells;
+        }
+
+        function startDrag(clientX, clientY) {
+            if (!gameActive || gameWon) return;
+            getAudioContext();
+
+            const cell = getCellCoordsFromClientXY(clientX, clientY);
+            if (!cell) return;
+
+            isDragging = true;
+            dragStart = cell;
+            currentDragCells = [cell];
+            SFX.letterTick(0);
+            updateCellActiveClasses();
+        }
+
+        function moveDrag(clientX, clientY) {
+            if (!isDragging || !dragStart) return;
+            const cell = getCellCoordsFromClientXY(clientX, clientY);
+            if (!cell) return;
+
+            const newLine = computeLineCells(dragStart, cell);
+            if (newLine.length !== currentDragCells.length || 
+                newLine[newLine.length - 1].r !== currentDragCells[currentDragCells.length - 1].r ||
+                newLine[newLine.length - 1].c !== currentDragCells[currentDragCells.length - 1].c) {
+                
+                const oldLen = currentDragCells.length;
+                currentDragCells = newLine;
+                updateCellActiveClasses();
+
+                // Play musical arpeggio on expansion
+                if (currentDragCells.length > oldLen) {
+                    SFX.letterTick(currentDragCells.length - 1);
+                }
+            }
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+
+            if (currentDragCells.length >= 2) {
+                checkSelection(currentDragCells);
+            }
+
+            currentDragCells = [];
+            dragStart = null;
+            updateCellActiveClasses();
+        }
+
+        function updateCellActiveClasses() {
+            document.querySelectorAll('.grid-cell.active-drag').forEach(c => c.classList.remove('active-drag'));
+            currentDragCells.forEach(cell => {
+                const el = wordGrid.querySelector(`.grid-cell[data-r="${cell.r}"][data-c="${cell.c}"]`);
+                if (el) el.classList.add('active-drag');
+            });
+        }
+
+        function checkSelection(cells) {
+            const forward = cells.map(pos => grid[pos.r][pos.c]).join('');
+            const reversed = forward.split('').reverse().join('');
+
+            let matched = null;
+            for (const pw of placedWords) {
+                if (!foundWords.has(pw.word) && (pw.word === forward || pw.word === reversed)) {
+                    // Verify cell matching
+                    const isFwd = cells.every((c, i) => c.r === pw.cells[i].r && c.c === pw.cells[i].c);
+                    const isRev = cells.every((c, i) => c.r === pw.cells[pw.cells.length - 1 - i].r && c.c === pw.cells[pw.cells.length - 1 - i].c);
+                    if (isFwd || isRev) {
+                        matched = pw;
+                        break;
+                    }
+                }
+            }
+
+            if (matched) {
+                handleWordFound(matched);
+            } else {
+                SFX.invalid();
+                streak = 0;
+                streakVal.textContent = 'x1';
+            }
+        }
+
+        function handleWordFound(pw) {
+            foundWords.add(pw.word);
+            SFX.wordFound();
+
+            // Streak calculation
+            const now = Date.now();
+            if (now - lastWordFoundTime < 10000) {
+                streak++;
+            } else {
+                streak = 1;
+            }
+            lastWordFoundTime = now;
+            maxStreak = Math.max(maxStreak, streak);
+
+            // Score calculation: 100 per letter * streak multiplier
+            const points = pw.word.length * 100 * Math.max(1, streak);
+            score += points;
+
+            // Spawn floating score popup
+            const centerCell = pw.cells[Math.floor(pw.cells.length / 2)];
+            spawnFloatingScore(centerCell.r, centerCell.c, `+${points}${streak > 1 ? ' (x' + streak + ')' : ''}`);
+
+            // Spawn particle burst on every cell of the found word
+            const color = wordColors[pw.word] || '#00f0ff';
+            pw.cells.forEach(c => spawnCellParticles(c.r, c.c, color));
+
+            // Mark chip in tray
+            const chip = document.getElementById(`chip-${pw.word}`);
+            if (chip) {
+                chip.classList.add('found');
+                chip.style.color = color;
+                chip.style.borderColor = color;
+                chip.style.boxShadow = `0 0 10px ${color}`;
+            }
+
+            // Mark letters in DOM
+            pw.cells.forEach(c => {
+                const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
+                if (el) {
+                    el.classList.add('found-cell');
+                    el.style.color = color;
+                }
+            });
+
+            updateHUD();
+
+            // Check victory condition
+            if (foundWords.size === placedWords.length) {
+                setTimeout(handleVictory, 400);
+            }
+        }
+
+        function handleVictory() {
+            gameWon = true;
+            gameActive = false;
+            clearInterval(timerInterval);
+            SFX.victory();
+            launchConfetti();
+
+            let stars = '★★★';
+            if (elapsedTime > 180000) stars = '★☆☆';
+            else if (elapsedTime > 110000) stars = '★★☆';
+
+            overlayStars.textContent = stars;
+            resScore.textContent = score;
+            resTime.textContent = timerVal.textContent;
+            resStreak.textContent = `x${maxStreak}`;
+            resCat.textContent = CATEGORIES[currentCategory].name.toUpperCase();
+
+            victoryOverlay.style.display = 'flex';
+        }
+
+        // Hint Logic
+        function triggerHintForWord(targetPw = null) {
+            if (hintsLeft <= 0 || !gameActive || gameWon) return;
+
+            let target = targetPw;
+            if (!target || foundWords.has(target.word)) {
+                const unfound = placedWords.filter(pw => !foundWords.has(pw.word));
+                if (unfound.length === 0) return;
+                target = unfound[Math.floor(Math.random() * unfound.length)];
+            }
+
+            hintsLeft--;
+            hintsVal.textContent = hintsLeft;
+            SFX.hint();
+
+            // Pulse first cell of target word
+            const firstCell = target.cells[0];
+            const cellEl = wordGrid.querySelector(`.grid-cell[data-r="${firstCell.r}"][data-c="${firstCell.c}"]`);
+            if (cellEl) {
+                cellEl.classList.add('hint-pulse');
+                setTimeout(() => cellEl.classList.remove('hint-pulse'), 3500);
+            }
+
+            // Pulse chip
+            const chip = document.getElementById(`chip-${target.word}`);
+            if (chip) {
+                chip.classList.add('hinted');
+                setTimeout(() => chip.classList.remove('hinted'), 3500);
+            }
+        }
+
+        // Visual FX: Floating score text
+        function spawnFloatingScore(r, c, text) {
+            const rect = gridBox.getBoundingClientRect();
+            const cellSize = rect.width / gridSize;
+            const x = c * cellSize + cellSize / 2;
+            const y = r * cellSize + cellSize / 2;
+
+            const el = document.createElement('div');
+            el.className = 'score-popup';
+            el.textContent = text;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            gridBox.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        // Visual FX: Particle burst on letter found
+        function spawnCellParticles(r, c, color) {
+            const rect = gridBox.getBoundingClientRect();
+            const cellSize = rect.width / gridSize;
+            const cx = (c + 0.5) * cellSize;
+            const cy = (r + 0.5) * cellSize;
+
+            for (let i = 0; i < 9; i++) {
+                particles.push({
+                    x: cx,
+                    y: cy,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    color: color,
+                    alpha: 1,
+                    size: cellSize * 0.15,
+                    decay: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // Attach Mouse & Touch Listeners with Passive: False
+        gridBox.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startDrag(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) moveDrag(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) endDrag();
+        });
+
+        gridBox.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                e.preventDefault();
+                startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                e.preventDefault(); // Stop iOS elastic page scrolling
+                moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', (e) => {
+            if (isDragging) endDrag();
+        });
+
+        window.addEventListener('touchcancel', () => {
+            if (isDragging) endDrag();
+        });
+
+        // =====================================================
+        // 9. HIGH-DPI CANVAS RENDERER FOR CAPSULES & PARTICLES
+        // =====================================================
+        function renderVFXLoop() {
+            renderVFX();
+            requestAnimationFrame(renderVFXLoop);
+        }
+
+        function renderVFX() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            vCtx.setTransform(1, 0, 0, 1, 0, 0);
+            vCtx.clearRect(0, 0, vfxCanvas.width, vfxCanvas.height);
+
+            const size = gridBox.getBoundingClientRect().width;
+            const scale = (size * dpr) / size;
+            vCtx.scale(scale, scale);
+
+            const cellSize = size / gridSize;
+
+            // 1. Draw glowing translucent neon capsules for found words
+            placedWords.forEach(pw => {
+                if (foundWords.has(pw.word)) {
+                    drawWordCapsule(pw.cells, cellSize, wordColors[pw.word] || '#00f0ff', 0.28);
+                }
+            });
+
+            // 2. Draw live dragging selection capsule
+            if (isDragging && currentDragCells.length >= 2) {
+                drawWordCapsule(currentDragCells, cellSize, '#00f0ff', 0.42, true);
+            }
+
+            // 3. Render Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                p.size *= 0.95;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    vCtx.save();
+                    vCtx.fillStyle = p.color;
+                    vCtx.globalAlpha = p.alpha;
+                    vCtx.shadowBlur = 8;
+                    vCtx.shadowColor = p.color;
+                    vCtx.beginPath();
+                    vCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    vCtx.fill();
+                    vCtx.restore();
+                }
+            }
+        }
+
+        function drawWordCapsule(cells, cellSize, color, alpha, pulsing = false) {
+            if (cells.length < 1) return;
+            const startX = (cells[0].c + 0.5) * cellSize;
+            const startY = (cells[0].r + 0.5) * cellSize;
+            const endX = (cells[cells.length - 1].c + 0.5) * cellSize;
+            const endY = (cells[cells.length - 1].r + 0.5) * cellSize;
+
+            const radius = cellSize * 0.44;
+
+            vCtx.save();
+            vCtx.strokeStyle = color;
+            vCtx.lineWidth = radius * 2;
+            vCtx.lineCap = 'round';
+            vCtx.lineJoin = 'round';
+            vCtx.globalAlpha = alpha;
+            vCtx.shadowBlur = pulsing ? 16 : 8;
+            vCtx.shadowColor = color;
+
+            vCtx.beginPath();
+            vCtx.moveTo(startX, startY);
+            vCtx.lineTo(endX, endY);
+            vCtx.stroke();
+
+            // Inner bright core
+            vCtx.strokeStyle = '#ffffff';
+            vCtx.lineWidth = radius * 0.4;
+            vCtx.globalAlpha = alpha * 0.8;
+            vCtx.stroke();
+            vCtx.restore();
+        }
+
+        // =====================================================
+        // 10. EXPORT HIGH-RES WALLPAPER PNG
+        // =====================================================
+        function exportPuzzlePNG() {
+            const expCanvas = document.createElement('canvas');
+            expCanvas.width = 1200;
+            expCanvas.height = 1200;
+            const eCtx = expCanvas.getContext('2d');
+
+            eCtx.fillStyle = '#05070c';
+            eCtx.fillRect(0, 0, 1200, 1200);
+
+            // Title
+            eCtx.fillStyle = '#00f0ff';
+            eCtx.font = 'bold 36px Orbitron, sans-serif';
+            eCtx.textAlign = 'center';
+            eCtx.fillText(`NEON SEARCH: ${CATEGORIES[currentCategory].name.toUpperCase()}`, 600, 70);
+
+            // Grid
+            const margin = 120;
+            const boardSize = 960;
+            const cellSize = boardSize / gridSize;
+
+            eCtx.fillStyle = '#090e17';
+            eCtx.fillRect(margin, margin, boardSize, boardSize);
+
+            // Draw Letters
+            eCtx.fillStyle = '#94a3b8';
+            eCtx.font = `bold ${Math.floor(cellSize * 0.5)}px Orbitron, sans-serif`;
+            eCtx.textAlign = 'center';
+            eCtx.textBaseline = 'middle';
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const x = margin + c * cellSize + cellSize / 2;
+                    const y = margin + r * cellSize + cellSize / 2;
+                    eCtx.fillText(grid[r][c], x, y);
+                }
+            }
+
+            // Word bank at bottom
+            eCtx.fillStyle = '#cbd5e1';
+            eCtx.font = '18px Rajdhani, sans-serif';
+            const wordsStr = placedWords.map(pw => pw.word).join('   •   ');
+            eCtx.fillText(wordsStr, 600, 1140);
+
+            const link = document.createElement('a');
+            link.download = `neon_word_search_${Date.now()}.png`;
+            link.href = expCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // =====================================================
+        // 11. CONTROLS, FULLSCREEN, & MODALS
+        // =====================================================
+        newGameBtn.addEventListener('click', initNewGame);
+        nextGameBtn.addEventListener('click', initNewGame);
+        hintBtn.addEventListener('click', () => triggerHintForWord());
+        exportBtn.addEventListener('click', exportPuzzlePNG);
+
+        categoryQuickBtn.addEventListener('click', () => {
+            const keys = Object.keys(CATEGORIES);
+            const nextIdx = (keys.indexOf(currentCategory) + 1) % keys.length;
+            currentCategory = keys[nextIdx];
+            categorySelect.value = currentCategory;
+            initNewGame();
+        });
+
+        categorySelect.addEventListener('change', () => {
+            currentCategory = categorySelect.value;
+            initNewGame();
+        });
+
+        gridSizeSelect.addEventListener('change', () => {
+            gridSize = parseInt(gridSizeSelect.value);
+            initNewGame();
+        });
+
+        soundToggle.addEventListener('click', () => {
+            soundOn = !soundOn;
+            soundIcon.textContent = soundOn ? '🔊' : '🔇';
+            if (soundOn) getAudioContext();
+        });
+
+        droneToggleBtn.addEventListener('click', toggleDrone);
+
+        // iOS & Universal Fullscreen
+        function toggleFullscreen() {
+            const isCurrentlyFs = document.body.classList.contains('zen-fullscreen') || 
+                                  !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+            if (!isCurrentlyFs) {
+                document.body.classList.add('zen-fullscreen');
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+            } else {
+                document.body.classList.remove('zen-fullscreen');
+                if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen && document.webkitFullscreenElement) {
+                    document.webkitExitFullscreen();
+                }
+            }
+            updateFullscreenUI();
+        }
+
+        function updateFullscreenUI() {
+            const isFs = document.body.classList.contains('zen-fullscreen') || 
+                         !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (fullscreenText) fullscreenText.textContent = isFs ? 'Exit' : 'Full';
+            setTimeout(setupGridDimensions, 60);
+        }
+
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        floatingExitFs.addEventListener('click', toggleFullscreen);
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) document.body.classList.remove('zen-fullscreen');
+            updateFullscreenUI();
+        });
+        document.addEventListener('webkitfullscreenchange', () => {
+            if (!document.webkitFullscreenElement) document.body.classList.remove('zen-fullscreen');
+            updateFullscreenUI();
+        });
+
+        // Settings Modal
+        function toggleSettings() {
+            settingsModal.style.display = settingsModal.style.display === 'flex' ? 'none' : 'flex';
+        }
+        settingsBtn.addEventListener('click', toggleSettings);
+        settingsClose.addEventListener('click', toggleSettings);
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) toggleSettings();
+        });
+
+        // Help Modal
+        function toggleHelp() {
+            helpModal.style.display = helpModal.style.display === 'flex' ? 'none' : 'flex';
+        }
+        helpBtn.addEventListener('click', toggleHelp);
+        helpClose.addEventListener('click', toggleHelp);
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) toggleHelp();
+        });
+
+        // Start Game & VFX Animation Loop
+        initNewGame();
+        requestAnimationFrame(renderVFXLoop);
+    </script>
+</body>
+</html>

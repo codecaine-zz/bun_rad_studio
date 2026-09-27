@@ -446,6 +446,32 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
             return { success: true, position: pos };
         });
     } catch {}
+
+    const lastOpenedUrls = new Map<string, number>();
+    try {
+        wv.bind("openExternalUrl", (url: string) => {
+            if (typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:"))) {
+                const now = Date.now();
+                const lastTime = lastOpenedUrls.get(url) || 0;
+                if (now - lastTime < 1000) {
+                    return { success: true, deduped: true };
+                }
+                lastOpenedUrls.set(url, now);
+                try {
+                    if (process.platform === "darwin") {
+                        Bun.spawn(["open", url]);
+                    } else if (process.platform === "win32") {
+                        Bun.spawn(["cmd", "/c", "start", "", url]);
+                    } else {
+                        Bun.spawn(["xdg-open", url]);
+                    }
+                } catch (err) {
+                    console.error("Failed to open external URL:", err);
+                }
+            }
+            return { success: true };
+        });
+    } catch {}
 }
 
 export function getWindowShortcutsScript(): string {
@@ -457,6 +483,53 @@ export function getWindowShortcutsScript(): string {
         e.stopPropagation();
         return false;
     }, { capture: true });
+
+    // Desktop external link interceptor (e.g. YouTube, external references) with deduplication
+    if (!window.__externalLinkInterceptorAttached) {
+        window.__externalLinkInterceptorAttached = true;
+        var lastLinkClickTime = 0;
+        var lastLinkUrl = "";
+        document.addEventListener("click", function(e) {
+            var a = e.target && e.target.closest ? e.target.closest("a") : null;
+            if (a && a.href) {
+                var href = a.getAttribute("href") || a.href;
+                if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("//")) {
+                    var targetUrl = a.href;
+                    var now = Date.now();
+                    if (targetUrl === lastLinkUrl && (now - lastLinkClickTime < 800)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    lastLinkUrl = targetUrl;
+                    lastLinkClickTime = now;
+                    if (typeof window.openExternalUrl === "function") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.openExternalUrl(targetUrl);
+                    }
+                }
+            }
+        }, true);
+
+        // Override window.open for desktop webview
+        var _origOpen = window.open;
+        window.open = function(url) {
+            if (url && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:"))) {
+                var now = Date.now();
+                if (url === lastLinkUrl && (now - lastLinkClickTime < 800)) {
+                    return null;
+                }
+                lastLinkUrl = url;
+                lastLinkClickTime = now;
+                if (typeof window.openExternalUrl === "function") {
+                    window.openExternalUrl(url);
+                    return null;
+                }
+            }
+            return _origOpen ? _origOpen.apply(window, arguments) : null;
+        };
+    }
 
     let lastAltTime = 0;
     let zoomLevel = 1.0;
