@@ -701,7 +701,9 @@ bloom.add("user:101");
 console.log(bloom.has("user:101")); // true
 ```
 
-### 📋 Complete 44-Module Index
+### 📋 Complete 45-Module Index (44 Core + sliceutils alias)
+
+👉 **[📖 View the Exhaustive 45-Module API Specification & Code Recipes in src/features/rad/README.md](src/features/rad/README.md)** for complete function signatures, parameter types, and practical examples across all 370+ utility methods!
 
 | Domain | Modules Included |
 | :--- | :--- |

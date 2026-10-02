@@ -1,4 +1,4 @@
-// Bun System Utilities - RAD Development Suite (44 Modules)
+// Bun System Utilities - RAD Development Suite (45 Modules / 44 Core + sliceutils alias)
 // Port and extension of ergonomic utilities from https://github.com/codecaine-zz/vlang_utils
 // and modern utility primitives inspired by https://github.com/toss/es-toolkit
 // with native Bun standard library superpowers (Bun.Glob, Bun.$, Bun.serve, Bun.hash, Bun.Transpiler)
