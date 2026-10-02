@@ -5,3 +5,5 @@
 
 export * from "./simplecli/index.ts";
 export * from "./simplegui.ts";
+export * from "./features/rad/index.ts";
+

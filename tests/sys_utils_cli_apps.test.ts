@@ -75,4 +75,12 @@ describe("⚡ Bun Sys Utils Modern CLI Suite Specification", () => {
     const res = await runCli("cli_apps/rip_cli.ts", ["--seance"]);
     expect(res.exitCode).toBe(0);
   });
+
+  it("11. Rad CLI outputs 44 module catalog", async () => {
+    const res = await runCli("cli_apps/rad_cli.ts", ["--list"]);
+    expect(res.exitCode).toBe(0);
+    expect(res.output).toContain("44 Production-Grade Modules Catalog");
+    expect(res.output).toContain("File & Storage");
+  });
 });
+

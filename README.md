@@ -499,6 +499,7 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 | **32** | **Neon Word Search Labyrinth**     | [User Guide](docs/userguides/32_word_search_labyrinth.md)     | AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries.                   | `bun run app:word_search`|
 | **33** | **World Time Zones Studio Pro**    | [User Guide](docs/userguides/33_world_time_zones_studio.md)   | Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization.                  | `bun run app:world_time_zones`|
 | **34** | **Cyberpunk Pac-Man Arcade**       | [User Guide](docs/userguides/34_pacman_arcade.md)             | Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects.               | `bun run app:pacman`    |
+| **35** | **RAD Utilities Studio Pro**       | [Feature Docs](src/features/rad/README.md)                   | 44 high-velocity development modules for Rapid Application Development with live playground, recipes & benchmark suite.      | `bun run app:rad`       |
 
 <a id="application-visual-gallery--screenshots"></a>
 
@@ -566,6 +567,153 @@ Explore live desktop and responsive viewport previews for all 27 enterprise prod
 | **Cyberpunk Pac-Man Arcade**<br>[User Guide](docs/userguides/34_pacman_arcade.md)<br>`bun run app:pacman` | ![Cyberpunk Pac-Man Desktop](screenshots/apps/pacman_desktop.png) | ![Cyberpunk Pac-Man Responsive](screenshots/apps/pacman_responsive.png) |
 
 ---
+
+<a id="44-rad-development-utilities"></a>
+
+## ⚡ 44 RAD Development Utilities (`bun_sys_utils`)
+
+To supercharge Rapid Application Development (RAD), Bun RAD Studio incorporates the full **44-module utility suite** from [`codecaine-zz/bun_sys_utils`](https://github.com/codecaine-zz/bun_sys_utils). Designed to eliminate boilerplate code forever, it integrates ergonomic primitives inspired by [`toss/es-toolkit`](https://github.com/toss/es-toolkit) with native Bun standard library superpowers (`Bun.Glob`, `Bun.$`, `Bun.serve`, `Bun.hash`, `Bun.Transpiler`, and `bun:sqlite` FTS5).
+
+All 44 modules run zero-latency unit tests in **~8ms** with zero external npm dependencies.
+
+### 🚀 Quick Start Commands
+
+```bash
+# ⚡ Run the 44-Module Benchmark Showcase
+bun run rad
+
+# 📚 Run the End-to-End Dual Cookbook (10 CLI Tools + 44 RAD Modules)
+bun run rad:cookbook
+
+# 🖥️ Launch the Desktop GUI Workstation (Interactive Tester & Code Playground)
+bun run app:rad
+
+# 🛠️ Command-Line Utility Companion
+bun run cli:rad --list
+bun run cli:rad --recipe arrutils
+bun run cli:rad --module fileutils
+```
+
+### 📦 Importing in Your Applications
+
+You can import `rad` or individual utility modules directly from the project root or feature registry:
+
+```typescript
+import {
+  rad,
+  fileutils,
+  sqliteutils,
+  arrutils,
+  objutils,
+  fnutils,
+  globutils,
+  shellutils,
+  hashutils,
+} from "./src/index.ts";
+
+// Or import from the dedicated feature hub:
+// import { rad, fileutils } from "./src/features/rad/index.ts";
+```
+
+### 🛠️ Featured Capabilities & Code Recipes
+
+#### 1. `arrutils` & Modern Collection Helpers (`es-toolkit`)
+```typescript
+import { arrutils } from "./src/features/rad/index.ts";
+
+const items = ["alpha", "beta", "gamma", "delta"];
+
+// Safe negative index retrieval (arrutils.at)
+console.log(arrutils.at(items, -1)); // "delta"
+console.log(arrutils.at(items, -2)); // "gamma"
+
+// Chunking, Compact & KeyBy
+const chunks = arrutils.chunk(items, 2); // [["alpha", "beta"], ["gamma", "delta"]]
+const clean = arrutils.compact([0, 1, false, 2, "", 3, null, undefined]); // [1, 2, 3]
+const users = [{ id: "u1", name: "Alice" }, { id: "u2", name: "Bob" }];
+const userMap = arrutils.keyBy(users, u => u.id); // { u1: {...}, u2: {...} }
+```
+
+#### 2. `objutils` Deep Path & Immutability (`es-toolkit`)
+```typescript
+import { objutils } from "./src/features/rad/index.ts";
+
+const user = { profile: { address: { city: "Tokyo" } }, roles: ["admin"] };
+
+// Safe nested path traversal & updates
+const city = objutils.get(user, "profile.address.city"); // "Tokyo"
+objutils.set(user, "profile.address.postal", "100-0001");
+
+// Deep equality & property picking
+const same = objutils.isEqual({ a: [1, 2] }, { a: [1, 2] }); // true
+const subset = objutils.pick(user, ["roles"]); // { roles: ["admin"] }
+```
+
+#### 3. `fnutils` Functional Primitives (`es-toolkit`)
+```typescript
+import { fnutils } from "./src/features/rad/index.ts";
+
+// Memoization with O(1) cache lookups
+const fib = fnutils.memoize((n: number): number => n <= 1 ? n : fib(n - 1) + fib(n - 2));
+
+// Functional composition pipeline
+const transform = fnutils.pipe(
+  10,
+  (n: number) => n * 2,
+  (n: number) => n + 5,
+  (n: number) => `Computed: ${n}`
+); // "Computed: 25"
+```
+
+#### 4. `sqliteutils` Native `bun:sqlite` KV & Document Store
+```typescript
+import { sqliteutils } from "./src/features/rad/index.ts";
+
+const db = sqliteutils.openDb(":memory:");
+
+// Instant Key-Value persistence
+sqliteutils.createKvTable(db, "app_settings");
+sqliteutils.setKv(db, "app_settings", "theme", "midnight");
+console.log(sqliteutils.getKv(db, "app_settings", "theme")); // "midnight"
+
+// JSON document store with FTS5 search
+sqliteutils.createJsonStore(db, "documents");
+sqliteutils.saveDoc(db, "documents", "doc_1", { title: "Release Notes", version: "1.0" });
+
+sqliteutils.closeDb(db);
+```
+
+#### 5. Native Bun Superpowers: `globutils`, `shellutils`, `hashutils`
+```typescript
+import { globutils, shellutils, hashutils } from "./src/features/rad/index.ts";
+
+// High-speed globbing via native Bun.Glob
+const jsonFiles = await globutils.glob("*.json");
+
+// Subprocess execution via Bun.$ and PATH resolution via Bun.which
+const bunPath = shellutils.which("bun");
+const version = await shellutils.exec(["bun", "--version"]);
+
+// Ultra-fast 64-bit hashing (wyhash) & in-memory Bloom filter via Bun.hash
+const hash = hashutils.wyhash("instant-seed");
+const bloom = hashutils.createBloomFilter(1000);
+bloom.add("user:101");
+console.log(bloom.has("user:101")); // true
+```
+
+### 📋 Complete 44-Module Index
+
+| Domain | Modules Included |
+| :--- | :--- |
+| **File & Storage (8)** | `fileutils`, `sqliteutils`, `tomlutils`, `archiveutils`, `compressutils`, `tarutils`, `stateutils`, `cacheutils` |
+| **Data Structures (8)** | `arrutils` / `sliceutils`, `objutils`, `structutils` (Stack/Queue/RingBuffer/Heap), `statutils`, `mathutils`, `bitutils`, `graphutils` |
+| **Strings & Formats (6)** | `strutils`, `regexutils`, `templateutils`, `colorutils`, `htmlutils`, `diffutils` |
+| **System & Runtime (9)** | `sysutils`, `cliutils`, `envutils`, `shellutils` (`Bun.$`), `globutils` (`Bun.Glob`), `transpileutils` (`Bun.Transpiler`), `logutils`, `cronutils`, `semverutils` |
+| **Network & Web (7)** | `netutils`, `httputils`, `serverutils` (`Bun.serve`), `urlutils`, `jwtutils`, `cryptoutils`, `hashutils` (`Bun.hash`) |
+| **Functions & Logic (7)** | `asyncutils`, `flowutils`, `fnutils`, `eventutils`, `validutils`, `mockutils`, `timeutils` |
+
+---
+
 
 <a id="dist-build-process"></a>
 

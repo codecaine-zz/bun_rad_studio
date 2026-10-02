@@ -131,6 +131,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🧰",
     description: "Swiss-army knife for encoding, decoding, hash generation & text processing",
   },
+  rad_studio: {
+    displayName: "RAD Utilities Studio Pro",
+    category: "Developer Tools",
+    icon: "⚡",
+    description: "44 high-velocity development modules for Rapid Application Development with live recipes & testing",
+  },
   task_manager: {
     displayName: "Task Manager & Process Studio",
     category: "System & Hardware",

@@ -9,6 +9,7 @@ import { createSdStudio } from "../applications/sd_studio";
 import { createRipStudio } from "../applications/rip_studio";
 import { createFdStudio } from "../applications/fd_studio";
 import { createWatchexecStudio } from "../applications/watchexec_studio";
+import { createRadStudio } from "../applications/rad_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
 async function trigger(win: SimpleWindow, controlId: string, event = "click", val?: any) {
@@ -334,4 +335,38 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     await trigger(win, "btn_clear_console");
     expect(win.getValue("watch_console")).toBe("");
   });
+
+  it("11. Controls Rad Studio: category filtering, module selection, live test execution, and clear", async () => {
+    const win = createRadStudio({ fullscreen: false });
+
+    // 1. Initial state
+    expect(win.getValue("dd_category")).toBe("All (44 Modules)");
+    expect(win.getValue("dd_module")).toBe("fileutils");
+    expect(win.getValue("txt_recipe")).toContain("import { fileutils }");
+
+    // 2. Select different module
+    win.setValue("dd_module", "arrutils");
+    await trigger(win, "dd_module", "change", "arrutils");
+    expect(win.getValue("txt_recipe")).toContain("arrutils.at");
+
+    // 3. Filter category
+    await trigger(win, "dd_category", "change", "Network & Web");
+    const filteredRows = win.getValue("tbl_modules") as string[][];
+    expect(Array.isArray(filteredRows)).toBe(true);
+    expect(filteredRows.length).toBe(7); // netutils, httputils, serverutils, urlutils, jwtutils, cryptoutils, hashutils
+
+    // 4. Test module execution
+    win.setValue("dd_module", "fileutils");
+    await trigger(win, "btn_run_module");
+    expect(win.getValue("console_rad")).toContain("fileutils: saved & read JSON file");
+
+    // 5. Test run all benchmark
+    await trigger(win, "btn_run_all");
+    expect(win.getValue("console_rad")).toContain("All 44 modules verified");
+
+    // 6. Test clear console
+    await trigger(win, "btn_clear");
+    expect(win.getValue("console_rad")).toBe("");
+  });
 });
+

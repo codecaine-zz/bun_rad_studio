@@ -9,6 +9,7 @@ import { createGduStudio } from "../applications/gdu_studio";
 import { createIpInfoStudio } from "../applications/ipinfo_studio";
 import { createSubfinderStudio } from "../applications/subfinder_studio";
 import { createDoggoStudio } from "../applications/doggo_studio";
+import { createRadStudio } from "../applications/rad_studio";
 
 describe("⚡ Bun Sys Utils GUI Desktop Workstations Suite", () => {
   it("1. Fd Studio Pro initializes with expected search controls and options", () => {
@@ -169,4 +170,23 @@ describe("⚡ Bun Sys Utils GUI Desktop Workstations Suite", () => {
     expect(ids).toContain("tbl_records");
     expect(ids).toContain("console_doggo");
   });
+
+  it("11. Rad Studio Pro initializes with 44-module catalog table, recipe box & console", () => {
+    const win = createRadStudio({ fullscreen: false, theme: "midnight" });
+    expect(win).toBeDefined();
+    expect(win.title).toContain("RAD Utilities Studio Pro");
+    expect(win.appId).toBe("rad_studio");
+
+    const controls = win.getControls();
+    const ids = controls.map((c: any) => c.id);
+    expect(ids).toContain("dd_category");
+    expect(ids).toContain("dd_module");
+    expect(ids).toContain("btn_run_module");
+    expect(ids).toContain("btn_run_all");
+    expect(ids).toContain("btn_copy_recipe");
+    expect(ids).toContain("tbl_modules");
+    expect(ids).toContain("txt_recipe");
+    expect(ids).toContain("console_rad");
+  });
 });
+
