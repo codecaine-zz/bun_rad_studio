@@ -168,6 +168,9 @@ console.log(colors.green("25. [logutils] LogLevel defined:"), rad.logutils.LogLe
 // 26. tomlutils
 const toml = rad.tomlutils.parseToml("[app]\nport = 5000");
 console.log(colors.green("26. [tomlutils] TOML parsed port:"), rad.tomlutils.getInt(toml, "app.port"));
+const serializedToml = rad.tomlutils.stringifyToml({ app: { port: 5000, env: "prod" } });
+console.log(colors.green("26. [tomlutils] TOML serialized:\n"), serializedToml.trim());
+
 
 // 27. htmlutils
 console.log(colors.green("27. [htmlutils] Strip HTML tags:"), rad.htmlutils.stripTags("<p>Hello <b>Bun</b></p>"));

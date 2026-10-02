@@ -37,7 +37,7 @@ Never write boilerplate from scratch again.
 | **`regexutils`** | High-level pattern matching helpers: `isMatch`, `findFirst`, `findAll`, `replace`, `split`, `findNamedGroups`. | RegExp Engine |
 | **`mockutils`** | Synthetic testing data generation: `mockUser`, `mockUsers`, `mockEmail`, `mockPhone`, `mockIpv4`, `mockUrl`, `loremWords`, `loremText`. | Pseudorandom |
 | **`logutils`** | Leveled structured logging (`LogLevel`, `Logger`, file/console sinks, JSON output mode, ANSI highlighting). | Streams & Console |
-| **`tomlutils`** | TOML configuration file and string parsing with typed accessors (`getString`, `getInt`, `getBool`, `getArray`). | Parser |
+| **`tomlutils`** | High-performance TOML parsing and serialization (`parseToml`, `stringifyToml`, `loadToml`, `saveToml`) with typed key-path accessors. | **`Bun.TOML`** |
 | **`htmlutils`** | HTML parsing, DOM navigation (`getElementById`, `getElementsByTag`), link extraction, entity escaping, and tag stripping. | AST Walk |
 | **`bitutils`** | Dynamic `BitSet`, popcount, bitmask flag manipulation (`setFlag`, `hasFlag`, `clearFlag`, `toggleFlag`). | Bitwise Ops |
 | **`compressutils`** | Fast Gzip and Deflate string and buffer compression, decompression, and compression ratio calculation. | Native CompressionStreams |
@@ -264,3 +264,34 @@ const token = jwtutils.signJwt({ sub: "user_123", role: "admin" }, "supersecret"
 const claims = jwtutils.verifyJwt<{ sub: string; role: string }>(token, "supersecret");
 console.log(claims.sub); // "user_123"
 ```
+
+### 11. `tomlutils` (Native Bun.TOML Engine)
+```typescript
+import { tomlutils } from "./src/features/rad/index.ts";
+
+// Parse TOML string with typed path extractors
+const config = tomlutils.parseToml(`
+[server]
+port = 8080
+host = "127.0.0.1"
+tags = ["api", "production"]
+`);
+
+const port = tomlutils.getInt(config, "server.port", 3000); // 8080
+const host = tomlutils.getString(config, "server.host");     // "127.0.0.1"
+const tags = tomlutils.getArray<string>(config, "server.tags"); // ["api", "production"]
+
+// Serialize JavaScript object to TOML string
+const tomlStr = tomlutils.stringifyToml({
+  database: {
+    connection: "sqlite://data.db",
+    max_connections: 16,
+  },
+});
+// => [database]\nconnection = "sqlite://data.db"\nmax_connections = 16\n
+
+// Asynchronous file persistence
+await tomlutils.saveToml("config.toml", { app: { debug: false } });
+const loaded = await tomlutils.loadToml("config.toml");
+```
+

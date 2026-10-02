@@ -160,9 +160,12 @@ export async function runRadShowcase(): Promise<void> {
   logger.info("Application initialized smoothly", { env: "production" });
 
   // 26. tomlutils
-  console.log(`\n${colors.bold(colors.yellow("26. [tomlutils] TOML Config Parsing:"))}`);
+  console.log(`\n${colors.bold(colors.yellow("26. [tomlutils] TOML Config Parsing & Serialization:"))}`);
   const tomlDoc = rad.tomlutils.parseToml("[server]\nport = 3000\nname = 'bun-api'");
   console.log(colors.green(` - Parsed server.port: ${rad.tomlutils.getInt(tomlDoc, "server.port")}`));
+  const tomlSnippet = rad.tomlutils.stringifyToml({ service: { mode: "cluster", workers: 4 } });
+  console.log(colors.green(` - Serialized TOML:\n   ${tomlSnippet.trim().replace(/\n/g, "\n   ")}`));
+
 
   // 27. htmlutils
   console.log(`\n${colors.bold(colors.yellow("27. [htmlutils] HTML Processing & Entities:"))}`);

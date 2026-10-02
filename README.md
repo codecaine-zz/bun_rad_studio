@@ -705,7 +705,7 @@ console.log(bloom.has("user:101")); // true
 
 | Domain | Modules Included |
 | :--- | :--- |
-| **File & Storage (8)** | `fileutils`, `sqliteutils`, `tomlutils`, `archiveutils`, `compressutils`, `tarutils`, `stateutils`, `cacheutils` |
+| **File & Storage (8)** | `fileutils`, `sqliteutils`, `tomlutils` (`Bun.TOML`), `archiveutils`, `compressutils`, `tarutils`, `stateutils`, `cacheutils` |
 | **Data Structures (8)** | `arrutils` / `sliceutils`, `objutils`, `structutils` (Stack/Queue/RingBuffer/Heap), `statutils`, `mathutils`, `bitutils`, `graphutils` |
 | **Strings & Formats (6)** | `strutils`, `regexutils`, `templateutils`, `colorutils`, `htmlutils`, `diffutils` |
 | **System & Runtime (9)** | `sysutils`, `cliutils`, `envutils`, `shellutils` (`Bun.$`), `globutils` (`Bun.Glob`), `transpileutils` (`Bun.Transpiler`), `logutils`, `cronutils`, `semverutils` |

@@ -20,7 +20,7 @@ export const RAD_MODULES_CATALOG: RadModuleInfo[] = [
   // 1. File & Database
   { name: "fileutils", category: "File & Storage", description: "JSON, CSV, atomic lines, file tree walking, human sizes", superpower: "node:fs/promises & Bun.file" },
   { name: "sqliteutils", category: "File & Storage", description: "Native bun:sqlite KV store, JSON document store, CRUD, FTS5", superpower: "bun:sqlite" },
-  { name: "tomlutils", category: "File & Storage", description: "TOML config parsing with typed value extractors", superpower: "Zero-dependency parser" },
+  { name: "tomlutils", category: "File & Storage", description: "TOML config parsing and serialization with typed extractors", superpower: "Bun.TOML native engine" },
   { name: "archiveutils", category: "File & Storage", description: "In-memory ZIP archive creation, extraction, and inspection", superpower: "Compression Streams" },
   { name: "compressutils", category: "File & Storage", description: "Fast Gzip and Deflate string and buffer compression", superpower: "Native CompressionStreams" },
   { name: "tarutils", category: "File & Storage", description: "TAR archive creation, tarball inspection and unpacking", superpower: "Binary block parser" },
