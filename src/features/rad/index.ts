@@ -1,4 +1,4 @@
-// Bun System Utilities - RAD Development Suite (45 Modules / 44 Core + sliceutils alias)
+// Bun System Utilities - RAD Development Suite (44 Modules)
 // Port and extension of ergonomic utilities from https://github.com/codecaine-zz/vlang_utils
 // and modern utility primitives inspired by https://github.com/toss/es-toolkit
 // with native Bun standard library superpowers (Bun.Glob, Bun.$, Bun.serve, Bun.hash, Bun.Transpiler)
@@ -7,8 +7,10 @@ export * from "./modules/fileutils.ts";
 export * from "./modules/sqliteutils.ts";
 export * from "./modules/strutils.ts";
 export * from "./modules/arrutils.ts";
+export { sumBy } from "./modules/arrutils.ts";
 export * from "./modules/sliceutils.ts";
 export * from "./modules/envutils.ts";
+export { getBool, getInt, set } from "./modules/envutils.ts";
 export * from "./modules/cryptoutils.ts";
 export * from "./modules/timeutils.ts";
 export * from "./modules/httputils.ts";
@@ -16,12 +18,14 @@ export * from "./modules/cliutils.ts";
 export * from "./modules/sysutils.ts";
 export * from "./modules/netutils.ts";
 export * from "./modules/validutils.ts";
+export { inRange } from "./modules/validutils.ts";
 export * from "./modules/structutils.ts";
 export * from "./modules/statutils.ts";
 export * from "./modules/stateutils.ts";
 export * from "./modules/cacheutils.ts";
 export * from "./modules/semverutils.ts";
 export * from "./modules/flowutils.ts";
+export { debounce, throttle } from "./modules/flowutils.ts";
 export * from "./modules/templateutils.ts";
 export * from "./modules/colorutils.ts";
 export * from "./modules/archiveutils.ts";

@@ -116,6 +116,11 @@ export function createStopwatch(): Stopwatch {
   };
 }
 
+// Doer: High-resolution monotonic timestamp in nanoseconds powered by native Bun.nanoseconds
+export function nanoseconds(): number {
+  return Bun.nanoseconds();
+}
+
 export const timeutils = {
   timeAgo,
   formatIso,
@@ -127,4 +132,5 @@ export const timeutils = {
   addDays,
   diffDays,
   createStopwatch,
+  nanoseconds,
 };

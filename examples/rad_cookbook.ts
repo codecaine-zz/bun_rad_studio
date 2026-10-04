@@ -165,12 +165,10 @@ console.log(colors.green("24. [mockutils] Synthetic user:"), mock.name, `<${mock
 // 25. logutils
 console.log(colors.green("25. [logutils] LogLevel defined:"), rad.logutils.LogLevel.INFO);
 
-// 26. tomlutils
-const toml = rad.tomlutils.parseToml("[app]\nport = 5000");
-console.log(colors.green("26. [tomlutils] TOML parsed port:"), rad.tomlutils.getInt(toml, "app.port"));
-const serializedToml = rad.tomlutils.stringifyToml({ app: { port: 5000, env: "prod" } });
-console.log(colors.green("26. [tomlutils] TOML serialized:\n"), serializedToml.trim());
-
+// 26. tomlutils (Native Bun.TOML)
+const toml = rad.tomlutils.parseToml("[app]\nport = 5000\nname = 'bun-service'");
+console.log(colors.green("26. [tomlutils] Native Bun.TOML parsed port:"), rad.tomlutils.getInt(toml, "app.port"));
+console.log(colors.green("    [tomlutils] Native Bun.TOML stringify:"), rad.tomlutils.stringifyToml({ service: "rad" }).trim());
 
 // 27. htmlutils
 console.log(colors.green("27. [htmlutils] Strip HTML tags:"), rad.htmlutils.stripTags("<p>Hello <b>Bun</b></p>"));

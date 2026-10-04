@@ -1,5 +1,4 @@
 import os from "node:os";
-import dns from "node:dns/promises";
 
 // Doer: Get primary local IPv4 address
 export function getLocalIp(): string {
@@ -72,10 +71,10 @@ export async function tcpPing(
   }
 }
 
-// Doer: Resolve hostname to IPv4/IPv6 addresses
+// Doer: Resolve hostname to IPv4/IPv6 addresses using native Bun.dns.lookup
 export async function resolveHost(host: string): Promise<string[]> {
   try {
-    const records = await dns.lookup(host, { all: true });
+    const records = await Bun.dns.lookup(host);
     return records.map((r) => r.address);
   } catch {
     return [];

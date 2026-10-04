@@ -2,7 +2,7 @@
 // In-memory TypeScript/TSX transpilation, import scanning, and AST inspection powered by native Bun.Transpiler
 import { Transpiler } from "bun";
 
-export type TranspileLoader = "ts" | "tsx" | "js" | "jsx" | "json";
+export type TranspileLoader = "ts" | "tsx" | "js" | "jsx";
 
 export interface TranspileOptions {
   loader?: TranspileLoader;
@@ -23,7 +23,6 @@ export function transpileTs(source: string, options: TranspileOptions = {}): str
   const transpiler = new Transpiler({
     loader: options.loader ?? "ts",
     minifyWhitespace: options.minify ?? false,
-    inlineStyleKeyframes: false,
   });
   return transpiler.transformSync(source);
 }

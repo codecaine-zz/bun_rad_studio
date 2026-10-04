@@ -204,9 +204,12 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
   });
 
   // 11. netutils
-  it("netutils > returns valid local IPv4", () => {
+  it("netutils > returns valid local IPv4", async () => {
     const ip = rad.netutils.getLocalIp();
     expect(rad.validutils.isIpv4(ip)).toBe(true);
+    const resolved = await rad.netutils.resolveHost("localhost");
+    expect(Array.isArray(resolved)).toBe(true);
+    expect(resolved.length).toBeGreaterThan(0);
   });
 
   // 12. validutils
@@ -372,7 +375,7 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
   });
 
   // 26. tomlutils
-  it("tomlutils > parses TOML sections and values", () => {
+  it("tomlutils > parses and serializes TOML sections and values using native Bun.TOML", async () => {
     const toml = rad.tomlutils.parseToml(`
 [database]
 host = "localhost"
@@ -385,11 +388,16 @@ tags = ["sql", "bun"]
     expect(rad.tomlutils.getBool(toml, "database.enabled")).toBe(true);
     expect(rad.tomlutils.getArray(toml, "database.tags")).toEqual(["sql", "bun"]);
 
-    const serialized = rad.tomlutils.stringifyToml({ title: "Bun RAD", count: 10 });
-    expect(serialized).toContain('title = "Bun RAD"');
-    expect(serialized).toContain("count = 10");
-  });
+    const serialized = rad.tomlutils.stringifyToml(toml);
+    expect(serialized).toContain("host = \"localhost\"");
+    expect(serialized).toContain("port = 5432");
 
+    const tmpTomlPath = `/tmp/bun_test_config_${Date.now()}.toml`;
+    await rad.tomlutils.saveToml(tmpTomlPath, toml);
+    const loaded = await rad.tomlutils.loadToml(tmpTomlPath);
+    expect(loaded.database.port).toBe(5432);
+    expect(rad.tomlutils.getString(loaded, "database.host")).toBe("localhost");
+  });
 
   // 27. htmlutils
   it("htmlutils > escapes entities and extracts elements", () => {
@@ -576,7 +584,7 @@ tags = ["sql", "bun"]
 
     const getRes = await fetch(`${srv.url}/api/v1/ping`);
     expect(getRes.status).toBe(200);
-    const getData = await getRes.json();
+    const getData = (await getRes.json()) as { pong: boolean };
     expect(getData.pong).toBe(true);
 
     const postRes = await fetch(`${srv.url}/api/v1/echo`, {
@@ -585,7 +593,7 @@ tags = ["sql", "bun"]
       body: JSON.stringify({ message: "hello server" }),
     });
     expect(postRes.status).toBe(200);
-    const postData = await postRes.json();
+    const postData = (await postRes.json()) as { message: string };
     expect(postData.message).toBe("hello server");
 
     srv.stop();

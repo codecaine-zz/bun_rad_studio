@@ -111,8 +111,8 @@ export function serveHttp(options: ServeOptions = {}): ServerInstance {
 
   return {
     port: server.port ?? 0,
-    hostname: server.hostname,
-    url: `http://${server.hostname}:${server.port}`,
+    hostname: server.hostname ?? options.hostname ?? "localhost",
+    url: `http://${server.hostname ?? options.hostname ?? "localhost"}:${server.port}`,
     stop: (closeActiveConnections = true) => server.stop(closeActiveConnections),
     raw: server,
   };
@@ -151,8 +151,8 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
 
   return {
     port: server.port ?? 0,
-    hostname: server.hostname,
-    url: `http://${server.hostname}:${server.port}`,
+    hostname: server.hostname ?? "localhost",
+    url: `http://${server.hostname ?? "localhost"}:${server.port}`,
     stop: (closeActiveConnections = true) => server.stop(closeActiveConnections),
     raw: server,
   };
@@ -173,7 +173,7 @@ export interface WebSocketHub {
 
 // Coordinator: Launch WebSocket broadcast and pub/sub hub
 export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
-  const server = Bun.serve({
+  const server = Bun.serve<{ topic: string }>({
     port: options.port ?? 0,
     fetch(req, s) {
       const url = new URL(req.url);
@@ -184,7 +184,7 @@ export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
     },
     websocket: {
       open(ws) {
-        const data = ws.data as { topic: string };
+        const data = ws.data;
         ws.subscribe(data.topic);
       },
       message(ws, msg) {
@@ -193,7 +193,7 @@ export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
         }
       },
       close(ws) {
-        const data = ws.data as { topic: string };
+        const data = ws.data;
         ws.unsubscribe(data.topic);
       },
     },

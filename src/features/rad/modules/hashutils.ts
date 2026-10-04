@@ -4,9 +4,14 @@ import { hash } from "bun";
 
 export type HashAlgorithm = "wyhash" | "cityHash64" | "cityHash32" | "crc32" | "adler32" | "murmur32v3" | "murmur64v2" | "rapidhash";
 
+// Doer: Normalize seed to bigint for 64-bit Bun hashes
+function toBigIntSeed(seed?: number | bigint): bigint | undefined {
+  return seed !== undefined ? BigInt(seed) : undefined;
+}
+
 // Doer: Compute 64-bit wyhash (default ultra-fast hash)
 export function wyhash(data: string | Uint8Array, seed?: number | bigint): bigint {
-  return hash.wyhash(data, seed);
+  return hash.wyhash(data, toBigIntSeed(seed));
 }
 
 // Doer: Compute 32-bit CRC32 checksum
@@ -21,7 +26,7 @@ export function adler32(data: string | Uint8Array): number {
 
 // Doer: Compute 64-bit CityHash
 export function cityHash64(data: string | Uint8Array, seed?: number | bigint): bigint {
-  return hash.cityHash64(data, seed);
+  return hash.cityHash64(data, toBigIntSeed(seed));
 }
 
 // Doer: Compute 32-bit CityHash
@@ -36,12 +41,12 @@ export function murmur32v3(data: string | Uint8Array, seed?: number): number {
 
 // Doer: Compute 64-bit MurmurHash2
 export function murmur64v2(data: string | Uint8Array, seed?: number | bigint): bigint {
-  return hash.murmur64v2(data, seed);
+  return hash.murmur64v2(data, toBigIntSeed(seed));
 }
 
 // Doer: Compute 64-bit rapidhash
 export function rapidhash(data: string | Uint8Array, seed?: number | bigint): bigint {
-  return hash.rapidhash(data, seed);
+  return hash.rapidhash(data, toBigIntSeed(seed));
 }
 
 // Coordinator: Compute hexadecimal digest of specified hash algorithm
@@ -96,7 +101,7 @@ export function createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01
       for (const idx of getHashes(item)) {
         const byteIdx = Math.floor(idx / 8);
         const bitMask = 1 << (idx % 8);
-        buffer[byteIdx] |= bitMask;
+        buffer[byteIdx] = (buffer[byteIdx] ?? 0) | bitMask;
       }
       itemCount++;
     },
@@ -104,7 +109,7 @@ export function createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01
       for (const idx of getHashes(item)) {
         const byteIdx = Math.floor(idx / 8);
         const bitMask = 1 << (idx % 8);
-        if ((buffer[byteIdx] & bitMask) === 0) {
+        if (((buffer[byteIdx] ?? 0) & bitMask) === 0) {
           return false;
         }
       }

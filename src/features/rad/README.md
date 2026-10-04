@@ -109,8 +109,8 @@ import {
   hashutils,
 } from "./src/features/rad/index.ts";
 
-// Option 3: Import from top-level studio entry
-import { rad, fileutils } from "./src/index.ts";
+// Option 3: Import from top-level entry
+import { rad } from "./index.ts";
 ```
 
 ---
@@ -191,549 +191,814 @@ import { rad, fileutils } from "./src/index.ts";
 ## 🛠️ Exhaustive Module-by-Module API Reference
 
 ### 1. `fileutils`
-*Asynchronous, non-blocking file, line, JSON, CSV, and directory operations.*
+*Async, non-blocking filesystem toolkit: crash-safe atomic writes, JSON / JSON-Lines / RFC 4180 CSV I/O, O(1) appends, fs predicates, recursive walking with depth & skip-lists, temp-dir lifecycles, byte formatting and streaming content hashes.*
 
 ```typescript
-import { fileutils } from "./src/features/rad/index.ts";
+import { fileutils, type FileInfo, type CsvParseOptions, type CsvCell, type WalkOptions, type FileHashAlgorithm } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+interface FileInfo { path: string; size: number; isFile: boolean; isDir: boolean; isSymlink: boolean; mtimeMs: number; birthtimeMs: number; mode: number }
+interface CsvParseOptions { trim?: boolean /* default true */; skipEmptyLines?: boolean /* default true */ }
+type CsvCell = string | number | boolean | bigint | null | undefined; // null/undefined → empty cell
+interface WalkOptions { maxDepth?: number; skipDirs?: string[]; includeDirs?: boolean }
+type FileHashAlgorithm = "md5" | "sha1" | "sha256" | "sha512" | "blake2b256";
 ```
 
 #### API Signatures
-- `ensureDir(dirPath: string): Promise<void>`: Recursively creates directories if they do not exist.
-- `fileSizeHuman(bytesOrPath: number | string): Promise<string>`: Converts bytes or file path into human-readable string (`"1.5 MB"`, `"450.0 KB"`).
-- `saveJson(filePath: string, data: unknown, pretty = true): Promise<void>`: Writes data to formatted JSON file atomically.
-- `loadJson<T>(filePath: string, fallback?: T): Promise<T>`: Reads and parses JSON file; returns fallback if missing.
-- `readLines(filePath: string): Promise<string[]>`: Reads file into an array of string lines.
-- `writeLines(filePath: string, lines: string[]): Promise<void>`: Writes an array of lines to file.
-- `appendLine(filePath: string, line: string): Promise<void>`: Appends a single line to the end of a file.
-- `copyFile(src: string, dest: string): Promise<void>`: Copies a file asynchronously.
-- `moveFile(src: string, dest: string): Promise<void>`: Moves or renames a file asynchronously.
-- `parseCsvString(csvText: string, delimiter = ","): string[][]`: Parses CSV string (including quotes and commas) into a 2D array.
-- `formatCsvString(rows: string[][], delimiter = ","): string`: Formats a 2D array into valid CSV string with escaping.
-- `readCsv(filePath: string, delimiter = ","): Promise<string[][]>`: Reads and parses a CSV file.
-- `writeCsv(filePath: string, rows: string[][], delimiter = ","): Promise<void>`: Writes a 2D array to a CSV file.
-- `walkFiles(dirPath: string, filter?: (path: string) => boolean): Promise<string[]>`: Recursively scans a directory for files matching an optional filter.
+| Function | Description |
+| :--- | :--- |
+| `ensureDir(dirPath): Promise<void>` | `mkdir -p`; no-op if present. |
+| `formatBytes(bytes, decimals = 1): string` | Sync 1024-based formatter (`B`…`EB`), keeps sign. Throws on non-finite. |
+| `parseBytes(input): number` | `"1.5 KB"` → `1536`; accepts `K/KB/KiB`…`E`, case-insensitive. Throws on garbage. |
+| `fileSizeHuman(bytesOrPath): Promise<string>` | Human size of a number **or** a file path. Throws if path missing. |
+| `pathExists(path) / isFile(path) / isDir(path): Promise<boolean>` | Never-throwing predicates. |
+| `fileInfo(path): Promise<FileInfo \| null>` | Plain-data `stat`, `null` when missing. |
+| `readText(path, fallback?): Promise<string>` | UTF-8 read; fallback when missing, else throws. |
+| `writeText(path, text, { atomic? }): Promise<number>` | Write text (parents auto-created); `atomic: true` = temp+rename. |
+| `writeFileAtomic(path, data): Promise<number>` | Crash-safe replace — readers never see half-written files. |
+| `saveJson(path, data, pretty = true): Promise<void>` | Atomic JSON write. |
+| `loadJson<T>(path, fallback?): Promise<T>` | Parse JSON; fallback on missing **or corrupt** file. |
+| `readJsonl<T>(path): Promise<T[]>` | NDJSON reader; errors include `file:line`. |
+| `writeJsonl(path, records): Promise<void>` | Atomic NDJSON writer (trailing newline). |
+| `appendJsonl(path, record): Promise<void>` | O(1) append of one record — ideal audit/event logs. |
+| `readLines(path): Promise<string[]>` | Split on `\n` / `\r\n`. Throws if missing. |
+| `writeLines(path, lines): Promise<void>` | Join with `\n` and write. |
+| `appendLine(path, line) / appendLines(path, lines): Promise<void>` | O(1) append; inserts a separator only when needed. |
+| `touch(path): Promise<void>` | Create empty file or bump mtime. |
+| `copyFile(src, dest) / moveFile(src, dest): Promise<void>` | Parents auto-created; `moveFile` falls back to copy+unlink across devices (`EXDEV`). |
+| `copyDir(src, dest, overwrite = true): Promise<void>` | Recursive `cp -R`. |
+| `removePath(path): Promise<boolean>` | `rm -rf`; returns whether something existed. |
+| `makeTempDir(prefix = "rad-"): Promise<string>` | Unique dir under the OS temp dir. |
+| `withTempDir<T>(fn, prefix?): Promise<T>` | Run `fn(dir)`; dir is **always** deleted afterwards. |
+| `hashFile(path, algorithm = "sha256"): Promise<string>` | Streaming hex digest (constant memory). |
+| `parseCsvString(text, delimiter = ",", options?): string[][]` | RFC 4180: quoted delimiters, `""` escapes, **quoted newlines**, CRLF. |
+| `formatCsvString(rows: CsvCell[][], delimiter = ","): string` | Quotes cells with delimiters, quotes, newlines or edge whitespace. |
+| `csvToObjects(rows): Record<string,string>[]` | Header row → records (missing cells = `""`). |
+| `objectsToCsv(records, columns?): CsvCell[][]` | Records → matrix (union of keys, or explicit column order). |
+| `readCsv(path, delimiter?, options?) / writeCsv(path, rows, delimiter?)` | File variants of the matrix functions. |
+| `readCsvObjects(path, delimiter?) / writeCsvObjects(path, records, columns?, delimiter?)` | File variants of the record functions. |
+| `walkFiles(dir, filter?, options?: WalkOptions): Promise<string[]>` | Recursive listing with depth limit, skip-list, optional dirs. |
+| `dirSize(dir): Promise<number>` | Total bytes under a directory. |
 
-#### Example
+#### Recipe
 ```typescript
-await fileutils.ensureDir("data/reports");
-await fileutils.saveJson("data/reports/summary.json", { status: "ready", count: 42 });
-const summary = await fileutils.loadJson("data/reports/summary.json");
-const size = await fileutils.fileSizeHuman("data/reports/summary.json");
+import { fileutils } from "./src/features/rad/index.ts";
 
-const csv = [["Name", "Role"], ["Alice", "Lead"], ["Bob", "Engineer"]];
-await fileutils.writeCsv("data/reports/team.csv", csv);
-const files = await fileutils.walkFiles("data", (f) => f.endsWith(".csv"));
+await fileutils.withTempDir(async (dir) => {
+  // Atomic config + JSON fallback
+  await fileutils.saveJson(`${dir}/config.json`, { port: 8080 });
+  const cfg = await fileutils.loadJson(`${dir}/config.json`, { port: 3000 });
+
+  // Event log (O(1) appends) → read back
+  await fileutils.appendJsonl(`${dir}/events.jsonl`, { type: "boot", at: Date.now() });
+  const events = await fileutils.readJsonl<{ type: string }>(`${dir}/events.jsonl`);
+
+  // CSV round-trip through plain records (handles commas, quotes and newlines in cells)
+  await fileutils.writeCsvObjects(`${dir}/users.csv`, [{ id: 1, bio: 'Likes "Bun",\nand TS' }]);
+  const users = await fileutils.readCsvObjects(`${dir}/users.csv`); // [{ id: "1", bio: 'Likes "Bun",\nand TS' }]
+
+  // Walk, size, hash
+  const files = await fileutils.walkFiles(dir, (p) => !p.endsWith(".tmp"), { skipDirs: ["node_modules"], maxDepth: 3 });
+  console.log(cfg.port, events.length, users[0]?.bio, files.length);
+  console.log(fileutils.formatBytes(await fileutils.dirSize(dir)), await fileutils.hashFile(`${dir}/users.csv`));
+});
 ```
 
 ---
 
 ### 2. `sqliteutils`
-*Embedded SQLite database utility powered by `bun:sqlite` with WAL mode, KV store, JSON documents, CRUD, migrations, and FTS5 search.*
+*Embedded database toolkit on native `bun:sqlite`: tuned connections (WAL, busy timeout, foreign keys), injection-safe identifier quoting, cached typed queries, transactions, schema introspection, KV store with atomic counters, JSON document store with `json_extract` queries, bulk insert & upsert, validated migrations, BM25-ranked FTS5 search and hot backups.*
 
 ```typescript
-import { sqliteutils } from "./src/features/rad/index.ts";
+import { sqliteutils, type OpenDbOptions, type SqlMigration, type SqlParams, type ColumnInfo, type StoredDoc } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+type SqlParams = any[];
+interface OpenDbOptions { wal?: boolean /* true */; readonly?: boolean; create?: boolean /* true */; foreignKeys?: boolean /* true */; busyTimeoutMs?: number /* 5000 */ }
+interface SqlMigration { version: number; up: string; name?: string }
+interface ColumnInfo { cid: number; name: string; type: string; notnull: boolean; defaultValue: string | null; primaryKey: boolean }
+interface StoredDoc<T> { id: string; doc: T; updatedAt: string }
 ```
 
 #### API Signatures
-- `openDb(path = ":memory:", pragmaWal = true): Database`: Opens an SQLite database with WAL mode and 64MB cache.
-- `closeDb(db: Database): void`: Closes database connection cleanly.
-- `execSql(db: Database, sql: string, params?: any[]): void`: Executes arbitrary SQL statements with parameter binding.
-- `createKvTable(db: Database, table = "kv_store"): void`: Creates a key-value store table (`key TEXT PRIMARY KEY, val TEXT, updated_at TEXT`).
-- `setKv(db: Database, table: string, key: string, value: unknown): void`: Inserts or replaces a key-value entry.
-- `getKv(db: Database, table: string, key: string): string | null`: Retrieves string value by key.
-- `getKvOr<T>(db: Database, table: string, key: string, fallback: T): T`: Retrieves value or returns fallback if absent.
-- `deleteKv(db: Database, table: string, key: string): boolean`: Deletes a key from the KV table.
-- `listKv(db: Database, table: string): Record<string, string>`: Returns all key-value entries as an object.
-- `createJsonStore(db: Database, table = "json_store"): void`: Creates a document store table (`id TEXT PRIMARY KEY, doc TEXT, updated_at TEXT`).
-- `saveDoc<T>(db: Database, table: string, id: string, doc: T): void`: Saves JSON document by ID.
-- `loadDoc<T>(db: Database, table: string, id: string): T | null`: Loads parsed JSON document by ID.
-- `deleteDoc(db: Database, table: string, id: string): boolean`: Removes document by ID.
-- `listDocs<T>(db: Database, table: string): { id: string; doc: T; updatedAt: string }[]`: Lists all documents.
-- `insertRow(db: Database, table: string, record: Record<string, any>): number`: Inserts record and returns last insert row ID.
-- `selectRows<T>(db: Database, table: string, columns = ["*"], whereClause?: string, params?: any[]): T[]`: Queries rows with parameterized conditions.
-- `updateRows(db: Database, table: string, updates: Record<string, any>, whereClause?: string, params?: any[]): number`: Updates rows matching criteria.
-- `deleteRows(db: Database, table: string, whereClause?: string, params?: any[]): number`: Deletes rows matching criteria.
-- `runMigrations(db: Database, migrations: SqlMigration[]): number`: Runs versioned schema migrations sequentially in a transaction.
-- `createFtsTable(db: Database, table: string, columns: string[]): void`: Creates an FTS5 full-text search table.
-- `indexFts(db: Database, table: string, row: Record<string, string>): void`: Indexes a document into FTS5.
-- `searchFts<T>(db: Database, table: string, query: string, limit = 50): T[]`: Executes full-text search query.
-- `vacuumDb(db: Database): void`: Vacuums and compacts database file.
-- `checkpointWal(db: Database): void`: Checkpoints the WAL journal to main database file.
+| Function | Description |
+| :--- | :--- |
+| `quoteIdent(name): string` | Escape a table/column name (`"` → `""`). Used internally everywhere. |
+| `openDb(path = ":memory:", options: boolean \| OpenDbOptions = true): Database` | Open with pragmas. Legacy `boolean` = WAL on/off. |
+| `closeDb(db): void` | Close connection. |
+| `execSql(db, sql, params?): void` | Run one statement. |
+| `queryAll<T>(db, sql, params?): T[]` / `queryOne<T>(…): T \| null` / `queryValue<T>(…): T \| null` | Cached prepared queries: all rows, first row, first scalar. |
+| `transaction<T>(db, fn): T` | Commit on success, rollback + rethrow on error; nests as savepoints. |
+| `tableExists(db, table): boolean` / `listTables(db): string[]` / `tableColumns(db, table): ColumnInfo[]` | Introspection. |
+| `countRows(db, table, where?, params?): number` | `COUNT(*)` with optional filter. |
+| `createKvTable(db, table = "kv_store")` | `(key PK, value TEXT, updated_at)`. |
+| `setKv(db, table, key, value)` / `getKv(db, table, key): string \| null` | Upsert / raw read (non-strings JSON-encoded). |
+| `getKvOr<T>(db, table, key, fallback): T` | JSON-decoded read with fallback. |
+| `hasKv(db, table, key): boolean` / `deleteKv(…): boolean` / `listKv(db, table): Record<string,string>` | Presence, delete, dump. |
+| `incrementKv(db, table, key, by = 1): number` | Atomic counter (`BEGIN IMMEDIATE`), returns new value. |
+| `createJsonStore(db, table = "json_store")` | `(id PK, doc TEXT, updated_at)`. |
+| `saveDoc / loadDoc<T> / deleteDoc` | Upsert, load (`null` if absent), delete by id. |
+| `listDocs<T>(db, table): StoredDoc<T>[]` | All docs with `updatedAt`. |
+| `findDocs<T>(db, table, jsonPath, value): StoredDoc<T>[]` | Query by JSON path, e.g. `"$.role"`, booleans and `null` supported. |
+| `insertRow(db, table, record): number` | Insert, returns `rowid`. Throws on empty record. |
+| `insertMany(db, table, records): number` | Bulk insert in one transaction. |
+| `upsertRow(db, table, record, conflictColumns): number` | `INSERT … ON CONFLICT DO UPDATE`. |
+| `selectRows<T>(db, table, columns = ["*"], where?, params?): T[]` | Parameterized select (WHERE may include `ORDER BY`/`LIMIT`). |
+| `selectOne<T>(db, table, where, params?): T \| null` | First match. |
+| `updateRows(db, table, updates, where?, params?): number` / `deleteRows(db, table, where?, params?): number` | Returns rows affected. |
+| `runMigrations(db, migrations): number` | Ordered, transactional, idempotent. Rejects duplicate versions; errors name the failing version. |
+| `getSchemaVersion(db): number` | Highest applied version (0 if none). |
+| `createFtsTable(db, table, columns)` / `indexFts(db, table, row)` | FTS5 table + indexing. |
+| `searchFts<T>(db, table, query, limit = 50): T[]` | `MATCH` search (`"phrase"`, `a AND b`, `pre*`). |
+| `searchFtsRanked<T>(db, table, query, limit = 50): (T & { rank })[]` | BM25 relevance order (lower = better). |
+| `vacuumDb(db)` / `checkpointWal(db)` | Compact / flush WAL. |
+| `backupDb(db, destPath)` | Consistent hot snapshot via `VACUUM INTO` (dest must not exist). |
+| `dbSizeBytes(db): number` | `page_count × page_size`. |
 
-#### Example
+#### Recipe
 ```typescript
-const db = sqliteutils.openDb("app.db");
+import { sqliteutils } from "./src/features/rad/index.ts";
 
-// KV Store
-sqliteutils.createKvTable(db, "settings");
-sqliteutils.setKv(db, "settings", "theme", "monokai_pro");
-const theme = sqliteutils.getKv(db, "settings", "theme");
+const db = sqliteutils.openDb(":memory:", { busyTimeoutMs: 10_000 });
+sqliteutils.runMigrations(db, [
+  { version: 1, name: "users", up: "CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, name TEXT);" },
+]);
+sqliteutils.insertMany(db, "users", [{ email: "a@x.io", name: "A" }, { email: "b@x.io", name: "B" }]);
+sqliteutils.upsertRow(db, "users", { email: "a@x.io", name: "Ada" }, ["email"]);
+const ada = sqliteutils.selectOne<{ name: string }>(db, "users", "email = ?", ["a@x.io"]); // { name: "Ada", ... }
 
-// Full-Text Search
-sqliteutils.createFtsTable(db, "articles", ["title", "content"]);
-sqliteutils.indexFts(db, "articles", { title: "Bun Speed", content: "Bun standard library is fast" });
-const hits = sqliteutils.searchFts(db, "articles", "fast");
+sqliteutils.transaction(db, () => {
+  sqliteutils.updateRows(db, "users", { name: "Bea" }, "email = ?", ["b@x.io"]);
+});
 
+sqliteutils.createKvTable(db, "stats");
+sqliteutils.incrementKv(db, "stats", "logins"); // 1
+
+sqliteutils.createJsonStore(db, "profiles");
+sqliteutils.saveDoc(db, "profiles", "u1", { role: "admin" });
+const admins = sqliteutils.findDocs(db, "profiles", "$.role", "admin");
+
+sqliteutils.createFtsTable(db, "notes", ["body"]);
+sqliteutils.indexFts(db, "notes", { body: "bun is fast" });
+const hits = sqliteutils.searchFtsRanked(db, "notes", "fast");
+console.log(ada?.name, admins.length, hits[0]?.rank, sqliteutils.getSchemaVersion(db));
 sqliteutils.closeDb(db);
 ```
 
 ---
 
 ### 3. `tomlutils`
-*High-performance TOML parsing and serialization powered by native `Bun.TOML` with typed deep path getters.*
+*Native `Bun.TOML` parse/stringify with contextual errors, typed dotted-path getters (array indices supported), path mutation, deep merge and one-line layered config loading.*
 
 ```typescript
-import { tomlutils } from "./src/features/rad/index.ts";
+import { tomlutils, type TomlTable } from "./src/features/rad/index.ts";
 ```
 
 #### API Signatures
-- `parseToml<T = Record<string, any>>(content: string): T`: Parses TOML string using native `Bun.TOML.parse`.
-- `stringifyToml(data: unknown): string`: Serializes a JavaScript object into formatted TOML string.
-- `loadToml<T = Record<string, any>>(filePath: string, fallback?: T): Promise<T>`: Asynchronously loads and parses a TOML file.
-- `saveToml(filePath: string, data: unknown): Promise<number>`: Serializes data and writes to a TOML file.
-- `getString(doc: Record<string, any>, keyPath: string, fallback = ""): string`: Extracts string by dotted path.
-- `getInt(doc: Record<string, any>, keyPath: string, fallback = 0): number`: Extracts integer by dotted path.
-- `getBool(doc: Record<string, any>, keyPath: string, fallback = false): boolean`: Extracts boolean by dotted path.
-- `getArray<T>(doc: Record<string, any>, keyPath: string, fallback = []): T[]`: Extracts array by dotted path.
+| Function | Description |
+| :--- | :--- |
+| `parse` / `stringify` | Raw `Bun.TOML.parse` / `Bun.TOML.stringify`. |
+| `parseToml<T>(content): T` | Parse; throws `[tomlutils.parseToml] <reason>`. |
+| `tryParseToml<T>(content): T \| null` | Parse without throwing. |
+| `stringifyToml(data): string` | Serialize to TOML. |
+| `loadToml<T>(path, fallback?): Promise<T>` | Load file; fallback on missing/invalid. |
+| `saveToml(path, data): Promise<number>` | Atomic write, parents auto-created. |
+| `loadTomlLayers<T>(paths): Promise<T>` | Load + deep-merge in order (later wins), missing files skipped. |
+| `getTomlPath(doc, keyPath): any` | Resolve `"a.b.0.c"`; `undefined` if absent. |
+| `hasTomlKey(doc, keyPath): boolean` | Presence check. |
+| `setTomlPath(doc, keyPath, value): doc` | Set, creating intermediate tables (throws if a segment is a scalar). |
+| `getString / getInt / getNumber / getBool` | Typed reads with fallbacks (`getBool` accepts `"true"/"1"/"yes"/"on"`). |
+| `getArray<T>(doc, keyPath, fallback = [])` / `getTable<T>(doc, keyPath, fallback = {})` | Collection reads. |
+| `mergeToml<T>(base, override): T` | Deep merge (tables recurse; arrays/scalars replace). |
 
-#### Example
+> [!NOTE]
+> `getInt` / `getBool` share names with `envutils`; flat imports from `index.ts` resolve to the `envutils` versions. Use `tomlutils.getInt(...)` (namespaced) for TOML documents.
+
+#### Recipe
 ```typescript
-const config = tomlutils.parseToml(`
+import { tomlutils } from "./src/features/rad/index.ts";
+
+const cfg = tomlutils.parseToml(`
 [server]
 port = 8080
-enabled = true
-cors_origins = ["http://localhost:3000", "https://app.dev"]
+cors_origins = ["http://localhost:3000"]
+[[server.upstreams]]
+host = "10.0.0.2"
 `);
+tomlutils.getInt(cfg, "server.port", 3000);               // 8080
+tomlutils.getString(cfg, "server.upstreams.0.host");      // "10.0.0.2"
+tomlutils.setTomlPath(cfg, "server.tls.enabled", true);
+const merged = tomlutils.mergeToml(cfg, { server: { port: 9090 } });
+console.log(tomlutils.stringifyToml(merged));
 
-const port = tomlutils.getInt(config, "server.port", 3000); // 8080
-const origins = tomlutils.getArray<string>(config, "server.cors_origins"); // ["http://localhost:3000", ...]
+// default.toml → local.toml override in one call (missing files are skipped)
+const layered = await tomlutils.loadTomlLayers(["./config/default.toml", "./config/local.toml"]);
 ```
 
 ---
 
 ### 4. `archiveutils`
-*Pure JavaScript and Deflate-based ZIP archive creator, extractor, and inspector without third-party dependencies.*
+*Zero-dependency ZIP writer/reader: real DOS timestamps, UTF-8 names, automatic store-vs-deflate, directory entries, EOCD-based parsing, CRC-32 verification on every read, and zip-slip-safe extraction. Limits: no Zip64 (≤ 65,535 entries, ≤ 4 GiB), no encryption.*
 
 ```typescript
-import { archiveutils } from "./src/features/rad/index.ts";
+import { archiveutils, type ZipEntryInput, type ZipEntryInfo, type ZipEntryHeader, type ZipExtractedEntry } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+interface ZipEntryInput { name: string; data: string | Uint8Array; mtime?: Date; compress?: boolean } // name ending "/" = directory
+interface ZipEntryHeader { name: string; crc32: number; compressedSize: number; uncompressedSize: number; offset: number; compressionMethod: number }
+interface ZipEntryInfo extends ZipEntryHeader { isDirectory: boolean; modified: Date }
+interface ZipExtractedEntry { name: string; data: Uint8Array }
 ```
 
 #### API Signatures
-- `zipFiles(entries: ZipEntryInput[]): Uint8Array`: Creates a standard PKZIP binary buffer from an array of files/buffers.
-- `listZipEntries(zipDataOrPath: Uint8Array | string): Promise<string[]>`: Lists file names contained within a ZIP archive.
-- `readZipEntry(zipDataOrPath: Uint8Array | string, entryName: string): Promise<Uint8Array | null>`: Extracts a single entry from a ZIP archive.
-- `unzipToDir(zipDataOrPath: Uint8Array | string, destDir: string): Promise<void>`: Unpacks all files in a ZIP archive into a destination directory.
-- `zipFile(srcPath: string, destZipPath: string): Promise<void>`: Compresses a single file into a ZIP archive on disk.
-- `zipDir(srcDir: string, destZipPath: string): Promise<void>`: Recursively compresses an entire directory into a ZIP archive.
+| Function | Description |
+| :--- | :--- |
+| `zipFiles(entries): Uint8Array` | Build an archive in memory. |
+| `zipFile(src, destZip): Promise<void>` | Zip one file (base name, mtime preserved). |
+| `zipDir(srcDir, destZip, filter?): Promise<number>` | Recursive zip; `filter(relPath)` to exclude; returns file count. |
+| `listZipEntries(zip): Promise<string[]>` | Names (bytes or path input). |
+| `listZipDetails(zip): Promise<ZipEntryInfo[]>` | Sizes, CRC, method, dir flag, modified date. |
+| `readZipEntry(zip, name): Promise<Uint8Array \| null>` | CRC-verified extraction of one entry. |
+| `readZipText(zip, name): Promise<string \| null>` | Same, decoded as UTF-8. |
+| `unzipToMemory(zip): Promise<ZipExtractedEntry[]>` | All file entries in memory. |
+| `unzipToDir(zip, destDir): Promise<number>` | Extract to disk (zip-slip protected); returns file count. |
+| `safeJoin(destDir, entryName): string` | Resolve inside `destDir` or throw. |
+| `toDosDateTime(date) / fromDosDateTime(time, date)` | MS-DOS timestamp codec (2-second resolution). |
 
-#### Example
+#### Recipe
 ```typescript
-// Create ZIP in memory
-const zipBytes = archiveutils.zipFiles([
-  { name: "readme.txt", data: "Bun RAD Suite" },
-  { name: "config.json", data: JSON.stringify({ active: true }) },
-]);
+import { archiveutils } from "./src/features/rad/index.ts";
 
-// Inspect & Unzip
-const entries = await archiveutils.listZipEntries(zipBytes); // ["readme.txt", "config.json"]
-await archiveutils.unzipToDir(zipBytes, "./extracted");
+const zip = archiveutils.zipFiles([
+  { name: "docs/", data: "" },
+  { name: "docs/readme.txt", data: "Bun RAD Suite" },
+  { name: "logo.png", data: new Uint8Array([137, 80, 78, 71]), compress: false },
+]);
+for (const e of await archiveutils.listZipDetails(zip)) console.log(e.name, e.uncompressedSize, e.modified);
+const readme = await archiveutils.readZipText(zip, "docs/readme.txt"); // "Bun RAD Suite"
+await archiveutils.unzipToDir(zip, "./extracted"); // throws on "../" entries
 ```
 
 ---
 
 ### 5. `compressutils`
-*High-velocity Gzip and Deflate compression and decompression using native Web `CompressionStream` and `DecompressionStream`.*
+*Synchronous compression on Bun's native codecs — gzip, raw deflate, zstd and brotli — with levels, Base64 helpers, a format-dispatching `compress`/`decompress` pair, magic-byte detection and file helpers.*
 
 ```typescript
-import { compressutils } from "./src/features/rad/index.ts";
+import { compressutils, type CompressionFormat, type DetectedCompression } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+type CompressionFormat = "gzip" | "deflate" | "brotli" | "zstd"; // "deflate" = raw DEFLATE
+type DetectedCompression = "gzip" | "zstd" | "zlib" | "unknown";
 ```
 
 #### API Signatures
-- `gzipCompress(data: string | Uint8Array): Uint8Array`: Compresses data into Gzip binary format.
-- `gzipDecompress(data: Uint8Array): Uint8Array`: Decompresses Gzip binary buffer.
-- `gzipCompressString(str: string): string`: Compresses a string and encodes it as Base64.
-- `gzipDecompressString(base64Str: string): string`: Decompresses Base64 Gzip string back to UTF-8 text.
-- `deflateCompress(data: string | Uint8Array): Uint8Array`: Compresses data using raw Deflate.
-- `deflateDecompress(data: Uint8Array): Uint8Array`: Decompresses raw Deflate bytes.
-- `compressionRatio(uncompressedLen: number, compressedLen: number): number`: Calculates percentage saved (`62.4`%).
+| Function | Description |
+| :--- | :--- |
+| `gzipCompress(data, level?)` / `gzipDecompress(bytes)` | Gzip (level 0–9). |
+| `gzipCompressString(str): string` / `gzipDecompressString(b64): string` | Gzip ⇄ Base64 text. |
+| `deflateCompress(data, level?)` / `deflateDecompress(bytes)` | Raw DEFLATE. |
+| `brotliCompress(data, quality = 11)` / `brotliDecompress(bytes)` | Brotli (0–11). |
+| `zstdCompress(data, level = 3)` / `zstdDecompress(bytes)` | Zstandard (1–22). |
+| `compress(data, format, level?)` / `decompress(bytes, format)` | Codec-agnostic dispatch. |
+| `detectCompression(bytes): DetectedCompression` | Magic-byte sniffing. |
+| `compressFile(src, format = "gzip", dest?): Promise<string>` | Writes `src.gz/.br/.zst/.deflate` by default. |
+| `decompressFile(src, format = "gzip", dest?): Promise<string>` | Strips the extension by default. |
+| `compressionRatio(original, compressed): number` | % saved (1 decimal; negative if larger). |
 
-#### Example
+All decompressors throw `[compressutils.<fn>] Invalid <format> data (<n> bytes): …` on corrupt input.
+
+#### Recipe
 ```typescript
-const original = "Rapid Application Development with Bun 2026!";
-const compressed = compressutils.gzipCompressString(original);
-const restored = compressutils.gzipDecompressString(compressed); // "Rapid Application Development with Bun 2026!"
-const ratio = compressutils.compressionRatio(original.length, compressed.length);
+import { compressutils } from "./src/features/rad/index.ts";
+
+const json = JSON.stringify({ rows: Array.from({ length: 500 }, (_, i) => ({ i })) });
+for (const fmt of ["gzip", "brotli", "zstd"] as const) {
+  const packed = compressutils.compress(json, fmt);
+  console.log(fmt, compressutils.compressionRatio(json.length, packed.length), "% saved");
+}
+const b64 = compressutils.gzipCompressString(json);       // safe to store in JSON / env vars
+compressutils.gzipDecompressString(b64) === json;          // true
+compressutils.detectCompression(compressutils.zstdCompress("x")); // "zstd"
 ```
 
 ---
 
 ### 6. `tarutils`
-*POSIX UStar standard TAR archive packer and unpacker for streams and files.*
+*Pure-TypeScript POSIX ustar TAR with PAX long names, directory entries, permission bits & mtimes, header checksum verification, transparent gzip (`.tar.gz` / `.tgz`) and path-traversal-safe extraction.*
 
 ```typescript
-import { tarutils } from "./src/features/rad/index.ts";
+import { tarutils, type TarEntry, type TarEntryType, type UnpackedTarEntry } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+type TarEntryType = "file" | "directory";
+interface TarEntry { name: string; data: Uint8Array | string; mode?: number; mtime?: Date; type?: TarEntryType }
+interface UnpackedTarEntry { name: string; data: Uint8Array; text: string; type: TarEntryType; mode: number; mtime: Date; size: number }
 ```
 
 #### API Signatures
-- `packTarBytes(entries: TarEntry[]): Uint8Array`: Packs memory entries into standard UStar 512-byte block TAR binary.
-- `unpackTarBytes(bytes: Uint8Array): UnpackedTarEntry[]`: Unpacks TAR binary into file entries with names and byte contents.
-- `createTarFile(srcDir: string, destTarPath: string): Promise<void>`: Archives a directory into a `.tar` file.
-- `extractTarFile(tarPath: string, destDir: string): Promise<void>`: Extracts a `.tar` file into a directory.
+| Function | Description |
+| :--- | :--- |
+| `packTarBytes(entries): Uint8Array` | Uncompressed TAR (PAX header emitted for names > ustar limits). |
+| `unpackTarBytes(bytes): UnpackedTarEntry[]` | Verifies checksums; honours PAX `path` & GNU long names; skips symlinks/devices. |
+| `listTarEntries(bytes): string[]` | Names (gzip auto-detected). |
+| `packTarGz(entries, level?) / unpackTarGz(bytes)` | Gzip-wrapped variants. |
+| `createTarFile(srcDir, destPath, filter?): Promise<number>` | Archive a directory; gzip when path ends `.gz`/`.tgz`; keeps empty dirs, modes, mtimes. |
+| `extractTarFile(tarPath, destDir): Promise<number>` | Extract (gzip auto-detected, traversal-safe); returns file count. |
+| `paxRecord(key, value): string` | Build a self-length-prefixed PAX record. |
 
-#### Example
+#### Recipe
 ```typescript
-const tarBytes = tarutils.packTarBytes([
-  { name: "package.json", data: '{"name": "demo"}' },
-  { name: "index.ts", data: 'console.log("hello");' },
+import { tarutils } from "./src/features/rad/index.ts";
+
+const tgz = tarutils.packTarGz([
+  { name: "pkg/", data: "", type: "directory" },
+  { name: "pkg/package.json", data: '{"name":"demo"}', mode: 0o644 },
+  { name: `pkg/${"very/".repeat(30)}deep.txt`, data: "long paths just work" },
 ]);
-const unpacked = tarutils.unpackTarBytes(tarBytes);
-console.log(unpacked[0].name); // "package.json"
+for (const e of tarutils.unpackTarGz(tgz)) console.log(e.type, e.name, e.size);
+await tarutils.createTarFile("./dist", "./release/dist.tgz", (rel) => !rel.endsWith(".map"));
+await tarutils.extractTarFile("./release/dist.tgz", "./restore");
 ```
 
 ---
 
 ### 7. `stateutils`
-*Managed persistent application state container with atomic file writes, auto-saving, rollback, and cross-platform config dir resolution.*
+*Persistent application state: OS-correct config/data/cache directories, `AppStateStore` with atomic saves, multi-level undo, subscriptions and patches, and a persistent `KeyValueState` bag.*
 
 ```typescript
-import { stateutils } from "./src/features/rad/index.ts";
+import { stateutils, AppStateStore, KeyValueState, type AppStateOptions, type StateListener } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+interface AppStateOptions { customPath?: string; autoSave?: boolean /* true */; historyLimit?: number /* 10 */ }
+type StateListener<T> = (next: T, prev: T) => void;
 ```
 
 #### API Signatures
-- `resolveConfigDir(appName: string): string`: Returns standard OS config directory (`~/Library/Application Support/appName`, `~/.config/appName`, `%APPDATA%/appName`).
-- `class AppStateStore<T>`: Reactive state store.
-  - `get(): T`: Returns current state snapshot.
-  - `set(updates: Partial<T>): void`: Merges partial state updates and triggers auto-save if enabled.
-  - `save(): Promise<void>`: Flushes state to disk atomically.
-  - `load(): Promise<T>`: Reloads state from disk.
-  - `rollback(): void`: Restores state to the previous snapshot before the last `set`.
-  - `reset(): void`: Resets state to default initialization values.
-- `class KeyValueState`: Key-value persistence map.
-  - `init(): Promise<void>`: Initializes storage file.
-  - `get<T>(key: string, fallback: T): T`: Gets typed value.
-  - `set(key: string, value: any): Promise<void>`: Sets key-value pair and persists.
-  - `delete(key: string): Promise<void>`: Removes key.
-  - `all(): Record<string, any>`: Returns all key-value entries.
+| Member | Description |
+| :--- | :--- |
+| `resolveConfigDir(app)` | macOS `~/Library/Application Support/app` · Win `%APPDATA%\app` · Linux `$XDG_CONFIG_HOME/app`. |
+| `resolveDataDir(app)` | macOS same · Win `%LOCALAPPDATA%\app` · Linux `$XDG_DATA_HOME/app` (`~/.local/share`). |
+| `resolveCacheDir(app)` | macOS `~/Library/Caches/app` · Win `%LOCALAPPDATA%\app\Cache` · Linux `$XDG_CACHE_HOME/app`. |
+| `new AppStateStore<T>(app, initial, options?)` | Default file: `<configDir>/<app>/state.json`. |
+| `.get(): T` / `.select(fn)` | Current state / derived value. |
+| `.update(fn): Promise<void>` | Mutate draft or return replacement; snapshots, notifies, auto-saves. |
+| `.patch(partial): Promise<void>` | Shallow merge (same semantics as `update`). |
+| `.subscribe(listener): () => void` | Change listener; returns unsubscribe. |
+| `.save(): Promise<void>` | Atomic pretty-JSON write. |
+| `.load(): Promise<T>` | Load and merge over defaults; corrupt files are ignored. |
+| `.rollback()` / `.canRollback()` | Multi-level undo (in memory). |
+| `.reset()` | Restore defaults (undoable). |
+| `.removeFile(): Promise<boolean>` | Delete the persisted file. |
+| `.filePath` / `.autoSave` / `.historyLimit` | Read-only config. |
+| `new KeyValueState(app, customPath?)` | Persistent bag: `init()`, `get(key, fallback?)`, `has`, `set`, `setMany`, `delete`, `keys()`, `all()`, `clear()`, `filePath`. |
 
-#### Example
+#### Recipe
 ```typescript
-interface UserSettings { theme: string; sidebarOpen: boolean; }
-const store = new stateutils.AppStateStore<UserSettings>("my_app", {
-  theme: "dark",
-  sidebarOpen: true,
-});
+import { stateutils } from "./src/features/rad/index.ts";
 
-store.set({ theme: "win11_slate" });
-console.log(store.get().theme); // "win11_slate"
-store.rollback();
-console.log(store.get().theme); // "dark"
+const store = new stateutils.AppStateStore("todo-app", { todos: [] as string[], theme: "dark" }, { customPath: "/tmp/todo-state.json" });
+await store.load();
+const off = store.subscribe((next, prev) => console.log(prev.todos.length, "→", next.todos.length));
+await store.update((d) => { d.todos.push("ship v2"); });
+await store.patch({ theme: "light" });
+store.rollback();                 // theme back to "dark"
+console.log(store.select((s) => s.theme));
+off();
+
+const kv = new stateutils.KeyValueState("my-cli", "/tmp/my-cli-kv.json");
+await kv.init();
+await kv.setMany({ token: "abc", region: "us-east" });
+kv.get<string>("region");         // "us-east"
 ```
 
 ---
 
 ### 8. `cacheutils`
-*In-memory high-throughput O(1) LRU and TTL caches.*
+*In-memory caches: O(1) `LRUCache` with eviction callbacks, peek, resize, iteration and stats; `TTLCache` with per-entry TTLs, sliding expiration, in-flight de-duplication (thundering-herd protection), background sweeping and stats.*
 
 ```typescript
-import { cacheutils } from "./src/features/rad/index.ts";
+import { cacheutils, LRUCache, TTLCache, type CacheStats, type TTLCacheOptions } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+interface CacheStats { hits: number; misses: number; evictions: number; size: number; hitRate: number }
+interface TTLCacheOptions { sweepIntervalMs?: number; sliding?: boolean }
 ```
 
 #### API Signatures
-- `class LRUCache<K, V>`: Least Recently Used eviction cache.
-  - `constructor(capacity: number)`
-  - `get(key: K): V | undefined`: Retrieves value and marks entry as most recently used.
-  - `set(key: K, value: V): void`: Stores value, evicting the oldest key if capacity exceeded.
-  - `has(key: K): boolean`: Checks key presence.
-  - `delete(key: K): boolean`: Removes key.
-  - `clear(): void`: Clears all entries.
-  - `size(): number`: Current number of items.
-- `class TTLCache<K, V>`: Time-To-Live auto-expiration cache.
-  - `constructor(defaultTtlMs = 60_000)`
-  - `get(key: K): V | undefined`: Retrieves unexpired item.
-  - `set(key: K, value: V, ttlMs?: number): void`: Sets item with custom or default TTL.
-  - `has(key: K): boolean`: Checks whether unexpired key exists.
-  - `delete(key: K): boolean`: Removes key.
-  - `clear(): void`: Clears cache.
-  - `size(): number`: Count of unexpired items.
+| Member | Description |
+| :--- | :--- |
+| `new LRUCache<K,V>(capacity, onEvict?)` | `onEvict(key, value)` fires on capacity evictions. |
+| `.get / .set / .has / .delete / .clear / .size()` | Core ops (`get` refreshes recency). |
+| `.peek(key)` | Read without refreshing recency. |
+| `.getOrSet(key, factory)` | Sync compute-and-cache. |
+| `.resize(capacity)` / `.capacity` | Change limit (shrinking evicts). |
+| `.keys() / .values() / .entries()` | LRU → MRU order. |
+| `.stats(): CacheStats` | Hit/miss/eviction counters. |
+| `new TTLCache<K,V>(defaultTtlMs = 60_000, options?)` | Lazy expiry + optional `sweepIntervalMs` (unref'd timer). |
+| `.get / .set(key, value, ttlMs?) / .has / .delete / .clear / .size()` | Core ops (`get` refreshes TTL when `sliding`). |
+| `.getOrSet(key, factory, ttlMs?)` | Async; concurrent callers share one factory call; failures aren't cached. |
+| `.ttl(key)` | ms remaining, `-1` if absent. |
+| `.touch(key, ttlMs?)` | Extend lifetime. |
+| `.prune()` / `.keys()` / `.stats()` / `.dispose()` | Sweep, list, counters, stop sweeper. |
 
-#### Example
+#### Recipe
 ```typescript
-const lru = new cacheutils.LRUCache<string, object>(100);
-lru.set("user:101", { name: "Alice" });
-const user = lru.get("user:101");
+import { cacheutils } from "./src/features/rad/index.ts";
 
-const ttl = new cacheutils.TTLCache<string, string>(5000); // 5 sec TTL
-ttl.set("auth_token", "xyz_123");
+const lru = new cacheutils.LRUCache<string, string>(2, (k) => console.log("evicted", k));
+lru.set("a", "A"); lru.set("b", "B"); lru.set("c", "C"); // logs "evicted a"
+lru.getOrSet("d", () => "D");
+
+const users = new cacheutils.TTLCache<string, { id: string }>(30_000, { sliding: true });
+const fetchUser = async (id: string) => ({ id });
+const [u1, u2] = await Promise.all([users.getOrSet("u1", () => fetchUser("u1")), users.getOrSet("u1", () => fetchUser("u1"))]); // ONE fetch
+console.log(u1 === u2, users.ttl("u1"), lru.stats().hitRate);
+users.dispose();
 ```
 
 ---
 
 ### 9. `arrutils` & `sliceutils`
-*Modern collection and array utilities inspired by `es-toolkit` with negative indexing and functional transformations.*
+*Immutable array toolkit (`sliceutils` is an alias). Never mutates its input. Covers access, ranges, sliding windows, keyed set algebra, multi-key stable sorting, binary search, grouping/aggregation, zipping, seeded shuffling/sampling and drag-and-drop style edits.*
 
 ```typescript
-import { arrutils, sliceutils } from "./src/features/rad/index.ts";
+import { arrutils, sliceutils, type Sortable, type SortDirection } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+type Sortable = number | string | bigint | Date | boolean;
+type SortDirection = "asc" | "desc";
 ```
 
 #### API Signatures
-- `at<T>(arr: readonly T[], index: number): T | undefined`: Safe element retrieval supporting negative indices (`-1` = last).
-- `compact<T>(arr: readonly (T | falsy)[]): T[]`: Filters out `0`, `""`, `false`, `null`, and `undefined`.
-- `unique<T>(arr: readonly T[], keyFn?: (item: T) => any): T[]` (alias `uniqBy`): De-duplicates elements.
-- `chunk<T>(arr: readonly T[], size: number): T[][]`: Splits array into chunks of specified length.
-- `flatten<T>(arr: readonly (T | readonly T[])[]): T[]`: Flattens 2D arrays into 1D.
-- `partition<T>(arr: readonly T[], predicate: (item: T) => boolean): [T[], T[]]`: Splits into `[truthy, falsy]`.
-- `intersection<T>(a: readonly T[], b: readonly T[]): T[]`: Computes set intersection.
-- `difference<T>(a: readonly T[], b: readonly T[]): T[]`: Computes elements in `a` not in `b`.
-- `drop<T>(arr: readonly T[], count = 1): T[]` / `dropRight<T>(arr, count = 1)`: Drops elements from left or right.
-- `dropWhile<T>(arr: readonly T[], predicate: (item: T) => boolean): T[]` / `dropRightWhile<T>(arr, predicate)`
-- `take<T>(arr: readonly T[], count = 1): T[]` / `takeRight<T>(arr, count = 1)`: Takes elements from left or right.
-- `takeWhile<T>(arr: readonly T[], predicate: (item: T) => boolean): T[]` / `takeRightWhile<T>(arr, predicate)`
-- `keyBy<T, K>(arr: readonly T[], keyFn: (item: T) => K): Record<K, T>`: Indexes array items into a dictionary.
-- `countBy<T, K>(arr: readonly T[], keyFn: (item: T) => K): Record<K, number>`: Counts occurrences grouped by key.
-- `minBy<T>(arr: readonly T[], fn: (item: T) => number): T | undefined`: Finds item with minimum metric.
-- `maxBy<T>(arr: readonly T[], fn: (item: T) => number): T | undefined`: Finds item with maximum metric.
-- `sumBy<T>(arr: readonly T[], fn: (item: T) => number): number`: Computes total sum by metric.
-- `zip<T, U>(a: readonly T[], b: readonly U[]): [T, U][]`: Combines elements into tuple pairs.
-- `unzip<T, U>(pairs: readonly [T, U][]): [T[], U[]]`: Decomposes tuple pairs into two arrays.
-- `shuffle<T>(arr: readonly T[]): T[]`: Unbiased Fisher-Yates array shuffle.
-- `sample<T>(arr: readonly T[], count = 1): T[]` (alias `sampleSize`): Picks random sample of elements.
-- `groupBy<T, K>(arr: readonly T[], keyFn: (item: T) => K): Record<K, T[]>`: Groups elements into dictionary of arrays.
-- `sortBy<T>(arr: readonly T[], keyFn: (item: T) => number | string | Date, direction = "asc"): T[]`: Sorts elements.
-- `frequency<T>(arr: readonly T[]): Record<T, number>`: Tallies frequency table of primitive items.
-- `tail<T>(arr: readonly T[]): T[]`: Returns all elements except the first.
-- `without<T>(arr: readonly T[], ...values: T[]): T[]`: Filters out specified values.
-- `zipObject<K, V>(keys: readonly K[], values: readonly V[]): Record<K, V>`: Creates object from separate key and value arrays.
+| Function | Description |
+| :--- | :--- |
+| `at(arr, index)` | Negative-index aware access. |
+| `first(arr)` / `head(arr)` / `last(arr)` | First / last element or `undefined`. |
+| `tail(arr)` / `initial(arr)` | All but first / all but last. |
+| `range(start, end?, step = 1): number[]` | `range(5)` → `[0..4]`; negative steps count down. Throws on `step = 0`. |
+| `compact(arr)` | Drop falsy values (`null`, `undefined`, `false`, `0`, `""`). |
+| `filterMap(arr, fn)` | Map + drop `null`/`undefined` in one pass. |
+| `unique(arr, keyFn?)` / `uniqBy` | Order-preserving de-dup (optionally by key). |
+| `chunk(arr, size)` | Fixed-size groups (last may be short). |
+| `windowed(arr, size, step = 1)` | Sliding windows (full windows only). |
+| `pairwise(arr)` | Adjacent pairs `[a,b],[b,c]…`. |
+| `flatten(arr)` / `flattenDeep(arr)` | One level / all levels. |
+| `partition(arr, pred): [pass, fail]` | Split by predicate. |
+| `count(arr, pred)` | Count matches. |
+| `intersection(a, b)` / `intersectionBy(a, b, keyFn)` | Items in both. |
+| `difference(a, b)` / `differenceBy(a, b, keyFn)` | Items in `a` not in `b`. |
+| `union(...arrays)` / `unionBy(a, b, keyFn)` | De-duplicated concatenation. |
+| `xor(a, b)` | Items in exactly one array. |
+| `drop / dropRight / dropWhile / dropRightWhile` | Remove from either end. |
+| `take / takeRight / takeWhile / takeRightWhile` | Keep from either end. |
+| `keyBy(arr, keyFn)` / `countBy` / `groupBy` | Index, tally, bucket by key. |
+| `frequency(arr)` | Tally primitive values. |
+| `minBy / maxBy / sumBy(arr, fn)` | Aggregates by projection. |
+| `zip(a, b)` / `zipWith(a, b, fn)` / `unzip(pairs)` / `zipObject(keys, values)` | Pairing helpers. |
+| `without(arr, ...values)` | Remove specific values. |
+| `shuffle(arr, rng = Math.random)` | Fisher–Yates; pass `mathutils.seededRandom(n)` for determinism. |
+| `sample(arr, count = 1, rng?)` / `sampleSize` | Random picks without replacement. |
+| `sortBy(arr, keyFn, direction = "asc")` | Stable single-key sort. |
+| `orderBy(arr, keyFns, directions?)` | Stable multi-key sort with per-key direction. |
+| `isSorted(arr, keyFn?)` | Non-decreasing check. |
+| `binarySearch(sorted, target)` | Index or `-1`. |
+| `sortedIndex(sorted, value)` | Insertion point keeping order. |
+| `insertAt(arr, index, ...items)` / `removeAt(arr, index)` | Immutable splice. |
+| `moveItem(arr, from, to)` | Reorder (drag-and-drop). |
+| `rotate(arr, n)` | Rotate left (negative = right). |
+| `toggleItem(arr, item)` | Add if absent, remove if present. |
+| `cartesianProduct(...arrays)` | Every combination. |
 
-#### Example
+#### Recipe
 ```typescript
-const items = ["alpha", "beta", "gamma", "delta"];
-const last = arrutils.at(items, -1); // "delta"
-const chunks = arrutils.chunk(items, 2); // [["alpha", "beta"], ["gamma", "delta"]]
+import { arrutils, mathutils } from "./src/features/rad/index.ts";
 
-const users = [
-  { id: "u1", name: "Alice", dept: "Eng" },
-  { id: "u2", name: "Bob", dept: "Eng" },
-  { id: "u3", name: "Charlie", dept: "HR" },
+const orders = [
+  { id: 1, customer: "ana", total: 40, day: 1 },
+  { id: 2, customer: "bo", total: 90, day: 1 },
+  { id: 3, customer: "ana", total: 15, day: 2 },
 ];
-const byDept = arrutils.groupBy(users, (u) => u.dept); // { Eng: [...], HR: [...] }
-const deptCounts = arrutils.countBy(users, (u) => u.dept); // { Eng: 2, HR: 1 }
+const ranked = arrutils.orderBy(orders, [(o) => o.customer, (o) => o.total], ["asc", "desc"]).map((o) => o.id); // [1, 3, 2]
+const byCustomer = arrutils.groupBy(orders, (o) => o.customer);                 // { ana: [...], bo: [...] }
+const deltas = arrutils.pairwise(orders.map((o) => o.total)).map(([a, b]) => b - a); // [50, -75]
+const pages = arrutils.chunk(arrutils.range(1, 8), 3);                            // [[1,2,3],[4,5,6],[7]]
+const ab = arrutils.shuffle(["A", "B", "C"], mathutils.seededRandom(42));         // deterministic
+const tags = arrutils.toggleItem(["bun", "ts"], "ts");                            // ["bun"]
+console.log(ranked, Object.keys(byCustomer), deltas, pages, ab, tags);
 ```
 
 ---
 
 ### 10. `objutils`
-*Deep path traversal, structural comparison, immutability, and transformation utilities.*
+*Safe deep object toolkit: path get/set/has/unset with quoted-bracket paths and prototype-pollution guards, pick/omit families, key/value mapping, deep clone/merge/freeze/equality, flatten/unflatten and structural diffs.*
 
 ```typescript
-import { objutils } from "./src/features/rad/index.ts";
+import { objutils, type ObjPath, type ObjectDiff } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+type ObjPath = string | readonly (string | number)[]; // "a.b[0]", 'a["x.y"]', or ["a", "b", 0]
+interface ObjectDiff { added: string[]; removed: string[]; changed: string[] } // dot-paths
 ```
 
 #### API Signatures
-- `isNil(val: unknown): val is null | undefined`: Checks if value is null or undefined.
-- `isPlainObject(val: unknown): val is Record<string, any>`: Checks if value is an Object literal.
-- `isEqual(a: unknown, b: unknown): boolean`: Deep recursive structural equality check.
-- `isEmpty(val: unknown): boolean`: Checks if object, array, set, map, or string is empty.
-- `toPath(path: string | readonly (string | number)[]): (string | number)[]`: Normalizes dotted and bracketed paths.
-- `get<T>(obj: unknown, path: string | pathArray, defaultValue?: T): T | undefined`: Safely gets nested value.
-- `has(obj: unknown, path: string | pathArray): boolean`: Tests whether nested path exists.
-- `set<T>(obj: T, path: string | pathArray, value: any): T`: Sets value at nested path, creating intermediate objects.
-- `unset(obj: any, path: string | pathArray): boolean`: Removes nested property.
-- `pick<T, K>(obj: T, keys: readonly K[]): Pick<T, K>`: Creates object composed of picked keys.
-- `pickBy<T>(obj: T, predicate: (val, key) => boolean): Partial<T>`: Picks properties satisfying predicate.
-- `omit<T, K>(obj: T, keys: readonly K[]): Omit<T, K>`: Creates object without specified keys.
-- `omitBy<T>(obj: T, predicate: (val, key) => boolean): Partial<T>`: Omits properties satisfying predicate.
-- `findKey<T>(obj: T, predicate: (val, key) => boolean): string | undefined`: Finds first key satisfying predicate.
-- `flattenObject(obj: Record<string, any>, prefix = ""): Record<string, any>`: Flattens nested object into dot-notation keys.
-- `mapKeys<T, K>(obj: T, fn: (val, key) => K): Record<K, any>`: Transforms keys.
-- `mapValues<T, V>(obj: T, fn: (val, key) => V): Record<string, V>`: Transforms values.
-- `invert(obj: Record<string, string>): Record<string, string>`: Inverts keys and values.
-- `deepClone<T>(val: T): T`: Deeply clones objects, arrays, dates, and regexes.
-- `deepMerge<T, U>(target: T, ...sources: U[]): T & U`: Deeply merges source objects into target.
+| Function | Description |
+| :--- | :--- |
+| `isNil(v)` / `isPrimitive(v)` / `isEmpty(v)` | Type predicates (`isEmpty` handles strings, arrays, Maps, Sets, objects). |
+| `isPlainObject(v)` | `true` only for `{}` / `Object.create(null)` (not Date, Map, class instances). |
+| `isEqual(a, b, strict = false)` | Deep equality (Dates, Maps, Sets, arrays); `strict` also compares prototypes. |
+| `toPath(path)` | Parse a path string into segments. |
+| `get(obj, path, default?)` / `has(obj, path)` | Safe deep read / existence. |
+| `set(obj, path, value)` | Deep write (mutates, creates arrays for numeric segments). Throws on `__proto__`/`constructor`/`prototype`. |
+| `unset(obj, path): boolean` | Deep delete. |
+| `pick / omit(obj, keys)` | Keep / drop listed keys. |
+| `pickBy / omitBy(obj, pred)` | Keep / drop by predicate. |
+| `compactObject(obj)` | Drop `null`/`undefined` values. |
+| `findKey(obj, pred)` | First matching key. |
+| `mapKeys / mapValues(obj, fn)` | Transform keys or values. |
+| `renameKeys(obj, mapping)` | `{ old: "new" }` renames. |
+| `invert(obj)` | Swap keys and values. |
+| `typedKeys / typedEntries(obj)` | `Object.keys/entries` with `keyof T` typing. |
+| `defaults(obj, ...sources)` | Fill only `undefined` keys. |
+| `deepClone(v)` | `structuredClone` with fallback. |
+| `deepMerge(target, ...sources)` | Recursive merge of plain objects (pollution-safe). |
+| `deepFreeze(v)` | Recursively `Object.freeze`. |
+| `flattenObject(obj, prefix = "", flattenArrays = false)` | `{a:{b:1}}` → `{"a.b":1}`; empty `{}` kept as leaves. |
+| `unflattenObject(flat)` | Inverse of `flattenObject`. |
+| `objectDiff(before, after): ObjectDiff` | Added / removed / changed leaf paths. |
 
-#### Example
+#### Recipe
 ```typescript
-const data = { user: { profile: { name: "Alice", email: "alice@dev.io" } } };
-const name = objutils.get(data, "user.profile.name"); // "Alice"
-objutils.set(data, "user.profile.verified", true);
+import { objutils } from "./src/features/rad/index.ts";
 
-const same = objutils.isEqual({ a: [1, 2] }, { a: [1, 2] }); // true
-const subset = objutils.pick(data.user.profile, ["name"]); // { name: "Alice" }
-const flat = objutils.flattenObject(data); // { "user.profile.name": "Alice", ... }
+const defaults = { server: { port: 3000, host: "0.0.0.0" }, features: { beta: false } };
+const user = { server: { port: 8080 }, features: { beta: true }, secret: null };
+const cfg = objutils.deepMerge(objutils.deepClone(defaults), objutils.compactObject(user) as any);
+objutils.set(cfg, 'labels["app.kubernetes.io/name"]', "api");
+const changes = objutils.objectDiff(defaults, cfg);             // { added: ["labels.app.kubernetes.io/name"], changed: ["server.port","features.beta"], removed: [] }
+const env = objutils.mapKeys(objutils.flattenObject(cfg), (_v, k) => k.toUpperCase().replace(/\W/g, "_"));
+const frozen = objutils.deepFreeze(cfg);
+console.log(objutils.get<number>(frozen, "server.port"), changes, env.SERVER_PORT);
 ```
 
 ---
 
 ### 11. `structutils`
-*Classic RAD data structures implemented with TypeScript generics.*
+*Classic data structures with predictable complexity: stack, amortized-O(1) queue, deque, overwrite-on-full ring buffer, binary min-heap, stable priority queue, prefix trie and union-find.*
 
 ```typescript
-import { structutils } from "./src/features/rad/index.ts";
+import { structutils, SimpleStack, SimpleQueue, SimpleDeque, SimpleRingBuffer, SimpleMinHeap, SimplePriorityQueue, SimpleTrie, DisjointSet } from "./src/features/rad/index.ts";
 ```
 
 #### API Signatures
-- `class SimpleStack<T>`: LIFO Stack (`push`, `pop`, `peek`, `isEmpty`, `size`, `toArray`).
-- `class SimpleQueue<T>`: FIFO Queue (`enqueue`, `dequeue`, `peek`, `isEmpty`, `size`, `toArray`).
-- `class SimpleRingBuffer<T>`: Fixed-capacity circular buffer (`constructor(capacity)`, `push`, `pop`, `peek`, `isFull`, `size`, `toArray`). Overwrites oldest item when full.
-- `class SimpleMinHeap<T>`: Priority binary min-heap (`push`, `pop`, `peek`, `size`, `toArray`).
+| Class | Members |
+| :--- | :--- |
+| `SimpleStack<T>` | `static from(items)`, `push`, `pop`, `peek`, `isEmpty`, `size`, `clear`, `toArray`, iterable. |
+| `SimpleQueue<T>` | `static from(items)`, `enqueue`, `dequeue` (amortized O(1)), `peek`, `isEmpty`, `size`, `clear`, `toArray`, iterable. |
+| `SimpleDeque<T>` | `pushBack`, `pushFront`, `popFront`, `popBack`, `peekFront`, `peekBack`, `at(i)`, `size`, `isEmpty`, `clear`, `toArray`. |
+| `SimpleRingBuffer<T>(capacity)` | `push(item): evicted \| undefined`, `pop` (oldest), `peek` (oldest), `peekLast`, `at(i)`, `isFull`, `isEmpty`, `size`, `clear`, `toArray` (oldest → newest). |
+| `SimpleMinHeap<T>(compareFn?)` | `static from(items, compareFn?)` (O(n) heapify), `push`, `pop`, `peek`, `size`, `isEmpty`, `clear`, `toArray`, `drain()` (sorted, empties heap). |
+| `SimplePriorityQueue<T>` | `enqueue(item, priority = 0)` (lower = sooner, FIFO among ties), `dequeue`, `peek`, `size`, `isEmpty`, `clear`. |
+| `SimpleTrie(words?)` | `add(word): boolean`, `has`, `hasPrefix`, `delete`, `withPrefix(prefix, limit?)`, `size`. |
+| `DisjointSet<T>` | `add`, `find`, `union(a, b): boolean`, `connected`, `setSize`, `groups()`. |
 
-#### Example
+#### Recipe
 ```typescript
-// Circular Ring Buffer for rolling telemetry or logs
-const buffer = new structutils.SimpleRingBuffer<number>(3);
-buffer.push(10);
-buffer.push(20);
-buffer.push(30);
-buffer.push(40); // Overwrites 10
-console.log(buffer.toArray()); // [20, 30, 40]
+import { structutils } from "./src/features/rad/index.ts";
 
-// Min Heap for priority task scheduling
-const heap = new structutils.SimpleMinHeap<number>();
-heap.push(50);
-heap.push(10);
-heap.push(30);
-console.log(heap.pop()); // 10
+const jobs = new structutils.SimplePriorityQueue<string>();
+jobs.enqueue("send-newsletter", 5);
+jobs.enqueue("charge-card", 1);
+const next = jobs.dequeue();                                         // "charge-card"
+
+const recent = new structutils.SimpleRingBuffer<number>(3);
+[120, 95, 300, 80].forEach((ms) => recent.push(ms));                 // keeps last 3: [95, 300, 80]
+
+const commands = new structutils.SimpleTrie(["deploy", "deploy:prod", "dev", "doctor"]);
+const suggestions = commands.withPrefix("dep");                      // ["deploy", "deploy:prod"]
+
+const accounts = new structutils.DisjointSet<string>();
+accounts.union("ana@x.io", "ana@y.io");
+accounts.union("ana@y.io", "+1-555-0100");
+console.log(next, recent.toArray(), suggestions, accounts.connected("ana@x.io", "+1-555-0100"));
 ```
 
 ---
 
 ### 12. `statutils`
-*Comprehensive statistical and econometric calculation engine.*
+*Descriptive and inferential statistics on plain number arrays: central tendency (arithmetic/weighted/geometric/harmonic), spread, percentiles and Tukey outliers, shape, correlation (Pearson/Spearman), linear regression with R², smoothing, normalization, histograms and one-call summaries.*
 
 ```typescript
-import { statutils } from "./src/features/rad/index.ts";
+import { statutils, type StatsSummary, type LinearModel, type HistogramBin } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+interface StatsSummary { count: number; sum: number; mean: number; median: number; min: number; max: number; variance: number; stdDev: number; q1: number; q3: number; iqr: number }
+interface LinearModel { slope: number; intercept: number; r2: number }
+interface HistogramBin { start: number; end: number; count: number }
 ```
 
 #### API Signatures
-- `mean(nums: number[]): number`: Arithmetic mean.
-- `median(nums: number[]): number`: Median value.
-- `mode(nums: number[]): number[]`: Most frequent value(s).
-- `variance(nums: number[], sample = true): number`: Sample or population variance.
-- `stdDev(nums: number[], sample = true): number`: Standard deviation.
-- `sem(nums: number[]): number`: Standard error of the mean ($s / \sqrt{n}$).
-- `quartiles(nums: number[]): [number, number, number]`: Q1 (25th), Q2 (50th), Q3 (75th) percentiles.
-- `iqr(nums: number[]): number`: Interquartile range (Q3 - Q1).
-- `skewness(nums: number[]): number`: Fisher-Pearson coefficient of skewness.
-- `kurtosis(nums: number[]): number`: Sample excess kurtosis.
-- `covariance(x: number[], y: number[]): number`: Sample covariance between two series.
-- `pearsonCorrelation(x: number[], y: number[]): number`: Pearson correlation coefficient ($r \in [-1, 1]$).
-- `linearRegression(x: number[], y: number[]): { slope: number; intercept: number; r2: number }`: Ordinary Least Squares linear regression.
-- `zScore(val: number, meanVal: number, stdDevVal: number): number`: Calculates standard score ($z$).
-- `movingAverage(nums: number[], windowSize: number): number[]`: Computes rolling simple moving average.
+| Function | Description |
+| :--- | :--- |
+| `mean / median / mode(nums)` | `mode` returns all modes. Empty input → `0` / `[]`. |
+| `weightedMean(values, weights)` | Throws on length mismatch; zero total weight → `0`. |
+| `geometricMean / harmonicMean(nums)` | Positive inputs only; returns `0` for empty or non-positive input. |
+| `minMax(nums)` | `{ min, max }` in one pass. |
+| `variance / stdDev(nums, sample = true)` | Sample (n−1) or population. |
+| `sem(nums)` | Standard error of the mean. |
+| `percentile(nums, p)` | Linear interpolation, `p` in `0..100`. |
+| `quartiles(nums)` / `iqr(nums)` | Tukey median-of-halves. |
+| `detectOutliers(nums, k = 1.5)` | Values outside Tukey fences. |
+| `skewness / kurtosis(nums)` | Shape (sample-adjusted; excess kurtosis). |
+| `covariance / pearsonCorrelation(x, y)` | Linear relationship. |
+| `rank(nums)` / `spearmanCorrelation(x, y)` | Average ranks for ties; rank correlation. |
+| `linearRegression(x, y): LinearModel` / `predictLinear(model, x)` | OLS fit and prediction. |
+| `zScore(v, mean, sd)` / `zScores(nums)` | Standardization. |
+| `normalize(nums)` | Min-max scale to `0..1`. |
+| `movingAverage(nums, window)` / `exponentialMovingAverage(nums, alpha)` | Smoothing. |
+| `histogram(nums, bins = 10): HistogramBin[]` | Equal-width bins (max lands in last bin). |
+| `summarize(nums): StatsSummary` | Everything above in one object. |
 
-#### Example
+#### Recipe
 ```typescript
-const scores = [12, 15, 14, 10, 18, 20, 22, 24];
-const avg = statutils.mean(scores); // 17.375
-const [q1, q2, q3] = statutils.quartiles(scores);
-const model = statutils.linearRegression([1, 2, 3, 4], [10, 20, 30, 40]);
-console.log(`Slope: ${model.slope}, R²: ${model.r2}`); // Slope: 10, R²: 1
+import { statutils } from "./src/features/rad/index.ts";
+
+const latencies = [12, 15, 11, 14, 13, 12, 250, 16, 13, 12];
+const s = statutils.summarize(latencies);
+const p95 = statutils.percentile(latencies, 95);
+const spikes = statutils.detectOutliers(latencies);                 // [250]
+const smooth = statutils.exponentialMovingAverage(latencies, 0.3);
+const fit = statutils.linearRegression([1, 2, 3, 4], [110, 205, 290, 410]);
+const forecast = statutils.predictLinear(fit, 5);                   // ≈ 500
+console.log(s.median, p95, spikes, smooth.at(-1), fit.r2.toFixed(3), forecast);
 ```
 
 ---
 
 ### 13. `mathutils`
-*Spatial math, number theory, and geometric collision utilities.*
+*Numeric toolkit: interpolation & remapping, drift-free rounding, epsilon comparisons, 2D geometry (points, angles, rotation, rectangles), number theory (primes, factorization, BigInt factorial, binomials), percentages and seeded / cryptographically secure randomness.*
 
 ```typescript
-import { mathutils } from "./src/features/rad/index.ts";
+import { mathutils, type Point2D, type Rect } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+interface Point2D { x: number; y: number }
+interface Rect { x: number; y: number; width: number; height: number }
 ```
 
 #### API Signatures
-- `lerp(a: number, b: number, t: number): number`: Linear interpolation between $a$ and $b$ at fraction $t$.
-- `remap(val: number, inMin: number, inMax: number, outMin: number, outMax: number): number`: Maps value from one range to another.
-- `clamp(val: number, min: number, max: number): number`: Restricts number within inclusive range.
-- `roundToStep(val: number, step: number): number`: Rounds value to the nearest multiple of step.
-- `distance(p1: Point2D, p2: Point2D): number`: Euclidean distance between two 2D points.
-- `midpoint(p1: Point2D, p2: Point2D): Point2D`: Midpoint between two 2D points.
-- `rectIntersects(r1: Rect, r2: Rect): boolean`: Axis-Aligned Bounding Box (AABB) intersection check.
-- `rectArea(r: Rect): number`: Computes area of rectangle.
-- `gcd(a: number, b: number): number`: Greatest Common Divisor (Euclidean algorithm).
-- `lcm(a: number, b: number): number`: Least Common Multiple.
-- `isPowerOfTwo(n: number): boolean`: Fast bitwise power of two test.
-- `inRange(val: number, start: number, end?: number): boolean`: Checks if number is in range $[start, end)$.
-- `sum(arr: readonly number[]): number`: Sums all numbers in array.
-- `sumBy<T>(arr: readonly T[], fn: (item: T) => number): number`: Sums numbers by selector function.
-- `randomInt(min: number, max: number): number`: Inclusive random integer in $[min, max]$.
-- `round(val: number, precision = 0): number`: Rounds number to specified decimal places.
+| Function | Description |
+| :--- | :--- |
+| `lerp(a, b, t)` / `inverseLerp(a, b, v)` / `remap(v, inMin, inMax, outMin, outMax)` | Interpolation. |
+| `clamp(v, min, max)` / `wrap(v, min, max)` | Bound or wrap-around (angles, carousels). |
+| `roundToStep(v, step)` / `round(v, precision = 0)` | Snap; `round(1.005, 2) === 1.01`. |
+| `approxEqual(a, b, epsilon = 1e-9)` | Float-safe equality. |
+| `distance / midpoint(p1, p2)` | Point geometry. |
+| `angleBetween(p1, p2)` / `rotatePoint(p, radians, origin?)` | Angles in radians. |
+| `degToRad / radToDeg` | Conversions. |
+| `rectIntersects / rectIntersection / rectUnion / rectContainsPoint / rectArea` | Axis-aligned rectangles. |
+| `gcd / lcm(a, b)` | Integer math. |
+| `isPowerOfTwo / nextPowerOfTwo(n)` | Buffer sizing. |
+| `isPrime(n)` / `primeFactors(n)` | Number theory. |
+| `factorial(n): bigint` / `binomial(n, k)` | Exact combinatorics. |
+| `inRange(v, start, end?)` | `[start, end)` (single arg = `[0, start)`). |
+| `sum / product(arr)` / `sumBy(arr, fn)` | Aggregates. |
+| `percentOf(part, whole)` / `percentChange(from, to)` | Percentages. |
+| `randomInt / randomFloat(min, max)` | `Math.random`-based (inclusive int). |
+| `secureRandomInt(min, max)` | `crypto.getRandomValues`, unbiased. |
+| `seededRandom(seed): () => number` | Reproducible mulberry32 PRNG. |
 
-#### Example
+#### Recipe
 ```typescript
-const alpha = mathutils.lerp(0, 100, 0.75); // 75
-const normalized = mathutils.remap(50, 0, 100, 0, 1); // 0.5
-const r1 = { x: 0, y: 0, width: 10, height: 10 };
-const r2 = { x: 5, y: 5, width: 10, height: 10 };
-const colliding = mathutils.rectIntersects(r1, r2); // true
-const factor = mathutils.gcd(48, 18); // 6
+import { mathutils } from "./src/features/rad/index.ts";
+
+const progress = mathutils.inverseLerp(0, 250, 75);                  // 0.3
+const barWidth = Math.round(mathutils.lerp(0, 40, progress));        // 12
+const heading = mathutils.wrap(350 + 30, 0, 360);                    // 20
+const price = mathutils.round(19.999 * 1.0825, 2);                   // 21.65
+const overlap = mathutils.rectIntersection({ x: 0, y: 0, width: 100, height: 50 }, { x: 80, y: 20, width: 50, height: 50 });
+const rng = mathutils.seededRandom(2026);
+const dice = mathutils.secureRandomInt(1, 6);
+console.log(barWidth, heading, price, overlap, rng(), dice, mathutils.percentChange(80, 100)); // … 25
 ```
 
 ---
 
 ### 14. `bitutils`
-*Bitwise flag manipulation and fast binary `BitSet`.*
+*Bit-level toolkit: a fixed-size `BitSet` with set algebra and scanning, integer bit helpers, and typed named-flag registries for permissions/feature masks.*
 
 ```typescript
-import { bitutils } from "./src/features/rad/index.ts";
+import { bitutils, BitSet } from "./src/features/rad/index.ts";
 ```
 
 #### API Signatures
-- `class BitSet`: High-performance 32-bit word binary bit array.
-  - `constructor(size: number)`
-  - `set(index: number, val = true): void`
-  - `get(index: number): boolean`
-  - `clear(index: number): void`
-  - `toggle(index: number): void`
-  - `countSet(): number`: Total number of active 1 bits.
-  - `toBinaryString(): string`: Formatted binary representation.
-- `popcount(n: number): number`: Counts number of set bits in 32-bit integer (Hamming weight).
-- `setFlag(flags: number, mask: number): number`: Activates bit flag.
-- `hasFlag(flags: number, mask: number): boolean`: Tests if bit flag is active.
-- `clearFlag(flags: number, mask: number): number`: Deactivates bit flag.
-- `toggleFlag(flags: number, mask: number): number`: Toggles bit flag.
+| Member | Description |
+| :--- | :--- |
+| `new BitSet(size)` / `BitSet.fromIndices(size, indices)` / `BitSet.fromBinaryString("0101")` | Construct (index 0 = leftmost char). |
+| `set(i, val = true)` / `get(i)` / `clear(i)` / `toggle(i)` / `fill(val = true)` | Bit access; out-of-range writes are ignored, reads return `false` (backward-compatible). |
+| `countSet()` / `any()` / `none()` / `all()` | Population queries. |
+| `nextSetBit(from = 0)` / `toIndices()` | Scanning (`-1` when none). |
+| `and / or / xor / andNot(other)` | New BitSet (sizes must match). |
+| `clone()` / `equals(other)` / `toBinaryString()` | Utilities. |
+| `popcount(n)` / `countTrailingZeros(n)` | 32-bit counts. |
+| `getBit / setBit / clearBit / toggleBit(n, i)` | Integer bit ops. |
+| `toBinary(n, width = 32)` | Zero-padded binary string. |
+| `setFlag / hasFlag / hasAnyFlag / clearFlag / toggleFlag(flags, mask)` | Mask ops. |
+| `defineFlags(names)` | `["read","write"]` → `{ read: 1, write: 2 }` (max 31). |
+| `combineFlags(map, names)` / `describeFlags(value, map)` | Names ↔ mask. |
 
-#### Example
+#### Recipe
 ```typescript
-const bits = new bitutils.BitSet(64);
-bits.set(0);
-bits.set(42);
-console.log(bits.get(42)); // true
-console.log(bits.countSet()); // 2
+import { bitutils } from "./src/features/rad/index.ts";
 
-const READ = 1, WRITE = 2, EXEC = 4;
-let perms = bitutils.setFlag(0, READ | WRITE);
-console.log(bitutils.hasFlag(perms, WRITE)); // true
+const Perm = bitutils.defineFlags(["read", "write", "delete", "admin"] as const);
+let role = bitutils.combineFlags(Perm, ["read", "write"]);
+role = bitutils.setFlag(role, Perm.delete);
+const canMutate = bitutils.hasAnyFlag(role, Perm.write | Perm.delete);   // true
+const names = bitutils.describeFlags(role, Perm);                         // ["read","write","delete"]
+
+const mon = bitutils.BitSet.fromIndices(7, [0, 2, 4]);                    // Mon/Wed/Fri
+const tue = bitutils.BitSet.fromIndices(7, [1, 2]);
+const shared = mon.and(tue).toIndices();                                   // [2]
+console.log(canMutate, names, shared, bitutils.toBinary(role, 4));
 ```
 
 ---
 
 ### 15. `graphutils`
-*Directed Graph (DAG) construction, topological sort, cycle detection, and pathfinding.*
+*Directed or undirected, optionally weighted graph: topological sort with cycle diagnostics, cycle path extraction, BFS/DFS (iterative), fewest-hop and Dijkstra shortest paths, weak & strong (Tarjan) components, mutation, introspection and JSON round-trips.*
 
 ```typescript
-import { graphutils } from "./src/features/rad/index.ts";
+import { graphutils, Graph, newGraph, type GraphNode, type GraphOptions, type GraphEdge, type GraphJSON, type WeightedPath } from "./src/features/rad/index.ts";
+```
+
+#### Types
+```typescript
+type GraphNode = string | number;
+interface GraphOptions { directed?: boolean /* default true */ }
+interface GraphEdge<T> { from: T; to: T; weight: number }
+interface GraphJSON<T> { directed: boolean; nodes: T[]; edges: GraphEdge<T>[] }
+interface WeightedPath<T> { path: T[]; distance: number }
 ```
 
 #### API Signatures
-- `class Graph<T extends string | number>`: Directed graph.
-  - `addNode(node: T): void`
-  - `addEdge(from: T, to: T): void`
-  - `getNeighbors(node: T): T[]`
-  - `getNodes(): T[]`
-  - `topologicalSort(): T[]`: Returns dependency order via Kahn's algorithm (throws on cycles).
-  - `hasCycle(): boolean`: Returns whether the graph contains any cycle.
-  - `bfs(start: T): T[]`: Breadth-first traversal order.
-  - `dfs(start: T): T[]`: Depth-first traversal order.
-  - `shortestPath(start: T, end: T): T[] | null`: Unweighted shortest path sequence via BFS.
-- `newGraph<T>(): Graph<T>`: Factory helper.
+| Member | Description |
+| :--- | :--- |
+| `newGraph<T>(options?)` / `new Graph<T>(options?)` | Create. |
+| `Graph.fromEdges(edges, options?)` / `Graph.fromJSON(json)` | Build from `[from, to, weight?]` tuples or a snapshot. |
+| `addNode(n)` / `addEdge(from, to, weight = 1)` | Chainable; non-finite weights throw. |
+| `removeNode(n)` / `removeEdge(from, to)` | Return `boolean`. |
+| `hasNode` / `hasEdge` / `getEdgeWeight` | Lookups. |
+| `getNodes()` / `getEdges()` / `getNeighbors(n)` / `predecessors(n)` | Listings (insertion order). |
+| `nodeCount` / `edgeCount` / `inDegree(n)` / `outDegree(n)` | Counts. |
+| `topologicalSort()` | Kahn order; throws `[graphutils.topologicalSort]` on cycles (lists stuck nodes) or undirected graphs. |
+| `hasCycle()` / `findCycle(): T[] \| null` | Cycle detection with closed path `[a, b, a]`. |
+| `bfs(start)` / `dfs(start)` / `reachableFrom(start)` | Traversals. |
+| `shortestPath(start, end)` | Fewest hops (unweighted). |
+| `dijkstra(start, end): WeightedPath \| null` / `distancesFrom(start)` | Weighted shortest paths; negative weights throw. |
+| `connectedComponents()` / `stronglyConnectedComponents()` | Weak / strong components. |
+| `reverse()` / `clone()` / `clear()` / `toJSON()` | Utilities. |
 
-#### Example
+#### Recipe
 ```typescript
-const g = graphutils.newGraph<string>();
-g.addEdge("compile", "test");
-g.addEdge("test", "package");
-g.addEdge("package", "deploy");
+import { graphutils } from "./src/features/rad/index.ts";
 
-const buildOrder = g.topologicalSort(); // ["compile", "test", "package", "deploy"]
-const path = g.shortestPath("compile", "deploy"); // ["compile", "test", "package", "deploy"]
+// Build pipeline ordering
+const tasks = graphutils.Graph.fromEdges<string>([["install", "build"], ["build", "test"], ["build", "lint"], ["test", "deploy"], ["lint", "deploy"]]);
+const order = tasks.topologicalSort();                    // ["install","build","test","lint","deploy"]
+
+// Road network routing
+const roads = graphutils.newGraph<string>({ directed: false });
+roads.addEdge("A", "B", 7).addEdge("B", "C", 2).addEdge("A", "C", 12).addEdge("C", "D", 3);
+const route = roads.dijkstra("A", "D");                   // { path: ["A","B","C","D"], distance: 12 }
+
+// Circular import detection
+const imports = graphutils.Graph.fromEdges<string>([["a.ts", "b.ts"], ["b.ts", "c.ts"], ["c.ts", "a.ts"]]);
+const cycle = imports.findCycle();                        // ["a.ts","b.ts","c.ts","a.ts"]
+const snapshot = JSON.stringify(roads);                   // persist & restore with Graph.fromJSON
+console.log(order, route, cycle, graphutils.Graph.fromJSON(JSON.parse(snapshot)).edgeCount);
 ```
 
 ---
@@ -1534,6 +1799,7 @@ import { timeutils } from "./src/features/rad/index.ts";
 - `endOfMonth(date = new Date()): Date`: Returns last day of month.
 - `addDays(date: Date, days: number): Date`: Date arithmetic.
 - `diffDays(d1: Date, d2: Date): number`: Calendar day difference between dates.
+- `nanoseconds(): number`: High-resolution monotonic timestamp in nanoseconds powered by native `Bun.nanoseconds()`.
 - `createStopwatch(): Stopwatch`: High-resolution stopwatch using `performance.now()`.
   - `start(): void`
   - `stop(): number`: Returns elapsed milliseconds.
@@ -1556,26 +1822,18 @@ console.log(`Execution time: ${sw.stop().toFixed(2)} ms`);
 
 ## ⚡ Quick Start Interactive Tooling & CLI
 
-Bun RAD Studio ships with dedicated CLI runners and desktop GUI workstations so you can test, benchmark, and explore every single utility interactively:
+Bun System Utilities ships with dedicated CLI runners and comprehensive interactive showcases so you can test, benchmark, and explore every single utility:
 
 ```bash
 # ⚡ 1. Interactive 44-Module Benchmark Dashboard
 bun run rad
-# or: bun run src/features/rad/radCli.ts
+# or: bun run index.ts rad
 
 # 📚 2. End-to-End Dual Cookbook (10 CLI Tools + 44 RAD Modules)
 bun run rad:cookbook
 # or: bun run examples/rad_cookbook.ts
 
-# 🖥️ 3. Full Desktop GUI Workstation (Interactive Playground & Live Tester)
-bun run app:rad
-# or: bun run applications/rad_studio.ts
-
-# 🛠️ 4. Dedicated CLI Companion
-bun run cli:rad --list
-bun run cli:rad --module fileutils
-bun run cli:rad --recipe arrutils
-
-# 🧪 5. Run Full Test Suite
-bun test src/features/rad/rad.test.ts
+# 🧪 3. Run Full Test Suite
+bun test
+# or: bun test src/features/rad/rad.test.ts
 ```

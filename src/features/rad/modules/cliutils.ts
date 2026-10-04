@@ -116,6 +116,7 @@ export function wrapAnsi(text: string, columns: number): string {
 }
 
 export const cliutils = {
+  colors,
   bold,
   dim,
   red,
@@ -130,9 +131,14 @@ export const cliutils = {
   sliceAnsi,
   wrapAnsi,
   formatProgressBar,
+  progressBar: formatProgressBar,
   renderSparkline,
+  sparkline: renderSparkline,
   renderBarChart,
+  barChart: renderBarChart,
   renderGauge,
+  gauge: renderGauge,
   renderTree,
+  tree: renderTree,
 };
 
