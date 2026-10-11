@@ -4369,7 +4369,7 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
           if (done) break;
           buffer += decoder.decode(value);
           const m = buffer.match(/READY:(\d+)/);
-          if (m) {
+          if (m && m[1]) {
             detectedPort = parseInt(m[1], 10);
             break;
           }
@@ -4390,10 +4390,11 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
             initialDbPath: activeDbPath || ":memory:",
           });
           app.server = srv;
+          const serverPort = srv.port ?? 0;
           info = {
             ready: true,
-            port: srv.port,
-            url: `http://127.0.0.1:${srv.port}`,
+            port: serverPort,
+            url: `http://127.0.0.1:${serverPort}`,
             type: "sqlite_studio",
           };
         }
