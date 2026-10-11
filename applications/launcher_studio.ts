@@ -1572,7 +1572,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${res.output || "(No console output returned)"}`
           );
         }
-        setTimeout(() => applyFilters(w), 800);
+        setTimeout(() => applyFilters(w, undefined, true), 800);
       } else {
         w.appendConsole("launcher_console", `[Launch Error] ${res.message}\n`, 3);
         w.setText("txt_output", `[Error Launching Tool]\n${res.message}`);
@@ -1585,11 +1585,43 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     }
   }
 
-  function applyFilters(w: SimpleWindow) {
-    const query = (w.getValue("txt_search") || "").trim().toLowerCase();
-    const catChoice = w.getValue("dd_category") || "🌟 All Project Tools";
+  // Debounced entry point: collapses rapid keystroke/dropdown events into one filter pass
+  // so overlapping IPC callbacks cannot interleave DOM rebuilds.
+  let filterTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string }, delay = 120) {
+    if (filterTimer) clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => {
+      filterTimer = null;
+      applyFilters(w, overrides);
+    }, delay);
+  }
 
-    const fresh = scanAllApplications();
+  let cachedScan: ReturnType<typeof scanAllApplications> | null = null;
+  let cachedScanAt = 0;
+  function getScan(force: boolean) {
+    const now = Date.now();
+    if (force || !cachedScan || now - cachedScanAt > 3000) {
+      cachedScan = scanAllApplications();
+      cachedScanAt = now;
+    }
+    return cachedScan;
+  }
+
+  function applyFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string }, forceScan = false) {
+    try {
+      applyFiltersInner(w, overrides, forceScan);
+    } catch (err) {
+      console.error("[Launcher] applyFilters failed:", err);
+    }
+  }
+
+  function applyFiltersInner(w: SimpleWindow, overrides?: { query?: string; cat?: string }, forceScan = false) {
+    const rawQuery = overrides?.query !== undefined ? overrides.query : w.getValue("txt_search");
+    const query = String(rawQuery ?? "").trim().toLowerCase();
+    const rawCat = overrides?.cat !== undefined ? overrides.cat : w.getValue("dd_category");
+    const catChoice = String(rawCat || "🌟 All Project Tools");
+
+    const fresh = getScan(forceScan);
 
     currentApps = fresh.apps.filter((a) => {
       // Category filter
@@ -1658,17 +1690,17 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.toast("Configuration saved successfully!");
   });
 
-  win.onClick("btn_filter", (w) => applyFilters(w));
+  win.onClick("btn_filter", (w) => applyFilters(w, undefined, true));
   win.onClick("btn_clear_filter", (w) => {
     w.setValue("txt_search", "");
     w.setValue("dd_category", "🌟 All Project Tools");
-    applyFilters(w);
+    applyFilters(w, { query: "", cat: "🌟 All Project Tools" }, true);
   });
 
   // Quick Favorites Filter Action
   const filterToFavorites = (w: SimpleWindow) => {
     w.setValue("dd_category", "⭐ Pinned Favorites");
-    applyFilters(w);
+    applyFilters(w, { cat: "⭐ Pinned Favorites" }, true);
   };
   win.onClick("btn_quick_favs", filterToFavorites);
   win.onClick("btn_quick_favs_filter", filterToFavorites);
@@ -1701,19 +1733,19 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     selectedApp.isFavorite = isFav;
     w.toast(isFav ? `⭐ Favorited: ${selectedApp.displayName}` : `☆ Removed Favorite: ${selectedApp.displayName}`);
 
-    const fresh = scanAllApplications();
+    const fresh = getScan(true);
     w.setValue("lbl_kpi_favs", `⭐ Favorites: ${fresh.kpis.favorites}`);
 
     updateSelectedView(w, selectedApp);
-    applyFilters(w);
+    applyFilters(w, undefined, true);
   };
   win.onClick("btn_fav", handleToggleFavorite);
   win.onClick("btn_quick_toggle_fav", handleToggleFavorite);
 
   // Real-time filter reactivity on input / dropdown change
-  win.onEnter("txt_search", (w) => applyFilters(w));
-  win.onChange("txt_search", (w) => applyFilters(w));
-  win.onChange("dd_category", (w) => applyFilters(w));
+  win.onEnter("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0));
+  win.onChange("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }));
+  win.onChange("dd_category", (w, val: any) => scheduleFilters(w, { cat: typeof val === "string" ? val : undefined }, 0));
 
   win.onClick("btn_rescan", (w) => {
     const fresh = scanAllApplications();
@@ -1862,7 +1894,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (res.success) {
       w.appendConsole("launcher_console", `[Process Terminated] ${res.message}\n`, 3);
       w.toast(`🛑 ${res.message}`);
-      setTimeout(() => applyFilters(w), 600);
+      setTimeout(() => applyFilters(w, undefined, true), 600);
     } else {
       w.toast(`❌ ${res.message}`);
     }
