@@ -24,6 +24,7 @@ import {
   getWindowShortcutsScript,
 } from "../index.ts";
 import { startSqliteStudioServer } from "./sqlite_studio_server.ts";
+import { CRUD_STYLE, CRUD_SCRIPT } from "./sqlite_studio_crud.ts";
 
 export interface SqliteStudioOptions {
   fullscreen?: boolean;
@@ -1450,6 +1451,7 @@ export function generateSqliteStudioHtml(): string {
       outline: none;
       color: var(--text-main);
     }
+${CRUD_STYLE}
   </style>
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
@@ -4255,6 +4257,9 @@ export function generateSqliteStudioHtml(): string {
         selectTable(currentSchema.tables[0].name);
       }
     });
+  </script>
+  <script>
+${CRUD_SCRIPT}
   </script>
   <script>
 ${getWindowShortcutsScript()}

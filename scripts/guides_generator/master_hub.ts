@@ -20,7 +20,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### 🗄️ 1. Core Systems & Workstations
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- |
-| **01** | [Database Studio Pro](01_database_studio.md) | SQLite query editor, schema DDL, query plan optimizer, CSV/JSON/SQL export. | \`bun run app:database\` | \`bun run cli:database\` |
+| **01** | [Database Studio Pro](01_database_studio.md) | Full GUI CRUD (no SQL needed): table designer, row forms, inline edit, CSV/JSON/SQL/clipboard import, export & backup, query plans. | \`bun run app:database\` | \`bun run cli:database\` |
 | **02** | [System & Package Workstation](02_system_package_studio.md) | Hardware telemetry (RAM/CPU/Uptime), Bun cache analysis, npm/bun registry search. | \`bun run app:system\` | \`bun run cli:system\` |
 | **03** | [Task Watcher Studio](03_task_watcher_studio.md) | Native \`fs.watch\` event pipeline, extension filters, ignore rules, build console. | \`bun run app:watcher\` | \`bun run cli:watcher\` |
 | **04** | [JSON Query Studio Pro](04_json_query_studio.md) | High-throughput JSON query engine, nested selectors, key projection, formatting. | \`bun run app:json\` | \`bun run cli:json\` |

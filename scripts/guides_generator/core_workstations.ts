@@ -87,9 +87,63 @@ await studio.run();
 - **Error Diagnostic Banner**: Displays descriptive SQLite error codes, line numbers, and constraint explanations if a query fails.
 
 ### 5. Enterprise Data Export Suite
+> The grid toolbar's **📤 Export** dialog (CSV, TSV, JSON, JSON Lines, SQL, Markdown — whole table, copy or save) supersedes these buttons; see *Visual Data Management* below.
 - **📊 Export CSV**: Converts the active result grid into standardized comma-separated values for spreadsheet analysis.
 - **📋 Export JSON**: Formats and copies the active result rows as clean JSON objects.
 - **💾 Export SQL Inserts**: Generates a reproducible sequence of \`INSERT INTO ... VALUES (...);\` migration statements.
+
+---
+
+## 🖱️ Visual Data Management (Full GUI CRUD — No SQL Required)
+
+SQLite Studio Pro works like Microsoft Access: you can create tables, add/edit/delete rows, import and export data entirely with buttons and dialogs. SQL is optional.
+
+### Editing Rows (toolbar above the data grid)
+| Button | What it does |
+| :--- | :--- |
+| **➕ New Row** | Opens a form with one field per column (PK / required / foreign-key badges, "default" checkboxes, **Now** button for dates, value suggestions for foreign keys). \`Cmd/Ctrl+Enter\` saves. **Save & add another** keeps the form open. |
+| **📝 Edit / 📄 Duplicate** | Edit or copy the single ticked row in the form dialog. |
+| **🗑️ Delete** | Deletes every ticked row (confirmation first). Tick the header checkbox to select the whole page. |
+| **📥 Import / 📋 Paste rows** | Opens the Import Wizard (see below), pre-targeted at the open table. |
+| **📤 Export / 📋 Copy** | Export dialog / copy ticked (or all page) rows as tab-separated text for Excel or Sheets. |
+| **🛠️ Design Table / ⋯ More** | Table designer, rename, empty, delete. |
+| **Page size** | 25 / 50 / 100 / 250 / 500 rows per page. |
+
+- **Inline editing**: double-click any cell, type, press **Enter** to save (**Esc** cancels).
+- **Right-click a row** (or a cell) for: Edit cell, Set cell to NULL, Copy value, Edit row, Duplicate row, Copy row, Delete row.
+- Works on tables with no primary key or composite keys (rows are addressed by SQLite \`rowid\`). Views and ad-hoc query results are read-only.
+
+### Designing Tables Visually
+- **➕ New Table** (header or sidebar) opens the **Table Designer**: name the table, add columns with a friendly type picker (INTEGER, TEXT, REAL, BOOLEAN, DATE, DATETIME, BLOB, JSON…), and set **PK**, **Auto #**, **Required**, **Unique**, a **Default value** (e.g. \`0\`, \`CURRENT_TIMESTAMP\`) and **Link to table** (foreign key with on-delete behaviour). Quick-add chips insert common columns (\`id\`, \`created_at\`…). A live **SQL preview** shows the generated \`CREATE TABLE\`.
+- **🛠️ Design Table** on an existing table lets you rename it, rename/add/remove/reorder columns and change types or constraints. The table is rebuilt safely inside a transaction: data is copied, indexes and triggers are restored. Removed columns lose their data. *CHECK constraints, multi-column UNIQUE and multi-column foreign keys can't be represented and are dropped — the designer warns you first.*
+- **Sidebar ⋯ menu** (hover a table, or right-click it): Open, Add row, Design, Add column, New index, Import into, Export, Copy name, Rename, Empty table, Delete.
+- **👁️ New View**: save a SELECT as a view (pre-filled from the SQL editor).
+- **Schema Designer & DDL tab** adds management cards: Manage table, **Indexes** (create/drop), **Relationships**, **Triggers**.
+
+### Import Wizard (📥 Import)
+1. **Choose data**: *Browse files…* (system dialog), drag & drop a file, **📋 Paste from clipboard**, or paste straight into the box (cells copied from Excel / Google Sheets / a web table work). Pressing \`Cmd/Ctrl+V\` on the grid also opens the wizard with the clipboard.
+2. **Format** is auto-detected: **CSV** (delimiter auto: comma, semicolon, tab, pipe), **TSV**, **JSON** (array of objects/arrays, or an object containing an array), **JSON Lines**, **Markdown tables**, **SQL scripts**. Options: first row is header, trim spaces, empty cells → NULL.
+3. **Preview** shows the first rows and the row × column count.
+4. **Destination**: *Create a new table* (editable column names and types — types are inferred; optional auto-number \`id\` column; untick columns to skip) or *Add to an existing table* (column mapping with auto-matching by name; append or replace all rows; on duplicate: stop / skip / overwrite).
+- Imports run in **one transaction**: any error rolls everything back and nothing is imported.
+- **SQL scripts** (\`.sql\` dumps, pasted \`INSERT\`s) run all-or-nothing as a single transaction.
+- Excel \`.xlsx\` files are not read directly — copy the cells, or *Save As → CSV*.
+
+### Export & Backup
+- **📤 Export** exports the *whole* open table (not only the visible page), or the current query result, as **CSV, TSV, JSON, JSON Lines, SQL INSERTs (optionally with \`CREATE TABLE\`) or Markdown**. Choose **Copy to clipboard** or **Save file**.
+- Saved files are written to your **\`~/Downloads\`** folder (a numeric suffix is added if the name exists) and the full path is shown in a notification.
+- **💾 Backup** (header or sidebar) writes a complete SQL dump (schema, indexes, views, triggers, data) that can be restored with *Import → SQL script*.
+
+### GUI CRUD HTTP API (for scripting / the embedded server)
+| Endpoint | Purpose |
+| :--- | :--- |
+| \`POST /api/table/data\` | Paged rows; now also returns \`editable\`, \`isView\`, \`pkColumns\` and each row's \`__rowid__\`. |
+| \`POST /api/table/mutate\` | \`insert\` / \`update\` / \`delete\`. Payload supports \`useRowid\`, \`rowId\`, \`rowIds\` (bulk delete), \`data\`; an empty \`data\` inserts \`DEFAULT VALUES\`. |
+| \`POST /api/schema/create-table\` · \`redesign-table\` · \`rename-table\` · \`drop\` · \`create-index\` · \`create-view\` · \`details\` | Schema designer operations. |
+| \`POST /api/import\` | Bulk insert \`{ table, create, createColumns, columns, rows, mode, onConflict }\` in one transaction. |
+| \`POST /api/script\` | Run a multi-statement SQL script transactionally. |
+| \`POST /api/table/all\` · \`/api/dump\` | All rows of a table · full SQL dump. |
+| \`POST /api/pick-file\` · \`/api/export-file\` | Native file chooser (returns text) · save text into \`~/Downloads\`. |
 
 ---
 
@@ -141,6 +195,9 @@ await studio.run();
 | **Cmd + S** / **Ctrl + S** | Window | Save workspace state & layout |
 | **F11** or **F** | Global Window | Toggle fullscreen display mode |
 | **Escape** | Dialogs / Overlays | Close active modal |
+| **Cmd/Ctrl + Enter** | Row form | Save row |
+| **Enter** / **Esc** | Inline cell editor | Save / cancel the edit |
+| **Cmd/Ctrl + V** | Data grid (editable table) | Open Import Wizard with clipboard rows |
 
 ---
 

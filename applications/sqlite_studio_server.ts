@@ -71,6 +71,55 @@ export interface DatabaseKpis {
   sqliteVersion: string;
 }
 
+export interface ColumnSpec {
+  name: string;
+  type?: string;
+  pk?: boolean;
+  autoinc?: boolean;
+  notnull?: boolean;
+  unique?: boolean;
+  default?: string | number | null;
+  check?: string;
+  fkTable?: string;
+  fkColumn?: string;
+  fkOnDelete?: string;
+}
+
+/** Quote an SQL identifier. */
+function qi(name: string): string {
+  const s = String(name ?? "");
+  if (!s.trim() || s.includes("\0")) throw new Error("Invalid or empty identifier");
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+/** Turn a user typed default value into a safe SQL literal. */
+function defaultLiteral(v: string): string {
+  const s = v.trim();
+  if (/^-?\d+(\.\d+)?$/.test(s)) return s;
+  if (/^(CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|NULL|TRUE|FALSE)$/i.test(s)) return s.toUpperCase();
+  return `'${s.replace(/'/g, "''")}'`;
+}
+
+function sqlLiteral(v: any): string {
+  if (v === null || v === undefined) return "NULL";
+  if (typeof v === "number" || typeof v === "bigint") return String(v);
+  if (typeof v === "boolean") return v ? "1" : "0";
+  if (v instanceof Uint8Array) return `X'${Buffer.from(v).toString("hex")}'`;
+  return `'${String(v).replace(/'/g, "''")}'`;
+}
+
+/** Make a result row JSON-safe (BLOBs become a readable placeholder, BigInts become numbers/strings). */
+function sanitizeRow(row: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const k of Object.keys(row)) {
+    const v = row[k];
+    if (v instanceof Uint8Array) out[k] = `[BLOB ${v.byteLength} bytes]`;
+    else if (typeof v === "bigint") out[k] = Number.isSafeInteger(Number(v)) ? Number(v) : String(v);
+    else out[k] = v;
+  }
+  return out;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Database Manager
 // -------------------------------------------------------------------------------------------------
@@ -265,6 +314,7 @@ export class SqliteManager {
     ).all() as any[]) || [];
 
     for (const item of masterItems) {
+      if (item.type !== "table" && item.type !== "view") continue;
       const isTable = item.type === "table";
       let rowCount = 0;
       if (isTable) {
@@ -474,7 +524,7 @@ export class SqliteManager {
     const t0 = performance.now();
     try {
       // Validate table exists using parameterized query
-      const exists = (this.db.query("SELECT name FROM sqlite_master WHERE (type='table' OR type='view') AND name = ?;").get(table) as any);
+      const exists = (this.db.query("SELECT name, type FROM sqlite_master WHERE (type='table' OR type='view') AND name = ?;").get(table) as any);
       if (!exists) {
         return { success: false, table, error: `Table or view '${table}' does not exist` };
       }
@@ -506,10 +556,16 @@ export class SqliteManager {
         orderClause = `ORDER BY "${options.orderBy.replace(/"/g, '""')}" ${dir}`;
       }
 
-      // Data fetch
-      const dataSql = `SELECT * FROM "${escapedTable}" ${whereClause} ${orderClause} LIMIT ? OFFSET ?;`;
+      // Data fetch (tables expose their rowid as __rowid__ so every row is addressable)
+      const isTable = (exists as any).type === "table";
+      let hasRowid = false;
+      if (isTable) {
+        try { this.db.query(`SELECT rowid FROM "${escapedTable}" LIMIT 0;`).all(); hasRowid = true; } catch {}
+      }
+      const selectList = hasRowid ? `rowid AS "__rowid__", *` : `*`;
+      const dataSql = `SELECT ${selectList} FROM "${escapedTable}" ${whereClause} ${orderClause} LIMIT ? OFFSET ?;`;
       const dataStmt = this.db.query(dataSql);
-      const rows = (dataStmt.all(...params, pageSize, offset) as Record<string, any>[]) || [];
+      const rows = ((dataStmt.all(...params, pageSize, offset) as Record<string, any>[]) || []).map(sanitizeRow);
       const latencyMs = Number((performance.now() - t0).toFixed(2));
 
       return {
@@ -522,6 +578,9 @@ export class SqliteManager {
         pageSize,
         totalPages: Math.ceil(totalRows / pageSize) || 1,
         latencyMs,
+        editable: isTable && hasRowid,
+        isView: !isTable,
+        pkColumns: colsRaw.filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name),
       };
     } catch (err: any) {
       return { success: false, table, error: err?.message || String(err) };
@@ -531,13 +590,13 @@ export class SqliteManager {
   public mutateRow(
     table: string,
     action: "insert" | "update" | "delete",
-    payload: { rowId?: any; pkColumn?: string; data?: Record<string, any> }
+    payload: { rowId?: any; rowIds?: any[]; pkColumn?: string; useRowid?: boolean; data?: Record<string, any> }
   ): { success: boolean; rowsAffected?: number; lastInsertRowid?: number; error?: string } {
     try {
       // 1. Verify table exists in sqlite_master
-      const exists = (this.db.query("SELECT name FROM sqlite_master WHERE (type='table' OR type='view') AND name = ?;").get(table) as any);
+      const exists = (this.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?;").get(table) as any);
       if (!exists) {
-        return { success: false, error: `Table '${table}' does not exist` };
+        return { success: false, error: `Table '${table}' does not exist (views are read-only)` };
       }
 
       // 2. Fetch verified columns from schema
@@ -545,17 +604,32 @@ export class SqliteManager {
       const colsRaw = (this.db.query(`PRAGMA table_info("${escapedTable}");`).all() as any[]) || [];
       const validCols = new Set(colsRaw.map(c => c.name));
 
-      const pkCol = payload.pkColumn || "id";
-      if (!validCols.has(pkCol)) {
-        return { success: false, error: `Invalid primary key column '${pkCol}'` };
+      // Row key: SQLite rowid (works for every ordinary table) or a named single column.
+      let keyExpr = "rowid";
+      const pkCol = payload.useRowid ? "" : (payload.pkColumn || "id");
+      if (!payload.useRowid) {
+        if (!validCols.has(pkCol)) {
+          return { success: false, error: `Invalid primary key column '${pkCol}'` };
+        }
+        keyExpr = `"${pkCol.replace(/"/g, '""')}"`;
       }
-      const escapedPkCol = pkCol.replace(/"/g, '""');
 
       if (action === "delete") {
-        if (payload.rowId === undefined) throw new Error("rowId is required for deletion");
-        const res = this.db.run(`DELETE FROM "${escapedTable}" WHERE "${escapedPkCol}" = ?;`, [payload.rowId]);
-        this.logAudit("DELETE", table, `Deleted ${pkCol}=${payload.rowId}`);
-        return { success: true, rowsAffected: res.changes };
+        const ids = payload.rowIds ?? (payload.rowId !== undefined ? [payload.rowId] : []);
+        if (ids.length === 0) throw new Error("rowId is required for deletion");
+        let changes = 0;
+        this.db.run("BEGIN;");
+        try {
+          for (const id of ids) {
+            changes += this.db.run(`DELETE FROM "${escapedTable}" WHERE ${keyExpr} = ?;`, [id]).changes;
+          }
+          this.db.run("COMMIT;");
+        } catch (e) {
+          try { this.db.run("ROLLBACK;"); } catch {}
+          throw e;
+        }
+        this.logAudit("DELETE", table, `Deleted ${changes} row(s)`);
+        return { success: true, rowsAffected: changes };
       }
 
       if (action === "update") {
@@ -567,15 +641,20 @@ export class SqliteManager {
         const values = entries.map(([, v]) => v);
         values.push(payload.rowId);
 
-        const res = this.db.run(`UPDATE "${escapedTable}" SET ${setClause} WHERE "${escapedPkCol}" = ?;`, values);
-        this.logAudit("UPDATE", table, `Updated ${pkCol}=${payload.rowId} (${entries.length} cols)`);
+        const res = this.db.run(`UPDATE "${escapedTable}" SET ${setClause} WHERE ${keyExpr} = ?;`, values);
+        this.logAudit("UPDATE", table, `Updated ${payload.useRowid ? "rowid" : pkCol}=${payload.rowId} (${entries.length} cols)`);
         return { success: true, rowsAffected: res.changes };
       }
 
       if (action === "insert") {
         if (!payload.data) throw new Error("data object is required for insert");
         const keys = Object.keys(payload.data).filter(k => validCols.has(k));
-        if (keys.length === 0) throw new Error("At least one valid column is required for insert");
+
+        if (keys.length === 0) {
+          const res = this.db.run(`INSERT INTO "${escapedTable}" DEFAULT VALUES;`);
+          this.logAudit("INSERT", table, `Inserted default row id=${res.lastInsertRowid}`);
+          return { success: true, rowsAffected: res.changes, lastInsertRowid: Number(res.lastInsertRowid) };
+        }
 
         const cols = keys.map((k) => `"${k.replace(/"/g, '""')}"`).join(", ");
         const placeholders = keys.map(() => "?").join(", ");
@@ -587,6 +666,302 @@ export class SqliteManager {
       }
 
       return { success: false, error: "Invalid mutation action" };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Schema Designer operations (Access-style table design, no SQL needed)
+  // -----------------------------------------------------------------------------------------------
+
+  private buildColumnDef(c: ColumnSpec, inlinePk: boolean): string {
+    const type = String(c.type || "").trim();
+    if (!/^[A-Za-z0-9_ (),]*$/.test(type)) throw new Error(`Invalid column type '${type}'`);
+    let def = `${qi(c.name)}${type ? " " + type : ""}`;
+    if (inlinePk && c.pk) {
+      def += " PRIMARY KEY";
+      if (c.autoinc && /^INTEGER$/i.test(type)) def += " AUTOINCREMENT";
+    }
+    if (c.notnull && !(inlinePk && c.pk)) def += " NOT NULL";
+    if (c.unique && !c.pk) def += " UNIQUE";
+    if (c.default !== undefined && c.default !== null && String(c.default) !== "") {
+      def += ` DEFAULT ${defaultLiteral(String(c.default))}`;
+    }
+    if (c.check && String(c.check).trim()) {
+      const chk = String(c.check).trim();
+      if (/[;]|--|\/\*/.test(chk)) throw new Error("CHECK expression may not contain ';' or comments");
+      def += ` CHECK (${chk})`;
+    }
+    if (c.fkTable) {
+      def += ` REFERENCES ${qi(c.fkTable)}`;
+      if (c.fkColumn) def += `(${qi(c.fkColumn)})`;
+      const od = String(c.fkOnDelete || "").toUpperCase();
+      if (["CASCADE", "SET NULL", "RESTRICT", "NO ACTION", "SET DEFAULT"].includes(od)) def += ` ON DELETE ${od}`;
+    }
+    return def;
+  }
+
+  public buildCreateTableSql(name: string, columns: ColumnSpec[]): string {
+    if (!name || !String(name).trim()) throw new Error("Table name is required");
+    if (!columns || columns.length === 0) throw new Error("A table needs at least one column");
+    const seen = new Set<string>();
+    for (const c of columns) {
+      if (!c.name || !String(c.name).trim()) throw new Error("Every column needs a name");
+      const k = c.name.toLowerCase();
+      if (seen.has(k)) throw new Error(`Duplicate column name '${c.name}'`);
+      seen.add(k);
+    }
+    const pks = columns.filter((c) => c.pk);
+    const inlinePk = pks.length === 1;
+    const parts = columns.map((c) => this.buildColumnDef(c, inlinePk));
+    if (pks.length > 1) parts.push(`PRIMARY KEY (${pks.map((c) => qi(c.name)).join(", ")})`);
+    return `CREATE TABLE ${qi(name)} (\n  ${parts.join(",\n  ")}\n);`;
+  }
+
+  public createTable(name: string, columns: ColumnSpec[]): { success: boolean; sql?: string; error?: string } {
+    try {
+      const sql = this.buildCreateTableSql(name, columns);
+      this.db.run(sql);
+      this.logAudit("CREATE_TABLE", name, `${columns.length} columns`);
+      return { success: true, sql };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  /**
+   * Redesign an existing table (rename it, change/add/remove columns, change types & constraints)
+   * by rebuilding it safely: create new table -> copy mapped data -> swap -> restore indexes/triggers.
+   */
+  public redesignTable(
+    oldName: string,
+    newName: string,
+    columns: (ColumnSpec & { origName?: string })[]
+  ): { success: boolean; sql?: string; error?: string } {
+    const tmp = `__redesign_${Date.now()}`;
+    let fkWasOn = true;
+    try {
+      const exists = this.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?;").get(oldName);
+      if (!exists) throw new Error(`Table '${oldName}' does not exist`);
+      const finalName = (newName || oldName).trim();
+      if (finalName.toLowerCase() !== oldName.toLowerCase()) {
+        const clash = this.db.query("SELECT name FROM sqlite_master WHERE name = ? COLLATE NOCASE;").get(finalName);
+        if (clash) throw new Error(`An object named '${finalName}' already exists`);
+      }
+
+      const createSql = this.buildCreateTableSql(tmp, columns);
+      const aux = (this.db.query("SELECT sql FROM sqlite_master WHERE tbl_name = ? AND type IN ('index','trigger') AND sql IS NOT NULL;").all(oldName) as any[]).map((r) => String(r.sql));
+      const oldCols = new Set((this.db.query(`PRAGMA table_info(${qi(oldName)});`).all() as any[]).map((c) => c.name));
+      const mapped = columns.filter((c) => c.origName && oldCols.has(c.origName));
+
+      fkWasOn = Number((this.db.query("PRAGMA foreign_keys;").get() as any)?.foreign_keys) === 1;
+      this.db.run("PRAGMA foreign_keys = OFF;");
+      this.db.run("BEGIN;");
+      try {
+        this.db.run(createSql);
+        if (mapped.length > 0) {
+          const dst = mapped.map((c) => qi(c.name)).join(", ");
+          const src = mapped.map((c) => qi(c.origName!)).join(", ");
+          this.db.run(`INSERT INTO ${qi(tmp)} (${dst}) SELECT ${src} FROM ${qi(oldName)};`);
+        }
+        this.db.run(`DROP TABLE ${qi(oldName)};`);
+        this.db.run(`ALTER TABLE ${qi(tmp)} RENAME TO ${qi(finalName)};`);
+        const skipped: string[] = [];
+        for (const s of aux) {
+          try { this.db.run(s); } catch { skipped.push(s); }
+        }
+        this.db.run("COMMIT;");
+        if (skipped.length) this.logAudit("REDESIGN_WARN", finalName, `${skipped.length} index/trigger(s) could not be restored`);
+      } catch (e) {
+        try { this.db.run("ROLLBACK;"); } catch {}
+        throw e;
+      } finally {
+        if (fkWasOn) this.db.run("PRAGMA foreign_keys = ON;");
+      }
+      this.logAudit("REDESIGN_TABLE", finalName, `${columns.length} columns`);
+      return { success: true, sql: createSql.replace(tmp, finalName) };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public renameTable(oldName: string, newName: string): { success: boolean; error?: string } {
+    try {
+      if (!newName || !newName.trim()) throw new Error("New name is required");
+      this.db.run(`ALTER TABLE ${qi(oldName)} RENAME TO ${qi(newName.trim())};`);
+      this.logAudit("RENAME_TABLE", oldName, `-> ${newName}`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public dropObject(kind: "table" | "view" | "index" | "trigger", name: string): { success: boolean; error?: string } {
+    try {
+      if (!["table", "view", "index", "trigger"].includes(kind)) throw new Error("Invalid object type");
+      const row = this.db.query("SELECT name FROM sqlite_master WHERE type = ? AND name = ?;").get(kind, name);
+      if (!row) throw new Error(`${kind} '${name}' does not exist`);
+      this.db.run(`DROP ${kind.toUpperCase()} ${qi(name)};`);
+      this.logAudit("DROP_" + kind.toUpperCase(), name, "Dropped via GUI");
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public createIndex(spec: { name: string; table: string; columns: string[]; unique?: boolean }): { success: boolean; sql?: string; error?: string } {
+    try {
+      if (!spec.name?.trim()) throw new Error("Index name is required");
+      if (!spec.columns || spec.columns.length === 0) throw new Error("Pick at least one column");
+      const sql = `CREATE ${spec.unique ? "UNIQUE " : ""}INDEX ${qi(spec.name.trim())} ON ${qi(spec.table)} (${spec.columns.map(qi).join(", ")});`;
+      this.db.run(sql);
+      this.logAudit("CREATE_INDEX", spec.name, spec.table);
+      return { success: true, sql };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public createView(name: string, selectSql: string): { success: boolean; error?: string } {
+    try {
+      if (!name?.trim()) throw new Error("View name is required");
+      const body = String(selectSql || "").trim().replace(/;+\s*$/, "");
+      if (!/^\s*(SELECT|WITH)\b/i.test(body)) throw new Error("A view must be defined by a SELECT statement");
+      this.db.run(`CREATE VIEW ${qi(name.trim())} AS ${body};`);
+      this.logAudit("CREATE_VIEW", name, "Created via GUI");
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public getTableDetails(table: string): { success: boolean; sql?: string; triggers?: { name: string; sql: string }[]; error?: string } {
+    try {
+      const row = this.db.query("SELECT sql FROM sqlite_master WHERE name = ? AND type IN ('table','view');").get(table) as any;
+      if (!row) throw new Error("Not found");
+      const triggers = this.db.query("SELECT name, sql FROM sqlite_master WHERE type='trigger' AND tbl_name = ?;").all(table) as any[];
+      return { success: true, sql: row.sql, triggers };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Import / Export engine
+  // -----------------------------------------------------------------------------------------------
+
+  public importRows(opts: {
+    table: string;
+    create?: boolean;
+    createColumns?: ColumnSpec[];
+    columns: string[];
+    rows: any[][];
+    mode?: "append" | "replace";
+    onConflict?: "abort" | "ignore" | "replace";
+  }): { success: boolean; inserted?: number; skipped?: number; error?: string; latencyMs?: number } {
+    const t0 = performance.now();
+    try {
+      const table = String(opts.table || "").trim();
+      if (!table) throw new Error("Target table is required");
+      if (!opts.columns || opts.columns.length === 0) throw new Error("No columns to import");
+      const rows = Array.isArray(opts.rows) ? opts.rows : [];
+
+      this.db.run("BEGIN;");
+      try {
+        if (opts.create) {
+          const cols = opts.createColumns && opts.createColumns.length ? opts.createColumns : opts.columns.map((n) => ({ name: n, type: "TEXT" } as ColumnSpec));
+          this.db.run(this.buildCreateTableSql(table, cols));
+        } else {
+          const ex = this.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name = ?;").get(table);
+          if (!ex) throw new Error(`Table '${table}' does not exist`);
+          const valid = new Set((this.db.query(`PRAGMA table_info(${qi(table)});`).all() as any[]).map((c) => c.name));
+          for (const c of opts.columns) if (!valid.has(c)) throw new Error(`Unknown column '${c}' in '${table}'`);
+          if (opts.mode === "replace") this.db.run(`DELETE FROM ${qi(table)};`);
+        }
+
+        const verb = opts.onConflict === "ignore" ? "INSERT OR IGNORE" : opts.onConflict === "replace" ? "INSERT OR REPLACE" : "INSERT";
+        const stmt = this.db.prepare(
+          `${verb} INTO ${qi(table)} (${opts.columns.map(qi).join(", ")}) VALUES (${opts.columns.map(() => "?").join(", ")});`
+        );
+        let inserted = 0;
+        let skipped = 0;
+        for (const r of rows) {
+          const vals = opts.columns.map((_, i) => {
+            const v = r[i];
+            return v === undefined ? null : v;
+          });
+          const res = stmt.run(...vals);
+          if (res.changes > 0) inserted++; else skipped++;
+        }
+        stmt.finalize();
+        this.db.run("COMMIT;");
+        this.logAudit("IMPORT", table, `${inserted} rows imported`);
+        return { success: true, inserted, skipped, latencyMs: Number((performance.now() - t0).toFixed(2)) };
+      } catch (e) {
+        try { this.db.run("ROLLBACK;"); } catch {}
+        throw e;
+      }
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public runScript(sql: string): { success: boolean; error?: string; latencyMs?: number } {
+    const t0 = performance.now();
+    try {
+      const text = String(sql || "").trim();
+      if (!text) throw new Error("Script is empty");
+      // Strip a user-supplied outer transaction; we wrap everything in one so a failure rolls back cleanly.
+      const cleaned = text.replace(/^\s*BEGIN(\s+TRANSACTION)?\s*;/i, "").replace(/COMMIT\s*;?\s*$/i, "");
+      this.db.run("BEGIN;");
+      try {
+        this.db.exec(cleaned);
+        this.db.run("COMMIT;");
+      } catch (e) {
+        try { this.db.run("ROLLBACK;"); } catch {}
+        throw e;
+      }
+      this.logAudit("SCRIPT", "SQL", `Executed script (${text.length} chars)`);
+      return { success: true, latencyMs: Number((performance.now() - t0).toFixed(2)) };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public getAllRows(table: string, limit = 1_000_000): { success: boolean; columns?: string[]; rows?: any[]; error?: string } {
+    try {
+      const ex = this.db.query("SELECT name FROM sqlite_master WHERE (type='table' OR type='view') AND name = ?;").get(table);
+      if (!ex) throw new Error(`'${table}' does not exist`);
+      const columns = (this.db.query(`PRAGMA table_info(${qi(table)});`).all() as any[]).map((c) => c.name);
+      const rows = (this.db.query(`SELECT * FROM ${qi(table)} LIMIT ?;`).all(limit) as any[]).map(sanitizeRow);
+      return { success: true, columns, rows };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public dumpSql(tables?: string[]): { success: boolean; sql?: string; error?: string } {
+    try {
+      const out: string[] = ["PRAGMA foreign_keys=OFF;", "BEGIN TRANSACTION;"];
+      const items = this.db
+        .query("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'view' THEN 2 ELSE 3 END, name;")
+        .all() as any[];
+      const want = tables && tables.length ? new Set(tables) : null;
+      for (const it of items) {
+        if (want && !want.has(it.type === "table" ? it.name : it.tbl_name)) continue;
+        out.push(String(it.sql).replace(/;?\s*$/, ";"));
+        if (it.type === "table") {
+          const rows = this.db.query(`SELECT * FROM ${qi(it.name)};`).all() as any[];
+          for (const r of rows) {
+            const keys = Object.keys(r);
+            const vals = keys.map((k) => sqlLiteral(r[k]));
+            out.push(`INSERT INTO ${qi(it.name)} (${keys.map(qi).join(", ")}) VALUES (${vals.join(", ")});`);
+          }
+        }
+      }
+      out.push("COMMIT;");
+      return { success: true, sql: out.join("\n") };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -952,6 +1327,31 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
+export function pickNativeDataFile(title = "Select data file to import"): string | null {
+  try {
+    if (process.platform === "darwin") {
+      const script = `try
+POSIX path of (choose file with prompt "${title.replace(/"/g, "")}")
+on error
+return ""
+end try`;
+      return Bun.spawnSync(["osascript", "-e", script]).stdout.toString().trim() || null;
+    } else if (process.platform === "linux") {
+      return Bun.spawnSync(["zenity", "--file-selection", `--title=${title}`]).stdout.toString().trim() || null;
+    } else if (process.platform === "win32") {
+      const ps = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = '${title.replace(/'/g, "")}'; $f.Filter = 'Data files (*.csv;*.tsv;*.txt;*.json;*.jsonl;*.sql)|*.csv;*.tsv;*.txt;*.json;*.jsonl;*.ndjson;*.sql|All Files (*.*)|*.*'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
+      return Bun.spawnSync(["powershell", "-NoProfile", "-Command", ps]).stdout.toString().trim() || null;
+    }
+  } catch {}
+  return null;
+}
+
+function downloadsDir(): string {
+  const d = resolve(homedir(), "Downloads");
+  try { mkdirSync(d, { recursive: true }); } catch {}
+  return existsSync(d) ? d : process.cwd();
+}
+
 // -------------------------------------------------------------------------------------------------
 // Native OS File Dialog Chooser
 // -------------------------------------------------------------------------------------------------
@@ -1182,6 +1582,98 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             kpis: manager.getKpis(),
             schema: manager.getSchema(),
           }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 8e. Table / schema designer, import & export (GUI CRUD)
+      if (url.pathname.startsWith("/api/schema/") && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const op = url.pathname.slice("/api/schema/".length);
+          let result: any;
+          switch (op) {
+            case "create-table": result = manager.createTable(body.name, body.columns); break;
+            case "redesign-table": result = manager.redesignTable(body.table, body.newName, body.columns); break;
+            case "rename-table": result = manager.renameTable(body.table, body.newName); break;
+            case "drop": result = manager.dropObject(body.kind, body.name); break;
+            case "create-index": result = manager.createIndex(body); break;
+            case "create-view": result = manager.createView(body.name, body.sql); break;
+            case "details": result = manager.getTableDetails(body.table); break;
+            default: return new Response("Not Found", { status: 404, headers: corsHeaders });
+          }
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/import" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          return Response.json(manager.importRows(body), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/script" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { sql: string };
+          return Response.json(manager.runScript(body.sql), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/table/all" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string };
+          return Response.json(manager.getAllRows(body.table), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/dump" && req.method === "POST") {
+        try {
+          const body = (await req.json().catch(() => ({}))) as { tables?: string[] };
+          return Response.json(manager.dumpSql(body.tables), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 8f. Native data-file chooser (returns file text) and save-to-Downloads
+      if (url.pathname === "/api/pick-file" && req.method === "POST") {
+        try {
+          const p = pickNativeDataFile();
+          if (!p) return Response.json({ success: false, cancelled: true }, { headers: corsHeaders });
+          const st = statSync(p);
+          if (st.size > 200 * 1024 * 1024) {
+            return Response.json({ success: false, error: "File is larger than 200 MB" }, { headers: corsHeaders });
+          }
+          const text = await Bun.file(p).text();
+          return Response.json({ success: true, name: basename(p), size: st.size, text }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/export-file" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { filename: string; content: string };
+          const safe = basename(String(body.filename || "export.txt")).replace(/[^\w.\- ]+/g, "_") || "export.txt";
+          let dest = resolve(downloadsDir(), safe);
+          if (existsSync(dest)) {
+            const dot = safe.lastIndexOf(".");
+            const stem = dot > 0 ? safe.slice(0, dot) : safe;
+            const ext = dot > 0 ? safe.slice(dot) : "";
+            dest = resolve(downloadsDir(), `${stem}_${Date.now()}${ext}`);
+          }
+          writeFileSync(dest, String(body.content ?? ""), "utf8");
+          return Response.json({ success: true, path: dest }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }
