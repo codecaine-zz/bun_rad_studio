@@ -305,8 +305,17 @@ powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1
 powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1 pacman
 ```
 
+> [!TIP]
+> **PowerShell Execution Policy**: If Windows displays `running scripts is disabled on this system`, run this once in PowerShell:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+> ```
+> Or invoke via [run.cmd](run.cmd) (`.\run.cmd pacman`), which automatically bypasses execution policy restrictions.
+
 > [!IMPORTANT]
-> Windows ARM64 machines must use an ARM64-compatible WebView2 runtime and a compatible native library. The universal runner (`run.ps1`) automatically identifies your CPU architecture and configures the environment.
+> **Windows ARM64 Support (Snapdragon X Elite / Surface Pro)**: The native webview library (`libwebview.dll`) in `webview-bun` targets x86_64. Attempting to load an x64 DLL in native ARM64 Bun results in `error code 193 (ERR_DLOPEN_FAILED)`.
+>
+> The universal runner (`run.ps1`) detects ARM64 hardware automatically, locates or downloads an official x64 Bun runtime into `%LOCALAPPDATA%\bun-x64`, and runs it seamlessly under Windows 11's built-in x64 emulation layer (Prism)—requiring zero manual configuration!
 
 <a id="linux-system-dependencies-libwebkitgtk-60-4"></a>
 
