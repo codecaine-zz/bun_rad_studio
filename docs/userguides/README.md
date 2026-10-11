@@ -44,7 +44,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### ⚡ 4. Modern CLI Tool Alternatives
 | # | Application Guide | Replaces Tool | Primary Advantage | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- | :--- |
-| **17** | [Fd Studio Pro](17_fd_studio.md) | `find` / `fd` | Ultra-fast filesystem search, glob/regex, Rip safe burial quarantine. | `bun run app:fd` | `bun run cli:fd` |
+| **17** | [Fd Studio Pro](17_fd_studio.md) | `find` / `fd` | Ultra-fast filesystem search, glob/regex, file operations (rename/batch rename/undo), content search, duplicate finder, Rip safe burial quarantine. | `bun run app:fd` | `bun run cli:fd` |
 | **18** | [Rip Studio Pro](18_rip_studio.md) | `rm` (rm-improved) | Safe & ergonomic rm replacement, graveyard quarantine, instant unbury. | `bun run app:rip` | `bun run cli:rip` |
 | **19** | [Sd Studio Pro](19_sd_studio.md) | `sed` / `sd` | Visual find & replace, unified live diffs, regex capture groups, backups. | `bun run app:sd` | `bun run cli:sd` |
 | **20** | [Procs Studio Pro](20_procs_studio.md) | `ps` / `procs` | Modern ps replacement, process table, CPU/Memory telemetry, listening ports. | `bun run app:procs` | `bun run cli:procs` |

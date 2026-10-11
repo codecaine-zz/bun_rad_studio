@@ -41,7 +41,7 @@ bun run cli:fd "*.sqlite" ./data
 
 ## 🖼️ Visual Interface Tour
 
-| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| High-Resolution Desktop (1400×2350, full page) | Responsive Viewport (960×1500) |
 | :---: | :---: |
 | ![Fd Studio Desktop](../../screenshots/apps/fd_studio_desktop.png) | ![Fd Studio Responsive](../../screenshots/apps/fd_studio_responsive.png) |
 
@@ -70,3 +70,16 @@ bun run cli:fd "*.sqlite" ./data
 ### 3. Batch Command Execution Builder
 - **Exec Command Template**: Command string using `{}` as placeholder for file path (e.g. `bun build {}`, `wc -l {}`).
 - **⚡ Execute Across All Matches**: Runs command for each matching file and streams output to log.
+
+### 4. File Operations & Analysis Toolkit (no terminal needed)
+A beginner-friendly file-manager layer on top of search — everything is a button, every change is logged in the console.
+- **📄 New File / 📁 New Folder**: Type a name in **Name** and click; created in the **Search Root**.
+- **✏️ Rename Selected / ⧉ Duplicate / ↗ Open**: Act on the row selected in the results table (Duplicate makes `name copy.ext`; Open uses the default app).
+- **🔐 Set Permissions / 🔢 Hex View**: Set `chmod` as octal (`644`, `755`) or symbolic (`rwxr-xr-x`); inspect binary files as a hex dump.
+- **↶ Undo Last Change (N)**: Reverses renames, new files/folders and duplicates, newest first. (Deletes use the 🪦 Rip graveyard, which is also recoverable.)
+- **Batch Rename (all matches)**: Find/replace (plain or Regex), lowercase/UPPERCASE/Title Case, prefix, suffix, numbering (`_001`), spaces→underscores. **👁 Preview Rename** shows old → new names and flags conflicts without touching disk; **✅ Apply Rename** asks for confirmation, then renames safely (swap/chain-proof).
+- **🔎 Search Contents**: Grep inside every matched text file (plain/Regex, optional case-sensitive) with `file:line` results; binaries are skipped.
+- **👯 Find Duplicates**: Groups identical files (size, then SHA-256) and reports reclaimable space.
+- **🐘 Largest Files / 📊 Usage by Type**: Top files and size-per-extension breakdown of the current matches.
+- **📑 Export TSV / 📝 Export Markdown / 🗒 Export Path List**: Saved into the *Target Destination Folder* and copied to the clipboard (JSON and CSV exports are still available).
+- **Min Depth filter**: Skip the top N folder levels (companion to Max Depth).

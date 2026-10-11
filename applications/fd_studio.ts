@@ -20,6 +20,27 @@ import {
   type GraveyardItem,
 } from "./rip_engine";
 import { packTarGz, type TarEntry } from "../src/features/rad/modules/tarutils";
+import {
+  createFileAt,
+  createFolderAt,
+  renamePath,
+  duplicatePath,
+  undoEntry,
+  openWithDefaultApp,
+  chmodPath,
+  planBatchRename,
+  applyRenamePlan,
+  searchContents,
+  findDuplicates,
+  largestFiles,
+  sizeByExtension,
+  hexPreview,
+  toTsv,
+  toMarkdownTable,
+  type UndoEntry,
+  type RenameRules,
+  type RenamePlanRow,
+} from "./fd_ops";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
@@ -97,6 +118,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.addInput("txt_exts", "", "e.g. ts,tsx,json", { width: 150 });
   win.addLabel("lbl_exclude", "Exclude:");
   win.addInput("txt_exclude", "node_modules,dist,.git", "Exclude patterns...", { width: 210 });
+  win.addLabel("lbl_min_depth", "Min Depth:");
+  win.addInput("txt_min_depth", "", "e.g. 1", { width: 70 });
   win.addLabel("lbl_max_depth", "Max Depth:");
   win.addInput("txt_max_depth", "", "e.g. 2, 4", { width: 70 });
   win.addLabel("lbl_size", "Size:");
@@ -170,6 +193,56 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.addButton("btn_export_csv", "📊 Export CSV");
   win.addButton("btn_bury_all", "🪦 Safe Bury All (Rip)");
   win.addButton("btn_delete_all", "💥 Delete All Matches");
+  win.endRow();
+  win.endGroupBox();
+
+  // -----------------------------------------------------------------------------------------------
+  // 6b. File Operations & Analysis Toolkit
+  // -----------------------------------------------------------------------------------------------
+  win.beginGroupBox("File Operations & Analysis Toolkit");
+  win.beginRow();
+  win.addLabel("lbl_ops_name", "Name:");
+  win.addInput("txt_ops_name", "", "New name for file / folder / rename...", { width: 240 });
+  win.addButton("btn_new_file", "📄 New File");
+  win.addButton("btn_new_folder", "📁 New Folder");
+  win.addButton("btn_rename_one", "✏️ Rename Selected");
+  win.addButton("btn_duplicate_one", "⧉ Duplicate");
+  win.addButton("btn_open_one", "↗ Open");
+  win.endRow();
+  win.beginRow();
+  win.addLabel("lbl_chmod", "Permissions:");
+  win.addInput("txt_chmod", "644", "644, 755 or rwxr-xr-x", { width: 110 });
+  win.addButton("btn_chmod", "🔐 Set Permissions");
+  win.addButton("btn_preview_hex", "🔢 Hex View");
+  win.addButton("btn_undo_op", "↶ Undo Last Change (0)");
+  win.endRow();
+  win.beginRow();
+  win.addLabel("lbl_br", "Batch Rename (all matches):");
+  win.addInput("txt_br_find", "", "Find...", { width: 120 });
+  win.addInput("txt_br_replace", "", "Replace with...", { width: 120 });
+  win.addCheckbox("chk_br_regex", "Regex", false);
+  win.addDropdown("dd_br_case", ["Keep Case", "lowercase", "UPPERCASE", "Title Case"], "Keep Case", { width: 120 });
+  win.addInput("txt_br_prefix", "", "Prefix", { width: 80 });
+  win.addInput("txt_br_suffix", "", "Suffix", { width: 80 });
+  win.addCheckbox("chk_br_number", "Add 001, 002…", false);
+  win.addCheckbox("chk_br_spaces", "Spaces → _", false);
+  win.addButton("btn_br_preview", "👁 Preview Rename");
+  win.addButton("btn_br_apply", "✅ Apply Rename");
+  win.endRow();
+  win.beginRow();
+  win.addLabel("lbl_grep", "Search Inside Files:");
+  win.addInput("txt_grep", "", "Text to find in matched files...", { width: 230 });
+  win.addCheckbox("chk_grep_regex", "Regex", false);
+  win.addCheckbox("chk_grep_case", "Match case", false);
+  win.addButton("btn_grep", "🔎 Search Contents");
+  win.addButton("btn_dupes", "👯 Find Duplicates");
+  win.addButton("btn_largest", "🐘 Largest Files");
+  win.addButton("btn_ext_stats", "📊 Usage by Type");
+  win.endRow();
+  win.beginRow();
+  win.addButton("btn_export_tsv", "📑 Export TSV");
+  win.addButton("btn_export_md", "📝 Export Markdown");
+  win.addButton("btn_export_paths", "🗒 Export Path List");
   win.endRow();
   win.endGroupBox();
 
@@ -385,6 +458,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     const extensions = extsRaw ? extsRaw.split(/[,;\s]+/).filter(Boolean) : undefined;
     const excludePatterns = excludeRaw ? excludeRaw.split(/[,;\s]+/).filter(Boolean) : undefined;
     const maxDepth = maxDepthRaw ? parseInt(maxDepthRaw, 10) : undefined;
+    const minDepthRaw = String(win.getValue("txt_min_depth") || "");
+    const minDepth = minDepthRaw ? parseInt(minDepthRaw, 10) : undefined;
 
     let minSizeBytes: number | undefined;
     let maxSizeBytes: number | undefined;
@@ -421,6 +496,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       noIgnore,
       excludePatterns,
       maxDepth,
+      minDepth: Number.isFinite(minDepth as number) ? minDepth : undefined,
       followSymlinks,
       minSizeBytes,
       maxSizeBytes,
@@ -1246,6 +1322,200 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   });
 
   // -----------------------------------------------------------------------------------------------
+  // 6b. File Operations & Analysis Toolkit (rename / create / duplicate / open / chmod / undo / grep / dupes)
+  // -----------------------------------------------------------------------------------------------
+  const undoStack: UndoEntry[] = [];
+  const pushUndo = (entries: UndoEntry[]) => {
+    undoStack.push(...entries);
+    win.setText("btn_undo_op", `↶ Undo Last Change (${undoStack.length})`);
+  };
+  const fail = (label: string, err: any) => {
+    logConsole(`[${label} Error]: ${err.message || err}`, 3);
+    win.toast(`${label} failed: ${err.message || err}`);
+  };
+  const needSelection = (): FdItem | null => {
+    if (!selectedItem) {
+      win.toast("Please select an item in the results table first.");
+      return null;
+    }
+    return selectedItem;
+  };
+  /** New File / New Folder are always created in the Search Root (predictable; the full path is logged). */
+  const creationDir = (): string => path.resolve(win.getValue("txt_root") || ".");
+
+  win.onClick("btn_new_file", () => {
+    try {
+      const entry = createFileAt(creationDir(), win.getValue("txt_ops_name") || "");
+      pushUndo([entry]);
+      logConsole(`[Create] New file: ${(entry as any).path}`, 2);
+      win.toast("File created");
+      performSearch();
+    } catch (e: any) { fail("Create file", e); }
+  });
+  win.onClick("btn_new_folder", () => {
+    try {
+      const entry = createFolderAt(creationDir(), win.getValue("txt_ops_name") || "");
+      pushUndo([entry]);
+      logConsole(`[Create] New folder: ${(entry as any).path}`, 2);
+      win.toast("Folder created");
+      performSearch();
+    } catch (e: any) { fail("Create folder", e); }
+  });
+  win.onClick("btn_rename_one", () => {
+    const it = needSelection();
+    if (!it) return;
+    try {
+      const entry = renamePath(it.path, win.getValue("txt_ops_name") || "");
+      pushUndo([entry]);
+      logConsole(`[Rename] '${it.name}' -> '${path.basename((entry as any).to)}'`, 2);
+      win.toast("Renamed");
+      selectedItem = null;
+      performSearch();
+    } catch (e: any) { fail("Rename", e); }
+  });
+  win.onClick("btn_duplicate_one", () => {
+    const it = needSelection();
+    if (!it) return;
+    try {
+      const entry = duplicatePath(it.path);
+      pushUndo([entry]);
+      logConsole(`[Duplicate] Created copy: ${(entry as any).path}`, 2);
+      win.toast("Duplicated");
+      performSearch();
+    } catch (e: any) { fail("Duplicate", e); }
+  });
+  win.onClick("btn_open_one", () => {
+    const it = needSelection();
+    if (!it) return;
+    try {
+      openWithDefaultApp(it.path);
+      logConsole(`[Open] Opened with default app: ${it.path}`, 1);
+      win.toast(`Opening ${it.name}`);
+    } catch (e: any) { fail("Open", e); }
+  });
+  win.onClick("btn_chmod", () => {
+    const it = needSelection();
+    if (!it) return;
+    try {
+      const res = chmodPath(it.path, win.getValue("txt_chmod") || "");
+      logConsole(`[Permissions] ${it.name}: ${res.before} -> ${res.after}`, 2);
+      win.toast(`Permissions set to ${res.after}`);
+      performSearch();
+    } catch (e: any) { fail("Permissions", e); }
+  });
+  win.onClick("btn_preview_hex", () => {
+    const it = needSelection();
+    if (!it) return;
+    if (it.type === "directory") { win.toast("Hex view works on files only."); return; }
+    try {
+      logConsole(`--- [Hex view: ${it.name} (first 256 bytes)] ---\n${hexPreview(it.path, 256)}`, 1);
+    } catch (e: any) { fail("Hex view", e); }
+  });
+  win.onClick("btn_undo_op", () => {
+    const entry = undoStack.pop();
+    if (!entry) { win.toast("Nothing to undo."); return; }
+    try {
+      const msg = undoEntry(entry);
+      logConsole(`[Undo] ${msg}`, 2);
+      win.toast("Undone");
+    } catch (e: any) {
+      undoStack.push(entry);
+      fail("Undo", e);
+    }
+    win.setText("btn_undo_op", `↶ Undo Last Change (${undoStack.length})`);
+    selectedItem = null;
+    performSearch();
+  });
+
+  // Batch rename (preview first, then apply)
+  const readRenameRules = (): RenameRules => {
+    const c = String(win.getValue("dd_br_case") || "Keep Case");
+    return {
+      find: win.getValue("txt_br_find") || "",
+      replace: win.getValue("txt_br_replace") || "",
+      useRegex: Boolean(win.getValue("chk_br_regex")),
+      prefix: win.getValue("txt_br_prefix") || "",
+      suffix: win.getValue("txt_br_suffix") || "",
+      numbering: Boolean(win.getValue("chk_br_number")),
+      spacesToUnderscore: Boolean(win.getValue("chk_br_spaces")),
+      caseMode: c.includes("lower") ? "lower" : c.includes("UPPER") ? "upper" : c.includes("Title") ? "title" : "none",
+    };
+  };
+  const buildRenamePlan = (): RenamePlanRow[] | null => {
+    if (currentResults.length === 0) { win.toast("Search for files first — rename applies to all matches."); return null; }
+    try {
+      return planBatchRename(currentResults.map((r) => r.path), readRenameRules());
+    } catch (e: any) { fail("Batch rename", e); return null; }
+  };
+  win.onClick("btn_br_preview", () => {
+    const plan = buildRenamePlan();
+    if (!plan) return;
+    const changes = plan.filter((p) => p.from !== p.to);
+    const bad = changes.filter((p) => p.error).length;
+    const lines = changes.slice(0, 40).map((p) => `${p.error ? "✗" : "→"} ${p.oldName}  ->  ${p.newName}${p.error ? `   [${p.error}]` : ""}`);
+    logConsole(`--- [Rename preview: ${changes.length} change(s), ${bad} conflict(s)] ---\n${lines.join("\n") || "(no names would change)"}${changes.length > 40 ? "\n... (first 40 shown)" : ""}`, bad ? 4 : 1);
+  });
+  win.onClick("btn_br_apply", async () => {
+    const plan = buildRenamePlan();
+    if (!plan) return;
+    const changes = plan.filter((p) => p.from !== p.to && !p.error);
+    if (changes.length === 0) { win.toast("No valid renames to apply — click Preview to see why."); return; }
+    const ok = await win.confirm(`Rename ${changes.length} item(s)? You can undo with 'Undo Last Change'.`, "Confirm Batch Rename");
+    if (!ok) return;
+    const res = applyRenamePlan(plan);
+    pushUndo(res.done);
+    logConsole(`[Batch Rename] Renamed ${res.done.length}, skipped ${res.skipped}, failed ${res.failed.length}${res.failed.length ? "\n" + res.failed.join("\n") : ""}`, res.failed.length ? 4 : 2);
+    win.toast(`Renamed ${res.done.length} item(s)`);
+    selectedItem = null;
+    performSearch();
+  });
+
+  // Content search inside matched files
+  win.onClick("btn_grep", () => {
+    const q = win.getValue("txt_grep") || "";
+    if (!q) { win.toast("Type the text to look for inside the matched files."); return; }
+    if (currentResults.length === 0) { win.toast("Search for files first."); return; }
+    try {
+      const r = searchContents(currentResults.map((x) => x.path), q, { regex: Boolean(win.getValue("chk_grep_regex")), caseSensitive: Boolean(win.getValue("chk_grep_case")) });
+      const root = path.resolve(win.getValue("txt_root") || ".");
+      const lines = r.matches.slice(0, 80).map((m) => `${path.relative(root, m.path)}:${m.line}: ${m.text}`);
+      logConsole(`--- [Content search '${q}': ${r.matches.length} hit(s) in ${r.filesWithHits}/${r.filesScanned} text files${r.truncated ? " (capped)" : ""}] ---\n${lines.join("\n") || "(no matches)"}${r.matches.length > 80 ? "\n... (first 80 shown)" : ""}`, r.matches.length ? 2 : 4);
+    } catch (e: any) { fail("Content search", e); }
+  });
+  win.onClick("btn_dupes", () => {
+    if (currentResults.length === 0) { win.toast("Search for files first."); return; }
+    const r = findDuplicates(currentResults.map((x) => x.path));
+    const lines = r.groups.slice(0, 15).map((g) => `${formatHumanSize(g.sizeBytes)} x${g.paths.length}  ${g.paths.map((p) => path.basename(p)).join("  =  ")}`);
+    logConsole(`--- [Duplicate finder: ${r.groups.length} group(s), ${formatHumanSize(r.wastedBytes)} reclaimable] ---\n${lines.join("\n") || "No identical files found among the matches."}`, r.groups.length ? 4 : 2);
+  });
+  win.onClick("btn_largest", () => {
+    const top = largestFiles(currentResults.map((x) => x.path), 15);
+    logConsole(`--- [Largest files among matches] ---\n${top.map((t) => `${t.humanSize.padStart(9)}  ${path.basename(t.path)}`).join("\n") || "(no files)"}`, 1);
+  });
+  win.onClick("btn_ext_stats", () => {
+    const rows = sizeByExtension(currentResults.map((x) => x.path)).slice(0, 15);
+    logConsole(`--- [Disk usage by file type] ---\n${rows.map((r) => `${r.humanSize.padStart(9)}  ${String(r.count).padStart(5)} files  ${r.ext}`).join("\n") || "(no files)"}`, 1);
+  });
+
+  // Extra export formats
+  const exportAs = (ext: string, body: () => string, label: string) => {
+    if (currentResults.length === 0) { win.toast("No matching items to export."); return; }
+    try {
+      const destDir = path.resolve(win.getValue("txt_dest_dir") || ".");
+      fs.mkdirSync(destDir, { recursive: true });
+      const filePath = path.join(destDir, `fd_search_results.${ext}`);
+      const text = body();
+      fs.writeFileSync(filePath, text, "utf-8");
+      copyToClipboard(text, `${label} export (${currentResults.length} records)`);
+      logConsole(`[Export] Saved ${label} export to: ${filePath}`, 2);
+      win.toast(`Exported ${label} to ${filePath}`);
+    } catch (e: any) { fail("Export", e); }
+  };
+  win.onClick("btn_export_tsv", () => exportAs("tsv", () => toTsv(currentResults), "TSV"));
+  win.onClick("btn_export_md", () => exportAs("md", () => toMarkdownTable(currentResults), "Markdown"));
+  win.onClick("btn_export_paths", () => exportAs("txt", () => currentResults.map((r) => r.path).join("\n") + "\n", "Path list"));
+
+  // -----------------------------------------------------------------------------------------------
   // 7. Client-Side Full-Screen Responsive Layout & Ergonomics Engine
   // -----------------------------------------------------------------------------------------------
   win.addScript(`
@@ -1281,7 +1551,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           "  padding: 14px 18px !important;",
           "  box-sizing: border-box !important;",
           "}",
-          "#groupbox_1, #groupbox_2, #groupbox_3, #groupbox_4, #groupbox_5, #groupbox_6, #groupbox_7, fieldset {",
+          "#groupbox_1, #groupbox_2, #groupbox_3, #groupbox_4, #groupbox_5, #groupbox_6, #groupbox_7, #groupbox_8, fieldset {",
           "  display: none !important;",
           "}",
           ".fd-card {",
@@ -1558,7 +1828,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         // 3. Filters & Advanced Options Card
         const filtersCard = createCard("Filters & Advanced Options", [
           createRow(["btn_type_all", "btn_type_files", "btn_type_dirs", "btn_type_exec", "btn_type_symlinks", "btn_type_empty"]),
-          createRow(["lbl_exts", "txt_exts", "lbl_exclude", "txt_exclude", "lbl_max_depth", "txt_max_depth", "lbl_size", "txt_size", "lbl_age", "dd_age"]),
+          createRow(["lbl_exts", "txt_exts", "lbl_exclude", "txt_exclude", "lbl_min_depth", "txt_min_depth", "lbl_max_depth", "txt_max_depth", "lbl_size", "txt_size", "lbl_age", "dd_age"]),
           createRow(["chk_hidden", "chk_no_ignore", "chk_follow", "chk_full_path", "chk_watch"])
         ]);
         root.appendChild(filtersCard);
@@ -1602,6 +1872,16 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           createRow(["btn_copy_all_rel", "btn_copy_all_abs", "btn_export_json", "btn_export_csv", "btn_bury_all", "btn_delete_all"])
         ]);
         root.appendChild(batchCard);
+
+        // 7b. File Operations & Analysis Toolkit Card
+        const opsCard = createCard("File Operations & Analysis Toolkit (no terminal needed)", [
+          createRow(["lbl_ops_name", "txt_ops_name", "btn_new_file", "btn_new_folder", "btn_rename_one", "btn_duplicate_one", "btn_open_one"]),
+          createRow(["lbl_chmod", "txt_chmod", "btn_chmod", "btn_preview_hex", "btn_undo_op"]),
+          createRow(["lbl_br", "txt_br_find", "txt_br_replace", "chk_br_regex", "dd_br_case", "txt_br_prefix", "txt_br_suffix", "chk_br_number", "chk_br_spaces", "btn_br_preview", "btn_br_apply"]),
+          createRow(["lbl_grep", "txt_grep", "chk_grep_regex", "chk_grep_case", "btn_grep", "btn_dupes", "btn_largest", "btn_ext_stats"]),
+          createRow(["btn_export_tsv", "btn_export_md", "btn_export_paths"])
+        ]);
+        root.appendChild(opsCard);
 
         // 8. Graveyard Quarantine & Recovery Card (Rip Engine)
         const ripTotalNode = getNode("lbl_rip_metric_total");
