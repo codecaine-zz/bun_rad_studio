@@ -253,28 +253,60 @@ The project includes a repair script at [scripts/fix_windows_webview_runtime.ts]
 - [windows-x64/readme.md](windows-x64/readme.md) for standard Windows x64 machines
 - [windows-arm/readme.md](windows-arm/readme.md) for Windows ARM64 devices
 
-Typical fix flow:
+### 🪟 Universal Windows Runner (`run.ps1` & `run.cmd`)
+
+For Windows users, we provide a **Universal Runner** that auto-detects system architecture (x64 / ARM64), locates Bun, automatically verifies or installs `WebView2Loader.dll`, and lets you run **any application, demo, or CLI tool** with zero friction:
 
 ```powershell
-Remove-Item Env:WEBVIEW_PATH -ErrorAction SilentlyContinue
-bun install
-bun run .\demos\23_all_themes_all_controls_showcase.ts
+# 1. Interactive Menu (browse, search, and run everything):
+.\run.ps1
+# or simply in Command Prompt / PowerShell:
+run
+
+# 2. Run Any Application Directly by Name or Alias:
+.\run.ps1 calculator         # Universal Calculator & STEM Studio
+.\run.ps1 pacman             # Cyberpunk Pac-Man Arcade
+.\run.ps1 pong               # Neon Cyber Pong
+.\run.ps1 connect4           # Cyberpunk Connect 4
+.\run.ps1 devtools           # DevTools & OmniTool Studio
+.\run.ps1 db                 # Unified Database Studio (SQLite & Redis)
+
+# 3. Run Any Showcase Demo (01 - 25) by Number or Name:
+.\run.ps1 23                 # Universal 42 Themes & Controls Showcase
+.\run.ps1 05                 # CRUD Task Table & State Management
+.\run.ps1 ide                # File Explorer Mini IDE Template
+.\run.ps1 crud               # CRUD Task Table
+
+# 4. Open Launcher Studio Pro (Full Desktop Workstation GUI):
+.\run.ps1 -Gui
+
+# 5. List All Available Items in the Workspace Catalog:
+.\run.ps1 -List
+
+# 6. Search for Apps or Demos:
+.\run.ps1 -Search game
 ```
 
-If the loader is still missing, run the architecture-specific helper script:
-
+You can also use npm / bun scripts:
 ```powershell
-# Standard Windows x64
-powershell -ExecutionPolicy Bypass -File .\windows-x64\run-demo-x64.ps1
+bun run win          # Interactive menu
+bun run win:list     # Catalog list
+bun run win:gui      # Open Launcher Studio GUI
+```
 
-# Windows ARM64
+Architecture-specific helper scripts in `windows-x64\` and `windows-arm\` also support all arguments:
+```powershell
+# Standard Windows x64 (runs demo 23 by default, or any app/demo specified):
+powershell -ExecutionPolicy Bypass -File .\windows-x64\run-demo-x64.ps1
+powershell -ExecutionPolicy Bypass -File .\windows-x64\run-demo-x64.ps1 calculator
+
+# Windows ARM64 (Surface Pro, Qualcomm Snapdragon X Elite, Dev Kit):
 powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1
+powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1 pacman
 ```
 
 > [!IMPORTANT]
-> Windows ARM64 machines must use an ARM64-compatible WebView2 runtime and a compatible native library. A 64-bit x64 library can fail on ARM64 hardware even when the rest of the app is otherwise correct.
->
-> For most Windows users, the x64 path is the easiest and most broadly compatible option.
+> Windows ARM64 machines must use an ARM64-compatible WebView2 runtime and a compatible native library. The universal runner (`run.ps1`) automatically identifies your CPU architecture and configures the environment.
 
 <a id="linux-system-dependencies-libwebkitgtk-60-4"></a>
 

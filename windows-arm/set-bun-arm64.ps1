@@ -1,11 +1,25 @@
 $ErrorActionPreference = 'Stop'
 
-$armBun = 'C:\Program Files\Bun\bun.exe'
-if (Test-Path $armBun) {
-    $env:PATH = "$([System.IO.Path]::GetDirectoryName($armBun));$env:PATH"
-    Write-Host "ARM64 Bun configured: $armBun"
-    & $armBun --version
-} else {
-    Write-Host 'No ARM64 Bun installation found at C:\Program Files\Bun\bun.exe'
-    Write-Host 'Install Bun for ARM64 and rerun this script.'
+$paths = @(
+    'C:\Program Files\Bun',
+    'C:\Tools\bun-arm64',
+    (Join-Path $env:USERPROFILE '.bun\bin'),
+    (Join-Path $env:LOCALAPPDATA 'bun\bin'),
+    'C:\Users\codecaine\.bun\bin'
+)
+
+foreach ($dir in $paths) {
+    if ($dir -and (Test-Path $dir)) {
+        $env:PATH = "$dir;$env:PATH"
+        Write-Host "Added ARM64 Bun path: $dir"
+    }
 }
+
+$bunExe = Get-Command bun -ErrorAction SilentlyContinue
+if (-not $bunExe) {
+    Write-Host 'No Bun executable was found in PATH.'
+    Write-Host 'Install Bun for ARM64 and rerun this script.'
+    exit 1
+}
+
+& $bunExe.Source --version
