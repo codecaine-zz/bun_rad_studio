@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    ⚡ Bun RAD Studio - Windows x64 Runner
+    Bun RAD Studio - Windows x64 Runner
 .DESCRIPTION
     Runs any application, demo, or CLI utility on Windows x64.
     Defaults to Demo 23 (Theme Showcase) if no target is provided.

@@ -1,5 +1,5 @@
 @echo off
-REM ⚡ Bun RAD Studio - Universal Windows Runner Wrapper
+REM Bun RAD Studio - Universal Windows Runner Wrapper
 REM Usage:
 REM   run                (Opens interactive menu)
 REM   run calculator     (Launches Universal Calculator Studio)
