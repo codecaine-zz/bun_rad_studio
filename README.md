@@ -27,6 +27,12 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ![Launcher Studio Pro Desktop Screenshot](screenshots/apps/launcher_studio_desktop.png)
 
+> **✨ New in Launcher Studio Pro:**
+> - **⭐ Pinned Favorites & 1-Click Launch**: Star any tool with the `⭐ Favorite` (`btn_fav`) toggle button. Telemetry card tracks live `⭐ Favorites: N`. Launch your highest priority tool with a single click via `🚀 Launch Top Favorite` (`btn_quick_launch_fav1`).
+> - **⚡ 1-Click Favorites Filter**: Instantly isolate your pinned tools using the dedicated `⭐ Favorites Only` filter button in the search toolbar or `⭐ Filter to Favorites` in the quick launch strip.
+> - **🎯 Rock-Solid Top ⇄ Bottom Selection Stability**: Selection across Top controls (`dd_select_app` dropdown and `lst_apps` listbox) and the Bottom table catalog (`tbl_apps`) stays 100% synchronized and stable. Applying any filter, search query, or category preserves your active selection if it still matches, without jumping or desynchronizing.
+> - **💻 CLI Companion with Favorites**: `bun run cli:launcher -f` filters pinned favorites right in your terminal, and `-F <id>` toggles star status from any script.
+
 ### 🎨 Visual RAD Form Designer & IDE (`bun start`)
 
 ![Bun RAD Studio Application Screenshot](screenshot.png)

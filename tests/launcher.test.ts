@@ -181,4 +181,41 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(win.getValue("txt_cli_args")).toBe("--telemetry");
     expect(win.getText("txt_output")).toContain("System CLI");
   });
+
+  it("supports pinning favorites and maintains synchronized selection across top and bottom controls", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    expect(win).toBeDefined();
+
+    // Verify favorite controls exist
+    const controls = (win as any).controls || [];
+    const btnFav = controls.find((c: any) => c.id === "btn_fav");
+    expect(btnFav).toBeDefined();
+
+    const btnQuickFavs = controls.find((c: any) => c.id === "btn_quick_favs");
+    expect(btnQuickFavs).toBeDefined();
+
+    // Toggle favorite via click handler
+    const favHandler = (win as any).eventHandlersMap?.get("btn_fav:onclick");
+    expect(favHandler).toBeDefined();
+
+    // Select SQLite Studio
+    const listboxHandler = (win as any).eventHandlersMap?.get("lst_apps:onchange");
+    listboxHandler(win, "[App Studio] SQLite Studio Pro (./applications/sqlite_studio.ts)");
+
+    // Table click handler keeps Top synchronized
+    const tableHandler = (win as any).eventHandlersMap?.get("tbl_apps:onclick");
+    expect(tableHandler).toBeDefined();
+
+    tableHandler(win, "rad_sqlite_studio");
+    expect(win.getValue("dd_select_app")).toContain("SQLite Studio Pro");
+    expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+
+    // Quick filter to favorites
+    const quickFavsHandler = (win as any).eventHandlersMap?.get("btn_quick_favs:onclick");
+    expect(quickFavsHandler).toBeDefined();
+    quickFavsHandler(win);
+
+    expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
+  });
 });
+

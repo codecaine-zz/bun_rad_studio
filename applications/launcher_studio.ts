@@ -1144,10 +1144,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.addLabel("lbl_kpi_cli", `🛠️ CLI Utilities: ${initialData.kpis.cliTools}`);
   win.addLabel("lbl_kpi_demos", `🎮 Showcase Demos: ${initialData.kpis.demos}`);
   win.addLabel("lbl_kpi_running", `🟢 Active Running: ${initialData.kpis.running}`);
+  win.addLabel("lbl_kpi_favs", `⭐ Favorites: ${initialData.kpis.favorites}`);
   win.endRow();
   win.endGroupBox();
 
-  // 3. 1-Click Quick Launch Toolbar for Popular Tools
+  // 3. 1-Click Quick Launch Toolbar for Popular Tools & Pinned Favorites
   win.beginGroupBox("⚡ 1-Click Quick Launch: Popular Project Studios & CLI Tools");
   win.beginRow();
   win.addButton("btn_quick_sqlite", "🗄️ SQLite Studio");
@@ -1170,26 +1171,36 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.addButton("btn_quick_net_cli", "🌐 Network CLI");
   win.addButton("btn_quick_crypto_cli", "🔒 Crypto CLI");
   win.endRow();
+
+  // Quick Favorites Strip
+  win.beginRow();
+  win.addLabel("lbl_fav_toolbar", "⭐ Pinned Favorites:");
+  win.addButton("btn_quick_favs_filter", "⭐ Filter to Favorites");
+  win.addButton("btn_quick_launch_fav1", "🚀 Launch Top Favorite");
+  win.addButton("btn_quick_toggle_fav", "⭐ Toggle Star for Selected");
+  win.endRow();
   win.endGroupBox();
 
   // 4. Primary Tool Selector & Action Dispatcher
-  const dropdownItems = currentApps.map(
-    (a) => `[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`
-  );
+  const formatItemStr = (a: DetectedApp) =>
+    `${a.isFavorite ? "⭐ " : ""}[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`;
+
+  const dropdownItems = currentApps.map(formatItemStr);
 
   win.beginGroupBox("Select & Launch Any Tool in this Project");
 
   // Action Dispatcher Buttons & CLI Arguments Row
   win.beginRow();
   win.addLabel("lbl_pick", "Selected Tool:");
-  win.addDropdown("dd_select_app", dropdownItems, dropdownItems[0] || "None", { width: 440 });
+  win.addDropdown("dd_select_app", dropdownItems, dropdownItems[0] || "None", { width: 390 });
   win.addLabel("lbl_args", "CLI Flags / Args:");
-  win.addInput("txt_cli_args", "--help", "Arguments e.g. --telemetry, --search...", { width: 170 });
-  win.addButton("btn_launch", "🚀 Launch Tool");
-  win.addButton("btn_terminal", "🖥️ Open in Terminal");
-  win.addButton("btn_run_inline", "⚡ Run Inline");
-  win.addButton("btn_kill", "🛑 Stop / Kill");
-  win.addButton("btn_reveal", "📂 Reveal Script");
+  win.addInput("txt_cli_args", "--help", "Arguments e.g. --telemetry, --search...", { width: 140 });
+  win.addButton("btn_launch", "🚀 Launch");
+  win.addButton("btn_fav", selectedApp?.isFavorite ? "★ Unfavorite" : "☆ Favorite");
+  win.addButton("btn_terminal", "🖥️ Terminal");
+  win.addButton("btn_run_inline", "⚡ Inline");
+  win.addButton("btn_kill", "🛑 Stop");
+  win.addButton("btn_reveal", "📂 Reveal");
   win.addButton("btn_copy", "📋 Copy Cmd");
   win.endRow();
 
@@ -1197,7 +1208,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel(
     "lbl_listbox_info",
-    "📋 Interactive Project Tools ListBox (Click any item to select & update launcher, double-click to launch):"
+    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click to launch):"
   );
   win.endRow();
 
@@ -1223,30 +1234,32 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginGroupBox("Catalog Search & Category Filter");
   win.beginRow();
   win.addLabel("lbl_search", "🔍 Filter:");
-  win.addInput("txt_search", "", "Filter tools by name, category, or command...", { width: 340 });
+  win.addInput("txt_search", "", "Filter tools by name, category, or command...", { width: 300 });
   win.addLabel("lbl_cat", "Category:");
   win.addDropdown(
     "dd_category",
     [
       "🌟 All Project Tools",
+      "⭐ Pinned Favorites",
       "🖥️ Studio Applications (applications/)",
       "🛠️ CLI Utilities (cli_apps/)",
       "🎮 Showcase Demos (demos/)",
       "🟢 Running Processes",
-      "⭐ Pinned Favorites",
     ],
     "🌟 All Project Tools",
-    { width: 260 }
+    { width: 240 }
   );
-  win.addButton("btn_filter", "🔍 Apply Filter");
-  win.addButton("btn_clear_filter", "✕ Reset Filter");
+  win.addButton("btn_quick_favs", "⭐ Favorites Only");
+  win.addButton("btn_filter", "🔍 Apply");
+  win.addButton("btn_clear_filter", "✕ Show All");
   win.endRow();
   win.endGroupBox();
 
   // 6. Project Tools Data Table
-  const tableHeaders = ["ID", "Type", "Name", "Category", "Status", "Command Path"];
+  const tableHeaders = ["ID", "Fav", "Type", "Name", "Category", "Status", "Command Path"];
   const formatRow = (a: DetectedApp) => [
     a.id,
+    a.isFavorite ? "⭐ Fav" : "—",
     a.sourceLabel,
     `${a.icon || "⚡"} ${a.displayName}`,
     a.category,
@@ -1259,7 +1272,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginGroupBox(`Project Tools Catalog (${initialData.kpis.total} Total Tools in Workspace)`);
   win.addTable("tbl_apps", tableHeaders, initialRows, (w, rowPid: any) => {
     // Exact match on rowPid since cell[0] is app.id!
-    const found = currentApps.find((a) => a.id === String(rowPid).trim());
+    const found = currentApps.find((a) => a.id === String(rowPid).trim()) || findAppFromSelection(rowPid);
     if (found) {
       selectedApp = found;
       updateSelectedView(w, found);
@@ -1284,7 +1297,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel(
     "lbl_status",
-    `Ready  |  ${initialData.kpis.radStudios} Studio Apps  |  ${initialData.kpis.cliTools} CLI Tools  |  ${initialData.kpis.demos} Demos  |  Running: ${initialData.kpis.running}`
+    `Ready  |  ${initialData.kpis.radStudios} Studio Apps  |  ${initialData.kpis.cliTools} CLI Tools  |  ${initialData.kpis.demos} Demos  |  ⭐ ${initialData.kpis.favorites} Favorites  |  Running: ${initialData.kpis.running}`
   );
   win.endRow();
 
@@ -1298,7 +1311,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!str || str === "None") return null;
 
     // 1. Direct ID match
-    let found = currentApps.find((a) => a.id === str);
+    let found = currentApps.find((a) => a.id === str || a.id.toLowerCase() === str.toLowerCase());
     if (found) return found;
 
     // 2. Exact displayPath match (e.g. within parentheses or trailing)
@@ -1322,13 +1335,18 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   function updateSelectedView(w: SimpleWindow, app: DetectedApp) {
     selectedApp = app;
-    const itemStr = `[${app.sourceLabel}] ${app.displayName} (${app.displayPath})`;
+    const itemStr = formatItemStr(app);
 
     // Synchronize ListBox Selection
     w.setValue("lst_apps", itemStr);
 
     // Synchronize Dropdown Selection
     w.setValue("dd_select_app", itemStr);
+
+    // Synchronize Favorite button
+    const favLabel = app.isFavorite ? "★ Unfavorite" : "☆ Favorite";
+    w.setValue("btn_fav", favLabel);
+    w.setValue("btn_quick_toggle_fav", app.isFavorite ? "⭐ Unpin Favorite" : "⭐ Pin Favorite");
 
     // Set intelligent preset arguments if empty or default
     if (app.source === "cli_tool") {
@@ -1342,7 +1360,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       }
     }
 
-    w.setStatus(`Selected Tool: ${app.displayName} (${app.displayPath}) [${app.category}]`);
+    w.setStatus(`Selected Tool: ${app.displayName} (${app.displayPath}) [${app.category}] ${app.isFavorite ? "⭐ [Favorite]" : ""}`);
 
     const summary = [
       `=== Tool Selected: ${app.displayName} ===`,
@@ -1353,10 +1371,84 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       `Run Command: ${app.command}`,
       `Description: ${app.description}`,
       `Status:      ${app.isRunning ? `🟢 Active Running (PID ${app.pid})` : "⚪ Ready to Launch"}`,
-      `Favorite:    ${app.isFavorite ? "Yes (★)" : "No (☆)"}`,
+      `Favorite:    ${app.isFavorite ? "Yes (★ Pinned Favorite)" : "No (☆ Not Pinned)"}`,
     ].join("\n");
 
     w.setText("txt_output", summary);
+
+    // Precise DOM synchronization across Top DropDown, Top ListBox, Bottom Table, and Favorite Buttons
+    w.evalJS(`
+      (function() {
+        const appId = ${JSON.stringify(app.id)};
+        const itemStr = ${JSON.stringify(itemStr)};
+        const favLabel = ${JSON.stringify(favLabel)};
+        window.selectedRowPid = appId;
+
+        function syncUI() {
+          // 1. Synchronize Top Dropdown
+          const dd = document.getElementById("dd_select_app");
+          if (dd) {
+            const sel = dd.tagName === "SELECT" ? dd : dd.querySelector("select");
+            if (sel) {
+              for (let i = 0; i < sel.options.length; i++) {
+                const opt = sel.options[i];
+                if (opt.value === itemStr || opt.text === itemStr || opt.text.includes(appId) || opt.value.includes(appId)) {
+                  sel.selectedIndex = i;
+                  break;
+                }
+              }
+            }
+          }
+
+          // 2. Synchronize Top ListBox
+          const lst = document.getElementById("lst_apps");
+          if (lst) {
+            const sel = lst.tagName === "SELECT" ? lst : lst.querySelector("select");
+            if (sel) {
+              for (let i = 0; i < sel.options.length; i++) {
+                const opt = sel.options[i];
+                if (opt.value === itemStr || opt.text === itemStr || opt.text.includes(appId) || opt.value.includes(appId)) {
+                  sel.selectedIndex = i;
+                  opt.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                  break;
+                }
+              }
+            }
+          }
+
+          // 3. Synchronize Bottom Table
+          const tbl = document.getElementById("tbl_apps");
+          if (tbl) {
+            const isLight = document.body.classList.contains("light-theme") || (window.currentTheme && window.currentTheme.includes("light"));
+            const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
+            const rows = tbl.querySelectorAll("tbody tr");
+            let targetTr = null;
+            rows.forEach(tr => {
+              if (tr.getAttribute("data-pid") === appId) {
+                tr.classList.add("selected-tr");
+                tr.style.background = selBg;
+                targetTr = tr;
+              } else {
+                tr.classList.remove("selected-tr");
+                tr.style.background = "";
+              }
+            });
+            if (targetTr) {
+              targetTr.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
+          }
+
+          // 4. Update Favorite button label in DOM
+          const favBtn = document.getElementById("btn_fav");
+          if (favBtn) {
+            favBtn.textContent = favLabel;
+          }
+        }
+
+        syncUI();
+        setTimeout(syncUI, 50);
+      })();
+    `);
   }
 
   async function executeToolLaunch(
@@ -1432,20 +1524,38 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     const rows = currentApps.map(formatRow);
     w.setTableData("tbl_apps", tableHeaders, rows);
 
-    const filteredItems = currentApps.map(
-      (a) => `[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`
-    );
+    const filteredItems = currentApps.map(formatItemStr);
     w.setListItems("lst_apps", filteredItems);
     w.setListItems("dd_select_app", filteredItems);
 
     w.setText(
       "lbl_status",
-      `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}`
+      `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}  |  Favorites: ${fresh.kpis.favorites}`
     );
 
-    if (currentApps.length > 0 && (!selectedApp || !currentApps.some((a) => a.id === selectedApp?.id))) {
-      selectedApp = currentApps[0]!;
+    // Stable selection resolution:
+    // If selectedApp is still present in currentApps, keep it selected!
+    // Otherwise fallback to currentApps[0].
+    if (currentApps.length > 0) {
+      const stillPresent = selectedApp ? currentApps.find((a) => a.id === selectedApp?.id) : null;
+      selectedApp = stillPresent || currentApps[0]!;
       updateSelectedView(w, selectedApp);
+    } else {
+      selectedApp = null;
+      w.setText("txt_output", "No project tools matched the specified search and filter criteria.");
+      w.setStatus("No tools match filter");
+      w.evalJS(`
+        (function() {
+          window.selectedRowPid = "";
+          const tbl = document.getElementById("tbl_apps");
+          if (tbl) {
+            tbl.querySelectorAll("tbody tr").forEach(tr => {
+              tr.classList.remove("selected-tr");
+              tr.style.background = "";
+            });
+          }
+        })();
+      `);
     }
   }
 
@@ -1467,15 +1577,63 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     applyFilters(w);
   });
 
+  // Quick Favorites Filter Action
+  const filterToFavorites = (w: SimpleWindow) => {
+    w.setValue("dd_category", "⭐ Pinned Favorites");
+    applyFilters(w);
+  };
+  win.onClick("btn_quick_favs", filterToFavorites);
+  win.onClick("btn_quick_favs_filter", filterToFavorites);
+
+  // Quick Launch Top Favorite Action
+  win.onClick("btn_quick_launch_fav1", (w) => {
+    const fresh = scanAllApplications();
+    const favs = fresh.apps.filter((a) => a.isFavorite);
+    if (favs.length === 0) {
+      w.toast("No favorites pinned yet! Select any tool and click '☆ Favorite' to pin it.");
+      return;
+    }
+    const target = favs[0]!;
+    updateSelectedView(w, target);
+    executeToolLaunch(target, w, undefined, target.source === "cli_tool");
+  });
+
+  // Quick Favorite Star/Unstar Toggle
+  const handleToggleFavorite = (w: SimpleWindow) => {
+    if (!selectedApp) {
+      const lstVal = w.getValue("lst_apps");
+      const ddVal = w.getValue("dd_select_app");
+      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
+    }
+    if (!selectedApp) {
+      w.toast("No tool selected to favorite.");
+      return;
+    }
+    const isFav = toggleFavorite(selectedApp.id);
+    selectedApp.isFavorite = isFav;
+    w.toast(isFav ? `⭐ Favorited: ${selectedApp.displayName}` : `☆ Removed Favorite: ${selectedApp.displayName}`);
+
+    const fresh = scanAllApplications();
+    w.setValue("lbl_kpi_favs", `⭐ Favorites: ${fresh.kpis.favorites}`);
+
+    updateSelectedView(w, selectedApp);
+    applyFilters(w);
+  };
+  win.onClick("btn_fav", handleToggleFavorite);
+  win.onClick("btn_quick_toggle_fav", handleToggleFavorite);
+
+  // Real-time filter reactivity on input / dropdown change
+  win.onEnter("txt_search", (w) => applyFilters(w));
+  win.onChange("txt_search", (w) => applyFilters(w));
+  win.onChange("dd_category", (w) => applyFilters(w));
+
   win.onClick("btn_rescan", (w) => {
     const fresh = scanAllApplications();
     currentApps = fresh.apps;
     const rows = currentApps.map(formatRow);
     w.setTableData("tbl_apps", tableHeaders, rows);
 
-    const freshItems = currentApps.map(
-      (a) => `[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`
-    );
+    const freshItems = currentApps.map(formatItemStr);
     w.setListItems("lst_apps", freshItems);
     w.setListItems("dd_select_app", freshItems);
 
@@ -1484,8 +1642,15 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setValue("lbl_kpi_cli", `🛠️ CLI Utilities: ${fresh.kpis.cliTools}`);
     w.setValue("lbl_kpi_demos", `🎮 Showcase Demos: ${fresh.kpis.demos}`);
     w.setValue("lbl_kpi_running", `🟢 Active Running: ${fresh.kpis.running}`);
-    w.appendConsole("launcher_console", `[Rescan] Discovered ${fresh.kpis.total} project tools (${fresh.kpis.radStudios} Studios, ${fresh.kpis.cliTools} CLI tools).\n`, 2);
+    w.setValue("lbl_kpi_favs", `⭐ Favorites: ${fresh.kpis.favorites}`);
+    w.appendConsole("launcher_console", `[Rescan] Discovered ${fresh.kpis.total} project tools (${fresh.kpis.radStudios} Studios, ${fresh.kpis.cliTools} CLI tools, ${fresh.kpis.favorites} Favorites).\n`, 2);
     w.toast(`Rescanned: ${fresh.kpis.total} tools ready`);
+
+    if (currentApps.length > 0) {
+      const stillPresent = selectedApp ? currentApps.find((a) => a.id === selectedApp?.id) : null;
+      selectedApp = stillPresent || currentApps[0]!;
+      updateSelectedView(w, selectedApp);
+    }
   });
 
   // ListBox selection change and click
@@ -1516,7 +1681,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // Table selection change and click
   win.onClick("tbl_apps", (w, val: any) => {
-    const matched = findAppFromSelection(val);
+    const matched = currentApps.find((a) => a.id === String(val).trim()) || findAppFromSelection(val);
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
@@ -1524,10 +1689,19 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   });
 
   win.onChange("tbl_apps", (w, val: any) => {
-    const matched = findAppFromSelection(val);
+    const matched = currentApps.find((a) => a.id === String(val).trim()) || findAppFromSelection(val);
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
+    }
+  });
+
+  win.onDoubleClick("tbl_apps", (w, val: any) => {
+    const matched = currentApps.find((a) => a.id === String(val).trim()) || findAppFromSelection(val);
+    if (matched) {
+      selectedApp = matched;
+      updateSelectedView(w, matched);
+      executeToolLaunch(matched, w, undefined, matched.source === "cli_tool");
     }
   });
 
