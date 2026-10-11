@@ -379,4 +379,67 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(tableOut).toContain("Native Bun File Finder");
     expect(tableOut).toContain("package.json");
   });
+
+  it("21. Fd Studio Pro action buttons execute without throwing exceptions or undefined property errors", () => {
+    const testGraveyard = path.resolve("./.tmp_test_graveyard_btn");
+    const testSandbox = path.resolve("./.tmp_test_sandbox_btn");
+    if (fs.existsSync(testGraveyard)) fs.rmSync(testGraveyard, { recursive: true, force: true });
+    if (fs.existsSync(testSandbox)) fs.rmSync(testSandbox, { recursive: true, force: true });
+
+    fs.mkdirSync(testSandbox, { recursive: true });
+    fs.writeFileSync(path.join(testSandbox, "testfile.txt"), "hello buttons", "utf-8");
+
+    const win = createFdStudio({ fullscreen: false, graveyardDir: testGraveyard });
+    const consoleErrors: string[] = [];
+    win.appendConsole = (_id, msg, style) => {
+      if (style === 3 || msg.includes("ERROR") || msg.includes("undefined")) {
+        consoleErrors.push(msg);
+      }
+    };
+
+    win.setValue("txt_pattern", "testfile\\.txt");
+    win.setValue("txt_root", testSandbox);
+    win.setValue("txt_dest_dir", path.join(testSandbox, "output"));
+
+    const handlers = (win as any).eventHandlersMap;
+    // 1. Search
+    handlers.get("btn_search:onclick")(win);
+
+    // 2. Toggle Graveyard
+    expect(handlers.has("btn_toggle_graveyard:onclick")).toBe(true);
+    handlers.get("btn_toggle_graveyard:onclick")(win);
+
+    // 3. Inspect / Preview / Clipboard
+    handlers.get("btn_copy_rel:onclick")(win);
+    handlers.get("btn_copy_abs:onclick")(win);
+    handlers.get("btn_preview_content:onclick")(win);
+
+    // 4. Exec on item
+    handlers.get("btn_exec_one:onclick")(win);
+    handlers.get("btn_exec_all:onclick")(win);
+
+    // 5. Safe Bury One & Rip Undo
+    handlers.get("btn_bury_one:onclick")(win);
+    expect(fs.existsSync(path.join(testSandbox, "testfile.txt"))).toBe(false);
+
+    handlers.get("btn_unbury_last:onclick")(win);
+    expect(fs.existsSync(path.join(testSandbox, "testfile.txt"))).toBe(true);
+
+    // 6. Bury and decompose
+    handlers.get("btn_bury_one:onclick")(win);
+    handlers.get("btn_decompose_all:onclick")(win);
+
+    // 7. Recreate and test copy/archive
+    fs.writeFileSync(path.join(testSandbox, "testfile.txt"), "hello buttons 2", "utf-8");
+    handlers.get("btn_search:onclick")(win);
+    handlers.get("btn_copy_all_files:onclick")(win);
+    handlers.get("btn_archive_all:onclick")(win);
+
+    // Ensure no Rip/Button errors occurred
+    expect(consoleErrors).toEqual([]);
+
+    // Cleanup
+    fs.rmSync(testGraveyard, { recursive: true, force: true });
+    fs.rmSync(testSandbox, { recursive: true, force: true });
+  });
 });

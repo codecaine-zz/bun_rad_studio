@@ -19,6 +19,7 @@ import {
   formatHumanSize,
   type GraveyardItem,
 } from "./rip_engine";
+import { packTarGz, type TarEntry } from "../src/features/rad/modules/tarutils";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
@@ -324,10 +325,10 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       const stats = getGraveyardStats(graveyardDir);
       graveyardItems = seanceGraveyard({ graveyardDir });
 
-      win.setText("lbl_rip_metric_total", `Buried Items: ${stats.totalFiles}`);
-      win.setText("lbl_rip_metric_size", `Total Size: ${formatHumanSize(stats.totalSizeBytes)}`);
-      win.setText("lbl_rip_metric_today", `Buried Today: ${stats.buriedToday}`);
-      win.setText("btn_toggle_graveyard", `🪦 Graveyard (${stats.totalFiles})`);
+      win.setText("lbl_rip_metric_total", `Buried Items: ${stats.totalItems}`);
+      win.setText("lbl_rip_metric_size", `Total Size: ${stats.totalHumanSize}`);
+      win.setText("lbl_rip_metric_today", `Buried Today: ${stats.buriedTodayCount}`);
+      win.setText("btn_toggle_graveyard", `🪦 Graveyard (${stats.totalItems})`);
 
       const rows = graveyardItems.map((g) => ({
         rowId: g.id,
@@ -557,6 +558,20 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     w.saveAppFormState();
     w.toast("Fd Studio configuration saved!");
   });
+  win.onClick("btn_toggle_graveyard", () => {
+    win.evalJS(`
+      (function() {
+        const graveyardCard = document.getElementById("card_graveyard");
+        if (graveyardCard) {
+          const isHidden = graveyardCard.style.display === "none";
+          graveyardCard.style.display = isHidden ? "flex" : "none";
+          if (isHidden) {
+            graveyardCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      })();
+    `);
+  });
 
   win.onClick("btn_search", () => performSearch());
   win.onClick("btn_toggle_watch", () => toggleWatcher());
@@ -652,15 +667,22 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     copyToClipboard(selectedItem.path, `absolute path: ${selectedItem.path}`);
   });
 
-  // Reveal in macOS Finder
+  // Reveal in OS File Manager
   win.onClick("btn_reveal", () => {
     if (!selectedItem) {
       win.toast("Please select an item first.");
       return;
     }
-    Sys.exec(`open -R "${selectedItem.path}"`);
-    win.toast(`Revealed in Finder: ${selectedItem.name}`);
-    logConsole(`[Finder] Revealed item: ${selectedItem.path}`, 1);
+    const fullPath = path.resolve(selectedItem.path);
+    if (process.platform === "darwin") {
+      Sys.exec(`open -R "${fullPath}"`);
+    } else if (process.platform === "win32") {
+      Sys.exec(`explorer.exe /select,"${fullPath}"`);
+    } else {
+      Sys.exec(`xdg-open "${path.dirname(fullPath)}"`);
+    }
+    win.toast(`Revealed in file manager: ${selectedItem.name}`);
+    logConsole(`[Finder] Revealed item: ${fullPath}`, 1);
   });
 
   // Preview Content
@@ -707,6 +729,10 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         fs.mkdirSync(destDir, { recursive: true });
       }
       const targetPath = path.join(destDir, selectedItem.name);
+      if (path.resolve(selectedItem.path) === targetPath) {
+        win.toast("Item is already in the target destination.");
+        return;
+      }
       try {
         fs.renameSync(selectedItem.path, targetPath);
       } catch {
@@ -732,14 +758,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     const targetName = selectedItem.name;
     try {
       const res = buryTargetsSync([targetPath], { graveyardDir });
-      if (res.buried.length > 0) {
-        logConsole(`[Rip Engine] Safely buried '${targetName}' into Rip graveyard (${formatHumanSize(res.totalBytesFreed)} freed)`, 2);
+      if (res.buriedItems.length > 0) {
+        logConsole(`[Rip Engine] Safely buried '${targetName}' into Rip graveyard (${formatHumanSize(res.totalBytesBuried)} freed)`, 2);
         win.toast(`Safely buried '${targetName}' (Rip)`);
         refreshGraveyard();
         performSearch();
-      } else if (res.errors.length > 0) {
-        logConsole(`[Rip Engine Error]: ${res.errors[0].error}`, 3);
-        win.toast(`Failed to bury: ${res.errors[0].error}`);
+      } else if (res.failed.length > 0) {
+        logConsole(`[Rip Engine Error]: ${res.failed[0].error}`, 3);
+        win.toast(`Failed to bury: ${res.failed[0].error}`);
       }
     } catch (err: any) {
       logConsole(`[Rip Error]: ${err.message}`, 3);
@@ -755,6 +781,12 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     }
     const targetPath = selectedItem.path;
     const targetName = selectedItem.name;
+    const resolvedTarget = path.resolve(targetPath);
+    if (resolvedTarget === process.cwd() || resolvedTarget === path.parse(resolvedTarget).root) {
+      win.toast("Cannot delete workspace root directory!");
+      logConsole("[Delete] Protected workspace root directory deletion blocked.", 3);
+      return;
+    }
     try {
       fs.rmSync(targetPath, { recursive: true, force: true });
       logConsole(`[Delete] Successfully deleted: ${targetPath}`, 2);
@@ -786,7 +818,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       win.toast("Please select an item first.");
       return;
     }
-    const tmpl = win.getValue("txt_exec_cmd") || "ls -la {}";
+    const rawTmpl = win.getValue("txt_exec_cmd");
+    const tmpl = (rawTmpl && rawTmpl.trim()) ? rawTmpl.trim() : "ls -ld {}";
     logConsole(`[Exec] Running '${tmpl}' on ${selectedItem.name}...`, 1);
     const res = runFdCommand(tmpl, [selectedItem.path]);
     if (res.stdout) logConsole(`[Output]:\n${res.stdout}`, 2);
@@ -806,7 +839,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       win.toast("No matching items to execute on.");
       return;
     }
-    const tmpl = win.getValue("txt_exec_cmd") || "ls -la {}";
+    const rawTmpl = win.getValue("txt_exec_cmd");
+    const tmpl = (rawTmpl && rawTmpl.trim()) ? rawTmpl.trim() : "ls -ld {}";
     const paths = currentResults.map((r) => r.path);
     logConsole(`[Batch Exec] Running '${tmpl}' on ${paths.length} items...`, 1);
     const res = runFdCommand(tmpl, paths);
@@ -833,8 +867,15 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       let copiedCount = 0;
       let errorCount = 0;
       for (const item of currentResults) {
+        const itemResolved = path.resolve(item.path);
+        if (itemResolved === destDir || itemResolved.startsWith(destDir + path.sep)) {
+          continue;
+        }
+        const targetPath = path.join(destDir, item.name);
+        if (itemResolved === path.resolve(targetPath)) {
+          continue;
+        }
         try {
-          const targetPath = path.join(destDir, item.name);
           fs.cpSync(item.path, targetPath, { recursive: true });
           copiedCount++;
         } catch (err: any) {
@@ -865,8 +906,15 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       let movedCount = 0;
       let errorCount = 0;
       for (const item of currentResults) {
+        const itemResolved = path.resolve(item.path);
+        if (itemResolved === destDir || itemResolved.startsWith(destDir + path.sep)) {
+          continue;
+        }
+        const targetPath = path.join(destDir, item.name);
+        if (itemResolved === path.resolve(targetPath)) {
+          continue;
+        }
         try {
-          const targetPath = path.join(destDir, item.name);
           try {
             fs.renameSync(item.path, targetPath);
           } catch {
@@ -903,23 +951,34 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       const archivePath = path.join(destDir, `fd_archive_${timestamp}.tar.gz`);
 
-      const tmpList = path.join(destDir, `.tar_list_${Date.now()}.txt`);
-      fs.writeFileSync(tmpList, currentResults.map((r) => r.path).join("\n"), "utf-8");
-
-      const cmd = `tar -czf "${archivePath}" -T "${tmpList}"`;
-      const res = Bun.spawnSync(["/bin/sh", "-c", cmd], { stdin: "ignore" });
-      try { fs.unlinkSync(tmpList); } catch {}
-
-      if (res.exitCode === 0 && fs.existsSync(archivePath)) {
-        const stat = fs.statSync(archivePath);
-        const sizeMb = (stat.size / (1024 * 1024)).toFixed(2);
-        logConsole(`[Archive] Created archive: ${archivePath} (${sizeMb} MB, ${currentResults.length} files)`, 2);
-        win.toast(`Archived ${currentResults.length} items to .tar.gz!`);
-      } else {
-        const err = res.stderr ? Buffer.from(res.stderr).toString("utf-8") : "tar execution failed";
-        logConsole(`[Archive Error]: ${err}`, 3);
-        win.toast(`Archive creation failed`);
+      const tarEntries: TarEntry[] = [];
+      for (const item of currentResults) {
+        if (item.type === "file") {
+          try {
+            const data = fs.readFileSync(item.path);
+            tarEntries.push({
+              name: item.relativePath,
+              data,
+              mode: item.mode,
+              mtime: new Date(item.mtimeMs),
+              type: "file",
+            });
+          } catch {
+            // skip if unreadable
+          }
+        }
       }
+
+      if (tarEntries.length === 0) {
+        win.toast("No files to archive (only directories matched).");
+        return;
+      }
+
+      const gzBytes = packTarGz(tarEntries);
+      fs.writeFileSync(archivePath, gzBytes);
+      const sizeMb = (gzBytes.byteLength / (1024 * 1024)).toFixed(2);
+      logConsole(`[Archive] Created archive: ${archivePath} (${sizeMb} MB, ${tarEntries.length} files)`, 2);
+      win.toast(`Archived ${tarEntries.length} files to .tar.gz!`);
     } catch (err: any) {
       logConsole(`[Archive Exception]: ${err.message}`, 3);
       win.toast(`Failed to create archive: ${err.message}`);
@@ -1022,10 +1081,10 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     try {
       const res = buryTargetsSync(paths, { graveyardDir });
       logConsole(
-        `[Rip Engine] Batch buried ${res.buried.length} of ${paths.length} items into graveyard (${formatHumanSize(res.totalBytesFreed)} freed, ${res.errors.length} errors)`,
-        res.errors.length > 0 ? 3 : 2
+        `[Rip Engine] Batch buried ${res.buriedItems.length} of ${paths.length} items into graveyard (${formatHumanSize(res.totalBytesBuried)} freed, ${res.failed.length} errors)`,
+        res.failed.length > 0 ? 3 : 2
       );
-      win.toast(`Batch buried ${res.buried.length} items into Rip graveyard!`);
+      win.toast(`Batch buried ${res.buriedItems.length} items into Rip graveyard!`);
       refreshGraveyard();
       performSearch();
     } catch (err: any) {
@@ -1040,10 +1099,15 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       win.toast("No matching items to delete.");
       return;
     }
+    const cwd = process.cwd();
     const countToDelete = currentResults.length;
     let deletedCount = 0;
     let errorCount = 0;
     for (const item of currentResults) {
+      const resolved = path.resolve(item.path);
+      if (resolved === cwd || resolved === path.parse(resolved).root) {
+        continue;
+      }
       try {
         fs.rmSync(item.path, { recursive: true, force: true });
         deletedCount++;
@@ -1067,14 +1131,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       }
       const lastBuried = allBuried[0];
       const res = unburyTargetsSync([lastBuried.id], { graveyardDir });
-      if (res.restored.length > 0) {
+      if (res.restoredItems.length > 0) {
         logConsole(`[Rip Engine] Restored '${lastBuried.name}' back to '${lastBuried.originalPath}'`, 2);
         win.toast(`Restored '${lastBuried.name}'!`);
         refreshGraveyard();
         performSearch();
-      } else if (res.errors.length > 0) {
-        logConsole(`[Rip Undo Error]: ${res.errors[0].error}`, 3);
-        win.toast(`Restore failed: ${res.errors[0].error}`);
+      } else if (res.failed.length > 0) {
+        logConsole(`[Rip Undo Error]: ${res.failed[0].error}`, 3);
+        win.toast(`Restore failed: ${res.failed[0].error}`);
       }
     } catch (err: any) {
       logConsole(`[Rip Undo Error]: ${err.message}`, 3);
@@ -1098,14 +1162,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     }
     try {
       const res = unburyTargetsSync([selectedGraveyardItem.id], { graveyardDir });
-      if (res.restored.length > 0) {
+      if (res.restoredItems.length > 0) {
         logConsole(`[Rip Engine] Restored '${selectedGraveyardItem.name}' -> '${selectedGraveyardItem.originalPath}'`, 2);
         win.toast(`Restored '${selectedGraveyardItem.name}' to original path!`);
         refreshGraveyard();
         performSearch();
-      } else if (res.errors.length > 0) {
-        logConsole(`[Rip Restore Error]: ${res.errors[0].error}`, 3);
-        win.toast(`Restore failed: ${res.errors[0].error}`);
+      } else if (res.failed.length > 0) {
+        logConsole(`[Rip Restore Error]: ${res.failed[0].error}`, 3);
+        win.toast(`Restore failed: ${res.failed[0].error}`);
       }
     } catch (err: any) {
       logConsole(`[Rip Restore Error]: ${err.message}`, 3);
@@ -1121,8 +1185,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     }
     const name = selectedGraveyardItem.name;
     try {
-      const res = decomposeGraveyardSync({ graveyardDir, itemIds: [selectedGraveyardItem.id] });
-      logConsole(`[Rip Engine] Decomposed (permanently deleted) '${name}' from graveyard (${formatHumanSize(res.totalBytesFreed)} freed)`, 2);
+      const res = decomposeGraveyardSync({ graveyardDir, targets: [selectedGraveyardItem.id] });
+      logConsole(`[Rip Engine] Decomposed (permanently deleted) '${name}' from graveyard (${res.freedHumanSize} freed)`, 2);
       win.toast(`Permanently deleted '${name}' from graveyard.`);
       selectedGraveyardItem = null;
       refreshGraveyard();
@@ -1136,8 +1200,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.onClick("btn_decompose_all", () => {
     try {
       const res = decomposeGraveyardSync({ graveyardDir, all: true });
-      logConsole(`[Rip Engine] Emptied graveyard. Decomposed ${res.decomposed.length} items (${formatHumanSize(res.totalBytesFreed)} freed).`, 2);
-      win.toast(`Emptied graveyard (${res.decomposed.length} items).`);
+      logConsole(`[Rip Engine] Emptied graveyard. Decomposed ${res.deletedCount} items (${res.freedHumanSize} freed).`, 2);
+      win.toast(`Emptied graveyard (${res.deletedCount} items).`);
       selectedGraveyardItem = null;
       refreshGraveyard();
     } catch (err: any) {
