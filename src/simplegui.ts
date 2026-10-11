@@ -6804,8 +6804,8 @@ export class SimpleWindow {
 
                         return '<tr class="' + selClass + '" style="border-bottom:1px solid ' + border + ';cursor:pointer;transition:background 0.12s;' + bgStyle + '" ' +
                             'data-pid="' + esc(rowPid) + '" ' +
-                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[\\'' + esc(id) + '_onClick\\']||window[\\'on_' + esc(id) + '_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
-                            'ondblclick="const fn=window[\\'' + esc(id) + '_onDoubleClick\\']||window[\\'on_' + esc(id) + '_doubleclick\\']||window[\\'on_' + esc(id) + '_ondoubleclick\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');" ' +
+                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[\\'' + esc(ctrlId) + '_onClick\\']||window[\\'on_' + esc(ctrlId) + '_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
+                            'ondblclick="const fn=window[\\'' + esc(ctrlId) + '_onDoubleClick\\']||window[\\'on_' + esc(ctrlId) + '_doubleclick\\']||window[\\'on_' + esc(ctrlId) + '_ondoubleclick\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');" ' +
                             'onmouseover="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'' + hoverBg + '\\'" ' +
                             'onmouseout="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'\\'">' +
                             cells.map((c, i) => {
