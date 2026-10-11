@@ -1052,6 +1052,25 @@ export class SimpleWindow {
                             background-color: ${cardBg} !important;
                             color: ${colors.fg} !important;
                         }
+                        select[size], select[multiple], .simplegui-listbox {
+                            background-color: ${inputBg} !important;
+                            color: ${colors.fg} !important;
+                            border-color: ${inputBorder} !important;
+                            color-scheme: ${isLight ? 'light' : 'dark'} !important;
+                            accent-color: ${colors.accent} !important;
+                        }
+                        select[size]:hover, select[multiple]:hover, .simplegui-listbox:hover { border-color: ${colors.accent} !important; }
+                        select[size] option, select[multiple] option, .simplegui-listbox option {
+                            background-color: transparent !important;
+                            background-image: none !important;
+                            color: ${colors.fg} !important;
+                        }
+                        select[size] option:checked, select[multiple] option:checked, .simplegui-listbox option:checked {
+                            background-color: ${colors.accent} !important;
+                            background-image: linear-gradient(${colors.accent}, ${colors.accent}) !important;
+                            color: ${btnFg} !important;
+                            font-weight: 700 !important;
+                        }
                         :focus-visible { outline-color: ${colors.accent} !important; }
                         button.btn-theme-accent,
                         button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]) {
