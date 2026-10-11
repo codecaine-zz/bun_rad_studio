@@ -65,10 +65,65 @@ function Write-BrandHeader {
 # 2. Bun Runtime Detection
 # -------------------------------------------------------------------------------------------------
 
+function Get-BunX64ForArm64 {
+    $userProfile = 'C:\Users\Default'
+    if ($env:USERPROFILE) { $userProfile = $env:USERPROFILE }
+    $localApp = Join-Path $userProfile 'AppData\Local'
+    if ($env:LOCALAPPDATA) { $localApp = $env:LOCALAPPDATA }
+
+    $targetDir = Join-Path $localApp 'bun-x64'
+    $targetExe = Join-Path $targetDir 'bun-windows-x64\bun.exe'
+    if (Test-Path $targetExe) { return $targetExe }
+
+    $altExe = Join-Path $targetDir 'bun.exe'
+    if (Test-Path $altExe) { return $altExe }
+
+    if (Test-Path 'C:\Tools\bun-x64\bun-windows-x64\bun.exe') {
+        return 'C:\Tools\bun-x64\bun-windows-x64\bun.exe'
+    }
+
+    Write-Host ""
+    Write-Host "[!] Windows ARM64 Architecture Notice:" -ForegroundColor Yellow
+    Write-Host "    The desktop webview library (libwebview.dll) is an x86_64 DLL." -ForegroundColor Gray
+    Write-Host "    Native Bun ARM64 cannot dlopen an x64 DLL (Windows error 193)." -ForegroundColor Gray
+    Write-Host "    Windows ARM64 runs Bun x64 smoothly via built-in x64 emulation." -ForegroundColor Gray
+    Write-Host "[+] Automatically setting up Bun x64 for Windows ARM64 (one-time setup)..." -ForegroundColor Cyan
+
+    $tempDir = 'C:\Temp'
+    if ($env:TEMP) { $tempDir = $env:TEMP }
+    $zipPath = Join-Path $tempDir 'bun-windows-x64.zip'
+
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Write-Host "    Downloading bun-windows-x64 from GitHub releases (~25 MB)..." -ForegroundColor DarkGray
+        Invoke-WebRequest -Uri 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' -OutFile $zipPath -UseBasicParsing
+        New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+        Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
+        Remove-Item $zipPath -ErrorAction SilentlyContinue
+
+        if (Test-Path $targetExe) {
+            Write-Host "[OK] Bun x64 configured at: $targetExe" -ForegroundColor Green
+            return $targetExe
+        }
+        if (Test-Path $altExe) {
+            Write-Host "[OK] Bun x64 configured at: $altExe" -ForegroundColor Green
+            return $altExe
+        }
+    } catch {
+        Write-Host "[!] Automatic download failed: $_" -ForegroundColor Red
+        Write-Host "    You can manually extract bun-windows-x64.zip to $targetDir or C:\Tools\bun-x64" -ForegroundColor Yellow
+    }
+
+    return $null
+}
+
 function Find-BunRuntime {
-    $cmd = Get-Command bun -ErrorAction SilentlyContinue
-    if ($cmd -and (Test-Path $cmd.Source)) {
-        return $cmd.Source
+    $isArm64 = $false
+    if ($osArch) {
+        if ($osArch.ToString().ToLower() -eq 'arm64') { $isArm64 = $true }
+    }
+    if ($env:PROCESSOR_ARCHITECTURE) {
+        if ($env:PROCESSOR_ARCHITECTURE.ToLower() -eq 'arm64') { $isArm64 = $true }
     }
 
     $userProfile = 'C:\Users\Default'
@@ -81,11 +136,41 @@ function Find-BunRuntime {
         $localApp = $env:LOCALAPPDATA
     }
 
+    # If running on ARM64, webview-bun's libwebview.dll is an x64 PE binary.
+    # Native Bun ARM64 throws Error 193 (ERROR_BAD_EXE_FORMAT) trying to load it.
+    # We must use Bun x64 running under Windows built-in emulation.
+    if ($isArm64) {
+        $x64Candidates = @(
+            'C:\Tools\bun-x64\bun-windows-x64\bun.exe',
+            'C:\Tools\bun-x64\bun.exe',
+            (Join-Path $localApp 'bun-x64\bun-windows-x64\bun.exe'),
+            (Join-Path $localApp 'bun-x64\bun.exe')
+        )
+        foreach ($c in $x64Candidates) {
+            if ($c -and (Test-Path $c)) {
+                return $c
+            }
+        }
+
+        # Auto-download Bun x64 for Windows ARM64
+        $armBunX64 = Get-BunX64ForArm64
+        if ($armBunX64) {
+            return $armBunX64
+        }
+    }
+
+    # Standard candidate search for x64 or fallback
+    $cmd = Get-Command bun -ErrorAction SilentlyContinue
+    if ($cmd -and (Test-Path $cmd.Source)) {
+        return $cmd.Source
+    }
+
     $candidates = @(
+        'C:\Tools\bun-x64\bun-windows-x64\bun.exe',
         (Join-Path $userProfile '.bun\bin\bun.exe'),
         (Join-Path $localApp 'bun\bin\bun.exe'),
         'C:\Program Files\Bun\bun.exe',
-        'C:\Tools\bun-x64\bun-windows-x64\bun.exe',
+        'C:\Tools\bun-x64\bun.exe',
         'C:\Tools\bun-arm64\bun.exe',
         'C:\Users\codecaine\.bun\bin\bun.exe'
     )
