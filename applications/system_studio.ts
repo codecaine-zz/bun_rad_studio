@@ -2002,13 +2002,19 @@ export function generateEnterpriseAppHtml(): string {
       }
     }
 
+    function escapeHtml(value) {
+      return String(value === null || value === undefined ? "" : value)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
     function logToConsole(msg, type = "info") {
       const box = document.getElementById("consoleBox");
       const line = document.createElement("div");
       line.className = "log-line";
       const time = new Date().toLocaleTimeString();
       const colorClass = type === "ok" ? "log-ok" : (type === "err" ? "log-err" : "log-info");
-      line.innerHTML = \`<span class="log-time">[\${time}]</span> <span class="\${colorClass}">\${msg}</span>\`;
+      line.innerHTML = \`<span class="log-time">[\${time}]</span> <span class="\${colorClass}">\${escapeHtml(msg)}</span>\`;
       box.appendChild(line);
       box.scrollTop = box.scrollHeight;
     }
@@ -2148,9 +2154,9 @@ export function generateEnterpriseAppHtml(): string {
         rows.forEach(([k, v, color]) => {
           if (v === null || v === undefined || v === "") return;
           const style = color ? \` style="color: \${color}; font-weight: 600;"\` : "";
-          kvHtml += \`<div class="kv-item"><span class="kv-k">\${k}:</span><span class="kv-v"\${style}>\${v}</span></div>\`;
+          kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v"\${style}>\${escapeHtml(v)}</span></div>\`;
         });
-        c.innerHTML = \`<div class="data-card-header"><span style="display: flex; align-items: center; gap: 6px;"><span>\${icon}</span><span>\${title}</span></span></div><div class="kv-list">\${kvHtml}</div>\`;
+        c.innerHTML = \`<div class="data-card-header"><span style="display: flex; align-items: center; gap: 6px;"><span>\${icon}</span><span>\${escapeHtml(title)}</span></span></div><div class="kv-list">\${kvHtml}</div>\`;
         container.appendChild(c);
       }
 
@@ -2391,13 +2397,13 @@ export function generateEnterpriseAppHtml(): string {
             Object.entries(item).forEach(([k, v]) => {
               if (v === null || v === undefined) return;
               const valStr = typeof v === "object" ? JSON.stringify(v).slice(0, 45) : String(v);
-              kvHtml += \`<div class="kv-item"><span class="kv-k">\${k}:</span><span class="kv-v">\${valStr}</span></div>\`;
+              kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${escapeHtml(valStr)}</span></div>\`;
             });
           } else {
-            kvHtml = \`<div class="kv-item"><span class="kv-v">\${item}</span></div>\`;
+            kvHtml = \`<div class="kv-item"><span class="kv-v">\${escapeHtml(item)}</span></div>\`;
           }
 
-          card.innerHTML = \`<div class="data-card-header"><span>\${title}</span><span>#\${idx + 1}</span></div><div class="kv-list">\${kvHtml}</div>\`;
+          card.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(title)}</span><span>#\${idx + 1}</span></div><div class="kv-list">\${kvHtml}</div>\`;
           container.appendChild(card);
         });
         return;
@@ -2427,9 +2433,9 @@ export function generateEnterpriseAppHtml(): string {
                 Object.entries(item).forEach(([ik, iv]) => {
                   if (iv === null || iv === undefined) return;
                   const ivStr = typeof iv === "object" ? (Array.isArray(iv) ? \`\${iv.length} items\` : JSON.stringify(iv).slice(0, 40)) : String(iv);
-                  subKv += \`<div class="kv-item"><span class="kv-k">\${ik}:</span><span class="kv-v">\${ivStr}</span></div>\`;
+                  subKv += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(ik)}:</span><span class="kv-v">\${escapeHtml(ivStr)}</span></div>\`;
                 });
-                subCard.innerHTML = \`<div class="data-card-header"><span>\${subTitle}</span><span>\${k} #\${idx + 1}</span></div><div class="kv-list">\${subKv}</div>\`;
+                subCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(subTitle)}</span><span>\${k} #\${idx + 1}</span></div><div class="kv-list">\${subKv}</div>\`;
                 container.appendChild(subCard);
               });
             }
@@ -2440,12 +2446,12 @@ export function generateEnterpriseAppHtml(): string {
             Object.entries(v).forEach(([nk, nv]) => {
               if (nv === null || nv === undefined) return;
               const nvStr = typeof nv === "object" ? (Array.isArray(nv) ? \`\${nv.length} items\` : JSON.stringify(nv).slice(0, 40)) : String(nv);
-              nestedKv += \`<div class="kv-item"><span class="kv-k">\${nk}:</span><span class="kv-v">\${nvStr}</span></div>\`;
+              nestedKv += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(nk)}:</span><span class="kv-v">\${escapeHtml(nvStr)}</span></div>\`;
             });
             nestedCard.innerHTML = \`<div class="data-card-header"><span>\${k}</span></div><div class="kv-list">\${nestedKv}</div>\`;
             container.appendChild(nestedCard);
           } else {
-            kvHtml += \`<div class="kv-item"><span class="kv-k">\${k}:</span><span class="kv-v">\${v}</span></div>\`;
+            kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${escapeHtml(v)}</span></div>\`;
           }
         });
 
@@ -2456,7 +2462,7 @@ export function generateEnterpriseAppHtml(): string {
         return;
       }
 
-      container.innerHTML = \`<div class="data-card"><div class="data-card-header">Value</div><div style="font-size: 16px; font-weight: 700; color: var(--cyan);">\${data}</div></div>\`;
+      container.innerHTML = \`<div class="data-card"><div class="data-card-header">Value</div><div style="font-size: 16px; font-weight: 700; color: var(--cyan);">\${escapeHtml(data)}</div></div>\`;
     }
 
     async function runCurrentMethod() {

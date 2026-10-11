@@ -255,6 +255,11 @@ export function createProcsStudio(options: { fullscreen?: boolean; theme?: strin
       return;
     }
     const pid = selectedProc.pid;
+    const ok = await win.confirm(`Send ${sig} to PID ${pid} (${selectedProc.command.slice(0, 40)})?`, "Confirm Signal");
+    if (!ok) {
+      win.setValue("lbl_status_bar", `Cancelled ${sig} for PID ${pid}.`);
+      return;
+    }
     win.setValue("lbl_status_bar", `Sending ${sig} to PID ${pid}...`);
     try {
       killProcess(pid, sig as NodeJS.Signals);
@@ -264,6 +269,18 @@ export function createProcsStudio(options: { fullscreen?: boolean; theme?: strin
       win.setValue("lbl_status_bar", `❌ Failed to terminate PID ${pid}. You may need elevated permissions.`);
     }
   };
+
+  win.onChange("chk_auto", () => {
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+    if (win.getBool("chk_auto")) {
+      refreshTimer = setInterval(() => refreshProcessList(), 3000);
+      refreshTimer.unref?.();
+      refreshProcessList();
+    }
+  });
 
   win.on("btn_sigterm", "click", () => sendSignal("SIGTERM"));
   win.on("btn_sigkill", "click", () => sendSignal("SIGKILL"));

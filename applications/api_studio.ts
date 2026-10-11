@@ -26,7 +26,7 @@ export async function executeCurlRequest(
     "-L",
     "--connect-timeout", "4",
     "-m", "10",
-    "-X", method,
+    ...(method === "HEAD" ? ["-I"] : ["-X", method]),
     "-w", "\n__BUN_RAD_CURL_METADATA__\n%{http_code}\n%{time_total}\n",
   ];
 
@@ -91,18 +91,17 @@ export async function executeCurlRequest(
       }
     }
 
+    const reason = (headerLines[0] ?? "").replace(/^HTTP\/\S+\s+\d+\s*/i, "").trim();
+    const fallbackText: Record<number, string> = {
+      200: "OK", 201: "Created", 202: "Accepted", 204: "No Content", 301: "Moved Permanently", 302: "Found", 304: "Not Modified",
+      400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 408: "Request Timeout",
+      409: "Conflict", 422: "Unprocessable Entity", 429: "Too Many Requests", 500: "Internal Server Error", 502: "Bad Gateway",
+      503: "Service Unavailable", 504: "Gateway Timeout",
+    };
     const statusText =
-      statusCode === 200
-        ? "OK"
-        : statusCode === 201
-        ? "Created"
-        : statusCode === 204
-        ? "No Content"
-        : statusCode >= 400 && statusCode < 500
-        ? "Client Error"
-        : statusCode >= 500
-        ? "Server Error"
-        : "Response";
+      reason ||
+      fallbackText[statusCode] ||
+      (statusCode >= 400 && statusCode < 500 ? "Client Error" : statusCode >= 500 ? "Server Error" : statusCode === 0 ? "No Response" : "Response");
 
     return {
       ok: statusCode >= 200 && statusCode < 300,
@@ -162,6 +161,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   ).width(340);
   win.addLabel("lbl_auth", "Auth Mode:");
   win.addDropdown("dd_auth", ["None", "Bearer Token", "Basic Auth", "API Key Header"], "None").width(180);
+  win.addInput("txt_auth", "", "token | user:pass | key").width(220);
   win.addButton("btn_copy_curl", "📋 Copy cURL");
   win.endRow();
   win.endGroupBox();
@@ -234,6 +234,26 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     })();
   `);
 
+  const parseHeaders = (): Record<string, string> => {
+    const out: Record<string, string> = {};
+    (win.getValue("txt_headers") || "").split("\n").forEach((line: string) => {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > -1) {
+        const k = line.slice(0, colonIdx).trim();
+        const v = line.slice(colonIdx + 1).trim();
+        if (k) out[k] = v;
+      }
+    });
+    const mode = win.getValue("dd_auth") || "None";
+    const cred = (win.getValue("txt_auth") || "").trim();
+    if (cred) {
+      if (mode === "Bearer Token") out["Authorization"] = `Bearer ${cred}`;
+      else if (mode === "Basic Auth") out["Authorization"] = `Basic ${Buffer.from(cred).toString("base64")}`;
+      else if (mode === "API Key Header") out["X-API-Key"] = cred;
+    }
+    return out;
+  };
+
   const sendRequest = async () => {
     const method = win.getValue("dd_method") || "GET";
     const url = win.getValue("txt_url") || "";
@@ -261,17 +281,7 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     win.appendConsole("api_console", `[HTTP Dispatch] ${method} ${url} initiating...\n`, 1);
     win.setStatus(`Connecting to ${url}...`);
 
-    const headers: Record<string, string> = {};
-    if (headersRaw) {
-      headersRaw.split("\n").forEach((line: string) => {
-        const colonIdx = line.indexOf(":");
-        if (colonIdx > -1) {
-          const k = line.slice(0, colonIdx).trim();
-          const v = line.slice(colonIdx + 1).trim();
-          if (k) headers[k] = v;
-        }
-      });
-    }
+    const headers = parseHeaders();
 
     try {
       const res = await executeCurlRequest(method, url, headers, bodyStr);
@@ -309,22 +319,19 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.onClick("btn_copy_curl", () => {
     const method = win.getValue("dd_method") || "GET";
     const url = win.getValue("txt_url") || "";
-    const headersRaw = win.getValue("txt_headers") || "";
     const body = win.getValue("txt_req_body") || "";
+    const sq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
-    const parts = [`curl -X ${method} "${url}"`];
-    if (headersRaw) {
-      headersRaw.split("\n").forEach((l: string) => {
-        if (l.trim()) parts.push(`-H "${l.trim()}"`);
-      });
-    }
-    if (method !== "GET" && method !== "HEAD" && body) {
-      parts.push(`-d '${body.replace(/'/g, "\\'")}'`);
+    const parts = [method === "HEAD" ? `curl -I ${sq(url)}` : `curl -X ${method} ${sq(url)}`];
+    for (const [k, v] of Object.entries(parseHeaders())) parts.push(`-H ${sq(`${k}: ${v}`)}`);
+    if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && body) {
+      parts.push(`--data-raw ${sq(body)}`);
     }
 
     const curlCmd = parts.join(" \\\n  ");
     win.appendConsole("api_console", `[Generated cURL Command]\n${curlCmd}\n\n`, 1);
-    win.toast("Generated cURL command in console");
+    win.copyToClipboard(curlCmd);
+    win.toast("cURL command copied to clipboard");
   });
 
   win.onClick("btn_export_resp", () => {
@@ -345,49 +352,38 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.onClick("btn_bench", async () => {
     const url = win.getValue("txt_url") || "";
     if (!url) return;
+    const method = win.getValue("dd_method") || "GET";
+    const bodyStr = win.getValue("txt_req_body") || "";
+    const headers = parseHeaders();
+    const N = 10;
 
-    win.appendConsole("api_console", `[Benchmark] Firing 10 parallel requests to ${url}...\n`, 1);
+    win.appendConsole("api_console", `[Benchmark] Firing ${N} parallel ${method} requests to ${url}...\n`, 1);
     win.setStatus("Running benchmark...");
 
     const t0 = performance.now();
-    const script = `
-      for i in {1..10}; do
-        curl -s -o /dev/null -w "%{time_total}\\n" --connect-timeout 2 -m 5 "${url.replace(/"/g, '\\"')}" &
-      done
-      wait
-    `;
-
     try {
-      const proc = Bun.spawn(["bash", "-c", script], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      const [stdout, stderr, exitCode] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-        proc.exited,
-      ]);
+      const results = await Promise.all(
+        Array.from({ length: N }, () => executeCurlRequest(method, url, headers, bodyStr))
+      );
       const totalElapsed = (performance.now() - t0).toFixed(1);
-      const latencies = stdout
-        .trim()
-        .split("\n")
-        .map((s) => parseFloat(s) * 1000)
-        .filter((n) => !isNaN(n));
+      const ok = results.filter((r) => r.ok);
+      const latencies = results.filter((r) => r.status > 0).map((r) => parseFloat(r.elapsedMs)).filter((n) => !isNaN(n)).sort((a, b) => a - b);
 
       if (latencies.length === 0) {
-        throw new Error(stderr.trim() || `Benchmark exited with code ${exitCode}`);
+        throw new Error(results[0]?.error || "No successful responses");
       }
 
       const avg = (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(1);
-      const min = Math.min(...latencies).toFixed(1);
-      const max = Math.max(...latencies).toFixed(1);
+      const pct = (p: number) => latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))]!.toFixed(1);
+      const min = latencies[0]!.toFixed(1);
+      const max = latencies[latencies.length - 1]!.toFixed(1);
 
       win.appendConsole(
         "api_console",
-        `[Benchmark Completed] ${latencies.length} requests completed in ${totalElapsed}ms\n  Average Latency: ${avg}ms\n  Fastest (Min):   ${min}ms\n  Slowest (Max):   ${max}ms\n`,
-        2
+        `[Benchmark Completed] ${results.length} requests completed in ${totalElapsed}ms | Success (2xx): ${ok.length}/${results.length}\n  Average: ${avg}ms  Min: ${min}ms  p50: ${pct(0.5)}ms  p95: ${pct(0.95)}ms  Max: ${max}ms\n`,
+        ok.length === results.length ? 2 : 3
       );
-      win.setStatus(`Benchmark complete (avg ${avg}ms)`);
+      win.setStatus(`Benchmark complete (avg ${avg}ms, ${ok.length}/${results.length} OK)`);
       win.toast(`Benchmark complete: avg ${avg}ms`);
     } catch (e: any) {
       win.appendConsole("api_console", `[Benchmark Error] ${e.message}\n`, 3);

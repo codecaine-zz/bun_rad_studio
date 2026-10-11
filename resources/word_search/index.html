@@ -1349,7 +1349,7 @@
 
             const cat = CATEGORIES[currentCategory];
             quickCatLabel.textContent = cat.name.split(' ')[0];
-            const candidatePool = [...cat.words].filter(w => w.length >= 3 && w.length <= gridSize);
+            const candidatePool = [...new Set(cat.words.map(w => String(w).toUpperCase()))].filter(w => w.length >= 3 && w.length <= gridSize);
             shuffleArray(candidatePool);
 
             // Determine target number of words based on size
@@ -1581,13 +1581,11 @@
             let matched = null;
             for (const pw of placedWords) {
                 if (!foundWords.has(pw.word) && (pw.word === forward || pw.word === reversed)) {
-                    // Verify cell matching
-                    const isFwd = cells.every((c, i) => c.r === pw.cells[i].r && c.c === pw.cells[i].c);
-                    const isRev = cells.every((c, i) => c.r === pw.cells[pw.cells.length - 1 - i].r && c.c === pw.cells[pw.cells.length - 1 - i].c);
-                    if (isFwd || isRev) {
-                        matched = pw;
-                        break;
-                    }
+                    // Any in-grid occurrence of the word counts (random filler can create a second one).
+                    // Adopt the selected cells so highlights and effects land where the player drew.
+                    pw.cells = (pw.word === forward) ? cells.map(c => ({ r: c.r, c: c.c })) : cells.map(c => ({ r: c.r, c: c.c })).reverse();
+                    matched = pw;
+                    break;
                 }
             }
 

@@ -72,7 +72,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     // Test CSV export
     await trigger(win, "btn_copy_csv");
     expect(win.getValue("console_ipinfo")).toContain("AS15169 Google LLC");
-    expect(win.getValue("lbl_status_bar")).toContain("CSV formatted output");
+    expect(win.getValue("lbl_status_bar")).toContain("CSV copied to clipboard");
 
     // Test IP changed and looking up a different item (Private IP: 192.168.1.1)
     win.setValue("txt_target", "192.168.1.1");

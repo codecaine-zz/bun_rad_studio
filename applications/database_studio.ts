@@ -60,7 +60,15 @@ export function createSqliteStudio(
     }
   };
 
-  initStarterSchema(db);
+  // Seeds the demo schema only into throwaway (:memory:) or brand-new empty databases,
+  // never into a user's existing database file.
+  const maybeInitStarterSchema = (database: Database, path: string) => {
+    const tableCount = (database.query("SELECT count(*) AS c FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';").get() as any)?.c || 0;
+    if (path === ":memory:" || tableCount === 0) initStarterSchema(database);
+  };
+  const qi = (name: string) => `"${String(name).replace(/"/g, '""')}"`;
+
+  maybeInitStarterSchema(db, activeDbPath);
 
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Database Studio Pro (SQLite Studio Pro) -- Enterprise SQLite Workbench & Query IDE", 1160, 940, {
@@ -186,7 +194,7 @@ export function createSqliteStudio(
     const t0 = performance.now();
 
     try {
-      if (/^\s*(SELECT|PRAGMA|EXPLAIN)/i.test(sql)) {
+      if (/^\s*(?:(?:--[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*(SELECT|PRAGMA|EXPLAIN|WITH|VALUES)\b/i.test(sql)) {
         const query = db.query(sql);
         const rows = query.all() as Record<string, any>[];
         lastQueryRows = rows;
@@ -199,6 +207,9 @@ export function createSqliteStudio(
           const headers = Object.keys(firstRow);
           const data = rows.slice(0, 100).map((r) => headers.map((h) => String(r[h] ?? "")));
           win.setTableData("tbl_results", headers, data);
+          if (rows.length > 100) {
+            win.appendConsole("sql_console", `[Note] Grid shows the first 100 of ${rows.length} rows; exports contain all ${rows.length}.\n`, 1);
+          }
         }
 
         win.appendConsole("sql_console", `[Success] ${rows.length} row(s) returned in ${elapsed}ms\n`, 2);
@@ -211,8 +222,10 @@ export function createSqliteStudio(
         win.setText("lbl_status", `Connection: ${basename(activeDbPath)}  |  Statement OK  |  Latency: ${elapsed}ms`);
         win.setStatus(`Statement executed (${elapsed}ms)`);
         
-        // Log mutation
-        db.run("INSERT INTO audit_logs (action, entity, details) VALUES ('SQL_MUTATION', 'USER', ?);", [sql.slice(0, 100)]);
+        // Log mutation (best effort: the table may not exist in a foreign database)
+        try {
+          db.run("INSERT INTO audit_logs (action, entity, details) VALUES ('SQL_MUTATION', 'USER', ?);", [sql.slice(0, 100)]);
+        } catch {}
       }
     } catch (e: any) {
       const elapsed = (performance.now() - t0).toFixed(2);
@@ -233,13 +246,20 @@ export function createSqliteStudio(
     const rawPath = win.getValue("txt_db_path") || ":memory:";
     try {
       const targetPath = rawPath === ":memory:" ? ":memory:" : resolve(process.cwd(), rawPath);
+      const prev = db;
       db = new Database(targetPath);
+      try { prev.close(); } catch {}
       activeDbPath = rawPath;
-      initStarterSchema(db);
+      maybeInitStarterSchema(db, rawPath === ":memory:" ? ":memory:" : targetPath);
       win.appendConsole("sql_console", `[Connection] Switched to database: ${targetPath}\n`, 2);
       win.setText("lbl_status", `Connection: ${basename(activeDbPath)}  |  Connected`);
       win.toast(`Connected to ${basename(activeDbPath)}`);
-      executeSql("SELECT * FROM developers;");
+      const hasDevelopers = !!db.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='developers'").get();
+      const openSql = hasDevelopers
+        ? "SELECT * FROM developers;"
+        : "SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;";
+      win.setText("txt_sql_query", openSql);
+      executeSql(openSql);
     } catch (err: any) {
       win.appendConsole("sql_console", `[Connection Failed] ${err.message}\n`, 3);
       win.toast(`Failed to connect: ${err.message}`);
@@ -248,7 +268,9 @@ export function createSqliteStudio(
 
   win.onClick("btn_memory", () => {
     win.setText("txt_db_path", ":memory:");
+    const prevMem = db;
     db = new Database(":memory:");
+    try { prevMem.close(); } catch {}
     activeDbPath = ":memory:";
     initStarterSchema(db);
     win.appendConsole("sql_console", `[Connection] Initialized isolated in-memory database (:memory:)\n`, 2);
@@ -293,9 +315,13 @@ export function createSqliteStudio(
       return;
     }
     const headers = Object.keys(lastQueryRows[0] || {});
-    const csvLines = [headers.join(",")];
+    const csvCell = (v: any) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csvLines = [headers.map(csvCell).join(",")];
     for (const r of lastQueryRows) {
-      csvLines.push(headers.map((h) => JSON.stringify(r[h] ?? "")).join(","));
+      csvLines.push(headers.map((h) => csvCell(r[h])).join(","));
     }
     const csvContent = csvLines.join("\n");
     const exportPath = resolve(process.cwd(), "query_export.csv");
@@ -336,7 +362,7 @@ export function createSqliteStudio(
         if (typeof v === "number") return v;
         return `'${String(v).replace(/'/g, "''")}'`;
       });
-      return `INSERT INTO query_export (${headers.join(", ")}) VALUES (${vals.join(", ")});`;
+      return `INSERT INTO query_export (${headers.map(qi).join(", ")}) VALUES (${vals.join(", ")});`;
     });
     const exportPath = resolve(process.cwd(), "query_export.sql");
     try {
@@ -353,7 +379,7 @@ export function createSqliteStudio(
     const stats: string[] = ["[Database Table Statistics]"];
     for (const t of tables) {
       try {
-        const count = (db.query(`SELECT count(*) as c FROM ${t.name};`).get() as any)?.c || 0;
+        const count = (db.query(`SELECT count(*) as c FROM ${qi(t.name)};`).get() as any)?.c || 0;
         stats.push(`  • Table '${t.name}': ${count} rows`);
       } catch {}
     }

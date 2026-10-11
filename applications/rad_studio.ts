@@ -241,7 +241,9 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
     const mod = w.getValue("dd_module") || "fileutils";
     const recipe = getRecipeForModule(mod);
     w.setValue("txt_recipe", recipe);
-    w.toast(`Recipe for ${mod} ready to copy!`);
+    let copied = false;
+    try { w.copyToClipboard(recipe); copied = true; } catch {}
+    w.toast(copied ? `Recipe for ${mod} copied to clipboard!` : `Recipe for ${mod} ready to copy!`);
   });
 
   win.onClick("btn_run_module", async (w) => {

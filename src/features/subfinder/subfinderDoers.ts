@@ -5,6 +5,11 @@ import * as path from "node:path";
 
 const asyncResolver = new Resolver();
 
+/** Strict hostname check (no shell metacharacters, no leading dash) for hosts that come from untrusted OSINT sources. */
+export function isSafeHostname(h: string): boolean {
+  return /^(?!-)[a-z0-9*_.-]{1,253}$/i.test(h) && !h.includes("*");
+}
+
 export function cleanDomain(domain: string): string {
   return domain
     .trim()
@@ -333,7 +338,7 @@ export function resolveHostDnsSync(hosts: string[]): Map<string, string[]> {
   const map = new Map<string, string[]>();
   if (hosts.length === 0) return map;
   try {
-    const res = Bun.spawnSync(["dig", "+noall", "+answer", "+time=1", "+tries=1", ...hosts.slice(0, 100)]);
+    const res = Bun.spawnSync(["dig", "+noall", "+answer", "+time=1", "+tries=1", ...hosts.filter(isSafeHostname).slice(0, 100)]);
     const lines = res.stdout ? res.stdout.toString().split("\n") : [];
     for (const line of lines) {
       const parts = line.trim().split(/\s+/);
@@ -412,7 +417,7 @@ export function queryOsintSourcesSync(domain: string): { certSubs: string[]; hac
 export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
   const map = new Map<string, number>();
   if (hosts.length === 0) return map;
-  const targets = hosts.slice(0, 10);
+  const targets = hosts.filter(isSafeHostname).slice(0, 10);
   const tmpDir = os.tmpdir();
   const script = targets
     .map((h, i) => `curl -s -I --connect-timeout 0.4 --max-time 0.8 "http://${h}" > "${tmpDir}/pb_${process.pid}_${i}.txt" 2>/dev/null &`)

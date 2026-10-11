@@ -15,6 +15,7 @@ import {
 import type { DiskUsageItem, MountedDisk } from "../src/features/gdu/gduTypes.ts";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import * as os from "node:os";
 
 export function createGduStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow(
@@ -254,6 +255,20 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
     }
     const itemPath = selectedItem.path;
     const itemName = selectedItem.name;
+    const resolvedItem = path.resolve(itemPath);
+    if (resolvedItem === path.parse(resolvedItem).root || resolvedItem === path.resolve(os.homedir())) {
+      win.setValue("lbl_status_bar", "⛔ Refusing to delete a filesystem root or your home directory.");
+      return;
+    }
+    const detail = `${formatBytes(selectedItem.size)}${selectedItem.isDirectory ? `, ${selectedItem.itemCount ?? "?"} item(s) inside` : ""}`;
+    const confirmed = await win.confirm(
+      `Permanently delete "${itemName}" (${detail})?\n\n${resolvedItem}\n\nThis cannot be undone.`,
+      "Confirm Permanent Delete"
+    );
+    if (!confirmed) {
+      win.setValue("lbl_status_bar", "Delete cancelled.");
+      return;
+    }
     try {
       win.setValue("lbl_status_bar", `Deleting ${itemName}...`);
       if (selectedItem.isDirectory) {

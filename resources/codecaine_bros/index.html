@@ -1180,6 +1180,7 @@
         }
 
         this.vy += GRAVITY;
+        if (!isAI && !this.jumpHeld && this.vy < -3.5) this.vy *= 0.85;
         if (this.vy > 12) this.vy = 12;
 
         this.x += this.vx;
@@ -2447,12 +2448,12 @@
             if (comboCount >= 2) {
               comboBadge.textContent = `COMBO x${comboCount}!`;
               comboBadge.classList.remove('hidden');
-              clearTimeout(comboResetTimer);
-              comboResetTimer = setTimeout(() => {
-                comboBadge.classList.add('hidden');
-                comboCount = 0;
-              }, 2200);
             }
+            clearTimeout(comboResetTimer);
+            comboResetTimer = setTimeout(() => {
+              comboBadge.classList.add('hidden');
+              comboCount = 0;
+            }, 2200);
 
             const pipe = Math.random() < 0.5 ? pipes[0] : pipes[1];
             coins.push(new Coin(pipe.x + 30, pipe.y));

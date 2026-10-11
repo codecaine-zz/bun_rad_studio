@@ -144,7 +144,7 @@
         // Formatting Options
         const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
         const timeOptions12 = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-        const timeOptions24 = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        const timeOptions24 = { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' };
 
         // --- Core Functions ---
 
@@ -269,7 +269,10 @@
             let visibleCount = 0;
 
             timeZonesData.forEach(({ name, card }) => {
-                const isMatch = name.toLowerCase().replace(/_/g, ' ').includes(searchTerm);
+                const offsetText = (card.querySelector('.utc-offset')?.textContent || '').toLowerCase();
+                const isMatch = !searchTerm ||
+                    name.toLowerCase().replace(/_/g, ' ').includes(searchTerm) ||
+                    offsetText.includes(searchTerm);
                 card.classList.toggle('hidden-card', !isMatch);
                 if (isMatch) {
                     visibleCount++;
@@ -303,7 +306,8 @@
                 const localCard = timeZonesData.find(({ name }) => name === localTimeZoneName)?.card;
                 if (localCard) {
                     localCard.classList.add('local-time');
-                    // Optional: Scroll the local time zone into view if needed
+                    // Pin the local zone to the top of the grid
+                    timeZoneContainer.insertBefore(localCard, timeZoneContainer.firstChild);
                     // localCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
                     console.warn(`Local time zone "${localTimeZoneName}" not found in the list.`);

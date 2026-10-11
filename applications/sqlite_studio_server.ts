@@ -7,6 +7,7 @@
  * without main-thread event loop blocking.
  */
 
+import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { Database } from "bun:sqlite";
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, readdirSync, mkdirSync } from "fs";
@@ -224,7 +225,7 @@ export class SqliteManager {
       const tables = items.filter((i) => i.type === "table");
       for (const t of tables) {
         try {
-          const c = (this.db.query(`SELECT count(*) as c FROM "${t.name}";`).get() as any)?.c || 0;
+          const c = (this.db.query(`SELECT count(*) as c FROM "${String(t.name).replace(/"/g, "\"\"")}";`).get() as any)?.c || 0;
           totalRows += Number(c);
         } catch {}
       }
@@ -268,7 +269,7 @@ export class SqliteManager {
       let rowCount = 0;
       if (isTable) {
         try {
-          rowCount = Number((this.db.query(`SELECT count(*) as c FROM "${item.name}";`).get() as any)?.c || 0);
+          rowCount = Number((this.db.query(`SELECT count(*) as c FROM "${String(item.name).replace(/"/g, "\"\"")}";`).get() as any)?.c || 0);
           totalRows += rowCount;
         } catch {}
       }
@@ -276,7 +277,7 @@ export class SqliteManager {
       // Column metadata
       let columns: TableColumnMeta[] = [];
       try {
-        const colsRaw = (this.db.query(`PRAGMA table_info("${item.name}");`).all() as any[]) || [];
+        const colsRaw = (this.db.query(`PRAGMA table_info("${String(item.name).replace(/"/g, "\"\"")}");`).all() as any[]) || [];
         columns = colsRaw.map((c) => ({
           cid: c.cid,
           name: c.name,
@@ -291,11 +292,11 @@ export class SqliteManager {
       let indices: any[] = [];
       if (isTable) {
         try {
-          const idxRaw = (this.db.query(`PRAGMA index_list("${item.name}");`).all() as any[]) || [];
+          const idxRaw = (this.db.query(`PRAGMA index_list("${String(item.name).replace(/"/g, "\"\"")}");`).all() as any[]) || [];
           indices = idxRaw.map((idx) => {
             let cols: string[] = [];
             try {
-              const idxInfo = (this.db.query(`PRAGMA index_info("${idx.name}");`).all() as any[]) || [];
+              const idxInfo = (this.db.query(`PRAGMA index_info("${String(idx.name).replace(/"/g, "\"\"")}");`).all() as any[]) || [];
               cols = idxInfo.map((ii) => ii.name);
             } catch {}
             return {
@@ -313,7 +314,7 @@ export class SqliteManager {
       let foreignKeys: any[] = [];
       if (isTable) {
         try {
-          foreignKeys = (this.db.query(`PRAGMA foreign_key_list("${item.name}");`).all() as any[]) || [];
+          foreignKeys = (this.db.query(`PRAGMA foreign_key_list("${String(item.name).replace(/"/g, "\"\"")}");`).all() as any[]) || [];
         } catch {}
       }
 
@@ -596,6 +597,11 @@ export class SqliteManager {
       const name = String(pragmaName || "").trim();
       if (!/^[a-zA-Z0-9_]+$/.test(name)) {
         return { success: false, result: null, error: `Invalid pragma name: '${pragmaName}'` };
+      }
+
+      if (name.toLowerCase() === "vacuum" && (value === undefined || value === null)) {
+        this.db.run("VACUUM;");
+        return { success: true, result: [{ vacuum: "ok" }] };
       }
 
       if (value !== undefined && value !== null) {
@@ -999,6 +1005,8 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       const url = new URL(req.url);
 
       // CORS Headers
+      const __blocked = guardLocalRequest(req);
+      if (__blocked) return __blocked;
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -1105,7 +1113,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       }
 
       // 8b. Browse Database via Native OS Dialog
-      if (url.pathname === "/api/browse" && (req.method === "POST" || req.method === "GET")) {
+      if (url.pathname === "/api/browse" && req.method === "POST") {
         try {
           const selectedPath = pickNativeDatabaseFile();
           if (!selectedPath) {
@@ -1213,22 +1221,32 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             return Response.json({ success: false, error: "No rows provided for export" }, { status: 400, headers: corsHeaders });
           }
 
-          const filename = `sqlite_export_${Date.now()}.${body.format}`;
+          const fmt = body.format;
+          if (fmt !== "csv" && fmt !== "json" && fmt !== "sql") {
+            return Response.json({ success: false, error: "Unsupported export format" }, { status: 400, headers: corsHeaders });
+          }
+          const filename = `sqlite_export_${Date.now()}.${fmt}`;
           const exportPath = resolve(process.cwd(), filename);
           let content = "";
+          const allKeys: string[] = [];
+          for (const r of body.rows) for (const k of Object.keys(r || {})) if (!allKeys.includes(k)) allKeys.push(k);
 
-          if (body.format === "json") {
+          if (fmt === "json") {
             content = JSON.stringify(body.rows, null, 2);
-          } else if (body.format === "csv") {
-            const headers = Object.keys(body.rows[0] || {});
-            const lines = [headers.join(",")];
+          } else if (fmt === "csv") {
+            const esc = (v: any) => {
+              if (v === null || v === undefined) return "";
+              const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+              return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+            };
+            const lines = [allKeys.map(esc).join(",")];
             for (const r of body.rows) {
-              lines.push(headers.map((h) => JSON.stringify(r[h] ?? "")).join(","));
+              lines.push(allKeys.map((h) => esc(r[h])).join(","));
             }
-            content = lines.join("\n");
-          } else if (body.format === "sql") {
+            content = lines.join("\r\n");
+          } else if (fmt === "sql") {
             const tbl = (body.tableName || "exported_records").replace(/"/g, '""');
-            const headers = Object.keys(body.rows[0] || {});
+            const headers = allKeys;
             const escapedHeaders = headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(", ");
             const lines = body.rows.map((r) => {
               const vals = headers.map((h) => {
@@ -1253,12 +1271,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/clipboard" && req.method === "POST") {
         try {
           const body = (await req.json()) as { text: string };
-          if (process.platform === "darwin") {
-            const proc = Bun.spawn(["pbcopy"], { stdin: "pipe" });
-            proc.stdin.write(body.text || "");
-            proc.stdin.end();
-            await proc.exited;
-          }
+          writeClipboardSync(body.text || "");
           return Response.json({ success: true }, { headers: corsHeaders });
         } catch {
           return Response.json({ success: true, fallback: "Clipboard simulated" }, { headers: corsHeaders });
@@ -1266,7 +1279,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       }
 
       // Shutdown / Close workstation
-      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && (req.method === "POST" || req.method === "GET")) {
+      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
         setTimeout(() => process.exit(0), 100);
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }

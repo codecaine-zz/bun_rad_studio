@@ -11,6 +11,7 @@
  */
 
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
+import { writeClipboardSync } from "../src/localGuard";
 import { resolve, join, basename } from "path";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 
@@ -936,15 +937,19 @@ export async function launchApplication(
 }> {
   const { apps } = scanAllApplications();
   const lowerTarget = appId.toLowerCase();
-  const app = apps.find(
-    (a) =>
-      a.id.toLowerCase() === lowerTarget ||
-      a.name.toLowerCase() === lowerTarget ||
-      a.displayName.toLowerCase() === lowerTarget ||
-      a.id.toLowerCase().includes(lowerTarget) ||
-      a.name.toLowerCase().includes(lowerTarget) ||
-      a.displayName.toLowerCase().includes(lowerTarget)
-  );
+  const app =
+    apps.find(
+      (a) =>
+        a.id.toLowerCase() === lowerTarget ||
+        a.name.toLowerCase() === lowerTarget ||
+        a.displayName.toLowerCase() === lowerTarget
+    ) ||
+    apps.find(
+      (a) =>
+        a.id.toLowerCase().includes(lowerTarget) ||
+        a.name.toLowerCase().includes(lowerTarget) ||
+        a.displayName.toLowerCase().includes(lowerTarget)
+    );
 
   if (!app) {
     return { success: false, message: `Tool '${appId}' not found in project.` };
@@ -1057,6 +1062,11 @@ export function killApplication(appId: string, pid?: number): { success: boolean
     return { success: false, message: "No active PID found for tool." };
   }
 
+  targetPid = Number(targetPid);
+  if (!Number.isInteger(targetPid) || targetPid <= 1 || targetPid === process.pid) {
+    return { success: false, message: `Refusing to signal invalid or protected PID ${targetPid}.` };
+  }
+
   try {
     process.kill(targetPid, "SIGTERM");
     ACTIVE_CHILD_PROCESSES.delete(appId);
@@ -1090,15 +1100,7 @@ export function revealInFinder(filePath: string): { success: boolean; message: s
 }
 
 export function copyToClipboard(text: string): { success: boolean } {
-  try {
-    if (process.platform === "darwin") {
-      const proc = Bun.spawn(["pbcopy"], { stdin: "pipe" });
-      proc.stdin.write(text);
-      proc.stdin.end();
-      return { success: true };
-    }
-  } catch {}
-  return { success: false };
+  return { success: writeClipboardSync(text) };
 }
 
 // -------------------------------------------------------------------------------------------------

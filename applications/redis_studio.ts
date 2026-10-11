@@ -10,6 +10,7 @@
  * - Accessible in any browser or as a standalone desktop application
  */
 
+import { resolve } from "node:path";
 import { Webview, SizeHint } from "webview-bun";
 import {
   setAlwaysOnTopNative,
@@ -1451,7 +1452,7 @@ export function generateRedisStudioHtml(): string {
         const ttlTitle = item.ttl === -1 ? 'Persistent key' : \`Expires in \${item.ttl}s\`;
 
         return \`
-          <div class="key-item \${isSelected ? 'selected' : ''}" onclick="selectKey('\${item.key}')" title="\${item.key}">
+          <div class="key-item \${isSelected ? 'selected' : ''}" data-key="\${escapeHtml(item.key)}" onclick="selectKey(this.dataset.key)" title="\${escapeHtml(item.key)}">
             <div class="key-left">
               <span class="key-type-badge \${typeClass}">\${item.type}</span>
               <span class="key-name">\${escapeHtml(item.key)}</span>
@@ -1622,7 +1623,7 @@ export function generateRedisStudioHtml(): string {
                   <tr>
                     <td style="color: var(--accent-cyan); font-weight: 600;"><span style="background: rgba(6,182,212,0.1); padding: 2px 6px; border-radius: 4px;">\${escapeHtml(f)}</span></td>
                     <td><input type="text" value="\${escapeHtml(v)}" class="hash-field-input" data-field="\${escapeHtml(f)}" style="width: 100%; background: transparent; border: 1px solid transparent; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
-                    <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" onclick="deleteHashField('\${escapeHtml(f)}')">Delete</button></td>
+                    <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-field="\${escapeHtml(f)}" onclick="deleteHashField(this.dataset.field)">Delete</button></td>
                   </tr>
                 \`).join('')}
               </tbody>
@@ -2406,8 +2407,8 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
           const srv = startRedisStudioServer({
             port: 0,
             host: "127.0.0.1",
-            initialUrl,
-            initialDb,
+            url: initialUrl,
+            db: initialDb,
           });
           app.server = srv;
           info = {
@@ -2502,8 +2503,8 @@ if (process.argv.includes("--server")) {
   const srv = startRedisStudioServer({
     port: 0,
     host: "127.0.0.1",
-    initialUrl: url,
-    initialDb: db,
+    url,
+    db,
   });
   console.log(`READY:${srv.port}`);
   setInterval(() => {}, 60000);

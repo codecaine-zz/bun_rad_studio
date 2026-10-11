@@ -69,16 +69,54 @@ export function evaluateBunJsonQuery(jsonVal: any, query: string): any {
 
   if (q === "add") {
     if (Array.isArray(jsonVal)) {
-      return jsonVal.reduce((acc, v) => acc + v, 0);
+      const items = jsonVal.filter((v) => v !== null);
+      if (items.length === 0) return null;
+      if (items.every((v) => typeof v === "number")) return items.reduce((a, v) => a + v, 0);
+      if (items.every((v) => typeof v === "string")) return items.join("");
+      if (items.every((v) => Array.isArray(v))) return items.flat(1);
+      if (items.every((v) => v && typeof v === "object" && !Array.isArray(v))) return Object.assign({}, ...items);
+      throw new Error("add: cannot add values of mixed types");
     }
     return jsonVal;
+  }
+
+  // Common zero-argument jq builtins
+  const cmp = (a: any, b: any) => (typeof a === "number" && typeof b === "number" ? a - b : String(JSON.stringify(a)).localeCompare(String(JSON.stringify(b))));
+  switch (q) {
+    case "sort": if (Array.isArray(jsonVal)) return [...jsonVal].sort(cmp); throw new Error("sort: input must be an array");
+    case "unique": if (Array.isArray(jsonVal)) return [...new Map(jsonVal.map((v) => [JSON.stringify(v), v])).values()].sort(cmp); throw new Error("unique: input must be an array");
+    case "reverse": if (Array.isArray(jsonVal)) return [...jsonVal].reverse(); if (typeof jsonVal === "string") return [...jsonVal].reverse().join(""); return jsonVal;
+    case "first": return Array.isArray(jsonVal) ? (jsonVal[0] ?? null) : jsonVal;
+    case "last": return Array.isArray(jsonVal) ? (jsonVal[jsonVal.length - 1] ?? null) : jsonVal;
+    case "min": return Array.isArray(jsonVal) && jsonVal.length ? [...jsonVal].sort(cmp)[0] : null;
+    case "max": return Array.isArray(jsonVal) && jsonVal.length ? [...jsonVal].sort(cmp).pop() : null;
+    case "flatten": return Array.isArray(jsonVal) ? jsonVal.flat(Infinity) : jsonVal;
+    case "values": return jsonVal !== null && typeof jsonVal === "object" ? Object.values(jsonVal) : [];
+    case "to_entries": return jsonVal && typeof jsonVal === "object" ? Object.entries(jsonVal).map(([key, value]) => ({ key, value })) : [];
+    case "type": return jsonVal === null ? "null" : Array.isArray(jsonVal) ? "array" : typeof jsonVal;
+    case "not": return !jsonVal;
+    case "tostring": return typeof jsonVal === "string" ? jsonVal : JSON.stringify(jsonVal);
+    case "tonumber": { const n = Number(jsonVal); if (Number.isNaN(n)) throw new Error(`Cannot parse '${jsonVal}' as number`); return n; }
+    case "ascii_downcase": return String(jsonVal).toLowerCase();
+    case "ascii_upcase": return String(jsonVal).toUpperCase();
+  }
+
+  // has("key") / sort_by(.k)
+  const hasMatch = q.match(/^has\((["'])(.*?)\1\)$/);
+  if (hasMatch) return jsonVal !== null && typeof jsonVal === "object" && hasMatch[2]! in jsonVal;
+  const sortByMatch = q.match(/^sort_by\((.+)\)$/);
+  if (sortByMatch && Array.isArray(jsonVal)) {
+    const key = sortByMatch[1]!.trim();
+    return [...jsonVal].sort((a, b) => cmp(evaluateBunJsonQuery(a, key), evaluateBunJsonQuery(b, key)));
   }
 
   // map(...)
   const mapMatch = q.match(/^map\((.+)\)$/);
   if (mapMatch && mapMatch[1] && Array.isArray(jsonVal)) {
     const inner = mapMatch[1].trim();
-    return jsonVal.map((item) => evaluateBunJsonQuery(item, inner));
+    const mapped = jsonVal.map((item) => evaluateBunJsonQuery(item, inner));
+    // map(select(...)) filters, like real jq
+    return inner.startsWith("select(") ? mapped.filter((x) => x !== null && x !== undefined) : mapped;
   }
 
   // join(...)
@@ -267,8 +305,9 @@ export function createJqStudio(options: { fullscreen?: boolean; theme?: string }
 
     // Option A: External jq CLI if explicitly chosen and installed
     if (selectedEngine.startsWith("External jq") && externalJq) {
-      const escaped = rawJson.replace(/'/g, "'\\''");
-      const [out, code] = Sys.exec(`echo '${escaped}' | "${externalJq}" '${filter}' 2>&1`);
+      const proc = Bun.spawnSync([externalJq, filter], { stdin: new TextEncoder().encode(rawJson), stdout: "pipe", stderr: "pipe" });
+      const out = proc.stdout.toString() + proc.stderr.toString();
+      const code = proc.exitCode;
       const elapsed = (performance.now() - t0).toFixed(2);
 
       if (code === 0) {

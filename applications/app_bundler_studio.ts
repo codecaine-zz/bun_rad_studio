@@ -646,11 +646,11 @@ Status:        Ready to produce self-contained single-executable zero-dependency
     const distDir = resolve(process.cwd(), "dist");
     mkdirSync(distDir, { recursive: true });
     if (process.platform === "darwin") {
-      Sys.exec(`open "${distDir}"`);
+      Bun.spawnSync(["open", distDir]);
     } else if (process.platform === "win32") {
-      Sys.exec(`explorer "${distDir}"`);
+      Bun.spawnSync(["explorer", distDir]);
     } else {
-      Sys.exec(`xdg-open "${distDir}"`);
+      Bun.spawnSync(["xdg-open", distDir]);
     }
     w.toast("Revealed ./dist folder in Finder");
   });
@@ -787,7 +787,9 @@ Status:        Ready to produce self-contained single-executable zero-dependency
 
       const sign = win.getValue("chk_codesign");
       if (sign && process.platform === "darwin") {
-        const [signOut, signCode] = Sys.exec(`codesign --force --deep --sign - "${appDir}" 2>&1`);
+        const signProc = Bun.spawnSync(["codesign", "--force", "--deep", "--sign", "-", appDir], { stdout: "pipe", stderr: "pipe" });
+        const signOut = signProc.stdout.toString() + signProc.stderr.toString();
+        const signCode = signProc.exitCode;
         if (signCode === 0) {
           win.appendConsole("bundler_console", `[Codesign] Ad-hoc signature successfully applied\n`, 2);
         } else {

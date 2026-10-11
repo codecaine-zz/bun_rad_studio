@@ -96,11 +96,20 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
 
     try {
       if (fromFmt === "json") {
-        const parsed = JSON.parse(input);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          headers = Object.keys(parsed[0]);
-          rows = parsed.map((item) => headers.map((h) => String(item[h] ?? "")));
-        }
+        const parsed0 = JSON.parse(input);
+        const parsed = Array.isArray(parsed0) ? parsed0 : [parsed0];
+        const records = parsed.filter((x) => x !== null && typeof x === "object");
+        if (records.length === 0) throw new Error("JSON input must be an object or an array of objects");
+        const keySet = new Set<string>();
+        for (const rec of records) Object.keys(rec).forEach((k) => keySet.add(k));
+        headers = [...keySet];
+        rows = records.map((item) =>
+          headers.map((h) => {
+            const v = (item as any)[h];
+            if (v === null || v === undefined) return "";
+            return typeof v === "object" ? JSON.stringify(v) : String(v);
+          })
+        );
       } else if (fromFmt === "base64") {
         const decoded = Buffer.from(input, "base64").toString("utf8");
         win.setText("txt_output_data", decoded);
@@ -115,38 +124,43 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         }
       }
 
+      const csvCell = (v: string, d: string) => (v.includes(d) || /["\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+      const mdCell = (v: string) => v.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
       let output = "";
       if (toFmt === "json") {
         const objects = rows.map((r) => {
           const obj: Record<string, any> = {};
           headers.forEach((h, idx) => {
             const v = r[idx] ?? "";
-            obj[h] = isNaN(Number(v)) || v === "" ? v : Number(v);
+            // Only coerce canonical numbers (keeps "007", "1e3", "" as strings)
+            obj[h] = v !== "" && String(Number(v)) === v ? Number(v) : v;
           });
           return obj;
         });
         output = JSON.stringify(objects, null, 2);
       } else if (toFmt.includes("markdown")) {
-        const headerRow = `| ${headers.join(" | ")} |`;
+        const headerRow = `| ${headers.map(mdCell).join(" | ")} |`;
         const sepRow = `| ${headers.map(() => "---").join(" | ")} |`;
-        const dataRows = rows.map((r) => `| ${r.join(" | ")} |`).join("\n");
+        const dataRows = rows.map((r) => `| ${r.map(mdCell).join(" | ")} |`).join("\n");
         output = `${headerRow}\n${sepRow}\n${dataRows}`;
       } else if (toFmt.includes("tsv")) {
-        output = [headers.join("\t"), ...rows.map((r) => r.join("\t"))].join("\n");
+        const tsvCell = (v: string) => v.replace(/[\t\r\n]+/g, " ");
+        output = [headers.map(tsvCell).join("\t"), ...rows.map((r) => r.map(tsvCell).join("\t"))].join("\n");
       } else if (toFmt.includes("base64")) {
         output = Buffer.from(input).toString("base64");
       } else if (toFmt.includes("yaml")) {
         // Lightweight clean YAML serializer
+        const yq = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
         const yamlLines: string[] = [];
         for (const r of rows) {
           yamlLines.push("-");
           headers.forEach((h, idx) => {
-            yamlLines.push(`  ${h}: "${(r[idx] ?? "").replace(/"/g, '\\"')}"`);
+            yamlLines.push(`  ${/^[A-Za-z_][\w.-]*$/.test(h) ? h : yq(h)}: ${yq(r[idx] ?? "")}`);
           });
         }
         output = yamlLines.join("\n");
       } else {
-        output = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+        output = [headers.map((h) => csvCell(h, ",")).join(","), ...rows.map((r) => r.map((c) => csvCell(c, ",")).join(","))].join("\n");
       }
 
       const elapsed = (performance.now() - t0).toFixed(2);
@@ -188,7 +202,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       return;
     }
     const toFmt = (win.getValue("dd_to") || "JSON").toLowerCase();
-    const ext = toFmt.includes("json") ? "json" : toFmt.includes("markdown") ? "md" : toFmt.includes("yaml") ? "yaml" : "csv";
+    const ext = toFmt.includes("json") ? "json" : toFmt.includes("markdown") ? "md" : toFmt.includes("yaml") ? "yaml" : toFmt.includes("tsv") ? "tsv" : toFmt.includes("base64") ? "txt" : "csv";
     const outPath = resolve(process.cwd(), `converted_data.${ext}`);
     try {
       writeFileSync(outPath, out, "utf8");

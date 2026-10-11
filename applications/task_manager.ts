@@ -1,3 +1,4 @@
+import { guardLocalRequest } from "../src/localGuard";
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
 
@@ -546,8 +547,8 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
 
   // Signal execution helper
   const sendSignalToPid = (pid: string, signal: string, sigNum: number) => {
-    if (!pid || pid === "0") {
-      win.toast("Please specify a valid PID to send signal.");
+    if (!pid || pid === "0" || !/^\d+$/.test(pid)) {
+      win.toast("Please specify a valid numeric PID to send signal.");
       return;
     }
     if (pid === "1") {
@@ -707,7 +708,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.onClick("btn_copy_pid", () => {
     const pid = win.getValue("txt_target_pid") || selectedPid;
     if (pid) {
-      Sys.exec(`printf "%s" "${pid}" | pbcopy`);
+      win.copyToClipboard(String(pid));
       win.toast(`Copied PID ${pid} to clipboard`);
       logConsole(`[Clipboard] Copied PID ${pid}`, 1);
     }
@@ -717,7 +718,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     const pid = win.getValue("txt_target_pid") || selectedPid;
     const proc = activeProcesses.find((p) => p.pid === pid);
     if (proc?.command) {
-      Sys.exec(`printf "%s" "${proc.command.replace(/"/g, '\\"')}" | pbcopy`);
+      win.copyToClipboard(proc.command);
       win.toast(`Copied command for PID ${pid} to clipboard`);
       logConsole(`[Clipboard] Copied command for PID ${pid}`, 1);
     }
@@ -963,6 +964,8 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
     hostname,
     async fetch(req) {
       const url = new URL(req.url);
+      const __blocked = guardLocalRequest(req);
+      if (__blocked) return __blocked;
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -983,7 +986,7 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
       }
 
       if (url.pathname === "/api/kill-port" && req.method === "POST") {
-        const body = await req.json();
+        const body: any = await req.json();
         const rawPort = String(body.port || "").replace(/[^0-9]/g, "");
         if (rawPort) {
           const [out, code] = Sys.exec(`lsof -ti :${rawPort}`);

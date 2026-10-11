@@ -654,15 +654,32 @@
 
         // Input Tracking
         const keys = {};
+        let spaceHandled = false;
         window.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
-            if (e.code === 'Space') {
+            if (isRunning && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
                 e.preventDefault();
-                togglePause();
+            }
+            if (e.code === 'Space' && isRunning) {
+                e.preventDefault();
+                spaceHandled = true;
+                if (!e.repeat) togglePause();
             }
         });
         window.addEventListener('keyup', (e) => {
             keys[e.key.toLowerCase()] = false;
+            if (e.code === 'Space' && spaceHandled) {
+                // Stop the focused button from also firing a click on key release
+                e.preventDefault();
+                spaceHandled = false;
+            }
+        });
+        window.addEventListener('blur', () => {
+            for (const k in keys) keys[k] = false;
+            if (isRunning && !isPaused) togglePause();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isRunning && !isPaused) togglePause();
         });
 
         // Mouse Controls

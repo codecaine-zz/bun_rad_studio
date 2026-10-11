@@ -1,6 +1,6 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
-import { existsSync, readdirSync, statSync, renameSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, statSync, renameSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "fs";
 import { join, resolve, basename, relative } from "path";
 import { homedir } from "os";
 import { evaluateBunJsonQuery } from "./jq_studio";
@@ -247,7 +247,17 @@ function bunNativeRip(targetPath: string): { output: string; success: boolean } 
     if (!existsSync(trashDir)) {
       mkdirSync(trashDir, { recursive: true });
     }
-    renameSync(targetPath, destPath);
+    const protectedPaths = new Set([resolve("/"), resolve(homedir()), resolve(process.cwd()), resolve(process.cwd(), "..")]);
+    if (protectedPaths.has(resolve(targetPath))) {
+      return { output: `Refusing to trash protected path: ${targetPath}\nChoose a specific file or sub-folder.`, success: false };
+    }
+    try {
+      renameSync(targetPath, destPath);
+    } catch (e: any) {
+      if (e?.code !== "EXDEV") throw e;
+      cpSync(targetPath, destPath, { recursive: true });
+      rmSync(targetPath, { recursive: true, force: true });
+    }
     return {
       output: `✔ Safely moved to macOS Trash:\n  Source: ${targetPath}\n  Trash:  ${destPath}\n\nItem can be restored anytime from the macOS Trash folder.`,
       success: true,
@@ -364,7 +374,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     win.appendConsole("omni_console", "[OmniTool] Results cleared\n", 4);
   });
 
-  win.onClick("btn_run_omni", () => {
+  win.onClick("btn_run_omni", async () => {
     const mode = win.getValue("dd_mode") || "";
     const pattern = win.getValue("txt_pattern") || "";
     const target = resolve(process.cwd(), win.getValue("txt_search_path") || ".");
@@ -398,6 +408,10 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
       );
       win.setStatus(`Found ${res.matches} items in ${elapsed}ms`);
     } else if (mode.includes("Sd")) {
+      if (!dryRun && !(await win.confirm(`Apply replacements to files under:\n${target}?`, "Confirm Replace"))) {
+        win.setStatus("Replace cancelled");
+        return;
+      }
       const res = bunNativeSd(target, pattern, replacement, dryRun);
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);
@@ -415,6 +429,10 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
       win.appendConsole("omni_console", `[Watchexec Native] Target: ${target}\n`, 2);
       win.setStatus("Watcher ready");
     } else if (mode.includes("Rip")) {
+      if (!(await win.confirm(`Move to Trash:\n${target}?`, "Confirm Trash"))) {
+        win.setStatus("Trash cancelled");
+        return;
+      }
       const res = bunNativeRip(target);
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);

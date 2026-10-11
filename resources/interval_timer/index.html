@@ -14822,6 +14822,26 @@
         updateUI();
     }
 
+    // Wall-clock based scheduler: browsers throttle setInterval in background tabs,
+    // so count real elapsed seconds instead of trusting each timer callback.
+    function scheduleTicks() {
+        clearInterval(timerInterval);
+        let lastTickAt = Date.now();
+        timerInterval = setInterval(() => {
+            let n = Math.floor((Date.now() - lastTickAt) / 1000);
+            if (n <= 0) return;
+            lastTickAt += n * 1000;
+            n = Math.min(n, 7200);
+            while (n-- > 0 && isRunning && !isPaused) tick();
+        }, 200);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isRunning && !isPaused) {
+            requestWakeLock();
+        }
+    });
+
     function tick() {
         if (state.timeLeft > 0) {
             if (state.timeLeft <= 3 && state.timeLeft > 0) {
@@ -14837,7 +14857,10 @@
             }
             state.timeLeft--;
             updateUI();
-        } else {
+            if (state.timeLeft > 0) return;
+        }
+        // Phase counter reached zero: advance immediately (no extra dwell second at 00:00)
+        {
             if (state.phase === 'WARMUP') {
                 switchPhase('WORK');
             } else if (state.phase === 'WORK') {
@@ -14872,7 +14895,7 @@
             ui.btnPause.disabled = false;
             ui.btnStart.classList.add('is-running');
             ui.startLabel.innerText = 'IN PROGRESS';
-            timerInterval = setInterval(tick, 1000);
+            scheduleTicks();
         } else {
             state.totalSets = parseInt(inputs.sets.value) || 1;
             state.currentSet = 1;
@@ -14892,7 +14915,7 @@
                 switchPhase('WORK');
             }
 
-            timerInterval = setInterval(tick, 1000);
+            scheduleTicks();
         }
     }
 

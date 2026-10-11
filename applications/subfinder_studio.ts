@@ -215,7 +215,7 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
         if (!btn) return;
 
         const triggerLoadingState = function() {
-          const domain = (txt ? txt.value : "").trim() || "example.com";
+          const domain = ((txt ? txt.value : "").trim() || "example.com").replace(/[<>&"']/g, "");
           btn.disabled = true;
           btn.innerHTML = '<span class="subfinder-spin">⏳</span> Scanning...';
           btn.style.opacity = "0.75";

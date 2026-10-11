@@ -136,7 +136,7 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
     win.setTableData("tbl_hashes", ["Algorithm / Primitive", "Computed Digest (Hex)"], [
       ["SHA-256", sha256],
       ["HMAC-SHA256", hmacSha256],
-      ["SHA-512", sha512.slice(0, 64) + "..."],
+      ["SHA-512", sha512],
       ["MD5", md5],
       ["SHA-1", sha1],
     ]);
@@ -243,7 +243,14 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.onClick("btn_url_encode", () => {
     const input = win.getValue("txt_hash_input") || "";
     if (input.includes("%")) {
-      const decoded = decodeURIComponent(input);
+      let decoded: string;
+      try {
+        decoded = decodeURIComponent(input);
+      } catch {
+        win.toast("Malformed percent-encoding; cannot decode");
+        win.appendConsole("crypto_console", "[URL Decode Error] Malformed % sequence\n", 3);
+        return;
+      }
       win.setText("txt_hash_input", decoded);
       win.appendConsole("crypto_console", `[URL Decode] Decoded -> ${decoded}\n`, 1);
       win.toast("URL Decoded");

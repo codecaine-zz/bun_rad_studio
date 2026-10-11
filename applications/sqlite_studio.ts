@@ -1683,7 +1683,7 @@ export function generateSqliteStudioHtml(): string {
                 <button class="btn" onclick="togglePragma('foreign_keys', 'ON')">🛡️ Enforce Foreign Keys (ON)</button>
                 <button class="btn" onclick="togglePragma('cache_size', '-64000')">🧠 Set 64MB Page Cache</button>
                 <button class="btn" onclick="vacuumDatabase()">🧹 Run Full VACUUM</button>
-                <button class="btn" onclick="runPragmaCommand('OPTIMIZE')">📈 Run ANALYZE / OPTIMIZE</button>
+                <button class="btn" onclick="runPragmaCommand('PRAGMA optimize')">📈 Run ANALYZE / OPTIMIZE</button>
                 <button class="btn" onclick="checkIntegrity()">🔍 Run Full PRAGMA integrity_check</button>
               </div>
             </div>
@@ -2036,7 +2036,7 @@ export function generateSqliteStudioHtml(): string {
               </div>
             </div>
           </div>
-          <button class="btn btn-sm \${isCurrent ? '' : 'btn-primary'}" onclick="connectToDatabase('\${db.path}')" \${isCurrent ? 'disabled' : ''}>
+          <button class="btn btn-sm \${isCurrent ? '' : 'btn-primary'}" data-path="\${escapeHtml(db.path)}" onclick="connectToDatabase(this.dataset.path)" \${isCurrent ? 'disabled' : ''}>
             \${isCurrent ? 'Active' : 'Load DB'}
           </button>
         \`;
@@ -2135,7 +2135,7 @@ export function generateSqliteStudioHtml(): string {
       filteredItems.forEach(item => {
         const row = document.createElement("div");
         row.className = "tree-item" + (item.name === activeTable ? " active" : "");
-        row.innerHTML = \`<span class="tree-item-title">\${item.name}</span><span class="tree-badge">\${item.rowCount.toLocaleString()}</span>\`;
+        row.innerHTML = \`<span class="tree-item-title">\${escapeHtml(item.name)}</span><span class="tree-badge">\${item.rowCount.toLocaleString()}</span>\`;
         row.onclick = () => {
           document.querySelectorAll(".tree-item").forEach(el => el.classList.remove("active"));
           row.classList.add("active");
@@ -2168,7 +2168,7 @@ export function generateSqliteStudioHtml(): string {
         queryDesignerState.selectedTables = [tableName, ...queryDesignerState.selectedTables.filter(name => name !== tableName)];
       }
       document.getElementById("gridTargetTitle").textContent = "Table: " + tableName;
-      document.getElementById("sqlEditor").value = \`SELECT * FROM "\${tableName}" LIMIT 100;\`;
+      document.getElementById("sqlEditor").value = \`SELECT * FROM \${quoteSqlIdentifier(tableName)} LIMIT 100;\`;
       gridPage = 1;
       await fetchTableData();
       renderSchemaDesigner(tableName);
@@ -2275,7 +2275,7 @@ export function generateSqliteStudioHtml(): string {
         document.getElementById("queryTiming").textContent = \`Executed in \${res.latencyMs}ms\`;
         document.getElementById("kpiLatency").textContent = res.latencyMs + " ms";
 
-        if (res.rows && res.rows.length >= 0) {
+        if (res.rowsAffected === undefined && res.rows) {
           currentGridRows = res.rows;
           currentGridColumns = res.columns || (res.rows.length > 0 ? Object.keys(res.rows[0]) : []);
           renderDataGrid(currentGridColumns, currentGridRows);
@@ -2324,7 +2324,7 @@ export function generateSqliteStudioHtml(): string {
       card.className = "card";
       card.innerHTML = \`
         <div class="card-title">🔍 Query Plan Analysis</div>
-        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan); margin-bottom: 8px;">\${sql}</div>
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan); margin-bottom: 8px;">\${escapeHtml(sql)}</div>
       \`;
 
       const list = document.createElement("div");
@@ -2345,7 +2345,7 @@ export function generateSqliteStudioHtml(): string {
           ? '<span style="color: var(--rose); font-weight: 700;">⚠️ SCAN TABLE (FULL SCAN)</span>'
           : '<span style="color: var(--emerald); font-weight: 700;">⚡ INDEX SEARCH</span>';
 
-        item.innerHTML = \`<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">\${badge}<span>Node #\${node.id} (Parent: \${node.parent})</span></div><div>\${node.detail}</div>\`;
+        item.innerHTML = \`<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">\${badge}<span>Node #\${node.id} (Parent: \${node.parent})</span></div><div>\${escapeHtml(node.detail)}</div>\`;
         list.appendChild(item);
       });
 
@@ -2364,7 +2364,7 @@ export function generateSqliteStudioHtml(): string {
       const card = document.createElement("div");
       card.className = "card";
       card.innerHTML = \`
-        <div class="card-title">🏛️ Table Schema: \${meta.name} (\${meta.rowCount.toLocaleString()} records)</div>
+        <div class="card-title">🏛️ Table Schema: \${escapeHtml(meta.name)} (\${(meta.rowCount || 0).toLocaleString()} records)</div>
         <table class="data-grid" style="margin-top: 8px;">
           <thead>
             <tr>
@@ -2375,11 +2375,11 @@ export function generateSqliteStudioHtml(): string {
             \${meta.columns.map(c => \`
               <tr>
                 <td>\${c.cid}</td>
-                <td style="color: var(--cyan); font-weight: 600;">\${c.name}</td>
-                <td>\${c.type}</td>
+                <td style="color: var(--cyan); font-weight: 600;">\${escapeHtml(c.name)}</td>
+                <td>\${escapeHtml(c.type)}</td>
                 <td>\${c.pk ? '🔑 YES' : '-'}</td>
                 <td>\${c.notnull ? 'YES' : 'NULLABLE'}</td>
-                <td>\${c.dflt_value !== null ? c.dflt_value : '-'}</td>
+                <td>\${c.dflt_value !== null && c.dflt_value !== undefined ? escapeHtml(c.dflt_value) : '-'}</td>
               </tr>
             \`).join('')}
           </tbody>
@@ -2390,7 +2390,7 @@ export function generateSqliteStudioHtml(): string {
       ddlCard.className = "card";
       ddlCard.innerHTML = \`
         <div class="card-title">DDL Definition (SQL)</div>
-        <div class="code-box" style="height: 120px;">\${meta.sql || 'N/A'}</div>
+        <div class="code-box" style="height: 120px;">\${escapeHtml(meta.sql || 'N/A')}</div>
       \`;
 
       container.appendChild(card);
@@ -3545,8 +3545,8 @@ export function generateSqliteStudioHtml(): string {
           <div class="qbe-ribbon-group">
             <select id="designerTablePicker" class="qbe-select" style="max-width: 155px;">
               <option value="">+ Add Table / View</option>
-              \${tablesList.length ? \`<optgroup label="📋 Tables">\${tablesList.map(name => \`<option value="\${name}">\${name}</option>\`).join('')}</optgroup>\` : ''}
-              \${viewsList.length ? \`<optgroup label="👁️ Views">\${viewsList.map(name => \`<option value="\${name}">\${name} (View)</option>\`).join('')}</optgroup>\` : ''}
+              \${tablesList.length ? \`<optgroup label="📋 Tables">\${tablesList.map(name => \`<option value="\${escapeHtml(name)}">\${escapeHtml(name)}</option>\`).join('')}</optgroup>\` : ''}
+              \${viewsList.length ? \`<optgroup label="👁️ Views">\${viewsList.map(name => \`<option value="\${escapeHtml(name)}">\${escapeHtml(name)} (View)</option>\`).join('')}</optgroup>\` : ''}
             </select>
             <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
             <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">🔗 Smart Auto-Join All</button>
@@ -3564,7 +3564,7 @@ export function generateSqliteStudioHtml(): string {
         const sqlPreview = buildDesignerSql();
         const savedList = (queryDesignerState.savedQueries || []).map((item, idx) => \`
           <div class="qbe-saved-chip">
-            <button class="btn btn-sm" onclick="loadSavedDesignerQuery(\${idx})" title="Click to load saved SQL">\${item.name}</button>
+            <button class="btn btn-sm" onclick="loadSavedDesignerQuery(\${idx})" title="Click to load saved SQL">\${escapeHtml(item.name)}</button>
             <button class="sidebar-mini-btn" onclick="deleteSavedDesignerQuery(\${idx})" title="Delete saved query">✕</button>
           </div>
         \`).join('') || '<span style="color: var(--text-dim); font-size: 11px;">No saved queries yet.</span>';
@@ -3581,7 +3581,7 @@ export function generateSqliteStudioHtml(): string {
                 <button class="btn btn-sm" onclick="explainDesignerQuery()">Explain Plan</button>
               </div>
             </div>
-            <textarea class="designer-sql-preview" id="designerSqlPreview" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">\${sqlPreview}</textarea>
+            <textarea class="designer-sql-preview" id="designerSqlPreview" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">\${escapeHtml(sqlPreview)}</textarea>
             <div style="margin-top: 8px;">
               <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">Saved Queries:</div>
               <div style="display: flex; flex-wrap: wrap; gap: 6px;">\${savedList}</div>
@@ -3979,6 +3979,10 @@ export function generateSqliteStudioHtml(): string {
     async function vacuumDatabase() {
       showToast("Running VACUUM...");
       const res = await apiRequest('/api/pragma', { pragma: 'vacuum' });
+      if (!res || res.success === false) {
+        showToast("VACUUM failed: " + (res?.error || "Unknown error"));
+        return;
+      }
       showToast("VACUUM completed successfully!");
       logAudit("[VACUUM] Database defragmented and vacuumed.");
       await refreshKpis();
@@ -3989,8 +3993,10 @@ export function generateSqliteStudioHtml(): string {
       const res = await apiRequest('/api/pragma', { pragma: 'integrity_check' });
       const outBox = document.getElementById("pragmaOutputBox");
       if (outBox) outBox.textContent = JSON.stringify(res, null, 2);
-      showToast("Integrity check OK: Database is healthy!");
-      logAudit("[INTEGRITY] PRAGMA integrity_check completed: OK");
+      const rows = Array.isArray(res?.result) ? res.result : [];
+      const healthy = !!res && res.success !== false && rows.length === 1 && String(Object.values(rows[0] || {})[0]).toLowerCase() === "ok";
+      showToast(healthy ? "Integrity check OK: Database is healthy!" : "Integrity check reported problems - see PRAGMA output");
+      logAudit(healthy ? "[INTEGRITY] PRAGMA integrity_check completed: OK" : "[INTEGRITY] PRAGMA integrity_check reported problems");
       switchTab("pragma");
     }
 
@@ -3998,6 +4004,10 @@ export function generateSqliteStudioHtml(): string {
       const res = await apiRequest('/api/pragma', { pragma: name, value: val });
       const outBox = document.getElementById("pragmaOutputBox");
       if (outBox) outBox.textContent = JSON.stringify(res, null, 2);
+      if (!res || res.success === false) {
+        showToast(\`PRAGMA \${name} failed: \` + (res?.error || "Unknown error"));
+        return;
+      }
       showToast(\`PRAGMA \${name}=\${val} set!\`);
       logAudit(\`[PRAGMA] \${name}=\${val}\`);
       await refreshKpis();

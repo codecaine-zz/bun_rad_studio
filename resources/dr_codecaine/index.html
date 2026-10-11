@@ -1053,13 +1053,17 @@
       const minRow = Math.max(3, 16 - Math.floor(lvl / 2) - 8);
       let placed = 0;
 
+      let attempts = 0;
       while (placed < totalViruses) {
+        attempts++;
+        if (attempts > 20000) break; // safety: board is effectively full
         const r = Math.floor(Math.random() * (ROWS - minRow)) + minRow;
         const c = Math.floor(Math.random() * COLS);
 
         if (!grid[r][c]) {
           const color = (placed % 3) + 1;
-          if (!wouldCreatePreMatch(r, c, color)) {
+          // After many failures, drop the no-pre-match rule so placement always terminates
+          if (attempts > 4000 || !wouldCreatePreMatch(r, c, color)) {
             grid[r][c] = {
               type: 'virus',
               color: color,
@@ -1073,6 +1077,7 @@
           }
         }
       }
+      virusesRemaining = placed;
       updateVirusStats();
     }
 

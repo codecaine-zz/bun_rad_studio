@@ -1,3 +1,4 @@
+import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import {
   getGraveyardDir,
@@ -1082,6 +1083,8 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
     hostname,
     async fetch(req) {
       const url = new URL(req.url);
+      const __blocked = guardLocalRequest(req);
+      if (__blocked) return __blocked;
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -1172,11 +1175,7 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
         try {
           const body = (await req.json()) as { text?: string };
           const text = body.text || "";
-          if (process.platform === "darwin") {
-            const proc = Bun.spawn(["pbcopy"], { stdin: "pipe" });
-            proc.stdin.write(text);
-            proc.stdin.end();
-          }
+          writeClipboardSync(text);
           return Response.json({ success: true }, { headers: corsHeaders });
         } catch (e: any) {
           return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });

@@ -1311,6 +1311,7 @@
         // =====================================================
         function generateMaze() {
             if (solverTimer) { clearInterval(solverTimer); solverTimer = null; }
+            if (autoWalkTimer) { clearInterval(autoWalkTimer); autoWalkTimer = null; }
             cols = diffSettings[currentDiff];
             rows = diffSettings[currentDiff];
             cellSize = 600 / cols;
@@ -1584,7 +1585,7 @@
             handleCanvasTapAtClientCoords(e.clientX, e.clientY);
         });
 
-        let autoWalkTimer = null;
+        var autoWalkTimer = null;
         function walkPathSmoothly(path) {
             if (autoWalkTimer) clearInterval(autoWalkTimer);
             let idx = 0;
@@ -1704,7 +1705,8 @@
             launchConfetti();
 
             const finalTime = currentMode === 'timeAttack' ? (timeAttackDurations[currentDiff] * 1000 - timeRemaining) : elapsedTime;
-            saveBestTime(finalTime);
+            if (currentMode !== 'solver') saveBestTime(finalTime);
+            overlayDesc.textContent = 'Optimal neural path confirmed. Portal coordinates locked.';
 
             // Compute star rating
             const parSteps = (cols + rows) * 1.35;

@@ -310,7 +310,11 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   });
 
   const openLocationMap = () => {
-    const loc = lastResult?.loc || "37.4056,-122.0775";
+    const loc = lastResult?.loc;
+    if (!loc || loc === "0,0") {
+      win.setValue("lbl_status_bar", "⚠️ No coordinates available. Look up an IP first.");
+      return;
+    }
     const mapUrl = `https://maps.google.com/?q=${encodeURIComponent(loc)}`;
     win.openUrl(mapUrl);
     win.toast(`Opened Google Maps: ${loc}`);
@@ -369,31 +373,36 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   win.on("btn_calc_subnet", "click", () => calculateCidrRange());
   win.on("btn_local_ifaces", "click", () => showLocalInterfaces());
 
+  const exportText = (text: string, label: string) => {
+    win.clearConsole("console_ipinfo");
+    win.appendConsole("console_ipinfo", text + "\n");
+    win.copyToClipboard(text);
+    win.setValue("lbl_status_bar", `✓ ${label} copied to clipboard.`);
+    win.toast(`${label} copied to clipboard`);
+  };
+
   win.on("btn_copy_json", "click", () => {
-    if (lastResult) {
-      win.clearConsole("console_ipinfo");
-      win.appendConsole("console_ipinfo", formatJson(lastResult));
-      win.setValue("lbl_status_bar", "✓ JSON details output to console.");
-    } else if (lastSubnet) {
-      win.clearConsole("console_ipinfo");
-      win.appendConsole("console_ipinfo", JSON.stringify(lastSubnet, null, 2));
-      win.setValue("lbl_status_bar", "✓ Subnet JSON copied to console output.");
-    } else {
-      win.setValue("lbl_status_bar", "⚠️ No active IP result to export.");
-    }
+    if (lastResult) exportText(formatJson(lastResult), "JSON");
+    else if (lastSubnet) exportText(JSON.stringify(lastSubnet, null, 2), "Subnet JSON");
+    else win.setValue("lbl_status_bar", "⚠️ No active IP result to export.");
   });
 
   win.on("btn_copy_csv", "click", () => {
     if (lastResult) {
-      win.clearConsole("console_ipinfo");
-      win.appendConsole("console_ipinfo", formatCsv(lastResult));
-      win.setValue("lbl_status_bar", "✓ CSV formatted output in console.");
+      exportText(formatCsv(lastResult), "CSV");
+    } else if (lastSubnet) {
+      const entries = Object.entries(lastSubnet);
+      const csv = entries.map(([k]) => k).join(",") + "\n" + entries.map(([, v]) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      exportText(csv, "Subnet CSV");
     } else {
       win.setValue("lbl_status_bar", "⚠️ No active IP result to export.");
     }
   });
 
   win.on("btn_clear", "click", () => {
+    lastResult = null;
+    lastSubnet = null;
+    currentInterfaces = [];
     win.setValue("txt_target", "");
     win.setValue("lbl_metric_ip", "Target IP: -");
     win.setValue("lbl_metric_location", "Location: -");

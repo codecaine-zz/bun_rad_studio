@@ -483,7 +483,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   const stopWatcher = (updateUi = true) => {
     const wasActive = activeWatcher !== null;
     stopAll();
-    if (updateUi && win.isWindowRunning) {
+    if (updateUi && win.isRunning()) {
       try {
         win.setText("btn_toggle_watch", "👀 Start Watcher");
         win.setValue("chk_watch", false);
@@ -675,11 +675,11 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     }
     const fullPath = path.resolve(selectedItem.path);
     if (process.platform === "darwin") {
-      Sys.exec(`open -R "${fullPath}"`);
+      Bun.spawnSync(["open", "-R", fullPath]);
     } else if (process.platform === "win32") {
-      Sys.exec(`explorer.exe /select,"${fullPath}"`);
+      Bun.spawnSync(["explorer.exe", `/select,${fullPath}`]);
     } else {
-      Sys.exec(`xdg-open "${path.dirname(fullPath)}"`);
+      Bun.spawnSync(["xdg-open", path.dirname(fullPath)]);
     }
     win.toast(`Revealed in file manager: ${selectedItem.name}`);
     logConsole(`[Finder] Revealed item: ${fullPath}`, 1);
@@ -774,7 +774,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   });
 
   // Delete Single Selected Item
-  win.onClick("btn_delete_one", () => {
+  win.onClick("btn_delete_one", async () => {
     if (!selectedItem) {
       win.toast("Please select an item first.");
       return;
@@ -785,6 +785,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     if (resolvedTarget === process.cwd() || resolvedTarget === path.parse(resolvedTarget).root) {
       win.toast("Cannot delete workspace root directory!");
       logConsole("[Delete] Protected workspace root directory deletion blocked.", 3);
+      return;
+    }
+    const okDelete = await win.confirm(
+      `Permanently delete "${targetName}"?\n\n${resolvedTarget}\n\nThis cannot be undone (use Bury to keep it recoverable).`,
+      "Confirm Permanent Delete"
+    );
+    if (!okDelete) {
+      win.toast("Delete cancelled.");
       return;
     }
     try {
@@ -1094,13 +1102,21 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   });
 
   // Batch Delete All Matched Items
-  win.onClick("btn_delete_all", () => {
+  win.onClick("btn_delete_all", async () => {
     if (currentResults.length === 0) {
       win.toast("No matching items to delete.");
       return;
     }
     const cwd = process.cwd();
     const countToDelete = currentResults.length;
+    const okBulk = await win.confirm(
+      `Permanently delete ALL ${countToDelete} matched item(s)?\n\nThis cannot be undone (use Bury All to keep them recoverable).`,
+      "Confirm Bulk Permanent Delete"
+    );
+    if (!okBulk) {
+      win.toast("Bulk delete cancelled.");
+      return;
+    }
     let deletedCount = 0;
     let errorCount = 0;
     for (const item of currentResults) {

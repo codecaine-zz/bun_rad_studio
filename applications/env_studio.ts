@@ -168,6 +168,10 @@ export function createEnvStudio(options: { fullscreen?: boolean; theme?: string 
   win.onClick("btn_validate", validateEnv);
 
   win.onClick("btn_mask", () => {
+    if (isMasked) {
+      win.toast("Secrets are already masked");
+      return;
+    }
     rawUnmaskedText = win.getValue("txt_env_active") || "";
     const lines = rawUnmaskedText.split("\n");
     const masked = lines.map((l) => {

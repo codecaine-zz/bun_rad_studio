@@ -32,59 +32,50 @@ win.run();
 \`\`\`
 `;
 
+/** Removes active content (scripts, inline handlers, javascript: URLs) from rendered HTML. */
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<\/?(script|iframe|object|embed|style|link|meta|base|form)\b[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/(href|src)\s*=\s*("|')\s*(javascript|data|vbscript):[^"']*\2/gi, '$1="#"');
+}
+
+const MD_ALERTS: Record<string, [string, string]> = {
+  NOTE: ["#0284c7", "rgba(2,132,199,0.15)"],
+  TIP: ["#16a34a", "rgba(22,163,74,0.15)"],
+  IMPORTANT: ["#9333ea", "rgba(147,51,234,0.15)"],
+  WARNING: ["#d97706", "rgba(217,119,6,0.15)"],
+  CAUTION: ["#dc2626", "rgba(220,38,38,0.15)"],
+};
+
 function simpleMarkdownToHtml(md: string): string {
-  let html = md
-    // Escape basic HTML
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  // Full CommonMark + GFM (tables, task lists, strikethrough, autolinks, nested lists) via Bun's native renderer.
+  let html = sanitizeHtml((Bun as any).markdown.html(md) as string);
 
-  // Code blocks
-  html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
-    return `<pre style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;margin:12px 0;"><code>${code}</code></pre>`;
-  });
+  // GitHub-style alert callouts: > [!NOTE]
+  html = html.replace(
+    /<blockquote>\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*([\s\S]*?)<\/p>\s*<\/blockquote>/gi,
+    (_m, kind: string, text: string) => {
+      const [fg, bg] = MD_ALERTS[kind.toUpperCase()]!;
+      return `<div style="background:${bg};border-left:4px solid ${fg};padding:10px 14px;border-radius:6px;margin:10px 0;color:#e2e8f0;font-size:13px;"><strong style="color:${fg};">${kind.toUpperCase()}:</strong> ${text}</div>`;
+    }
+  );
 
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#38bdf8;font-family:monospace;">$1</code>');
-
-  // Tables
-  html = html.replace(/((?:\|[^\n]+\|\r?\n)+)/g, (tableMatch) => {
-    const lines = tableMatch.trim().split(/\r?\n/).filter(l => l.trim().startsWith("|"));
-    if (lines.length < 2) return tableMatch;
-    const isSep = /^\|[\s\-:]+(\|[\s\-:]+)+\|?$/.test(lines[1].trim());
-    const headerLine = lines[0];
-    const dataLines = isSep ? lines.slice(2) : lines.slice(1);
-
-    const parseCells = (line: string) => line.split("|").slice(1, -1).map(c => c.trim());
-    const headers = parseCells(headerLine);
-    const ths = headers.map(h => `<th style="border:1px solid rgba(255,255,255,0.15);padding:6px 10px;background:rgba(255,255,255,0.06);color:#38bdf8;text-align:left;font-size:12px;">${h}</th>`).join("");
-    const trs = dataLines.map(row => {
-      const cells = parseCells(row);
-      const tds = cells.map(c => `<td style="border:1px solid rgba(255,255,255,0.15);padding:6px 10px;font-size:12px;">${c}</td>`).join("");
-      return `<tr>${tds}</tr>`;
-    }).join("");
-
-    return `<table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid rgba(255,255,255,0.15);"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-  });
-
-  // Headings
-  html = html.replace(/^### (.*$)/gim, '<h3 style="color:#38bdf8;margin:12px 0 6px 0;font-size:16px;">$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2 style="color:#0284c7;margin:16px 0 8px 0;font-size:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1 style="color:#f8fafc;margin:16px 0 10px 0;font-size:24px;">$1</h1>');
-
-  // Blockquotes / Alerts
-  html = html.replace(/^&gt; \[\!NOTE\]\n&gt; (.*$)/gim, '<div style="background:rgba(2,132,199,0.15);border-left:4px solid #0284c7;padding:10px 14px;border-radius:6px;margin:10px 0;color:#e2e8f0;font-size:13px;"><strong>NOTE:</strong> $1</div>');
-  html = html.replace(/^&gt; (.*$)/gim, '<blockquote style="border-left:3px solid #64748b;margin:8px 0;padding-left:12px;color:#94a3b8;font-style:italic;">$1</blockquote>');
-
-  // Bold & Italic
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#fff;">$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-  // Unordered lists
-  html = html.replace(/^\- (.*$)/gim, '<li style="margin-left:18px;color:#cbd5e1;">$1</li>');
-
-  // Paragraphs
-  html = html.replace(/\n\n/g, '<br/><br/>');
+  const th = `border:1px solid rgba(255,255,255,0.15);padding:6px 10px;font-size:12px;text-align:left;`;
+  html = html
+    .replace(/<h1>/g, '<h1 style="color:#f8fafc;margin:16px 0 10px 0;font-size:24px;">')
+    .replace(/<h2>/g, '<h2 style="color:#0284c7;margin:16px 0 8px 0;font-size:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">')
+    .replace(/<h([3-6])>/g, '<h$1 style="color:#38bdf8;margin:12px 0 6px 0;font-size:16px;">')
+    .replace(/<strong>/g, '<strong style="color:#fff;">')
+    .replace(/<table>/g, '<table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid rgba(255,255,255,0.15);">')
+    .replace(/<th(\s[^>]*)?>/g, `<th$1 style="${th}background:rgba(255,255,255,0.06);color:#38bdf8;">`)
+    .replace(/<td(\s[^>]*)?>/g, `<td$1 style="${th}">`)
+    .replace(/<pre>/g, '<pre style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;margin:12px 0;">')
+    .replace(/<code>/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#38bdf8;font-family:monospace;">')
+    .replace(/<blockquote>/g, '<blockquote style="border-left:3px solid #64748b;margin:8px 0;padding-left:12px;color:#94a3b8;font-style:italic;">')
+    .replace(/<a /g, '<a style="color:#38bdf8;" ')
+    .replace(/<hr\s*\/?>/g, '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:16px 0;">')
+    .replace(/<img /g, '<img style="max-width:100%;" ');
 
   return `<div style="font-family:system-ui,-apple-system,sans-serif;color:#cbd5e1;line-height:1.6;font-size:14px;padding:8px;">${html}</div>`;
 }

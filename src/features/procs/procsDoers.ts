@@ -192,6 +192,9 @@ export function formatProcessTable(procs: ProcessInfo[]): string {
 }
 
 export function killProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): boolean {
+  if (!Number.isInteger(pid) || pid <= 1) {
+    throw new Error(`[ProcsKill] Refusing to signal invalid PID ${pid}`);
+  }
   try {
     process.kill(pid, signal);
     return true;

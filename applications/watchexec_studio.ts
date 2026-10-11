@@ -191,9 +191,9 @@ export function createWatchexecStudio(options: { fullscreen?: boolean; theme?: s
 
     const watchPath = win.getValue("txt_watch_path")?.trim() || "./src";
     const extsStr = win.getValue("txt_exts")?.trim();
-    const extensions = extsStr ? extsStr.split(",").map((s: string) => s.trim().replace(/^\./, "")) : undefined;
+    const extensions = extsStr ? extsStr.split(",").map((s: string) => s.trim().replace(/^\./, "")).filter(Boolean) : undefined;
     const ignoreStr = win.getValue("txt_ignore")?.trim();
-    const ignorePatterns = ignoreStr ? ignoreStr.split(",").map((s: string) => s.trim()) : [];
+    const ignorePatterns = ignoreStr ? ignoreStr.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
     const debounceMs = parseInt(win.getValue("txt_debounce") || "150", 10) || 150;
 
     let debounceTimer: Timer | null = null;

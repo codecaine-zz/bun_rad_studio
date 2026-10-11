@@ -133,24 +133,40 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
   win.onClick("btn_stage_all", () => {
     const [out, code] = Sys.exec("git add -A");
     win.appendConsole("git_console", `[git add -A] (exit ${code}) ${out}\n`, code === 0 ? 2 : 3);
-    win.toast("All files staged");
+    win.toast(code === 0 ? "All files staged" : "git add failed (see console)");
     refreshRepo();
   });
 
   win.onClick("btn_unstage", () => {
     const [out, code] = Sys.exec("git restore --staged .");
     win.appendConsole("git_console", `[git restore --staged] (exit ${code}) ${out}\n`, code === 0 ? 2 : 3);
-    win.toast("All files unstaged");
+    win.toast(code === 0 ? "All files unstaged" : "Unstage failed (see console)");
     refreshRepo();
   });
 
   win.onClick("btn_commit", () => {
-    const msg = win.getValue("txt_commit_msg") || "chore: update application";
-    const escaped = msg.replace(/"/g, '\\"');
-    const [out, code] = Sys.exec(`git commit -m "${escaped}"`);
+    const msg = (win.getValue("txt_commit_msg") || "").trim();
+    if (!msg) {
+      win.toast("Enter a commit message first");
+      return;
+    }
+    // argv spawn: no shell, so the message can never be interpreted as a command
+    const nothingStaged = Bun.spawnSync(["git", "diff", "--cached", "--quiet"]).exitCode === 0;
+    const args = ["git", "commit", ...(nothingStaged ? ["-a"] : []), "-m", msg];
+    const proc = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
+    const out = proc.stdout.toString() + proc.stderr.toString();
+    const code = proc.exitCode;
     win.appendConsole("git_console", `[git commit] (exit ${code})\n${out}\n`, code === 0 ? 2 : 3);
-    win.toast(code === 0 ? "Committed successfully" : "Commit failed (check console)");
+    win.toast(code === 0 ? "Committed successfully" : "Commit failed (nothing to commit? check console)");
     refreshRepo();
+  });
+
+  win.on("tbl_commits", "click", (_w, hash) => {
+    const h = String(hash ?? "").trim();
+    if (!/^[0-9a-f]{4,40}$/i.test(h)) return;
+    const proc = Bun.spawnSync(["git", "show", "--stat", "--format=fuller", h], { stdout: "pipe", stderr: "pipe" });
+    win.setText("txt_git_diff", proc.stdout.toString() || proc.stderr.toString());
+    win.appendConsole("git_console", `[git show] Loaded commit ${h}\n`, 1);
   });
 
   win.onClick("btn_view_diff", () => {
@@ -168,14 +184,14 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
   win.onClick("btn_stash", () => {
     const [out, code] = Sys.exec("git stash");
     win.appendConsole("git_console", `[git stash] ${out}\n`, code === 0 ? 2 : 3);
-    win.toast("Stashed working changes");
+    win.toast(code === 0 ? "Stashed working changes" : "Stash failed (see console)");
     refreshRepo();
   });
 
   win.onClick("btn_stash_pop", () => {
     const [out, code] = Sys.exec("git stash pop");
     win.appendConsole("git_console", `[git stash pop] ${out}\n`, code === 0 ? 2 : 3);
-    win.toast("Popped stash");
+    win.toast(code === 0 ? "Popped stash" : "Stash pop failed (see console)");
     refreshRepo();
   });
 

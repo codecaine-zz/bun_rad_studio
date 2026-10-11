@@ -19,7 +19,6 @@ import {
   queryHackerTargetSync,
   queryOsintSourcesSync,
   resolveHostDnsSync,
-  probeHttpSync,
   probeHostsHttpSync,
 } from "./subfinderDoers.ts";
 import { colors } from "../../shared/colors.ts";

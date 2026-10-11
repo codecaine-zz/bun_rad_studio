@@ -174,6 +174,9 @@ export function startWorldTimeZonesStudioServer(options: WorldTimeZonesServerOpt
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
+      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+        return new Response("Forbidden", { status: 403 });
+      }
       if (existsSync(directCandidate)) {
         return new Response(Bun.file(directCandidate), { headers: corsHeaders });
       }

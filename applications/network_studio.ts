@@ -75,7 +75,9 @@ export function sanitizeHost(raw: string): string {
     h = h.split(":")[0];
   }
   h = h.replace(/^\[|\]$/g, "");
-  return h.trim();
+  h = h.trim();
+  // Only plain hostnames / IPv4 / IPv6 literals are allowed; anything else could escape generated scripts.
+  return /^[A-Za-z0-9._:%-]+$/.test(h) ? h : "";
 }
 
 export function checkSocketSync(host: string, port: number, timeoutMs = 800): PortScanResult {
@@ -925,7 +927,11 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const rawHost = win.getValue("txt_host") || "google.com";
     const host = sanitizeHost(rawHost) || "127.0.0.1";
     const port = parseInt(win.getValue("txt_port") || "443", 10);
-
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      win.toast("Port must be a number between 1 and 65535");
+      win.setStatus("Invalid port");
+      return;
+    }
     win.appendConsole("net_console", `[Scan] Connecting to ${host}:${port}...\n`, 1);
     win.setStatus(`Testing socket ${host}:${port}...`);
 

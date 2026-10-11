@@ -710,12 +710,29 @@ export function unburyTargetsSync(
         recreatedDirs.push(parentDir);
       }
 
-      // If overwriting with force, remove existing
+      // If overwriting with force, move existing aside first so a failed restore loses nothing
+      let aside: string | null = null;
       if (fs.existsSync(item.originalPath) && options.force) {
-        fs.rmSync(item.originalPath, { recursive: true, force: true });
+        aside = `${item.originalPath}.rip-old-${Date.now()}`;
+        fs.renameSync(item.originalPath, aside);
       }
 
-      safeMove(item.graveyardPath, item.originalPath);
+      try {
+        safeMove(item.graveyardPath, item.originalPath);
+      } catch (moveErr) {
+        if (aside) {
+          try {
+            fs.rmSync(item.originalPath, { recursive: true, force: true });
+            fs.renameSync(aside, item.originalPath);
+          } catch {
+            // best effort
+          }
+        }
+        throw moveErr;
+      }
+      if (aside) {
+        fs.rmSync(aside, { recursive: true, force: true });
+      }
 
       // Clean up empty item isolation folder in graveyard
       const itemFolder = path.dirname(item.graveyardPath);
@@ -798,6 +815,9 @@ export function decomposeGraveyardSync(
   const deletedItems: GraveyardItem[] = [];
 
   const toDecompose = manifest.items.filter((item) => {
+    // Only items still in the graveyard can be purged
+    if (item.status !== "buried") return false;
+
     // If specific targets requested
     if (options.targets && options.targets.length > 0) {
       return options.targets.some((t) => t === item.id || t === item.name || t === item.originalPath);

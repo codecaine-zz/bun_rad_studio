@@ -88,6 +88,16 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
 
   let lastMatches: any[] = [];
 
+  const isChecked = (id: string) => win.getValue(id) === "true" || win.getValue(id) === true;
+  const currentFlags = (forceGlobal = false): string => {
+    let f = "";
+    if (forceGlobal || isChecked("chk_g")) f += "g";
+    if (isChecked("chk_i")) f += "i";
+    if (isChecked("chk_m")) f += "m";
+    if (isChecked("chk_s")) f += "s";
+    return f;
+  };
+
   // Handlers
   win.onClick("btn_center", () => win.center());
   win.onClick("btn_save_state", (w) => {
@@ -114,12 +124,14 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
       const regex = new RegExp(rawPattern, flags);
       const matches: RegExpExecArray[] = [];
 
+      let capped = false;
       if (isGlobal) {
         let match: RegExpExecArray | null;
-        let limit = 200;
-        while ((match = regex.exec(corpus)) !== null && limit-- > 0) {
+        const LIMIT = 1000;
+        while ((match = regex.exec(corpus)) !== null) {
+          if (matches.length >= LIMIT) { capped = true; break; }
           matches.push(match);
-          if (match.index === regex.lastIndex) regex.lastIndex++;
+          if (match[0].length === 0) regex.lastIndex++;
         }
       } else {
         const single = regex.exec(corpus);
@@ -135,7 +147,7 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
       }));
 
       const rows = matches.map((m, idx) => {
-        const groups = m.slice(1).map((g, gi) => `G${gi + 1}: ${g}`).join(", ");
+        const groups = m.slice(1).map((g, gi) => `G${gi + 1}: ${g ?? ""}`).join(", ");
         return [
           String(idx + 1),
           m[0],
@@ -151,6 +163,7 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
         ["Match #", "Matched Text", "Index", "Length", "Groups"],
         rows.length > 0 ? rows : [["0", "(No matches found)", "0", "0", "-"]]
       );
+      if (capped) win.appendConsole("regex_console", "[Warning] Result capped at 1000 matches.\n", 3);
       win.appendConsole("regex_console", `[RegEx Studio] Evaluated /${rawPattern}/${flags} in ${elapsed}ms -> ${matches.length} matches found\n`, 2);
       win.setText("lbl_status", `Matches: ${matches.length}  |  Latency: ${elapsed}ms  |  Status: OK`);
       win.setStatus(`Matches Found: ${matches.length} (${elapsed}ms)`);
@@ -169,9 +182,9 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
     const corpus = win.getValue("txt_corpus") || "";
     const subst = win.getValue("txt_subst") || "";
     try {
-      const regex = new RegExp(rawPattern, "g");
+      const regex = new RegExp(rawPattern, currentFlags());
       const replaced = corpus.replace(regex, subst);
-      win.appendConsole("regex_console", `[Substitution Preview]:\n${replaced.slice(0, 400)}\n\n`, 1);
+      win.appendConsole("regex_console", `[Substitution Preview]:\n${replaced}\n\n`, 1);
       win.toast("Substitution preview generated");
     } catch (e: any) {
       win.appendConsole("regex_console", `[RegEx Replace Error] ${e.message}\n`, 3);
@@ -180,8 +193,8 @@ Visit https://bun.sh and https://github.com/codecaine-zz/bun_rad_studio.`;
 
   win.onClick("btn_gen_code", () => {
     const pattern = win.getValue("txt_pattern") || "";
-    const flags = "g";
-    const tsCode = `// TypeScript / Bun RegExp\nconst regex = new RegExp("${pattern.replace(/\\/g, "\\\\")}", "${flags}");\nconst matches = [...text.matchAll(regex)];\n`;
+    const flags = currentFlags(true);
+    const tsCode = `// TypeScript / Bun RegExp\nconst regex = new RegExp(${JSON.stringify(pattern)}, "${flags}");\nconst matches = [...text.matchAll(regex)];\n`;
     win.appendConsole("regex_console", `[Generated Code Snippet]\n${tsCode}\n`, 1);
     win.toast("Generated TypeScript snippet");
   });

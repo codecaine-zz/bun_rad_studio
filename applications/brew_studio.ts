@@ -80,12 +80,13 @@ Zero Homebrew reliance: All operations powered by Bun built-in APIs.
   win.endRow();
 
   // Helper for running Bun CLI commands
-  const runBunCmd = async (cmdStr: string, description: string) => {
+  const runBunCmd = async (cmd: string | string[], description: string) => {
+    const cmdStr = Array.isArray(cmd) ? cmd.join(" ") : cmd;
     win.appendConsole("brew_console", `[Bun System] ${description} ('${cmdStr}')...\n`, 1);
     win.setStatus(`Running: ${cmdStr}...`);
 
     const t0 = Date.now();
-    const proc = Bun.spawn(["/bin/sh", "-c", cmdStr], {
+    const proc = Bun.spawn(Array.isArray(cmd) ? cmd : ["/bin/sh", "-c", cmd], {
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -219,23 +220,37 @@ ${Object.entries(verData.peerDependencies || {}).map(([k, v]) => `  - ${k}: ${v}
   });
 
   // Package Management (bun add / bun remove)
+  const validPkgName = (pkg: string) =>
+    /^(@[a-z0-9~][a-z0-9._~-]*\/)?[a-z0-9~][a-z0-9._~-]*(@[A-Za-z0-9._~^<>=*|-]+)?$/i.test(pkg);
+
   win.onClick("btn_install", () => {
     const pkg = (win.getValue("txt_pkg_name") || "").trim();
     if (!pkg) return;
-    return runBunCmd(`bun add ${pkg}`, `Installing ${pkg}`);
+    if (!validPkgName(pkg)) {
+      win.setStatus(`Invalid package name: ${pkg}`);
+      return;
+    }
+    return runBunCmd(["bun", "add", pkg], `Installing ${pkg}`);
   });
 
   win.onClick("btn_uninstall", () => {
     const pkg = (win.getValue("txt_pkg_name") || "").trim();
     if (!pkg) return;
-    return runBunCmd(`bun remove ${pkg}`, `Removing ${pkg}`);
+    if (!validPkgName(pkg)) {
+      win.setStatus(`Invalid package name: ${pkg}`);
+      return;
+    }
+    return runBunCmd(["bun", "remove", pkg], `Removing ${pkg}`);
   });
 
   // Bun PM & Runtime Actions
   win.onClick("btn_list_all", () => runBunCmd("bun pm ls", "Listing Installed Project Packages"));
   win.onClick("btn_cache_info", () => runBunCmd("bun pm cache", "Inspecting Bun Package Cache Directory"));
   win.onClick("btn_bin_path", () => runBunCmd("bun pm bin -g", "Locating Global Bun Binary Path"));
-  win.onClick("btn_cleanup", () => runBunCmd("bun pm cache rm", "Purging Bun Package Cache"));
+  win.onClick("btn_cleanup", async () => {
+    if (!(await win.confirm("Purge the Bun package cache?", "Confirm Purge"))) return;
+    return runBunCmd("bun pm cache rm", "Purging Bun Package Cache");
+  });
   win.onClick("btn_doctor", () => {
     const report = `=== Bun Health & Diagnostics Report ===
 Bun Executable: ${process.execPath}

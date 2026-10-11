@@ -14,6 +14,7 @@
  * - Rich Enterprise Sample Dataset seeder spanning all Redis data structures
  */
 
+import { guardLocalRequest } from "../src/localGuard";
 import { redis, RedisClient } from "bun";
 import { generateRedisStudioHtml } from "./redis_studio.ts";
 
@@ -206,8 +207,23 @@ export class RedisManager {
     namespaces: { prefix: string; count: number }[];
   }> {
     try {
-      const allKeys = await this.client.keys(pattern || "*");
-      const sortedKeys = allKeys.sort().slice(0, limit);
+      const allKeys: string[] = [];
+      try {
+        const SCAN_CAP = 20000;
+        let cursor = "0";
+        do {
+          const res: any = await this.client.send("SCAN", [cursor, "MATCH", pattern || "*", "COUNT", "1000"]);
+          cursor = String(res[0]);
+          for (const k of res[1] as string[]) allKeys.push(String(k));
+        } while (cursor !== "0" && allKeys.length < SCAN_CAP);
+      } catch {
+        allKeys.length = 0;
+        allKeys.push(...(await this.client.keys(pattern || "*")));
+      }
+      const uniqueKeys = Array.from(new Set(allKeys));
+      allKeys.length = 0;
+      allKeys.push(...uniqueKeys);
+      const sortedKeys = [...allKeys].sort().slice(0, limit);
 
       const summaries: KeySummary[] = [];
       const namespaceMap: Record<string, number> = {};
@@ -875,6 +891,8 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       const pathname = url.pathname;
 
       // Enable CORS for workstation flexibility
+      const __blocked = guardLocalRequest(req);
+      if (__blocked) return __blocked;
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -920,7 +938,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       // 4. Mutate / Set Key Value
       if (pathname === "/api/key/set" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const result = await manager.setKeyValue(body);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
@@ -931,7 +949,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       // 5. Delete Key
       if (pathname === "/api/key/delete" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const key = body.key;
           if (!key) return Response.json({ error: "Key required" }, { status: 400, headers: corsHeaders });
           const result = await manager.deleteKey(key);
@@ -944,7 +962,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       // 6. Rename Key
       if (pathname === "/api/key/rename" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const { oldKey, newKey } = body;
           if (!oldKey || !newKey) {
             return Response.json({ error: "oldKey and newKey required" }, { status: 400, headers: corsHeaders });
@@ -972,7 +990,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
 
       if (pathname === "/api/key/ttl" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const { key, ttl } = body;
           if (!key || ttl === undefined) {
             return Response.json({ error: "key and ttl required" }, { status: 400, headers: corsHeaders });
@@ -987,7 +1005,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       // 8. Raw Command CLI Runner
       if (pathname === "/api/cli" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const result = await manager.executeRawCommand(body.command || "");
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
@@ -998,7 +1016,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       // 9. Pub/Sub Management
       if (pathname === "/api/pubsub/publish" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const { channel, message } = body;
           const result = await manager.publishMessage(channel || "general", message || "");
           return Response.json(result, { headers: corsHeaders });
@@ -1009,7 +1027,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
 
       if (pathname === "/api/pubsub/subscribe" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const { channel } = body;
           const result = await manager.subscribeChannel(channel || "general");
           return Response.json(result, { headers: corsHeaders });
@@ -1052,7 +1070,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       // 13. Dynamic Connection & DB Switcher
       if (pathname === "/api/connect" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const { url: newUrl, db: newDb } = body;
           const result = await manager.connect(newUrl, newDb ?? 0);
           return Response.json(result, { headers: corsHeaders });
@@ -1063,7 +1081,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
 
       if (pathname === "/api/select-db" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const { db: newDb } = body;
           const result = await manager.selectDb(Number(newDb ?? 0));
           return Response.json(result, { headers: corsHeaders });
@@ -1089,7 +1107,7 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       }
 
       // 16. Shutdown / Close workstation
-      if ((pathname === "/api/shutdown" || pathname === "/api/close") && (req.method === "POST" || req.method === "GET")) {
+      if ((pathname === "/api/shutdown" || pathname === "/api/close") && req.method === "POST") {
         setTimeout(() => process.exit(0), 100);
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }

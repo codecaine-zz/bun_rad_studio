@@ -23218,8 +23218,14 @@
                     } catch (e) {
                         saved = [];
                     }
+                    if (!Array.isArray(saved)) saved = [];
                     saved.push(customStage);
-                    localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(saved));
+                    try {
+                        localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(saved));
+                    } catch (e) {
+                        alert('Could not save stage: browser storage is full or unavailable.');
+                        return;
+                    }
                     refreshVaultSelect();
                     const cellSize = game.canvas.width / (game.grid.length || GRID_SIZE);
                     game.particles.floatingText((game.lolo.renderX + 0.5) * cellSize, game.lolo.renderY * cellSize - 10, 'STAGE SAVED', '#10b981');
@@ -23334,7 +23340,22 @@
                             alert('Invalid Stage JSON: Must contain "grid" and "lolo" objects.');
                             return;
                         }
-                        const newSize = parsed.gridSize || parsed.grid.length || 11;
+                        const gridN = Array.isArray(parsed.grid) ? parsed.grid.length : 0;
+                        if (gridN < 9 || gridN > 31 || !parsed.grid.every(r => Array.isArray(r) && r.length === gridN)) {
+                            alert('Invalid Stage JSON: "grid" must be a square 2D array (9x9 up to 31x31).');
+                            return;
+                        }
+                        const inRange = (v) => Number.isInteger(v) && v >= 0 && v < gridN;
+                        if (!parsed.lolo || !inRange(parsed.lolo.x) || !inRange(parsed.lolo.y)) {
+                            alert('Invalid Stage JSON: "lolo" must have integer x/y inside the grid.');
+                            return;
+                        }
+                        const badEntity = [...(parsed.blocks || []), ...(parsed.enemies || [])].some(o => !o || !inRange(o.x) || !inRange(o.y));
+                        if (badEntity) {
+                            alert('Invalid Stage JSON: every block and enemy needs integer x/y inside the grid.');
+                            return;
+                        }
+                        const newSize = gridN;
                         setGridSize(newSize);
                         game.grid = parsed.grid.map(row => [...row]);
                         game.lolo = { ...parsed.lolo, renderX: parsed.lolo.x, renderY: parsed.lolo.y, dir: 'down', ammo: 0 };

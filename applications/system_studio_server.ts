@@ -6,6 +6,7 @@
  * supporting the native desktop Webview window without main-thread event loop blocking.
  */
 
+import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { resolve, join } from "path";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import {
@@ -35,6 +36,8 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
       const url = new URL(req.url);
 
       // Enable CORS for flexibility
+      const __blocked = guardLocalRequest(req);
+      if (__blocked) return __blocked;
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -61,7 +64,7 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
       }
 
       // Route: Graceful Telemetry Server & Window Close / Shutdown
-      if (url.pathname === "/api/shutdown" || url.pathname === "/api/close") {
+      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
         setTimeout(() => process.exit(0), 50);
         return Response.json({ success: true, message: "System Information Studio closing..." }, { headers: corsHeaders });
       }
@@ -87,7 +90,7 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
       // Route: Export Report
       if (url.pathname === "/api/export" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const reportsDir = resolve(process.cwd(), "reports");
           if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
 
@@ -113,21 +116,9 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
       // Route: System Clipboard
       if (url.pathname === "/api/clipboard" && req.method === "POST") {
         try {
-          const body = await req.json();
+          const body: any = await req.json();
           const text = body.text || "";
-          if (process.platform === "darwin") {
-            const proc = Bun.spawn(["pbcopy"], { stdin: "pipe" });
-            proc.stdin.write(text);
-            proc.stdin.end();
-          } else if (process.platform === "win32") {
-            const proc = Bun.spawn(["clip"], { stdin: "pipe" });
-            proc.stdin.write(text);
-            proc.stdin.end();
-          } else {
-            const proc = Bun.spawn(["xclip", "-selection", "clipboard"], { stdin: "pipe" });
-            proc.stdin.write(text);
-            proc.stdin.end();
-          }
+          writeClipboardSync(text);
           return Response.json({ success: true }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { headers: corsHeaders, status: 500 });

@@ -1,3 +1,4 @@
+import type { ProcsOptions, ProcessInfo } from "./procsTypes.ts";
 import {
   attachListeningPorts,
   buildProcessTree,

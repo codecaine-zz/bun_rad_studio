@@ -1141,6 +1141,15 @@
           return;
         }
 
+        // 2b. Sleeping cat occupies its tile; bumping it wakes it up instead of overlapping
+        const sleepyCat = this.cats.find(cat => cat.x === targetX && cat.y === targetY && cat.state === 'asleep');
+        if (sleepyCat) {
+          sleepyCat.state = 'stalking';
+          sound.playCatMeow(1.2);
+          this.showToast("You bumped a sleeping cat!", "🐱");
+          return;
+        }
+
         // 3. Step on mousetrap
         if (targetCell === TRAP) {
           sound.playTrapSnap();
@@ -1600,7 +1609,7 @@
         const levelBonus = 500 * this.level;
         const cheeseBonus = this.cheeseEatenCount * 200;
         
-        this.score += (levelBonus + speedBonus);
+        this.score += (levelBonus + speedBonus + cheeseBonus);
 
         if (this.level === 5 && this.lives === 3) {
           this.unlockAchievement('flawless_five');

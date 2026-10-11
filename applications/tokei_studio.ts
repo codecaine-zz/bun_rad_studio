@@ -106,7 +106,7 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   const analyzeCodebase = () => {
     const scanPath = win.getValue("txt_path")?.trim() || ".";
     const excludeStr = win.getValue("txt_exclude")?.trim();
-    const excludes = excludeStr ? excludeStr.split(",").map((s: string) => s.trim()) : undefined;
+    const excludes = excludeStr ? excludeStr.split(",").map((s: string) => s.trim()).filter(Boolean) : undefined;
     const hidden = win.getBool("chk_hidden");
     const showFiles = win.getBool("chk_files");
 
@@ -204,7 +204,9 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
     const md = formatMarkdownTable(currentReports);
     win.clearConsole("console_tokei");
     win.appendConsole("console_tokei", md);
-    win.setValue("lbl_status_bar", "✓ Markdown table generated in preview console.");
+    let copied = false;
+    try { win.copyToClipboard(md); copied = true; } catch {}
+    win.setValue("lbl_status_bar", copied ? "✓ Markdown table generated and copied to clipboard." : "✓ Markdown table generated in preview console.");
   });
 
   win.on("btn_export_json", "click", () => {

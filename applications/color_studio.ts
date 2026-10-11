@@ -7,6 +7,7 @@ const DEFAULT_RGB = { r: 2, g: 132, b: 199 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const clean = hex.replace("#", "").trim();
+  if (!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(clean)) return null;
   if (clean.length === 3) {
     const r = clean[0] || "0";
     const g = clean[1] || "0";
@@ -17,7 +18,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
       b: parseInt(b + b, 16),
     };
   }
-  if (clean.length === 6) {
+  if (clean.length === 6 || clean.length === 8) {
     return {
       r: parseInt(clean.slice(0, 2), 16),
       g: parseInt(clean.slice(2, 4), 16),
@@ -184,6 +185,10 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     const rgb = hexToRgb(fg);
     if (!rgb) {
       win.toast("Invalid Primary HEX code");
+      return;
+    }
+    if (!hexToRgb(bg)) {
+      win.toast("Invalid Background HEX code");
       return;
     }
 

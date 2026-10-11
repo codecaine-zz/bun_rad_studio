@@ -947,7 +947,18 @@ function tokenize(expression) {
             throw new Error(`Unsupported character "${source[index]}"`);
         }
     }
-    return tokens;
+    // Implicit multiplication: 2pi, 3(4), (1+2)(3+4), 2sin(30), pi(2)
+    const withImplicit = [];
+    tokens.forEach((token, i) => {
+        const prev = tokens[i - 1];
+        if (prev) {
+            const prevEndsValue = prev.type === "number" || (prev.type === "paren" && prev.value === ")");
+            const nextStartsValue = token.type === "number" || token.type === "function" || (token.type === "paren" && token.value === "(");
+            if (prevEndsValue && nextStartsValue) withImplicit.push({ type: "operator", value: "*" });
+        }
+        withImplicit.push(token);
+    });
+    return withImplicit;
 }
 
 function toRpn(tokens) {
@@ -968,6 +979,9 @@ function toRpn(tokens) {
                 (tokens[index - 1].type === "paren" && tokens[index - 1].value === "(")
             );
 
+            if (isUnary && token.value === "+") {
+                return; // unary plus is a no-op
+            }
             if (isUnary && token.value === "-") {
                 operators.push({ type: "unary", value: "u-" });
                 return;
@@ -982,7 +996,12 @@ function toRpn(tokens) {
                         output.push(operators.pop());
                         continue;
                     }
-                } else if (top.type === "unary" || top.type === "function") {
+                } else if (top.type === "unary") {
+                    // Unary minus binds looser than ^ so that -2^2 = -(2^2)
+                    if (token.value === "^") break;
+                    output.push(operators.pop());
+                    continue;
+                } else if (top.type === "function") {
                     output.push(operators.pop());
                     continue;
                 }
@@ -2650,7 +2669,11 @@ function calculateDefiniteIntegral() {
     const result = (h / 3) * sum;
 
     const resEl = document.querySelector("#integralResult");
-    if (resEl && Number.isFinite(result)) resEl.textContent = `∫ [${a}, ${b}] f(x)dx = ${formatNumber(roundNumber(result, 4))}`;
+    if (resEl) {
+        resEl.textContent = Number.isFinite(result)
+            ? `∫ [${a}, ${b}] f(x)dx = ${formatNumber(roundNumber(result, 4))}`
+            : "Integral undefined: f(x) is not finite somewhere on [a, b] (check for singularities)";
+    }
     drawCalculusStudio();
 }
 
@@ -2667,7 +2690,11 @@ function calculateDerivativeAtPoint() {
 
     const dRes = document.querySelector("#derivResult");
     const dTan = document.querySelector("#derivTangentLine");
-    if (dRes && Number.isFinite(slope)) dRes.textContent = `f'(${x0}) = ${formatNumber(roundNumber(slope, 4))} · Slope m = ${formatNumber(roundNumber(slope, 3))}`;
+    if (dRes) {
+        dRes.textContent = Number.isFinite(slope)
+            ? `f'(${x0}) = ${formatNumber(roundNumber(slope, 4))} · Slope m = ${formatNumber(roundNumber(slope, 3))}`
+            : `f'(${x0}) is undefined (f is not finite near x = ${x0})`;
+    }
     if (dTan && Number.isFinite(slope) && Number.isFinite(intercept)) dTan.textContent = `Tangent line: y = ${roundNumber(slope, 2)}x ${intercept >= 0 ? "+" : "−"} ${roundNumber(Math.abs(intercept), 2)}`;
 
     drawCalculusStudio();
@@ -2691,8 +2718,12 @@ function findEquationRoot() {
 
     const yFinal = safeEvalGraphExpression(eqn, x);
     const rootEl = document.querySelector("#rootResult");
-    if (rootEl && Number.isFinite(x) && Number.isFinite(yFinal)) {
-        rootEl.textContent = `Root: x = ${formatNumber(roundNumber(x, 4))} · f(x) ≈ ${formatNumber(roundNumber(yFinal, 5))}`;
+    if (rootEl) {
+        if (Number.isFinite(x) && Number.isFinite(yFinal) && Math.abs(yFinal) < 1e-5) {
+            rootEl.textContent = `Root: x = ${formatNumber(roundNumber(x, 4))} · f(x) ≈ ${formatNumber(roundNumber(yFinal, 5))}`;
+        } else {
+            rootEl.textContent = "No root found near this guess — try a different starting point";
+        }
     }
 }
 
@@ -2847,7 +2878,8 @@ function calculateRetirementTrajectory() {
     const retRes = document.querySelector("#retirementResult");
     const fireRes = document.querySelector("#fireMilestoneResult");
 
-    if (retRes) retRes.textContent = `Projected nest egg at age ${targetAge}: ${formatCurrency(balance)}`;
+    const finalBalance = dataPoints.length ? dataPoints[dataPoints.length - 1].balance : balance;
+    if (retRes) retRes.textContent = `Projected nest egg at age ${targetAge}: ${formatCurrency(finalBalance)}`;
     if (fireRes) {
         const fStr = fireAge ? `Milestone reached at Age ${fireAge}` : "Milestone reached after retirement age";
         fireRes.textContent = `FIRE Target (4% rule): ${formatCurrency(fireTarget)} · ${fStr}`;
@@ -3051,7 +3083,13 @@ function calculateProjectileMotion() {
     const vy = v0 * Math.sin(theta);
 
     // Quadratic equation for flight time: -0.5*g*t^2 + vy*t + h0 = 0
-    const flightTime = (vy + Math.sqrt(vy * vy + 2 * g * h0)) / g;
+    const discriminant = vy * vy + 2 * g * h0;
+    if (![v0, thetaDeg, h0].every(Number.isFinite) || discriminant < 0 || v0 < 0) {
+        const bad = document.querySelector("#projectileResult");
+        if (bad) bad.textContent = "Enter a non-negative velocity and a launch height that keeps the projectile above ground.";
+        return;
+    }
+    const flightTime = (vy + Math.sqrt(discriminant)) / g;
     const range = vx * flightTime;
     const maxH = h0 + (vy * vy) / (2 * g);
 
@@ -3632,11 +3670,16 @@ function calculateOhmPower(sourceField) {
 }
 
 function calculateOhmEnergy() {
-    const hours = Number(document.querySelector("#ohmEnergyHours")?.value) || 8;
-    const days = Number(document.querySelector("#ohmEnergyDays")?.value) || 30;
-    const rate = Number(document.querySelector("#ohmEnergyRate")?.value) || 0.16;
+    const numOr = (sel, fallback) => {
+        const raw = document.querySelector(sel)?.value?.trim();
+        const n = Number(raw);
+        return raw !== undefined && raw !== "" && Number.isFinite(n) && n >= 0 ? n : fallback;
+    };
+    const hours = numOr("#ohmEnergyHours", 8);
+    const days = numOr("#ohmEnergyDays", 30);
+    const rate = numOr("#ohmEnergyRate", 0.16);
     
-    let pWatts = currentOhmWatts > 0 ? currentOhmWatts : 30;
+    let pWatts = Number.isFinite(currentOhmWatts) && currentOhmWatts >= 0 ? currentOhmWatts : 30;
     
     const dailyKWh = (pWatts * hours) / 1000;
     const dailyCost = dailyKWh * rate;
@@ -3843,9 +3886,14 @@ function calculateACPower() {
     const pfInput = document.querySelector("#acPowerFactor");
     const loadSelect = document.querySelector("#acLoadType");
     
-    let V = Number(vInput?.value) || 120;
-    let I = Number(iInput?.value) || 10;
-    let PF = Number(pfInput?.value) || 0.85;
+    const numOr = (el, fallback) => {
+        const raw = el?.value?.trim();
+        const n = Number(raw);
+        return raw !== undefined && raw !== "" && Number.isFinite(n) ? n : fallback;
+    };
+    let V = numOr(vInput, 120);
+    let I = numOr(iInput, 10);
+    let PF = numOr(pfInput, 0.85);
     let loadType = loadSelect?.value || "inductive";
     
     if (loadType === "resistive") {
@@ -3929,6 +3977,11 @@ function calculateRelativityDilation() {
 // ============================================================================
 // EVERYDAY SMART UTILITIES (Live Listeners)
 // ============================================================================
+function localISODate(d = new Date()) {
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function calculateCompoundGrowth() {
     const initial = Number(document.querySelector("#compoundInitial")?.value || 0);
     const monthlyContribution = Number(document.querySelector("#compoundMonthly")?.value || 0);
@@ -3939,7 +3992,9 @@ function calculateCompoundGrowth() {
     let currentTotal = initial;
     let totalDeposited = initial;
     const totalMonths = years * 12;
-    const monthlyRate = rate / 12;
+    // Honor the selected compounding frequency (periods per year) via the equivalent monthly rate
+    const periodsPerYear = frequency > 0 ? frequency : 12;
+    const monthlyRate = (1 + rate / periodsPerYear) ** (periodsPerYear / 12) - 1;
     const yearlyData = [{ year: 0, principal: initial, interest: 0, total: initial }];
 
     for (let m = 1; m <= totalMonths; m++) {
@@ -4096,7 +4151,7 @@ function calculateBmi() {
 
 function calculateDateDifference() {
     const start = document.querySelector("#dateStart")?.value;
-    const end = document.querySelector("#dateEnd")?.value || new Date().toISOString().slice(0, 10);
+    const end = document.querySelector("#dateEnd")?.value || localISODate();
     const res = document.querySelector("#dateDiffResult");
     const sub = document.querySelector("#dateDiffSub");
 
@@ -4108,7 +4163,7 @@ function calculateDateDifference() {
     const d1 = new Date(start + "T00:00:00");
     const d2 = new Date(end + "T00:00:00");
     const diffMs = Math.abs(d2 - d1);
-    const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
     const earlier = d1 < d2 ? d1 : d2;
     const later = d1 < d2 ? d2 : d1;
@@ -4155,7 +4210,7 @@ function calculateGpa() {
         "A+": 4.0, "A": 4.0, "A-": 3.7,
         "B+": 3.3, "B": 3.0, "B-": 2.7,
         "C+": 2.3, "C": 2.0, "C-": 1.7,
-        "D+": 1.3, "D": 1.0, "F": 0.0
+        "D+": 1.3, "D": 1.0, "D-": 0.7, "F": 0.0
     };
 
     const grades = gradesText.split(",").map(item => {
@@ -4188,7 +4243,7 @@ function calculateGpa() {
 
 function calculateStats() {
     const raw = document.querySelector("#statsInput")?.value || "";
-    const values = raw.split(/[\s,]+/).map(v => Number(v.trim())).filter(Number.isFinite);
+    const values = raw.split(/[\s,]+/).filter(v => v.trim() !== "").map(v => Number(v.trim())).filter(Number.isFinite);
     const statsResult = document.querySelector("#statsResult");
     const statsDetailResult = document.querySelector("#statsDetailResult");
 
@@ -4210,15 +4265,22 @@ function calculateStats() {
     const variance = values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / n;
     const stdDev = Math.sqrt(variance);
 
-    const q1 = sorted[Math.floor(n * 0.25)];
-    const q3 = sorted[Math.floor(n * 0.75)];
+    const percentile = p => {
+        const pos = (n - 1) * p;
+        const lo = Math.floor(pos);
+        const hi = Math.ceil(pos);
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+    };
+    const q1 = percentile(0.25);
+    const q3 = percentile(0.75);
+    const sampleSd = n > 1 ? Math.sqrt(values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (n - 1)) : 0;
     const iqr = q3 - q1;
 
     if (statsResult) {
         statsResult.textContent = `Mean: ${formatNumber(roundNumber(mean, 2))} · Median: ${formatNumber(roundNumber(median, 2))} · SD: ${formatNumber(roundNumber(stdDev, 2))}`;
     }
     if (statsDetailResult) {
-        statsDetailResult.textContent = `Min: ${min} · Max: ${max} · Range: ${range} · Sum: ${formatNumber(sum)} · IQR: ${formatNumber(iqr)}`;
+        statsDetailResult.textContent = `Min: ${min} · Max: ${max} · Range: ${range} · Sum: ${formatNumber(sum)} · IQR: ${formatNumber(iqr)} · Sample SD: ${formatNumber(roundNumber(sampleSd, 2))}`;
     }
 
     drawStatsHistogram(values, min, max);
@@ -4314,7 +4376,7 @@ function calculateRoi() {
 
 function calculateAge() {
     const birthDate = document.querySelector("#ageBirth")?.value;
-    const targetDateValue = document.querySelector("#ageTarget")?.value || new Date().toISOString().slice(0, 10);
+    const targetDateValue = document.querySelector("#ageTarget")?.value || localISODate();
     const aResult = document.querySelector("#ageResult");
     if (!birthDate) {
         if (aResult) aResult.textContent = "Age: enter a birth date";
@@ -4322,6 +4384,10 @@ function calculateAge() {
     }
     const birth = new Date(birthDate + "T00:00:00");
     const target = new Date(targetDateValue + "T00:00:00");
+    if (target < birth) {
+        if (aResult) aResult.textContent = "Age: birth date is after the target date";
+        return;
+    }
     let years = target.getFullYear() - birth.getFullYear();
     let months = target.getMonth() - birth.getMonth();
     let days = target.getDate() - birth.getDate();
@@ -6026,7 +6092,12 @@ function calculateSolidProperties() {
     const resEl = document.querySelector("#solidResult");
     if (resEl) resEl.textContent = `Volume V: ${roundNumber(volume, 2)} · Total Surface Area: ${roundNumber(surface, 2)}`;
     const subEl = document.querySelector("#solidSub");
-    if (subEl) subEl.textContent = `Lateral Area: ${roundNumber(lateral, 2)} · Cross-Section/Base: ${roundNumber(volume / (d2 || 1), 2)}`;
+    // Cross-section / base area per shape
+    let baseArea = 0;
+    if (shape === "box") baseArea = d1 * d1;
+    else if (shape === "torus") baseArea = Math.PI * Math.pow(Math.min(d1, d2), 2);
+    else baseArea = Math.PI * d1 * d1; // sphere (great circle), cylinder, cone
+    if (subEl) subEl.textContent = `Lateral Area: ${roundNumber(lateral, 2)} · Cross-Section/Base: ${roundNumber(baseArea, 2)}`;
 
     // Draw on Canvas
     const canvas = document.getElementById("solidCanvas");
@@ -6199,25 +6270,35 @@ function calculateResistorFromBands() {
     const mult = Number(document.querySelector("#resMultiplier")?.value || 100);
     const tol = Number(document.querySelector("#resTolerance")?.value || 5);
 
+    // Role-specific color lookups (the shared map reuses numeric keys across roles)
+    const digitColor = d => RESISTOR_COLOR_MAP[d]?.color;
+    const MULT_COLORS = {
+        0.01: "#c0c0c0", 0.1: "#d4af37", 1: "#1c1c1e", 10: "#8B4513", 100: "#ff3b30",
+        1000: "#ff9500", 10000: "#ffd60a", 100000: "#30d158", 1000000: "#0071e3", 10000000: "#bf5af2"
+    };
+    const TOL_COLORS = {
+        0.05: "#8e8e93", 0.1: "#bf5af2", 0.25: "#0071e3", 0.5: "#30d158", 1: "#8B4513", 2: "#ff3b30", 5: "#d4af37", 10: "#c0c0c0"
+    };
+
     let baseVal = 0;
     let bandsToDraw = [];
 
     if (currentResistorBands === 4) {
         baseVal = b1 * 10 + b2;
         bandsToDraw = [
-            RESISTOR_COLOR_MAP[b1]?.color || "#8B4513",
-            RESISTOR_COLOR_MAP[b2]?.color || "#ff3b30",
-            RESISTOR_COLOR_MAP[mult]?.color || "#ff9500",
-            RESISTOR_COLOR_MAP[tol]?.color || "#d4af37"
+            digitColor(b1) || "#8B4513",
+            digitColor(b2) || "#ff3b30",
+            MULT_COLORS[mult] || "#ff9500",
+            TOL_COLORS[tol] || "#d4af37"
         ];
     } else {
         baseVal = b1 * 100 + b2 * 10 + b3;
         bandsToDraw = [
-            RESISTOR_COLOR_MAP[b1]?.color || "#8B4513",
-            RESISTOR_COLOR_MAP[b2]?.color || "#ff3b30",
-            RESISTOR_COLOR_MAP[b3]?.color || "#1c1c1e",
-            RESISTOR_COLOR_MAP[mult]?.color || "#ff9500",
-            RESISTOR_COLOR_MAP[tol]?.color || "#d4af37"
+            digitColor(b1) || "#8B4513",
+            digitColor(b2) || "#ff3b30",
+            digitColor(b3) || "#1c1c1e",
+            MULT_COLORS[mult] || "#ff9500",
+            TOL_COLORS[tol] || "#d4af37"
         ];
     }
 
@@ -6558,7 +6639,7 @@ function calculateDrip() {
 
     const annualIncome = portfolio * currentYield;
     const compoundGain = portfolio - totalInvested;
-    const compPct = (compoundGain / portfolio) * 100;
+    const compPct = portfolio > 0 ? (compoundGain / portfolio) * 100 : 0;
 
     const resEl = document.querySelector("#dripResult");
     if (resEl) resEl.textContent = `Final portfolio: $${formatNumber(roundNumber(portfolio, 0))} · Annual dividend income: $${formatNumber(roundNumber(annualIncome, 0))}/yr`;
@@ -6613,8 +6694,12 @@ function getLuminance(r, g, b) {
 }
 
 function calculateColorContrast() {
-    const fgHex = document.querySelector("#colorFgText")?.value.trim() || "#ffffff";
-    const bgHex = document.querySelector("#colorBgText")?.value.trim() || "#0071e3";
+    const fgHexRaw = document.querySelector("#colorFgText")?.value.trim() || "#ffffff";
+    const bgHexRaw = document.querySelector("#colorBgText")?.value.trim() || "#0071e3";
+
+    const expandHex = (h) => /^#[0-9a-f]{3}$/i.test(h) ? "#" + h.slice(1).split("").map(c => c + c).join("") : h;
+    const fgHex = expandHex(fgHexRaw);
+    const bgHex = expandHex(bgHexRaw);
 
     if (!/^#[0-9a-f]{6}$/i.test(fgHex) || !/^#[0-9a-f]{6}$/i.test(bgHex)) return;
 
@@ -6675,7 +6760,7 @@ function calculateColorContrast() {
     const cmykK = Math.round(k * 100);
 
     const convEl = document.querySelector("#colorConversionResult");
-    if (convEl) convEl.textContent = `RGB(${rgbBg.r}, ${rgbBg.g}, ${rgbBg.b}) · HSL(${Math.round(h*360)}°, ${Math.round(s*100)}%, ${Math.round(l*100)}%) · CMYK(${cmykC}%, ${cmykM}%, ${cmykY}%, ${cmykK}%)`;
+    if (convEl) convEl.textContent = `Background: RGB(${rgbBg.r}, ${rgbBg.g}, ${rgbBg.b}) · HSL(${Math.round(h*360)}°, ${Math.round(s*100)}%, ${Math.round(l*100)}%) · CMYK(${cmykC}%, ${cmykM}%, ${cmykY}%, ${cmykK}%)`;
 }
 
 // Box-and-Whisker Plot for Statistics Engine
@@ -7242,26 +7327,36 @@ function initDeveloperTools() {
             document.getElementById('subnetSub').textContent = "";
             return;
         }
-        const ip = ipInput.value;
+        const ip = ipInput.value.trim();
         const cidr = parseInt(cidrInput.value, 10);
         
-        // Simple IPv4 parser
-        const parts = ip.split('.').map(n => parseInt(n, 10));
-        if (parts.length !== 4 || parts.some(isNaN)) {
+        // Strict IPv4 parser
+        const ipMatch = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+        const parts = ipMatch ? ipMatch.slice(1).map(n => parseInt(n, 10)) : [];
+        if (parts.length !== 4 || parts.some(n => n > 255)) {
             document.getElementById('subnetResult').textContent = "Invalid IP Address format";
+            document.getElementById('subnetSub').textContent = "";
+            return;
+        }
+        if (!Number.isInteger(cidr) || cidr < 0 || cidr > 32) {
+            document.getElementById('subnetResult').textContent = "CIDR prefix must be between 0 and 32";
+            document.getElementById('subnetSub').textContent = "";
             return;
         }
         
-        let ipNum = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
-        let mask = ~((1 << (32 - cidr)) - 1);
-        let net = ipNum & mask;
-        let bc = net | ~mask;
+        const ipNum = ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+        const hostBits = 32 - cidr;
+        const size = Math.pow(2, hostBits);
+        const mask = cidr === 0 ? 0 : (0xFFFFFFFF << hostBits) >>> 0;
+        const net = (ipNum & mask) >>> 0;
+        const bc = (net + size - 1) >>> 0;
         
         function toIP(n) {
             return [ (n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255 ].join('.');
         }
         
-        const usable = cidr >= 31 ? 0 : Math.pow(2, 32 - cidr) - 2;
+        // RFC 3021: /31 has 2 usable addresses, /32 is a single host
+        const usable = cidr === 32 ? 1 : (cidr === 31 ? 2 : size - 2);
         
         document.getElementById('subnetResult').textContent = `Network: ${toIP(net)} · Broadcast: ${toIP(bc)}`;
         document.getElementById('subnetSub').textContent = `Usable Hosts: ${usable.toLocaleString()} · Mask: ${toIP(mask)}`;
@@ -7350,17 +7445,24 @@ function initProbabilityTools() {
             return;
         }
         
-        let nPr, nCr;
-        if (n <= 170) {
-            nPr = fact(n) / fact(n - r);
-            nCr = nPr / fact(r);
-            document.getElementById('combResult').textContent = `Combinations (nCr): ${nCr.toLocaleString()}`;
-            document.getElementById('permResult').textContent = `Permutations (nPr): ${nPr.toLocaleString()}`;
-            if (record && typeof recordCalculation === 'function') recordCalculation(`${n} C ${r}`, `${nCr.toLocaleString()}`);
-        } else {
-            document.getElementById('combResult').textContent = `Combinations: Number too large`;
-            document.getElementById('permResult').textContent = `Permutations: Number too large`;
+        if (n > 100000) {
+            document.getElementById('combResult').textContent = `Combinations: n too large (max 100000)`;
+            document.getElementById('permResult').textContent = `Permutations: n too large (max 100000)`;
+            return;
         }
+
+        // Multiplicative form avoids overflowing intermediate factorials
+        const k = Math.min(r, n - r);
+        let nCr = 1;
+        for (let i = 1; i <= k; i++) nCr = nCr * (n - k + i) / i;
+        nCr = Math.round(nCr);
+        let nPr = 1;
+        for (let i = 0; i < r; i++) nPr *= (n - i);
+
+        const fmt = v => Number.isFinite(v) ? (v >= 1e21 ? v.toExponential(6) : v.toLocaleString()) : "Number too large";
+        document.getElementById('combResult').textContent = `Combinations (nCr): ${fmt(nCr)}`;
+        document.getElementById('permResult').textContent = `Permutations (nPr): ${fmt(nPr)}`;
+        if (record && typeof recordCalculation === 'function') recordCalculation(`${n} C ${r}`, fmt(nCr));
     }
 
     [probNInput, probRInput].forEach(el => {
@@ -7385,12 +7487,68 @@ function initChemistryTools() {
     const calcBtn = document.getElementById('calcMolarMassBtn');
     const chemInput = document.getElementById('chemFormula');
     
-    // Very simplified periodic table weights (just the most common ones for demo)
+    // Standard atomic weights for the elements most used in coursework and labs
     const weights = {
         'H': 1.008, 'He': 4.0026, 'Li': 6.94, 'Be': 9.0122, 'B': 10.81, 'C': 12.011, 'N': 14.007, 'O': 15.999, 'F': 18.998, 'Ne': 20.180,
         'Na': 22.990, 'Mg': 24.305, 'Al': 26.982, 'Si': 28.085, 'P': 30.974, 'S': 32.06, 'Cl': 35.45, 'Ar': 39.95, 'K': 39.098, 'Ca': 40.078,
-        'Fe': 55.845, 'Cu': 63.546, 'Zn': 65.38, 'Ag': 107.87, 'Au': 196.97, 'Hg': 200.59, 'Pb': 207.2, 'U': 238.03
+        'Sc': 44.956, 'Ti': 47.867, 'V': 50.942, 'Cr': 51.996, 'Mn': 54.938, 'Fe': 55.845, 'Co': 58.933, 'Ni': 58.693, 'Cu': 63.546, 'Zn': 65.38,
+        'Ga': 69.723, 'Ge': 72.630, 'As': 74.922, 'Se': 78.971, 'Br': 79.904, 'Kr': 83.798, 'Rb': 85.468, 'Sr': 87.62, 'Zr': 91.224,
+        'Mo': 95.95, 'Ag': 107.87, 'Cd': 112.41, 'Sn': 118.71, 'Sb': 121.76, 'I': 126.90, 'Xe': 131.29, 'Cs': 132.91, 'Ba': 137.33,
+        'W': 183.84, 'Pt': 195.08, 'Au': 196.97, 'Hg': 200.59, 'Pb': 207.2, 'Bi': 208.98, 'Ra': 226.03, 'U': 238.03
     };
+
+    // Recursive-descent formula parser: supports (), [], hydrates (CuSO4\u00b75H2O) and subscripts.
+    // Returns a map of element -> atom count, or null for invalid input.
+    function parseFormula(formula) {
+        let pos = 0;
+        function parseNum() {
+            let s = "";
+            while (pos < formula.length && /\d/.test(formula[pos])) s += formula[pos++];
+            return s ? parseInt(s, 10) : 1;
+        }
+        function parseGroup(closer) {
+            const counts = {};
+            const add = (el, n) => { counts[el] = (counts[el] || 0) + n; };
+            while (pos < formula.length) {
+                const ch = formula[pos];
+                if (ch === closer) break;
+                if (ch === '(' || ch === '[') {
+                    pos++;
+                    const want = ch === '(' ? ')' : ']';
+                    const inner = parseGroup(want);
+                    if (inner === null || formula[pos] !== want) return null;
+                    pos++;
+                    const mult = parseNum();
+                    for (const [el, n] of Object.entries(inner)) add(el, n * mult);
+                } else if (/[A-Z]/.test(ch)) {
+                    let el = ch;
+                    pos++;
+                    while (pos < formula.length && /[a-z]/.test(formula[pos])) el += formula[pos++];
+                    if (!weights[el]) return null;
+                    add(el, parseNum());
+                } else {
+                    return null;
+                }
+            }
+            return counts;
+        }
+        const total = {};
+        for (const rawPart of formula.replace(/\s+/g, "").split(/[\u00b7.\u2022*]/)) {
+            if (!rawPart) return null;
+            const lead = /^(\d+)/.exec(rawPart);
+            const coefficient = lead ? parseInt(lead[1], 10) : 1;
+            const body = rawPart.slice(lead ? lead[1].length : 0);
+            const saved = formula;
+            formula = body;
+            pos = 0;
+            const counts = parseGroup(null);
+            const consumed = pos === body.length;
+            formula = saved;
+            if (counts === null || !consumed || Object.keys(counts).length === 0) return null;
+            for (const [el, n] of Object.entries(counts)) total[el] = (total[el] || 0) + n * coefficient;
+        }
+        return total;
+    }
     
     function calculateMolarMass(record = false) {
         if (!chemInput || !chemInput.value) {
@@ -7399,30 +7557,20 @@ function initChemistryTools() {
             return;
         }
         const formula = chemInput.value.trim();
-        
-        // Simple regex parser for something like H2SO4 or C6H12O6
-        const regex = /([A-Z][a-z]*)(\d*)/g;
-        let match;
+        const atomCounts = parseFormula(formula);
         let totalWeight = 0;
         const breakdown = {};
-        let valid = true;
-        
-        while ((match = regex.exec(formula)) !== null) {
-            const element = match[1];
-            const count = match[2] ? parseInt(match[2], 10) : 1;
-            
-            if (weights[element]) {
+        if (atomCounts) {
+            for (const [element, count] of Object.entries(atomCounts)) {
                 const w = weights[element] * count;
                 totalWeight += w;
-                breakdown[element] = (breakdown[element] || 0) + w;
-            } else {
-                valid = false;
+                breakdown[element] = w;
             }
         }
         
-        if (totalWeight === 0 || !valid) {
+        if (!atomCounts || totalWeight === 0) {
             document.getElementById('molarMassResult').textContent = "Molar Mass: Unknown element or invalid formula";
-            document.getElementById('molarMassBreakdown').textContent = "Supports basic elements (H, C, N, O, S, Fe, etc.)";
+            document.getElementById('molarMassBreakdown').textContent = "Examples: H2SO4, Ca(OH)2, Al2(SO4)3, CuSO4\u00b75H2O (case-sensitive symbols)";
             return;
         }
         
@@ -7458,7 +7606,7 @@ function initOrbitSuite() {
         initDeveloperTools();
         initProbabilityTools();
         initChemistryTools();
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = localISODate();
         const ageTarget = document.querySelector("#ageTarget");
         if (ageTarget) ageTarget.value = todayStr;
         const dateEnd = document.querySelector("#dateEnd");
