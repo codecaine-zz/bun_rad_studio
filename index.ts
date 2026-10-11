@@ -1902,9 +1902,10 @@ export function generatePreviewHtml(spec: any): string {
                 const rowDblClickScript = `const fn=window['${c.id}_onDoubleClick']||window['on_${c.id}_doubleclick']||window['on_${c.id}_ondoubleclick'];if(fn)fn('${rowPid}');`;
 
                 return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" ondblclick="${rowDblClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells.map((cell: any, i: number) => {
-                    const alignStyle = (i >= 3 && i <= 5) ? 'text-align:right;' : 'text-align:left;';
-                    const monoStyle = (i === 0 || (i >= 3 && i <= 5)) ? 'font-family:monospace;' : '';
                     const strVal = cell === null || cell === undefined ? '' : String(cell);
+                    const isNum = typeof cell === 'number' || (typeof cell === 'string' && /^-?\d+(\.\d+)?$/.test(strVal.trim()));
+                    const alignStyle = isNum ? 'text-align:right;' : 'text-align:left;';
+                    const monoStyle = (i === 0 || isNum) ? 'font-family:monospace;' : '';
                     const isUrl = strVal.startsWith('http://') || strVal.startsWith('https://');
                     const cellHtml = isUrl
                         ? `<a href="${esc(strVal)}" target="_blank" rel="noopener noreferrer" style="color:${accent};text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl==='function'){window.openUrl('${esc(strVal)}');}else if(typeof window.openExternal==='function'){window.openExternal('${esc(strVal)}');}return false;">${esc(strVal)}</a>`

@@ -186,7 +186,7 @@ const ergonomicsHtmlPath = join(TEMP_HTML_DIR, "ergonomics_showcase.html");
 writeFileSync(ergonomicsHtmlPath, ergonomicsHtml, "utf8");
 const ergoOut = join(ROOT_DIR, "screenshot_ergonomics.png");
 console.log(`  Capturing Ergonomics Demo (${ergoOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${ergoOut}" --window-size=1200,850 "file://${ergonomicsHtmlPath}" 2>/dev/null`);
+Sys.exec(`"${CHROME_BIN}" --headless=new --disable-gpu --no-sandbox --user-data-dir="/tmp/chrome_ergo_profile" --screenshot="${ergoOut}" --window-size=960,655 "file://${ergonomicsHtmlPath}" 2>/dev/null`);
 console.log(`  ✔ Ergonomics Showcase: ${ergoOut} (${(Bun.file(ergoOut).size / 1024).toFixed(1)} KB)\n`);
 }
 
