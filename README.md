@@ -5,10 +5,10 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![Bun](https://img.shields.io/badge/Bun-v1.3.14-orange?style=for-the-badge&logo=bun)](https://bun.sh)
 [![Webview-Bun](https://img.shields.io/badge/Webview--Bun-v2.4.0-blue?style=for-the-badge)](https://github.com/codecaine-zz/bun_webview)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
-[![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](API.md)
+[![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](docs/API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [⚡ Project Launcher](#-instant-unified-project-workstation-launcher-bun-run-applauncher) • [Application User Guides](docs/userguides/README.md) • [API Specification](API.md) • [SimpleGUI Manual](SIMPLEGUI_API.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [⚡ Project Launcher](#-instant-unified-project-workstation-launcher-bun-run-applauncher) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 > [!TIP]
 > ### ⚡ Instant Unified Project Workstation Launcher (`bun run app:launcher`)
@@ -31,6 +31,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 > - **⭐ Pinned Favorites & 1-Click Launch**: Star any tool with the `⭐ Favorite` (`btn_fav`) toggle button. Telemetry card tracks live `⭐ Favorites: N`. Launch your highest priority tool with a single click via `🚀 Launch Top Favorite` (`btn_quick_launch_fav1`).
 > - **⚡ 1-Click Favorites Filter**: Instantly isolate your pinned tools using the dedicated `⭐ Favorites Only` filter button in the search toolbar or `⭐ Filter to Favorites` in the quick launch strip.
 > - **🎯 Rock-Solid Top ⇄ Bottom Selection Stability**: Selection across Top controls (`dd_select_app` dropdown and `lst_apps` listbox) and the Bottom table catalog (`tbl_apps`) stays 100% synchronized and stable. Applying any filter, search query, or category preserves your active selection if it still matches, without jumping or desynchronizing.
+> - **⚡ Double-Click Auto-Launch**: Double-clicking any list item in the top ListBox or any row in the bottom Catalog Table immediately launches the selected application or CLI tool.
 > - **💻 CLI Companion with Favorites**: `bun run cli:launcher -f` filters pinned favorites right in your terminal, and `-F <id>` toggles star status from any script.
 
 ### 🎨 Visual RAD Form Designer & IDE (`bun start`)
@@ -137,7 +138,10 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 Bun RAD Studio and SimpleGUI feature **63 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
 
-👉 **[🖼️ View the Complete 63-Theme Visual Screenshot Gallery in THEMES.md](THEMES.md)** for direct side-by-side screenshots, color palettes, and quick launch commands for every theme!
+> [!TIP]
+> ### 🖼️ Complete Visual Gallery & Theme Catalog in `docs/THEMES.md`
+> **Instead of listing all 63 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
+> 👉 **[🖼️ View the Complete 63-Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
 
 Every theme automatically harmonizes:
 
@@ -164,129 +168,19 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 ```
 
-#### 📸 Featured Theme Visual Showcases (All Controls on a Single Form)
+#### 🎨 Built-in Theme Categories Overview (63 Themes)
 
-##### 1. CodeFreelance Signature Dark Theme (`codefreelance`)
+| Category | Count | Highlight Themes | Vibe & Aesthetic |
+| :--- | :---: | :--- | :--- |
+| **🌟 Signature Brand** | 1 | `codefreelance` | Official obsidian canvas (`#050505`), neon emerald & purple accents |
+| **🍏 Modern macOS & Apple** | 9 | `apple_dark`, `apple_light`, `sonoma_emerald`, `ventura_amber`, `apple_sunset`, `midnight` | Clean Cupertino glass, vibrant dark mode, and Mojave sunsets |
+| **🚀 Windows 11 Fluent** | 2 | `win11_slate`, `win11_light` | Fluent Acrylic dark slate and crisp Mica light desktop styling |
+| **🐧 Modern Linux Desktops** | 7 | `ubuntu_dark`, `ubuntu_light`, `adwaita_dark`, `adwaita_light`, `linux_mint`, `pop_os`, `fedora_dark` | Canonical Yaru aubergine & orange, GNOME Libadwaita, Mint Cinnamon, Pop!\_OS COSMIC, and Fedora Workstation |
+| **💻 IDE & Syntax Favorites** | 16 | `monokai_pro`, `tokyo_night`, `one_dark_pro`, `gruvbox_dark`, `rose_pine`, `everforest`, `kanagawa`, `cobalt2`, `catppuccin`, `nord`, `dracula` | Iconic developer editor themes with tuned syntax token contrast |
+| **🕹️ Retro & Nostalgic Computing** | 10 | `win95`, `gameboy`, `c64`, `mac_classic`, `amber_crt`, `matrix`, `synthwave`, `amiga`, `nextstep`, `mac_os_aqua`, `hotdog_stand`, `playstation` | Authentic Windows 95 3D bevels, 1989 Game Boy DMG-01, Commodore 64, Matrix digital rain, and Synthwave neon |
+| **🚀 AAA Studio & Cloud Dark** | 14 | `raycast_dark`, `linear_dark`, `vercel_dark`, `unreal_engine`, `arc_velvet`, `abyss`, `night_city`, `horizon`, `tailwind_dark`, `supabase`, `oled_black` | Sleek dark-mode surfaces for modern engineering tools and cloud consoles |
 
-_#050505 obsidian base, #121212 cards, #0fb36a neon emerald green & #bd00ff purple accents ([codefreelance.net](https://codefreelance.net))_
-![CodeFreelance Theme Showcase](screenshots/themes/codefreelance.png)
-
-##### 2. Monokai Pro (`monokai_pro`)
-
-_Refined dark spectrum with warm canary yellow, vivid magenta, and charcoal card surfaces_
-![Monokai Pro Theme Showcase](screenshots/themes/monokai_pro.png)
-
-##### 3. Tokyo Night (`tokyo_night`)
-
-_Dark neon indigo city atmosphere with vibrant electric cyan blue and lavender accents_
-![Tokyo Night Theme Showcase](screenshots/themes/tokyo_night.png)
-
-##### 4. One Dark Pro (`one_dark_pro`)
-
-_Atom & VS Code iconic deep slate canvas with vibrant sky blue and syntax hues_
-![One Dark Pro Theme Showcase](screenshots/themes/one_dark_pro.png)
-
-##### 5. Gruvbox Dark (`gruvbox_dark`) & Gruvbox Light (`gruvbox_light`)
-
-_Retro groove warm earthy dark palette with amber gold & warm parchment light mode_
-![Gruvbox Dark Theme Showcase](screenshots/themes/gruvbox_dark.png)
-![Gruvbox Light Theme Showcase](screenshots/themes/gruvbox_light.png)
-
-##### 6. Rosé Pine (`rose_pine`) & Everforest Dark (`everforest`)
-
-_Natural minimalist aesthetic with dusty rose & soothing low-strain dark forest green_
-![Rosé Pine Theme Showcase](screenshots/themes/rose_pine.png)
-![Everforest Dark Theme Showcase](screenshots/themes/everforest.png)
-
-##### 7. Windows 11 Fluent Slate (`win11_slate`) & Windows 11 Mica Light (`win11_light`)
-
-_Modern Windows 11 Fluent Acrylic dark and crisp Mica light desktop styling_
-![Windows 11 Fluent Slate Theme Showcase](screenshots/themes/win11_slate.png)
-![Windows 11 Mica Light Theme Showcase](screenshots/themes/win11_light.png)
-
-##### 8. Modern Linux Desktop Themes (Ubuntu Yaru, GNOME Libadwaita, Linux Mint & Pop!\_OS)
-
-_Authentic Linux desktop styling with Ubuntu Yaru Dark/Light, GNOME Adwaita Dark/Light, Linux Mint Cinnamon, and System76 Pop!\_OS_
-![Ubuntu Yaru Dark Theme Showcase](screenshots/themes/ubuntu_dark.png)
-![GNOME Adwaita Dark Theme Showcase](screenshots/themes/adwaita_dark.png)
-![Linux Mint Dark Theme Showcase](screenshots/themes/linux_mint.png)
-![Pop!_OS Dark Theme Showcase](screenshots/themes/pop_os.png)
-
-##### 9. Retro & Nostalgic Computing ("Bring Back Memories")
-
-_Windows 95 classic teal desktop, 1999 Matrix digital rain, and Synthwave '84 arcade neon_
-![Windows 95 Theme Showcase](screenshots/themes/win95.png)
-![Matrix Phosphor Theme Showcase](screenshots/themes/matrix.png)
-![Synthwave '84 Theme Showcase](screenshots/themes/synthwave.png)
-![Game Boy 1989 Theme Showcase](screenshots/themes/gameboy.png)
-
-#### 📋 Complete Built-in Themes Directory (63 Themes)
-
-|   #    | Theme Key           | Name                        | Palette Type | Primary Accent |                    Screenshot                    | Vibe & Aesthetic                                                                                                         |
-| :----: | :------------------ | :-------------------------- | :----------: | :------------: | :----------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------- |
-| **01** | `codefreelance`     | **CodeFreelance**           |   🌙 Dark    |   `#0fb36a`    |   [View](screenshots/themes/codefreelance.png)   | Official obsidian canvas, neon emerald & purple accents                                                                  |
-| **02** | `raycast_dark`      | **Raycast Dark**            |   🌙 Dark    |   `#ff6363`    |   [View](screenshots/themes/raycast_dark.png)    | Silicon Valley dev command palette with laser red                                                                        |
-| **03** | `linear_dark`       | **Linear Studio**           |   🌙 Dark    |   `#5e6ad2`    |    [View](screenshots/themes/linear_dark.png)    | High-craft Linear workspace with electric indigo                                                                         |
-| **04** | `vercel_dark`       | **Vercel Geist**            |   🌙 Dark    |   `#ffffff`    |    [View](screenshots/themes/vercel_dark.png)    | Ultra-minimalist monochrome Next.js & Vercel contrast                                                                    |
-| **05** | `unreal_engine`     | **Unreal Engine 5**         |   🌙 Dark    |   `#0e86d4`    |   [View](screenshots/themes/unreal_engine.png)   | Epic Games 3D workstation dark graphite & Blueprint blue                                                                 |
-| **06** | `arc_velvet`        | **Arc Velvet**              |   🌙 Dark    |   `#f72585`    |    [View](screenshots/themes/arc_velvet.png)     | Arc Browser velvet aesthetic with plum & neon magenta                                                                    |
-| **07** | `abyss`             | **Abyss Bioluminescence**   |   🌙 Dark    |   `#06b6d4`    |       [View](screenshots/themes/abyss.png)       | Deep oceanic trench with glowing bioluminescent cyan                                                                     |
-| **08** | `night_city`        | **Cyberpunk Night City**    |   🌙 Dark    |   `#ff003c`    |    [View](screenshots/themes/night_city.png)     | AAA Cyberpunk 2077 HUD with Trauma Team red & yellow                                                                     |
-| **09** | `horizon`           | **Horizon Sunset**          |   🌙 Dark    |   `#e95678`    |      [View](screenshots/themes/horizon.png)      | Warm twilight horizon with neon peach, coral & dusk plum                                                                 |
-| **10** | `tailwind_dark`     | **Tailwind Slate Emerald**  |   🌙 Dark    |   `#10b981`    |   [View](screenshots/themes/tailwind_dark.png)   | Modern Tailwind CSS flagship slate 950 & emerald                                                                         |
-| **11** | `supabase`          | **Supabase Dark**           |   🌙 Dark    |   `#3ecf8e`    |     [View](screenshots/themes/supabase.png)      | Supabase cloud database obsidian & signature brand emerald                                                               |
-| **12** | `oled_black`        | **OLED Laser Black**        |   🌙 Dark    |   `#00e676`    |    [View](screenshots/themes/oled_black.png)     | Zero-power pure OLED black canvas with laser green                                                                       |
-| **13** | `titanium_slate`    | **Titanium Slate Pro**      |   🌙 Dark    |   `#ff6b22`    |  [View](screenshots/themes/titanium_slate.png)   | Apple Pro titanium space black & aviation orange                                                                         |
-| **14** | `jetbrains_darcula` | **JetBrains Darcula**       |   🌙 Dark    |   `#cc7832`    | [View](screenshots/themes/jetbrains_darcula.png) | Iconic IntelliJ IDEA & PyCharm Darcula IDE workspace                                                                     |
-| **15** | `nordic_paper`      | **Nordic Paper Light**      |   ☀️ Light   |   `#2b5c8f`    |   [View](screenshots/themes/nordic_paper.png)    | Nordic editorial paper light canvas & deep fjord blue                                                                    |
-| **16** | `monokai_pro`       | **Monokai Pro**             |   🌙 Dark    |   `#ffd866`    |    [View](screenshots/themes/monokai_pro.png)    | Refined charcoal spectrum with vivid warm yellow                                                                         |
-| **17** | `tokyo_night`       | **Tokyo Night**             |   🌙 Dark    |   `#7aa2f7`    |    [View](screenshots/themes/tokyo_night.png)    | Neon indigo city night with cyan and lavender accents                                                                    |
-| **18** | `one_dark_pro`      | **One Dark Pro**            |   🌙 Dark    |   `#61afef`    |   [View](screenshots/themes/one_dark_pro.png)    | Iconic Atom/VS Code deep slate with syntax sky blue                                                                      |
-| **19** | `gruvbox_dark`      | **Gruvbox Dark**            |   🌙 Dark    |   `#fabd2f`    |   [View](screenshots/themes/gruvbox_dark.png)    | Retro groove warm earthy dark palette with amber gold                                                                    |
-| **20** | `gruvbox_light`     | **Gruvbox Light**           |   ☀️ Light   |   `#b57614`    |   [View](screenshots/themes/gruvbox_light.png)   | Retro groove parchment light canvas with walnut tones                                                                    |
-| **21** | `rose_pine`         | **Rosé Pine**               |   🌙 Dark    |   `#eb6f92`    |     [View](screenshots/themes/rose_pine.png)     | All-natural soft dark palette with dusty rose & pine foam                                                                |
-| **22** | `everforest`        | **Everforest Dark**         |   🌙 Dark    |   `#a7c080`    |    [View](screenshots/themes/everforest.png)     | Natural comfort forest dark mode for zero eye strain                                                                     |
-| **23** | `kanagawa`          | **Kanagawa**                |   🌙 Dark    |   `#7e9cd8`    |     [View](screenshots/themes/kanagawa.png)      | Japanese ukiyo-e wave art inspired dark sumi ink palette                                                                 |
-| **24** | `cobalt2`           | **Cobalt2**                 |   🌙 Dark    |   `#ffc600`    |      [View](screenshots/themes/cobalt2.png)      | Wes Bos official deep cobalt navy with brilliant yellow                                                                  |
-| **25** | `win11_slate`       | **Windows 11 Fluent Slate** |   🌙 Dark    |   `#60cdff`    |    [View](screenshots/themes/win11_slate.png)    | Modern Windows 11 Fluent Dark Acrylic with sky cyan                                                                      |
-| **26** | `win11_light`       | **Windows 11 Mica Light**   |   ☀️ Light   |   `#005fb8`    |    [View](screenshots/themes/win11_light.png)    | Modern Windows 11 Mica Light desktop with Fluent typography                                                              |
-| **27** | `ubuntu_dark`       | **Ubuntu Yaru Dark**        |   🌙 Dark    |   `#e95420`    |    [View](screenshots/themes/ubuntu_dark.png)    | Official Ubuntu Yaru modern Linux dark desktop with warm aubergine charcoal surfaces and signature Ubuntu orange accents |
-| **28** | `ubuntu_light`      | **Ubuntu Yaru Light**       |   ☀️ Light   |   `#e95420`    |   [View](screenshots/themes/ubuntu_light.png)    | Clean Ubuntu Yaru modern Linux light desktop with crisp white surfaces, warm gray borders, and vibrant Ubuntu orange     |
-| **29** | `adwaita_dark`      | **GNOME Adwaita Dark**      |   🌙 Dark    |   `#3584e4`    |   [View](screenshots/themes/adwaita_dark.png)    | Modern GNOME Libadwaita desktop theme with deep slate surfaces and signature Adwaita blue accents                        |
-| **30** | `adwaita_light`     | **GNOME Adwaita Light**     |   ☀️ Light   |   `#3584e4`    |   [View](screenshots/themes/adwaita_light.png)   | Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature blue controls                             |
-| **31** | `linux_mint`        | **Linux Mint Dark**         |   🌙 Dark    |   `#87a556`    |    [View](screenshots/themes/linux_mint.png)     | Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents                   |
-| **32** | `pop_os`            | **Pop!\_OS Dark**           |   🌙 Dark    |   `#48b9c7`    |      [View](screenshots/themes/pop_os.png)       | System76 Pop!\_OS and COSMIC modern Linux desktop with dark charcoal surfaces and signature teal and amber accents       |
-| **33** | `fedora_dark`       | **Fedora Blue**             |   🌙 Dark    |   `#51a2da`    |    [View](screenshots/themes/fedora_dark.png)    | Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue                            |
-| **34** | `aura`              | **Aura Dark**               |   🌙 Dark    |   `#a277ff`    |       [View](screenshots/themes/aura.png)        | Lush mystical dark theme with neon purple & mint accents                                                                 |
-| **35** | `sonoma_emerald`    | **Sonoma Emerald**          |   🌙 Dark    |   `#30d158`    |  [View](screenshots/themes/sonoma_emerald.png)   | macOS Sonoma dark forest glass palette                                                                                   |
-| **36** | `apple_dark`        | **Apple Dark**              |   🌙 Dark    |   `#0a84ff`    |    [View](screenshots/themes/apple_dark.png)     | Vibrant macOS Dark Mode surface (Default)                                                                                |
-| **37** | `apple_light`       | **Apple Light**             |   ☀️ Light   |   `#0071e3`    |    [View](screenshots/themes/apple_light.png)    | Clean, bright macOS Aqua light canvas                                                                                    |
-| **38** | `midnight`          | **Midnight Space Gray**     |   🌙 Dark    |   `#38bdf8`    |     [View](screenshots/themes/midnight.png)      | Pro dark titanium space gray workstation theme                                                                           |
-| **39** | `apple_sunset`      | **Apple Sunset**            |   🌙 Dark    |   `#ff7733`    |   [View](screenshots/themes/apple_sunset.png)    | Warm macOS Mojave twilight sunset hues                                                                                   |
-| **40** | `ventura_amber`     | **Ventura Amber**           |   🌙 Dark    |   `#ff9500`    |   [View](screenshots/themes/ventura_amber.png)   | macOS Ventura golden sunset dark hues                                                                                    |
-| **41** | `soft_pastel`       | **Soft Pastel**             |   ☀️ Light   |   `#e07a5f`    |    [View](screenshots/themes/soft_pastel.png)    | Apple Studio warm soft light canvas                                                                                      |
-| **42** | `catppuccin`        | **Catppuccin Mocha**        |   🌙 Dark    |   `#cba6f7`    |    [View](screenshots/themes/catppuccin.png)     | Soothing lavender catppuccin dark mode                                                                                   |
-| **43** | `nord`              | **Nord**                    |   🌙 Dark    |   `#88c0d0`    |       [View](screenshots/themes/nord.png)        | Arctic frost nord developer palette                                                                                      |
-| **44** | `dracula`           | **Dracula**                 |   🌙 Dark    |   `#bd93f9`    |      [View](screenshots/themes/dracula.png)      | High-contrast vampire purple palette                                                                                     |
-| **45** | `cyberpunk`         | **Cyberpunk**               |   🌙 Dark    |   `#ff007f`    |     [View](screenshots/themes/cyberpunk.png)     | Neon glow dark contrast palette                                                                                          |
-| **46** | `github_dark`       | **GitHub Dark**             |   🌙 Dark    |   `#58a6ff`    |    [View](screenshots/themes/github_dark.png)    | Official GitHub dark interface palette                                                                                   |
-| **47** | `github_light`      | **GitHub Light**            |   ☀️ Light   |   `#0969da`    |   [View](screenshots/themes/github_light.png)    | Clean GitHub light canvas palette                                                                                        |
-| **48** | `solarized_dark`    | **Solarized Dark**          |   🌙 Dark    |   `#2aa198`    |  [View](screenshots/themes/solarized_dark.png)   | Precision engineered solarized dark palette                                                                              |
-| **49** | `solarized_light`   | **Solarized Light**         |   ☀️ Light   |   `#268bd2`    |  [View](screenshots/themes/solarized_light.png)  | Precision engineered solarized light palette                                                                             |
-| **50** | `navy_blue`         | **Navy Blue**               |   🌙 Dark    |   `#38bdf8`    |     [View](screenshots/themes/navy_blue.png)     | Deep slate navy dark theme                                                                                               |
-| **51** | `forest_green`      | **Forest Green**            |   🌙 Dark    |   `#4ade80`    |   [View](screenshots/themes/forest_green.png)    | Rich emerald green dark theme                                                                                            |
-| **52** | `win95`             | **Windows 95**              |   ☀️ Retro   |   `#000080`    |       [View](screenshots/themes/win95.png)       | Iconic Windows 95 classic teal desktop & silver 3D cards                                                                 |
-| **53** | `gameboy`           | **Game Boy 1989**           |   🌙 Retro   |   `#8bac0f`    |      [View](screenshots/themes/gameboy.png)      | Nostalgic 4-shade monochrome dot matrix DMG-01 screen                                                                    |
-| **54** | `c64`               | **Commodore 64**            |   🌙 Retro   |   `#7974ff`    |        [View](screenshots/themes/c64.png)        | Legendary 1982 Commodore 64 READY prompt & VIC-II blue                                                                   |
-| **55** | `mac_classic`       | **Macintosh System 7**      |   ☀️ Retro   |   `#5555aa`    |    [View](screenshots/themes/mac_classic.png)    | Vintage 1991 System 7 Platinum desktop with Chicago font                                                                 |
-| **56** | `amber_crt`         | **Phosphor Amber CRT**      |   🌙 Retro   |   `#ffb000`    |     [View](screenshots/themes/amber_crt.png)     | Warm VT220 / Pip-Boy amber phosphor monochrome terminal                                                                  |
-| **57** | `matrix`            | **Matrix Phosphor**         |   🌙 Retro   |   `#00ff41`    |      [View](screenshots/themes/matrix.png)       | Iconic 1999 digital rain phosphor green mainframe terminal                                                               |
-| **58** | `synthwave`         | **Synthwave '84**           |   🌙 Retro   |   `#ff2a85`    |     [View](screenshots/themes/synthwave.png)     | 1980s neon synthwave, sunset magenta grid & arcade glow                                                                  |
-| **59** | `amiga`             | **Amiga Workbench**         |   🌙 Retro   |   `#ff8800`    |       [View](screenshots/themes/amiga.png)       | Retro Amiga 500 Workbench 1.3 royal blue & orange buttons                                                                |
-| **60** | `nextstep`          | **NeXTSTEP 1989**           |   🌙 Retro   |   `#4a90e2`    |     [View](screenshots/themes/nextstep.png)      | Steve Jobs 1989 NeXTSTEP UNIX workstation dark elegance                                                                  |
-| **61** | `mac_os_aqua`       | **Mac OS X Aqua**           |   ☀️ Retro   |   `#0076fe`    |    [View](screenshots/themes/mac_os_aqua.png)    | Early 2001 OS X Cheetah glossy gel buttons & pinstripes                                                                  |
-| **62** | `hotdog_stand`      | **Hot Dog Stand**           |   🌙 Retro   |   `#ff0000`    |   [View](screenshots/themes/hotdog_stand.png)    | Unforgettable Windows 3.1 1992 high-contrast yellow & red                                                                |
-| **63** | `playstation`       | **PlayStation 1994**        |   🌙 Retro   |   `#00d2c4`    |    [View](screenshots/themes/playstation.png)    | 1994 PSX console grey with geometric controller accents                                                                  |
+👉 **[🖼️ View All 63 Theme Screenshots, Hex Palettes & Details in docs/THEMES.md →](docs/THEMES.md)**
 
 #### 💻 How to Use Themes in SimpleGUI
 
@@ -762,8 +656,11 @@ dist/
 ├── libwebview-*.dylib    # Native webview asset (macOS)
 ├── package.json          # Dist-ready manifest with exports map
 ├── README.md             # Documentation
-├── API.md                # Visual RAD Designer API reference
-├── SIMPLEGUI_API.md      # SimpleGUI API reference
+├── docs/                 # Documentation directory
+│   ├── API.md            # Visual RAD Designer API reference
+│   ├── SIMPLEGUI_API.md  # SimpleGUI API reference
+│   ├── THEMES.md         # Theme visual gallery & reference
+│   └── SYSTEM_UTILITIES_API.md # CLI & system utilities reference
 ├── src/
 │   └── ide.html          # Complete RAD Designer Studio HTML5/CSS3/JS application
 └── bun_rad_studio        # (build:binary only) standalone self-contained executable
@@ -847,7 +744,7 @@ open "dist/My Application.app"
 
 ## 🎨 Declarative SimpleGUI Module (`simplegui`)
 
-Build native desktop GUIs directly in TypeScript using an intuitive, fluent, event-driven API inspired by [vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui) — no visual designer required! For complete API docs, see the dedicated [SIMPLEGUI_API.md](SIMPLEGUI_API.md) reference.
+Build native desktop GUIs directly in TypeScript using an intuitive, fluent, event-driven API inspired by [vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui) — no visual designer required! For complete API docs, see the dedicated [docs/SIMPLEGUI_API.md](docs/SIMPLEGUI_API.md) reference.
 
 ![SimpleGUI Ergonomics & Shortcuts Showcase Screenshot](screenshot_ergonomics.png)
 
@@ -920,11 +817,11 @@ win.run();
 <a id="documentation-reference-apimd-vs-simplegui_apimd"></a>
 <a id="documentation-reference--apimd-vs-simplegui_apimd"></a>
 
-## 📚 Documentation Reference: API.md vs. SIMPLEGUI_API.md
+## 📚 Documentation Reference: docs/API.md vs. docs/SIMPLEGUI_API.md
 
-**Bun RAD Studio** provides two distinct documentation guides depending on whether you are using the **Visual RAD Designer IDE** or the **Declarative `simplegui` Code-First Module**:
+**Bun RAD Studio** provides dedicated documentation guides inside the `docs/` folder:
 
-| Feature / Topic       | 📖 [API.md](API.md)                                                                    | 🎨 [SIMPLEGUI_API.md](SIMPLEGUI_API.md)                                                   |
+| Feature / Topic       | 📖 [docs/API.md](docs/API.md)                                                          | 🎨 [docs/SIMPLEGUI_API.md](docs/SIMPLEGUI_API.md)                                         |
 | --------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Primary Scope**     | **Visual RAD Studio IDE & Core Engine**                                                | **Declarative Code-First `simplegui` Module**                                             |
 | **Approach**          | Drag-and-drop canvas, Object Inspector, visual layout grid                             | Pure TypeScript code layout with fluent method chaining                                   |
@@ -935,10 +832,13 @@ win.run();
 
 <a id="summary-of-api-files"></a>
 
-### 📖 Summary of API Files
+### 📖 Summary of Documentation in `docs/`
 
-- **[API.md](API.md)**: Technical specification for the **Visual RAD Designer Studio**. Documents the `FormSpec` JSON data schema, 70+ visual component definitions, low-level Webview IPC protocol, window placement APIs, and code generator architectures.
-- **[SIMPLEGUI_API.md](SIMPLEGUI_API.md)**: Beginner-friendly developer reference for the **Declarative `simplegui` Module**. Documents window creation, reflowing card/grid/row layouts, fluent styling modifiers, popups/dialogs, timers, group operations, state helpers, and JSON settings persistence.
+- **[docs/API.md](docs/API.md)**: Technical specification for the **Visual RAD Designer Studio**. Documents the `FormSpec` JSON data schema, 70+ visual component definitions, low-level Webview IPC protocol, window placement APIs, and code generator architectures.
+- **[docs/SIMPLEGUI_API.md](docs/SIMPLEGUI_API.md)**: Beginner-friendly developer reference for the **Declarative `simplegui` Module**. Documents window creation, reflowing card/grid/row layouts, fluent styling modifiers, popups/dialogs, timers, group operations, state helpers, and JSON settings persistence.
+- **[docs/THEMES.md](docs/THEMES.md)**: Complete visual gallery of all 63 built-in themes with screenshots, color palettes, launch commands, and categorized breakdowns.
+- **[docs/SYSTEM_UTILITIES_API.md](docs/SYSTEM_UTILITIES_API.md)**: Reference guide for embedded system utilities and command-line companion tools.
+- **[docs/userguides/](docs/userguides/README.md)**: Step-by-step user guides and screenshots for every desktop workstation application.
 
 ---
 
@@ -981,9 +881,13 @@ bun_rad_studio/
 ├── index.ts           # Main Bun entry point, FFI Window Manager & Webview IPC runner
 ├── package.json       # Dependencies, scripts (build, build:binary, build:all, clean, demos)
 ├── tsconfig.json      # TypeScript compiler settings
-├── API.md             # Visual RAD Designer API & FormSpec JSON Schema Specification
-├── SIMPLEGUI_API.md   # Declarative Code-First SimpleGUI API Guide & Reference
 ├── README.md          # Main Documentation & User Guide
+├── docs/              # Documentation Directory (all guides except README.md)
+│   ├── API.md             # Visual RAD Designer API & FormSpec JSON Schema Specification
+│   ├── SIMPLEGUI_API.md   # Declarative Code-First SimpleGUI API Guide & Reference
+│   ├── THEMES.md          # Complete 63-Theme Visual Gallery & Reference
+│   ├── SYSTEM_UTILITIES_API.md # CLI & System Utilities Reference
+│   └── userguides/        # Application User Guides & Screenshots
 ├── scripts/
 │   └── build.ts       # Dist build orchestrator (lib + binary targets)
 ├── src/

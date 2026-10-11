@@ -249,6 +249,28 @@ export class SimpleControlRef {
         return this;
     }
 
+    onDoubleClick(handler: EventCallback): this {
+        this.window.bindControlEvent(this.spec.id, "onDoubleClick", handler);
+        return this;
+    }
+    on_double_click(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    onDblClick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    on_dblclick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    bindDoubleClick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    bindDblClick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+
+    onRightClick(handler: EventCallback): this {
+        this.window.bindControlEvent(this.spec.id, "onContextMenu", handler);
+        return this;
+    }
+    on_right_click(handler: EventCallback): this { return this.onRightClick(handler); }
+
+    onEnter(handler: EventCallback): this {
+        this.window.bindControlEvent(this.spec.id, "onEnter", handler);
+        return this;
+    }
+    on_enter(handler: EventCallback): this { return this.onEnter(handler); }
+
     on(event: string, handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, event, handler);
         return this;
@@ -6763,7 +6785,8 @@ export class SimpleWindow {
 
                         return '<tr class="' + selClass + '" style="border-bottom:1px solid ' + border + ';cursor:pointer;transition:background 0.12s;' + bgStyle + '" ' +
                             'data-pid="' + esc(rowPid) + '" ' +
-                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[ctrlId + \\'_onClick\\']||window[\\'on_\\' + ctrlId + \\'_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
+                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[\\'' + esc(id) + '_onClick\\']||window[\\'on_' + esc(id) + '_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
+                            'ondblclick="const fn=window[\\'' + esc(id) + '_onDoubleClick\\']||window[\\'on_' + esc(id) + '_doubleclick\\']||window[\\'on_' + esc(id) + '_ondoubleclick\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');" ' +
                             'onmouseover="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'' + hoverBg + '\\'" ' +
                             'onmouseout="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'\\'">' +
                             cells.map((c, i) => {

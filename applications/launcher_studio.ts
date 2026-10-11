@@ -1208,7 +1208,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel(
     "lbl_listbox_info",
-    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click to launch):"
+    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click to auto-launch):"
   );
   win.endRow();
 
@@ -1224,7 +1224,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         updateSelectedView(w, found);
       }
     },
-    { size: 6, width: 1180, height: 140 }
+    {
+      size: 6,
+      width: 1180,
+      height: 140,
+      onDoubleClick: "on_lst_apps_doubleclick",
+      ondblclick: "on_lst_apps_doubleclick",
+    }
   );
   win.endRow();
 
@@ -1443,6 +1449,69 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           if (favBtn) {
             favBtn.textContent = favLabel;
           }
+
+          // 5. Wrap IPC doubleclick callbacks on window to prevent duplicate rapid dispatches (< 800ms)
+          if (window.on_lst_apps_doubleclick && !window._raw_lst_apps_dbl) {
+            window._raw_lst_apps_dbl = window.on_lst_apps_doubleclick;
+            let lastLstTime = 0;
+            window.on_lst_apps_doubleclick = function(val) {
+              const now = Date.now();
+              if (now - lastLstTime < 800) return;
+              lastLstTime = now;
+              window._raw_lst_apps_dbl(val);
+            };
+          }
+
+          if (window.on_tbl_apps_doubleclick && !window._raw_tbl_apps_dbl) {
+            window._raw_tbl_apps_dbl = window.on_tbl_apps_doubleclick;
+            let lastTblTime = 0;
+            window.on_tbl_apps_doubleclick = function(val) {
+              const now = Date.now();
+              if (now - lastTblTime < 800) return;
+              lastTblTime = now;
+              window._raw_tbl_apps_dbl(val);
+            };
+          }
+
+          // 6. Rapid-click fallback detector for listbox
+          if (lst && !lst.dataset.dblBound) {
+            lst.dataset.dblBound = "true";
+            let lastClickTime = 0;
+            let lastClickedVal = null;
+
+            lst.addEventListener("click", function() {
+              const now = Date.now();
+              const val = lst.value;
+              if (now - lastClickTime < 350 && lastClickedVal === val) {
+                if (window.on_lst_apps_doubleclick) {
+                  window.on_lst_apps_doubleclick(val);
+                }
+              }
+              lastClickTime = now;
+              lastClickedVal = val;
+            });
+          }
+
+          // 7. Rapid-click fallback detector for table rows
+          if (tbl && !tbl.dataset.dblBound) {
+            tbl.dataset.dblBound = "true";
+            let lastRowClick = 0;
+            let lastRowPid = null;
+
+            tbl.addEventListener("click", function(e) {
+              const tr = e.target.closest("tbody tr");
+              if (!tr) return;
+              const pid = tr.getAttribute("data-pid");
+              if (!pid) return;
+              const now = Date.now();
+              if (now - lastRowClick < 350 && lastRowPid === pid) {
+                const fn = window.on_tbl_apps_doubleclick || window.tbl_apps_onDoubleClick;
+                if (fn) fn(pid);
+              }
+              lastRowClick = now;
+              lastRowPid = pid;
+            });
+          }
         }
 
         syncUI();
@@ -1451,49 +1520,68 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     `);
   }
 
+  const launchingApps = new Set<string>();
+  const lastLaunchTimes = new Map<string, number>();
+
   async function executeToolLaunch(
     app: DetectedApp,
     w: SimpleWindow,
     overrideArgs?: string,
     inTerminal?: boolean
   ) {
-    const rawArgs = overrideArgs !== undefined ? overrideArgs : (w.getValue("txt_cli_args") || "");
-    const openInTerminal = inTerminal !== undefined ? inTerminal : (app.source === "cli_tool");
+    const now = Date.now();
+    const lastTime = lastLaunchTimes.get(app.id) || 0;
+    // Guard against duplicate rapid launches for the same app (< 1000ms)
+    if (launchingApps.has(app.id) || (now - lastTime < 1000)) {
+      console.log(`[Launch Dispatcher] Suppressed duplicate launch request for ${app.displayName}`);
+      return;
+    }
+    launchingApps.add(app.id);
+    lastLaunchTimes.set(app.id, now);
 
-    w.appendConsole(
-      "launcher_console",
-      `[Launch Dispatcher] Executing ${app.displayName} ('${app.command} ${rawArgs}') [mode: ${openInTerminal ? "terminal" : "inline"}]...\n`,
-      1
-    );
-    w.setStatus(`Running ${app.displayName}...`);
+    try {
+      const rawArgs = overrideArgs !== undefined ? overrideArgs : (w.getValue("txt_cli_args") || "");
+      const openInTerminal = inTerminal !== undefined ? inTerminal : (app.source === "cli_tool");
 
-    const res = await launchApplication(app.id, rawArgs, { openTerminal: openInTerminal });
+      w.appendConsole(
+        "launcher_console",
+        `[Launch Dispatcher] Executing ${app.displayName} ('${app.command} ${rawArgs}') [mode: ${openInTerminal ? "terminal" : "inline"}]...\n`,
+        1
+      );
+      w.setStatus(`Running ${app.displayName}...`);
 
-    if (res.success) {
-      w.appendConsole("launcher_console", `[Success] ${res.message}\n`, 2);
-      w.toast(`✅ ${res.message}`);
+      const res = await launchApplication(app.id, rawArgs, { openTerminal: openInTerminal });
 
-      if (app.source === "rad_studio" || app.source === "rad_demo") {
-        w.setText(
-          "txt_output",
-          `[Desktop GUI Application Launched]\nApplication: ${app.displayName}\nPID: ${res.pid}\nPath: ${app.path}\nCommand: bun run ${app.displayPath}\nStatus: The application window should now be open on your desktop!`
-        );
-      } else if (openInTerminal) {
-        w.setText(
-          "txt_output",
-          `[Terminal Client Launched]\nApplication: ${app.displayName}\nCategory:    ${app.category}\nScript Path: ${app.path}\nCommand:     bun run ${app.displayPath} ${rawArgs || "--help"}\nStatus:      Active interactive Terminal session opened on your desktop!`
-        );
+      if (res.success) {
+        w.appendConsole("launcher_console", `[Success] ${res.message}\n`, 2);
+        w.toast(`✅ ${res.message}`);
+
+        if (app.source === "rad_studio" || app.source === "rad_demo") {
+          w.setText(
+            "txt_output",
+            `[Desktop GUI Application Launched]\nApplication: ${app.displayName}\nPID: ${res.pid}\nPath: ${app.path}\nCommand: bun run ${app.displayPath}\nStatus: The application window should now be open on your desktop!`
+          );
+        } else if (openInTerminal) {
+          w.setText(
+            "txt_output",
+            `[Terminal Client Launched]\nApplication: ${app.displayName}\nCategory:    ${app.category}\nScript Path: ${app.path}\nCommand:     bun run ${app.displayPath} ${rawArgs || "--help"}\nStatus:      Active interactive Terminal session opened on your desktop!`
+          );
+        } else {
+          w.setText(
+            "txt_output",
+            `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${res.output || "(No console output returned)"}`
+          );
+        }
+        setTimeout(() => applyFilters(w), 800);
       } else {
-        w.setText(
-          "txt_output",
-          `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${res.output || "(No console output returned)"}`
-        );
+        w.appendConsole("launcher_console", `[Launch Error] ${res.message}\n`, 3);
+        w.setText("txt_output", `[Error Launching Tool]\n${res.message}`);
+        w.toast(`❌ ${res.message}`);
       }
-      setTimeout(() => applyFilters(w), 800);
-    } else {
-      w.appendConsole("launcher_console", `[Launch Error] ${res.message}\n`, 3);
-      w.setText("txt_output", `[Error Launching Tool]\n${res.message}`);
-      w.toast(`❌ ${res.message}`);
+    } finally {
+      setTimeout(() => {
+        launchingApps.delete(app.id);
+      }, 1000);
     }
   }
 
@@ -1671,10 +1759,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   });
 
   win.onDoubleClick("lst_apps", (w, val: any) => {
-    const matched = findAppFromSelection(val);
+    const matched = findAppFromSelection(val) || selectedApp;
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
+      w.toast(`🚀 Auto-launching: ${matched.displayName}...`);
       executeToolLaunch(matched, w, undefined, matched.source === "cli_tool");
     }
   });
@@ -1697,10 +1786,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   });
 
   win.onDoubleClick("tbl_apps", (w, val: any) => {
-    const matched = currentApps.find((a) => a.id === String(val).trim()) || findAppFromSelection(val);
+    const rawVal = String(val || "").trim();
+    const matched = currentApps.find((a) => a.id === rawVal) || findAppFromSelection(rawVal) || selectedApp;
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
+      w.toast(`🚀 Auto-launching: ${matched.displayName}...`);
       executeToolLaunch(matched, w, undefined, matched.source === "cli_tool");
     }
   });

@@ -1,1662 +1,916 @@
-# Bun System Utilities: RAD API Reference & Cookbook
+# 📖 Bun RAD Studio API & Data Specification
 
-A high-performance suite of modern system utilities (`fd`, `sd`, `rip`, `procs`, `watchexec`, `tokei`, `gdu`, `ipinfo`, `subfinder`, `doggo`) written in TypeScript for the Bun runtime.
-
-Built for **Rapid Application Development (RAD)** using the **Single Responsibility (Doer vs. Coordinator)** pattern and **Feature-First** architecture from [AGENTS.md](../AGENTS.md).
+This document provides a comprehensive technical reference for the **Bun RAD Studio** architecture, `FormSpec` JSON data schema, event handler bindings, backend Webview IPC methods, and generated project outputs.
 
 ---
 
-## Architecture Overview
+## 📑 Table of Contents
 
-All features strictly separate single-responsibility worker functions (**Doers**) from workflow orchestrators (**Coordinators**):
-
-- **Doers (`*Doers.ts`)**: Pure calculations, validations, or single I/O actions (5–25 lines). No side effects or cross-domain dependencies.
-- **Coordinators (`*Coordinator.ts`)**: Orchestrate Doers linearly like a recipe.
-- **Types (`*Types.ts`)**: Plain data interfaces and record definitions.
-- **CLI (`*Cli.ts`)**: Argument parsing and terminal invocation.
+1. [FormSpec Data Model Schema](#1-formspec-data-model-schema)
+2. [Control Specification Object](#2-control-specification-object)
+3. [Supported Component Reference](#3-supported-component-reference)
+4. [Webview IPC & Backend Bindings](#4-webview-ipc--backend-bindings)
+5. [Code Generators](#5-code-generators)
+6. [Exported Project Architecture](#6-exported-project-architecture)
+7. [Interactive Demos Suite (`demos/`)](#7-interactive-demos-suite-demos)
+8. [Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)](#8-form-themes--color-palettes-macos--windows-11-desktop-themes)
+9. [Quick Start & Developer Recipes](#9-quick-start--developer-recipes)
+10. [SimpleGUI Declarative Module Reference](#10-simplegui-declarative-module-reference)
+11. [Related RAD & GUI Ecosystem Projects](#11--related-rad--gui-ecosystem-projects)
 
 ---
 
-## Dedicated Feature API Guides
+<a id="1-formspec-data-model-schema"></a>
+## 1. FormSpec Data Model Schema
 
-Each utility has its own self-contained API documentation and complete code examples:
+The entire state of a form layout in Bun RAD Studio is represented as a JSON object called `FormSpec`. This spec is synchronized between the visual canvas, the Object Inspector, code generators, and the Bun backend.
 
-| Utility | Location | Description |
+```json
+{
+  "title": "Customer Registration",
+  "width": 840,
+  "height": 560,
+  "background_color": "#0f172a",
+  "font_color": "#f8fafc",
+  "padding": 20,
+  "spacing": 12,
+  "controls": [
+    {
+      "id": "button_1",
+      "control_type": "button",
+      "x": 32,
+      "y": 48,
+      "width": 140,
+      "height": 36,
+      "text": "Submit Form",
+      "font_size": 13,
+      "font_color": "#ffffff",
+      "background_color": "#0284c7",
+      "hover_color": "#0369a1",
+      "cursor": "pointer",
+      "enabled": true,
+      "visible": true,
+      "locked": false,
+      "tab_order": 1,
+      "anchors": { "top": true, "left": true, "right": false, "bottom": false },
+      "dock": "none",
+      "event_handlers": {
+        "onClick": "on_button_1_click"
+      }
+    }
+  ],
+  "non_visual_controls": [
+    {
+      "id": "timer_1",
+      "control_type": "timer",
+      "interval": 1000,
+      "enabled": true,
+      "event_handlers": {
+        "onTimer": "on_timer_1_tick"
+      }
+    }
+  ]
+}
+```
+
+### FormSpec Global Fields
+
+| Property | Type | Description | Default |
+| --- | --- | --- | --- |
+| `title` | `string` | Window title caption | `"New RAD Form"` |
+| `width` | `number` | Form layout canvas width in pixels | `840` |
+| `height` | `number` | Form layout canvas height in pixels | `560` |
+| `background_color` | `string` | Form background color (HEX/RGB) | `"#0f172a"` |
+| `font_color` | `string` | Form default text color (HEX/RGB) | `"#f8fafc"` |
+| `padding` | `number` | Internal form margin/padding in pixels | `20` |
+| `spacing` | `number` | Default control spacing gap | `12` |
+| `controls` | `Array<ControlSpec>` | Array of placed visual component objects | `[]` |
+| `non_visual_controls` | `Array<ControlSpec>` | Array of non-visual tray controls (Timer, Dialogs, DB) | `[]` |
+
+---
+
+<a id="2-control-specification-object"></a>
+## 2. Control Specification Object
+
+Each component placed on the form canvas or tray is represented by a `ControlSpec` object.
+
+```typescript
+interface ControlSpec {
+  id: string;                      // Unique identifier (e.g. "button_1", "input_2")
+  control_type: string;             // Component widget type name
+  x: number;                       // Left position on canvas (px)
+  y: number;                       // Top position on canvas (px)
+  width: number;                   // Component width (px)
+  height: number;                  // Component height (px)
+  text?: string;                   // Display caption, label, or text content
+  font_size?: number;              // Font size in px (default: 13)
+  font_color?: string;             // Text color HEX code
+  background_color?: string;       // Component background color HEX code
+  hover_color?: string;            // Hover background color HEX code
+  hover_text_color?: string;       // Hover text color HEX code
+  cursor?: string;                 // Mouse cursor CSS style on hover
+  border_radius?: number;          // Corner rounding radius in px (0 for square, 9999 for pill)
+  border_width?: number;           // Border stroke thickness in px
+  border_color?: string;           // Border stroke color HEX code
+  border_style?: "solid" | "dashed" | "dotted" | "double" | "none"; // Border stroke pattern
+  box_shadow?: "none" | "subtle" | "medium" | "deep" | "glow"; // Drop shadow elevation or glow
+  text_align?: "left" | "center" | "right" | "justify"; // Horizontal text alignment
+  opacity?: number;                // Component transparency opacity percentage (0-100)
+  placeholder?: string;            // Input placeholder text
+  read_only?: boolean;             // Read-only text mode (selectable/copyable, not editable)
+  required?: boolean;              // Form field mandatory validation requirement
+  max_length?: number;             // Character input length limit
+  min_value?: number;              // Numeric lower bound for slider, number input, stepper
+  max_value?: number;              // Numeric upper bound for slider, number input, stepper
+  step?: number;                   // Numeric step increment interval
+  auto_focus?: boolean;            // Focus control automatically on window creation
+  value?: any;                     // Metric, slider value, or stepper number
+  checked?: boolean;               // Checkbox, radio, or switch toggle state
+  enabled?: boolean;               // Interactive state (true = enabled, false = disabled on window creation)
+  visible?: boolean;               // Render visibility state (true = visible)
+  locked?: boolean;                // Designer lock state (true = locked against drag)
+  tab_order?: number;              // Focus sequence index
+  tooltip?: string;                // Hover hint tooltip text
+  anchors?: {                      // Delphi/VB style component anchoring
+    top?: boolean;
+    left?: boolean;
+    right?: boolean;
+    bottom?: boolean;
+  };
+  dock?: "none" | "top" | "bottom" | "left" | "right" | "fill"; // Component docking behavior
+  data_source?: string;            // MS Access / Delphi Dataset connection binding name
+  data_field?: string;             // Dataset column field name binding
+  interval?: number;               // Timer interval in ms (for TTimer)
+  alert_type?: "info" | "success" | "warning" | "error";
+  status?: "active" | "inactive" | "warning" | "error";
+  event_handlers?: Record<string, string>; // Map of event names to handler code/names
+}
+
+### Supported Event Handlers & Callback Signatures
+
+The `event_handlers` record maps event names to function names or JavaScript strings. Below are the supported event names and the parameters passed to their handlers:
+
+| Event Name | Signature / Passed Parameter | Description | Typical Target Components |
+| --- | --- | --- | --- |
+| `onClick` | `(valueOrLabel?: string) => void` | Triggered on mouse click. Passes element caption/item label or selected row ID if available | `button`, `metric_card`, `kanban_board`, `shortcut_recorder`, `split_button`, `sparkline_table`, `activity_feed`, `toast_card`, `data_table`, `table` |
+| `onDoubleClick` / `onDblClick` | `(valueOrRowId?: string) => void` | Triggered on mouse double-click. Passes the selected item value on `listbox` or row ID (`rowPid`) on `table`/`data_table`/`db_grid` | `listbox`, `table`, `data_table`, `db_grid`, `tree_grid`, `button`, `metric_card`, any visual component |
+| `onChange` | `(newValue?: any) => void` | Triggered when state/value changes. On text inputs, synchronizes on every keystroke | `input`, `select`, `dropdown`, `listbox`, `checkbox`, `radio`, `switch`, `slider`, `number`, `time_picker`, `file_tree_tabs` |
+| `onEnter` | `(currentValue?: string) => void` | Triggered when user presses the <kbd>Enter</kbd> / <kbd>Return</kbd> key inside an input control | `input`, `search`, `password`, `number`, `masked_input`, `token_field` |
+| `onRightClick` / `onContextMenu` | `(actionLabel?: string) => void` | Triggered on right-click context menu action | `table`, `tree_view`, `code_view`, `textarea`, any visual component |
+| `onMenu` | `(actionLabel?: string) => void` | Triggered when split button sub-menu arrow is clicked | `split_button` |
+| `onSelect` | `(nodeText?: string) => void` | Triggered when a tree view node or option chip is selected | `tree_view`, `segmented_control` |
+| `onHover` | `() => void` | Triggered when mouse enters element bounds | Any visual component |
+| `onHoverExit` | `() => void` | Triggered when mouse exits element bounds | Any visual component |
+| `onFocus` | `() => void` | Triggered when input element gains focus | `input`, `password`, `textarea`, `search`, `code_view` |
+| `onBlur` | `() => void` | Triggered when input element loses focus | `input`, `password`, `textarea`, `search`, `code_view` |
+| `onKeyDown` | `(keyEvent?: string) => void` | Triggered on key press | `input`, `shortcut_recorder`, `command_palette` |
+| `onKeyUp` | `(keyEvent?: string) => void` | Triggered on key release | `input`, `shortcut_recorder`, `command_palette` |
+| `onTimer` | `() => void` | Triggered periodically on timer interval | `timer` non-visual component |
+
+---
+
+<a id="3-supported-component-reference"></a>
+## 3. Supported Component Reference
+
+### Visual Components
+
+| Control Type | Display Name | Default Width × Height | Description |
+| --- | --- | --- | --- |
+| `button` | Action Button | 150 × 36 px | Clickable action button widget |
+| `label` | Label | 150 × 36 px | Text title or caption label |
+| `input` | Single Input | 150 × 36 px | Single-line text input field |
+| `password` | Password Input | 150 × 36 px | Password text field (masked) |
+| `search` | Search Bar | 150 × 36 px | Search input bar |
+| `textarea` | Multiline Textarea | 280 × 120 px | Multi-line text input field |
+| `checkbox` | Checkbox | 150 × 36 px | Toggle check item with label |
+| `radio` | Radio Option | 150 × 36 px | Single-select radio option |
+| `switch` | Toggle Switch | 150 × 36 px | Modern iOS/macOS toggle switch |
+| `slider` | Range Slider | 150 × 36 px | Range value slider control |
+| `number` | Number Input | 150 × 36 px | Numeric value input box |
+| `stepper` | Number Stepper | 150 × 36 px | Increment/decrement numeric stepper |
+| `date` | Date Picker | 150 × 36 px | Date selection picker |
+| `color` | Color Well | 150 × 36 px | Color swatch picker |
+| `badge` | Status Badge | 120 × 26 px | Rounded status pill badge |
+| `status_indicator` | Status Indicator | 150 × 36 px | Colored LED status dot + label |
+| `metric_card` | Metric KPI Card | 180 × 75 px | Executive summary KPI stat box |
+| `metric_meter` | Metric Meter | 150 × 36 px | Linear percentage progress meter |
+| `progress` | Progress Bar | 150 × 36 px | Horizontal loading progress bar |
+| `circular_progress` | Circular Gauge | 100 × 100 px | SVG radial percentage gauge |
+| `rating` | Star Rating | 150 × 36 px | 5-star rating component |
+| `tag` | Tag Chips | 150 × 36 px | Multi-tag chip array |
+| `alert_banner` | Alert Banner | 280 × 44 px | Contextual notification message box |
+| `code_view` | Syntax Code View | 280 × 120 px | Interactive monospaced syntax code editor & viewer |
+| `drop_zone` | File Drop Zone | 280 × 100 px | Drag-and-drop file upload target |
+| `panel` | Panel Box | 280 × 120 px | Container box for grouping controls |
+| `table` | Data Grid | 280 × 120 px | Multi-column table data grid |
+| `db_grid` | Data-Aware Grid | 320 × 160 px | Access/Delphi DB-bound visual grid |
+| `db_navigator` | DB Navigator Bar | 320 × 36 px | Classic DB action buttons bar |
+| `db_input` | Data Bound Field | 220 × 44 px | Field-bound database text input |
+| `db_dropdown` | Data Bound Select | 220 × 44 px | Field-bound database lookup select |
+| `divider` | Separator | 300 × 4 px | Horizontal line divider |
+| `form_field` | Labelled Input | 220 × 44 px | Pre-configured label + text field pair |
+| `form_password` | Labelled Password | 220 × 44 px | Pre-configured field label + password masked input pair |
+| `form_textarea` | Labelled Textarea | 280 × 120 px | Pre-configured field label + multi-line text input |
+| `form_dropdown` | Labelled Dropdown | 220 × 44 px | Pre-configured field label + dropdown select menu |
+| `form_link` | Labelled Link | 150 × 36 px | Pre-configured field label + hyperlink text |
+| `form_checkbox` | Labelled Checkbox | 220 × 44 px | Pre-configured field label + checkbox toggle option |
+| `form_radio` | Labelled Radio | 220 × 44 px | Pre-configured field label + radio selection button |
+| `form_search` | Labelled Search Bar | 220 × 44 px | Pre-configured field label + search bar input |
+| `form_color` | Labelled Color Well | 220 × 44 px | Pre-configured field label + color swatch picker & hex display |
+| `form_time` | Labelled Time Picker | 220 × 44 px | Pre-configured field label + clock time picker input |
+| `form_stepper` | Labelled Stepper | 220 × 44 px | Pre-configured field label + numeric counter stepper |
+| `form_code` | Labelled Code View | 280 × 140 px | Pre-configured field label + monospaced syntax code editor |
+| `form_drop_zone` | Labelled Drop Zone | 280 × 120 px | Pre-configured field label + drag-and-drop file upload area |
+| `form_switch` | Labelled Switch | 220 × 44 px | Pre-configured field label + toggle switch control |
+| `form_slider` | Labelled Slider | 220 × 44 px | Pre-configured field label + range value slider |
+| `form_number` | Labelled Number Input | 220 × 44 px | Pre-configured field label + numeric input field |
+| `form_date` | Labelled Date Picker | 220 × 44 px | Pre-configured field label + date picker input |
+| `form_progress` | Labelled Progress Bar | 220 × 44 px | Pre-configured field label + progress bar gauge |
+| `tabs` | Tab Container | 320 × 40 px | Multi-tab navigation bar with active tab selector |
+| `tool_bar` | Action Toolbar | 400 × 40 px | Window action toolbar with icon action buttons |
+| `status_bar` | Window Status Bar | 400 × 28 px | Bottom desktop window status strip with indicator dot |
+| `split_pane` | Split View Panel | 320 × 160 px | Dual-pane split container layout with vertical handle |
+| `pagination` | Pagination Bar | 260 × 36 px | Page navigator button strip for data grids & lists |
+| `command_palette` | Command Palette | 320 × 40 px | Desktop command launcher search bar |
+| `toggle_button` | Icon Toggle Button | 120 × 36 px | Toolbar icon toggle button with active pressed state |
+| `segmented_control` | Segmented Control | 240 × 36 px | Modern tabbed pill segment button selector |
+| `tree_view` | Tree View | 220 × 140 px | Hierarchical collapsible directory/node tree explorer |
+| `avatar_group` | Avatar Group | 160 × 38 px | Stacked user profile avatars with initials & overflow badge |
+| `stat_chart` | Stat Chart Card | 200 × 90 px | Executive KPI metric card with integrated SVG sparkline trend graph |
+| `accordion` | Accordion Panel | 280 × 100 px | Interactive collapsible disclosure card panel |
+| `breadcrumb` | Breadcrumb Bar | 260 × 32 px | Step-by-step path navigation breadcrumb control |
+| `timeline` | Activity Timeline | 280 × 110 px | Vertical step-by-step activity/process event status timeline |
+| `toast_card` | Notification Toast | 260 × 64 px | Floating notification toast alert card with status icon & close action |
+| `time_picker` | Time Picker | 150 × 36 px | Precision clock time selection input field |
+| `rich_select` | Searchable Combobox | 200 × 36 px | Searchable dropdown select combobox with icon & arrow |
+| `property_grid` | Property Inspector | 240 × 140 px | Two-column key-value property inspector grid widget |
+| `popup_menu` | Popup Menu | 200 × 130 px | Desktop context/popup action menu |
+| `calendar_view` | Calendar View | 240 × 180 px | Full month calendar grid view widget |
+| `color_swatch` | Color Swatch | 200 × 70 px | Color palette swatch selection grid |
+| `file_path_bar` | File Path Bar | 280 × 36 px | Desktop location address/path selector bar |
+| `kanban_board` | Kanban Task Board | 340 × 180 px | Multi-column task board with columns (To Do, In Progress, Done) and task cards |
+| `shortcut_recorder` | Shortcut Recorder | 180 × 36 px | Desktop hotkey recorder & key combination badge viewer widget |
+| `split_button` | Split Action Button | 160 × 36 px | Dual-segment button with primary action label + sub-menu dropdown toggle arrow |
+| `sparkline_table` | Sparkline Table | 300 × 130 px | Multi-row data grid with embedded SVG mini trend sparklines and status badges |
+| `metric_comparison` | KPI Metric Comparison | 220 × 90 px | Executive KPI card comparing current value vs target with percentage delta |
+| `activity_feed` | Activity Feed | 280 × 140 px | Timestamped activity audit log stream with user avatars & status |
+| `file_tree_tabs` | Workspace Tab Bar | 320 × 36 px | Multi-file IDE tab bar with file icons, modified state dot (•), and close buttons |
+| `sidebar` | Sidebar Drawer | 200 × 260 px | Off-canvas navigation drawer with item links, active state, and close button |
+| `modal` | Modal Dialog | 320 × 180 px | Elevated dialog card container with header, content body, Cancel and Confirm actions |
+| `dropdown_menu` | Dropdown Menu | 160 × 36 px | Action button with click/hover reveal menu and outside-click auto-close |
+| `list_group` | Badged List Group | 280 × 160 px | Hoverable list container with item icons, subtitles, and status pill badges |
+| `content_card` | Content Card | 240 × 220 px | Elevated media container with header banner, preview slot, description, and action button |
+| `callout_panel` | Callout Panel | 280 × 80 px | Notification callout card with thick accent left bar and alert status styling |
+| `tooltip_box` | Tooltip Box | 140 × 36 px | Interactive trigger button with floating hover tooltip bubble |
+| `animated_input` | Animated Input | 240 × 36 px | Compact search/text input that widens smoothly on focus with accent glow |
+| `hero_display` | Hero Display | 280 × 160 px | Media display container with pinned corner status chips and center title |
+| `code_snippet` | Code Snippet | 300 × 110 px | Monospace syntax code block with accent bar and 1-click clipboard copy button |
+| `count_badge` | Count Badge | 32 × 32 px | Circular numeric notification pill badge |
+| `button_group` | Button Group | 240 × 36 px | Segmented button bar with shared borders and unified keyboard/mouse navigation |
+| `slideshow` | Slideshow Carousel | 300 × 180 px | Interactive multi-slide carousel with prev/next frosted glass buttons and dot counter |
+
+### Non-Visual Tray Components
+
+| Control Type | Display Name | Tray Icon | Description |
+| --- | --- | --- | --- |
+| `timer` | Timer | ⏱️ | Periodic execution timer (`onTimer` event) |
+| `open_dialog` | Open File Dialog | 📂 | Native file picker open dialog |
+| `save_dialog` | Save File Dialog | 💾 | Native file picker save dialog |
+| `db_connection` | Database Connection | 🗄️ | SQLite / JSON dataset connection component |
+| `http_client` | REST API Client | 🌐 | Asynchronous HTTP request client |
+| `notification` | System Notification | 🔔 | Desktop toast notification trigger |
+
+---
+
+<a id="4-webview-ipc--backend-bindings"></a>
+<a id="4-webview-ipc-backend-bindings"></a>
+## 4. Webview IPC & Backend Bindings
+
+Bun RAD Studio exposes native IPC methods between the frontend Webview and the Bun runtime using `webview.bind(...)`.
+
+### 1. `runPreview(specJson: string): { success: boolean, error?: string }`
+Launches an independent, interactive **Live Preview Window** using the provided `FormSpec` JSON with full keyboard shortcuts attached.
+
+### 2. `exportProject(specJson: string): { success: boolean, dir: string }`
+Generates a complete, standalone Bun project directory on disk under `./exported_project`.
+
+### 3. `quitApp(): void` / `closeWindow(): void`
+Terminates the application process or closes the active Webview window cleanly.
+
+### 4. Cross-Platform Native Window Helpers (`index.ts`)
+
+| Native Helper Function | Description |
+| --- | --- |
+| `closeWindowNative(wv: Webview)` | Cleanly closes/terminates native Cocoa/Win32 window handle and destroys webview |
+| `minimizeWindowNative(wv: Webview)` | Native window minimize (exits fullscreen first if active, triggers Cocoa `performMiniaturize:` / `miniaturize:` / Win32 `SW_MINIMIZE`) |
+| `hideAppNative(wv?: Webview)` | Hides application window using macOS `[NSApp hide:]` |
+| `toggleFullscreenNative(wv: Webview)` | Toggles window fullscreen mode across macOS, Windows, and Linux |
+| `setFullscreenNative(wv: Webview, fullscreen: boolean)` | Explicitly enters or exits native fullscreen mode (`toggleFullScreen:` on Cocoa) |
+| `isFullscreenNative(wv: Webview): boolean` | Returns whether the native window is currently in fullscreen mode |
+| `getScreenDimensions(): { width: number; height: number }` | Queries main display resolution via CoreGraphics FFI (`CGDisplayPixelsWide`/`High`) or Win32 |
+| `setAlwaysOnTopNative(wv: Webview, onTop: boolean)` | Sets window float/topmost level (Cocoa `NSFloatingWindowLevel` / Win32 `HWND_TOPMOST`) |
+| `centerWindowNative(wv: Webview, width?, height?)` | Centers native window on primary screen display |
+| `setWindowPositionNative(wv: Webview, pos, ...)` | Positions window to preset (`center`, `top_left`, `top_right`, `bottom_left`, `bottom_right`) |
+| `attachWindowShortcuts(wv: Webview, options?)` | Automatically binds all window lifecycle & functionality IPC endpoints (`quitApp`, `closeWindow`, `minimizeWindow`, `hideApp`, `toggleFullscreen`, `toggleAlwaysOnTop`, `centerWindow`) |
+| `getWindowShortcutsScript(): string` | Generates universal, zero-dependency client `<script>` with all desktop window shortcut key listeners |
+
+### 5. Universal Desktop Window Functionality Shortcuts
+
+All windows in Bun RAD Studio (IDE, SimpleWindow apps, live previews, exported applications, and telemetry workstations) support standard desktop shortcut keys:
+
+| Action | Shortcut Key(s) | Platforms |
+| --- | --- | --- |
+| **Close Window / Quit** | <kbd>Cmd</kbd>+<kbd>Q</kbd>, <kbd>Cmd</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>Alt</kbd> (Double Alt) | macOS |
+| **Close Window / Quit** | <kbd>Ctrl</kbd>+<kbd>Q</kbd>, <kbd>Ctrl</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>F4</kbd>, <kbd>Alt</kbd>+<kbd>W</kbd>, <kbd>Alt</kbd>+<kbd>Alt</kbd> | Windows / Linux |
+| **Minimize Window** | <kbd>Cmd</kbd>+<kbd>M</kbd>, <kbd>Ctrl</kbd>+<kbd>M</kbd>, <kbd>Alt</kbd>+<kbd>M</kbd> (auto-exits fullscreen space) | All Platforms |
+| **Hide Application** | <kbd>Cmd</kbd>+<kbd>H</kbd>, <kbd>Ctrl</kbd>+<kbd>H</kbd> (`[NSApp hide:]`) | macOS / Linux |
+| **Toggle Fullscreen** | <kbd>Cmd</kbd>+<kbd>F</kbd>, <kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Fn</kbd>+<kbd>F</kbd>, <kbd>F11</kbd>, <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Alt</kbd>+<kbd>Enter</kbd> | All Platforms |
+| **Exit Fullscreen** | <kbd>Escape</kbd> (exits native macOS fullscreen & DOM fullscreen) | All Platforms |
+| **Always on Top (Pin)** | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <kbd>Alt</kbd>+<kbd>T</kbd> | All Platforms |
+| **Center Window** | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | All Platforms |
+| **Zoom Workspace / View** | <kbd>Cmd/Ctrl</kbd>+<kbd>+</kbd> (In), <kbd>Cmd/Ctrl</kbd>+<kbd>-</kbd> (Out), <kbd>Cmd/Ctrl</kbd>+<kbd>0</kbd> (Reset) | All Platforms |
+| **Escape (Dismiss Modal)** | <kbd>Escape</kbd> | All Platforms |
+
+### Window Event Lifecycle Hooks
+Auto-generated TS templates and exported projects support window lifecycle bindings:
+- `onFormLoad()`: Triggered on window creation when the UI DOM finishes loading.
+- `onFormResize(size: { width: number, height: number })`: Triggered dynamically when the window is resized.
+- `onFormClose()`: Triggered right before the application closes / terminates.
+
+### RAD Backend & Client Helper Utilities
+
+Exported TypeScript templates and client scripts include built-in high-level helper functions to read, update, and manipulate all RAD controls dynamically:
+
+#### 🔹 Core Component & Form Mutators
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `execJS(code)` | `(code: string) => void` | Safely evaluates client-side JavaScript in the webview window (`wv.eval(...)`) |
+| `getControlValue(id)` | `(id: string) => any` | Reads current value or text of any UI control |
+| `setControlText(id, text)` | `(id: string, text: string) => void` | Dynamically updates caption, label, or text of any UI control |
+| `setControlHtml(id, html)` / `setHtml(id, html)` | `(id: string, html: string) => void` | Injects formatted HTML markup into HTML views (`html_view`) in real time |
+| `setControlValue(id, value)` | `(id: string, value: any) => void` | Updates input value, slider value, checkbox state, or metric |
+| `setControlPlaceholder(id, placeholder)` | `(id: string, placeholder: string) => void` | Dynamically updates placeholder text for input fields, textareas, and code views |
+| `setControlReadOnly(id, readOnly)` | `(id: string, readOnly: boolean) => void` | Dynamically toggles read-only state for text inputs, textareas, and code views |
+| `setControlRequired(id, required)` | `(id: string, required: boolean) => void` | Dynamically toggles required state for input fields, textareas, and dropdowns |
+| `setControlMaxLength(id, maxLength)` | `(id: string, maxLength: number) => void` | Dynamically updates maximum character length limit for input fields |
+| `setControlEnabled(id, enabled)` | `(id: string, enabled: boolean) => void` | Dynamically enables or disables any UI control at runtime |
+| `setControlVisible(id, visible)` | `(id: string, visible: visible) => void` | Dynamically shows or hides any UI control at runtime |
+
+#### 🔹 Navigation, Layout & Desktop App Mutators
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `setTabsActive(id, tabName)` | `(id: string, tabName: string) => void` | Sets active tab in a Tab Container |
+| `setWorkspaceTabs(id, filesCSV)` | `(id: string, filesCSV: string) => void` | Updates IDE workspace file tabs and icons |
+| `setStatusBarText(id, statusText)` | `(id: string, statusText: string) => void` | Updates status bar message text |
+| `setPaginationPage(id, pageNum)` | `(id: string, pageNum: number \| string) => void` | Selects page number in Pagination Bar |
+| `setSegmentedSelected(id, text)` | `(id: string, text: string) => void` | Selects a segment button in a Segmented Control by item name |
+| `setToggleButtonState(id, active, labelText)` | `(id: string, active: boolean, labelText?: string) => void` | Toggles icon toggle button state & label |
+| `setBreadcrumbs(id, crumbsCSV)` | `(id: string, crumbsCSV: string) => void` | Updates Breadcrumb navigation items from comma-separated string |
+| `setTreeNodes(id, nodesCSV)` | `(id: string, nodesCSV: string) => void` | Updates Tree View directory nodes from comma-separated string |
+| `setFilePathBarPath(id, pathStr)` | `(id: string, pathStr: string) => void` | Updates location string in Desktop File Path Address Bar |
+| `setPopupMenuItems(id, itemsCSV)` | `(id: string, itemsCSV: string) => void` | Updates Desktop Popup Context Menu action items and keyboard shortcuts |
+
+#### 🔹 Productivity Controls & Analytics Mutators
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `setKanbanColumns(id, rawCols)` | `(id: string, rawCols: string) => void` | Updates Kanban task board column headers and cards |
+| `setShortcutRecorderValue(id, shortcutStr)` | `(id: string, shortcutStr: string) => void` | Updates shortcut recorder displayed key combination badge |
+| `setSplitButtonAction(id, textStr)` | `(id: string, textStr: string) => void` | Updates primary action label text of Split Action Button |
+| `setSparklineTableData(id, rowsCSV)` | `(id: string, rowsCSV: string) => void` | Updates rows and SVG trend sparklines in Sparkline Data Grid |
+| `setMetricComparison(id, opts)` | `(id: string, opts: { title?, curVal?, targetStr?, changeStr? }) => void` | Updates executive KPI card title, current value, target goal, and percentage delta |
+| `setActivityFeedItems(id, itemsCSV)` | `(id: string, itemsCSV: string) => void` | Updates activity audit stream items and user initial avatars |
+| `setStatChart(id, opts)` | `(id: string, opts: { title?, value?, trend? }) => void` | Updates Stat Chart KPI card title, value, and trend percentage badge |
+| `setToast(id, title, msg, alertType)` | `(id: string, title: string, msg?: string, alertType?: string) => void` | Updates Notification Toast card title, message body, and alert color |
+| `setTimePickerValue(id, timeStr)` | `(id: string, timeStr: string) => void` | Sets Time Picker value (e.g. `"09:41"`) |
+| `setAccordionOpen(id, open)` | `(id: string, open: boolean) => void` | Expands (`true`) or collapses (`false`) an Accordion section |
+| `setTimelineSteps(id, stepsCSV)` | `(id: string, stepsCSV: string) => void` | Updates Activity Timeline steps from comma-separated string |
+| `setAvatarGroup(id, avatarsCSV)` | `(id: string, avatarsCSV: string) => void` | Updates Avatar Group stack initials from comma-separated string |
+| `setRichSelectText(id, text)` | `(id: string, text: string) => void` | Updates Searchable Combobox display selection label |
+| `setPropertyGridData(id, properties)` | `(id: string, properties: string \| Record<string, string>) => void` | Updates Property Inspector Grid two-column key-value data |
+| `setCalendarDate(id, yearMonthStr)` | `(id: string, yearMonthStr: string) => void` | Updates Month Calendar View header title and date grid |
+| `setColorSwatchColor(id, hexColor)` | `(id: string, hexColor: string) => void` | Selects active color chip in Color Swatch palette grid |
+
+#### 🔹 Native Window & OS Integration Utilities
+
+| Helper Utility Function | Signature | Description |
+| --- | --- | --- |
+| `setAlwaysOnTop(onTop)` | `(onTop: boolean) => void` | Toggles window always-on-top mode floating above all OS windows |
+| `setWindowPosition(pos)` | `(pos: WindowPositionPreset \| { x: number, y: number }) => void` | Repositions application window to screen presets (`"center"`, `"upper_left"`, `"upper_right"`, `"top_center"`, `"bottom_left"`, `"bottom_right"`, `"bottom_center"`, `"center_left"`, `"center_right"`) or exact `{ x, y }` screen coordinates |
+| `toggleFullscreenNative()` | `() => void` | Toggles native OS window fullscreen/maximized mode (macOS Cocoa, Windows 11 SW_MAXIMIZE, Linux GTK) |
+
+---
+
+<a id="5-code-generators"></a>
+## 5. Code Generators
+
+Bun RAD Studio includes 6 real-time code output generators:
+
+1. **Bun TypeScript Generator (`generateBunTSCode()`)**: Executable TypeScript runner code using `webview-bun` with auto-generated typed backend bindings.
+2. **Standalone HTML5 Generator (`generateHTMLCode()`)**: Single-file web application with embedded CSS, JS, Anchors & Docking logic.
+3. **React + Tailwind Generator (`generateReactTailwindCode()`)**: Modern React TSX component with Tailwind CSS styling and interactive state.
+4. **Vue 3 SFC Generator (`generateVueCode()`)**: Clean Vue 3 Single File Component (`.vue`) using `<script setup>`.
+5. **Python CustomTkinter Generator (`generatePythonTkinterCode()`)**: Native desktop Python application code using CustomTkinter.
+6. **FormSpec JSON Generator**: Raw formatted `FormSpec` JSON document for importing and saving layouts.
+
+---
+
+<a id="6-exported-project-architecture"></a>
+## 6. Exported Project Architecture
+
+When you click **Export App**, Bun RAD Studio writes a complete, self-contained project:
+
+```
+exported_project/
+├── index.ts          # Main Bun Webview runner script
+├── index.html        # Rendered HTML5 UI template with all controls
+└── package.json      # Dependencies (webview-bun)
+```
+
+To run the exported application:
+```bash
+cd exported_project
+bun install
+bun run index.ts
+```
+
+---
+
+<a id="7-interactive-demos-suite-demos"></a>
+## 7. Interactive Demos Suite (`demos/`)
+
+The repository includes 18 interactive executable demo scripts demonstrating all visual components, event listeners, helper utility wrappers, and the declarative SimpleGUI engine:
+
+| Demo Script | Command | Key Features Demonstrated |
 | :--- | :--- | :--- |
-| **`fd`** | [`src/features/fd/README.md`](../src/features/fd/README.md) | File & directory search with regex, type filters, and command execution |
-| **`sd`** | [`src/features/sd/README.md`](../src/features/sd/README.md) | In-place regex substitution, literal string mode, and dry-run diffs |
-| **`rip`** | [`src/features/rip/README.md`](../src/features/rip/README.md) | Safe deletion to graveyard, instant undo / unbury, and seance listing |
-| **`procs`** | [`src/features/procs/README.md`](../src/features/procs/README.md) | Process monitoring, keyword search, CPU/MEM sorting, and process tree |
-| **`watchexec`** | [`src/features/watchexec/README.md`](../src/features/watchexec/README.md) | File watching, debouncing, ignore filters, and process restart |
-| **`tokei`** | [`src/features/tokei/README.md`](../src/features/tokei/README.md) | Code counter: lines, blanks, comments, and code across 20+ languages |
-| **`gdu`** | [`src/features/gdu/README.md`](../src/features/gdu/README.md) | Recursive directory disk usage, relative visual bars, and mounted disks |
-| **`ipinfo`** | [`src/features/ipinfo/README.md`](../src/features/ipinfo/README.md) | IP geolocation, ASN, organization, coordinates, and network lookup |
-| **`subfinder`** | [`src/features/subfinder/README.md`](../src/features/subfinder/README.md) | Passive subdomain discovery via public intelligence sources + active DNS |
-| **`rad`** | [`src/features/rad/README.md`](../src/features/rad/README.md) | 45-module Rapid Application Development (RAD) utility suite (44 core + `sliceutils` alias) |
+| **[demos/01_standard_controls.ts](../demos/01_standard_controls.ts)** | `bun run demo:standard` | Standard UI controls, `onClick`/`onChange` events, input validation, control locking/unlocking via `setControlEnabled` |
+| **[demos/02_advanced_modern_controls.ts](../demos/02_advanced_modern_controls.ts)** | `bun run demo:modern` | All 10 modern visual controls & dedicated helper wrappers (`setSegmentedSelected`, `setStatChart`, `setToast`, `setTimePickerValue`, `setAccordionOpen`, `setTimelineSteps`, `setBreadcrumbs`, `setTreeNodes`, `setAvatarGroup`, `setRichSelectText`) |
+| **[demos/03_data_and_non_visual.ts](../demos/03_data_and_non_visual.ts)** | `bun run demo:data` | Data-Aware `DBGrid`, `DBNavigator`, non-visual `Timer` component (`onTimer` event), monospaced `CodeView`, Progress Bars, Gauges, Ratings |
+| **[demos/04_window_placement_and_pin.ts](../demos/04_window_placement_and_pin.ts)** | `bun run demo:window` | Native Window Placement API (`setWindowPosition`), 9 screen placement presets, Always On Top window pinning (`setAlwaysOnTop`), Native Cocoa Fullscreen (`toggleFullscreenNative`), and Quit (`process.exit(0)`) |
+| **[demos/05_crud_todo_table.ts](../demos/05_crud_todo_table.ts)** | `bun run demo:table` / `bun run demo:crud` | Dynamic Table Control (`table`), dynamic row addition (`➕ Add Row`), row deletion (`➖ Delete Row`), dynamic column insertion (`📐 Add Col`), column removal (`❌ Remove Col`), search filtering (`txtSearch`), row sorting, KPI stats syncing, and IPC event logging |
+| **[demos/06_timer_control_studio.ts](../demos/06_timer_control_studio.ts)** | `bun run demo:timer` | Non-Visual Timer Component (`timer`), `onTimer` tick loop events, real-time digital clock, telemetry SVG circular gauges, task cycle progress, countdown stopwatch, start/pause/reset controls, and speed interval slider (100ms–2000ms) |
+| **[demos/07_labeled_form_and_desktop_controls.ts](../demos/07_labeled_form_and_desktop_controls.ts)** | `bun run demo:desktop` / `bun run demo:labeled` | Integrated Labeled Form Controls (`form_field`, `form_password`, `form_search`, `form_checkbox`, `form_radio`, `form_color`, `form_time`, `form_stepper`, `form_code`, `form_drop_zone`), Desktop App UI Controls (`tool_bar`, `command_palette`, `tabs`, `split_pane`, `pagination`, `toggle_button`, `status_bar`), and IPC event logging for all interactive controls |
+| **[demos/08_analytics_dashboard_template.ts](../demos/08_analytics_dashboard_template.ts)** | `bun run demo:dashboard` | Executive Analytics Dashboard template featuring Metric KPI cards, Stat Charts with SVG sparklines, Alert Banners, Segmented Controls, and Progress Gauges |
+| **[demos/09_file_explorer_ide_template.ts](../demos/09_file_explorer_ide_template.ts)** | `bun run demo:ide` | Developer File Explorer & Code Studio template featuring Tree View directory navigation, Workspace Tab bar, Monospaced Code View, Search Bar, and Status Bar |
+| **[demos/10_db_studio_query_editor_template.ts](../demos/10_db_studio_query_editor_template.ts)** | `bun run demo:db` | Database Studio & Query Editor template featuring DB Navigator, DB-bound Data Grids, SQL Code View, Property Inspector Grid, and DB Connection tray component |
+| **[demos/11_app_settings_preferences_template.ts](../demos/11_app_settings_preferences_template.ts)** | `bun run demo:settings` | Desktop Application Settings & Preferences template featuring Tab Containers, Toggle Switches, Range Sliders, Color Wells, Time Pickers, and File Path Address Bar |
+| **[demos/12_advanced_desktop_app_controls.ts](../demos/12_advanced_desktop_app_controls.ts)** | `bun run demo:app_controls` | Additional 5 Desktop Application Controls Studio (`property_grid`, `popup_menu`, `calendar_view`, `color_swatch`, `file_path_bar`), backend IPC bindings, and live helper updates |
+| **[demos/13_productivity_controls_studio.ts](../demos/13_productivity_controls_studio.ts)** | `bun run demo:productivity` | All 7 Modern Productivity UI Controls Studio featuring Kanban Boards (`kanban_board`), Hotkey Shortcut Recorders (`shortcut_recorder`), Split Action Buttons (`split_button`), Sparkline Data Grids (`sparkline_table`), KPI Metric Comparisons (`metric_comparison`), Activity Audit Feeds (`activity_feed`), and Workspace Tab Bars (`file_tree_tabs`) |
+| **[demos/14_simplegui_fluent_form_demo.ts](../demos/14_simplegui_fluent_form_demo.ts)** | `bun run demo:simplegui` | Declarative SimpleGUI Fluent Form Demo with method chaining and interactive events |
+| **[demos/15_simplegui_all_controls_showcase.ts](../demos/15_simplegui_all_controls_showcase.ts)** | `bun run demo:simplegui_all` | Comprehensive SimpleGUI All-Controls Showcase across standard, labeled, and dashboard widgets |
+| **[demos/16_simplegui_parity_api_demo.ts](../demos/16_simplegui_parity_api_demo.ts)** | `bun run demo:parity` | `vlang_simplegui` 100% API Parity showcase (`new_simple_window`, `add_input`, OS directories) |
+| **[demos/17_simplegui_layout_types_showcase.ts](../demos/17_simplegui_layout_types_showcase.ts)** | `bun run demo:layouts` | SimpleGUI Layout Showcase (Rows, Grids, Cards, Absolute Positioning, and Resizing) |
+| **[demos/18_simplegui_ergonomics_demo.ts](../demos/18_simplegui_ergonomics_demo.ts)** | `bun run demo:ergonomics` | SimpleGUI Ergonomics & Shortcuts API Showcase (Batch ops, value modifiers, JSON persistence) |
 
 ---
 
-## 1. `fd` (Fast File & Directory Search)
+<a id="8-form-themes--color-palettes-macos--windows-11-desktop-themes"></a>
+## 8. Form Themes & Color Palettes (macOS & Windows 11 Desktop Themes)
 
-Colocated under `src/features/fd/`.
+Bun RAD Studio includes an automated visual theme engine (`updateFormTheme()`) that harmonizes application form background, text foreground, container panel background, interactive component backgrounds, and primary action button swatches across built-in presets.
 
-### Types (`fdTypes.ts`)
+### Theme Harmonization Engine
+
+When a theme is selected in the RAD IDE Inspector or applied programmatically, `getThemeColors(themeName)` resolves a color palette object containing:
+- `formBg`: Canvas and root container background HEX code
+- `formFg`: Form header, title, and label text HEX code
+- `ctrlBg`: Default input, grid, dropdown, and interactive control background HEX code
+- `ctrlFg`: Input field text and item label HEX code
+- `btnBg`: Primary action button background accent HEX code
+- `btnFg`: Primary action button font text HEX code
+- `panelBg`: Container box panel background HEX code
+
+---
+
+### macOS Desktop Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `macOS Sonoma Dark` | macOS Dark Mode | `#1e1e1e` | `#f5f5f7` | `#2c2c2e` | `#ffffff` | `#0a84ff` | `#ffffff` | `#252528` | macOS Sonoma / Ventura Dark theme featuring SF-inspired high contrast typography, translucent gray control surfaces, and Apple System Blue accent. |
+| `macOS Ventura Light` | macOS Light Mode | `#f6f6f6` | `#1d1d1f` | `#ffffff` | `#1d1d1f` | `#007aff` | `#ffffff` | `#e8e8ed` | Clean, modern macOS Light desktop aesthetic with bright card surfaces, crisp dark typography, and vibrant macOS Aqua Blue accent. |
+| `macOS Liquid Glass` | Glassmorphic Navy | `#141923` | `#f3f4f6` | `#1f2937` | `#f9fafb` | `#0284c7` | `#ffffff` | `#111827` | Translucent macOS Glassmorphism design featuring dark navy glass panels, subtle border reflections, and cyan highlight accents. |
+| `Apple Dark` | Classic Space Gray | `#1e1e1e` | `#f5f5f7` | `#2c2c2e` | `#ffffff` | `#0a84ff` | `#ffffff` | `#252528` | Classic Apple macOS Space Gray desktop palette optimized for pro desktop studio tools and IDE window layouts. |
+| `Midnight` | Midnight Indigo | `#0b0f19` | `#e2e8f0` | `#151c2c` | `#f3f4f6` | `#6366f1` | `#ffffff` | `#1e293b` | Deep dark blue/indigo macOS desktop theme with soft violet accents and elevated midnight slate panels. |
+| `Apple Sunset` | macOS Sunset Wallpaper | `#2a1b2a` | `#ffd166` | `#3c243c` | `#ffe5ec` | `#ff477e` | `#ffffff` | `#4a2c4a` | macOS Sunset wallpaper theme with warm purple/magenta background, amber gold typography, and rose pink primary action buttons. |
+| `Sonoma Emerald` | macOS Emerald Wallpaper | `#062c21` | `#a7f3d0` | `#0b4334` | `#d1fae5` | `#10b981` | `#ffffff` | `#0f5241` | macOS Sonoma Emerald forest wallpaper palette with deep emerald background, mint text, and green button swatches. |
+
+---
+
+### Windows 11 Desktop Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `Windows 11 Mica Light` | Fluent Mica Light | `#f3f3f3` | `#1b1b1b` | `#ffffff` | `#1b1b1b` | `#0067c0` | `#ffffff` | `#e5e5e5` | Windows 11 Fluent Design light theme with soft off-white Mica tinted background, crisp white card surfaces, and Windows Accent Blue buttons. |
+| `Windows 11 Acrylic Dark` | Fluent Dark Acrylic | `#202020` | `#ffffff` | `#2c2c2c` | `#ffffff` | `#60cdff` | `#000000` | `#181818` | Windows 11 Dark Acrylic design with sleek dark charcoal surface, high contrast controls, and electric blue accent. |
+| `Windows 11 Fluent Slate` | Fluent Slate Dark | `#1c2128` | `#adbac7` | `#22272e` | `#adbac7` | `#4796e6` | `#ffffff` | `#2d333b` | Windows 11 Slate theme featuring muted dark blue-gray card containers, steel blue buttons, and ergonomic low-eyestrain dark palette. |
+| `Windows 11 Sun Valley` | Sun Valley Cobalt | `#0f172a` | `#f8fafc` | `#1e293b` | `#ffffff` | `#38bdf8` | `#0f172a` | `#1e293b` | Windows 11 signature Sun Valley cobalt theme with deep midnight slate canvas, high-contrast dark blue panels, and sky blue accents. |
+
+---
+
+### Modern Linux Desktop Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `Ubuntu Yaru Dark` | Ubuntu Yaru Dark | `#242424` | `#ffffff` | `#303030` | `#ffffff` | `#e95420` | `#ffffff` | `#2e2e2e` | Official Ubuntu Yaru dark desktop design system with warm aubergine charcoal surfaces, dark slate cards, and iconic Ubuntu orange primary buttons. |
+| `Ubuntu Yaru Light` | Ubuntu Yaru Light | `#f7f7f7` | `#1e1e1e` | `#ffffff` | `#1e1e1e` | `#e95420` | `#ffffff` | `#ededed` | Official Ubuntu Yaru light desktop theme with clean neutral gray canvas, crisp white container cards, and vibrant Ubuntu orange accents. |
+| `GNOME Adwaita Dark` | Libadwaita Dark | `#242424` | `#ffffff` | `#303030` | `#ffffff` | `#3584e4` | `#ffffff` | `#2e2e2e` | Modern GNOME 40+ Libadwaita desktop theme with deep slate cards and signature Adwaita blue controls. |
+| `GNOME Adwaita Light` | Libadwaita Light | `#fafafa` | `#2e3436` | `#ffffff` | `#2e3436` | `#3584e4` | `#ffffff` | `#f0f0f0` | Clean GNOME Libadwaita light desktop with neutral paper surfaces and signature Adwaita blue controls. |
+| `Linux Mint` | Mint-Y Cinnamon | `#2f343f` | `#e0e2e4` | `#242831` | `#e0e2e4` | `#87a556` | `#ffffff` | `#383f4d` | Modern Linux Mint Cinnamon desktop theme with slate graphite surfaces and signature mint green accents. |
+| `Pop!_OS` | COSMIC Dark | `#202222` | `#f6f6f6` | `#2c2e2e` | `#f6f6f6` | `#48b9c7` | `#202222` | `#333636` | System76 Pop!_OS and COSMIC desktop theme with dark charcoal surfaces, teal accent buttons, and amber highlights. |
+| `Fedora Blue` | Fedora Workstation | `#1f232a` | `#ffffff` | `#292e38` | `#ffffff` | `#51a2da` | `#1f232a` | `#242932` | Official Fedora Workstation modern Linux theme with navy graphite cards and crisp Fedora blue. |
+
+---
+
+### Developer & Studio Themes Reference
+
+| Theme Name | Target Aesthetic | `formBg` | `formFg` | `ctrlBg` | `ctrlFg` | `btnBg` | `btnFg` | `panelBg` | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `Dark` | Default Slate | `#0f172a` | `#f8fafc` | `#1e293b` | `#ffffff` | `#0284c7` | `#ffffff` | `#1e293b` | Default Bun RAD Studio dark theme with Tailwind slate tones and sky blue primary accents. |
+| `Light` | Classic Light | `#f6f6f6` | `#1d1d1f` | `#ffffff` | `#1d1d1f` | `#007aff` | `#ffffff` | `#e8e8ed` | Classic light desktop theme with clean white container surfaces and system blue primary buttons. |
+| `Catppuccin` | Catppuccin Mocha | `#1e1e2e` | `#cdd6f4` | `#313244` | `#cdd6f4` | `#cba6f7` | `#1e1e2e` | `#45475a` | Warm pastel dark developer theme inspired by Catppuccin Mocha with mauve accents. |
+| `Dracula` | Dracula Studio | `#282a36` | `#f8f8f2` | `#44475a` | `#f8f8f2` | `#ff79c6` | `#282a36` | `#383a59` | High contrast dark developer theme with Dracula pink primary buttons and purple container slate. |
+| `Cyberpunk` | Cyberpunk Neon | `#0d0221` | `#00f6ff` | `#190536` | `#00f6ff` | `#ff007f` | `#ffffff` | `#26094e` | Futuristic neon dark theme with deep purple canvas, glowing cyan text, and hot pink action buttons. |
+| `Nord` | Nordic Ice | `#2e3440` | `#eceff4` | `#3b4252` | `#eceff4` | `#88c0d0` | `#2e3440` | `#434c5e` | Cool arctic dark theme with icy blue accent buttons and muted slate container boxes. |
+| `Solarized Light` | Solarized Light | `#fdf6e3` | `#657b83` | `#eee8d5` | `#073642` | `#b58900` | `#fdf6e3` | `#e0d8c3` | Low-contrast solarized light theme designed for reduced glare during daylight coding. |
+| `Solarized Dark` | Solarized Dark | `#002b36` | `#839496` | `#073642` | `#93a1a1` | `#2aa198` | `#002b36` | `#094352` | Low-contrast solarized dark theme with cyan/teal primary button swatches. |
+| `High Contrast` | Accessibility High Contrast | `#000000` | `#00ff00` | `#111111` | `#00ff00` | `#00ff00` | `#000000` | `#1a1a1a` | High-contrast accessibility theme featuring neon green elements on solid pitch black canvas. |
+
+---
+
+<a id="9-quick-start--developer-recipes"></a>
+## 9. Quick Start & Developer Recipes
+
+Below are complete, copy-pasteable TypeScript developer recipes demonstrating standard patterns for building desktop UI applications with Bun RAD Studio.
+
+### 💡 Recipe 1: Minimal RAD Desktop Window Setup
 
 ```typescript
-export type EntryTypeFilter = "f" | "d" | "l" | "x";
+import { SizeHint, Webview } from "webview-bun";
+import { generatePreviewHtml } from "./index.ts";
 
-export interface FdOptions {
-  pattern?: string;
-  rootPath: string;
-  typeFilter?: EntryTypeFilter;
-  extension?: string;
-  hidden: boolean;
-  maxDepth?: number;
-  minDepth?: number;
-  changedWithin?: string;
-  empty?: boolean;
-  sizeFilter?: string;
-  exclude?: string[];
-  absolute: boolean;
-  caseSensitive?: boolean;
-  execCmd?: string[];
-}
+const formSpec = {
+  title: "My Bun RAD App",
+  width: 800,
+  height: 600,
+  background_color: "#0f172a",
+  font_color: "#f8fafc",
+  controls: [
+    {
+      id: "btn_action",
+      control_type: "button",
+      x: 30, y: 30, width: 160, height: 38,
+      text: "Click Me",
+      background_color: "#0284c7",
+      event_handlers: { onClick: "on_btn_action_click" }
+    },
+    {
+      id: "status_lbl",
+      control_type: "label",
+      x: 200, y: 38, width: 300, height: 24,
+      text: "Ready."
+    }
+  ]
+};
 
-export interface FdEntry {
-  path: string;
-  displayPath: string;
-  name: string;
-  isDirectory: boolean;
-  isFile: boolean;
-  isSymlink: boolean;
-  isExecutable: boolean;
-  depth: number;
-  size?: number;
-  mtime?: Date;
-}
-```
+const html = generatePreviewHtml(formSpec as any);
+const wv = new Webview(true);
+wv.title = formSpec.title;
+wv.size = { width: formSpec.width, height: formSpec.height, hint: SizeHint.NONE };
 
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Search files by extension and pattern
-```typescript
-import { searchFiles } from "./src/features/fd/fdCoordinator.ts";
-
-// Find all TypeScript files matching "test"
-const files = await searchFiles({
-  pattern: "test",
-  rootPath: "src",
-  extension: "ts",
-  hidden: false,
-  absolute: false,
+// Bind backend IPC click handler
+wv.bind("on_btn_action_click", () => {
+  wv.eval(`setControlText("status_lbl", "Button clicked at ${new Date().toLocaleTimeString()}!")`);
 });
 
-for (const file of files) {
-  console.log(`${file.displayPath} (depth: ${file.depth})`);
-}
-```
-
-#### Recipe 2: Find directories only with depth limit
-```typescript
-import { searchFiles } from "./src/features/fd/fdCoordinator.ts";
-
-const dirs = await searchFiles({
-  rootPath: ".",
-  typeFilter: "d",
-  maxDepth: 2,
-  hidden: false,
-  absolute: true,
-});
-
-const dirPaths = dirs.map((d) => d.path);
-console.log(dirPaths);
-```
-
-#### Recipe 3: Execute a command on search matches (like `-x`)
-```typescript
-import { runFdCoordinator } from "./src/features/fd/fdCoordinator.ts";
-
-// Executes "ls -lh <match>" on each package.json found
-await runFdCoordinator({
-  pattern: "package.json",
-  rootPath: ".",
-  hidden: false,
-  absolute: true,
-  execCmd: ["ls", "-lh", "{}"],
-});
-```
-
-#### Recipe 4: Low-level matching with pure Doers
-```typescript
-import { buildMatcher, matchesExtension, matchesType } from "./src/features/fd/fdDoers.ts";
-
-const matcher = buildMatcher("config"); // Smart-case matcher
-console.log(matcher("tsconfig.json", "src/tsconfig.json")); // true
-
-const isTs = matchesExtension("server.ts", "ts"); // true
+wv.navigate(`data:text/html,${encodeURIComponent(html)}`);
+wv.run();
 ```
 
 ---
 
-## 2. `sd` (Search & Displace / Sed Alternative)
-
-Colocated under `src/features/sd/`.
-
-### Types (`sdTypes.ts`)
+### 💡 Recipe 2: Interacting with Modern Productivity Controls
 
 ```typescript
-export interface SdOptions {
-  findPattern: string;
-  replacePattern: string;
-  files: string[];
-  stringMode: boolean;
-  flags: string;
-  preview: boolean;
-  countOnly?: boolean;
-  ignoreCase?: boolean;
-  backupExt?: string;
-  wholeWord?: boolean;
-  quiet?: boolean;
-}
+// Update Kanban board columns dynamically
+wv.eval(`setKanbanColumns("kanban_1", "Backlog (3) | In Progress (5) | Completed (12)")`);
 
-export interface DiffHunk {
-  lineNumber: number;
-  original: string;
-  modified: string;
-}
+// Update executive KPI metric comparison
+wv.eval(`setMetricComparison("metric_1", {
+  title: "Quarterly Revenue",
+  curVal: "$485,000",
+  targetStr: "Target: $450,000",
+  changeStr: "+7.8% vs Q2"
+})`);
 
-export interface FileTransformResult {
-  filePath: string;
-  hasChanged: boolean;
-  originalContent: string;
-  newContent: string;
-  diffHunks: DiffHunk[];
+// Push new entries to activity audit stream
+wv.eval(`setActivityFeedItems("feed_1", "Sarah deployed v2.1.0 release (1m ago), System automated backup finished (15m ago)")`);
+
+// Toggle window pinning always-on-top
+wv.eval(`setAlwaysOnTop(true)`);
+```
+
+---
+
+### 💡 Recipe 3: Applying Desktop Form Themes Programmatically
+
+```typescript
+import { updateFormTheme } from "./index.ts";
+
+// Apply macOS Sonoma Dark theme across FormSpec
+const themedFormSpec = updateFormTheme(formSpec, "macOS Sonoma Dark");
+
+// Generate themed preview HTML
+const themedHtml = generatePreviewHtml(themedFormSpec);
+```
+
+---
+
+### 💡 Recipe 4: Programmatic Project Exporter
+
+```typescript
+import { exportProject } from "./index.ts";
+
+const result = exportProject(JSON.stringify(formSpec));
+if (result.success) {
+  console.log(`✅ App successfully exported to directory: ${result.dir}`);
+} else {
+  console.error(`❌ Export failed: ${result.error}`);
 }
 ```
 
-### RAD Copy & Paste Recipes
+---
 
-#### Recipe 1: In-place file replacement with regex capture groups
+<a id="10-simplegui-declarative-module-reference"></a>
+## 10. SimpleGUI Declarative Module Reference
+
+The `SimpleGUI` module ([src/simplegui.ts](../src/simplegui.ts) / exported via [index.ts](../index.ts)) provides a lightweight, fluent declarative API matching `vlang_simplegui`. A dedicated, complete API reference guide is available at [SIMPLEGUI_API.md](SIMPLEGUI_API.md).
+
+### 🪟 Window Initialization & Configuration
+
 ```typescript
-import { runSdCoordinator } from "./src/features/sd/sdCoordinator.ts";
+import { createWindow, newWindow, new_simple_window } from "bun_rad_studio";
 
-// Replaces "version: 1.0.0" -> "version: 2.0.0" in files
-const results = await runSdCoordinator({
-  findPattern: "version: (\\d+)\\.(\\d+)\\.(\\d+)",
-  replacePattern: "version: 2.0.0",
-  files: ["package.json"],
-  stringMode: false,
-  flags: "g",
-  preview: false,
+const win = createWindow("My App", 800, 600, {
+  theme: "apple_dark",
+  alwaysOnTop: false,
+  padding: 20,
+  spacing: 12
 });
-console.log(results); // ["Updated package.json (1 changes)"]
 ```
 
-#### Recipe 2: Dry-run diff preview without modifying disk
-```typescript
-import { runSdCoordinator } from "./src/features/sd/sdCoordinator.ts";
+### 🚪 Window Lifecycle & Process Exit Methods
 
-const previewDiff = await runSdCoordinator({
-  findPattern: "Bun System Utilities",
-  replacePattern: "Bun Power Tools",
-  files: ["index.ts"],
-  stringMode: true,
-  flags: "g",
-  preview: true,
+| Function / Method | Signature | Description |
+| --- | --- | --- |
+| `win.close()` | `() => void` | Closes the current window frame (`webview.destroy()`) without killing the process (for multi-window apps). |
+| `win.close_window()` | `() => void` | Alias for `win.close()`. |
+| `win.exit(code?)` | `(code?: number) => void` | Immediately terminates the entire application process (`process.exit(code)`). |
+| `win.quit(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.exitApp(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.exit_app(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.exit_application(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+| `win.quit_application(code?)` | `(code?: number) => void` | Alias for `win.exit()`. |
+
+### 🔤 Typed Accessor & Control Value Methods
+
+```typescript
+// Typed getters
+const name: string = win.getText("txtName");
+const isEnabled: boolean = win.getBool("chkActive");
+const age: number = win.getInt("numAge");
+const price: number = win.getFloat("numPrice");
+
+// Typed setters
+win.setText("txtName", "Alice");
+win.setHtml("previewArea", "<h1>Rich Formatted Preview</h1>");
+win.setBool("chkActive", true);
+win.setInt("numAge", 30);
+win.setFloat("numPrice", 49.99);
+```
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `win.setHtml(id, html)` | `(id: string, htmlContent: string) => void` | Injects formatted HTML markup directly into an `html_view` container element in real time. |
+| `win.set_html(id, html)` | `(id: string, htmlContent: string) => void` | Snake_case alias for `win.setHtml()`. |
+| `win.addHtmlView(id, initialHtml?)` | `(id: string, initialHtml?: string) => SimpleControlRef` | Creates a dedicated rich HTML rendering container for live previews, markdown docs, and embeds. |
+| `win.add_html_view(id, initialHtml?)` | `(id: string, initialHtml?: string) => SimpleControlRef` | Snake_case alias for `win.addHtmlView()`. |
+
+#### ⚡ Real-Time Keystroke & Input Synchronization
+
+All `<input>` (text, password, number) and `<textarea>` controls in `SimpleWindow` automatically attach both `oninput` and `onchange` bridge handlers. Keystrokes are synchronized immediately to Bun's `formValuesStore` over the Webview IPC bridge:
+- `win.onChange(id, handler)` callbacks fire immediately on every keystroke without requiring the user to blur/unfocus the control.
+- `win.getFormValues()` and `win.getValue(id)` always return the exact, up-to-the-millisecond typed text.
+
+### 🖱️ Event Handling & Double-Click Interaction Bindings
+
+SimpleGUI supports declarative and fluent event registration for mouse clicks, double-clicks, keystrokes, and selections across all interactive controls.
+
+#### Event Registration API
+
+| Method on `SimpleWindow` | Fluent Method on `SimpleControlRef` | Passed Parameter `val` | Description |
+| --- | --- | --- | --- |
+| `win.onClick(id, callback)` | `.onClick(callback)` | `string` (caption, item, or row ID) | Triggers on primary mouse click. |
+| `win.onDoubleClick(id, callback)`<br>`win.onDblClick(id, callback)`<br>`win.on_double_click(id, callback)` | `.onDoubleClick(callback)`<br>`.onDblClick(callback)`<br>`.on_double_click(callback)` | `string` (value or row PID) | Triggers on double-click. On listboxes passes option value; on data tables passes row primary key (`rowPid`). |
+| `win.onChange(id, callback)` | `.onChange(callback)` | `any` (new value) | Triggers on value change or keystroke. |
+| `win.onEnter(id, callback)` | `.onEnter(callback)` | `string` (current input text) | Triggers when the user presses <kbd>Enter</kbd> / <kbd>Return</kbd> inside an input field. |
+| `win.onRightClick(id, callback)` | `.onRightClick(callback)` | `string` (action label) | Triggers on right-click / context menu. |
+| `win.onHover(id, callback)` | `.onHover(callback)` | `undefined` | Triggers when mouse enters control bounds. |
+| `win.onEvent(id, name, callback)` | `.on(name, callback)` | `any` | Generic event registration for custom IPC event names. |
+
+#### Double-Click Auto-Launch Implementation Example
+
+Double-clicking items in a listbox or rows in a data table is the standard desktop convention for auto-launching actions or opening record editors. SimpleGUI automatically binds native `ondblclick` events in the Webview IPC layer:
+
+```typescript
+import { createWindow } from "bun_rad_studio";
+
+const win = createWindow("Application Launcher", 900, 600);
+
+// Top ListBox
+win.addListBox("lst_apps", [
+  "Studio: SQLite Studio Pro",
+  "Studio: Redis Studio Pro",
+  "CLI: System Telemetry CLI"
+]);
+
+// Auto-launch on ListBox double-click (fluent or window method):
+win.onDoubleClick("lst_apps", (w, selectedItem) => {
+  w.toast(`🚀 Auto-launching: ${selectedItem}`);
+  launchApplication(selectedItem);
 });
-console.log(previewDiff[0]); // Prints colored unified diff
-```
 
-#### Recipe 3: Single file transformation with structured diff hunks
-```typescript
-import { processFile } from "./src/features/sd/sdCoordinator.ts";
-import { buildReplacerRegex } from "./src/features/sd/sdDoers.ts";
+// Bottom Data Table
+const headers = ["ID", "Application", "Category", "Status"];
+const rows = [
+  ["sqlite_studio", "SQLite Studio Pro", "Database", "Ready"],
+  ["redis_studio", "Redis Studio Pro", "Cache & In-Memory", "Ready"],
+  ["system_cli", "System Telemetry CLI", "CLI Utility", "Active"]
+];
 
-const regex = buildReplacerRegex("localhost:\\d+", false, "g");
-const result = await processFile("config.json", regex, "api.production.com");
+win.addTable("tbl_apps", headers, rows, (w, rowPid) => {
+  // Single click: update selection
+  w.setStatus(`Selected: ${rowPid}`);
+});
 
-if (result.hasChanged) {
-  console.log(`Changed ${result.filePath}:`);
-  for (const hunk of result.diffHunks) {
-    console.log(`Line ${hunk.lineNumber}: -${hunk.original} +${hunk.modified}`);
+// Double click on table row: launches target row directly
+win.onDoubleClick("tbl_apps", (w, rowPid) => {
+  // rowPid is the primary identifier from column 0 (e.g., 'sqlite_studio')
+  w.toast(`🚀 Opening: ${rowPid}...`);
+  launchApplication(rowPid);
+});
+
+// Launch Mutex & Debounce Best Practice:
+const launchingApps = new Set<string>();
+async function launchApplication(appId: string) {
+  if (launchingApps.has(appId)) return; // Prevent duplicate concurrent launches
+  launchingApps.add(appId);
+  try {
+    await executeProcess(appId);
+  } finally {
+    setTimeout(() => launchingApps.delete(appId), 1000);
   }
 }
 ```
 
-#### Recipe 4: In-memory string replacement
-```typescript
-import { buildReplacerRegex, replaceText } from "./src/features/sd/sdDoers.ts";
+### 💬 In-Window Glassmorphic Modal Dialogs
 
-const regex = buildReplacerRegex("foo-(\\w+)", false, "g");
-const output = replaceText("foo-bar foo-baz", regex, "qux-$1");
-console.log(output); // "qux-bar qux-baz"
+```typescript
+// Alert dialog
+win.showAlert("Operation completed successfully!", "Success");
+
+// Confirm dialog
+win.showConfirm("Are you sure you want to delete this account?", "Confirm Action");
+
+// Prompt dialog (async)
+const inputName = await win.showPrompt("Please enter your name:", "Default Name", "Input Required");
 ```
 
----
-
-## 3. `rip` / `rip2` (Safe Removal with Graveyard & Undo)
-
-Colocated under `src/features/rip/`.
-
-### Types (`ripTypes.ts`)
+### 🔍 Inspection & OS Path Helpers
 
 ```typescript
-export interface GraveyardRecord {
-  id: string;
-  originalPath: string;
-  graveyardPath: string;
-  deletedAt: string;
-  isDirectory: boolean;
-  size: number;
+win.hasControl("btnSubmit");         // boolean
+win.listControls();                 // string[]
+win.getControlKind("btnSubmit");    // string ("button")
+win.requireControl("btnSubmit");    // throws error if control doesn't exist
+
+// OS System Path Helpers
+homeDir();                          // User home directory path
+tempDir();                          // System temp directory path
+desktopDir();                       // Desktop folder path
+documentsDir();                     // Documents folder path
+downloadsDir();                     // Downloads folder path
+resolveUserPath("~/data.json");     // Expands ~ and env variables ($VAR, ${VAR})
+getAppConfigDir("my_app");          // OS standard configuration directory
+getAppDataDir("my_app");            // OS standard application data directory
+getAppStateDir("my_app");           // OS standard state directory
+getAppLogDir("my_app");             // OS standard log directory
+```
+
+### 🔄 Reactive State Store & Key-Value Management
+
+The `SimpleWindow` state store acts as a centralized reactive database for desktop applications. Any control or handler can update a key using `win.setState("key", "val")` and registered listeners created via `win.onStateChange("key", callback)` automatically fire, while bound controls sync in real-time.
+
+```typescript
+// Setting & Getting Reactive State
+win.setState("user_role", "Administrator");
+win.setStateInt("counter", 42);
+win.setStateBool("dark_mode", true);
+win.setStateFloat("font_scale", 1.25);
+
+// Check if state key exists
+if (win.hasState("user_role")) {
+    console.log("State key registered!");
 }
 
-export interface GraveyardManifest {
-  version: number;
-  records: GraveyardRecord[];
-}
+const role = win.getState("user_role");                    // string
+const count = win.getStateInt("counter");                 // number
+const isDark = win.getStateBool("dark_mode");             // boolean
+const fallbackRole = win.getStateOr("role", "Guest");     // fallback if key unset
 
-export interface RipOptions {
-  targets: string[];
-  unbury: boolean;
-  unburyTarget?: string;
-  seance: boolean;
-  decompose: boolean;
-  permanent: boolean;
-  verbose: boolean;
-  graveyardDir?: string;
-  infoTarget?: string;
-  pruneDays?: number;
-  dryRun?: boolean;
-  showSize?: boolean;
-}
-```
+win.toggleStateBool("dark_mode");        // Toggles boolean state
+win.incrementStateInt("counter", 1);     // Increments integer state
 
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Safely bury a file or directory into graveyard
-```typescript
-import { buryTarget } from "./src/features/rip/ripCoordinator.ts";
-import { resolveGraveyardDir } from "./src/features/rip/ripDoers.ts";
-
-const graveyard = resolveGraveyardDir();
-const record = await buryTarget("temp.txt", graveyard);
-
-console.log(`Buried: ${record.originalPath}`);
-console.log(`Graveyard ID: ${record.id}`);
-console.log(`Deleted at: ${record.deletedAt}`);
-```
-
-#### Recipe 2: Undelete / Unbury the last deleted file
-```typescript
-import { unburyTarget } from "./src/features/rip/ripCoordinator.ts";
-import { resolveGraveyardDir } from "./src/features/rip/ripDoers.ts";
-
-const graveyard = resolveGraveyardDir();
-const restored = await unburyTarget(graveyard);
-console.log(`Restored back to: ${restored.originalPath}`);
-```
-
-#### Recipe 3: Restore a specific file by filename query
-```typescript
-import { unburyTarget } from "./src/features/rip/ripCoordinator.ts";
-import { resolveGraveyardDir } from "./src/features/rip/ripDoers.ts";
-
-const graveyard = resolveGraveyardDir();
-// Restores the most recent deleted item containing "report.pdf"
-const restored = await unburyTarget(graveyard, "report.pdf");
-console.log(`Restored: ${restored.originalPath}`);
-```
-
-#### Recipe 4: Inspect graveyard contents (Seance)
-```typescript
-import { readManifest, resolveGraveyardDir } from "./src/features/rip/ripDoers.ts";
-
-const graveyard = resolveGraveyardDir();
-const manifest = await readManifest(graveyard);
-
-console.log(`Graveyard contains ${manifest.records.length} buried item(s):`);
-for (const item of manifest.records) {
-  console.log(`- ${item.originalPath} (${item.size} bytes, ID: ${item.id})`);
-}
-```
-
-#### Recipe 5: Permanently purge all buried files (Decompose)
-```typescript
-import { decomposeGraveyard } from "./src/features/rip/ripCoordinator.ts";
-import { resolveGraveyardDir } from "./src/features/rip/ripDoers.ts";
-
-const graveyard = resolveGraveyardDir();
-const purgedCount = await decomposeGraveyard(graveyard);
-console.log(`Purged ${purgedCount} items from graveyard.`);
-```
-
----
-
-## 4. `procs` (Modern Process Viewer)
-
-Colocated under `src/features/procs/`.
-
-### Types (`procsTypes.ts`)
-
-```typescript
-export type SortField = "cpu" | "mem" | "pid" | "user";
-
-export interface ProcessInfo {
-  pid: number;
-  ppid: number;
-  user: string;
-  cpu: number;
-  mem: number;
-  stat: string;
-  time: string;
-  command: string;
-  ports?: string[];
-}
-
-export interface ProcessTreeNode {
-  process: ProcessInfo;
-  children: ProcessTreeNode[];
-}
-
-export interface ProcsOptions {
-  keyword?: string;
-  user?: string;
-  tree: boolean;
-  sortBy?: SortField;
-  watch: boolean;
-  limit?: number;
-  json?: boolean;
-  ports?: boolean;
-  killPid?: number;
-  signal?: string;
-  interactive?: boolean;
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Get processes filtered by keyword and sorted by CPU
-```typescript
-import { getProcesses } from "./src/features/procs/procsCoordinator.ts";
-
-// Find all processes matching "bun" sorted by CPU usage
-const processes = await getProcesses("bun", "cpu");
-
-for (const p of processes) {
-  console.log(`PID ${p.pid} (${p.user}): ${p.cpu}% CPU, ${p.mem}% MEM - ${p.command}`);
-}
-```
-
-#### Recipe 2: Build and traverse the hierarchical process tree
-```typescript
-import { getProcesses } from "./src/features/procs/procsCoordinator.ts";
-import { buildProcessTree, formatTreeLines } from "./src/features/procs/procsDoers.ts";
-
-const processes = await getProcesses();
-const tree = buildProcessTree(processes);
-const treeLines = formatTreeLines(tree);
-
-console.log(treeLines.slice(0, 20).join("\n"));
-```
-
-#### Recipe 3: Render formatted process table as string
-```typescript
-import { runProcsCoordinator } from "./src/features/procs/procsCoordinator.ts";
-
-const tableOutput = await runProcsCoordinator({
-  keyword: "node",
-  tree: false,
-  sortBy: "mem",
-  watch: false,
-});
-console.log(tableOutput);
-```
-
-#### Recipe 4: Low-level process collection & parsing
-```typescript
-import { fetchRawProcessList, parsePsOutput, sortProcesses } from "./src/features/procs/procsDoers.ts";
-
-const raw = await fetchRawProcessList();
-const procs = parsePsOutput(raw);
-const sorted = sortProcesses(procs, "pid");
-console.log(`Total active processes: ${sorted.length}`);
-```
-
-#### Recipe 5: Terminate process by PID and inspect listening ports
-```typescript
-import { killProcess, fetchListeningPorts, attachListeningPorts } from "./src/features/procs/procsDoers.ts";
-import { getProcesses } from "./src/features/procs/procsCoordinator.ts";
-
-// Terminate process cleanly (SIGTERM) or forcefully (SIGKILL)
-// killProcess(12345, "SIGTERM");
-
-// Enrich process list with active listening network ports
-const procs = await getProcesses();
-const portMap = await fetchListeningPorts();
-const enriched = attachListeningPorts(procs, portMap);
-for (const p of enriched.filter(p => p.ports && p.ports.length > 0)) {
-  console.log(`PID ${p.pid} (${p.command}) listening on ports: ${p.ports.join(", ")}`);
-}
-```
-
-#### Recipe 6: Interactive TUI state and action driving
-```typescript
-import { getProcesses } from "./src/features/procs/procsCoordinator.ts";
-import { applyProcsTuiAction, renderProcsTuiFrame, type ProcsTuiState } from "./src/features/procs/procsTui.ts";
-
-const procs = await getProcesses();
-let state: ProcsTuiState = {
-  allProcesses: procs,
-  filteredProcesses: procs,
-  selectedIndex: 0,
-  scrollOffset: 0,
-  sortBy: "cpu",
-  filterQuery: "",
-  isFiltering: false,
-  isPaused: false,
-  showingDetails: false,
-  shouldExit: false,
-};
-
-// Filter live for "bun", then sort by memory
-state = applyProcsTuiAction(state, { type: "FILTER_CHAR", char: "b" });
-state = applyProcsTuiAction(state, { type: "SET_SORT", sortBy: "mem" });
-console.log(renderProcsTuiFrame(state));
-```
-
----
-
-## 5. `watchexec` (File Watcher & Process Orchestrator)
-
-Colocated under `src/features/watchexec/`.
-
-### Types (`watchexecTypes.ts`)
-
-```typescript
-export interface WatchexecOptions {
-  watchPaths: string[];
-  command: string[];
-  extensions?: string[];
-  filterPatterns?: string[];
-  ignorePatterns: string[];
-  debounceMs: number;
-  clear: boolean;
-  restart: boolean;
-  runOnStart: boolean;
-  shell?: string;
-}
-
-export interface ProcessState {
-  currentProcess: Subprocess | null;
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Watch directory and run a command on change
-```typescript
-import { runWatchexecCoordinator } from "./src/features/watchexec/watchexecCoordinator.ts";
-
-// Watches "src" for changes to .ts and .json files, restarting the test runner
-const watcher = await runWatchexecCoordinator({
-  watchPaths: ["src"],
-  command: ["bun", "test"],
-  extensions: ["ts", "json"],
-  ignorePatterns: ["node_modules", ".git", "dist"],
-  debounceMs: 150,
-  clear: true,
-  restart: true,
-  runOnStart: true,
-});
-
-// To stop watcher programmatically later:
-// watcher.close();
-```
-
-#### Recipe 2: Trigger custom code on file change (Doer composition)
-```typescript
-import { startWatcher } from "./src/features/watchexec/watchexecCoordinator.ts";
-import type { ProcessState, WatchexecOptions } from "./src/features/watchexec/watchexecTypes.ts";
-
-const state: ProcessState = { currentProcess: null };
-const options: WatchexecOptions = {
-  watchPaths: ["src"],
-  command: [],
-  extensions: ["ts"],
-  ignorePatterns: ["node_modules"],
-  debounceMs: 100,
-  clear: false,
-  restart: false,
-  runOnStart: false,
-};
-
-const watcher = startWatcher(options, state, () => {
-  console.log("TypeScript file changed at:", new Date().toLocaleTimeString());
+// Reactive State Listeners
+win.onStateChange("counter", (w, val) => {
+    w.setText("lbl_counter_display", `Count: ${val}`);
 });
 ```
 
-#### Recipe 3: Pure filter checks
-```typescript
-import { shouldTrigger, matchesExtension, shouldIgnore } from "./src/features/watchexec/watchexecDoers.ts";
+### 💾 App State Persistence & Standard OS User Directories
 
-console.log(matchesExtension("server.ts", ["ts", "js"])); // true
-console.log(shouldIgnore("node_modules/pkg/index.js", ["node_modules"])); // true
-console.log(shouldTrigger("src/index.ts", ["ts"], ["node_modules"])); // true
+SimpleGUI provides robust, crash-proof state persistence following recommended OS specifications for macOS (`~/Library/Application Support`), Windows (`%LOCALAPPDATA%`, `%APPDATA%`), and Linux (`$XDG_STATE_HOME`, `$XDG_CONFIG_HOME`). All state persistence writes atomically using temporary files and atomic renaming.
+
+```typescript
+// App state persistence in standard OS directories
+win.saveAppState("my_app");
+if (win.hasSavedAppState("my_app")) {
+    win.loadAppState("my_app");
+}
+win.clearAppState("my_app");
+
+// Window session persistence (dimensions, theme, state store)
+win.saveWindowSession("my_app");
+win.restoreWindowSession("my_app");
+
+// Automatic persistence on close
+win.enableAutoSaveState("my_app");
+
+// Custom path JSON persistence (with ~ and env variable expansion)
+win.saveStateJson("~/app_state.json");
+win.loadStateJson("~/app_state.json");
+
+// Standalone atomic persistence utilities
+import { saveStateToFile, loadStateFromFile } from "bun_rad_studio";
+saveStateToFile("~/config.json", stateMap);
+const loaded = loadStateFromFile("~/config.json");
 ```
 
----
+### 🎨 Universal Theme Persistence & Form State Auto-Persistence
 
-## 6. `tokei` (Fast Code & LOC Counter)
+- **Global Theme Persistence**: Every window defaults to the user's preferred saved theme (`getSavedTheme()`). Calling `win.setTheme(themeName)` automatically persists to `~/.config/simplegui/theme.txt`.
+- **Form State Auto-Persistence**: Automatically restores inputs on launch and persists on close (`form_state.json`).
+- **Intelligent Filtering (`shouldPersistControl`)**: Interactive controls (inputs, dropdowns, checkboxes, sliders) persist; ephemeral consoles, terminal logs, and sensitive passwords are never persisted.
 
-Colocated under `src/features/tokei/`.
-
-### Types (`tokeiTypes.ts`)
+### 🔗 Two-Way Data & Event Binding (`bind`)
 
 ```typescript
-export interface LineStats {
-  lines: number;
-  blank: number;
-  comment: number;
-  code: number;
-}
+// Two-Way Data Binding: UI control <-> State store
+win.bindState("input_user", "username");
+win.bindControl("chk_notifications", "notify_enabled");
 
-export interface FileStat {
-  path: string;
-  language: string;
-  stats: LineStats;
-}
+// Updating state anywhere in code automatically updates the UI control!
+win.setState("username", "Alan Turing");
 
-export interface LanguageReport {
-  language: string;
-  files: number;
-  stats: LineStats;
-  fileDetails: FileStat[];
-}
+// Fluent method chaining on SimpleControlRef
+win.addTextInput("Job Title").id("txt_title").bindState("job_title");
 
-export type TokeiSortField = "files" | "lines" | "blank" | "comment" | "code";
-
-export interface TokeiOptions {
-  paths: string[];
-  sort: TokeiSortField;
-  showFiles: boolean;
-  hidden: boolean;
-  json?: boolean;
-  markdown?: boolean;
-  excludes?: string[];
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Compute codebase statistics programmatically
-```typescript
-import { computeCodeStats } from "./src/features/tokei/tokeiCoordinator.ts";
-
-const reports = await computeCodeStats({
-  paths: ["."],
-  sort: "code",
-  showFiles: false,
-  hidden: false,
+// Fluent Event Binding
+win.bindClick("btn_save", (w) => w.saveAppFormState());
+win.bindChange("theme_selector", (w, val) => w.setTheme(val));
+win.bindShortcut("Escape", (w) => w.close());
+win.onClose((w) => {
+    console.log("Window is closing!");
 });
-
-for (const report of reports) {
-  console.log(`${report.language}: ${report.files} files, ${report.stats.code} LOC (comments: ${report.stats.comment})`);
-}
-```
-
-#### Recipe 2: Render formatted ASCII table
-```typescript
-import { runTokeiCoordinator } from "./src/features/tokei/tokeiCoordinator.ts";
-
-const tableString = await runTokeiCoordinator({
-  paths: ["src"],
-  sort: "files",
-  showFiles: false,
-  hidden: false,
-});
-console.log(tableString);
-```
-
-#### Recipe 3: Analyze code lines in a string directly
-```typescript
-import { analyzeLines } from "./src/features/tokei/tokeiDoers.ts";
-
-const snippet = `
-// Initialize app
-const port = 3000;
-
-/*
- Multi-line
- explanation
-*/
-console.log(port);
-`;
-
-const stats = analyzeLines(snippet, {
-  single: ["//"],
-  multi: [["/*", "*/"]],
-});
-console.log(stats);
-// { lines: 11, blank: 3, comment: 5, code: 2 }
-```
-
-#### Recipe 4: Export report as a GitHub-flavored Markdown table
-```typescript
-import { computeCodeStats } from "./src/features/tokei/tokeiCoordinator.ts";
-import { formatMarkdownTable } from "./src/features/tokei/tokeiDoers.ts";
-
-const reports = await computeCodeStats({ paths: ["src"], sort: "code", showFiles: false, hidden: false });
-const markdown = formatMarkdownTable(reports);
-console.log(markdown);
 ```
 
 ---
 
-## 7. `gdu` / `gdu-go` (Pretty Fast Disk Usage Analyzer)
-
-Colocated under `src/features/gdu/`.
-
-### Types (`gduTypes.ts`)
-
-```typescript
-export interface DiskUsageItem {
-  name: string;
-  path: string;
-  size: number;
-  itemCount: number;
-  isDirectory: boolean;
-  mtime: Date;
-  children?: DiskUsageItem[];
-}
-
-export interface MountedDisk {
-  filesystem: string;
-  size: number;
-  used: number;
-  available: number;
-  percentUsed: string;
-  mountPoint: string;
-}
-
-export type GduSortBy = "size" | "name" | "count" | "mtime";
-
-export interface GduOptions {
-  targetDir: string;
-  nonInteractive: boolean;
-  showItemCount: boolean;
-  showRelativeSize: boolean;
-  showDisks: boolean;
-  summarize: boolean;
-  noHidden: boolean;
-  top?: number;
-  si: boolean;
-  ignoreDirs: string[];
-  maxDepth?: number;
-  sortBy?: GduSortBy;
-  minSize?: number | string;
-  json?: boolean;
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Scan directory and inspect top largest items
-```typescript
-import { analyzeDirectory } from "./src/features/gdu/gduCoordinator.ts";
-import { formatBytes } from "./src/features/gdu/gduDoers.ts";
-
-const root = await analyzeDirectory({
-  targetDir: ".",
-  nonInteractive: true,
-  showItemCount: true,
-  showRelativeSize: true,
-  showDisks: false,
-  summarize: false,
-  noHidden: true,
-  si: false,
-  ignoreDirs: [],
-});
-
-console.log(`Total directory size: ${formatBytes(root.size)} (${root.itemCount} items)`);
-
-// Top 5 largest child directories or files:
-const top5 = (root.children ?? []).slice(0, 5);
-for (const item of top5) {
-  console.log(`${formatBytes(item.size)} - ${item.name} (${item.itemCount} items)`);
-}
-```
-
-#### Recipe 2: Query mounted disks and storage capacity
-```typescript
-import { fetchMountedDisks } from "./src/features/gdu/gduDoers.ts";
-import { formatBytes } from "./src/features/gdu/gduDoers.ts";
-
-const disks = await fetchMountedDisks();
-for (const disk of disks) {
-  console.log(`${disk.mountPoint} (${disk.filesystem}): ${formatBytes(disk.used)} used / ${formatBytes(disk.size)} total (${disk.percentUsed})`);
-}
-```
-
-#### Recipe 3: Format bytes and relative size bars
-```typescript
-import { formatBytes, formatCount, formatRelativeBar } from "./src/features/gdu/gduDoers.ts";
-
-console.log(formatBytes(1024 * 1024 * 50)); // "  50.0 MiB"
-console.log(formatBytes(1000 * 1000 * 50, true)); // "  50.0 MB"
-console.log(formatCount(12500)); // "     12.5k"
-console.log(formatRelativeBar(0.75, 10)); // "[########  ]"
-```
-
-#### Recipe 4: Pure Doers: File deletion, default app launcher, and byte parsing
-```typescript
-import { parseByteSize, deleteDiskItem, openItemInDefaultApp } from "./src/features/gdu/gduDoers.ts";
-
-// Parse human readable size strings to bytes
-const bytes = parseByteSize("500M"); // 524288000
-
-// In-place deletion and default desktop app opening
-// deleteDiskItem("/tmp/scratch-cache");
-// openItemInDefaultApp("./README.md");
-```
-
----
-
-## 8. `ipinfo` / `ipinfo-cli` (IP Geolocation & ASN Details)
-
-Colocated under `src/features/ipinfo/`.
-
-### Types (`ipinfoTypes.ts`)
-
-```typescript
-export interface IpInfoResult {
-  ip: string;
-  hostname?: string;
-  city?: string;
-  region?: string;
-  country?: string;
-  loc?: string;
-  org?: string;
-  postal?: string;
-  timezone?: string;
-  mapUrl?: string;
-  readme?: string;
-}
-
-export interface SubnetInfo {
-  cidr: string;
-  network: string;
-  broadcast: string;
-  netmask: string;
-  wildcard: string;
-  firstHost: string;
-  lastHost: string;
-  totalHosts: number;
-  usableHosts: number;
-}
-
-export interface LocalInterfaceInfo {
-  name: string;
-  address: string;
-  family: string;
-  netmask: string;
-  mac: string;
-  internal: boolean;
-}
-
-export interface IpInfoOptions {
-  targetIp?: string;
-  token?: string;
-  field?: string;
-  json: boolean;
-  csv: boolean;
-  noColor: boolean;
-  bulkFile?: string;
-  local?: boolean;
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Lookup any IP address or current client IP
-```typescript
-import { queryIp } from "./src/features/ipinfo/ipinfoCoordinator.ts";
-
-// Lookup specific IP
-const googleDns = await queryIp("8.8.8.8");
-console.log(`Country: ${googleDns.country}, City: ${googleDns.city}, Org: ${googleDns.org}`);
-
-// Lookup current machine public IP
-const myIp = await queryIp();
-console.log(`Current Public IP: ${myIp.ip} (${myIp.city}, ${myIp.country})`);
-```
-
-#### Recipe 2: Extract specific fields (country, org, coordinates)
-```typescript
-import { queryIp } from "./src/features/ipinfo/ipinfoCoordinator.ts";
-import { extractField } from "./src/features/ipinfo/ipinfoDoers.ts";
-
-const ipData = await queryIp("1.1.1.1");
-const org = extractField(ipData, "org"); // "AS13335 Cloudflare, Inc."
-const loc = extractField(ipData, "loc"); // "-27.4679,153.0281"
-```
-
-#### Recipe 3: Export to JSON or CSV
-```typescript
-import { queryIp } from "./src/features/ipinfo/ipinfoCoordinator.ts";
-import { formatCsv, formatJson } from "./src/features/ipinfo/ipinfoDoers.ts";
-
-const info = await queryIp("8.8.8.8");
-const jsonString = formatJson(info);
-const csvString = formatCsv(info);
-```
-
-#### Recipe 4: Local network interfaces & IPv4 CIDR subnet calculation
-```typescript
-import { getLocalInterfaces, calculateSubnet, formatLocalInterfaces, formatSubnetInfo } from "./src/features/ipinfo/ipinfoDoers.ts";
-
-// Inspect local interfaces
-const ifaces = getLocalInterfaces();
-console.log(formatLocalInterfaces(ifaces));
-
-// Calculate subnet
-const subnet = calculateSubnet("192.168.1.0/24");
-console.log(`Usable hosts: ${subnet.usableHosts} (${subnet.firstHost} -> ${subnet.lastHost})`);
-```
-
----
-
-## 9. `subfinder` (Passive Subdomain Discovery)
-
-Colocated under `src/features/subfinder/`.
-
-### Types (`subfinderTypes.ts`)
-
-```typescript
-export interface SubdomainResult {
-  host: string;
-  sources: string[];
-  ip?: string[];
-  httpStatus?: number;
-  httpTitle?: string;
-  openPorts?: number[];
-  isWildcard?: boolean;
-}
-
-export interface SubfinderOptions {
-  domains: string[];
-  sources?: string[];
-  active: boolean;
-  probe: boolean;
-  silent: boolean;
-  json: boolean;
-  outputFile?: string;
-  timeoutMs: number;
-  ports?: number[];
-  detectWildcard?: boolean;
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Passive subdomain enumeration
-```typescript
-import { enumerateDomain } from "./src/features/subfinder/subfinderCoordinator.ts";
-
-// Queries crt.sh, HackerTarget, AlienVault, and Anubis in parallel
-const subdomains = await enumerateDomain("example.com", 8000, false);
-
-for (const sub of subdomains) {
-  console.log(`${sub.host} (sources: ${sub.sources.join(", ")})`);
-}
-```
-
-#### Recipe 2: Active subdomain discovery (with live IP verification)
-```typescript
-import { enumerateDomain } from "./src/features/subfinder/subfinderCoordinator.ts";
-
-// Resolves DNS A/AAAA records for each found subdomain, filtering out dead hosts
-const liveHosts = await enumerateDomain("example.com", 8000, true);
-
-for (const live of liveHosts) {
-  console.log(`${live.host} -> [${live.ip?.join(", ")}]`);
-}
-```
-
-#### Recipe 3: Query an individual passive intelligence source
-```typescript
-import { queryHackerTarget, queryCrtSh } from "./src/features/subfinder/subfinderDoers.ts";
-
-const hackerTargetHosts = await queryHackerTarget("example.com");
-console.log(`HackerTarget returned ${hackerTargetHosts.length} hosts.`);
-
-const crtShHosts = await queryCrtSh("example.com");
-console.log(`crt.sh returned ${crtShHosts.length} certificate hosts.`);
-```
-
-#### Recipe 4: HTTP title probing and open port scanning
-```typescript
-import { probeHttp, probePorts } from "./src/features/subfinder/subfinderDoers.ts";
-
-const probe = await probeHttp("example.com", 3000);
-console.log(`Status: ${probe.status}, Title: "${probe.title}"`);
-
-const openPorts = await probePorts("example.com", [80, 443, 8080]);
-console.log(`Open ports: ${openPorts.join(", ")}`);
-```
-
----
-
-## 10. `doggo` (DNS Client for Humans)
-
-Colocated under `src/features/doggo/`.
-
-### Types (`doggoTypes.ts`)
-
-```typescript
-export type DnsRecordType =
-  | "A"
-  | "AAAA"
-  | "CNAME"
-  | "MX"
-  | "TXT"
-  | "NS"
-  | "SOA"
-  | "PTR"
-  | "CAA"
-  | "SRV";
-
-export interface DnsAnswer {
-  name: string;
-  type: string;
-  class: string;
-  ttl?: number;
-  data: string;
-}
-
-export interface DoggoResponse {
-  domain: string;
-  queryType: string;
-  answers: DnsAnswer[];
-  queryTimeMs: number;
-  server: string;
-  protocol?: "UDP" | "DoH";
-}
-
-export interface DoggoOptions {
-  domain: string;
-  queryType: DnsRecordType | "ALL";
-  nameserver?: string;
-  doh?: boolean;
-  dohUrl?: string;
-  all?: boolean;
-  short: boolean;
-  json: boolean;
-  showTime: boolean;
-}
-```
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Simple DNS query with latency and server details
-```typescript
-import { lookupDomain } from "./src/features/doggo/doggoCoordinator.ts";
-
-// Query A records
-const response = await lookupDomain("example.com", "A");
-
-console.log(`Resolved in ${response.queryTimeMs}ms via ${response.server}:`);
-for (const ans of response.answers) {
-  console.log(`${ans.name} ${ans.type} ${ans.data} (TTL: ${ans.ttl})`);
-}
-```
-
-#### Recipe 2: Query MX and TXT records with a custom nameserver
-```typescript
-import { lookupDomain } from "./src/features/doggo/doggoCoordinator.ts";
-
-// Query MX records against Cloudflare DNS (1.1.1.1)
-const mxResponse = await lookupDomain("google.com", "MX", "1.1.1.1");
-for (const mx of mxResponse.answers) {
-  console.log(`MX record: ${mx.data}`);
-}
-
-// Query TXT records against Google DNS (8.8.8.8)
-const txtResponse = await lookupDomain("google.com", "TXT", "8.8.8.8");
-for (const txt of txtResponse.answers) {
-  console.log(`TXT record: ${txt.data}`);
-}
-```
-
-#### Recipe 3: Scripting with bare answer values (like `dig +short`)
-```typescript
-import { lookupDomain } from "./src/features/doggo/doggoCoordinator.ts";
-import { formatShortOutput } from "./src/features/doggo/doggoDoers.ts";
-
-const res = await lookupDomain("example.com", "A");
-const ipAddresses = formatShortOutput(res).split("\n");
-console.log(ipAddresses); // ["172.66.147.243", "104.20.23.154"]
-```
-
-#### Recipe 4: DNS-over-HTTPS (DoH) encrypted queries
-```typescript
-import { performDohLookup } from "./src/features/doggo/doggoDoers.ts";
-
-// Query securely via Cloudflare JSON DoH API
-const dohResponse = await performDohLookup("example.com", "A", "https://cloudflare-dns.com/dns-query");
-console.log(`Protocol: ${dohResponse.protocol}, Server: ${dohResponse.server}`);
-for (const ans of dohResponse.answers) {
-  console.log(`${ans.name} -> ${ans.data}`);
-}
-```
-
-#### Recipe 5: Query all standard record types in parallel
-```typescript
-import { runDoggoCoordinator } from "./src/features/doggo/doggoCoordinator.ts";
-
-const lines = await runDoggoCoordinator({
-  domain: "example.com",
-  queryType: "ALL",
-  short: false,
-  json: false,
-  showTime: true,
-});
-console.log(lines.join("\n"));
-```
-
----
-
-## 11. Shared Utilities (Colors & Tables)
-
-Colocated under `src/shared/`.
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Render custom column-aligned terminal tables
-```typescript
-import { renderTable, type ColumnDef } from "./src/shared/table.ts";
-import { colors } from "./src/shared/colors.ts";
-
-interface ServiceStatus {
-  name: string;
-  uptime: string;
-  status: "ONLINE" | "OFFLINE";
-  pingMs: number;
-}
-
-const services: ServiceStatus[] = [
-  { name: "Auth Service", uptime: "99.9%", status: "ONLINE", pingMs: 14 },
-  { name: "Billing API", uptime: "98.4%", status: "ONLINE", pingMs: 38 },
-  { name: "Search Cluster", uptime: "90.1%", status: "OFFLINE", pingMs: 0 },
-];
-
-const columns: ColumnDef<ServiceStatus>[] = [
-  { header: "SERVICE", align: "left", getValue: (s) => colors.bold(s.name) },
-  { header: "UPTIME", align: "right", getValue: (s) => colors.dim(s.uptime) },
-  {
-    header: "STATUS",
-    align: "left",
-    getValue: (s) => (s.status === "ONLINE" ? colors.green(s.status) : colors.red(s.status)),
-  },
-  { header: "PING", align: "right", getValue: (s) => `${s.pingMs}ms` },
-];
-
-const table = renderTable(columns, services);
-console.log(table);
-```
-
-#### Recipe 2: Zero-dependency terminal colors
-```typescript
-import { colors } from "./src/shared/colors.ts";
-
-console.log(colors.bold(colors.green("✓ Success: Build completed in 42ms")));
-console.log(colors.red("✗ Error: Connection refused on port 8080"));
-console.log(colors.yellow("⚠ Warning: Memory threshold exceeded"));
-console.log(colors.dim("Detailed trace logs available in /tmp/debug.log"));
-```
-
----
-
-## 12. Shell Autocompletions API
-
-Colocated under `src/shared/completions.ts`.
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Generate shell completion scripts programmatically
-```typescript
-import { renderCompletionScript } from "./src/shared/completions.ts";
-
-// Generate native Zsh completion for doggo
-const zshScript = renderCompletionScript("doggo", "zsh");
-console.log(zshScript);
-
-// Generate native Fish completion for gdu
-const fishScript = renderCompletionScript("gdu", "fish");
-console.log(fishScript);
-
-// Generate native Bash completion for procs
-const bashScript = renderCompletionScript("procs", "bash");
-console.log(bashScript);
-```
-
----
-
-## 13. Interactive TUI Navigation APIs
-
-Colocated in `src/features/gdu/gduTui.ts` and `src/features/procs/procsTui.ts`.
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Drive `gdu` interactive directory navigation, deletion & search
-```typescript
-import { analyzeDirectory } from "./src/features/gdu/gduCoordinator.ts";
-import {
-  applyGduTuiAction,
-  handleGduTuiKey,
-  renderGduTuiFrame,
-  type GduTuiState,
-} from "./src/features/gdu/gduTui.ts";
-
-const root = await analyzeDirectory({
-  targetDir: ".",
-  nonInteractive: true,
-  showItemCount: true,
-  showRelativeSize: true,
-  showDisks: false,
-  summarize: false,
-  noHidden: true,
-  si: false,
-  ignoreDirs: [],
-});
-
-let state: GduTuiState = {
-  currentDir: root,
-  history: [],
-  selectedIndex: 0,
-  scrollOffset: 0,
-  sortBy: "size",
-  filterQuery: "",
-  isFiltering: false,
-  confirmingDelete: false,
-  showingDetails: false,
-  shouldExit: false,
-};
-
-// Simulate Down arrow keypress
-const downAction = handleGduTuiKey("\u001b[B");
-state = applyGduTuiAction(state, downAction);
-
-// Render ANSI frame text
-const frame = renderGduTuiFrame(state);
-console.log(frame);
-```
-
-#### Recipe 2: Drive `procs` process explorer state & live filtering
-```typescript
-import { getProcesses } from "./src/features/procs/procsCoordinator.ts";
-import {
-  applyProcsTuiAction,
-  handleProcsTuiKey,
-  renderProcsTuiFrame,
-  type ProcsTuiState,
-} from "./src/features/procs/procsTui.ts";
-
-const processes = await getProcesses();
-let state: ProcsTuiState = {
-  allProcesses: processes,
-  filteredProcesses: processes,
-  selectedIndex: 0,
-  scrollOffset: 0,
-  sortBy: "cpu",
-  filterQuery: "",
-  isFiltering: false,
-  isPaused: false,
-  showingDetails: false,
-  shouldExit: false,
-};
-
-// Start live filtering for "bun"
-state = applyProcsTuiAction(state, { type: "START_FILTER" });
-state = applyProcsTuiAction(state, { type: "FILTER_CHAR", char: "b" });
-state = applyProcsTuiAction(state, { type: "FILTER_CHAR", char: "u" });
-state = applyProcsTuiAction(state, { type: "FILTER_CHAR", char: "n" });
-
-// Switch sort to Memory descending
-state = applyProcsTuiAction(state, { type: "SET_SORT", sortBy: "mem" });
-
-// Render ANSI frame
-const frame = renderProcsTuiFrame(state);
-console.log(frame);
-```
-
----
-
-## 14. Standalone Binary Compilation Engine
-
-Colocated under `scripts/build.ts`.
-
-### RAD Copy & Paste Recipes
-
-#### Recipe 1: Compile all or selected tools to native standalone binaries
-```typescript
-import { compileTarget, runBuild, TARGETS, type BuildTarget } from "./scripts/build.ts";
-
-// Build all 11 binaries into ./dist/
-const results = await runBuild();
-for (const res of results) {
-  console.log(`${res.name}: ${res.success ? "OK" : "FAILED"} (${res.durationMs}ms)`);
-}
-
-// Or compile a single custom target
-const doggoTarget: BuildTarget = { name: "doggo", entry: "src/features/doggo/doggoCli.ts" };
-const singleResult = await compileTarget(doggoTarget, "dist");
-console.log(`Compiled doggo: ${singleResult.sizeBytes} bytes`);
-```
-
----
-
-## 15. RAD Development Suite (45 Modules - 44 Core + sliceutils alias)
-
-Colocated under `src/features/rad/`.
-
-Ported and enhanced from [`codecaine-zz/vlang_utils`](https://github.com/codecaine-zz/vlang_utils) and modern utility primitives inspired by [`toss/es-toolkit`](https://github.com/toss/es-toolkit), supercharged with native Bun standard library superpowers (`Bun.Glob`, `Bun.$`, `Bun.serve`, `Bun.hash`, `Bun.Transpiler`, `Bun.TOML`, `Bun.semver`, `Bun.password`, `Bun.dns`, and `bun:sqlite` FTS5).
-
-👉 **[📖 Exhaustive 45-Module API Specification & Code Recipes in src/features/rad/README.md](../src/features/rad/README.md)** covering all 370+ utility methods with complete function signatures, parameter types, and standalone runnable examples.
-
-### Complete 45-Module Index by Domain
-
-| Domain | Modules Included | Superpowers & Highlights |
+<a id="11--related-rad--gui-ecosystem-projects"></a>
+<a id="11-related-rad--gui-ecosystem-projects"></a>
+<a id="related-rad--gui-ecosystem-projects"></a>
+## 11. 🌟 Related RAD & GUI Ecosystem Projects
+
+| Project | Description | Primary Use Case |
 | :--- | :--- | :--- |
-| **File & Storage (8)** | `fileutils`, `sqliteutils`, `tomlutils`, `archiveutils`, `compressutils`, `tarutils`, `stateutils`, `cacheutils` | Native `bun:sqlite` with FTS5, `Bun.TOML`, `Bun.deflateSync`/`Bun.inflateSync`, O(1) LRU & TTL |
-| **Data Structures (8)** | `arrutils` / `sliceutils`, `objutils`, `structutils`, `statutils`, `mathutils`, `bitutils`, `graphutils` | `arrutils.at` (-1 index), `objutils.isEqual` (`Bun.deepEquals`), RingBuffer, MinHeap, DAG topo sort |
-| **Strings & Formats (6)** | `strutils`, `regexutils`, `templateutils`, `colorutils`, `htmlutils`, `diffutils` | Slugs, privacy masks, Levenshtein, Truecolor ANSI, WCAG 2.1 contrast, `Bun.escapeHTML`, unified diff |
-| **System & Runtime (9)** | `sysutils`, `cliutils`, `envutils`, `shellutils`, `globutils`, `transpileutils`, `logutils`, `cronutils`, `semverutils` | `Bun.$`, `Bun.which`, `Bun.Glob`, `Bun.Transpiler`, `Bun.semver.order`/`satisfies`, Cron humanizer |
-| **Network & Web (7)** | `netutils`, `httputils`, `serverutils`, `urlutils`, `jwtutils`, `cryptoutils`, `hashutils` | `Bun.serve`, `Bun.hash` (`wyhash`, Bloom filter), `Bun.dns`, zero-dependency HS256 JWT, `Bun.password` |
-| **Concurrency & Logic (7)** | `asyncutils`, `flowutils`, `fnutils`, `eventutils`, `validutils`, `mockutils`, `timeutils` | Bounded `parallelMap`, Token Bucket `RateLimiter`, CircuitBreaker, `fnutils.pipe`, `timeAgo`, `Bun.nanoseconds` |
+| **[bun_rad_studio](https://github.com/codecaine-zz/bun_rad_studio)** | Full-stack Rapid Application Development (RAD) visual designer and code studio powered by Bun, TypeScript, and modern web UI technologies. | Full-stack desktop & client web applications, rapid UI prototyping, and visual form design. |
+| **[bun_simplcli](https://github.com/codecaine-zz/bun_simplcli)** | Zero-dependency, high-performance console utility framework & RAD toolkit built natively for the Bun runtime (cross-platform OS system telemetry, hardware resource monitoring, ANSI styling, interactive prompts, spinners, progress meters, data tables, and logging). | Headless CLI tools, system administration utilities, terminal dashboards, and DevOps automation scripts in Bun (headless companion to Bun RAD Studio). |
+| **[vlang_simplegui](https://github.com/codecaine-zz/vlang_simplegui)** | Lightweight, high-productivity cross-platform desktop GUI toolkit and visual designer for the V programming language with 100% API parity. | Native desktop GUI applications, rapid UI prototyping, and cross-platform desktop utilities in V. |
+| **[vlang_simplecli](https://github.com/codecaine-zz/vlang_simplecli)** | Zero-dependency, high-productivity console & terminal RAD toolkit for V (ANSI colors, banners, spinners, progress meters, data tables, safe execution). | Headless CLI tools, DevOps automation scripts, and terminal dashboards (headless companion to SimpleGUI in V). |
+| **[simple_gg](https://github.com/codecaine-zz/simple_gg)** | Lightweight, hardware-accelerated 2D game & graphics engine with an immediate-mode GUI toolkit written in V. | 2D games, custom canvas widgets, interactive data visualizers, and creative coding. |
+| **[bun_webview](https://github.com/codecaine-zz/bun_webview)** | Standalone macOS `.app` packager and native webview window runtime for Bun applications with custom icons, Cocoa menus, and distribution bundling. | Packaging Bun TypeScript/JavaScript apps into native standalone macOS application bundles. |
 
-### RAD Copy & Paste Recipes
 
-#### Recipe 1: SQLite KV, Document Store, and FTS5 Full-Text Search
-```typescript
-import { sqliteutils } from "./src/features/rad/index.ts";
 
-const db = sqliteutils.openDb(":memory:");
-sqliteutils.createKvTable(db, "app_kv");
-sqliteutils.setKv(db, "app_kv", "version", "2.0.0");
-const version = sqliteutils.getKv(db, "app_kv", "version");
-console.log(`Version: ${version}`);
 
-sqliteutils.createJsonStore(db, "users");
-sqliteutils.saveDoc(db, "users", "u1", { name: "Alice", active: true });
-const doc = sqliteutils.loadDoc<{ name: string; active: boolean }>(db, "users", "u1");
-console.log(`User: ${doc?.name}`);
-
-// FTS5 Full-Text Search
-sqliteutils.createFtsTable(db, "kb", ["title", "body"]);
-sqliteutils.indexFts(db, "kb", { title: "Bun Guide", body: "High performance system scripting" });
-const ftsResults = sqliteutils.searchFts(db, "kb", "performance");
-console.log(`Matched FTS articles: ${ftsResults.length}`);
-
-sqliteutils.closeDb(db);
-```
-
-#### Recipe 2: String transforms, masking, and Levenshtein distance
-```typescript
-import { strutils } from "./src/features/rad/index.ts";
-
-const slug = strutils.slugify("Bun System Utilities 2026: Fast & Pure!");
-const email = strutils.maskEmail("developer@bun.sh");
-const dist = strutils.levenshteinDistance("kitten", "sitting");
-console.log(`${slug}, ${email}, dist: ${dist}`);
-```
-
-#### Recipe 3: Collection operations (chunking, partitioning, deduplication)
-```typescript
-import { arrutils } from "./src/features/rad/index.ts";
-
-const chunks = arrutils.chunk([1, 2, 3, 4, 5, 6], 3);
-const [evens, odds] = arrutils.partition([1, 2, 3, 4], (n) => n % 2 === 0);
-const uniqueItems = arrutils.unique([1, 1, 2, 3, 3]);
-console.log(`Chunks: ${chunks.length}, Evens: ${evens.length}, Unique: ${uniqueItems.length}`);
-```
-
-#### Recipe 4: Cryptography, token generation, and native password hashing
-```typescript
-import { cryptoutils } from "./src/features/rad/index.ts";
-
-const sha = cryptoutils.sha256("bun");
-const uuid = cryptoutils.uuidV4();
-const token = cryptoutils.randomToken(32);
-const hash = await cryptoutils.hashPassword("super-secret");
-const isValid = await cryptoutils.verifyPassword("super-secret", hash);
-console.log(`SHA: ${sha.slice(0, 8)}, UUID: ${uuid}, Valid: ${isValid}`);
-```
-
-#### Recipe 5: Zero-dependency HS256 JWT signing and verification
-```typescript
-import { jwtutils } from "./src/features/rad/index.ts";
-
-const token = jwtutils.signJwt({ sub: "user_42", role: "admin" }, "secret-key", 3600);
-const payload = jwtutils.verifyJwt<{ sub: string; role: string }>(token, "secret-key");
-console.log(`JWT Subject: ${payload.sub}, Role: ${payload.role}`);
-```
-
-#### Recipe 6: Bounded parallel mapping with order preservation
-```typescript
-import { asyncutils } from "./src/features/rad/index.ts";
-
-const numbers = [1, 2, 3, 4, 5];
-const squares = await asyncutils.parallelMap(numbers, 2, async (n) => {
-  return n * n;
-});
-console.log(`Squares: ${squares.join(", ")}`);
-```
-
-#### Recipe 7: DAG topological sort with cycle detection
-```typescript
-import { graphutils } from "./src/features/rad/index.ts";
-
-const dag = graphutils.newGraph<string>();
-dag.addEdge("compile", "test");
-dag.addEdge("test", "package");
-dag.addEdge("package", "deploy");
-
-const order = dag.topologicalSort();
-console.log(`Pipeline order: ${order.join(" -> ")}`);
-```
-
-#### Recipe 8: Native Bun.Glob and Bun.$ Shell execution
-```typescript
-import { globutils, shellutils } from "./src/features/rad/index.ts";
-
-// Scan files matching pattern
-const tsFiles = await globutils.globScan("**/*.ts", { cwd: "src" });
-
-// Safe quiet shell execution
-const res = await shellutils.execCmd("git rev-parse --short HEAD");
-if (res.success) {
-  console.log("Git HEAD:", res.stdout.trim());
-}
-```
-
-#### Recipe 9: Ultrafast Hashes and High-Speed Bloom Filter
-```typescript
-import { hashutils } from "./src/features/rad/index.ts";
-
-const wy = hashutils.wyhash("Antigravity");
-const bloom = hashutils.createBloomFilter(5000, 0.01);
-bloom.add("session:abc");
-
-console.log(`wyhash: ${wy}, has session: ${bloom.has("session:abc")}`);
-```
-
-#### Recipe 10: In-Memory TypeScript Transpiler and Ephemeral HTTP Server
-```typescript
-import { serverutils, transpileutils } from "./src/features/rad/index.ts";
-
-// Transpile TS on the fly
-const js = transpileutils.transpileTs("const value: number = 42; export default value;");
-
-// Micro-router HTTP server
-const router = serverutils.createRouter();
-router.get("/health", () => new Response("OK"));
-const server = serverutils.serveHttp({ router });
-console.log(`Server running at ${server.url}`);
-server.stop();
-```
-
-#### Recipe 11: Deep Path Access, Pick, Omit & Deep Merge (`objutils`)
-```typescript
-import { objutils } from "./src/features/rad/index.ts";
-
-const profile = {
-  user: {
-    details: {
-      name: "Alice",
-      roles: ["admin", "editor"],
-    },
-  },
-};
-
-// Safe deep get with fallback
-const name = objutils.get(profile, "user.details.name", "Unknown"); // "Alice"
-
-// Deep set and unset
-objutils.set(profile, "user.details.email", "alice@example.com");
-objutils.unset(profile, "user.details.email");
-
-// Deep equality & deep merge
-const eq = objutils.isEqual({ a: [1, 2] }, { a: [1, 2] }); // true
-const merged = objutils.deepMerge({ a: { b: 1 } }, { a: { c: 2 } }); // { a: { b: 1, c: 2 } }
-
-// Pick & Omit
-const subset = objutils.pick({ a: 1, b: 2, c: 3 }, ["a", "c"]); // { a: 1, c: 3 }
-```
-
-#### Recipe 12: Functional Primitives & Array `at` (`fnutils` & `arrutils`)
-```typescript
-import { arrutils, fnutils } from "./src/features/rad/index.ts";
-
-// Array negative index lookup (es-toolkit/array/at)
-const items = ["alpha", "beta", "gamma", "delta"];
-console.log(arrutils.at(items, 0));  // "alpha"
-console.log(arrutils.at(items, -1)); // "delta"
-console.log(arrutils.at(items, -2)); // "gamma"
-
-// Compact falsy values
-const clean = arrutils.compact([0, 1, false, 2, "", 3, null, undefined]); // [1, 2, 3]
-
-// Left-to-right pipe composition
-const processText = fnutils.pipe(
-  "  hello bun  ",
-  (s: string) => s.trim(),
-  (s: string) => s.toUpperCase(),
-  (s: string) => `[${s}]`
-);
-console.log(processText); // "[HELLO BUN]"
-
-// Memoization with cache inspection
-const double = fnutils.memoize((n: number) => n * 2);
-console.log(double(5), double(5), double.cache.size); // 10 10 1
-```
-
-#### Recipe 13: High-Performance TOML Parsing & Serialization (`tomlutils` via `Bun.TOML`)
-```typescript
-import { tomlutils } from "./src/features/rad/index.ts";
-
-// Parse TOML text into structured data with native C++/Zig Bun.TOML
-const config = tomlutils.parseToml<{ server: { port: number; host: string } }>(`
-[server]
-port = 9000
-host = "0.0.0.0"
-
-[database]
-enabled = true
-pool = 25
-`);
-
-// Type-safe key-path resolution
-const port = tomlutils.getInt(config, "server.port", 3000); // 9000
-const host = tomlutils.getString(config, "server.host");     // "0.0.0.0"
-const enabled = tomlutils.getBool(config, "database.enabled"); // true
-
-// Serialize JavaScript object to standard TOML string
-const serializedToml = tomlutils.stringifyToml({
-  service: { name: "auth-gateway", max_retries: 3 }
-});
-
-// Asynchronous file save & load using Bun.file / Bun.write
-await tomlutils.saveToml("/tmp/service.toml", { status: "active" });
-const loaded = await tomlutils.loadToml("/tmp/service.toml");
-console.log(loaded.status); // "active"
-```
-
-#### Recipe 14: Dynamic BitSet & Flag Bitmask Manipulation (`bitutils`)
-```typescript
-import { bitutils } from "./src/features/rad/index.ts";
-
-const bits = new bitutils.BitSet(64);
-bits.set(2);
-bits.set(5);
-bits.set(60);
-console.log(bits.get(2), bits.get(3), bits.countSet()); // true false 3
-
-// Flag bitmask helpers
-let flags = 0;
-flags = bitutils.setFlag(flags, 1 << 0); // READ
-flags = bitutils.setFlag(flags, 1 << 1); // WRITE
-const canRead = bitutils.hasFlag(flags, 1 << 0); // true
-```
-
-#### Recipe 15: SemVer 2.0.0 Range Matching & Version Bumping (`semverutils` via `Bun.semver`)
-```typescript
-import { semverutils } from "./src/features/rad/index.ts";
-
-// Native precedence comparison via Bun.semver.order (-1: v1 < v2, 0: equal, 1: v1 > v2)
-const diff = semverutils.compareSemver("1.2.0", "1.1.9"); // 1
-
-// Native range matching via Bun.semver.satisfies
-const matches = semverutils.satisfiesRange("1.3.4", "^1.0.0"); // true
-
-// Bump version component
-const nextPatch = semverutils.bumpVersion("1.0.0", "patch"); // "1.0.1"
-```
-
-#### Recipe 16: Terminal ANSI Styling, Progress Bar & Sparklines (`cliutils`)
-```typescript
-import { cliutils } from "./src/features/rad/index.ts";
-
-// Terminal ANSI styling
-const styled = cliutils.colors.bold(cliutils.colors.green("SUCCESS"));
-
-// Progress bar (50% progress, width 20)
-const bar = cliutils.progressBar(50, 100, 20); // "[==========----------] 50%"
-
-// Sparkline graph
-const spark = cliutils.sparkline([1, 5, 2, 8, 3, 9, 4]); // " ▄▂▇▃█▄"
-```
-
-#### Recipe 17: Color Conversions & WCAG 2.1 Contrast Auditing (`colorutils`)
-```typescript
-import { colorutils } from "./src/features/rad/index.ts";
-
-// Hex to RGB and HSL conversion
-const rgb = colorutils.hexToRgb("#ff5733"); // { r: 255, g: 87, b: 51 }
-const hsl = colorutils.rgbToHsl(rgb);
-
-// WCAG 2.1 contrast ratio calculation
-const contrast = colorutils.contrastRatio({ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }); // 21.0
-const passesAA = colorutils.isAccessible({ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }, "AA"); // true
-```
-
-#### Recipe 18: In-Memory Zip Archive Creation & Extraction (`archiveutils`)
-```typescript
-import { archiveutils } from "./src/features/rad/index.ts";
-
-// Create PKZIP buffer in memory using native Bun.deflateSync & Bun.hash.crc32
-const zipBytes = archiveutils.zipFiles([
-  { name: "hello.txt", data: "Bun RAD Utilities" },
-  { name: "config.json", data: JSON.stringify({ active: true }) },
-]);
-
-// Inspect contents and extract
-const entries = await archiveutils.listZipEntries(zipBytes); // ["hello.txt", "config.json"]
-const content = await archiveutils.readZipEntry(zipBytes, "hello.txt");
-```
-
-#### Recipe 19: High-Speed Gzip & Deflate String Compression (`compressutils`)
-```typescript
-import { compressutils } from "./src/features/rad/index.ts";
-
-const originalText = "Bun RAD Development Utilities 2026: Fast, Type-Safe, and Ergonomic";
-const compressedBase64 = compressutils.gzipCompressString(originalText);
-const restoredText = compressutils.gzipDecompressString(compressedBase64);
-const savedRatio = compressutils.compressionRatio(originalText.length, compressedBase64.length);
-```
-
-#### Recipe 20: High-Resolution Monotonic Nanoseconds & Stopwatch (`timeutils`)
-```typescript
-import { timeutils } from "./src/features/rad/index.ts";
-
-// High-resolution nanoseconds from Bun.nanoseconds()
-const startNs = timeutils.nanoseconds();
-
-// High-resolution performance stopwatch
-const sw = timeutils.createStopwatch();
-sw.start();
-const elapsedMs = sw.stop();
-```
-
----
-
-### RAD Master-Upgrade Integration Recipes
-
-Cross-module recipes exercising the upgraded APIs. Every recipe here is mirrored verbatim (with temp paths) in [`src/features/rad/rad.recipes.test.ts`](../src/features/rad/rad.recipes.test.ts).
-
-#### Recipe 21: Storage Power-Pack — config layers → SQLite → compressed, verified backups (`tomlutils`, `sqliteutils`, `fileutils`, `compressutils`, `tarutils`, `archiveutils`, `cacheutils`, `stateutils`)
-```typescript
-import { tomlutils, sqliteutils, fileutils, compressutils, tarutils, archiveutils, cacheutils, stateutils } from "./src/features/rad/index.ts";
-
-await fileutils.withTempDir(async (dir) => {
-  // 1. Layered TOML config (default → local override)
-  await tomlutils.saveToml(`${dir}/default.toml`, { db: { path: `${dir}/app.db` }, cache: { ttl_ms: 5000 } });
-  await tomlutils.saveToml(`${dir}/local.toml`, { cache: { ttl_ms: 250 } });
-  const cfg = await tomlutils.loadTomlLayers([`${dir}/default.toml`, `${dir}/local.toml`]);
-
-  // 2. Migrated SQLite database with bulk insert + JSON docs
-  const db = sqliteutils.openDb(tomlutils.getString(cfg, "db.path"));
-  sqliteutils.runMigrations(db, [{ version: 1, up: "CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT);" }]);
-  sqliteutils.insertMany(db, "notes", [{ body: "alpha" }, { body: "beta" }]);
-
-  // 3. TTL cache in front of the DB (concurrent callers share one query)
-  const cache = new cacheutils.TTLCache<string, number>(tomlutils.getInt(cfg, "cache.ttl_ms"));
-  const count = await cache.getOrSet("notes:count", () => sqliteutils.countRows(db, "notes"));
-
-  // 4. Hot backup → CSV export → tar.gz + zip bundles with checksums
-  sqliteutils.backupDb(db, `${dir}/backup.db`);
-  await fileutils.writeCsvObjects(`${dir}/notes.csv`, sqliteutils.selectRows(db, "notes"));
-  sqliteutils.closeDb(db);
-  const csvBytes = await Bun.file(`${dir}/notes.csv`).bytes();
-  const tgz = tarutils.packTarGz([{ name: "export/notes.csv", data: csvBytes }]);
-  const zip = archiveutils.zipFiles([{ name: "notes.csv.zst", data: compressutils.zstdCompress(csvBytes) }]);
-  await Bun.write(`${dir}/export.tgz`, tgz);
-
-  // 5. Persist "last export" metadata with undo support
-  const state = new stateutils.AppStateStore("exporter", { lastExport: "", sha256: "" }, { customPath: `${dir}/state.json` });
-  await state.patch({ lastExport: new Date().toISOString(), sha256: await fileutils.hashFile(`${dir}/export.tgz`) });
-
-  console.log({ count, tarEntries: tarutils.listTarEntries(tgz), zipEntries: await archiveutils.listZipEntries(zip), state: state.get() });
-});
-```
-
-#### Recipe 22: Collections Power-Pack — dependency graph → scheduling → analytics (`graphutils`, `structutils`, `arrutils`, `objutils`, `statutils`, `mathutils`, `bitutils`)
-```typescript
-import { graphutils, structutils, arrutils, objutils, statutils, mathutils, bitutils } from "./src/features/rad/index.ts";
-
-// 1. Service dependency graph → safe start order + cycle guard
-const deps = graphutils.Graph.fromEdges<string>([["db", "api"], ["cache", "api"], ["api", "web"], ["api", "worker"]]);
-if (deps.hasCycle()) throw new Error(`cycle: ${deps.findCycle()!.join(" -> ")}`);
-const startOrder = deps.topologicalSort(); // ["db","cache","api","web","worker"]
-
-// 2. Priority-scheduled boot with per-service capability flags
-const Cap = bitutils.defineFlags(["http", "queue", "storage"] as const);
-const caps: Record<string, number> = { db: Cap.storage, cache: Cap.storage, api: Cap.http, web: Cap.http, worker: Cap.queue };
-const pq = new structutils.SimplePriorityQueue<string>();
-startOrder.forEach((svc, i) => pq.enqueue(svc, i));
-const boot: string[] = [];
-while (!pq.isEmpty()) boot.push(pq.dequeue()!);
-const httpServices = boot.filter((s) => bitutils.hasFlag(caps[s]!, Cap.http)); // ["api","web"]
-
-// 3. Simulated (seeded) boot timings → robust analytics
-const rng = mathutils.seededRandom(7);
-const timings = boot.map((svc) => ({ svc, ms: mathutils.round(50 + rng() * 100, 1) }));
-const slowest = arrutils.orderBy(timings, [(t) => t.ms], ["desc"])[0]!;
-const summary = statutils.summarize(timings.map((t) => t.ms));
-
-// 4. Config drift report between two boots
-const before = { api: { replicas: 2, port: 8080 }, web: { replicas: 1 } };
-const after = objutils.deepMerge(objutils.deepClone(before), { api: { replicas: 3 } });
-const drift = objutils.objectDiff(before, after); // { added: [], removed: [], changed: ["api.replicas"] }
-
-console.log({ startOrder, httpServices, slowest, p50: summary.median, drift });
-```

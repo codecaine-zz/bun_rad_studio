@@ -79,8 +79,7 @@ In complex workstation UIs, applying filters often leads to desynchronized selec
 - **Zero-Drift Selection Preservation**: When you apply a search or filter, the system checks if your currently selected tool is still present in the results. If it is, **it stays selected and highlighted**! It never resets to the first item unexpectedly.
 - **Graceful Fallback**: If your active tool does not match the active filter, the selection cleanly transitions to the first matching tool, updating both top and bottom views simultaneously.
 - **Top ➔ Bottom Sync**: Selecting an item in the top dropdown (`dd_select_app`) or top listbox (`lst_apps`) automatically highlights the corresponding row in the bottom table (`tbl_apps`) with glowing cyan accenting and smoothly scrolls it into view.
-- **Bottom ➔ Top Sync**: Clicking any row in the bottom table (`tbl_apps`) immediately selects that item in both the top dropdown and listbox.
-- **Double-Click Acceleration**: Double-clicking an entry in either the top listbox or the bottom table launches the application immediately.
+- **Double-Click Auto-Launch**: Double-clicking any list item in the interactive top listbox (`lst_apps`) or row in the catalog table (`tbl_apps`) instantly auto-launches that tool with instant visual toast feedback.
 
 ### 4. ⚡ 1-Click Quick Launch Toolbars
 Located right below telemetry cards, these high-density buttons trigger the most common engineering tools with optimal preset arguments:

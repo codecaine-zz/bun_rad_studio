@@ -1481,6 +1481,9 @@ export function generatePreviewHtml(spec: any): string {
             ...(c.onClick ? { onClick: c.onClick } : {}),
             ...(c.onchange ? { onChange: c.onchange } : {}),
             ...(c.onChange ? { onChange: c.onChange } : {}),
+            ...(c.ondblclick ? { onDoubleClick: c.ondblclick } : {}),
+            ...(c.onDoubleClick ? { onDoubleClick: c.onDoubleClick } : {}),
+            ...(c.ondoubleclick ? { onDoubleClick: c.ondoubleclick } : {}),
         };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();
@@ -1505,6 +1508,9 @@ export function generatePreviewHtml(spec: any): string {
                 if (ctrlType === 'listbox') {
                     if (!handlers.onClick && !handlers.onclick) {
                         handlers.onClick = handlers.onChange || `on_${c.id}_click`;
+                    }
+                    if (!handlers.onDoubleClick && !handlers.ondblclick && !handlers.ondoubleclick) {
+                        handlers.onDoubleClick = `on_${c.id}_doubleclick`;
                     }
                 }
             } else {
@@ -1893,8 +1899,9 @@ export function generatePreviewHtml(spec: any): string {
                     : '';
 
                 const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${rowPid}');`;
+                const rowDblClickScript = `const fn=window['${c.id}_onDoubleClick']||window['on_${c.id}_doubleclick']||window['on_${c.id}_ondoubleclick'];if(fn)fn('${rowPid}');`;
 
-                return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells.map((cell: any, i: number) => {
+                return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" ondblclick="${rowDblClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells.map((cell: any, i: number) => {
                     const alignStyle = (i >= 3 && i <= 5) ? 'text-align:right;' : 'text-align:left;';
                     const monoStyle = (i === 0 || (i >= 3 && i <= 5)) ? 'font-family:monospace;' : '';
                     const strVal = cell === null || cell === undefined ? '' : String(cell);

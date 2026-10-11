@@ -109,11 +109,18 @@ async function buildLib() {
     log("📄", "Generated dist/package.json");
 
     // --- copy readme & API docs ---
-    for (const file of ["README.md", "API.md", "SIMPLEGUI_API.md"]) {
-        const src = join(ROOT, file);
+    if (existsSync(join(ROOT, "README.md"))) {
+        copyFileSync(join(ROOT, "README.md"), join(DIST, "README.md"));
+        log("📄", "Copied README.md → dist/README.md");
+    }
+    const distDocs = join(DIST, "docs");
+    mkdirSync(distDocs, { recursive: true });
+    for (const file of ["API.md", "SIMPLEGUI_API.md", "THEMES.md", "SYSTEM_UTILITIES_API.md"]) {
+        const src = join(ROOT, "docs", file);
         if (existsSync(src)) {
+            copyFileSync(src, join(distDocs, file));
             copyFileSync(src, join(DIST, file));
-            log("📄", `Copied ${file} → dist/${file}`);
+            log("📄", `Copied docs/${file} → dist/docs/${file}`);
         }
     }
 

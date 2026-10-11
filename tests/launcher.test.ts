@@ -217,5 +217,26 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
 
     expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
   });
+
+  it("registers double-click auto-launch handlers for both lst_apps and tbl_apps", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    expect(win).toBeDefined();
+
+    // Verify double-click handlers are registered in eventHandlersMap
+    const lstDblHandler = (win as any).eventHandlersMap?.get("lst_apps:ondoubleclick");
+    expect(lstDblHandler).toBeDefined();
+
+    const tblDblHandler = (win as any).eventHandlersMap?.get("tbl_apps:ondoubleclick");
+    expect(tblDblHandler).toBeDefined();
+
+    // Verify HTML generation includes ondblclick on the table container / script setup
+    const html = win.generateHtml();
+    expect(html).toContain('id="tbl_apps"');
+    expect(html).toContain('id="lst_apps"');
+
+    // Triggering double click on tbl_apps updates selection
+    tblDblHandler(win, "rad_sqlite_studio");
+    expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+  });
 });
 

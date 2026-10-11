@@ -308,7 +308,10 @@ win.addButton("🚀 Deploy", (w) => console.log("Deploying..."))
 | `.flash()` | `() => this` | Flashes component background highlight |
 | `.highlight()` | `(durationMs?: number) => this` | Highlights control for specified duration |
 | `.onClick()` | `(handler: EventCallback) => this` | Binds click event listener |
+| `.onDoubleClick()` / `.onDblClick()` | `(handler: EventCallback) => this` | Binds double-click listener (passes option value on listbox, row ID on table) |
+| `.onRightClick()` | `(handler: EventCallback) => this` | Binds right-click / context menu listener |
 | `.onChange()` | `(handler: EventCallback) => this` | Binds value change listener |
+| `.onEnter()` | `(handler: EventCallback) => this` | Binds Enter/Return key press listener on input fields |
 | `.onHover()` | `(handler: EventCallback) => this` | Binds mouse hover listener |
 | `.onHoverExit()` | `(handler: EventCallback) => this` | Binds mouse hover exit listener |
 
@@ -899,33 +902,91 @@ const user = win.getState("username");
 win.addTextInput("Job Title").id("txt_title").bindState("job_title");
 ```
 
-#### 2. Fluent Event & Shortcut Binding Aliases
+#### 2. Event Listeners & Double-Click Dispatching
+
+SimpleGUI provides comprehensive event binding both at the window level and directly on control references via fluent chaining.
+
+##### Complete Event Binding Methods Reference
+
+| Window Method | Control Method | Passed Parameter (`val`) | Description |
+| --- | --- | --- | --- |
+| `win.onClick(id, cb)`<br>`win.on_click(id, cb)`<br>`win.bindClick(id, cb)` | `ref.onClick(cb)` | `string` (caption, item, or row ID) | Triggers on primary mouse click. |
+| `win.onDoubleClick(id, cb)`<br>`win.onDblClick(id, cb)`<br>`win.on_double_click(id, cb)`<br>`win.on_dblclick(id, cb)`<br>`win.bindDblClick(id, cb)` | `ref.onDoubleClick(cb)`<br>`ref.onDblClick(cb)`<br>`ref.on_double_click(cb)`<br>`ref.on_dblclick(cb)` | `string` (selected value or row PID) | Triggers on mouse double-click. On listboxes passes option text/value; on tables passes row primary key (`rowPid` / `cells[0]`). |
+| `win.onChange(id, cb)`<br>`win.on_change(id, cb)`<br>`win.bindChange(id, cb)` | `ref.onChange(cb)` | `any` (new input value) | Triggers on value change or keystroke (synchronized real-time). |
+| `win.onEnter(id, cb)`<br>`win.on_enter(id, cb)`<br>`win.bindEnter(id, cb)` | `ref.onEnter(cb)`<br>`ref.on_enter(cb)` | `string` (current input text) | Triggers when the user presses <kbd>Enter</kbd> / <kbd>Return</kbd> inside an input field. |
+| `win.onRightClick(id, cb)`<br>`win.on_right_click(id, cb)`<br>`win.bindRightClick(id, cb)` | `ref.onRightClick(cb)`<br>`ref.on_right_click(cb)` | `string` (action label) | Triggers on right-click / context menu interaction. |
+| `win.onHover(id, cb)`<br>`win.on_hover(id, cb)`<br>`win.bindHover(id, cb)` | `ref.onHover(cb)` | `undefined` | Triggers when mouse cursor enters control bounds. |
+| `win.onHoverExit(id, cb)` | `ref.onHoverExit(cb)` | `undefined` | Triggers when mouse cursor exits control bounds. |
+| `win.onSelectionChange(id, cb)` | `ref.onSelectionChange(cb)` | `string[]` (selected IDs) | Triggers when multi-selection in a table or list changes. |
+| `win.onShortcut(key, cb)`<br>`win.bindShortcut(key, cb)` | — | `undefined` | Binds global window keyboard shortcut (e.g. `"Escape"`, `"Ctrl+S"`). |
+
+##### 🖱️ Double-Click Semantics & Auto-Launch Pattern
+
+Double-clicking is standard desktop UX for instant launching, opening files, or editing records. SimpleGUI wires native `ondblclick` handlers across the Webview IPC bridge:
+
+1. **ListBox (`lst_*`)**:
+   - Double-clicking any option item triggers `onDoubleClick` passing the clicked option text or value.
+2. **Data Table / DBGrid (`tbl_*`)**:
+   - Double-clicking any table row triggers `onDoubleClick` passing that row's primary key (`data-pid` or `cells[0]`).
+3. **Launch Mutex & Debounce Best Practice**:
+   - Because users may double-click quickly, always guard child process spawns with a debounce or per-app launch lock so only **exactly one instance** opens:
 
 ```typescript
-// Bind click callback
-win.bindClick("btn_submit", (w) => {
-    w.info("Submitted", "Form processed successfully!");
+import { createWindow } from "bun_rad_studio";
+
+const win = createWindow("Launcher Studio", 880, 580);
+
+// 1. Top ListBox with fluent double-click binding
+win.addListBox("lst_apps", [
+    "Database: SQLite Studio Pro",
+    "Cache: Redis Studio Pro",
+    "Network: Packet Inspector"
+]).onDoubleClick((w, selectedVal) => {
+    w.toast(`🚀 Auto-launching: ${selectedVal}...`);
+    launchApp(selectedVal);
 });
 
-// Bind value change callback
-win.bindChange("theme_picker", (w, val) => {
-    w.setTheme(val);
+// 2. Bottom Table with window-level double-click binding
+const tableHeaders = ["ID", "Name", "Category", "Status"];
+const tableRows = [
+    ["sqlite_studio", "SQLite Studio Pro", "Database", "Ready"],
+    ["redis_studio", "Redis Studio Pro", "Cache", "Ready"],
+    ["packet_studio", "Packet Inspector", "Network", "Active"]
+];
+
+win.addTable("tbl_apps", tableHeaders, tableRows, (w, rowPid) => {
+    // Single-click selects and previews
+    w.setStatus(`Selected tool: ${rowPid}`);
 });
 
-// Bind Enter key press on input field
-win.bindEnter("input_search", (w) => {
-    const q = w.getText("input_search");
-    console.log(`Search query: ${q}`);
+win.onDoubleClick("tbl_apps", (w, rowPid) => {
+    // Double-click auto-launches the tool
+    w.toast(`🚀 Opening application: ${rowPid}...`);
+    launchApp(rowPid);
 });
 
-// Bind hover, double-click, and right-click
-win.bindHover("card_box", () => console.log("Hovering"));
-win.bindDblClick("list_item", () => console.log("Double clicked"));
-win.bindRightClick("list_item", () => console.log("Context menu requested"));
+// 3. Recommended Per-App Launch Mutex
+const activeLaunches = new Set<string>();
 
-// Bind keyboard shortcuts
-win.bindShortcut("Escape", (w) => w.close());
-win.bindShortcut("Ctrl+S", (w) => w.saveAppFormState());
+async function launchApp(appId: string) {
+    if (activeLaunches.has(appId)) return; // Suppress duplicate triggers
+    activeLaunches.add(appId);
+    try {
+        console.log(`Launching process for ${appId}...`);
+        await executeSubprocess(appId);
+    } finally {
+        setTimeout(() => activeLaunches.delete(appId), 1000);
+    }
+}
+
+// 4. Enter Key and Shortcut Binding
+win.addTextInput("Type search filter...").id("txt_search");
+win.onEnter("txt_search", (w, query) => {
+    w.toast(`Searching for: ${query}`);
+});
+
+win.onShortcut("Escape", (w) => w.close());
+win.onShortcut("Ctrl+S", (w) => w.saveAppFormState());
 ```
 
 [⬆️ Back to Top](#table-of-contents)
@@ -1170,6 +1231,29 @@ win.enableControls(["btnSave"]);
 win.error("Invalid Input", "Please enter a valid email address.");
 ```
 
+### Q: How do I handle double-clicks on a ListBox or Table?
+```typescript
+// ListBox: val is the selected item text
+win.addListBox("lst_items", ["Item 1", "Item 2", "Item 3"])
+   .onDoubleClick((w, item) => {
+       console.log("Double clicked list item:", item);
+   });
+
+// Table: val is the row PID (first column value)
+win.addTable("tbl_records", ["ID", "Name"], [["101", "Ada"], ["102", "Alan"]])
+   .onDoubleClick((w, rowId) => {
+       console.log("Double clicked row ID:", rowId);
+   });
+```
+
+### Q: How do I trigger an action when the user presses Enter in an input field?
+```typescript
+win.addTextInput("Type and press Enter...").id("txtSearch");
+win.onEnter("txtSearch", (w, text) => {
+    w.toast(`Search triggered: ${text}`);
+});
+```
+
 [⬆️ Back to Top](#table-of-contents)
 
 ---
@@ -1180,7 +1264,17 @@ win.error("Invalid Input", "Please enter a valid email address.");
 1. **Forgot `win.run()`**: If your script exits immediately without opening a window, ensure you called `win.run()` at the end of your file.
 2. **Unbalanced Container Calls**: Always balance every `beginRow()` with `endRow()`, `beginGrid()` with `endGrid()`, and `beginCard()` with `endCard()`.
 3. **Duplicate Control IDs**: Give every input control a unique `.id("...")` key. Duplicate IDs will overwrite state lookups in `getFormValues()`.
-4. **Asynchronous Handlers**: Event callbacks can be `async`. Use `await w.withBusyState(...)` when executing network or file requests.
+4. **Duplicate Launches on Fast Double-Clicks**: When launching external child processes from a double-click event, guard your launch function with a per-app `Set` or debounce lock to prevent duplicate subprocesses:
+   ```typescript
+   const launching = new Set<string>();
+   async function safeLaunch(appId: string) {
+       if (launching.has(appId)) return;
+       launching.add(appId);
+       try { await startProcess(appId); }
+       finally { setTimeout(() => launching.delete(appId), 1000); }
+   }
+   ```
+5. **Asynchronous Handlers**: Event callbacks can be `async`. Use `await w.withBusyState(...)` when executing network or file requests.
 
 [⬆️ Back to Top](#table-of-contents)
 

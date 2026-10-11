@@ -43,7 +43,7 @@ The flagship brand theme featuring deep obsidian black and vibrant neon emerald.
 - **Canvas**: `#050505` | **Card Background**: `#121212` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes codefreelance`
 
-![CodeFreelance Showcase](screenshots/themes/codefreelance.png)
+![CodeFreelance Showcase](../screenshots/themes/codefreelance.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -63,7 +63,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#091811` | **Card Background**: `#10261c` | **Text**: `#ecfdf5`
 - **Live Preview Command**: `bun run demo:themes sonoma_emerald`
 
-![Sonoma Emerald Showcase](screenshots/themes/sonoma_emerald.png)
+![Sonoma Emerald Showcase](../screenshots/themes/sonoma_emerald.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -78,7 +78,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#161618` | **Card Background**: `#242426` | **Text**: `#f5f5f7`
 - **Live Preview Command**: `bun run demo:themes apple_dark`
 
-![Apple Dark Showcase](screenshots/themes/apple_dark.png)
+![Apple Dark Showcase](../screenshots/themes/apple_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -93,7 +93,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#f5f5f7` | **Card Background**: `#ffffff` | **Text**: `#1d1d1f`
 - **Live Preview Command**: `bun run demo:themes apple_light`
 
-![Apple Light Showcase](screenshots/themes/apple_light.png)
+![Apple Light Showcase](../screenshots/themes/apple_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -108,7 +108,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#0f1115` | **Card Background**: `#161922` | **Text**: `#e6edf3`
 - **Live Preview Command**: `bun run demo:themes midnight`
 
-![Midnight Space Gray Showcase](screenshots/themes/midnight.png)
+![Midnight Space Gray Showcase](../screenshots/themes/midnight.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -123,7 +123,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#221526` | **Card Background**: `#2d1e33` | **Text**: `#fdf4f8`
 - **Live Preview Command**: `bun run demo:themes apple_sunset`
 
-![Apple Sunset Showcase](screenshots/themes/apple_sunset.png)
+![Apple Sunset Showcase](../screenshots/themes/apple_sunset.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -138,7 +138,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#1c140e` | **Card Background**: `#281e16` | **Text**: `#fffbeb`
 - **Live Preview Command**: `bun run demo:themes ventura_amber`
 
-![Ventura Amber Showcase](screenshots/themes/ventura_amber.png)
+![Ventura Amber Showcase](../screenshots/themes/ventura_amber.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -153,7 +153,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#f9f6f0` | **Card Background**: `#ffffff` | **Text**: `#1c1917`
 - **Live Preview Command**: `bun run demo:themes soft_pastel`
 
-![Soft Pastel Showcase](screenshots/themes/soft_pastel.png)
+![Soft Pastel Showcase](../screenshots/themes/soft_pastel.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -168,7 +168,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#e6ebed` | **Card Background**: `#ffffff` | **Text**: `#0f172a`
 - **Live Preview Command**: `bun run demo:themes mac_os_aqua`
 
-![Mac OS X Aqua Showcase](screenshots/themes/mac_os_aqua.png)
+![Mac OS X Aqua Showcase](../screenshots/themes/mac_os_aqua.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -183,7 +183,7 @@ Authentic Apple operating system designs from classic Mac OS X Aqua to contempor
 - **Canvas**: `#ebe7df` | **Card Background**: `#ffffff` | **Text**: `#1c1b18`
 - **Live Preview Command**: `bun run demo:themes mac_classic`
 
-![Macintosh System 7 Showcase](screenshots/themes/mac_classic.png)
+![Macintosh System 7 Showcase](../screenshots/themes/mac_classic.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -203,7 +203,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#0e0f12` | **Card Background**: `#18191e` | **Text**: `#f3f4f6`
 - **Live Preview Command**: `bun run demo:themes raycast_dark`
 
-![Raycast Dark Showcase](screenshots/themes/raycast_dark.png)
+![Raycast Dark Showcase](../screenshots/themes/raycast_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -218,7 +218,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#0f1015` | **Card Background**: `#181922` | **Text**: `#e2e4ed`
 - **Live Preview Command**: `bun run demo:themes linear_dark`
 
-![Linear Studio Showcase](screenshots/themes/linear_dark.png)
+![Linear Studio Showcase](../screenshots/themes/linear_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -233,7 +233,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#000000` | **Card Background**: `#0a0a0a` | **Text**: `#ededed`
 - **Live Preview Command**: `bun run demo:themes vercel_dark`
 
-![Vercel Geist Showcase](screenshots/themes/vercel_dark.png)
+![Vercel Geist Showcase](../screenshots/themes/vercel_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -248,7 +248,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#18191c` | **Card Background**: `#222328` | **Text**: `#e1e2e6`
 - **Live Preview Command**: `bun run demo:themes unreal_engine`
 
-![Unreal Engine 5 Showcase](screenshots/themes/unreal_engine.png)
+![Unreal Engine 5 Showcase](../screenshots/themes/unreal_engine.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -263,7 +263,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#170f26` | **Card Background**: `#23183a` | **Text**: `#f8f6fc`
 - **Live Preview Command**: `bun run demo:themes arc_velvet`
 
-![Arc Velvet Showcase](screenshots/themes/arc_velvet.png)
+![Arc Velvet Showcase](../screenshots/themes/arc_velvet.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -278,7 +278,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#030712` | **Card Background**: `#0b1329` | **Text**: `#f0fdfa`
 - **Live Preview Command**: `bun run demo:themes abyss`
 
-![Abyss Bioluminescence Showcase](screenshots/themes/abyss.png)
+![Abyss Bioluminescence Showcase](../screenshots/themes/abyss.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -293,7 +293,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#0e0e13` | **Card Background**: `#171720` | **Text**: `#fcee0a`
 - **Live Preview Command**: `bun run demo:themes night_city`
 
-![Cyberpunk Night City Showcase](screenshots/themes/night_city.png)
+![Cyberpunk Night City Showcase](../screenshots/themes/night_city.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -308,7 +308,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#1c1e26` | **Card Background**: `#232530` | **Text**: `#fdf0ed`
 - **Live Preview Command**: `bun run demo:themes horizon`
 
-![Horizon Sunset Showcase](screenshots/themes/horizon.png)
+![Horizon Sunset Showcase](../screenshots/themes/horizon.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -323,7 +323,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#0b1120` | **Card Background**: `#151e32` | **Text**: `#f1f5f9`
 - **Live Preview Command**: `bun run demo:themes tailwind_dark`
 
-![Tailwind Slate Emerald Showcase](screenshots/themes/tailwind_dark.png)
+![Tailwind Slate Emerald Showcase](../screenshots/themes/tailwind_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -338,7 +338,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#121212` | **Card Background**: `#1c1c1c` | **Text**: `#f8fafc`
 - **Live Preview Command**: `bun run demo:themes supabase`
 
-![Supabase Dark Showcase](screenshots/themes/supabase.png)
+![Supabase Dark Showcase](../screenshots/themes/supabase.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -353,7 +353,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#000000` | **Card Background**: `#0a0a0a` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes oled_black`
 
-![OLED Laser Black Showcase](screenshots/themes/oled_black.png)
+![OLED Laser Black Showcase](../screenshots/themes/oled_black.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -368,7 +368,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#131417` | **Card Background**: `#1c1d22` | **Text**: `#e5e5ea`
 - **Live Preview Command**: `bun run demo:themes titanium_slate`
 
-![Titanium Slate Pro Showcase](screenshots/themes/titanium_slate.png)
+![Titanium Slate Pro Showcase](../screenshots/themes/titanium_slate.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -383,7 +383,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#2b2b2b` | **Card Background**: `#313335` | **Text**: `#a9b7c6`
 - **Live Preview Command**: `bun run demo:themes jetbrains_darcula`
 
-![JetBrains Darcula Showcase](screenshots/themes/jetbrains_darcula.png)
+![JetBrains Darcula Showcase](../screenshots/themes/jetbrains_darcula.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -398,7 +398,7 @@ Premium, modern software company aesthetics engineered for maximum focus and vis
 - **Canvas**: `#f7f7f5` | **Card Background**: `#ffffff` | **Text**: `#202124`
 - **Live Preview Command**: `bun run demo:themes nordic_paper`
 
-![Nordic Paper Light Showcase](screenshots/themes/nordic_paper.png)
+![Nordic Paper Light Showcase](../screenshots/themes/nordic_paper.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -418,7 +418,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#2d2a2e` | **Card Background**: `#221f22` | **Text**: `#fcfcfa`
 - **Live Preview Command**: `bun run demo:themes monokai_pro`
 
-![Monokai Pro Showcase](screenshots/themes/monokai_pro.png)
+![Monokai Pro Showcase](../screenshots/themes/monokai_pro.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -433,7 +433,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#1a1b26` | **Card Background**: `#24283b` | **Text**: `#c0caf5`
 - **Live Preview Command**: `bun run demo:themes tokyo_night`
 
-![Tokyo Night Showcase](screenshots/themes/tokyo_night.png)
+![Tokyo Night Showcase](../screenshots/themes/tokyo_night.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -448,7 +448,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#21252b` | **Card Background**: `#282c34` | **Text**: `#abb2bf`
 - **Live Preview Command**: `bun run demo:themes one_dark_pro`
 
-![One Dark Pro Showcase](screenshots/themes/one_dark_pro.png)
+![One Dark Pro Showcase](../screenshots/themes/one_dark_pro.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -463,7 +463,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#282828` | **Card Background**: `#1d2021` | **Text**: `#ebdbb2`
 - **Live Preview Command**: `bun run demo:themes gruvbox_dark`
 
-![Gruvbox Dark Showcase](screenshots/themes/gruvbox_dark.png)
+![Gruvbox Dark Showcase](../screenshots/themes/gruvbox_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -478,7 +478,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#191724` | **Card Background**: `#21202e` | **Text**: `#e0def4`
 - **Live Preview Command**: `bun run demo:themes rose_pine`
 
-![Rosé Pine Showcase](screenshots/themes/rose_pine.png)
+![Rosé Pine Showcase](../screenshots/themes/rose_pine.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -493,7 +493,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#2d353b` | **Card Background**: `#232a2e` | **Text**: `#d3c6aa`
 - **Live Preview Command**: `bun run demo:themes everforest`
 
-![Everforest Dark Showcase](screenshots/themes/everforest.png)
+![Everforest Dark Showcase](../screenshots/themes/everforest.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -508,7 +508,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#1f1f28` | **Card Background**: `#16161d` | **Text**: `#dcd7ba`
 - **Live Preview Command**: `bun run demo:themes kanagawa`
 
-![Kanagawa Showcase](screenshots/themes/kanagawa.png)
+![Kanagawa Showcase](../screenshots/themes/kanagawa.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -523,7 +523,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#193549` | **Card Background**: `#15232d` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes cobalt2`
 
-![Cobalt2 Showcase](screenshots/themes/cobalt2.png)
+![Cobalt2 Showcase](../screenshots/themes/cobalt2.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -538,7 +538,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#202020` | **Card Background**: `#2c2c2c` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes win11_slate`
 
-![Windows 11 Fluent Slate Showcase](screenshots/themes/win11_slate.png)
+![Windows 11 Fluent Slate Showcase](../screenshots/themes/win11_slate.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -553,7 +553,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#282a36` | **Card Background**: `#21222c` | **Text**: `#f8f8f2`
 - **Live Preview Command**: `bun run demo:themes dracula`
 
-![Dracula Showcase](screenshots/themes/dracula.png)
+![Dracula Showcase](../screenshots/themes/dracula.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -568,7 +568,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#2e3440` | **Card Background**: `#3b4252` | **Text**: `#eceff4`
 - **Live Preview Command**: `bun run demo:themes nord`
 
-![Nord Showcase](screenshots/themes/nord.png)
+![Nord Showcase](../screenshots/themes/nord.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -583,7 +583,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#0a0b12` | **Card Background**: `#121320` | **Text**: `#00f5d4`
 - **Live Preview Command**: `bun run demo:themes cyberpunk`
 
-![Cyberpunk Showcase](screenshots/themes/cyberpunk.png)
+![Cyberpunk Showcase](../screenshots/themes/cyberpunk.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -598,7 +598,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#0d1117` | **Card Background**: `#161b22` | **Text**: `#e6edf3`
 - **Live Preview Command**: `bun run demo:themes github_dark`
 
-![GitHub Dark Showcase](screenshots/themes/github_dark.png)
+![GitHub Dark Showcase](../screenshots/themes/github_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -613,7 +613,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#002b36` | **Card Background**: `#073642` | **Text**: `#eee8d5`
 - **Live Preview Command**: `bun run demo:themes solarized_dark`
 
-![Solarized Dark Showcase](screenshots/themes/solarized_dark.png)
+![Solarized Dark Showcase](../screenshots/themes/solarized_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -628,7 +628,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#15141b` | **Card Background**: `#1f1d2b` | **Text**: `#edecee`
 - **Live Preview Command**: `bun run demo:themes aura`
 
-![Aura Dark Showcase](screenshots/themes/aura.png)
+![Aura Dark Showcase](../screenshots/themes/aura.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -643,7 +643,7 @@ World-renowned editor and syntax color schemes beloved by engineers worldwide.
 - **Canvas**: `#1e1e2e` | **Card Background**: `#242438` | **Text**: `#cdd6f4`
 - **Live Preview Command**: `bun run demo:themes catppuccin`
 
-![Catppuccin Mocha Showcase](screenshots/themes/catppuccin.png)
+![Catppuccin Mocha Showcase](../screenshots/themes/catppuccin.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -663,7 +663,7 @@ Optimized daytime reading themes with clear visual borders and WCAG AAA contrast
 - **Canvas**: `#f6f8fa` | **Card Background**: `#ffffff` | **Text**: `#1f2328`
 - **Live Preview Command**: `bun run demo:themes github_light`
 
-![GitHub Light Showcase](screenshots/themes/github_light.png)
+![GitHub Light Showcase](../screenshots/themes/github_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -678,7 +678,7 @@ Optimized daytime reading themes with clear visual borders and WCAG AAA contrast
 - **Canvas**: `#fdf6e3` | **Card Background**: `#eee8d5` | **Text**: `#073642`
 - **Live Preview Command**: `bun run demo:themes solarized_light`
 
-![Solarized Light Showcase](screenshots/themes/solarized_light.png)
+![Solarized Light Showcase](../screenshots/themes/solarized_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -693,7 +693,7 @@ Optimized daytime reading themes with clear visual borders and WCAG AAA contrast
 - **Canvas**: `#f3f3f3` | **Card Background**: `#ffffff` | **Text**: `#1b1b1b`
 - **Live Preview Command**: `bun run demo:themes win11_light`
 
-![Windows 11 Mica Light Showcase](screenshots/themes/win11_light.png)
+![Windows 11 Mica Light Showcase](../screenshots/themes/win11_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -708,7 +708,7 @@ Optimized daytime reading themes with clear visual borders and WCAG AAA contrast
 - **Canvas**: `#fbf1c7` | **Card Background**: `#f2e5bc` | **Text**: `#3c3836`
 - **Live Preview Command**: `bun run demo:themes gruvbox_light`
 
-![Gruvbox Light Showcase](screenshots/themes/gruvbox_light.png)
+![Gruvbox Light Showcase](../screenshots/themes/gruvbox_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -723,7 +723,7 @@ Optimized daytime reading themes with clear visual borders and WCAG AAA contrast
 - **Canvas**: `#0b1f14` | **Card Background**: `#122e1f` | **Text**: `#f0fdf4`
 - **Live Preview Command**: `bun run demo:themes forest_green`
 
-![Forest Green Showcase](screenshots/themes/forest_green.png)
+![Forest Green Showcase](../screenshots/themes/forest_green.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -738,7 +738,7 @@ Optimized daytime reading themes with clear visual borders and WCAG AAA contrast
 - **Canvas**: `#0a0f1d` | **Card Background**: `#111c33` | **Text**: `#f8fafc`
 - **Live Preview Command**: `bun run demo:themes navy_blue`
 
-![Navy Blue Showcase](screenshots/themes/navy_blue.png)
+![Navy Blue Showcase](../screenshots/themes/navy_blue.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -758,7 +758,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#008080` | **Card Background**: `#c0c0c0` | **Text**: `#000000`
 - **Live Preview Command**: `bun run demo:themes win95`
 
-![Windows 95 Showcase](screenshots/themes/win95.png)
+![Windows 95 Showcase](../screenshots/themes/win95.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -773,7 +773,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#0f380f` | **Card Background**: `#1c4a1c` | **Text**: `#9bbc0f`
 - **Live Preview Command**: `bun run demo:themes gameboy`
 
-![Game Boy 1989 Showcase](screenshots/themes/gameboy.png)
+![Game Boy 1989 Showcase](../screenshots/themes/gameboy.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -788,7 +788,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#40318d` | **Card Background**: `#281b5c` | **Text**: `#b8b5ff`
 - **Live Preview Command**: `bun run demo:themes c64`
 
-![Commodore 64 Showcase](screenshots/themes/c64.png)
+![Commodore 64 Showcase](../screenshots/themes/c64.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -803,7 +803,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#0a0600` | **Card Background**: `#160d00` | **Text**: `#ffb000`
 - **Live Preview Command**: `bun run demo:themes amber_crt`
 
-![Phosphor Amber CRT Showcase](screenshots/themes/amber_crt.png)
+![Phosphor Amber CRT Showcase](../screenshots/themes/amber_crt.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -818,7 +818,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#040a05` | **Card Background**: `#08140a` | **Text**: `#00ff66`
 - **Live Preview Command**: `bun run demo:themes matrix`
 
-![Matrix Phosphor Showcase](screenshots/themes/matrix.png)
+![Matrix Phosphor Showcase](../screenshots/themes/matrix.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -833,7 +833,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#130924` | **Card Background**: `#22113d` | **Text**: `#fce7f3`
 - **Live Preview Command**: `bun run demo:themes synthwave`
 
-![Synthwave '84 Showcase](screenshots/themes/synthwave.png)
+![Synthwave '84 Showcase](../screenshots/themes/synthwave.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -848,7 +848,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#0055aa` | **Card Background**: `#003870` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes amiga`
 
-![Amiga Workbench Showcase](screenshots/themes/amiga.png)
+![Amiga Workbench Showcase](../screenshots/themes/amiga.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -863,7 +863,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#262626` | **Card Background**: `#333333` | **Text**: `#dedede`
 - **Live Preview Command**: `bun run demo:themes nextstep`
 
-![NeXTSTEP 1989 Showcase](screenshots/themes/nextstep.png)
+![NeXTSTEP 1989 Showcase](../screenshots/themes/nextstep.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -878,7 +878,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#000000` | **Card Background**: `#1c0000` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes hotdog_stand`
 
-![Hot Dog Stand Showcase](screenshots/themes/hotdog_stand.png)
+![Hot Dog Stand Showcase](../screenshots/themes/hotdog_stand.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -893,7 +893,7 @@ Faithful recreations of vintage computing hardware, phosphor CRTs, and retro gam
 - **Canvas**: `#1e1e24` | **Card Background**: `#2a2b34` | **Text**: `#e4e5eb`
 - **Live Preview Command**: `bun run demo:themes playstation`
 
-![PlayStation 1994 Showcase](screenshots/themes/playstation.png)
+![PlayStation 1994 Showcase](../screenshots/themes/playstation.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -913,7 +913,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#242424` | **Card Background**: `#303030` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes ubuntu_dark`
 
-![Ubuntu Yaru Dark Showcase](screenshots/themes/ubuntu_dark.png)
+![Ubuntu Yaru Dark Showcase](../screenshots/themes/ubuntu_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -928,7 +928,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#f7f7f7` | **Card Background**: `#ffffff` | **Text**: `#1e1e1e`
 - **Live Preview Command**: `bun run demo:themes ubuntu_light`
 
-![Ubuntu Yaru Light Showcase](screenshots/themes/ubuntu_light.png)
+![Ubuntu Yaru Light Showcase](../screenshots/themes/ubuntu_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -943,7 +943,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#242424` | **Card Background**: `#303030` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes adwaita_dark`
 
-![GNOME Adwaita Dark Showcase](screenshots/themes/adwaita_dark.png)
+![GNOME Adwaita Dark Showcase](../screenshots/themes/adwaita_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -958,7 +958,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#fafafa` | **Card Background**: `#ffffff` | **Text**: `#2e3436`
 - **Live Preview Command**: `bun run demo:themes adwaita_light`
 
-![GNOME Adwaita Light Showcase](screenshots/themes/adwaita_light.png)
+![GNOME Adwaita Light Showcase](../screenshots/themes/adwaita_light.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -973,7 +973,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#2f343f` | **Card Background**: `#242831` | **Text**: `#e0e2e4`
 - **Live Preview Command**: `bun run demo:themes linux_mint`
 
-![Linux Mint Dark Showcase](screenshots/themes/linux_mint.png)
+![Linux Mint Dark Showcase](../screenshots/themes/linux_mint.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -988,7 +988,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#202222` | **Card Background**: `#2c2e2e` | **Text**: `#f6f6f6`
 - **Live Preview Command**: `bun run demo:themes pop_os`
 
-![Pop!_OS Dark Showcase](screenshots/themes/pop_os.png)
+![Pop!_OS Dark Showcase](../screenshots/themes/pop_os.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
@@ -1003,7 +1003,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 - **Canvas**: `#1f232a` | **Card Background**: `#292e38` | **Text**: `#ffffff`
 - **Live Preview Command**: `bun run demo:themes fedora_dark`
 
-![Fedora Blue Showcase](screenshots/themes/fedora_dark.png)
+![Fedora Blue Showcase](../screenshots/themes/fedora_dark.png)
 
 <p align="right"><a href="#top">▲ Back to Top</a> • <a href="#table-of-contents">📑 Table of Contents</a> • <a href="#quick-reference-index">⚡ Index Table</a></p>
 
