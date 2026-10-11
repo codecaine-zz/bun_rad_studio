@@ -17,6 +17,7 @@
  * - Continuous Paper Tape Journal audit roll with exportable receipt
  */
 
+import type { Server } from "bun";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync, statSync } from "fs";
@@ -37,6 +38,13 @@ export interface CalculatorStudioOptions {
   port?: number;
   host?: string;
   theme?: string;
+  debug?: boolean;
+  inline?: boolean;
+}
+
+export interface CalculatorStudioHtmlOptions {
+  inline?: boolean;
+  port?: number;
 }
 
 export interface CalculatorStudioInstance {
@@ -46,8 +54,8 @@ export interface CalculatorStudioInstance {
   fullscreen: boolean;
   port?: number;
   url?: string;
-  server?: any;
-  webview?: Webview;
+  server?: Server<unknown> | null;
+  webview?: Webview | null;
   run: () => Promise<void> | void;
   generateHtml: () => string;
 }
@@ -56,6 +64,17 @@ export interface CalculatorServerOptions {
   port?: number;
   host?: string;
 }
+
+export type UniversalCalculatorOptions = CalculatorStudioOptions;
+export type UniversalCalculatorStudioOptions = CalculatorStudioOptions;
+export type CalculatorStudioProOptions = CalculatorStudioOptions;
+
+export type UniversalCalculatorInstance = CalculatorStudioInstance;
+export type UniversalCalculatorStudioInstance = CalculatorStudioInstance;
+export type CalculatorStudioProInstance = CalculatorStudioInstance;
+
+export type UniversalCalculatorServerOptions = CalculatorServerOptions;
+export type UniversalCalculatorHtmlOptions = CalculatorStudioHtmlOptions;
 
 /**
  * Resolves the directory containing the static web assets.
@@ -81,7 +100,7 @@ export function getCalculatorAssetsDir(): string {
  * When inline is true, inlines CSS and JS into a 100% self-contained document
  * with native window shortcuts and IPC bindings injected.
  */
-export function generateCalculatorStudioHtml(options: { inline?: boolean; port?: number } = {}): string {
+export function generateCalculatorStudioHtml(options: CalculatorStudioHtmlOptions = {}): string {
   const assetsDir = getCalculatorAssetsDir();
   const indexPath = join(assetsDir, "index.html");
   const stylesPath = join(assetsDir, "styles.css");
@@ -117,10 +136,73 @@ export function generateCalculatorStudioHtml(options: { inline?: boolean; port?:
   </script>
   `;
 
+  const headSecurityShield = `
+  <script>
+    (function() {
+      // 1. Immediately disable context menu across all elements to prevent inspect/reload
+      function blockContextMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      window.addEventListener("contextmenu", blockContextMenu, { capture: true });
+      document.addEventListener("contextmenu", blockContextMenu, { capture: true });
+
+      // 2. Immediate capture-phase keydown listener for devtools/reload and window closing
+      window.addEventListener("keydown", function(e) {
+        // Prevent devtools & reload shortcuts (F12, Cmd+Opt+I, Ctrl+Shift+I, F5, Cmd+R, etc.)
+        if (
+          e.key === "F5" || e.code === "F5" ||
+          e.key === "F12" || e.code === "F12" ||
+          ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "r" || e.code === "KeyR")) ||
+          ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "c" || e.code === "KeyC")) ||
+          (e.metaKey && e.altKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "j" || e.code === "KeyJ" || e.key.toLowerCase() === "c" || e.code === "KeyC"))
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        var keyLower = (e.key || "").toLowerCase();
+        var code = e.code || "";
+        var isQ = keyLower === "q" || code === "KeyQ";
+        var isW = keyLower === "w" || code === "KeyW";
+        var isF4 = e.key === "F4" || code === "F4" || keyLower === "f4";
+
+        // Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
+        if (
+          ((e.metaKey || e.ctrlKey) && (isQ || isW)) ||
+          (e.altKey && (isQ || isW || isF4))
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof window.quitApp === "function") {
+            try { window.quitApp(); return; } catch(err) {}
+          }
+          if (typeof window.closeWindow === "function") {
+            try { window.closeWindow(); return; } catch(err) {}
+          }
+          if (typeof window.doCloseOrQuit === "function") {
+            try { window.doCloseOrQuit(); return; } catch(err) {}
+          }
+          try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
+          try { fetch("/api/close", { method: "POST" }); } catch(err) {}
+          try { window.close(); } catch(err) {}
+        }
+      }, { capture: true });
+    })();
+  </script>
+  `;
+
   if (html.includes("<head>")) {
-    html = html.replace("<head>", `<head>\n${storagePolyfill}`);
+    html = html.replace("<head>", `<head>\n${storagePolyfill}\n${headSecurityShield}`);
   } else {
-    html = storagePolyfill + html;
+    html = storagePolyfill + headSecurityShield + html;
+  }
+
+  // Ensure body prevents default context menu as well
+  if (html.includes("<body")) {
+    html = html.replace("<body", '<body oncontextmenu="return false;"');
   }
 
   if (options.inline !== false) {
@@ -157,9 +239,45 @@ export function generateCalculatorStudioHtml(options: { inline?: boolean; port?:
         );
       }
 
-      // Add storage polyfill into intuitionLab as well
+      // Add storage polyfill, context menu blocker & shortcut handlers into intuitionLab as well
+      const iframeShield = `
+      <script>
+        (function() {
+          function blockCtx(e) { e.preventDefault(); e.stopPropagation(); return false; }
+          window.addEventListener("contextmenu", blockCtx, { capture: true });
+          document.addEventListener("contextmenu", blockCtx, { capture: true });
+          window.addEventListener("keydown", function(e) {
+            var keyLower = (e.key || "").toLowerCase();
+            var code = e.code || "";
+            var isQ = keyLower === "q" || code === "KeyQ";
+            var isW = keyLower === "w" || code === "KeyW";
+            var isF4 = e.key === "F4" || code === "F4" || keyLower === "f4";
+            if (((e.metaKey || e.ctrlKey) && (isQ || isW)) || (e.altKey && (isQ || isW || isF4))) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (typeof window.quitApp === "function") window.quitApp();
+              else if (typeof window.parent?.quitApp === "function") window.parent.quitApp();
+              else if (typeof window.closeWindow === "function") window.closeWindow();
+              else if (typeof window.parent?.closeWindow === "function") window.parent.closeWindow();
+              else if (typeof window.doCloseOrQuit === "function") window.doCloseOrQuit();
+              else if (window.parent && typeof window.parent.doCloseOrQuit === "function") window.parent.doCloseOrQuit();
+              else {
+                try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
+                try { window.close(); } catch(err) {}
+              }
+            }
+          }, { capture: true });
+        })();
+      </script>
+      `;
+
       if (intuitionHtml.includes("<head>")) {
-        intuitionHtml = intuitionHtml.replace("<head>", `<head>\n${storagePolyfill}`);
+        intuitionHtml = intuitionHtml.replace("<head>", `<head>\n${storagePolyfill}\n${iframeShield}`);
+      } else {
+        intuitionHtml = storagePolyfill + iframeShield + intuitionHtml;
+      }
+      if (intuitionHtml.includes("<body")) {
+        intuitionHtml = intuitionHtml.replace("<body", '<body oncontextmenu="return false;"');
       }
 
       const escapedSrcdoc = intuitionHtml
@@ -180,7 +298,7 @@ export function generateCalculatorStudioHtml(options: { inline?: boolean; port?:
     }
   }
 
-  // Inject Desktop Webview Hooks and Window Shortcuts Script
+  // Inject Desktop Webview Hooks and Window Shortcuts Script at the TRUE end of the main document
   const desktopHooks = `
   <script>
     // Desktop RAD Studio Integration
@@ -196,6 +314,42 @@ export function generateCalculatorStudioHtml(options: { inline?: boolean; port?:
           }
         });
       }
+
+      // Propagate context menu & shortcut protection into IntuitionLab iframe
+      var frame = document.getElementById("intuitionLabFrame");
+      if (frame) {
+        function attachFrameProtection() {
+          try {
+            if (frame.contentWindow) {
+              frame.contentWindow.addEventListener("contextmenu", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+              }, { capture: true });
+              frame.contentWindow.addEventListener("keydown", function(e) {
+                var keyLower = (e.key || "").toLowerCase();
+                var code = e.code || "";
+                var isQ = keyLower === "q" || code === "KeyQ";
+                var isW = keyLower === "w" || code === "KeyW";
+                var isF4 = e.key === "F4" || code === "F4" || keyLower === "f4";
+                if (((e.metaKey || e.ctrlKey) && (isQ || isW)) || (e.altKey && (isQ || isW || isF4))) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (typeof window.quitApp === "function") window.quitApp();
+                  else if (typeof window.closeWindow === "function") window.closeWindow();
+                  else if (typeof window.doCloseOrQuit === "function") window.doCloseOrQuit();
+                  else {
+                    try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
+                    try { window.close(); } catch(err) {}
+                  }
+                }
+              }, { capture: true });
+            }
+          } catch(err) {}
+        }
+        frame.addEventListener("load", attachFrameProtection);
+        attachFrameProtection();
+      }
     });
   </script>
   <script>
@@ -203,8 +357,10 @@ ${getWindowShortcutsScript()}
   </script>
   `;
 
-  if (html.includes("</body>")) {
-    html = html.replace("</body>", `${desktopHooks}\n</body>`);
+  // Always inject at the LAST </body> so it is in the main document, not inside an iframe's srcdoc
+  const lastBodyIndex = html.lastIndexOf("</body>");
+  if (lastBodyIndex !== -1) {
+    html = html.slice(0, lastBodyIndex) + `${desktopHooks}\n` + html.slice(lastBodyIndex);
   } else {
     html += desktopHooks;
   }
@@ -215,7 +371,7 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the high-performance Bun.serve server hosting the Universal Calculator.
  */
-export function startCalculatorStudioServer(options: CalculatorServerOptions = {}) {
+export function startCalculatorStudioServer(options: CalculatorServerOptions = {}): Server<unknown> {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getCalculatorAssetsDir();
@@ -293,6 +449,19 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
         );
       }
 
+      // Shutdown / Close Application API
+      if ((pathname === "/api/shutdown" || pathname === "/api/close") && req.method === "POST") {
+        setTimeout(() => process.exit(0), 100);
+        return Response.json(
+          {
+            status: "ok",
+            message: "Universal Calculator shutting down...",
+            timestamp: Date.now(),
+          },
+          { headers: corsHeaders }
+        );
+      }
+
       // Fallback: check static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
@@ -351,7 +520,7 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
     generateHtml: () => generateCalculatorStudioHtml({ inline: true }),
     run: async () => {
       console.log("⚡ Launching Orbit Universal Computing Suite...");
-      let srv: any = null;
+      let srv: Server<unknown> | null = null;
       try {
         srv = startCalculatorStudioServer({
           port: options.port ?? 0,
@@ -361,15 +530,17 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
         app.port = srv.port;
         app.url = `http://127.0.0.1:${srv.port}`;
         console.log(`⚡ Background server active at: ${app.url}`);
-      } catch (err: any) {
-        console.warn("Local server note:", err?.message || err);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn("Local server note:", message);
       }
 
-      const html = generateCalculatorStudioHtml({ inline: true, port: srv?.port });
+      const html = generateCalculatorStudioHtml({ inline: options.inline ?? true, port: srv?.port });
 
-      // Native Webview Window
+      // Native Webview Window (debug: false prevents developer tools / inspect element)
       try {
-        const webview = new Webview(true, {
+        const debug = options.debug ?? false;
+        const webview = new Webview(debug, {
           width,
           height,
           hint: SizeHint.NONE,
@@ -408,10 +579,11 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
         webview.run();
         try { srv?.stop(); } catch {}
         process.exit(0);
-      } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`Desktop Webview unavailable (${message}). Application running in browser at: ${app.url}`);
         // Keep server running in headless environments
-        await new Promise(() => {});
+        await new Promise<void>(() => {});
       } finally {
         try { srv?.stop(); } catch {}
         process.exit(0);

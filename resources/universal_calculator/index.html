@@ -27,6 +27,60 @@
             }
         })();
     </script>
+    <script>
+        // Disable right-click context menu (inspect element & reload) and wire native close shortcuts
+        (function() {
+            function disableContextMenu(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            window.addEventListener("contextmenu", disableContextMenu, { capture: true });
+            document.addEventListener("contextmenu", disableContextMenu, { capture: true });
+
+            window.addEventListener("keydown", function(e) {
+                // Prevent reload & devtools shortcuts (F5, F12, Cmd+R, Ctrl+R, Cmd+Option+I, etc.)
+                if (
+                    e.key === "F5" || e.code === "F5" ||
+                    e.key === "F12" || e.code === "F12" ||
+                    ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "r" || e.code === "KeyR")) ||
+                    ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "c" || e.code === "KeyC")) ||
+                    (e.metaKey && e.altKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "j" || e.code === "KeyJ" || e.key.toLowerCase() === "c" || e.code === "KeyC"))
+                ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                var keyLower = (e.key || "").toLowerCase();
+                var code = e.code || "";
+                var isQ = keyLower === "q" || code === "KeyQ";
+                var isW = keyLower === "w" || code === "KeyW";
+                var isF4 = e.key === "F4" || code === "F4" || keyLower === "f4";
+
+                // Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
+                if (
+                    ((e.metaKey || e.ctrlKey) && (isQ || isW)) ||
+                    (e.altKey && (isQ || isW || isF4))
+                ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.quitApp === "function") {
+                        try { window.quitApp(); return; } catch(err) {}
+                    }
+                    if (typeof window.closeWindow === "function") {
+                        try { window.closeWindow(); return; } catch(err) {}
+                    }
+                    if (typeof window.doCloseOrQuit === "function") {
+                        try { window.doCloseOrQuit(); return; } catch(err) {}
+                    }
+                    try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
+                    try { fetch("/api/close", { method: "POST" }); } catch(err) {}
+                    try { window.close(); } catch(err) {}
+                }
+            }, { capture: true });
+        })();
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
@@ -36,7 +90,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css?v=2.9.0">
 </head>
-<body>
+<body oncontextmenu="return false;">
     <a class="skip-link" href="#workspace">Skip to calculator</a>
 
     <!-- TOPBAR -->

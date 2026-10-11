@@ -13,8 +13,61 @@
 
     <!-- IntuitionLab Dark Glassmorphism Stylesheet -->
     <link rel="stylesheet" href="styles.css?v=2.9.0">
+
+    <script>
+        // Disable right-click context menu and wire native close shortcuts inside IntuitionLab
+        (function() {
+            function blockContextMenu(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            window.addEventListener("contextmenu", blockContextMenu, { capture: true });
+            document.addEventListener("contextmenu", blockContextMenu, { capture: true });
+
+            window.addEventListener("keydown", function(e) {
+                // Prevent reload & devtools shortcuts (F5, F12, Cmd+R, Ctrl+R, Cmd+Option+I, etc.)
+                if (
+                    e.key === "F5" || e.code === "F5" ||
+                    e.key === "F12" || e.code === "F12" ||
+                    ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "r" || e.code === "KeyR")) ||
+                    ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "c" || e.code === "KeyC")) ||
+                    (e.metaKey && e.altKey && (e.key.toLowerCase() === "i" || e.code === "KeyI" || e.key.toLowerCase() === "j" || e.code === "KeyJ" || e.key.toLowerCase() === "c" || e.code === "KeyC"))
+                ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                var keyLower = (e.key || "").toLowerCase();
+                var code = e.code || "";
+                var isQ = keyLower === "q" || code === "KeyQ";
+                var isW = keyLower === "w" || code === "KeyW";
+                var isF4 = e.key === "F4" || code === "F4" || keyLower === "f4";
+
+                // Close / Quit shortcuts: Cmd+Q, Cmd+W, Ctrl+Q, Ctrl+W, Alt+F4, Alt+W, Alt+Q
+                if (
+                    ((e.metaKey || e.ctrlKey) && (isQ || isW)) ||
+                    (e.altKey && (isQ || isW || isF4))
+                ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.quitApp === "function") window.quitApp();
+                    else if (typeof window.parent?.quitApp === "function") window.parent.quitApp();
+                    else if (typeof window.closeWindow === "function") window.closeWindow();
+                    else if (typeof window.parent?.closeWindow === "function") window.parent.closeWindow();
+                    else if (typeof window.doCloseOrQuit === "function") window.doCloseOrQuit();
+                    else if (window.parent && typeof window.parent.doCloseOrQuit === "function") window.parent.doCloseOrQuit();
+                    else {
+                        try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
+                        try { window.close(); } catch(err) {}
+                    }
+                }
+            }, { capture: true });
+        })();
+    </script>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
     <!-- =====================================================================
          1. TOPBAR & PRIMARY SUBJECT NAVIGATION

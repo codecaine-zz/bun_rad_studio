@@ -40,7 +40,7 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
     expect(appJs).toContain("PHYSICAL_CONSTANTS");
   });
 
-  it("2. generateCalculatorStudioHtml produces standalone self-contained bundle", () => {
+  it("2. generateCalculatorStudioHtml produces standalone self-contained bundle with security shield and shortcuts", () => {
     const html = generateCalculatorStudioHtml({ inline: true });
     expect(html.length).toBeGreaterThan(300000);
     expect(html).toContain("<style>");
@@ -49,9 +49,22 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
     expect(html).toContain("</script>");
     expect(html).toContain("requestInitialFullscreen");
     expect(html).toContain("window.quitApp");
+
+    // Right click context menu blocker must be active in head and body
+    expect(html).toContain('oncontextmenu="return false;"');
+    expect(html).toContain('window.addEventListener("contextmenu",');
+    expect(html).toContain('document.addEventListener("contextmenu",');
+
+    // Cmd+Q and Alt+F4 close handlers must be present in main document
+    const lastBodyIdx = html.lastIndexOf("</body>");
+    const lastScriptIdx = html.lastIndexOf("getWindowShortcutsScript");
+    const lastQHandler = html.lastIndexOf("isQ");
+    expect(lastQHandler).toBeGreaterThan(html.indexOf("</iframe>"));
+    expect(lastQHandler).toBeLessThan(lastBodyIdx);
+    expect(html).toContain("Alt+W, Alt+Q");
   });
 
-  it("3. createCalculatorStudio initializes with proper desktop defaults", () => {
+  it("3. createCalculatorStudio initializes with proper desktop defaults and debug disabled", () => {
     const studio = createCalculatorStudio({ fullscreen: true });
     expect(studio.title).toContain("Orbit Universal Computing Suite");
     expect(studio.fullscreen).toBe(true);
@@ -61,6 +74,7 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
     const html = studio.generateHtml();
     expect(html.length).toBeGreaterThan(10000);
     expect(html).toContain("requestInitialFullscreen");
+    expect(html).toContain('oncontextmenu="return false;"');
   });
 
   it("4. startCalculatorStudioServer serves all assets and API routes with zero errors", async () => {
@@ -93,7 +107,7 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
       // Health API
       const resHealth = await fetch(`${baseUrl}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = (await resHealth.json()) as { status: string; app: string; version: string };
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("calculator_studio");
       expect(healthData.version).toBe("2.7.0");
