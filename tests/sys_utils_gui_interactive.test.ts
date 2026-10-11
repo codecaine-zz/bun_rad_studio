@@ -74,6 +74,25 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     expect(win.getValue("console_ipinfo")).toContain("AS15169 Google LLC");
     expect(win.getValue("lbl_status_bar")).toContain("CSV formatted output");
 
+    // Test IP changed and looking up a different item (Private IP: 192.168.1.1)
+    win.setValue("txt_target", "192.168.1.1");
+    await trigger(win, "btn_search");
+    const privateRows = win.getValue("tbl_details") as string[][];
+    expect(Array.isArray(privateRows)).toBe(true);
+    expect(privateRows.some(r => r[0] === "IP Address" && r[1] === "192.168.1.1")).toBe(true);
+    expect(privateRows.some(r => r[0] === "Organization / ASN" && r[1]?.includes("RFC 1918"))).toBe(true);
+    expect(win.getValue("lbl_metric_ip")).toContain("192.168.1.1");
+    expect(win.getValue("lbl_status_bar")).toContain("✓ Successfully resolved");
+
+    // Test clicking local network interfaces table row to drilldown / inspect
+    await trigger(win, "btn_local_ifaces");
+    const ifacesAfter = win.getValue("tbl_details") as string[][];
+    expect(ifacesAfter.length).toBeGreaterThanOrEqual(1);
+    await trigger(win, "tbl_details", "click", "lo0");
+    const lo0Rows = win.getValue("tbl_details") as string[][];
+    expect(lo0Rows.some(r => r[0] === "IP Address" && r[1] === "127.0.0.1")).toBe(true);
+    expect(win.getValue("txt_target")).toBe("127.0.0.1");
+
     // Test invalid CIDR error handling
     win.setValue("txt_target", "invalid-ip-block");
     await trigger(win, "btn_calc_subnet");

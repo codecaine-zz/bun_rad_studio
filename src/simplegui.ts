@@ -5450,7 +5450,7 @@ export class SimpleWindow {
                             }
                             const enterName = "on_" + target.id + "_enter";
                             if (typeof window[enterName] === "function") {
-                                window[enterName](val);
+                                setTimeout(function() { window[enterName](val); }, 10);
                             }
                         }
                     }

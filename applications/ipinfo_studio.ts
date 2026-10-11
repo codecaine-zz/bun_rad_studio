@@ -1,6 +1,7 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import {
   isCidr,
+  isIpAddress,
   resolveTargetToIp,
   fetchIpDetails,
   calculateSubnet,
@@ -121,6 +122,8 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   win.addLabel("lbl_status_bar", isShot ? "✓ Successfully resolved IP details for 8.8.8.8 (dns.google)." : "Ready. Enter an IP, domain, or CIDR block to begin.");
   win.endRow();
 
+  let currentInterfaces: LocalInterfaceInfo[] = [];
+
   // -----------------------------------------------------------------------------------------------
   // Logic
   // -----------------------------------------------------------------------------------------------
@@ -142,10 +145,13 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
 
       lastResult = data;
       lastSubnet = null;
+      currentInterfaces = [];
 
       // When resolving "myip", update the input field with the discovered public IP
       if ((rawTarget === "myip" || !rawTarget) && data.ip) {
         win.setValue("txt_target", data.ip);
+      } else if (rawTarget !== win.getValue("txt_target")) {
+        win.setValue("txt_target", rawTarget);
       }
 
       win.setValue("lbl_metric_ip", `Target IP: ${data.ip || "-"}`);
@@ -154,6 +160,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
       win.setValue("lbl_metric_timezone", `Timezone: ${data.timezone || "-"}`);
       win.setValue("lbl_metric_status", "Status: Resolved");
 
+      const ipHeaders = ["Property", "Resolved Value", "Category", "Description"];
       const rows: string[][] = [
         ["IP Address", data.ip || "-", "Network", "Public IPv4 or IPv6 Address"],
         ["Hostname", data.hostname || resolved.domain || "-", "DNS", "Reverse DNS PTR / Host Domain"],
@@ -166,11 +173,11 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         ["Timezone", data.timezone || "-", "Locale", "IANA Timezone identifier"],
       ];
 
-      if (data.loc) {
+      if (data.loc && data.loc !== "0,0") {
         rows.push(["Google Maps Link", `https://maps.google.com/?q=${data.loc}`, "Deep Link", "Clickable Map Location"]);
       }
 
-      win.setTableData("tbl_details", rows);
+      win.setTableData("tbl_details", ipHeaders, rows);
 
       win.clearConsole("console_ipinfo");
       win.appendConsole("console_ipinfo", formatSummary(data) + "\n\n");
@@ -178,6 +185,24 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
 
       win.setValue("lbl_status_bar", `✓ Successfully resolved IP details for ${data.ip} (${resolved.domain || data.hostname || "Host"}).`);
     } catch (err: any) {
+      lastResult = null;
+      lastSubnet = null;
+
+      win.setValue("lbl_metric_ip", `Target: ${rawTarget}`);
+      win.setValue("lbl_metric_location", "Unresolved");
+      win.setValue("lbl_metric_org", "Lookup Failed");
+      win.setValue("lbl_metric_timezone", "-");
+      win.setValue("lbl_metric_status", "Status: Error");
+
+      const errorHeaders = ["Diagnostic Property", "Diagnostic Details", "Status", "Resolution Guidance"];
+      const errorRows: string[][] = [
+        ["Target Query", rawTarget, "Failed", "Verify domain name spelling, IP address format, or CIDR notation"],
+        ["Error Detail", err.message || "Failed to resolve target", "Error", "Target could not be resolved by DNS or upstream providers"],
+        ["Query Type", isCidr(rawTarget) ? "CIDR Subnet" : "IP / Hostname", "Analysis", "Supported: IPv4, IPv6, Domain, CIDR block, or interface name"],
+        ["Action", "Retry with valid target", "Guidance", "e.g. 1.1.1.1, 8.8.8.8, 192.168.1.1, github.com, or en0"],
+      ];
+      win.setTableData("tbl_details", errorHeaders, errorRows);
+
       win.setValue("lbl_status_bar", `❌ Lookup error: ${err.message}`);
       win.appendConsole("console_ipinfo", `[ERROR] ${err.message}\n`);
     }
@@ -203,6 +228,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
       win.setValue("lbl_metric_timezone", `Broadcast: ${subnet.broadcast}`);
       win.setValue("lbl_metric_status", "Mode: CIDR Subnet");
 
+      const subnetHeaders = ["Property", "Subnet Value", "Category", "Description"];
       const rows: string[][] = [
         ["CIDR Block", subnet.cidr, "Subnet", "Target IPv4 prefix range"],
         ["Network Address", subnet.network, "Subnet", "Base subnet network address"],
@@ -215,7 +241,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         ["Total Addresses", subnet.totalHosts.toLocaleString(), "Capacity", "Total mathematical IP block count"],
       ];
 
-      win.setTableData("tbl_details", rows);
+      win.setTableData("tbl_details", subnetHeaders, rows);
       win.clearConsole("console_ipinfo");
       win.appendConsole("console_ipinfo", formatSubnetInfo(subnet) + "\n");
       win.setValue("lbl_status_bar", `✓ Calculated subnet ${subnet.cidr}: ${subnet.usableHosts.toLocaleString()} usable hosts.`);
@@ -227,11 +253,13 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   const showLocalInterfaces = () => {
     try {
       const ifaces = getLocalInterfaces();
+      currentInterfaces = ifaces;
       win.setValue("lbl_metric_ip", "Local Interfaces");
       win.setValue("lbl_metric_location", `${ifaces.length} adapters found`);
       win.setValue("lbl_metric_org", "Host Machine");
       win.setValue("lbl_metric_status", "Mode: Local Network");
 
+      const ifaceHeaders = ["Interface", "IP Address", "Family", "Adapter Details"];
       const rows: string[][] = ifaces.map((i) => [
         i.name,
         i.address,
@@ -239,13 +267,13 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         `${i.internal ? "Internal Loopback" : "Physical/Wi-Fi"} | MAC: ${i.mac || "-"} | Mask: ${i.netmask || "-"}`,
       ]);
 
-      win.setTableData("tbl_details", rows);
+      win.setTableData("tbl_details", ifaceHeaders, rows);
       win.clearConsole("console_ipinfo");
       win.appendConsole("console_ipinfo", "LOCAL NETWORK INTERFACES:\n");
       for (const i of ifaces) {
         win.appendConsole("console_ipinfo", `Adapter: ${i.name.padEnd(10)} | ${i.family.padEnd(4)} | Address: ${i.address.padEnd(20)} | MAC: ${i.mac}\n`);
       }
-      win.setValue("lbl_status_bar", `✓ Displaying ${ifaces.length} local network interface(s).`);
+      win.setValue("lbl_status_bar", `✓ Displaying ${ifaces.length} local network interface(s). Click any adapter row to inspect.`);
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ Failed to inspect local interfaces: ${err.message}`);
     }
@@ -270,6 +298,12 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
 
   win.on("txt_target", "enter", (_w, val) => handleSearch(val));
 
+  win.on("txt_target", "change", (_w, val) => {
+    if (val !== undefined && val !== null) {
+      win.formValuesStore["txt_target"] = String(val);
+    }
+  });
+
   win.on("btn_my_ip", "click", () => {
     win.setValue("txt_target", "myip");
     return lookupIpOrDomain("myip");
@@ -283,11 +317,54 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   };
 
   win.on("btn_open_map", "click", () => openLocationMap());
-  win.on("tbl_details", "click", (_w, pid) => {
-    if (pid === "Google Maps Link" || String(pid).includes("Google Maps")) {
+
+  const handleTableRowSelect = (pid: string) => {
+    if (!pid) return;
+    const cleanPid = String(pid).trim();
+    if (cleanPid === "Google Maps Link" || cleanPid.includes("Google Maps") || cleanPid.startsWith("https://maps.google.com")) {
       openLocationMap();
+      return;
     }
-  });
+
+    // 1. Check if clicking on an interface in local interfaces list
+    const matchedIface = currentInterfaces.find(
+      (i) => i.name.toLowerCase() === cleanPid.toLowerCase() || i.address.toLowerCase() === cleanPid.toLowerCase()
+    );
+    if (matchedIface && matchedIface.address) {
+      win.setValue("txt_target", matchedIface.address);
+      lookupIpOrDomain(matchedIface.address);
+      return;
+    }
+
+    // 2. Check if cleanPid is an IP address or CIDR
+    if (isCidr(cleanPid)) {
+      win.setValue("txt_target", cleanPid);
+      calculateCidrRange(cleanPid);
+      return;
+    }
+    if (isIpAddress(cleanPid)) {
+      win.setValue("txt_target", cleanPid);
+      lookupIpOrDomain(cleanPid);
+      return;
+    }
+
+    // 3. If in IP details view, check if clicking on "IP Address" or "Hostname" row
+    if (lastResult) {
+      if (cleanPid === "IP Address" && lastResult.ip) {
+        win.setValue("txt_target", lastResult.ip);
+        lookupIpOrDomain(lastResult.ip);
+        return;
+      }
+      if (cleanPid === "Hostname" && lastResult.hostname) {
+        win.setValue("txt_target", lastResult.hostname);
+        lookupIpOrDomain(lastResult.hostname);
+        return;
+      }
+    }
+  };
+
+  win.on("tbl_details", "click", (_w, pid) => handleTableRowSelect(String(pid)));
+  win.on("tbl_details", "doubleclick", (_w, pid) => handleTableRowSelect(String(pid)));
 
   win.on("btn_calc_subnet", "click", () => calculateCidrRange());
   win.on("btn_local_ifaces", "click", () => showLocalInterfaces());
@@ -318,6 +395,11 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
 
   win.on("btn_clear", "click", () => {
     win.setValue("txt_target", "");
+    win.setValue("lbl_metric_ip", "Target IP: -");
+    win.setValue("lbl_metric_location", "Location: -");
+    win.setValue("lbl_metric_org", "ASN / Org: -");
+    win.setValue("lbl_metric_timezone", "Timezone: -");
+    win.setValue("lbl_metric_status", "Status: Cleared");
     win.setTableData("tbl_details", []);
     win.clearConsole("console_ipinfo");
     win.setValue("lbl_status_bar", "Cleared.");
@@ -334,17 +416,30 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     (function() {
       const btnSearch = document.getElementById("btn_search");
       const btnMyIp = document.getElementById("btn_my_ip");
-      const txtTarget = document.getElementById("txt_target");
+      const rawTarget = document.getElementById("txt_target");
+      const txtTarget = rawTarget
+        ? ((rawTarget.tagName === "INPUT" || rawTarget.tagName === "TEXTAREA")
+            ? rawTarget
+            : (rawTarget.querySelector("input, textarea") || rawTarget))
+        : null;
+      const readTarget = function() {
+        return txtTarget ? String(txtTarget.value || "").trim() : "";
+      };
 
-      if (btnSearch && txtTarget) {
+      // Keep backend in sync on every keystroke (change only fires on blur)
+      if (txtTarget) {
+        txtTarget.addEventListener("input", function() {
+          if (window.on_txt_target_change) window.on_txt_target_change(txtTarget.value);
+        });
+      }
+
+      if (btnSearch) {
         btnSearch.onclick = function(e) {
           if (e) {
             e.preventDefault();
             e.stopPropagation();
           }
-          const val = (txtTarget.value || "").trim();
-          if (window.on_txt_target_change) window.on_txt_target_change(val);
-          if (window.on_btn_search_click) window.on_btn_search_click(val);
+          if (window.on_btn_search_click) window.on_btn_search_click(readTarget());
           return false;
         };
       }
@@ -356,7 +451,6 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
             e.stopPropagation();
           }
           if (txtTarget) txtTarget.value = "myip";
-          if (window.on_txt_target_change) window.on_txt_target_change("myip");
           if (window.on_btn_my_ip_click) window.on_btn_my_ip_click("myip");
           return false;
         };
@@ -364,8 +458,15 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     })();
   `);
 
-  // Initial resolution
-  setTimeout(() => lookupIpOrDomain("8.8.8.8"), 100);
+  // Initial resolution (preserves any restored target)
+  setTimeout(() => {
+    const cur = (win.getValue("txt_target") ?? "").trim();
+    if (cur && cur !== "8.8.8.8") {
+      handleSearch(cur);
+    } else {
+      lookupIpOrDomain("8.8.8.8");
+    }
+  }, 100);
 
   return win;
 }

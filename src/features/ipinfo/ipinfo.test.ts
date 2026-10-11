@@ -12,6 +12,8 @@ import {
   isCidr,
   isIpAddress,
   resolveTargetToIp,
+  classifyIp,
+  fetchIpDetails,
 } from "./ipinfoDoers.ts";
 import type { IpInfoResult } from "./ipinfoTypes.ts";
 
@@ -109,5 +111,32 @@ describe("ipinfo doers", () => {
     expect(ifaces.length).toBeGreaterThan(0);
     expect(ifaces[0].name).toBeDefined();
     expect(ifaces[0].address).toBeDefined();
+  });
+
+  it("accurately classifies loopback, RFC 1918, link-local, and CGNAT IPs", () => {
+    expect(classifyIp("127.0.0.1").isPrivateOrBogon).toBe(true);
+    expect(classifyIp("10.0.0.1").type).toContain("Class A");
+    expect(classifyIp("172.16.5.10").type).toContain("Class B");
+    expect(classifyIp("192.168.1.1").type).toContain("Class C");
+    expect(classifyIp("169.254.1.1").type).toContain("Link-Local");
+    expect(classifyIp("100.64.0.1").type).toContain("Carrier-Grade NAT");
+    expect(classifyIp("8.8.8.8").isPrivateOrBogon).toBe(false);
+  });
+
+  it("fetches rich forensic metadata for private IPs without failing", () => {
+    const details = fetchIpDetails("192.168.1.1");
+    expect(details.ip).toBe("192.168.1.1");
+    expect(details.org).toContain("RFC 1918");
+    expect(details.city).toContain("Private");
+
+    const loopback = fetchIpDetails("127.0.0.1");
+    expect(loopback.ip).toBe("127.0.0.1");
+    expect(loopback.hostname).toBe("localhost");
+  });
+
+  it("resolves local network interface name to adapter IP", () => {
+    const res = resolveTargetToIp("lo0");
+    expect(res.ip).toBeDefined();
+    expect(res.domain).toBe("lo0");
   });
 });

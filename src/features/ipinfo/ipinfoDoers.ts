@@ -48,6 +48,107 @@ export function syncFetchJson(url: string, headers: Record<string, string> = {},
   return null;
 }
 
+export interface IpClassification {
+  isPrivateOrBogon: boolean;
+  type: string;
+  rfc?: string;
+  scope: string;
+}
+
+export function classifyIp(ip: string): IpClassification {
+  const trimmed = ip.trim();
+  if (trimmed === "127.0.0.1" || trimmed === "::1" || trimmed.startsWith("127.")) {
+    return { isPrivateOrBogon: true, type: "Loopback", rfc: "RFC 1122", scope: "Host Loopback Adapter" };
+  }
+  if (trimmed === "0.0.0.0" || trimmed === "::") {
+    return { isPrivateOrBogon: true, type: "Unspecified Address", rfc: "RFC 1122 / RFC 4291", scope: "Non-routable Default" };
+  }
+
+  // IPv4 classifications
+  const ipv4Parts = trimmed.split(".").map((p) => parseInt(p, 10));
+  if (ipv4Parts.length === 4 && ipv4Parts.every((p) => !isNaN(p) && p >= 0 && p <= 255)) {
+    const [o1, o2] = ipv4Parts;
+    if (o1 === 10) {
+      return { isPrivateOrBogon: true, type: "Private Network (Class A)", rfc: "RFC 1918 (10.0.0.0/8)", scope: "Local Intranet / Corporate LAN" };
+    }
+    if (o1 === 172 && o2 >= 16 && o2 <= 31) {
+      return { isPrivateOrBogon: true, type: "Private Network (Class B)", rfc: "RFC 1918 (172.16.0.0/12)", scope: "Local Intranet / Private Subnet" };
+    }
+    if (o1 === 192 && o2 === 168) {
+      return { isPrivateOrBogon: true, type: "Private Network (Class C)", rfc: "RFC 1918 (192.168.0.0/16)", scope: "Home / Office Local Area Network" };
+    }
+    if (o1 === 169 && o2 === 254) {
+      return { isPrivateOrBogon: true, type: "Link-Local (APIPA)", rfc: "RFC 3927 (169.254.0.0/16)", scope: "Subnet Auto-Configuration" };
+    }
+    if (o1 === 100 && o2 >= 64 && o2 <= 127) {
+      return { isPrivateOrBogon: true, type: "Carrier-Grade NAT", rfc: "RFC 6598 (100.64.0.0/10)", scope: "ISP Shared Address Space" };
+    }
+    if (o1 === 192 && o2 === 0 && ipv4Parts[2] === 2) {
+      return { isPrivateOrBogon: true, type: "TEST-NET-1 Documentation", rfc: "RFC 5737", scope: "Documentation / Examples" };
+    }
+    if (o1 === 198 && o2 === 51 && ipv4Parts[2] === 100) {
+      return { isPrivateOrBogon: true, type: "TEST-NET-2 Documentation", rfc: "RFC 5737", scope: "Documentation / Examples" };
+    }
+    if (o1 === 203 && o2 === 0 && ipv4Parts[2] === 113) {
+      return { isPrivateOrBogon: true, type: "TEST-NET-3 Documentation", rfc: "RFC 5737", scope: "Documentation / Examples" };
+    }
+    if (o1 === 198 && (o2 === 18 || o2 === 19)) {
+      return { isPrivateOrBogon: true, type: "Benchmark Testing", rfc: "RFC 2544", scope: "Network Device Benchmarking" };
+    }
+    if (o1 >= 224 && o1 <= 239) {
+      return { isPrivateOrBogon: true, type: "Multicast Address", rfc: "RFC 5771 (224.0.0.0/4)", scope: "Local / Global Multicast Streams" };
+    }
+    if (o1 >= 240) {
+      return { isPrivateOrBogon: true, type: "Reserved / Future Use", rfc: "RFC 1112 (240.0.0.0/4)", scope: "Reserved Address Space" };
+    }
+  }
+
+  // IPv6 classifications
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) {
+    return { isPrivateOrBogon: true, type: "IPv6 Link-Local Unicast", rfc: "RFC 4291 (fe80::/10)", scope: "Local Link Segment" };
+  }
+  if (lower.startsWith("fc") || lower.startsWith("fd")) {
+    return { isPrivateOrBogon: true, type: "IPv6 Unique Local Address (ULA)", rfc: "RFC 4193 (fc00::/7)", scope: "Private Enterprise Routing" };
+  }
+  if (lower.startsWith("ff")) {
+    return { isPrivateOrBogon: true, type: "IPv6 Multicast", rfc: "RFC 4291 (ff00::/8)", scope: "Multicast Node/Router Group" };
+  }
+
+  return { isPrivateOrBogon: false, type: "Public IP", scope: "Public Internet" };
+}
+
+export function createPrivateIpResult(ip: string, classification?: IpClassification): IpInfoResult {
+  const cls = classification || classifyIp(ip);
+  let matched: LocalInterfaceInfo | undefined;
+  try {
+    const ifaces = getLocalInterfaces();
+    matched = ifaces.find((i) => i.address.toLowerCase() === ip.toLowerCase());
+  } catch {}
+
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const hostname = (ip === "127.0.0.1" || ip === "::1" || ip.startsWith("127."))
+    ? "localhost"
+    : (matched ? `Adapter: ${matched.name} (${matched.mac || "no MAC"})` : "local-host.lan");
+
+  const org = matched
+    ? `${matched.internal ? "Loopback Adapter" : "Local Network Interface"} (${matched.family}) - ${cls.rfc || cls.type}`
+    : (cls.rfc ? `${cls.rfc} - ${cls.type}` : cls.type);
+
+  return {
+    ip,
+    hostname,
+    city: matched ? `Host Machine (${matched.name})` : "Private Network / Intranet",
+    region: matched ? "Local Interface" : "Non-Routable Subnet",
+    country: "Private / LAN",
+    loc: "0,0",
+    org,
+    postal: matched?.netmask ? `Mask: ${matched.netmask}` : undefined,
+    timezone: localTz,
+    readme: `Private / Bogon IP address (${cls.type}). ${cls.scope}. Does not route through public internet gateways.`,
+  };
+}
+
 export function resolveTargetToIp(
   target?: string
 ): { ip?: string; domain?: string } {
@@ -59,6 +160,15 @@ export function resolveTargetToIp(
   if (cleaned.toLowerCase() === "localhost") {
     return { ip: "127.0.0.1", domain: cleaned };
   }
+
+  // Check if target matches a local network interface name (e.g. en0, lo0, bridge100)
+  try {
+    const ifaces = getLocalInterfaces();
+    const matchedIface = ifaces.find((i) => i.name.toLowerCase() === cleaned.toLowerCase());
+    if (matchedIface) {
+      return { ip: matchedIface.address, domain: matchedIface.name };
+    }
+  } catch {}
 
   // 1. Fast synchronous DoH via curl (resolves in ~50ms even inside blocking webview runloops)
   const dohGoogle = syncFetchJson(`https://dns.google/resolve?name=${encodeURIComponent(cleaned)}&type=A`, { Accept: "application/dns-json" }, 2);
@@ -73,6 +183,29 @@ export function resolveTargetToIp(
     return { ip: answerCf.data, domain: cleaned };
   }
 
+  // 2. Synchronous system resolver fallback (host / dscacheutil)
+  try {
+    const hostProc = Bun.spawnSync(["host", "-W", "2", cleaned]);
+    if (hostProc.exitCode === 0) {
+      const out = hostProc.stdout.toString();
+      const match = out.match(/has address\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+      if (match && match[1] && isIpAddress(match[1])) {
+        return { ip: match[1], domain: cleaned };
+      }
+    }
+  } catch {}
+
+  try {
+    const dsProc = Bun.spawnSync(["dscacheutil", "-q", "host", "-a", "name", cleaned]);
+    if (dsProc.exitCode === 0) {
+      const out = dsProc.stdout.toString();
+      const match = out.match(/ip_address:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+      if (match && match[1] && isIpAddress(match[1])) {
+        return { ip: match[1], domain: cleaned };
+      }
+    }
+  } catch {}
+
   throw new Error(`[IpInfoResolve] Could not resolve host to IP: ${target}`);
 }
 
@@ -82,17 +215,15 @@ export function fetchIpDetails(
 ): IpInfoResult {
   const isLoopback = ip === "127.0.0.1" || ip === "::1" || ip?.startsWith("127.");
   if (isLoopback) {
-    return {
-      ip: ip || "127.0.0.1",
-      hostname: "localhost",
-      city: "Localhost",
-      region: "Loopback",
-      country: "Local",
-      loc: "0,0",
-      org: "IANA Loopback / Private Network",
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-      readme: "Local loopback adapter",
-    };
+    return createPrivateIpResult(ip || "127.0.0.1");
+  }
+
+  // Check if IP is private or bogon range before remote network calls
+  if (ip && ip !== "myip") {
+    const cls = classifyIp(ip);
+    if (cls.isPrivateOrBogon) {
+      return createPrivateIpResult(ip, cls);
+    }
   }
 
   // If in screenshot mode and querying own public IP, return clean Google Public DNS demo data
@@ -117,26 +248,52 @@ export function fetchIpDetails(
 
   // 1. Synchronous ipinfo.io query
   const ipinfoData = syncFetchJson(primaryUrl, { Accept: "application/json", "User-Agent": "bun-ipinfo/1.0" }, 2);
-  if (ipinfoData && ipinfoData.ip && !ipinfoData.bogon) {
-    return ipinfoData as IpInfoResult;
+  if (ipinfoData) {
+    if (ipinfoData.bogon) {
+      return createPrivateIpResult(ip || ipinfoData.ip || "127.0.0.1");
+    }
+    if (ipinfoData.ip) {
+      return ipinfoData as IpInfoResult;
+    }
   }
 
   // 2. Synchronous ipwho.is fallback query
   const targetIp = ip && ip !== "myip" ? ip.trim() : "";
   const fallbackUrl = targetIp ? `https://ipwho.is/${targetIp}` : `https://ipwho.is/`;
   const ipwhoData = syncFetchJson(fallbackUrl, { Accept: "application/json" }, 2);
-  if (ipwhoData && ipwhoData.success !== false && ipwhoData.ip) {
+  if (ipwhoData) {
+    if (ipwhoData.success === false && String(ipwhoData.message).toLowerCase().includes("reserved")) {
+      return createPrivateIpResult(ip || targetIp || "127.0.0.1");
+    }
+    if (ipwhoData.success !== false && ipwhoData.ip) {
+      return {
+        ip: ipwhoData.ip || ip || "",
+        hostname: ipwhoData.connection?.domain || undefined,
+        city: ipwhoData.city,
+        region: ipwhoData.region,
+        country: ipwhoData.country_code,
+        loc: ipwhoData.latitude !== undefined && ipwhoData.longitude !== undefined ? `${ipwhoData.latitude},${ipwhoData.longitude}` : undefined,
+        org: ipwhoData.connection?.org || ipwhoData.connection?.isp ? `AS${ipwhoData.connection?.asn || ""} ${ipwhoData.connection?.org || ipwhoData.connection?.isp}`.trim() : undefined,
+        postal: ipwhoData.postal,
+        timezone: ipwhoData.timezone?.id,
+        readme: "Resolved via ipwho.is",
+      };
+    }
+  }
+
+  // 3. Fallback: If querying a specific valid IP but upstream lookup is offline/failed
+  if (ip && isIpAddress(ip)) {
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     return {
-      ip: ipwhoData.ip || ip || "",
-      hostname: ipwhoData.connection?.domain || undefined,
-      city: ipwhoData.city,
-      region: ipwhoData.region,
-      country: ipwhoData.country_code,
-      loc: ipwhoData.latitude !== undefined && ipwhoData.longitude !== undefined ? `${ipwhoData.latitude},${ipwhoData.longitude}` : undefined,
-      org: ipwhoData.connection?.org || ipwhoData.connection?.isp ? `AS${ipwhoData.connection?.asn || ""} ${ipwhoData.connection?.org || ipwhoData.connection?.isp}`.trim() : undefined,
-      postal: ipwhoData.postal,
-      timezone: ipwhoData.timezone?.id,
-      readme: "Resolved via ipwho.is",
+      ip,
+      hostname: "unresolved-ptr",
+      city: "Unknown (Upstream Telemetry Unavailable)",
+      region: "Unknown",
+      country: "Unknown",
+      loc: "0,0",
+      org: "Upstream Lookup Unavailable",
+      timezone: localTz,
+      readme: "Could not retrieve geolocation telemetry from upstream providers. Check internet connection or API token.",
     };
   }
 
