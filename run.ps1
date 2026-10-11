@@ -6,13 +6,12 @@
     Auto-detects architecture (x64 / ARM64), locates Bun, verifies Edge WebView2 runtime,
     and provides both direct execution and an interactive menu.
 .EXAMPLE
-    .\run.ps1                        # Opens interactive menu to browse and run all apps & demos
-    .\run.ps1 calculator             # Launches Universal Calculator Studio
-    .\run.ps1 23                     # Launches Demo 23 (Universal 42 Themes Showcase)
-    .\run.ps1 pacman                 # Launches Cyberpunk Pac-Man Arcade
-    .\run.ps1 -Gui                   # Launches the full GUI Launcher Studio Pro
-    .\run.ps1 -List                  # Lists all available demos, applications, and CLI tools
-    .\run.ps1 -Search game           # Searches for all games in the workspace
+    powershell -ExecutionPolicy Bypass -File .\run.ps1                 # Opens interactive menu
+    powershell -ExecutionPolicy Bypass -File .\run.ps1 calculator      # Launches Calculator Studio
+    powershell -ExecutionPolicy Bypass -File .\run.ps1 23              # Launches Demo 23 Showcase
+    powershell -ExecutionPolicy Bypass -File .\run.ps1 pacman          # Launches Pac-Man Arcade
+    powershell -ExecutionPolicy Bypass -File .\run.ps1 -Gui            # Launches GUI Launcher Studio
+    powershell -ExecutionPolicy Bypass -File .\run.ps1 -List           # Lists all apps & demos
 #>
 
 [CmdletBinding()]
@@ -72,8 +71,15 @@ function Find-BunRuntime {
         return $cmd.Source
     }
 
-    $userProfile = if ($env:USERPROFILE) { $env:USERPROFILE } else { 'C:\Users\Default' }
-    $localApp = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { (Join-Path $userProfile 'AppData\Local') }
+    $userProfile = 'C:\Users\Default'
+    if ($env:USERPROFILE) {
+        $userProfile = $env:USERPROFILE
+    }
+
+    $localApp = Join-Path $userProfile 'AppData\Local'
+    if ($env:LOCALAPPDATA) {
+        $localApp = $env:LOCALAPPDATA
+    }
 
     $candidates = @(
         (Join-Path $userProfile '.bun\bin\bun.exe'),
@@ -123,22 +129,26 @@ function Ensure-WebView2Loader {
 
     Write-Host "[*] Locating WebView2Loader.dll for webview-bun..." -ForegroundColor Yellow
 
-    $localApp = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { '' }
+    $localApp = ''
+    if ($env:LOCALAPPDATA) {
+        $localApp = $env:LOCALAPPDATA
+    }
 
-    $searchRoots = @(
-        'C:\Program Files (x86)\Microsoft\EdgeWebView\Application',
-        'C:\Program Files\Microsoft\EdgeWebView\Application',
-        'C:\Program Files (x86)\Microsoft\Edge\Application',
-        'C:\Program Files\Microsoft\Edge\Application',
-        'C:\Program Files (x86)\Microsoft\EdgeWebView',
-        'C:\Program Files\Microsoft\EdgeWebView',
-        'C:\Program Files (x86)\Microsoft\Edge',
-        'C:\Program Files\Microsoft\Edge',
-        (if ($localApp) { Join-Path $localApp 'Microsoft\EdgeWebView' } else { $null }),
-        'C:\Windows\System32',
-        'C:\Windows\SysWOW64',
-        'C:\Windows\Arm64'
-    )
+    $searchRoots = [System.Collections.Generic.List[string]]::new()
+    $searchRoots.Add('C:\Program Files (x86)\Microsoft\EdgeWebView\Application')
+    $searchRoots.Add('C:\Program Files\Microsoft\EdgeWebView\Application')
+    $searchRoots.Add('C:\Program Files (x86)\Microsoft\Edge\Application')
+    $searchRoots.Add('C:\Program Files\Microsoft\Edge\Application')
+    $searchRoots.Add('C:\Program Files (x86)\Microsoft\EdgeWebView')
+    $searchRoots.Add('C:\Program Files\Microsoft\EdgeWebView')
+    $searchRoots.Add('C:\Program Files (x86)\Microsoft\Edge')
+    $searchRoots.Add('C:\Program Files\Microsoft\Edge')
+    if ($localApp) {
+        $searchRoots.Add((Join-Path $localApp 'Microsoft\EdgeWebView'))
+    }
+    $searchRoots.Add('C:\Windows\System32')
+    $searchRoots.Add('C:\Windows\SysWOW64')
+    $searchRoots.Add('C:\Windows\Arm64')
 
     $found = $null
     foreach ($root in $searchRoots) {
@@ -202,9 +212,15 @@ $hasWebView = Ensure-WebView2Loader
 if ($CheckOnly) {
     Write-BrandHeader
     $bunVer = & $bunExe --version
+    $webStatus = 'Missing/Warning'
+    $webColor = 'Yellow'
+    if ($hasWebView) {
+        $webStatus = 'Ready'
+        $webColor = 'Green'
+    }
     Write-Host "Architecture:   $osArch ($osDesc)" -ForegroundColor Gray
     Write-Host "Bun Executable: $bunExe (v$bunVer)" -ForegroundColor Green
-    Write-Host "WebView2:       $(if ($hasWebView) { 'Ready' } else { 'Missing/Warning' })" -ForegroundColor $(if ($hasWebView) { 'Green' } else { 'Yellow' })
+    Write-Host "WebView2:       $webStatus" -ForegroundColor $webColor
     exit 0
 }
 
@@ -302,17 +318,30 @@ function Get-AppCatalog {
         $base = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $meta = $metadataRegistry[$base]
         $num = ""
-        if ($base -match '^(\d+)') { $num = $matches[1] }
+        if ($base -match '^(\d+)') {
+            $num = $matches[1]
+        }
+
+        $dispName = $file.Name
+        $category = 'Showcase'
+        $icon = '[Demo]'
+        $desc = "Showcase Demo $base"
+        if ($meta) {
+            if ($meta.Name) { $dispName = $meta.Name }
+            if ($meta.Category) { $category = $meta.Category }
+            if ($meta.Icon) { $icon = $meta.Icon }
+            if ($meta.Desc) { $desc = $meta.Desc }
+        }
 
         $catalog.Add([PSCustomObject]@{
             Id          = $base
             Number      = $num
             Type        = 'Demo'
             TypeSort    = 1
-            DisplayName = if ($meta) { $meta.Name } else { $file.Name }
-            Category    = if ($meta) { $meta.Category } else { 'Showcase' }
-            Icon        = if ($meta) { $meta.Icon } else { '[Demo]' }
-            Description = if ($meta) { $meta.Desc } else { "Showcase Demo $base" }
+            DisplayName = $dispName
+            Category    = $category
+            Icon        = $icon
+            Description = $desc
             RelativePath= "demos/$($file.Name)"
             FullPath    = $file.FullName
         })
@@ -327,15 +356,26 @@ function Get-AppCatalog {
         $base = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $meta = $metadataRegistry[$base]
 
+        $dispName = $file.Name
+        $category = 'Studio App'
+        $icon = '[App]'
+        $desc = "RAD Studio Application"
+        if ($meta) {
+            if ($meta.Name) { $dispName = $meta.Name }
+            if ($meta.Category) { $category = $meta.Category }
+            if ($meta.Icon) { $icon = $meta.Icon }
+            if ($meta.Desc) { $desc = $meta.Desc }
+        }
+
         $catalog.Add([PSCustomObject]@{
             Id          = $base
             Number      = ""
             Type        = 'Application'
             TypeSort    = 2
-            DisplayName = if ($meta) { $meta.Name } else { $file.Name }
-            Category    = if ($meta) { $meta.Category } else { 'Studio App' }
-            Icon        = if ($meta) { $meta.Icon } else { '[App]' }
-            Description = if ($meta) { $meta.Desc } else { "RAD Studio Application" }
+            DisplayName = $dispName
+            Category    = $category
+            Icon        = $icon
+            Description = $desc
             RelativePath= "applications/$($file.Name)"
             FullPath    = $file.FullName
         })
@@ -347,15 +387,26 @@ function Get-AppCatalog {
         $base = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $meta = $metadataRegistry[$base]
 
+        $dispName = $file.Name
+        $category = 'CLI Tool'
+        $icon = '[CLI]'
+        $desc = "CLI Utility"
+        if ($meta) {
+            if ($meta.Name) { $dispName = $meta.Name }
+            if ($meta.Category) { $category = $meta.Category }
+            if ($meta.Icon) { $icon = $meta.Icon }
+            if ($meta.Desc) { $desc = $meta.Desc }
+        }
+
         $catalog.Add([PSCustomObject]@{
             Id          = $base
             Number      = ""
             Type        = 'CLI'
             TypeSort    = 3
-            DisplayName = if ($meta) { $meta.Name } else { $file.Name }
-            Category    = if ($meta) { $meta.Category } else { 'CLI Tool' }
-            Icon        = if ($meta) { $meta.Icon } else { '[CLI]' }
-            Description = if ($meta) { $meta.Desc } else { "CLI Utility" }
+            DisplayName = $dispName
+            Category    = $category
+            Icon        = $icon
+            Description = $desc
             RelativePath= "cli_apps/$($file.Name)"
             FullPath    = $file.FullName
         })
@@ -618,9 +669,15 @@ function Show-InteractiveMenu {
         Clear-Host
         Write-BrandHeader
         $bunVer = & $bunExe --version
+        $webStatus = 'Warning: Loader Missing'
+        $webColor = 'Yellow'
+        if ($hasWebView) {
+            $webStatus = 'Ready'
+            $webColor = 'Green'
+        }
         Write-Host "  Architecture: $osArch ($osDesc)" -ForegroundColor Gray
         Write-Host "  Bun Runtime:  $bunExe (v$bunVer)" -ForegroundColor Green
-        Write-Host "  WebView2:     $(if ($hasWebView) { 'Ready' } else { 'Warning: Loader Missing' })" -ForegroundColor $(if ($hasWebView) { 'Green' } else { 'Yellow' })
+        Write-Host "  WebView2:     $webStatus" -ForegroundColor $webColor
         Write-Host "------------------------------------------------------------------------" -ForegroundColor DarkCyan
         Write-Host "  [1] Open Launcher Studio Pro (Full Desktop GUI Hub)" -ForegroundColor Yellow
         Write-Host "  [2] Showcase Demos (01 - 25: Controls, Themes, Windows)" -ForegroundColor Cyan
