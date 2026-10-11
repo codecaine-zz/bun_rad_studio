@@ -147,13 +147,16 @@ const customWin = createWindow("Developer Studio", 920, 680, {
 | `title` | `string` | `"SimpleGUI Application"` | Caption displayed in window title bar |
 | `width` | `number` | `800` | Window canvas width in pixels |
 | `height` | `number` | `600` | Window canvas height in pixels |
-| `fullscreen` | `boolean` | `false` | Launch window in borderless fullscreen mode (defaults to `true` for studio applications) |
-| `theme` | `string` | `"apple_dark"` | Active visual color palette key |
+| `theme` | `string` | `"midnight"` (or saved) | Active visual color palette key |
+| `background_color` | `string` | *(Theme default)* | Custom background HEX color |
+| `font_color` | `string` | *(Theme default)* | Custom text HEX color |
 | `padding` | `number` | `20` | Canvas outer edge margin padding |
 | `spacing` | `number` | `12` | Vertical gap between stacked components |
 | `alwaysOnTop` | `boolean` | `false` | Floating window pin mode |
-| `background_color` | `string` | *(Theme default)* | Custom background HEX color |
-| `font_color` | `string` | *(Theme default)* | Custom text HEX color |
+| `appId` / `app_id` | `string` | `""` | Unique application ID for persistent state isolation |
+| `autoSave` / `auto_save` / `autoSaveState` / `auto_save_state` | `boolean` | `true` | Automatically persist and restore window state between sessions |
+| `fullscreen` | `boolean` | `true` | Launch window in borderless fullscreen/maximized mode |
+| `responsive` | `boolean` | `true` | Enable responsive flex/grid wrapping on resizing |
 
 <a id="window-state-methods"></a>
 ### Window State Methods
@@ -173,6 +176,19 @@ win.minimize();
 
 // Close application window & terminate process cleanly
 win.quit();
+
+// Resize window canvas dynamically
+win.setSize(1024, 768);
+win.resize(1024, 768);
+
+// Adjust individual control dimensions dynamically
+win.setControlWidth(320, "btnSubmit");
+win.setControlHeight(44, "btnSubmit");
+
+// Retrieve placed control specs or full form specification
+const spec = win.getControlSpec("btnSubmit");
+const allControls = win.getControls();
+const formSpec = win.getFormSpec();
 ```
 
 [⬆️ Back to Top](#table-of-contents)
@@ -291,14 +307,17 @@ win.addButton("🚀 Deploy", (w) => console.log("Deploying..."))
 | `.size()` | `(width: number, height: number) => this` | Sets width and height dimensions |
 | `.width()` | `(w: number) => this` | Sets control width in pixels |
 | `.height()` | `(h: number) => this` | Sets control height in pixels |
-| `.bg()` | `(color: string) => this` | Sets background HEX or CSS color |
-| `.color()` | `(color: string) => this` | Sets foreground text color |
+| `.bg()` / `.backgroundColor()` | `(color: string) => this` | Sets background HEX or CSS color |
+| `.color()` / `.fontColor()` | `(color: string) => this` | Sets foreground text color |
 | `.font()` | `(size: number, color?: string, weight?: string) => this` | Configures typography settings |
+| `.fontSize()` | `(size: number) => this` | Sets font size in pixels |
 | `.bold()` | `(isBold?: boolean) => this` | Sets font weight to bold (700) |
 | `.italic()` | `(isItalic?: boolean) => this` | Sets font style to italic |
 | `.align()` | `(alignment: "left" \| "center" \| "right") => this` | Sets inline text alignment |
 | `.tooltip()` | `(hint: string) => this` | Sets hover tooltip hint text |
 | `.placeholder()`| `(ph: string) => this` | Sets input placeholder text |
+| `.opacity()` | `(percent: number) => this` | Sets control opacity percentage (0-100) |
+| `.expandFill()` | `(expand?: boolean) => this` | Expands control to fill remaining flex/container width |
 | `.enabled()` | `(flag?: boolean) => this` | Toggles user interaction state |
 | `.visible()` | `(flag?: boolean) => this` | Toggles component visibility |
 | `.show()` / `.hide()` | `() => this` | Visibility shortcuts |
@@ -307,6 +326,22 @@ win.addButton("🚀 Deploy", (w) => console.log("Deploying..."))
 | `.focus()` | `() => this` | Focuses target input element |
 | `.flash()` | `() => this` | Flashes component background highlight |
 | `.highlight()` | `(durationMs?: number) => this` | Highlights control for specified duration |
+| `.min()` / `.max()` / `.step()` | `(val: number) => this` | Configures numeric range boundaries and interval |
+| `.multiSelect()` | `(enable?: boolean) => this` | Enables multi-row/item selection on ListBox and Table |
+| `.checkboxSelection()` | `(enable?: boolean) => this` | Renders row selection checkboxes |
+| `.getSelectedItems()` | `() => string[]` | Returns array of selected strings from ListBox |
+| `.getSelectedRows()` | `() => any[]` | Returns array of selected row data from Table |
+| `.value()` / `.getValue()` / `.setValue()` | `(val?: any) => any \| this` | Getter/setter for control value |
+| `.text()` / `.getText()` / `.setText()` | `(txt?: string) => string \| this` | Getter/setter for control text or label |
+| `.appendText()` / `.appendLine()` | `(text: string) => this` | Appends text or lines to text area or console |
+| `.options()` | `(items: string[]) => this` | Replaces dropdown/listbox options |
+| `.increment()` | `(delta?: number) => number` | Increments numeric control value |
+| `.toggleChecked()` | `() => boolean` | Toggles checkbox/switch checked state |
+| `.openModal()` / `.closeModal()` | `() => this` | Shows/hides modal dialog overlay |
+| `.expandAll()` / `.collapseAll()` | `() => this` | Expands/collapses all TreeGrid nodes |
+| `.closable()` / `.sortable()` / `.resizable()` | `(enable?: boolean) => this` | Toggles tab/column interactive capabilities |
+| `.contextMenu()` | `(items: string[] \| string, onSelect?: EventCallback) => this` | Binds right-click popup menu |
+| `.bindState()` | `(key: string) => this` | Automatically binds control value to reactive state store |
 | `.onClick()` | `(handler: EventCallback) => this` | Binds click event listener |
 | `.onDoubleClick()` / `.onDblClick()` | `(handler: EventCallback) => this` | Binds double-click listener (passes option value on listbox, row ID on table) |
 | `.onRightClick()` | `(handler: EventCallback) => this` | Binds right-click / context menu listener |
@@ -314,6 +349,11 @@ win.addButton("🚀 Deploy", (w) => console.log("Deploying..."))
 | `.onEnter()` | `(handler: EventCallback) => this` | Binds Enter/Return key press listener on input fields |
 | `.onHover()` | `(handler: EventCallback) => this` | Binds mouse hover listener |
 | `.onHoverExit()` | `(handler: EventCallback) => this` | Binds mouse hover exit listener |
+| `.onToggle()` | `(handler: EventCallback) => this` | Binds switch/checkbox toggle listener |
+| `.onSelectionChange()` | `(handler: EventCallback) => this` | Binds item/row selection listener |
+| `.onCommand()` | `(handler: EventCallback) => this` | Binds command palette or toolbar command listener |
+| `.onTabClose()` | `(handler: EventCallback) => this` | Binds closable tab close event listener |
+| `.onCardMove()` | `(handler: EventCallback) => this` | Binds Kanban card drag-and-drop move listener |
 
 [⬆️ Back to Top](#table-of-contents)
 
@@ -1171,19 +1211,113 @@ export interface SimpleWindowOptions {
     padding?: number;
     spacing?: number;
     alwaysOnTop?: boolean;
+    appId?: string;
+    app_id?: string;
+    autoSave?: boolean;
+    auto_save?: boolean;
+    autoSaveState?: boolean;
+    auto_save_state?: boolean;
+    fullscreen?: boolean;
+    responsive?: boolean;
 }
 
 // Event Callback Signature
 export type EventCallback = (win: SimpleWindow, val?: any) => void;
 
+// Layout Section Definition
+export interface SimpleguiLayoutSection {
+    type: "header_bar" | "card" | "row" | "standalone" | "grid";
+    id?: string;
+    title?: string;
+    subtitle?: string;
+    rows?: Array<{ id: string; controls: string[] }>;
+    controls?: string[];
+    items?: string[];
+    cols?: number;
+    gap?: number;
+    cards?: SimpleguiLayoutSection[];
+}
+
 // Theme Object Definition
-export interface ThemeDefinition {
+export interface SimpleGUITheme {
     name: string;
+    short_name?: string;
     background_color: string;
     font_color: string;
-    card_bg: string;
-    border_color: string;
     accent_color: string;
+    secondary_accent?: string;
+    card_background?: string;
+    card_border?: string;
+    description: string;
+    is_dark: boolean;
+}
+
+// Control Specification Object
+export interface ControlSpec {
+    id: string;
+    control_type: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text?: string;
+    font_size?: number;
+    font_color?: string;
+    background_color?: string;
+    hover_color?: string;
+    hover_text_color?: string;
+    cursor?: string;
+    border_radius?: number;
+    border_width?: number;
+    border_color?: string;
+    border_style?: "solid" | "dashed" | "dotted" | "double" | "none";
+    box_shadow?: "none" | "subtle" | "medium" | "deep" | "glow";
+    text_align?: "left" | "center" | "right" | "justify";
+    opacity?: number;
+    placeholder?: string;
+    read_only?: boolean;
+    readonly?: boolean;
+    required?: boolean;
+    max_length?: number;
+    min_value?: number;
+    max_value?: number;
+    step?: number;
+    auto_focus?: boolean;
+    value?: any;
+    checked?: boolean;
+    enabled?: boolean;
+    visible?: boolean;
+    locked?: boolean;
+    tab_order?: number;
+    tooltip?: string;
+    anchors?: {
+        top?: boolean;
+        left?: boolean;
+        right?: boolean;
+        bottom?: boolean;
+    };
+    dock?: "none" | "top" | "bottom" | "left" | "right" | "fill";
+    [key: string]: any;
+}
+
+// Form Specification Object
+export interface FormSpec {
+    title: string;
+    width: number;
+    height: number;
+    theme: string;
+    background_color: string;
+    font_color: string;
+    accent_color?: string;
+    secondary_accent?: string;
+    card_background?: string;
+    card_border?: string;
+    padding: number;
+    spacing: number;
+    controls: ControlSpec[];
+    non_visual_controls?: ControlSpec[];
+    menu_bar?: any;
+    global_context_menu_items?: any[];
 }
 ```
 

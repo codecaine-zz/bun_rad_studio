@@ -80,12 +80,19 @@ The entire state of a form layout in Bun RAD Studio is represented as a JSON obj
 | `title` | `string` | Window title caption | `"New RAD Form"` |
 | `width` | `number` | Form layout canvas width in pixels | `840` |
 | `height` | `number` | Form layout canvas height in pixels | `560` |
+| `theme` | `string` | Form active theme palette key | `"midnight"` |
 | `background_color` | `string` | Form background color (HEX/RGB) | `"#0f172a"` |
 | `font_color` | `string` | Form default text color (HEX/RGB) | `"#f8fafc"` |
+| `accent_color` | `string` | Form primary accent color (HEX/RGB) | `"#0a84ff"` |
+| `secondary_accent` | `string` | Form secondary accent color (HEX/RGB) | `undefined` |
+| `card_background` | `string` | Container card background color (HEX/RGB) | `undefined` |
+| `card_border` | `string` | Container card border stroke color (HEX/RGB) | `undefined` |
 | `padding` | `number` | Internal form margin/padding in pixels | `20` |
 | `spacing` | `number` | Default control spacing gap | `12` |
 | `controls` | `Array<ControlSpec>` | Array of placed visual component objects | `[]` |
 | `non_visual_controls` | `Array<ControlSpec>` | Array of non-visual tray controls (Timer, Dialogs, DB) | `[]` |
+| `menu_bar` | `any` | Application top menu bar specification | `undefined` |
+| `global_context_menu_items` | `Array<any>` | Global right-click context menu item list | `[]` |
 
 ---
 
@@ -794,6 +801,12 @@ win.hasControl("btnSubmit");         // boolean
 win.listControls();                 // string[]
 win.getControlKind("btnSubmit");    // string ("button")
 win.requireControl("btnSubmit");    // throws error if control doesn't exist
+win.getControlSpec("btnSubmit");    // ControlSpec | null
+win.setControlWidth(320, "btnSubmit"); // Adjusts control width
+win.setControlHeight(44, "btnSubmit"); // Adjusts control height
+win.getControls();                  // ControlSpec[] (placed visual controls)
+win.getNonVisualControls();         // ControlSpec[] (timer, dialogs, tray)
+win.getFormSpec();                  // FormSpec (complete serialized form layout)
 
 // OS System Path Helpers
 homeDir();                          // User home directory path

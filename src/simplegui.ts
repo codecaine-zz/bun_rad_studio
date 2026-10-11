@@ -29,6 +29,72 @@ export interface SimpleWindowOptions {
     responsive?: boolean;
 }
 
+export interface ControlSpec {
+    id: string;
+    control_type: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text?: string;
+    font_size?: number;
+    font_color?: string;
+    background_color?: string;
+    hover_color?: string;
+    hover_text_color?: string;
+    cursor?: string;
+    border_radius?: number;
+    border_width?: number;
+    border_color?: string;
+    border_style?: "solid" | "dashed" | "dotted" | "double" | "none";
+    box_shadow?: "none" | "subtle" | "medium" | "deep" | "glow";
+    text_align?: "left" | "center" | "right" | "justify";
+    opacity?: number;
+    placeholder?: string;
+    read_only?: boolean;
+    readonly?: boolean;
+    required?: boolean;
+    max_length?: number;
+    min_value?: number;
+    max_value?: number;
+    step?: number;
+    auto_focus?: boolean;
+    value?: any;
+    checked?: boolean;
+    enabled?: boolean;
+    visible?: boolean;
+    locked?: boolean;
+    tab_order?: number;
+    tooltip?: string;
+    anchors?: {
+        top?: boolean;
+        left?: boolean;
+        right?: boolean;
+        bottom?: boolean;
+    };
+    dock?: "none" | "top" | "bottom" | "left" | "right" | "fill";
+    [key: string]: any;
+}
+
+export interface FormSpec {
+    title: string;
+    width: number;
+    height: number;
+    theme: string;
+    background_color: string;
+    font_color: string;
+    accent_color?: string;
+    secondary_accent?: string;
+    card_background?: string;
+    card_border?: string;
+    padding: number;
+    spacing: number;
+    controls: ControlSpec[];
+    non_visual_controls?: ControlSpec[];
+    menu_bar?: any;
+    global_context_menu_items?: any[];
+}
+
 export type EventCallback = (win: SimpleWindow, val?: any) => void;
 
 export class SimpleControlRef {
@@ -471,7 +537,7 @@ export class SimpleControlRef {
 
     on_click(handler: EventCallback): this { return this.onClick(handler); }
     on_change(handler: EventCallback): this { return this.onChange(handler); }
-    on_hover(handler: EventCallback): this { return this.onHoverExit ? this.onHover(handler) : this; }
+    on_hover(handler: EventCallback): this { return this.onHover(handler); }
     on_hover_exit(handler: EventCallback): this { return this.onHoverExit(handler); }
     get_value(): any { return this.getValue(); }
     set_value(val: any): this { return this.setValue(val); }
@@ -732,9 +798,12 @@ export function isBrightColor(hex?: string): boolean {
     const clean = hex.slice(1);
     let r = 0, g = 0, b = 0;
     if (clean.length === 3) {
-        r = parseInt(clean[0] + clean[0], 16);
-        g = parseInt(clean[1] + clean[1], 16);
-        b = parseInt(clean[2] + clean[2], 16);
+        const c0 = clean[0] || "0";
+        const c1 = clean[1] || "0";
+        const c2 = clean[2] || "0";
+        r = parseInt(c0 + c0, 16);
+        g = parseInt(c1 + c1, 16);
+        b = parseInt(c2 + c2, 16);
     } else if (clean.length >= 6) {
         r = parseInt(clean.slice(0, 2), 16);
         g = parseInt(clean.slice(2, 4), 16);
@@ -1472,6 +1541,7 @@ export class SimpleWindow {
     public getAvailableWidth(): number {
         for (let i = this.layoutStack.length - 1; i >= 0; i--) {
             const frame = this.layoutStack[i];
+            if (!frame) continue;
             if (frame.type === "card" && frame.cardSpec) {
                 const cardW = frame.cardSpec.width || (this.width - (this.padding * 2));
                 return Math.max(100, cardW - 32);
@@ -2336,7 +2406,7 @@ export class SimpleWindow {
             if (Array.isArray(rowsOrOnSelect)) {
                 rows = rowsOrOnSelect as any[][];
             } else if (typeof rowsOrOnSelect === "function") {
-                clickHandler = rowsOrOnSelect;
+                clickHandler = rowsOrOnSelect as EventCallback;
             } else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) {
                 finalOpts = { ...rowsOrOnSelect, ...finalOpts };
             }
@@ -2344,7 +2414,7 @@ export class SimpleWindow {
             headers = idOrHeaders as string[];
             if (Array.isArray(headersOrRows)) {
                 rows = headersOrRows as any[][];
-                if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect;
+                if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect as EventCallback;
                 else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) finalOpts = { ...rowsOrOnSelect, ...finalOpts };
             }
         }
@@ -2400,7 +2470,7 @@ export class SimpleWindow {
             if (Array.isArray(rowsOrOnSelect)) {
                 rows = rowsOrOnSelect as any[];
             } else if (typeof rowsOrOnSelect === "function") {
-                clickHandler = rowsOrOnSelect;
+                clickHandler = rowsOrOnSelect as EventCallback;
             } else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) {
                 finalOpts = { ...rowsOrOnSelect, ...finalOpts };
             }
@@ -2408,7 +2478,7 @@ export class SimpleWindow {
             headers = idOrHeaders as string[];
             if (Array.isArray(headersOrRows)) {
                 rows = headersOrRows as any[];
-                if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect;
+                if (typeof rowsOrOnSelect === "function") clickHandler = rowsOrOnSelect as EventCallback;
                 else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null) finalOpts = { ...rowsOrOnSelect, ...finalOpts };
             }
         } else if (typeof idOrHeaders === "string" && !headersOrRows) {
@@ -2476,7 +2546,7 @@ export class SimpleWindow {
         let finalOpts: Record<string, any> = { ...opts };
 
         if (typeof onSelect === "function") {
-            selectHandler = onSelect;
+            selectHandler = onSelect as EventCallback;
         } else if (typeof onSelect === "object" && onSelect !== null) {
             finalOpts = { ...onSelect, ...finalOpts };
         }
@@ -2486,7 +2556,7 @@ export class SimpleWindow {
             if (Array.isArray(itemsOrOnSelect)) {
                 items = itemsOrOnSelect;
             } else if (typeof itemsOrOnSelect === "function") {
-                selectHandler = itemsOrOnSelect;
+                selectHandler = itemsOrOnSelect as EventCallback;
             } else if (typeof itemsOrOnSelect === "string") {
                 finalOpts.placeholder = itemsOrOnSelect;
             } else if (typeof itemsOrOnSelect === "object" && itemsOrOnSelect !== null) {
@@ -2494,7 +2564,7 @@ export class SimpleWindow {
             }
         } else if (Array.isArray(idOrItems)) {
             items = idOrItems;
-            if (typeof itemsOrOnSelect === "function") selectHandler = itemsOrOnSelect;
+            if (typeof itemsOrOnSelect === "function") selectHandler = itemsOrOnSelect as EventCallback;
             else if (typeof itemsOrOnSelect === "object" && itemsOrOnSelect !== null) finalOpts = { ...itemsOrOnSelect, ...finalOpts };
         }
 
@@ -2566,7 +2636,7 @@ export class SimpleWindow {
         let clickHandler: EventCallback | undefined;
         let finalOpts: Record<string, any> = { ...opts };
 
-        if (typeof onClick === "function") clickHandler = onClick;
+        if (typeof onClick === "function") clickHandler = onClick as EventCallback;
         else if (typeof onClick === "object" && onClick !== null) finalOpts = { ...onClick, ...finalOpts };
 
         if (typeof idOrItems === "string" && (Array.isArray(itemsOrOnClick) || typeof itemsOrOnClick === "string")) {
@@ -2574,11 +2644,11 @@ export class SimpleWindow {
             items = Array.isArray(itemsOrOnClick) ? itemsOrOnClick : String(itemsOrOnClick).split(",").map(s => s.trim());
         } else if (Array.isArray(idOrItems)) {
             items = idOrItems;
-            if (typeof itemsOrOnClick === "function") clickHandler = itemsOrOnClick;
+            if (typeof itemsOrOnClick === "function") clickHandler = itemsOrOnClick as EventCallback;
             else if (typeof itemsOrOnClick === "object" && itemsOrOnClick !== null) finalOpts = { ...itemsOrOnClick, ...finalOpts };
         } else if (typeof idOrItems === "string") {
             explicitId = idOrItems;
-            if (typeof itemsOrOnClick === "function") clickHandler = itemsOrOnClick;
+            if (typeof itemsOrOnClick === "function") clickHandler = itemsOrOnClick as EventCallback;
             else if (typeof itemsOrOnClick === "object" && itemsOrOnClick !== null) finalOpts = { ...itemsOrOnClick, ...finalOpts };
         } else {
             items = ["📄 New", "📂 Open", "💾 Save", "⚙️ Settings"];
@@ -3014,7 +3084,7 @@ export class SimpleWindow {
         let onChange: EventCallback | undefined;
         let opts: Partial<any> = {};
         if (typeof onChangeOrOpts === "function") {
-            onChange = onChangeOrOpts;
+            onChange = onChangeOrOpts as EventCallback;
             opts = optsArg;
         } else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) {
             opts = onChangeOrOpts;
@@ -3777,17 +3847,17 @@ export class SimpleWindow {
         let moveHandler: EventCallback | undefined;
         let finalOpts: Record<string, any> = { ...opts };
 
-        if (typeof onMoveOrOpts === "function") moveHandler = onMoveOrOpts;
+        if (typeof onMoveOrOpts === "function") moveHandler = onMoveOrOpts as EventCallback;
         else if (typeof onMoveOrOpts === "object" && onMoveOrOpts !== null) finalOpts = { ...onMoveOrOpts, ...finalOpts };
 
         if (typeof idOrColumns === "string") {
             explicitId = idOrColumns;
             if (Array.isArray(columnsOrOnMove)) cols = columnsOrOnMove;
-            else if (typeof columnsOrOnMove === "function") moveHandler = columnsOrOnMove;
+            else if (typeof columnsOrOnMove === "function") moveHandler = columnsOrOnMove as EventCallback;
             else if (typeof columnsOrOnMove === "object" && columnsOrOnMove !== null) finalOpts = { ...columnsOrOnMove, ...finalOpts };
         } else if (Array.isArray(idOrColumns)) {
             cols = idOrColumns;
-            if (typeof columnsOrOnMove === "function") moveHandler = columnsOrOnMove;
+            if (typeof columnsOrOnMove === "function") moveHandler = columnsOrOnMove as EventCallback;
             else if (typeof columnsOrOnMove === "object" && columnsOrOnMove !== null) finalOpts = { ...columnsOrOnMove, ...finalOpts };
         }
 
@@ -3972,7 +4042,7 @@ export class SimpleWindow {
                 explicitId = idOrTitleOrItems;
                 title = titleOrItemsOrOnClick;
                 if (Array.isArray(itemsOrOnClickOrOpts)) items = itemsOrOnClickOrOpts;
-                if (typeof onClickOrOpts === "function") onClick = onClickOrOpts;
+                if (typeof onClickOrOpts === "function") onClick = onClickOrOpts as EventCallback;
                 else if (typeof onClickOrOpts === "object" && onClickOrOpts !== null) opts = onClickOrOpts;
                 if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
             } else if (Array.isArray(titleOrItemsOrOnClick)) {
@@ -4024,24 +4094,23 @@ export class SimpleWindow {
             title = titleOrMsgOrOnConfirm;
             message = msgOrOnConfirmOrIsOpen;
             if (typeof isOpenOrOnConfirmOrOpts === "boolean") isOpen = isOpenOrOnConfirmOrOpts;
-            else if (typeof isOpenOrOnConfirmOrOpts === "function") onConfirm = isOpenOrOnConfirmOrOpts;
+            else if (typeof isOpenOrOnConfirmOrOpts === "function") onConfirm = isOpenOrOnConfirmOrOpts as EventCallback;
             else if (typeof isOpenOrOnConfirmOrOpts === "object" && isOpenOrOnConfirmOrOpts !== null) opts = isOpenOrOnConfirmOrOpts;
             if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
         } else if (typeof idOrTitleOrMsg === "string" && typeof titleOrMsgOrOnConfirm === "string") {
             title = idOrTitleOrMsg;
             message = titleOrMsgOrOnConfirm;
             if (typeof msgOrOnConfirmOrIsOpen === "boolean") isOpen = msgOrOnConfirmOrIsOpen;
-            else if (typeof msgOrOnConfirmOrIsOpen === "function") onConfirm = msgOrOnConfirmOrIsOpen;
+            else if (typeof msgOrOnConfirmOrIsOpen === "function") onConfirm = msgOrOnConfirmOrIsOpen as EventCallback;
             else if (typeof msgOrOnConfirmOrIsOpen === "object" && msgOrOnConfirmOrIsOpen !== null) opts = msgOrOnConfirmOrIsOpen;
         } else {
             message = idOrTitleOrMsg;
-            if (typeof titleOrMsgOrOnConfirm === "function") onConfirm = titleOrMsgOrOnConfirm;
+            if (typeof titleOrMsgOrOnConfirm === "function") onConfirm = titleOrMsgOrOnConfirm as EventCallback;
             else if (typeof titleOrMsgOrOnConfirm === "object" && titleOrMsgOrOnConfirm !== null) opts = titleOrMsgOrOnConfirm;
         }
 
         const id = explicitId || opts.id || this.generateUniqueId("modal");
-        const prevCursorX = this.cursorX;
-        const prevCursorY = this.cursorY;
+        const prevY = this.currentY;
         const ref = this.addVisualControl("modal", 480, 200, {
             id,
             title,
@@ -4054,8 +4123,7 @@ export class SimpleWindow {
             ...opts
         });
         // Modals are fixed overlay backdrops and do not consume canvas vertical flow
-        this.cursorX = prevCursorX;
-        this.cursorY = prevCursorY;
+        this.currentY = prevY;
         if (onConfirm) {
             this.bindControlEvent(id, "onConfirm", onConfirm);
             this.bindControlEvent(id, "onClick", onConfirm);
@@ -4090,7 +4158,7 @@ export class SimpleWindow {
                 explicitId = idOrLabelOrItems;
                 label = labelOrItemsOrOnSelect;
                 if (Array.isArray(itemsOrOnSelectOrOpts)) items = itemsOrOnSelectOrOpts;
-                if (typeof onSelectOrOpts === "function") onSelect = onSelectOrOpts;
+                if (typeof onSelectOrOpts === "function") onSelect = onSelectOrOpts as EventCallback;
                 else if (typeof onSelectOrOpts === "object" && onSelectOrOpts !== null) opts = onSelectOrOpts;
                 if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
             } else if (Array.isArray(labelOrItemsOrOnSelect)) {
@@ -4137,7 +4205,7 @@ export class SimpleWindow {
         if (typeof idOrItems === "string" && Array.isArray(itemsOrOnSelect)) {
             explicitId = idOrItems;
             items = itemsOrOnSelect;
-            if (typeof onSelectOrOpts === "function") onSelect = onSelectOrOpts;
+            if (typeof onSelectOrOpts === "function") onSelect = onSelectOrOpts as EventCallback;
             else if (typeof onSelectOrOpts === "object" && onSelectOrOpts !== null) opts = onSelectOrOpts;
             if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
         } else if (Array.isArray(idOrItems)) {
@@ -4314,14 +4382,14 @@ export class SimpleWindow {
             explicitId = idOrPlaceholder;
             placeholder = placeholderOrVal;
             if (typeof valOrOnChange === "string") val = valOrOnChange;
-            else if (typeof valOrOnChange === "function") onChange = valOrOnChange;
-            if (typeof onChangeOrOpts === "function") onChange = onChangeOrOpts;
+            else if (typeof valOrOnChange === "function") onChange = valOrOnChange as EventCallback;
+            if (typeof onChangeOrOpts === "function") onChange = onChangeOrOpts as EventCallback;
             else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts;
             if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
         } else {
             placeholder = idOrPlaceholder;
             if (typeof placeholderOrVal === "string") val = placeholderOrVal;
-            else if (typeof placeholderOrVal === "function") onChange = placeholderOrVal;
+            else if (typeof placeholderOrVal === "function") onChange = placeholderOrVal as EventCallback;
             else if (typeof placeholderOrVal === "object" && placeholderOrVal !== null) opts = placeholderOrVal;
         }
 
@@ -4489,7 +4557,7 @@ export class SimpleWindow {
         if (typeof idOrButtons === "string" && Array.isArray(buttonsOrOnClick)) {
             explicitId = idOrButtons;
             buttons = buttonsOrOnClick;
-            if (typeof onClickOrOpts === "function") onClick = onClickOrOpts;
+            if (typeof onClickOrOpts === "function") onClick = onClickOrOpts as EventCallback;
             else if (typeof onClickOrOpts === "object" && onClickOrOpts !== null) opts = onClickOrOpts;
             if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
         } else if (Array.isArray(idOrButtons)) {
@@ -4529,7 +4597,7 @@ export class SimpleWindow {
         if (typeof idOrSlides === "string" && Array.isArray(slidesOrOnChange)) {
             explicitId = idOrSlides;
             slides = slidesOrOnChange;
-            if (typeof onChangeOrOpts === "function") onChange = onChangeOrOpts;
+            if (typeof onChangeOrOpts === "function") onChange = onChangeOrOpts as EventCallback;
             else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null) opts = onChangeOrOpts;
             if (typeof optsArg === "object" && optsArg !== null) opts = { ...opts, ...optsArg };
         } else if (Array.isArray(idOrSlides)) {
@@ -5018,7 +5086,7 @@ export class SimpleWindow {
     }
 
     // --- HTML & Window Build Engine ---
-    public buildFormSpec(): any {
+    public buildFormSpec(): FormSpec {
         const specControls: any[] = [];
         const processControls = (items: any[]) => {
             for (const item of items) {
@@ -6038,7 +6106,7 @@ export class SimpleWindow {
             if (!boundHandlers.has(changeBind)) {
                 boundHandlers.add(changeBind);
                 try {
-                    this.webview.bind(changeBind, async (val: any) => {
+                    this.webview?.bind(changeBind, async (val: any) => {
                         if (val !== undefined && val !== null) {
                             this.formValuesStore[cid] = val;
                         }
@@ -6054,7 +6122,7 @@ export class SimpleWindow {
             if (!boundHandlers.has(clickBind)) {
                 boundHandlers.add(clickBind);
                 try {
-                    this.webview.bind(clickBind, async (val: any) => {
+                    this.webview?.bind(clickBind, async (val: any) => {
                         if (val !== undefined && val !== null) {
                             this.formValuesStore[cid] = val;
                         }
@@ -6070,7 +6138,7 @@ export class SimpleWindow {
             if (!boundHandlers.has(enterBind)) {
                 boundHandlers.add(enterBind);
                 try {
-                    this.webview.bind(enterBind, async (val: any) => {
+                    this.webview?.bind(enterBind, async (val: any) => {
                         if (val !== undefined && val !== null) {
                             this.formValuesStore[cid] = val;
                         }
@@ -6724,9 +6792,9 @@ export class SimpleWindow {
     public end_group_box(): this {
         return this.endCard();
     }
-    public setTableData(id: string, headersOrRows: string[] | any[][], maybeRows?: any[][]): this {
+    public setTableData(id: string, headersOrRows: string[] | any[], maybeRows?: any[]): this {
         let headers: string[];
-        let rows: any[][];
+        let rows: any[];
         if (maybeRows !== undefined && Array.isArray(headersOrRows)) {
             headers = headersOrRows as string[];
             rows = maybeRows;
@@ -7348,7 +7416,6 @@ export class SimpleWindow {
     // --- vlang_simplegui API Parity Window Methods ---
     public has_control(id: string): boolean { return this.hasControl(id); }
     public list_controls(): string[] { return this.listControls(); }
-    public getControls(): any[] { return this.controls; }
     public get_controls(): any[] { return this.controls; }
     public get_control_kind(id: string): string { return this.getControlKind(id); }
     public require_control(id: string): string { return this.requireControl(id); }
@@ -7436,14 +7503,6 @@ export class SimpleWindow {
     public is_minimized(): boolean { return false; }
     public is_maximized(): boolean { return false; }
     public is_fullscreen(): boolean { return this.fullscreen; }
-    public isFullscreen(): boolean { return this.fullscreen; }
-    public setFullscreen(val = true): this {
-        this.fullscreen = val;
-        if (this.isWindowRunning && this.webview) {
-            try { setFullscreenNative(this.webview, val); } catch {}
-        }
-        return this;
-    }
     public set_fullscreen(val = true): this { return this.setFullscreen(val); }
     public is_active(): boolean { return this.isWindowRunning; }
 
@@ -8779,20 +8838,39 @@ export class SimpleWindow {
         return this.controls.find(c => c && (c.id === this.lastControlId || c.name === this.lastControlId)) || null;
     }
 
+    public getControlSpec(id: string): ControlSpec | null {
+        return this.controls.find(c => c && (c.id === id || c.name === id)) || null;
+    }
+
     // --- Window-Level Fluent Modifiers (operate on last created control) ---
-    public width(w: number): this {
-        const ctrl = this.getLastControl();
+    public setControlWidth(w: number, ctrlId?: string): this {
+        const ctrl = ctrlId ? this.getControlSpec(ctrlId) : this.getLastControl();
         if (ctrl) {
             ctrl.width = w;
             ctrl.user_explicit_width = true;
         }
         return this;
     }
+    public set_control_width(nameOrWidth: string | number, width?: number): this {
+        if (typeof nameOrWidth === "string" && width !== undefined) {
+            return this.setControlWidth(width, nameOrWidth);
+        }
+        return this.setControlWidth(Number(nameOrWidth));
+    }
 
-    public height(h: number): this {
-        const ctrl = this.getLastControl();
-        if (ctrl) ctrl.height = h;
+    public setControlHeight(h: number, ctrlId?: string): this {
+        const ctrl = ctrlId ? this.getControlSpec(ctrlId) : this.getLastControl();
+        if (ctrl) {
+            ctrl.height = h;
+            ctrl.user_explicit_height = true;
+        }
         return this;
+    }
+    public set_control_height(nameOrHeight: string | number, height?: number): this {
+        if (typeof nameOrHeight === "string" && height !== undefined) {
+            return this.setControlHeight(height, nameOrHeight);
+        }
+        return this.setControlHeight(Number(nameOrHeight));
     }
 
     public placeholder(p: string): this {
@@ -8828,7 +8906,7 @@ export class SimpleWindow {
         return this;
     }
 
-    public fontColor(color: string): this {
+    public font_color(color: string): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
             ctrl.font_color = color;
@@ -8836,20 +8914,14 @@ export class SimpleWindow {
         }
         return this;
     }
-    public font_color(color: string): this {
-        return this.fontColor(color);
-    }
 
-    public backgroundColor(color: string): this {
+    public background_color(color: string): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
             ctrl.background_color = color;
             ctrl.bg = color;
         }
         return this;
-    }
-    public background_color(color: string): this {
-        return this.backgroundColor(color);
     }
 
     public expandFill(expand: boolean = true): this {
@@ -9072,7 +9144,9 @@ export class SimpleWindow {
     }
 
     public add_badge(name: string, text: string, color = "#0a84ff"): SimpleControlRef {
-        return this.addBadge(name, text, color);
+        const validTypes = ["info", "success", "warning", "error"] as const;
+        const type = (validTypes as readonly string[]).includes(color) ? (color as "info" | "success" | "warning" | "error") : "info";
+        return this.addBadge(text, type, { id: name, color, background_color: color });
     }
 
     public add_divider(name = ""): SimpleControlRef {
@@ -9105,14 +9179,14 @@ export class SimpleWindow {
     }
 
     public addColorPicker(name: string, defaultColor = "#0a84ff"): SimpleControlRef {
-        return this.addColorWell(name, defaultColor);
+        return this.addColorWell(defaultColor, undefined, { id: name });
     }
     public add_color_picker(name: string, defaultColor = "#0a84ff"): SimpleControlRef {
         return this.addColorPicker(name, defaultColor);
     }
 
     public add_image(name: string, src: string, width = 200, height = 150): SimpleControlRef {
-        return this.addImage(name, src, width, height);
+        return this.addImage(src, width, height, { id: name });
     }
 
     public addMarkdown(name: string, mdText: string): SimpleControlRef {
@@ -9123,10 +9197,10 @@ export class SimpleWindow {
     }
 
     public add_code_view(name: string, code: string, language = "typescript"): SimpleControlRef {
-        return this.addCodeView(name, code, language);
+        return this.addCodeView(code, language, { id: name });
     }
 
-    public add_alert_banner(name: string, title: string, message: string, level = "info"): SimpleControlRef {
+    public add_alert_banner(name: string, title: string, message: string, level: "info" | "success" | "warning" | "error" = "info"): SimpleControlRef {
         return this.addAlertBanner(name, title, message, level);
     }
 
@@ -9677,7 +9751,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         is_dark: false
     },
     "windows_95": {
-        name: "Windows 95 Classic",
+        name: "Windows 95",
         short_name: "Win95",
         background_color: "#008080",
         font_color: "#000000",
@@ -10424,31 +10498,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
         is_dark: true
     },
-    "one_dark": {
-        name: "One Dark Pro",
-        short_name: "One Dark",
-        background_color: "#21252b",
-        font_color: "#abb2bf",
-        accent_color: "#61afef",
-        secondary_accent: "#98c379",
-        card_background: "#282c34",
-        card_border: "#3e4451",
-        description: "Iconic Atom & VS Code One Dark Pro deep slate canvas with vibrant syntax hues",
-        is_dark: true
-    },
     "gruvbox_dark": {
-        name: "Gruvbox Dark",
-        short_name: "Gruvbox",
-        background_color: "#282828",
-        font_color: "#ebdbb2",
-        accent_color: "#fabd2f",
-        secondary_accent: "#fe8019",
-        card_background: "#1d2021",
-        card_border: "#504945",
-        description: "Retro groove warm earthy dark palette with amber gold and terracotta orange",
-        is_dark: true
-    },
-    "gruvbox": {
         name: "Gruvbox Dark",
         short_name: "Gruvbox",
         background_color: "#282828",
@@ -11021,18 +11071,6 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         description: "Iconic Windows 95 classic teal desktop with silver 3D beveled cards and titlebar navy",
         is_dark: false
     },
-    "windows_95": {
-        name: "Windows 95",
-        short_name: "Win95",
-        background_color: "#008080",
-        font_color: "#000000",
-        accent_color: "#000080",
-        secondary_accent: "#c0c0c0",
-        card_background: "#c0c0c0",
-        card_border: "#808080",
-        description: "Iconic Windows 95 classic teal desktop with silver 3D beveled cards and titlebar navy",
-        is_dark: false
-    },
     "gameboy": {
         name: "Game Boy 1989",
         short_name: "Game Boy",
@@ -11056,42 +11094,6 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         card_border: "#306230",
         description: "Nostalgic 4-shade monochrome dot matrix Game Boy DMG-01 screen",
         is_dark: true
-    },
-    "c64": {
-        name: "Commodore 64",
-        short_name: "C64",
-        background_color: "#40318d",
-        font_color: "#b8b5ff",
-        accent_color: "#7974ff",
-        secondary_accent: "#a09eff",
-        card_background: "#281b5c",
-        card_border: "#5848aa",
-        description: "Legendary 1982 Commodore 64 READY prompt and VIC-II blue palette",
-        is_dark: true
-    },
-    "commodore_64": {
-        name: "Commodore 64",
-        short_name: "C64",
-        background_color: "#40318d",
-        font_color: "#b8b5ff",
-        accent_color: "#7974ff",
-        secondary_accent: "#a09eff",
-        card_background: "#281b5c",
-        card_border: "#5848aa",
-        description: "Legendary 1982 Commodore 64 READY prompt and VIC-II blue palette",
-        is_dark: true
-    },
-    "mac_classic": {
-        name: "Macintosh System 7",
-        short_name: "System 7",
-        background_color: "#ebe7df",
-        font_color: "#1c1b18",
-        accent_color: "#5555aa",
-        secondary_accent: "#ded9cf",
-        card_background: "#ffffff",
-        card_border: "#a8a49c",
-        description: "Vintage 1991 System 7 Platinum desktop with Chicago typography and pinstripe accents",
-        is_dark: false
     },
     "system7": {
         name: "Macintosh System 7",
@@ -11127,18 +11129,6 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
         card_background: "#160d00",
         card_border: "#472800",
         description: "Warm VT220 / Pip-Boy amber phosphor monochrome terminal cathode glow",
-        is_dark: true
-    },
-    "matrix": {
-        name: "Matrix Phosphor",
-        short_name: "Matrix",
-        background_color: "#040a05",
-        font_color: "#00ff66",
-        accent_color: "#00ff41",
-        secondary_accent: "#03a628",
-        card_background: "#08140a",
-        card_border: "#123d18",
-        description: "Iconic 1999 digital rain phosphor green mainframe terminal",
         is_dark: true
     },
     "green_crt": {

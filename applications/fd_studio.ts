@@ -422,7 +422,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         const stillPresent = graveyardItems.find((g) => g.id === selectedGraveyardItem!.id);
         updateSelectedGraveyardInspector(stillPresent || null);
       } else if (graveyardItems.length > 0) {
-        updateSelectedGraveyardInspector(graveyardItems[0]);
+        updateSelectedGraveyardInspector(graveyardItems[0] ?? null);
       } else {
         updateSelectedGraveyardInspector(null);
       }
@@ -530,7 +530,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
 
     if (result.items.length > 0) {
       const stillSelected = selectedItem ? result.items.find((r) => r.relativePath === selectedItem!.relativePath) : null;
-      updateSelectedInspector(stillSelected || result.items[0]);
+      const targetItem = stillSelected || result.items[0];
+      if (targetItem) updateSelectedInspector(targetItem);
     } else {
       selectedItem = null;
       win.setText("lbl_selected_name", "Selected: (No matches)");
@@ -840,8 +841,9 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         refreshGraveyard();
         performSearch();
       } else if (res.failed.length > 0) {
-        logConsole(`[Rip Engine Error]: ${res.failed[0].error}`, 3);
-        win.toast(`Failed to bury: ${res.failed[0].error}`);
+        const errorMsg = res.failed[0]?.error ?? "Unknown error";
+        logConsole(`[Rip Engine Error]: ${errorMsg}`, 3);
+        win.toast(`Failed to bury: ${errorMsg}`);
       }
     } catch (err: any) {
       logConsole(`[Rip Error]: ${err.message}`, 3);
@@ -881,7 +883,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         cells: [it.name, it.type, it.humanSize, it.relativePath, it.mtimeStr, it.permStr],
       }));
       win.setTableData("tbl_results", tableHeaders, rows);
-      if (currentResults.length > 0) {
+      if (currentResults.length > 0 && currentResults[0]) {
         updateSelectedInspector(currentResults[0]);
       } else {
         selectedItem = null;
@@ -1217,11 +1219,11 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.onClick("btn_unbury_last", () => {
     try {
       const allBuried = seanceGraveyard({ graveyardDir }).filter((i) => i.status === "buried");
-      if (allBuried.length === 0) {
+      const lastBuried = allBuried[0];
+      if (!lastBuried) {
         win.toast("Graveyard is empty. Nothing to restore.");
         return;
       }
-      const lastBuried = allBuried[0];
       const res = unburyTargetsSync([lastBuried.id], { graveyardDir });
       if (res.restoredItems.length > 0) {
         logConsole(`[Rip Engine] Restored '${lastBuried.name}' back to '${lastBuried.originalPath}'`, 2);
@@ -1229,8 +1231,9 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         refreshGraveyard();
         performSearch();
       } else if (res.failed.length > 0) {
-        logConsole(`[Rip Undo Error]: ${res.failed[0].error}`, 3);
-        win.toast(`Restore failed: ${res.failed[0].error}`);
+        const errorMsg = res.failed[0]?.error ?? "Unknown error";
+        logConsole(`[Rip Undo Error]: ${errorMsg}`, 3);
+        win.toast(`Restore failed: ${errorMsg}`);
       }
     } catch (err: any) {
       logConsole(`[Rip Undo Error]: ${err.message}`, 3);
@@ -1260,8 +1263,9 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         refreshGraveyard();
         performSearch();
       } else if (res.failed.length > 0) {
-        logConsole(`[Rip Restore Error]: ${res.failed[0].error}`, 3);
-        win.toast(`Restore failed: ${res.failed[0].error}`);
+        const errorMsg = res.failed[0]?.error ?? "Unknown error";
+        logConsole(`[Rip Restore Error]: ${errorMsg}`, 3);
+        win.toast(`Restore failed: ${errorMsg}`);
       }
     } catch (err: any) {
       logConsole(`[Rip Restore Error]: ${err.message}`, 3);

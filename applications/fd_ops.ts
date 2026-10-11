@@ -139,7 +139,7 @@ export function chmodPath(target: string, modeInput: string): { before: string; 
 }
 
 function titleCase(s: string): string {
-  return s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+  return s.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
 /** Builds a preview of renames without touching the disk. */
@@ -250,9 +250,10 @@ export function searchContents(
     const lines = buf.toString("utf-8").split(/\r?\n/);
     let hit = false;
     for (let i = 0; i < lines.length; i++) {
-      if (re.test(lines[i])) {
+      const lineText = lines[i] ?? "";
+      if (re.test(lineText)) {
         hit = true;
-        matches.push({ path: p, line: i + 1, text: lines[i].trim().slice(0, 200) });
+        matches.push({ path: p, line: i + 1, text: lineText.trim().slice(0, 200) });
         if (matches.length >= maxMatches) {
           truncated = true;
           break;
