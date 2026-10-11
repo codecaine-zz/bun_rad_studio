@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#070a12">
+    <meta name="description" content="IntuitionLab - Visual STEM Learning Laboratory for Calculus, Physics, and Linear Algebra through real-time 60fps geometric simulations.">
+    <title>IntuitionLab - Visual Calculus, Physics &amp; Algebra Simulations</title>
+
+    <!-- KaTeX CDN for instant LaTeX math formula rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+
+    <!-- IntuitionLab Dark Glassmorphism Stylesheet -->
+    <link rel="stylesheet" href="styles.css?v=2.9.0">
+</head>
+<body>
+
+    <!-- =====================================================================
+         1. TOPBAR & PRIMARY SUBJECT NAVIGATION
+         ===================================================================== -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <a class="brand" href="../index.html" title="Universal Calculator &amp; STEM Suite">
+                <div class="brand-icon">⚡</div>
+                <div class="brand-text">
+                    <span class="brand-title">IntuitionLab</span>
+                    <span class="brand-sub">Visual STEM Simulations</span>
+                </div>
+            </a>
+
+            <!-- Main Subject Tabs -->
+            <nav class="subject-tabs" role="tablist" aria-label="STEM Subject selection">
+                <button class="subject-tab active" data-subject-tab="calculus" role="tab" aria-selected="true">
+                    <span>∫</span> Calculus
+                </button>
+                <button class="subject-tab" data-subject-tab="physics" role="tab" aria-selected="false">
+                    <span>⚛</span> Physics
+                </button>
+                <button class="subject-tab" data-subject-tab="algebra" role="tab" aria-selected="false">
+                    <span>⊞</span> Algebra &amp; Geometry
+                </button>
+            </nav>
+        </div>
+
+        <div class="topbar-right">
+            <!-- Search Palette ⌘K -->
+            <button class="icon-btn search-trigger-btn" id="searchPaletteTrigger" title="Quick Search (⌘K)">
+                <span>🔍</span> <span>Find Sim (⌘K)</span>
+            </button>
+
+            <!-- Sound Synthesizer Toggle -->
+            <button class="icon-btn" id="soundToggleBtn" title="Toggle audio feedback">
+                🔊 Sound On
+            </button>
+
+            <!-- Export PNG -->
+            <button class="icon-btn" id="exportCanvasBtn" title="Export high-resolution canvas snapshot">
+                📸 Snapshot
+            </button>
+
+            <!-- Visual Guide / Shortcuts -->
+            <button class="icon-btn" id="modalGuideTrigger" title="Guide &amp; Shortcuts (?)">
+                <span>📖</span> <span>Guide</span>
+            </button>
+
+            <!-- Back to Universal Calculator -->
+            <a class="icon-btn" href="../index.html" title="Return to Universal Calculator Suite">
+                <span>←</span> <span>Calculator</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- =====================================================================
+         2. SUB-NAVIGATION BAR (Simulation Mode Selector)
+         ===================================================================== -->
+    <nav class="sub-nav" id="subNavBar" aria-label="Sub-simulations">
+        <!-- Calculus Sub-Pills -->
+        <button class="sub-pill active" data-sub-tab="derivatives">📈 Tangent Limits</button>
+        <button class="sub-pill" data-sub-tab="riemann">📊 Riemann Integrals</button>
+        <button class="sub-pill" data-sub-tab="ftc">🔄 Fundamental Theorem</button>
+        <button class="sub-pill" data-sub-tab="gradient">🏔 Gradient Descent</button>
+        <button class="sub-pill" data-sub-tab="taylor">〰️ Taylor Series</button>
+        <button class="sub-pill" data-sub-tab="revolution">🌀 Vol of Revolution</button>
+
+        <!-- Physics Sub-Pills -->
+        <button class="sub-pill" data-sub-tab="projectile" hidden>🎯 Projectile Kinematics</button>
+        <button class="sub-pill" data-sub-tab="pendulum" hidden>⏱ Damped Pendulum</button>
+        <button class="sub-pill" data-sub-tab="optics" hidden>🌈 Snell's Law &amp; TIR</button>
+        <button class="sub-pill" data-sub-tab="wave" hidden>🌊 Wave Interference</button>
+        <button class="sub-pill" data-sub-tab="orbital" hidden>🪐 Orbital Mechanics</button>
+        <button class="sub-pill" data-sub-tab="spring" hidden>🪀 Spring-Mass</button>
+
+        <!-- Algebra Sub-Pills -->
+        <button class="sub-pill" data-sub-tab="matrix" hidden>🔲 2D Matrix Warping</button>
+        <button class="sub-pill" data-sub-tab="quadratic" hidden>📐 Parabola Discriminant</button>
+        <button class="sub-pill" data-sub-tab="trig" hidden>⭕ Unit Circle Waves</button>
+        <button class="sub-pill" data-sub-tab="linear" hidden>✖ Linear Systems</button>
+        <button class="sub-pill" data-sub-tab="complex" hidden>⚡ Complex Euler</button>
+        <button class="sub-pill" data-sub-tab="eigen" hidden>🔀 Eigenvectors</button>
+    </nav>
+
+    <!-- =====================================================================
+         3. MAIN CONTAINER
+         ===================================================================== -->
+    <main class="main-container">
+
+        <!-- =================================================================
+             CALCULUS SECTION
+             ================================================================= -->
+        <section data-subject-section="calculus">
+            
+            <!-- 1.1 DERIVATIVES & TANGENTS -->
+            <div class="sim-panel active" data-sub-panel="derivatives">
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>📈</span> Derivatives as Secant-to-Tangent Limits</h2>
+                        <p>Drag the cyan $x_0$ handle or rose $x_0 + \Delta x$ handle. Watch the secant line morph into the instantaneous tangent as $\Delta x \to 0$. The synchronized bottom canvas traces $f'(x)$.</p>
+                    </div>
+                    <div class="sim-formula-card" id="derivMathFormula"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Curve $f(x)$ with Secant &amp; Tangent Lines</span>
+                                <span style="color: var(--emerald);">Drag $x_0$ (Cyan) or $x_0+\Delta x$ (Rose)</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 380px;">
+                                <canvas id="derivMainCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Synchronized Derivative Function $f'(x)$</span>
+                                <span style="color: var(--violet);">Tracking Point $(x_0, f'(x_0))$</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 200px;">
+                                <canvas id="derivTraceCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar Controls -->
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header" for="derivFnSelect">
+                                <span>Function $f(x)$</span>
+                            </label>
+                            <select id="derivFnSelect" class="select-input">
+                                <option value="cubic">f(x) = x³ - 3x (Cubic)</option>
+                                <option value="sine">f(x) = 2 sin(x) (Sine Wave)</option>
+                                <option value="parabola">f(x) = 0.5x² - 1 (Parabola)</option>
+                                <option value="gaussian">f(x) = 3 e^(-x²) (Gaussian Bell)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Secant Step $\Delta x$</span>
+                                <span id="derivDxVal">1.50</span>
+                            </div>
+                            <input type="range" id="derivDxSlider" class="range-slider" min="0.01" max="3.0" step="0.01" value="1.50">
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="derivLimitBtn" class="btn-primary">
+                                <span>⚡</span> Limit $\Delta x \to 0$
+                            </button>
+                            <button id="derivResetBtn" class="btn-secondary">Reset</button>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Secant Slope ($m_{\text{sec}}$):</span>
+                                <span class="stat-val" id="derivSecSlope" style="color: var(--rose);">0.0000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Tangent Slope ($f'(x_0)$):</span>
+                                <span class="stat-val" id="derivTanSlope" style="color: var(--emerald);">0.0000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Approximation Error:</span>
+                                <span class="stat-val" id="derivSlopeDiff" style="color: var(--amber);">0.0000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.2 RIEMANN INTEGRALS -->
+            <div class="sim-panel" data-sub-panel="riemann" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>📊</span> Definite Integrals &amp; Riemann Slices</h2>
+                        <p>Drag the $a$ (Amber) and $b$ (Cyan) handles along the axis. Increase slices $N$ from 1 to 100 or click "Melt Slices" to watch rectangles dissolve into continuous area.</p>
+                    </div>
+                    <div class="sim-formula-card" id="riemannLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Area Accumulation via Partitions $\sum f(x_i^*)\Delta x$</span>
+                            <span style="color: var(--cyan);">Drag Handles $a$ and $b$</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="riemannCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header" for="riemannFnSelect">Function $f(x)$</label>
+                            <select id="riemannFnSelect" class="select-input">
+                                <option value="parabola">f(x) = 0.5x² - 1</option>
+                                <option value="cubic">f(x) = x³ - 3x</option>
+                                <option value="sine">f(x) = 2 sin(x)</option>
+                                <option value="gaussian">f(x) = 3 e^(-x²)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-header" for="riemannRuleSelect">Approximation Rule</label>
+                            <select id="riemannRuleSelect" class="select-input">
+                                <option value="midpoint" selected>Midpoint Rule</option>
+                                <option value="left">Left Endpoint Rule</option>
+                                <option value="right">Right Endpoint Rule</option>
+                                <option value="trapezoid">Trapezoidal Rule</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Number of Slices $N$</span>
+                                <span id="riemannNVal">12</span>
+                            </div>
+                            <input type="range" id="riemannNSlider" class="range-slider" min="1" max="100" step="1" value="12">
+                        </div>
+
+                        <button id="riemannMeltBtn" class="btn-primary">
+                            <span>💧</span> Melt Slices into Smooth Area
+                        </button>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Riemann Sum:</span>
+                                <span class="stat-val" id="riemannSumVal" style="color: var(--cyan);">0.0000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Exact Integral $\int_a^b$:</span>
+                                <span class="stat-val" id="riemannExactVal" style="color: var(--emerald);">0.0000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Absolute Error:</span>
+                                <span class="stat-val" id="riemannErrVal" style="color: var(--amber);">0.0000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.3 FUNDAMENTAL THEOREM OF CALCULUS (FTC) -->
+            <div class="sim-panel" data-sub-panel="ftc" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🔄</span> Fundamental Theorem of Calculus</h2>
+                        <p>Watch the instantaneous height $f(x)$ on the top curve directly govern the tangent slope of the accumulated area function $F(x) = \int_0^x f(t)dt$ on the bottom curve: $F'(x) = f(x)$.</p>
+                    </div>
+                    <div class="sim-formula-card" id="ftcLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Input Rate Curve $f(t)$ with Shaded Area $\int_0^x f(t)dt$</span>
+                                <span style="color: var(--rose);">Height $f(x)$</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 290px;">
+                                <canvas id="ftcTopCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Area Accumulation Function $F(x)$</span>
+                                <span style="color: var(--emerald);">Slope $F'(x) \equiv f(x)$</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 250px;">
+                                <canvas id="ftcBotCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Accumulation Boundary $x$</span>
+                                <span id="ftcXVal">1.60</span>
+                            </div>
+                            <input type="range" id="ftcXSlider" class="range-slider" min="0.1" max="3.5" step="0.05" value="1.60">
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Current Height $f(x)$:</span>
+                                <span class="stat-val" id="ftcFxVal" style="color: var(--rose);">0.000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Total Area $F(x)$:</span>
+                                <span class="stat-val" id="ftcBigFxVal" style="color: var(--cyan);">0.000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Slope of $F(x)$:</span>
+                                <span class="stat-val" style="color: var(--emerald);">Exact Match to $f(x)$</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.4 GRADIENT DESCENT -->
+            <div class="sim-panel" data-sub-panel="gradient" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🏔</span> 2D Gradient Descent Optimization</h2>
+                        <p>Explore optimization landscapes. Downhill gradient vectors $-\nabla f(x, y)$ show the direction of steepest descent. Drag the loss ball $\theta$ or adjust learning rate $\eta$ and momentum $\beta$.</p>
+                    </div>
+                    <div class="sim-formula-card">$\theta_{t+1} = \theta_t - \eta \nabla f(\theta_t) + \beta v_t$</div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Downhill Vector Field $-\nabla f(x, y)$ &amp; Trajectory</span>
+                            <span style="color: var(--rose);">Drag Loss Ball $\theta$ Anywhere</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="gdCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header" for="gdPresetSelect">Potential Terrain</label>
+                            <select id="gdPresetSelect" class="select-input">
+                                <option value="bowl">Elliptic Bowl f(x,y) = 0.5(x² + 2y²)</option>
+                                <option value="saddle">Saddle Surface f(x,y) = 0.5(x² - y²)</option>
+                                <option value="doublewell">Double-Well Potential</option>
+                                <option value="rosenbrock">Rosenbrock Banana Valley</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Learning Rate ($\eta$)</span>
+                                <span id="gdLrVal">0.080</span>
+                            </div>
+                            <input type="range" id="gdLrSlider" class="range-slider" min="0.005" max="0.30" step="0.005" value="0.08">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Momentum ($\beta$)</span>
+                                <span id="gdMomVal">0.85</span>
+                            </div>
+                            <input type="range" id="gdMomSlider" class="range-slider" min="0.0" max="0.98" step="0.02" value="0.85">
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="gdPlayBtn" class="btn-primary">▶ Start Gradient Descent</button>
+                            <button id="gdResetBtn" class="btn-secondary">Reset</button>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Loss $f(\theta)$:</span>
+                                <span class="stat-val" id="gdLossVal" style="color: var(--rose);">0.0000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Gradient Magnitude $\|\nabla f\|$:</span>
+                                <span class="stat-val" id="gdGradVal" style="color: var(--cyan);">0.0000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Position $(x, y)$:</span>
+                                <span class="stat-val" id="gdPosVal" style="color: var(--text-primary);">(0.00, 0.00)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 1.5 TAYLOR SERIES -->
+            <div class="sim-panel" data-sub-panel="taylor" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>〰️</span> Taylor Series Approximations</h2>
+                        <p>Increase the degree $N$ to watch the polynomial wrap around the function. Drag the center point $a$ to shift the approximation.</p>
+                    </div>
+                </div>
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-wrap" style="height: 400px;">
+                                <canvas id="taylorCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header"><span>Degree (N)</span> <span id="taylorNVal">3</span></label>
+                            <input type="range" id="taylorNSlider" class="range-slider" min="0" max="15" step="1" value="3">
+                        </div>
+                        <div class="control-group">
+                            <label class="control-header"><span>Center (a)</span> <span id="taylorAVal">0</span></label>
+                            <input type="range" id="taylorASlider" class="range-slider" min="-5" max="5" step="0.1" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1.6 VOLUME OF REVOLUTION -->
+            <div class="sim-panel" data-sub-panel="revolution" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🌀</span> Volume of Revolution</h2>
+                        <p>Rotate a function around an axis. Watch the 2D area sweep out a 3D solid.</p>
+                    </div>
+                </div>
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-wrap" style="height: 400px;">
+                                <canvas id="revolutionCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header"><span>Rotation Angle</span> <span id="revAngleVal">0°</span></label>
+                            <input type="range" id="revAngleSlider" class="range-slider" min="0" max="360" step="5" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             PHYSICS SECTION
+             ================================================================= -->
+        <section data-subject-section="physics" hidden>
+            
+            <!-- 2.1 PROJECTILE KINEMATICS & TARGET HOOP GAME -->
+            <div class="sim-panel" data-sub-panel="projectile" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🎯</span> Projectile Kinematics &amp; Target Hoop Game</h2>
+                        <p>Real-time velocity vector decomposition $(v_x, v_y)$, constant-time strobe markers ($\Delta t = 0.25\text{s}$), and planetary gravity presets. Drag the target hoop to challenge your trajectory precision!</p>
+                    </div>
+                    <div class="sim-formula-card" id="projLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Kinematic Trajectory &amp; Velocity Decomposition</span>
+                            <span style="color: var(--amber);">Score: <strong id="projScoreVal">0</strong> pts</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="projCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header" for="projPlanetSelect">Planetary Gravity ($g$)</label>
+                            <select id="projPlanetSelect" class="select-input">
+                                <option value="earth" selected>Earth (9.81 m/s²)</option>
+                                <option value="moon">Moon (1.62 m/s²)</option>
+                                <option value="mars">Mars (3.72 m/s²)</option>
+                                <option value="jupiter">Jupiter (24.79 m/s²)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Launch Velocity ($v_0$)</span>
+                                <span id="projV0Val">18.0 m/s</span>
+                            </div>
+                            <input type="range" id="projV0Slider" class="range-slider" min="5" max="30" step="0.5" value="18">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Launch Angle ($\theta$)</span>
+                                <span id="projAngleVal">45°</span>
+                            </div>
+                            <input type="range" id="projAngleSlider" class="range-slider" min="5" max="85" step="1" value="45">
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="projLaunchBtn" class="btn-primary">🚀 Fire Projectile</button>
+                            <button id="projResetBtn" class="btn-secondary">Reset</button>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Initial $v_{0x}$ (Emerald):</span>
+                                <span class="stat-val" id="projVxVal" style="color: var(--emerald);">12.73</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Initial $v_{0y}$ (Rose):</span>
+                                <span class="stat-val" id="projVyVal" style="color: var(--rose);">12.73</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Max Range:</span>
+                                <span class="stat-val" id="projRangeVal" style="color: var(--cyan);">34.5 m</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Apex Height:</span>
+                                <span class="stat-val" id="projHMaxVal" style="color: var(--amber);">9.7 m</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.2 DAMPED PENDULUM & PHASE SPACE -->
+            <div class="sim-panel" data-sub-panel="pendulum" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>⏱</span> Damped Harmonic Pendulum &amp; Phase Space</h2>
+                        <p>Watch kinetic energy $E_k$ and gravitational potential energy $E_p$ trade off continuously. The synchronized phase space portrait $(\theta, \omega)$ reveals inward damping spirals vs closed conservative orbits.</p>
+                    </div>
+                    <div class="sim-formula-card" id="pendLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="dual-horizontal-canvases">
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Physical Rig &amp; Drag Angle Handle</span>
+                                <span style="color: var(--rose);">Drag Bob</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 480px;">
+                                <canvas id="pendPhysCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Phase Space Orbit $(\theta, \omega)$</span>
+                                <span style="color: var(--violet);">Inward Spiral Trail</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 480px;">
+                                <canvas id="pendPhaseCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Damping Friction ($\gamma$)</span>
+                                <span id="pendDampVal">0.15</span>
+                            </div>
+                            <input type="range" id="pendDampSlider" class="range-slider" min="0.0" max="0.8" step="0.02" value="0.15">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Pendulum Length ($L$)</span>
+                                <span>2.2 m</span>
+                            </div>
+                            <input type="range" id="pendLenSlider" class="range-slider" min="1.0" max="3.5" step="0.1" value="2.2">
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="pendPlayBtn" class="btn-primary">⏸ Pause</button>
+                            <button id="pendResetBtn" class="btn-secondary">Reset</button>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Kinetic Energy ($E_k$):</span>
+                                <span class="stat-val" id="pendEkVal" style="color: var(--rose);">0.00 J</span>
+                            </div>
+                            <div class="energy-bar-wrap">
+                                <div class="energy-track"><div id="pendEkBar" class="energy-fill ek" style="width: 50%;"></div></div>
+                            </div>
+
+                            <div class="stat-row" style="margin-top: 0.5rem;">
+                                <span class="stat-label">Potential Energy ($E_p$):</span>
+                                <span class="stat-val" id="pendEpVal" style="color: var(--cyan);">0.00 J</span>
+                            </div>
+                            <div class="energy-bar-wrap">
+                                <div class="energy-track"><div id="pendEpBar" class="energy-fill ep" style="width: 50%;"></div></div>
+                            </div>
+
+                            <div class="stat-row" style="margin-top: 0.5rem;">
+                                <span class="stat-label">Total Mechanical Energy:</span>
+                                <span class="stat-val" id="pendEtotVal" style="color: #ffffff;">0.00 J</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.3 OPTICS & SNELL'S LAW -->
+            <div class="sim-panel" data-sub-panel="optics" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🌈</span> Optics, Refraction &amp; Total Internal Reflection</h2>
+                        <p>Interact with incident light rays crossing medium boundaries. When $n_1 > n_2$ and the incidence angle exceeds critical angle $\theta_c$, observe the transition to Total Internal Reflection (TIR).</p>
+                    </div>
+                    <div class="sim-formula-card" id="opticsLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Refraction Interface with Incident, Refracted &amp; TIR Rays</span>
+                            <span style="color: var(--amber);">Drag Ray Emitter</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="opticsCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header" for="opticsN1Select">Medium 1 ($n_1$)</label>
+                            <select id="opticsN1Select" class="select-input">
+                                <option value="1.00">Vacuum / Air (n = 1.00)</option>
+                                <option value="1.33">Water (n = 1.33)</option>
+                                <option value="1.50" selected>Crown Glass (n = 1.50)</option>
+                                <option value="2.42">Diamond (n = 2.42)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-header" for="opticsN2Select">Medium 2 ($n_2$)</label>
+                            <select id="opticsN2Select" class="select-input">
+                                <option value="1.00" selected>Vacuum / Air (n = 1.00)</option>
+                                <option value="1.33">Water (n = 1.33)</option>
+                                <option value="1.50">Crown Glass (n = 1.50)</option>
+                                <option value="2.42">Diamond (n = 2.42)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Incidence Angle ($\theta_1$)</span>
+                                <span id="opticsTheta1Val">35.0°</span>
+                            </div>
+                            <input type="range" id="opticsAngleSlider" class="range-slider" min="1" max="88" step="1" value="35">
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Refraction Angle ($\theta_2$):</span>
+                                <span class="stat-val" id="opticsTheta2Val" style="color: var(--emerald);">59.4°</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Critical Angle ($\theta_c$):</span>
+                                <span class="stat-val" id="opticsCritVal" style="color: var(--amber);">41.8°</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.4 WAVE INTERFERENCE -->
+            <div class="sim-panel" data-sub-panel="wave" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🌊</span> Dual-Source Wave Interference &amp; Ripple Tank</h2>
+                        <p>Observe 2D wave superpositions from coherent sources $S_1$ and $S_2$. Notice constructive interference maxima and destructive nodal hyperbola lines projecting onto the screen.</p>
+                    </div>
+                    <div class="sim-formula-card" id="waveLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="dual-horizontal-canvases">
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>2D Ripple Tank Wave Field</span>
+                                <span style="color: var(--cyan);">Dual Sources $S_1, S_2$</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 480px;">
+                                <canvas id="waveTankCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Fringe Intensity Screen $I(y) \propto \cos^2(\Delta\phi/2)$</span>
+                                <span style="color: var(--rose);">Interference Pattern</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 480px;">
+                                <canvas id="waveScreenCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Source Separation ($d$)</span>
+                                <span id="waveDVal">2.80 m</span>
+                            </div>
+                            <input type="range" id="waveDSlider" class="range-slider" min="1.0" max="5.0" step="0.1" value="2.8">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <span>Wavelength ($\lambda$)</span>
+                                <span id="waveLambdaVal">0.90 m</span>
+                            </div>
+                            <input type="range" id="waveLambdaSlider" class="range-slider" min="0.4" max="2.0" step="0.05" value="0.9">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 2.5 ORBITAL MECHANICS -->
+            <div class="sim-panel" data-sub-panel="orbital" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🪐</span> Orbital Mechanics &amp; Kepler's Laws</h2>
+                        <p>Simulate a planet orbiting a star. Watch the velocity vector change and see equal areas swept in equal times (Kepler's 2nd Law).</p>
+                    </div>
+                </div>
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-wrap" style="height: 440px;">
+                                <canvas id="orbitalCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header"><span>Initial Velocity ($v_0$)</span> <span id="orbV0Val">1.2</span></label>
+                            <input type="range" id="orbV0Slider" class="range-slider" min="0.5" max="2.0" step="0.05" value="1.2">
+                        </div>
+                        <button class="utility-button" id="resetOrbitBtn" type="button">Reset Orbit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.6 SPRING-MASS OSCILLATOR -->
+            <div class="sim-panel" data-sub-panel="spring" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🪀</span> Spring-Mass Harmonic Oscillator</h2>
+                        <p>Drag the mass to stretch the spring. Watch the continuous exchange of Kinetic and Potential Energy.</p>
+                    </div>
+                </div>
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-wrap" style="height: 300px;">
+                                <canvas id="springCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="canvas-card" style="padding: 1.5rem;">
+                            <div style="display: flex; gap: 10px; flex-direction: column;">
+                                <div style="display: flex; justify-content: space-between; color: var(--cyan); font-family: var(--font-mono); font-size: 0.85rem;">
+                                    <span>Kinetic Energy ($E_k$)</span>
+                                    <span id="springEkVal">0 J</span>
+                                </div>
+                                <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                    <div id="springEkBar" style="height: 100%; width: 0%; background: var(--cyan);"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: var(--apple-red); font-family: var(--font-mono); font-size: 0.85rem; margin-top: 10px;">
+                                    <span>Potential Energy ($E_p$)</span>
+                                    <span id="springEpVal">0 J</span>
+                                </div>
+                                <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                    <div id="springEpBar" style="height: 100%; width: 100%; background: var(--apple-red);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header"><span>Spring Constant ($k$)</span> <span id="springKVal">5.0</span></label>
+                            <input type="range" id="springKSlider" class="range-slider" min="1" max="15" step="0.5" value="5">
+                        </div>
+                        <div class="control-group">
+                            <label class="control-header"><span>Mass ($m$)</span> <span id="springMVal">2.0 kg</span></label>
+                            <input type="range" id="springMSlider" class="range-slider" min="0.5" max="5.0" step="0.1" value="2.0">
+                        </div>
+                        <div class="control-group">
+                            <label class="control-header"><span>Damping ($\gamma$)</span> <span id="springDSliderVal">0.05</span></label>
+                            <input type="range" id="springDSlider" class="range-slider" min="0" max="0.5" step="0.01" value="0.05">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             ALGEBRA & GEOMETRY SECTION
+             ================================================================= -->
+        <section data-subject-section="algebra" hidden>
+            
+            <!-- 3.1 2D MATRIX TRANSFORMATIONS (3Blue1Brown) -->
+            <div class="sim-panel" data-sub-panel="matrix" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🔲</span> 2D Matrix Transformations &amp; Grid Warping</h2>
+                        <p>Experience linear algebra in the style of 3Blue1Brown. Drag the basis vector handles $\hat{i}$ (Cyan) and $\hat{j}$ (Rose). Watch the entire coordinate space warp, determinant area flip orientation, and eigenvector span axes remain invariant.</p>
+                    </div>
+                    <div class="sim-formula-card" id="matrixLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Transformed Basis Plane with Unit Square Determinant</span>
+                            <span style="color: var(--cyan);">Drag $\hat{i}$ or $\hat{j}$ Tips</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="matrixCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header" for="matrixPresetSelect">Matrix Transformation Presets</label>
+                            <select id="matrixPresetSelect" class="select-input">
+                                <option value="identity" selected>Identity Matrix</option>
+                                <option value="rotation45">Rotation 45°</option>
+                                <option value="shearX">Horizontal Shear</option>
+                                <option value="reflection">Y-Reflection (Orientation Flip)</option>
+                                <option value="projection">X-Projection (det = 0 Collapse)</option>
+                                <option value="scale">Uniform Scale 1.5x</option>
+                            </select>
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="matrixResetBtn" class="btn-secondary" style="width: 100%;">Reset to Identity</button>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Basis $\hat{i}$:</span>
+                                <span class="stat-val" style="color: var(--cyan);">[<span id="matrixAVal">1.00</span>, <span id="matrixBVal">0.00</span>]</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Basis $\hat{j}$:</span>
+                                <span class="stat-val" style="color: var(--rose);">[<span id="matrixCVal">0.00</span>, <span id="matrixDVal">1.00</span>]</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Determinant $\det(A)$:</span>
+                                <span class="stat-val" id="matrixDetVal" style="color: var(--emerald);">1.000</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Eigenvalues:</span>
+                                <span class="stat-val" id="matrixEigenVal" style="color: var(--amber);">λ₁ = 1.00, λ₂ = 1.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.2 QUADRATIC FUNCTIONS & DISCRIMINANT -->
+            <div class="sim-panel" data-sub-panel="quadratic" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>📐</span> Quadratic Functions &amp; Discriminant Gauge</h2>
+                        <p>Adjust parameters $a, b, c$. The live discriminant gauge $\Delta = b^2 - 4ac$ reveals why $\Delta > 0$ yields two real roots, $\Delta = 0$ touches the axis once, and $\Delta < 0$ branches into complex conjugates.</p>
+                    </div>
+                    <div class="sim-formula-card" id="quadLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Parabola Geometry with Vertex &amp; Symmetry Axis</span>
+                            <span id="quadRootDesc" style="color: var(--emerald);">Two Real Roots</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="quadCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <div class="control-header"><span>Coefficient $a$</span><span id="quadAVal">1.00</span></div>
+                            <input type="range" id="quadASlider" class="range-slider" min="-3" max="3" step="0.1" value="1.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Coefficient $b$</span><span id="quadBVal">-2.00</span></div>
+                            <input type="range" id="quadBSlider" class="range-slider" min="-6" max="6" step="0.2" value="-2.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Coefficient $c$</span><span id="quadCVal">-1.00</span></div>
+                            <input type="range" id="quadCSlider" class="range-slider" min="-6" max="6" step="0.2" value="-1.0">
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Discriminant $\Delta$:</span>
+                                <span class="stat-val" id="quadDiscVal" style="color: var(--emerald);">8.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.3 UNIT CIRCLE & TRIGONOMETRIC WAVES -->
+            <div class="sim-panel" data-sub-panel="trig" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>⭕</span> Unit Circle &amp; Sine Wave Unwinding</h2>
+                        <p>Rotate angle $\theta$. The cyan horizontal projection bar reflects $\cos\theta$, while the rose vertical projection bar reflects $\sin\theta$, seamlessly unwinding into an animated running sine wave graph.</p>
+                    </div>
+                    <div class="sim-formula-card" id="trigLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="dual-horizontal-canvases">
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Unit Circle with Projection Bars</span>
+                                <span style="color: var(--rose);">Drag $P(\theta)$</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 480px;">
+                                <canvas id="trigCircleCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="canvas-card">
+                            <div class="canvas-card-header">
+                                <span>Continuous Running Sine Wave Graph</span>
+                                <span style="color: var(--cyan);">Traced in Real Time</span>
+                            </div>
+                            <div class="canvas-wrap" style="height: 480px;">
+                                <canvas id="trigWaveCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="btn-row">
+                            <button id="trigAutoToggle" class="btn-primary">⏸ Pause Spin</button>
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Angle $\theta$:</span>
+                                <span class="stat-val" id="trigThetaVal" style="color: var(--amber);">45.0°</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Cosine $\cos\theta$ (Cyan):</span>
+                                <span class="stat-val" id="trigCosVal" style="color: var(--cyan);">0.707</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Sine $\sin\theta$ (Rose):</span>
+                                <span class="stat-val" id="trigSinVal" style="color: var(--rose);">0.707</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Tangent $\tan\theta$:</span>
+                                <span class="stat-val" id="trigTanVal" style="color: var(--emerald);">1.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.4 SYSTEMS OF LINEAR EQUATIONS -->
+            <div class="sim-panel" data-sub-panel="linear" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>✖</span> Systems of Linear Equations &amp; Cramer's Rule</h2>
+                        <p>Visualize the geometric intersection of two lines. Cramer's determinant $D = a_1 b_2 - a_2 b_1$ provides instantaneous classification into Unique, Parallel (Inconsistent), or Coincident (Dependent) states.</p>
+                    </div>
+                    <div class="sim-formula-card" id="linearLatex"></div>
+                </div>
+
+                <div class="sim-grid-split">
+                    <div class="canvas-card">
+                        <div class="canvas-card-header">
+                            <span>Line 1 (Cyan) and Line 2 (Rose) Intersections</span>
+                            <span id="linearSolVal" style="color: var(--emerald);">Unique Intersection</span>
+                        </div>
+                        <div class="canvas-wrap" style="height: 520px;">
+                            <canvas id="linearCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <div class="control-header"><span>Line 1 $a_1$</span><span id="linearA1Val">1.0</span></div>
+                            <input type="range" id="linearA1Slider" class="range-slider" min="-4" max="4" step="0.5" value="1.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Line 1 $b_1$</span><span id="linearB1Val">1.0</span></div>
+                            <input type="range" id="linearB1Slider" class="range-slider" min="-4" max="4" step="0.5" value="1.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Line 1 $c_1$</span><span id="linearC1Val">3.0</span></div>
+                            <input type="range" id="linearC1Slider" class="range-slider" min="-8" max="8" step="0.5" value="3.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Line 2 $a_2$</span><span id="linearA2Val">1.0</span></div>
+                            <input type="range" id="linearA2Slider" class="range-slider" min="-4" max="4" step="0.5" value="1.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Line 2 $b_2$</span><span id="linearB2Val">-1.0</span></div>
+                            <input type="range" id="linearB2Slider" class="range-slider" min="-4" max="4" step="0.5" value="-1.0">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header"><span>Line 2 $c_2$</span><span id="linearC2Val">1.0</span></div>
+                            <input type="range" id="linearC2Slider" class="range-slider" min="-8" max="8" step="0.5" value="1.0">
+                        </div>
+
+                        <div class="stat-box">
+                            <div class="stat-row">
+                                <span class="stat-label">Determinant $D$:</span>
+                                <span class="stat-val" id="linearDVal" style="color: var(--emerald);">-2.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3.5 COMPLEX EULER -->
+        <section data-subject-section="algebra">
+            <div class="sim-panel" data-sub-panel="complex" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>⚡</span> Complex Plane &amp; Euler's Formula</h2>
+                        <p>Visualize $e^{i\theta} = \cos(\theta) + i\sin(\theta)$. Drag the angle $\theta$ to see the relationship between circular motion, real, and imaginary components.</p>
+                    </div>
+                </div>
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-wrap" style="height: 400px;">
+                                <canvas id="complexCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-card">
+                        <div class="control-group">
+                            <label class="control-header"><span>Angle ($\theta$)</span> <span id="complexThetaVal">0.79 rad</span></label>
+                            <input type="range" id="complexThetaSlider" class="range-slider" min="0" max="6.28" step="0.01" value="0.79">
+                        </div>
+                        <div class="control-group">
+                            <label class="control-header"><span>Radius ($r$)</span> <span id="complexRVal">1.0</span></label>
+                            <input type="range" id="complexRSlider" class="range-slider" min="0.1" max="3" step="0.1" value="1.0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.6 EIGENVECTORS -->
+            <div class="sim-panel" data-sub-panel="eigen" hidden>
+                <div class="sim-panel-header">
+                    <div class="sim-header-text">
+                        <h2><span>🔀</span> Eigenvectors &amp; Eigenvalues</h2>
+                        <p>A matrix transformation scales space. Eigenvectors are the vectors that remain on their original span. Drag the basis vectors to discover their eigenvectors!</p>
+                    </div>
+                </div>
+                <div class="sim-grid-split">
+                    <div class="canvases-column">
+                        <div class="canvas-card">
+                            <div class="canvas-wrap" style="height: 400px;">
+                                <canvas id="eigenCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-card">
+                        <div class="stat-box" style="margin-bottom: 20px;">
+                            <div class="stat-row">
+                                <span class="stat-label" style="color: var(--amber);">Eigenvector 1:</span>
+                                <span class="stat-val" id="eigenV1Val">N/A</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label" style="color: var(--pink);">Eigenvector 2:</span>
+                                <span class="stat-val" id="eigenV2Val">N/A</span>
+                            </div>
+                        </div>
+                        <button class="utility-button" id="resetEigenBtn" type="button">Reset Matrix</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- =====================================================================
+         SPOTLIGHT SEARCH PALETTE MODAL (⌘K)
+         ===================================================================== -->
+    <div class="palette-overlay" id="searchPaletteOverlay" hidden>
+        <div class="palette-card">
+            <div class="palette-header">
+                <span class="palette-icon">🔍</span>
+                <input type="text" id="searchPaletteInput" class="palette-input" placeholder="Search simulations by keyword (e.g. matrix, integral, snell, hoop)..." autocomplete="off" spellcheck="false">
+                <span class="kbd-badge">ESC</span>
+            </div>
+            <ul class="palette-results" id="searchPaletteResults"></ul>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         VISUAL LEARNING GUIDE MODAL
+         ===================================================================== -->
+    <div class="modal-overlay" id="modalGuideOverlay" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>📖 IntuitionLab - Visual STEM Philosophy &amp; Guide</h3>
+                <button class="modal-close-btn" id="modalGuideClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <h4 class="modal-section-title">✨ Direct Geometric Interaction</h4>
+                    <p>IntuitionLab was created on the principle that mathematical and physical concepts are best mastered when experienced visually and tactually. Every graph is an interactive 2D canvas running at a locked 60 frames per second on HiDPI/Retina screens.</p>
+                </div>
+
+                <div>
+                    <h4 class="modal-section-title">⌨ Keyboard Shortcuts</h4>
+                    <table class="shortcuts-table">
+                        <tr><td><span class="kbd-badge">1</span></td><td>Switch to <strong>Calculus</strong> Lab</td></tr>
+                        <tr><td><span class="kbd-badge">2</span></td><td>Switch to <strong>Physics</strong> Lab</td></tr>
+                        <tr><td><span class="kbd-badge">3</span></td><td>Switch to <strong>Algebra &amp; Geometry</strong> Lab</td></tr>
+                        <tr><td><span class="kbd-badge">Space</span></td><td><strong>Pause / Play / Trigger</strong> active simulation</td></tr>
+                        <tr><td><span class="kbd-badge">R</span></td><td><strong>Reset</strong> active simulation parameters</td></tr>
+                        <tr><td><span class="kbd-badge">⌘K</span> or <span class="kbd-badge">/</span></td><td>Open <strong>Spotlight Search Palette</strong></td></tr>
+                        <tr><td><span class="kbd-badge">?</span> or <span class="kbd-badge">H</span></td><td>Toggle this <strong>Visual Guide</strong></td></tr>
+                        <tr><td><span class="kbd-badge">Esc</span></td><td>Close open modals and palettes</td></tr>
+                    </table>
+                </div>
+
+                <div>
+                    <h4 class="modal-section-title">🎨 Neon Visual Grammar</h4>
+                    <p><strong style="color: var(--cyan);">Cyan (#06b6d4):</strong> Primary functions, horizontal projections, basis vector $\hat{i}$, and constructive wave peaks.<br>
+                    <strong style="color: var(--rose);">Rose (#f43f5e):</strong> Secant lines, vertical projections, basis vector $\hat{j}$, total internal reflections, and loss functions.<br>
+                    <strong style="color: var(--emerald);">Emerald (#10b981):</strong> Exact derivatives, true tangents, roots, and kinetic energy.<br>
+                    <strong style="color: var(--amber);">Amber (#f59e0b):</strong> Bounds, angles, step sizes, and target bullseyes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Controller (Self-Contained Bundle) -->
+    <script src="js/bundle.js"></script>
+</body>
+</html>

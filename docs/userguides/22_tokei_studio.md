@@ -1,44 +1,39 @@
-# 📈 Tokei Studio Pro -- User Guide
+# 📊 Tokei Studio Pro -- Complete Production User Guide
 
-**Tokei Studio Pro** is a fast, multi-language code counter and lines-of-code (LOC) metrics workstation built natively for Bun. Designed as a visual counterpart to `tokei`, it analyzes software repositories across 50+ programming languages, calculating total files, blank lines, comments, code lines, comment-to-code ratios, and per-file breakdowns—with instant export to GitHub-flavored Markdown and JSON.
+```
+Version: 2.4.0  •  Engine: Native Multi-Language Code Classifier  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:tokei]  •  [Terminal CLI: bun run cli:tokei]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Tokei Studio Pro** is a fast code statistics, lines of code (LOC), and codebase composition analyzer built natively for Bun RAD Studio. Replacing external `tokei` and `cloc` binaries, it rapidly classifies source files across **50+ programming languages**, counting total files, code lines, comment lines, and blank lines.
+
+---
+
+## 🚀 Quick Start & Launch
 
 ```bash
-# Launch Tokei Studio Pro desktop workstation
+# Standard desktop launch
 bun run app:tokei
 
-# Launch CLI mode directly
-bun run cli:tokei .
-bun run cli:tokei --sort code .
-bun run cli:tokei -m .
-bun run cli:tokei -j .
-```
-
-You can also launch programmatically in TypeScript:
-```ts
-import { createTokeiStudio } from "./applications/tokei_studio";
-const win = createTokeiStudio({ fullscreen: true });
-win.run();
+# Terminal CLI code counter
+bun run cli:tokei ./src
+bun run cli:tokei ./ --json
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🖼️ Visual Interface Tour
 
-1. **Header Toolbar**:
-   - 63 visual themes, Fullscreen toggle, Save Config, and Window Centering.
-2. **Codebase Metrics Telemetry**:
-   - Detected Languages count, Total Files scanned, Total Lines, Code Lines, and Comments ratio.
-3. **Scan Target & Analyzer Settings**:
-   - **Scan Directory**: Target folder to inspect recursively (defaults to current project).
-   - **Sort Column**: Sort results by Code, Files, Lines, Comments, or Blank lines.
-   - **Exclude**: Comma-separated ignore patterns (e.g. `node_modules,dist,.git`).
-   - **Hidden Files (-H)**: Count hidden files and directories.
-   - **Per-File Breakdown**: Include breakdown for individual files in each language.
-4. **Language Breakdown Table**:
-   - Data grid showing Language, Files, Total Lines, Code, Comments, Blanks, and Code Percentage.
-5. **Export & Preview Console**:
-   - Formatted GitHub-flavored Markdown table and structured JSON export viewer.
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Tokei Studio Desktop](../../screenshots/apps/tokei_studio_desktop.png) | ![Tokei Studio Responsive](../../screenshots/apps/tokei_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+- **Language Composition Chart**: Visual proportion breakdown showing percentage of TypeScript, V, C++, CSS, HTML, and Markdown.
+- **Metrics Table**: Displays Language, Total Files, Blank Lines, Comment Lines, Code Lines, and Comment-to-Code ratio.
+- **Export Options**: One-click export to Markdown summary tables or structured JSON reports.

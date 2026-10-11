@@ -1,87 +1,90 @@
-# 📦 App Bundler Studio -- User Guide
+# 📦 App Bundler Studio Pro -- Complete Production User Guide
 
-**App Bundler Studio** is a standalone binary compilation and native application packaging suite. Leveraging Bun's built-in `bun build --compile` engine, it compiles TypeScript applications into single-file native executables and packages them into self-contained macOS `.app` desktop bundles with custom icons and metadata.
-
----
-
-## ⚡ Quick Start
-
-```bash
-bun run app:bundler
+```
+Version: 2.4.0  •  Engine: Native bun build --compile  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:bundler]  •  [Terminal CLI: bun run cli:bundler]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**App Bundler Studio Pro** is an enterprise packaging, single-file compilation, and native desktop app builder built on Bun's ultra-fast `bun build --compile` engine. It allows developers to bundle full TypeScript, JavaScript, and Webview projects into standalone, self-contained executable binaries that run on machines without Bun or Node installed.
 
-1. **Application Selection, Browsing & Preset Loading**:
-   - **Pre-Configured App Dropdown**: Quick-browse and select from detected Studio applications in `./applications/` (e.g. SQLite Studio, DevTools Studio, Redis Studio, etc.). Selecting an application automatically loads its entry script, infers the PascalCase application name, and updates compiler specs.
-   - **📥 Load App**: Explicitly loads the selected application from the dropdown into the form fields.
-   - **📂 Browse File... / 📂 Browse...**: Opens the native OS file picker (macOS Cocoa, Linux Zenity, Windows PowerShell) to select any TypeScript/JavaScript entry script from disk without typing.
-   - **🔄 Rescan**: Refreshes the discovered list of studio applications in `./applications/`.
-2. **Compilation Source & Output Options**:
-   - **Entry Script**: Path to the TypeScript source file (auto-filled on browse or dropdown select).
-   - **Application Name**: Clean PascalCase binary name (auto-derived from selected filename).
-   - **Destination Directory**: Output directory (defaults to `./dist`).
-3. **Compilation Flags & Target Matrix**:
-   - **Target Architecture**:
-     - `bun-darwin-arm64` (macOS Apple Silicon M1/M2/M3/M4)
-     - `bun-darwin-x64` (macOS Intel)
-     - `bun-linux-x64` (Linux 64-bit Server/Desktop)
-     - `bun-windows-x64` (Windows 64-bit Executable)
-   - **Bytecode Minification**: Strips whitespace, minifies symbols, and reduces executable size.
-   - **Sourcemap Generation**: Optional embedded sourcemaps for production stack traces.
-4. **macOS `.app` Bundle Packager & Icon Management**:
-   - **Bundle Identifier**: Reverse-domain ID (e.g. `com.enterprise.radstudio`).
-   - **Version String**: Semantic version (e.g. `1.0.0`).
-   - **Pre-Configured Icon Dropdown**: Select from pre-made high-resolution icons in `./icons/` (e.g., `database_studio.icns`, `redis_studio.icns`, `system_studio.icns`, `devtools_studio.icns`, `app_default.icns`, etc.).
-   - **Application Icon Path**: Path to `.icns`, `.png`, or `.ico` icon file.
-   - **📂 Browse Icon...**: Opens the native OS file picker to choose any icon file from disk.
-   - **Automatic Icon Conversion**: On macOS, PNG icons are automatically converted into multi-tier Apple `.icns` packages using `sips` and `iconutil`.
-   - **Package as macOS .app**: Automatically constructs the required directory hierarchy and `Info.plist`:
-     ```text
-     MyApp.app/
-       Contents/
-         Info.plist
-         MacOS/MyApp (Native Mach-O Binary)
-         Resources/
-           AppIcon.icns
-           src/ide.html
-     ```
-5. **Compilation Actions**:
-   - **⚡ Compile Standalone Binary**: Triggers native `bun build --compile`.
-   - **📦 Build macOS .app Bundle**: Builds the binary and wraps it in the application bundle.
-   - **📂 Open Output Directory**: Reveals the built binary in macOS Finder.
-6. **Build Telemetry & Log Console**:
-   - Real-time compiler output, binary file size in megabytes, and build duration in milliseconds.
+Additionally, on macOS it automatically generates ready-to-distribute `.app` application bundles complete with `Info.plist`, bundle identifiers, high-resolution application icons (`.icns`), and notarization-ready directory structures.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Compiling a Single-File Native Binary for macOS Apple Silicon
-1. Set **Entrypoint File** to:
-   ```text
-   ./applications/sqlite_studio.ts
-   ```
-2. Set **Output Binary Name** to:
-   ```text
-   sqlite_studio
-   ```
-3. Ensure **Target Architecture** is set to `bun-darwin-arm64`.
-4. Enable **Bytecode Minification**.
-5. Click **⚡ Compile Standalone Binary**.
-6. The compiler packages the Bun runtime, JavaScript engine, and TypeScript code into a single executable in `./dist/sqlite_studio` that runs on any macOS machine without Bun installed!
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:bundler
+```
 
-### 2. Packaging an Application into a macOS `.app`
-1. Check **Package as macOS .app**.
-2. Enter **Bundle Identifier**: `com.mycompany.sqlitestudio`.
-3. Click **📦 Build macOS .app Bundle**.
-4. The studio generates `./dist/sqlite_studio.app`, complete with `Info.plist` and executable permissions. You can drag and drop it into `/Applications`.
+### 2. Launch Terminal CLI Compilation Mode
+```bash
+# Compile single entry point to standalone binary
+bun run cli:bundler ./src/index.ts -o ./dist/my_app
+
+# Cross-compile for Linux x64
+bun run cli:bundler ./src/index.ts --target bun-linux-x64 -o ./dist/my_app_linux
+```
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **Zero External Compilers**: Uses Bun's native single-file executable generator. No GCC, Clang, or Xcode required for standard CLI compilation.
-- **Cross-Compilation Ready**: Compiles binaries for Linux servers directly from a macOS developer workstation.
-- **Atomic Build Isolation**: Builds in temporary working directories and atomically moves the final output to `./dist` to prevent corrupt binaries if interrupted.
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![App Bundler Desktop](../../screenshots/apps/app_bundler_studio_desktop.png) | ![App Bundler Responsive](../../screenshots/apps/app_bundler_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Project Source & Target Configuration
+- **Entrypoint File Input**: Path to main entry script (e.g. `./index.ts` or `./applications/calculator_studio.ts`).
+- **Output Binary Name**: Target name of the compiled binary or `.app` bundle.
+- **Output Directory**: Target distribution folder (default `./dist`).
+- **Cross-Compilation Target Dropdown**:
+  - `bun-darwin-arm64` (Apple Silicon M1/M2/M3/M4)
+  - `bun-darwin-x64` (Intel macOS)
+  - `bun-linux-x64` (Standard Linux servers / containers)
+  - `bun-linux-arm64` (Linux ARM servers / AWS Graviton / Raspberry Pi)
+  - `bun-windows-x64` (Windows 10 / 11 64-bit)
+
+### 2. Desktop macOS .app Packaging Engine
+- **Bundle Identifier**: Reverse domain identifier (e.g. `com.codefreelance.studio`).
+- **Application Display Name**: Formatted name shown in macOS Dock and Finder.
+- **Icon Selector**: Path to `.png` or `.icns` icon to embed into the bundle.
+- **Generate .app Bundle Toggle**: Automatically generates `Contents/MacOS` and `Contents/Info.plist`.
+
+### 3. Build Telemetry & Streaming Console
+- **⚡ Compile Binary Button**: Triggers compilation with real-time log streaming.
+- **Build Metrics Card**: Shows compilation time, output file size (MB), and bytecode compression ratio.
+- **File Explorer Reveal**: One-click button to reveal compiled binary in macOS Finder or open destination folder.
+
+---
+
+## 🛠️ Step-by-Step Practical Tutorials
+
+### Tutorial: Building a Standalone macOS Desktop Application
+1. Launch App Bundler Studio: `bun run app:bundler`.
+2. Set **Entrypoint File**: `./applications/calculator_studio.ts`.
+3. Set **Output Binary Name**: `CalculatorStudio`.
+4. Enable **Generate macOS .app Bundle**.
+5. Set **Bundle ID**: `com.codecaine.calculator`.
+6. Click **⚡ Compile Binary**.
+7. In under 2 seconds, your complete self-contained `dist/CalculatorStudio.app` is created. You can drag and drop it directly into your `/Applications` folder or share it with anyone.
+
+---
+
+## ⌨️ Complete Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Cmd + B** / **Ctrl + B** | Global | Start Compilation |
+| **Cmd + O** / **Ctrl + O** | File Picker | Browse for Entrypoint file |
+| **Cmd + R** / **Ctrl + R** | Post-Build | Reveal output in Finder / Explorer |
+| **F11** or **F** | Global | Toggle borderless fullscreen |

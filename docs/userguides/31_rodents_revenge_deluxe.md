@@ -1,67 +1,41 @@
-# 🐭 Rodent's Revenge Deluxe -- User Guide
+# 🐭 Rodent's Revenge Deluxe -- Complete Production User Guide
 
-**Rodent's Revenge Deluxe** is a high-definition desktop remaster of the classic 1991 Microsoft Entertainment Pack puzzle arcade game. Controlling a clever mouse trapped inside a treacherous neon grid, players must strategically push movable cheese and metal blocks to trap hostile feline predators, converting them into succulent cheese wedges while dodging mouse traps, sinkholes, and yarn balls.
-
----
-
-## ⚡ Quick Start
-
-### Launch Desktop Application
-```bash
-bun run app:rodents_revenge
 ```
-
-### Launch Headless Web Server
-```bash
-bun run applications/rodents_revenge_studio.ts --server
+Version: 2.4.0  •  Engine: Native HTML5 Canvas & Retro Sound Synthesis  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:rodents_revenge]  •  [Headless Server: bun run applications/rodents_revenge_studio.ts --server]
 ```
 
 ---
 
-## 🖼️ Application Previews
+## 🌟 Executive Overview
+**Rodent's Revenge Deluxe** is a high-DPI modern arcade revival of the classic 1991 Microsoft Windows puzzle game, rebuilt natively for Bun RAD Studio. You control a clever mouse trapped inside a grid crawling with hungry hostile cats.
+
+By pushing movable green blocks, you must outmaneuver the feline predators, trap them so they cannot move, and turn them into delicious wedges of score-multiplying cheese!
+
+---
+
+## 🖼️ Visual Interface Tour
 
 | High-Resolution Desktop (1280×850) | Responsive Viewport (960×720) |
 | :---: | :---: |
-| ![Rodent's Revenge Desktop](../../screenshots/apps/rodents_revenge_desktop.png) | ![Rodent's Revenge Responsive](../../screenshots/apps/rodents_revenge_responsive.png) |
+| ![Rodents Revenge Desktop](../../screenshots/apps/rodents_revenge_desktop.png) | ![Rodents Revenge Responsive](../../screenshots/apps/rodents_revenge_responsive.png) |
 
 ---
 
-## 🕹️ Strategy & Gameplay Rules
-
-### 1. The Cat Trapping Loop
-- **Objective**: Eliminate all predatory cats from the level grid to clear the stage.
-- **Trap Mechanism**: Cats move toward the mouse using heuristic pathfinding. When a cat has zero valid adjacent tiles to step on (completely surrounded by blocks, walls, or other cats), it is neutralized and turns into a cheese wedge.
-- **Cheese Collection**: Walking over trapped cheese awards bonus score multipliers and resets the survival clock.
-
-### 2. Block Manipulation & Movement
-- **Pushing Blocks**: The mouse can push movable blocks one tile at a time.
-- **Unpushable Barriers**: Immovable perimeter walls and heavy stationary stone blocks form defensive anchors for tactical trapping.
-- **Block Clusters**: Pushing multiple connected blocks simultaneously is not permitted—planning corridors and escape routes is paramount.
-
-### 3. Hazards & Power-Ups
-- **Mouse Traps**: Deadly mechanical spring traps hidden across the floor that trigger instant death if stepped on.
-- **Sinkholes**: Collapsible floor tiles that swallow blocks or rodents.
-- **Yarn Balls**: Bouncing kinetic hazards that ricochet off walls unpredictably.
+## 🕹️ Gameplay & Strategic Rules
+- **Pushing Blocks**: The mouse can push a single movable block or a whole row of blocks if there is an empty space at the end.
+- **Trapping Cats**: When a cat has zero valid moves left on any of its four adjacent tiles, it transforms into a wedge of cheese worth bonus points.
+- **Obstacles**: Watch out for mousetraps, yarn balls, sinkholes, and perimeter border barriers.
+- **Level Progression**: Clear all cats on the board to advance to the next level with faster cats and tighter grids.
 
 ---
 
-## ⌨️ Desktop Keyboard & Navigation
+## ⌨️ Controls Reference
 
-| Key | Direction / Action |
-| :--- | :--- |
-| `↑` / `W` | Move Up |
-| `↓` / `S` | Move Down |
-| `←` / `A` | Move Left |
-| `→` / `D` | Move Right |
-| `Space` | Pause / Resume Game |
-| `R` | Restart Current Level |
-| `F` | Toggle Fullscreen Mode |
-| `Alt` + `Alt` | Quick Window Close |
-
----
-
-## 🛠️ Performance & Display Features
-
-- **Hi-DPI Canvas Rendering**: Crisp, vector-sharp graphics with retro cyberpunk scanlines and neon color accents.
-- **Instant Restarts**: Zero load-time restarts and level transitions.
-- **Synthesized Audio**: Dynamic frequency clicks, cheese chimes, and cat trap fanfares generated via HTML5 Web Audio API.
+| Action | Primary Key | Secondary Key |
+| :--- | :--- | :--- |
+| **Move Up / Down / Left / Right** | Arrow Keys | `W`, `S`, `A`, `D` |
+| **Pause Game** | `P` | `Escape` |
+| **Restart Level** | `R` | — |
+| **Toggle Sound** | `M` | — |
+| **Fullscreen** | `F` | `F11` |

@@ -1,0 +1,17 @@
+{
+  "name": "Orbit Universal Computing Suite",
+  "short_name": "Orbit",
+  "description": "Apple-grade scientific calculator, unit converter, physics solvers, and data visualization studio.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

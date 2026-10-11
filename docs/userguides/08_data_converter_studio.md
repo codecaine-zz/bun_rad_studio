@@ -1,84 +1,97 @@
-# 🔄 Data Converter Studio -- User Guide
+# 🔄 Data Converter Studio -- Complete Production User Guide
 
-**Data Converter Studio** is a multi-format bidirectional data transformer. Designed for data engineering, migrations, and developer file interchange, it supports conversions across CSV, TSV, JSON, YAML, Base64, and Markdown tables.
-
----
-
-## ⚡ Quick Start
-
-```bash
-# Launch Data Converter Studio
-bun run app:convert
-
-# Launch backwards-compatible alias
-bun run app:dataconvert
+```
+Version: 2.4.0  •  Engine: Pure TypeScript Data Transformers  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:convert]  •  [Terminal CLI: bun run cli:convert]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**Data Converter Studio** is a multi-format data interchange workstation designed to seamlessly convert structured datasets across **CSV, TSV, JSON, YAML, Base64, and Markdown Tables**. Engineered with pure TypeScript data transformers, it eliminates external online conversion sites that compromise data privacy.
 
-1. **Format Selector & Conversion Presets**:
-   - **Source Format**: `CSV`, `TSV`, `JSON`, `YAML`, `Base64`, `Markdown Table`.
-   - **Target Format**: `JSON`, `CSV`, `TSV`, `YAML`, `Base64`, `Markdown Table`.
-   - **Preset One-Click Buttons**:
-     - `CSV ➔ JSON`
-     - `JSON ➔ CSV`
-     - `JSON ➔ YAML`
-     - `YAML ➔ JSON`
-     - `JSON ➔ Markdown Table`
-     - `Base64 Encode / Decode`
-2. **Data Manipulation Controls**:
-   - **⚡ Convert**: Executes the transformation engine with validation and row/item counts.
-   - **Load Sample Data**: Loads a structured dataset matching the selected source format.
-   - **Swap Directions**: Instantly switches input and output formats and moves output data to input.
-   - **Copy Output**: Copies converted data to clipboard.
-   - **💾 Save to File**: Saves the converted payload directly to disk.
-3. **Dual Editor Workspaces**:
-   - **Source Data Input**: Text area for pasting or typing raw input data.
-   - **Converted Result Output**: Formatted and syntax-verified target output.
-4. **Status & Telemetry**:
-   - Displays input byte size, output byte size, line count, and transformation execution time.
+Whether converting spreadsheet exports into typed JSON, transforming API payloads into Markdown documentation tables, or encoding assets to Base64, Data Converter Studio provides instant, real-time bidirectional conversion.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Converting a CSV File to JSON for API Usage
-1. Click **CSV ➔ JSON**.
-2. Paste your CSV content into the source pane:
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:convert
+
+# Shorthand alias
+bun run app:dataconvert
+```
+
+### 2. Launch Terminal CLI Converter Mode
+```bash
+# Convert CSV file to JSON in terminal
+bun run cli:convert input.csv --to json
+
+# Convert JSON to Markdown table
+bun run cli:convert users.json --to markdown
+```
+
+---
+
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Data Converter Desktop](../../screenshots/apps/dataconvert_studio_desktop.png) | ![Data Converter Responsive](../../screenshots/apps/dataconvert_studio_responsive.png) |
+
+---
+
+## 🧭 Supported Data Formats & Matrix
+
+| Input Format | Output Formats Supported | Key Feature |
+| :--- | :--- | :--- |
+| **JSON** | CSV, TSV, YAML, Markdown Table, Base64 | Auto-detects array of objects vs nested trees. |
+| **CSV** | JSON, TSV, YAML, Markdown Table | RFC 4180 compliant with escaped commas & quotes. |
+| **TSV** | JSON, CSV, YAML, Markdown Table | Tab-delimited parsing ideal for spreadsheet copy-paste. |
+| **YAML** | JSON, CSV, Markdown Table | Clean YAML 1.2 parsing and indentation formatting. |
+| **Markdown** | JSON, CSV, TSV | Parses GitHub Flavored Markdown (GFM) pipe tables. |
+| **Base64** | UTF-8 Text, Hex, Binary | Safe encoding/decoding with URL-safe variants. |
+
+---
+
+## 🛠️ Step-by-Step Practical Tutorials
+
+### Tutorial: Converting CSV to a Markdown Documentation Table
+1. Launch Data Converter Studio: `bun run app:convert`.
+2. Select **Source Format**: `CSV`.
+3. Select **Target Format**: `Markdown Table`.
+4. Paste your CSV data into the left pane:
    ```csv
-   id,name,role,active
-   101,Sarah Jenkins,Engineering Lead,true
-   102,David Miller,DevOps Engineer,true
-   103,Emma Watson,Security Analyst,false
+   id,feature,status,priority
+   1,OAuth 2.0,Completed,High
+   2,Dark Mode,In Progress,Medium
+   3,Stripe Billing,Pending,Critical
    ```
-3. Click **⚡ Convert**.
-4. The output pane generates clean, strongly typed JSON:
-   ```json
-   [
-     { "id": 101, "name": "Sarah Jenkins", "role": "Engineering Lead", "active": true },
-     { "id": 102, "name": "David Miller", "role": "DevOps Engineer", "active": true },
-     { "id": 103, "name": "Emma Watson", "role": "Security Analyst", "active": false }
-   ]
-   ```
-
-### 2. Generating Markdown Tables for Documentation
-1. With JSON or CSV in the input editor, select **Target Format: Markdown Table**.
-2. Click **⚡ Convert**.
-3. A properly aligned GitHub-flavored markdown table is generated:
+5. The right pane instantly renders a formatted GitHub-compatible Markdown table:
    ```markdown
-   | id | name | role | active |
-   | --- | --- | --- | --- |
-   | 101 | Sarah Jenkins | Engineering Lead | true |
-   | 102 | David Miller | DevOps Engineer | true |
-   | 103 | Emma Watson | Security Analyst | false |
+   | id | feature | status | priority |
+   | -- | ------- | ------ | -------- |
+   | 1 | OAuth 2.0 | Completed | High |
+   | 2 | Dark Mode | In Progress | Medium |
+   | 3 | Stripe Billing | Pending | Critical |
    ```
-4. Click **Copy Output** and paste directly into your project `README.md` or user documentation.
+6. Click **📋 Copy Output** to paste directly into your README or pull request description.
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **Smart Type Ingestion**: Automatic parsing of booleans, floating-point numbers, and integer values rather than coercing everything to strings.
-- **Escaped CSV / Delimiter Support**: Accurately handles quoted strings with commas and escaped quotes within CSV/TSV inputs.
-- **Pure Native Execution**: Zero external parser dependencies. Zero data sent to external servers or cloud services.
+## ⌨️ Complete Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Cmd + Enter** / **Ctrl + Enter** | Input Pane | Force immediate conversion |
+| **Cmd + Shift + C** | Output Pane | Copy converted data to clipboard |
+| **Cmd + Shift + X** | Global | Swap Source and Target formats |
+| **F11** or **F** | Global | Toggle borderless fullscreen |
+
+---
+
+## 💡 Pro Tips & Enterprise Best Practices
+- **Never Upload Sensitive Data to Web Converters**: Commercial web converters frequently log user data. Data Converter Studio runs 100% offline in local memory—ideal for converting proprietary databases, PII, financial spreadsheets, and credentials safely.

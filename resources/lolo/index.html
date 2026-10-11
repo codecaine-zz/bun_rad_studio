@@ -2,6 +2,32 @@
 <html lang="en">
 
 <head>
+    <script>
+        // Safe storage polyfill for Webview/sandboxed environments
+        (function() {
+            try {
+                var k = '__test__';
+                window.localStorage.setItem(k, '1');
+                window.localStorage.removeItem(k);
+            } catch(e) {
+                var mem = {};
+                try {
+                    Object.defineProperty(window, 'localStorage', {
+                        value: {
+                            getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+                            setItem: function(k, v) { mem[k] = String(v); },
+                            removeItem: function(k) { delete mem[k]; },
+                            clear: function() { mem = {}; },
+                            key: function(i) { return Object.keys(mem)[i] || null; },
+                            get length() { return Object.keys(mem).length; }
+                        },
+                        writable: true,
+                        configurable: true
+                    });
+                } catch(err) {}
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adventures of Lolo - Cyberpunk Remaster</title>
@@ -429,6 +455,11 @@
     <header
         class="w-full flex flex-col md:flex-row items-center justify-between mb-4 gap-3.5 cyber-glass p-3.5 sm:p-4 rounded-2xl shadow-xl border border-cyan-500/30">
         <div class="flex items-center space-x-3.5">
+            <!-- Return to CodeCaine Hub Button -->
+            <a href="/" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:text-white hover:bg-cyan-500/20 hover:border-cyan-400 text-xs font-bold transition-all shadow-md shadow-cyan-950/40 shrink-0" title="Return to Codecaine Hub">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+                <span class="orbitron-font hidden sm:inline">Hub</span>
+            </a>
             <div
                 class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-pink-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-cyan-500/40 border border-cyan-300/40">
                 <i class="fa-solid fa-robot"></i>
@@ -3113,31 +3144,6 @@
     </footer>
 
     <script>
-        // Safe storage polyfill for Webview/sandboxed environments
-        (function() {
-            try {
-                var k = '__test__';
-                window.localStorage.setItem(k, '1');
-                window.localStorage.removeItem(k);
-            } catch(e) {
-                var mem = {};
-                try {
-                    Object.defineProperty(window, 'localStorage', {
-                        value: {
-                            getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
-                            setItem: function(k, v) { mem[k] = String(v); },
-                            removeItem: function(k) { delete mem[k]; },
-                            clear: function() { mem = {}; },
-                            key: function(i) { return Object.keys(mem)[i] || null; },
-                            get length() { return Object.keys(mem).length; }
-                        },
-                        writable: true,
-                        configurable: true
-                    });
-                } catch(err) {}
-            }
-        })();
-
         /* Modern Web Audio Synthesizer Engine (SFX & Multi-track BGM) */
         class CyberAudioEngine {
             constructor() {
@@ -5196,10 +5202,14 @@
         const TILE_BLINK_FLOOR = 27;
         const TILE_SHATTER_GLASS = 28;
         const TILE_TURRET_SOCKET = 29;
+        const TILE_DIRT = 30;
+        const TILE_WOOD_FLOOR = 31;
+        const TILE_GRAVEL = 32;
 
         function isWalkableTerrain(tile) {
             return tile === TILE_FLOOR || tile === TILE_GRASS || tile === TILE_SAND ||
                    tile === TILE_ICE || tile === TILE_SLIME || tile === TILE_HIGH_GRASS ||
+                   tile === TILE_DIRT || tile === TILE_WOOD_FLOOR || tile === TILE_GRAVEL ||
                    tile === TILE_PRESSURE_PLATE_CYAN || tile === TILE_PRESSURE_PLATE_MAGENTA ||
                    tile === TILE_BLINK_FLOOR || tile === TILE_SHATTER_GLASS || tile === TILE_TURRET_SOCKET;
         }
@@ -5916,7 +5926,8 @@
             TILE_ICE, TILE_CRACKED_WALL, TILE_LAVA, TILE_SLIME, TILE_HIGH_GRASS,
             TILE_PRESSURE_PLATE_CYAN, TILE_PRESSURE_PLATE_MAGENTA,
             TILE_LASER_GATE_CYAN, TILE_LASER_GATE_MAGENTA,
-            TILE_BLINK_FLOOR, TILE_SHATTER_GLASS, TILE_TURRET_SOCKET
+            TILE_BLINK_FLOOR, TILE_SHATTER_GLASS, TILE_TURRET_SOCKET,
+            TILE_DIRT, TILE_WOOD_FLOOR, TILE_GRAVEL
         ];
         const ALL_ENEMY_TYPES = [
             'snake', 'medusa', 'medusa_diag', 'medusa_omni', 'turret',
@@ -5960,7 +5971,10 @@
             [TILE_LASER_GATE_MAGENTA]: 'Laser Gate (Magenta)',
             [TILE_BLINK_FLOOR]: 'Blink Floor',
             [TILE_SHATTER_GLASS]: 'Shatter Glass',
-            [TILE_TURRET_SOCKET]: 'Turret Socket'
+            [TILE_TURRET_SOCKET]: 'Turret Socket',
+            [TILE_DIRT]: 'Dirt Path',
+            [TILE_WOOD_FLOOR]: 'Wood Floor',
+            [TILE_GRAVEL]: 'Gravel'
         });
 
         const HOSTILE_TYPE_REGISTRY = Object.freeze({
@@ -7730,7 +7744,7 @@
 
                             if (pushX >= 1 && pushX <= boardSize - 2 && pushY >= 1 && pushY <= boardSize - 2) {
                                 const pushTile = grid[pushY][pushX];
-                                const isFreeFloor = (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || ((pushTile === TILE_WATER || pushTile === TILE_LAVA) && curr.waterBridges.has(`${pushX},${pushY}`)));
+                                const isFreeFloor = (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_DIRT || pushTile === TILE_WOOD_FLOOR || pushTile === TILE_GRAVEL || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || ((pushTile === TILE_WATER || pushTile === TILE_LAVA) && curr.waterBridges.has(`${pushX},${pushY}`)));
                                 const hasBlock = curr.blocks.some(b => b.x === pushX && b.y === pushY);
                                 const hasEnemy = curr.enemies.some(e => !e.isVaporized && e.x === pushX && e.y === pushY);
 
@@ -7801,7 +7815,7 @@
                                     const hasEnemy = curr.enemies.some((e, idx) => idx !== enemyIdx && !e.isVaporized && e.x === pushX && e.y === pushY);
 
                                     if (!hasBlock && !hasEnemy && !isStaticBlocked(pushX, pushY, curr.chestState, curr.doorOpen, curr.waterBridges, dir.dx, dir.dy)) {
-                                        if (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || ((pushTile === TILE_WATER || pushTile === TILE_LAVA) && curr.waterBridges.has(`${pushX},${pushY}`))) {
+                                        if (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_DIRT || pushTile === TILE_WOOD_FLOOR || pushTile === TILE_GRAVEL || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || ((pushTile === TILE_WATER || pushTile === TILE_LAVA) && curr.waterBridges.has(`${pushX},${pushY}`))) {
                                             const newEnemies = curr.enemies.map((e, idx) => idx === enemyIdx ? { ...e, x: pushX, y: pushY } : { ...e });
                                             const newECode = computeEnemyCode(newEnemies);
                                             if (!isLoloKilled(targetX, targetY, curr.blocks, newEnemies, remainingHearts, curr.waterBridges)) {
@@ -8352,7 +8366,7 @@
 
                 const addBlock = (x, y, extra = {}) => {
                     if (isProtected(x, y)) return false;
-                    if (grid[y][x] !== TILE_FLOOR && grid[y][x] !== TILE_GRASS && grid[y][x] !== TILE_SAND && grid[y][x] !== TILE_ICE) return false;
+                    if (grid[y][x] !== TILE_FLOOR && grid[y][x] !== TILE_GRASS && grid[y][x] !== TILE_DIRT && grid[y][x] !== TILE_WOOD_FLOOR && grid[y][x] !== TILE_GRAVEL && grid[y][x] !== TILE_SAND && grid[y][x] !== TILE_ICE) return false;
                     if (blocks.some(b => b.x === x && b.y === y)) return false;
                     if (enemies.some(e => e.x === x && e.y === y)) return false;
 
@@ -8370,7 +8384,7 @@
 
                 const addSmartEnemy = (type, x, y, extra = {}) => {
                     if (isProtected(x, y)) return false;
-                    if (grid[y][x] !== TILE_FLOOR && grid[y][x] !== TILE_GRASS && grid[y][x] !== TILE_SAND && grid[y][x] !== TILE_ICE) return false;
+                    if (grid[y][x] !== TILE_FLOOR && grid[y][x] !== TILE_GRASS && grid[y][x] !== TILE_DIRT && grid[y][x] !== TILE_WOOD_FLOOR && grid[y][x] !== TILE_GRAVEL && grid[y][x] !== TILE_SAND && grid[y][x] !== TILE_ICE) return false;
                     if (blocks.some(b => b.x === x && b.y === y)) return false;
                     if (enemies.some(e => e.x === x && e.y === y)) return false;
 
@@ -8510,7 +8524,7 @@
                                 const sx = slot.x, sy = slot.y;
 
                                 if (isProtected(sx, sy)) continue;
-                                if (grid[sy][sx] !== TILE_FLOOR && grid[sy][sx] !== TILE_GRASS && grid[sy][sx] !== TILE_SAND && grid[sy][sx] !== TILE_HIGH_GRASS && grid[sy][sx] !== TILE_SLIME) continue;
+                                if (grid[sy][sx] !== TILE_FLOOR && grid[sy][sx] !== TILE_GRASS && grid[sy][sx] !== TILE_DIRT && grid[sy][sx] !== TILE_WOOD_FLOOR && grid[sy][sx] !== TILE_GRAVEL && grid[sy][sx] !== TILE_SAND && grid[sy][sx] !== TILE_HIGH_GRASS && grid[sy][sx] !== TILE_SLIME) continue;
                                 if (blocks.some(b => b.x === sx && b.y === sy)) continue;
                                 if (enemies.some(e => e.x === sx && e.y === sy)) continue;
                                 // Keep at safe distance from Lolo spawn
@@ -8654,28 +8668,47 @@
                     }
                 }
 
-                // Biome & Decorative Terrain Pass
+                // Advanced Biome & Memorable Decorative Terrain Pass
                 const allowGrass = options ? (options.includeGrass !== false) : true;
                 const allowSand = options ? (options.includeSand !== false) : true;
-                const biome = options ? (options.biome || 'all') : 'all';
+                
+                // Roll a theme for this specific level to make it memorable
+                // 0: Standard, 1: Rustic (Wood), 2: Overgrown (Dirt/Grass), 3: Ruins (Gravel/Dirt)
+                const levelTheme = rng.range(0, 3);
+                
+                for (let r = 1; r < size - 1; r++) {
+                    for (let c = 1; c < size - 1; c++) {
+                        if (grid[r][c] === TILE_FLOOR) {
+                            if (levelTheme === 1) {
+                                // Rustic: Mostly wood floors
+                                if (rng.range(0, 100) < 85) grid[r][c] = TILE_WOOD_FLOOR;
+                            } else if (levelTheme === 2) {
+                                // Overgrown: Mix of dirt and grass
+                                const roll = rng.range(0, 100);
+                                if (roll < 30) grid[r][c] = TILE_DIRT;
+                                else if (roll < 45 && allowGrass) grid[r][c] = TILE_GRASS;
+                            } else if (levelTheme === 3) {
+                                // Ruins: Gravel and dirt
+                                const roll = rng.range(0, 100);
+                                if (roll < 60) grid[r][c] = TILE_GRAVEL;
+                                else if (roll < 80) grid[r][c] = TILE_DIRT;
+                            }
+                        }
+                    }
+                }
 
+                // Scatter extra decorative patches on top
                 const decorCount = rng.range(3, Math.max(4, 3 + Math.floor(size / 3)));
                 for (let d = 0; d < decorCount; d++) {
                     const tx = rng.range(2, size - 3);
                     const ty = rng.range(2, size - 3);
-                    if (tx !== midX && grid[ty][tx] === TILE_FLOOR && !blocks.some(b => b.x === tx && b.y === ty) && !enemies.some(e => e.x === tx && e.y === ty)) {
-                        if (biome === 'meadow' && allowGrass) {
+                    if (tx !== midX && (grid[ty][tx] === TILE_FLOOR || grid[ty][tx] === TILE_DIRT || grid[ty][tx] === TILE_GRAVEL) && !blocks.some(b => b.x === tx && b.y === ty) && !enemies.some(e => e.x === tx && e.y === ty)) {
+                        if (allowGrass && allowSand) {
+                            grid[ty][tx] = (d % 2 === 0) ? TILE_SAND : TILE_GRASS;
+                        } else if (allowGrass) {
                             grid[ty][tx] = TILE_GRASS;
-                        } else if (biome === 'dunes' && allowSand) {
+                        } else if (allowSand) {
                             grid[ty][tx] = TILE_SAND;
-                        } else {
-                            if (allowGrass && allowSand) {
-                                grid[ty][tx] = (d % 2 === 0) ? TILE_SAND : TILE_GRASS;
-                            } else if (allowGrass) {
-                                grid[ty][tx] = TILE_GRASS;
-                            } else if (allowSand) {
-                                grid[ty][tx] = TILE_SAND;
-                            }
                         }
                     }
                 }
@@ -9444,6 +9477,22 @@
                 this.impactDiamondSparks(x, y, '#ffd700', 18, 5.5);
             }
 
+            liquidMetalBurst(x, y, count = 24) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1.0 + Math.random() * 5.5;
+                    this.spawn(
+                        x, y, '#94a3b8', // Silver metal color
+                        4 + Math.random() * 6,
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed,
+                        40 + Math.floor(Math.random() * 20),
+                        'liquid_metal',
+                        { drag: 0.94, gravity: 0.15 }
+                    );
+                }
+            }
+
             prismSpark(x, y, dir = 'up_right') {
                 for (let i = 0; i < 4; i++) {
                     const angle = Math.random() * Math.PI * 2;
@@ -9587,6 +9636,21 @@
                         ctx.beginPath();
                         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                         ctx.fill();
+                    } else if (p.type === 'liquid_metal') {
+                        ctx.globalAlpha = alpha * 0.9;
+                        const grad = ctx.createRadialGradient(p.x - p.size * 0.2, p.y - p.size * 0.2, 0.5, p.x, p.y, p.size);
+                        grad.addColorStop(0, '#ffffff'); // Glint
+                        grad.addColorStop(0.3, p.color); // Base silver
+                        grad.addColorStop(0.8, '#475569'); // Dark shadow edge
+                        grad.addColorStop(1, 'rgba(71, 85, 105, 0)');
+                        
+                        ctx.fillStyle = grad;
+                        ctx.shadowColor = '#0f172a';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        // Flatten slightly vertically as it falls (simulating viscous liquid)
+                        ctx.ellipse(p.x, p.y, p.size * 1.1, p.size * 0.9, p.rot || 0, 0, Math.PI * 2);
+                        ctx.fill();
                     } else if (p.type === 'spark') {
                         ctx.globalAlpha = alpha;
                         ctx.strokeStyle = p.color;
@@ -9638,7 +9702,7 @@
             constructor() {
                 this.trauma = 0;
                 this.maxOffset = 16;
-                this.maxAngle = 0; // Pure translational vibration — zero crooked rotation
+                this.maxAngle = 0; // Pure translational vibration - zero crooked rotation
                 this.decay = 0.85;
                 this.time = 0;
                 this.offsetX = 0;
@@ -11431,7 +11495,7 @@
 
                     const isOpenLaserGate = (pushTile === TILE_LASER_GATE_CYAN && this.pressurePlates.cyan) || (pushTile === TILE_LASER_GATE_MAGENTA && this.pressurePlates.magenta);
                     const isSolidBlink = (pushTile === TILE_BLINK_FLOOR && this.blinkPhase);
-                    const isFreeFloor = (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || pushTile === TILE_PORTAL_A || pushTile === TILE_PORTAL_B || pushTile === TILE_PRESSURE_PLATE_CYAN || pushTile === TILE_PRESSURE_PLATE_MAGENTA || pushTile === TILE_SHATTER_GLASS || pushTile === TILE_TURRET_SOCKET || isSolidBlink || isOpenLaserGate);
+                    const isFreeFloor = (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_DIRT || pushTile === TILE_WOOD_FLOOR || pushTile === TILE_GRAVEL || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || pushTile === TILE_PORTAL_A || pushTile === TILE_PORTAL_B || pushTile === TILE_PRESSURE_PLATE_CYAN || pushTile === TILE_PRESSURE_PLATE_MAGENTA || pushTile === TILE_SHATTER_GLASS || pushTile === TILE_TURRET_SOCKET || isSolidBlink || isOpenLaserGate);
 
                     if (isFreeFloor && !pushBlock && !pushEnemy) {
                         let shattered = false;
@@ -11533,7 +11597,7 @@
 
                         const isEggOpenGate = (pushTile === TILE_LASER_GATE_CYAN && this.pressurePlates.cyan) || (pushTile === TILE_LASER_GATE_MAGENTA && this.pressurePlates.magenta);
                         const isEggSolidBlink = (pushTile === TILE_BLINK_FLOOR && this.blinkPhase);
-                        const isEggFreeTile = (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || pushTile === TILE_PRESSURE_PLATE_CYAN || pushTile === TILE_PRESSURE_PLATE_MAGENTA || pushTile === TILE_SHATTER_GLASS || pushTile === TILE_TURRET_SOCKET || isEggSolidBlink || isEggOpenGate);
+                        const isEggFreeTile = (pushTile === TILE_FLOOR || pushTile === TILE_GRASS || pushTile === TILE_DIRT || pushTile === TILE_WOOD_FLOOR || pushTile === TILE_GRAVEL || pushTile === TILE_SAND || pushTile === TILE_ICE || pushTile === TILE_SLIME || pushTile === TILE_HIGH_GRASS || pushTile === TILE_PRESSURE_PLATE_CYAN || pushTile === TILE_PRESSURE_PLATE_MAGENTA || pushTile === TILE_SHATTER_GLASS || pushTile === TILE_TURRET_SOCKET || isEggSolidBlink || isEggOpenGate);
                         if (isEggFreeTile && !pushBlock && !pushEnemy) {
                             this.pushStrainTimer = 18;
                             if (pushTile === TILE_ICE) {
@@ -11725,7 +11789,10 @@
                 this.enemies.forEach(e => {
                     e.isVaporized = true;
                     e.respawnTimer = 999999;
-                    this.particles.burst((e.renderX + 0.5) * cellSize, (e.renderY + 0.5) * cellSize, '#ff0055', 18);
+                    this.particles.liquidMetalBurst((e.renderX + 0.5) * cellSize, (e.renderY + 0.5) * cellSize, 35);
+                    this.particles.burst((e.renderX + 0.5) * cellSize, (e.renderY + 0.5) * cellSize, '#ff0055', 24);
+                    this.camera.addTrauma(0.5, 4.0);
+                    this.hitStop.trigger(6, '#ff0055');
                 });
 
                 // Open the exit door
@@ -11794,8 +11861,11 @@
                         if (enemy && !enemy.isVaporized) {
                             enemy.isVaporized = true;
                             enemy.respawnTimer = 720;
-                            this.particles.burst((c + 0.5) * cellSize, (r + 0.5) * cellSize, '#ff007f', 24);
+                            this.particles.liquidMetalBurst((c + 0.5) * cellSize, (r + 0.5) * cellSize, 25);
+                            this.particles.burst((c + 0.5) * cellSize, (r + 0.5) * cellSize, '#ff007f', 32);
                             this.particles.floatingText((c + 0.5) * cellSize, r * cellSize, 'VAPORIZED', '#ff007f');
+                            this.hitStop.trigger(5, '#ff007f');
+                            this.camera.addTrauma(0.4, 3.5);
                         }
 
                         // Kill Lolo if within blast radius
@@ -12117,9 +12187,10 @@
                                 enemy.isVaporized = true;
                                 enemy.respawnTimer = 720;
                                 audio.playEggify();
-                                this.hitStop.trigger(4, '#ff007f');
-                                this.camera.addTrauma(0.40, 4.0);
-                                this.particles.impactDiamondSparks((gridX + 0.5) * cellSize, (gridY + 0.5) * cellSize, '#ff007f', 28, 5.0);
+                                this.hitStop.trigger(8, '#ff007f'); // Enhanced hit-stop
+                                this.camera.addTrauma(0.50, 4.0);
+                                this.particles.liquidMetalBurst((gridX + 0.5) * cellSize, (gridY + 0.5) * cellSize, 30);
+                                this.particles.impactDiamondSparks((gridX + 0.5) * cellSize, (gridY + 0.5) * cellSize, '#ff007f', 32, 5.0);
                                 this.particles.floatingText((gridX + 0.5) * cellSize, gridY * cellSize, 'VAPORIZED', '#ff007f');
                             }
                         }
@@ -12919,7 +12990,7 @@
                             const pushY = this.lolo.y + dy;
                             if (pushX >= 1 && pushX < size - 1 && pushY >= 1 && pushY < size - 1) {
                                 const tile = this.grid[pushY][pushX];
-                                if (tile === TILE_FLOOR || tile === TILE_GRASS || tile === TILE_SAND || tile === TILE_ICE) {
+                                if (tile === TILE_FLOOR || tile === TILE_GRASS || tile === TILE_DIRT || tile === TILE_WOOD_FLOOR || tile === TILE_GRAVEL || tile === TILE_SAND || tile === TILE_ICE) {
                                     if (!this.getBlockAt(pushX, pushY) && !this.enemies.some(e => !e.isVaporized && e.x === pushX && e.y === pushY)) {
                                         this.lolo.x = pushX;
                                         this.lolo.y = pushY;
@@ -12952,7 +13023,7 @@
                             const pullY = this.lolo.y - d.dy;
                             if (pullX >= 1 && pullX < size - 1 && pullY >= 1 && pullY < size - 1) {
                                 const pTile = this.grid[pullY][pullX];
-                                if (pTile === TILE_FLOOR || pTile === TILE_GRASS || pTile === TILE_SAND || pTile === TILE_ICE) {
+                                if (pTile === TILE_FLOOR || pTile === TILE_GRASS || pTile === TILE_DIRT || pTile === TILE_WOOD_FLOOR || pTile === TILE_GRAVEL || pTile === TILE_SAND || pTile === TILE_ICE) {
                                     if (!this.getBlockAt(pullX, pullY) && (pullX !== enemy.x || pullY !== enemy.y)) {
                                         this.lolo.x = pullX;
                                         this.lolo.y = pullY;
@@ -13498,62 +13569,74 @@
 
                     case TILE_WALL: {
                         // 1. 3D Volumetric Reinforced Titanium/Obsidian Blast Block Ground Shadow
-                        ctx.fillStyle = 'rgba(2, 6, 18, 0.75)';
-                        ctx.fillRect(x + 2, y + 2, size, size);
+                        ctx.fillStyle = 'rgba(2, 6, 18, 0.9)';
+                        ctx.fillRect(x + 2, y + 4, size - 2, size - 4);
 
                         // 2. Main Fortified Beveled Body
                         const wallGrad = ctx.createLinearGradient(x, y, x + size, y + size);
-                        wallGrad.addColorStop(0, '#1e293b');
-                        wallGrad.addColorStop(0.3, '#0f172a');
-                        wallGrad.addColorStop(1, '#080d18');
+                        wallGrad.addColorStop(0, '#0f172a');
+                        wallGrad.addColorStop(0.5, '#020617');
+                        wallGrad.addColorStop(1, '#000000');
                         ctx.fillStyle = wallGrad;
-                        ctx.fillRect(x, y, size - 1, size - 1);
+                        ctx.fillRect(x, y, size, size);
 
-                        // 3. Top-Left 3D Specular Highlight Bevel
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-                        ctx.lineWidth = 1.2;
+                        // 3. Faceted Tech Geometric Plating
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
                         ctx.beginPath();
-                        ctx.moveTo(x, y + size - 1);
-                        ctx.lineTo(x, y);
-                        ctx.lineTo(x + size - 1, y);
-                        ctx.stroke();
+                        ctx.moveTo(x, y); ctx.lineTo(x + size, y); ctx.lineTo(x + size * 0.8, y + size * 0.2); ctx.lineTo(x + size * 0.2, y + size * 0.2);
+                        ctx.fill();
 
-                        // 4. Bottom-Right Deep Shadow Bevel
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                        ctx.lineWidth = 1.2;
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
                         ctx.beginPath();
-                        ctx.moveTo(x + size - 1, y);
-                        ctx.lineTo(x + size - 1, y + size - 1);
-                        ctx.lineTo(x, y + size - 1);
-                        ctx.stroke();
+                        ctx.moveTo(x, y); ctx.lineTo(x + size * 0.2, y + size * 0.2); ctx.lineTo(x + size * 0.2, y + size * 0.8); ctx.lineTo(x, y + size);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.beginPath();
+                        ctx.moveTo(x + size, y + size); ctx.lineTo(x + size, y); ctx.lineTo(x + size * 0.8, y + size * 0.2); ctx.lineTo(x + size * 0.8, y + size * 0.8);
+                        ctx.fill();
 
-                        // 5. Inner Armored Steel Plate
-                        const innerGrad = ctx.createLinearGradient(x + 4, y + 4, x + size - 4, y + size - 4);
-                        innerGrad.addColorStop(0, '#172554');
-                        innerGrad.addColorStop(1, '#0c1322');
-                        ctx.fillStyle = innerGrad;
-                        ctx.fillRect(x + 3.5, y + 3.5, size - 7, size - 7);
+                        // 4. Center Holographic Circuit Grid
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.rect(x + size * 0.2, y + size * 0.2, size * 0.6, size * 0.6);
+                        ctx.clip();
 
-                        // 6. Bolted Titanium Hex Rivets with animated status flicker
-                        const ledBlink = Math.sin(this.animTick * 0.08 + cellR * 2 + cellC * 3) > 0.6;
-                        ctx.fillStyle = ledBlink ? '#38bdf8' : '#0284c7';
+                        const cPulse = (this.animTick * 0.05 + cellR * 0.1 + cellC * 0.1) % 1;
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.strokeStyle = `rgba(56, 189, 248, ${0.1 + cPulse * 0.3})`;
+                        ctx.lineWidth = 1;
+                        
+                        for(let i = 0; i <= size * 0.6; i += 6) {
+                            ctx.beginPath();
+                            ctx.moveTo(x + size * 0.2, y + size * 0.2 + i);
+                            ctx.lineTo(x + size * 0.8, y + size * 0.2 + i);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(x + size * 0.2 + i, y + size * 0.2);
+                            ctx.lineTo(x + size * 0.2 + i, y + size * 0.8);
+                            ctx.stroke();
+                        }
+                        ctx.restore();
+
+                        // 5. Overcharged Neon Power Core
+                        const corePulse = 0.5 + Math.sin(this.animTick * 0.1 + cellR + cellC) * 0.5;
+                        ctx.globalCompositeOperation = 'lighter';
+                        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.4);
+                        coreGlow.addColorStop(0, `rgba(56, 189, 248, ${0.4 + corePulse * 0.4})`);
+                        coreGlow.addColorStop(1, 'rgba(2, 132, 199, 0)');
+                        ctx.fillStyle = coreGlow;
+                        ctx.fillRect(x, y, size, size);
+
+                        ctx.globalCompositeOperation = 'source-over';
+                        
+                        ctx.fillStyle = '#bae6fd';
                         ctx.shadowColor = '#38bdf8';
-                        ctx.shadowBlur = ledBlink ? 6 : 2;
-                        const rOff = 4.5;
-                        ctx.fillRect(x + rOff, y + rOff, 2, 2);
-                        ctx.fillRect(x + size - rOff - 2, y + rOff, 2, 2);
-                        ctx.fillRect(x + rOff, y + size - rOff - 2, 2, 2);
-                        ctx.fillRect(x + size - rOff - 2, y + size - rOff - 2, 2, 2);
-                        ctx.shadowBlur = 0;
-
-                        // 7. Center Recessed Pulsing Neon Datalink Conduit
-                        const conduitPulse = 0.35 + Math.sin(this.animTick * 0.1 + cellR + cellC) * 0.25;
-                        ctx.strokeStyle = `rgba(0, 240, 255, ${conduitPulse})`;
-                        ctx.lineWidth = 1.2;
+                        ctx.shadowBlur = 8;
                         ctx.beginPath();
-                        ctx.moveTo(x + 7, cy);
-                        ctx.lineTo(x + size - 7, cy);
-                        ctx.stroke();
+                        ctx.arc(cx, cy, 2 + corePulse, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
                         break;
                     }
 
@@ -13906,6 +13989,94 @@
                         break;
                     }
 
+                    case TILE_DIRT: {
+                        ctx.save();
+                        // Worn Dirt Pathway
+                        const dirtGrad = ctx.createLinearGradient(x, y, x + size, y + size);
+                        dirtGrad.addColorStop(0, '#3f2a14');
+                        dirtGrad.addColorStop(0.5, '#352210');
+                        dirtGrad.addColorStop(1, '#2c1c0c');
+                        ctx.fillStyle = dirtGrad;
+                        ctx.fillRect(x, y, size, size);
+
+                        // Texture flecks
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.fillRect(x + size * 0.2, y + size * 0.3, 2, 2);
+                        ctx.fillRect(x + size * 0.7, y + size * 0.2, 1.5, 1.5);
+                        ctx.fillRect(x + size * 0.4, y + size * 0.7, 2, 2);
+                        ctx.fillRect(x + size * 0.8, y + size * 0.8, 1.5, 1.5);
+
+                        // Subtle pathway wear in center
+                        const wearGrad = ctx.createRadialGradient(cx, cy, size * 0.1, cx, cy, size * 0.5);
+                        wearGrad.addColorStop(0, 'rgba(120, 80, 40, 0.15)');
+                        wearGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                        ctx.fillStyle = wearGrad;
+                        ctx.fillRect(x, y, size, size);
+
+                        ctx.restore();
+                        break;
+                    }
+                    
+                    case TILE_WOOD_FLOOR: {
+                        ctx.save();
+                        ctx.fillStyle = '#4a2f18';
+                        ctx.fillRect(x, y, size, size);
+                        
+                        ctx.strokeStyle = '#2d1b0d';
+                        ctx.lineWidth = 1;
+                        // Wood planks
+                        const plankCount = 4;
+                        const plankW = size / plankCount;
+                        for (let i = 0; i < plankCount; i++) {
+                            const px = x + i * plankW;
+                            ctx.beginPath();
+                            ctx.moveTo(px, y);
+                            ctx.lineTo(px, y + size);
+                            ctx.stroke();
+                            
+                            // Nails
+                            ctx.fillStyle = '#1a0f07';
+                            ctx.beginPath();
+                            ctx.arc(px + plankW / 2, y + 4, 1, 0, Math.PI * 2);
+                            ctx.arc(px + plankW / 2, y + size - 4, 1, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            // Subtle grain
+                            ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                            ctx.beginPath();
+                            ctx.moveTo(px + plankW * 0.3, y + 2);
+                            ctx.lineTo(px + plankW * 0.3, y + size - 2);
+                            ctx.moveTo(px + plankW * 0.7, y + 2);
+                            ctx.lineTo(px + plankW * 0.7, y + size - 2);
+                            ctx.stroke();
+                        }
+                        ctx.restore();
+                        break;
+                    }
+                    
+                    case TILE_GRAVEL: {
+                        ctx.save();
+                        // Base stone color
+                        ctx.fillStyle = '#475569';
+                        ctx.fillRect(x, y, size, size);
+                        
+                        // Render lots of little stones
+                        const randomSeed = (cellR * 13 + cellC * 17);
+                        for(let i = 0; i < 20; i++) {
+                            const rx = x + 2 + ((randomSeed * (i+1) * 3) % (size - 4));
+                            const ry = y + 2 + ((randomSeed * (i+2) * 7) % (size - 4));
+                            const rSize = 1 + ((randomSeed * i) % 2.5);
+                            
+                            // Stone highlight and shadow
+                            ctx.fillStyle = (i % 3 === 0) ? '#64748b' : (i % 2 === 0 ? '#334155' : '#1e293b');
+                            ctx.beginPath();
+                            ctx.arc(rx, ry, rSize, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                        break;
+                    }
+
                     case TILE_SAND: {
                         // Realistic Warm Wind-Swept Dune Sand
                         const sandGrad = ctx.createLinearGradient(x, y, x, y + size);
@@ -14129,118 +14300,112 @@
                         ctx.save();
 
                         const isAmmo = tile === TILE_HEART_AMMO;
-                        const gemColor = isAmmo ? '#f43f5e' : '#f59e0b';
-                        const gemHi = isAmmo ? '#fda4af' : '#fef08a';
-                        const hoverY = Math.sin(this.animTick * 0.08 + x * 0.5 + y * 0.5) * (size * 0.08);
+                        const coreColor = isAmmo ? '#f43f5e' : '#f59e0b';
+                        const glowColor = isAmmo ? '#fb7185' : '#fef08a';
+                        
+                        // Ultra-smooth floating animation
+                        const hover = Math.sin(this.animTick * 0.05 + x + y) * (size * 0.12);
                         const hx = cx;
-                        const hy = cy + hoverY;
+                        const hy = cy + hover - size * 0.05;
 
-                        // 1. Soft Dynamic Ground Shadow
-                        const shadowScale = 1 - hoverY / (size * 0.2);
-                        ctx.fillStyle = 'rgba(2, 6, 18, 0.75)';
+                        // Soft Ground Shadow
+                        const shadowScale = 1 - hover / (size * 0.2);
+                        ctx.fillStyle = 'rgba(2, 6, 18, 0.8)';
                         ctx.beginPath();
-                        ctx.ellipse(hx, y + size * 0.86, (size * 0.32) * shadowScale, (size * 0.1) * shadowScale, 0, 0, Math.PI * 2);
+                        ctx.ellipse(cx, y + size * 0.85, (size * 0.3) * shadowScale, (size * 0.1) * shadowScale, 0, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // 2. High-Tech Magnetic Containment Pedestal with concentric glowing rings
+                        // Holographic Tech Pedestal
                         ctx.fillStyle = '#0f172a';
-                        ctx.strokeStyle = gemColor;
-                        ctx.lineWidth = 1.4;
+                        ctx.strokeStyle = coreColor;
+                        ctx.lineWidth = 1.5;
                         ctx.beginPath();
-                        ctx.ellipse(hx, y + size * 0.82, size * 0.28, size * 0.09, 0, 0, Math.PI * 2);
+                        ctx.ellipse(cx, y + size * 0.85, size * 0.25, size * 0.08, 0, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.stroke();
 
-                        // Inner socket rim
-                        ctx.strokeStyle = gemHi;
-                        ctx.lineWidth = 0.8;
+                        ctx.globalCompositeOperation = 'lighter';
+                        
+                        // Pulsing Core Aura
+                        const pulse = 0.6 + Math.sin(this.animTick * 0.1) * 0.4;
+                        const auraGrad = ctx.createRadialGradient(hx, hy, 0, hx, hy, size * 0.6);
+                        auraGrad.addColorStop(0, isAmmo ? `rgba(251, 113, 133, ${pulse * 0.6})` : `rgba(253, 230, 138, ${pulse * 0.6})`);
+                        auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                        ctx.fillStyle = auraGrad;
                         ctx.beginPath();
-                        ctx.ellipse(hx, y + size * 0.82, size * 0.16, size * 0.05, 0, 0, Math.PI * 2);
-                        ctx.stroke();
+                        ctx.arc(hx, hy, size * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
 
-                        // 3. Rotating Gyroscopic Flux Ring (Dual Axes)
+                        ctx.globalCompositeOperation = 'source-over';
+
+                        // Multi-Layered Rotating 3D Crystal
                         ctx.save();
                         ctx.translate(hx, hy);
-                        ctx.rotate(this.animTick * 0.04);
-                        ctx.strokeStyle = gemHi;
-                        ctx.lineWidth = 1.2;
+                        ctx.rotate(this.animTick * 0.03);
+                        
+                        // Base Crystal Shape
+                        const grad = ctx.createLinearGradient(-size*0.2, -size*0.3, size*0.2, size*0.3);
+                        grad.addColorStop(0, '#ffffff');
+                        grad.addColorStop(0.3, glowColor);
+                        grad.addColorStop(0.7, coreColor);
+                        grad.addColorStop(1, isAmmo ? '#881337' : '#78350f');
+                        
+                        ctx.shadowColor = glowColor;
+                        ctx.shadowBlur = 15;
+                        ctx.fillStyle = grad;
                         ctx.beginPath();
-                        ctx.ellipse(0, 0, size * 0.34, size * 0.12, 0, 0, Math.PI * 2);
-                        ctx.stroke();
-
-                        // Counter-rotating secondary flux ring
-                        ctx.rotate(-this.animTick * 0.08);
-                        ctx.strokeStyle = isAmmo ? '#fb7185' : '#fed7aa';
-                        ctx.lineWidth = 0.9;
-                        ctx.beginPath();
-                        ctx.ellipse(0, 0, size * 0.26, size * 0.08, 0, 0, Math.PI * 2);
-                        ctx.stroke();
-                        ctx.restore();
-
-                        // 4. Volumetric Radiant Diamond Crystal Polygon
-                        ctx.shadowColor = gemColor;
-                        ctx.shadowBlur = 20;
-
-                        const crystalGrad = ctx.createLinearGradient(hx - size * 0.25, hy - size * 0.32, hx + size * 0.25, hy + size * 0.32);
-                        crystalGrad.addColorStop(0, '#ffffff');
-                        crystalGrad.addColorStop(0.2, gemHi);
-                        crystalGrad.addColorStop(0.55, gemColor);
-                        crystalGrad.addColorStop(1, isAmmo ? '#881337' : '#78350f');
-                        ctx.fillStyle = crystalGrad;
-
-                        ctx.beginPath();
-                        ctx.moveTo(hx, hy - size * 0.34);
-                        ctx.lineTo(hx + size * 0.28, hy - size * 0.05);
-                        ctx.lineTo(hx, hy + size * 0.30);
-                        ctx.lineTo(hx - size * 0.28, hy - size * 0.05);
+                        ctx.moveTo(0, -size * 0.28);
+                        ctx.lineTo(size * 0.22, 0);
+                        ctx.lineTo(0, size * 0.28);
+                        ctx.lineTo(-size * 0.22, 0);
                         ctx.closePath();
                         ctx.fill();
-
-                        // 5. Specular Refraction Facets (3D Crystal Glass)
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                        
+                        // Facet Highlights
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
                         ctx.beginPath();
-                        ctx.moveTo(hx, hy - size * 0.34);
-                        ctx.lineTo(hx + size * 0.28, hy - size * 0.05);
-                        ctx.lineTo(hx, hy);
-                        ctx.closePath();
+                        ctx.moveTo(0, -size * 0.28);
+                        ctx.lineTo(size * 0.22, 0);
+                        ctx.lineTo(0, 0);
                         ctx.fill();
-
+                        
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                         ctx.beginPath();
-                        ctx.moveTo(hx, hy - size * 0.34);
-                        ctx.lineTo(hx - size * 0.28, hy - size * 0.05);
-                        ctx.lineTo(hx, hy);
-                        ctx.closePath();
+                        ctx.moveTo(0, -size * 0.28);
+                        ctx.lineTo(-size * 0.22, 0);
+                        ctx.lineTo(0, 0);
                         ctx.fill();
+                        
+                        ctx.restore();
 
-                        // Bottom-facet ambient refraction
-                        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-                        ctx.beginPath();
-                        ctx.moveTo(hx, hy);
-                        ctx.lineTo(hx + size * 0.28, hy - size * 0.05);
-                        ctx.lineTo(hx, hy + size * 0.30);
-                        ctx.closePath();
-                        ctx.fill();
-
-                        // Brilliant Star Specular Sparkle with dynamic twinkle
-                        const twinkle = 2 + Math.sin(this.animTick * 0.2) * 1;
-                        ctx.fillStyle = '#ffffff';
-                        ctx.beginPath();
-                        ctx.arc(hx - 2, hy - size * 0.12, twinkle, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // If Ammo: Dual Plasma Energy Cells (+2 Blasters) with glowing cyan nozzles
-                        if (isAmmo) {
-                            ctx.fillStyle = '#38bdf8';
-                            ctx.shadowColor = '#00f0ff';
-                            ctx.shadowBlur = 6;
-                            ctx.fillRect(hx - 5, hy - size * 0.44, 3, 6);
-                            ctx.fillRect(hx + 2, hy - size * 0.44, 3, 6);
-                            ctx.fillStyle = '#ffffff';
-                            ctx.fillRect(hx - 4.5, hy - size * 0.46, 2, 2);
-                            ctx.fillRect(hx + 2.5, hy - size * 0.46, 2, 2);
+                        // Orbiting Energy Motes
+                        ctx.globalCompositeOperation = 'lighter';
+                        for(let i=0; i<3; i++) {
+                            const angle = this.animTick * 0.08 + (i * Math.PI * 2 / 3);
+                            const orbitX = hx + Math.cos(angle) * (size * 0.35);
+                            const orbitY = hy + Math.sin(angle) * (size * 0.1) * Math.cos(this.animTick * 0.02);
+                            
+                            ctx.fillStyle = glowColor;
+                            ctx.shadowColor = glowColor;
+                            ctx.shadowBlur = 8;
+                            ctx.beginPath();
+                            ctx.arc(orbitX, orbitY, 1.5, 0, Math.PI * 2);
+                            ctx.fill();
                         }
 
+                        // Ammo Specific Tech Details
+                        if (isAmmo) {
+                            ctx.globalCompositeOperation = 'source-over';
+                            ctx.shadowBlur = 0;
+                            ctx.fillStyle = '#0ea5e9';
+                            ctx.fillRect(hx - 4, hy - size * 0.35, 2, 4);
+                            ctx.fillRect(hx + 2, hy - size * 0.35, 2, 4);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(hx - 3.5, hy - size * 0.37, 1, 1.5);
+                            ctx.fillRect(hx + 2.5, hy - size * 0.37, 1, 1.5);
+                        }
+                        
                         ctx.restore();
                         break;
                     }
@@ -14250,100 +14415,88 @@
                         ctx.fillRect(x, y, size, size);
                         ctx.save();
 
-                        // 1. Heavy Vault Ground Contact Shadow with ambient occlusion
-                        ctx.fillStyle = 'rgba(2, 6, 18, 0.85)';
+                        // Advanced Ambient Ground Shadow
+                        ctx.fillStyle = 'rgba(2, 6, 18, 0.9)';
                         ctx.beginPath();
-                        ctx.ellipse(cx, y + size * 0.85, size * 0.42, size * 0.12, 0, 0, Math.PI * 2);
+                        ctx.ellipse(cx, y + size * 0.85, size * 0.45, size * 0.15, 0, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // 2. Brushed Bronze/Titanium Vault Safe Body with 3D perspective
-                        const chestGrad = ctx.createLinearGradient(x + 2, y + 4, x + size - 2, y + size - 4);
-                        chestGrad.addColorStop(0, '#92400e');
-                        chestGrad.addColorStop(0.2, '#d97706');
-                        chestGrad.addColorStop(0.5, '#b45309');
-                        chestGrad.addColorStop(0.85, '#78350f');
-                        chestGrad.addColorStop(1, '#3b1704');
-                        ctx.fillStyle = chestGrad;
-                        ctx.fillRect(x + 2.5, y + 5, size - 5, size - 9);
-
-                        // 3. 3D Top Lid Bevel Rim with Golden Anodized Sheen
-                        const lidGrad = ctx.createLinearGradient(x + 2, y + 4, x + size - 2, y + 8);
-                        lidGrad.addColorStop(0, '#fef08a');
-                        lidGrad.addColorStop(0.5, '#f59e0b');
-                        lidGrad.addColorStop(1, '#b45309');
-                        ctx.fillStyle = lidGrad;
-                        ctx.fillRect(x + 2.5, y + 5, size - 5, 4);
-
-                        // Outer reinforced gold trim
+                        // Titanium/Gold High-Tech Vault Body
+                        const vaultGrad = ctx.createLinearGradient(x + 2, y + 4, x + size - 2, y + size - 4);
+                        vaultGrad.addColorStop(0, '#f59e0b');
+                        vaultGrad.addColorStop(0.3, '#d97706');
+                        vaultGrad.addColorStop(0.6, '#92400e');
+                        vaultGrad.addColorStop(1, '#451a03');
+                        ctx.fillStyle = vaultGrad;
+                        ctx.shadowColor = '#000';
+                        ctx.shadowBlur = 4;
+                        ctx.fillRect(x + 4, y + 6, size - 8, size - 12);
+                        
+                        // Cyber-Line Glowing Trim
+                        ctx.shadowBlur = 0;
                         ctx.strokeStyle = '#fef08a';
-                        ctx.lineWidth = 1.4;
-                        ctx.strokeRect(x + 2.5, y + 5, size - 5, size - 9);
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(x + 4, y + 6, size - 8, size - 12);
 
-                        // 4. Heavy Steel Corner Clamps with Titanium Hex Bolts
-                        const clampOffsets = [
-                            [3.5, 6], [size - 7.5, 6], [3.5, size - 8], [size - 7.5, size - 8]
-                        ];
+                        // Top Lid Bevel with Intense Sheen
+                        const lidGrad = ctx.createLinearGradient(x + 4, y + 6, x + 4, y + 12);
+                        lidGrad.addColorStop(0, '#fef08a');
+                        lidGrad.addColorStop(1, '#d97706');
+                        ctx.fillStyle = lidGrad;
+                        ctx.fillRect(x + 4, y + 6, size - 8, 5);
+
+                        // Heavy Corner Clamps
+                        const clampOffsets = [[5, 7], [size - 8, 7], [5, size - 9], [size - 8, size - 9]];
                         clampOffsets.forEach(([bx, by]) => {
-                            ctx.fillStyle = '#1e293b';
-                            ctx.fillRect(x + bx - 1, y + by - 1, 5, 5);
-                            ctx.fillStyle = '#fde68a';
-                            ctx.fillRect(x + bx, y + by, 3, 3);
-                            ctx.fillStyle = '#ffffff';
-                            ctx.fillRect(x + bx, y + by, 1, 1);
+                            ctx.fillStyle = '#0f172a';
+                            ctx.fillRect(x + bx - 1, y + by - 1, 4, 4);
+                            ctx.fillStyle = '#38bdf8';
+                            ctx.fillRect(x + bx, y + by, 2, 2);
                         });
 
-                        // 5. Center Biometric Vault Lock Mechanism
+                        // Central Holographic Lock Interface
                         ctx.fillStyle = '#0f172a';
                         ctx.beginPath();
-                        ctx.arc(cx, cy + 1, size * 0.20, 0, Math.PI * 2);
+                        ctx.arc(cx, cy + 2, size * 0.22, 0, Math.PI * 2);
                         ctx.fill();
-                        ctx.strokeStyle = '#f59e0b';
-                        ctx.lineWidth = 1.4;
+                        
+                        // Additive Glowing Scanner
+                        ctx.globalCompositeOperation = 'lighter';
+                        const scanPulse = 0.5 + Math.sin(this.animTick * 0.1) * 0.5;
+                        ctx.strokeStyle = `rgba(56, 189, 248, ${scanPulse})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy + 2, size * 0.22, 0, Math.PI * 2);
                         ctx.stroke();
 
-                        // Rotating lock reticle ticks
+                        // Rotating Tumbler UI
                         ctx.save();
-                        ctx.translate(cx, cy + 1);
-                        ctx.rotate(this.animTick * 0.03);
-                        ctx.strokeStyle = 'rgba(254, 240, 138, 0.6)';
-                        ctx.lineWidth = 1.0;
-                        for (let a = 0; a < 4; a++) {
-                            ctx.rotate(Math.PI / 2);
-                            ctx.beginPath();
-                            ctx.moveTo(size * 0.12, 0); ctx.lineTo(size * 0.18, 0);
-                            ctx.stroke();
-                        }
+                        ctx.translate(cx, cy + 2);
+                        ctx.rotate(this.animTick * 0.05);
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size * 0.12, 0, Math.PI * 1.5);
+                        ctx.stroke();
+                        
+                        ctx.rotate(-this.animTick * 0.1);
+                        ctx.strokeStyle = '#0ea5e9';
+                        ctx.beginPath();
+                        ctx.moveTo(size * 0.15, 0); ctx.lineTo(size * 0.22, 0);
+                        ctx.moveTo(-size * 0.15, 0); ctx.lineTo(-size * 0.22, 0);
+                        ctx.stroke();
                         ctx.restore();
 
-                        // Sweeping Red Laser Security Scanner Bar
-                        const scanX = cx + Math.sin(this.animTick * 0.08) * (size * 0.22);
-                        ctx.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+                        // Sweeping Biometric Laser Scanner
+                        const scanY = cy + 2 + Math.sin(this.animTick * 0.12) * (size * 0.2);
+                        ctx.strokeStyle = '#f43f5e';
                         ctx.shadowColor = '#f43f5e';
-                        ctx.shadowBlur = 8;
-                        ctx.lineWidth = 1.8;
+                        ctx.shadowBlur = 10;
+                        ctx.lineWidth = 1.5;
                         ctx.beginPath();
-                        ctx.moveTo(scanX, cy - size * 0.14 + 1);
-                        ctx.lineTo(scanX, cy + size * 0.14 + 1);
+                        ctx.moveTo(cx - size * 0.2, scanY);
+                        ctx.lineTo(cx + size * 0.2, scanY);
                         ctx.stroke();
-
-                        // Central Gold Lock Tumbler Core
-                        ctx.fillStyle = '#f59e0b';
-                        ctx.beginPath();
-                        ctx.arc(cx, cy + 1, size * 0.07, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(cx - 1, cy, 2, 2);
-
-                        // Dual Status Indicator Lights (Left Amber, Right Red Lock)
-                        ctx.shadowBlur = 4;
-                        ctx.shadowColor = '#f59e0b';
-                        ctx.fillStyle = '#f59e0b';
-                        ctx.fillRect(x + 5, cy + 1, 2, 2);
-
-                        const redPulse = Math.sin(this.animTick * 0.15) > 0.3;
-                        ctx.shadowColor = '#ef4444';
-                        ctx.fillStyle = redPulse ? '#ef4444' : '#7f1d1d';
-                        ctx.fillRect(x + size - 7, cy + 1, 2, 2);
 
                         ctx.restore();
                         break;
@@ -14354,82 +14507,74 @@
                         ctx.fillRect(x, y, size, size);
                         ctx.save();
 
-                        // 1. Open Vault Body & Retracted 3D Lid Hinge
-                        ctx.fillStyle = 'rgba(2, 6, 18, 0.85)';
+                        // Dark Ground Shadow
+                        ctx.fillStyle = 'rgba(2, 6, 18, 0.9)';
                         ctx.beginPath();
-                        ctx.ellipse(cx, y + size * 0.85, size * 0.42, size * 0.12, 0, 0, Math.PI * 2);
+                        ctx.ellipse(cx, y + size * 0.85, size * 0.45, size * 0.15, 0, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // Retracted Vault Lid (Pushed back in perspective)
-                        const lidGrad = ctx.createLinearGradient(x + 2, y + 1, x + size - 2, y + 5);
-                        lidGrad.addColorStop(0, '#78350f');
-                        lidGrad.addColorStop(0.5, '#d97706');
-                        lidGrad.addColorStop(1, '#451a03');
-                        ctx.fillStyle = lidGrad;
-                        ctx.fillRect(x + 3, y + 2, size - 6, 4);
+                        // Retracted Vault Hinge
+                        ctx.fillStyle = '#451a03';
+                        ctx.fillRect(x + 4, y + 3, size - 8, 4);
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillRect(x + 6, y + 4, 3, 3);
+                        ctx.fillRect(x + size - 9, y + 4, 3, 3);
 
-                        // Chrome Hinge Brackets
-                        ctx.fillStyle = '#cbd5e1';
-                        ctx.fillRect(x + 5, y + 4, 3, 3);
-                        ctx.fillRect(x + size - 8, y + 4, 3, 3);
+                        // Open Vault Cavity (High Tech Interior)
+                        ctx.fillStyle = '#020617';
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.lineWidth = 1.5;
+                        ctx.fillRect(x + 4, y + 7, size - 8, size - 13);
+                        ctx.strokeRect(x + 4, y + 7, size - 8, size - 13);
 
-                        // Open Vault Body Cavity (Dark High-Tech Interior)
-                        const cavGrad = ctx.createLinearGradient(x + 2, y + 6, x + 2, y + size - 3);
-                        cavGrad.addColorStop(0, '#090d16');
-                        cavGrad.addColorStop(1, '#020408');
-                        ctx.fillStyle = cavGrad;
-                        ctx.fillRect(x + 2.5, y + 6, size - 5, size - 9);
-
-                        ctx.strokeStyle = '#00f0ff';
-                        ctx.lineWidth = 1.4;
-                        ctx.strokeRect(x + 2.5, y + 6, size - 5, size - 9);
-
-                        // 2. Ascending Volumetric Golden-Cyan Light Pillar
-                        const beamGrad = ctx.createLinearGradient(x, y + size, x, y);
-                        beamGrad.addColorStop(0, 'rgba(0, 240, 255, 0.5)');
-                        beamGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.25)');
-                        beamGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+                        // Glorious Additive Glowing Ascension Pillar
+                        ctx.globalCompositeOperation = 'lighter';
+                        const beamGrad = ctx.createLinearGradient(x, y + size, x, y - size * 0.5);
+                        beamGrad.addColorStop(0, 'rgba(56, 189, 248, 0.6)');
+                        beamGrad.addColorStop(0.5, 'rgba(125, 211, 252, 0.3)');
+                        beamGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
                         ctx.fillStyle = beamGrad;
-                        ctx.fillRect(x + size * 0.12, y, size * 0.76, size);
+                        ctx.fillRect(x + size * 0.15, y - size * 0.2, size * 0.7, size * 1.2);
 
-                        // 3. Levitating Radiant Quantum Pearl / Great Power Crystal
-                        const orbY = y + size * 0.42 + Math.sin(this.animTick * 0.08) * 3;
-                        ctx.shadowColor = '#00f0ff';
-                        ctx.shadowBlur = 24;
-
-                        // Rotating Energy Aura
+                        // Levitating Quantum Pearl
+                        const orbY = y + size * 0.4 + Math.sin(this.animTick * 0.08) * (size * 0.05);
+                        
+                        // Energy Shockwave Rings
                         ctx.save();
                         ctx.translate(cx, orbY);
-                        ctx.rotate(this.animTick * 0.05);
-                        ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
-                        ctx.lineWidth = 1.4;
+                        ctx.rotate(this.animTick * 0.04);
+                        ctx.strokeStyle = 'rgba(125, 211, 252, 0.8)';
+                        ctx.lineWidth = 1.5;
                         ctx.beginPath();
-                        ctx.arc(0, 0, size * 0.26, 0, Math.PI * 1.5);
+                        ctx.ellipse(0, 0, size * 0.35, size * 0.12, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        ctx.rotate(-this.animTick * 0.07);
+                        ctx.strokeStyle = 'rgba(253, 230, 138, 0.7)';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, size * 0.25, size * 0.08, 0, 0, Math.PI * 2);
                         ctx.stroke();
                         ctx.restore();
 
-                        // Radiant Pearl Body
-                        const pearlGrad = ctx.createRadialGradient(cx - 3, orbY - 3, 2, cx, orbY, size * 0.22);
+                        // Radiant Core Orb
+                        const pearlGrad = ctx.createRadialGradient(cx - 2, orbY - 2, 0, cx, orbY, size * 0.2);
                         pearlGrad.addColorStop(0, '#ffffff');
-                        pearlGrad.addColorStop(0.4, '#cffafe');
-                        pearlGrad.addColorStop(0.8, '#38bdf8');
+                        pearlGrad.addColorStop(0.3, '#7dd3fc');
                         pearlGrad.addColorStop(1, '#0284c7');
+                        
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.shadowColor = '#38bdf8';
+                        ctx.shadowBlur = 15;
                         ctx.fillStyle = pearlGrad;
                         ctx.beginPath();
-                        ctx.arc(cx, orbY, size * 0.22, 0, Math.PI * 2);
+                        ctx.arc(cx, orbY, size * 0.2, 0, Math.PI * 2);
                         ctx.fill();
-
-                        // Brilliant Diamond Glint
+                        
+                        // Specular Glint
                         ctx.fillStyle = '#ffffff';
+                        ctx.shadowBlur = 0;
                         ctx.beginPath();
-                        ctx.arc(cx - size * 0.07, orbY - size * 0.07, size * 0.08, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Floating Sparkle Particles
-                        const sparkY = (this.animTick * 1.2) % (size * 0.6);
-                        ctx.fillStyle = '#fef08a';
-                        ctx.beginPath();
-                        ctx.arc(cx + Math.sin(this.animTick * 0.1) * 6, orbY - sparkY, 1.4, 0, Math.PI * 2);
+                        ctx.arc(cx - 2, orbY - 3, 2.5, 0, Math.PI * 2);
                         ctx.fill();
 
                         ctx.restore();
@@ -14441,6 +14586,12 @@
                         ctx.fillRect(x, y, size, size);
                         ctx.save();
 
+                        // Advanced Ambient Shadow
+                        ctx.fillStyle = 'rgba(2, 6, 18, 0.9)';
+                        ctx.beginPath();
+                        ctx.ellipse(cx, y + size * 0.85, size * 0.45, size * 0.15, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
                         // 1. Heavy Pneumatic Reinforced Bulkhead Frame
                         const doorGrad = ctx.createLinearGradient(x + 2, y + 2, x + size - 2, y + size - 2);
                         doorGrad.addColorStop(0, '#312e81');
@@ -14450,18 +14601,22 @@
                         ctx.fillStyle = doorGrad;
                         ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
 
-                        // Outer frame bevel
+                        // Outer frame bevel and glow
+                        ctx.shadowColor = '#4338ca';
+                        ctx.shadowBlur = 10;
                         ctx.strokeStyle = '#818cf8';
                         ctx.lineWidth = 1.6;
                         ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+                        ctx.shadowBlur = 0;
 
-                        // 2. High-Contrast Hazard Caution Chevron Stripes
+                        // 2. High-Contrast Hazard Caution Chevron Stripes with additive blend
                         ctx.save();
                         ctx.rect(x + 4, y + 4, size - 8, size - 8);
                         ctx.clip();
-                        ctx.strokeStyle = 'rgba(244, 63, 94, 0.55)';
-                        ctx.lineWidth = 2.8;
-                        for (let s = -size; s < size * 2; s += 8) {
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+                        ctx.lineWidth = 3.5;
+                        for (let s = -size; s < size * 2; s += 10) {
                             ctx.beginPath();
                             ctx.moveTo(x + s, y + size);
                             ctx.lineTo(x + s + size, y);
@@ -14471,27 +14626,40 @@
 
                         // 3. Interlocking Carbon-Steel Hydraulic Teeth (Center Joint)
                         ctx.strokeStyle = '#4338ca';
-                        ctx.lineWidth = 1.4;
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.moveTo(cx, y + 4);
-                        ctx.lineTo(cx - 3, cy - 4);
-                        ctx.lineTo(cx + 3, cy + 4);
+                        ctx.lineTo(cx - 4, cy - 6);
+                        ctx.lineTo(cx + 4, cy + 6);
                         ctx.lineTo(cx, y + size - 4);
                         ctx.stroke();
 
                         // 4. Center Hydraulic Locking Piston Clamp with Pulsing Status Core
-                        const dPulse = 0.8 + Math.sin(this.animTick * 0.15) * 0.2;
-                        ctx.shadowColor = '#f43f5e';
-                        ctx.shadowBlur = 16 * dPulse;
+                        const dPulse = 0.5 + Math.sin(this.animTick * 0.1) * 0.5;
+                        
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(cx - 10, cy - 6, 20, 12);
+                        ctx.strokeStyle = '#818cf8';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(cx - 10, cy - 6, 20, 12);
+
+                        ctx.globalCompositeOperation = 'lighter';
+                        const lockGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 15);
+                        lockGrad.addColorStop(0, `rgba(244, 63, 94, ${dPulse})`);
+                        lockGrad.addColorStop(1, 'rgba(159, 18, 57, 0)');
+                        ctx.fillStyle = lockGrad;
+                        ctx.fillRect(cx - 15, cy - 10, 30, 20);
+
+                        ctx.globalCompositeOperation = 'source-over';
                         ctx.fillStyle = '#f43f5e';
-                        ctx.fillRect(cx - 8, cy - 3.5, 16, 7);
+                        ctx.fillRect(cx - 6, cy - 2, 12, 4);
                         ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(cx - 2.5, cy - 1.5, 5, 3);
+                        ctx.fillRect(cx - 2, cy - 1, 4, 2);
 
                         // Pneumatic Side Cylinders
-                        ctx.fillStyle = '#64748b';
-                        ctx.fillRect(x + 3, cy - 4, 3, 8);
-                        ctx.fillRect(x + size - 6, cy - 4, 3, 8);
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillRect(x + 4, cy - 5, 4, 10);
+                        ctx.fillRect(x + size - 8, cy - 5, 4, 10);
 
                         ctx.restore();
                         break;
@@ -14508,45 +14676,71 @@
                         ctx.strokeRect(x + 1.5, y + 1.5, size - 3, size - 3);
 
                         // 2. Swirling Dimensional Hyperspace Vortex (Multi-Speed Particle Rings)
-                        ctx.shadowColor = '#00f0ff';
-                        ctx.shadowBlur = 24;
-                        ctx.fillStyle = '#00f0ff';
+                        ctx.globalCompositeOperation = 'lighter';
+                        
+                        // Deep Space Core Glow
+                        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.45);
+                        coreGrad.addColorStop(0, '#ffffff');
+                        coreGrad.addColorStop(0.2, '#c084fc');
+                        coreGrad.addColorStop(0.5, '#7e22ce');
+                        coreGrad.addColorStop(1, 'rgba(88, 28, 135, 0)');
+                        ctx.fillStyle = coreGrad;
                         ctx.beginPath();
-                        ctx.arc(cx, cy, size * 0.44, 0, Math.PI * 2);
+                        ctx.arc(cx, cy, size * 0.45, 0, Math.PI * 2);
                         ctx.fill();
 
                         ctx.save();
                         ctx.translate(cx, cy);
-                        // Outer Violet Accretion Disk
-                        ctx.rotate(this.animTick * 0.06);
-                        ctx.strokeStyle = '#7928ca';
+                        
+                        // Outer Violet Accretion Disk (Particles)
+                        ctx.rotate(this.animTick * 0.04);
+                        ctx.strokeStyle = 'rgba(168, 85, 247, 0.8)';
                         ctx.lineWidth = 3;
+                        ctx.setLineDash([8, 6, 2, 6]);
                         ctx.beginPath();
-                        ctx.arc(0, 0, size * 0.34, 0, Math.PI * 1.6);
+                        ctx.arc(0, 0, size * 0.35, 0, Math.PI * 2);
                         ctx.stroke();
 
                         // Mid Magenta Swirl Ring
-                        ctx.rotate(-this.animTick * 0.12);
-                        ctx.strokeStyle = '#ff007f';
-                        ctx.lineWidth = 2.2;
+                        ctx.rotate(-this.animTick * 0.08);
+                        ctx.strokeStyle = 'rgba(236, 72, 153, 0.9)';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([12, 8, 4, 10]);
                         ctx.beginPath();
-                        ctx.arc(0, 0, size * 0.24, Math.PI * 0.5, Math.PI * 2.2);
+                        ctx.arc(0, 0, size * 0.25, 0, Math.PI * 2);
                         ctx.stroke();
 
                         // Inner Brilliant Pure White Event Horizon
-                        ctx.rotate(this.animTick * 0.18);
+                        ctx.rotate(this.animTick * 0.12);
                         ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 2;
+                        ctx.lineWidth = 2.5;
+                        ctx.setLineDash([4, 4]);
                         ctx.beginPath();
-                        ctx.arc(0, 0, size * 0.14, 0, Math.PI * 2);
+                        ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2);
                         ctx.stroke();
+                        ctx.setLineDash([]);
                         ctx.restore();
 
-                        // 3. Glowing White Singularity Core
-                        const corePulse = Math.sin(this.animTick * 0.15) * 2;
+                        // Floating Void Sparks being pulled into the center
+                        const numSparks = 4;
+                        ctx.fillStyle = '#e879f9';
+                        for (let i = 0; i < numSparks; i++) {
+                            const angle = this.animTick * 0.05 + (i * Math.PI * 2 / numSparks);
+                            const dist = size * 0.4 - ((this.animTick * 0.5 + i * 10) % (size * 0.4));
+                            const sx = cx + Math.cos(angle) * dist;
+                            const sy = cy + Math.sin(angle) * dist;
+                            ctx.beginPath();
+                            ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // 3. Glowing White Singularity Center
+                        const corePulse = Math.sin(this.animTick * 0.2) * 1.5;
                         ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = '#ffffff';
+                        ctx.shadowBlur = 10;
                         ctx.beginPath();
-                        ctx.arc(cx, cy, size * 0.12 + corePulse, 0, Math.PI * 2);
+                        ctx.arc(cx, cy, size * 0.08 + corePulse, 0, Math.PI * 2);
                         ctx.fill();
 
                         ctx.restore();
@@ -14769,79 +14963,75 @@
                     }
 
                     case TILE_CRACKED_WALL: {
+                        ctx.save();
+                        // Dark base
                         ctx.fillStyle = '#060a14';
                         ctx.fillRect(x, y, size, size);
-                        ctx.save();
 
-                        // 1. Reinforced Ballistic Composite Masonry Base
+                        // 1. Shattered High-Tech Body
                         const cWallGrad = ctx.createLinearGradient(x, y, x + size, y + size);
-                        cWallGrad.addColorStop(0, '#334155');
-                        cWallGrad.addColorStop(0.3, '#1e293b');
-                        cWallGrad.addColorStop(0.7, '#0f172a');
+                        cWallGrad.addColorStop(0, '#1e293b');
+                        cWallGrad.addColorStop(0.5, '#0f172a');
                         cWallGrad.addColorStop(1, '#020617');
                         ctx.fillStyle = cWallGrad;
-                        ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
-
-                        // Textured Concrete/Alloy Aggregate Flecks
-                        ctx.fillStyle = 'rgba(148, 163, 184, 0.22)';
-                        ctx.fillRect(x + 4, y + 5, 2, 2);
-                        ctx.fillRect(x + size - 7, y + 8, 1.5, 1.5);
-                        ctx.fillRect(x + 6, y + size - 7, 2, 2);
-                        ctx.fillRect(x + size - 9, y + size - 9, 1.5, 1.5);
-
-                        // Chamfered Bevel Frame
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                        ctx.lineWidth = 1.2;
-                        ctx.strokeRect(x + 1.5, y + 1.5, size - 3, size - 3);
-
-                        // 2. High-Tensile Steel Rebar Strands (Exposed inside fissure gap)
-                        ctx.strokeStyle = '#94a3b8';
-                        ctx.lineWidth = 1.6;
+                        ctx.fillRect(x, y, size, size);
+                        
+                        // 2. Beveled shards
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
                         ctx.beginPath();
-                        // Horizontal Rebar Rod
-                        ctx.moveTo(x + 6, cy); ctx.lineTo(x + size - 6, cy);
-                        // Vertical Rebar Rod
-                        ctx.moveTo(cx, y + 6); ctx.lineTo(cx, y + size - 6);
-                        ctx.stroke();
-
-                        // 3. Deep Jagged Seismic Stress Fractures & Overheating Plasma Seepage
-                        const cPulse = 10 + Math.sin(this.animTick * 0.14) * 6;
-                        ctx.strokeStyle = '#00f0ff';
-                        ctx.shadowColor = '#00f0ff';
-                        ctx.shadowBlur = cPulse;
-                        ctx.lineWidth = 2.4;
+                        ctx.moveTo(x, y); ctx.lineTo(x + size * 0.4, y); ctx.lineTo(x + size * 0.2, y + size * 0.4);
+                        ctx.fill();
+                        
                         ctx.beginPath();
-                        ctx.moveTo(x + 2, y + 6);
-                        ctx.lineTo(cx - 3, cy - 4);
-                        ctx.lineTo(cx + 5, cy + 3);
-                        ctx.lineTo(x + size - 3, y + size - 5);
-                        ctx.moveTo(cx - 3, cy - 4);
-                        ctx.lineTo(x + size - 4, y + 7);
-                        ctx.moveTo(cx + 5, cy + 3);
-                        ctx.lineTo(x + 4, y + size - 6);
-                        ctx.stroke();
-
-                        // 4. Superheated White Fissure Core
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 1.0;
-                        ctx.beginPath();
-                        ctx.moveTo(x + 4, y + 7);
-                        ctx.lineTo(cx - 3, cy - 4);
-                        ctx.lineTo(cx + 5, cy + 3);
-                        ctx.lineTo(x + size - 5, y + size - 7);
-                        ctx.stroke();
-
-                        // 5. Impact Epicenter Plasma Burst Nodes
-                        ctx.fillStyle = '#ffffff';
-                        ctx.beginPath();
-                        ctx.arc(cx - 3, cy - 4, 3, 0, Math.PI * 2);
-                        ctx.arc(cx + 5, cy + 3, 2.5, 0, Math.PI * 2);
+                        ctx.moveTo(x + size, y); ctx.lineTo(x + size * 0.7, y + size * 0.5); ctx.lineTo(x + size, y + size * 0.4);
                         ctx.fill();
 
-                        // Crumbling Masonry Dust Chips
-                        ctx.fillStyle = '#64748b';
-                        ctx.fillRect(cx - 7, cy + 6, 2, 2);
-                        ctx.fillRect(cx + 8, cy - 7, 2, 2);
+                        // 3. Volatile Additive Energy Seepage
+                        const rPulse = 0.5 + Math.sin(this.animTick * 0.2) * 0.5;
+                        ctx.globalCompositeOperation = 'lighter';
+                        
+                        const seepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
+                        seepGrad.addColorStop(0, `rgba(244, 63, 94, ${0.5 + rPulse * 0.5})`);
+                        seepGrad.addColorStop(0.5, `rgba(159, 18, 57, ${0.2 + rPulse * 0.2})`);
+                        seepGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                        ctx.fillStyle = seepGrad;
+                        ctx.fillRect(x, y, size, size);
+
+                        // 4. Overheated Plasma Fissures
+                        ctx.strokeStyle = `rgba(255, 100, 150, ${0.8 + rPulse * 0.2})`;
+                        ctx.lineWidth = 3;
+                        ctx.lineJoin = 'round';
+                        ctx.shadowColor = '#f43f5e';
+                        ctx.shadowBlur = 15;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(x + size * 0.1, y + size * 0.9);
+                        ctx.lineTo(cx - size * 0.1, cy + size * 0.1);
+                        ctx.lineTo(cx + size * 0.15, cy - size * 0.15);
+                        ctx.lineTo(x + size * 0.9, y + size * 0.1);
+                        
+                        ctx.moveTo(cx - size * 0.1, cy + size * 0.1);
+                        ctx.lineTo(x + size * 0.2, y + size * 0.1);
+                        
+                        ctx.moveTo(cx + size * 0.15, cy - size * 0.15);
+                        ctx.lineTo(x + size * 0.85, y + size * 0.85);
+                        ctx.stroke();
+
+                        // 5. Incandescent Magma Core Lines
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1.2;
+                        ctx.shadowBlur = 0;
+                        ctx.stroke();
+
+                        // 6. Scattered Energy Embers
+                        for(let i = 0; i < 4; i++) {
+                            const ex = cx + Math.cos(this.animTick * 0.05 + i * 2) * size * 0.3;
+                            const ey = cy + Math.sin(this.animTick * 0.07 + i * 2) * size * 0.3;
+                            ctx.fillStyle = '#fca5a5';
+                            ctx.beginPath();
+                            ctx.arc(ex, ey, 1, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
 
                         ctx.restore();
                         break;
@@ -16141,88 +16331,100 @@
 
                     case BLOCK_ALLOY:
                     default: {
-                        // 1. Brushed Cobalt-Titanium Alloy Crate Body
+                        // 1. High-Tech Anti-Gravity Hover Shadow
+                        ctx.fillStyle = 'rgba(2, 6, 18, 0.9)';
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(x + 2, y + 4, size - 4, size - 4, 6);
+                        else ctx.rect(x + 2, y + 4, size - 4, size - 4);
+                        ctx.fill();
+
+                        // 2. Quantum Glass / Crystal Alloy Body
+                        const bodyPulse = 0.5 + Math.sin(this.animTick * 0.1) * 0.5;
                         const alloyGrad = ctx.createLinearGradient(x, y, x + size, y + size);
-                        alloyGrad.addColorStop(0, '#38bdf8');
-                        alloyGrad.addColorStop(0.25, '#0284c7');
-                        alloyGrad.addColorStop(0.65, '#0369a1');
-                        alloyGrad.addColorStop(1, '#082f49');
+                        alloyGrad.addColorStop(0, '#7dd3fc');
+                        alloyGrad.addColorStop(0.3, '#0284c7');
+                        alloyGrad.addColorStop(0.7, '#0f172a');
+                        alloyGrad.addColorStop(1, '#020617');
+                        
+                        ctx.shadowColor = '#0284c7';
+                        ctx.shadowBlur = 10;
                         ctx.fillStyle = alloyGrad;
                         ctx.beginPath();
-                        if (ctx.roundRect) {
-                            ctx.roundRect(x + 1.5, y + 1.5, size - 3, size - 3, 4);
-                        } else {
-                            ctx.rect(x + 1.5, y + 1.5, size - 3, size - 3);
-                        }
-                        ctx.fill();
-
-                        // 2. Precision CNC Specular Bevel Highlights
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-                        ctx.lineWidth = 1.2;
-                        ctx.beginPath();
-                        ctx.moveTo(x + 2, y + size - 3);
-                        ctx.lineTo(x + 2, y + 2);
-                        ctx.lineTo(x + size - 3, y + 2);
-                        ctx.stroke();
-
-                        ctx.strokeStyle = 'rgba(4, 30, 50, 0.9)';
-                        ctx.lineWidth = 1.2;
-                        ctx.beginPath();
-                        ctx.moveTo(x + size - 2, y + 3);
-                        ctx.lineTo(x + size - 2, y + size - 2);
-                        ctx.lineTo(x + 3, y + size - 2);
-                        ctx.stroke();
-
-                        // 3. Recessed Carbon-Fiber Grip Inset Plate with Hex Pattern
-                        const inPad = size * 0.14;
-                        const inW = size - inPad * 2;
-                        const inGrad = ctx.createLinearGradient(x + inPad, y + inPad, x + size - inPad, y + size - inPad);
-                        inGrad.addColorStop(0, '#0369a1');
-                        inGrad.addColorStop(0.5, '#075985');
-                        inGrad.addColorStop(1, '#082f49');
-                        ctx.fillStyle = inGrad;
-                        ctx.beginPath();
-                        if (ctx.roundRect) {
-                            ctx.roundRect(x + inPad, y + inPad, inW, inW, 2);
-                        } else {
-                            ctx.rect(x + inPad, y + inPad, inW, inW);
-                        }
-                        ctx.fill();
-
-                        // 4. Moving Electric Circuit Traces along Cross Channels
-                        const cPulse = (this.animTick * 0.08) % 1;
-                        ctx.strokeStyle = '#e0f2fe';
-                        ctx.lineWidth = 1.6;
-                        ctx.beginPath();
-                        ctx.moveTo(cx - size * 0.20, cy);
-                        ctx.lineTo(cx + size * 0.20, cy);
-                        ctx.moveTo(cx, cy - size * 0.20);
-                        ctx.lineTo(cx, cy + size * 0.20);
-                        ctx.stroke();
-
-                        // Moving Energy Spark across the cross
-                        const sparkDist = (cPulse - 0.5) * (size * 0.38);
-                        ctx.fillStyle = '#38bdf8';
-                        ctx.shadowColor = '#00f0ff';
-                        ctx.shadowBlur = 8;
-                        ctx.beginPath();
-                        ctx.arc(cx + sparkDist, cy, 1.8, 0, Math.PI * 2);
-                        ctx.arc(cx, cy + sparkDist, 1.8, 0, Math.PI * 2);
+                        if (ctx.roundRect) ctx.roundRect(x + 2, y + 2, size - 4, size - 4, 5);
+                        else ctx.rect(x + 2, y + 2, size - 4, size - 4);
                         ctx.fill();
                         ctx.shadowBlur = 0;
 
-                        // 5. Corner Reinforcement Steel Rivets with Pulsing Status Indicator
-                        const cGlow = Math.sin(this.animTick * 0.1) > 0;
-                        const rivetOffsets = [
-                            [x + 3.5, y + 3.5],
-                            [x + size - 4.5, y + 3.5],
-                            [x + 3.5, y + size - 4.5],
-                            [x + size - 4.5, y + size - 4.5]
-                        ];
+                        // Additive Core Energy Glow
+                        ctx.globalCompositeOperation = 'lighter';
+                        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.6);
+                        coreGrad.addColorStop(0, `rgba(56, 189, 248, ${0.4 + bodyPulse * 0.4})`);
+                        coreGrad.addColorStop(1, 'rgba(2, 132, 199, 0)');
+                        ctx.fillStyle = coreGrad;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, size * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.globalCompositeOperation = 'source-over';
+
+                        // 3. Faceted Glass Bevel Highlights (3D Volume)
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.beginPath();
+                        ctx.moveTo(x + 2, y + 2);
+                        ctx.lineTo(x + size - 2, y + 2);
+                        ctx.lineTo(x + size - 6, y + 6);
+                        ctx.lineTo(x + 6, y + 6);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                        ctx.beginPath();
+                        ctx.moveTo(x + 2, y + 2);
+                        ctx.lineTo(x + 6, y + 6);
+                        ctx.lineTo(x + 6, y + size - 6);
+                        ctx.lineTo(x + 2, y + size - 2);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                        ctx.beginPath();
+                        ctx.moveTo(x + size - 2, y + size - 2);
+                        ctx.lineTo(x + 6, y + size - 2);
+                        ctx.lineTo(x + size - 6, y + size - 6);
+                        ctx.lineTo(x + size - 2, y + size - 6);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // 4. Central Energy Matrix Symbol / Core
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.rotate(this.animTick * 0.02);
+                        
+                        ctx.strokeStyle = '#bae6fd';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.rect(-size * 0.15, -size * 0.15, size * 0.3, size * 0.3);
+                        ctx.stroke();
+
+                        ctx.rotate(-this.animTick * 0.04);
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.beginPath();
+                        ctx.moveTo(-size * 0.2, 0); ctx.lineTo(size * 0.2, 0);
+                        ctx.moveTo(0, -size * 0.2); ctx.lineTo(0, size * 0.2);
+                        ctx.stroke();
+                        
+                        ctx.restore();
+
+                        // 5. Corner Plasma Rivets
+                        const rivetOffsets = [[x + 6, y + 6], [x + size - 6, y + 6], [x + 6, y + size - 6], [x + size - 6, y + size - 6]];
                         rivetOffsets.forEach(([rx, ry]) => {
-                            ctx.fillStyle = cGlow ? '#38bdf8' : '#0284c7';
+                            ctx.fillStyle = '#0ea5e9';
                             ctx.beginPath();
-                            ctx.arc(rx, ry, 1.5, 0, Math.PI * 2);
+                            ctx.arc(rx, ry, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.fillStyle = '#ffffff';
+                            ctx.beginPath();
+                            ctx.arc(rx - 0.5, ry - 0.5, 0.8, 0, Math.PI * 2);
                             ctx.fill();
                         });
                         break;
@@ -21865,6 +22067,9 @@
                     { type: 'tile', id: TILE_WATER, name: 'Water', icon: 'fa-water', color: 'text-blue-400', desc: 'Water hazard passable via egg raft' },
                     { type: 'tile', id: TILE_LAVA, name: 'Molten Magma', icon: 'fa-fire-flame-curved', color: 'text-orange-500', desc: 'Deadly magma pool; raftable with egg & blocks' },
                     { type: 'tile', id: TILE_GRASS, name: 'Meadow Grass', icon: 'fa-seedling', color: 'text-emerald-300', desc: 'Organic lush meadow turf' },
+                    { type: 'tile', id: TILE_DIRT, name: 'Dirt Path', icon: 'fa-shoe-prints', color: 'text-yellow-700', desc: 'Worn dirt pathway' },
+                    { type: 'tile', id: TILE_WOOD_FLOOR, name: 'Wood Floor', icon: 'fa-layer-group', color: 'text-amber-700', desc: 'Wooden plank flooring' },
+                    { type: 'tile', id: TILE_GRAVEL, name: 'Gravel', icon: 'fa-braille', color: 'text-slate-400', desc: 'Crushed stone path' },
                     { type: 'tile', id: TILE_HIGH_GRASS, name: 'Tall Reeds / Cover', icon: 'fa-feather-pointed', color: 'text-emerald-400', desc: 'Dense tall foliage; walkable stealth cover where enemies can spawn' },
                     { type: 'tile', id: TILE_SLIME, name: 'Nanite Sludge', icon: 'fa-biohazard', color: 'text-lime-400', desc: 'Viscous nanite mud; walkable terrain where enemies can spawn' },
                     { type: 'tile', id: TILE_SAND, name: 'Dune Sand', icon: 'fa-mountain-sun', color: 'text-amber-300', desc: 'Warm wind-swept sand dunes' },

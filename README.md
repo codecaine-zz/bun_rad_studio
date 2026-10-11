@@ -21,7 +21,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 > bun run cli:launcher --list
 > bun run cli:launcher --search sqlite
 > ```
-> *Auto-detects and launches all **34 Studio Applications**, **75 CLI Utilities**, and **25 Showcase Demos** with real-time process monitoring, 1-click execution, and native Terminal client spawning!*
+> *Auto-detects and launches all **39 Studio Applications**, **75 CLI Utilities**, and **25 Showcase Demos** with real-time process monitoring, 1-click execution, and native Terminal client spawning!*
 
 ### ⚡ Launcher Studio Pro (`bun run app:launcher`)
 
@@ -459,9 +459,9 @@ bun run demo:simplegui
 <a id="26-enterprise-production-workstations--utilities"></a>
 <a id="enterprise-applications"></a>
 
-## ⚡ 26 Enterprise Production Workstations & Utilities
+## ⚡ 39 Enterprise Production Workstations & Utilities
 
-In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **26 production-grade developer desktop workstations** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
+In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **39 production-grade developer desktop workstations and arcade games** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
 
 |   #    | Application                        | User Guide                                                   | Focus & Capabilities                                                                                                        | Launch Command          |
 | :----: | :--------------------------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :---------------------- |
@@ -491,15 +491,20 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 | **24** | **IpInfo Forensics Studio Pro**    | [User Guide](docs/userguides/24_ipinfo_studio.md)            | IP address geolocation, ASN details, CIDR subnet calculator, and local network interfaces.                                  | `bun run app:ipinfo`    |
 | **25** | **Subfinder Discovery Studio Pro** | [User Guide](docs/userguides/25_subfinder_studio.md)         | Passive multi-source subdomain discovery with active DNS verification and HTTP/HTTPS probing.                               | `bun run app:subfinder` |
 | **26** | **Doggo DNS Studio Pro**           | [User Guide](docs/userguides/26_doggo_studio.md)             | Modern DNS client for humans with standard record queries, custom resolvers, DNS-over-HTTPS (DoH), and reverse PTR lookups. | `bun run app:doggo`     |
-| **27** | **Universal Calculator Studio Pro** | [User Guide](docs/userguides/27_calculator_studio.md)         | Apple-grade scientific calculator, 17-unit converter, time-series charts, 64-bit programmer lab & calculus studio.           | `bun run app:calculator`|
+| **27** | **Universal Calculator Studio Pro** | [User Guide](docs/userguides/27_calculator_studio.md)         | Apple-grade scientific calculator, 17-unit converter, time-series charts, 64-bit programmer lab & **6-engine STEM IntuitionLab**. | `bun run app:calculator`|
 | **28** | **Dr. Codecaine Arcade**           | [User Guide](docs/userguides/28_dr_codecaine_arcade.md)      | Triple-A remastered capsule puzzle game with polyphonic 8-bit synthesizers, expressive pathogen AI & touch/keyboard controls. | `bun run app:dr_codecaine`|
-| **29** | **Interval Timer Suite**           | [User Guide](docs/userguides/29_interval_timer_suite.md)      | High-performance interval timer with Keith Baar isometric tendon training protocols, animated guides & audio engine.       | `bun run app:interval_timer`|
-| **30** | **Adventures of Lolo Remaster**    | [User Guide](docs/userguides/30_lolo_remaster.md)             | Cyberpunk remastered Adventures of Lolo with procedural room puzzles, retro audio engine & integrated field manual.          | `bun run app:lolo`      |
+| **29** | **Interval Timer Suite**           | [User Guide](docs/userguides/29_interval_timer_suite.md)      | High-performance interval timer with Keith Baar isometric tendon training protocols, animated guides & **Codecaine Music Deck**. | `bun run app:interval_timer`|
+| **30** | **Adventures of Lolo Remaster**    | [User Guide](docs/userguides/30_lolo_remaster.md)             | Cyberpunk remastered Adventures of Lolo with 100 room puzzles, retro audio engine & integrated field manual.                | `bun run app:lolo`      |
 | **31** | **Rodent's Revenge Deluxe**        | [User Guide](docs/userguides/31_rodents_revenge_deluxe.md)    | Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping, high-DPI canvas & power-ups.                    | `bun run app:rodents_revenge`|
 | **32** | **Neon Word Search Labyrinth**     | [User Guide](docs/userguides/32_word_search_labyrinth.md)     | AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries.                   | `bun run app:word_search`|
 | **33** | **World Time Zones Studio Pro**    | [User Guide](docs/userguides/33_world_time_zones_studio.md)   | Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization.                  | `bun run app:world_time_zones`|
 | **34** | **Cyberpunk Pac-Man Arcade**       | [User Guide](docs/userguides/34_pacman_arcade.md)             | Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects.               | `bun run app:pacman`    |
-| **35** | **RAD Utilities Studio Pro**       | [Feature Docs](src/features/rad/README.md)                   | 44 high-velocity development modules for Rapid Application Development with live playground, recipes & benchmark suite.      | `bun run app:rad`       |
+| **35** | **Codecaine Bros. Arcade**         | [User Guide](docs/userguides/35_codecaine_bros_arcade.md)     | 1983 Mario Bros. sewer arcade remaster with high-speed bumping physics, interactive POW block & 2-player mode.              | `bun run app:codecaine_bros` |
+| **36** | **Connect 4 Champion**             | [User Guide](docs/userguides/36_connect4_studio.md)          | Tactical 2-player & Minimax AI board game with column hover preview, falling disc physics & particle celebrations.          | `bun run app:connect4`  |
+| **37** | **Maze Generator & Solver**        | [User Guide](docs/userguides/37_maze_generator_studio.md)     | Procedural maze generation (Backtracker, Prim, Kruskal, Wilson) & real-time A*/Dijkstra visual solvers.                    | `bun run app:maze`      |
+| **38** | **Cyber Pong Neo**                 | [User Guide](docs/userguides/38_pong_arcade.md)              | High-speed kinetic arcade tennis with responsive paddle spin deflection physics & 3-tier AI opponents.                      | `bun run app:pong`      |
+| **39** | **Tic Tac Toe Master**             | [User Guide](docs/userguides/39_tictactoe_studio.md)         | Unbeatable Minimax AI mode, casual mode & local 2-player battle with scoreboard and glowing neon visuals.                   | `bun run app:tictactoe` |
+| **40** | **RAD Utilities Studio Pro**       | [Feature Docs](src/features/rad/README.md)                   | 44 high-velocity development modules for Rapid Application Development with live playground, recipes & benchmark suite.      | `bun run app:rad`       |
 
 <a id="application-visual-gallery--screenshots"></a>
 
@@ -565,6 +570,11 @@ Explore live desktop and responsive viewport previews for all 27 enterprise prod
 | **Neon Word Search Labyrinth**<br>[User Guide](docs/userguides/32_word_search_labyrinth.md)<br>`bun run app:word_search` | ![Neon Word Search Desktop](screenshots/apps/word_search_desktop.png) | ![Neon Word Search Responsive](screenshots/apps/word_search_responsive.png) |
 | **World Time Zones Studio Pro**<br>[User Guide](docs/userguides/33_world_time_zones_studio.md)<br>`bun run app:world_time_zones` | ![World Time Zones Desktop](screenshots/apps/world_time_zones_desktop.png) | ![World Time Zones Responsive](screenshots/apps/world_time_zones_responsive.png) |
 | **Cyberpunk Pac-Man Arcade**<br>[User Guide](docs/userguides/34_pacman_arcade.md)<br>`bun run app:pacman` | ![Cyberpunk Pac-Man Desktop](screenshots/apps/pacman_desktop.png) | ![Cyberpunk Pac-Man Responsive](screenshots/apps/pacman_responsive.png) |
+| **Codecaine Bros. Arcade**<br>[User Guide](docs/userguides/35_codecaine_bros_arcade.md)<br>`bun run app:codecaine_bros` | ![Codecaine Bros Desktop](screenshots/apps/codecaine_bros_desktop.png) | ![Codecaine Bros Responsive](screenshots/apps/codecaine_bros_responsive.png) |
+| **Connect 4 Champion**<br>[User Guide](docs/userguides/36_connect4_studio.md)<br>`bun run app:connect4` | ![Connect 4 Desktop](screenshots/apps/connect4_desktop.png) | ![Connect 4 Responsive](screenshots/apps/connect4_responsive.png) |
+| **Maze Generator & Solver**<br>[User Guide](docs/userguides/37_maze_generator_studio.md)<br>`bun run app:maze` | ![Maze Generator Desktop](screenshots/apps/maze_generator_desktop.png) | ![Maze Generator Responsive](screenshots/apps/maze_generator_responsive.png) |
+| **Cyber Pong Neo**<br>[User Guide](docs/userguides/38_pong_arcade.md)<br>`bun run app:pong` | ![Cyber Pong Desktop](screenshots/apps/pong_desktop.png) | ![Cyber Pong Responsive](screenshots/apps/pong_responsive.png) |
+| **Tic Tac Toe Master**<br>[User Guide](docs/userguides/39_tictactoe_studio.md)<br>`bun run app:tictactoe` | ![Tic Tac Toe Desktop](screenshots/apps/tictactoe_desktop.png) | ![Tic Tac Toe Responsive](screenshots/apps/tictactoe_responsive.png) |
 
 ---
 

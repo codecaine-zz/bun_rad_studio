@@ -19,7 +19,7 @@
 
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -81,13 +81,47 @@ export function getCalculatorAssetsDir(): string {
  * When inline is true, inlines CSS and JS into a 100% self-contained document
  * with native window shortcuts and IPC bindings injected.
  */
-export function generateCalculatorStudioHtml(options: { inline?: boolean } = {}): string {
+export function generateCalculatorStudioHtml(options: { inline?: boolean; port?: number } = {}): string {
   const assetsDir = getCalculatorAssetsDir();
   const indexPath = join(assetsDir, "index.html");
   const stylesPath = join(assetsDir, "styles.css");
   const appPath = join(assetsDir, "app.js");
 
   let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Universal Calculator</h1>";
+
+  const storagePolyfill = `
+  <script>
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+    })();
+  </script>
+  `;
+
+  if (html.includes("<head>")) {
+    html = html.replace("<head>", `<head>\n${storagePolyfill}`);
+  } else {
+    html = storagePolyfill + html;
+  }
 
   if (options.inline !== false) {
     if (existsSync(stylesPath)) {
@@ -98,6 +132,51 @@ export function generateCalculatorStudioHtml(options: { inline?: boolean } = {})
     if (existsSync(appPath)) {
       const js = readFileSync(appPath, "utf8");
       html = html.replace(/<script src="app\.js[^"]*"><\/script>/, () => `<script>\n${js}\n</script>`);
+    }
+
+    // Embed IntuitionLab via srcdoc for 100% offline, zero-CORS, zero-ATS desktop webview execution
+    const intuitionDir = join(assetsDir, "intuitionlab");
+    const intuitionIndex = join(intuitionDir, "index.html");
+    const intuitionCss = join(intuitionDir, "styles.css");
+    const intuitionBundle = join(intuitionDir, "js/bundle.js");
+
+    if (existsSync(intuitionIndex)) {
+      let intuitionHtml = readFileSync(intuitionIndex, "utf8");
+      if (existsSync(intuitionCss)) {
+        const cssContent = readFileSync(intuitionCss, "utf8");
+        intuitionHtml = intuitionHtml.replace(
+          /<link rel="stylesheet" href="styles\.css[^"]*">/,
+          () => `<style>\n${cssContent}\n</style>`
+        );
+      }
+      if (existsSync(intuitionBundle)) {
+        const jsContent = readFileSync(intuitionBundle, "utf8");
+        intuitionHtml = intuitionHtml.replace(
+          /<script src="js\/bundle\.js[^"]*"><\/script>/,
+          () => `<script>\n${jsContent}\n</script>`
+        );
+      }
+
+      // Add storage polyfill into intuitionLab as well
+      if (intuitionHtml.includes("<head>")) {
+        intuitionHtml = intuitionHtml.replace("<head>", `<head>\n${storagePolyfill}`);
+      }
+
+      const escapedSrcdoc = intuitionHtml
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;");
+
+      html = html.replace(
+        /<iframe id="intuitionLabFrame"[^>]*><\/iframe>/,
+        () => `<iframe id="intuitionLabFrame" name="intuitionLabFrame" class="intuitionlab-frame" title="IntuitionLab Visual STEM Simulations" allow="autoplay" srcdoc="${escapedSrcdoc}"></iframe>`
+      );
+    }
+  }
+
+  if (options.port) {
+    html = html.replaceAll('href="intuitionlab/index.html', `href="http://127.0.0.1:${options.port}/intuitionlab/index.html`);
+    if (options.inline === false) {
+      html = html.replaceAll('src="intuitionlab/index.html"', `src="http://127.0.0.1:${options.port}/intuitionlab/index.html"`);
     }
   }
 
@@ -218,7 +297,30 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        try {
+          if (statSync(directCandidate).isDirectory()) {
+            const nestedIndex = join(directCandidate, "index.html");
+            if (existsSync(nestedIndex)) {
+              return new Response(Bun.file(nestedIndex), {
+                headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+              });
+            }
+          } else {
+            let mime = "application/octet-stream";
+            if (directCandidate.endsWith(".js")) mime = "application/javascript; charset=utf-8";
+            else if (directCandidate.endsWith(".css")) mime = "text/css; charset=utf-8";
+            else if (directCandidate.endsWith(".html")) mime = "text/html; charset=utf-8";
+            else if (directCandidate.endsWith(".svg")) mime = "image/svg+xml";
+            else if (directCandidate.endsWith(".png")) mime = "image/png";
+            else if (directCandidate.endsWith(".json")) mime = "application/json";
+
+            return new Response(Bun.file(directCandidate), {
+              headers: { "Content-Type": mime, ...corsHeaders },
+            });
+          }
+        } catch {
+          return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        }
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -246,8 +348,6 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
     generateHtml: () => generateCalculatorStudioHtml({ inline: true }),
     run: async () => {
       console.log("⚡ Launching Orbit Universal Computing Suite...");
-      const html = generateCalculatorStudioHtml({ inline: true });
-
       let srv: any = null;
       try {
         srv = startCalculatorStudioServer({
@@ -261,6 +361,8 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
       } catch (err: any) {
         console.warn("Local server note:", err?.message || err);
       }
+
+      const html = generateCalculatorStudioHtml({ inline: true, port: srv?.port });
 
       // Native Webview Window
       try {
@@ -296,7 +398,7 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
           fullscreen,
         });
 
-        // Set HTML directly into Webview DOM (instant, 100% offline, zero ATS/thread blocking)
+        // Set HTML directly into Webview DOM (instant, 100% offline, zero ATS blocking)
         webview.setHTML(html);
         console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
 

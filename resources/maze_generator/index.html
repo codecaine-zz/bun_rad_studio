@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cyber Maze">
+    <meta name="format-detection" content="telephone=no">
+    <title>Cyberpunk Maze Runner - Neon Labyrinth</title>
+    <meta name="description" content="Production-grade Cyberpunk Maze Runner with procedural maze engines, High-DPI neon rendering, smooth physics, Web Audio synthesizer, AI pathfinding, and interactive game modes.">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #05070c;
+            --surface-color: #0b1018;
+            --surface-card: #111724;
+            --border-color: #1b263b;
+            --neon-cyan: #00f0ff;
+            --neon-pink: #ff0077;
+            --neon-green: #00ff9d;
+            --neon-yellow: #ffd43b;
+            --neon-purple: #b026ff;
+            --font-arcade: 'Press Start 2P', monospace;
+            --font-title: 'Orbitron', -apple-system, sans-serif;
+            --font-hud: 'Rajdhani', -apple-system, sans-serif;
+            
+            /* Safe area insets for iOS notch / dynamic island / home bar */
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+            background-color: var(--bg-color);
+            color: #e2e8f0;
+            font-family: var(--font-hud);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 10% 15%, rgba(0, 240, 255, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 90% 85%, rgba(255, 0, 119, 0.07) 0%, transparent 45%),
+                linear-gradient(rgba(11, 16, 24, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(11, 16, 24, 0.4) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+        }
+
+        /* Top Navbar */
+        .arcade-nav {
+            width: 100%;
+            background: rgba(11, 16, 24, 0.95);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-color);
+            padding: max(4px, var(--sat)) max(8px, var(--sar)) 4px max(8px, var(--sal));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 100;
+            flex-shrink: 0;
+            height: 40px;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            font-family: var(--font-hud);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            color: #fff;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+        }
+
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+
+        .nav-btn.active {
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            background: rgba(0, 240, 255, 0.12);
+        }
+
+        .brand-title {
+            font-family: var(--font-title);
+            font-size: 0.88rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .brand-title span {
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px rgba(255, 0, 119, 0.6);
+        }
+
+        .brand-tag {
+            font-family: var(--font-arcade);
+            font-size: 0.38rem;
+            padding: 1px 3px;
+            border-radius: 4px;
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 255, 157, 0.35);
+        }
+
+        /* Stage Wrapper - Takes ALL remaining screen height */
+        .stage-wrapper {
+            flex: 1;
+            min-height: 0;
+            height: calc(100dvh - 40px);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3px max(6px, var(--sar)) max(3px, var(--sab)) max(6px, var(--sal));
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Mode Selector Toolbar */
+        .toolbar-tabs {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            gap: 4px;
+            margin-bottom: 2px;
+            flex-shrink: 0;
+        }
+
+        .mode-tab {
+            flex: 1;
+            min-width: 0;
+            padding: 4px 4px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #94a3b8;
+            font-family: var(--font-hud);
+            font-weight: 700;
+            font-size: 0.72rem;
+            cursor: pointer;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mode-tab:active {
+            transform: scale(0.96);
+        }
+
+        .mode-tab:hover {
+            color: #fff;
+            border-color: rgba(0, 240, 255, 0.4);
+        }
+
+        .mode-tab.active {
+            color: #000;
+            background: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+        }
+
+        .mode-tab.active.time-attack {
+            background: var(--neon-yellow);
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 10px rgba(255, 212, 59, 0.35);
+        }
+
+        .mode-tab.active.darkness {
+            background: var(--neon-purple);
+            border-color: var(--neon-purple);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(176, 38, 255, 0.35);
+        }
+
+        .mode-tab.active.solver {
+            background: var(--neon-green);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.35);
+        }
+
+        /* HUD Bar */
+        .hud-bar {
+            width: 100%;
+            max-width: 600px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 3px 6px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            text-align: center;
+            flex-shrink: 0;
+            margin-bottom: 2px;
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .stat-label {
+            font-family: var(--font-arcade);
+            font-size: 0.4rem;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-val {
+            font-family: var(--font-arcade);
+            font-size: 0.74rem;
+            color: #fff;
+        }
+
+        .stat-val.highlight {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+
+        .stat-val.warning {
+            color: var(--neon-pink);
+            text-shadow: 0 0 8px rgba(255, 0, 119, 0.6);
+            animation: pulseWarning 1s infinite;
+        }
+
+        @keyframes pulseWarning {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(1.05); }
+        }
+
+        /* Canvas Stage Container - Expands to use ALL AVAILABLE space */
+        .canvas-container {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: #030509;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 240, 255, 0.1);
+            cursor: pointer;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas#mazeCanvas {
+            display: block;
+            background-color: #030509;
+            touch-action: none;
+        }
+
+        /* Scanline Overlay for Cyberpunk Vibe */
+        .canvas-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.08) 0px, rgba(0, 0, 0, 0.08) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Victory / Defeat Overlay */
+        .game-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 7, 12, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            z-index: 20;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .overlay-title {
+            font-family: var(--font-title);
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 16px rgba(0, 255, 157, 0.8);
+            letter-spacing: 1px;
+        }
+
+        .overlay-title.defeat {
+            color: var(--neon-pink);
+            text-shadow: 0 0 16px rgba(255, 0, 119, 0.8);
+        }
+
+        .overlay-stars {
+            font-size: 1.3rem;
+            letter-spacing: 4px;
+            color: #ffd43b;
+            text-shadow: 0 0 10px rgba(255, 212, 59, 0.6);
+        }
+
+        .overlay-desc {
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            max-width: 320px;
+            line-height: 1.4;
+        }
+
+        .overlay-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 6px 12px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 280px;
+            font-family: var(--font-hud);
+        }
+
+        .overlay-stats-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .overlay-stats-item span:first-child {
+            font-size: 0.68rem;
+            color: #94a3b8;
+        }
+
+        .overlay-stats-item span:last-child {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .play-btn {
+            background: linear-gradient(135deg, var(--neon-cyan), #0284c7);
+            color: #000;
+            font-family: var(--font-hud);
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 7px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            touch-action: manipulation;
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .play-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Controls Section at Bottom */
+        .bottom-controls {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        /* Action Buttons Row */
+        .actions-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .action-btn {
+            background: var(--surface-card);
+            color: #cbd5e1;
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-family: var(--font-hud);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            color: #fff;
+            border-color: var(--neon-cyan);
+            background: rgba(0, 240, 255, 0.08);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--neon-cyan), #0284c7);
+            color: #000;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Ergonomic Touch Virtual D-Pad */
+        .mobile-dpad {
+            display: flex;
+            position: relative;
+            width: 116px;
+            height: 82px;
+            margin: 2px 0 0 0;
+            touch-action: none;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            background: rgba(17, 23, 36, 0.9);
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            border-radius: 8px;
+            color: var(--neon-cyan);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: none;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.1s, transform 0.1s, border-color 0.1s;
+        }
+
+        .dpad-btn:active, .dpad-btn.pressed {
+            background: rgba(0, 240, 255, 0.35);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.6);
+            transform: scale(0.92);
+        }
+
+        .dpad-up { top: 0; left: 39px; }
+        .dpad-down { bottom: 0; left: 39px; }
+        .dpad-left { top: 22px; left: 0; }
+        .dpad-right { top: 22px; right: 0; }
+
+        @media (max-width: 520px) {
+            .arcade-nav {
+                padding: max(3px, var(--sat)) max(6px, var(--sar)) 3px max(6px, var(--sal));
+            }
+            .brand-tag {
+                display: none;
+            }
+            .nav-btn {
+                padding: 4px 6px;
+                font-size: 0.76rem;
+            }
+            .nav-btn .btn-label {
+                display: none;
+            }
+            .actions-row {
+                gap: 3px;
+            }
+            .action-btn {
+                padding: 4px 7px;
+                font-size: 0.74rem;
+            }
+        }
+
+        /* Fullscreen / Zen Arcade Mode */
+        body.zen-fullscreen .arcade-nav {
+            display: none !important;
+        }
+
+        body.zen-fullscreen .stage-wrapper {
+            padding: max(6px, var(--sat)) max(6px, var(--sar)) max(6px, var(--sab)) max(6px, var(--sal));
+        }
+
+        .floating-exit-fs {
+            display: none;
+            position: fixed;
+            top: max(8px, var(--sat));
+            right: max(8px, var(--sar));
+            z-index: 500;
+            background: rgba(11, 16, 24, 0.85);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-family: var(--font-hud);
+            font-size: 0.78rem;
+            font-weight: 700;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            cursor: pointer;
+        }
+
+        body.zen-fullscreen .floating-exit-fs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Landscape Layout Support for iPhone / iPad rotation */
+        @media (orientation: landscape) and (max-height: 560px) {
+            .arcade-nav {
+                padding: max(4px, var(--sat)) max(8px, var(--sar)) 4px max(8px, var(--sal));
+            }
+
+            .stage-wrapper {
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                gap: 12px;
+                padding: 4px max(8px, var(--sar)) max(4px, var(--sab)) max(8px, var(--sal));
+            }
+
+            .canvas-container {
+                flex: 1;
+                height: 100%;
+                width: auto;
+            }
+
+            .landscape-sidebar {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 100%;
+                width: 220px;
+                flex-shrink: 0;
+                overflow-y: auto;
+            }
+
+            .toolbar-tabs, .hud-bar, .bottom-controls {
+                max-width: 100%;
+            }
+
+            .mobile-dpad {
+                width: 120px;
+                height: 86px;
+                margin: 0 auto;
+            }
+
+            .dpad-up { top: 0; left: 39px; }
+            .dpad-down { bottom: 0; left: 39px; }
+            .dpad-left { top: 22px; left: 0; }
+            .dpad-right { top: 22px; right: 0; }
+        }
+
+        /* Settings Modal Sheet */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: var(--surface-color);
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.25);
+            border-radius: 12px;
+            padding: 18px;
+            max-width: 420px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .modal-title {
+            font-family: var(--font-title);
+            font-size: 0.95rem;
+            color: var(--neon-cyan);
+            letter-spacing: 0.5px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .setting-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+
+        /* Select inputs formatted at 16px font-size to prevent iOS Safari auto-zoom */
+        .select-field {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            font-family: var(--font-hud);
+            font-weight: 600;
+            font-size: 16px; /* iOS auto-zoom prevention */
+            padding: 4px 8px;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+            max-width: 180px;
+        }
+
+        .select-field:focus {
+            border-color: var(--neon-cyan);
+        }
+
+        .help-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .help-list kbd {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: var(--neon-yellow);
+            font-family: var(--font-arcade);
+            font-size: 0.65rem;
+        }
+
+        /* Confetti Canvas */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Floating Exit Fullscreen Button (shown in Zen Fullscreen) -->
+    <button type="button" class="floating-exit-fs" id="floatingExitFs" title="Exit Fullscreen">
+        <span>⛶</span> Exit Full
+    </button>
+
+    <!-- Top Navbar -->
+    <header class="arcade-nav" id="arcadeNav">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <a href="/" class="nav-btn" aria-label="Return to Hub">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6"/>
+                </svg>
+                Hub
+            </a>
+            <div class="brand-title">
+                CYBER<span>_MAZE</span>
+                <span class="brand-tag">v2.4</span>
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:4px;">
+            <button type="button" class="nav-btn" id="droneToggle" title="Ambient Synth Drone">
+                <span>🎵</span> <span class="btn-label" id="droneText">BGM</span>
+            </button>
+            <button type="button" class="nav-btn" id="soundToggle" title="Toggle Sound FX">
+                <span id="soundIcon">🔊</span>
+            </button>
+            <button type="button" class="nav-btn" id="settingsBtn" title="Maze Settings">
+                <span>⚙</span> <span class="btn-label">Settings</span>
+            </button>
+            <button type="button" class="nav-btn" id="helpBtn" title="Controls & Rules">
+                <span>?</span>
+            </button>
+            <button type="button" class="nav-btn" id="fullscreenBtn" title="Toggle Fullscreen">
+                <span>⛶</span> <span class="btn-label" id="fullscreenText">Full</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Stage -->
+    <main class="stage-wrapper" id="stageWrapper">
+        <!-- Mode Selector Tabs -->
+        <div class="toolbar-tabs" id="modeTabs">
+            <button type="button" class="mode-tab active" data-mode="classic">
+                <span>⚡</span> Classic
+            </button>
+            <button type="button" class="mode-tab time-attack" data-mode="timeAttack">
+                <span>⏱️</span> Time Attack
+            </button>
+            <button type="button" class="mode-tab darkness" data-mode="darkness">
+                <span>🔦</span> Fog of War
+            </button>
+            <button type="button" class="mode-tab solver" data-mode="solver">
+                <span>🤖</span> AI Solver
+            </button>
+        </div>
+
+        <!-- HUD Bar -->
+        <div class="hud-bar" id="hudBar">
+            <div class="hud-stat">
+                <span class="stat-label">TIMER</span>
+                <span class="stat-val highlight" id="timerVal">00:00</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">BEST</span>
+                <span class="stat-val" id="bestTimeVal">--:--</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">STEPS</span>
+                <span class="stat-val" id="stepsVal">0</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">SHARDS</span>
+                <span class="stat-val" id="shardsVal" style="color:var(--neon-yellow);">0/0</span>
+            </div>
+            <div class="hud-stat">
+                <span class="stat-label">HINTS</span>
+                <span class="stat-val" id="hintsVal">3</span>
+            </div>
+        </div>
+
+        <!-- Canvas Container - Dynamic Full Screen Auto-Fitting -->
+        <div class="canvas-container" id="canvasContainer">
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="mazeCanvas"></canvas>
+
+                <!-- Overlay for Victory / Defeat -->
+                <div class="game-overlay" id="victoryOverlay" style="display: none;">
+                    <div class="overlay-title" id="overlayTitle">SYSTEM PURGED!</div>
+                    <div class="overlay-stars" id="overlayStars">★★★</div>
+                    <div class="overlay-stats-grid" id="overlayStatsGrid">
+                        <div class="overlay-stats-item">
+                            <span>TIME ELAPSED</span>
+                            <span id="resTime">00:18</span>
+                        </div>
+                        <div class="overlay-stats-item">
+                            <span>STEPS TAKEN</span>
+                            <span id="resSteps">64</span>
+                        </div>
+                        <div class="overlay-stats-item">
+                            <span>SHARDS RETRIEVED</span>
+                            <span id="resShards">4 / 4</span>
+                        </div>
+                        <div class="overlay-stats-item">
+                            <span>DIFFICULTY</span>
+                            <span id="resDiff">MEDIUM</span>
+                        </div>
+                    </div>
+                    <p class="overlay-desc" id="overlayDesc">
+                        Optimal neural path confirmed. Portal coordinates locked.
+                    </p>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="play-btn" id="nextMazeBtn">NEXT LABYRINTH</button>
+                        <button type="button" class="action-btn" id="overlayExportBtn"><span>📷</span> Export</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls & Action Bar -->
+        <div class="bottom-controls" id="bottomControls">
+            <div class="actions-row">
+                <button type="button" class="action-btn primary" id="regenBtn">
+                    <span>⚡</span> Regen
+                </button>
+                <button type="button" class="action-btn" id="hintBtn">
+                    <span>💡</span> Hint
+                </button>
+                <button type="button" class="action-btn" id="trailToggleBtn">
+                    <span>🐾</span> Trail
+                </button>
+                <button type="button" class="action-btn" id="dpadToggleBtn" title="Toggle On-Screen D-Pad">
+                    <span>🎮</span> D-Pad
+                </button>
+            </div>
+
+            <!-- Ergonomic Virtual D-Pad -->
+            <div class="mobile-dpad" id="mobileDpad">
+                <button type="button" class="dpad-btn dpad-up" id="btnUp" aria-label="Up">▲</button>
+                <button type="button" class="dpad-btn dpad-left" id="btnLeft" aria-label="Left">◀</button>
+                <button type="button" class="dpad-btn dpad-right" id="btnRight" aria-label="Right">►</button>
+                <button type="button" class="dpad-btn dpad-down" id="btnDown" aria-label="Down">▼</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal Sheet -->
+    <div class="modal-backdrop" id="settingsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">⚙ LABYRINTH CONFIGURATION</div>
+                <button type="button" class="modal-close" id="settingsClose">&times;</button>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Grid Dimensions</span>
+                <select id="diffSelect" class="select-field" aria-label="Maze Difficulty">
+                    <option value="easy">Easy (11 x 11)</option>
+                    <option value="medium" selected>Medium (19 x 19)</option>
+                    <option value="hard">Hard (29 x 29)</option>
+                    <option value="insane">Insane (39 x 39)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Maze Generator</span>
+                <select id="algoSelect" class="select-field" aria-label="Maze Algorithm">
+                    <option value="dfs" selected>DFS Backtracker</option>
+                    <option value="prim">Randomized Prim's</option>
+                    <option value="braided">Braided (Loops)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Color Palette</span>
+                <select id="themeSelect" class="select-field" aria-label="Color Theme">
+                    <option value="cyan" selected>Cyan Matrix</option>
+                    <option value="magenta">Neon Sunset</option>
+                    <option value="green">Emerald Grid</option>
+                    <option value="amber">Solar Flare</option>
+                </select>
+            </div>
+            <div class="setting-row" style="margin-top: 8px;">
+                <span class="setting-label">High-Res Wallpaper</span>
+                <button type="button" class="action-btn" id="exportBtn">
+                    <span>📷</span> Export PNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help / Rules Modal -->
+    <div class="modal-backdrop" id="helpModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">SYSTEM PROTOCOLS & CONTROLS</div>
+                <button type="button" class="modal-close" id="helpClose">&times;</button>
+            </div>
+            <div class="help-list">
+                <div><kbd>SWIPE</kbd> Swipe anywhere on the maze to glide in that direction</div>
+                <div><kbd>TAP</kbd> Tap any tile in corridors to auto-pathfind directly to it</div>
+                <div><kbd>D-PAD</kbd> Hold any virtual arrow for continuous smooth movement</div>
+                <div><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> Desktop keyboard control</div>
+                <div><kbd>H</kbd> Activate AI neural path hint (consumes 1 hint charge)</div>
+                <div><kbd>R</kbd> Procedurally regenerate new labyrinth</div>
+                <div><kbd>GAMEPAD</kbd> Plug in any USB / Bluetooth controller</div>
+                <div><span style="color:var(--neon-yellow);">◆ Energy Shards:</span> Collect shards in corridors for extra hint charges</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // 1. ADVANCED WEB AUDIO SYNTHESIZER (iOS OPTIMIZED)
+        // =====================================================
+        let audioCtx = null;
+        let soundOn = true;
+        let droneActive = false;
+        let droneNodes = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
+
+        // iOS Audio Unlock on first touch/pointer event
+        function unlockAudioOnFirstInteraction() {
+            const unlock = () => {
+                getAudioContext();
+                window.removeEventListener('touchstart', unlock, true);
+                window.removeEventListener('touchend', unlock, true);
+                window.removeEventListener('pointerdown', unlock, true);
+                window.removeEventListener('click', unlock, true);
+            };
+            window.addEventListener('touchstart', unlock, { capture: true, passive: true });
+            window.addEventListener('touchend', unlock, { capture: true, passive: true });
+            window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+            window.addEventListener('click', unlock, { capture: true, passive: true });
+        }
+        unlockAudioOnFirstInteraction();
+
+        function playSynthTone(freq, type = 'sine', duration = 0.08, gain = 0.12, pitchDecay = false) {
+            if (!soundOn) return;
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            try {
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                if (pitchDecay) {
+                    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * 0.4), ctx.currentTime + duration);
+                }
+                g.gain.setValueAtTime(gain, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+                osc.connect(g);
+                g.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        const SFX = {
+            step: () => playSynthTone(540, 'triangle', 0.035, 0.06),
+            bump: () => playSynthTone(110, 'sawtooth', 0.08, 0.14, true),
+            shard: () => {
+                [880, 1174, 1480].forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'sine', 0.12, 0.1), i * 50);
+                });
+            },
+            hint: () => {
+                [659, 880, 1046, 1318].forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'sine', 0.14, 0.12), i * 70);
+                });
+            },
+            win: () => {
+                const chord = [523, 659, 784, 1046, 1318, 1568];
+                chord.forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'triangle', 0.35, 0.15), i * 90);
+                });
+            },
+            lose: () => {
+                [350, 311, 277, 220].forEach((f, i) => {
+                    setTimeout(() => playSynthTone(f, 'sawtooth', 0.25, 0.14, true), i * 120);
+                });
+            },
+            tick: () => playSynthTone(920, 'sine', 0.03, 0.05)
+        };
+
+        // Procedural Cyberpunk Drone BGM Generator
+        function toggleDrone() {
+            droneActive = !droneActive;
+            const droneBtn = document.getElementById('droneToggle');
+            const droneText = document.getElementById('droneText');
+            if (droneBtn) droneBtn.classList.toggle('active', droneActive);
+            if (droneText) droneText.textContent = droneActive ? 'ON' : 'BGM';
+
+            if (!droneActive) {
+                if (droneNodes) {
+                    try {
+                        droneNodes.gain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+                        setTimeout(() => {
+                            droneNodes.oscs.forEach(o => { try { o.stop(); } catch(e){} });
+                            droneNodes = null;
+                        }, 500);
+                    } catch(e){}
+                }
+                return;
+            }
+
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            try {
+                const masterGain = ctx.createGain();
+                masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+                masterGain.gain.linearRampToValueAtTime(0.035, ctx.currentTime + 1.2);
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(420, ctx.currentTime);
+                filter.Q.setValueAtTime(4, ctx.currentTime);
+
+                const freqs = [55, 110, 164.81, 220]; // A1, A2, E3, A3
+                const oscs = freqs.map((f, i) => {
+                    const osc = ctx.createOscillator();
+                    osc.type = i % 2 === 0 ? 'sawtooth' : 'triangle';
+                    osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 1.5, ctx.currentTime);
+                    osc.connect(filter);
+                    osc.start();
+                    return osc;
+                });
+
+                filter.connect(masterGain);
+                masterGain.connect(ctx.destination);
+                droneNodes = { oscs, filter, gain: masterGain };
+            } catch(e) {}
+        }
+
+        // =====================================================
+        // 2. CONFETTI PARTICLES ENGINE
+        // =====================================================
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const cCtx = confettiCanvas.getContext('2d');
+        let confetti = [];
+        let confettiAnim = null;
+
+        function resizeConfetti() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeConfetti);
+        resizeConfetti();
+
+        function launchConfetti() {
+            confetti = [];
+            const colors = ['#00f0ff', '#ff0077', '#00ff9d', '#ffd43b', '#b026ff', '#ffffff'];
+            for (let i = 0; i < 90; i++) {
+                confetti.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: (Math.random() - 0.5) * 18 - 4,
+                    size: 4 + Math.random() * 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1,
+                    rot: Math.random() * Math.PI,
+                    rotSpeed: (Math.random() - 0.5) * 0.2,
+                    decay: 0.012 + Math.random() * 0.008
+                });
+            }
+            if (!confettiAnim) animateConfetti();
+        }
+
+        function animateConfetti() {
+            cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            for (let i = confetti.length - 1; i >= 0; i--) {
+                const p = confetti[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.24;
+                p.alpha -= p.decay;
+                p.rot += p.rotSpeed;
+
+                if (p.alpha <= 0) {
+                    confetti.splice(i, 1);
+                } else {
+                    cCtx.save();
+                    cCtx.translate(p.x, p.y);
+                    cCtx.rotate(p.rot);
+                    cCtx.fillStyle = p.color;
+                    cCtx.globalAlpha = p.alpha;
+                    cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    cCtx.restore();
+                }
+            }
+            if (confetti.length > 0) confettiAnim = requestAnimationFrame(animateConfetti);
+            else confettiAnim = null;
+        }
+
+        // =====================================================
+        // 3. HIGH-DPI CANVAS & PROCEDURAL LABYRINTH ENGINE
+        // =====================================================
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const canvasWrapper = document.getElementById('canvasWrapper');
+
+        const diffSettings = {
+            easy: 11,
+            medium: 19,
+            hard: 29,
+            insane: 39
+        };
+
+        const timeAttackDurations = {
+            easy: 35,
+            medium: 55,
+            hard: 90,
+            insane: 150
+        };
+
+        const themes = {
+            cyan: { wall: '#00f0ff', glow: 'rgba(0, 240, 255, 0.45)', bg: '#04070d', node: '#00f0ff' },
+            magenta: { wall: '#ff0077', glow: 'rgba(255, 0, 119, 0.45)', bg: '#0b040a', node: '#ff0077' },
+            green: { wall: '#00ff9d', glow: 'rgba(0, 255, 157, 0.45)', bg: '#030a06', node: '#00ff9d' },
+            amber: { wall: '#ffd43b', glow: 'rgba(255, 212, 59, 0.45)', bg: '#0a0802', node: '#ffd43b' }
+        };
+
+        let currentMode = 'classic'; // 'classic' | 'timeAttack' | 'darkness' | 'solver'
+        let currentDiff = 'medium';
+        let currentAlgo = 'dfs';
+        let currentTheme = 'cyan';
+
+        let cols = diffSettings[currentDiff];
+        let rows = diffSettings[currentDiff];
+        let cellSize = 600 / cols;
+
+        // Maze grid structure
+        let grid = [];
+        let player = { x: 0, y: 0, drawX: 0, drawY: 0 };
+        let exit = { x: cols - 1, y: rows - 1 };
+        let shards = [];
+        let particles = [];
+
+        let visitedTrail = new Set();
+        let showTrail = true;
+        let hintPath = null;
+        let hintsLeft = 3;
+
+        let steps = 0;
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timeRemaining = 0;
+        let timerInterval = null;
+        let gameActive = true;
+        let gameWon = false;
+        let gameLost = false;
+
+        // Animation loop state
+        let portalAngle = 0;
+        let radarAngle = 0;
+        let solverPath = [];
+        let solverStepIndex = 0;
+        let solverTimer = null;
+
+        // Key-state tracking for continuous fluid movement
+        const activeKeys = {};
+        let keyMoveInterval = null;
+
+        // UI Element References
+        const modeTabs = document.querySelectorAll('.mode-tab');
+        const diffSelect = document.getElementById('diffSelect');
+        const algoSelect = document.getElementById('algoSelect');
+        const themeSelect = document.getElementById('themeSelect');
+        const timerVal = document.getElementById('timerVal');
+        const bestTimeVal = document.getElementById('bestTimeVal');
+        const stepsVal = document.getElementById('stepsVal');
+        const shardsVal = document.getElementById('shardsVal');
+        const hintsVal = document.getElementById('hintsVal');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayStars = document.getElementById('overlayStars');
+        const overlayDesc = document.getElementById('overlayDesc');
+        const resTime = document.getElementById('resTime');
+        const resSteps = document.getElementById('resSteps');
+        const resShards = document.getElementById('resShards');
+        const resDiff = document.getElementById('resDiff');
+        const nextMazeBtn = document.getElementById('nextMazeBtn');
+        const overlayExportBtn = document.getElementById('overlayExportBtn');
+        const regenBtn = document.getElementById('regenBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const trailToggleBtn = document.getElementById('trailToggleBtn');
+        const dpadToggleBtn = document.getElementById('dpadToggleBtn');
+        const mobileDpad = document.getElementById('mobileDpad');
+        const exportBtn = document.getElementById('exportBtn');
+        const soundToggle = document.getElementById('soundToggle');
+        const soundIcon = document.getElementById('soundIcon');
+        const droneToggleBtn = document.getElementById('droneToggle');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenText = document.getElementById('fullscreenText');
+        const floatingExitFs = document.getElementById('floatingExitFs');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsClose = document.getElementById('settingsClose');
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const helpClose = document.getElementById('helpClose');
+
+        // Dynamic Full-Screen Crisp Retina Display Scaling
+        function setupCanvasDPI() {
+            if (!canvasContainer || !canvasWrapper || !canvas) return;
+            const containerRect = canvasContainer.getBoundingClientRect();
+            // Leave a clean margin of 4px around the canvas
+            const maxW = Math.max(120, containerRect.width - 8);
+            const maxH = Math.max(120, containerRect.height - 8);
+            const size = Math.floor(Math.min(maxW, maxH));
+
+            const dpr = Math.min(window.devicePixelRatio || 1, 3);
+            canvas.width = Math.round(size * dpr);
+            canvas.height = Math.round(size * dpr);
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+
+            canvasWrapper.style.width = size + 'px';
+            canvasWrapper.style.height = size + 'px';
+        }
+
+        // Use ResizeObserver for instant, seamless adaptation to orientation changes, keyboard, and viewport resizing
+        if (window.ResizeObserver && canvasContainer) {
+            const ro = new ResizeObserver(() => setupCanvasDPI());
+            ro.observe(canvasContainer);
+        }
+        window.addEventListener('resize', setupCanvasDPI);
+        window.addEventListener('orientationchange', () => setTimeout(setupCanvasDPI, 100));
+
+        // Best Times persistence (Indexed by diff and mode)
+        function loadBestTime() {
+            const key = `cyber_maze_best_${currentMode}_${currentDiff}`;
+            const best = localStorage.getItem(key);
+            bestTimeVal.textContent = best ? formatTime(parseInt(best)) : '--:--';
+        }
+
+        function saveBestTime(timeMs) {
+            const key = `cyber_maze_best_${currentMode}_${currentDiff}`;
+            const best = localStorage.getItem(key);
+            if (!best || timeMs < parseInt(best)) {
+                localStorage.setItem(key, timeMs);
+                bestTimeVal.textContent = formatTime(timeMs);
+            }
+        }
+
+        function formatTime(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const s = (totalSec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // =====================================================
+        // 4. MAZE GENERATION ALGORITHMS
+        // =====================================================
+        function generateMaze() {
+            if (solverTimer) { clearInterval(solverTimer); solverTimer = null; }
+            cols = diffSettings[currentDiff];
+            rows = diffSettings[currentDiff];
+            cellSize = 600 / cols;
+            exit = { x: cols - 1, y: rows - 1 };
+
+            // Initialize Grid
+            grid = [];
+            for (let r = 0; r < rows; r++) {
+                grid[r] = [];
+                for (let c = 0; c < cols; c++) {
+                    grid[r][c] = {
+                        c, r,
+                        walls: { top: true, right: true, bottom: true, left: true },
+                        visited: false
+                    };
+                }
+            }
+
+            if (currentAlgo === 'prim') {
+                carvePrims();
+            } else {
+                carveDFS();
+            }
+
+            // If braided maze requested, remove random dead-ends to create loops
+            if (currentAlgo === 'braided') {
+                braidMaze(0.4);
+            }
+
+            // Scatter Energy Shards in Dead Ends
+            populateShards();
+
+            // Setup fresh game session
+            resetGameSession();
+        }
+
+        // Depth-First Search with Backtracking
+        function carveDFS() {
+            const stack = [];
+            let current = grid[0][0];
+            current.visited = true;
+            let visitedCount = 1;
+            const total = cols * rows;
+
+            while (visitedCount < total) {
+                const neighbors = getUnvisitedNeighbors(current);
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    current.walls[next.dir] = false;
+                    next.cell.walls[next.opp] = false;
+                    next.cell.visited = true;
+                    visitedCount++;
+                    stack.push(current);
+                    current = next.cell;
+                } else if (stack.length > 0) {
+                    current = stack.pop();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // Randomized Prim's Algorithm
+        function carvePrims() {
+            const wallsList = [];
+            const startCell = grid[0][0];
+            startCell.visited = true;
+
+            function addCellWalls(cell) {
+                const { c, r } = cell;
+                if (r > 0 && !grid[r - 1][c].visited) wallsList.push({ c1: cell, c2: grid[r - 1][c], dir: 'top', opp: 'bottom' });
+                if (c < cols - 1 && !grid[r][c + 1].visited) wallsList.push({ c1: cell, c2: grid[r][c + 1], dir: 'right', opp: 'left' });
+                if (r < rows - 1 && !grid[r + 1][c].visited) wallsList.push({ c1: cell, c2: grid[r + 1][c], dir: 'bottom', opp: 'top' });
+                if (c > 0 && !grid[r][c - 1].visited) wallsList.push({ c1: cell, c2: grid[r][c - 1], dir: 'left', opp: 'right' });
+            }
+
+            addCellWalls(startCell);
+
+            while (wallsList.length > 0) {
+                const randIndex = Math.floor(Math.random() * wallsList.length);
+                const { c1, c2, dir, opp } = wallsList.splice(randIndex, 1)[0];
+
+                if (!c2.visited) {
+                    c1.walls[dir] = false;
+                    c2.walls[opp] = false;
+                    c2.visited = true;
+                    addCellWalls(c2);
+                }
+            }
+        }
+
+        function getUnvisitedNeighbors(cell) {
+            const neighbors = [];
+            const { c, r } = cell;
+            if (r > 0 && !grid[r - 1][c].visited) neighbors.push({ cell: grid[r - 1][c], dir: 'top', opp: 'bottom' });
+            if (c < cols - 1 && !grid[r][c + 1].visited) neighbors.push({ cell: grid[r][c + 1], dir: 'right', opp: 'left' });
+            if (r < rows - 1 && !grid[r + 1][c].visited) neighbors.push({ cell: grid[r + 1][c], dir: 'bottom', opp: 'top' });
+            if (c > 0 && !grid[r][c - 1].visited) neighbors.push({ cell: grid[r][c - 1], dir: 'left', opp: 'right' });
+            return neighbors;
+        }
+
+        // Braid maze by removing walls at dead-ends
+        function braidMaze(factor = 0.4) {
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = grid[r][c];
+                    let wallCount = 0;
+                    if (cell.walls.top) wallCount++;
+                    if (cell.walls.right) wallCount++;
+                    if (cell.walls.bottom) wallCount++;
+                    if (cell.walls.left) wallCount++;
+
+                    // If it's a dead-end (3 walls) and rolls under factor
+                    if (wallCount === 3 && Math.random() < factor) {
+                        const candidates = [];
+                        if (cell.walls.top && r > 0) candidates.push({ dir: 'top', opp: 'bottom', target: grid[r - 1][c] });
+                        if (cell.walls.right && c < cols - 1) candidates.push({ dir: 'right', opp: 'left', target: grid[r][c + 1] });
+                        if (cell.walls.bottom && r < rows - 1) candidates.push({ dir: 'bottom', opp: 'top', target: grid[r + 1][c] });
+                        if (cell.walls.left && c > 0) candidates.push({ dir: 'left', opp: 'right', target: grid[r][c - 1] });
+
+                        if (candidates.length > 0) {
+                            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+                            cell.walls[pick.dir] = false;
+                            pick.target.walls[pick.opp] = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Populate Energy Shards in dead-ends
+        function populateShards() {
+            shards = [];
+            let shardId = 0;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if ((c === 0 && r === 0) || (c === exit.x && r === exit.y)) continue;
+                    const cell = grid[r][c];
+                    let wallCount = 0;
+                    if (cell.walls.top) wallCount++;
+                    if (cell.walls.right) wallCount++;
+                    if (cell.walls.bottom) wallCount++;
+                    if (cell.walls.left) wallCount++;
+
+                    // Place in dead ends
+                    if (wallCount >= 3) {
+                        if (Math.random() < 0.65) {
+                            shards.push({ id: shardId++, x: c, y: r, collected: false });
+                        }
+                    }
+                }
+            }
+            updateShardsHUD();
+        }
+
+        function updateShardsHUD() {
+            const collected = shards.filter(s => s.collected).length;
+            shardsVal.textContent = `${collected}/${shards.length}`;
+        }
+
+        // Reset Game Session
+        function resetGameSession() {
+            player.x = 0;
+            player.y = 0;
+            player.drawX = 0;
+            player.drawY = 0;
+
+            visitedTrail.clear();
+            visitedTrail.add(`0,0`);
+            hintPath = null;
+            hintsLeft = 3;
+            hintsVal.textContent = hintsLeft;
+            steps = 0;
+            stepsVal.textContent = '0';
+            particles = [];
+
+            gameActive = true;
+            gameWon = false;
+            gameLost = false;
+            victoryOverlay.style.display = 'none';
+
+            clearInterval(timerInterval);
+            startTime = Date.now();
+            elapsedTime = 0;
+
+            if (currentMode === 'timeAttack') {
+                timeRemaining = timeAttackDurations[currentDiff] * 1000;
+                timerVal.textContent = formatTime(timeRemaining);
+                timerVal.classList.remove('warning');
+
+                timerInterval = setInterval(() => {
+                    timeRemaining -= 250;
+                    if (timeRemaining <= 10000) {
+                        timerVal.classList.add('warning');
+                        SFX.tick();
+                    }
+                    if (timeRemaining <= 0) {
+                        timeRemaining = 0;
+                        handleDefeat();
+                    }
+                    timerVal.textContent = formatTime(timeRemaining);
+                }, 250);
+            } else {
+                timerVal.classList.remove('warning');
+                timerVal.textContent = '00:00';
+                timerInterval = setInterval(() => {
+                    elapsedTime = Date.now() - startTime;
+                    timerVal.textContent = formatTime(elapsedTime);
+                }, 500);
+            }
+
+            loadBestTime();
+            setupCanvasDPI();
+
+            // Auto-Solver mode initialization
+            if (currentMode === 'solver') {
+                startAutoSolver();
+            }
+        }
+
+        // =====================================================
+        // 5. BFS PATHFINDING & CLICK-TO-MOVE
+        // =====================================================
+        function findPath(from, to) {
+            const queue = [[from]];
+            const visited = new Set([`${from.x},${from.y}`]);
+
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const curr = path[path.length - 1];
+
+                if (curr.x === to.x && curr.y === to.y) return path;
+
+                const cell = grid[curr.y][curr.x];
+                const moves = [];
+                if (!cell.walls.top && curr.y > 0) moves.push({ x: curr.x, y: curr.y - 1 });
+                if (!cell.walls.right && curr.x < cols - 1) moves.push({ x: curr.x + 1, y: curr.y });
+                if (!cell.walls.bottom && curr.y < rows - 1) moves.push({ x: curr.x, y: curr.y + 1 });
+                if (!cell.walls.left && curr.x > 0) moves.push({ x: curr.x - 1, y: curr.y });
+
+                for (const next of moves) {
+                    const key = `${next.x},${next.y}`;
+                    if (!visited.has(key)) {
+                        visited.add(key);
+                        queue.push([...path, next]);
+                    }
+                }
+            }
+            return null;
+        }
+
+        function handleCanvasTapAtClientCoords(clientX, clientY) {
+            if (!gameActive || gameWon || gameLost) return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = ((clientX - rect.left) / rect.width) * 600;
+            const clickY = ((clientY - rect.top) / rect.height) * 600;
+
+            const targetX = Math.floor(clickX / cellSize);
+            const targetY = Math.floor(clickY / cellSize);
+
+            if (targetX >= 0 && targetX < cols && targetY >= 0 && targetY < rows) {
+                const pathToTarget = findPath({ x: player.x, y: player.y }, { x: targetX, y: targetY });
+                if (pathToTarget && pathToTarget.length > 1) {
+                    walkPathSmoothly(pathToTarget.slice(1));
+                }
+            }
+        }
+
+        // Click / Tap on canvas to navigate
+        canvas.addEventListener('click', (e) => {
+            handleCanvasTapAtClientCoords(e.clientX, e.clientY);
+        });
+
+        let autoWalkTimer = null;
+        function walkPathSmoothly(path) {
+            if (autoWalkTimer) clearInterval(autoWalkTimer);
+            let idx = 0;
+            autoWalkTimer = setInterval(() => {
+                if (idx < path.length && gameActive && !gameWon) {
+                    const pt = path[idx++];
+                    const dx = pt.x - player.x;
+                    const dy = pt.y - player.y;
+                    executeStep(dx, dy);
+                } else {
+                    clearInterval(autoWalkTimer);
+                }
+            }, 65);
+        }
+
+        // Auto-Solver Run
+        function startAutoSolver() {
+            solverPath = findPath({ x: 0, y: 0 }, { x: exit.x, y: exit.y });
+            solverStepIndex = 0;
+            if (!solverPath) return;
+
+            hintPath = solverPath;
+            solverTimer = setInterval(() => {
+                if (solverStepIndex < solverPath.length && !gameWon) {
+                    const next = solverPath[solverStepIndex++];
+                    player.x = next.x;
+                    player.y = next.y;
+                    steps++;
+                    stepsVal.textContent = steps;
+                    visitedTrail.add(`${player.x},${player.y}`);
+                    SFX.step();
+
+                    // Check shard pickup
+                    shards.forEach(s => {
+                        if (!s.collected && s.x === player.x && s.y === player.y) {
+                            s.collected = true;
+                            updateShardsHUD();
+                            SFX.shard();
+                        }
+                    });
+
+                    if (player.x === exit.x && player.y === exit.y) {
+                        clearInterval(solverTimer);
+                        handleVictory();
+                    }
+                }
+            }, 75);
+        }
+
+        // =====================================================
+        // 6. MOVEMENT & GAMEPLAY CONTROLS
+        // =====================================================
+        function executeStep(dx, dy) {
+            if (!gameActive || gameWon || gameLost) return;
+            getAudioContext();
+
+            const cell = grid[player.y][player.x];
+            let canMove = false;
+
+            if (dy === -1 && !cell.walls.top) canMove = true;
+            if (dx === 1 && !cell.walls.right) canMove = true;
+            if (dy === 1 && !cell.walls.bottom) canMove = true;
+            if (dx === -1 && !cell.walls.left) canMove = true;
+
+            if (canMove) {
+                // Emit contrail particles before moving
+                for (let i = 0; i < 3; i++) {
+                    particles.push({
+                        x: (player.x + 0.5) * cellSize,
+                        y: (player.y + 0.5) * cellSize,
+                        vx: (Math.random() - 0.5) * 1.5,
+                        vy: (Math.random() - 0.5) * 1.5,
+                        color: themes[currentTheme].wall,
+                        size: cellSize * 0.18,
+                        alpha: 0.8
+                    });
+                }
+
+                player.x += dx;
+                player.y += dy;
+                steps++;
+                stepsVal.textContent = steps;
+                visitedTrail.add(`${player.x},${player.y}`);
+                SFX.step();
+
+                if (navigator.vibrate) navigator.vibrate(8);
+
+                // Collect shards
+                shards.forEach(shard => {
+                    if (!shard.collected && shard.x === player.x && shard.y === player.y) {
+                        shard.collected = true;
+                        updateShardsHUD();
+                        SFX.shard();
+                        hintsLeft = Math.min(5, hintsLeft + 1);
+                        hintsVal.textContent = hintsLeft;
+                    }
+                });
+
+                if (hintPath) {
+                    hintPath = findPath({ x: player.x, y: player.y }, { x: exit.x, y: exit.y });
+                }
+
+                if (player.x === exit.x && player.y === exit.y) {
+                    handleVictory();
+                }
+            } else {
+                SFX.bump();
+                if (navigator.vibrate) navigator.vibrate(20);
+            }
+        }
+
+        function handleVictory() {
+            gameWon = true;
+            gameActive = false;
+            clearInterval(timerInterval);
+            SFX.win();
+            launchConfetti();
+
+            const finalTime = currentMode === 'timeAttack' ? (timeAttackDurations[currentDiff] * 1000 - timeRemaining) : elapsedTime;
+            saveBestTime(finalTime);
+
+            // Compute star rating
+            const parSteps = (cols + rows) * 1.35;
+            let stars = '★★★';
+            if (steps > parSteps * 1.7) stars = '★☆☆';
+            else if (steps > parSteps * 1.3) stars = '★★☆';
+
+            overlayTitle.textContent = 'SYSTEM PURGED!';
+            overlayTitle.className = 'overlay-title';
+            overlayStars.textContent = stars;
+            resTime.textContent = formatTime(finalTime);
+            resSteps.textContent = steps;
+            resShards.textContent = `${shards.filter(s=>s.collected).length} / ${shards.length}`;
+            resDiff.textContent = currentDiff.toUpperCase();
+
+            victoryOverlay.style.display = 'flex';
+        }
+
+        function handleDefeat() {
+            gameLost = true;
+            gameActive = false;
+            clearInterval(timerInterval);
+            SFX.lose();
+
+            overlayTitle.textContent = 'TIME EXPIRED!';
+            overlayTitle.className = 'overlay-title defeat';
+            overlayStars.textContent = '☆☆☆';
+            resTime.textContent = '00:00';
+            resSteps.textContent = steps;
+            resShards.textContent = `${shards.filter(s=>s.collected).length} / ${shards.length}`;
+            resDiff.textContent = currentDiff.toUpperCase();
+
+            overlayDesc.textContent = 'Security grid locked down. Neural link severed.';
+            victoryOverlay.style.display = 'flex';
+        }
+
+        // =====================================================
+        // 7. INPUT HANDLERS (KEYBOARD, TOUCH, SWIPE, GAMEPAD)
+        // =====================================================
+        function handleKeyDown(e) {
+            if (['ArrowUp', 'w', 'W'].includes(e.key)) { e.preventDefault(); activeKeys.up = true; }
+            else if (['ArrowDown', 's', 'S'].includes(e.key)) { e.preventDefault(); activeKeys.down = true; }
+            else if (['ArrowLeft', 'a', 'A'].includes(e.key)) { e.preventDefault(); activeKeys.left = true; }
+            else if (['ArrowRight', 'd', 'D'].includes(e.key)) { e.preventDefault(); activeKeys.right = true; }
+            else if (['h', 'H'].includes(e.key)) { useHint(); }
+            else if (['r', 'R'].includes(e.key)) { generateMaze(); }
+            else if (['?'].includes(e.key)) { toggleHelp(); }
+
+            if (!keyMoveInterval) {
+                processKeyMovement();
+                keyMoveInterval = setInterval(processKeyMovement, 110);
+            }
+        }
+
+        function handleKeyUp(e) {
+            if (['ArrowUp', 'w', 'W'].includes(e.key)) activeKeys.up = false;
+            else if (['ArrowDown', 's', 'S'].includes(e.key)) activeKeys.down = false;
+            else if (['ArrowLeft', 'a', 'A'].includes(e.key)) activeKeys.left = false;
+            else if (['ArrowRight', 'd', 'D'].includes(e.key)) activeKeys.right = false;
+
+            if (!activeKeys.up && !activeKeys.down && !activeKeys.left && !activeKeys.right) {
+                clearInterval(keyMoveInterval);
+                keyMoveInterval = null;
+            }
+        }
+
+        function processKeyMovement() {
+            if (activeKeys.up) executeStep(0, -1);
+            else if (activeKeys.down) executeStep(0, 1);
+            else if (activeKeys.left) executeStep(-1, 0);
+            else if (activeKeys.right) executeStep(1, 0);
+        }
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        // Virtual D-Pad with Hold-to-Repeat for Smooth Corridors
+        const dpadMap = { btnUp: [0, -1], btnDown: [0, 1], btnLeft: [-1, 0], btnRight: [1, 0] };
+        let dpadHoldInterval = null;
+
+        function startDpadHold(dx, dy, el) {
+            if (el) el.classList.add('pressed');
+            executeStep(dx, dy);
+            clearInterval(dpadHoldInterval);
+            dpadHoldInterval = setInterval(() => {
+                if (gameActive && !gameWon && !gameLost) {
+                    executeStep(dx, dy);
+                } else {
+                    stopDpadHold();
+                }
+            }, 105);
+        }
+
+        function stopDpadHold() {
+            if (dpadHoldInterval) {
+                clearInterval(dpadHoldInterval);
+                dpadHoldInterval = null;
+            }
+            document.querySelectorAll('.dpad-btn').forEach(btn => btn.classList.remove('pressed'));
+        }
+
+        Object.entries(dpadMap).forEach(([id, [dx, dy]]) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            // Touch events for iOS / mobile
+            el.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startDpadHold(dx, dy, el);
+            }, { passive: false });
+
+            el.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopDpadHold();
+            }, { passive: false });
+
+            el.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                stopDpadHold();
+            }, { passive: false });
+
+            // Mouse events for desktop testing
+            el.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startDpadHold(dx, dy, el);
+            });
+
+            el.addEventListener('mouseup', () => stopDpadHold());
+            el.addEventListener('mouseleave', () => stopDpadHold());
+        });
+
+        // Touch Swipe & Tap on Canvas (with iOS overscroll prevention)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchStartTime = 0;
+        let isSwiping = false;
+
+        canvas.addEventListener('touchstart', (e) => {
+            getAudioContext();
+            if (e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchStartTime = Date.now();
+                isSwiping = true;
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (isSwiping) {
+                e.preventDefault(); // Stop iOS rubber-band scroll
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            const dist = Math.hypot(dx, dy);
+            const duration = Date.now() - touchStartTime;
+
+            if (dist > 18) {
+                e.preventDefault();
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    executeStep(dx > 0 ? 1 : -1, 0);
+                } else {
+                    executeStep(0, dy > 0 ? 1 : -1);
+                }
+            } else if (dist < 10 && duration < 320) {
+                // Short tap -> auto pathfind
+                handleCanvasTapAtClientCoords(touchEndX, touchEndY);
+            }
+        }, { passive: false });
+
+        // Gamepad API Polling
+        let lastGamepadTime = 0;
+        function pollGamepads() {
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+            const gp = gamepads[0];
+            if (gp && gp.connected) {
+                const now = Date.now();
+                if (now - lastGamepadTime > 140) {
+                    const [axisX, axisY] = gp.axes;
+                    const dpadUp = gp.buttons[12] && gp.buttons[12].pressed;
+                    const dpadDown = gp.buttons[13] && gp.buttons[13].pressed;
+                    const dpadLeft = gp.buttons[14] && gp.buttons[14].pressed;
+                    const dpadRight = gp.buttons[15] && gp.buttons[15].pressed;
+
+                    if (axisY < -0.45 || dpadUp) { executeStep(0, -1); lastGamepadTime = now; }
+                    else if (axisY > 0.45 || dpadDown) { executeStep(0, 1); lastGamepadTime = now; }
+                    else if (axisX < -0.45 || dpadLeft) { executeStep(-1, 0); lastGamepadTime = now; }
+                    else if (axisX > 0.45 || dpadRight) { executeStep(1, 0); lastGamepadTime = now; }
+
+                    if (gp.buttons[0] && gp.buttons[0].pressed) useHint();
+                }
+            }
+            requestAnimationFrame(pollGamepads);
+        }
+        window.addEventListener('gamepadconnected', () => requestAnimationFrame(pollGamepads));
+
+        // Hint Logic
+        function useHint() {
+            if (hintsLeft <= 0 || gameWon || gameLost) return;
+            hintsLeft--;
+            hintsVal.textContent = hintsLeft;
+            SFX.hint();
+            hintPath = findPath({ x: player.x, y: player.y }, { x: exit.x, y: exit.y });
+        }
+
+        // =====================================================
+        // 8. 60 FPS CANVAS RENDERING LOOP WITH RETINA SCALING
+        // =====================================================
+        function renderLoop() {
+            render();
+            requestAnimationFrame(renderLoop);
+        }
+
+        function render() {
+            // Apply scale so all drawing uses logical 600x600 space
+            const scaleX = canvas.width / 600;
+            const scaleY = canvas.height / 600;
+            ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+
+            const t = themes[currentTheme];
+            ctx.fillStyle = t.bg;
+            ctx.fillRect(0, 0, 600, 600);
+
+            // Interpolate player drawing position (smooth lerp movement)
+            player.drawX += (player.x - player.drawX) * 0.35;
+            player.drawY += (player.y - player.drawY) * 0.35;
+
+            // Draw Visited Trail
+            if (showTrail) {
+                ctx.fillStyle = 'rgba(255, 212, 59, 0.16)';
+                visitedTrail.forEach(key => {
+                    const [cx, cy] = key.split(',').map(Number);
+                    ctx.fillRect(cx * cellSize + cellSize * 0.25, cy * cellSize + cellSize * 0.25, cellSize * 0.5, cellSize * 0.5);
+                });
+            }
+
+            // Draw Hint Solution Path with Neon Pulsing Ribbon
+            if (hintPath && hintPath.length > 1) {
+                ctx.save();
+                ctx.strokeStyle = '#00ff9d';
+                ctx.lineWidth = Math.max(3, cellSize * 0.22);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#00ff9d';
+                ctx.beginPath();
+                ctx.moveTo(hintPath[0].x * cellSize + cellSize / 2, hintPath[0].y * cellSize + cellSize / 2);
+                for (let i = 1; i < hintPath.length; i++) {
+                    ctx.lineTo(hintPath[i].x * cellSize + cellSize / 2, hintPath[i].y * cellSize + cellSize / 2);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw Maze Walls with Circuit Glow
+            ctx.save();
+            ctx.strokeStyle = t.wall;
+            ctx.lineWidth = Math.max(2, cellSize * 0.12);
+            ctx.shadowBlur = 9;
+            ctx.shadowColor = t.glow;
+            ctx.lineCap = 'square';
+            ctx.beginPath();
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = grid[r][c];
+                    const x = c * cellSize;
+                    const y = r * cellSize;
+
+                    if (cell.walls.top) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
+                    if (cell.walls.right) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
+                    if (cell.walls.bottom) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
+                    if (cell.walls.left) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
+                }
+            }
+            ctx.stroke();
+
+            // Draw Junction Circuit Nodes at wall intersections
+            ctx.fillStyle = t.node;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = t.glow;
+            const nodeR = Math.max(1.5, cellSize * 0.08);
+            for (let r = 0; r <= rows; r++) {
+                for (let c = 0; c <= cols; c++) {
+                    ctx.beginPath();
+                    ctx.arc(c * cellSize, r * cellSize, nodeR, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+
+            // Draw Energy Shards (Rotating Data Crystals)
+            shards.forEach(s => {
+                if (s.collected) return;
+                const sx = (s.x + 0.5) * cellSize;
+                const sy = (s.y + 0.5) * cellSize;
+                const sR = cellSize * 0.22;
+
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.rotate(portalAngle * 1.5);
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffd43b';
+                ctx.fillStyle = '#ffd43b';
+                ctx.beginPath();
+                ctx.moveTo(0, -sR);
+                ctx.lineTo(sR * 0.8, 0);
+                ctx.lineTo(0, sR);
+                ctx.lineTo(-sR * 0.8, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Exit Portal (Rotating Event Horizon)
+            portalAngle += 0.035;
+            const exitX = (exit.x + 0.5) * cellSize;
+            const exitY = (exit.y + 0.5) * cellSize;
+            const exitRadius = cellSize * 0.4;
+
+            ctx.save();
+            ctx.translate(exitX, exitY);
+
+            // Outer Counter-Rotating Ring
+            ctx.rotate(-portalAngle);
+            ctx.strokeStyle = '#00ff9d';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = '#00ff9d';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(0, 0, exitRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inner Rotating Ring
+            ctx.rotate(portalAngle * 2);
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(0, 255, 157, 0.25)';
+            ctx.beginPath();
+            ctx.arc(0, 0, exitRadius * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Central Core
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(0, 0, exitRadius * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Render Player Contrail Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+                p.size *= 0.95;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // Draw Player Avatar (Cyber Orb)
+            const pX = (player.drawX + 0.5) * cellSize;
+            const pY = (player.drawY + 0.5) * cellSize;
+            const pRadius = cellSize * 0.36;
+
+            ctx.save();
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = '#ffd43b';
+            ctx.fillStyle = '#ffd43b';
+            ctx.beginPath();
+            ctx.arc(pX, pY, pRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Avatar Inner Energy Core
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(pX, pY, pRadius * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Fog of War / Darkness Mode Overlay with Sonar Radar Sweep
+            if (currentMode === 'darkness') {
+                radarAngle += 0.04;
+                const fogRadius = cellSize * 4.0;
+                const grad = ctx.createRadialGradient(pX, pY, fogRadius * 0.25, pX, pY, fogRadius);
+                grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                grad.addColorStop(0.75, 'rgba(3, 5, 9, 0.72)');
+                grad.addColorStop(1, 'rgba(3, 5, 9, 0.94)');
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 600, 600);
+
+                // Sonar Radar Sweep Line
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(pX, pY);
+                ctx.lineTo(pX + Math.cos(radarAngle) * fogRadius * 0.95, pY + Math.sin(radarAngle) * fogRadius * 0.95);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // =====================================================
+        // 9. HIGH-RESOLUTION PNG WALLPAPER EXPORTER
+        // =====================================================
+        function exportMazePNG() {
+            const expCanvas = document.createElement('canvas');
+            expCanvas.width = 1200;
+            expCanvas.height = 1200;
+            const eCtx = expCanvas.getContext('2d');
+
+            // Draw High-Res Canvas
+            eCtx.fillStyle = themes[currentTheme].bg;
+            eCtx.fillRect(0, 0, 1200, 1200);
+
+            // Scale to 1200
+            eCtx.scale(2, 2);
+            renderOnCustomContext(eCtx);
+
+            // Download trigger
+            const link = document.createElement('a');
+            link.download = `cyber_maze_${currentDiff}_${Date.now()}.png`;
+            link.href = expCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function renderOnCustomContext(targetCtx) {
+            const t = themes[currentTheme];
+            targetCtx.strokeStyle = t.wall;
+            targetCtx.lineWidth = Math.max(2, cellSize * 0.12);
+            targetCtx.shadowBlur = 10;
+            targetCtx.shadowColor = t.glow;
+
+            targetCtx.beginPath();
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = grid[r][c];
+                    const x = c * cellSize;
+                    const y = r * cellSize;
+                    if (cell.walls.top) { targetCtx.moveTo(x, y); targetCtx.lineTo(x + cellSize, y); }
+                    if (cell.walls.right) { targetCtx.moveTo(x + cellSize, y); targetCtx.lineTo(x + cellSize, y + cellSize); }
+                    if (cell.walls.bottom) { targetCtx.moveTo(x, y + cellSize); targetCtx.lineTo(x + cellSize, y + cellSize); }
+                    if (cell.walls.left) { targetCtx.moveTo(x, y); targetCtx.lineTo(x, y + cellSize); }
+                }
+            }
+            targetCtx.stroke();
+        }
+
+        // =====================================================
+        // 10. EVENT LISTENERS & INITIALIZATION
+        // =====================================================
+        modeTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                modeTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentMode = tab.getAttribute('data-mode');
+                generateMaze();
+            });
+        });
+
+        diffSelect.addEventListener('change', () => {
+            currentDiff = diffSelect.value;
+            generateMaze();
+        });
+
+        algoSelect.addEventListener('change', () => {
+            currentAlgo = algoSelect.value;
+            generateMaze();
+        });
+
+        themeSelect.addEventListener('change', () => {
+            currentTheme = themeSelect.value;
+        });
+
+        hintBtn.addEventListener('click', useHint);
+        regenBtn.addEventListener('click', generateMaze);
+        nextMazeBtn.addEventListener('click', generateMaze);
+        exportBtn.addEventListener('click', exportMazePNG);
+        overlayExportBtn.addEventListener('click', exportMazePNG);
+
+        trailToggleBtn.addEventListener('click', () => {
+            showTrail = !showTrail;
+            trailToggleBtn.innerHTML = `<span>🐾</span> Trail: ${showTrail ? 'ON' : 'OFF'}`;
+        });
+
+        // D-Pad Visibility Toggle (saves extra space on mobile if swiping)
+        let dpadVisible = localStorage.getItem('cyber_maze_dpad') !== 'false';
+        function applyDpadVisibility() {
+            if (mobileDpad) {
+                mobileDpad.style.display = dpadVisible ? 'flex' : 'none';
+            }
+            if (dpadToggleBtn) {
+                dpadToggleBtn.classList.toggle('active', dpadVisible);
+            }
+            setTimeout(setupCanvasDPI, 50);
+        }
+        applyDpadVisibility();
+
+        dpadToggleBtn.addEventListener('click', () => {
+            dpadVisible = !dpadVisible;
+            localStorage.setItem('cyber_maze_dpad', dpadVisible ? 'true' : 'false');
+            applyDpadVisibility();
+        });
+
+        soundToggle.addEventListener('click', () => {
+            soundOn = !soundOn;
+            soundIcon.textContent = soundOn ? '🔊' : '🔇';
+            if (soundOn) getAudioContext();
+        });
+
+        droneToggleBtn.addEventListener('click', toggleDrone);
+
+        // iOS & Universal Fullscreen Mode
+        function toggleFullscreen() {
+            const isCurrentlyFs = document.body.classList.contains('zen-fullscreen') || 
+                                  !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+            if (!isCurrentlyFs) {
+                document.body.classList.add('zen-fullscreen');
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+            } else {
+                document.body.classList.remove('zen-fullscreen');
+                if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen && document.webkitFullscreenElement) {
+                    document.webkitExitFullscreen();
+                }
+            }
+            updateFullscreenUI();
+        }
+
+        function updateFullscreenUI() {
+            const isFs = document.body.classList.contains('zen-fullscreen') || 
+                         !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (fullscreenText) fullscreenText.textContent = isFs ? 'Exit' : 'Full';
+            setTimeout(setupCanvasDPI, 60);
+        }
+
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        floatingExitFs.addEventListener('click', toggleFullscreen);
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) document.body.classList.remove('zen-fullscreen');
+            updateFullscreenUI();
+        });
+        document.addEventListener('webkitfullscreenchange', () => {
+            if (!document.webkitFullscreenElement) document.body.classList.remove('zen-fullscreen');
+            updateFullscreenUI();
+        });
+
+        // Settings Modal
+        function toggleSettings() {
+            settingsModal.style.display = settingsModal.style.display === 'flex' ? 'none' : 'flex';
+        }
+        settingsBtn.addEventListener('click', toggleSettings);
+        settingsClose.addEventListener('click', toggleSettings);
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) toggleSettings();
+        });
+
+        // Help Modal
+        function toggleHelp() {
+            helpModal.style.display = helpModal.style.display === 'flex' ? 'none' : 'flex';
+        }
+        helpBtn.addEventListener('click', toggleHelp);
+        helpClose.addEventListener('click', toggleHelp);
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) toggleHelp();
+        });
+
+        // Initialize Engine & Animation Loop
+        generateMaze();
+        requestAnimationFrame(renderLoop);
+    </script>
+</body>
+</html>

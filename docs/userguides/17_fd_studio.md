@@ -1,106 +1,72 @@
-# 🔍 Fd Studio Pro -- User Guide
+# 🔎 Fd Studio Pro -- Complete Production User Guide
 
-**Fd Studio Pro** is an enterprise-grade, ultra-fast filesystem traversal and search desktop workstation built natively for Bun. Designed as a high-performance, pure-TypeScript replacement for `fd-find`, it delivers instant directory scanning, glob/regex matching, size and modification-time filters, and interactive batch command execution—with zero third-party binary dependencies.
+```
+Version: 2.4.0  •  Engine: Native Recursive Filesystem Traversal  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:fd]  •  [Terminal CLI: bun run cli:fd]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Fd Studio Pro** is an ultra-fast, intuitive filesystem search, file discovery, and batch manipulation workbench engineered natively for Bun RAD Studio. Designed as a modern, friendly replacement for GNU/BSD `find`, it provides lightning-fast file searching with smart defaults: case-insensitivity by default, automatic respect for `.gitignore`, and clean colorized output.
 
+In addition to searching, Fd Studio Pro integrates directly with **Rip Studio Pro** to provide one-click safe file burial into a recoverable graveyard quarantine, plus a batch execution builder to run shell commands across all discovered files.
+
+---
+
+## 🚀 Quick Start & Launch
+
+### 1. Launch Desktop GUI Window
 ```bash
-# Launch Fd Studio Pro desktop workstation
+# Standard desktop launch
 bun run app:fd
 
-# Launch with alternative alias
+# Shorthand alias
 bun run app:find
-
-# Launch CLI mode directly
-bun run cli:fd
 ```
 
-You can also launch programmatically in TypeScript:
-```ts
-import { createFdStudio } from "./applications/fd_studio";
-const win = createFdStudio({ fullscreen: true });
-win.run();
-```
-
----
-
-## 🖥️ User Interface Overview
-
-Fd Studio Pro features an ergonomic, high-efficiency desktop layout:
-
-1. **Header & Navigation Toolbar**:
-   - **Theme Selector**: Dynamic theme switching across 42 themes (Sonoma Emerald, Midnight Indigo, Monokai Pro, etc.).
-   - **⛶ Fullscreen**: Toggle borderless fullscreen mode.
-   - **💾 Save Config**: Persists active filters, target paths, and layout preferences to disk.
-   - **Center**: Centers the window on your primary display.
-2. **Search Target & Pattern Panel**:
-   - **Pattern**: Supports plain text substrings, glob wildcards (e.g. `*.ts`, `src/**/*.tsx`), and regular expressions.
-   - **Target Root**: Root folder to search (defaults to current project directory `./`).
-   - **Extension Filter**: Filter by extension without leading dot (e.g. `ts,js,json`).
-3. **Type & Attribute Filters**:
-   - **Type Toggles**: Filter by `All`, `Files Only` (`-t f`), `Directories Only` (`-t d`), or `Symlinks Only` (`-t l`).
-   - **Hidden & Gitignore**: Toggle inclusion of hidden files (`.` prefix) and `.gitignore` ignored files.
-   - **Depth Limit**: Restrict traversal depth (`--max-depth`).
-   - **File Size Filter**: Restrict by size, e.g. `+10M` (greater than 10 MB) or `-100k` (smaller than 100 KB).
-4. **Results Table & Live Telemetry**:
-   - Interactive data grid displaying Relative Path, File Type, Human-Readable Size, Permissions (`rwxr-xr-x`), and Last Modified Timestamp.
-   - Per-row instant action buttons:
-     - **📂 Open / Inspect**: Reveal file or directory in finder or preview.
-     - **🪦 Safe Bury (Rip)**: Safely quarantines the file/folder into the Rip Engine Graveyard (`~/.local/share/graveyard`) with cryptographically hashed metadata and zero data loss.
-   - High-contrast execution metrics: total matches found, directories scanned, and elapsed search duration.
-5. **Rip Studio Pro Engine & Safe Quarantine Graveyard**:
-   - **↺ Undo Rip (Restore)**: Instant one-click restoration of the most recently buried item back to its original filesystem location.
-   - **🪦 Graveyard Drawer / Modal**: Inspect active graveyard cemetery burials, item origin paths, burial timestamps, and original sizes.
-   - **Séance Restoration**: Restore individual quarantined items or empty the graveyard permanently.
-6. **Batch Execution & Safe Burial**:
-   - Construct batch commands using placeholders:
-     - `{}`: Full item path.
-     - `{/}`: Basename / filename only.
-     - `//`: Parent directory path.
-   - **🪦 Safe Bury All (Rip)**: Batch quarantine all discovered search results in a single click with confirmation.
-   - Execute custom commands in parallel or sequentially with live terminal output capture.
-
----
-
-## 📖 Practical Tutorials
-
-### 1. Finding All TypeScript Files Modified Recently
-1. In **Pattern**, enter `*.ts`.
-2. In **Target Root**, leave as `./` or browse to target project.
-3. Toggle **Files Only**.
-4. Click **⚡ Find Files**.
-
-### 2. Safely Deleting (Burying) Temporary Files with Zero Fear
-1. Search for build artifacts or temporary files:
-   - Pattern: `*.tmp` or `*.log`
-2. Review the results table.
-3. Click **🪦 Safe Bury** on any specific file, or click **🪦 Safe Bury All (Rip)** to quarantine all matches at once.
-4. Items are moved instantaneously into the Rip Graveyard quarantine instead of being permanently erased.
-5. Need to undo? Click **↺ Undo Rip (Restore)** at the top right of the toolbar, or open **🪦 Graveyard** to view and resurrect specific items.
-
-### 3. Batch Processing Discovered Files
-1. Set your search pattern (e.g. `*.log`).
-2. In **Batch Command**, enter:
-   ```bash
-   gzip {}
-   ```
-3. Click **▶ Run Batch Command** to compress all matching files in-place.
-
----
-
-## 💻 Headless CLI Mode
-
-Run the companion CLI for terminal scripting and CI/CD pipelines:
+### 2. Launch Terminal CLI File Finder
 ```bash
-# Basic file search
+# Find files matching pattern in current directory
 bun run cli:fd "*.ts"
 
-# Filter by extension and size
-bun run cli:fd --extension json --size "+1M"
+# Search for exact file name ignoring case
+bun run cli:fd "package.json"
 
-# Execute command on each result
-bun run cli:fd "*.tmp" --exec "rm -f {}"
+# Search within specific directory
+bun run cli:fd "*.sqlite" ./data
 ```
 
+---
+
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Fd Studio Desktop](../../screenshots/apps/fd_studio_desktop.png) | ![Fd Studio Responsive](../../screenshots/apps/fd_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Search Query & Target Toolbar
+- **Search Pattern Input**: Glob pattern (e.g. `*.png`) or regular expression (e.g. `test_.*\.ts$`).
+- **Search Directory Input**: Path to start recursive traversal (default `./`).
+- **File Type Filter**: All Types, Files Only, Directories Only, or Symlinks.
+- **Hidden Files & Gitignore Checkboxes**:
+  - `Show Hidden (-H)`: Include dotfiles (`.env`, `.gitignore`).
+  - `Respect .gitignore (-I)`: Skips `node_modules`, `dist`, and gitignored artifacts.
+- **⚡ Search Files Button (Enter)**: Traverses folders in parallel.
+
+### 2. Discovered Files Table
+- **File Path**: Relative or absolute path with file type icon.
+- **File Size**: Formatted byte size (B, KB, MB, GB).
+- **Modified Date**: Last modification timestamp.
+- **Permissions**: POSIX permissions octal string (e.g. `0755`, `0644`).
+- **Row Actions**:
+  - **📂 Open in Finder**: Reveals file in system file manager.
+  - **⚰️ Bury File**: Safely quarantines file into the Rip Graveyard.
+
+### 3. Batch Command Execution Builder
+- **Exec Command Template**: Command string using `{}` as placeholder for file path (e.g. `bun build {}`, `wc -l {}`).
+- **⚡ Execute Across All Matches**: Runs command for each matching file and streams output to log.

@@ -1,72 +1,76 @@
-# ⏱️ Interval Timer & High-Performance Calisthenics Suite -- User Guide
+# ⚡ Interval Timer & Calisthenics Suite -- Complete Production User Guide
 
-**Interval Timer & High-Performance Calisthenics Suite** is a dedicated athletic conditioning, isometric tendon training, and high-intensity interval workstation. Built for high-performance longevity, mobility protocols, and joint-sparing strength progression, it packages research-backed isometric tendon protocols (Keith Baar), animated exercise guides, periodized weekly matrices, and audio cue synthesis into a zero-latency native desktop environment.
+```
+Version: 2.4.0  •  Engine: Native Audio/Tone.js & YouTube Music Deck  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:interval_timer]  •  [Headless Server: bun run applications/interval_timer_studio.ts --server]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Interval Timer & Calisthenics Suite** is a high-performance, clinical-grade interval timer, isometric tendon remodeling system, and motivational soundtrack workstation built natively for Bun RAD Studio.
 
-### Launch Desktop Application
+Designed around the peer-reviewed connective tissue research of **Dr. Keith Baar (UC Davis)**, this suite guides athletes and fitness practitioners through submaximal overcoming isometrics that stimulate collagen synthesis, crosslink tendon fibrils, and bulletproof joints without inducing muscular or central nervous system fatigue.
+
+It now includes the **Built-in Codecaine YouTube Workout Music Deck**—featuring 24 curated albums, 25+ hours of driving beats, dynamic category filtering, and live playlist synchronization.
+
+---
+
+## 🚀 Quick Start & Launch
+
 ```bash
+# Standard desktop launch
 bun run app:interval_timer
-```
 
-### Launch Headless Web Server
-```bash
+# Launch background server mode
 bun run applications/interval_timer_studio.ts --server
 ```
 
 ---
 
-## 🖼️ Application Previews
+## 🖼️ Visual Interface Tour
 
-| High-Resolution Desktop (1380×920) | Responsive Viewport (960×720) |
+| Main Circular Timer & Tendon Protocols | Codecaine 24-Album Music Deck & Drawer |
 | :---: | :---: |
-| ![Interval Timer Desktop](../../screenshots/apps/interval_timer_desktop.png) | ![Interval Timer Responsive](../../screenshots/apps/interval_timer_responsive.png) |
+| ![Interval Timer Desktop](../../screenshots/apps/interval_timer_updated.png) | ![Codecaine Music Deck](../../screenshots/apps/interval_timer_music_deck.png) |
 
 ---
 
-## 🏋️ Workspaces & Core Capabilities
+## 🧭 Core Protocols & Scientific Engineering
 
-### 1. High-Precision Interval Engine
-- **Customizable Intervals**: Precise configuration for Work time, Rest time, Preparation countdown, Cycles per set, Sets count, and Inter-set rest recovery.
-- **High-Contrast Digital HUD**: Large viewport timer display readable from across the training area, with phase-coded color indicators (Green for Work, Amber for Rest, Blue for Cooldown).
-- **Tone.js Sound Synthesis**: Multi-frequency audio cues for 3-2-1 countdowns, work start chimes, and rest signals that cut through background music.
+### 1. Dr. Keith Baar Overcoming Isometrics Protocol
+- **Target Effort**: 50%–60% Submaximal Effort. Pushing at 100% maximal strain grinds joints and fatigues CNS; 50%–60% tension maximizes lysyl oxidase crosslinking and collagen-I transcription while preserving joint integrity.
+- **Time Structure**: **10s Work Hold / 50s Complete Unloading Rest** across 10 sets (exactly 10 minutes total).
+- **The 10-Minute Collagen Saturation Limit**: Research demonstrates mechanosensitive collagen signaling saturation occurs at 10 minutes. Training longer provides zero additional collagen synthesis and induces fatigue.
+- **Complete Fluid Exchange**: The 50s rest is crucial; tendons express bound water under load. The 50s total de-load allows nutrient-rich synovial fluid, proline, and glycine to perfuse back into the tendon matrix.
 
-### 2. Keith Baar Isometric Tendon Training Protocols
-- **Isometric Overload Protocols**: Joint-friendly collagen synthesis routines specifically designed for patellar tendons, Achilles tendons, distal biceps, and rotator cuffs.
-- **Embedded Demonstration Guides**: 20 animated high-resolution GIFs and diagrams embedded offline as Base64 Data URIs, showing exact joint angles, tension lines, and hold execution without network lag.
-- **Protocol Presets**:
-  - `AM: Tendon Isometrics`: Heavy slow resistance & long-duration isometric holds for tendon stiffness.
-  - `Pre-Workout: Neuro Mobility`: Active dynamic warmup and motor-unit recruitment.
-  - `AM: Mobility Creep`: End-range active flexibility and joint capsule decompression.
-  - `Midday: 2m Snack`: Fast desk decompression breaks targeting thoracic spine and hip flexors.
-  - `PM: mTOR 1-Set`: High-tension single-set hypertrophy stimulus.
+### 2. Base64-Inlined Biomechanical Motion Guides
+All exercise diagrams are base64-inlined directly into the application for 100% offline playback with zero network latency:
+- Single-Arm Towel Overcoming Pull (Feet on Ground)
+- Pull-Up Bar Finger Isometric (Feet on Floor)
+- Ankle Wall Heel Drive & Plantarflexion Hold
+- Towel & Bedsheet Rigging Masterclass Loops
+- Tap-to-Zoom interactive visual inspector
 
-### 3. Routine Companion & Workout Music Links
-- **Direct YouTube Playlist Bridge**: Direct single-click launcher to @codecaine's original 24-album workout soundtrack collection on YouTube (25+ hours of ad-free training music).
-- **Native OS Link Routing**: All external YouTube exercise references and video links open cleanly in your default system browser (Safari/Chrome) via Bun's native bridge.
-
-### 4. 7-Day Periodization Matrix
-- **Weekly Schedule Tracking**: Structured weekly training matrix designed for master calisthenic athletes (Age 45+), balancing maximal isometric strain, tendon remodeling cycles, active recovery, and neural restoration.
-
----
-
-## ⌨️ Desktop Keyboard Shortcuts
-
-| Key | Action |
-| :--- | :--- |
-| `Space` | Start / Pause Timer |
-| `R` | Reset Routine to Initial State |
-| `N` | Skip to Next Interval / Cycle |
-| `P` | Return to Previous Interval |
-| `M` | Toggle Audio Beeps & Sound Engine |
-| `F` | Focus Mode (Maximizes Timer Display & Minimizes Distractions) |
-| `Esc` | Exit Focus Mode / Reset View |
-| `Alt` + `Alt` | Quick Window Close |
+### 3. Built-in Codecaine Original Workout Music Deck
+- **24 Curated Albums (25+ Hours of Audio)**: Produced by @codecaine for high-dopamine training.
+- **Dynamic Category Filtering**:
+  - `All (24)`: Complete masterclass discography.
+  - `Mindset & Stoic (13)`: Stoic philosophy, Jim Rohn wisdom, sovereign logic, and mental calibration.
+  - `High Energy & PRs (6)`: Compounding drive, 1% daily discipline, 808s, and PR energy.
+  - `Rock & Metal (3)`: Gritty guitars, Houston grit, and aggressive overdrive.
+  - `Megamixes (2)`: 3-hour non-stop marathons for long endurance sessions.
+- **Search Bar**: Real-time keyword filter across all 24 albums.
+- **Live Sync Button**: Auto-syncs playlist with YouTube playlist via local server endpoint.
 
 ---
 
-## 🛠️ Offline Architecture
+## ⌨️ Complete Keyboard Shortcuts Reference
 
-- **100% Self-Contained**: All animation assets and diagrams are pre-compiled into Base64 strings on launch, enabling seamless offline training sessions in gyms, outdoors, or planes.
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Space** | Timer | Start / Pause Active Interval Cycle |
+| **R** | Timer | Reset Current Protocol |
+| **N** | Timer | Skip to Next Exercise Node |
+| **M** | Music Deck | Open Routine Music & Audio Splits Panel |
+| **F** / **F11** | Global | Toggle Borderless Fullscreen |

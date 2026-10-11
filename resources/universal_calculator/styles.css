@@ -406,7 +406,7 @@ a:focus-visible {
 
 .content {
     width: 100%;
-    max-width: 1180px;
+    max-width: 96%;
     margin: 0 auto;
     padding: clamp(36px, 6vw, 76px) clamp(22px, 5vw, 72px) calc(64px + var(--safe-bottom));
 }
@@ -3481,6 +3481,393 @@ body.zen-mode .app-shell {
 }
 
 /* ==========================================================================
+   OHM'S LAW & ELECTRICAL POWER STUDIO
+   ========================================================================== */
+.ohm-studio-card {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 26px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.ohm-subpanel {
+    animation: fadeInOhmTab 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInOhmTab {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ohm-solver-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 360px);
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .ohm-solver-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.ohm-controls-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.ohm-quick-pairs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+}
+
+.ohm-pairs-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ohm-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ohm-chip-group .preset-chip {
+    padding: 5px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ohm-chip-group .preset-chip:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+}
+
+.ohm-chip-group .preset-chip.active {
+    background: var(--accent);
+    color: #0c101a;
+    border-color: var(--accent);
+}
+
+.ohm-variables-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+@media (max-width: 580px) {
+    .ohm-variables-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.ohm-var-card {
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.ohm-var-card.is-given {
+    border-color: rgba(0, 113, 227, 0.4);
+    background: color-mix(in srgb, var(--surface-2) 92%, var(--apple-blue) 8%);
+}
+
+.ohm-var-card.is-solved {
+    border-color: rgba(48, 209, 88, 0.4);
+    background: color-mix(in srgb, var(--surface-2) 92%, var(--apple-green) 8%);
+}
+
+.ohm-var-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ohm-var-header label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.ohm-var-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--surface-3);
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.ohm-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.badge-given {
+    background: var(--apple-blue-soft);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.3);
+}
+
+.badge-solved {
+    background: var(--apple-green-soft);
+    color: var(--apple-green);
+    border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.ohm-input-unit-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px;
+    gap: 8px;
+}
+
+.ohm-input-unit-wrap input {
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    padding: 0 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ohm-input-unit-wrap input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px var(--apple-blue-soft);
+}
+
+.ohm-unit-select {
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-3);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 0 8px;
+    cursor: pointer;
+}
+
+.ohm-action-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.secondary-btn {
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+}
+
+.secondary-btn:hover {
+    background: var(--surface-3) !important;
+}
+
+.ohm-insights-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ohm-insight-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.ohm-insight-pill strong {
+    color: var(--accent);
+}
+
+.ohm-canvas-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    padding: 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+}
+
+.ohm-canvas-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 3px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.ohm-canvas-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.ohm-wheel-wrap {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#ohmWheelCanvas {
+    width: 320px;
+    height: 320px;
+    display: block;
+    cursor: pointer;
+}
+
+.ohm-formula-box {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.ohm-formula-step {
+    padding-left: 8px;
+    border-left: 3px solid var(--accent);
+}
+
+/* Stats cards for Energy Cost and AC Power */
+.ohm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+@media (max-width: 768px) {
+    .ohm-stats-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.ohm-stat-card {
+    padding: 16px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform 0.18s, border-color 0.18s;
+}
+
+.ohm-stat-card.highlight {
+    border-color: rgba(48, 209, 88, 0.4);
+    background: color-mix(in srgb, var(--surface-2) 90%, var(--apple-green) 10%);
+}
+
+.ohm-stat-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.ohm-stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    letter-spacing: -0.02em;
+}
+
+.ohm-stat-card.highlight .ohm-stat-value {
+    color: var(--accent);
+}
+
+.ohm-stat-sub {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* AC Power Layout */
+.ohm-ac-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 360px);
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .ohm-ac-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+#acPowerTriangleCanvas {
+    width: 100%;
+    height: 200px;
+    display: block;
+}
+
+/* ==========================================================================
    KEYBOARD SHORTCUTS MODAL
    ========================================================================== */
 .shortcuts-modal-backdrop {
@@ -3942,3 +4329,110 @@ kbd {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ============================================================
+   INTUITIONLAB INTEGRATION STYLES
+   ============================================================ */
+.intuitionlab-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.intuitionlab-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 16px 22px;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(139, 92, 246, 0.12));
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: 20px;
+    backdrop-filter: blur(16px);
+}
+
+.intuitionlab-banner-text h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.intuitionlab-banner-text p {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.intuitionlab-shortcuts-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.intuitionlab-chip {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.intuitionlab-chip:hover {
+    color: #ffffff;
+    background: rgba(6, 182, 212, 0.2);
+    border-color: #06b6d4;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+}
+
+.intuitionlab-frame-wrap {
+    width: 100%;
+    height: 850px;
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #070a12;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.intuitionlab-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+.lab-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 0 18px rgba(6, 182, 212, 0.4);
+    transition: all 0.2s ease;
+}
+
+.lab-hero-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 24px rgba(6, 182, 212, 0.6);
+}
+

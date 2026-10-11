@@ -1,43 +1,38 @@
-# 💾 Gdu Studio Pro -- User Guide
+# 💽 Gdu Studio Pro -- Complete Production User Guide
 
-**Gdu Studio Pro** is a fast, visual disk usage analyzer and storage explorer workstation built natively for Bun. Designed as a visual counterpart to `gdu` and `gdu-go`, it provides rapid filesystem traversal, proportional visual size bars (`[#####     ]`), directory drill-down navigation, mounted storage disk inspection, and safe file/folder deletion to reclaim storage.
+```
+Version: 2.4.0  •  Engine: Native Recursive Disk Walker  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:gdu]  •  [Terminal CLI: bun run cli:gdu]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Gdu Studio Pro** is an interactive disk usage analyzer and storage reclamation workstation designed as a modern replacement for `gdu`, `ncdu`, and `du`. It crawls directories in parallel, calculates exact disk space usage, renders visual proportional storage bars, and allows engineers to drill down into folders to find massive cache directories and space hogs.
+
+---
+
+## 🚀 Quick Start & Launch
 
 ```bash
-# Launch Gdu Studio Pro desktop workstation
+# Standard desktop launch
 bun run app:gdu
 
-# Launch CLI mode directly
-bun run cli:gdu .
-bun run cli:gdu -d
-bun run cli:gdu -B -C .
-```
-
-You can also launch programmatically in TypeScript:
-```ts
-import { createGduStudio } from "./applications/gdu_studio";
-const win = createGduStudio({ fullscreen: true });
-win.run();
+# Terminal CLI disk usage inspector
+bun run cli:gdu ./
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🖼️ Visual Interface Tour
 
-1. **Header Toolbar**:
-   - Dynamic theme switcher, Fullscreen toggle, Save Config, and Window Centering.
-2. **Disk Usage & Volume Telemetry**:
-   - Current directory path, Total consumed storage, Total item count, and Largest item details.
-3. **Navigation & Scanner Controls**:
-   - **Target Path**: Directory to scan (defaults to `./`).
-   - **Sort Order**: Sort by Size (Desc), Name (Asc), Item Count (Desc), or Modified Date.
-   - **Min Size**: Filter items smaller than threshold (e.g. `10M`, `500k`).
-   - **Decimal SI**: Toggle binary (`MiB`, `GiB`) vs decimal (`MB`, `GB`) units.
-   - **Navigation Buttons**: Up to Parent, Drill Down, Rescan, Mounted Disks (`df`), and Delete Item.
-4. **Directory Structure & Storage Table**:
-   - Interactive table showing Item Name, Type (DIR / FILE), Size, Proportion Bar, Sub-Items count, and Modified Date.
-5. **Inspection & Volume Telemetry Console**:
-   - Details of selected items and full mounted disk volume listings (`df`).
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Gdu Studio Desktop](../../screenshots/apps/gdu_studio_desktop.png) | ![Gdu Studio Responsive](../../screenshots/apps/gdu_studio_responsive.png) |
+
+---
+
+## 🧭 Key Capabilities
+- **Proportional Storage Bars**: Instantly spot which folder consumes 80% of your disk space.
+- **Directory Drill-down**: Click any folder to dive deeper into subtrees.
+- **Clean Reclamation**: Directly bury large temporary folders into the Rip Graveyard.

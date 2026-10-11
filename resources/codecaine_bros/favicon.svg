@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="cb-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <filter id="cb-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#cb-bg)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#38bdf8" stroke-opacity="0.3" stroke-width="1.5"/>
+
+  <!-- Left Green Warp Pipe Top -->
+  <path d="M 6 12 L 18 12 L 18 24 L 6 24 Z" fill="#10b981" filter="url(#cb-glow)"/>
+  <rect x="4" y="10" width="16" height="5" rx="1.5" fill="#34d399"/>
+
+  <!-- Right Red Warp Pipe Top -->
+  <path d="M 46 12 L 58 12 L 58 24 L 46 24 Z" fill="#ef4444" filter="url(#cb-glow)"/>
+  <rect x="44" y="10" width="16" height="5" rx="1.5" fill="#f87171"/>
+
+  <!-- Center POW Block -->
+  <rect x="14" y="26" width="36" height="24" rx="4" fill="#0284c7" stroke="#38bdf8" stroke-width="2" filter="url(#cb-glow)"/>
+  <text x="32" y="43" fill="#ffffff" font-family="'Press Start 2P', monospace, sans-serif" font-weight="900" font-size="12" text-anchor="middle" letter-spacing="1">POW</text>
+
+  <!-- Ground platform beam with neon glow -->
+  <line x1="6" y1="56" x2="58" y2="56" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" filter="url(#cb-glow)"/>
+</svg>

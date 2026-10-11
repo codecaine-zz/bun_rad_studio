@@ -1,44 +1,38 @@
-# ⏱️ Watchexec Studio Pro -- User Guide
+# ⚡ Watchexec Studio Pro -- Complete Production User Guide
 
-**Watchexec Studio Pro** is an automated task runner and continuous file watcher desktop workstation built natively for Bun. Powered directly by native `fs.watch` system APIs and Bun's high-performance process spawner, it executes build scripts, test runners, and shell commands in response to filesystem modifications with configurable debouncing, extension filters, and streaming logs.
+```
+Version: 2.4.0  •  Engine: Native fs.watch & Subprocess Pipeline  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:watchexec]  •  [Terminal CLI: bun run cli:watchexec]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Watchexec Studio Pro** is a standalone, continuous task execution workstation engineered on Bun's native filesystem event pipeline. As a direct replacement for external `watchexec` binaries, it monitors file trees, debounces rapid edits, and executes arbitrary developer commands (test suites, linters, compilers, dev servers) with zero external dependencies.
+
+---
+
+## 🚀 Quick Start & Launch
 
 ```bash
-# Launch Watchexec Studio Pro desktop workstation
+# Standard desktop launch
 bun run app:watchexec
-bun run app:watcher
 
-# Launch CLI mode directly
-bun run cli:watchexec -e ts -- bun test
-bun run cli:watchexec -w src -c -d 200 -- bun run index.ts
-```
-
-You can also launch programmatically in TypeScript:
-```ts
-import { createWatchexecStudio } from "./applications/watchexec_studio";
-const win = createWatchexecStudio({ fullscreen: true });
-win.run();
+# Terminal CLI usage
+bun run cli:watchexec -w ./src -e "bun test"
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🖼️ Visual Interface Tour
 
-1. **Header Toolbar**:
-   - Dynamic theme selection, borderless fullscreen mode, and window placement controls.
-2. **Watcher Telemetry**:
-   - Watcher state (IDLE, ACTIVE, STOPPED), trigger count, last event filename, and active child process PID.
-3. **Targets & Configuration**:
-   - **Watch Directory**: Root path to monitor recursively (e.g. `./src`).
-   - **Execute Command**: Command line to spawn upon changes (e.g. `bun test`).
-   - **Extensions**: Comma-separated list of file extensions to trigger on (e.g. `ts,js,json`).
-   - **Ignore Patterns**: Comma-separated folders or patterns to ignore (e.g. `node_modules,.git,dist`).
-   - **Debounce**: Delay in milliseconds before firing the execution handler (default 150ms).
-   - **Clear Console**: Automatically clears output console before each trigger.
-4. **Continuous Execution & Build Console**:
-   - Streaming stdout/stderr output from the spawned child processes with real-time timestamps.
-5. **File Modification History Table**:
-   - Record of timestamps, trigger indices, modified file paths, and exit statuses.
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Watchexec Studio Desktop](../../screenshots/apps/watchexec_studio_desktop.png) | ![Watchexec Studio Responsive](../../screenshots/apps/watchexec_studio_responsive.png) |
+
+---
+
+## 🧭 Key Capabilities
+- **Debounce Buffer**: Avoids multiple executions when saving multi-file projects.
+- **Extension & Ignore Filters**: Focuses watcher on relevant source files only.
+- **Subprocess Supervision**: Gracefully terminates prior execution before restarting tasks.

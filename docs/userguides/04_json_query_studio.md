@@ -1,90 +1,114 @@
-# 🔍 JSON Query Studio Pro -- User Guide
+# 🔍 JSON Query Studio Pro -- Complete Production User Guide
 
-**JSON Query Studio Pro** is a high-speed JSON inspection, query, and transformation workbench. Built with a pure TypeScript/Bun evaluation engine, it provides `jq`-like query capabilities (nested key lookups, array slices, key projections, object construction) without requiring Homebrew or external `jq` binaries.
-
----
-
-## ⚡ Quick Start
-
-```bash
-# Launch JSON Query Studio Pro
-bun run app:json
-
-# Launch backwards-compatible alias
-bun run app:jq
+```
+Version: 2.4.0  •  Engine: Pure TypeScript/Bun AST Query Engine  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:json]  •  [Terminal CLI: bun run cli:json]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**JSON Query Studio Pro** is an enterprise-grade JSON inspection, transformation, projection, and formatting workbench. Powered by a pure TypeScript recursive query evaluation engine, it provides rich, `jq`-compatible selector syntax without requiring Homebrew, C compilers, or external `jq` binaries.
 
-1. **Query Configuration & Filter Presets**:
-   - **JSON Query Input**: Enter standard selector expressions (`.`, `.users[]`, `.users[].name`, `keys`, `length`, `map(...)`).
-   - **Engine Mode**: Select between `Bun Native Engine (Zero Homebrew)` (default) or external `jq` if detected.
-   - **Preset Query Dropdown**: One-click quick presets:
-     - Identity (`.`)
-     - First Array Item (`.[0]`)
-     - Extract Keys (`keys`)
-     - Count Array Items (`length`)
-     - Extract Names (`.[].name`)
-     - Filter by Property (`.items[] | select(.active == true)`)
-2. **Execution Actions**:
-   - **⚡ Execute Query**: Evaluates the expression against the input JSON with sub-millisecond execution telemetry.
-   - **Format JSON**: Auto-indents and standardizes input JSON to 2 spaces.
-   - **Minify JSON**: Compacts input JSON into a single line for network efficiency.
-   - **Load Sample Data**: Populates the editor with a structured multi-record dataset (users, roles, permissions, metrics).
-   - **Copy Result**: Copies the transformed output directly to the system clipboard.
-3. **Dual-Pane JSON Workspace**:
-   - **Input JSON Pane**: Multi-line editor for pasting raw JSON payloads, API responses, or configuration files.
-   - **Transformed Output Pane**: Formatted query output with syntax validation, line counts, and microsecond query timing.
+It handles multi-megabyte payloads effortlessly, supports nested path extraction, array slicing, dictionary projections, key sorting, and minification, complete with one-click export to clipboard or disk.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Extracting Specific Nested Fields from an API Response
-1. Paste your raw API payload into the **Input JSON** editor:
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:json
+
+# Shorthand alias
+bun run app:jq
+```
+
+### 2. Launch Terminal CLI Query Mode
+```bash
+# Query JSON file directly in terminal
+bun run cli:json package.json ".scripts"
+
+# Filter array of objects in terminal
+bun run cli:json data.json ".users[] | {name: .name, email: .email}"
+```
+
+---
+
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![JSON Studio Desktop](../../screenshots/apps/json_studio_desktop.png) | ![JSON Studio Responsive](../../screenshots/apps/json_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Query Configuration & Selector Bar
+- **Query Expression Input**: Type your selector (e.g. `.`, `.users[]`, `.data.items[0:5]`, `keys`, `length`).
+- **Presets Dropdown**: Pre-built one-click queries:
+  - Identity (`.`)
+  - Top-Level Keys (`keys`)
+  - Array Length (`length`)
+  - First 5 Items (`.[0:5]`)
+  - Key-Value Projection (`.[] | {id: .id, name: .name}`)
+- **⚡ Execute Query Button**: Runs the evaluation in microseconds.
+
+### 2. Dual-Pane JSON Workspace
+- **Source JSON Editor (Left Pane)**: Multi-line text area with syntax validation, line numbers, sample payload loader, and file upload button.
+- **Transformed Result Output (Right Pane)**: Formatted, color-highlighted output viewer displaying filtered results.
+- **Telemetry Pill**: Displays input byte size, result byte size, and query execution time in microseconds.
+
+### 3. Formatting & Utility Toolbar
+- **Format / Pretty-Print**: Re-indents the active JSON with standardized 2-space indentation.
+- **Minify / Compact**: Strips all whitespace, tabs, and newlines for optimized network payloads.
+- **📋 Copy Result**: Copies transformed JSON to clipboard with tactile feedback.
+- **💾 Export File**: Saves output directly to disk.
+
+---
+
+## 🛠️ Step-by-Step Practical Tutorials
+
+### Tutorial: Filtering and Re-Projecting an API Response
+1. Paste this JSON payload into the left editor:
    ```json
    {
-     "status": 200,
-     "data": {
-       "users": [
-         { "id": 1, "name": "Alice", "role": "admin" },
-         { "id": 2, "name": "Bob", "role": "developer" },
-         { "id": 3, "name": "Charlie", "role": "designer" }
-       ]
-     }
+     "status": "success",
+     "users": [
+       { "id": 1, "name": "Alice", "role": "admin", "secret": "x99" },
+       { "id": 2, "name": "Bob", "role": "developer", "secret": "y44" }
+     ]
    }
    ```
-2. In the **JSON Query** field, type:
+2. In the query bar, type:
    ```text
-   .data.users[].name
+   .users[] | {id: .id, name: .name}
    ```
-3. Click **⚡ Execute Query**.
-4. The output pane will immediately display:
+3. Press **Cmd+Enter**. The output instantly displays:
    ```json
    [
-     "Alice",
-     "Bob",
-     "Charlie"
+     { "id": 1, "name": "Alice" },
+     { "id": 2, "name": "Bob" }
    ]
    ```
-
-### 2. Projecting Custom Objects
-1. With the same dataset, project only IDs and roles:
-   ```text
-   .data.users | map({ id: .id, role: .role })
-   ```
-2. Click **⚡ Execute Query**.
-3. Resulting objects are projected instantly with zero overhead.
-
-### 3. Calculating Summary Counts
-1. Type `length` into the query input.
-2. Click **⚡ Execute Query** to verify total array length.
+   Notice the `secret` field is stripped cleanly!
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **Zero Homebrew Reliance**: Built on Bun's ultra-fast native V8/JSC JavaScript parser.
-- **Safe Expression Sandboxing**: Queries are executed in a safe evaluation context, preventing unauthorized code execution or prototype pollution.
-- **Malformed Input Diagnostics**: If the input JSON has syntax errors, line and column numbers are reported in red with visual recovery hints.
+## ⌨️ Complete Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Cmd + Enter** / **Ctrl + Enter** | Query Bar / Editor | Execute active query |
+| **Cmd + P** / **Ctrl + P** | Left Editor | Format / Pretty-Print JSON |
+| **Cmd + M** / **Ctrl + M** | Left Editor | Minify JSON |
+| **Cmd + Shift + C** | Output Pane | Copy result to clipboard |
+| **F11** or **F** | Global | Toggle borderless fullscreen |
+
+---
+
+## 💡 Pro Tips & Enterprise Best Practices
+- **Validating Broken JSON**: If an API returns malformed JSON, paste it into the left editor and hit **Format**. The diagnostic banner points to the exact line and character where a trailing comma or missing quote occurred.
+- **Large Dataset Slicing**: When inspecting large 50MB log dumps, use array slice notation `.[0:10]` to examine sample records without locking up your browser.

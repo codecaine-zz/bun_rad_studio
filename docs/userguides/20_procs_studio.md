@@ -1,45 +1,46 @@
-# 📊 Procs Studio Pro -- User Guide
+# 📈 Procs Studio Pro -- Complete Production User Guide
 
-**Procs Studio Pro** is a modern, high-performance process monitor and system task management workstation built natively for Bun. As a visual desktop replacement for `ps` and macOS Activity Monitor, it offers instant process telemetry, CPU/Memory resource sorting, active TCP listening port detection (`lsof`), process hierarchy tree navigation, and Unix signal termination (`SIGTERM`, `SIGKILL`).
+```
+Version: 2.4.0  •  Engine: Native Process Table Telemetry  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:procs]  •  [Terminal CLI: bun run cli:procs]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Procs Studio Pro** is a modern, high-contrast process inspector and system visualizer built as an ergonomic replacement for standard `ps`. It translates raw POSIX process tables into human-readable tables displaying CPU utilization, RSS memory footprint, listening TCP/UDP ports, process tree hierarchies, and operating system user contexts.
 
+---
+
+## 🚀 Quick Start & Launch
+
+### 1. Launch Desktop GUI Window
 ```bash
-# Launch Procs Studio Pro desktop workstation
+# Standard desktop launch
 bun run app:procs
-bun run app:process
-
-# Launch CLI mode directly
-bun run cli:procs
-bun run cli:procs --tree
-bun run cli:procs -P
 ```
 
-You can also launch programmatically in TypeScript:
-```ts
-import { createProcsStudio } from "./applications/procs_studio";
-const win = createProcsStudio({ fullscreen: true });
-win.run();
+### 2. Launch Terminal CLI Process Explorer
+```bash
+# List top 10 memory-heavy processes
+bun run cli:procs --sort mem --limit 10
+
+# Search processes by keyword
+bun run cli:procs --search "chrome"
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🖼️ Visual Interface Tour
 
-1. **Header & Navigation Toolbar**:
-   - Dynamic theme selector, Fullscreen toggle, Save Config, and Window Centering.
-2. **Process & Resource Telemetry**:
-   - Total processes, Top CPU consumer, Top Memory consumer, Active network port listeners, and Engine status.
-3. **Filter & Process Management Controls**:
-   - **Filter**: Filter processes by PID, username, or command keyword.
-   - **Sort Dropdown**: Sort by CPU (Desc), Memory (Desc), PID (Asc), or User (Asc).
-   - **Limit**: Restrict table size to top N processes.
-   - **Inspect Ports (-P)**: Attaches real-time listening TCP sockets to each process.
-   - **Signal Actions**: Send `SIGTERM` (graceful stop) or `SIGKILL` (force terminate).
-   - **Tree View**: Toggles hierarchical parent/child process tree in the inspector console.
-4. **Active Operating System Processes Table**:
-   - Real-time grid displaying PID, PPID, User, CPU %, MEM %, State, CPU Time, Ports, and Command.
-5. **Process Hierarchy & Detailed Telemetry Console**:
-   - Displays full command line, listening ports, parent PID, user owner, and execution stats.
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Procs Studio Desktop](../../screenshots/apps/procs_studio_desktop.png) | ![Procs Studio Responsive](../../screenshots/apps/procs_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+- **Process Table**: Lists PID, Parent PID (PPID), User, CPU%, RSS RAM, Listening Ports, and Command.
+- **Process Tree View**: Collapsible tree visualizing parent-child relationship (e.g., Terminal -> zsh -> Bun -> Webview).
+- **Port Correlation**: Highlights which specific PID is listening on port 3000, 5432, or 8080.
+- **Signal Dispatcher**: Send `SIGTERM` (graceful) or `SIGKILL` (forceful) directly from UI.

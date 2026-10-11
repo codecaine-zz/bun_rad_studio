@@ -1,13 +1,40 @@
 <!doctype html>
 <html lang="en">
 <head>
+    <script>
+        // Safe storage polyfill for Webview/sandboxed environments
+        (function() {
+            try {
+                var k = '__test__';
+                window.localStorage.setItem(k, '1');
+                window.localStorage.removeItem(k);
+            } catch(e) {
+                var mem = {};
+                try {
+                    Object.defineProperty(window, 'localStorage', {
+                        value: {
+                            getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+                            setItem: function(k, v) { mem[k] = String(v); },
+                            removeItem: function(k) { delete mem[k]; },
+                            clear: function() { mem = {}; },
+                            key: function(i) { return Object.keys(mem)[i] || null; },
+                            get length() { return Object.keys(mem).length; }
+                        },
+                        writable: true,
+                        configurable: true
+                    });
+                } catch(err) {}
+            }
+        })();
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <meta name="description" content="Orbit Universal Computing Suite — Apple-grade scientific calculator, unit & currency converter, interactive time-series graphic charts, programmer bitwise lab, matrix linear algebra, calculus analysis, wealth planning, and physics solvers.">
+    <meta name="description" content="Orbit Universal Computing Suite - Apple-grade scientific calculator, unit & currency converter, interactive time-series graphic charts, programmer bitwise lab, matrix linear algebra, calculus analysis, wealth planning, and physics solvers.">
     <title>Orbit Universal Computing Suite &amp; Graphic Studio</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=2.7.0">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css?v=2.9.0">
 </head>
 <body>
     <a class="skip-link" href="#workspace">Skip to calculator</a>
@@ -15,7 +42,11 @@
     <!-- TOPBAR -->
     <header class="topbar">
         <div class="topbar-left">
-            <a class="brand" href="#" aria-label="Orbit Calculator Suite">
+            <a class="hub-button" href="/" aria-label="Back to hub">
+                <span aria-hidden="true">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <a class="brand" href="/" aria-label="Return to Orbit home">
                 <span class="brand-mark" aria-hidden="true">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="4" y="2" width="16" height="20" rx="3.5" />
@@ -95,6 +126,11 @@
 
                 <p class="sidebar-category-title">Visual Data &amp; Math</p>
                 <nav class="mode-nav">
+                    <button class="mode-button" type="button" data-mode="intuitionlab">
+                        <span class="mode-icon" aria-hidden="true">⚡</span>
+                        <span><strong>IntuitionLab Studio</strong><small>Visual Calculus, Physics &amp; Algebra</small></span>
+                        <span class="new-pill" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6); color: #fff;">60 FPS</span>
+                    </button>
                     <button class="mode-button" type="button" data-mode="charts">
                         <span class="mode-icon chart-icon" aria-hidden="true">📈</span>
                         <span><strong>Graphic Charts</strong><small>Days, JSON &amp; Forecasts</small></span>
@@ -913,6 +949,46 @@
             </section>
 
             <!-- ============================================================
+                 4.5 INTUITIONLAB VISUAL STEM LEARNING STUDIO (60 FPS)
+                 ============================================================ -->
+            <section class="tool-panel" id="intuitionlabPanel" data-panel="intuitionlab" aria-labelledby="intuitionLabTitle" hidden>
+                <div class="intuitionlab-container">
+                    <div class="intuitionlab-banner">
+                        <div class="intuitionlab-banner-text">
+                            <h3 id="intuitionLabTitle">⚡ IntuitionLab - Visual STEM Learning Studio</h3>
+                            <p>Real-time 60fps geometric simulations and interactive physics engines for Calculus, Physics, and Linear Algebra.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <a class="lab-hero-btn" href="intuitionlab/index.html" target="_blank" rel="noopener">
+                                <span>⛶ Open Fullscreen Studio</span>
+                                <span>↗</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Direct Deep Link Simulation Selector Chips -->
+                    <div class="intuitionlab-shortcuts-row">
+                        <a href="#derivatives" data-sim="derivatives" class="intuitionlab-chip">📈 Tangent Limits Δx→0</a>
+                        <a href="#riemann" data-sim="riemann" class="intuitionlab-chip">📊 Riemann Slices</a>
+                        <a href="#ftc" data-sim="ftc" class="intuitionlab-chip">🔄 Fundamental Theorem</a>
+                        <a href="#gradient" data-sim="gradient" class="intuitionlab-chip">🏔 Gradient Descent</a>
+                        <a href="#projectile" data-sim="projectile" class="intuitionlab-chip">🎯 Projectile Hoop Game</a>
+                        <a href="#pendulum" data-sim="pendulum" class="intuitionlab-chip">⏱ Pendulum Phase Space</a>
+                        <a href="#optics" data-sim="optics" class="intuitionlab-chip">🌈 Snell's Law &amp; TIR</a>
+                        <a href="#wave" data-sim="wave" class="intuitionlab-chip">🌊 Wave Interference</a>
+                        <a href="#matrix" data-sim="matrix" class="intuitionlab-chip">🔲 2D Matrix Warping</a>
+                        <a href="#quadratic" data-sim="quadratic" class="intuitionlab-chip">📐 Parabola Discriminant</a>
+                        <a href="#trig" data-sim="trig" class="intuitionlab-chip">⭕ Unit Circle Waves</a>
+                        <a href="#linear" data-sim="linear" class="intuitionlab-chip">✖ Linear Systems</a>
+                    </div>
+
+                    <div class="intuitionlab-frame-wrap">
+                        <iframe id="intuitionLabFrame" name="intuitionLabFrame" src="intuitionlab/index.html" class="intuitionlab-frame" title="IntuitionLab Visual STEM Simulations" allow="autoplay"></iframe>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
                  5. CALCULUS & EQUATION ANALYSIS STUDIO (NEW!)
                  ============================================================ -->
             <section class="tool-panel" id="calculusPanel" data-panel="calculus" aria-labelledby="calcStudioTitle" hidden>
@@ -922,6 +998,14 @@
                         <h1 id="calcStudioTitle">Calculus &amp; Equation Studio.</h1>
                         <p>Numerical derivatives, Simpson's definite integrals with shaded area canvas, and Newton-Raphson root solver.</p>
                     </div>
+                </div>
+
+                <div class="intuitionlab-banner" style="margin-bottom: 20px;">
+                    <div class="intuitionlab-banner-text">
+                        <h3>⚡ Need 60fps Visual STEM Intuition?</h3>
+                        <p>Explore real-time secant-to-tangent limits Δx → 0, Riemann sums with slice melting, and 2D gradient descent in IntuitionLab.</p>
+                    </div>
+                    <button type="button" class="lab-hero-btn" onclick="showMode('intuitionlab')">Launch IntuitionLab Studio →</button>
                 </div>
 
                 <div class="calculus-grid">
@@ -1477,28 +1561,6 @@
                         <div class="utility-output" id="projectileResult">Max Height: 53.6m · Range: 208.5m · Flight Time: 6.5s</div>
                     </div>
 
-                    <!-- Ohm's Law & Electrical Power -->
-                    <div class="advanced-card">
-                        <div class="subheading compact-header">
-                            <div>
-                                <p class="eyebrow">Electronics</p>
-                                <h2>Ohm's Law &amp; Power Solver</h2>
-                            </div>
-                        </div>
-                        <div class="utility-grid secondary-grid">
-                            <div class="utility-item">
-                                <label for="ohmVoltage">Voltage V (Volts)</label>
-                                <input id="ohmVoltage" type="number" value="12" step="0.1">
-                            </div>
-                            <div class="utility-item">
-                                <label for="ohmCurrent">Current I (Amps)</label>
-                                <input id="ohmCurrent" type="number" value="2.5" step="0.1">
-                            </div>
-                        </div>
-                        <button id="calculateOhmBtn" class="utility-button" type="button">Compute Resistance &amp; Power</button>
-                        <div class="utility-output" id="ohmResult">Resistance R: 4.80 Ω · Power P: 30.00 W</div>
-                    </div>
-
                     <!-- Relativistic Time Dilation -->
                     <div class="advanced-card">
                         <div class="subheading compact-header">
@@ -1518,7 +1580,249 @@
                             </div>
                         </div>
                         <button id="calculateRelativityBtn" class="utility-button" type="button">Calculate Dilation</button>
-                        <div class="utility-output" id="relativityResult">Lorentz Factor γ: 3.2026 · Dilated Time: 3.20 s</div>
+                        <div class="utility-output" id="relativityResult">Lorentz Factor γ: 3.2026 · Dilated Time: 3.203 s</div>
+                    </div>
+
+                    <!-- Ohm's Law & Electrical Power Studio (Flagship Suite) -->
+                    <div class="advanced-card ohm-studio-card" id="ohmStudioCard">
+                        <div class="subheading compact-header" style="flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <p class="eyebrow">Electronics &amp; Circuit Engineering</p>
+                                <h2>Ohm's Law &amp; Electrical Power Studio</h2>
+                            </div>
+                            <div class="segmented-control small" id="ohmStudioModeSelect" role="tablist">
+                                <button class="segmented-item active" type="button" data-ohmmode="dc_solver" role="tab" aria-selected="true">4-Way DC Wheel</button>
+                                <button class="segmented-item" type="button" data-ohmmode="energy_cost" role="tab" aria-selected="false">Energy &amp; Cost Auditor</button>
+                                <button class="segmented-item" type="button" data-ohmmode="ac_power" role="tab" aria-selected="false">AC Single &amp; 3-Phase</button>
+                            </div>
+                        </div>
+
+                        <!-- SUB-PANEL 1: 4-WAY DC OHM & JOULE SOLVER WITH FORMULA WHEEL -->
+                        <div class="ohm-subpanel" id="ohmPanelDCSolver">
+                            <div class="ohm-solver-layout">
+                                <!-- Controls & Inputs Column -->
+                                <div class="ohm-controls-col">
+                                    <div class="ohm-quick-pairs">
+                                        <span class="ohm-pairs-label">Given Pair:</span>
+                                        <div class="ohm-chip-group" id="ohmPairChips">
+                                            <button type="button" class="preset-chip active" data-ohmpair="VI">V &amp; I</button>
+                                            <button type="button" class="preset-chip" data-ohmpair="VR">V &amp; R</button>
+                                            <button type="button" class="preset-chip" data-ohmpair="IR">I &amp; R</button>
+                                            <button type="button" class="preset-chip" data-ohmpair="PV">P &amp; V</button>
+                                            <button type="button" class="preset-chip" data-ohmpair="PI">P &amp; I</button>
+                                            <button type="button" class="preset-chip" data-ohmpair="PR">P &amp; R</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="ohm-variables-grid">
+                                        <!-- Voltage V -->
+                                        <div class="ohm-var-card is-given" id="ohmCardV">
+                                            <div class="ohm-var-header">
+                                                <label for="ohmVoltage"><span class="ohm-var-symbol" style="color: #0071e3;">V</span> Voltage (Potential)</label>
+                                                <span class="ohm-status-badge badge-given" id="ohmBadgeV">Given</span>
+                                            </div>
+                                            <div class="ohm-input-unit-wrap">
+                                                <input id="ohmVoltage" type="number" value="12" step="0.1" autocomplete="off" placeholder="Voltage">
+                                                <select id="ohmVoltUnit" class="ohm-unit-select" title="Voltage Unit">
+                                                    <option value="1e-3">mV</option>
+                                                    <option value="1" selected>V</option>
+                                                    <option value="1e3">kV</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Current I -->
+                                        <div class="ohm-var-card is-given" id="ohmCardI">
+                                            <div class="ohm-var-header">
+                                                <label for="ohmCurrent"><span class="ohm-var-symbol" style="color: #ff9f0a;">I</span> Current (Flow)</label>
+                                                <span class="ohm-status-badge badge-given" id="ohmBadgeI">Given</span>
+                                            </div>
+                                            <div class="ohm-input-unit-wrap">
+                                                <input id="ohmCurrent" type="number" value="2.5" step="0.1" autocomplete="off" placeholder="Current">
+                                                <select id="ohmCurrUnit" class="ohm-unit-select" title="Current Unit">
+                                                    <option value="1e-6">µA</option>
+                                                    <option value="1e-3">mA</option>
+                                                    <option value="1" selected>A</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Resistance R -->
+                                        <div class="ohm-var-card is-solved" id="ohmCardR">
+                                            <div class="ohm-var-header">
+                                                <label for="ohmResistance"><span class="ohm-var-symbol" style="color: #30d158;">R</span> Resistance</label>
+                                                <span class="ohm-status-badge badge-solved" id="ohmBadgeR">Solved</span>
+                                            </div>
+                                            <div class="ohm-input-unit-wrap">
+                                                <input id="ohmResistance" type="number" value="4.8" step="0.1" autocomplete="off" placeholder="Resistance">
+                                                <select id="ohmResUnit" class="ohm-unit-select" title="Resistance Unit">
+                                                    <option value="1" selected>Ω</option>
+                                                    <option value="1e3">kΩ</option>
+                                                    <option value="1e6">MΩ</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Power P -->
+                                        <div class="ohm-var-card is-solved" id="ohmCardP">
+                                            <div class="ohm-var-header">
+                                                <label for="ohmPower"><span class="ohm-var-symbol" style="color: #bf5af2;">P</span> Power (Rate of Work)</label>
+                                                <span class="ohm-status-badge badge-solved" id="ohmBadgeP">Solved</span>
+                                            </div>
+                                            <div class="ohm-input-unit-wrap">
+                                                <input id="ohmPower" type="number" value="30" step="0.1" autocomplete="off" placeholder="Power">
+                                                <select id="ohmPowerUnit" class="ohm-unit-select" title="Power Unit">
+                                                    <option value="1e-3">mW</option>
+                                                    <option value="1" selected>W</option>
+                                                    <option value="1e3">kW</option>
+                                                    <option value="745.699872">HP</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="ohm-action-row">
+                                        <button id="calculateOhmBtn" class="utility-button" type="button">Compute Resistance &amp; Power</button>
+                                        <button id="resetOhmBtn" class="utility-button secondary-btn" type="button">Reset to 12V / 2.5A</button>
+                                    </div>
+
+                                    <!-- Output compatibility element -->
+                                    <div class="utility-output" id="ohmResult">Resistance R: 4.80 Ω · Power P: 30.00 W</div>
+
+                                    <!-- Engineering Insights -->
+                                    <div class="ohm-insights-bar">
+                                        <div class="ohm-insight-pill">
+                                            <span class="ohm-insight-icon">🔍</span>
+                                            <span id="ohmE24Badge">Nearest E24: <strong>4.7 Ω</strong> (-2.1%)</span>
+                                        </div>
+                                        <div class="ohm-insight-pill">
+                                            <span class="ohm-insight-icon">⚡</span>
+                                            <span id="ohmWattageBadge">Min Resistor: <strong>50 W</strong> (1.67× headroom)</span>
+                                        </div>
+                                        <div class="ohm-insight-pill">
+                                            <span class="ohm-insight-icon">🔥</span>
+                                            <span id="ohmHeatBadge">Joule Heat: <strong>30.0 J/s</strong> (102.4 BTU/h)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Ohm's Wheel Canvas Column -->
+                                <div class="ohm-canvas-col">
+                                    <div class="ohm-canvas-header">
+                                        <span>Interactive Ohm's &amp; Joule's Formula Wheel</span>
+                                        <small class="ohm-canvas-sub">Active solving formulas dynamically highlighted</small>
+                                    </div>
+                                    <div class="ohm-wheel-wrap">
+                                        <canvas id="ohmWheelCanvas" width="320" height="320" aria-label="Ohm's Law formula wheel"></canvas>
+                                    </div>
+                                    <div class="ohm-formula-box" id="ohmFormulaBox">
+                                        <div class="ohm-formula-step" id="ohmFormulaStep1">R = V / I = 12 V / 2.5 A = 4.80 Ω</div>
+                                        <div class="ohm-formula-step" id="ohmFormulaStep2">P = V × I = 12 V × 2.5 A = 30.00 W</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUB-PANEL 2: ENERGY CONSUMPTION & ELECTRICITY COST AUDITOR -->
+                        <div class="ohm-subpanel" id="ohmPanelEnergyCost" hidden>
+                            <div class="utility-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 16px;">
+                                <div class="utility-item">
+                                    <label for="ohmEnergyHours">Daily Run Time (Hours/day)</label>
+                                    <input id="ohmEnergyHours" type="number" value="8" step="0.5" min="0.1" max="24">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="ohmEnergyDays">Days in Month</label>
+                                    <input id="ohmEnergyDays" type="number" value="30" step="1" min="1" max="31">
+                                </div>
+                                <div class="utility-item">
+                                    <label for="ohmEnergyRate">Electricity Cost ($/kWh)</label>
+                                    <input id="ohmEnergyRate" type="number" value="0.16" step="0.01" min="0">
+                                </div>
+                            </div>
+
+                            <div class="ohm-stats-grid">
+                                <div class="ohm-stat-card">
+                                    <span class="ohm-stat-title">Daily Energy &amp; Cost</span>
+                                    <div class="ohm-stat-value" id="ohmCostDaily">0.240 kWh</div>
+                                    <div class="ohm-stat-sub" id="ohmCostDailySub">$0.04 / day (based on 30.0 W)</div>
+                                </div>
+                                <div class="ohm-stat-card">
+                                    <span class="ohm-stat-title">Monthly Energy &amp; Cost</span>
+                                    <div class="ohm-stat-value" id="ohmCostMonthly">7.20 kWh</div>
+                                    <div class="ohm-stat-sub" id="ohmCostMonthlySub">$1.15 / month</div>
+                                </div>
+                                <div class="ohm-stat-card highlight">
+                                    <span class="ohm-stat-title">Annual Operating Cost</span>
+                                    <div class="ohm-stat-value" id="ohmCostAnnual">$14.02</div>
+                                    <div class="ohm-stat-sub" id="ohmCostAnnualSub">87.6 kWh/yr · 33.8 kg CO₂e footprint</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUB-PANEL 3: AC SINGLE & THREE-PHASE POWER CALCULATOR -->
+                        <div class="ohm-subpanel" id="ohmPanelACPower" hidden>
+                            <div class="ohm-ac-layout">
+                                <div class="ohm-ac-inputs-col">
+                                    <div class="ohm-ac-system-select">
+                                        <div class="segmented-control small" id="acPhaseSelect">
+                                            <button class="segmented-item active" type="button" data-acphase="1">Single Phase (1Φ)</button>
+                                            <button class="segmented-item" type="button" data-acphase="3">Three Phase (3Φ Balanced)</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="utility-grid secondary-grid" style="margin-top: 12px;">
+                                        <div class="utility-item">
+                                            <label for="acVoltage" id="acVoltageLabel">RMS Voltage V (Volts)</label>
+                                            <input id="acVoltage" type="number" value="120" step="1" min="1">
+                                        </div>
+                                        <div class="utility-item">
+                                            <label for="acCurrent">RMS Current I (Amps)</label>
+                                            <input id="acCurrent" type="number" value="10" step="0.1" min="0.01">
+                                        </div>
+                                        <div class="utility-item">
+                                            <label for="acPowerFactor">Power Factor cos(φ) (0 - 1.0)</label>
+                                            <input id="acPowerFactor" type="number" value="0.85" step="0.01" min="0" max="1.0">
+                                        </div>
+                                        <div class="utility-item">
+                                            <label for="acLoadType">Load Characteristic</label>
+                                            <select id="acLoadType" class="channel-input" style="height: 42px; border-radius: 12px; padding: 0 10px;">
+                                                <option value="inductive" selected>Inductive (Lagging Current)</option>
+                                                <option value="capacitive">Capacitive (Leading Current)</option>
+                                                <option value="resistive">Purely Resistive (Unity PF = 1.0)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="ohm-stats-grid" style="margin-top: 16px;">
+                                        <div class="ohm-stat-card">
+                                            <span class="ohm-stat-title">Real Power P (Active)</span>
+                                            <div class="ohm-stat-value" id="acRealPower">1.020 kW</div>
+                                            <div class="ohm-stat-sub">1,020 W · Work Producing</div>
+                                        </div>
+                                        <div class="ohm-stat-card">
+                                            <span class="ohm-stat-title">Apparent Power S</span>
+                                            <div class="ohm-stat-value" id="acApparentPower">1.200 kVA</div>
+                                            <div class="ohm-stat-sub">1,200 VA · Total Grid Draw</div>
+                                        </div>
+                                        <div class="ohm-stat-card">
+                                            <span class="ohm-stat-title">Reactive Power Q</span>
+                                            <div class="ohm-stat-value" id="acReactivePower">0.632 kVAR</div>
+                                            <div class="ohm-stat-sub" id="acPhaseAngle">Phase Angle φ = 31.79°</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="ohm-ac-canvas-col">
+                                    <div class="ohm-canvas-header">
+                                        <span>AC Power Triangle Vector Diagram</span>
+                                        <small class="ohm-canvas-sub">P (Real W) + j·Q (Reactive VAR) = S (Apparent VA)</small>
+                                    </div>
+                                    <div class="canvas-relative-container" style="background: var(--surface-2); border-radius: 18px; border: 1px solid var(--line); padding: 8px;">
+                                        <canvas id="acPowerTriangleCanvas" width="340" height="220" aria-label="AC power triangle diagram"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -2121,6 +2425,13 @@
     <!-- TOAST NOTIFICATION -->
     <div class="toast" id="toast" role="status" aria-live="polite">Copied to clipboard</div>
 
-    <script src="app.js?v=2.7.0"></script>
+    <script src="app.js?v=2.9.0"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js');
+        });
+      }
+    </script>
 </body>
 </html>

@@ -1,44 +1,39 @@
-# 🛰️ Subfinder Studio Pro -- User Guide
+# 🔎 Subfinder Studio Pro -- Complete Production User Guide
 
-**Subfinder Studio Pro** is a fast, passive subdomain discovery and OSINT reconnaissance desktop workstation built natively for Bun. Designed as a visual counterpart to `subfinder`, it queries multi-source public certificate transparency logs and search databases (`crt.sh`, `HackerTarget`, `AlienVault`, `Anubis`), performs active DNS resolution verification, probes HTTP/HTTPS service titles and response codes, checks target ports, and detects wildcard DNS entries.
+```
+Version: 2.4.0  •  Engine: Passive & Active DNS Reconnaissance  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:subfinder]  •  [Terminal CLI: bun run cli:subfinder]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Subfinder Studio Pro** is a passive and active subdomain reconnaissance workbench built natively for Bun. Designed for security researchers, penetration testers, and system architects, it discovers subdomains across targeted apex domains using Certificate Transparency (CT) logs, passive DNS datasets, and direct authoritative DNS probing.
+
+---
+
+## 🚀 Quick Start & Launch
 
 ```bash
-# Launch Subfinder Studio Pro desktop workstation
+# Standard desktop launch
 bun run app:subfinder
 
-# Launch CLI mode directly
-bun run cli:subfinder -d example.com
-bun run cli:subfinder -d example.com -active
-bun run cli:subfinder -d example.com -probe
-```
-
-You can also launch programmatically in TypeScript:
-```ts
-import { createSubfinderStudio } from "./applications/subfinder_studio";
-const win = createSubfinderStudio({ fullscreen: true });
-win.run();
+# Terminal CLI subdomain recon
+bun run cli:subfinder example.com
+bun run cli:subfinder example.com --probe-http
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🖼️ Visual Interface Tour
 
-1. **Header Toolbar**:
-   - Theme selector (63 themes), Fullscreen toggle, Save Config, and Window centering.
-2. **Reconnaissance Telemetry**:
-   - Target Domain, Discovered Subdomains count, Active live DNS hosts, HTTP OK endpoints, and Scanner state.
-3. **Target Domain & Probe Settings**:
-   - **Target Domain**: Root domain name to discover (e.g. `example.com`).
-   - **Timeout (s)**: HTTP request timeout duration.
-   - **Ports**: Comma-separated TCP ports to probe (e.g. `80,443,8080`).
-   - **Active DNS Verification**: Resolves live IPv4 addresses.
-   - **Probe HTTP Status & Title**: Extracts HTTP response status and HTML page `<title>`.
-   - **Filter Wildcards**: Detects and suppresses catch-all DNS wildcard records.
-4. **Discovered Subdomains Table**:
-   - Interactive grid showing Subdomain, IP Address, HTTP Status, Page Title, Open Ports, and OSINT Sources.
-5. **Output & Export Console**:
-   - Raw host list and structured JSON export stream.
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Subfinder Studio Desktop](../../screenshots/apps/subfinder_studio_desktop.png) | ![Subfinder Studio Responsive](../../screenshots/apps/subfinder_studio_responsive.png) |
+
+---
+
+## 🧭 Key Capabilities
+- **Multi-Source Subdomain Enumeration**: Extracts subdomains without sending intrusive traffic to target networks.
+- **HTTP / HTTPS Live Probing**: Checks status codes (200, 301, 403, 500) and page titles.
+- **Export Formats**: One-click CSV, TXT, or JSON export of valid targets.

@@ -1,84 +1,86 @@
-# 🛠️ DevTools Studio Pro -- User Guide
+# 🛠️ DevTools Studio Pro -- Complete Production User Guide
 
-**DevTools Studio Pro** is a unified 6-in-1 developer workstation combining the most essential day-to-day command-line developer utilities into a single high-speed desktop interface. Powered by pure Bun and Node subsystem primitives, it replaces 6 separate CLI packages (`ripgrep`, `fd`, `sd`, `watchexec`, `rm-improved/rip`, and `jq`) with zero external binary requirements.
-
----
-
-## ⚡ Quick Start
-
-```bash
-# Launch DevTools Studio Pro
-bun run app:devtools
-
-# Launch backwards-compatible alias
-bun run app:omnitool
+```
+Version: 2.4.0  •  Engine: 6-in-1 Native Bun Subsystems  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:devtools]  •  [Terminal CLI: bun run cli:devtools]
 ```
 
 ---
 
-## 🖥️ The 6 Integrated Developer Engines
+## 🌟 Executive Overview
+**DevTools Studio Pro** is a unified 6-in-1 developer workstation combining the most essential day-to-day command-line developer utilities into a single high-speed desktop interface. Powered by pure Bun and Node subsystem primitives, it replaces 6 separate CLI packages (`ripgrep`, `fd`, `sd`, `watchexec`, `rm-improved/rip`, and `jq`) with **zero external binary requirements**.
 
-DevTools Studio Pro provides six specialized operating modes selectable via the top navigation dropdown:
+Instead of switching between disjointed terminal tabs and memorizing conflicting flags, DevTools Studio Pro gives developers a cohesive GUI cockpit for searching, replacing, watching, querying, and managing project files.
+
+---
+
+## 🚀 Quick Start & Launch
+
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:devtools
+
+# Shorthand alias
+bun run app:omnitool
+```
+
+### 2. Launch Terminal CLI Multi-Tool
+```bash
+# Search using ripgrep mode
+bun run cli:devtools search "TODO" ./src
+
+# Find files using fd mode
+bun run cli:devtools find "*.test.ts"
+```
+
+---
+
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![DevTools Studio Desktop](../../screenshots/apps/devtools_studio_desktop.png) | ![DevTools Studio Responsive](../../screenshots/apps/devtools_studio_responsive.png) |
+
+---
+
+## 🧭 The 6 Integrated Developer Engines
 
 | Mode | Engine Name | Replaces Tool | Primary Use Case |
 | :-: | :--- | :--- | :--- |
 | **1** | **Ripgrep (rg)** | `rg` (ripgrep) | Ultra-fast recursive regex pattern search across codebases. |
-| **2** | **Fd (fd)** | `fd-find` | Fast file and directory discovery by name, regex, or extension. |
-| **3** | **Sd (sd)** | `sd` | Safe in-place regex find & replace with automatic backups. |
-| **4** | **Watchexec** | `watchexec` | Continuous filesystem watcher and automated command runner. |
-| **5** | **Rip (rip)** | `rm-improved` | Safe graveyard trash: moves files to `~/.Trash` instead of permanent deletion. |
-| **6** | **JQ** | `jq` | High-throughput JSON selector, path extraction, and formatting. |
+| **2** | **Fd Search** | `fd` (fd-find) | Lightning-fast glob/regex file & folder discovery. |
+| **3** | **Sd Replace** | `sd` (sed alternative) | Interactive regex find-and-replace with live visual diffs. |
+| **4** | **Rip Graveyard** | `rip` (rm-improved) | Safe file deletion with quarantine graveyard & unbury recovery. |
+| **5** | **Watchexec** | `watchexec` / `chokidar` | Automated task runner triggering tests/builds on file save. |
+| **6** | **JQ Query** | `jq` CLI | High-speed JSON inspection, projection, and formatting. |
 
 ---
 
-## 🖥️ User Interface Overview
+## 🛠️ Step-by-Step Practical Tutorials
 
-1. **Tool Switcher & Mode Bar**:
-   - Select any of the 6 engines from the dropdown. The control panels dynamically adapt to the active mode.
-   - Live readiness status pills for all 6 engines (`RG: Ready`, `FD: Ready`, `SD: Ready`, etc.).
-2. **Parameters & Search Input**:
-   - **Pattern / Query**: Enter regex search patterns, file masks, replacement strings, or JSON selectors.
-   - **Target Path**: Directory or file path to operate on (defaults to current project `./`).
-   - **Options**: Recursive search, case-sensitivity toggle, file extension filters.
-3. **Action Controls**:
-   - **⚡ Run Tool**: Executes the selected engine immediately.
-   - **Clear Output**: Resets the log display.
-   - **Copy Results**: Copies the formatted findings or execution log to clipboard.
-4. **Execution Console**:
-   - Terminal-style high-contrast output with line numbers, file paths, match highlights, and execution latency.
+### Tutorial: Switching Between Ripgrep and Sd in One Workspace
+1. Launch DevTools Studio Pro: `bun run app:devtools`.
+2. Select **Ripgrep (rg)** mode from the top navigation tabs.
+3. Search for `oldApiEndpoint` across `./src`. Notice matching lines appear with file paths and line numbers.
+4. Switch to **Sd Replace** mode.
+5. Enter `oldApiEndpoint` in Find and `newSecureApiEndpoint` in Replace.
+6. Review the unified diff preview showing green additions and red deletions.
+7. Click **Apply Replacement** to update files safely with automatic `.bak` backups.
 
 ---
 
-## 📖 Practical Tutorials
+## ⌨️ Complete Keyboard Shortcuts Reference
 
-### 1. Searching Code with the Ripgrep Engine
-1. Select **1. Ripgrep (rg) - Code Search** in the dropdown.
-2. In **Pattern**, type:
-   ```text
-   newSimpleWindow|addHeading
-   ```
-3. Set **Target Path** to `./applications`.
-4. Click **⚡ Run Tool**.
-5. Matches appear in the console with filename, line numbers, and syntax snippets.
-
-### 2. Finding Files with the Fd Engine
-1. Select **2. Fd (fd) - File & Directory Finder**.
-2. In **Pattern**, type:
-   ```text
-   *.test.ts
-   ```
-3. Click **⚡ Run Tool**.
-4. DevTools traverses the directory tree using fast native readdir primitives and lists all matching test suites.
-
-### 3. Safe Deletion with the Rip Graveyard Engine
-1. Select **5. Rip - Safe Trash Graveyard**.
-2. In **Target Path**, enter a temporary file (e.g. `./scratch/temp.log`).
-3. Click **⚡ Run Tool**.
-4. Rather than executing an irreversible `rm -rf`, Rip moves the item to macOS `~/.Trash`, allowing full recovery if needed.
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Cmd + 1..6** / **Ctrl + 1..6** | Global | Switch directly between the 6 engine modes |
+| **Cmd + Enter** / **Ctrl + Enter** | Active Mode | Execute search, replace, or query |
+| **Cmd + K** / **Ctrl + K** | Active Mode | Clear results table |
+| **Cmd + S** / **Ctrl + S** | Window | Save window configuration |
+| **F11** or **F** | Global | Toggle borderless fullscreen |
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **100% Native Bun & OS Primitives**: All 6 engines run in-process using `Bun.file`, `Bun.write`, `node:fs`, and regular expressions.
-- **Accidental Loss Prevention**: Mode 5 defaults to safe system trash. File replacements in Mode 3 verify file existence and permissions before writing.
-- **Large Codebase Safeguards**: Traversal depth limits and match caps prevent runaway searches from consuming excessive memory.
+## 💡 Pro Tips & Enterprise Best Practices
+- **Zero Toolchain Drift**: Because DevTools Studio Pro uses self-contained Bun primitives, your entire engineering team shares identical search, replace, and watch behavior across macOS (Apple Silicon & Intel), Linux, and Windows.

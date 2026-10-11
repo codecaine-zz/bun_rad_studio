@@ -1,91 +1,100 @@
-# 🔤 Regex Studio Pro -- User Guide
+# 🎯 Regex Studio Pro -- Complete Production User Guide
 
-**Regex Studio Pro** is an interactive regular expression testing, debugging, and code generation workbench. Built on V8/JSC's native RegExp engine, it provides real-time pattern matching, named and indexed capture group extraction, live substitution previews, and production-ready TypeScript code generation.
-
----
-
-## ⚡ Quick Start
-
-```bash
-bun run app:regex
+```
+Version: 2.4.0  •  Engine: Native V8 ECMAScript RegExp Engine  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:regex]  •  [Terminal CLI: bun run cli:regex]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**Regex Studio Pro** is an interactive regular expression testing, evaluation, match group dissection, and code generation workbench built natively for Bun RAD Studio. Designed to replace ad-supported online regex testers, it evaluates complex regular expressions in real time directly against your sample text with zero latency.
 
-1. **Pattern & Flags Configuration**:
-   - **Regular Expression**: Enter regex pattern (e.g. `([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})`).
-   - **Regex Flags Toggles**:
-     - `g` (Global - match all occurrences)
-     - `i` (Case Insensitive)
-     - `m` (Multiline)
-     - `s` (DotAll - allow `.` to match newlines)
-     - `u` (Unicode)
-   - **Preset Patterns**:
-     - Email Address
-     - Semantic Version (`v1.2.3`)
-     - URL / Web Address
-     - IPv4 Address
-     - ISO 8601 Date
-     - Slug / Identifier
-2. **Test String & Live Match Inspector**:
-   - **Test String Editor**: Multi-line area for sample text.
-   - **Match Count & Telemetry**: Reports total matches and capture groups with match indexes (`index`, `length`).
-   - **Capture Groups Table**: Shows each match, its full matched text, and individual capturing groups ($1, $2, etc.).
-3. **Regex Substitution Preview**:
-   - **Replacement Pattern**: Supports literal text and group placeholders (`$1`, `$2`, `$&`).
-   - **Substituted Result**: Displays real-time preview of the string after regex replacement.
-4. **Code Generator & Export**:
-   - **📋 Generate TypeScript Code**: Generates production-ready TypeScript snippets with error handling and types.
-   - **Export Matches to JSON**: Saves matches and capture groups to disk or clipboard.
+It features capture group breakdown tables, visual match highlighting, real-time string substitution previews, a built-in library of common production regex patterns, and instant code generation for TypeScript and JavaScript.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Extracting Email Usernames and Domains
-1. Select the **Email Address** preset or enter:
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:regex
+```
+
+### 2. Launch Terminal CLI Regex Evaluator
+```bash
+# Test regex pattern against string in terminal
+bun run cli:regex -p "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b" -t "test@example.com"
+```
+
+---
+
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Regex Studio Desktop](../../screenshots/apps/regex_studio_desktop.png) | ![Regex Studio Responsive](../../screenshots/apps/regex_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Regex Pattern & Flags Toolbar
+- **Regular Expression Pattern Input**: Text input for regex pattern (e.g. `(\w+):\s*(\d+)`).
+- **Flags Toggles**:
+  - `g` (Global): Find all matches rather than stopping at the first.
+  - `i` (Ignore Case): Case-insensitive matching.
+  - `m` (Multiline): `^` and `$` match beginning and end of each line.
+  - `s` (DotAll): Dot (`.`) matches newline characters.
+  - `u` (Unicode): Full Unicode character class matching.
+- **Pattern Presets Dropdown**: Instant presets for Email, URL, IPv4, UUID, SemVer, Dates, and Hex Colors.
+
+### 2. Test String & Live Visual Match Inspector
+- **Test String Editor**: Multi-line textarea to paste log files, source code, or sample inputs.
+- **Visual Match Highlighting**: Matches are color-coded in yellow/cyan with clear boundary markers.
+- **Match Telemetry Pill**: Displays total match count and evaluation duration in microseconds.
+
+### 3. Match Groups & Capture Table
+- **Interactive Match Table**: Lists Match Index, Full Match String, Start Index, End Index, and individual Capture Groups (`$1`, `$2`, etc.).
+- **Named Capture Groups**: Automatically detects and displays `(?<name>...)` capture groups by name.
+
+### 4. String Substitution & Code Generator
+- **Replacement String Input**: Type substitution pattern with capture references (`$1`, `$2`, `$<name>`).
+- **Substitution Preview Pane**: Live display of the replaced string.
+- **TypeScript Code Generator**: Instant code snippet ready to paste into your codebase.
+
+---
+
+## 🛠️ Step-by-Step Practical Tutorials
+
+### Tutorial: Parsing Key-Value Configurations with Capture Groups
+1. Launch Regex Studio Pro: `bun run app:regex`.
+2. In the **Pattern** field, enter:
    ```regex
-   ([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})
+   ^([A-Z_]+)=["']?([^"'
+]+)["']?$
    ```
-2. Paste a list of emails into the **Test String**:
+3. Enable flags: `g` (Global) and `m` (Multiline).
+4. Paste sample `.env` text into **Test String**:
    ```text
-   support@company.com
-   dev-lead_99@subdomain.example.org
+   DATABASE_PORT=5432
+   NODE_ENV="production"
+   API_KEY='secret_token_123'
    ```
-3. Enable flags `g` and `i`.
-4. Click **⚡ Evaluate Regex**.
-5. The capture group table will separate:
-   - Match 1: Full `support@company.com` | Group 1: `support` | Group 2: `company.com`
-   - Match 2: Full `dev-lead_99@subdomain.example.org` | Group 1: `dev-lead_99` | Group 2: `subdomain.example.org`
-
-### 2. Performing Pattern Replacements
-1. In **Replacement Pattern**, enter:
-   ```text
-   user: $1 (domain: $2)
-   ```
-2. The substitution preview immediately renders:
-   ```text
-   user: support (domain: company.com)
-   user: dev-lead_99 (domain: subdomain.example.org)
-   ```
-
-### 3. Generating TypeScript Code
-1. Click **📋 Generate TypeScript Code**.
-2. Regex Studio Pro outputs ready-to-use code:
-   ```ts
-   const pattern = /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
-   const matches = Array.from(input.matchAll(pattern)).map(match => ({
-     fullMatch: match[0],
-     group1: match[1],
-     group2: match[2],
-     index: match.index,
-   }));
-   ```
+5. Review the **Capture Groups Table**:
+   - Match 1: `$1 = DATABASE_PORT`, `$2 = 5432`
+   - Match 2: `$1 = NODE_ENV`, `$2 = production`
+   - Match 3: `$1 = API_KEY`, `$2 = secret_token_123`
+6. Click **Copy TypeScript Snippet** to paste working parser code into your project.
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **ReDoS (Catastrophic Backtracking) Protection**: Evaluates patterns with safety bounds to protect the UI from malicious exponential backtracking patterns.
-- **Instant Syntax Validation**: Incomplete or invalid regex patterns display detailed syntax error messages immediately without crashing the application.
+## ⌨️ Complete Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Cmd + Enter** / **Ctrl + Enter** | Pattern / Test String | Force immediate re-evaluation |
+| **Cmd + Shift + P** | Pattern Bar | Open Pattern Presets menu |
+| **Cmd + Shift + C** | Generator | Copy TypeScript code snippet |
+| **F11** or **F** | Global | Toggle borderless fullscreen |

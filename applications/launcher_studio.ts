@@ -168,10 +168,22 @@ const KNOWN_STUDIO_META: Record<
     description: "Real-time dual-pane WYSIWYG Markdown editor with live HTML preview & exports",
   },
   calculator_studio: {
-    displayName: "Universal Calculator & Computing Studio",
+    displayName: "Universal Calculator & IntuitionLab Studio",
     category: "Productivity & Text",
     icon: "🧮",
-    description: "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab & calculus studio",
+    description: "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
+  },
+  codecaine_bros_studio: {
+    displayName: "Codecaine Bros. Arcade",
+    category: "Games & Entertainment",
+    icon: "🍄",
+    description: "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+  },
+  connect4_studio: {
+    displayName: "Cyberpunk Connect 4",
+    category: "Games & Entertainment",
+    icon: "🔴",
+    description: "Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
   },
   dr_codecaine_studio: {
     displayName: "Dr. Codecaine Arcade",
@@ -191,17 +203,35 @@ const KNOWN_STUDIO_META: Record<
     icon: "👾",
     description: "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
   },
+  maze_generator_studio: {
+    displayName: "Cyberpunk Maze Runner",
+    category: "Games & Entertainment",
+    icon: "🌀",
+    description: "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
+  },
   pacman_studio: {
     displayName: "Cyberpunk Pac-Man Arcade",
     category: "Games & Entertainment",
     icon: "🟡",
     description: "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
   },
+  pong_studio: {
+    displayName: "Neon Cyber Pong",
+    category: "Games & Entertainment",
+    icon: "🏓",
+    description: "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+  },
   rodents_revenge_studio: {
     displayName: "Rodent's Revenge Deluxe",
     category: "Games & Entertainment",
     icon: "🧀",
     description: "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+  },
+  tictactoe_studio: {
+    displayName: "Neon Tic-Tac-Toe Arcade",
+    category: "Games & Entertainment",
+    icon: "❌",
+    description: "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
   },
   word_search_studio: {
     displayName: "Neon Word Search Labyrinth",

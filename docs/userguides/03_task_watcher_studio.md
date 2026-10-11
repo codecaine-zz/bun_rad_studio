@@ -1,72 +1,96 @@
-# ⏱️ Task Watcher Studio -- User Guide
+# ⏱️ Task Watcher Studio -- Complete Production User Guide
 
-**Task Watcher Studio** is a native file-system change watcher, test runner, and task execution pipeline. Built entirely on Node's recursive `fs.watch` and `Bun.spawn`, it eliminates third-party watcher binaries (such as `watchexec` or `chokidar`) while providing sub-millisecond change detection, smart debounce buffers, and live execution logging.
-
----
-
-## ⚡ Quick Start
-
-```bash
-# Launch task watcher
-bun run app:watcher
-
-# Launch backwards-compatible alias
-bun run app:watchexec
+```
+Version: 2.4.0  •  Engine: Native fs.watch & Bun.spawn  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:watcher]  •  [Terminal CLI: bun run cli:watcher]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**Task Watcher Studio** is an ultra-fast, native filesystem watcher, automated test runner, and task execution workstation. Engineered on top of Node's recursive `fs.watch` primitive and `Bun.spawn`, it completely eliminates heavyweight third-party watcher dependencies like `chokidar` or `watchexec`.
 
-1. **Watch Target Configuration**:
-   - **Watch Directory**: Relative or absolute path to the folder to monitor (e.g. `./src` or `./tests`).
-   - **Execute Command**: The shell command or script to trigger on file changes (e.g. `bun test`, `bun run build`, `tsc --noEmit`).
-   - **File Extensions**: Comma-separated list of extensions to include (e.g. `ts,js,json,html,css`).
-   - **Ignore Patterns**: Comma-separated list of path substrings or directories to ignore (e.g. `node_modules,.git,dist,.temp`).
-2. **Execution Options**:
-   - **Clear Screen on Run**: Automatically clears the output log before each task execution for pristine readability.
-   - **Show High-Resolution Timestamps**: Prepends ISO timestamps with millisecond precision to all execution logs.
-3. **Control Actions**:
-   - **▶️ Start Native Watcher**: Engages the recursive filesystem watcher and enters live monitoring mode.
-   - **⏹️ Stop Watcher**: Disengages file handles and stops background triggers safely.
-   - **⚡ Run Command Now**: Manually fires the configured command immediately without waiting for a file change.
-   - **Clear Console**: Empties the execution log console.
-4. **Execution Console & Status Bar**:
-   - High-contrast scrollable log window displaying stdout, stderr, exit codes, and debounce timing.
-   - Status bar indicating current watcher state (`Active` / `Idle`), trigger counts, and last execution latency.
+It provides sub-millisecond file change detection, smart debounce buffers, customizable extension white-lists, directory exclusion rules, and a streaming desktop console with microsecond execution timings.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Continuous Automated Test-Driven Development (TDD)
-1. Set **Watch Directory** to:
-   ```text
-   ./src, ./tests
-   ```
-2. Set **Execute Command** to:
-   ```text
-   bun test
-   ```
-3. Set **File Extensions** to:
-   ```text
-   ts,tsx
-   ```
-4. Click **▶️ Start Native Watcher**.
-5. Edit any file in your code editor. Task Watcher Studio will detect the file change, buffer events for 150ms to prevent duplicate triggers during editor saves, and run `bun test` in the execution console.
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:watcher
 
-### 2. Continuous TypeScript Type Checking
-1. Set **Execute Command** to:
-   ```text
-   bun x tsc --noEmit
-   ```
-2. Check **Clear Screen on Run**.
-3. Click **▶️ Start Native Watcher**.
-4. Any type errors or syntax mistakes will appear immediately in the console as soon as you save.
+# Shorthand alias
+bun run app:watch
+```
+
+### 2. Launch Terminal CLI Watcher Mode
+```bash
+# Watch current directory and run tests on save
+bun run cli:watcher -d ./src -e "bun test"
+
+# Watch with specific extension filters
+bun run cli:watcher -d ./ -x "ts,js,json" -e "bun run build"
+```
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **Adaptive Event Debouncing**: Prevents cascading double-triggers when modern IDEs perform multi-file atomic saves or temporary file swaps.
-- **Graceful Child Process Termination**: If a long-running test or build process is still running when a new file change occurs, Task Watcher terminates the stale process with `SIGTERM` before spawning the new run.
-- **Recursive Directory Handling**: Handles deep project directory hierarchies safely on macOS FSEvents with zero external dependencies.
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Task Watcher Desktop](../../screenshots/apps/watcher_studio_desktop.png) | ![Task Watcher Responsive](../../screenshots/apps/watcher_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Watch Target Configuration Bar
+- **Watch Directory Path**: Input folder to monitor recursively (e.g. `./src`, `./applications`, or absolute path).
+- **Execution Command**: Shell command to trigger whenever a matching file changes (e.g., `bun test`, `bun run build`, `tsc --noEmit`).
+- **File Extensions Filter**: Comma-separated list of extensions to monitor (e.g., `ts,tsx,js,json,css,html`).
+- **Ignore Patterns**: Comma-separated list of paths or subdirectories to ignore (e.g. `node_modules,.git,dist,.temp,build`).
+- **Debounce Delay (ms)**: Debounce buffer window (default `300ms`) to coalesce rapid multi-file IDE saves into a single run.
+
+### 2. Execution Control Panel
+- **▶ Start Watching Button**: Starts the native background recursive file watcher.
+- **⏹ Stop Watching Button**: Gracefully stops the watcher and clears active timeouts.
+- **⚡ Trigger Now Button**: Manually forces an immediate execution of the configured command without touching files.
+- **🧹 Clear Console Button**: Wipes the streaming terminal output log.
+
+### 3. Live Streaming Terminal Console
+- **Output Window**: High-contrast, dark-mode terminal screen streaming `stdout` and `stderr` from the spawned process.
+- **Status Badges**: Shows whether the last execution passed (green check) or failed with non-zero exit code (red alert).
+- **Execution History Table**: Records timestamp, changed file path, event type (`change`, `rename`, `add`), and process duration in milliseconds.
+
+---
+
+## 🛠️ Step-by-Step Practical Tutorials
+
+### Tutorial: Setting Up Instant Test-Driven Development (TDD)
+1. Launch Task Watcher Studio: `bun run app:watcher`.
+2. Set **Watch Directory**: `./src`.
+3. Set **Execution Command**: `bun test`.
+4. Set **File Extensions**: `ts,tsx`.
+5. Set **Ignore Patterns**: `node_modules,dist,.git`.
+6. Click **▶ Start Watching**.
+7. Edit any test file in your editor and hit save. Task Watcher Studio instantly captures the event, runs your test suite, and displays colored terminal output in the GUI.
+
+---
+
+## ⌨️ Complete Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Space** / **Enter** | Toolbar | Toggle Watcher Start/Stop |
+| **Cmd + T** / **Ctrl + T** | Toolbar | Trigger Command Immediately |
+| **Cmd + K** / **Ctrl + K** | Console | Clear execution log |
+| **Cmd + S** / **Ctrl + S** | Window | Save watcher presets |
+| **F11** or **F** | Global | Toggle borderless fullscreen |
+
+---
+
+## 💡 Pro Tips & Enterprise Best Practices
+- **Tune Debounce for IDEs**: Modern IDEs like VS Code often perform multi-stage saves (temp file write, rename, formatting). Setting debounce to `250ms–350ms` prevents duplicate execution runs.
+- **Ignore Heavy Folders**: Always include `node_modules` and `.git` in your ignore list to save CPU cycles and prevent spurious file event storms.

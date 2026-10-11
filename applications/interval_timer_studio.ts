@@ -74,58 +74,62 @@ let cachedInlinedHtml: string | null = null;
  * Generates the complete HTML for Interval Timer with all exercise animations inlined
  * as Base64 data URIs and desktop shortcuts + external link interceptor injected.
  */
-export function generateIntervalTimerStudioHtml(): string {
-  if (cachedInlinedHtml) {
-    return cachedInlinedHtml;
-  }
+export function generateIntervalTimerStudioHtml(options: { apiUrl?: string } = {}): string {
+  if (!cachedInlinedHtml) {
+    const assetsDir = getIntervalTimerAssetsDir();
+    const indexPath = join(assetsDir, "index.html");
 
-  const assetsDir = getIntervalTimerAssetsDir();
-  const indexPath = join(assetsDir, "index.html");
+    let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Interval Timer Suite</h1>";
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Interval Timer Suite</h1>";
-
-  // 1. Inline all animation GIFs and JPG diagrams from assets/animations/
-  const animDir = join(assetsDir, "assets/animations");
-  if (existsSync(animDir)) {
-    try {
-      const files = readdirSync(animDir);
-      for (const f of files) {
-        const fullPath = join(animDir, f);
-        const ext = f.endsWith(".jpg") ? "jpeg" : "gif";
-        const base64 = readFileSync(fullPath).toString("base64");
-        const dataUri = `data:image/${ext};base64,${base64}`;
-        html = html.replaceAll(`assets/animations/${f}`, dataUri);
+    // 1. Inline all animation GIFs and JPG diagrams from assets/animations/
+    const animDir = join(assetsDir, "assets/animations");
+    if (existsSync(animDir)) {
+      try {
+        const files = readdirSync(animDir);
+        for (const f of files) {
+          const fullPath = join(animDir, f);
+          const ext = f.endsWith(".jpg") ? "jpeg" : "gif";
+          const base64 = readFileSync(fullPath).toString("base64");
+          const dataUri = `data:image/${ext};base64,${base64}`;
+          html = html.replaceAll(`assets/animations/${f}`, dataUri);
+        }
+      } catch (e) {
+        console.warn("Notice: could not inline animation files:", e);
       }
-    } catch (e) {
-      console.warn("Notice: could not inline animation files:", e);
     }
+
+    // 2. Inline favicon.png
+    const faviconPath = join(assetsDir, "favicon.png");
+    if (existsSync(faviconPath)) {
+      try {
+        const favB64 = readFileSync(faviconPath).toString("base64");
+        const favUri = `data:image/png;base64,${favB64}`;
+        html = html.replaceAll("/favicon.png", favUri);
+        html = html.replaceAll("favicon.png", favUri);
+      } catch {}
+    }
+
+    const desktopHooks = `
+    <script>
+  ${getWindowShortcutsScript()}
+    </script>
+    `;
+
+    if (html.includes("</body>")) {
+      html = html.replace("</body>", `${desktopHooks}\n</body>`);
+    } else {
+      html += desktopHooks;
+    }
+
+    cachedInlinedHtml = html;
   }
 
-  // 2. Inline favicon.png
-  const faviconPath = join(assetsDir, "favicon.png");
-  if (existsSync(faviconPath)) {
-    try {
-      const favB64 = readFileSync(faviconPath).toString("base64");
-      const favUri = `data:image/png;base64,${favB64}`;
-      html = html.replaceAll("/favicon.png", favUri);
-      html = html.replaceAll("favicon.png", favUri);
-    } catch {}
+  let finalHtml = cachedInlinedHtml;
+  if (options.apiUrl) {
+    const apiHook = `\n    <script>window.__STUDIO_API_URL__ = ${JSON.stringify(options.apiUrl)};</script>\n`;
+    finalHtml = finalHtml.replace("<head>", `<head>${apiHook}`);
   }
-
-  const desktopHooks = `
-  <script>
-${getWindowShortcutsScript()}
-  </script>
-  `;
-
-  if (html.includes("</body>")) {
-    html = html.replace("</body>", `${desktopHooks}\n</body>`);
-  } else {
-    html += desktopHooks;
-  }
-
-  cachedInlinedHtml = html;
-  return html;
+  return finalHtml;
 }
 
 /**
@@ -153,15 +157,7 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
         return new Response(null, { headers: corsHeaders });
       }
 
-      // Root / Index
-      if (pathname === "/" || pathname === "/index.html") {
-        const html = generateIntervalTimerStudioHtml();
-        return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
-        });
-      }
-
-      // Playlist Sync API endpoint
+      // Playlist Sync API endpoint (?action=sync_codecaine_playlist or /api/sync_playlist)
       if (url.searchParams.get("action") === "sync_codecaine_playlist" || pathname === "/api/sync_playlist") {
         const cachePath = join(assetsDir, "cache/codecaine_playlist.json");
         let tracks: any[] = [];
@@ -174,6 +170,14 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
           { success: true, count: tracks.length, tracks },
           { headers: corsHeaders }
         );
+      }
+
+      // Root / Index
+      if (pathname === "/" || pathname === "/index.html") {
+        const html = generateIntervalTimerStudioHtml({ apiUrl: `http://${host}:${server.port}` });
+        return new Response(html, {
+          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+        });
       }
 
       // Favicon Icon
@@ -231,9 +235,6 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
     fullscreen,
     generateHtml: () => generateIntervalTimerStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Interval Timer Suite...");
-      const html = generateIntervalTimerStudioHtml();
-
       let srv: any = null;
       try {
         srv = startIntervalTimerStudioServer({
@@ -247,6 +248,8 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
       } catch (err: any) {
         console.warn("Local server note:", err?.message || err);
       }
+
+      const html = generateIntervalTimerStudioHtml({ apiUrl: app.url });
 
       try {
         const webview = new Webview(true, {

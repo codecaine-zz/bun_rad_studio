@@ -1,73 +1,50 @@
-# 📝 Markdown Studio Pro -- User Guide
+# 📝 Markdown Studio Pro -- Complete Production User Guide
 
-**Markdown Studio Pro** is a split-pane technical documentation and release-notes authoring workstation. Built with native Bun file streaming and instant DOM synchronization, it provides a distraction-free Markdown editor, real-time formatted preview, document statistics, and standalone styled HTML report export.
-
----
-
-## ⚡ Quick Start
-
-```bash
-bun run app:markdown
+```
+Version: 2.4.0  •  Engine: Native GFM Parser & HTML Renderer  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:markdown]  •  [Terminal CLI: bun run cli:markdown]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**Markdown Studio Pro** is an Apple-grade split-pane Markdown editor, document generator, and technical documentation studio built natively for Bun RAD Studio. It combines a distraction-free monospace Markdown editor with a synchronized, pixel-perfect GitHub Flavored Markdown (GFM) preview pane.
 
-1. **Document Toolbar & Markdown Helpers**:
-   - Quick snippet injection buttons:
-     - **# H1 / ## H2 / ### H3**: Headings
-     - **Bold / Italic**: Text formatting
-     - **`Code` / ``` Block**: Inline code and syntax-highlighted blocks
-     - **Table**: Inserts an aligned 3x3 GitHub-flavored Markdown table
-     - **Alert**: Inserts GitHub-style note/warning/important callouts
-     - **Link / Image**: Markdown hyperlinking helpers
-2. **Dual-Pane Live Authoring Canvas**:
-   - **Left Pane (Markdown Editor)**: High-speed text editor with auto-indent, line numbers, and syntax ergonomics.
-   - **Right Pane (Live Preview)**: Formatted, typography-styled HTML preview updated in real time as you type.
-3. **Document Telemetry & Reading Metrics**:
-   - **Word Count**: Real-time total word count.
-   - **Character Count**: Exact character count including whitespace.
-   - **Estimated Reading Time**: Calculated at standard 200 words-per-minute technical reading pace (e.g. `3 min read`).
-4. **Export & Storage Actions**:
-   - **💾 Save Markdown File**: Saves `.md` file to disk.
-   - **🌐 Export Standalone HTML**: Compiles the document into a self-contained, beautifully styled HTML document with embedded CSS.
-   - **📋 Copy Raw HTML**: Copies the converted HTML markup to clipboard.
+It features live word and character counters, estimated reading times, interactive task lists, syntax-highlighted code blocks, and one-click export to standalone, beautifully styled HTML documents.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Authoring API Documentation with Tables and Code Blocks
-1. Launch Markdown Studio Pro:
-   ```bash
-   bun run app:markdown
-   ```
-2. Click **Table** on the toolbar. A template table is injected:
-   ```markdown
-   | Parameter | Type | Description | Required |
-   | :--- | :--- | :--- | :--- |
-   | `id` | `string` | Unique identifier | Yes |
-   | `limit` | `number` | Maximum items to return | No |
-   ```
-3. Click **``` Block** to add a TypeScript request example:
-   ```markdown
-   ```typescript
-   const response = await fetch("/api/v1/users?limit=10");
-   const data = await response.json();
-   ```
-   ```
-4. The right-hand preview instantly reflects your tables and code formatting.
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:markdown
+```
 
-### 2. Exporting a Styled Standalone HTML Report for Stakeholders
-1. Author or paste your Markdown document.
-2. Click **🌐 Export Standalone HTML**.
-3. Choose your destination file (e.g. `./reports/architecture_review.html`).
-4. The generated HTML file is fully self-contained with modern Inter typography, responsive tables, and dark/light mode compatibility. It can be opened in any browser or emailed to stakeholders without external dependencies.
+### 2. Launch Terminal CLI Markdown Exporter
+```bash
+# Render markdown file to styled standalone HTML
+bun run cli:markdown README.md -o ./dist/README.html
+```
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **Local-Only Rendering**: Zero telemetry or document text is sent to third-party CDNs.
-- **XSS Sanitization**: Script tags and unescaped dangerous HTML entities are safely stripped from the live preview.
-- **Automatic Session Backup**: Unsaved edits are periodically persisted to application state storage to prevent accidental data loss.
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Markdown Studio Desktop](../../screenshots/apps/markdown_studio_desktop.png) | ![Markdown Studio Responsive](../../screenshots/apps/markdown_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Editor Toolbar & Document Statistics
+- **Document Telemetry Pill**: Live count of Words, Characters, Paragraphs, and Estimated Reading Time (e.g. `1,240 words • 5 min read`).
+- **Formatting Chips**: One-click insertion chips for Bold (`**`), Italic (`*`), Headers (`#`), Tables, Code Blocks (````), and Checkboxes (`- [ ]`).
+- **💾 Export HTML**: Generates a self-contained, offline HTML file with embedded typography and dark-mode styles.
+
+### 2. Synchronized Dual-Pane Workspace
+- **Editor (Left Pane)**: Fast textarea with line wrapping, tab indentation, and undo/redo support.
+- **Live Preview (Right Pane)**: Rendered GFM preview with custom typography, clean tables, blockquotes, and alerts.

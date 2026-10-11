@@ -35,6 +35,11 @@ import { createSubfinderStudio } from "../applications/subfinder_studio";
 import { createTokeiStudio } from "../applications/tokei_studio";
 import { createLauncherStudio } from "../applications/launcher_studio";
 import { createDrCodecaineStudio } from "../applications/dr_codecaine_studio";
+import { createCodecaineBrosStudio } from "../applications/codecaine_bros_studio";
+import { createConnect4Studio } from "../applications/connect4_studio";
+import { createMazeStudio } from "../applications/maze_generator_studio";
+import { createPongStudio } from "../applications/pong_studio";
+import { createTicTacToeStudio } from "../applications/tictactoe_studio";
 import { createIntervalTimerStudio } from "../applications/interval_timer_studio";
 import { createLoloStudio } from "../applications/lolo_studio";
 import { createPacmanStudio } from "../applications/pacman_studio";
@@ -91,6 +96,11 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "codefreelance_theme": createCodeFreelanceShowcase,
   "context_menu_studio": createContextMenuAndMenuDemo,
   "dr_codecaine": createDrCodecaineStudio,
+  "codecaine_bros": createCodecaineBrosStudio,
+  "connect4": createConnect4Studio,
+  "maze_generator": createMazeStudio,
+  "pong": createPongStudio,
+  "tictactoe": createTicTacToeStudio,
   "interval_timer": createIntervalTimerStudio,
   "lolo": createLoloStudio,
   "pacman": createPacmanStudio,
@@ -133,13 +143,13 @@ for (const [name, factory] of targetEntries) {
 
   // A. Desktop High-Resolution (exact app window dimensions)
   const desktopOut = join(OUTPUT_DIR, `${name}_desktop.png`);
-  const cmdDesktop = `"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${desktopOut}" --window-size=${winW},${winH} "file://${tempHtmlPath}" 2>/dev/null`;
+  const cmdDesktop = `"${CHROME_BIN}" --headless=new --disable-gpu --no-sandbox --user-data-dir="/tmp/chrome_app_shot_profile" --screenshot="${desktopOut}" --window-size=${winW},${winH} "file://${tempHtmlPath}" 2>/dev/null`;
   Sys.exec(cmdDesktop);
 
   // B. Responsive Medium Desktop / Compact View (960px width)
   const respH = Math.max(720, Math.round(winH * (960 / winW)));
   const responsiveOut = join(OUTPUT_DIR, `${name}_responsive.png`);
-  const cmdResponsive = `"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${responsiveOut}" --window-size=960,${respH} "file://${tempHtmlPath}" 2>/dev/null`;
+  const cmdResponsive = `"${CHROME_BIN}" --headless=new --disable-gpu --no-sandbox --user-data-dir="/tmp/chrome_app_shot_profile" --screenshot="${responsiveOut}" --window-size=960,${respH} "file://${tempHtmlPath}" 2>/dev/null`;
   Sys.exec(cmdResponsive);
 
   const exists = existsSync(desktopOut);

@@ -1,79 +1,81 @@
-# 🏰 Adventures of Lolo Remaster -- User Guide
+# 🏰 Adventures of Lolo: Cyberpunk Remaster -- Complete Production User Guide
 
-**Adventures of Lolo Remaster** is a modern cyberpunk desktop reimagining of the iconic HAL Laboratory NES puzzle classic. Featuring high-definition procedural puzzle chambers, emerald heart collection, obstacle block physics, enemy AI states (Snakey, Gol, Skull, Alma, Medusa, Don Medusa), synthesized 8-bit sound effects, and an interactive in-game instruction manual, this workstation delivers timeless brain-teasing puzzle mechanics to Bun RAD Studio.
+```
+Version: 4.8.0  •  Engine: Native HTML5 Canvas & Web Audio Chiptune Synthesizer  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:lolo]  •  [Headless Server: bun run applications/lolo_studio.ts --server]
+```
 
 ---
 
-## ⚡ Quick Start
+## 🌟 Executive Overview
+**Adventures of Lolo: Cyberpunk Remaster** is a AAA procedural logic puzzle arcade game built natively for Bun RAD Studio. Reimagining the classic HAL Laboratory / Nintendo puzzle series inside a dark cyberpunk universe, it combines 100 mathematical logic chambers, autonomous hostile drone AI, temporal rewinding, an AI holographic pathfinding solver, and an in-game level editor.
 
-### Launch Desktop Application
+You play as **LOLO** (Low-latency Optical Logic Operative), navigating the impenetrable **Eggerland Megastructure Citadel** to decrypt memory cores, outwit rogue sentry algorithms, and rescue **Princess Lala**.
+
+---
+
+## 🚀 Quick Start & Launch
+
 ```bash
+# Standard desktop launch
 bun run app:lolo
-```
 
-### Launch Headless Web Server
-```bash
+# Launch headless server
 bun run applications/lolo_studio.ts --server
 ```
 
 ---
 
-## 🖼️ Application Previews
+## 🖼️ Visual Interface Tour
 
 | High-Resolution Desktop (1280×850) | Responsive Viewport (960×720) |
 | :---: | :---: |
-| ![Adventures of Lolo Desktop](../../screenshots/apps/lolo_desktop.png) | ![Adventures of Lolo Responsive](../../screenshots/apps/lolo_responsive.png) |
+| ![Lolo Remaster Desktop](../../screenshots/apps/lolo_desktop.png) | ![Lolo Remaster Responsive](../../screenshots/apps/lolo_responsive.png) |
 
 ---
 
-## 🧩 Gameplay Mechanics & Objectives
+## 🕹️ Core Objectives & Operational Sequence
 
-### 1. The Core Puzzle Loop
-- **Heart Framer Collection**: Lolo must traverse each room and collect every Heart Framer scattered across the floor grid.
-- **Chest Unlock**: Collecting the final Heart Framer unlocks the Great Jewel Chest.
-- **Room Exit**: Grabbing the jewel banishes or neutralizes remaining monsters and opens the chamber door to advance to the next level.
+1. **Collect All Heart Framers (Memory Cores)**:
+   - Each chamber contains glowing Heart Framers. You must collect every one on the grid to unlock the central chest.
+   - **Plasma Ammo Batteries**: Certain Heart Framers contain compressed plasma batteries granting **2 Plasma Stasis Blaster shots**. Conserve shots carefully!
+2. **Decrypt the Jewel Chest (Quantum Key Recovery)**:
+   - Collecting the final Heart Framer opens the Jewel Chest.
+   - Stepping onto the open chest extracts the decryption key, immediately freezes all hostiles into permanent harmless stasis, and unlocks the extraction gate.
+3. **Evacuate Through the Warp Gate**:
+   - Exit through the opened door along the upper wall to advance to the next chamber.
 
-### 2. Magic Shots & Monster Manipulation
-- **Magic Shots**: Certain Heart Framers award Magic Shots (displayed in the top HUD).
-- **Egg Encapsulation**: Shooting an enemy with a magic shot encases it in an egg for several seconds.
-- **Egg Pushing & Rafting**: Lolo can push egg-encased enemies into rivers to use as temporary rafts or block deadly line-of-sight attacks (such as Medusa gaze).
-- **Secondary Shot (Banishment)**: Shooting an already-encased egg blasts it off the board. It will respawn in its original position after a cooldown.
+---
 
-### 3. Obstacles & Hazards
-- **Emerald Framers (Blocks)**: Movable green blocks that can be pushed (not pulled) to construct barriers, redirect enemy pathways, or shield against Medusa line of sight.
-- **One-Way Arrows**: Directional tiles that can only be crossed in the indicated arrow direction.
-- **Lava & Water Tiles**: Lethal environmental hazards that require rafts or bridges to cross safely.
+## 👾 Hostile Threat Bestiary (9 Drone Classes)
 
-### 4. Enemy AI Rogues Gallery
-- **Snakey**: Passive green serpents that serve as harmless obstacles and convenient movable eggs.
-- **Gol**: Dormant fire-breathing dragons that awaken and shoot fireballs once all hearts are collected.
-- **Skull**: Fast-charging skeletal monsters that awaken and pursue Lolo once all hearts are gathered.
-- **Alma**: Aggressive red armadillos that patrol the chamber and curl into bowling balls upon spotting Lolo.
-- **Medusa**: Immobile stone gorgons that instantly kill Lolo if he crosses their unbroken vertical or horizontal line of sight.
-- **Don Medusa**: Patrolling sword-wielding gorgons that sweep along corridors with instant-kill line of sight.
+| Drone Class | Identity | Visual | Behavior & Countermeasures |
+| :--- | :--- | :--- | :--- |
+| **Snakey** | Static Repulsor | Green Serpent | Passive sentinel. Does not move or attack, but blocks passages. Shoot to encase into pushable egg and use as a shield or bridge. |
+| **Gol** | Heat Plasma Sentry | Red Dragon | Dormant until the final Heart Framer is collected. Once awake, fires fatal high-speed fireballs if you cross its direct line of sight. |
+| **Skull** | Skeletal Stalker | Brown Bone Drone | Remains dormant until the Jewel Chest is unlocked, then awakens and relentlessly charges directly at Lolo. |
+| **Alma** | Rolling Sentry | Red Armadillo | Actively patrols corridors and rolls toward Lolo at high speed. Block its movement with emerald prisms or eggs. |
+| **Medusa** | Stare Cannon | Gray Gorgon | Immobile turret that instantly incinerates Lolo with lethal line-of-sight laser beams. Must be obstructed with blocks or eggs. |
+| **Don Medusa** | Kinetic Laser Sentry | Green Spike Drone | Patrols back and forth along a fixed axis, firing lethal line-of-sight lasers in all 4 cardinal directions. |
+| **Leeper** | Fatigue Parasite | Green Hopper | Hops toward Lolo. If it touches Lolo, it falls permanently asleep, turning into an immovable obstacle that can trap you if mismanaged. |
+| **Rocky** | Inertial Bulldozer | Gray Golem | Charges forward and pushes Lolo against obstacles or traps him in corners. Slow-moving and easily dodged. |
+| **King Egger** | Citadel Mainframe | Rogue Core | The supreme Citadel boss requiring multi-stage puzzle mechanics and precise timing to defeat. |
 
 ---
 
 ## ⌨️ Desktop Keyboard & Gamepad Controls
 
-| Action | Primary Key | Secondary Key |
+| Key / Input | Category | Tactical Function |
 | :--- | :--- | :--- |
-| **Move Up** | `↑` Up Arrow | `W` |
-| **Move Down** | `↓` Down Arrow | `S` |
-| **Move Left** | `←` Left Arrow | `A` |
-| **Move Right** | `→` Right Arrow | `D` |
-| **Magic Shot** | `Space` | `Z` / `J` |
-| **Suicide / Restart Chamber** | `K` | `R` |
-| **Open Integrated Manual** | `M` | `H` |
-| **Toggle Sound FX** | `U` | — |
-| **Toggle Fullscreen** | `F` | `F11` |
-
----
-
-## 📖 Integrated Game Manual
-
-Adventures of Lolo Remaster features an integrated offline instruction booklet accessible via the **Manual** button in the header or by pressing `M`. The manual details:
-- Complete monster compendium and behavioral attack patterns.
-- Heart framer and magic shot mechanics.
-- River crossing and rafting techniques.
-- Medusa line-of-sight defense strategies.
+| **WASD** / **Arrow Keys** | Movement | Move Lolo; push alloy blocks, emerald prisms, and eggs along paths. |
+| **Space** / **X** | Combat | **Plasma Stasis Blaster**: 1st shot turns enemy into pushable egg; 2nd shot disintegrates it. |
+| **Z** | Tactical | **Temporal Rewind (Undo)**: Rewinds time by 1 move with unlimited memory and zero penalty. |
+| **R** | Tactical | **Chamber Reset**: Resets the current chamber to initial layout. |
+| **H** | Intelligence | **Holographic Ghost Guide**: Toggles AI mathematical shortest-path solver. |
+| **M** | Navigation | **Sector Map**: Opens the 5-sector tactical campaign overview. |
+| **L** | Navigation | **Level Selector**: Jump to any of the 100 unlocked operations. |
+| **E** | Creative | **Architect Studio**: Launch built-in custom level editor. |
+| **D** | Challenge | **Daily Cyber Hack**: Loads globally synchronized daily puzzle. |
+| **O** | Procedural | **Random Synthesis Lab**: Generates mathematically verified random chambers. |
+| **F1** or **?** | System | Open in-game tactical field manual. |
+| **F11** or **F** | Global | Toggle borderless fullscreen display. |

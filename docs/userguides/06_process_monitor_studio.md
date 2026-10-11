@@ -1,66 +1,95 @@
-# 📊 Process Monitor Studio -- User Guide
+# 📊 Process Monitor Studio -- Complete Production User Guide
 
-**Process Monitor Studio** is a native macOS process explorer and activity monitor designed for developers. It provides real-time visibility into running operating system processes, memory footprint, CPU utilization, parent PIDs, and process management controls with zero third-party dependencies.
-
----
-
-## ⚡ Quick Start
-
-```bash
-# Launch Process Monitor Studio
-bun run app:process
-
-# Launch backwards-compatible alias
-bun run app:tasks
+```
+Version: 2.4.0  •  Engine: Native macOS ps / sysinfo Subsystem  •  Dependencies: 0  •  Offline: 100%
+Launchers: [Desktop GUI: bun run app:process]  •  [Terminal CLI: bun run cli:process]
 ```
 
 ---
 
-## 🖥️ User Interface Overview
+## 🌟 Executive Overview
+**Process Monitor Studio** is an enterprise-grade desktop system task manager and process telemetry workstation built natively for Bun RAD Studio. Designed as a developer-focused alternative to macOS Activity Monitor and Linux `htop`, it provides live process inspection, PID search, CPU% and RSS memory telemetry, listening socket discovery, and safe process termination signals (`SIGTERM`, `SIGKILL`).
 
-1. **Header Bar & Global Metrics**:
-   - System CPU architecture, active process count, total system memory allocation.
-   - Theme switcher, auto-save window state, and window centering.
-2. **Process Search & Filters**:
-   - **Filter Query**: Filter process table in real time by process name or executable command (e.g. `bun`, `node`, `chrome`, `postgres`, `python`).
-   - **Sort By**: Sort by PID, CPU %, Memory RSS, or Process Name.
-   - **Show Only Current User**: Toggle to display only processes owned by the current developer account.
-3. **Process Control Actions**:
-   - **🔄 Refresh Process List**: Instant re-scan of operating system process table.
-   - **⏸️ Send SIGTERM (Graceful)**: Requests polite shutdown of the selected process.
-   - **🛑 Send SIGKILL (Force)**: Immediately halts runaway or hung developer processes.
-4. **Interactive Process Grid**:
-   - Multi-column table displaying:
-     - `PID` (Process Identifier)
-     - `USER` (Owner)
-     - `%CPU` (CPU core utilization)
-     - `MEM (MB)` (Resident Set Size memory consumption)
-     - `COMMAND` (Full binary path and startup flags)
-5. **Process Diagnostics & Telemetry Card**:
-   - Inspects selected process threads, open file handles, and working directory.
+It allows developers to instantly pinpoint runaway development servers, orphan background tasks, memory leaks, and port conflicts without navigating cryptic terminal commands.
 
 ---
 
-## 📖 Practical Tutorials
+## 🚀 Quick Start & Launch
 
-### 1. Identifying and Terminating Stale Node/Bun Servers
-1. In the **Filter Query** box, type:
-   ```text
-   bun
-   ```
-2. Inspect the returned list. If a background dev server or test process is occupying your dev port (e.g. `3000` or `4567`), note its PID.
-3. Select the row and click **⏸️ Send SIGTERM (Graceful)**.
-4. If the process is unresponsive, click **🛑 Send SIGKILL (Force)**.
-5. The process list refreshes automatically, confirming termination.
+### 1. Launch Desktop GUI Window
+```bash
+# Standard desktop launch
+bun run app:process
 
-### 2. Auditing High-Memory Dev Tools
-1. Set the **Sort By** dropdown to `Memory RSS (Descending)`.
-2. Click **🔄 Refresh Process List**.
-3. Review the top entries to detect memory leaks in background test runners or container daemons.
+# Shorthand alias
+bun run app:procs
+```
+
+### 2. Launch Terminal CLI Process Inspector
+```bash
+# List top CPU processes in terminal
+bun run cli:process --top cpu
+
+# Search process by name or PID
+bun run cli:process --search "node"
+```
 
 ---
 
-## 🛡️ Enterprise Resilience Features
-- **Accidental System Kill Protection**: Prevents sending kill signals to core macOS system daemons (PID 0, 1, `launchd`, `kernel_task`).
-- **Clean OS Process Spawning**: Gathers process statistics via fast native `ps -eo pid,user,%cpu,rss,comm` queries with automatic output sanitization.
-- **Non-Blocking UI Thread**: Process table parsing occurs asynchronously, ensuring UI interactions remain fluid even when thousands of processes are running.
+## 🖼️ Visual Interface Tour
+
+| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| :---: | :---: |
+| ![Process Monitor Desktop](../../screenshots/apps/process_studio_desktop.png) | ![Process Monitor Responsive](../../screenshots/apps/process_studio_responsive.png) |
+
+---
+
+## 🧭 Complete UI Tour & Element Guide
+
+### 1. Real-time Telemetry Status Bar
+- **Total Process Count**: Live tally of active system processes.
+- **Aggregated CPU Load**: Overall user and system CPU load percentage.
+- **Physical Memory Bar**: System-wide RAM consumption and available buffer space.
+- **Auto-Refresh Switcher**: Toggle polling intervals (1s, 2s, 5s, or Manual Pause).
+
+### 2. Process Search & Filter Toolbar
+- **Search Process / PID Input**: Real-time filtering by process name, command arguments, or numeric PID.
+- **Sort Dropdown**: Sort by CPU (High to Low), Memory/RSS (High to Low), PID, or Name.
+- **User Mode Toggle**: Filter between "All System Processes" and "My User Processes Only".
+
+### 3. Interactive Process Data Table
+- **PID**: Process Identification number.
+- **User / Owner**: Operating system user account executing the task.
+- **CPU %**: Real-time CPU core utilization.
+- **RSS Memory**: Resident Set Size physical memory consumption formatted in MB/GB.
+- **Command / Path**: Full binary path and invocation arguments.
+- **Action Buttons**: One-click **Terminate (SIGTERM)** and **Force Kill (SIGKILL)** buttons.
+
+---
+
+## 🛠️ Step-by-Step Practical Tutorials
+
+### Tutorial: Finding and Killing a Stale Server Holding a Port
+1. Launch Process Monitor Studio: `bun run app:process`.
+2. In the search bar, type the name of your server runtime: `bun` or `node`.
+3. Locate the rogue process in the filtered list.
+4. Review the **RSS Memory** and **CPU%** columns to confirm it is the orphaned task.
+5. Click **Terminate (SIGTERM)** to shut it down gracefully.
+6. If the process does not terminate within 3 seconds, click **Force Kill (SIGKILL)** to release the port immediately.
+
+---
+
+## ⌨️ Complete Keyboard Shortcuts Reference
+
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| **Cmd + F** / **Ctrl + F** | Toolbar | Focus process search bar |
+| **Cmd + R** / **Ctrl + R** | Global | Force immediate process list refresh |
+| **Cmd + K** / **Ctrl + K** | Selected Row | Send SIGTERM signal |
+| **Cmd + Shift + K** | Selected Row | Send SIGKILL signal |
+| **F11** or **F** | Global | Toggle borderless fullscreen |
+
+---
+
+## 💡 Pro Tips & Enterprise Best Practices
+- **Graceful vs Force Kill**: Always attempt `SIGTERM` (Terminate) first. This allows databases (like SQLite or Postgres) and node apps to flush writes to disk and close open sockets cleanly before exiting.

@@ -479,6 +479,7 @@ function triggerOscilloscopePulse(pitch = 1000) {
 }
 
 function playSoundFeedback(type = "key") {
+    if (navigator.vibrate) navigator.vibrate(type === "enter" || type === "clear" ? 15 : 8);
     if (state.soundProfile === "none") return;
     triggerOscilloscopePulse();
     try {
@@ -847,7 +848,7 @@ function updateConversion(options = {}) {
         elements.toValue.value = "";
         elements.equation.textContent = isText ? "Enter a character or code to convert" : "Enter a valid number to convert";
         elements.precision.textContent = "Waiting for input";
-        elements.formulaDisplay.textContent = "—";
+        elements.formulaDisplay.textContent = "-";
         elements.formulaExplanation.textContent = isText ? "Type a character or code to see representations." : "Type in a value to see formula.";
         renderReference(null, from);
         updateVisualScale(null, from, to, null);
@@ -891,9 +892,9 @@ function renderReference(value, from) {
             const result = document.createElement("strong");
             label.textContent = item.name;
             if (category.isTextCategory) {
-                result.textContent = value === null ? "—" : `${convertValue(value, from, item)}`;
+                result.textContent = value === null ? "-" : `${convertValue(value, from, item)}`;
             } else {
-                result.textContent = value === null ? "—" : `${formatNumber(convertValue(value, from, item))} ${item.symbol}`;
+                result.textContent = value === null ? "-" : `${formatNumber(convertValue(value, from, item))} ${item.symbol}`;
             }
             card.append(label, result);
             elements.referenceGrid.append(card);
@@ -2630,10 +2631,15 @@ function drawCalculusStudio() {
 
 function calculateDefiniteIntegral() {
     const eqn = state.calcEquation;
-    const a = Number(document.querySelector("#integralA")?.value ?? -1);
-    const b = Number(document.querySelector("#integralB")?.value ?? 2);
+    const aVal = document.querySelector("#integralA")?.value?.trim();
+    const bVal = document.querySelector("#integralB")?.value?.trim();
+    if (aVal === "" || bVal === "" || aVal === undefined || bVal === undefined) return;
+    const a = Number(aVal);
+    const b = Number(bVal);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return;
     const n = 1000;
     const h = (b - a) / n;
+    if (!Number.isFinite(h) || h === 0) return;
 
     let sum = safeEvalGraphExpression(eqn, a) + safeEvalGraphExpression(eqn, b);
     for (let i = 1; i < n; i++) {
@@ -2644,13 +2650,16 @@ function calculateDefiniteIntegral() {
     const result = (h / 3) * sum;
 
     const resEl = document.querySelector("#integralResult");
-    if (resEl) resEl.textContent = `∫ [${a}, ${b}] f(x)dx = ${formatNumber(roundNumber(result, 4))}`;
+    if (resEl && Number.isFinite(result)) resEl.textContent = `∫ [${a}, ${b}] f(x)dx = ${formatNumber(roundNumber(result, 4))}`;
     drawCalculusStudio();
 }
 
 function calculateDerivativeAtPoint() {
     const eqn = state.calcEquation;
-    const x0 = Number(document.querySelector("#derivX0")?.value ?? 1.5);
+    const x0Val = document.querySelector("#derivX0")?.value?.trim();
+    if (x0Val === "" || x0Val === undefined) return;
+    const x0 = Number(x0Val);
+    if (!Number.isFinite(x0)) return;
     const h = 0.0001;
     const y0 = safeEvalGraphExpression(eqn, x0);
     const slope = (safeEvalGraphExpression(eqn, x0 + h) - safeEvalGraphExpression(eqn, x0 - h)) / (2 * h);
@@ -2658,31 +2667,35 @@ function calculateDerivativeAtPoint() {
 
     const dRes = document.querySelector("#derivResult");
     const dTan = document.querySelector("#derivTangentLine");
-    if (dRes) dRes.textContent = `f'(${x0}) = ${formatNumber(roundNumber(slope, 4))} · Slope m = ${formatNumber(roundNumber(slope, 3))}`;
-    if (dTan) dTan.textContent = `Tangent line: y = ${roundNumber(slope, 2)}x ${intercept >= 0 ? "+" : "−"} ${roundNumber(Math.abs(intercept), 2)}`;
+    if (dRes && Number.isFinite(slope)) dRes.textContent = `f'(${x0}) = ${formatNumber(roundNumber(slope, 4))} · Slope m = ${formatNumber(roundNumber(slope, 3))}`;
+    if (dTan && Number.isFinite(slope) && Number.isFinite(intercept)) dTan.textContent = `Tangent line: y = ${roundNumber(slope, 2)}x ${intercept >= 0 ? "+" : "−"} ${roundNumber(Math.abs(intercept), 2)}`;
 
     drawCalculusStudio();
 }
 
 function findEquationRoot() {
     const eqn = state.calcEquation;
-    let x = Number(document.querySelector("#rootGuess")?.value ?? 1.8);
+    const guessVal = document.querySelector("#rootGuess")?.value?.trim();
+    if (guessVal === "" || guessVal === undefined) return;
+    let x = Number(guessVal);
+    if (!Number.isFinite(x)) return;
     const h = 0.0001;
 
     for (let iter = 0; iter < 100; iter++) {
         const y = safeEvalGraphExpression(eqn, x);
-        if (Math.abs(y) < 1e-8) break;
+        if (!Number.isFinite(y) || Math.abs(y) < 1e-8) break;
         const dy = (safeEvalGraphExpression(eqn, x + h) - safeEvalGraphExpression(eqn, x - h)) / (2 * h);
-        if (Math.abs(dy) < 1e-12) break;
+        if (!Number.isFinite(dy) || Math.abs(dy) < 1e-12) break;
         x = x - y / dy;
     }
 
     const yFinal = safeEvalGraphExpression(eqn, x);
     const rootEl = document.querySelector("#rootResult");
-    if (rootEl) {
+    if (rootEl && Number.isFinite(x) && Number.isFinite(yFinal)) {
         rootEl.textContent = `Root: x = ${formatNumber(roundNumber(x, 4))} · f(x) ≈ ${formatNumber(roundNumber(yFinal, 5))}`;
     }
 }
+
 
 // ============================================================================
 // MATRIX & LINEAR ALGEBRA LABORATORY
@@ -3096,29 +3109,821 @@ function drawProjectileCanvas(v0, theta, h0, g, flightTime, range, maxH) {
     ctx.stroke();
 }
 
-function calculateOhmPower() {
-    const v = Number(document.querySelector("#ohmVoltage")?.value || 0);
-    const i = Number(document.querySelector("#ohmCurrent")?.value || 0);
-    const resEl = document.querySelector("#ohmResult");
-    if (!i) {
-        if (resEl) resEl.textContent = "Current cannot be 0.";
+// ============================================================================
+// OHM'S LAW & ELECTRICAL POWER STUDIO (FLAGSHIP SUITE)
+// ============================================================================
+let currentOhmPair = "VI";
+let currentOhmWatts = 30;
+let acPhaseMode = 1;
+
+const OHM_WHEEL_CONFIG = {
+    sectors: [
+        {
+            var: "V",
+            title: "VOLTAGE (V)",
+            color: "#0071e3",
+            startAngle: -Math.PI * 0.75,
+            endAngle: -Math.PI * 0.25,
+            formulas: [
+                { key: "V_IR", label: "I · R", startA: -Math.PI * 0.75, endA: -Math.PI * 0.5833, centerA: -Math.PI * 0.6667 },
+                { key: "V_PI", label: "P / I", startA: -Math.PI * 0.5833, endA: -Math.PI * 0.4167, centerA: -Math.PI * 0.5 },
+                { key: "V_PR", label: "√(P·R)", startA: -Math.PI * 0.4167, endA: -Math.PI * 0.25, centerA: -Math.PI * 0.3333 }
+            ]
+        },
+        {
+            var: "I",
+            title: "CURRENT (I)",
+            color: "#ff9f0a",
+            startAngle: -Math.PI * 0.25,
+            endAngle: Math.PI * 0.25,
+            formulas: [
+                { key: "I_VR", label: "V / R", startA: -Math.PI * 0.25, endA: -Math.PI * 0.0833, centerA: -Math.PI * 0.1667 },
+                { key: "I_PV", label: "P / V", startA: -Math.PI * 0.0833, endA: Math.PI * 0.0833, centerA: 0 },
+                { key: "I_PR", label: "√(P/R)", startA: Math.PI * 0.0833, endA: Math.PI * 0.25, centerA: Math.PI * 0.1667 }
+            ]
+        },
+        {
+            var: "R",
+            title: "RESISTANCE (R)",
+            color: "#30d158",
+            startAngle: Math.PI * 0.25,
+            endAngle: Math.PI * 0.75,
+            formulas: [
+                { key: "R_VI", label: "V / I", startA: Math.PI * 0.25, endA: Math.PI * 0.4167, centerA: Math.PI * 0.3333 },
+                { key: "R_VP", label: "V² / P", startA: Math.PI * 0.4167, endA: Math.PI * 0.5833, centerA: Math.PI * 0.5 },
+                { key: "R_PI", label: "P / I²", startA: Math.PI * 0.5833, endA: Math.PI * 0.75, centerA: Math.PI * 0.6667 }
+            ]
+        },
+        {
+            var: "P",
+            title: "POWER (P)",
+            color: "#bf5af2",
+            startAngle: Math.PI * 0.75,
+            endAngle: Math.PI * 1.25,
+            formulas: [
+                { key: "P_VI", label: "V · I", startA: Math.PI * 0.75, endA: Math.PI * 0.9167, centerA: Math.PI * 0.8333 },
+                { key: "P_IR", label: "I² · R", startA: Math.PI * 0.9167, endA: Math.PI * 1.0833, centerA: Math.PI * 1.0 },
+                { key: "P_VR", label: "V² / R", startA: Math.PI * 1.0833, endA: Math.PI * 1.25, centerA: Math.PI * 1.1667 }
+            ]
+        }
+    ]
+};
+
+function formatEngineeringValue(val, baseUnit) {
+    if (!Number.isFinite(val)) return `0 ${baseUnit}`;
+    const abs = Math.abs(val);
+    if (abs === 0) return `0 ${baseUnit}`;
+    if (abs >= 1e6) return `${roundNumber(val / 1e6, 3)} M${baseUnit}`;
+    if (abs >= 1e3) return `${roundNumber(val / 1e3, 3)} k${baseUnit}`;
+    if (abs < 1e-3) return `${roundNumber(val * 1e6, 3)} µ${baseUnit}`;
+    if (abs < 1) return `${roundNumber(val * 1e3, 3)} m${baseUnit}`;
+    return `${roundNumber(val, 3)} ${baseUnit}`;
+}
+
+function updateSolvedInputField(inputEl, valInUnit) {
+    if (!inputEl) return;
+    if (!Number.isFinite(valInUnit) || valInUnit < 0) {
+        inputEl.value = "0";
         return;
     }
-    const r = v / i;
-    const p = v * i;
-    if (resEl) resEl.textContent = `Resistance R: ${formatNumber(roundNumber(r, 2))} Ω · Power P: ${formatNumber(roundNumber(p, 2))} W`;
+    if (valInUnit >= 1e6 || (valInUnit < 0.001 && valInUnit > 0)) {
+        inputEl.value = valInUnit.toPrecision(4);
+    } else {
+        inputEl.value = parseFloat(valInUnit.toFixed(4)).toString();
+    }
+}
+
+function getNearestE24(rOhms) {
+    if (rOhms <= 0 || !Number.isFinite(rOhms)) return null;
+    const e24Series = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1];
+    const decade = Math.floor(Math.log10(rOhms));
+    const normalized = rOhms / Math.pow(10, decade);
+    
+    let bestVal = e24Series[0];
+    let bestDiff = Math.abs(bestVal - normalized);
+    
+    for (let i = 1; i < e24Series.length; i++) {
+        const diff = Math.abs(e24Series[i] - normalized);
+        if (diff < bestDiff) {
+            bestDiff = diff;
+            bestVal = e24Series[i];
+        }
+    }
+    if (Math.abs(10.0 - normalized) < bestDiff) {
+        bestVal = 10.0;
+    }
+    
+    const nearestVal = bestVal * Math.pow(10, decade);
+    const errPct = ((nearestVal - rOhms) / rOhms) * 100;
+    
+    let formatted = "";
+    if (nearestVal >= 1e6) {
+        formatted = `${(nearestVal / 1e6).toFixed(1).replace(/\.0$/, "")} MΩ`;
+    } else if (nearestVal >= 1e3) {
+        formatted = `${(nearestVal / 1e3).toFixed(1).replace(/\.0$/, "")} kΩ`;
+    } else if (nearestVal >= 1) {
+        formatted = `${nearestVal.toFixed(1).replace(/\.0$/, "")} Ω`;
+    } else {
+        formatted = `${(nearestVal * 1000).toFixed(1).replace(/\.0$/, "")} mΩ`;
+    }
+    
+    return { value: nearestVal, formatted, errPct };
+}
+
+function getRecommendedWattage(pWatts) {
+    if (pWatts <= 0 || !Number.isFinite(pWatts)) return null;
+    const ratings = [
+        { val: 0.125, label: "1/8 W" },
+        { val: 0.25, label: "1/4 W" },
+        { val: 0.5, label: "1/2 W" },
+        { val: 1.0, label: "1 W" },
+        { val: 2.0, label: "2 W" },
+        { val: 5.0, label: "5 W" },
+        { val: 10.0, label: "10 W" },
+        { val: 25.0, label: "25 W" },
+        { val: 50.0, label: "50 W" },
+        { val: 100.0, label: "100 W" },
+        { val: 250.0, label: "250 W" },
+        { val: 500.0, label: "500 W" },
+        { val: 1000.0, label: "1 kW" }
+    ];
+    const target = pWatts * 1.5;
+    let selected = ratings[ratings.length - 1];
+    for (const r of ratings) {
+        if (r.val >= target) {
+            selected = r;
+            break;
+        }
+    }
+    const headroom = selected.val / pWatts;
+    return { label: selected.label, val: selected.val, headroom };
+}
+
+function setOhmGivenPair(pair) {
+    currentOhmPair = pair;
+    document.querySelectorAll("#ohmPairChips button").forEach(chip => {
+        chip.classList.toggle("active", chip.dataset.ohmpair === pair);
+    });
+    
+    const vars = [
+        { code: "V", card: "#ohmCardV", badge: "#ohmBadgeV" },
+        { code: "I", card: "#ohmCardI", badge: "#ohmBadgeI" },
+        { code: "R", card: "#ohmCardR", badge: "#ohmBadgeR" },
+        { code: "P", card: "#ohmCardP", badge: "#ohmBadgeP" }
+    ];
+    
+    vars.forEach(v => {
+        const isGiven = pair.includes(v.code);
+        const cardEl = document.querySelector(v.card);
+        const badgeEl = document.querySelector(v.badge);
+        
+        if (cardEl) {
+            cardEl.classList.toggle("is-given", isGiven);
+            cardEl.classList.toggle("is-solved", !isGiven);
+        }
+        if (badgeEl) {
+            badgeEl.className = `ohm-status-badge ${isGiven ? "badge-given" : "badge-solved"}`;
+            badgeEl.textContent = isGiven ? "Given" : "Solved";
+        }
+    });
+}
+
+function setOhmStudioMode(mode) {
+    document.querySelectorAll("#ohmStudioModeSelect button").forEach(btn => {
+        const isActive = btn.dataset.ohmmode === mode;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    
+    const panelDC = document.querySelector("#ohmPanelDCSolver");
+    const panelEnergy = document.querySelector("#ohmPanelEnergyCost");
+    const panelAC = document.querySelector("#ohmPanelACPower");
+    
+    if (panelDC) panelDC.hidden = mode !== "dc_solver";
+    if (panelEnergy) panelEnergy.hidden = mode !== "energy_cost";
+    if (panelAC) panelAC.hidden = mode !== "ac_power";
+    
+    if (mode === "dc_solver") {
+        setTimeout(calculateOhmPower, 20);
+    } else if (mode === "energy_cost") {
+        setTimeout(calculateOhmEnergy, 20);
+    } else if (mode === "ac_power") {
+        setTimeout(calculateACPower, 20);
+    }
+}
+
+function setACPhaseMode(phase) {
+    acPhaseMode = Number(phase) || 1;
+    document.querySelectorAll("#acPhaseSelect button").forEach(btn => {
+        btn.classList.toggle("active", Number(btn.dataset.acphase) === acPhaseMode);
+    });
+    
+    const vLabel = document.querySelector("#acVoltageLabel");
+    if (vLabel) {
+        vLabel.textContent = acPhaseMode === 3 ? "Line-to-Line Voltage V_LL (Volts)" : "RMS Voltage V (Volts)";
+    }
+    
+    const vInput = document.querySelector("#acVoltage");
+    if (vInput) {
+        if (acPhaseMode === 3 && vInput.value === "120") {
+            vInput.value = "480";
+        } else if (acPhaseMode === 1 && vInput.value === "480") {
+            vInput.value = "120";
+        }
+    }
+    
+    calculateACPower();
+}
+
+function drawOhmWheelCanvas(activeKeys = ["R_VI", "P_VI"]) {
+    const canvas = document.querySelector("#ohmWheelCanvas");
+    if (!canvas) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const size = 320;
+    if (canvas.width !== size * dpr || canvas.height !== size * dpr) {
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+    }
+    
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    
+    const isDark = document.documentElement.dataset.theme === "dark";
+    const cx = size / 2;
+    const cy = size / 2;
+    const rOuter = size / 2 - 8;
+    const rMid = rOuter * 0.62;
+    const rHub = rOuter * 0.30;
+    
+    function drawDonutWedge(rInner, rOut, a1, a2) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, rOut, a1, a2, false);
+        ctx.arc(cx, cy, rInner, a2, a1, true);
+        ctx.closePath();
+    }
+    
+    OHM_WHEEL_CONFIG.sectors.forEach(sector => {
+        // Inner quadrant sector (variable badge)
+        drawDonutWedge(rHub, rMid, sector.startAngle, sector.endAngle);
+        ctx.fillStyle = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)";
+        ctx.fill();
+        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        
+        // Variable Symbol
+        const midA = (sector.startAngle + sector.endAngle) / 2;
+        const symR = (rHub + rMid) / 2;
+        const symX = cx + symR * Math.cos(midA);
+        const symY = cy + symR * Math.sin(midA);
+        ctx.save();
+        ctx.font = '700 18px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif';
+        ctx.fillStyle = sector.color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(sector.var, symX, symY);
+        ctx.restore();
+        
+        // 3 Outer Formula Wedges
+        sector.formulas.forEach(form => {
+            const isActive = activeKeys.includes(form.key);
+            drawDonutWedge(rMid, rOuter, form.startA, form.endA);
+            
+            if (isActive) {
+                ctx.save();
+                ctx.fillStyle = isDark ? sector.color + "44" : sector.color + "28";
+                ctx.fill();
+                ctx.strokeStyle = sector.color;
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = sector.color;
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.restore();
+            } else {
+                ctx.fillStyle = isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.025)";
+                ctx.fill();
+                ctx.strokeStyle = isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // Formula label centered in wedge
+            const fMidR = (rMid + rOuter) / 2;
+            const fx = cx + fMidR * Math.cos(form.centerA);
+            const fy = cy + fMidR * Math.sin(form.centerA);
+            
+            ctx.save();
+            ctx.translate(fx, fy);
+            let rot = form.centerA + Math.PI / 2;
+            while (rot > Math.PI) rot -= 2 * Math.PI;
+            while (rot < -Math.PI) rot += 2 * Math.PI;
+            if (rot > Math.PI / 2 || rot < -Math.PI / 2) {
+                rot += Math.PI;
+            }
+            ctx.rotate(rot);
+            
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            if (isActive) {
+                ctx.font = '700 12px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+                ctx.fillStyle = isDark ? "#ffffff" : "#1d1d1f";
+            } else {
+                ctx.font = '500 11px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+                ctx.fillStyle = isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.65)";
+            }
+            ctx.fillText(form.label, 0, 0);
+            ctx.restore();
+        });
+    });
+    
+    // Center Hub
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, rHub, 0, Math.PI * 2);
+    ctx.fillStyle = isDark ? "#1c1c1e" : "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "rgba(0,0,0,0.25)";
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    
+    ctx.font = '600 8.5px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+    ctx.fillStyle = isDark ? "#a1a1a6" : "#6e6e73";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("OHM'S &", cx, cy - 8);
+    ctx.fillText("JOULE'S", cx, cy);
+    ctx.font = '700 9.5px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+    ctx.fillStyle = isDark ? "#ffffff" : "#1d1d1f";
+    ctx.fillText("LAW", cx, cy + 9);
+    ctx.restore();
+}
+
+function calculateOhmPower(sourceField) {
+    const vInput = document.querySelector("#ohmVoltage");
+    const iInput = document.querySelector("#ohmCurrent");
+    const rInput = document.querySelector("#ohmResistance");
+    const pInput = document.querySelector("#ohmPower");
+    
+    const vUnit = Number(document.querySelector("#ohmVoltUnit")?.value) || 1;
+    const iUnit = Number(document.querySelector("#ohmCurrUnit")?.value) || 1;
+    const rUnit = Number(document.querySelector("#ohmResUnit")?.value) || 1;
+    const pUnit = Number(document.querySelector("#ohmPowerUnit")?.value) || 1;
+    
+    // Auto-pair update if typing into a currently solved field
+    if (sourceField) {
+        if (!currentOhmPair.includes(sourceField)) {
+            let other = currentOhmPair[0];
+            const validPairs = ["VI", "VR", "IR", "PV", "PI", "PR"];
+            let foundPair = validPairs.find(p => (p.includes(sourceField) && p.includes(other)));
+            if (!foundPair) {
+                other = currentOhmPair[1];
+                foundPair = validPairs.find(p => (p.includes(sourceField) && p.includes(other)));
+            }
+            if (foundPair) {
+                setOhmGivenPair(foundPair);
+            }
+        }
+    }
+    
+    let rawV = Number(vInput?.value) || 0;
+    let rawI = Number(iInput?.value) || 0;
+    let rawR = Number(rInput?.value) || 0;
+    let rawP = Number(pInput?.value) || 0;
+    
+    let vBase = rawV * vUnit;
+    let iBase = rawI * iUnit;
+    let rBase = rawR * rUnit;
+    let pBase = rawP * pUnit;
+    
+    let activeKeys = [];
+    let step1 = "";
+    let step2 = "";
+    
+    const vDisp = formatEngineeringValue(vBase, "V");
+    const iDisp = formatEngineeringValue(iBase, "A");
+    const rDisp = formatEngineeringValue(rBase, "Ω");
+    const pDisp = formatEngineeringValue(pBase, "W");
+    
+    if (currentOhmPair === "VI") {
+        if (iBase > 0) {
+            rBase = vBase / iBase;
+            pBase = vBase * iBase;
+        } else {
+            rBase = 0; pBase = 0;
+        }
+        activeKeys = ["R_VI", "P_VI"];
+        step1 = `R = V / I = ${vDisp} / ${iDisp} = ${formatEngineeringValue(rBase, "Ω")}`;
+        step2 = `P = V × I = ${vDisp} × ${iDisp} = ${formatEngineeringValue(pBase, "W")}`;
+        updateSolvedInputField(rInput, rBase / rUnit);
+        updateSolvedInputField(pInput, pBase / pUnit);
+    } else if (currentOhmPair === "VR") {
+        if (rBase > 0) {
+            iBase = vBase / rBase;
+            pBase = (vBase * vBase) / rBase;
+        } else {
+            iBase = 0; pBase = 0;
+        }
+        activeKeys = ["I_VR", "P_VR"];
+        step1 = `I = V / R = ${vDisp} / ${rDisp} = ${formatEngineeringValue(iBase, "A")}`;
+        step2 = `P = V² / R = (${vDisp})² / ${rDisp} = ${formatEngineeringValue(pBase, "W")}`;
+        updateSolvedInputField(iInput, iBase / iUnit);
+        updateSolvedInputField(pInput, pBase / pUnit);
+    } else if (currentOhmPair === "IR") {
+        vBase = iBase * rBase;
+        pBase = (iBase * iBase) * rBase;
+        activeKeys = ["V_IR", "P_IR"];
+        step1 = `V = I × R = ${iDisp} × ${rDisp} = ${formatEngineeringValue(vBase, "V")}`;
+        step2 = `P = I² × R = (${iDisp})² × ${rDisp} = ${formatEngineeringValue(pBase, "W")}`;
+        updateSolvedInputField(vInput, vBase / vUnit);
+        updateSolvedInputField(pInput, pBase / pUnit);
+    } else if (currentOhmPair === "PV") {
+        if (vBase > 0) {
+            iBase = pBase / vBase;
+        } else {
+            iBase = 0;
+        }
+        if (pBase > 0) {
+            rBase = (vBase * vBase) / pBase;
+        } else {
+            rBase = 0;
+        }
+        activeKeys = ["I_PV", "R_VP"];
+        step1 = `I = P / V = ${pDisp} / ${vDisp} = ${formatEngineeringValue(iBase, "A")}`;
+        step2 = `R = V² / P = (${vDisp})² / ${pDisp} = ${formatEngineeringValue(rBase, "Ω")}`;
+        updateSolvedInputField(iInput, iBase / iUnit);
+        updateSolvedInputField(rInput, rBase / rUnit);
+    } else if (currentOhmPair === "PI") {
+        if (iBase > 0) {
+            vBase = pBase / iBase;
+            rBase = pBase / (iBase * iBase);
+        } else {
+            vBase = 0; rBase = 0;
+        }
+        activeKeys = ["V_PI", "R_PI"];
+        step1 = `V = P / I = ${pDisp} / ${iDisp} = ${formatEngineeringValue(vBase, "V")}`;
+        step2 = `R = P / I² = ${pDisp} / (${iDisp})² = ${formatEngineeringValue(rBase, "Ω")}`;
+        updateSolvedInputField(vInput, vBase / vUnit);
+        updateSolvedInputField(rInput, rBase / rUnit);
+    } else if (currentOhmPair === "PR") {
+        if (rBase > 0) {
+            vBase = Math.sqrt(pBase * rBase);
+            iBase = Math.sqrt(pBase / rBase);
+        } else {
+            vBase = 0; iBase = 0;
+        }
+        activeKeys = ["V_PR", "I_PR"];
+        step1 = `V = √(P × R) = √(${pDisp} × ${rDisp}) = ${formatEngineeringValue(vBase, "V")}`;
+        step2 = `I = √(P / R) = √(${pDisp} / ${rDisp}) = ${formatEngineeringValue(iBase, "A")}`;
+        updateSolvedInputField(vInput, vBase / vUnit);
+        updateSolvedInputField(iInput, iBase / iUnit);
+    }
+    
+    currentOhmWatts = pBase;
+    
+    // Backwards compatible output
+    const resEl = document.querySelector("#ohmResult");
+    if (resEl) {
+        resEl.textContent = `Resistance R: ${formatNumber(roundNumber(rBase, 2))} Ω · Power P: ${formatNumber(roundNumber(pBase, 2))} W`;
+    }
+    
+    // Formula steps
+    const fStep1 = document.querySelector("#ohmFormulaStep1");
+    const fStep2 = document.querySelector("#ohmFormulaStep2");
+    if (fStep1) fStep1.textContent = step1;
+    if (fStep2) fStep2.textContent = step2;
+    
+    // Engineering Insights
+    const e24 = getNearestE24(rBase);
+    const e24El = document.querySelector("#ohmE24Badge");
+    if (e24El) {
+        if (e24) {
+            const errSign = e24.errPct >= 0 ? "+" : "";
+            e24El.innerHTML = `Nearest E24: <strong>${e24.formatted}</strong> (${errSign}${e24.errPct.toFixed(1)}%)`;
+        } else {
+            e24El.innerHTML = `Nearest E24: <strong>N/A</strong>`;
+        }
+    }
+    
+    const watt = getRecommendedWattage(pBase);
+    const wattEl = document.querySelector("#ohmWattageBadge");
+    if (wattEl) {
+        if (watt) {
+            wattEl.innerHTML = `Min Resistor: <strong>${watt.label}</strong> (${watt.headroom.toFixed(2)}× headroom)`;
+        } else {
+            wattEl.innerHTML = `Min Resistor: <strong>1/8 W</strong>`;
+        }
+    }
+    
+    const heatEl = document.querySelector("#ohmHeatBadge");
+    if (heatEl) {
+        const btu = pBase * 3.412142;
+        heatEl.innerHTML = `Joule Heat: <strong>${formatNumber(roundNumber(pBase, 1))} J/s</strong> (${formatNumber(roundNumber(btu, 1))} BTU/h)`;
+    }
+    
+    // Draw Formula Wheel
+    drawOhmWheelCanvas(activeKeys);
+    
+    // Update Energy Auditor
+    calculateOhmEnergy();
+}
+
+function calculateOhmEnergy() {
+    const hours = Number(document.querySelector("#ohmEnergyHours")?.value) || 8;
+    const days = Number(document.querySelector("#ohmEnergyDays")?.value) || 30;
+    const rate = Number(document.querySelector("#ohmEnergyRate")?.value) || 0.16;
+    
+    let pWatts = currentOhmWatts > 0 ? currentOhmWatts : 30;
+    
+    const dailyKWh = (pWatts * hours) / 1000;
+    const dailyCost = dailyKWh * rate;
+    
+    const monthlyKWh = dailyKWh * days;
+    const monthlyCost = monthlyKWh * rate;
+    
+    const annualKWh = dailyKWh * 365;
+    const annualCost = annualKWh * rate;
+    const annualCO2 = annualKWh * 0.386;
+    
+    const dailyEl = document.querySelector("#ohmCostDaily");
+    const dailySubEl = document.querySelector("#ohmCostDailySub");
+    const monthlyEl = document.querySelector("#ohmCostMonthly");
+    const monthlySubEl = document.querySelector("#ohmCostMonthlySub");
+    const annualEl = document.querySelector("#ohmCostAnnual");
+    const annualSubEl = document.querySelector("#ohmCostAnnualSub");
+    
+    if (dailyEl) dailyEl.textContent = `${dailyKWh < 1 ? dailyKWh.toFixed(3) : dailyKWh.toFixed(2)} kWh`;
+    if (dailySubEl) dailySubEl.textContent = `$${dailyCost.toFixed(2)} / day (based on ${formatNumber(roundNumber(pWatts, 1))} W)`;
+    if (monthlyEl) monthlyEl.textContent = `${monthlyKWh.toFixed(2)} kWh`;
+    if (monthlySubEl) monthlySubEl.textContent = `$${monthlyCost.toFixed(2)} / month`;
+    if (annualEl) annualEl.textContent = `$${annualCost.toFixed(2)}`;
+    if (annualSubEl) annualSubEl.textContent = `${annualKWh.toFixed(1)} kWh/yr · ${annualCO2.toFixed(1)} kg CO₂e footprint`;
+}
+
+function formatACUnit(val, baseUnit) {
+    if (!Number.isFinite(val)) return `0 ${baseUnit}`;
+    const abs = Math.abs(val);
+    if (abs >= 1e6) return `${(val / 1e6).toFixed(3)} M${baseUnit}`;
+    if (abs >= 1e3) return `${(val / 1e3).toFixed(3)} k${baseUnit}`;
+    return `${val.toFixed(1)} ${baseUnit}`;
+}
+
+function drawACPowerTriangleCanvas(P, Q, S, pf, loadType, phiDeg) {
+    const canvas = document.querySelector("#acPowerTriangleCanvas");
+    if (!canvas) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const width = 340;
+    const height = 220;
+    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+    }
+    
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    
+    const isDark = document.documentElement.dataset.theme === "dark";
+    
+    // Draw subtle grid
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+    ctx.lineWidth = 1;
+    const gridSize = 20;
+    for (let x = 0; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    for (let y = 0; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    const marginX = 45;
+    const marginY = 40;
+    const availW = width - marginX - 75;
+    const availH = height - marginY * 2;
+    
+    const isInductive = loadType === "inductive";
+    const isCapacitive = loadType === "capacitive";
+    const isResistive = loadType === "resistive" || Math.abs(Q) < 1e-4;
+    
+    const x0 = marginX;
+    const y0 = isInductive ? height - marginY : (isCapacitive ? marginY : height / 2);
+    
+    const sVal = Math.max(S, 1e-3);
+    const pFrac = Math.max(0, Math.min(1, P / sVal));
+    const qFrac = Math.max(0, Math.min(1, Math.abs(Q) / sVal));
+    
+    const triW = Math.max(60, availW * (0.4 + 0.6 * pFrac));
+    const triH = isResistive ? 0 : Math.max(25, availH * (0.3 + 0.7 * qFrac));
+    
+    const xP = x0 + triW;
+    const yQ = isInductive ? y0 - triH : (isCapacitive ? y0 + triH : y0);
+    
+    // Right-angle marker
+    if (!isResistive && triH > 15) {
+        const sqSize = 10;
+        const dirY = isInductive ? -1 : 1;
+        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(xP - sqSize, y0);
+        ctx.lineTo(xP - sqSize, y0 + dirY * sqSize);
+        ctx.lineTo(xP, y0 + dirY * sqSize);
+        ctx.stroke();
+    }
+    
+    // Phase Angle Arc
+    if (!isResistive && triW > 40 && triH > 10) {
+        const arcR = Math.min(36, triW * 0.35);
+        const startA = 0;
+        const endA = isInductive ? -Math.atan2(triH, triW) : Math.atan2(triH, triW);
+        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath();
+        ctx.arc(x0, y0, arcR, startA, endA, isInductive);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        const labelA = endA / 2;
+        const lx = x0 + (arcR + 14) * Math.cos(labelA);
+        const ly = y0 + (arcR + 14) * Math.sin(labelA);
+        ctx.font = '600 11px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+        ctx.fillStyle = isDark ? "#ffffff" : "#1d1d1f";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`φ=${phiDeg.toFixed(1)}°`, lx, ly);
+    }
+    
+    function drawVector(fromX, fromY, toX, toY, color, widthVal, label, labelAlign, labelOffset) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = widthVal;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
+        
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        
+        const angle = Math.atan2(toY - fromY, toX - fromX);
+        const headLen = 9;
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        
+        if (label) {
+            ctx.save();
+            ctx.font = '600 11px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+            ctx.fillStyle = color;
+            ctx.textAlign = labelAlign || "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(label, labelOffset.x, labelOffset.y);
+            ctx.restore();
+        }
+    }
+    
+    // Real Power Vector P (Green)
+    const pLabelText = `P: ${formatACUnit(P, "W")}`;
+    drawVector(x0, y0, xP, y0, "#30d158", 3, pLabelText, "center", {
+        x: x0 + triW / 2,
+        y: y0 + (isInductive ? 18 : (isCapacitive ? -18 : 20))
+    });
+    
+    // Reactive Power Vector Q (Amber)
+    if (!isResistive && triH > 4) {
+        const qLabelText = `Q: ${formatACUnit(Math.abs(Q), "VAR")}`;
+        drawVector(xP, y0, xP, yQ, "#ff9f0a", 3, qLabelText, "left", {
+            x: xP + 8,
+            y: (y0 + yQ) / 2
+        });
+    }
+    
+    // Apparent Power Vector S (Blue)
+    const sLabelText = `S: ${formatACUnit(S, "VA")}`;
+    const midSX = (x0 + xP) / 2;
+    const midSY = (y0 + yQ) / 2;
+    const hypAngle = Math.atan2(yQ - y0, xP - x0);
+    const perpOffset = isInductive ? -14 : 14;
+    const sLabelX = midSX + perpOffset * Math.sin(hypAngle);
+    const sLabelY = midSY - perpOffset * Math.cos(hypAngle);
+    
+    drawVector(x0, y0, xP, yQ, "#0071e3", 3.5, sLabelText, "center", {
+        x: sLabelX,
+        y: sLabelY
+    });
+    
+    ctx.save();
+    ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+    ctx.fillStyle = isDark ? "#86868b" : "#6e6e73";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    ctx.fillText(`PF = ${pf.toFixed(2)} · ${loadType.toUpperCase()}`, width - 12, 10);
+    ctx.restore();
+}
+
+function calculateACPower() {
+    const vInput = document.querySelector("#acVoltage");
+    const iInput = document.querySelector("#acCurrent");
+    const pfInput = document.querySelector("#acPowerFactor");
+    const loadSelect = document.querySelector("#acLoadType");
+    
+    let V = Number(vInput?.value) || 120;
+    let I = Number(iInput?.value) || 10;
+    let PF = Number(pfInput?.value) || 0.85;
+    let loadType = loadSelect?.value || "inductive";
+    
+    if (loadType === "resistive") {
+        PF = 1.0;
+        if (pfInput) pfInput.value = "1.0";
+    }
+    PF = Math.max(0, Math.min(1, PF));
+    
+    const phi = Math.acos(PF);
+    const phiDeg = (phi * 180) / Math.PI;
+    
+    let S = 0;
+    let P = 0;
+    let Q = 0;
+    
+    if (acPhaseMode === 3) {
+        S = Math.sqrt(3) * V * I;
+        P = S * PF;
+        Q = S * Math.sin(phi);
+    } else {
+        S = V * I;
+        P = S * PF;
+        Q = S * Math.sin(phi);
+    }
+    
+    const pEl = document.querySelector("#acRealPower");
+    const sEl = document.querySelector("#acApparentPower");
+    const qEl = document.querySelector("#acReactivePower");
+    const angleEl = document.querySelector("#acPhaseAngle");
+    
+    if (pEl) pEl.textContent = formatACUnit(P, "W");
+    if (sEl) sEl.textContent = formatACUnit(S, "VA");
+    if (qEl) qEl.textContent = formatACUnit(Q, "VAR");
+    if (angleEl) {
+        const typeDesc = loadType === "inductive" ? "Lagging" : (loadType === "capacitive" ? "Leading" : "Unity");
+        angleEl.textContent = `Phase Angle φ = ${phiDeg.toFixed(2)}° (${typeDesc})`;
+    }
+    
+    drawACPowerTriangleCanvas(P, Q, S, PF, loadType, phiDeg);
 }
 
 function calculateRelativityDilation() {
-    const vFrac = Math.min(0.9999, Math.max(0, Number(document.querySelector("#relVelocity")?.value || 0)));
-    const t0 = Number(document.querySelector("#relTime")?.value || 1);
-    const gamma = 1 / Math.sqrt(1 - vFrac * vFrac);
+    const vInput = document.querySelector("#relVelocity");
+    const tInput = document.querySelector("#relTime");
+    const relEl = document.querySelector("#relativityResult");
+    if (!relEl) return;
+
+    const vStr = vInput?.value?.trim() ?? "";
+    const tStr = tInput?.value?.trim() ?? "";
+
+    if (vStr === "" || tStr === "") {
+        relEl.textContent = "Enter velocity (v/c) and rest time.";
+        return;
+    }
+
+    const rawV = Number(vStr);
+    const rawT = Number(tStr);
+
+    if (!Number.isFinite(rawV) || !Number.isFinite(rawT)) {
+        relEl.textContent = "Please enter valid numbers.";
+        return;
+    }
+
+    if (rawV >= 1) {
+        relEl.textContent = "Velocity must be strictly less than c (v/c < 1.0).";
+        return;
+    }
+    if (rawV < 0) {
+        relEl.textContent = "Velocity cannot be negative.";
+        return;
+    }
+
+    const vFrac = Math.min(0.999999, Math.max(0, rawV));
+    const t0 = Math.max(0, rawT);
+    const gamma = 1 / Math.sqrt(Math.max(1e-14, 1 - vFrac * vFrac));
     const dilated = t0 * gamma;
 
-    const relEl = document.querySelector("#relativityResult");
-    if (relEl) {
-        relEl.textContent = `Lorentz Factor γ: ${formatNumber(roundNumber(gamma, 4))} · Dilated Time: ${formatNumber(roundNumber(dilated, 3))} s`;
-    }
+    relEl.textContent = `Lorentz Factor γ: ${formatNumber(roundNumber(gamma, 4))} · Dilated Time: ${formatNumber(roundNumber(dilated, 3))} s`;
 }
 
 // ============================================================================
@@ -3581,6 +4386,10 @@ function showMode(mode) {
         setTimeout(() => {
             renderPhysicalConstantsTable();
             calculateProjectileMotion();
+            calculateOhmPower();
+            calculateOhmEnergy();
+            calculateACPower();
+            calculateRelativityDilation();
         }, 30);
     } else if (mode === "circuits") {
         const renderCircuits = () => {
@@ -3630,6 +4439,8 @@ function toggleTheme() {
     calculateRetirementTrajectory();
     calculatePaycheckDonut();
     calculateProjectileMotion();
+    calculateOhmPower();
+    calculateACPower();
 }
 
 function showToast(message) {
@@ -4375,6 +5186,40 @@ document.querySelector("#calcRootBtn")?.addEventListener("click", () => {
     findEquationRoot();
 });
 
+// Live Calculus Listeners
+["#integralA", "#integralB"].forEach(sel => {
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", calculateDefiniteIntegral);
+    el?.addEventListener("change", calculateDefiniteIntegral);
+});
+["#derivX0"].forEach(sel => {
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", calculateDerivativeAtPoint);
+    el?.addEventListener("change", calculateDerivativeAtPoint);
+});
+["#rootGuess"].forEach(sel => {
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", findEquationRoot);
+    el?.addEventListener("change", findEquationRoot);
+});
+document.querySelector("#calcEqnInput")?.addEventListener("input", () => {
+    try {
+        state.calcEquation = document.querySelector("#calcEqnInput")?.value || "x^3 - 3*x";
+        drawCalculusStudio();
+        calculateDefiniteIntegral();
+        calculateDerivativeAtPoint();
+    } catch {}
+});
+["#calcEqnInputG", "#calcEqnInputPolar", "#calcParamX", "#calcParamY"].forEach(sel => {
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", () => {
+        try { drawCalculusStudio(); } catch {}
+    });
+    el?.addEventListener("change", () => {
+        try { drawCalculusStudio(); } catch {}
+    });
+});
+
 document.querySelector("#calcZoomIn")?.addEventListener("click", () => {
     state.calcZoom = Math.min(5, state.calcZoom * 1.3);
     drawCalculusStudio();
@@ -4458,91 +5303,234 @@ document.querySelector("#solveLinearSystemBtn")?.addEventListener("click", () =>
     playSoundFeedback("enter");
     solveLinearSystem();
 });
+["#vectorBInput"].forEach(sel => {
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", () => {
+        try { solveLinearSystem(); } catch {}
+    });
+    el?.addEventListener("change", () => {
+        try { solveLinearSystem(); } catch {}
+    });
+});
 
 // ============================================================================
 // FINANCE & WEALTH LISTENERS
 // ============================================================================
 ["#retCurrentAge", "#retTargetAge", "#retCurrentSavings", "#retMonthlySavings", "#retExpectedReturn", "#retAnnualSpend"].forEach(sel => {
-    document.querySelector(sel)?.addEventListener("input", calculateRetirementTrajectory);
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", calculateRetirementTrajectory);
+    el?.addEventListener("change", calculateRetirementTrajectory);
 });
 ["#grossSalary", "#stateTaxRate", "#preTax401k"].forEach(sel => {
-    document.querySelector(sel)?.addEventListener("input", calculatePaycheckDonut);
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", calculatePaycheckDonut);
+    el?.addEventListener("change", calculatePaycheckDonut);
 });
 
 // ============================================================================
 // PHYSICS LISTENERS
 // ============================================================================
 ["#projVelocity", "#projAngle", "#projHeight"].forEach(sel => {
-    document.querySelector(sel)?.addEventListener("input", calculateProjectileMotion);
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", calculateProjectileMotion);
+    el?.addEventListener("change", calculateProjectileMotion);
 });
-document.querySelector("#calculateOhmBtn")?.addEventListener("click", calculateOhmPower);
-document.querySelector("#calculateRelativityBtn")?.addEventListener("click", calculateRelativityDilation);
+
+// OHM'S LAW & ELECTRICAL POWER STUDIO LISTENERS
+function setupOhmStudioListeners() {
+    // Mode switcher
+    document.querySelectorAll("#ohmStudioModeSelect button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            playSoundFeedback("key");
+            setOhmStudioMode(btn.dataset.ohmmode);
+        });
+    });
+
+    // Given pair chips
+    document.querySelectorAll("#ohmPairChips button").forEach(chip => {
+        chip.addEventListener("click", () => {
+            playSoundFeedback("key");
+            setOhmGivenPair(chip.dataset.ohmpair);
+            calculateOhmPower();
+        });
+    });
+
+    // DC 4-variable inputs
+    const ohmInputs = [
+        { sel: "#ohmVoltage", code: "V" },
+        { sel: "#ohmCurrent", code: "I" },
+        { sel: "#ohmResistance", code: "R" },
+        { sel: "#ohmPower", code: "P" }
+    ];
+    ohmInputs.forEach(({ sel, code }) => {
+        const el = document.querySelector(sel);
+        el?.addEventListener("input", () => calculateOhmPower(code));
+        el?.addEventListener("change", () => calculateOhmPower(code));
+    });
+
+    // Unit selects
+    ["#ohmVoltUnit", "#ohmCurrUnit", "#ohmResUnit", "#ohmPowerUnit"].forEach(sel => {
+        const el = document.querySelector(sel);
+        el?.addEventListener("change", () => calculateOhmPower());
+    });
+
+    // Buttons
+    document.querySelector("#calculateOhmBtn")?.addEventListener("click", () => {
+        playSoundFeedback("key");
+        calculateOhmPower();
+    });
+
+    document.querySelector("#resetOhmBtn")?.addEventListener("click", () => {
+        playSoundFeedback("key");
+        const vInput = document.querySelector("#ohmVoltage");
+        const iInput = document.querySelector("#ohmCurrent");
+        const vUnit = document.querySelector("#ohmVoltUnit");
+        const iUnit = document.querySelector("#ohmCurrUnit");
+        const rUnit = document.querySelector("#ohmResUnit");
+        const pUnit = document.querySelector("#ohmPowerUnit");
+        if (vInput) vInput.value = "12";
+        if (iInput) iInput.value = "2.5";
+        if (vUnit) vUnit.value = "1";
+        if (iUnit) iUnit.value = "1";
+        if (rUnit) rUnit.value = "1";
+        if (pUnit) pUnit.value = "1";
+        setOhmGivenPair("VI");
+        calculateOhmPower();
+    });
+
+    // Energy auditor inputs
+    ["#ohmEnergyHours", "#ohmEnergyDays", "#ohmEnergyRate"].forEach(sel => {
+        const el = document.querySelector(sel);
+        el?.addEventListener("input", calculateOhmEnergy);
+        el?.addEventListener("change", calculateOhmEnergy);
+    });
+
+    // AC Phase buttons
+    document.querySelectorAll("#acPhaseSelect button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            playSoundFeedback("key");
+            setACPhaseMode(btn.dataset.acphase);
+        });
+    });
+
+    // AC Inputs
+    ["#acVoltage", "#acCurrent", "#acPowerFactor"].forEach(sel => {
+        const el = document.querySelector(sel);
+        el?.addEventListener("input", calculateACPower);
+        el?.addEventListener("change", calculateACPower);
+    });
+
+    document.querySelector("#acLoadType")?.addEventListener("change", e => {
+        if (e.target.value === "resistive") {
+            const pfInput = document.querySelector("#acPowerFactor");
+            if (pfInput) pfInput.value = "1.0";
+        }
+        calculateACPower();
+    });
+}
+setupOhmStudioListeners();
+
+["#relVelocity", "#relTime"].forEach(sel => {
+    const el = document.querySelector(sel);
+    el?.addEventListener("input", calculateRelativityDilation);
+    el?.addEventListener("change", calculateRelativityDilation);
+});
+document.querySelector("#calculateRelativityBtn")?.addEventListener("click", () => {
+    playSoundFeedback("key");
+    calculateRelativityDilation();
+});
 
 // ============================================================================
 // SMART UTILITIES (Live Listeners)
 // ============================================================================
 ["#compoundInitial", "#compoundMonthly", "#compoundRate", "#compoundYears", "#compoundFrequency"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateCompoundGrowth);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateCompoundGrowth);
+    el?.addEventListener("change", calculateCompoundGrowth);
 });
 document.querySelector("#calculateCompound")?.addEventListener("click", calculateCompoundGrowth);
 
 ["#pmtPrincipal", "#pmtRate", "#pmtYears"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateMortgage);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateMortgage);
+    el?.addEventListener("change", calculateMortgage);
 });
 document.querySelector("#calculateMortgage")?.addEventListener("click", calculateMortgage);
 
 ["#loanPrincipal", "#loanRate", "#loanYears"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateLoanPayment);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateLoanPayment);
+    el?.addEventListener("change", calculateLoanPayment);
 });
 document.querySelector("#calculateLoan")?.addEventListener("click", calculateLoanPayment);
 
 ["#bmiWeight", "#bmiHeight"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateBmi);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateBmi);
+    el?.addEventListener("change", calculateBmi);
 });
 document.querySelector("#calculateBmi")?.addEventListener("click", calculateBmi);
 
 ["#dateStart", "#dateEnd"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateDateDifference);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateDateDifference);
+    el?.addEventListener("change", calculateDateDifference);
 });
 document.querySelector("#calculateDateDiff")?.addEventListener("click", calculateDateDifference);
 
 ["#gpaGrades", "#gpaCredits"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateGpa);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateGpa);
+    el?.addEventListener("change", calculateGpa);
 });
 document.querySelector("#calculateGpa")?.addEventListener("click", calculateGpa);
 
-document.querySelector("#statsInput")?.addEventListener("input", calculateStats);
+["#statsInput"].forEach(s => {
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateStats);
+    el?.addEventListener("change", calculateStats);
+});
 document.querySelector("#calculateStats")?.addEventListener("click", calculateStats);
 
 ["#percentValue", "#percentRate"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculatePercentage);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculatePercentage);
+    el?.addEventListener("change", calculatePercentage);
 });
 document.querySelector("#calculatePercent")?.addEventListener("click", calculatePercentage);
 
 ["#tipBill", "#tipPercent", "#tipPeople"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateTipSplit);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateTipSplit);
+    el?.addEventListener("change", calculateTipSplit);
 });
 document.querySelector("#calculateTip")?.addEventListener("click", calculateTipSplit);
 
 ["#discountPrice", "#discountPercent", "#taxPercent"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateDiscount);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateDiscount);
+    el?.addEventListener("change", calculateDiscount);
 });
 document.querySelector("#calculateDiscount")?.addEventListener("click", calculateDiscount);
 
 ["#roiInitial", "#roiFinal"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateRoi);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateRoi);
+    el?.addEventListener("change", calculateRoi);
 });
 document.querySelector("#calculateRoi")?.addEventListener("click", calculateRoi);
 
 ["#ageBirth", "#ageTarget"].forEach(s => {
-    document.querySelector(s)?.addEventListener("input", calculateAge);
+    const el = document.querySelector(s);
+    el?.addEventListener("input", calculateAge);
+    el?.addEventListener("change", calculateAge);
 });
 document.querySelector("#calculateAge")?.addEventListener("click", calculateAge);
 
 // History Export TXT Paper Tape
 document.querySelector("#exportHistoryTxt")?.addEventListener("click", () => {
     playSoundFeedback("enter");
-    let txt = "ORBIT COMPUTING SUITE — PAPER TAPE AUDIT ROLL\n";
+    let txt = "ORBIT COMPUTING SUITE - PAPER TAPE AUDIT ROLL\n";
     txt += "===============================================\n\n";
     state.history.forEach((h, idx) => {
         const d = new Date(h.timestamp || Date.now()).toLocaleString();
@@ -4605,7 +5593,9 @@ document.querySelectorAll("#triInputModeSelect [data-trimode]").forEach(btn => {
 });
 
 ["#triInputA", "#triInputB", "#triInputC"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateTriangleProperties);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateTriangleProperties);
+    el?.addEventListener("change", calculateTriangleProperties);
 });
 
 function calculateTriangleProperties() {
@@ -4890,7 +5880,9 @@ function drawTriangleCanvas(a, b, c, alpha, beta, gamma, area, inradius) {
 // Circle & Arc Solver
 document.querySelector("#calculateCircleBtn")?.addEventListener("click", calculateCircleProperties);
 ["#circleRadius", "#circleAngle"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateCircleProperties);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateCircleProperties);
+    el?.addEventListener("change", calculateCircleProperties);
 });
 
 function calculateCircleProperties() {
@@ -4909,6 +5901,62 @@ function calculateCircleProperties() {
     if (resEl) resEl.textContent = `Arc Length: ${roundNumber(arcLength, 2)} · Chord: ${roundNumber(chord, 2)} · Sector Area: ${roundNumber(sectorArea, 2)}`;
     const subEl = document.querySelector("#circleSub");
     if (subEl) subEl.textContent = `Circle Area: ${roundNumber(circleArea, 2)} · Segment Area: ${roundNumber(segmentArea, 2)} · Sagitta: ${roundNumber(sagitta, 2)}`;
+    
+    // Draw on Canvas
+    const canvas = document.getElementById("circleCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    
+    const cx = w / 2;
+    const cy = h / 2;
+    // Base scale on circle radius to fit comfortably in view
+    const scale = Math.min(w, h) * 0.4;
+    
+    // Draw full circle (faint)
+    ctx.beginPath();
+    ctx.arc(cx, cy, scale, 0, 2 * Math.PI);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw Sector Area (fill)
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    const startAngle = -rad / 2;
+    const endAngle = rad / 2;
+    ctx.arc(cx, cy, scale, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(6, 182, 212, 0.15)";
+    ctx.fill();
+    
+    // Draw Arc Length (stroke)
+    ctx.beginPath();
+    ctx.arc(cx, cy, scale, startAngle, endAngle);
+    ctx.strokeStyle = "#06b6d4"; // Cyan
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    // Draw Radii
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + scale * Math.cos(startAngle), cy + scale * Math.sin(startAngle));
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + scale * Math.cos(endAngle), cy + scale * Math.sin(endAngle));
+    ctx.strokeStyle = "#06b6d4";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw Chord
+    ctx.beginPath();
+    ctx.moveTo(cx + scale * Math.cos(startAngle), cy + scale * Math.sin(startAngle));
+    ctx.lineTo(cx + scale * Math.cos(endAngle), cy + scale * Math.sin(endAngle));
+    ctx.strokeStyle = "#f43f5e"; // Rose
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 // 3D Solids Volume & Area
@@ -4938,7 +5986,9 @@ document.querySelector("#solidShapeSelect")?.addEventListener("change", e => {
     calculateSolidProperties();
 });
 ["#solidDim1", "#solidDim2"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateSolidProperties);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateSolidProperties);
+    el?.addEventListener("change", calculateSolidProperties);
 });
 
 function calculateSolidProperties() {
@@ -4977,6 +6027,122 @@ function calculateSolidProperties() {
     if (resEl) resEl.textContent = `Volume V: ${roundNumber(volume, 2)} · Total Surface Area: ${roundNumber(surface, 2)}`;
     const subEl = document.querySelector("#solidSub");
     if (subEl) subEl.textContent = `Lateral Area: ${roundNumber(lateral, 2)} · Cross-Section/Base: ${roundNumber(volume / (d2 || 1), 2)}`;
+
+    // Draw on Canvas
+    const canvas = document.getElementById("solidCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    
+    const cx = w / 2, cy = h / 2;
+    const scale = Math.min(w, h) * 0.35;
+    
+    ctx.strokeStyle = "#06b6d4"; // Cyan
+    ctx.lineWidth = 2;
+    
+    if (shape === "sphere") {
+        ctx.beginPath();
+        ctx.arc(cx, cy, scale, 0, 2 * Math.PI);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, scale, scale * 0.3, 0, 0, 2 * Math.PI);
+        ctx.strokeStyle = "#f43f5e"; // Rose
+        ctx.stroke();
+    } else if (shape === "cylinder") {
+        const radX = scale * 0.7;
+        const radY = scale * 0.2;
+        const topY = cy - scale;
+        const botY = cy + scale;
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, topY, radX, radY, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, botY, radX, radY, 0, 0, Math.PI);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, botY, radX, radY, 0, Math.PI, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.stroke();
+        
+        ctx.strokeStyle = "#06b6d4";
+        ctx.beginPath();
+        ctx.moveTo(cx - radX, topY); ctx.lineTo(cx - radX, botY);
+        ctx.moveTo(cx + radX, topY); ctx.lineTo(cx + radX, botY);
+        ctx.stroke();
+    } else if (shape === "cone") {
+        const radX = scale * 0.8;
+        const radY = scale * 0.25;
+        const topY = cy - scale;
+        const botY = cy + scale * 0.8;
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, botY, radX, radY, 0, 0, Math.PI);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, botY, radX, radY, 0, Math.PI, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.stroke();
+        
+        ctx.strokeStyle = "#06b6d4";
+        ctx.beginPath();
+        ctx.moveTo(cx, topY); ctx.lineTo(cx - radX, botY);
+        ctx.moveTo(cx, topY); ctx.lineTo(cx + radX, botY);
+        ctx.stroke();
+    } else if (shape === "torus") {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, scale, scale * 0.4, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, scale * 0.4, scale * 0.15, 0, 0, Math.PI);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - scale * 0.05, scale * 0.5, scale * 0.18, 0, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+    } else if (shape === "box") {
+        const size = scale * 0.8;
+        const dx = size * Math.cos(Math.PI / 6);
+        const dy = size * Math.sin(Math.PI / 6);
+        
+        const pts = [
+            {x: cx, y: cy + size}, // 0: bottom front
+            {x: cx + dx, y: cy + size - dy}, // 1: bottom right
+            {x: cx, y: cy + size - 2*dy}, // 2: bottom back
+            {x: cx - dx, y: cy + size - dy}, // 3: bottom left
+            {x: cx, y: cy - size}, // 4: top front
+            {x: cx + dx, y: cy - size - dy}, // 5: top right
+            {x: cx, y: cy - size - 2*dy}, // 6: top back
+            {x: cx - dx, y: cy - size - dy}  // 7: top left
+        ];
+        
+        // Draw hidden lines
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.beginPath();
+        ctx.moveTo(pts[2].x, pts[2].y); ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.moveTo(pts[2].x, pts[2].y); ctx.lineTo(pts[3].x, pts[3].y);
+        ctx.moveTo(pts[2].x, pts[2].y); ctx.lineTo(pts[6].x, pts[6].y);
+        ctx.stroke();
+        
+        // Draw visible lines
+        ctx.strokeStyle = "#06b6d4";
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.lineTo(pts[5].x, pts[5].y); ctx.lineTo(pts[6].x, pts[6].y);
+        ctx.lineTo(pts[7].x, pts[7].y); ctx.lineTo(pts[4].x, pts[4].y);
+        ctx.lineTo(pts[0].x, pts[0].y); ctx.lineTo(pts[3].x, pts[3].y);
+        ctx.lineTo(pts[7].x, pts[7].y);
+        ctx.moveTo(pts[1].x, pts[1].y); ctx.lineTo(pts[5].x, pts[5].y);
+        ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[4].x, pts[4].y);
+        ctx.moveTo(pts[4].x, pts[4].y); ctx.lineTo(pts[5].x, pts[5].y);
+        ctx.stroke();
+    }
 }
 
 // ============================================================================
@@ -4996,7 +6162,9 @@ document.querySelectorAll("#resistorBandModeSelect [data-bands]").forEach(btn =>
 });
 
 ["#resBand1", "#resBand2", "#resBand3", "#resMultiplier", "#resTolerance"].forEach(id => {
-    document.querySelector(id)?.addEventListener("change", calculateResistorFromBands);
+    const el = document.querySelector(id);
+    el?.addEventListener("change", calculateResistorFromBands);
+    el?.addEventListener("input", calculateResistorFromBands);
 });
 
 const RESISTOR_COLOR_MAP = {
@@ -5251,7 +6419,9 @@ function drawResistorCanvas(bandColors) {
 // LC & RC Circuit Solvers
 document.querySelector("#calculateCircuitBtn")?.addEventListener("click", calculateCircuitResonance);
 ["#circuitL", "#circuitC", "#circuitR"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateCircuitResonance);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateCircuitResonance);
+    el?.addEventListener("change", calculateCircuitResonance);
 });
 
 function calculateCircuitResonance() {
@@ -5276,7 +6446,9 @@ function calculateCircuitResonance() {
 // Voltage Divider & SMD Decoder
 document.querySelector("#calculateVdivBtn")?.addEventListener("click", calculateVoltageDivider);
 ["#vdivVin", "#vdivR1", "#vdivR2", "#smdInput"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateVoltageDivider);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateVoltageDivider);
+    el?.addEventListener("change", calculateVoltageDivider);
 });
 
 function calculateVoltageDivider() {
@@ -5333,7 +6505,9 @@ function getCpiForYear(yr) {
 
 document.querySelector("#calculateInflationBtn")?.addEventListener("click", calculateInflation);
 ["#inflationAmount", "#inflationYearStart", "#inflationYearEnd"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateInflation);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateInflation);
+    el?.addEventListener("change", calculateInflation);
 });
 
 function calculateInflation() {
@@ -5358,7 +6532,9 @@ function calculateInflation() {
 // DRIP Compounding Visualizer
 document.querySelector("#calculateDripBtn")?.addEventListener("click", calculateDrip);
 ["#dripInitial", "#dripAnnualAdd", "#dripYield", "#dripGrowth", "#dripApprec", "#dripYears"].forEach(id => {
-    document.querySelector(id)?.addEventListener("input", calculateDrip);
+    const el = document.querySelector(id);
+    el?.addEventListener("input", calculateDrip);
+    el?.addEventListener("change", calculateDrip);
 });
 
 function calculateDrip() {
@@ -5575,6 +6751,15 @@ function renderStatsBoxPlot(numbers, q1, median, q3, min, max) {
 // BEAST MODE: SPOTLIGHT OMNI COMMAND PALETTE MODAL (⌘K / /)
 // ============================================================================
 const OMNI_ITEMS = [
+    { title: "IntuitionLab STEM Studio", desc: "Interactive 60fps geometric simulations for Calculus, Physics, Algebra", icon: "⚡", mode: "intuitionlab", badge: "60 FPS" },
+    { title: "IntuitionLab: Matrix Warping (3Blue1Brown)", desc: "2D grid warping, basis î and ĵ, det(A) orientation flip", icon: "🔲", mode: "intuitionlab", simId: "matrix", badge: "Simulation" },
+    { title: "IntuitionLab: Tangent Limit Δx → 0", desc: "Secant morphing to tangent limit with synchronized f'(x) trace", icon: "📈", mode: "intuitionlab", simId: "derivatives", badge: "Simulation" },
+    { title: "IntuitionLab: Riemann Slices & Melting", desc: "Left/Right/Midpoint/Trapezoid sums & smooth area melting", icon: "📊", mode: "intuitionlab", simId: "riemann", badge: "Simulation" },
+    { title: "IntuitionLab: Projectile Hoop Game", desc: "Velocity vector decomposition, Δt=0.25s strobes & planetary gravity", icon: "🎯", mode: "intuitionlab", simId: "projectile", badge: "Simulation" },
+    { title: "IntuitionLab: Damped Pendulum Phase Space", desc: "Ek vs Ep real-time energy bars with (θ, ω) phase orbit plot", icon: "⏱", mode: "intuitionlab", simId: "pendulum", badge: "Simulation" },
+    { title: "IntuitionLab: Snell's Law & Total Internal Reflection", desc: "Refraction across media, wavefront speeds & critical angle θc", icon: "🌈", mode: "intuitionlab", simId: "optics", badge: "Simulation" },
+    { title: "IntuitionLab: 2D Gradient Descent", desc: "Downhill gradient vector fields, momentum & contour terrains", icon: "🏔", mode: "intuitionlab", simId: "gradient", badge: "Simulation" },
+    { title: "IntuitionLab: Unit Circle Waves", desc: "Cosine & sine projection bars unwinding into running sine wave", icon: "⭕", mode: "intuitionlab", simId: "trig", badge: "Simulation" },
     { title: "Unit & Currency Converter", desc: "17 measurement categories, mass, length, currency", icon: "⇄", mode: "converter", badge: "Workspace" },
     { title: "Scientific Calculator Studio", desc: "Trigonometric, logarithmic, powers & memory", icon: "ƒx", mode: "calculator", badge: "Workspace" },
     { title: "Programmer Bitwise Lab", desc: "64-bit tactile bit-flipper, Hex, Dec, Oct, Bin", icon: "01", mode: "programmer", badge: "Workspace" },
@@ -5685,9 +6870,49 @@ function renderOmniResults() {
     });
 }
 
+function navigateIntuitionLab(simId) {
+    if (!simId) return;
+    showMode("intuitionlab");
+    const frame = document.getElementById("intuitionLabFrame");
+    if (!frame) return;
+
+    window.__pendingIntuitionSim = simId;
+
+    const trySend = () => {
+        // 1. Send postMessage (handled by intuitionlab/js/app.js)
+        try {
+            if (frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: "NAVIGATE", hash: simId, simId: simId }, "*");
+            }
+        } catch (_) {}
+
+        // 2. Direct invocation if same-origin / srcdoc
+        try {
+            if (frame.contentWindow && frame.contentWindow.intuitionLabApp) {
+                frame.contentWindow.intuitionLabApp.goToHash(simId);
+            }
+        } catch (_) {}
+    };
+
+    trySend();
+    setTimeout(trySend, 80);
+    setTimeout(trySend, 250);
+
+    if (!frame.__hasBoundLoad) {
+        frame.__hasBoundLoad = true;
+        frame.addEventListener("load", () => {
+            if (window.__pendingIntuitionSim) {
+                trySend();
+            }
+        });
+    }
+}
+
 function executeOmniItem(item) {
     closeOmniPalette();
-    if (item.mode) {
+    if (item.simId) {
+        navigateIntuitionLab(item.simId);
+    } else if (item.mode) {
         showMode(item.mode);
     } else if (item.action === "zen") {
         document.body.classList.toggle("zen-mode");
@@ -5708,6 +6933,17 @@ function executeOmniItem(item) {
 document.querySelector("#omniTrigger")?.addEventListener("click", openOmniPalette);
 document.querySelector("#closeOmniBadge")?.addEventListener("click", closeOmniPalette);
 document.querySelector("#omniSearchInput")?.addEventListener("input", e => filterOmniItems(e.target.value));
+
+// IntuitionLab Chip Navigation
+document.querySelectorAll(".intuitionlab-chip").forEach(chip => {
+    chip.addEventListener("click", e => {
+        e.preventDefault();
+        const simId = chip.dataset.sim || (chip.getAttribute("href") || "").split("#")[1];
+        if (simId) {
+            navigateIntuitionLab(simId);
+        }
+    });
+});
 
 document.querySelector("#omniCopyEvalBtn")?.addEventListener("click", () => {
     const txt = document.querySelector("#omniEvalValue")?.textContent.replace(/^=\s*/, "");
@@ -5978,7 +7214,13 @@ window.addEventListener("resize", () => {
         calculateRetirementTrajectory();
         calculatePaycheckDonut();
     }
-    if (!document.querySelector("#physicsPanel").hidden) calculateProjectileMotion();
+    if (!document.querySelector("#physicsPanel").hidden) {
+        calculateProjectileMotion();
+        calculateOhmPower();
+        calculateOhmEnergy();
+        calculateACPower();
+        calculateRelativityDilation();
+    }
     if (!document.querySelector("#advancedPanel").hidden) {
         calculateCompoundGrowth();
         calculateStats();
@@ -5986,10 +7228,236 @@ window.addEventListener("resize", () => {
 });
 
 // ============================================================================
+// DEVELOPER & IT STUDIO (NEW)
+// ============================================================================
+function initDeveloperTools() {
+    const ipInput = document.getElementById('devIpAddress');
+    const cidrInput = document.getElementById('devCidr');
+    const cidrVal = document.getElementById('devCidrVal');
+    const calcSubnetBtn = document.getElementById('calcSubnetBtn');
+    
+    function calculateSubnet(record = false) {
+        if (!ipInput || !cidrInput || !ipInput.value || !cidrInput.value) {
+            document.getElementById('subnetResult').textContent = "Enter IP and CIDR";
+            document.getElementById('subnetSub').textContent = "";
+            return;
+        }
+        const ip = ipInput.value;
+        const cidr = parseInt(cidrInput.value, 10);
+        
+        // Simple IPv4 parser
+        const parts = ip.split('.').map(n => parseInt(n, 10));
+        if (parts.length !== 4 || parts.some(isNaN)) {
+            document.getElementById('subnetResult').textContent = "Invalid IP Address format";
+            return;
+        }
+        
+        let ipNum = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
+        let mask = ~((1 << (32 - cidr)) - 1);
+        let net = ipNum & mask;
+        let bc = net | ~mask;
+        
+        function toIP(n) {
+            return [ (n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255 ].join('.');
+        }
+        
+        const usable = cidr >= 31 ? 0 : Math.pow(2, 32 - cidr) - 2;
+        
+        document.getElementById('subnetResult').textContent = `Network: ${toIP(net)} · Broadcast: ${toIP(bc)}`;
+        document.getElementById('subnetSub').textContent = `Usable Hosts: ${usable.toLocaleString()} · Mask: ${toIP(mask)}`;
+        
+        if (record && typeof recordCalculation === 'function') recordCalculation(`Subnet ${ip}/${cidr}`, `${toIP(net)} - ${toIP(bc)}`);
+    }
+
+    if (cidrInput) {
+        cidrInput.addEventListener('input', () => {
+            if (cidrVal) cidrVal.textContent = cidrInput.value;
+            calculateSubnet(false);
+        });
+        cidrInput.addEventListener('change', () => calculateSubnet(false));
+    }
+    
+    if (ipInput) {
+        ipInput.addEventListener('input', () => calculateSubnet(false));
+        ipInput.addEventListener('change', () => calculateSubnet(false));
+    }
+
+    if (calcSubnetBtn) {
+        calcSubnetBtn.addEventListener('click', () => {
+            if (typeof playSoundFeedback === 'function') playSoundFeedback("key");
+            calculateSubnet(true);
+        });
+    }
+
+    const cryptoInput = document.getElementById('devCryptoInput');
+    if (cryptoInput) {
+        cryptoInput.addEventListener('input', async () => {
+            const val = cryptoInput.value;
+            
+            // Base64
+            try {
+                const b64 = btoa(val);
+                document.getElementById('cryptoBase64').textContent = `Base64: ${b64}`;
+            } catch(e) {
+                document.getElementById('cryptoBase64').textContent = `Base64: Invalid characters`;
+            }
+            
+            // SHA-256 (subbing for MD5 as it's built into WebCrypto)
+            if (val.length > 0) {
+                try {
+                    const msgBuffer = new TextEncoder().encode(val);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    document.getElementById('cryptoMD5').textContent = `SHA-256: ${hashHex}`;
+                } catch(e) {
+                    document.getElementById('cryptoMD5').textContent = `SHA-256: Error`;
+                }
+            } else {
+                document.getElementById('cryptoMD5').textContent = `SHA-256: `;
+            }
+        });
+    }
+}
+
+// ============================================================================
+// PROBABILITY & STATS (NEW)
+// ============================================================================
+function initProbabilityTools() {
+    const calcBtn = document.getElementById('calcCombinatoricsBtn');
+    const probNInput = document.getElementById('probN');
+    const probRInput = document.getElementById('probR');
+    
+    function calculateCombinatorics(record = false) {
+        if (!probNInput || !probRInput || probNInput.value === "" || probRInput.value === "") {
+            document.getElementById('combResult').textContent = "Combinations: Awaiting input...";
+            document.getElementById('permResult').textContent = "Permutations: Awaiting input...";
+            return;
+        }
+        const n = parseInt(probNInput.value, 10);
+        const r = parseInt(probRInput.value, 10);
+        
+        function fact(num) {
+            if (num <= 1) return 1;
+            let f = 1;
+            for (let i = 2; i <= num; i++) f *= i;
+            return f;
+        }
+        
+        if (n < 0 || r < 0 || r > n || isNaN(n) || isNaN(r)) {
+            document.getElementById('combResult').textContent = "Combinations: Invalid parameters (need n >= r >= 0)";
+            document.getElementById('permResult').textContent = "Permutations: Invalid parameters";
+            return;
+        }
+        
+        let nPr, nCr;
+        if (n <= 170) {
+            nPr = fact(n) / fact(n - r);
+            nCr = nPr / fact(r);
+            document.getElementById('combResult').textContent = `Combinations (nCr): ${nCr.toLocaleString()}`;
+            document.getElementById('permResult').textContent = `Permutations (nPr): ${nPr.toLocaleString()}`;
+            if (record && typeof recordCalculation === 'function') recordCalculation(`${n} C ${r}`, `${nCr.toLocaleString()}`);
+        } else {
+            document.getElementById('combResult').textContent = `Combinations: Number too large`;
+            document.getElementById('permResult').textContent = `Permutations: Number too large`;
+        }
+    }
+
+    [probNInput, probRInput].forEach(el => {
+        if (el) {
+            el.addEventListener('input', () => calculateCombinatorics(false));
+            el.addEventListener('change', () => calculateCombinatorics(false));
+        }
+    });
+    
+    if (calcBtn) {
+        calcBtn.addEventListener('click', () => {
+            if (typeof playSoundFeedback === 'function') playSoundFeedback("key");
+            calculateCombinatorics(true);
+        });
+    }
+}
+
+// ============================================================================
+// CHEMISTRY & STOICHIOMETRY (NEW)
+// ============================================================================
+function initChemistryTools() {
+    const calcBtn = document.getElementById('calcMolarMassBtn');
+    const chemInput = document.getElementById('chemFormula');
+    
+    // Very simplified periodic table weights (just the most common ones for demo)
+    const weights = {
+        'H': 1.008, 'He': 4.0026, 'Li': 6.94, 'Be': 9.0122, 'B': 10.81, 'C': 12.011, 'N': 14.007, 'O': 15.999, 'F': 18.998, 'Ne': 20.180,
+        'Na': 22.990, 'Mg': 24.305, 'Al': 26.982, 'Si': 28.085, 'P': 30.974, 'S': 32.06, 'Cl': 35.45, 'Ar': 39.95, 'K': 39.098, 'Ca': 40.078,
+        'Fe': 55.845, 'Cu': 63.546, 'Zn': 65.38, 'Ag': 107.87, 'Au': 196.97, 'Hg': 200.59, 'Pb': 207.2, 'U': 238.03
+    };
+    
+    function calculateMolarMass(record = false) {
+        if (!chemInput || !chemInput.value) {
+            document.getElementById('molarMassResult').textContent = "Molar Mass: Awaiting input...";
+            document.getElementById('molarMassBreakdown').textContent = "";
+            return;
+        }
+        const formula = chemInput.value.trim();
+        
+        // Simple regex parser for something like H2SO4 or C6H12O6
+        const regex = /([A-Z][a-z]*)(\d*)/g;
+        let match;
+        let totalWeight = 0;
+        const breakdown = {};
+        let valid = true;
+        
+        while ((match = regex.exec(formula)) !== null) {
+            const element = match[1];
+            const count = match[2] ? parseInt(match[2], 10) : 1;
+            
+            if (weights[element]) {
+                const w = weights[element] * count;
+                totalWeight += w;
+                breakdown[element] = (breakdown[element] || 0) + w;
+            } else {
+                valid = false;
+            }
+        }
+        
+        if (totalWeight === 0 || !valid) {
+            document.getElementById('molarMassResult').textContent = "Molar Mass: Unknown element or invalid formula";
+            document.getElementById('molarMassBreakdown').textContent = "Supports basic elements (H, C, N, O, S, Fe, etc.)";
+            return;
+        }
+        
+        document.getElementById('molarMassResult').textContent = `Molar Mass: ${totalWeight.toFixed(3)} g/mol`;
+        
+        const breakdownStr = Object.entries(breakdown).map(([el, w]) => {
+            const pct = (w / totalWeight) * 100;
+            return `${el} (${pct.toFixed(2)}%)`;
+        }).join(', ');
+        
+        document.getElementById('molarMassBreakdown').textContent = `Breakdown: ${breakdownStr}`;
+        if (record && typeof recordCalculation === 'function') recordCalculation(`Molar Mass ${formula}`, `${totalWeight.toFixed(3)} g/mol`);
+    }
+
+    if (chemInput) {
+        chemInput.addEventListener('input', () => calculateMolarMass(false));
+        chemInput.addEventListener('change', () => calculateMolarMass(false));
+    }
+    
+    if (calcBtn) {
+        calcBtn.addEventListener('click', () => {
+            if (typeof playSoundFeedback === 'function') playSoundFeedback("key");
+            calculateMolarMass(true);
+        });
+    }
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 function initOrbitSuite() {
     try {
+        initDeveloperTools();
+        initProbabilityTools();
+        initChemistryTools();
         const todayStr = new Date().toISOString().slice(0, 10);
         const ageTarget = document.querySelector("#ageTarget");
         if (ageTarget) ageTarget.value = todayStr;
@@ -6028,8 +7496,13 @@ function initOrbitSuite() {
         safeRun(calculateRetirementTrajectory);
         safeRun(calculatePaycheckDonut);
         safeRun(calculateProjectileMotion);
+        safeRun(calculateOhmPower);
+        safeRun(calculateOhmEnergy);
+        safeRun(calculateACPower);
+        safeRun(calculateRelativityDilation);
         safeRun(calculateDefiniteIntegral);
         safeRun(calculateDerivativeAtPoint);
+        safeRun(findEquationRoot);
         safeRun(calculateTriangleProperties);
         safeRun(calculateCircleProperties);
         safeRun(calculateSolidProperties);
