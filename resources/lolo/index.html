@@ -18549,14 +18549,14 @@
 
         function getSavedCrtMode() {
             try {
-                const saved = localStorage.getItem('lolo_cyber_crt_mode') || 'crt-subtle';
+                const saved = localStorage.getItem('lolo_cyber_crt_mode') || 'off';
                 // Backward compatibility mapping for old 3-state values
                 if (saved === 'subtle') return 'crt-subtle';
                 if (saved === 'heavy') return 'crt-heavy';
                 const found = SCREEN_FILTERS.find(f => f.id === saved);
-                return found ? found.id : 'crt-subtle';
+                return found ? found.id : 'off';
             } catch (e) {
-                return 'crt-subtle';
+                return 'off';
             }
         }
 
@@ -19737,7 +19737,7 @@
                 if (!btnLight) return;
 
                 const saved = localStorage.getItem('lolo_lighting_enabled');
-                game.lightingEnabled = (saved !== 'false');
+                game.lightingEnabled = (saved === 'true');
 
                 const updateUI = () => {
                     if (labelLight) labelLight.innerText = game.lightingEnabled ? 'Light: ON' : 'Light: OFF';

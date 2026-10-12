@@ -728,6 +728,21 @@
             font-size: 0.65rem;
         }
 
+        /* Low Resource Performance Mode */
+        body.low-resource * {
+            box-shadow: none !important;
+            text-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        body.low-resource {
+            background-image: none !important;
+            background-color: var(--bg-color) !important;
+        }
+        body.low-resource .canvas-wrapper::after {
+            display: none !important;
+        }
+
         /* Confetti Canvas */
         #confettiCanvas {
             position: fixed;
@@ -992,7 +1007,7 @@
                 <button type="button" class="action-btn" id="replayBtn" title="Replay Current Maze (R)">
                     <span>🔄</span> Replay
                 </button>
-                <button type="button" class="action-btn" id="dailyBtn" title="Daily Labyrinth Challenge (D)">
+                <button type="button" class="action-btn" id="dailyBtn" title="Daily Labyrinth Challenge (C)">
                     <span>📅</span> Daily
                 </button>
                 <button type="button" class="action-btn" id="pauseBtn" title="Pause / Resume (P or Space)">
@@ -1090,6 +1105,13 @@
                     <option value="amber">Solar Flare</option>
                 </select>
             </div>
+            <div class="setting-row">
+                <span class="setting-label">Performance Mode</span>
+                <select id="perfSelect" class="select-field" aria-label="Performance Profile">
+                    <option value="high" selected>High (Rich FX)</option>
+                    <option value="low">Low (Fast VM/Linux)</option>
+                </select>
+            </div>
             <div class="setting-row" style="margin-top: 8px;">
                 <span class="setting-label">High-Res Wallpaper</span>
                 <button type="button" class="action-btn" id="exportBtn">
@@ -1110,7 +1132,7 @@
                 <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> Desktop movement</div>
                 <div><kbd>N</kbd> Generate brand-new random labyrinth</div>
                 <div><kbd>R</kbd> Replay current labyrinth from scratch (same seed)</div>
-                <div><kbd>D</kbd> Daily Labyrinth Challenge (synchronized daily puzzle)</div>
+                <div><kbd>C</kbd> Daily Labyrinth Challenge (synchronized daily puzzle)</div>
                 <div><kbd>P</kbd> / <kbd>Space</kbd> Pause or resume exploration & timer</div>
                 <div><kbd>H</kbd> Activate neural path hint (consumes 1 hint charge)</div>
                 <div><kbd>G</kbd> Give Up: reveal optimal path & finish attempt</div>
@@ -1274,6 +1296,7 @@
         resizeConfetti();
 
         function launchConfetti() {
+            if (typeof currentPerf !== 'undefined' && currentPerf === 'low') return;
             confetti = [];
             const colors = ['#00f0ff', '#ff0077', '#00ff9d', '#ffd43b', '#b026ff', '#ffffff'];
             for (let i = 0; i < 90; i++) {
@@ -1354,7 +1377,7 @@
         const rawInitialState = window.__MAZE_STATE__ || {};
         let settings = E ? E.sanitizeSettings(rawInitialState.settings) : {
             mode: 'classic', diff: 'medium', algo: 'dfs', solver: 'astar', theme: 'cyan',
-            sound: true, drone: false, trail: true, dpad: true
+            sound: true, drone: false, trail: true, dpad: true, perf: 'high'
         };
         let stats = E ? E.sanitizeStats(rawInitialState.stats) : (E ? E.emptyStats() : {
             played: 0, won: 0, surrendered: 0, totalSteps: 0, shardsCollected: 0, best: {}
@@ -1382,6 +1405,7 @@
         let currentAlgo = settings.algo || 'dfs';
         let currentSolver = settings.solver || 'astar';
         let currentTheme = settings.theme || 'cyan';
+        let currentPerf = settings.perf || 'high';
         let currentSeed = Math.random().toString(36).slice(2, 10);
         let isDaily = false;
         let isPaused = false;
@@ -1435,6 +1459,7 @@
         const algoSelect = document.getElementById('algoSelect');
         const solverSelect = document.getElementById('solverSelect');
         const themeSelect = document.getElementById('themeSelect');
+        const perfSelect = document.getElementById('perfSelect');
         const seedInput = document.getElementById('seedInput');
         const timerVal = document.getElementById('timerVal');
         const bestTimeVal = document.getElementById('bestTimeVal');
@@ -1509,6 +1534,8 @@
         if (algoSelect) algoSelect.value = currentAlgo;
         if (solverSelect) solverSelect.value = currentSolver;
         if (themeSelect) themeSelect.value = currentTheme;
+        if (perfSelect) perfSelect.value = currentPerf;
+        if (currentPerf === 'low') document.body.classList.add('low-resource');
 
         // Dynamic Full-Screen Crisp Retina Display Scaling
         function setupCanvasDPI() {
@@ -1858,16 +1885,18 @@
             if (dx === -1 && !cell.walls.left) canMove = true;
 
             if (canMove) {
-                for (let i = 0; i < 3; i++) {
-                    particles.push({
-                        x: (player.x + 0.5) * cellSize,
-                        y: (player.y + 0.5) * cellSize,
-                        vx: (Math.random() - 0.5) * 1.5,
-                        vy: (Math.random() - 0.5) * 1.5,
-                        color: themes[currentTheme].wall,
-                        size: cellSize * 0.18,
-                        alpha: 0.8
-                    });
+                if (currentPerf !== 'low') {
+                    for (let i = 0; i < 3; i++) {
+                        particles.push({
+                            x: (player.x + 0.5) * cellSize,
+                            y: (player.y + 0.5) * cellSize,
+                            vx: (Math.random() - 0.5) * 1.5,
+                            vy: (Math.random() - 0.5) * 1.5,
+                            color: themes[currentTheme].wall,
+                            size: cellSize * 0.18,
+                            alpha: 0.8
+                        });
+                    }
                 }
 
                 player.x += dx;
@@ -2018,16 +2047,12 @@
             if (['arrowup', 'w'].includes(k)) { e.preventDefault(); activeKeys.up = true; }
             else if (['arrowdown', 's'].includes(k)) { e.preventDefault(); activeKeys.down = true; }
             else if (['arrowleft', 'a'].includes(k)) { e.preventDefault(); activeKeys.left = true; }
-            else if (['arrowright', 'd'].includes(k)) {
-                // If D is pressed with no other keys, check if user is moving or triggering daily
-                if (k === 'd') {
-                    // ArrowRight or D moves player right
-                    e.preventDefault(); activeKeys.right = true;
-                }
-            }
+            else if (['arrowright', 'd'].includes(k)) { e.preventDefault(); activeKeys.right = true; }
+
             // Shortcuts
             else if (k === 'n') { e.preventDefault(); generateMaze({ newSeed: true }); }
             else if (k === 'r') { e.preventDefault(); generateMaze(); }
+            else if (k === 'c') { e.preventDefault(); generateMaze({ daily: true }); }
             else if (k === 'p' || e.code === 'Space') { e.preventDefault(); togglePause(); }
             else if (k === 'h') { e.preventDefault(); useHint(); }
             else if (k === 'g') { e.preventDefault(); giveUpBtn.click(); }
@@ -2044,7 +2069,7 @@
 
             if (!keyMoveInterval && (activeKeys.up || activeKeys.down || activeKeys.left || activeKeys.right)) {
                 processKeyMovement();
-                keyMoveInterval = setInterval(processKeyMovement, 110);
+                keyMoveInterval = setInterval(processKeyMovement, 90);
             }
         }
 
@@ -2222,8 +2247,10 @@
                 ctx.lineWidth = Math.max(3, cellSize * 0.22);
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = '#00ff9d';
+                if (currentPerf !== 'low') {
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#00ff9d';
+                }
                 ctx.beginPath();
                 ctx.moveTo(hintPath[0].x * cellSize + cellSize / 2, hintPath[0].y * cellSize + cellSize / 2);
                 for (let i = 1; i < hintPath.length; i++) {
@@ -2237,8 +2264,10 @@
             ctx.save();
             ctx.strokeStyle = t.wall;
             ctx.lineWidth = Math.max(2, cellSize * 0.12);
-            ctx.shadowBlur = 9;
-            ctx.shadowColor = t.glow;
+            if (currentPerf !== 'low') {
+                ctx.shadowBlur = 9;
+                ctx.shadowColor = t.glow;
+            }
             ctx.lineCap = 'square';
             ctx.beginPath();
 
@@ -2259,8 +2288,10 @@
 
             // Draw Junction Circuit Nodes at wall intersections
             ctx.fillStyle = t.node;
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = t.glow;
+            if (currentPerf !== 'low') {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = t.glow;
+            }
             const nodeR = Math.max(1.5, cellSize * 0.08);
             for (let r = 0; r <= rows; r++) {
                 for (let c = 0; c <= cols; c++) {
@@ -2281,8 +2312,10 @@
                 ctx.save();
                 ctx.translate(sx, sy);
                 ctx.rotate(portalAngle * 1.5);
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ffd43b';
+                if (currentPerf !== 'low') {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ffd43b';
+                }
                 ctx.fillStyle = '#ffd43b';
                 ctx.beginPath();
                 ctx.moveTo(0, -sR);
@@ -2307,8 +2340,10 @@
             ctx.rotate(-portalAngle);
             ctx.strokeStyle = '#00ff9d';
             ctx.lineWidth = 2;
-            ctx.shadowBlur = 14;
-            ctx.shadowColor = '#00ff9d';
+            if (currentPerf !== 'low') {
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = '#00ff9d';
+            }
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
             ctx.arc(0, 0, exitRadius, 0, Math.PI * 2);
@@ -2356,8 +2391,10 @@
             const pRadius = cellSize * 0.36;
 
             ctx.save();
-            ctx.shadowBlur = 18;
-            ctx.shadowColor = '#ffd43b';
+            if (currentPerf !== 'low') {
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = '#ffd43b';
+            }
             ctx.fillStyle = '#ffd43b';
             ctx.beginPath();
             ctx.arc(pX, pY, pRadius, 0, Math.PI * 2);
@@ -2373,13 +2410,19 @@
             if (currentMode === 'darkness') {
                 radarAngle += 0.04;
                 const fogRadius = cellSize * 4.0;
-                const grad = ctx.createRadialGradient(pX, pY, fogRadius * 0.25, pX, pY, fogRadius);
-                grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                grad.addColorStop(0.75, 'rgba(3, 5, 9, 0.72)');
-                grad.addColorStop(1, 'rgba(3, 5, 9, 0.94)');
+                
+                if (currentPerf === 'low') {
+                    ctx.fillStyle = 'rgba(3, 5, 9, 0.96)';
+                    ctx.fillRect(0, 0, 600, 600);
+                } else {
+                    const grad = ctx.createRadialGradient(pX, pY, fogRadius * 0.25, pX, pY, fogRadius);
+                    grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    grad.addColorStop(0.75, 'rgba(3, 5, 9, 0.72)');
+                    grad.addColorStop(1, 'rgba(3, 5, 9, 0.94)');
 
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, 600, 600);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, 600, 600);
+                }
 
                 ctx.save();
                 ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
@@ -2575,6 +2618,16 @@
             themeSelect.addEventListener('change', () => {
                 currentTheme = themeSelect.value;
                 settings.theme = currentTheme;
+                persistState();
+            });
+        }
+
+        if (perfSelect) {
+            perfSelect.addEventListener('change', () => {
+                currentPerf = perfSelect.value;
+                settings.perf = currentPerf;
+                if (currentPerf === 'low') document.body.classList.add('low-resource');
+                else document.body.classList.remove('low-resource');
                 persistState();
             });
         }

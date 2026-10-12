@@ -629,6 +629,18 @@
             font-size: 0.65rem;
         }
 
+        /* Low Resource Performance Mode */
+        body.low-resource * {
+            box-shadow: none !important;
+            text-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        body.low-resource {
+            background-image: none !important;
+            background-color: var(--bg-color) !important;
+        }
+
         /* Fullscreen / Zen Mode */
         body.zen-fullscreen .arcade-nav {
             display: none !important;
@@ -964,6 +976,13 @@
                     <option value="arctic">Arctic Frost</option>
                 </select>
             </div>
+            <div class="setting-row">
+                <span class="setting-label">Performance Mode</span>
+                <select id="perfSelect" class="select-field" aria-label="Performance Profile">
+                    <option value="high" selected>High (Rich FX)</option>
+                    <option value="low">Low (Fast VM/Linux)</option>
+                </select>
+            </div>
             <div class="setting-row" style="margin-top: 8px;">
                 <span class="setting-label">High-Res Wallpaper</span>
                 <button type="button" class="action-btn" id="exportBtn">
@@ -1175,6 +1194,7 @@
         resizeConfetti();
 
         function launchConfetti() {
+            if (settings.perf === 'low') return;
             confetti = [];
             const colors = ['#00f0ff', '#ff0077', '#00ff9d', '#ffd43b', '#b026ff', '#ffffff', '#ff7700'];
             for (let i = 0; i < 110; i++) {
@@ -1289,6 +1309,7 @@
         const categorySelect = document.getElementById('categorySelect');
         const gridSizeSelect = document.getElementById('gridSizeSelect');
         const themeSelect = document.getElementById('themeSelect');
+        const perfSelect = document.getElementById('perfSelect');
         const victoryOverlay = document.getElementById('victoryOverlay');
         const overlayStars = document.getElementById('overlayStars');
         const resScore = document.getElementById('resScore');
@@ -1420,6 +1441,9 @@
             gridSizeSelect.value = String(settings.size);
             difficultySelect.value = settings.difficulty;
             themeSelect.value = settings.theme;
+            if (perfSelect) perfSelect.value = settings.perf;
+            if (settings.perf === 'low') document.body.classList.add('low-resource');
+            else document.body.classList.remove('low-resource');
             soundIcon.textContent = soundOn ? '🔊' : '🔇';
         }
 
@@ -1876,6 +1900,7 @@
 
         // Visual FX: Particle burst on letter found
         function spawnCellParticles(r, c, color) {
+            if (settings.perf === 'low') return;
             const rect = gridBox.getBoundingClientRect();
             const cellSize = rect.width / gridSize;
             const cx = (c + 0.5) * cellSize;
@@ -1978,8 +2003,10 @@
                     vCtx.save();
                     vCtx.fillStyle = p.color;
                     vCtx.globalAlpha = p.alpha;
-                    vCtx.shadowBlur = 8;
-                    vCtx.shadowColor = p.color;
+                    if (settings.perf !== 'low') {
+                        vCtx.shadowBlur = 8;
+                        vCtx.shadowColor = p.color;
+                    }
                     vCtx.beginPath();
                     vCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                     vCtx.fill();
@@ -2003,8 +2030,10 @@
             vCtx.lineCap = 'round';
             vCtx.lineJoin = 'round';
             vCtx.globalAlpha = alpha;
-            vCtx.shadowBlur = pulsing ? 16 : 8;
-            vCtx.shadowColor = color;
+            if (settings.perf !== 'low') {
+                vCtx.shadowBlur = pulsing ? 16 : 8;
+                vCtx.shadowColor = color;
+            }
 
             vCtx.beginPath();
             vCtx.moveTo(startX, startY);
@@ -2138,6 +2167,16 @@
             persist();
             themeSelect.blur();
         });
+
+        if (perfSelect) {
+            perfSelect.addEventListener('change', () => {
+                settings.perf = perfSelect.value;
+                if (settings.perf === 'low') document.body.classList.add('low-resource');
+                else document.body.classList.remove('low-resource');
+                persist();
+                perfSelect.blur();
+            });
+        }
 
         // The mute button's own handler (below) flips soundOn; save the result afterwards
         soundToggle.addEventListener('click', () => setTimeout(() => { settings.sound = soundOn; persist(); }, 0));

@@ -253,7 +253,7 @@
   }
 
   // ---------------------------------------------------------------- settings & statistics
-  const DEFAULT_SETTINGS = { category: "cyber", size: 12, difficulty: "hard", theme: "cyber", sound: true };
+  const DEFAULT_SETTINGS = { category: "cyber", size: 12, difficulty: "hard", theme: "cyber", sound: true, perf: "high" };
   const THEMES = {
     cyber: { name: "Neon Cyber", vars: {}, palette: PALETTES },
     sunset: {
@@ -282,6 +282,7 @@
       difficulty: DIFFICULTIES[s.difficulty] ? s.difficulty : DEFAULT_SETTINGS.difficulty,
       theme: THEMES[s.theme] ? s.theme : DEFAULT_SETTINGS.theme,
       sound: typeof s.sound === "boolean" ? s.sound : DEFAULT_SETTINGS.sound,
+      perf: s.perf === "low" ? "low" : DEFAULT_SETTINGS.perf,
     };
   }
 
