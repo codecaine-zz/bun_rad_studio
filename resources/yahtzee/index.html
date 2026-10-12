@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yahtzee Royale Deluxe — Classic Dice Board Studio</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0e14;
+      --felt-color: #115e34;
+      --felt-gradient: radial-gradient(ellipse at 50% 45%, #15803d 0%, #0d5327 50%, #052e16 85%, #021a0c 100%);
+      --felt-border: #451a03;
+      --wood-rim: #2d180b;
+      --wood-light: #5c3218;
+      --wood-highlight: #78350f;
+      --gold-primary: #f59e0b;
+      --gold-bright: #fbbf24;
+      --gold-glow: #fef08a;
+      --gold-deep: #b45309;
+      --font-display: 'Cinzel', serif;
+      --font-ui: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --die-size: 78px;
+      --card-bg: #fffbf0;
+      --card-border: #d4c5a9;
+      --card-header: #291b10;
+      --card-row-even: #fdfaf2;
+      --card-row-odd: #f5eedc;
+    }
+
+    [data-theme="sapphire"] {
+      --felt-color: #1e3a8a;
+      --felt-gradient: radial-gradient(ellipse at 50% 45%, #1e40af 0%, #1e3a8a 50%, #172554 85%, #0f172a 100%);
+      --felt-border: #1e293b;
+      --wood-rim: #1e293b;
+      --wood-light: #334155;
+    }
+
+    [data-theme="crimson"] {
+      --felt-color: #881337;
+      --felt-gradient: radial-gradient(ellipse at 50% 45%, #9f1239 0%, #881337 50%, #4c0519 85%, #1f0208 100%);
+      --felt-border: #450a0a;
+      --wood-rim: #3b0707;
+      --wood-light: #6b1414;
+    }
+
+    [data-theme="obsidian"] {
+      --felt-color: #18181b;
+      --felt-gradient: radial-gradient(ellipse at 50% 45%, #27272a 0%, #18181b 50%, #09090b 85%, #000000 100%);
+      --felt-border: #27272a;
+      --wood-rim: #111827;
+      --wood-light: #1f2937;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: #f8fafc;
+      font-family: var(--font-ui);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Bar */
+    .app-header {
+      height: 52px;
+      background: linear-gradient(180deg, #1f140e 0%, #120b08 100%);
+      border-bottom: 2px solid var(--gold-deep);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #fff 0%, var(--gold-bright) 50%, var(--gold-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title img {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+
+    .header-center-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .badge-info {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #fef08a;
+    }
+
+    .badge-info span.value {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-header:hover {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: var(--gold-bright);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Main Board Layout: Split Tray & Scorecard */
+    .game-arena {
+      flex: 1;
+      display: flex;
+      padding: 14px;
+      gap: 14px;
+      height: calc(100vh - 52px);
+      overflow: hidden;
+    }
+
+    /* Left / Center: The Dice Rolling Arena */
+    .tray-container {
+      flex: 1.15;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border-radius: 18px;
+      background: var(--wood-rim);
+      padding: 12px;
+      box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.9),
+        0 10px 30px rgba(0,0,0,0.8),
+        0 0 0 4px var(--wood-light);
+    }
+
+    .tray-felt {
+      flex: 1;
+      border-radius: 12px;
+      background: var(--felt-gradient);
+      box-shadow: inset 0 0 35px rgba(0,0,0,0.8);
+      border: 2px solid rgba(250, 204, 21, 0.25);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    /* Subtle watermark felt inscription */
+    .felt-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-display);
+      font-size: 58px;
+      font-weight: 900;
+      letter-spacing: 12px;
+      color: rgba(254, 240, 138, 0.05);
+      pointer-events: none;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    /* Kept Dice Area */
+    .kept-dice-section {
+      background: rgba(0,0,0,0.35);
+      border: 1px dashed rgba(245, 158, 11, 0.35);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 125px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .section-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+    }
+
+    .kept-dice-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      flex: 1;
+      min-height: 80px;
+    }
+
+    .kept-dice-empty-prompt {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      font-style: italic;
+    }
+
+    /* Rolling Table Surface */
+    .roll-dice-surface {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .active-dice-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 22px;
+      width: 100%;
+      min-height: 110px;
+    }
+
+    /* Die Element Design */
+    .die-wrapper {
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .die-wrapper:hover {
+      transform: translateY(-4px) scale(1.05);
+    }
+
+    .die-wrapper.is-kept {
+      transform: scale(0.92);
+    }
+
+    .die-wrapper.rolling {
+      animation: dieTumble 0.55s ease-out;
+    }
+
+    @keyframes dieTumble {
+      0% { transform: scale(0.8) rotate(0deg) translate(-10px, -15px); }
+      30% { transform: scale(1.15) rotate(180deg) translate(12px, -8px); }
+      60% { transform: scale(0.95) rotate(320deg) translate(-8px, 6px); }
+      85% { transform: scale(1.05) rotate(350deg) translate(2px, -2px); }
+      100% { transform: scale(1) rotate(360deg) translate(0, 0); }
+    }
+
+    .die-face {
+      width: var(--die-size);
+      height: var(--die-size);
+      border-radius: 14px;
+      box-shadow: 
+        0 8px 18px rgba(0,0,0,0.6),
+        inset 0 2px 4px rgba(255,255,255,0.7),
+        inset 0 -3px 5px rgba(0,0,0,0.4);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 10px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    /* Die Themes */
+    /* 1. Classic Vegas Red (Default) */
+    .skin-vegas .die-face {
+      background: radial-gradient(circle at 35% 30%, #ef4444 0%, #dc2626 55%, #991b1b 100%);
+      border: 2px solid #7f1d1d;
+    }
+    .skin-vegas .pip {
+      background: #ffffff;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.6), 0 1px 1px rgba(255,255,255,0.4);
+    }
+
+    /* 2. Ivory Porcelain */
+    .skin-ivory .die-face {
+      background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f1f5f9 60%, #cbd5e1 100%);
+      border: 2px solid #94a3b8;
+    }
+    .skin-ivory .pip {
+      background: #0f172a;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.6);
+    }
+    .skin-ivory .die-face[data-val="1"] .pip {
+      background: #dc2626; /* Ace pip red */
+    }
+
+    /* 3. Golden Sovereign */
+    .skin-gold .die-face {
+      background: radial-gradient(circle at 35% 30%, #fef08a 0%, #f59e0b 55%, #b45309 100%);
+      border: 2px solid #78350f;
+    }
+    .skin-gold .pip {
+      background: #26160c;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.9), 0 1px 1px rgba(254, 240, 138, 0.4);
+    }
+
+    /* 4. Cyberpunk Neon */
+    .skin-neon .die-face {
+      background: radial-gradient(circle at 35% 30%, #1e293b 0%, #0f172a 65%, #020617 100%);
+      border: 2px solid #06b6d4;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.35), inset 0 1px 3px rgba(6, 182, 212, 0.6);
+    }
+    .skin-neon .pip {
+      background: #06b6d4;
+      box-shadow: 0 0 6px #22d3ee;
+    }
+
+    /* Pip Elements */
+    .pip {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      justify-self: center;
+      align-self: center;
+      visibility: hidden;
+    }
+
+    /* Die Value Pip Configurations */
+    /* Value 1 */
+    .die-face[data-val="1"] .pip-5 { visibility: visible; }
+    /* Value 2 */
+    .die-face[data-val="2"] .pip-1,
+    .die-face[data-val="2"] .pip-9 { visibility: visible; }
+    /* Value 3 */
+    .die-face[data-val="3"] .pip-1,
+    .die-face[data-val="3"] .pip-5,
+    .die-face[data-val="3"] .pip-9 { visibility: visible; }
+    /* Value 4 */
+    .die-face[data-val="4"] .pip-1,
+    .die-face[data-val="4"] .pip-3,
+    .die-face[data-val="4"] .pip-7,
+    .die-face[data-val="4"] .pip-9 { visibility: visible; }
+    /* Value 5 */
+    .die-face[data-val="5"] .pip-1,
+    .die-face[data-val="5"] .pip-3,
+    .die-face[data-val="5"] .pip-5,
+    .die-face[data-val="5"] .pip-7,
+    .die-face[data-val="5"] .pip-9 { visibility: visible; }
+    /* Value 6 */
+    .die-face[data-val="6"] .pip-1,
+    .die-face[data-val="6"] .pip-3,
+    .die-face[data-val="6"] .pip-4,
+    .die-face[data-val="6"] .pip-6,
+    .die-face[data-val="6"] .pip-7,
+    .die-face[data-val="6"] .pip-9 { visibility: visible; }
+
+    /* Held badge over die */
+    .held-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #eab308;
+      color: #000;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      letter-spacing: 0.5px;
+    }
+
+    /* Controls Bar at bottom of tray */
+    .tray-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+      z-index: 10;
+    }
+
+    .roll-counter-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .roll-counter-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gold-bright);
+    }
+
+    .roll-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .roll-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.4);
+      transition: all 0.2s ease;
+    }
+
+    .roll-dot.active {
+      background: var(--gold-bright);
+      box-shadow: 0 0 8px var(--gold-bright);
+      border-color: #fff;
+    }
+
+    .roll-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-roll-main {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+      color: #1a0f05;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      padding: 12px 28px;
+      border-radius: 10px;
+      border: 1px solid #fef08a;
+      cursor: pointer;
+      box-shadow: 
+        0 4px 15px rgba(245, 158, 11, 0.4),
+        inset 0 1px 1px rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-roll-main:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 6px 20px rgba(245, 158, 11, 0.6),
+        inset 0 1px 2px rgba(255,255,255,0.9);
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+    }
+
+    .btn-roll-main:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-roll-main:disabled {
+      background: #475569;
+      color: #94a3b8;
+      border-color: #64748b;
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* Right: The Milton Bradley Authentic Scorecard */
+    .scorecard-panel {
+      flex: 1;
+      max-width: 480px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 3px solid #854d0e;
+      box-shadow: 
+        0 10px 25px rgba(0,0,0,0.7),
+        inset 0 0 15px rgba(180, 83, 9, 0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: #1e293b;
+    }
+
+    .card-header-bar {
+      background: linear-gradient(180deg, #3d2410 0%, #251406 100%);
+      color: #fef08a;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--gold-bright);
+    }
+
+    .card-header-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-round-badge {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(250, 204, 21, 0.5);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: #fef08a;
+    }
+
+    .scorecard-table-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 6px;
+    }
+
+    /* Scorecard Table Structure */
+    table.scorecard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .scorecard-table th,
+    .scorecard-table td {
+      padding: 5px 8px;
+      border: 1px solid var(--card-border);
+      text-align: left;
+    }
+
+    .scorecard-table th {
+      background: #e2d3b5;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #451a03;
+      text-transform: uppercase;
+    }
+
+    .section-separator-row td {
+      background: #78350f;
+      color: #fef08a;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 8px;
+    }
+
+    .score-row {
+      transition: background 0.15s ease;
+      cursor: default;
+    }
+
+    .score-row.clickable {
+      cursor: pointer;
+    }
+
+    .score-row.clickable:hover {
+      background: #fef3c7 !important;
+    }
+
+    .score-row:nth-child(even) {
+      background: var(--card-row-even);
+    }
+    .score-row:nth-child(odd) {
+      background: var(--card-row-odd);
+    }
+
+    .category-title {
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .category-desc {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: normal;
+    }
+
+    .score-cell {
+      width: 75px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .score-cell.filled {
+      color: #0f172a;
+      font-weight: 900;
+    }
+
+    .score-cell.zero-scratch {
+      color: #dc2626;
+      text-decoration: line-through;
+    }
+
+    /* Live Preview Score Badge */
+    .score-preview-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 900;
+      font-size: 13px;
+      animation: pulsePreview 1.5s infinite;
+    }
+
+    .score-preview-badge.preview-positive {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+
+    .score-preview-badge.preview-zero {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    @keyframes pulsePreview {
+      0%, 100% { opacity: 0.85; transform: scale(0.96); }
+      50% { opacity: 1; transform: scale(1.04); }
+    }
+
+    /* Summary Totals Rows */
+    .summary-row td {
+      background: #f1e5cc !important;
+      font-weight: 800;
+      border-top: 2px solid #b45309;
+    }
+
+    .summary-row.grand-total td {
+      background: #fef08a !important;
+      color: #78350f;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 900;
+      border-top: 2px solid #78350f;
+      border-bottom: 2px solid #78350f;
+    }
+
+    /* Bonus checkboxes for Yahtzee Extra Bonus (+100) */
+    .yahtzee-bonus-checks {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .bonus-box {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #78350f;
+      border-radius: 2px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 900;
+      color: #15803d;
+    }
+
+    .bonus-box.checked {
+      background: #22c55e;
+      color: #fff;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-card {
+      background: #1e140d;
+      border: 2px solid var(--gold-bright);
+      border-radius: 14px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      background: linear-gradient(180deg, #3d2410 0%, #201207 100%);
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--gold-deep);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: #fef08a;
+      letter-spacing: 1.5px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 22px;
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    .modal-body {
+      padding: 20px;
+      color: #e2e8f0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .modal-body h4 {
+      color: var(--gold-bright);
+      font-family: var(--font-display);
+      margin: 14px 0 6px 0;
+    }
+
+    .rules-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+
+    .rules-table th, .rules-table td {
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    .rules-table th {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fef08a;
+    }
+
+    /* Confetti Particle Overlay */
+    #confettiCanvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 150;
+    }
+
+    /* Victory Banner */
+    .victory-toast {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+      color: #1e140d;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 10px 30px rgba(245, 158, 11, 0.6);
+      border: 2px solid #fff;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 80;
+    }
+
+    .victory-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body data-theme="emerald" class="skin-vegas">
+
+  <canvas id="confettiCanvas"></canvas>
+  <div class="victory-toast" id="victoryToast">🎉 YAHTZEE! 50 POINTS! 🎉</div>
+
+  <!-- Header Navigation -->
+  <header class="app-header">
+    <div class="brand-title">
+      <img src="favicon.svg" alt="Yahtzee Royale">
+      <span>YAHTZEE ROYALE DELUXE</span>
+    </div>
+
+    <div class="header-center-info">
+      <!-- Game Mode Badge -->
+      <div class="badge-info">
+        <span>MODE:</span>
+        <span class="value" id="currentModeLabel">SOLO CHALLENGE</span>
+      </div>
+
+      <!-- High Score Badge -->
+      <div class="badge-info">
+        <span>BEST:</span>
+        <span class="value" id="highScoreBadge">0 PTS</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Theme Felt Selector -->
+      <select id="themeSelect" class="btn-header" onchange="changeFeltTheme(this.value)" style="cursor:pointer;">
+        <option value="emerald">Emerald Felt</option>
+        <option value="sapphire">Monte Carlo Blue</option>
+        <option value="crimson">Royal Crimson</option>
+        <option value="obsidian">Midnight Obsidian</option>
+      </select>
+
+      <!-- Dice Style Skin Selector -->
+      <select id="skinSelect" class="btn-header" onchange="changeDiceSkin(this.value)" style="cursor:pointer;">
+        <option value="skin-vegas">Classic Vegas Red</option>
+        <option value="skin-ivory">Ivory Porcelain</option>
+        <option value="skin-gold">Golden Sovereign</option>
+        <option value="skin-neon">Cyberpunk Neon</option>
+      </select>
+
+      <!-- Opponent / Mode Selector -->
+      <select id="modeSelect" class="btn-header" onchange="switchGameMode(this.value)" style="cursor:pointer;">
+        <option value="solo">Solo Play</option>
+        <option value="ai">Vs. The Professor (AI)</option>
+        <option value="pass2p">Pass & Play (2P)</option>
+      </select>
+
+      <!-- Rules Guide -->
+      <button class="btn-header" id="btnRules" onclick="openRulesModal()">
+        <span>📖 Rules</span>
+      </button>
+
+      <!-- Hall of Fame -->
+      <button class="btn-header" id="btnStats" onclick="openStatsModal()">
+        <span>🏆 Hall of Fame</span>
+      </button>
+
+      <!-- New Game -->
+      <button class="btn-header" id="btnNewGame" onclick="confirmNewGame()" style="border-color: rgba(245, 158, 11, 0.5);">
+        <span>🔄 New Game</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Arena -->
+  <main class="game-arena">
+
+    <!-- Left / Center: Felt Tray Area -->
+    <section class="tray-container">
+      <div class="tray-felt">
+        <div class="felt-watermark">YAHTZEE</div>
+
+        <!-- Upper Section: Held / Kept Dice Tray -->
+        <div class="kept-dice-section">
+          <div class="section-label">
+            <span>Dice Kept for Score</span>
+            <span id="keptCountLabel">0 / 5 Kept</span>
+          </div>
+          <div class="kept-dice-row" id="keptDiceRow">
+            <span class="kept-dice-empty-prompt" id="emptyKeptPrompt">Click rolled dice below to keep them between rolls</span>
+          </div>
+        </div>
+
+        <!-- Center: Rolling Surface for Active Dice -->
+        <div class="roll-dice-surface">
+          <div class="active-dice-row" id="activeDiceRow">
+            <!-- 5 Dynamic Dice populated via JS -->
+          </div>
+        </div>
+
+        <!-- Bottom Controls Bar -->
+        <div class="tray-controls">
+          <div class="roll-counter-box">
+            <div class="roll-counter-title" id="rollStatusText">Roll 1 of 3</div>
+            <div class="roll-dots">
+              <div class="roll-dot active" id="dot1"></div>
+              <div class="roll-dot active" id="dot2"></div>
+              <div class="roll-dot active" id="dot3"></div>
+            </div>
+          </div>
+
+          <div class="roll-actions">
+            <button class="btn-secondary" id="btnKeepAll" onclick="keepAllDice()" disabled>Keep All</button>
+            <button class="btn-secondary" id="btnReleaseAll" onclick="releaseAllDice()" disabled>Release All</button>
+            <button class="btn-roll-main" id="btnRollDice" onclick="handleRollAction()">
+              <span>🎲</span>
+              <span id="btnRollLabel">ROLL DICE</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Classic Milton Bradley Scorecard -->
+    <aside class="scorecard-panel">
+      <div class="card-header-bar">
+        <div class="card-header-title">
+          <span>SCORE CARD</span>
+        </div>
+        <div class="card-round-badge" id="roundProgressBadge">ROUND 1 / 13</div>
+      </div>
+
+      <div class="scorecard-table-wrap">
+        <table class="scorecard-table">
+          <thead>
+            <tr>
+              <th>Upper Section</th>
+              <th>How to Score</th>
+              <th id="playerColHeader" class="score-cell">P1</th>
+              <th id="aiColHeader" class="score-cell" style="display:none;">AI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Upper Section Rows -->
+            <tr class="score-row clickable" id="row_aces" onclick="handleCategorySelect('aces')">
+              <td class="category-title">Aces (1s)</td>
+              <td class="category-desc">Count and Add Only Aces</td>
+              <td class="score-cell" id="score_p1_aces">-</td>
+              <td class="score-cell ai-cell" id="score_p2_aces" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_twos" onclick="handleCategorySelect('twos')">
+              <td class="category-title">Twos (2s)</td>
+              <td class="category-desc">Count and Add Only Twos</td>
+              <td class="score-cell" id="score_p1_twos">-</td>
+              <td class="score-cell ai-cell" id="score_p2_twos" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_threes" onclick="handleCategorySelect('threes')">
+              <td class="category-title">Threes (3s)</td>
+              <td class="category-desc">Count and Add Only Threes</td>
+              <td class="score-cell" id="score_p1_threes">-</td>
+              <td class="score-cell ai-cell" id="score_p2_threes" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_fours" onclick="handleCategorySelect('fours')">
+              <td class="category-title">Fours (4s)</td>
+              <td class="category-desc">Count and Add Only Fours</td>
+              <td class="score-cell" id="score_p1_fours">-</td>
+              <td class="score-cell ai-cell" id="score_p2_fours" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_fives" onclick="handleCategorySelect('fives')">
+              <td class="category-title">Fives (5s)</td>
+              <td class="category-desc">Count and Add Only Fives</td>
+              <td class="score-cell" id="score_p1_fives">-</td>
+              <td class="score-cell ai-cell" id="score_p2_fives" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_sixes" onclick="handleCategorySelect('sixes')">
+              <td class="category-title">Sixes (6s)</td>
+              <td class="category-desc">Count and Add Only Sixes</td>
+              <td class="score-cell" id="score_p1_sixes">-</td>
+              <td class="score-cell ai-cell" id="score_p2_sixes" style="display:none;">-</td>
+            </tr>
+
+            <!-- Upper Section Calculations -->
+            <tr class="summary-row">
+              <td class="category-title">Upper Subtotal</td>
+              <td class="category-desc">Sum of Upper Boxes</td>
+              <td class="score-cell" id="subtotal_p1">0</td>
+              <td class="score-cell ai-cell" id="subtotal_p2" style="display:none;">0</td>
+            </tr>
+            <tr class="summary-row">
+              <td class="category-title">Bonus (+35)</td>
+              <td class="category-desc">Score 35 if Subtotal ≥ 63</td>
+              <td class="score-cell" id="bonus_p1">0</td>
+              <td class="score-cell ai-cell" id="bonus_p2" style="display:none;">0</td>
+            </tr>
+            <tr class="summary-row">
+              <td class="category-title">Upper Total</td>
+              <td class="category-desc">Upper Subtotal + Bonus</td>
+              <td class="score-cell" id="upper_total_p1">0</td>
+              <td class="score-cell ai-cell" id="upper_total_p2" style="display:none;">0</td>
+            </tr>
+
+            <!-- Lower Section Separator -->
+            <tr class="section-separator-row">
+              <td colspan="4">Lower Section</td>
+            </tr>
+
+            <!-- Lower Section Rows -->
+            <tr class="score-row clickable" id="row_three_kind" onclick="handleCategorySelect('three_kind')">
+              <td class="category-title">3 of a Kind</td>
+              <td class="category-desc">Add Total of All 5 Dice</td>
+              <td class="score-cell" id="score_p1_three_kind">-</td>
+              <td class="score-cell ai-cell" id="score_p2_three_kind" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_four_kind" onclick="handleCategorySelect('four_kind')">
+              <td class="category-title">4 of a Kind</td>
+              <td class="category-desc">Add Total of All 5 Dice</td>
+              <td class="score-cell" id="score_p1_four_kind">-</td>
+              <td class="score-cell ai-cell" id="score_p2_four_kind" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_full_house" onclick="handleCategorySelect('full_house')">
+              <td class="category-title">Full House</td>
+              <td class="category-desc">3 of one & 2 of another (Score 25)</td>
+              <td class="score-cell" id="score_p1_full_house">-</td>
+              <td class="score-cell ai-cell" id="score_p2_full_house" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_sm_straight" onclick="handleCategorySelect('sm_straight')">
+              <td class="category-title">Sm. Straight</td>
+              <td class="category-desc">Sequence of 4 Dice (Score 30)</td>
+              <td class="score-cell" id="score_p1_sm_straight">-</td>
+              <td class="score-cell ai-cell" id="score_p2_sm_straight" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_lg_straight" onclick="handleCategorySelect('lg_straight')">
+              <td class="category-title">Lg. Straight</td>
+              <td class="category-desc">Sequence of 5 Dice (Score 40)</td>
+              <td class="score-cell" id="score_p1_lg_straight">-</td>
+              <td class="score-cell ai-cell" id="score_p2_lg_straight" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_yahtzee" onclick="handleCategorySelect('yahtzee')">
+              <td class="category-title">YAHTZEE</td>
+              <td class="category-desc">5 of a Kind (Score 50)</td>
+              <td class="score-cell" id="score_p1_yahtzee">-</td>
+              <td class="score-cell ai-cell" id="score_p2_yahtzee" style="display:none;">-</td>
+            </tr>
+            <tr class="score-row clickable" id="row_chance" onclick="handleCategorySelect('chance')">
+              <td class="category-title">Chance</td>
+              <td class="category-desc">Add Total of Any 5 Dice</td>
+              <td class="score-cell" id="score_p1_chance">-</td>
+              <td class="score-cell ai-cell" id="score_p2_chance" style="display:none;">-</td>
+            </tr>
+            <tr class="summary-row">
+              <td class="category-title">YAHTZEE Bonus</td>
+              <td class="category-desc">100 pts per Extra Yahtzee</td>
+              <td class="score-cell" id="yahtzee_bonus_p1">0</td>
+              <td class="score-cell ai-cell" id="yahtzee_bonus_p2" style="display:none;">0</td>
+            </tr>
+
+            <!-- Grand Totals -->
+            <tr class="summary-row">
+              <td class="category-title">Lower Total</td>
+              <td class="category-desc">Total of Lower Section</td>
+              <td class="score-cell" id="lower_total_p1">0</td>
+              <td class="score-cell ai-cell" id="lower_total_p2" style="display:none;">0</td>
+            </tr>
+            <tr class="summary-row grand-total">
+              <td class="category-title">GRAND TOTAL</td>
+              <td class="category-desc">Upper + Lower Sections</td>
+              <td class="score-cell" id="grand_total_p1">0</td>
+              <td class="score-cell ai-cell" id="grand_total_p2" style="display:none;">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Rules Modal -->
+  <div class="modal-overlay" id="rulesModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📖 OFFICIAL YAHTZEE RULES & STRATEGY</h3>
+        <button class="modal-close" onclick="closeRulesModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <h4>🎯 OBJECT OF THE GAME</h4>
+        <p>Roll 5 dice to score points across 13 combinations over 13 rounds. The player with the highest Grand Total wins.</p>
+
+        <h4>🎲 ROLLING MECHANICS</h4>
+        <p>On each turn, you may roll the dice up to <strong>3 times</strong>. After Roll 1 or Roll 2, you may hold ("keep") any number of dice and re-roll the remaining unkept dice. After Roll 3, or earlier if satisfied, you must choose an open category on your score card to record a score.</p>
+
+        <h4>🏆 UPPER SECTION & 35-POINT BONUS</h4>
+        <p>In the Upper Section (Aces through Sixes), you only count the dice matching that category number. If the total of your six Upper Section scores reaches <strong>63 or more</strong> (the equivalent of three of each number), you earn a valuable <strong>+35 point Bonus</strong>!</p>
+
+        <h4>✨ YAHTZEE BONUS & JOKER RULE</h4>
+        <p>A Yahtzee is 5 of a kind and scores <strong>50 points</strong>. If you roll an additional Yahtzee and your Yahtzee box already contains 50 points, you earn an extra <strong>+100 point Yahtzee Bonus</strong>! You may then use this wild Yahtzee as a Joker in the appropriate upper or lower section box (scoring Full House, Straight, etc.).</p>
+
+        <h4>💡 PRO STRATEGY TIPS</h4>
+        <ul style="padding-left: 20px; margin-top: 6px;">
+          <li>Focus on getting at least three 4s, 5s, and 6s in the upper section to secure the +35 bonus.</li>
+          <li>Never scratch Chance early; keep it as a safety net when a difficult lower combination misses.</li>
+          <li>Small Straights (30 pts) are easier to hit than 4 of a Kind; look out for 1-2-3-4, 2-3-4-5, and 3-4-5-6 sequences.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hall of Fame / Statistics Modal -->
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🏆 HALL OF FAME & SESSION STATS</h3>
+        <button class="modal-close" onclick="closeStatsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="rules-table" id="hallOfFameTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Score</th>
+              <th>Mode</th>
+              <th>Yahtzees</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="hallOfFameTbody">
+            <tr><td colspan="5" style="text-align:center; opacity:0.6;">No games recorded yet. Finish a game to enter the Hall of Fame!</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top: 15px; display:flex; justify-content:flex-end;">
+          <button class="btn-secondary" onclick="clearHighScores()">Reset Records</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Engine & Game Engine Scripts -->
+  <script>
+    /**
+     * Polyphonic WebAudio Synthesizer Engine
+     */
+    class AudioEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      }
+
+      // Shaker Cup Rattle
+      playCupRattle() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const count = 4;
+        for (let i = 0; i < count; i++) {
+          const t = now + i * 0.05 + Math.random() * 0.02;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(140 + Math.random() * 60, t);
+          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.045);
+        }
+      }
+
+      // Dice Tumble on Felt
+      playDiceRoll() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const hits = 5;
+        for (let i = 0; i < hits; i++) {
+          const t = now + i * 0.08 + Math.random() * 0.04;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(220 + Math.random() * 80, t);
+          osc.frequency.exponentialRampToValueAtTime(90, t + 0.06);
+          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.065);
+        }
+      }
+
+      // Die Hold Click
+      playDieClick(isHolding) {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(isHolding ? 580 : 380, now);
+        osc.frequency.exponentialRampToValueAtTime(isHolding ? 780 : 260, now + 0.05);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.055);
+      }
+
+      // Category Stamp
+      playScoreStamp() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.085);
+      }
+
+      // 35-Pt Bonus Chime
+      playBonusChime() {
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+        notes.forEach((freq, idx) => {
+          const t = this.ctx.currentTime + idx * 0.09;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.32);
+        });
+      }
+
+      // YAHTZEE Celebration Fanfare!
+      playYahtzeeFanfare() {
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        notes.forEach((freq, idx) => {
+          const t = this.ctx.currentTime + idx * 0.11;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.48);
+        });
+      }
+
+      // Game Over Finale
+      playGameOverSound() {
+        this.init();
+        if (!this.ctx) return;
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, idx) => {
+          const t = this.ctx.currentTime + idx * 0.14;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.15, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.52);
+        });
+      }
+    }
+
+    const audio = new AudioEngine();
+
+    /**
+     * Game State & Logic
+     */
+    const CATEGORIES = [
+      "aces", "twos", "threes", "fours", "fives", "sixes",
+      "three_kind", "four_kind", "full_house", "sm_straight", "lg_straight",
+      "yahtzee", "chance"
+    ];
+
+    let gameState = {
+      mode: "solo", // "solo", "ai", "pass2p"
+      currentPlayer: 1, // 1 or 2
+      round: 1,
+      rollsLeft: 3,
+      dice: [
+        { id: 0, val: 1, kept: false },
+        { id: 1, val: 2, kept: false },
+        { id: 2, val: 3, kept: false },
+        { id: 3, val: 4, kept: false },
+        { id: 4, val: 5, kept: false },
+      ],
+      scores: {
+        1: {},
+        2: {},
+      },
+      yahtzeeBonuses: {
+        1: 0,
+        2: 0,
+      },
+      isRolling: false,
+      isAiTurn: false,
+      gameOver: false,
+    };
+
+    /**
+     * Evaluation Functions
+     */
+    function calculateCategoryScore(category, diceValues, existingScores = {}, currentBonuses = 0) {
+      const counts = {};
+      let sum = 0;
+      for (const v of diceValues) {
+        counts[v] = (counts[v] || 0) + 1;
+        sum += v;
+      }
+      const values = Object.values(counts);
+      const isYahtzee = values.includes(5);
+
+      switch (category) {
+        case "aces": return (counts[1] || 0) * 1;
+        case "twos": return (counts[2] || 0) * 2;
+        case "threes": return (counts[3] || 0) * 3;
+        case "fours": return (counts[4] || 0) * 4;
+        case "fives": return (counts[5] || 0) * 5;
+        case "sixes": return (counts[6] || 0) * 6;
+
+        case "three_kind":
+          return values.some(c => c >= 3) ? sum : 0;
+
+        case "four_kind":
+          return values.some(c => c >= 4) ? sum : 0;
+
+        case "full_house":
+          // Official rule: 3 of one number and 2 of another, OR a Yahtzee Joker
+          if ((values.includes(3) && values.includes(2)) || (isYahtzee && existingScores.yahtzee !== undefined && existingScores.yahtzee > 0)) {
+            return 25;
+          }
+          return 0;
+
+        case "sm_straight": {
+          // 4 consecutive dice: 1234, 2345, 3456 (or Yahtzee Joker)
+          const set = new Set(diceValues);
+          const has1234 = set.has(1) && set.has(2) && set.has(3) && set.has(4);
+          const has2345 = set.has(2) && set.has(3) && set.has(4) && set.has(5);
+          const has3456 = set.has(3) && set.has(4) && set.has(5) && set.has(6);
+          if (has1234 || has2345 || has3456 || (isYahtzee && existingScores.yahtzee !== undefined && existingScores.yahtzee > 0)) {
+            return 30;
+          }
+          return 0;
+        }
+
+        case "lg_straight": {
+          // 5 consecutive dice: 12345, 23456 (or Yahtzee Joker)
+          const set = new Set(diceValues);
+          const has12345 = set.has(1) && set.has(2) && set.has(3) && set.has(4) && set.has(5);
+          const has23456 = set.has(2) && set.has(3) && set.has(4) && set.has(5) && set.has(6);
+          if (has12345 || has23456 || (isYahtzee && existingScores.yahtzee !== undefined && existingScores.yahtzee > 0)) {
+            return 40;
+          }
+          return 0;
+        }
+
+        case "yahtzee":
+          return isYahtzee ? 50 : 0;
+
+        case "chance":
+          return sum;
+
+        default:
+          return 0;
+      }
+    }
+
+    /**
+     * Create Die HTML Element
+     */
+    function createDieElement(die) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `die-wrapper ${die.kept ? "is-kept" : ""}`;
+      wrapper.dataset.dieId = die.id;
+      wrapper.onclick = () => toggleDieKeep(die.id);
+
+      wrapper.innerHTML = `
+        ${die.kept ? '<div class="held-badge">HELD</div>' : ''}
+        <div class="die-face" data-val="${die.val}">
+          <div class="pip pip-1"></div>
+          <div class="pip pip-2"></div>
+          <div class="pip pip-3"></div>
+          <div class="pip pip-4"></div>
+          <div class="pip pip-5"></div>
+          <div class="pip pip-6"></div>
+          <div class="pip pip-7"></div>
+          <div class="pip pip-8"></div>
+          <div class="pip pip-9"></div>
+        </div>
+      `;
+      return wrapper;
+    }
+
+    /**
+     * Render Dice Rows
+     */
+    function renderDice() {
+      const activeRow = document.getElementById("activeDiceRow");
+      const keptRow = document.getElementById("keptDiceRow");
+      const emptyPrompt = document.getElementById("emptyKeptPrompt");
+
+      activeRow.innerHTML = "";
+      keptRow.innerHTML = "";
+
+      let keptCount = 0;
+      gameState.dice.forEach(die => {
+        const el = createDieElement(die);
+        if (die.kept) {
+          keptRow.appendChild(el);
+          keptCount++;
+        } else {
+          activeRow.appendChild(el);
+        }
+      });
+
+      document.getElementById("keptCountLabel").textContent = `${keptCount} / 5 Kept`;
+      if (keptCount === 0) {
+        keptRow.appendChild(emptyPrompt);
+        emptyPrompt.style.display = "block";
+      } else {
+        emptyPrompt.style.display = "none";
+      }
+
+      // Update Keep/Release Buttons
+      const hasUnkept = gameState.dice.some(d => !d.kept);
+      const hasKept = gameState.dice.some(d => d.kept);
+      const isPostRoll = gameState.rollsLeft < 3;
+
+      document.getElementById("btnKeepAll").disabled = !isPostRoll || !hasUnkept || gameState.isAiTurn;
+      document.getElementById("btnReleaseAll").disabled = !isPostRoll || !hasKept || gameState.isAiTurn;
+    }
+
+    /**
+     * Toggle Die Keep
+     */
+    function toggleDieKeep(id) {
+      if (gameState.rollsLeft === 3 || gameState.isAiTurn || gameState.gameOver) return;
+      const die = gameState.dice.find(d => d.id === id);
+      if (!die) return;
+      die.kept = !die.kept;
+      audio.playDieClick(die.kept);
+      renderDice();
+    }
+
+    function keepAllDice() {
+      if (gameState.rollsLeft === 3 || gameState.isAiTurn || gameState.gameOver) return;
+      gameState.dice.forEach(d => d.kept = true);
+      audio.playDieClick(true);
+      renderDice();
+    }
+
+    function releaseAllDice() {
+      if (gameState.rollsLeft === 3 || gameState.isAiTurn || gameState.gameOver) return;
+      gameState.dice.forEach(d => d.kept = false);
+      audio.playDieClick(false);
+      renderDice();
+    }
+
+    /**
+     * Roll Action
+     */
+    function handleRollAction() {
+      if (gameState.rollsLeft <= 0 || gameState.isRolling || gameState.isAiTurn || gameState.gameOver) return;
+
+      gameState.isRolling = true;
+      audio.playCupRattle();
+
+      // Animate active dice tumbling
+      const activeDice = document.querySelectorAll("#activeDiceRow .die-wrapper");
+      activeDice.forEach(d => d.classList.add("rolling"));
+
+      setTimeout(() => {
+        // Roll unkept dice
+        gameState.dice.forEach(die => {
+          if (!die.kept) {
+            die.val = Math.floor(Math.random() * 6) + 1;
+          }
+        });
+
+        gameState.rollsLeft--;
+        gameState.isRolling = false;
+        audio.playDiceRoll();
+
+        renderDice();
+        updateRollStatusUi();
+        updateScorecardPreviews();
+
+        // Check if Yahtzee on 3rd or any roll!
+        const vals = gameState.dice.map(d => d.val);
+        const isYahtzee = vals.every(v => v === vals[0]);
+        if (isYahtzee) {
+          showVictoryToast("🎉 YAHTZEE! 50 POINTS! 🎉");
+          audio.playYahtzeeFanfare();
+          launchConfetti();
+        }
+      }, 550);
+    }
+
+    /**
+     * Update Roll Status UI & Dots
+     */
+    function updateRollStatusUi() {
+      const rollText = document.getElementById("rollStatusText");
+      const btnRoll = document.getElementById("btnRollDice");
+      const btnLabel = document.getElementById("btnRollLabel");
+
+      const d1 = document.getElementById("dot1");
+      const d2 = document.getElementById("dot2");
+      const d3 = document.getElementById("dot3");
+
+      d1.className = "roll-dot" + (gameState.rollsLeft >= 3 ? " active" : "");
+      d2.className = "roll-dot" + (gameState.rollsLeft >= 2 ? " active" : "");
+      d3.className = "roll-dot" + (gameState.rollsLeft >= 1 ? " active" : "");
+
+      if (gameState.rollsLeft === 3) {
+        rollText.textContent = "Roll 1 of 3";
+        btnLabel.textContent = "ROLL DICE";
+        btnRoll.disabled = gameState.isAiTurn || gameState.gameOver;
+      } else if (gameState.rollsLeft === 2) {
+        rollText.textContent = "Roll 2 of 3";
+        btnLabel.textContent = "ROLL AGAIN";
+        btnRoll.disabled = gameState.isAiTurn || gameState.gameOver;
+      } else if (gameState.rollsLeft === 1) {
+        rollText.textContent = "Roll 3 of 3 (Final)";
+        btnLabel.textContent = "FINAL ROLL";
+        btnRoll.disabled = gameState.isAiTurn || gameState.gameOver;
+      } else {
+        rollText.textContent = "Pick a Category!";
+        btnLabel.textContent = "PICK CATEGORY";
+        btnRoll.disabled = true;
+      }
+    }
+
+    /**
+     * Update Scorecard Previews
+     */
+    function updateScorecardPreviews() {
+      const p = gameState.currentPlayer;
+      const diceVals = gameState.dice.map(d => d.val);
+      const isFirstRoll = gameState.rollsLeft === 3;
+
+      CATEGORIES.forEach(cat => {
+        const row = document.getElementById(`row_${cat}`);
+        const cell = document.getElementById(`score_p${p}_${cat}`);
+
+        // If category is already filled
+        if (gameState.scores[p][cat] !== undefined) {
+          row.classList.remove("clickable");
+          cell.innerHTML = gameState.scores[p][cat] === 0 
+            ? '<span class="zero-scratch">0</span>' 
+            : gameState.scores[p][cat];
+          cell.className = "score-cell filled" + (gameState.scores[p][cat] === 0 ? " zero-scratch" : "");
+          return;
+        }
+
+        // Category is open
+        if (isFirstRoll || gameState.gameOver) {
+          row.classList.remove("clickable");
+          cell.innerHTML = "-";
+          cell.className = "score-cell";
+        } else {
+          // Show live preview badge
+          row.classList.add("clickable");
+          const score = calculateCategoryScore(cat, diceVals, gameState.scores[p], gameState.yahtzeeBonuses[p]);
+          if (score > 0) {
+            cell.innerHTML = `<span class="score-preview-badge preview-positive">+${score}</span>`;
+          } else {
+            cell.innerHTML = `<span class="score-preview-badge preview-zero">0</span>`;
+          }
+          cell.className = "score-cell";
+        }
+      });
+
+      calculateAndRenderTotals(p);
+      if (gameState.mode !== "solo") {
+        const otherP = p === 1 ? 2 : 1;
+        calculateAndRenderTotals(otherP);
+      }
+    }
+
+    /**
+     * Select & Record Category Score
+     */
+    function handleCategorySelect(category) {
+      if (gameState.rollsLeft === 3 || gameState.isRolling || gameState.isAiTurn || gameState.gameOver) return;
+
+      const p = gameState.currentPlayer;
+      if (gameState.scores[p][category] !== undefined) return;
+
+      const diceVals = gameState.dice.map(d => d.val);
+      const isYahtzee = diceVals.every(v => v === diceVals[0]);
+
+      // Check Yahtzee Bonus (+100)
+      if (isYahtzee && gameState.scores[p].yahtzee !== undefined && gameState.scores[p].yahtzee === 50) {
+        gameState.yahtzeeBonuses[p] += 100;
+        showVictoryToast("🌟 YAHTZEE BONUS! +100 PTS! 🌟");
+        audio.playBonusChime();
+      }
+
+      const score = calculateCategoryScore(category, diceVals, gameState.scores[p], gameState.yahtzeeBonuses[p]);
+      gameState.scores[p][category] = score;
+
+      audio.playScoreStamp();
+      advanceTurn();
+    }
+
+    /**
+     * Advance to Next Turn / Player / Round
+     */
+    function advanceTurn() {
+      // Check if current player just hit 63 Upper Bonus
+      checkUpperBonusCelebration(gameState.currentPlayer);
+
+      if (gameState.mode === "solo") {
+        if (gameState.round >= 13) {
+          finishGame();
+          return;
+        }
+        gameState.round++;
+        startPlayerTurn(1);
+      } else {
+        // Multi-player or AI
+        if (gameState.currentPlayer === 1) {
+          startPlayerTurn(2);
+        } else {
+          if (gameState.round >= 13) {
+            finishGame();
+            return;
+          }
+          gameState.round++;
+          startPlayerTurn(1);
+        }
+      }
+    }
+
+    /**
+     * Start Player Turn
+     */
+    function startPlayerTurn(player) {
+      gameState.currentPlayer = player;
+      gameState.rollsLeft = 3;
+      gameState.dice.forEach(d => { d.kept = false; });
+
+      document.getElementById("roundProgressBadge").textContent = `ROUND ${gameState.round} / 13`;
+      
+      const pHeader = document.getElementById("playerColHeader");
+      const aHeader = document.getElementById("aiColHeader");
+      if (player === 1) {
+        pHeader.style.background = "#fef08a";
+        aHeader.style.background = "#e2d3b5";
+      } else {
+        pHeader.style.background = "#e2d3b5";
+        aHeader.style.background = "#fef08a";
+      }
+
+      renderDice();
+      updateRollStatusUi();
+      updateScorecardPreviews();
+
+      if (gameState.mode === "ai" && player === 2) {
+        runAiTurn();
+      }
+    }
+
+    /**
+     * Check 35-Pt Upper Bonus Celebration
+     */
+    function checkUpperBonusCelebration(p) {
+      const uCats = ["aces", "twos", "threes", "fours", "fives", "sixes"];
+      let sub = 0;
+      uCats.forEach(c => {
+        if (gameState.scores[p][c] !== undefined) sub += gameState.scores[p][c];
+      });
+      if (sub >= 63 && !gameState[`bonusAwarded_${p}`]) {
+        gameState[`bonusAwarded_${p}`] = true;
+        showVictoryToast(`⭐ 35-PT UPPER BONUS EARNED! ⭐`);
+        audio.playBonusChime();
+      }
+    }
+
+    /**
+     * Calculate and Render Totals on Scorecard
+     */
+    function calculateAndRenderTotals(p) {
+      const uCats = ["aces", "twos", "threes", "fours", "fives", "sixes"];
+      let upperSubtotal = 0;
+      uCats.forEach(c => {
+        if (gameState.scores[p][c] !== undefined) upperSubtotal += gameState.scores[p][c];
+      });
+
+      const bonus = upperSubtotal >= 63 ? 35 : 0;
+      const upperTotal = upperSubtotal + bonus;
+
+      document.getElementById(`subtotal_p${p}`).textContent = upperSubtotal;
+      document.getElementById(`bonus_p${p}`).textContent = bonus;
+      document.getElementById(`upper_total_p${p}`).textContent = upperTotal;
+
+      const lCats = ["three_kind", "four_kind", "full_house", "sm_straight", "lg_straight", "yahtzee", "chance"];
+      let lowerSubtotal = 0;
+      lCats.forEach(c => {
+        if (gameState.scores[p][c] !== undefined) lowerSubtotal += gameState.scores[p][c];
+      });
+
+      const yBonus = gameState.yahtzeeBonuses[p] || 0;
+      document.getElementById(`yahtzee_bonus_p${p}`).textContent = yBonus;
+
+      const lowerTotal = lowerSubtotal + yBonus;
+      document.getElementById(`lower_total_p${p}`).textContent = lowerTotal;
+
+      const grandTotal = upperTotal + lowerTotal;
+      document.getElementById(`grand_total_p${p}`).textContent = grandTotal;
+
+      if (p === 1) {
+        updateHighScoreDisplay(grandTotal);
+      }
+    }
+
+    /**
+     * AI Intelligence for "The Professor"
+     */
+    function runAiTurn() {
+      gameState.isAiTurn = true;
+      document.getElementById("btnRollDice").disabled = true;
+
+      // Step 1: AI Roll 1
+      setTimeout(() => {
+        aiExecuteRoll();
+
+        // Step 2: AI evaluates and holds dice
+        setTimeout(() => {
+          aiDecideKeptDice();
+          renderDice();
+
+          // Step 3: AI Roll 2
+          setTimeout(() => {
+            aiExecuteRoll();
+
+            setTimeout(() => {
+              aiDecideKeptDice();
+              renderDice();
+
+              // Step 4: AI Roll 3
+              setTimeout(() => {
+                aiExecuteRoll();
+
+                // Step 5: AI picks best category
+                setTimeout(() => {
+                  aiPickBestCategory();
+                  gameState.isAiTurn = false;
+                }, 800);
+              }, 700);
+            }, 700);
+          }, 700);
+        }, 700);
+      }, 700);
+    }
+
+    function aiExecuteRoll() {
+      audio.playDiceRoll();
+      gameState.dice.forEach(d => {
+        if (!d.kept) d.val = Math.floor(Math.random() * 6) + 1;
+      });
+      gameState.rollsLeft--;
+      renderDice();
+      updateRollStatusUi();
+      updateScorecardPreviews();
+    }
+
+    function aiDecideKeptDice() {
+      // Intelligent expected value heuristic:
+      // If 4 or 5 of kind, keep them
+      // If small straight, keep straight dice
+      // If pairs / triples, keep highest count
+      const counts = {};
+      gameState.dice.forEach(d => counts[d.val] = (counts[d.val] || 0) + 1);
+
+      let maxVal = 1;
+      let maxCount = 0;
+      for (const [val, c] of Object.entries(counts)) {
+        if (c > maxCount || (c === maxCount && Number(val) > maxVal)) {
+          maxCount = c;
+          maxVal = Number(val);
+        }
+      }
+
+      if (maxCount >= 2) {
+        gameState.dice.forEach(d => {
+          if (d.val === maxVal) d.kept = true;
+        });
+      }
+    }
+
+    function aiPickBestCategory() {
+      const p = 2;
+      const diceVals = gameState.dice.map(d => d.val);
+      let bestCat = null;
+      let bestScore = -1;
+
+      // Find best scoring category
+      CATEGORIES.forEach(cat => {
+        if (gameState.scores[p][cat] === undefined) {
+          const s = calculateCategoryScore(cat, diceVals, gameState.scores[p], gameState.yahtzeeBonuses[p]);
+          if (s > bestScore) {
+            bestScore = s;
+            bestCat = cat;
+          }
+        }
+      });
+
+      // If all yields 0, pick lowest value scratch (e.g. Aces or Twos or Chance)
+      if (bestScore <= 0 || !bestCat) {
+        const scratchOrder = ["aces", "twos", "three_kind", "four_kind", "yahtzee", "threes", "fours"];
+        for (const cat of scratchOrder) {
+          if (gameState.scores[p][cat] === undefined) {
+            bestCat = cat;
+            bestScore = 0;
+            break;
+          }
+        }
+        if (!bestCat) {
+          bestCat = CATEGORIES.find(c => gameState.scores[p][c] === undefined);
+          bestScore = 0;
+        }
+      }
+
+      gameState.scores[p][bestCat] = calculateCategoryScore(bestCat, diceVals, gameState.scores[p], gameState.yahtzeeBonuses[p]);
+      audio.playScoreStamp();
+      advanceTurn();
+    }
+
+    /**
+     * Finish Game & Save Hall of Fame
+     */
+    function finishGame() {
+      gameState.gameOver = true;
+      audio.playGameOverSound();
+
+      calculateAndRenderTotals(1);
+      const p1Total = parseInt(document.getElementById("grand_total_p1").textContent, 10);
+      let p2Total = 0;
+      if (gameState.mode !== "solo") {
+        calculateAndRenderTotals(2);
+        p2Total = parseInt(document.getElementById("grand_total_p2").textContent, 10);
+      }
+
+      let winMsg = `GAME OVER! Final Score: ${p1Total}`;
+      if (gameState.mode === "ai") {
+        winMsg = p1Total >= p2Total 
+          ? `🏆 YOU DEFEATED THE PROFESSOR! (${p1Total} vs ${p2Total})` 
+          : `THE PROFESSOR WINS (${p2Total} vs ${p1Total})`;
+      } else if (gameState.mode === "pass2p") {
+        winMsg = p1Total >= p2Total 
+          ? `🏆 PLAYER 1 WINS! (${p1Total} vs ${p2Total})` 
+          : `🏆 PLAYER 2 WINS! (${p2Total} vs ${p1Total})`;
+      }
+
+      showVictoryToast(winMsg);
+      launchConfetti();
+      recordHighScore(p1Total, gameState.mode, gameState.yahtzeeBonuses[1] / 100);
+    }
+
+    /**
+     * High Scores & Session Persistence
+     */
+    const HIGH_SCORE_KEY = "yahtzee_royale_hall_of_fame";
+
+    function getHighScores() {
+      try {
+        const raw = localStorage.getItem(HIGH_SCORE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function recordHighScore(score, mode, yahtzeeCount) {
+      const records = getHighScores();
+      records.push({
+        score,
+        mode: mode.toUpperCase(),
+        yahtzees: yahtzeeCount,
+        date: new Date().toLocaleDateString(),
+      });
+      records.sort((a, b) => b.score - a.score);
+      const top10 = records.slice(0, 10);
+      try {
+        localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(top10));
+      } catch (e) {}
+      loadHallOfFameTable();
+    }
+
+    function updateHighScoreDisplay(currentScore) {
+      const records = getHighScores();
+      const best = records.length > 0 ? Math.max(records[0].score, currentScore) : currentScore;
+      document.getElementById("highScoreBadge").textContent = `${best} PTS`;
+    }
+
+    function loadHallOfFameTable() {
+      const tbody = document.getElementById("hallOfFameTbody");
+      const records = getHighScores();
+      if (records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.6;">No games recorded yet. Finish a game to enter the Hall of Fame!</td></tr>`;
+        return;
+      }
+      let html = "";
+      records.forEach((r, idx) => {
+        const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+        html += `
+          <tr>
+            <td><strong>${medal}</strong></td>
+            <td><strong style="color:var(--gold-bright); font-family:var(--font-mono);">${r.score}</strong></td>
+            <td>${r.mode}</td>
+            <td>${r.yahtzees || 0}</td>
+            <td style="opacity:0.7;">${r.date}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function clearHighScores() {
+      try { localStorage.removeItem(HIGH_SCORE_KEY); } catch (e) {}
+      loadHallOfFameTable();
+      document.getElementById("highScoreBadge").textContent = `0 PTS`;
+    }
+
+    /**
+     * Game Mode Switching
+     */
+    function switchGameMode(mode) {
+      gameState.mode = mode;
+      const aiHeaders = document.querySelectorAll(".ai-cell");
+      const aiColHeader = document.getElementById("aiColHeader");
+      const playerColHeader = document.getElementById("playerColHeader");
+
+      if (mode === "solo") {
+        document.getElementById("currentModeLabel").textContent = "SOLO CHALLENGE";
+        aiColHeader.style.display = "none";
+        aiHeaders.forEach(el => el.style.display = "none");
+        playerColHeader.textContent = "SCORE";
+      } else if (mode === "ai") {
+        document.getElementById("currentModeLabel").textContent = "VS THE PROFESSOR";
+        aiColHeader.style.display = "table-cell";
+        aiColHeader.textContent = "AI";
+        aiHeaders.forEach(el => el.style.display = "table-cell");
+        playerColHeader.textContent = "YOU";
+      } else if (mode === "pass2p") {
+        document.getElementById("currentModeLabel").textContent = "PASS & PLAY (2P)";
+        aiColHeader.style.display = "table-cell";
+        aiColHeader.textContent = "P2";
+        aiHeaders.forEach(el => el.style.display = "table-cell");
+        playerColHeader.textContent = "P1";
+      }
+
+      resetGame();
+    }
+
+    function confirmNewGame() {
+      if (confirm("Start a new Yahtzee game? Current progress will be reset.")) {
+        resetGame();
+      }
+    }
+
+    function resetGame() {
+      gameState.currentPlayer = 1;
+      gameState.round = 1;
+      gameState.rollsLeft = 3;
+      gameState.scores = { 1: {}, 2: {} };
+      gameState.yahtzeeBonuses = { 1: 0, 2: 0 };
+      gameState.isRolling = false;
+      gameState.isAiTurn = false;
+      gameState.gameOver = false;
+      gameState.dice = [
+        { id: 0, val: 1, kept: false },
+        { id: 1, val: 2, kept: false },
+        { id: 2, val: 3, kept: false },
+        { id: 3, val: 4, kept: false },
+        { id: 4, val: 5, kept: false },
+      ];
+
+      document.getElementById("roundProgressBadge").textContent = `ROUND 1 / 13`;
+
+      // Clear scorecard cells
+      CATEGORIES.forEach(cat => {
+        document.getElementById(`score_p1_${cat}`).textContent = "-";
+        document.getElementById(`score_p1_${cat}`).className = "score-cell";
+        document.getElementById(`score_p2_${cat}`).textContent = "-";
+        document.getElementById(`score_p2_${cat}`).className = "score-cell ai-cell";
+      });
+
+      calculateAndRenderTotals(1);
+      calculateAndRenderTotals(2);
+      renderDice();
+      updateRollStatusUi();
+      updateScorecardPreviews();
+    }
+
+    /**
+     * Theme & Skin Customization
+     */
+    function changeFeltTheme(theme) {
+      document.body.setAttribute("data-theme", theme);
+    }
+
+    function changeDiceSkin(skin) {
+      document.body.className = skin;
+    }
+
+    /**
+     * Toast Notifications & Confetti
+     */
+    function showVictoryToast(msg) {
+      const toast = document.getElementById("victoryToast");
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3500);
+    }
+
+    function launchConfetti() {
+      const canvas = document.getElementById("confettiCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ["#f59e0b", "#fbbf24", "#ef4444", "#22c55e", "#3b82f6", "#ec4899", "#ffffff"];
+      for (let i = 0; i < 90; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height * 0.4,
+          vx: (Math.random() - 0.5) * 14,
+          vy: (Math.random() - 0.7) * 14,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 8,
+          alpha: 1,
+        });
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.28; // gravity
+          p.rotation += p.rotSpeed;
+          p.alpha -= 0.012;
+          if (p.alpha > 0) {
+            alive = true;
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, p.alpha);
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        });
+        if (alive) requestAnimationFrame(render);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      render();
+    }
+
+    /**
+     * Modals
+     */
+    function openRulesModal() {
+      document.getElementById("rulesModal").classList.add("active");
+    }
+    function closeRulesModal() {
+      document.getElementById("rulesModal").classList.remove("active");
+    }
+    function openStatsModal() {
+      loadHallOfFameTable();
+      document.getElementById("statsModal").classList.add("active");
+    }
+    function closeStatsModal() {
+      document.getElementById("statsModal").classList.remove("active");
+    }
+
+    // Initialize on Load
+    window.addEventListener("DOMContentLoaded", () => {
+      loadHallOfFameTable();
+      updateHighScoreDisplay(0);
+      renderDice();
+      updateRollStatusUi();
+      updateScorecardPreviews();
+    });
+  </script>
+</body>
+</html>

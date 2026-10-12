@@ -264,6 +264,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🪙",
     description: "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
   },
+  yahtzee_studio: {
+    displayName: "Yahtzee Royale Deluxe",
+    category: "Games & Entertainment",
+    icon: "🎲",
+    description: "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",

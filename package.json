@@ -91,6 +91,8 @@
     "app:blackjack": "bun run applications/blackjack_studio.ts",
     "app:bj": "bun run applications/blackjack_studio.ts",
     "app:21": "bun run applications/blackjack_studio.ts",
+    "app:yahtzee": "bun run applications/yahtzee_studio.ts",
+    "app:dice": "bun run applications/yahtzee_studio.ts",
     "app:skifree": "bun run applications/skifree_studio.ts",
     "app:ski": "bun run applications/skifree_studio.ts",
     "app:math_munchers": "bun run applications/math_munchers_studio.ts",
