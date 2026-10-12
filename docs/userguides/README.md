@@ -21,7 +21,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 | **03** | [Task Watcher Studio](03_task_watcher_studio.md) | Native `fs.watch` event pipeline, extension filters, ignore rules, build console. | `bun run app:watcher` | `bun run cli:watcher` |
 | **04** | [JSON Query Studio Pro](04_json_query_studio.md) | High-throughput JSON query engine, nested selectors, key projection, formatting. | `bun run app:json` | `bun run cli:json` |
 | **05** | [DevTools Studio Pro](05_devtools_studio.md) | 6-in-1 suite: Ripgrep search, Fd finder, Sd replace (dry run, backups), Trash with undo, JQ. | `bun run app:devtools` | `bun run cli:devtools` |
-| **06** | [Process Monitor Studio](06_process_monitor_studio.md) | macOS Activity Monitor inspection, PID search, CPU/RSS memory, signal control. | `bun run app:process` | `bun run cli:process` |
+| **06** | [Process Monitor Studio](06_process_monitor_studio.md) | Process table with group-by-app, tree kill, safe signals with confirmations, listener-only port kill, export. | `bun run app:process` | `bun run cli:process` |
 | **40** | [Redis Studio Pro](40_redis_studio.md) | Key browser with sort/filter, typed editors, export/import backup, bulk delete, duplicate, CLI history with safety prompts, telemetry, Pub/Sub. | `bun run applications/redis_studio.ts` | — |
 
 ### 🛠️ 2. Developer Utilities & Data Engineering

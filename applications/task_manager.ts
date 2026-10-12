@@ -1,22 +1,16 @@
+import * as os from "os";
+import { writeFileSync } from "fs";
+import { basename, extname } from "path";
 import { guardLocalRequest } from "../src/localGuard";
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
+import {
+  type ProcessItem, type SignalName, SIGNALS, parsePsOutput, parseLsofListen, formatMb, formatUptime, stateLabel, groupProcesses, childrenOf,
+  descendantsOf, assessSignal, findRogueDevServers, validPort, executablePath, processesToCsv, processesToJson, processesToTsv,
+  parseRefreshSeconds,
+} from "../src/process_tools";
 
-export interface ProcessItem {
-  pid: string;
-  ppid: string;
-  cpu: number;
-  mem: number;
-  rssMb: string;
-  rssKb: number;
-  state: string;
-  user: string;
-  name: string;
-  command: string;
-  ports: string[];
-  isUserApp: boolean;
-  isDevServer: boolean;
-}
+export type { ProcessItem } from "../src/process_tools";
 
 export interface TelemetrySummary {
   total: number;
@@ -26,6 +20,7 @@ export interface TelemetrySummary {
   topMemProc?: ProcessItem;
   portListenersCount: number;
   totalRssMb: number;
+  totalCpu: number;
 }
 
 let cachedProcesses: ProcessItem[] = [];
@@ -42,29 +37,11 @@ function fetchListeningPortMap(): Map<string, string[]> {
   if (now - lastPortFetchTime < 3500 && cachedPortMap.size > 0) {
     return cachedPortMap;
   }
-  const portMap = new Map<string, string[]>();
+  let portMap = new Map<string, string[]>();
   try {
     const [out, code] = Sys.exec("lsof -iTCP -sTCP:LISTEN -n -P");
     if (code === 0 && out) {
-      const lines = out.trim().split("\n");
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i]?.trim();
-        if (!line) continue;
-        const parts = line.split(/\s+/);
-        if (parts.length >= 9) {
-          const pid = parts[1];
-          const address = parts[8];
-          const portMatch = address?.match(/:(\d+)$/);
-          if (pid && portMatch && portMatch[1]) {
-            const portStr = ":" + portMatch[1];
-            const current = portMap.get(pid) || [];
-            if (!current.includes(portStr)) {
-              current.push(portStr);
-            }
-            portMap.set(pid, current);
-          }
-        }
-      }
+      portMap = parseLsofListen(out);
       cachedPortMap = portMap;
       lastPortFetchTime = now;
     }
@@ -72,16 +49,6 @@ function fetchListeningPortMap(): Map<string, string[]> {
     // Non-fatal if lsof is restricted or unavailable
   }
   return cachedPortMap.size > 0 ? cachedPortMap : portMap;
-}
-
-/**
- * Extract human-readable process name from command string.
- */
-function extractProcessName(command: string): string {
-  if (!command) return "unknown";
-  const firstToken = command.trim().split(/\s+/)[0] || "";
-  const baseName = firstToken.split("/").pop() || firstToken;
-  return baseName.replace(/\.app\/Contents\/MacOS\/.*/i, "").replace(/:$/, "");
 }
 
 function normalizeTypo(s: string): string {
@@ -165,17 +132,17 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
 }
 
 /**
- * Identify whether a process is a known development server or database engine.
- */
-function isDevServerProcess(command: string, name: string): boolean {
-  const hay = (name + " " + command).toLowerCase();
-  return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx)\b/i.test(hay);
-}
-
-/**
  * Fetch complete live process list with hardware resource metrics and listening network ports.
  * Includes caching and resilience so rapid searches/clears never yield an empty list.
  */
+export function currentUserName(): string {
+  try {
+    return process.env.USER || os.userInfo().username || "";
+  } catch {
+    return process.env.USER || "";
+  }
+}
+
 export function fetchProcesses(): ProcessItem[] {
   if (process.env.SCREENSHOT_MODE === "1") {
     return [
@@ -188,7 +155,7 @@ export function fetchProcesses(): ProcessItem[] {
       { pid: "4099", ppid: "1", cpu: 0.4, mem: 1.2, rssMb: "96.0 MB", rssKb: 98304, state: "S", user: "system", name: "postgres", command: "postgres -D /data/postgres", ports: [":5432"], isUserApp: false, isDevServer: true },
       { pid: "5120", ppid: "1", cpu: 0.6, mem: 1.0, rssMb: "110.0 MB", rssKb: 112640, state: "S", user: "developer", name: "Ghostty", command: "/Applications/Ghostty.app/Contents/MacOS/Ghostty", ports: [], isUserApp: true, isDevServer: false },
       { pid: "6780", ppid: "1", cpu: 2.4, mem: 4.5, rssMb: "520.0 MB", rssKb: 532480, state: "S", user: "developer", name: "Google Chrome", command: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ports: [], isUserApp: true, isDevServer: false },
-    ];
+    ].map((p, i) => ({ ...p, uptimeSec: 86400 * (9 - i) + 3600 * i, uptime: formatUptime(86400 * (9 - i) + 3600 * i) }));
   }
   const now = Date.now();
   // Throttle ps execution to at most once per 250ms under rapid typing or clearing
@@ -196,7 +163,7 @@ export function fetchProcesses(): ProcessItem[] {
     return cachedProcesses;
   }
 
-  const [out, code] = Sys.exec("ps -axo pid,ppid,pcpu,pmem,rss,state,user,command");
+  const [out, code] = Sys.exec("ps -axo pid,ppid,pcpu,pmem,rss,state,user,etime,command");
   if (code !== 0 || !out || out.trim().length < 50) {
     if (cachedProcesses.length > 0) {
       return cachedProcesses;
@@ -205,47 +172,7 @@ export function fetchProcesses(): ProcessItem[] {
   }
 
   const portMap = fetchListeningPortMap();
-  const currentUser = process.env.USER || "";
-  const lines = out.trim().split("\n");
-  const items: ProcessItem[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i]?.trim();
-    if (!line) continue;
-
-    const parts = line.split(/\s+/);
-    if (parts.length >= 8) {
-      const pid = parts[0] || "";
-      const ppid = parts[1] || "";
-      const cpu = parseFloat(parts[2] || "0");
-      const mem = parseFloat(parts[3] || "0");
-      const rssKb = parseInt(parts[4] || "0", 10);
-      const state = parts[5] || "";
-      const user = parts[6] || "";
-      const command = parts.slice(7).join(" ");
-      const rssMb = (rssKb / 1024).toFixed(1) + " MB";
-      const name = extractProcessName(command);
-      const ports = portMap.get(pid) || [];
-      const isUserApp = user === currentUser;
-      const isDevServer = isDevServerProcess(command, name);
-
-      items.push({
-        pid,
-        ppid,
-        cpu,
-        mem,
-        rssMb,
-        rssKb,
-        state,
-        user,
-        name,
-        command,
-        ports,
-        isUserApp,
-        isDevServer,
-      });
-    }
-  }
+  const items = parsePsOutput(out, portMap, currentUserName());
 
   if (items.length > 0) {
     items.sort((a, b) => b.cpu - a.cpu);
@@ -265,11 +192,13 @@ export function computeTelemetry(procs: ProcessItem[]): TelemetrySummary {
   let systemCount = 0;
   let totalRssKb = 0;
   let portCount = 0;
+  let totalCpu = 0;
 
   for (const p of procs) {
     if (p.isUserApp) userCount++;
     else systemCount++;
     totalRssKb += p.rssKb;
+    totalCpu += p.cpu;
     if (p.ports.length > 0) portCount++;
   }
 
@@ -284,7 +213,55 @@ export function computeTelemetry(procs: ProcessItem[]): TelemetrySummary {
     topMemProc: topMem,
     portListenersCount: portCount,
     totalRssMb: Math.round(totalRssKb / 1024),
+    totalCpu: Math.round(totalCpu * 10) / 10,
   };
+}
+
+/** PIDs actually LISTENing on a TCP port (not clients connected to it, such as a browser). */
+export function findListenerPids(port: number): string[] {
+  try {
+    const r = Bun.spawnSync(["lsof", "-ti", `tcp:${port}`, "-sTCP:LISTEN"], { stdout: "pipe", stderr: "pipe" });
+    if (r.exitCode !== 0) return [];
+    return r.stdout.toString().split("\n").map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
+  } catch {
+    return [];
+  }
+}
+
+/** Send a signal number to a numeric pid without going through a shell. */
+export function sendRawSignal(pid: string, sigNum: number): { ok: boolean; code: number; err: string } {
+  if (!/^\d+$/.test(pid)) return { ok: false, code: -1, err: "invalid pid" };
+  try {
+    const r = Bun.spawnSync(["kill", `-${sigNum}`, pid], { stdout: "pipe", stderr: "pipe" });
+    return { ok: r.exitCode === 0, code: r.exitCode ?? -1, err: r.stderr.toString().trim() };
+  } catch (e: any) {
+    return { ok: false, code: -1, err: String(e?.message || e) };
+  }
+}
+
+const TABLE_HEADERS = ["PID", "Name", "Port", "CPU %", "MEM %", "RSS", "User", "State", "Uptime", "Command"];
+const GROUP_HEADERS = ["Name", "Processes", "Port", "CPU %", "MEM %", "RSS", "User"];
+
+const procRow = (p: ProcessItem): string[] => [
+  p.pid,
+  p.name,
+  p.ports.length > 0 ? p.ports.join(", ") : "—",
+  p.cpu.toFixed(1) + "%",
+  p.mem.toFixed(1) + "%",
+  p.rssMb,
+  p.user,
+  p.state,
+  p.uptime || "—",
+  p.command.length > 70 ? p.command.slice(0, 70) + "..." : p.command,
+];
+
+function systemLine(tel: TelemetrySummary): string {
+  const load = os.loadavg().map((n) => n.toFixed(2)).join(" / ");
+  const totalGb = os.totalmem() / 1024 ** 3;
+  const rssGb = tel.totalRssMb / 1024;
+  const days = Math.floor(os.uptime() / 86400);
+  const hrs = Math.floor((os.uptime() % 86400) / 3600);
+  return `Load avg: ${load}  |  Cores: ${os.cpus().length}  |  Process CPU sum: ${tel.totalCpu}%  |  RSS sum: ${rssGb.toFixed(1)} of ${totalGb.toFixed(0)} GB  |  Mac up ${days}d ${hrs}h`;
 }
 
 export function createTaskTracker(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
@@ -298,9 +275,11 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   let currentCategory = "all";
   let activeProcesses = fetchProcesses();
   let selectedPid = activeProcesses[0]?.pid || "1";
-  let autoRefreshRate = "2s"; // "2s", "5s", "off"
+  let displayed: ProcessItem[] = activeProcesses;
+  let tick = 0;
 
   const telemetry = computeTelemetry(activeProcesses);
+  const ctx = () => ({ selfPid: String(process.pid), parentPid: String(process.ppid), currentUser: currentUserName() });
 
   // -----------------------------------------------------------------------------------------------
   // 1. Navigation & App Header
@@ -309,7 +288,9 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.addHeading("Task Manager Pro");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_refresh", "🔄 Refresh");
-  win.addDropdown("dd_autorefresh", ["⚡ Auto: 2s", "⏱️ Auto: 5s", "⏸️ Auto: Off"], "⚡ Auto: 2s");
+  win.addDropdown("dd_autorefresh", ["🚀 Auto: 1s", "⚡ Auto: 2s", "⏱️ Auto: 5s", "⏸️ Auto: Off"], "⚡ Auto: 2s");
+  win.addButton("btn_export", "💾 Export List…");
+  win.addButton("btn_copy_table", "📋 Copy Table");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save View");
   win.addButton("btn_center", "Center Window");
@@ -325,6 +306,9 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.addLabel("lbl_top_cpu", `Top CPU: ${telemetry.topCpuProc?.name || "N/A"} (${telemetry.topCpuProc?.cpu || 0}%)`);
   win.addLabel("lbl_ports_active", `Active Port Listeners: ${telemetry.portListenersCount} services`);
   win.addLabel("lbl_platform", `Platform: macOS (Darwin ${process.arch}) | Bun v${Bun.version}`);
+  win.endRow();
+  win.beginRow();
+  win.addLabel("lbl_sysload", systemLine(telemetry));
   win.endRow();
   win.endCard();
 
@@ -360,6 +344,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.addInput("txt_port", "3000", "e.g. 3000", { width: 90 });
   win.addButton("btn_kill_port", "⚡ Kill Port Process", { width: 155 });
   win.addButton("btn_clean_dev", "🧹 Clean Rogue Dev Servers", { width: 200 });
+  win.addCheckbox("chk_group", "Group by app", false);
   win.endRow();
   win.endGroupBox();
 
@@ -390,6 +375,14 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.endRow();
 
   win.beginRow();
+  win.addButton("btn_kill_tree", "🌳 Terminate Process Tree");
+  win.addButton("btn_kill_group", "🧺 Quit All With Same Name");
+  win.addButton("btn_inspect", "🔬 Inspect Details");
+  win.addButton("btn_reveal", "📂 Reveal in Finder");
+  win.addButton("btn_renice", "🐢 Lower Priority");
+  win.endRow();
+
+  win.beginRow();
   win.addLabel("lbl_proc_cmd", `Command: ${initialCmd.length > 120 ? initialCmd.slice(0, 120) + "..." : initialCmd}`);
   win.endRow();
   win.endGroupBox();
@@ -398,19 +391,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   // 6. Live Process Table
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Live Running Process Table (Click any row to select & inspect)");
-  const tableHeaders = ["PID", "Name", "Port", "CPU %", "MEM %", "RSS", "User", "State", "Command"];
-  const initialTableRows = activeProcesses.map((p) => [
-    p.pid,
-    p.name,
-    p.ports.length > 0 ? p.ports.join(", ") : "—",
-    p.cpu.toFixed(1) + "%",
-    p.mem.toFixed(1) + "%",
-    p.rssMb,
-    p.user,
-    p.state,
-    p.command.length > 70 ? p.command.slice(0, 70) + "..." : p.command,
-  ]);
-  win.addTable("tbl_procs", tableHeaders, initialTableRows).size(1140, 380);
+  win.addTable("tbl_procs", TABLE_HEADERS, activeProcesses.map(procRow)).size(1140, 380);
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
@@ -427,7 +408,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   // Hidden IPC receiver for row selection
   win.bindControlEvent("sel_proc_ipc", "change", (w, pidVal) => {
     if (!pidVal) return;
-    updateSelectedProcess(String(pidVal));
+    updateSelectedProcess(resolveSelection(String(pidVal)));
   });
 
   // -----------------------------------------------------------------------------------------------
@@ -439,7 +420,15 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     win.appendConsole("task_console", `[${time}] ${message}\n`, style);
   };
 
-  const updateSelectedProcess = (pid: string, updateInput = true) => {
+  /** In grouped mode a row is an app name: select its busiest process. */
+  function resolveSelection(val: string): string {
+    const v = val.trim();
+    if (/^\d+$/.test(v)) return v;
+    const hit = activeProcesses.filter((p) => p.name === v).sort((a, b) => b.cpu - a.cpu)[0];
+    return hit ? hit.pid : v;
+  }
+
+  function updateSelectedProcess(pid: string, updateInput = true) {
     selectedPid = pid.trim();
     if (updateInput) {
       win.setValue("txt_target_pid", selectedPid);
@@ -449,14 +438,14 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     if (proc) {
       const portInfo = proc.ports.length ? ` | Ports: ${proc.ports.join(", ")}` : "";
       const devBadge = proc.isDevServer ? " [⚡ Dev Server]" : "";
-      const details = `Selected: [${proc.pid}] ${proc.name}${devBadge} | User: ${proc.user} | CPU: ${proc.cpu}% | RAM: ${proc.rssMb}${portInfo}`;
+      const details = `Selected: [${proc.pid}] ${proc.name}${devBadge} | User: ${proc.user} | CPU: ${proc.cpu}% | RAM: ${proc.rssMb} | ${stateLabel(proc.state)}${proc.uptime ? " | Up: " + proc.uptime : ""}${portInfo}`;
       win.setText("lbl_proc_details", details);
       const cmdPreview = proc.command.length > 120 ? proc.command.slice(0, 120) + "..." : proc.command;
       win.setText("lbl_proc_cmd", `Command: ${cmdPreview}`);
     } else {
       win.setText("lbl_proc_details", `Selected PID: ${selectedPid} (Process may have exited)`);
     }
-  };
+  }
 
   const getFilteredProcesses = (procs: ProcessItem[]): ProcessItem[] => {
     const filterText = (win.getValue("txt_filter") || "").toLowerCase().trim();
@@ -510,6 +499,20 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     return list;
   };
 
+  const renderTable = (filtered: ProcessItem[]) => {
+    if (win.getBool("chk_group")) {
+      const sortVal = win.getValue("dd_sort") || "";
+      const groups = groupProcesses(filtered);
+      if (sortVal.includes("Name")) groups.sort((a, b) => a.name.localeCompare(b.name));
+      else if (sortVal.includes("RAM")) groups.sort((a, b) => b.rssKb - a.rssKb);
+      else if (sortVal.includes("Memory")) groups.sort((a, b) => b.mem - a.mem);
+      else groups.sort((a, b) => b.cpu - a.cpu);
+      win.setTableData("tbl_procs", GROUP_HEADERS, groups.map((g) => [g.name, String(g.count), g.ports.length ? g.ports.join(", ") : "—", g.cpu.toFixed(1) + "%", g.mem.toFixed(1) + "%", formatMb(g.rssKb), g.user]));
+    } else {
+      win.setTableData("tbl_procs", TABLE_HEADERS, filtered.map(procRow));
+    }
+  };
+
   const refreshList = (isSilentTimer = false) => {
     activeProcesses = fetchProcesses();
     const tel = computeTelemetry(activeProcesses);
@@ -518,22 +521,12 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     win.setText("lbl_total_procs", `Total Processes: ${tel.total} (${tel.userCount} User, ${tel.systemCount} Sys)`);
     win.setText("lbl_top_cpu", `Top CPU: ${tel.topCpuProc?.name || "N/A"} (${tel.topCpuProc?.cpu || 0}%)`);
     win.setText("lbl_ports_active", `Active Port Listeners: ${tel.portListenersCount} services`);
+    win.setText("lbl_sysload", systemLine(tel));
     win.setStatus(`Monitoring ${tel.total} active processes | Category: ${currentCategory.toUpperCase()}`);
 
     const filtered = getFilteredProcesses(activeProcesses);
-    const rows = filtered.map((p) => [
-      p.pid,
-      p.name,
-      p.ports.length > 0 ? p.ports.join(", ") : "—",
-      p.cpu.toFixed(1) + "%",
-      p.mem.toFixed(1) + "%",
-      p.rssMb,
-      p.user,
-      p.state,
-      p.command.length > 70 ? p.command.slice(0, 70) + "..." : p.command,
-    ]);
-
-    win.setTableData("tbl_procs", tableHeaders, rows);
+    displayed = filtered;
+    renderTable(filtered);
 
     // Keep inspector updated without stomping user input during timer
     if (selectedPid) {
@@ -545,37 +538,72 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     }
   };
 
-  // Signal execution helper
-  const sendSignalToPid = (pid: string, signal: string, sigNum: number) => {
-    if (!pid || pid === "0" || !/^\d+$/.test(pid)) {
-      win.toast("Please specify a valid numeric PID to send signal.");
-      return;
-    }
-    if (pid === "1") {
-      win.toast("⚠️ Protection: Refusing to kill PID 1 (launchd/system init).");
-      logConsole(`[Security Warning] Attempted to send ${signal} to PID 1 blocked for system stability.`, 3);
-      return;
-    }
-    if (pid === String(process.pid)) {
-      win.toast("⚠️ Protection: Refusing to kill self process.");
-      logConsole(`[Security Warning] Blocked killing self Task Manager process.`, 3);
-      return;
-    }
+  const scheduleRefresh = (ms: number) => {
+    const t: any = setTimeout(() => refreshList(false), ms);
+    t?.unref?.();
+  };
 
+  /** Send one signal after safety checks and (when risky) a confirmation. */
+  const sendSignalToPid = async (pid: string, signal: SignalName, sigNum: number = SIGNALS[signal]): Promise<boolean> => {
+    pid = String(pid || "").trim();
     const proc = activeProcesses.find((p) => p.pid === pid);
+    const a = assessSignal(proc, pid, signal, ctx());
+    if (!a.allowed) {
+      win.toast(`⚠️ ${a.reason}`);
+      logConsole(`[Security Warning] ${a.reason}`, 3);
+      return false;
+    }
+    if (a.confirm && !(await win.confirm(a.confirm, "Confirm signal"))) {
+      logConsole(`[Signal] Cancelled ${signal} for PID ${pid}`, 1);
+      return false;
+    }
     const procName = proc ? ` (${proc.name})` : "";
-    const [out, code] = Sys.exec(`kill -${sigNum} ${pid}`);
-
-    if (code === 0) {
+    const r = sendRawSignal(pid, sigNum);
+    if (r.ok) {
       logConsole(`[Signal] Successfully sent ${signal} (-${sigNum}) to PID ${pid}${procName}`, 2);
       win.toast(`Signal ${signal} sent to PID ${pid}`);
     } else {
-      logConsole(`[Signal Failed] Could not send ${signal} to PID ${pid}${procName}: exit code ${code} ${out.trim()}`, 3);
-      win.toast(`Failed to send ${signal} to PID ${pid} (exit ${code})`);
+      logConsole(`[Signal Failed] Could not send ${signal} to PID ${pid}${procName}: exit code ${r.code} ${r.err}`, 3);
+      win.toast(`Failed to send ${signal} to PID ${pid} (exit ${r.code})`);
     }
-
-    setTimeout(() => refreshList(false), 350);
+    scheduleRefresh(350);
+    return r.ok;
   };
+
+  /** SIGTERM several processes after a single confirmation. Returns how many accepted the signal. */
+  const terminateMany = async (pids: string[], title: string, signal: SignalName = "SIGTERM"): Promise<number> => {
+    const targets: ProcessItem[] = [];
+    for (const pid of pids) {
+      const proc = activeProcesses.find((p) => p.pid === pid);
+      if (!proc) continue;
+      if (assessSignal(proc, pid, signal, ctx()).allowed) targets.push(proc);
+    }
+    if (targets.length === 0) {
+      win.toast("Nothing to terminate (protected, or already gone).");
+      logConsole(`[${title}] No eligible processes.`, 3);
+      return 0;
+    }
+    const preview = targets.slice(0, 8).map((p) => `${p.name} (${p.pid})`).join(", ") + (targets.length > 8 ? `, and ${targets.length - 8} more` : "");
+    if (!(await win.confirm(`${title}: terminate ${targets.length} process(es)?\n\n${preview}`, "Confirm"))) {
+      logConsole(`[${title}] Cancelled.`, 1);
+      return 0;
+    }
+    let ok = 0;
+    for (const p of targets) {
+      const r = sendRawSignal(p.pid, SIGNALS[signal]);
+      if (r.ok) {
+        ok++;
+        logConsole(`[${title}] Sent ${signal} to ${p.name} (PID ${p.pid})`, 2);
+      } else {
+        logConsole(`[${title}] Failed for ${p.name} (PID ${p.pid}): ${r.err || "exit " + r.code}`, 3);
+      }
+    }
+    win.toast(`Terminated ${ok} of ${targets.length} process(es)`);
+    scheduleRefresh(400);
+    return ok;
+  };
+
+  const targetPid = () => String(win.getValue("txt_target_pid") || selectedPid || "").trim();
 
   // -----------------------------------------------------------------------------------------------
   // Event Bindings
@@ -590,10 +618,11 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   });
   win.onClick("btn_refresh", () => refreshList(false));
 
-  // Auto-refresh timer (2 seconds tick)
-  win.addTimer(2000, () => {
-    const rate = win.getValue("dd_autorefresh") || autoRefreshRate;
-    if (rate.includes("Off")) return;
+  // Auto-refresh: a 1s heartbeat honouring the chosen interval (1s / 2s / 5s / off)
+  win.addTimer(1000, () => {
+    tick++;
+    const sec = parseRefreshSeconds(win.getValue("dd_autorefresh") || "Auto: 2s");
+    if (sec <= 0 || tick % sec !== 0) return;
     refreshList(true);
   });
 
@@ -668,6 +697,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     refreshList(true);
   });
 
+  win.onChange("chk_group", () => {
+    refreshList(true);
+  });
+
   // Target PID manual change
   win.onChange("txt_target_pid", (_, val) => {
     if (val) updateSelectedProcess(String(val), false);
@@ -675,38 +708,88 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
 
   // Table row click selection
   win.onClick("tbl_procs", (_, pidVal) => {
-    if (pidVal) updateSelectedProcess(String(pidVal), true);
+    if (pidVal) updateSelectedProcess(resolveSelection(String(pidVal)), true);
   });
 
   // Process Signals
-  win.onClick("btn_kill_force", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
-    sendSignalToPid(pid, "SIGKILL", 9);
+  win.onClick("btn_kill_force", () => sendSignalToPid(targetPid(), "SIGKILL", 9));
+  win.onClick("btn_kill_term", () => sendSignalToPid(targetPid(), "SIGTERM", 15));
+  win.onClick("btn_kill_stop", () => sendSignalToPid(targetPid(), "SIGSTOP", SIGNALS.SIGSTOP));
+  win.onClick("btn_kill_cont", () => sendSignalToPid(targetPid(), "SIGCONT", SIGNALS.SIGCONT));
+  win.onClick("btn_kill_hup", () => sendSignalToPid(targetPid(), "SIGHUP", 1));
+
+  win.onClick("btn_kill_tree", async () => {
+    const pid = targetPid();
+    const proc = activeProcesses.find((p) => p.pid === pid);
+    if (!proc) { win.toast("Select a running process first."); return; }
+    await terminateMany([...descendantsOf(activeProcesses, pid), pid], `Process tree of ${proc.name}`);
   });
 
-  win.onClick("btn_kill_term", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
-    sendSignalToPid(pid, "SIGTERM", 15);
+  win.onClick("btn_kill_group", async () => {
+    const pid = targetPid();
+    const proc = activeProcesses.find((p) => p.pid === pid);
+    if (!proc) { win.toast("Select a running process first."); return; }
+    const same = activeProcesses.filter((p) => p.name === proc.name && p.user === proc.user).map((p) => p.pid);
+    await terminateMany(same, `All "${proc.name}" processes`);
   });
 
-  win.onClick("btn_kill_stop", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
-    sendSignalToPid(pid, "SIGSTOP", 19);
+  win.onClick("btn_renice", () => {
+    const pid = targetPid();
+    const proc = activeProcesses.find((p) => p.pid === pid);
+    const a = assessSignal(proc, pid, "SIGHUP", ctx());
+    if (!a.allowed) { win.toast(`⚠️ ${a.reason}`); return; }
+    if (!proc || proc.user !== ctx().currentUser) { win.toast("You can only lower the priority of your own processes."); return; }
+    const r = Bun.spawnSync(["renice", "10", "-p", pid], { stdout: "pipe", stderr: "pipe" });
+    if (r.exitCode === 0) {
+      logConsole(`[Priority] Lowered priority of ${proc.name} (PID ${pid}) to nice +10`, 2);
+      win.toast("Priority lowered");
+    } else {
+      logConsole(`[Priority] renice failed for PID ${pid}: ${r.stderr.toString().trim()}`, 3);
+      win.toast("Could not change priority");
+    }
   });
 
-  win.onClick("btn_kill_cont", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
-    sendSignalToPid(pid, "SIGCONT", 18);
+  win.onClick("btn_inspect", () => {
+    const pid = targetPid();
+    const proc = activeProcesses.find((p) => p.pid === pid);
+    if (!proc) { win.toast("Select a running process first."); return; }
+    const parent = activeProcesses.find((p) => p.pid === proc.ppid);
+    const kids = childrenOf(activeProcesses, pid);
+    const lines = [
+      `[Inspect] ${proc.name} (PID ${proc.pid})`,
+      `  State:    ${stateLabel(proc.state)} (${proc.state})`,
+      `  User:     ${proc.user}${proc.isUserApp ? "" : "  (not yours)"}`,
+      `  Parent:   ${proc.ppid}${parent ? " " + parent.name : ""}`,
+      `  Children: ${kids.length}${kids.length ? " — " + kids.slice(0, 6).map((k) => `${k.name} (${k.pid})`).join(", ") + (kids.length > 6 ? ", …" : "") : ""}`,
+      `  Uptime:   ${proc.uptime || "unknown"}`,
+      `  CPU/MEM:  ${proc.cpu.toFixed(1)}% / ${proc.mem.toFixed(1)}%  RSS ${proc.rssMb}`,
+      `  Ports:    ${proc.ports.length ? proc.ports.join(", ") : "none listening"}`,
+    ];
+    try {
+      const cwd = Bun.spawnSync(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], { stdout: "pipe", stderr: "pipe" }).stdout.toString().split("\n").find((l) => l.startsWith("n"));
+      lines.push(`  Cwd:      ${cwd ? cwd.slice(1) : "unavailable (permission?)"}`);
+      const open = Bun.spawnSync(["lsof", "-p", pid], { stdout: "pipe", stderr: "pipe" }).stdout.toString().split("\n").filter(Boolean).length - 1;
+      lines.push(`  Open files/sockets: ${open > 0 ? open : "unavailable"}`);
+    } catch {
+      lines.push("  (lsof unavailable)");
+    }
+    lines.push(`  Command:  ${proc.command}`);
+    logConsole(lines.join("\n"), 1);
   });
 
-  win.onClick("btn_kill_hup", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
-    sendSignalToPid(pid, "SIGHUP", 1);
+  win.onClick("btn_reveal", () => {
+    const pid = targetPid();
+    const proc = activeProcesses.find((p) => p.pid === pid);
+    const path = proc ? executablePath(proc.command) : null;
+    if (!path) { win.toast("No file path is known for this process."); return; }
+    if (process.platform !== "darwin") { win.toast("Reveal in Finder is only available on macOS."); return; }
+    Bun.spawn(["open", "-R", path]);
+    logConsole(`[Finder] Revealing ${path}`, 1);
   });
 
   // Copy PID & Command
   win.onClick("btn_copy_pid", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
+    const pid = targetPid();
     if (pid) {
       win.copyToClipboard(String(pid));
       win.toast(`Copied PID ${pid} to clipboard`);
@@ -715,7 +798,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   });
 
   win.onClick("btn_copy_cmd", () => {
-    const pid = win.getValue("txt_target_pid") || selectedPid;
+    const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     if (proc?.command) {
       win.copyToClipboard(proc.command);
@@ -724,44 +807,67 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     }
   });
 
-  // Kill Port Process
-  win.onClick("btn_kill_port", () => {
-    const rawPort = (win.getValue("txt_port") || "3000").replace(/[^0-9]/g, "");
-    if (!rawPort) {
-      win.toast("Please specify a valid port number (e.g. 3000, 8080)");
+  win.onClick("btn_copy_table", () => {
+    if (displayed.length === 0) { win.toast("Nothing to copy."); return; }
+    win.copyToClipboard(processesToTsv(displayed));
+    win.toast(`Copied ${displayed.length} process row(s) (tab-separated)`);
+  });
+
+  win.onClick("btn_export", () => {
+    if (displayed.length === 0) { win.toast("Nothing to export."); return; }
+    win.saveFile({ title: "Export process list (.csv or .json)", defaultName: "processes.csv" }, (p) => {
+      if (!p) return;
+      try {
+        const json = extname(p).toLowerCase() === ".json";
+        writeFileSync(p, json ? processesToJson(displayed) : processesToCsv(displayed), "utf8");
+        logConsole(`[Export] Saved ${displayed.length} processes to ${p}`, 2);
+        win.toast(`Exported ${basename(p)}`);
+      } catch (e: any) {
+        logConsole(`[Export Error] ${e.message}`, 3);
+      }
+    });
+  });
+
+  // Kill Port Process (only processes LISTENing on the port, never clients connected to it)
+  win.onClick("btn_kill_port", async () => {
+    const port = validPort(win.getValue("txt_port") || "3000");
+    if (!port) {
+      win.toast("Please specify a valid port number (1-65535, e.g. 3000, 8080)");
       return;
     }
 
-    const [out, code] = Sys.exec(`lsof -ti :${rawPort}`);
-    if (code !== 0 || !out.trim()) {
-      win.toast(`No process listening on port :${rawPort}`);
-      logConsole(`[Port Finder] No active process listening on port :${rawPort}`, 3);
+    const pids = findListenerPids(port);
+    if (pids.length === 0) {
+      win.toast(`No process listening on port :${port}`);
+      logConsole(`[Port Finder] No active process listening on port :${port}`, 3);
       return;
     }
 
-    const pids = out.trim().split("\n").map((s) => s.trim()).filter(Boolean);
+    const names = pids.map((p) => `${activeProcesses.find((x) => x.pid === p)?.name || "unknown"} (${p})`).join(", ");
+    if (!(await win.confirm(`Force-kill ${pids.length} process(es) listening on :${port}?\n\n${names}`, "Kill port process"))) {
+      logConsole(`[Kill Port :${port}] Cancelled.`, 1);
+      return;
+    }
+
     let killedCount = 0;
-
     for (const p of pids) {
       if (p === "1" || p === String(process.pid)) continue;
-      const [, kCode] = Sys.exec(`kill -9 ${p}`);
-      if (kCode === 0) {
+      const r = sendRawSignal(p, 9);
+      if (r.ok) {
         killedCount++;
-        logConsole(`[Kill Port :${rawPort}] Terminated PID ${p} listening on port :${rawPort}`, 2);
+        logConsole(`[Kill Port :${port}] Terminated PID ${p} listening on port :${port}`, 2);
+      } else {
+        logConsole(`[Kill Port :${port}] Could not kill PID ${p}: ${r.err || "exit " + r.code}`, 3);
       }
     }
 
-    win.toast(`Killed ${killedCount} process(es) on port :${rawPort}`);
-    setTimeout(() => refreshList(false), 300);
+    win.toast(`Killed ${killedCount} process(es) on port :${port}`);
+    scheduleRefresh(300);
   });
 
-  // Clean Rogue Dev Servers
-  win.onClick("btn_clean_dev", () => {
-    const selfPid = String(process.pid);
-    const parentPid = String(process.ppid);
-    const rogue = activeProcesses.filter(
-      (p) => p.isDevServer && p.isUserApp && p.pid !== selfPid && p.pid !== parentPid
-    );
+  // Clean Rogue Dev Servers: yours, listening or orphaned, never this app's own process chain
+  win.onClick("btn_clean_dev", async () => {
+    const rogue = findRogueDevServers(activeProcesses, ctx());
 
     if (rogue.length === 0) {
       win.toast("No rogue dev servers detected.");
@@ -769,17 +875,8 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
       return;
     }
 
-    let cleaned = 0;
-    for (const r of rogue) {
-      const [, kCode] = Sys.exec(`kill -15 ${r.pid}`);
-      if (kCode === 0) {
-        cleaned++;
-        logConsole(`[Dev Cleaner] Sent SIGTERM to dev server ${r.name} (PID ${r.pid})`, 2);
-      }
-    }
-
-    win.toast(`Terminated ${cleaned} rogue dev server(s).`);
-    setTimeout(() => refreshList(false), 400);
+    const n = await terminateMany(rogue.map((r) => r.pid), "Dev Server Cleaner");
+    if (n > 0) logConsole(`[Dev Cleaner] Terminated ${n} dev server(s)`, 2);
   });
 
   // Clear Console
@@ -812,7 +909,7 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
           const mem = cells[4]?.textContent?.trim() || "0%";
           const rss = cells[5]?.textContent?.trim() || "";
           const user = cells[6]?.textContent?.trim() || "";
-          const cmd = cells[8]?.textContent?.trim() || "";
+          const cmd = cells[9]?.textContent?.trim() || "";
 
           const pidInput = document.getElementById("txt_target_pid");
           if (pidInput) pidInput.value = pid;
@@ -987,19 +1084,14 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
 
       if (url.pathname === "/api/kill-port" && req.method === "POST") {
         const body: any = await req.json();
-        const rawPort = String(body.port || "").replace(/[^0-9]/g, "");
-        if (rawPort) {
-          const [out, code] = Sys.exec(`lsof -ti :${rawPort}`);
-          if (code === 0 && out.trim()) {
-            const pids = out.trim().split("\n").map(s => s.trim()).filter(Boolean);
-            let killed = 0;
-            for (const p of pids) {
-              if (p === "1" || p === String(process.pid)) continue;
-              const [, kCode] = Sys.exec(`kill -9 ${p}`);
-              if (kCode === 0) killed++;
-            }
-            return Response.json({ success: true, killed }, { headers: corsHeaders });
+        const port = validPort(String(body.port || ""));
+        if (port) {
+          const pids = findListenerPids(port).filter((p) => p !== "1" && p !== String(process.pid));
+          let killed = 0;
+          for (const p of pids) {
+            if (sendRawSignal(p, 9).ok) killed++;
           }
+          if (pids.length) return Response.json({ success: true, killed }, { headers: corsHeaders });
         }
         return Response.json({ success: false, killed: 0 }, { headers: corsHeaders });
       }

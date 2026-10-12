@@ -684,98 +684,99 @@ Choose the engine from the dropdown at the top, set a **Target Path** and **Patt
   writeFileSync(join(outDir, "06_process_monitor_studio.md"), `# 📊 Process Monitor Studio -- Complete Production User Guide
 
 \`\`\`
-Version: 2.4.0  •  Engine: Native macOS ps / sysinfo Subsystem  •  Dependencies: 0  •  Offline: 100%
-Launchers: [Desktop GUI: bun run app:process]  •  [Terminal CLI: bun run cli:process]
+Engine: ps / lsof / Bun  •  Dependencies: 0  •  Network: none (everything runs locally)
+Launchers: [Desktop GUI: bun run app:process]  •  [Alias: bun run app:taskmanager]
 \`\`\`
 
 ---
 
 ## 🌟 Executive Overview
-**Process Monitor Studio** is an enterprise-grade desktop system task manager and process telemetry workstation built natively for Bun RAD Studio. Designed as a developer-focused alternative to macOS Activity Monitor and Linux \`htop\`, it provides live process inspection, PID search, CPU% and RSS memory telemetry, listening socket discovery, and safe process termination signals (\`SIGTERM\`, \`SIGKILL\`).
-
-It allows developers to instantly pinpoint runaway development servers, orphan background tasks, memory leaks, and port conflicts without navigating cryptic terminal commands.
+**Process Monitor Studio** (window title *Task Manager Pro*) is a developer-focused alternative to Activity Monitor and \`htop\`. It lists every process with CPU, memory, state, uptime, owner and listening ports; lets you search, group and sort them; and sends signals safely, with confirmations for anything risky and hard protection for processes that must never be touched.
 
 ---
 
-## 🚀 Quick Start & Launch
-
-### 1. Launch Desktop GUI Window
+## 🚀 Quick Start
 \`\`\`bash
-# Standard desktop launch
-bun run app:process
-
-# Shorthand alias
-bun run app:procs
+bun run app:process        # or: bun run app:taskmanager
 \`\`\`
-
-### 2. Launch Terminal CLI Process Inspector
-\`\`\`bash
-# List top CPU processes in terminal
-bun run cli:process --top cpu
-
-# Search process by name or PID
-bun run cli:process --search "node"
-\`\`\`
+Restart the app after updating so the new controls appear.
 
 ---
 
 ## 🖼️ Visual Interface Tour
 
-| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| High-Resolution Desktop | Responsive Viewport |
 | :---: | :---: |
 | ![Process Monitor Desktop](../../screenshots/apps/process_studio_desktop.png) | ![Process Monitor Responsive](../../screenshots/apps/process_studio_responsive.png) |
 
 ---
 
-## 🧭 Complete UI Tour & Element Guide
+## 🧭 UI Guide
 
-### 1. Real-time Telemetry Status Bar
-- **Total Process Count**: Live tally of active system processes.
-- **Aggregated CPU Load**: Overall user and system CPU load percentage.
-- **Physical Memory Bar**: System-wide RAM consumption and available buffer space.
-- **Auto-Refresh Switcher**: Toggle polling intervals (1s, 2s, 5s, or Manual Pause).
+### Header
+- **Refresh** and **Auto: 1s / 2s / 5s / Off** control the live update interval.
+- **Export List…** saves the *currently filtered* table as CSV or JSON (choose by file extension). Cells starting with \`=\`, \`+\`, \`-\` or \`@\` are neutralised so spreadsheets cannot run them as formulas.
+- **Copy Table** puts the filtered table on the clipboard as tab-separated text.
 
-### 2. Process Search & Filter Toolbar
-- **Search Process / PID Input**: Real-time filtering by process name, command arguments, or numeric PID.
-- **Sort Dropdown**: Sort by CPU (High to Low), Memory/RSS (High to Low), PID, or Name.
-- **User Mode Toggle**: Filter between "All System Processes" and "My User Processes Only".
+### System Telemetry
+Total/user/system process counts, top CPU process, active port listeners, platform, plus a **load line**: load average, CPU cores, summed process CPU and RSS, and Mac uptime.
 
-### 3. Interactive Process Data Table
-- **PID**: Process Identification number.
-- **User / Owner**: Operating system user account executing the task.
-- **CPU %**: Real-time CPU core utilization.
-- **RSS Memory**: Resident Set Size physical memory consumption formatted in MB/GB.
-- **Command / Path**: Full binary path and invocation arguments.
-- **Action Buttons**: One-click **Terminate (SIGTERM)** and **Force Kill (SIGKILL)** buttons.
+### Categories
+All, User Apps, High CPU (>1%), High RAM (>100 MB), Dev Servers and Port Listeners.
 
----
+### Search, Sort & Limit
+- The search box matches name, PID, port, user and command, tolerates small typos and understands aliases (for example \`chrome\`).
+- **Sort** by CPU, memory or PID; **Limit** the number of rows.
+- **Group by app** collapses processes into one row per application (with a process count and combined CPU/RSS). Clicking a group selects its busiest process.
 
-## 🛠️ Step-by-Step Practical Tutorials
+### Kill by Port
+Enter a port (1-65535) and click **Kill Port Process**. Only the process **listening** on that port is targeted, so a browser tab connected to it is never killed. You are asked to confirm.
+**Clean Rogue Dev Servers** finds bun/node/python/go/docker/postgres processes that belong to you and are listening or orphaned, lists them, and only acts after you confirm. Processes in this app's own chain are skipped.
 
-### Tutorial: Finding and Killing a Stale Server Holding a Port
-1. Launch Process Monitor Studio: \`bun run app:process\`.
-2. In the search bar, type the name of your server runtime: \`bun\` or \`node\`.
-3. Locate the rogue process in the filtered list.
-4. Review the **RSS Memory** and **CPU%** columns to confirm it is the orphaned task.
-5. Click **Terminate (SIGTERM)** to shut it down gracefully.
-6. If the process does not terminate within 3 seconds, click **Force Kill (SIGKILL)** to release the port immediately.
+### Inspector & Signal Dispatcher
+Click a row (or type a PID) then use:
+- **Terminate (SIGTERM)**, **Force Kill (SIGKILL)**, **Suspend (SIGSTOP)**, **Resume (SIGCONT)**, **Reload (SIGHUP)**
+- **Terminate Process Tree** -- the process and every descendant, deepest first.
+- **Quit All With Same Name** -- every process of the selected application.
+- **Inspect Details** -- owner, state, uptime, parent, ports and executable path in the console.
+- **Reveal in Finder** -- opens the executable's folder.
+- **Lower Priority** -- renices the process so it yields CPU.
+- **Copy PID** / **Copy Command**.
 
----
-
-## ⌨️ Complete Keyboard Shortcuts Reference
-
-| Shortcut | Context | Action |
-| :--- | :--- | :--- |
-| **Cmd + F** / **Ctrl + F** | Toolbar | Focus process search bar |
-| **Cmd + R** / **Ctrl + R** | Global | Force immediate process list refresh |
-| **Cmd + K** / **Ctrl + K** | Selected Row | Send SIGTERM signal |
-| **Cmd + Shift + K** | Selected Row | Send SIGKILL signal |
-| **F11** or **F** | Global | Toggle borderless fullscreen |
+### Process Table
+PID, Name, Port, CPU %, MEM %, RSS, User, State, **Uptime**, Command.
 
 ---
 
-## 💡 Pro Tips & Enterprise Best Practices
-- **Graceful vs Force Kill**: Always attempt \`SIGTERM\` (Terminate) first. This allows databases (like SQLite or Postgres) and node apps to flush writes to disk and close open sockets cleanly before exiting.
+## 🛡️ Safety Rules
+- PID 1, launchd, kernel_task, WindowServer, loginwindow, systemd and init are **always refused**, as is this app's own process.
+- Invalid PIDs are rejected before anything is sent.
+- **Force Kill and Suspend** always ask for confirmation.
+- Processes owned by another user, the parent of this app, and processes that hold ports ask for an extra confirmation naming the risk.
+- Signals are sent directly (no shell), and signal numbers are correct per operating system.
+
+---
+
+## 🛠️ Tutorials
+
+### Free a port held by a stale dev server
+1. Type the port (for example 3000) in **Kill by Port** and click **Kill Port Process**.
+2. Confirm. The listener receives SIGTERM; clients stay untouched.
+
+### Kill a whole app and its helpers
+1. Tick **Group by app**, click the app's row.
+2. Click **Quit All With Same Name**, or **Terminate Process Tree** to also take its children.
+
+### Hand a report to a colleague
+1. Filter to the processes you care about.
+2. **Export List…** and save as \`.csv\` or \`.json\`.
+
+---
+
+## 💡 Tips
+- Try **Terminate (SIGTERM)** first so databases and servers can flush and close cleanly; use Force Kill only if that fails.
+- **Lower Priority** is a safe way to calm a runaway build without killing it.
+- Typed values (filter, port, PID) are stored in the saved form state; do not paste secrets into them.
 `);
 
   console.log("✔ Core Workstations (01 to 06) generated with AAA quality.");

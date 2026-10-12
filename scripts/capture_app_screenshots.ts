@@ -137,7 +137,7 @@ for (const [name, factory] of targetEntries) {
   const html = appInstance.generateHtml();
   const winW = (appInstance as any).width || 1200;
   // Apps with tall content can opt into a taller capture without changing their real window size.
-  const TALL_CAPTURE: Record<string, number> = { crypto_studio: 1700, ipinfo_studio: 1500, network_studio: 1400, api_studio: 1750, regex_studio: 1250 };
+  const TALL_CAPTURE: Record<string, number> = { crypto_studio: 1700, ipinfo_studio: 1500, network_studio: 1400, api_studio: 1750, regex_studio: 1250, task_manager: 1500, process_studio: 1500 };
   const winH = TALL_CAPTURE[name] || (appInstance as any).height || 850;
 
   const tempHtmlPath = join(TEMP_HTML_DIR, `${name}.html`);
