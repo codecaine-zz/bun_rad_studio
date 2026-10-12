@@ -1,9 +1,19 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
-import { existsSync, readdirSync, statSync, renameSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "fs";
-import { join, resolve, basename, relative } from "path";
-import { homedir } from "os";
+import { existsSync, statSync, readFileSync, writeFileSync } from "fs";
+import { resolve, basename } from "path";
 import { evaluateBunJsonQuery } from "./jq_studio";
+import {
+  searchCode,
+  findPaths,
+  replaceInFiles,
+  trashPath,
+  undoLastTrash,
+  getLastTrash,
+  clampInt,
+  type SearchOptions,
+  type FindOptions,
+} from "../src/devtools_tools";
 
 interface ToolInfo {
   name: string;
@@ -12,259 +22,38 @@ interface ToolInfo {
   description: string;
 }
 
-/**
- * Pure Bun File & Code Searcher (Ripgrep equivalent)
- */
+/** Pure Bun File & Code Searcher (Ripgrep equivalent) */
 function bunNativeRipgrep(
   targetDir: string,
   pattern: string,
-  options: { caseSensitive?: boolean; maxResults?: number } = {}
-): { output: string; matches: number; filesScanned: number } {
-  const flags = options.caseSensitive ? "g" : "gi";
-  let regex: RegExp;
-  try {
-    regex = new RegExp(pattern, flags);
-  } catch (e: any) {
-    return { output: `[Invalid Regex]: ${e.message}`, matches: 0, filesScanned: 0 };
-  }
-
-  const results: string[] = [];
-  let matchCount = 0;
-  let fileCount = 0;
-  const max = options.maxResults || 200;
-
-  // Synchronous recursive collection of target text files
-  const filesToScan: string[] = [];
-  function collectFiles(dir: string) {
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const name = entry.name;
-      if (name === "node_modules" || name === ".git" || name === "dist" || name === ".temp" || name === ".temp_screens") {
-        continue;
-      }
-      const fullPath = join(dir, name);
-      if (entry.isDirectory()) {
-        collectFiles(fullPath);
-      } else if (entry.isFile()) {
-        filesToScan.push(fullPath);
-      }
-    }
-  }
-
-  collectFiles(targetDir);
-
-  for (const fullPath of filesToScan) {
-    if (matchCount >= max) break;
-    fileCount++;
-    try {
-      const stat = statSync(fullPath);
-      if (stat.size > 1.5 * 1024 * 1024) continue;
-      const text = readFileSync(fullPath, "utf-8");
-      const lines = text.split("\n");
-      const rel = relative(targetDir, fullPath);
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line !== undefined && regex.test(line)) {
-          matchCount++;
-          results.push(`${rel || basename(fullPath)}:${i + 1}: ${line.trim()}`);
-          if (matchCount >= max) {
-            results.push(`\n... (Results capped at ${max} matches)`);
-            break;
-          }
-        }
-      }
-    } catch {
-      // ignore binary or unreadable files
-    }
-  }
-
-  return {
-    output: results.length > 0 ? results.join("\n") : "(No matches found)",
-    matches: matchCount,
-    filesScanned: fileCount,
-  };
+  options: SearchOptions = {}
+): { output: string; matches: number; filesScanned: number; filesMatched: number; truncated: boolean } {
+  return searchCode(targetDir, pattern, { hidden: true, ...options });
 }
 
-/**
- * Pure Bun File & Directory Finder (Fd equivalent)
- */
+/** Pure Bun File & Directory Finder (Fd equivalent) */
 function bunNativeFd(
   targetDir: string,
   pattern: string,
-  options: { caseSensitive?: boolean; maxResults?: number } = {}
-): { output: string; matches: number } {
-  const flags = options.caseSensitive ? "" : "i";
-  let regex: RegExp;
-  try {
-    regex = new RegExp(pattern, flags);
-  } catch (e: any) {
-    return { output: `[Invalid Regex]: ${e.message}`, matches: 0 };
-  }
-
-  const results: string[] = [];
-  const max = options.maxResults || 200;
-
-  function walk(dir: string) {
-    if (results.length >= max) return;
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (results.length >= max) break;
-      const name = entry.name;
-      if (name === "node_modules" || name === ".git" || name === "dist") continue;
-
-      const fullPath = join(dir, name);
-      const rel = relative(targetDir, fullPath);
-
-      if (regex.test(name) || regex.test(rel)) {
-        const type = entry.isDirectory() ? "📁 [DIR] " : "📄 [FILE]";
-        let meta = "";
-        try {
-          const st = statSync(fullPath);
-          meta = ` (${(st.size / 1024).toFixed(1)} KB)`;
-        } catch {}
-        results.push(`${type} ${rel}${meta}`);
-      }
-
-      if (entry.isDirectory()) {
-        walk(fullPath);
-      }
-    }
-  }
-
-  walk(targetDir);
-  return {
-    output: results.length > 0 ? results.join("\n") : "(No matching files or directories found)",
-    matches: results.length,
-  };
+  options: FindOptions = {}
+): { output: string; matches: number; truncated: boolean } {
+  return findPaths(targetDir, pattern, { hidden: true, ...options });
 }
 
-/**
- * Pure Bun Search & Replace (Sd equivalent)
- */
+/** Pure Bun Search & Replace (Sd equivalent) */
 function bunNativeSd(
   targetPath: string,
   searchPattern: string,
   replaceWith: string,
-  dryRun: boolean
+  dryRun: boolean,
+  options: { caseSensitive?: boolean; wholeWord?: boolean; fixed?: boolean; include?: string; hidden?: boolean; gitignore?: boolean; backup?: boolean } = {}
 ): { output: string; filesChanged: number; replacements: number } {
-  if (!existsSync(targetPath)) {
-    return { output: `Target path does not exist: ${targetPath}`, filesChanged: 0, replacements: 0 };
-  }
-
-  let regex: RegExp;
-  try {
-    regex = new RegExp(searchPattern, "g");
-  } catch (e: any) {
-    return { output: `[Invalid Regex]: ${e.message}`, filesChanged: 0, replacements: 0 };
-  }
-
-  const summary: string[] = [];
-  let filesChanged = 0;
-  let totalReplacements = 0;
-
-  const files: string[] = [];
-  const stat = statSync(targetPath);
-  if (stat.isFile()) {
-    files.push(targetPath);
-  } else {
-    function walk(dir: string) {
-      let entries;
-      try {
-        entries = readdirSync(dir, { withFileTypes: true });
-      } catch {
-        return;
-      }
-      for (const entry of entries) {
-        if (entry.name === "node_modules" || entry.name === ".git") continue;
-        const full = join(dir, entry.name);
-        if (entry.isDirectory()) walk(full);
-        else if (entry.isFile()) files.push(full);
-      }
-    }
-    walk(targetPath);
-  }
-
-  for (const f of files) {
-    try {
-      const fstat = statSync(f);
-      if (fstat.size > 1024 * 1024) continue;
-      const text = readFileSync(f, "utf-8");
-      const count = (text.match(regex) || []).length;
-      if (count > 0) {
-        filesChanged++;
-        totalReplacements += count;
-        summary.push(`${dryRun ? "🔍 [Dry Run]" : "✏️ [Replaced]"} ${relative(process.cwd(), f)}: ${count} occurrences`);
-        if (!dryRun) {
-          const updated = text.replace(regex, replaceWith);
-          writeFileSync(f, updated, "utf-8");
-        }
-      }
-    } catch {}
-  }
-
-  if (summary.length === 0) {
-    summary.push(`No occurrences of "${searchPattern}" found in ${targetPath}`);
-  } else {
-    summary.unshift(
-      `${dryRun ? "[DRY RUN PREVIEW]" : "[REPLACEMENT COMPLETED]"}: Changed ${totalReplacements} occurrence(s) across ${filesChanged} file(s).\n`
-    );
-  }
-
-  return {
-    output: summary.join("\n"),
-    filesChanged,
-    replacements: totalReplacements,
-  };
+  return replaceInFiles(targetPath, searchPattern, replaceWith, { caseSensitive: true, hidden: true, ...options, dryRun });
 }
 
-/**
- * Pure Bun Safe Trash (Rip equivalent)
- */
+/** Pure Bun Safe Trash (Rip equivalent) */
 function bunNativeRip(targetPath: string): { output: string; success: boolean } {
-  if (!existsSync(targetPath)) {
-    return { output: `Target path does not exist: ${targetPath}`, success: false };
-  }
-
-  const trashDir = join(homedir(), ".Trash");
-  const fileName = basename(targetPath);
-  const timeStamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const destName = `${fileName}_deleted_${timeStamp}`;
-  const destPath = join(trashDir, destName);
-
-  try {
-    if (!existsSync(trashDir)) {
-      mkdirSync(trashDir, { recursive: true });
-    }
-    const protectedPaths = new Set([resolve("/"), resolve(homedir()), resolve(process.cwd()), resolve(process.cwd(), "..")]);
-    if (protectedPaths.has(resolve(targetPath))) {
-      return { output: `Refusing to trash protected path: ${targetPath}\nChoose a specific file or sub-folder.`, success: false };
-    }
-    try {
-      renameSync(targetPath, destPath);
-    } catch (e: any) {
-      if (e?.code !== "EXDEV") throw e;
-      cpSync(targetPath, destPath, { recursive: true });
-      rmSync(targetPath, { recursive: true, force: true });
-    }
-    return {
-      output: `✔ Safely moved to macOS Trash:\n  Source: ${targetPath}\n  Trash:  ${destPath}\n\nItem can be restored anytime from the macOS Trash folder.`,
-      success: true,
-    };
-  } catch (e: any) {
-    return { output: `Failed to trash item: ${e.message}`, success: false };
-  }
+  return trashPath(targetPath);
 }
 
 export { bunNativeRipgrep, bunNativeFd, bunNativeSd, bunNativeRip };
@@ -323,6 +112,8 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
   win.beginRow();
   win.addLabel("lbl_path", "Target Path:");
   win.addInput("txt_search_path", process.cwd());
+  win.addButton("btn_browse_folder", "📁 Folder...");
+  win.addButton("btn_browse_target_file", "📄 File...");
   win.addLabel("lbl_query", "Pattern / Expression:");
   win.addInput("txt_pattern", "SimpleWindow|addHeading");
   win.endRow();
@@ -330,13 +121,36 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
   win.beginRow();
   win.addLabel("lbl_replace", "Replacement (for sd):");
   win.addInput("txt_replace", "").width(280);
+  win.addLabel("lbl_include", "Include / !Exclude globs:");
+  win.addInput("txt_include", "").width(240);
+  win.endRow();
+
+  win.beginRow();
+  win.addLabel("lbl_max", "Max results:");
+  win.addInput("txt_max", "200").width(100);
+  win.addLabel("lbl_context", "Context lines (rg):");
+  win.addInput("txt_context", "0").width(80);
+  win.addLabel("lbl_fd_type", "Fd type:");
+  win.addDropdown("dd_fd_type", ["Any (files & folders)", "Files only", "Folders only"], "Any (files & folders)").width(190);
+  win.endRow();
+
+  win.beginRow();
   win.addCheckbox("chk_case", "Case Sensitive", false);
+  win.addCheckbox("chk_word", "Whole Word", false);
+  win.addCheckbox("chk_fixed", "Literal (not regex)", false);
+  win.addCheckbox("chk_hidden", "Include Hidden", false);
+  win.addCheckbox("chk_gitignore", "Respect .gitignore", true);
+  win.addCheckbox("chk_files_only", "Files With Matches Only", false);
   win.addCheckbox("chk_dry_run", "Dry Run (sd)", true);
+  win.addCheckbox("chk_backup", "Backup .bak (sd)", false);
   win.endRow();
 
   win.beginRow();
   win.addButton("btn_run_omni", "⚡ Execute Tool Command");
   win.addButton("btn_clear_out", "Clear Results");
+  win.addButton("btn_copy_results", "📋 Copy Results");
+  win.addButton("btn_save_results", "💾 Save Results...");
+  win.addButton("btn_undo_trash", "↩ Undo Last Trash");
   win.endRow();
   win.endGroupBox();
 
@@ -374,13 +188,68 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     win.appendConsole("omni_console", "[OmniTool] Results cleared\n", 4);
   });
 
+  win.onClick("btn_browse_folder", () => {
+    win.openFolder({ title: "Select a folder to search" }, (p) => {
+      if (p) win.setValue("txt_search_path", p);
+    });
+  });
+  win.onClick("btn_browse_target_file", () => {
+    win.openFile({ title: "Select a file" }, (p) => {
+      if (p) win.setValue("txt_search_path", p);
+    });
+  });
+
+  win.onClick("btn_copy_results", () => {
+    const t = String(win.getValue("txt_results") || "");
+    if (!t.trim()) { win.toast("Nothing to copy yet", 2500, "warning"); return; }
+    win.copyToClipboard(t);
+    win.toast("Results copied", 2000, "success");
+  });
+
+  win.onClick("btn_save_results", () => {
+    const t = String(win.getValue("txt_results") || "");
+    if (!t.trim()) { win.toast("Nothing to save yet", 2500, "warning"); return; }
+    win.saveFile({ title: "Save results", defaultName: "results.txt", filter: "txt" }, (p) => {
+      if (!p) return;
+      try {
+        writeFileSync(p, t, "utf-8");
+        win.toast(`Saved ${basename(p)}`, 3000, "success");
+      } catch (e: any) {
+        win.toast(`Save failed: ${e.message}`, 4000, "error");
+      }
+    });
+  });
+
+  win.onClick("btn_undo_trash", () => {
+    if (!getLastTrash()) { win.toast("Nothing to undo", 2500, "warning"); return; }
+    const res = undoLastTrash();
+    win.setText("txt_results", res.output);
+    win.appendConsole("omni_console", `[Rip Native] Undo ${res.success ? "succeeded" : "failed"}\n`, res.success ? 2 : 3);
+    win.toast(res.success ? "Item restored" : "Could not restore item", 3000, res.success ? "success" : "error");
+  });
+
   win.onClick("btn_run_omni", async () => {
     const mode = win.getValue("dd_mode") || "";
     const pattern = win.getValue("txt_pattern") || "";
     const target = resolve(process.cwd(), win.getValue("txt_search_path") || ".");
-    const caseSensitive = win.getValue("chk_case");
+    const caseSensitive = win.getBool("chk_case");
+    const wholeWord = win.getBool("chk_word");
+    const fixed = win.getBool("chk_fixed");
+    const hidden = win.getBool("chk_hidden");
+    const gitignore = win.getBool("chk_gitignore");
+    const include = String(win.getValue("txt_include") || "");
+    const maxResults = clampInt(win.getValue("txt_max"), 1, 100000, 200);
+    const context = clampInt(win.getValue("txt_context"), 0, 20, 0);
     const replacement = win.getValue("txt_replace") || "";
-    const dryRun = win.getValue("chk_dry_run");
+    const dryRun = win.getBool("chk_dry_run");
+    const common = { caseSensitive, wholeWord, fixed, hidden, gitignore, include };
+
+    const needsPath = !mode.includes("JQ") || !pattern.startsWith("{");
+    if (needsPath && !mode.includes("Watchexec") && !existsSync(target)) {
+      win.toast(`Path not found: ${target}`, 3500, "error");
+      win.setStatus("Target path does not exist");
+      return;
+    }
 
     win.appendConsole("omni_console", `[OmniTool] Running ${mode} on "${target}"...\n`, 1);
     win.setStatus("Running tool command...");
@@ -388,17 +257,19 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
     const t0 = performance.now();
 
     if (mode.includes("Ripgrep")) {
-      const res = bunNativeRipgrep(target, pattern, { caseSensitive });
+      const res = bunNativeRipgrep(target, pattern, { ...common, maxResults, context, filesOnly: win.getBool("chk_files_only") });
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);
       win.appendConsole(
         "omni_console",
-        `[Ripgrep Native] Scanned ${res.filesScanned} files, found ${res.matches} matches in ${elapsed}ms\n`,
+        `[Ripgrep Native] Scanned ${res.filesScanned} files, found ${res.matches} matches in ${res.filesMatched} files in ${elapsed}ms\n`,
         2
       );
-      win.setStatus(`Search completed in ${elapsed}ms (${res.matches} matches)`);
+      win.setStatus(`Search completed in ${elapsed}ms (${res.matches} matches in ${res.filesMatched} files)`);
     } else if (mode.includes("Fd")) {
-      const res = bunNativeFd(target, pattern, { caseSensitive });
+      const ft = String(win.getValue("dd_fd_type") || "");
+      const type = ft.startsWith("Files") ? "file" : ft.startsWith("Folders") ? "dir" : "any";
+      const res = bunNativeFd(target, pattern, { ...common, maxResults, type });
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);
       win.appendConsole(
@@ -412,7 +283,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
         win.setStatus("Replace cancelled");
         return;
       }
-      const res = bunNativeSd(target, pattern, replacement, dryRun);
+      const res = bunNativeSd(target, pattern, replacement, dryRun, { ...common, backup: win.getBool("chk_backup") });
       const elapsed = (performance.now() - t0).toFixed(1);
       win.setText("txt_results", res.output);
       win.appendConsole(
@@ -420,7 +291,7 @@ export function createOmnitoolStudio(options: { headless?: boolean; screenshotPa
         `[Sd Native] Processed in ${elapsed}ms (${res.replacements} replacements)\n`,
         2
       );
-      win.setStatus(`Replaced ${res.replacements} occurrences (${elapsed}ms)`);
+      win.setStatus(`${dryRun ? "Previewed" : "Replaced"} ${res.replacements} occurrences (${elapsed}ms)`);
     } else if (mode.includes("Watchexec")) {
       win.setText(
         "txt_results",

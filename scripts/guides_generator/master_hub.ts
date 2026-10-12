@@ -24,7 +24,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 | **02** | [System & Package Workstation](02_system_package_studio.md) | 60-API hardware & OS telemetry, live KPI sparklines, snapshot compare, JSON/CSV/Markdown/HTML export. | \`bun run app:system\` | \`bun run cli:system\` |
 | **03** | [Task Watcher Studio](03_task_watcher_studio.md) | Native \`fs.watch\` event pipeline, extension filters, ignore rules, build console. | \`bun run app:watcher\` | \`bun run cli:watcher\` |
 | **04** | [JSON Query Studio Pro](04_json_query_studio.md) | High-throughput JSON query engine, nested selectors, key projection, formatting. | \`bun run app:json\` | \`bun run cli:json\` |
-| **05** | [DevTools Studio Pro](05_devtools_studio.md) | 6-in-1 suite: Ripgrep search, Fd file finder, Sd regex replace, Trash, JQ. | \`bun run app:devtools\` | \`bun run cli:devtools\` |
+| **05** | [DevTools Studio Pro](05_devtools_studio.md) | 6-in-1 suite: Ripgrep search, Fd finder, Sd replace (dry run, backups), Trash with undo, JQ. | \`bun run app:devtools\` | \`bun run cli:devtools\` |
 | **06** | [Process Monitor Studio](06_process_monitor_studio.md) | macOS Activity Monitor inspection, PID search, CPU/RSS memory, signal control. | \`bun run app:process\` | \`bun run cli:process\` |
 | **40** | [Redis Studio Pro](40_redis_studio.md) | Key browser with sort/filter, typed editors, export/import backup, bulk delete, duplicate, CLI history with safety prompts, telemetry, Pub/Sub. | \`bun run applications/redis_studio.ts\` | — |
 
