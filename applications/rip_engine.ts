@@ -114,8 +114,8 @@ export function parseDurationMs(durationStr: string): number | null {
   const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)$/);
   if (!match) return null;
 
-  const val = parseFloat(match[1]);
-  const unit = match[2].toLowerCase();
+  const val = parseFloat(match[1] ?? "0");
+  const unit = (match[2] ?? "").toLowerCase();
 
   switch (unit) {
     case "s":
@@ -190,16 +190,17 @@ function ensureGraveyardStructure(graveyardDir: string): { entriesDir: string; m
   return { entriesDir, manifestPath };
 }
 
-export function loadManifest(graveyardDir: string): GraveyardManifest {
-  const { manifestPath } = ensureGraveyardStructure(graveyardDir);
+export function loadManifest(graveyardDir?: string): GraveyardManifest {
+  const dir = getGraveyardDir(graveyardDir);
+  const { manifestPath } = ensureGraveyardStructure(dir);
   if (!fs.existsSync(manifestPath)) {
     const initial: GraveyardManifest = {
       version: "1.0.0",
-      graveyardRoot: graveyardDir,
+      graveyardRoot: dir,
       lastUpdated: new Date().toISOString(),
       items: [],
     };
-    saveManifest(graveyardDir, initial);
+    saveManifest(dir, initial);
     return initial;
   }
 
@@ -214,7 +215,7 @@ export function loadManifest(graveyardDir: string): GraveyardManifest {
     // If corrupt or unreadable, create new recovery manifest
     const recovered: GraveyardManifest = {
       version: "1.0.0",
-      graveyardRoot: graveyardDir,
+      graveyardRoot: dir,
       lastUpdated: new Date().toISOString(),
       items: [],
     };
@@ -222,10 +223,11 @@ export function loadManifest(graveyardDir: string): GraveyardManifest {
   }
 }
 
-export function saveManifest(graveyardDir: string, manifest: GraveyardManifest): void {
-  const { manifestPath } = ensureGraveyardStructure(graveyardDir);
+export function saveManifest(graveyardDir: string | undefined, manifest: GraveyardManifest): void {
+  const dir = getGraveyardDir(graveyardDir);
+  const { manifestPath } = ensureGraveyardStructure(dir);
   manifest.lastUpdated = new Date().toISOString();
-  manifest.graveyardRoot = graveyardDir;
+  manifest.graveyardRoot = dir;
 
   const tempPath = `${manifestPath}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(manifest, null, 2), "utf-8");
@@ -815,23 +817,23 @@ export function decomposeGraveyardSync(
   const deletedItems: GraveyardItem[] = [];
 
   const toDecompose = manifest.items.filter((item) => {
-    // Only items still in the graveyard can be purged
-    if (item.status !== "buried") return false;
+    // If all requested, decompose every item in the graveyard
+    if (options.all) {
+      return true;
+    }
 
-    // If specific targets requested
+    // If specific targets requested, match by id, name, or originalPath
     if (options.targets && options.targets.length > 0) {
       return options.targets.some((t) => t === item.id || t === item.name || t === item.originalPath);
     }
+
+    // For age or default with no filter: only items still in the graveyard can be purged
+    if (item.status !== "buried") return false;
 
     // If olderThanMs filter applied
     if (options.olderThanMs && options.olderThanMs > 0) {
       const age = now - item.buriedAtMs;
       return age >= options.olderThanMs;
-    }
-
-    // If all requested
-    if (options.all) {
-      return true;
     }
 
     // Default with no filter: decompose all currently buried items
@@ -840,14 +842,18 @@ export function decomposeGraveyardSync(
 
   for (const item of toDecompose) {
     try {
-      const itemDir = path.dirname(item.graveyardPath);
-      if (fs.existsSync(itemDir)) {
-        fs.rmSync(itemDir, { recursive: true, force: true });
-      } else if (fs.existsSync(item.graveyardPath)) {
-        fs.rmSync(item.graveyardPath, { recursive: true, force: true });
+      if (item.graveyardPath) {
+        const itemDir = path.dirname(item.graveyardPath);
+        if (itemDir.startsWith(entriesDir) && itemDir !== entriesDir && fs.existsSync(itemDir)) {
+          fs.rmSync(itemDir, { recursive: true, force: true });
+        } else if (item.graveyardPath.startsWith(entriesDir) && fs.existsSync(item.graveyardPath)) {
+          fs.rmSync(item.graveyardPath, { recursive: true, force: true });
+        }
       }
 
-      freedBytes += item.sizeBytes;
+      if (item.status === "buried") {
+        freedBytes += item.sizeBytes || 0;
+      }
       deletedCount++;
       item.status = "decomposed";
       deletedItems.push(item);
@@ -858,19 +864,28 @@ export function decomposeGraveyardSync(
 
   // Prune decomposed items from manifest to keep manifest clean
   manifest.items = manifest.items.filter((it) => it.status !== "decomposed");
-  saveManifest(graveyardDir, manifest);
 
-  // If entire graveyard emptied, clean up entries folder
-  if (options.all && manifest.items.length === 0) {
+  // If entire graveyard emptied (all: true), or manifest is empty, clean up entries folder
+  if (options.all || manifest.items.length === 0) {
+    if (options.all) {
+      manifest.items = [];
+    }
     try {
-      const entries = fs.readdirSync(entriesDir);
-      for (const e of entries) {
-        fs.rmSync(path.join(entriesDir, e), { recursive: true, force: true });
+      if (fs.existsSync(entriesDir)) {
+        const entries = fs.readdirSync(entriesDir);
+        for (const e of entries) {
+          const entryPath = path.join(entriesDir, e);
+          if (entryPath.startsWith(entriesDir) && entryPath !== entriesDir) {
+            fs.rmSync(entryPath, { recursive: true, force: true });
+          }
+        }
       }
     } catch {
       // ignore
     }
   }
+
+  saveManifest(graveyardDir, manifest);
 
   return {
     deletedCount,

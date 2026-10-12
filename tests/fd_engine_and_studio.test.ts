@@ -10,6 +10,7 @@ import {
   runFdCommand,
 } from "../applications/fd_engine";
 import { createFdStudio, generateFdStudioHtml } from "../applications/fd_studio";
+import { loadManifest } from "../applications/rip_engine";
 import { Sys } from "../src/simplecli/sys";
 import * as path from "node:path";
 import * as fs from "node:fs";
@@ -354,9 +355,18 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(fs.existsSync(path.join(testSandbox, "b.log"))).toBe(false);
     expect(fs.existsSync(path.join(testSandbox, "c.log"))).toBe(false);
 
-    // Empty graveyard
+    // Unbury one item (it becomes status "unburied" in the graveyard manifest)
+    const clickUndo = (win as any).eventHandlersMap.get("btn_unbury_last:onclick");
+    clickUndo(win);
+    const manifestMiddle = loadManifest(testGraveyard);
+    expect(manifestMiddle.items.some((i) => i.status === "unburied")).toBe(true);
+
+    // Empty graveyard: should clear all buried and unburied items completely
     const clickEmpty = (win as any).eventHandlersMap.get("btn_decompose_all:onclick");
     clickEmpty(win);
+
+    const manifestFinal = loadManifest(testGraveyard);
+    expect(manifestFinal.items.length).toBe(0);
 
     // Cleanup
     fs.rmSync(testGraveyard, { recursive: true, force: true });

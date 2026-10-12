@@ -396,7 +396,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   const refreshGraveyard = () => {
     try {
       const stats = getGraveyardStats(graveyardDir);
-      graveyardItems = seanceGraveyard({ graveyardDir });
+      graveyardItems = seanceGraveyard({ graveyardDir, all: true });
 
       win.setText("lbl_rip_metric_total", `Buried Items: ${stats.totalItems}`);
       win.setText("lbl_rip_metric_size", `Total Size: ${stats.totalHumanSize}`);
@@ -1218,7 +1218,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   // Graveyard: Undo / Restore Most Recent Rip
   win.onClick("btn_unbury_last", () => {
     try {
-      const allBuried = seanceGraveyard({ graveyardDir }).filter((i) => i.status === "buried");
+      const allBuried = seanceGraveyard({ graveyardDir, all: true }).filter((i) => i.status === "buried");
       const lastBuried = allBuried[0];
       if (!lastBuried) {
         win.toast("Graveyard is empty. Nothing to restore.");

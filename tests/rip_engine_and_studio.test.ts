@@ -229,6 +229,29 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
     expect(manifestAfter.items.length).toBe(0);
   });
 
+  it("10b. Decompose with all: true empties graveyard containing restored/unburied items", async () => {
+    const f1 = path.join(testWorkspace, "trash_restore.txt");
+    fs.writeFileSync(f1, "CONTENT RESTORE", "utf-8");
+
+    await buryTargets([f1], { graveyardDir: testGraveyard, cwd: testWorkspace });
+    await unburyTargets([f1], { graveyardDir: testGraveyard, cwd: testWorkspace, force: true });
+
+    // Item is unburied in manifest
+    const manifestMiddle = loadManifest(testGraveyard);
+    expect(manifestMiddle.items.length).toBe(1);
+    expect(manifestMiddle.items[0]!.status).toBe("unburied");
+
+    // Empty graveyard with all: true
+    const decomp = await decomposeGraveyard({ graveyardDir: testGraveyard, all: true });
+    expect(decomp.deletedCount).toBe(1);
+
+    const manifestFinal = loadManifest(testGraveyard);
+    expect(manifestFinal.items.length).toBe(0);
+
+    const seance = seanceGraveyard({ graveyardDir: testGraveyard, all: true });
+    expect(seance.length).toBe(0);
+  });
+
   it("11. Graveyard statistics accurately summarizes items and sizes", async () => {
     const f = path.join(testWorkspace, "stat_file.txt");
     fs.writeFileSync(f, "A".repeat(5000), "utf-8");
