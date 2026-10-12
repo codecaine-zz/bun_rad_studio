@@ -250,75 +250,53 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
         console.warn("Local server note:", err?.message || err);
       }
 
-      let webview: Webview;
       try {
-        webview = new Webview();
-      } catch (err: any) {
-        console.error("❌ Failed to initialize Webview runtime:", err?.message || err);
-        if (srv) {
-          console.log(`🌐 You can still play directly in your browser at: ${app.url}`);
-        }
-        return;
-      }
+        const webview = new Webview(true, {
+          width,
+          height,
+          hint: SizeHint.NONE,
+        });
+        app.webview = webview;
+        webview.title = title;
 
-      app.webview = webview;
-      webview.title = title;
-      webview.size = {
-        width,
-        height,
-        hint: fullscreen ? SizeHint.NONE : SizeHint.FIXED,
-      };
-
-      if (fullscreen) {
         try {
-          toggleFullscreenNative(title);
-        } catch (e) {}
-      }
+          if (fullscreen) {
+            setWindowPositionNative(webview, { x: 0, y: 0 }, width, height);
+          } else {
+            setWindowPositionNative(webview, "center", width, height);
+          }
+          setAlwaysOnTopNative(webview, options.alwaysOnTop ?? false);
+        } catch {}
 
-      if (options.alwaysOnTop) {
-        try {
-          setAlwaysOnTopNative(title, true);
-        } catch (e) {}
-      }
+        attachWindowShortcuts(webview, {
+          onQuit: () => {
+            try { srv?.stop(); } catch {}
+            process.exit(0);
+          },
+          onClose: () => {
+            try { srv?.stop(); } catch {}
+            process.exit(0);
+          },
+          onFullscreen: () => {
+            toggleFullscreenNative(webview);
+          },
+          fullscreen,
+        });
 
-      attachWindowShortcuts(webview, {
-        reload: () => {
-          if (app.url) webview.navigate(app.url);
-          else webview.setHTML(generateBalatroStudioHtml());
-        },
-      });
-
-      // Bind Native Handlers
-      webview.bind("closeWindow", () => {
-        try { webview.destroy(); } catch (e) {}
-        if (srv) {
-          try { srv.stop(true); } catch (e) {}
-        }
-        process.exit(0);
-      });
-
-      webview.bind("quitApp", () => {
-        try { webview.destroy(); } catch (e) {}
-        if (srv) {
-          try { srv.stop(true); } catch (e) {}
-        }
-        process.exit(0);
-      });
-
-      webview.bind("toggleFullscreen", () => {
-        try {
-          toggleFullscreenNative(title);
-        } catch (e) {}
-      });
-
-      if (app.url) {
-        webview.navigate(app.url);
-      } else {
+        // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-      }
+        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
 
-      console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
-      webview.run();
+        webview.run();
+        try { srv?.stop(); } catch {}
+        process.exit(0);
+      } catch (err: any) {
+        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        await new Promise(() => {});
+      } finally {
+        try { srv?.stop(); } catch {}
+        process.exit(0);
+      }
     },
   };
 

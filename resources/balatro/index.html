@@ -7,12 +7,12 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=JetBrains+Mono:wght@500;700;800&family=Orbitron:wght@700;900&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=JetBrains+Mono:wght@500;700;800&family=Orbitron:wght@700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #0b0f19;
-      --felt-dark: #0d2818;
-      --felt-light: #164228;
+      --bg-dark: #080c14;
+      --felt-dark: #072314;
+      --felt-light: #123d24;
       --neon-cyan: #00f3ff;
       --neon-pink: #ec4899;
       --neon-gold: #f59e0b;
@@ -20,11 +20,12 @@
       --neon-blue: #3b82f6;
       --neon-green: #10b981;
       --neon-purple: #a855f7;
-      --card-w: 86px;
-      --card-h: 124px;
+      --card-w: 92px;
+      --card-h: 134px;
       --font-display: "Cinzel", "Orbitron", serif;
       --font-sans: "Plus Jakarta Sans", sans-serif;
       --font-mono: "JetBrains Mono", monospace;
+      --font-card-rank: "Playfair Display", "Cinzel", "Georgia", "Times New Roman", serif;
     }
 
     * {
@@ -38,14 +39,14 @@
     body {
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(circle at 50% 30%, #173d27 0%, #0a1f13 60%, #050b07 100%);
+        radial-gradient(circle at 50% 20%, #164629 0%, #0a2516 55%, #040d08 100%);
       color: #f8fafc;
       font-family: var(--font-sans);
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      perspective: 1000px;
+      perspective: 1200px;
     }
 
     /* Subtle CRT Scanline Overlay */
@@ -53,11 +54,11 @@
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
       pointer-events: none;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
       background-size: 100% 3px, 6px 100%;
       z-index: 999;
-      opacity: 0.6;
+      opacity: 0.55;
     }
 
     /* Screen shake container */
@@ -67,14 +68,15 @@
       height: 100vh;
       width: 100vw;
       transition: transform 0.05s ease-out;
+      position: relative;
     }
 
     /* Top Bar Telemetry */
     header.game-header {
       height: 52px;
-      background: rgba(8, 13, 22, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 13, 22, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -96,7 +98,7 @@
       background: linear-gradient(135deg, #f59e0b, #ec4899, #00f3ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 12px rgba(236, 72, 153, 0.4);
+      text-shadow: 0 0 14px rgba(236, 72, 153, 0.45);
     }
 
     .badge-ante {
@@ -114,15 +116,15 @@
     .telemetry-cluster {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.85rem;
     }
 
     .stat-pill {
       display: flex;
       align-items: center;
       gap: 0.4rem;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 8px;
       padding: 0.3rem 0.65rem;
       font-family: var(--font-mono);
@@ -131,23 +133,23 @@
     }
 
     .stat-pill.money {
-      border-color: rgba(245, 158, 11, 0.5);
+      border-color: rgba(245, 158, 11, 0.55);
       color: var(--neon-gold);
     }
 
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
     }
 
     .btn-icon {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       color: #f1f5f9;
-      width: 34px;
-      height: 34px;
-      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -157,9 +159,9 @@
     }
 
     .btn-icon:hover {
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.2);
       border-color: var(--neon-cyan);
-      box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
       transform: translateY(-1px);
     }
 
@@ -171,6 +173,16 @@
       justify-content: space-between;
       position: relative;
       padding: 0.8rem 1.5rem;
+      overflow: hidden;
+    }
+
+    /* Canvas FX Overlay */
+    #fxCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 45;
     }
 
     /* Top Row: Left Blind Panel + Joker Tray + Consumables Tray */
@@ -179,32 +191,40 @@
       align-items: flex-start;
       gap: 1.25rem;
       min-height: 140px;
+      z-index: 50;
     }
 
     /* Blind Target Card */
     .blind-panel {
       width: 220px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 2px solid rgba(59, 130, 246, 0.4);
-      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid rgba(59, 130, 246, 0.5);
+      border-radius: 14px;
       padding: 0.75rem 1rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
       display: flex;
       flex-direction: column;
       gap: 0.35rem;
       position: relative;
       overflow: hidden;
+      transition: all 0.3s ease;
     }
 
     .blind-panel.boss {
-      border-color: rgba(239, 68, 68, 0.7);
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+      border-color: rgba(239, 68, 68, 0.8);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+      animation: bossPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes bossPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.35); }
+      50% { box-shadow: 0 0 35px rgba(239, 68, 68, 0.6); }
     }
 
     .blind-panel::before {
       content: "";
       position: absolute;
-      top: 0; left: 0; width: 100%; height: 3px;
+      top: 0; left: 0; width: 100%; height: 4px;
       background: linear-gradient(90deg, #3b82f6, #00f3ff);
     }
 
@@ -232,12 +252,13 @@
 
     .blind-score-target {
       font-family: var(--font-mono);
-      font-size: 1.25rem;
+      font-size: 1.3rem;
       font-weight: 800;
       color: var(--neon-cyan);
       display: flex;
       align-items: center;
       gap: 0.3rem;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
     }
 
     .blind-rule {
@@ -275,26 +296,27 @@
     .tray-slots {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 0.65rem;
       min-height: 110px;
     }
 
     .empty-slot {
-      width: 72px;
-      height: 104px;
-      border: 2px dashed rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
+      width: 76px;
+      height: 108px;
+      border: 2px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: rgba(255, 255, 255, 0.2);
-      font-size: 1.5rem;
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 1.6rem;
       transition: all 0.2s ease;
+      background: rgba(0, 0, 0, 0.15);
     }
 
     /* Consumables (Tarots & Planets) */
     .consumable-section {
-      width: 170px;
+      width: 175px;
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
@@ -307,8 +329,9 @@
       align-items: center;
       justify-content: center;
       gap: 0.6rem;
-      margin: 0.5rem 0;
+      margin: 0.4rem 0;
       position: relative;
+      z-index: 50;
     }
 
     /* Multi-step Score Box */
@@ -316,20 +339,21 @@
       display: flex;
       align-items: center;
       gap: 1.25rem;
-      background: rgba(10, 16, 26, 0.9);
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
-      padding: 0.6rem 1.8rem;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      background: rgba(10, 16, 26, 0.92);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      padding: 0.65rem 1.85rem;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(16px);
       position: relative;
+      transition: all 0.2s ease;
     }
 
     .hand-eval-badge {
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-width: 150px;
+      min-width: 155px;
     }
 
     .hand-name {
@@ -338,12 +362,12 @@
       font-weight: 900;
       letter-spacing: 1.5px;
       color: #ffffff;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.55);
     }
 
     .hand-level {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       font-weight: 800;
       color: var(--neon-cyan);
     }
@@ -351,22 +375,22 @@
     .score-math-row {
       display: flex;
       align-items: center;
-      gap: 0.8rem;
+      gap: 0.85rem;
       font-family: var(--font-mono);
     }
 
     .chip-block {
-      background: rgba(59, 130, 246, 0.25);
-      border: 1px solid #3b82f6;
-      color: #60a5fa;
-      padding: 0.4rem 0.9rem;
-      border-radius: 8px;
-      font-size: 1.4rem;
+      background: rgba(59, 130, 246, 0.28);
+      border: 2px solid #3b82f6;
+      color: #93c5fd;
+      padding: 0.45rem 1rem;
+      border-radius: 10px;
+      font-size: 1.45rem;
       font-weight: 800;
-      min-width: 85px;
+      min-width: 90px;
       text-align: center;
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
-      transition: transform 0.1s ease;
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.35);
+      transition: transform 0.12s ease;
     }
 
     .math-operator {
@@ -376,17 +400,18 @@
     }
 
     .mult-block {
-      background: rgba(239, 68, 68, 0.25);
-      border: 1px solid #ef4444;
-      color: #f87171;
-      padding: 0.4rem 0.9rem;
-      border-radius: 8px;
-      font-size: 1.4rem;
+      background: rgba(239, 68, 68, 0.28);
+      border: 2px solid #ef4444;
+      color: #fca5a5;
+      padding: 0.45rem 1rem;
+      border-radius: 10px;
+      font-size: 1.45rem;
       font-weight: 800;
-      min-width: 85px;
+      min-width: 90px;
       text-align: center;
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
-      transition: transform 0.1s ease;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+      transition: transform 0.12s ease;
+      position: relative;
     }
 
     .equal-operator {
@@ -396,18 +421,18 @@
     }
 
     .total-score-block {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.2));
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(236, 72, 153, 0.25));
       border: 2px solid var(--neon-gold);
       color: #fbbf24;
-      padding: 0.4rem 1.2rem;
-      border-radius: 10px;
-      font-size: 1.7rem;
+      padding: 0.45rem 1.35rem;
+      border-radius: 12px;
+      font-size: 1.75rem;
       font-weight: 900;
       letter-spacing: 1px;
-      min-width: 130px;
+      min-width: 140px;
       text-align: center;
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
-      transition: transform 0.1s ease;
+      box-shadow: 0 0 24px rgba(245, 158, 11, 0.45);
+      transition: transform 0.12s ease;
     }
 
     /* Hand Played Slots Row */
@@ -415,25 +440,27 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
       min-height: 130px;
-      perspective: 800px;
+      perspective: 900px;
+      z-index: 50;
     }
 
     /* Bottom Felt Row: Player Hands, Discards & Controls */
     .bottom-felt-row {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.65rem;
       align-items: center;
       position: relative;
+      z-index: 50;
     }
 
     .action-button-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 1.25rem;
+      gap: 1rem;
       width: 100%;
     }
 
@@ -441,7 +468,7 @@
       background: linear-gradient(135deg, #1e293b, #0f172a);
       border: 2px solid rgba(255, 255, 255, 0.2);
       color: #ffffff;
-      padding: 0.65rem 1.75rem;
+      padding: 0.65rem 1.8rem;
       border-radius: 12px;
       font-family: var(--font-display);
       font-size: 1.05rem;
@@ -459,12 +486,12 @@
       background: linear-gradient(135deg, #059669, #10b981);
       border-color: #34d399;
       color: #ffffff;
-      box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.4);
     }
 
     .btn-action.play:hover:not(:disabled) {
       transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 0 24px rgba(16, 185, 129, 0.6);
+      box-shadow: 0 0 26px rgba(16, 185, 129, 0.6);
     }
 
     .btn-action.discard {
@@ -480,7 +507,7 @@
     }
 
     .btn-action:disabled {
-      opacity: 0.4;
+      opacity: 0.35;
       cursor: not-allowed;
       filter: grayscale(0.8);
       transform: none !important;
@@ -490,8 +517,8 @@
     .hand-meta-pill {
       font-family: var(--font-mono);
       font-size: 0.8rem;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 999px;
       padding: 0.15rem 0.6rem;
     }
@@ -501,107 +528,476 @@
       display: flex;
       justify-content: center;
       align-items: flex-end;
-      gap: 0.35rem;
+      gap: 0.4rem;
       min-height: 140px;
       perspective: 900px;
       width: 100%;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.4rem;
     }
 
-    /* 3D Realistic Playing Card Styles */
+    /* 3D Authentic Casino Playing Card Styles */
     .poker-card {
       width: var(--card-w);
       height: var(--card-h);
       border-radius: 10px;
       background: #ffffff;
-      color: #1e293b;
+      color: #14171f;
       position: relative;
       cursor: pointer;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
       transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease;
       transform-style: preserve-3d;
       will-change: transform;
       flex-shrink: 0;
+      overflow: hidden;
+      user-select: none;
     }
 
     .poker-card:hover {
-      transform: translateY(-16px) scale(1.05);
-      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 255, 255, 0.4);
-      z-index: 50;
-    }
-
-    .poker-card.selected {
-      transform: translateY(-28px) scale(1.07);
-      box-shadow: 0 20px 32px rgba(0, 0, 0, 0.6), 0 0 20px var(--neon-cyan);
-      border: 2px solid var(--neon-cyan);
+      transform: translateY(-20px) scale(1.06);
+      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.55), 0 0 16px rgba(255, 255, 255, 0.35);
       z-index: 60;
     }
 
+    .poker-card.selected {
+      transform: translateY(-34px) scale(1.08) !important;
+      box-shadow: 0 22px 38px rgba(0, 0, 0, 0.7), 0 0 24px var(--neon-cyan);
+      outline: 2px solid var(--neon-cyan);
+      z-index: 70 !important;
+    }
+
     .poker-card.red {
-      color: #dc2626;
+      color: #c2182b;
     }
 
     .poker-card.black {
-      color: #0f172a;
+      color: #14171f;
     }
 
-    /* Card Face Inner */
+    /* Authentic Linen Card Face Inner */
     .card-face {
       width: 100%;
       height: 100%;
-      padding: 0.35rem 0.45rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      border-radius: 10px;
       position: relative;
       overflow: hidden;
-      background: #fafaf9;
+      border-radius: 10px;
+      background-color: #faf9f6;
+      background-image: 
+        radial-gradient(circle at 50% 50%, #ffffff 0%, #f7f5ee 100%),
+        repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.012) 0px, rgba(0, 0, 0, 0.012) 1px, transparent 1px, transparent 3px),
+        repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.012) 0px, rgba(0, 0, 0, 0.012) 1px, transparent 1px, transparent 3px);
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
-    .card-top-left, .card-bottom-right {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      line-height: 1;
-    }
-
-    .card-bottom-right {
-      transform: rotate(180deg);
-    }
-
-    .card-rank {
-      font-family: var(--font-mono);
-      font-size: 1.15rem;
-      font-weight: 800;
-    }
-
-    .card-suit {
-      font-size: 1rem;
-    }
-
-    .card-center-art {
+    /* Authentic Inner Keyline Border */
+    .card-inner-frame {
       position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 2.2rem;
-      opacity: 0.85;
+      top: 3px; left: 3px; right: 3px; bottom: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
       pointer-events: none;
     }
 
+    /* Corner Rank and Suit Indices */
+    .card-corner {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 0.9;
+      pointer-events: none;
+      z-index: 6;
+      width: 16px;
+    }
+
+    .card-corner.top-left {
+      top: 4px;
+      left: 5px;
+    }
+
+    .card-corner.bottom-right {
+      bottom: 4px;
+      right: 5px;
+      transform: rotate(180deg);
+    }
+
+    .card-corner .card-rank {
+      font-family: var(--font-card-rank);
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    .card-corner .card-corner-suit {
+      width: 12px;
+      height: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .suit-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Card Center Area for Pips, Ace, or Court Art */
+    .card-center-area {
+      position: absolute;
+      top: 6px;
+      bottom: 6px;
+      left: 13px;
+      right: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    /* Pip Cards Grid (2 to 10) */
+    .card-pips-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .card-pip {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-pip.flipped {
+      transform: translate(-50%, -50%) rotate(180deg);
+    }
+
+    .pip-icon-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
+    }
+
+    /* Ace Masterpiece Layouts */
+    .ace-ornate-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .ace-master-spade {
+      width: 90%;
+      max-height: 84px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .ace-label {
+      font-family: var(--font-card-rank);
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #111827;
+      margin-top: 1px;
+      opacity: 0.85;
+    }
+
+    .ace-classic-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+    }
+
+    .ace-flourish {
+      width: 80%;
+      height: 14px;
+    }
+
+    .ace-center-suit {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.12));
+    }
+
+    .ace-suit-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Authentic French Court Face Cards (J, Q, K) */
+    .court-portrait-box {
+      width: 66px;
+      height: 110px;
+      position: relative;
+      border: 1.5px solid #d97706;
+      border-radius: 4px;
+      background: #faf8f5;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px #78350f, 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .court-half {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 50%;
+      overflow: hidden;
+    }
+
+    .court-half.top {
+      top: 0;
+    }
+
+    .court-half.bottom {
+      bottom: 0;
+      transform: rotate(180deg);
+    }
+
+    .court-divider {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 3px;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg, #d97706, #1e3a8a, #d97706);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      z-index: 4;
+    }
+
+    .court-portrait-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Bottom Chip Value Badge (Subtle Casino Watermark) */
     .card-chip-val {
       position: absolute;
-      bottom: 4px;
+      bottom: 2px;
       left: 50%;
       transform: translateX(-50%);
       font-family: var(--font-mono);
-      font-size: 0.65rem;
+      font-size: 0.52rem;
       font-weight: 800;
-      color: #3b82f6;
-      background: rgba(59, 130, 246, 0.12);
-      padding: 0.1rem 0.35rem;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(4px);
+      padding: 0.5px 5px;
+      border-radius: 999px;
+      z-index: 12;
+      letter-spacing: 0.3px;
+      pointer-events: none;
+      transition: all 0.15s ease;
+    }
+
+    .poker-card:hover .card-chip-val,
+    .poker-card.selected .card-chip-val {
+      color: #38bdf8;
+      background: rgba(10, 15, 29, 0.95);
+      border-color: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Authentic Casino Playing Card Back */
+    .card-back-view {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      border-radius: 8px;
+      background-color: #991b1b;
+      background-image: 
+        radial-gradient(circle at 50% 50%, #b91c1c 0%, #7f1d1d 100%),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 4px, rgba(255,255,255,0.08) 4px, rgba(255,255,255,0.08) 5px);
+      border: 3px solid #ffffff;
+      box-shadow: inset 0 0 0 1px #991b1b, 0 6px 16px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .card-back-view.blue-back {
+      background-color: #1e3a8a;
+      background-image: 
+        radial-gradient(circle at 50% 50%, #2563eb 0%, #1e3a8a 100%),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 4px, rgba(255,255,255,0.08) 4px, rgba(255,255,255,0.08) 5px);
+      box-shadow: inset 0 0 0 1px #1e3a8a, 0 6px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-back-frame {
+      position: absolute;
+      top: 4px; left: 4px; right: 4px; bottom: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 4px;
     }
+
+    .card-back-rosette {
+      width: 48px;
+      height: 48px;
+      opacity: 0.85;
+    }
+
+    .card-enhancement-badge {
+      position: absolute;
+      top: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 0.52rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      z-index: 12;
+      pointer-events: none;
+    }
+
+    /* Card Enhancements Styles */
+    .poker-card.enhancement-glass {
+      background: rgba(230, 245, 255, 0.7);
+      backdrop-filter: blur(8px);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+    }
+    .poker-card.enhancement-glass .card-face {
+      background: rgba(240, 249, 255, 0.45);
+      backdrop-filter: blur(6px);
+      border: 1.5px solid rgba(255, 255, 255, 0.8);
+      box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.4);
+    }
+    .poker-card.enhancement-glass .card-enhancement-badge { background: #38bdf8; color: #000; }
+
+    .poker-card.enhancement-steel {
+      background: linear-gradient(135deg, #475569, #1e293b);
+      color: #f8fafc !important;
+      border: 2px solid #94a3b8;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+    }
+    .poker-card.enhancement-steel .card-face {
+      background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 50%, #64748b 100%);
+      color: #0f172a;
+    }
+    .poker-card.enhancement-steel .card-enhancement-badge { background: #94a3b8; color: #000; }
+
+    /* Industrial Steel Rivets */
+    .steel-rivet {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f8fafc 20%, #64748b 80%, #334155 100%);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.5), inset 0 0 1px #000;
+      z-index: 14;
+      pointer-events: none;
+    }
+    .steel-rivet.top-left { top: 4px; left: 4px; }
+    .steel-rivet.top-right { top: 4px; right: 4px; }
+    .steel-rivet.bottom-left { bottom: 4px; left: 4px; }
+    .steel-rivet.bottom-right { bottom: 4px; right: 4px; }
+
+    .poker-card.enhancement-gold {
+      background: linear-gradient(135deg, #fef08a, #eab308);
+      color: #713f12 !important;
+      border: 2px solid #facc15;
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.65);
+    }
+    .poker-card.enhancement-gold .card-face {
+      background: linear-gradient(135deg, #fef08a 0%, #eab308 30%, #ca8a04 70%, #fef9c3 100%);
+      color: #581c87;
+    }
+    .poker-card.enhancement-gold .card-enhancement-badge { background: #713f12; color: #fef08a; }
+
+    .poker-card.enhancement-stone {
+      background: #78716c;
+      color: #f5f5f4 !important;
+      border: 2px solid #a8a29e;
+    }
+    .poker-card.enhancement-stone .card-face {
+      background: linear-gradient(135deg, #78716c 0%, #57534e 50%, #44403c 100%);
+    }
+
+    .stone-tablet-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .stone-rune-svg {
+      width: 44px;
+      height: 44px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    }
+
+    .stone-carved-text {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 900;
+      color: #f5f5f4;
+      letter-spacing: 0.5px;
+    }
+
+    .poker-card.enhancement-lucky {
+      border: 2px solid #22c55e;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.55);
+    }
+    .poker-card.enhancement-lucky .card-face {
+      background-color: #ecfdf5;
+      background-image: radial-gradient(circle at 50% 50%, #f0fdf4 0%, #dcfce7 100%);
+    }
+    .poker-card.enhancement-lucky .card-enhancement-badge { background: #22c55e; color: #fff; }
+
+    .poker-card.enhancement-wild {
+      border: 2px solid #ec4899;
+      box-shadow: 0 0 16px rgba(236, 72, 153, 0.55);
+    }
+    .poker-card.enhancement-wild .card-enhancement-badge { background: #ec4899; color: #fff; }
+
+    .wild-emblem-badge {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      padding: 4px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--neon-pink);
+    }
+    .wild-emblem-badge span { font-size: 0.85rem; font-weight: 900; text-align: center; }
+    .wild-emblem-badge .w-spade { color: #f8fafc; }
+    .wild-emblem-badge .w-heart { color: #ef4444; }
+    .wild-emblem-badge .w-club { color: #f8fafc; }
+    .wild-emblem-badge .w-diamond { color: #f59e0b; }
+
+    .poker-card.enhancement-mult {
+      border: 2px solid #ef4444;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.55);
+    }
+    .poker-card.enhancement-mult .card-enhancement-badge { background: #ef4444; color: #fff; }
+
+    .poker-card.enhancement-bonus {
+      border: 2px solid #3b82f6;
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.55);
+    }
+    .poker-card.enhancement-bonus .card-enhancement-badge { background: #3b82f6; color: #fff; }
 
     /* Card Editions: Foil, Holo, Polychrome */
     .poker-card.edition-foil::after {
@@ -609,7 +1005,7 @@
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       border-radius: 10px;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(236, 72, 153, 0.25), rgba(245, 158, 11, 0.25));
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.28), rgba(236, 72, 153, 0.28), rgba(245, 158, 11, 0.28));
       mix-blend-mode: overlay;
       pointer-events: none;
     }
@@ -619,7 +1015,7 @@
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       border-radius: 10px;
-      background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.2) 0px, rgba(59, 130, 246, 0.2) 10px);
+      background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.22) 0px, rgba(59, 130, 246, 0.22) 10px);
       pointer-events: none;
     }
 
@@ -628,7 +1024,7 @@
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       border-radius: 10px;
-      background: linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,165,0,0.3), rgba(255,255,0,0.3), rgba(0,255,0,0.3), rgba(0,0,255,0.3), rgba(238,130,238,0.3));
+      background: linear-gradient(45deg, rgba(255,0,0,0.35), rgba(255,165,0,0.35), rgba(255,255,0,0.35), rgba(0,255,0,0.35), rgba(0,0,255,0.35), rgba(238,130,238,0.35));
       animation: rainbowShift 3s linear infinite;
       pointer-events: none;
     }
@@ -638,13 +1034,28 @@
       100% { filter: hue-rotate(360deg); }
     }
 
-    /* Seals */
+    /* Glossy Specular Highlight Sheen */
+    .card-sheen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      border-radius: 10px;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 65%);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .poker-card:hover .card-sheen {
+      opacity: 1;
+    }
+
+    /* Authentic Wax Seals */
     .card-seal {
       position: absolute;
       top: 4px;
       right: 4px;
-      width: 18px;
-      height: 18px;
+      width: 19px;
+      height: 19px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -652,18 +1063,19 @@
       font-size: 0.65rem;
       font-weight: 900;
       color: #ffffff;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+      z-index: 15;
     }
-    .card-seal.red { background: #ef4444; }
-    .card-seal.blue { background: #3b82f6; }
-    .card-seal.gold { background: #f59e0b; color: #000; }
-    .card-seal.purple { background: #a855f7; }
+    .card-seal.red { background: radial-gradient(circle, #f87171, #dc2626); }
+    .card-seal.blue { background: radial-gradient(circle, #60a5fa, #2563eb); }
+    .card-seal.gold { background: radial-gradient(circle, #fde047, #ca8a04); color: #000; }
+    .card-seal.purple { background: radial-gradient(circle, #c084fc, #9333ea); }
 
     /* Joker Card Item in Tray */
     .joker-card {
       width: 76px;
       height: 108px;
-      border-radius: 8px;
+      border-radius: 10px;
       background: linear-gradient(145deg, #1e1b4b, #0f172a);
       border: 2px solid #8b5cf6;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
@@ -680,9 +1092,9 @@
 
     .joker-card:hover {
       transform: translateY(-8px) scale(1.06);
-      box-shadow: 0 12px 24px rgba(139, 92, 246, 0.5);
+      box-shadow: 0 14px 26px rgba(139, 92, 246, 0.55);
       border-color: var(--neon-cyan);
-      z-index: 40;
+      z-index: 60;
     }
 
     .joker-icon {
@@ -710,16 +1122,16 @@
       padding: 0.1rem 0.35rem;
       border-radius: 4px;
     }
-    .joker-rarity.common { color: #60a5fa; background: rgba(59, 130, 246, 0.15); }
-    .joker-rarity.uncommon { color: #34d399; background: rgba(16, 185, 129, 0.15); }
-    .joker-rarity.rare { color: #f43f5e; background: rgba(244, 63, 94, 0.15); }
-    .joker-rarity.legendary { color: #fbbf24; background: rgba(245, 158, 11, 0.25); border: 1px solid #f59e0b; }
+    .joker-rarity.common { color: #60a5fa; background: rgba(59, 130, 246, 0.18); }
+    .joker-rarity.uncommon { color: #34d399; background: rgba(16, 185, 129, 0.18); }
+    .joker-rarity.rare { color: #f43f5e; background: rgba(244, 63, 94, 0.18); }
+    .joker-rarity.legendary { color: #fbbf24; background: rgba(245, 158, 11, 0.28); border: 1px solid #f59e0b; }
 
     /* Consumable Tarot/Planet Card */
     .consumable-card {
-      width: 72px;
-      height: 104px;
-      border-radius: 8px;
+      width: 74px;
+      height: 106px;
+      border-radius: 10px;
       background: linear-gradient(145deg, #2e1065, #0f172a);
       border: 1px solid #c084fc;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -736,15 +1148,15 @@
     .consumable-card:hover {
       transform: translateY(-6px) scale(1.05);
       border-color: var(--neon-gold);
-      box-shadow: 0 10px 20px rgba(192, 132, 252, 0.4);
+      box-shadow: 0 10px 20px rgba(192, 132, 252, 0.45);
     }
 
     /* Modal Windows (Shop, Run End, Deck Viewer, Hall of Fame) */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(4, 7, 13, 0.85);
-      backdrop-filter: blur(14px);
+      background: rgba(4, 7, 13, 0.88);
+      backdrop-filter: blur(16px);
       z-index: 500;
       display: none;
       align-items: center;
@@ -754,16 +1166,16 @@
 
     .modal-card {
       background: #0d1527;
-      border: 2px solid rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.18);
       border-radius: 20px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 25px 65px rgba(0, 0, 0, 0.85);
       max-width: 900px;
       width: 100%;
       max-height: 90vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes modalPop {
@@ -773,7 +1185,7 @@
 
     .modal-header {
       padding: 1.25rem 1.75rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -821,8 +1233,8 @@
     }
 
     .shop-item-card {
-      background: rgba(15, 23, 42, 0.8);
-      border: 2px solid rgba(255, 255, 255, 0.12);
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.14);
       border-radius: 12px;
       padding: 1rem;
       width: 180px;
@@ -831,14 +1243,14 @@
       align-items: center;
       gap: 0.5rem;
       text-align: center;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
       transition: all 0.2s ease;
     }
 
     .shop-item-card:hover {
       border-color: var(--neon-gold);
       transform: translateY(-4px);
-      box-shadow: 0 12px 24px rgba(245, 158, 11, 0.3);
+      box-shadow: 0 12px 26px rgba(245, 158, 11, 0.35);
     }
 
     .shop-item-desc {
@@ -875,7 +1287,7 @@
 
     .shop-footer-bar {
       padding: 1rem 1.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -885,10 +1297,12 @@
     /* Deck Viewer Grid */
     .deck-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-      gap: 0.75rem;
-      max-height: 60vh;
-      padding: 0.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
+      gap: 0.85rem;
+      max-height: 62vh;
+      overflow-y: auto;
+      padding: 0.75rem 0.5rem;
+      justify-items: center;
     }
 
     /* Tooltip Bubble */
@@ -955,8 +1369,9 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn-icon" id="btnSpeedToggle" title="Game Speed (1x / 2x / 4x)" style="font-family:var(--font-mono); font-size:0.75rem; font-weight:800; width:44px;">1X</button>
         <button class="btn-icon" id="btnDeckView" title="Inspect Deck (D)">🃏</button>
-        <button class="btn-icon" id="btnMusicToggle" title="Toggle Music (M)">🎵</button>
+        <button class="btn-icon" id="btnMusicToggle" title="Toggle Music Mode (M)">🎵</button>
         <button class="btn-icon" id="btnHof" title="Hall of Fame">🏆</button>
         <button class="btn-icon" id="btnNewRun" title="Restart Run">🔄</button>
       </div>
@@ -964,6 +1379,8 @@
 
     <!-- Main Poker Felt Area -->
     <main class="poker-felt">
+      <canvas id="fxCanvas"></canvas>
+
       <!-- Top Row: Blind info + Jokers + Consumables -->
       <div class="top-felt-row">
         <!-- Blind info card -->
@@ -1035,6 +1452,7 @@
           <button class="btn-action discard" id="btnDiscard" disabled>
             <span>🗑️ DISCARD</span>
           </button>
+          <button class="btn-icon" id="btnDeselectAll" title="Deselect All (U)" style="width:42px; height:42px;">↩️</button>
           <button class="btn-icon" id="btnSortRank" title="Sort by Rank (R)" style="width:42px; height:42px;">123</button>
           <button class="btn-icon" id="btnSortSuit" title="Sort by Suit (S)" style="width:42px; height:42px;">♠♥</button>
         </div>
@@ -1163,7 +1581,7 @@
     </div>
   </div>
 
-  <!-- Audio Engine & Full Game Logic -->
+  <!-- Audio Engine, FX Particles & Full Game Logic -->
   <script>
     // -------------------------------------------------------------------------
     // SafeStorage Cross-Platform Polyfill
@@ -1178,13 +1596,157 @@
     };
 
     // -------------------------------------------------------------------------
-    // 1. Procedural WebAudio Synthesizer & Sound Effects
+    // Canvas Particle FX Engine (Embers, Gold Dust, Confetti)
+    // -------------------------------------------------------------------------
+    const FxEngine = {
+      canvas: null,
+      ctx: null,
+      particles: [],
+      embers: [],
+
+      init() {
+        this.canvas = document.getElementById("fxCanvas");
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext("2d");
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
+        this.loop();
+      },
+
+      resize() {
+        if (!this.canvas) return;
+        this.canvas.width = this.canvas.clientWidth || window.innerWidth;
+        this.canvas.height = this.canvas.clientHeight || window.innerHeight;
+      },
+
+      spawnAmbientGold() {
+        if (this.particles.length > 50 || !this.canvas) return;
+        this.particles.push({
+          x: Math.random() * this.canvas.width,
+          y: this.canvas.height + 10,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: -0.4 - Math.random() * 0.7,
+          size: 1 + Math.random() * 2.2,
+          alpha: 0.15 + Math.random() * 0.4,
+          decay: 0.002 + Math.random() * 0.003,
+          color: Math.random() < 0.6 ? "#f59e0b" : "#00f3ff"
+        });
+      },
+
+      spawnFireEmbers(x, y, count = 25) {
+        if (!this.canvas) return;
+        for (let i = 0; i < count; i++) {
+          const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.5;
+          const speed = 2 + Math.random() * 5;
+          this.embers.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 2 + Math.random() * 3.5,
+            alpha: 1.0,
+            decay: 0.02 + Math.random() * 0.03,
+            color: Math.random() < 0.5 ? "#ef4444" : (Math.random() < 0.5 ? "#f59e0b" : "#ec4899")
+          });
+        }
+      },
+
+      spawnConfetti(count = 70) {
+        if (!this.canvas) return;
+        const colors = ["#f59e0b", "#00f3ff", "#ec4899", "#10b981", "#a855f7", "#ffffff"];
+        for (let i = 0; i < count; i++) {
+          const x = this.canvas.width / 2;
+          const y = this.canvas.height / 2;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 3 + Math.random() * 7;
+          this.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 3 + Math.random() * 4,
+            alpha: 1.0,
+            decay: 0.01 + Math.random() * 0.015,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            isConfetti: true,
+            rot: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 12
+          });
+        }
+      },
+
+      loop() {
+        if (!this.ctx || !this.canvas) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        if (Math.random() < 0.35) {
+          this.spawnAmbientGold();
+        }
+
+        // Update ambient & confetti particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= p.decay;
+          if (p.isConfetti) {
+            p.vy += 0.12;
+            p.rot += p.rotSpeed;
+          }
+          if (p.alpha <= 0) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+          this.ctx.save();
+          this.ctx.globalAlpha = Math.max(0, p.alpha);
+          this.ctx.fillStyle = p.color;
+          if (p.isConfetti) {
+            this.ctx.translate(p.x, p.y);
+            this.ctx.rotate(p.rot * Math.PI / 180);
+            this.ctx.fillRect(-p.size, -p.size / 2, p.size * 2, p.size);
+          } else {
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+          this.ctx.restore();
+        }
+
+        // Update flame embers
+        for (let i = this.embers.length - 1; i >= 0; i--) {
+          const e = this.embers[i];
+          e.x += e.vx;
+          e.y += e.vy;
+          e.vy -= 0.05;
+          e.alpha -= e.decay;
+          e.size *= 0.98;
+          if (e.alpha <= 0 || e.size <= 0.5) {
+            this.embers.splice(i, 1);
+            continue;
+          }
+          this.ctx.save();
+          this.ctx.globalAlpha = Math.max(0, e.alpha);
+          this.ctx.fillStyle = e.color;
+          this.ctx.shadowColor = e.color;
+          this.ctx.shadowBlur = 8;
+          this.ctx.beginPath();
+          this.ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+        }
+
+        requestAnimationFrame(() => this.loop());
+      }
+    };
+
+    // -------------------------------------------------------------------------
+    // Procedural WebAudio Synthesizer Engine 2.0
     // -------------------------------------------------------------------------
     const AudioEngine = {
       ctx: null,
       muted: false,
-      musicNode: null,
       musicTimer: null,
+      currentTrack: 0, // 0 = Cosmic Velvet, 1 = Cyber Neon, 2 = Boss Blind, 3 = Off
 
       init() {
         if (!this.ctx) {
@@ -1196,15 +1758,133 @@
         }
       },
 
-      playCardSelect() {
+      playCardDeal() {
         if (this.muted) return;
         this.init();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(440, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        const freq = 380 + Math.random() * 60;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.04);
+      },
+
+      playCardSlide() {
+        if (this.muted) return;
+        this.init();
+        try {
+          const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.28));
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(1400, this.ctx.currentTime);
+          filter.Q.setValueAtTime(2.2, this.ctx.currentTime);
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start();
+        } catch(e) {}
+      },
+
+      playGlassShatter() {
+        if (this.muted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        [2400, 3200, 4200].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + i * 0.02);
+          osc.frequency.exponentialRampToValueAtTime(700, now + i * 0.02 + 0.24);
+          gain.gain.setValueAtTime(0.18, now + i * 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.02 + 0.24);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.02);
+          osc.stop(now + i * 0.02 + 0.24);
+        });
+      },
+
+      playGoldChime() {
+        if (this.muted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        [1318.51, 2637.02].forEach(freq => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.16, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        });
+      },
+
+      playSteelResonance() {
+        if (this.muted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.22);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      },
+
+      playLuckyJackpot() {
+        if (this.muted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.06);
+          osc.stop(now + idx * 0.06 + 0.28);
+        });
+      },
+
+      playCardSelect(stepIndex = 1) {
+        if (this.muted) return;
+        this.init();
+        // Musical pentatonic scale: C5, D5, E5, G5, A5, C6
+        const pentatonic = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+        const freq = pentatonic[Math.min(stepIndex - 1, pentatonic.length - 1)] || 523.25;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.04, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -1218,9 +1898,9 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(660, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(330, this.ctx.currentTime + 0.06);
-        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(620, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(310, this.ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.09, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -1253,12 +1933,29 @@
         const baseFreq = 329.63 * pitchMultiplier; // E4
         osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, this.ctx.currentTime + 0.22);
-        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
         osc.stop(this.ctx.currentTime + 0.22);
+      },
+
+      playJokerTrigger(index = 0) {
+        if (this.muted) return;
+        this.init();
+        const notes = [659.25, 783.99, 880.00, 1046.50, 1174.66];
+        const freq = notes[index % notes.length];
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.2);
       },
 
       playCashKaching() {
@@ -1286,13 +1983,13 @@
         const gain = this.ctx.createGain();
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(140, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+        osc.frequency.linearRampToValueAtTime(105, this.ctx.currentTime + 0.32);
+        gain.gain.setValueAtTime(0.24, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.32);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.3);
+        osc.stop(this.ctx.currentTime + 0.32);
       },
 
       playVictoryFanfare() {
@@ -1314,30 +2011,62 @@
         });
       },
 
-      // Ambient Cyber Lofi Synth Loop
-      startLofiMusic() {
-        if (this.muted || this.musicTimer) return;
+      // Multi-Track Music Sequencer
+      startMusic() {
+        if (this.muted || this.musicTimer || this.currentTrack === 3) return;
         this.init();
-        const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C major pentatonic
         let step = 0;
 
+        // Track 0: Cosmic Velvet (Lofi Pentatonic)
+        // Track 1: Cyber Neon (Upbeat 80s Synthwave)
+        // Track 2: Boss Tension (Deep Pulsing Saw)
         this.musicTimer = setInterval(() => {
-          if (this.muted) return;
+          if (this.muted || this.currentTrack === 3) return;
           try {
-            const freq = scale[step % scale.length];
-            step = (step + 1) % scale.length;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-            gain.gain.setValueAtTime(0.025, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.9);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.9);
+            const now = this.ctx.currentTime;
+            if (this.currentTrack === 0) {
+              const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+              const freq = pentatonic[step % pentatonic.length];
+              const osc = this.ctx.createOscillator();
+              const gain = this.ctx.createGain();
+              osc.type = "sine";
+              osc.frequency.setValueAtTime(freq, now);
+              gain.gain.setValueAtTime(0.03, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+              osc.connect(gain);
+              gain.connect(this.ctx.destination);
+              osc.start();
+              osc.stop(now + 0.85);
+            } else if (this.currentTrack === 1) {
+              const arp = [130.81, 196.00, 261.63, 329.63, 392.00, 523.25];
+              const freq = arp[step % arp.length];
+              const osc = this.ctx.createOscillator();
+              const gain = this.ctx.createGain();
+              osc.type = "sawtooth";
+              osc.frequency.setValueAtTime(freq, now);
+              gain.gain.setValueAtTime(0.022, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+              osc.connect(gain);
+              gain.connect(this.ctx.destination);
+              osc.start();
+              osc.stop(now + 0.35);
+            } else if (this.currentTrack === 2) {
+              const bass = [65.41, 65.41, 73.42, 65.41, 87.31, 65.41];
+              const freq = bass[step % bass.length];
+              const osc = this.ctx.createOscillator();
+              const gain = this.ctx.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(freq, now);
+              gain.gain.setValueAtTime(0.045, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+              osc.connect(gain);
+              gain.connect(this.ctx.destination);
+              osc.start();
+              osc.stop(now + 0.5);
+            }
+            step++;
           } catch(e) {}
-        }, 550);
+        }, this.currentTrack === 1 ? 280 : 520);
       },
 
       stopMusic() {
@@ -1347,14 +2076,16 @@
         }
       },
 
-      toggle() {
-        this.muted = !this.muted;
-        if (this.muted) {
-          this.stopMusic();
+      cycleTrack() {
+        this.stopMusic();
+        this.currentTrack = (this.currentTrack + 1) % 4;
+        if (this.currentTrack === 3) {
+          this.muted = true;
         } else {
-          this.startLofiMusic();
+          this.muted = false;
+          this.startMusic();
         }
-        return !this.muted;
+        return this.currentTrack;
       }
     };
 
@@ -1460,7 +2191,9 @@
       { name: "The Goad", rule: "All Spade cards are debuffed" },
       { name: "The Club", rule: "All Club cards are debuffed" },
       { name: "The Window", rule: "All Diamond cards are debuffed" },
-      { name: "The Head", rule: "All Heart cards are debuffed" }
+      { name: "The Head", rule: "All Heart cards are debuffed" },
+      { name: "The Mark", rule: "All face cards are drawn face down" },
+      { name: "The Wheel", rule: "1 in 7 cards get drawn face down" }
     ];
 
     // -------------------------------------------------------------------------
@@ -1485,6 +2218,7 @@
     let isScoring = false;
     let highestHandScore = 0;
     let lastUsedConsumable = null;
+    let gameSpeed = 1; // 1x, 2x, 4x
 
     function buildStandardDeck() {
       const d = [];
@@ -1537,15 +2271,16 @@
       money = 4;
       highestHandScore = 0;
       setupBlind();
+      FxEngine.init();
+      AudioEngine.startMusic();
     }
 
     function calculateBlindTarget(anteNum, bIdx) {
-      // Classic Balatro progression formula:
       const baseAnteScores = [300, 800, 2000, 5000, 11000, 20000, 35000, 50000];
       const base = baseAnteScores[Math.min(anteNum - 1, baseAnteScores.length - 1)] || (anteNum * 35000);
       if (bIdx === 0) return Math.round(base * 1.0);
       if (bIdx === 1) return Math.round(base * 1.5);
-      return Math.round(base * 2.0); // Boss blind
+      return Math.round(base * 2.0);
     }
 
     function setupBlind() {
@@ -1582,7 +2317,14 @@
     function drawCards(count) {
       for (let i = 0; i < count; i++) {
         if (deck.length === 0) break;
-        playerHand.push(deck.pop());
+        const card = deck.pop();
+        if (currentBlind && currentBlind.bossRule === "The Mark" && card.rank.isFace) {
+          card.isFaceDown = true;
+        } else if (currentBlind && currentBlind.bossRule === "The Wheel" && Math.random() < (1 / 7)) {
+          card.isFaceDown = true;
+        }
+        playerHand.push(card);
+        AudioEngine.playCardDeal();
       }
       renderPlayerHand();
     }
@@ -1595,7 +2337,6 @@
         return { name: "High Card", scoringCards: [] };
       }
 
-      // Sort cards descending by order
       const sorted = cards.slice().sort((a, b) => b.rank.order - a.rank.order);
       const rankCounts = {};
       const suitCounts = {};
@@ -1609,7 +2350,6 @@
       const counts = Object.values(rankCounts).sort((a, b) => b - a);
       const isFlush = Object.keys(suitCounts).some(s => s !== "wild" && (suitCounts[s] + (suitCounts["wild"] || 0)) >= 5) || (suitCounts["wild"] || 0) >= 5;
 
-      // Straight check
       const uniqueRanks = Array.from(new Set(sorted.map(c => c.rank.order))).sort((a, b) => b - a);
       let isStraight = false;
       let straightRanks = [];
@@ -1622,7 +2362,7 @@
             break;
           }
         }
-        // Ace-low straight: A, 5, 4, 3, 2
+        // Ace-low straight
         if (!isStraight && uniqueRanks.includes(14) && uniqueRanks.includes(5) && uniqueRanks.includes(4) && uniqueRanks.includes(3) && uniqueRanks.includes(2)) {
           isStraight = true;
           straightRanks = [5, 4, 3, 2, 14];
@@ -1718,14 +2458,12 @@
       const playedCards = selectedIndices.map(i => playerHand[i]);
       const scoredData = calculateHandScore(playedCards);
 
-      // Decrement hands
       handsLeft--;
       handUsage[scoredData.name] = (handUsage[scoredData.name] || 0) + 1;
       AudioEngine.playChipChime(1.0);
 
       // Boss restrictions check:
       if (currentBlind.bossRule === "The Hook") {
-        // Discard 2 random cards
         const remaining = playerHand.filter((_, i) => !selectedIndices.includes(i));
         if (remaining.length >= 2) {
           remaining.splice(Math.floor(Math.random() * remaining.length), 1);
@@ -1737,15 +2475,17 @@
       const playedTray = document.getElementById("playedCardsTray");
       playedTray.innerHTML = "";
 
-      // Move played cards to played tray
+      // Move played cards to played tray (flipping any face-down cards face-up)
       playedCards.forEach(c => {
+        if (c.isFaceDown) {
+          c.isFaceDown = false;
+        }
         const el = createCardElement(c, false);
         el.style.transform = "translateY(40px) scale(0.9)";
         el.style.opacity = "0";
         playedTray.appendChild(el);
       });
 
-      // Slide played cards into center
       await sleep(100);
       const domCards = Array.from(playedTray.children);
       domCards.forEach((c, idx) => {
@@ -1753,18 +2493,46 @@
           c.style.transition = "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
           c.style.transform = "translateY(0) scale(1.05)";
           c.style.opacity = "1";
-          AudioEngine.playCardSelect();
-        }, idx * 100);
+          AudioEngine.playCardSelect(idx + 1);
+        }, (idx * 100) / gameSpeed);
       });
 
-      await sleep(domCards.length * 100 + 200);
+      await sleep((domCards.length * 100 + 200));
 
       // Sequential card chip pops
       for (let i = 0; i < domCards.length; i++) {
         const cardEl = domCards[i];
-        cardEl.style.transform = "translateY(-12px) scale(1.15)";
+        const cardData = playedCards[i];
+        cardEl.style.transform = "translateY(-14px) scale(1.18)";
         cardEl.style.boxShadow = "0 0 25px var(--neon-cyan)";
         AudioEngine.playChipChime(1.0 + i * 0.1);
+
+        // Check Card Enhancements for unique visual & audio reactions!
+        if (cardData) {
+          const rect = cardEl.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+
+          if (cardData.enhancement === "glass") {
+            if (Math.random() < 0.25) {
+              AudioEngine.playGlassShatter();
+              FxEngine.spawnGlassShatter(cx, cy, 32);
+              shakeScreen(7);
+              cardEl.style.filter = "grayscale(1) brightness(0.5)";
+            }
+          } else if (cardData.enhancement === "gold") {
+            AudioEngine.playGoldChime();
+            FxEngine.spawnCoinShower(cx, cy, 14);
+          } else if (cardData.enhancement === "steel") {
+            AudioEngine.playSteelResonance();
+          } else if (cardData.enhancement === "lucky") {
+            if (Math.random() < 0.4) {
+              AudioEngine.playLuckyJackpot();
+              FxEngine.spawnLuckyStars(cx, cy, 20);
+            }
+          }
+        }
+
         await sleep(150);
         cardEl.style.transform = "translateY(0) scale(1.05)";
         cardEl.style.boxShadow = "0 8px 18px rgba(0,0,0,0.4)";
@@ -1774,9 +2542,11 @@
       const jokerEls = document.querySelectorAll(".joker-card");
       for (let j = 0; j < jokerEls.length; j++) {
         const jEl = jokerEls[j];
-        jEl.style.transform = "translateY(-14px) scale(1.18)";
+        jEl.style.transform = "translateY(-16px) scale(1.2)";
         jEl.style.borderColor = "var(--neon-pink)";
-        AudioEngine.playMultFire(1.0 + j * 0.15);
+        AudioEngine.playJokerTrigger(j);
+        const rect = jEl.getBoundingClientRect();
+        FxEngine.spawnFireEmbers(rect.left + rect.width / 2, rect.top + 10, 15);
         await sleep(180);
         jEl.style.transform = "";
         jEl.style.borderColor = "";
@@ -1785,7 +2555,9 @@
       // Grand Multiplier Flame Burst
       const totalBlock = document.getElementById("calcTotal");
       totalBlock.style.transform = "scale(1.35)";
-      totalBlock.style.boxShadow = "0 0 35px var(--neon-gold)";
+      totalBlock.style.boxShadow = "0 0 40px var(--neon-gold)";
+      const rect = totalBlock.getBoundingClientRect();
+      FxEngine.spawnFireEmbers(rect.left + rect.width / 2, rect.top + rect.height / 2, 35);
       shakeScreen(6);
       AudioEngine.playVictoryFanfare();
 
@@ -1807,18 +2579,16 @@
 
       // Check if target met or out of hands
       if (currentRoundScore >= currentBlind.target) {
-        // Blind Cleared!
         await sleep(500);
+        FxEngine.spawnConfetti(70);
         AudioEngine.playCashKaching();
         money += currentBlind.reward;
         openShop();
       } else if (handsLeft <= 0) {
-        // Run Over!
         await sleep(500);
         AudioEngine.playNopeBuzzer();
         triggerGameOver();
       } else {
-        // Draw up to 8 cards
         drawCards(8 - playerHand.length);
         isScoring = false;
         updateScorePreview();
@@ -1838,8 +2608,16 @@
       updateScorePreview();
     }
 
+    function deselectAllCards() {
+      if (isScoring || selectedIndices.length === 0) return;
+      selectedIndices = [];
+      AudioEngine.playCardDeselect();
+      renderPlayerHand();
+      updateScorePreview();
+    }
+
     function sleep(ms) {
-      return new Promise(res => setTimeout(res, ms));
+      return new Promise(res => setTimeout(res, ms / gameSpeed));
     }
 
     function shakeScreen(amount = 5) {
@@ -1849,23 +2627,614 @@
     }
 
     // -------------------------------------------------------------------------
-    // 6. UI Rendering & 3D Interactive Card Physics
+    // 6. Authentic Casino Playing Card Vector Engine & 3D Interactive Physics
     // -------------------------------------------------------------------------
+    function getSuitSvg(suit, customClass = "") {
+      switch (suit) {
+        case "spades":
+          return `<svg viewBox="0 0 100 100" class="suit-svg suit-spades ${customClass}"><path d="M50 6 C46 24, 12 40, 12 65 C12 80, 28 86, 42 78 C44 76, 45 74, 46 71 C45 80, 37 90, 32 94 L68 94 C63 90, 55 80, 54 71 C55 74, 56 76, 58 78 C72 86, 88 80, 88 65 C88 40, 54 24, 50 6 Z" fill="currentColor"/></svg>`;
+        case "hearts":
+          return `<svg viewBox="0 0 100 100" class="suit-svg suit-hearts ${customClass}"><path d="M50 88 C40 76, 10 52, 10 32 C10 14, 25 8, 38 8 C46 8, 48 14, 50 20 C52 14, 54 8, 62 8 C75 8, 90 14, 90 32 C90 52, 60 76, 50 88 Z" fill="currentColor"/></svg>`;
+        case "clubs":
+          return `<svg viewBox="0 0 100 100" class="suit-svg suit-clubs ${customClass}"><path d="M50 6 A17 17 0 0 1 65 29 A17 17 0 0 1 85 58 A17 17 0 0 1 56 63 L57 73 C60 81, 65 88, 68 94 L32 94 C35 88, 40 81, 43 73 L44 63 A17 17 0 0 1 15 58 A17 17 0 0 1 35 29 A17 17 0 0 1 50 6 Z" fill="currentColor"/></svg>`;
+        case "diamonds":
+          return `<svg viewBox="0 0 100 100" class="suit-svg suit-diamonds ${customClass}"><path d="M50 4 L88 50 L50 96 L12 50 Z" fill="currentColor"/></svg>`;
+        default:
+          return "";
+      }
+    }
+
+    const PIP_CONFIGS = {
+      "2": [
+        { x: 50, y: 22, flip: false },
+        { x: 50, y: 78, flip: true }
+      ],
+      "3": [
+        { x: 50, y: 20, flip: false },
+        { x: 50, y: 50, flip: false },
+        { x: 50, y: 80, flip: true }
+      ],
+      "4": [
+        { x: 26, y: 22, flip: false },
+        { x: 74, y: 22, flip: false },
+        { x: 26, y: 78, flip: true },
+        { x: 74, y: 78, flip: true }
+      ],
+      "5": [
+        { x: 26, y: 22, flip: false },
+        { x: 74, y: 22, flip: false },
+        { x: 50, y: 50, flip: false },
+        { x: 26, y: 78, flip: true },
+        { x: 74, y: 78, flip: true }
+      ],
+      "6": [
+        { x: 26, y: 20, flip: false },
+        { x: 74, y: 20, flip: false },
+        { x: 26, y: 50, flip: false },
+        { x: 74, y: 50, flip: false },
+        { x: 26, y: 80, flip: true },
+        { x: 74, y: 80, flip: true }
+      ],
+      "7": [
+        { x: 26, y: 20, flip: false },
+        { x: 74, y: 20, flip: false },
+        { x: 50, y: 35, flip: false },
+        { x: 26, y: 50, flip: false },
+        { x: 74, y: 50, flip: false },
+        { x: 26, y: 80, flip: true },
+        { x: 74, y: 80, flip: true }
+      ],
+      "8": [
+        { x: 26, y: 18, flip: false },
+        { x: 74, y: 18, flip: false },
+        { x: 50, y: 34, flip: false },
+        { x: 26, y: 50, flip: false },
+        { x: 74, y: 50, flip: false },
+        { x: 50, y: 66, flip: true },
+        { x: 26, y: 82, flip: true },
+        { x: 74, y: 82, flip: true }
+      ],
+      "9": [
+        { x: 26, y: 16, flip: false },
+        { x: 74, y: 16, flip: false },
+        { x: 26, y: 38, flip: false },
+        { x: 74, y: 38, flip: false },
+        { x: 50, y: 50, flip: false },
+        { x: 26, y: 62, flip: true },
+        { x: 74, y: 62, flip: true },
+        { x: 26, y: 84, flip: true },
+        { x: 74, y: 84, flip: true }
+      ],
+      "10": [
+        { x: 26, y: 16, flip: false },
+        { x: 74, y: 16, flip: false },
+        { x: 50, y: 27, flip: false },
+        { x: 26, y: 40, flip: false },
+        { x: 74, y: 40, flip: false },
+        { x: 26, y: 60, flip: true },
+        { x: 74, y: 60, flip: true },
+        { x: 50, y: 73, flip: true },
+        { x: 26, y: 84, flip: true },
+        { x: 74, y: 84, flip: true }
+      ]
+    };
+
+    // -------------------------------------------------------------------------
+    // Authentic French Court Card Portraits (English/French Standard Pattern)
+    // -------------------------------------------------------------------------
+    function getKingOfSpadesSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M8 82 L8 52 C14 44, 26 40, 50 40 C74 40, 86 44, 92 52 L92 82 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.6"/>
+          <path d="M22 50 L30 82 M32 46 L42 82 M78 50 L70 82 M68 46 L58 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M20 50 C30 42, 40 41, 50 41 C60 41, 70 42, 80 50 C82 62, 75 74, 68 80 L32 80 C25 74, 18 62, 20 50 Z" fill="#f8fafc" stroke="#111827" stroke-width="1.4"/>
+          <path d="M32 64 L34 67 L32 70 Z M50 70 L52 73 L50 76 Z M68 64 L70 67 L68 70 Z" fill="#111827"/>
+          <rect x="12" y="14" width="4.5" height="68" fill="#cbd5e1" stroke="#334155" stroke-width="1.2"/>
+          <polygon points="14.25,6 9,14 19.5,14" fill="#cbd5e1" stroke="#334155" stroke-width="1.2"/>
+          <rect x="7" y="34" width="14.5" height="4" fill="#eab308" stroke="#78350f" stroke-width="1"/>
+          <circle cx="14.25" cy="48" r="3" fill="#ca8a04" stroke="#78350f" stroke-width="0.8"/>
+          <path d="M10 38 C10 36, 18 36, 18 38 L18 44 C18 46, 10 46, 10 44 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <line x1="12" y1="40" x2="16" y2="40" stroke="#111827" stroke-width="0.8"/>
+          <line x1="12" y1="42" x2="16" y2="42" stroke="#111827" stroke-width="0.8"/>
+          <rect x="42" y="28" width="16" height="16" fill="#fed7aa"/>
+          <ellipse cx="50" cy="28" rx="12" ry="13" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M38 26 C33 34, 35 44, 40 48 C45 52, 55 52, 60 48 C65 44, 67 34, 62 26" fill="#1f2937" stroke="#111827" stroke-width="1.2"/>
+          <ellipse cx="50" cy="30" rx="6" ry="5" fill="#fed7aa"/>
+          <path d="M42 24 Q46 23 48 24 M52 24 Q54 23 58 24" stroke="#111827" stroke-width="1.3" fill="none"/>
+          <ellipse cx="45" cy="26" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45.5" cy="26" r="1.1" fill="#111827"/>
+          <ellipse cx="55" cy="26" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55.5" cy="26" r="1.1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <path d="M43 31 C47 29, 50 31, 50 32 C50 31, 53 29, 57 31 C53 34, 47 34, 43 31 Z" fill="#1f2937"/>
+          <path d="M36 17 L33 6 L41 12 L50 4 L59 12 L67 6 L64 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.4"/>
+          <rect x="36" y="16" width="28" height="3.5" fill="#ca8a04" stroke="#78350f" stroke-width="1"/>
+          <circle cx="50" cy="6" r="2" fill="#ef4444"/>
+          <circle cx="42" cy="13" r="1.5" fill="#3b82f6"/>
+          <circle cx="58" cy="13" r="1.5" fill="#3b82f6"/>
+          <g transform="translate(76, 58) scale(0.22)">${getSuitSvg("spades")}</g>
+        </svg>
+      `;
+    }
+
+    function getKingOfHeartsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M8 82 L8 52 C14 44, 26 40, 50 40 C74 40, 86 44, 92 52 L92 82 Z" fill="#be123c" stroke="#111827" stroke-width="1.6"/>
+          <path d="M22 50 L30 82 M32 46 L42 82 M78 50 L70 82 M68 46 L58 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M20 50 C30 42, 40 41, 50 41 C60 41, 70 42, 80 50 C82 62, 75 74, 68 80 L32 80 C25 74, 18 62, 20 50 Z" fill="#f8fafc" stroke="#111827" stroke-width="1.4"/>
+          <path d="M32 64 L34 67 L32 70 Z M50 70 L52 73 L50 76 Z M68 64 L70 67 L68 70 Z" fill="#111827"/>
+          <!-- THE SUICIDE KING: Sword behind head, clean-shaven! -->
+          <path d="M14 20 L82 20" stroke="#cbd5e1" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M14 20 L82 20" stroke="#334155" stroke-width="1.2" stroke-linecap="round"/>
+          <rect x="80" y="14" width="4" height="12" fill="#ca8a04" stroke="#78350f" stroke-width="1"/>
+          <circle cx="87" cy="20" r="3.5" fill="#ca8a04"/>
+          <path d="M78 22 C78 20, 85 20, 85 22 L85 28 C85 30, 78 30, 78 28 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <rect x="42" y="28" width="16" height="16" fill="#fed7aa"/>
+          <ellipse cx="50" cy="28" rx="12" ry="13" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M35 24 C33 34, 35 44, 40 48 M65 24 C67 34, 65 44, 60 48" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+          <path d="M42 24 Q46 23 48 24 M52 24 Q54 23 58 24" stroke="#111827" stroke-width="1.3" fill="none"/>
+          <ellipse cx="45" cy="26" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45.5" cy="26" r="1.1" fill="#111827"/>
+          <ellipse cx="55" cy="26" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55.5" cy="26" r="1.1" fill="#111827"/>
+          <path d="M50 25 L49 30 L51 30" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <path d="M47 34 Q50 36 53 34" stroke="#be123c" stroke-width="1.6" fill="none"/>
+          <path d="M36 17 L33 6 L41 12 L50 4 L59 12 L67 6 L64 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.4"/>
+          <rect x="36" y="16" width="28" height="3.5" fill="#ca8a04" stroke="#78350f" stroke-width="1"/>
+          <circle cx="50" cy="6" r="2" fill="#ef4444"/>
+          <circle cx="42" cy="13" r="1.5" fill="#ef4444"/>
+          <circle cx="58" cy="13" r="1.5" fill="#ef4444"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("hearts")}</g>
+        </svg>
+      `;
+    }
+
+    function getKingOfDiamondsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M8 82 L8 52 C14 44, 26 40, 50 40 C74 40, 86 44, 92 52 L92 82 Z" fill="#991b1b" stroke="#111827" stroke-width="1.6"/>
+          <path d="M24 50 L34 82 M44 46 L52 82 M76 50 L68 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M20 50 C30 42, 40 41, 50 41 C60 41, 70 42, 80 50 C82 62, 75 74, 68 80 L32 80 C25 74, 18 62, 20 50 Z" fill="#f8fafc" stroke="#111827" stroke-width="1.4"/>
+          <path d="M38 64 L40 67 L38 70 Z M60 64 L62 67 L60 70 Z" fill="#111827"/>
+          <rect x="84" y="10" width="3.5" height="72" fill="#64748b" stroke="#334155" stroke-width="1"/>
+          <path d="M85 10 C92 10, 96 15, 94 24 C89 26, 85 24, 85 24 Z" fill="#cbd5e1" stroke="#334155" stroke-width="1.2"/>
+          <path d="M74 54 C74 52, 80 52, 80 54 L80 60 C80 62, 74 62, 74 60 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <!-- PROFILE FACE (Only One Eye Visible, Facing Left!) -->
+          <path d="M42 16 C37 21, 37 31, 40 40 C45 47, 55 49, 60 44 C65 39, 65 24, 60 16 Z" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M40 23 L33 28 L40 31" stroke="#111827" stroke-width="1.4" fill="#fed7aa"/>
+          <ellipse cx="43" cy="25" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="43" cy="25" r="1.1" fill="#111827"/>
+          <path d="M41 22 Q44 21 48 22" stroke="#111827" stroke-width="1.2" fill="none"/>
+          <path d="M36 32 C35 38, 40 45, 48 45 C53 45, 55 40, 50 35" fill="#1f2937" stroke="#111827" stroke-width="1.2"/>
+          <path d="M33 16 L35 7 L42 13 L52 5 L60 12 L62 16 Z" fill="#eab308" stroke="#78350f" stroke-width="1.4"/>
+          <circle cx="52" cy="7" r="1.8" fill="#3b82f6"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("diamonds")}</g>
+        </svg>
+      `;
+    }
+
+    function getKingOfClubsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M8 82 L8 52 C14 44, 26 40, 50 40 C74 40, 86 44, 92 52 L92 82 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.6"/>
+          <path d="M22 50 L30 82 M32 46 L42 82 M78 50 L70 82 M68 46 L58 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M20 50 C30 42, 40 41, 50 41 C60 41, 70 42, 80 50 C82 62, 75 74, 68 80 L32 80 C25 74, 18 62, 20 50 Z" fill="#f8fafc" stroke="#111827" stroke-width="1.4"/>
+          <path d="M32 64 L34 67 L32 70 Z M50 70 L52 73 L50 76 Z M68 64 L70 67 L68 70 Z" fill="#111827"/>
+          <circle cx="82" cy="56" r="7.5" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M82 44 L82 52 M78 47 L86 47" stroke="#ca8a04" stroke-width="1.8"/>
+          <circle cx="82" cy="43" r="1.8" fill="#ef4444"/>
+          <path d="M80 62 C80 60, 86 60, 86 62 L86 68 C86 70, 80 70, 80 68 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <rect x="42" y="28" width="16" height="16" fill="#fed7aa"/>
+          <ellipse cx="50" cy="28" rx="12" ry="13" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M38 26 C33 34, 35 44, 40 48 C45 52, 55 52, 60 48 C65 44, 67 34, 62 26" fill="#1f2937" stroke="#111827" stroke-width="1.2"/>
+          <ellipse cx="50" cy="30" rx="6" ry="5" fill="#fed7aa"/>
+          <path d="M42 24 Q46 23 48 24 M52 24 Q54 23 58 24" stroke="#111827" stroke-width="1.3" fill="none"/>
+          <ellipse cx="45" cy="26" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45.5" cy="26" r="1.1" fill="#111827"/>
+          <ellipse cx="55" cy="26" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55.5" cy="26" r="1.1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <path d="M43 31 C47 29, 50 31, 50 32 C50 31, 53 29, 57 31 C53 34, 47 34, 43 31 Z" fill="#1f2937"/>
+          <path d="M36 17 L33 6 L41 12 L50 4 L59 12 L67 6 L64 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.4"/>
+          <rect x="36" y="16" width="28" height="3.5" fill="#ca8a04" stroke="#78350f" stroke-width="1"/>
+          <circle cx="50" cy="6" r="2" fill="#10b981"/>
+          <circle cx="42" cy="13" r="1.5" fill="#3b82f6"/>
+          <circle cx="58" cy="13" r="1.5" fill="#3b82f6"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("clubs")}</g>
+        </svg>
+      `;
+    }
+
+    // Queens
+    function getQueenOfHeartsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 42, 34 40, 50 40 C66 40, 78 42, 86 48 L90 82 Z" fill="#be123c" stroke="#111827" stroke-width="1.6"/>
+          <path d="M34 46 L50 72 L66 46 L50 40 Z" fill="#fef3c7" stroke="#ca8a04" stroke-width="1.4"/>
+          <path d="M40 43 C44 47, 56 47, 60 43" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 3.5"/>
+          <path d="M30 18 C25 30, 25 52, 20 62 M70 18 C75 30, 75 52, 80 62" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+          <!-- English Tudor Rose in Hand -->
+          <rect x="83" y="52" width="2.5" height="30" fill="#15803d"/>
+          <circle cx="84" cy="46" r="5.5" fill="#e11d48" stroke="#9f1239" stroke-width="1.2"/>
+          <circle cx="84" cy="46" r="2.5" fill="#fbbf24"/>
+          <path d="M81 58 C81 56, 88 56, 88 58 L88 64 C88 66, 81 66, 81 64 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <ellipse cx="50" cy="28" rx="11" ry="12" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M39 23 C39 16, 61 16, 61 23 C57 20, 43 20, 39 23 Z" fill="#78350f"/>
+          <path d="M42 23 Q45 22 47 23 M53 23 Q55 22 58 23" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <ellipse cx="45" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45" cy="25" r="1" fill="#111827"/>
+          <ellipse cx="55" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55" cy="25" r="1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1" fill="none"/>
+          <path d="M47 33 Q50 35 53 33" stroke="#be123c" stroke-width="1.6" fill="none"/>
+          <path d="M39 17 L39 9 L44 13 L50 7 L56 13 L61 9 L61 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <circle cx="50" cy="9" r="1.8" fill="#38bdf8"/>
+          <circle cx="41" cy="12" r="1.2" fill="#f8fafc"/>
+          <circle cx="59" cy="12" r="1.2" fill="#f8fafc"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("hearts")}</g>
+        </svg>
+      `;
+    }
+
+    function getQueenOfSpadesSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 42, 34 40, 50 40 C66 40, 78 42, 86 48 L90 82 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.6"/>
+          <path d="M34 46 L50 72 L66 46 L50 40 Z" fill="#fef3c7" stroke="#ca8a04" stroke-width="1.4"/>
+          <path d="M40 43 C44 47, 56 47, 60 43" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 3.5"/>
+          <path d="M30 18 C25 30, 25 52, 20 62 M70 18 C75 30, 75 52, 80 62" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round"/>
+          <rect x="83" y="28" width="2.5" height="54" fill="#ca8a04"/>
+          <circle cx="84" cy="26" r="4" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <circle cx="84" cy="26" r="1.8" fill="#ef4444"/>
+          <path d="M81 54 C81 52, 88 52, 88 54 L88 60 C88 62, 81 62, 81 60 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <ellipse cx="50" cy="28" rx="11" ry="12" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M39 23 C39 16, 61 16, 61 23 C57 20, 43 20, 39 23 Z" fill="#1f2937"/>
+          <path d="M42 23 Q45 22 47 23 M53 23 Q55 22 58 23" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <ellipse cx="45" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45" cy="25" r="1" fill="#111827"/>
+          <ellipse cx="55" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55" cy="25" r="1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1" fill="none"/>
+          <path d="M47 33 Q50 35 53 33" stroke="#be123c" stroke-width="1.6" fill="none"/>
+          <path d="M39 17 L39 9 L44 13 L50 7 L56 13 L61 9 L61 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <circle cx="50" cy="9" r="1.8" fill="#38bdf8"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("spades")}</g>
+        </svg>
+      `;
+    }
+
+    function getQueenOfDiamondsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 42, 34 40, 50 40 C66 40, 78 42, 86 48 L90 82 Z" fill="#991b1b" stroke="#111827" stroke-width="1.6"/>
+          <path d="M34 46 L50 72 L66 46 L50 40 Z" fill="#fef3c7" stroke="#ca8a04" stroke-width="1.4"/>
+          <path d="M40 43 C44 47, 56 47, 60 43" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 3.5"/>
+          <rect x="83" y="32" width="2.5" height="50" fill="#ca8a04"/>
+          <polygon points="84,24 80,32 88,32" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M81 54 C81 52, 88 52, 88 54 L88 60 C88 62, 81 62, 81 60 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <ellipse cx="50" cy="28" rx="11" ry="12" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M39 23 C39 16, 61 16, 61 23 C57 20, 43 20, 39 23 Z" fill="#78350f"/>
+          <path d="M42 23 Q45 22 47 23 M53 23 Q55 22 58 23" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <ellipse cx="45" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45" cy="25" r="1" fill="#111827"/>
+          <ellipse cx="55" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55" cy="25" r="1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1" fill="none"/>
+          <path d="M47 33 Q50 35 53 33" stroke="#be123c" stroke-width="1.6" fill="none"/>
+          <path d="M39 17 L39 9 L44 13 L50 7 L56 13 L61 9 L61 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <circle cx="50" cy="9" r="1.8" fill="#ca8a04"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("diamonds")}</g>
+        </svg>
+      `;
+    }
+
+    function getQueenOfClubsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 42, 34 40, 50 40 C66 40, 78 42, 86 48 L90 82 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.6"/>
+          <path d="M34 46 L50 72 L66 46 L50 40 Z" fill="#fef3c7" stroke="#ca8a04" stroke-width="1.4"/>
+          <path d="M40 43 C44 47, 56 47, 60 43" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 3.5"/>
+          <rect x="83" y="28" width="2.5" height="54" fill="#ca8a04"/>
+          <circle cx="84" cy="26" r="3.5" fill="#ca8a04"/>
+          <circle cx="84" cy="21" r="3" fill="#ca8a04"/>
+          <path d="M81 54 C81 52, 88 52, 88 54 L88 60 C88 62, 81 62, 81 60 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <ellipse cx="50" cy="28" rx="11" ry="12" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M39 23 C39 16, 61 16, 61 23 C57 20, 43 20, 39 23 Z" fill="#1f2937"/>
+          <path d="M42 23 Q45 22 47 23 M53 23 Q55 22 58 23" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <ellipse cx="45" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45" cy="25" r="1" fill="#111827"/>
+          <ellipse cx="55" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55" cy="25" r="1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1" fill="none"/>
+          <path d="M47 33 Q50 35 53 33" stroke="#be123c" stroke-width="1.6" fill="none"/>
+          <path d="M39 17 L39 9 L44 13 L50 7 L56 13 L61 9 L61 17 Z" fill="#eab308" stroke="#78350f" stroke-width="1.2"/>
+          <circle cx="50" cy="9" r="1.8" fill="#10b981"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("clubs")}</g>
+        </svg>
+      `;
+    }
+
+    // Jacks: One-Eyed Jacks (Spades & Hearts), Hector (Diamonds), Lancelot (Clubs)
+    function getJackOfSpadesSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 44, 34 42, 50 42 C66 44, 78 44, 86 48 L90 82 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.6"/>
+          <path d="M20 54 L28 82 M30 50 L38 82 M72 50 L64 82 M80 54 L72 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M34 42 L50 56 L66 42 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+          <rect x="83" y="10" width="3" height="72" fill="#64748b" stroke="#334155" stroke-width="1"/>
+          <polygon points="84.5,4 80,14 89,14" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
+          <path d="M84.5,14 C76 14, 71 19, 73 26 C80 26, 84.5 21, 84.5 21 Z" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
+          <path d="M81 46 C81 44, 87 44, 87 46 L87 52 C87 54, 81 54, 81 52 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <!-- PROFILE FACE (THE ONE-EYED JACK: Facing Right!) -->
+          <path d="M42 20 C47 22, 60 25, 60 37 C60 45, 52 52, 45 50 C38 47, 37 28, 42 20 Z" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M58 27 L65 32 L58 35" stroke="#111827" stroke-width="1.4" fill="#fed7aa"/>
+          <path d="M51 25 Q55 24 58 25" stroke="#111827" stroke-width="1.3" fill="none"/>
+          <ellipse cx="55" cy="27" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55.5" cy="27" r="1.1" fill="#111827"/>
+          <path d="M58 37 L61 37" stroke="#be123c" stroke-width="1.4"/>
+          <path d="M38 25 C33 32, 35 45, 41 48" stroke="#d97706" stroke-width="3" stroke-linecap="round"/>
+          <path d="M38 22 C38 12, 65 12, 65 22 Z" fill="#b91c1c" stroke="#111827" stroke-width="1.4"/>
+          <path d="M38 20 C28 10, 18 15, 13 25 C23 23, 30 20, 38 20 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("spades")}</g>
+        </svg>
+      `;
+    }
+
+    function getJackOfHeartsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 44, 34 42, 50 42 C66 44, 78 44, 86 48 L90 82 Z" fill="#be123c" stroke="#111827" stroke-width="1.6"/>
+          <path d="M20 54 L28 82 M30 50 L38 82 M72 50 L64 82 M80 54 L72 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M34 42 L50 56 L66 42 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+          <rect x="14" y="12" width="3" height="70" fill="#64748b" stroke="#334155" stroke-width="1"/>
+          <polygon points="15.5,7 10.5,17 20.5,17" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
+          <path d="M13 46 C13 44, 19 44, 19 46 L19 52 C19 54, 13 54, 13 52 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <!-- PROFILE FACE (THE ONE-EYED JACK: Facing Left!) -->
+          <path d="M58 20 C53 22, 40 25, 40 37 C40 45, 48 52, 55 50 C62 47, 63 28, 58 20 Z" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M42 27 L35 32 L42 35" stroke="#111827" stroke-width="1.4" fill="#fed7aa"/>
+          <path d="M49 25 Q45 24 42 25" stroke="#111827" stroke-width="1.3" fill="none"/>
+          <ellipse cx="45" cy="27" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="44.5" cy="27" r="1.1" fill="#111827"/>
+          <path d="M42 37 L39 37" stroke="#be123c" stroke-width="1.4"/>
+          <path d="M62 25 C67 32, 65 45, 59 48" stroke="#d97706" stroke-width="3" stroke-linecap="round"/>
+          <path d="M35 22 C35 12, 62 12, 62 22 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.4"/>
+          <path d="M62 20 C72 10, 82 15, 87 25 C77 23, 70 20, 62 20 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+          <g transform="translate(76, 58) scale(0.22)">${getSuitSvg("hearts")}</g>
+        </svg>
+      `;
+    }
+
+    function getJackOfDiamondsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 44, 34 42, 50 42 C66 44, 78 44, 86 48 L90 82 Z" fill="#991b1b" stroke="#111827" stroke-width="1.6"/>
+          <path d="M20 54 L28 82 M30 50 L38 82 M72 50 L64 82 M80 54 L72 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M34 42 L50 56 L66 42 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+          <rect x="83" y="10" width="3" height="72" fill="#64748b" stroke="#334155" stroke-width="1"/>
+          <polygon points="84.5,4 80,14 89,14" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
+          <path d="M81 46 C81 44, 87 44, 87 46 L87 52 C87 54, 81 54, 81 52 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <path d="M42 20 C47 22, 60 25, 60 37 C60 45, 52 52, 45 50 C38 47, 37 28, 42 20 Z" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M58 27 L65 32 L58 35" stroke="#111827" stroke-width="1.4" fill="#fed7aa"/>
+          <path d="M51 25 Q55 24 58 25" stroke="#111827" stroke-width="1.3" fill="none"/>
+          <ellipse cx="55" cy="27" rx="2" ry="1.5" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55.5" cy="27" r="1.1" fill="#111827"/>
+          <path d="M58 37 L61 37" stroke="#be123c" stroke-width="1.4"/>
+          <path d="M38 25 C33 32, 35 45, 41 48" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+          <path d="M38 22 C38 12, 65 12, 65 22 Z" fill="#ca8a04" stroke="#111827" stroke-width="1.4"/>
+          <g transform="translate(18, 58) scale(0.22)">${getSuitSvg("diamonds")}</g>
+        </svg>
+      `;
+    }
+
+    function getJackOfClubsSvg() {
+      return `
+        <svg viewBox="0 0 100 82" class="court-portrait-svg">
+          <path d="M10 82 L14 48 C22 44, 34 42, 50 42 C66 44, 78 44, 86 48 L90 82 Z" fill="#1e3a8a" stroke="#111827" stroke-width="1.6"/>
+          <path d="M20 54 L28 82 M30 50 L38 82 M72 50 L64 82 M80 54 L72 82" stroke="#ca8a04" stroke-width="2.2"/>
+          <path d="M34 42 L50 56 L66 42 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+          <rect x="14" y="8" width="3" height="74" fill="#64748b" stroke="#334155" stroke-width="1"/>
+          <polygon points="15.5,3 10.5,13 20.5,13" fill="#cbd5e1" stroke="#334155" stroke-width="1"/>
+          <path d="M13 46 C13 44, 19 44, 19 46 L19 52 C19 54, 13 54, 13 52 Z" fill="#fed7aa" stroke="#111827" stroke-width="1"/>
+          <!-- Frontal 3/4 Face (Two Eyes Visible!) -->
+          <ellipse cx="50" cy="28" rx="11" ry="12" fill="#fed7aa" stroke="#111827" stroke-width="1.2"/>
+          <path d="M42 23 Q45 22 47 23 M53 23 Q55 22 58 23" stroke="#111827" stroke-width="1.1" fill="none"/>
+          <ellipse cx="45" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="45.5" cy="25" r="1.1" fill="#111827"/>
+          <ellipse cx="55" cy="25" rx="1.8" ry="1.4" fill="#fff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="55.5" cy="25" r="1.1" fill="#111827"/>
+          <path d="M50 25 L49 29 L51 29" stroke="#111827" stroke-width="1" fill="none"/>
+          <path d="M47 34 Q50 35 53 34" stroke="#be123c" stroke-width="1.5" fill="none"/>
+          <path d="M37 24 C35 32, 37 42, 41 47 M63 24 C65 32, 63 42, 59 47" stroke="#d97706" stroke-width="3" stroke-linecap="round"/>
+          <path d="M38 20 C38 10, 62 10, 62 20 Z" fill="#be123c" stroke="#111827" stroke-width="1.4"/>
+          <path d="M60 18 C70 8, 85 10, 90 20 C80 20, 70 15, 60 18 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+          <g transform="translate(76, 58) scale(0.22)">${getSuitSvg("clubs")}</g>
+        </svg>
+      `;
+    }
+
+    function getCourtCardPortraitSvg(rankId, suit) {
+      if (rankId === "K") {
+        if (suit === "spades") return getKingOfSpadesSvg();
+        if (suit === "hearts") return getKingOfHeartsSvg();
+        if (suit === "diamonds") return getKingOfDiamondsSvg();
+        if (suit === "clubs") return getKingOfClubsSvg();
+      } else if (rankId === "Q") {
+        if (suit === "hearts") return getQueenOfHeartsSvg();
+        if (suit === "spades") return getQueenOfSpadesSvg();
+        if (suit === "diamonds") return getQueenOfDiamondsSvg();
+        if (suit === "clubs") return getQueenOfClubsSvg();
+      } else if (rankId === "J") {
+        if (suit === "spades") return getJackOfSpadesSvg();
+        if (suit === "hearts") return getJackOfHeartsSvg();
+        if (suit === "diamonds") return getJackOfDiamondsSvg();
+        if (suit === "clubs") return getJackOfClubsSvg();
+      }
+      return "";
+    }
+
+    function getCourtCardHtml(card) {
+      const portraitSvg = getCourtCardPortraitSvg(card.rank.id, card.suit);
+      return `
+        <div class="court-portrait-box">
+          <div class="court-half top">${portraitSvg}</div>
+          <div class="court-divider"></div>
+          <div class="court-half bottom">${portraitSvg}</div>
+        </div>
+      `;
+    }
+
+    function getAceCardHtml(card) {
+      if (card.suit === "spades") {
+        return `
+          <div class="ace-ornate-container">
+            <svg viewBox="0 0 100 120" class="ace-master-spade">
+              <g stroke="#1e293b" fill="none" stroke-width="1.2" opacity="0.65">
+                <path d="M22 96 C10 75, 12 42, 30 24 C40 14, 50 10, 50 8 C50 10, 60 14, 70 24 C88 42, 90 75, 78 96"/>
+                <path d="M16 66 C8 52, 14 36, 26 28 M84 66 C92 52, 86 36, 74 28"/>
+                <circle cx="20" cy="60" r="2.2" fill="#1e293b"/>
+                <circle cx="80" cy="60" r="2.2" fill="#1e293b"/>
+                <circle cx="28" cy="38" r="2.2" fill="#1e293b"/>
+                <circle cx="72" cy="38" r="2.2" fill="#1e293b"/>
+              </g>
+              <path d="M50 12 C46 28, 16 42, 16 68 C16 82, 30 88, 42 80 C44 78, 45 76, 46 73 C45 82, 38 92, 33 96 L67 96 C62 92, 55 82, 54 73 C55 76, 56 78, 58 80 C70 88, 84 82, 84 68 C84 42, 54 28, 50 12 Z" fill="#111827"/>
+              <path d="M50 36 C45 46, 36 56, 36 66 C36 74, 42 78, 50 74 C58 78, 64 74, 64 66 C64 56, 55 46, 50 36 Z" fill="#faf8f5" opacity="0.95"/>
+              <circle cx="50" cy="60" r="3.5" fill="#111827"/>
+              <path d="M46 54 Q50 50 54 54 M46 66 Q50 70 54 66" stroke="#111827" stroke-width="1.2" fill="none"/>
+            </svg>
+            <span class="ace-label">JOKER ROYALE</span>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="ace-classic-container">
+            <svg viewBox="0 0 100 24" class="ace-flourish top">
+              <path d="M15 16 C30 8, 42 8, 50 14 C58 8, 70 8, 85 16" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/>
+              <circle cx="50" cy="14" r="2" fill="currentColor" opacity="0.6"/>
+            </svg>
+            <div class="ace-center-suit">${getSuitSvg(card.suit, "ace-suit-svg")}</div>
+            <svg viewBox="0 0 100 24" class="ace-flourish bottom">
+              <path d="M15 8 C30 16, 42 16, 50 10 C58 16, 70 16, 85 8" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5"/>
+              <circle cx="50" cy="10" r="2" fill="currentColor" opacity="0.6"/>
+            </svg>
+          </div>
+        `;
+      }
+    }
+
+    function getPipCardHtml(card) {
+      const pips = PIP_CONFIGS[card.rank.id] || [];
+      let pipsHtml = `<div class="card-pips-container">`;
+      for (const p of pips) {
+        pipsHtml += `
+          <div class="card-pip ${p.flip ? 'flipped' : ''}" style="left:${p.x}%;top:${p.y}%;">
+            ${getSuitSvg(card.suit, "pip-icon-svg")}
+          </div>
+        `;
+      }
+      pipsHtml += `</div>`;
+      return pipsHtml;
+    }
+
+    function createCardBackElement(color = "red") {
+      const el = document.createElement("div");
+      el.className = "poker-card";
+      el.innerHTML = `
+        <div class="card-back-view ${color === 'blue' ? 'blue-back' : ''}">
+          <div class="card-back-frame"></div>
+          <svg viewBox="0 0 60 60" class="card-back-rosette">
+            <circle cx="30" cy="30" r="26" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.6"/>
+            <circle cx="30" cy="30" r="18" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+            <circle cx="30" cy="30" r="8" fill="#ffffff" opacity="0.3"/>
+            <path d="M30 6 L30 54 M6 30 L54 30 M13 13 L47 47 M13 47 L47 13" stroke="#ffffff" stroke-width="1" opacity="0.7"/>
+            <circle cx="30" cy="30" r="4" fill="#ffffff"/>
+          </svg>
+        </div>
+      `;
+      return el;
+    }
+
     function createCardElement(card, isInteractive = true) {
       const el = document.createElement("div");
       el.className = `poker-card ${card.suitColor}`;
       if (card.edition !== "none") el.classList.add(`edition-${card.edition}`);
+      if (card.enhancement !== "none") el.classList.add(`enhancement-${card.enhancement}`);
+
+      if (card.isFaceDown) {
+        el.innerHTML = `
+          <div class="card-sheen"></div>
+          <div class="card-back-view ${card.backColor === 'blue' ? 'blue-back' : ''}">
+            <div class="card-back-frame"></div>
+            <svg viewBox="0 0 60 60" class="card-back-rosette">
+              <circle cx="30" cy="30" r="26" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.6"/>
+              <circle cx="30" cy="30" r="18" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+              <circle cx="30" cy="30" r="8" fill="#ffffff" opacity="0.3"/>
+              <path d="M30 6 L30 54 M6 30 L54 30 M13 13 L47 47 M13 47 L47 13" stroke="#ffffff" stroke-width="1" opacity="0.7"/>
+              <circle cx="30" cy="30" r="4" fill="#ffffff"/>
+            </svg>
+          </div>
+        `;
+        return el;
+      }
+
+      let badgeHtml = "";
+      if (card.enhancement !== "none") {
+        badgeHtml = `<span class="card-enhancement-badge">${card.enhancement.toUpperCase()}</span>`;
+      }
+
+      let centerContent = "";
+      if (card.enhancement === "stone") {
+        centerContent = `
+          <div class="stone-tablet-center">
+            <svg viewBox="0 0 80 80" class="stone-rune-svg">
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#d6d3d1" stroke-width="1.5" stroke-dasharray="4 2"/>
+              <path d="M40 16 L40 64 M20 28 L60 52 M20 52 L60 28" stroke="#d6d3d1" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="40" cy="40" r="8" fill="#44403c" stroke="#d6d3d1" stroke-width="1.5"/>
+            </svg>
+            <span class="stone-carved-text">+50 CHIPS</span>
+          </div>
+        `;
+      } else if (card.enhancement === "wild") {
+        centerContent = `
+          <div class="wild-emblem-badge">
+            <span class="w-spade">♠</span><span class="w-heart">♥</span>
+            <span class="w-club">♣</span><span class="w-diamond">♦</span>
+          </div>
+        `;
+      } else if (card.rank.id === "A") {
+        centerContent = getAceCardHtml(card);
+      } else if (card.rank.isFace) {
+        centerContent = getCourtCardHtml(card);
+      } else {
+        centerContent = getPipCardHtml(card);
+      }
+
+      let rivetsHtml = "";
+      if (card.enhancement === "steel") {
+        rivetsHtml = `
+          <div class="steel-rivet top-left"></div>
+          <div class="steel-rivet top-right"></div>
+          <div class="steel-rivet bottom-left"></div>
+          <div class="steel-rivet bottom-right"></div>
+        `;
+      }
 
       el.innerHTML = `
+        <div class="card-sheen"></div>
         <div class="card-face">
-          <div class="card-top-left">
+          <div class="card-inner-frame"></div>
+          ${rivetsHtml}
+          ${badgeHtml}
+          <div class="card-corner top-left">
             <span class="card-rank">${card.rank.label}</span>
-            <span class="card-suit">${card.suitSymbol}</span>
+            <div class="card-corner-suit">${getSuitSvg(card.suit)}</div>
           </div>
-          <div class="card-center-art">${card.suitSymbol}</div>
-          <div class="card-bottom-right">
+          <div class="card-center-area">
+            ${centerContent}
+          </div>
+          <div class="card-corner bottom-right">
             <span class="card-rank">${card.rank.label}</span>
-            <span class="card-suit">${card.suitSymbol}</span>
+            <div class="card-corner-suit">${getSuitSvg(card.suit)}</div>
           </div>
           <div class="card-chip-val">+${card.rank.chips}</div>
         </div>
@@ -1874,12 +3243,13 @@
       if (card.seal !== "none") {
         const seal = document.createElement("div");
         seal.className = `card-seal ${card.seal}`;
-        seal.textContent = card.seal[0].toUpperCase();
+        seal.textContent = card.seal === "gold" ? "$" : (card.seal === "blue" ? "☾" : (card.seal === "purple" ? "✦" : "★"));
         el.appendChild(seal);
       }
 
-      // 3D Gyro Mouse Tilt Physics
+      // 3D Gyro Tilt Physics & Natural Tactile Lighting
       if (isInteractive) {
+        const sheen = el.querySelector(".card-sheen");
         el.addEventListener("mousemove", (e) => {
           const rect = el.getBoundingClientRect();
           const x = e.clientX - rect.left - rect.width / 2;
@@ -1887,11 +3257,21 @@
           const rotX = -(y / (rect.height / 2)) * 14;
           const rotY = (x / (rect.width / 2)) * 14;
           const isSel = el.classList.contains("selected");
-          el.style.transform = `translateY(${isSel ? -28 : -14}px) scale(1.06) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+          el.style.transform = `translateY(${isSel ? -34 : -18}px) scale(1.08) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+          if (sheen) {
+            sheen.style.background = `radial-gradient(circle at ${e.clientX - rect.left}px ${e.clientY - rect.top}px, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 65%)`;
+          }
         });
 
         el.addEventListener("mouseleave", () => {
-          el.style.transform = "";
+          const isSel = el.classList.contains("selected");
+          const baseRot = parseFloat(el.dataset.baseRot || "0");
+          const baseY = parseFloat(el.dataset.baseY || "0");
+          if (isSel) {
+            el.style.transform = `translateY(-34px) scale(1.08)`;
+          } else {
+            el.style.transform = `translateY(${baseY}px) rotate(${baseRot}deg)`;
+          }
         });
       }
 
@@ -1902,10 +3282,23 @@
       const fan = document.getElementById("playerHandFan");
       fan.innerHTML = "";
 
+      const total = playerHand.length;
       playerHand.forEach((card, idx) => {
         const el = createCardElement(card, true);
         if (selectedIndices.includes(idx)) {
           el.classList.add("selected");
+        }
+
+        // Realistic natural fanning angles
+        const mid = (total - 1) / 2;
+        const offset = idx - mid;
+        const baseRot = total > 1 ? offset * 2.2 : 0;
+        const baseY = total > 1 ? Math.abs(offset) * 2.5 : 0;
+        el.dataset.baseRot = baseRot;
+        el.dataset.baseY = baseY;
+
+        if (!selectedIndices.includes(idx)) {
+          el.style.transform = `translateY(${baseY}px) rotate(${baseRot}deg)`;
         }
 
         el.addEventListener("click", () => {
@@ -1926,11 +3319,10 @@
         AudioEngine.playCardDeselect();
       } else {
         if (selectedIndices.length >= 5) {
-          // Max 5 cards selectable
           selectedIndices.shift();
         }
         selectedIndices.push(index);
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(selectedIndices.length);
       }
 
       renderPlayerHand();
@@ -1974,7 +3366,6 @@
         tray.appendChild(el);
       });
 
-      // Fill empty slots up to 5
       for (let i = jokers.length; i < 5; i++) {
         const empty = document.createElement("div");
         empty.className = "empty-slot";
@@ -2021,25 +3412,24 @@
         AudioEngine.playCashKaching();
       } else if (c.id === "the_empress" && selectedIndices.length > 0) {
         selectedIndices.slice(0, 2).forEach(i => { playerHand[i].enhancement = "mult"; });
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(1);
       } else if (c.id === "the_hierophant" && selectedIndices.length > 0) {
         selectedIndices.slice(0, 2).forEach(i => { playerHand[i].enhancement = "bonus"; });
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(1);
       } else if (c.id === "the_lovers" && selectedIndices.length > 0) {
         playerHand[selectedIndices[0]].enhancement = "wild";
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(1);
       } else if (c.id === "the_chariot" && selectedIndices.length > 0) {
         playerHand[selectedIndices[0]].enhancement = "steel";
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(1);
       } else if (c.id === "justice" && selectedIndices.length > 0) {
         playerHand[selectedIndices[0]].enhancement = "glass";
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(1);
       } else if (c.id === "the_hanged_man" && selectedIndices.length > 0) {
         playerHand = playerHand.filter((_, idx) => !selectedIndices.slice(0, 2).includes(idx));
         selectedIndices = [];
-        AudioEngine.playCardSelect();
+        AudioEngine.playCardSelect(1);
       } else if (c.planetHand) {
-        // Planet card levels up specific hand
         handLevels[c.planetHand] = (handLevels[c.planetHand] || 1) + 1;
         AudioEngine.playVictoryFanfare();
       }
@@ -2104,7 +3494,6 @@
       const cardShelf = document.getElementById("shopCardItems");
       cardShelf.innerHTML = "";
 
-      // 2 Random Cards (Jokers, Planets, Tarots)
       for (let i = 0; i < 2; i++) {
         const isJoker = Math.random() < 0.6;
         let item;
@@ -2130,7 +3519,6 @@
         cardShelf.appendChild(el);
       }
 
-      // Booster Packs
       const boosterShelf = document.getElementById("shopBoosterItems");
       boosterShelf.innerHTML = `
         <div class="shop-item-card">
@@ -2147,7 +3535,6 @@
         </div>
       `;
 
-      // Vouchers
       const voucherShelf = document.getElementById("shopVoucherItems");
       voucherShelf.innerHTML = `
         <div class="shop-item-card" style="width:220px;">
@@ -2202,7 +3589,6 @@
         jokers.push({ ...j, uid: Date.now() });
         alert(`🎉 Unpacked Joker: ${j.name}!`);
       } else if (type === "celestial") {
-        // Random hand level up
         const keys = Object.keys(POKER_HANDS);
         const randHand = keys[Math.floor(Math.random() * keys.length)];
         handLevels[randHand] = (handLevels[randHand] || 1) + 1;
@@ -2228,7 +3614,7 @@
       if (money < rerollCost) return;
       money -= rerollCost;
       rerollCost += 1;
-      AudioEngine.playCardSelect();
+      AudioEngine.playCardSelect(1);
       document.getElementById("shopCashVal").textContent = `$${money}`;
       document.getElementById("shopRerollCost").textContent = `$${rerollCost}`;
       populateShopItems();
@@ -2242,7 +3628,6 @@
         blindIndex = 0;
         ante++;
         if (ante > 8) {
-          // Victory!
           triggerVictory();
           return;
         }
@@ -2260,7 +3645,6 @@
       container.innerHTML = "";
       document.getElementById("deckTotalCards").textContent = deck.length + playerHand.length;
 
-      // Group counts
       let sp = 0, he = 0, cl = 0, di = 0;
       const allCards = deck.concat(playerHand);
       allCards.forEach(c => {
@@ -2274,9 +3658,15 @@
       document.getElementById("clubCount").textContent = cl;
       document.getElementById("diamondCount").textContent = di;
 
-      allCards.sort((a, b) => b.rank.order - a.rank.order).forEach(c => {
-        const el = createCardElement(c, false);
-        el.style.transform = "scale(0.85)";
+      const suitOrder = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 };
+      allCards.slice().sort((a, b) => {
+        if (suitOrder[a.suit] !== suitOrder[b.suit]) {
+          return suitOrder[a.suit] - suitOrder[b.suit];
+        }
+        return b.rank.order - a.rank.order;
+      }).forEach(c => {
+        const cardCopy = { ...c, isFaceDown: false };
+        const el = createCardElement(cardCopy, false);
         container.appendChild(el);
       });
 
@@ -2358,6 +3748,7 @@
       document.getElementById("endAnte").textContent = "Ante 8 Completed";
       document.getElementById("endHighestScore").textContent = highestHandScore.toLocaleString();
       saveScore(highestHandScore, 8);
+      FxEngine.spawnConfetti(120);
 
       document.getElementById("gameOverModal").style.display = "flex";
     }
@@ -2377,25 +3768,26 @@
         playSelectedHand();
       } else if (k === "d") {
         discardSelectedCards();
+      } else if (k === "u") {
+        deselectAllCards();
       } else if (k === "r") {
-        // Sort by Rank
         playerHand.sort((a, b) => b.rank.order - a.rank.order);
         selectedIndices = [];
         renderPlayerHand();
         updateScorePreview();
       } else if (k === "s") {
-        // Sort by Suit
         playerHand.sort((a, b) => a.suit.localeCompare(b.suit) || b.rank.order - a.rank.order);
         selectedIndices = [];
         renderPlayerHand();
         updateScorePreview();
       } else if (k === "m") {
-        toggleMusic();
+        cycleMusic();
       }
     });
 
     document.getElementById("btnPlayHand").addEventListener("click", playSelectedHand);
     document.getElementById("btnDiscard").addEventListener("click", discardSelectedCards);
+    document.getElementById("btnDeselectAll").addEventListener("click", deselectAllCards);
     document.getElementById("btnDeckView").addEventListener("click", openDeckModal);
     document.getElementById("btnHof").addEventListener("click", openHofModal);
     document.getElementById("btnNewRun").addEventListener("click", () => {
@@ -2416,17 +3808,41 @@
       updateScorePreview();
     });
 
-    function toggleMusic() {
-      const active = AudioEngine.toggle();
-      const btn = document.getElementById("btnMusicToggle");
-      btn.textContent = active ? "🎵" : "🔇";
-    }
-    document.getElementById("btnMusicToggle").addEventListener("click", toggleMusic);
-
-    // Initial startup
-    window.addEventListener("DOMContentLoaded", () => {
-      initRun();
+    // Speed Selector (1X -> 2X -> 4X)
+    const speedBtn = document.getElementById("btnSpeedToggle");
+    speedBtn.addEventListener("click", () => {
+      if (gameSpeed === 1) gameSpeed = 2;
+      else if (gameSpeed === 2) gameSpeed = 4;
+      else gameSpeed = 1;
+      speedBtn.textContent = `${gameSpeed}X`;
+      speedBtn.style.color = gameSpeed === 4 ? "var(--neon-pink)" : (gameSpeed === 2 ? "var(--neon-gold)" : "#f1f5f9");
     });
+
+    function cycleMusic() {
+      const track = AudioEngine.cycleTrack();
+      const btn = document.getElementById("btnMusicToggle");
+      const trackIcons = ["🎵 Velvet", "⚡ Neon", "🔥 Tension", "🔇 Muted"];
+      btn.textContent = trackIcons[track] || "🎵";
+    }
+    document.getElementById("btnMusicToggle").addEventListener("click", cycleMusic);
+
+    // Expose functions globally on window for inline HTML onclick handlers
+    window.closeShop = closeShop;
+    window.nextRoundFromShop = nextRoundFromShop;
+    window.closeDeckModal = closeDeckModal;
+    window.closeHofModal = closeHofModal;
+    window.startNewRun = startNewRun;
+    window.buyShopItem = buyShopItem;
+    window.buyBooster = buyBooster;
+    window.buyVoucher = buyVoucher;
+    window.useConsumable = useConsumable;
+
+    // Initial startup: check document.readyState so it runs even if DOMContentLoaded already fired
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initRun);
+    } else {
+      initRun();
+    }
   </script>
 </body>
 </html>
