@@ -2349,8 +2349,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       }
 
       // 2. Functional Category Filter (dd_app_category)
-      if (appCatChoice && !appCatChoice.includes("All Categories")) {
-        if (!matchAppCategory(a.category, appCatChoice)) return false;
+      // When category choice is "Pinned Favorites", do not filter out favorites by dd_app_category
+      if (!catChoice.includes("Pinned Favorites")) {
+        if (appCatChoice && !appCatChoice.includes("All Categories")) {
+          if (!matchAppCategory(a.category, appCatChoice)) return false;
+        }
       }
 
       // 3. Multi-word AND search over name, id, category, path, description and command
@@ -2464,23 +2467,43 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // Quick Favorites Filter Action
   const filterToFavorites = (w: SimpleWindow) => {
+    w.setValue("txt_search", "");
     w.setValue("dd_category", "⭐ Pinned Favorites");
-    applyFilters(w, { cat: "⭐ Pinned Favorites" }, true);
+    w.setValue("dd_app_category", "📁 All Categories");
+    applyFilters(w, { query: "", cat: "⭐ Pinned Favorites", appCat: "📁 All Categories" }, true);
+    const count = currentApps.length;
+    if (count === 0) {
+      w.toast("No favorites pinned yet! Select any tool and click '☆ Favorite' to pin it.");
+    } else {
+      w.toast(`⭐ Filtered to ${count} Pinned Favorite${count === 1 ? "" : "s"}`);
+    }
   };
   win.onClick("btn_quick_favs", filterToFavorites);
   win.onClick("btn_quick_favs_filter", filterToFavorites);
 
   // Quick Launch Top Favorite Action
-  win.onClick("btn_quick_launch_fav1", (w) => {
-    const fresh = scanAllApplications();
+  win.onClick("btn_quick_launch_fav1", async (w) => {
+    const fresh = getScan(true);
     const favs = fresh.apps.filter((a) => a.isFavorite);
-    if (favs.length === 0) {
-      w.toast("No favorites pinned yet! Select any tool and click '☆ Favorite' to pin it.");
-      return;
+    let target = favs[0];
+    if (!target) {
+      // Auto-fallback: pick SQLite Studio, selectedApp, or first studio tool
+      target = selectedApp || fresh.apps.find((a) => a.id === "rad_sqlite_studio") || fresh.apps.find((a) => a.source === "rad_studio") || fresh.apps[0];
+      if (target) {
+        toggleFavorite(target.id);
+        target.isFavorite = true;
+        fresh.kpis.favorites++;
+        w.setValue("lbl_kpi_favs", `⭐ Favorites: ${fresh.kpis.favorites}`);
+        w.toast(`⭐ Auto-pinned and launching: ${target.displayName}...`);
+      } else {
+        w.toast("No applications available to launch.");
+        return;
+      }
+    } else {
+      w.toast(`🚀 Launching top favorite: ${target.displayName}...`);
     }
-    const target = favs[0]!;
     updateSelectedView(w, target);
-    executeToolLaunch(target, w, undefined, target.source === "cli_tool");
+    await executeToolLaunch(target, w, undefined, target.source === "cli_tool");
   });
 
   // Quick Favorite Star/Unstar Toggle
@@ -2510,7 +2533,16 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Real-time filter reactivity on input / dropdown change
   win.onEnter("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0));
   win.onChange("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }));
-  win.onChange("dd_category", (w, val: any) => scheduleFilters(w, { cat: typeof val === "string" ? val : undefined }, 0));
+  win.onChange("dd_category", (w, val: any) => {
+    const selected = typeof val === "string" ? val : "";
+    if (selected && selected.includes("Pinned Favorites")) {
+      w.setValue("dd_app_category", "📁 All Categories");
+      w.setValue("txt_search", "");
+      scheduleFilters(w, { query: "", cat: "⭐ Pinned Favorites", appCat: "📁 All Categories" }, 0);
+    } else {
+      scheduleFilters(w, { cat: selected || undefined }, 0);
+    }
+  });
   win.onChange("dd_app_category", (w, val: any) => {
     const selected = typeof val === "string" ? val : "";
     if (selected && !selected.includes("All Categories")) {
@@ -2786,6 +2818,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       path: a.displayPath,
       cmd: a.command,
       fav: a.isFavorite ? "⭐ Fav" : "☆ Regular",
+      isFav: Boolean(a.isFavorite),
       status: a.isRunning
         ? (a.instanceCount && a.instanceCount > 1 ? `🟢 Running (${a.instanceCount}x)` : `🟢 Running (#${a.pid || "?"})`)
         : "⚪ Ready",
@@ -2817,15 +2850,91 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         return cl.includes(cTarget) || cTarget.includes(cl);
       }
 
+      function selectAppClient(appId) {
+        window.selectedRowPid = appId;
+        const app = ALL_APPS.find(a => a.id === appId);
+        if (!app) return;
+
+        // 1. Sync Table Row Highlight
+        const tbl = document.getElementById("tbl_apps");
+        if (tbl) {
+          tbl.querySelectorAll("tbody tr").forEach(tr => {
+            if (tr.getAttribute("data-pid") === appId) {
+              tr.classList.add("selected-tr");
+              tr.style.background = "rgba(56,189,248,0.22)";
+              tr.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            } else {
+              tr.classList.remove("selected-tr");
+              tr.style.background = "";
+            }
+          });
+        }
+
+        // 2. Sync ListBox
+        const lstEl = document.getElementById("lst_apps");
+        if (lstEl) {
+          const sel = lstEl.tagName === "SELECT" ? lstEl : lstEl.querySelector("select");
+          if (sel) {
+            for (let i = 0; i < sel.options.length; i++) {
+              if (sel.options[i].value === app.itemStr || sel.options[i].text === app.itemStr || sel.options[i].value.includes(appId)) {
+                sel.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        }
+
+        // 3. Sync Dropdown
+        const ddSelEl = document.getElementById("dd_select_app");
+        if (ddSelEl) {
+          const sel = ddSelEl.tagName === "SELECT" ? ddSelEl : ddSelEl.querySelector("select");
+          if (sel) {
+            for (let i = 0; i < sel.options.length; i++) {
+              if (sel.options[i].value === app.itemStr || sel.options[i].text === app.itemStr || sel.options[i].value.includes(appId)) {
+                sel.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        }
+
+        // 4. Sync Output Box
+        const out = document.getElementById("txt_output");
+        if (out) {
+          out.value = [
+            "=== Tool Selected: " + app.name + " ===",
+            "ID:          " + app.id,
+            "Type:        " + app.sourceLabel,
+            "Category:    " + app.cat,
+            "Script Path: " + app.path,
+            "Run Command: " + app.cmd,
+            "Status:      " + app.status,
+            "Favorite:    " + (app.isFav ? "Yes (★ Pinned Favorite)" : "No (☆ Not Pinned)"),
+          ].join("\\n");
+        }
+
+        // 5. Sync Favorite Buttons
+        const favBtn = document.getElementById("btn_fav");
+        if (favBtn) favBtn.textContent = app.isFav ? "★ Unfavorite" : "☆ Favorite";
+        const quickFavBtn = document.getElementById("btn_quick_toggle_fav");
+        if (quickFavBtn) quickFavBtn.textContent = app.isFav ? "⭐ Unpin Favorite" : "⭐ Pin Favorite";
+      }
+
       function runClientFilter(catName) {
         const searchInput = document.getElementById("txt_search");
         const ddAppCat = document.getElementById("dd_app_category");
+        const ddCat = document.getElementById("dd_category");
         const statusEl = document.getElementById("lbl_status");
         const q = searchInput ? (searchInput.value || "").trim().toLowerCase() : "";
-        const isAll = !catName || catName.includes("All Categories") || catName.includes("All Tools");
+        const isFavFilter = Boolean(catName && (catName.includes("Favorite") || catName.includes("Fav")));
+        const isAll = !isFavFilter && (!catName || catName.includes("All Categories") || catName.includes("All Tools"));
 
         const matched = ALL_APPS.filter(a => {
-          if (!matchesCat(a.cat, catName)) return false;
+          if (isFavFilter) {
+            if (!a.isFav && !a.fav.includes("Fav")) return false;
+          } else if (!isAll && !matchesCat(a.cat, catName)) {
+            return false;
+          }
           if (q) {
             const hit = a.name.toLowerCase().includes(q) ||
                         a.id.toLowerCase().includes(q) ||
@@ -2879,12 +2988,28 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
         // 4. Update Status Label
         if (statusEl) {
-          const catLabel = isAll ? "All Categories" : catName;
+          const catLabel = isFavFilter ? "⭐ Pinned Favorites" : (isAll ? "All Categories" : catName);
           statusEl.textContent = "Filtered: " + matched.length + " / " + ALL_APPS.length + " project tools  |  Category: " + catLabel;
         }
 
-        // 5. Synchronize Category Dropdown selection
-        if (ddAppCat) {
+        // 5. Synchronize Dropdown selections
+        if (isFavFilter) {
+          if (ddCat) {
+            const sel = ddCat.tagName === "SELECT" ? ddCat : ddCat.querySelector("select");
+            if (sel) {
+              for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].text.includes("Pinned Favorites") || sel.options[i].value.includes("Pinned Favorites")) {
+                  sel.selectedIndex = i;
+                  break;
+                }
+              }
+            }
+          }
+          if (ddAppCat) {
+            const sel = ddAppCat.tagName === "SELECT" ? ddAppCat : ddAppCat.querySelector("select");
+            if (sel) sel.selectedIndex = 0;
+          }
+        } else if (ddAppCat) {
           const sel = ddAppCat.tagName === "SELECT" ? ddAppCat : ddAppCat.querySelector("select");
           if (sel) {
             for (let i = 0; i < sel.options.length; i++) {
@@ -2895,9 +3020,15 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             }
           }
         }
+
+        // 6. Select first matched tool
+        if (matched.length > 0) {
+          selectAppClient(matched[0].id);
+        }
       }
 
       window.filterByCategoryClient = runClientFilter;
+      window.selectAppClient = selectAppClient;
 
       function bindListeners() {
         const catMap = {
@@ -2932,6 +3063,81 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           }
         }
 
+        // Favorites filter buttons
+        function filterFavs() {
+          const searchInput = document.getElementById("txt_search");
+          if (searchInput) searchInput.value = "";
+          runClientFilter("Favorites");
+        }
+
+        const btnFavsFilter = document.getElementById("btn_quick_favs_filter");
+        if (btnFavsFilter && !btnFavsFilter.dataset.clientFilterBound) {
+          btnFavsFilter.dataset.clientFilterBound = "true";
+          btnFavsFilter.addEventListener("click", filterFavs);
+        }
+
+        const btnFavs = document.getElementById("btn_quick_favs");
+        if (btnFavs && !btnFavs.dataset.clientFilterBound) {
+          btnFavs.dataset.clientFilterBound = "true";
+          btnFavs.addEventListener("click", filterFavs);
+        }
+
+        // Launch Top Favorite
+        const btnLaunchFav1 = document.getElementById("btn_quick_launch_fav1");
+        if (btnLaunchFav1 && !btnLaunchFav1.dataset.clientLaunchBound) {
+          btnLaunchFav1.dataset.clientLaunchBound = "true";
+          btnLaunchFav1.addEventListener("click", function() {
+            const fav = ALL_APPS.find(a => a.isFav || a.fav.includes("Fav")) || ALL_APPS[0];
+            if (fav) {
+              selectAppClient(fav.id);
+              const statusEl = document.getElementById("lbl_status");
+              if (statusEl) statusEl.textContent = "🚀 Launching Top Favorite: " + fav.name + "...";
+              const out = document.getElementById("txt_output");
+              if (out) {
+                out.value = "=== Top Favorite Selected & Launching ===\\nName: " + fav.name + "\\nID: " + fav.id + "\\nCommand: " + fav.cmd + "\\nPath: " + fav.path + "\\nStatus: 🚀 Executing launch...";
+              }
+              if (typeof window.on_btn_quick_launch_fav1_click === "function") {
+                window.on_btn_quick_launch_fav1_click();
+              }
+            }
+          });
+        }
+
+        // Toggle Favorite
+        function toggleFavClient() {
+          const activePid = window.selectedRowPid;
+          const app = ALL_APPS.find(a => a.id === activePid) || ALL_APPS[0];
+          if (!app) return;
+          app.isFav = !app.isFav;
+          app.fav = app.isFav ? "⭐ Fav" : "☆ Regular";
+          selectAppClient(app.id);
+          const tbl = document.getElementById("tbl_apps");
+          if (tbl) {
+            const row = tbl.querySelector('tr[data-pid="' + app.id + '"]');
+            if (row && row.children[1]) {
+              row.children[1].textContent = app.fav;
+            }
+          }
+          if (typeof window.on_btn_fav_click === "function") {
+            window.on_btn_fav_click();
+          } else if (typeof window.on_btn_quick_toggle_fav_click === "function") {
+            window.on_btn_quick_toggle_fav_click();
+          }
+        }
+
+        const btnToggleFav = document.getElementById("btn_quick_toggle_fav");
+        if (btnToggleFav && !btnToggleFav.dataset.clientToggleBound) {
+          btnToggleFav.dataset.clientToggleBound = "true";
+          btnToggleFav.addEventListener("click", toggleFavClient);
+        }
+
+        const btnFav = document.getElementById("btn_fav");
+        if (btnFav && !btnFav.dataset.clientToggleBound) {
+          btnFav.dataset.clientToggleBound = "true";
+          btnFav.addEventListener("click", toggleFavClient);
+        }
+
+        // Category dropdown
         const ddAppCat = document.getElementById("dd_app_category");
         if (ddAppCat && !ddAppCat.dataset.clientFilterBound) {
           ddAppCat.dataset.clientFilterBound = "true";
@@ -2952,19 +3158,62 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           }
         }
 
+        // Scope dropdown
+        const ddCat = document.getElementById("dd_category");
+        if (ddCat && !ddCat.dataset.clientFilterBound) {
+          ddCat.dataset.clientFilterBound = "true";
+          const sel = ddCat.tagName === "SELECT" ? ddCat : ddCat.querySelector("select");
+          if (sel) {
+            sel.addEventListener("change", function() {
+              if (this.value && this.value.includes("Pinned Favorites")) {
+                runClientFilter("Favorites");
+              } else if (this.value && this.value.includes("All Project Tools")) {
+                runClientFilter("All Categories");
+              }
+            });
+          }
+        }
+
+        // Clear filter button
         const clearBtn = document.getElementById("btn_clear_filter");
         if (clearBtn && !clearBtn.dataset.clientFilterBound) {
           clearBtn.dataset.clientFilterBound = "true";
           clearBtn.addEventListener("click", function() {
             const searchInput = document.getElementById("txt_search");
             if (searchInput) searchInput.value = "";
-            const ddCat = document.getElementById("dd_category");
-            if (ddCat) {
-              const s = ddCat.tagName === "SELECT" ? ddCat : ddCat.querySelector("select");
+            const ddCatEl = document.getElementById("dd_category");
+            if (ddCatEl) {
+              const s = ddCatEl.tagName === "SELECT" ? ddCatEl : ddCatEl.querySelector("select");
               if (s) s.selectedIndex = 0;
             }
             runClientFilter("All Categories");
           });
+        }
+
+        // Table row click delegation
+        const tblContainer = document.getElementById("tbl_apps");
+        if (tblContainer && !tblContainer.dataset.rowClickBound) {
+          tblContainer.dataset.rowClickBound = "true";
+          tblContainer.addEventListener("click", function(e) {
+            const tr = e.target.closest("tr");
+            if (tr && tr.dataset.pid) {
+              selectAppClient(tr.dataset.pid);
+            }
+          });
+        }
+
+        // Listbox change delegation
+        const lstEl = document.getElementById("lst_apps");
+        if (lstEl && !lstEl.dataset.changeBound) {
+          lstEl.dataset.changeBound = "true";
+          const sel = lstEl.tagName === "SELECT" ? lstEl : lstEl.querySelector("select");
+          if (sel) {
+            sel.addEventListener("change", function() {
+              const val = this.value;
+              const app = ALL_APPS.find(a => a.itemStr === val || val.includes(a.id));
+              if (app) selectAppClient(app.id);
+            });
+          }
         }
       }
 

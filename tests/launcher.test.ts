@@ -543,6 +543,57 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     const restoredItems = win.getListItems("lst_apps");
     expect(restoredItems.length).toBeGreaterThan(100);
   });
+
+  it("provides functional filter-to-favorites and launch-top-favorite operations", async () => {
+    const win = createLauncherStudio({ fullscreen: false });
+
+    // 1. Switch to Games category first to create potential scope conflict
+    const gamesHandler = (win as any).eventHandlersMap?.get("btn_cat_games:onclick");
+    expect(gamesHandler).toBeDefined();
+    gamesHandler(win);
+    expect(win.getValue("dd_app_category")).toContain("Games & Entertainment");
+
+    // 2. Click "Filter to Favorites" (btn_quick_favs_filter)
+    const favFilterHandler = (win as any).eventHandlersMap?.get("btn_quick_favs_filter:onclick");
+    expect(favFilterHandler).toBeDefined();
+    favFilterHandler(win);
+
+    // Verify category and scope are cleanly reset and favorites are shown
+    expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
+    expect(win.getValue("dd_app_category")).toBe("📁 All Categories");
+    expect(win.getValue("txt_search")).toBe("");
+
+    const favRows = (win.getValue("tbl_apps") as string[][]) || [];
+    expect(favRows.length).toBeGreaterThanOrEqual(1);
+    for (const r of favRows) {
+      expect(r[1]).toBe("⭐ Fav");
+    }
+
+    // 3. Test btn_quick_favs button as well
+    const favsOnlyHandler = (win as any).eventHandlersMap?.get("btn_quick_favs:onclick");
+    expect(favsOnlyHandler).toBeDefined();
+    favsOnlyHandler(win);
+    expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
+
+    // 4. Test Launch Top Favorite (btn_quick_launch_fav1)
+    const topFavHandler = (win as any).eventHandlersMap?.get("btn_quick_launch_fav1:onclick");
+    expect(topFavHandler).toBeDefined();
+    await topFavHandler(win);
+
+    const statusText = win.getText("lbl_status");
+    expect(statusText).toContain("Running");
+
+    const outputText = win.getText("txt_output");
+    expect(outputText).toContain("[Desktop GUI Application Launched]");
+
+    // 5. Test Toggle Favorite (btn_fav)
+    const toggleHandler = (win as any).eventHandlersMap?.get("btn_fav:onclick");
+    expect(toggleHandler).toBeDefined();
+    toggleHandler(win);
+    // Toggling once removes favorite from selected tool
+    toggleHandler(win);
+    // Toggling again restores favorite
+  });
 });
 
 
