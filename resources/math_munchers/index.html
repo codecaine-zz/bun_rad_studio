@@ -1487,6 +1487,7 @@
       facing: "right", // left, right, up, down
       isChomping: false,
       chompTimer: 0,
+      moveCycle: 0,
       hasShield: false,
       invulnerableTimer: 0
     };
@@ -1849,6 +1850,7 @@
       muncher.facing = "right";
       muncher.hasShield = false;
       muncher.invulnerableTimer = 1.0;
+      muncher.moveCycle = 0;
 
       populateGrid();
       gameState = STATE_PLAYING;
@@ -1996,7 +1998,10 @@
         moveTimer: 0,
         moveInterval: type === "basher" ? 0.75 : 1.25,
         targetR: r,
-        targetC: c
+        targetC: c,
+        walkCycle: Math.random() * Math.PI * 2,
+        blinkTimer: Math.random() * 3 + 2,
+        isBlinking: false
       });
 
       AudioEngine.playTroggleRoar();
@@ -2254,44 +2259,138 @@
         }
       }
 
-      // 2. Draw Troggles
+      // 2. Draw Troggles with Rich Animations
+      const now = performance.now();
       troggles.forEach(t => {
         ctx.save();
-        ctx.translate(t.animX + CELL_W / 2, t.animY + CELL_H / 2);
+        
+        // Position, bouncing, and shivering
+        const isFrozen = freezeTimer > 0;
+        const tMoving = Math.hypot(t.targetC * CELL_W - t.animX, t.targetR * CELL_H - t.animY) > 2;
+        const walk = t.walkCycle || 0;
+        
+        let bounceY = 0;
+        let jitterX = 0;
+        let jitterY = 0;
 
-        if (freezeTimer > 0) {
+        if (isFrozen) {
+          // Shivering frost effect
+          jitterX = Math.sin(now * 0.05) * 1.5;
+        } else if (t.type === "glitcher") {
+          // Matrix cyber jitter
+          bounceY = -Math.abs(Math.sin(walk)) * 3;
+          if (Math.random() < 0.2) {
+            jitterX = (Math.random() - 0.5) * 4;
+            jitterY = (Math.random() - 0.5) * 2;
+          }
+        } else if (tMoving) {
+          // Stomping bounce
+          bounceY = -Math.abs(Math.sin(walk)) * 5;
+        } else {
+          // Idle breathing bob
+          bounceY = Math.sin(now * 0.004 + t.col) * 2;
+        }
+
+        ctx.translate(t.animX + CELL_W / 2 + jitterX, t.animY + CELL_H / 2 + bounceY + jitterY);
+
+        // Basher charging tilt in direction of travel
+        if (t.type === "basher" && tMoving && !isFrozen) {
+          const moveDir = Math.sign(t.targetC * CELL_W - t.animX);
+          ctx.rotate(moveDir * 0.15);
+        }
+
+        if (isFrozen) {
           ctx.filter = "hue-rotate(180deg) brightness(1.2)";
         }
 
-        // Troggle colors based on personality
         const color = t.type === "basher" ? "#ef4444" : (t.type === "glitcher" ? "#ffb703" : "#a855f7");
 
-        // Body
+        // Stomping Feet beneath Troggle body
+        const leftFootY = 17 + (tMoving && !isFrozen ? Math.sin(walk) * 5 : 0);
+        const rightFootY = 17 - (tMoving && !isFrozen ? Math.sin(walk) * 5 : 0);
+        
+        ctx.fillStyle = t.type === "basher" ? "#991b1b" : (t.type === "glitcher" ? "#d97706" : "#6b21a8");
+        // Left Foot
+        ctx.beginPath();
+        ctx.ellipse(-9, leftFootY, 6, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Right Foot
+        ctx.beginPath();
+        ctx.ellipse(9, rightFootY, 6, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Troggle Body with Squash & Stretch
+        const bodySquashX = tMoving && !isFrozen ? 1 + Math.sin(walk * 2) * 0.07 : 1;
+        const bodySquashY = tMoving && !isFrozen ? 1 - Math.sin(walk * 2) * 0.07 : 1;
+        
+        ctx.save();
+        ctx.scale(bodySquashX, bodySquashY);
         ctx.fillStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.ellipse(0, 0, 20, 22, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
+
+        // Glitcher Cyber-Antenna with pulsing radar beacon
+        if (t.type === "glitcher") {
+          ctx.strokeStyle = "#ffb703";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, -22);
+          ctx.lineTo(Math.sin(now * 0.008) * 4, -32);
+          ctx.stroke();
+
+          ctx.fillStyle = (Math.floor(now * 0.01) % 2 === 0) ? "#ffffff" : "#ffb703";
+          ctx.shadowColor = "#ffb703";
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(Math.sin(now * 0.008) * 4, -34, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         // Horns or Ears
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.moveTo(-14, -14); ctx.lineTo(-8, -26); ctx.lineTo(-2, -14);
         ctx.moveTo(14, -14); ctx.lineTo(8, -26); ctx.lineTo(2, -14);
         ctx.fill();
 
-        // Big Googly Angry Eyes
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(-7, -4, 6, 0, Math.PI * 2);
-        ctx.arc(7, -4, 6, 0, Math.PI * 2);
-        ctx.fill();
+        // Googly Eyes with Pupil Tracking towards Muncher & Blinking
+        const pupilDx = Math.sign(muncher.animX - t.animX) * 2;
+        const pupilDy = Math.sign(muncher.animY - t.animY) * 2;
 
-        ctx.fillStyle = "#05070e";
-        ctx.beginPath();
-        ctx.arc(-6, -4, 2.5, 0, Math.PI * 2);
-        ctx.arc(6, -4, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        if (t.isBlinking) {
+          // Blinking slit eyes
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-12, -4); ctx.lineTo(-2, -4);
+          ctx.moveTo(2, -4); ctx.lineTo(12, -4);
+          ctx.stroke();
+        } else {
+          // Eye whites
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(-7, -4, 6, 0, Math.PI * 2);
+          ctx.arc(7, -4, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Eyeball pupils tracking player
+          ctx.fillStyle = "#05070e";
+          ctx.beginPath();
+          ctx.arc(-7 + pupilDx, -4 + pupilDy, 2.5, 0, Math.PI * 2);
+          ctx.arc(7 + pupilDx, -4 + pupilDy, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Eye glint highlights
+          ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+          ctx.beginPath();
+          ctx.arc(-8 + pupilDx, -5 + pupilDy, 1, 0, Math.PI * 2);
+          ctx.arc(6 + pupilDx, -5 + pupilDy, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         // Troggle Mouth with Fangs
         ctx.fillStyle = "#1e293b";
@@ -2305,15 +2404,37 @@
         ctx.moveTo(0, 8); ctx.lineTo(2, 12); ctx.lineTo(4, 8);
         ctx.fill();
 
+        // Frozen ice crystal aura
+        if (isFrozen) {
+          ctx.fillStyle = "rgba(180, 240, 255, 0.35)";
+          ctx.strokeStyle = "#a5f3fc";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, 25, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
         ctx.restore();
       });
 
-      // 3. Draw The Cyber Muncher
-      ctx.save();
-      ctx.translate(muncher.animX + CELL_W / 2, muncher.animY + CELL_H / 2);
+      // 3. Draw The Cyber Muncher with High-End Movement Animations
+      const distRemaining = Math.hypot(muncher.targetX - muncher.animX, muncher.targetY - muncher.animY);
+      const isPlayerMoving = distRemaining > 1.5;
+      const hopOffset = isPlayerMoving ? -Math.abs(Math.sin(muncher.moveCycle)) * 10 : Math.sin(now * 0.005) * 3;
+      const squashX = isPlayerMoving ? 1 + Math.sin(muncher.moveCycle * 2) * 0.12 : 1;
+      const squashY = isPlayerMoving ? 1 - Math.sin(muncher.moveCycle * 2) * 0.12 : 1;
 
-      // Shield Aura
+      // Invulnerability flash (flicker opacity when hurt/spawning)
+      if (muncher.invulnerableTimer > 0 && Math.floor(now * 0.02) % 2 === 0) {
+        ctx.globalAlpha = 0.45;
+      }
+
+      ctx.save();
+      ctx.translate(muncher.animX + CELL_W / 2, muncher.animY + CELL_H / 2 + hopOffset);
+
+      // Rotating Shield Aura & Orbiting Energy Nodes
       if (muncher.hasShield) {
+        ctx.save();
         ctx.strokeStyle = "#10b981";
         ctx.lineWidth = 3;
         ctx.shadowColor = "#10b981";
@@ -2321,19 +2442,49 @@
         ctx.beginPath();
         ctx.arc(0, 0, 32, 0, Math.PI * 2);
         ctx.stroke();
+
+        // Orbiting shield nodes
+        const shieldAngle = now * 0.004;
+        for (let i = 0; i < 3; i++) {
+          const a = shieldAngle + (i * Math.PI * 2) / 3;
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * 32, Math.sin(a) * 32, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
       }
 
-      // Rotate based on facing
+      // Waddling feet under Muncher
+      ctx.save();
+      const footOffset = isPlayerMoving ? Math.sin(muncher.moveCycle) * 6 : 0;
+      ctx.fillStyle = "#0284c7";
+      // Left foot
+      ctx.beginPath();
+      ctx.ellipse(-10, 18 + footOffset, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Right foot
+      ctx.beginPath();
+      ctx.ellipse(10, 18 - footOffset, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Apply Directional Rotation & Squash-and-Stretch
+      ctx.save();
       if (muncher.facing === "left") ctx.scale(-1, 1);
       else if (muncher.facing === "up") ctx.rotate(-Math.PI / 2);
       else if (muncher.facing === "down") ctx.rotate(Math.PI / 2);
+
+      ctx.scale(squashX, squashY);
 
       // Muncher Glow & Body
       ctx.shadowColor = "#00f3ff";
       ctx.shadowBlur = 16;
       ctx.fillStyle = "#00f3ff";
 
-      const chompAngle = muncher.isChomping ? 0.9 : 0.25;
+      // Mouth opening angle: rhythmically chomps while moving, or wide open when eating
+      const chompAngle = muncher.isChomping ? 0.92 : (isPlayerMoving ? 0.2 + Math.abs(Math.sin(muncher.moveCycle)) * 0.55 : 0.25);
 
       // Pac/Chomp Shape
       ctx.beginPath();
@@ -2342,7 +2493,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Eye
+      // Eye with pupil & glint
       ctx.fillStyle = "#05070e";
       ctx.beginPath();
       ctx.arc(-2, -12, 6, 0, Math.PI * 2);
@@ -2353,8 +2504,8 @@
       ctx.arc(-1, -12, 3, 0, Math.PI * 2);
       ctx.fill();
 
-      // Sharp Teeth inside mouth if chomping
-      if (muncher.isChomping) {
+      // Sharp Teeth inside mouth if chomping or hopping with open mouth
+      if (muncher.isChomping || (isPlayerMoving && chompAngle > 0.45)) {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.moveTo(8, -12); ctx.lineTo(12, -4); ctx.lineTo(16, -12);
@@ -2362,7 +2513,9 @@
         ctx.fill();
       }
 
-      ctx.restore();
+      ctx.restore(); // restore squash & direction
+      ctx.restore(); // restore muncher translation
+      ctx.globalAlpha = 1.0;
 
       // 4. Draw Particles
       particles.forEach(p => {
@@ -2428,6 +2581,24 @@
       floatingTexts.push({ text, x, y, alpha: 1, color });
     }
 
+    function createMoveDust(x, y, color = "#00f3ff") {
+      if (particles.length > 100) return;
+      for (let i = 0; i < 2; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.5 + Math.random() * 1.5;
+        particles.push({
+          x: x + (Math.random() - 0.5) * 10,
+          y: y + (Math.random() - 0.5) * 10,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          alpha: 0.6,
+          decay: 0.04 + Math.random() * 0.04,
+          size: 1.5 + Math.random() * 2,
+          color
+        });
+      }
+    }
+
     // -------------------------------------------------------------------------
     // 8. Physics & Game Loop
     // -------------------------------------------------------------------------
@@ -2436,9 +2607,20 @@
     function updateGame(dt) {
       if (gameState !== STATE_PLAYING) return;
 
-      // Smooth Muncher Position Interpolation
+      // Smooth Muncher Position Interpolation & Movement Animation Cycle
+      const distRemaining = Math.hypot(muncher.targetX - muncher.animX, muncher.targetY - muncher.animY);
+      const isPlayerMoving = distRemaining > 1.5;
       muncher.animX += (muncher.targetX - muncher.animX) * 0.35;
       muncher.animY += (muncher.targetY - muncher.animY) * 0.35;
+
+      if (isPlayerMoving) {
+        muncher.moveCycle += dt * 14;
+        if (Math.random() < 0.3) {
+          createMoveDust(muncher.animX + CELL_W / 2, muncher.animY + CELL_H / 2, "#00f3ff");
+        }
+      } else {
+        muncher.moveCycle = 0;
+      }
 
       // Chomp Timer
       if (muncher.isChomping) {
@@ -2468,6 +2650,24 @@
         troggles.forEach(t => {
           t.animX += (t.targetC * CELL_W - t.animX) * 0.2;
           t.animY += (t.targetR * CELL_H - t.animY) * 0.2;
+
+          const tMoving = Math.hypot(t.targetC * CELL_W - t.animX, t.targetR * CELL_H - t.animY) > 2;
+          t.walkCycle = (t.walkCycle || 0) + dt * (t.type === "basher" ? 14 : 9);
+
+          // Basher flame trail while charging
+          if (t.type === "basher" && tMoving && Math.random() < 0.35) {
+            createMoveDust(t.animX + CELL_W / 2, t.animY + CELL_H / 2 + 8, Math.random() < 0.5 ? "#ef4444" : "#ffb703");
+          }
+
+          // Troggle Blinking Timer
+          t.blinkTimer = (t.blinkTimer || 3) - dt;
+          if (t.blinkTimer <= 0) {
+            t.isBlinking = true;
+            if (t.blinkTimer < -0.15) {
+              t.blinkTimer = Math.random() * 4 + 2.5;
+              t.isBlinking = false;
+            }
+          }
 
           t.moveTimer += dt;
           if (t.moveTimer >= t.moveInterval) {
