@@ -1757,7 +1757,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     {
       appId: "launcher_studio",
       theme: options.theme || getSavedTheme() || "midnight",
-      autoSaveState: true,
+      autoSaveState: false,
       fullscreen,
     }
   );
@@ -1938,7 +1938,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   const tableHeaders = ["ID", "Fav", "Type", "Name", "Category", "Status", "Used", "Command Path"];
   const formatRow = (a: DetectedApp) => [
     a.id,
-    a.isFavorite ? "⭐ Fav" : "—",
+    a.isFavorite ? "⭐ Fav" : "☆ Regular",
     a.sourceLabel,
     `${a.icon || "⚡"} ${a.displayName}`,
     a.category,
@@ -1947,7 +1947,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           ? `🟢 Running (${a.instanceCount}x)`
           : `🟢 Running (#${a.pid || "?"})`)
       : "⚪ Ready",
-    usageLabel(a),
+    a.launchCount ? usageLabel(a) : "0× (Never)",
     a.command,
   ];
 
@@ -2324,10 +2324,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
     const scores = new Map<string, number>();
     currentApps = fresh.apps.filter((a) => {
-      // 1. Source Scope / State filter
-      if (catChoice.includes("Studio Applications") && a.source !== "rad_studio") return false;
-      if (catChoice.includes("CLI Utilities") && a.source !== "cli_tool") return false;
-      if (catChoice.includes("Showcase Demos") && a.source !== "rad_demo") return false;
+      // 1. Source Scope / State filter (do not restrict source scope if a specific functional category is selected)
+      const isSpecificCat = Boolean(appCatChoice && !appCatChoice.includes("All Categories"));
+      if (!isSpecificCat) {
+        if (catChoice.includes("Studio Applications") && a.source !== "rad_studio") return false;
+        if (catChoice.includes("CLI Utilities") && a.source !== "cli_tool") return false;
+        if (catChoice.includes("Showcase Demos") && a.source !== "rad_demo") return false;
+      }
       if (catChoice.includes("Running Processes") && !a.isRunning) return false;
       if (catChoice.includes("Pinned Favorites") && !a.isFavorite) return false;
       if (catChoice.includes("Recently Used") && !a.lastLaunched) return false;
@@ -2429,19 +2432,8 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   const filterByAppCategory = (w: SimpleWindow, categorySearch: string) => {
     // 1. Clear search input so stray search terms don't hide category items
     w.setValue("txt_search", "");
-    // 2. Reset restrictive scopes (like Pinned Favorites or CLI Utilities) that could filter out tools
-    const curScope = String(w.getValue("dd_category") || "");
-    let scopeOverride: string | undefined = undefined;
-    if (
-      curScope.includes("CLI Utilities") ||
-      curScope.includes("Showcase Demos") ||
-      curScope.includes("Pinned Favorites") ||
-      curScope.includes("Running Processes") ||
-      curScope.includes("Recently Used")
-    ) {
-      w.setValue("dd_category", "🌟 All Project Tools");
-      scopeOverride = "🌟 All Project Tools";
-    }
+    // 2. Always reset scope to All Project Tools when filtering by a specific category
+    w.setValue("dd_category", "🌟 All Project Tools");
     // 3. Set category dropdown value
     const matching =
       categoryDropdownOptions.find((opt) => !opt.includes("All Categories") && matchAppCategory(categorySearch, opt)) ||
@@ -2449,7 +2441,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       categorySearch;
     w.setValue("dd_app_category", matching);
     // 4. Apply filter immediately
-    applyFilters(w, { query: "", cat: scopeOverride, appCat: matching }, true);
+    applyFilters(w, { query: "", cat: "🌟 All Project Tools", appCat: matching }, true);
     w.toast(`📂 Filtered to Category: ${categorySearch}`);
   };
 
@@ -2519,7 +2511,16 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onEnter("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0));
   win.onChange("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }));
   win.onChange("dd_category", (w, val: any) => scheduleFilters(w, { cat: typeof val === "string" ? val : undefined }, 0));
-  win.onChange("dd_app_category", (w, val: any) => scheduleFilters(w, { appCat: typeof val === "string" ? val : undefined }, 0));
+  win.onChange("dd_app_category", (w, val: any) => {
+    const selected = typeof val === "string" ? val : "";
+    if (selected && !selected.includes("All Categories")) {
+      w.setValue("txt_search", "");
+      w.setValue("dd_category", "🌟 All Project Tools");
+      scheduleFilters(w, { query: "", cat: "🌟 All Project Tools", appCat: selected }, 0);
+    } else {
+      scheduleFilters(w, { appCat: selected }, 0);
+    }
+  });
   win.onChange("dd_sort", (w) => scheduleFilters(w, undefined, 0));
 
   win.onClick("btn_rescan", (w) => {
@@ -2775,112 +2776,119 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   bindQuick("btn_quick_gdu_cli", "gdu_cli", "--help", true);
   bindQuick("btn_quick_net_cli", "network_cli", "--help", true);
   // Client-side DOM reactive filtering for instant 0ms responses across all browser & webview runtimes
+  const appsJsonData = JSON.stringify(
+    initialData.apps.map((a) => ({
+      id: a.id,
+      name: a.displayName,
+      cat: a.category,
+      icon: a.icon || "⚡",
+      sourceLabel: a.sourceLabel,
+      path: a.displayPath,
+      cmd: a.command,
+      fav: a.isFavorite ? "⭐ Fav" : "☆ Regular",
+      status: a.isRunning
+        ? (a.instanceCount && a.instanceCount > 1 ? `🟢 Running (${a.instanceCount}x)` : `🟢 Running (#${a.pid || "?"})`)
+        : "⚪ Ready",
+      used: a.launchCount ? usageLabel(a) : "0× (Never)",
+      itemStr: formatItemStr(a),
+    }))
+  );
+
   win.addScript(`
     (function initClientCategoryFilter() {
-      function runFilter(catName) {
-        const tbl = document.getElementById("tbl_apps");
+      const ALL_APPS = ${appsJsonData};
+
+      function matchesCat(appCat, targetChoice) {
+        if (!targetChoice || targetChoice.includes("All Categories") || targetChoice.includes("All Tools")) return true;
+        const cTarget = targetChoice.toLowerCase();
+        const cl = (appCat || "").toLowerCase();
+        if ((cTarget.includes("game") || cTarget.includes("arcade")) && cl.includes("game")) return true;
+        if ((cTarget.includes("db") || cTarget.includes("database") || cTarget.includes("storage")) && cl.includes("database")) return true;
+        if ((cTarget.includes("dev") || cTarget.includes("developer")) && cl.includes("developer")) return true;
+        if ((cTarget.includes("sys") || cTarget.includes("system") || cTarget.includes("hardware")) && cl.includes("system")) return true;
+        if (cTarget.includes("file") && cl.includes("file")) return true;
+        if (cTarget.includes("net") && cl.includes("network")) return true;
+        if (cTarget.includes("prod") && cl.includes("productivity")) return true;
+        if (cTarget.includes("sec") && cl.includes("security")) return true;
+        if (cTarget.includes("design") && cl.includes("design")) return true;
+        if (cTarget.includes("demo") && cl.includes("demo")) return true;
+        if (cTarget.includes("cli") && cl.includes("cli")) return true;
+        if (cTarget.includes("rad") && cl.includes("rad")) return true;
+        return cl.includes(cTarget) || cTarget.includes(cl);
+      }
+
+      function runClientFilter(catName) {
         const searchInput = document.getElementById("txt_search");
         const ddAppCat = document.getElementById("dd_app_category");
         const statusEl = document.getElementById("lbl_status");
-
         const q = searchInput ? (searchInput.value || "").trim().toLowerCase() : "";
-        const cTarget = (catName || "").trim().toLowerCase();
-        const isAll = !cTarget || cTarget.includes("all categories") || cTarget.includes("all tools");
+        const isAll = !catName || catName.includes("All Categories") || catName.includes("All Tools");
 
-        function matchesCat(cat) {
-          if (isAll) return true;
-          const cl = cat.toLowerCase();
-          if ((cTarget.includes("game") || cTarget.includes("arcade")) && cl.includes("game")) return true;
-          if ((cTarget.includes("db") || cTarget.includes("database") || cTarget.includes("storage")) && cl.includes("database")) return true;
-          if ((cTarget.includes("dev") || cTarget.includes("developer")) && cl.includes("developer")) return true;
-          if ((cTarget.includes("sys") || cTarget.includes("system") || cTarget.includes("hardware")) && cl.includes("system")) return true;
-          if (cTarget.includes("file") && cl.includes("file")) return true;
-          if (cTarget.includes("net") && cl.includes("network")) return true;
-          if (cTarget.includes("prod") && cl.includes("productivity")) return true;
-          if (cTarget.includes("sec") && cl.includes("security")) return true;
-          if (cTarget.includes("design") && cl.includes("design")) return true;
-          if (cTarget.includes("demo") && cl.includes("demo")) return true;
-          if (cTarget.includes("cli") && cl.includes("cli")) return true;
-          return cl.includes(cTarget) || cTarget.includes(cl);
-        }
+        const matched = ALL_APPS.filter(a => {
+          if (!matchesCat(a.cat, catName)) return false;
+          if (q) {
+            const hit = a.name.toLowerCase().includes(q) ||
+                        a.id.toLowerCase().includes(q) ||
+                        a.cat.toLowerCase().includes(q) ||
+                        a.cmd.toLowerCase().includes(q) ||
+                        a.path.toLowerCase().includes(q);
+            if (!hit) return false;
+          }
+          return true;
+        });
 
-        let visible = 0;
-        const visiblePids = new Set();
+        // 1. Update Table (tbl_apps)
+        const tbl = document.getElementById("tbl_apps");
         if (tbl) {
-          const rows = tbl.querySelectorAll("tbody tr");
-          rows.forEach(tr => {
-            const tds = tr.querySelectorAll("td");
-            if (tds.length < 5) return;
-            const pid = tr.getAttribute("data-pid") || (tds[0] ? tds[0].textContent.trim() : "");
-            const name = tds[3] ? tds[3].textContent.toLowerCase() : "";
-            const cat = tds[4] ? tds[4].textContent.toLowerCase() : "";
-            const cmd = tds[7] ? tds[7].textContent.toLowerCase() : "";
-
-            const catOk = matchesCat(cat);
-            const queryOk = !q || name.includes(q) || cat.includes(q) || pid.toLowerCase().includes(q) || cmd.includes(q);
-
-            if (catOk && queryOk) {
-              tr.style.display = "";
-              visible++;
-              if (pid) {
-                visiblePids.add(pid.toLowerCase());
-                visiblePids.add(pid.toLowerCase().replace(/^(rad|cli|demo)_/, ""));
-              }
-            } else {
-              tr.style.display = "none";
-            }
-          });
-        }
-
-        // Also filter ListBox and Dropdown for full visual consistency
-        function filterSelect(selId) {
-          const el = document.getElementById(selId);
-          if (!el) return;
-          const sel = el.tagName === "SELECT" ? el : el.querySelector("select");
-          if (!sel) return;
-          if (!sel._allOptions) {
-            sel._allOptions = Array.from(sel.options).map(o => ({ value: o.value, text: o.text }));
-          }
-          sel.innerHTML = "";
-          let firstMatch = null;
-          for (const opt of sel._allOptions) {
-            const optVal = (opt.value || opt.text || "").toLowerCase();
-            let keep = isAll;
-            if (!keep) {
-              for (const pid of visiblePids) {
-                if (pid && optVal.includes(pid)) {
-                  keep = true;
-                  break;
-                }
-              }
-            }
-            if (keep) {
-              const o = document.createElement("option");
-              o.value = opt.value;
-              o.text = opt.text;
-              sel.appendChild(o);
-              if (!firstMatch) firstMatch = o.value;
-            }
-          }
-          if (firstMatch && (!sel.value || !visiblePids.has(sel.value.toLowerCase()))) {
-            sel.value = firstMatch;
+          const tbody = tbl.querySelector("tbody");
+          if (tbody) {
+            tbody.innerHTML = matched.map((a, idx) =>
+              '<tr data-pid="' + a.id + '" data-row-index="' + idx + '" class="' + (idx === 0 ? 'selected-tr' : '') + '">' +
+                '<td>' + a.id + '</td>' +
+                '<td>' + a.fav + '</td>' +
+                '<td>' + a.sourceLabel + '</td>' +
+                '<td>' + a.icon + ' ' + a.name + '</td>' +
+                '<td>' + a.cat + '</td>' +
+                '<td>' + a.status + '</td>' +
+                '<td>' + a.used + '</td>' +
+                '<td style="font-family:monospace;font-size:11px;">' + a.cmd + '</td>' +
+              '</tr>'
+            ).join('');
           }
         }
 
-        filterSelect("lst_apps");
-        filterSelect("dd_select_app");
+        // 2. Update ListBox (lst_apps)
+        const lstEl = document.getElementById("lst_apps");
+        if (lstEl) {
+          const sel = lstEl.tagName === "SELECT" ? lstEl : lstEl.querySelector("select");
+          if (sel) {
+            sel.innerHTML = matched.map(a => '<option value="' + a.itemStr.replace(/"/g, '&quot;') + '">' + a.itemStr + '</option>').join('');
+            if (matched.length > 0) sel.value = matched[0].itemStr;
+          }
+        }
 
+        // 3. Update Dropdown (dd_select_app)
+        const ddSelEl = document.getElementById("dd_select_app");
+        if (ddSelEl) {
+          const sel = ddSelEl.tagName === "SELECT" ? ddSelEl : ddSelEl.querySelector("select");
+          if (sel) {
+            sel.innerHTML = matched.map(a => '<option value="' + a.itemStr.replace(/"/g, '&quot;') + '">' + a.itemStr + '</option>').join('');
+            if (matched.length > 0) sel.value = matched[0].itemStr;
+          }
+        }
+
+        // 4. Update Status Label
         if (statusEl) {
           const catLabel = isAll ? "All Categories" : catName;
-          statusEl.textContent = "Filtered: " + visible + " project tools  |  Category: " + catLabel;
+          statusEl.textContent = "Filtered: " + matched.length + " / " + ALL_APPS.length + " project tools  |  Category: " + catLabel;
         }
 
-        // Sync dropdown selection
+        // 5. Synchronize Category Dropdown selection
         if (ddAppCat) {
           const sel = ddAppCat.tagName === "SELECT" ? ddAppCat : ddAppCat.querySelector("select");
           if (sel) {
             for (let i = 0; i < sel.options.length; i++) {
-              if (matchesCat(sel.options[i].text) || (isAll && i === 0)) {
+              if (matchesCat(sel.options[i].text, catName) || (isAll && i === 0)) {
                 sel.selectedIndex = i;
                 break;
               }
@@ -2889,7 +2897,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         }
       }
 
-      window.filterByCategoryClient = runFilter;
+      window.filterByCategoryClient = runClientFilter;
 
       function bindListeners() {
         const catMap = {
@@ -2914,7 +2922,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             btn.addEventListener("click", function() {
               const searchInput = document.getElementById("txt_search");
               if (searchInput) searchInput.value = "";
-              runFilter(catName);
+              const ddCat = document.getElementById("dd_category");
+              if (ddCat) {
+                const s = ddCat.tagName === "SELECT" ? ddCat : ddCat.querySelector("select");
+                if (s) s.selectedIndex = 0;
+              }
+              runClientFilter(catName);
             });
           }
         }
@@ -2925,7 +2938,16 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           const sel = ddAppCat.tagName === "SELECT" ? ddAppCat : ddAppCat.querySelector("select");
           if (sel) {
             sel.addEventListener("change", function() {
-              runFilter(this.value);
+              const searchInput = document.getElementById("txt_search");
+              if (searchInput && this.value && !this.value.includes("All Categories")) {
+                searchInput.value = "";
+              }
+              const ddCat = document.getElementById("dd_category");
+              if (ddCat && this.value && !this.value.includes("All Categories")) {
+                const s = ddCat.tagName === "SELECT" ? ddCat : ddCat.querySelector("select");
+                if (s) s.selectedIndex = 0;
+              }
+              runClientFilter(this.value);
             });
           }
         }
@@ -2936,7 +2958,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           clearBtn.addEventListener("click", function() {
             const searchInput = document.getElementById("txt_search");
             if (searchInput) searchInput.value = "";
-            runFilter("All Categories");
+            const ddCat = document.getElementById("dd_category");
+            if (ddCat) {
+              const s = ddCat.tagName === "SELECT" ? ddCat : ddCat.querySelector("select");
+              if (s) s.selectedIndex = 0;
+            }
+            runClientFilter("All Categories");
           });
         }
       }
