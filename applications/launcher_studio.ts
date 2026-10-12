@@ -240,6 +240,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "⛷️",
     description: "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
   },
+  math_munchers_studio: {
+    displayName: "Math Munchers Deluxe",
+    category: "Games & Entertainment",
+    icon: "👾",
+    description: "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
+  },
   minesweeper_studio: {
     displayName: "Minesweeper Pro Championship",
     category: "Games & Entertainment",

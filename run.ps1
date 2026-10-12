@@ -328,6 +328,7 @@ $metadataRegistry = @{
     'minesweeper_studio'   = @{ Name = 'Minesweeper Pro Championship'; Category = 'Games'; Icon = '[Game]'; Desc = 'Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine' }
     'breakout_studio'      = @{ Name = 'Cyber Breakout Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support' }
     'skifree_studio'       = @{ Name = 'SkiFree Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase' }
+    'math_munchers_studio' = @{ Name = 'Math Munchers Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes' }
     'tictactoe_studio'     = @{ Name = 'Neon Tic-Tac-Toe Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Unbeatable Minimax AI and 2-player local battle with glowing neon canvas' }
     'word_search_studio'   = @{ Name = 'Neon Word Search Labyrinth'; Category = 'Games'; Icon = '[Game]'; Desc = 'AAA cyber word search with Web Audio synthesizer and procedural dictionaries' }
     'world_time_zones_studio'=@{ Name = 'World Time Zones Studio Pro'; Category = 'Productivity'; Icon = '[App]'; Desc = 'Real-time global time zones with search, UTC offsets and clock synchronization' }
@@ -576,6 +577,9 @@ function Resolve-CatalogItem {
         'arkanoid'      = 'breakout_studio'
         'skifree'       = 'skifree_studio'
         'ski'           = 'skifree_studio'
+        'math_munchers' = 'math_munchers_studio'
+        'munchers'      = 'math_munchers_studio'
+        'munch'         = 'math_munchers_studio'
         'tictactoe'     = 'tictactoe_studio'
         'wordsearch'    = 'word_search_studio'
         'word_search'   = 'word_search_studio'
