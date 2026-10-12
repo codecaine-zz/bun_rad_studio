@@ -10,6 +10,8 @@ import {
   killApplication,
   createLauncherStudio,
   isPidAlive,
+  loadHistory,
+  toggleFavorite,
 } from "../applications/launcher_studio";
 
 describe("Launcher Studio Pro - Application Auto-Detection", () => {
@@ -545,6 +547,10 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
   });
 
   it("provides functional filter-to-favorites and launch-top-favorite operations", async () => {
+    const curH = loadHistory();
+    if (!curH.favorites.includes("rad_ipinfo_studio")) {
+      toggleFavorite("rad_ipinfo_studio");
+    }
     const win = createLauncherStudio({ fullscreen: false });
 
     // 1. Switch to Games category first to create potential scope conflict
@@ -575,24 +581,29 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     favsOnlyHandler(win);
     expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
 
-    // 4. Test Launch Top Favorite (btn_quick_launch_fav1)
-    const topFavHandler = (win as any).eventHandlersMap?.get("btn_quick_launch_fav1:onclick");
-    expect(topFavHandler).toBeDefined();
-    await topFavHandler(win);
+    try {
+      // 4. Test Launch Top Favorite (btn_quick_launch_fav1)
+      const topFavHandler = (win as any).eventHandlersMap?.get("btn_quick_launch_fav1:onclick");
+      expect(topFavHandler).toBeDefined();
+      await topFavHandler(win);
 
-    const statusText = win.getText("lbl_status");
-    expect(statusText).toContain("Running");
+      const statusText = win.getText("lbl_status");
+      expect(statusText).toContain("Running");
 
-    const outputText = win.getText("txt_output");
-    expect(outputText).toContain("[Desktop GUI Application Launched]");
+      const outputText = win.getText("txt_output");
+      expect(outputText).toContain("[Desktop GUI Application Launched]");
 
-    // 5. Test Toggle Favorite (btn_fav)
-    const toggleHandler = (win as any).eventHandlersMap?.get("btn_fav:onclick");
-    expect(toggleHandler).toBeDefined();
-    toggleHandler(win);
-    // Toggling once removes favorite from selected tool
-    toggleHandler(win);
-    // Toggling again restores favorite
+      // 5. Test Toggle Favorite (btn_fav)
+      const toggleHandler = (win as any).eventHandlersMap?.get("btn_fav:onclick");
+      expect(toggleHandler).toBeDefined();
+      toggleHandler(win);
+      // Toggling once removes favorite from selected tool
+      toggleHandler(win);
+      // Toggling again restores favorite
+    } finally {
+      killApplication("rad_ipinfo_studio");
+      killApplication("rad_rip_studio");
+    }
   });
 });
 

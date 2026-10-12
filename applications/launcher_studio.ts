@@ -2213,11 +2213,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     overrideArgs?: string,
     inTerminal?: boolean
   ) {
-    // Users are free to open 2 or more instances of the same application concurrently.
-    // Duplicate events from a single physical double-click are already collapsed by the
-    // client-side debounce wrappers on the table/listbox, so no server-side suppression here.
+    const now = Date.now();
+    const lastLaunch = lastLaunchTimes.get(app.id) || 0;
+    if (now - lastLaunch < 800) {
+      return;
+    }
     launchingApps.add(app.id);
-    lastLaunchTimes.set(app.id, Date.now());
+    lastLaunchTimes.set(app.id, now);
 
     try {
       const rawArgs = overrideArgs !== undefined ? overrideArgs : (w.getValue("txt_cli_args") || "");
@@ -2482,7 +2484,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onClick("btn_quick_favs_filter", filterToFavorites);
 
   // Quick Launch Top Favorite Action
+  let favLaunchCooldown = 0;
   win.onClick("btn_quick_launch_fav1", async (w) => {
+    const now = Date.now();
+    if (now - favLaunchCooldown < 800) return;
+    favLaunchCooldown = now;
     const fresh = getScan(true);
     const favs = fresh.apps.filter((a) => a.isFavorite);
     let target = favs[0];
@@ -3096,9 +3102,6 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
               if (out) {
                 out.value = "=== Top Favorite Selected & Launching ===\\nName: " + fav.name + "\\nID: " + fav.id + "\\nCommand: " + fav.cmd + "\\nPath: " + fav.path + "\\nStatus: 🚀 Executing launch...";
               }
-              if (typeof window.on_btn_quick_launch_fav1_click === "function") {
-                window.on_btn_quick_launch_fav1_click();
-              }
             }
           });
         }
@@ -3117,11 +3120,6 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             if (row && row.children[1]) {
               row.children[1].textContent = app.fav;
             }
-          }
-          if (typeof window.on_btn_fav_click === "function") {
-            window.on_btn_fav_click();
-          } else if (typeof window.on_btn_quick_toggle_fav_click === "function") {
-            window.on_btn_quick_toggle_fav_click();
           }
         }
 
