@@ -243,7 +243,7 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     acceptsParam: true,
     paramPlaceholder: "Optional parent interface",
     defaultParam: "",
-    execute: async (param) => si.networkInterfaces(param || undefined),
+    execute: async (param) => (param ? si.networkInterfaces(param) : si.networkInterfaces()),
   },
   networkStats: {
     name: "networkStats",
@@ -2730,7 +2730,7 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
       // 1. Launch Isolated Background Telemetry Worker Engine
       // This runs on a dedicated OS thread with its own independent Bun event loop,
       // guaranteeing zero deadlock and instant sub-millisecond responses while Webview runs on the main thread.
-      let info: { ready: boolean; port: number; url: string };
+      let info: { ready: boolean; port: number; url: string; type?: string };
 
       let serverProc: any = null;
 
