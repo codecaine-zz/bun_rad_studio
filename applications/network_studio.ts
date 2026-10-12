@@ -5,6 +5,21 @@ import * as net from "net";
 import * as os from "os";
 import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
+import {
+  parsePortSpec,
+  checkPortsSync,
+  tcpPingSync,
+  summarizeLatencies,
+  getTlsCertSync,
+  describeCert,
+  reversePtrSync,
+  summarizeScan,
+  scanResultsToCsv,
+  serviceName,
+  escapeHtml,
+  httpStatusText,
+  type ScanResult,
+} from "../src/network_tools";
 
 interface PortScanResult {
   port: number;
@@ -70,9 +85,9 @@ export function sanitizeHost(raw: string): string {
   if (!raw) return "";
   let h = raw.trim();
   h = h.replace(/^[a-zA-Z]+:\/\//, "");
-  h = h.split("/")[0].split("?")[0].split("#")[0];
+  h = h.split("/")[0]!.split("?")[0]!.split("#")[0]!;
   if (/^[^:]+:\d+$/.test(h)) {
-    h = h.split(":")[0];
+    h = h.split(":")[0]!;
   }
   h = h.replace(/^\[|\]$/g, "");
   h = h.trim();
@@ -188,8 +203,8 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
     .map(
       (i) => `
       <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <td style="padding: 6px 10px; font-weight: 600; color: #38bdf8;">${i.name}</td>
-        <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #f1f5f9;">${i.ip}</td>
+        <td style="padding: 6px 10px; font-weight: 600; color: #38bdf8;">${escapeHtml(i.name)}</td>
+        <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #f1f5f9;">${escapeHtml(i.ip)}</td>
         <td style="padding: 6px 10px;"><span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${i.family}</span></td>
         <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #94a3b8; font-size: 11px;">🔒 [Protected]</td>
         <td style="padding: 6px 10px;">${i.internal ? '<span style="color: #cbd5e1;">Loopback</span>' : '<span style="color: #4ade80; font-weight: 600;">Active Link</span>'}</td>
@@ -204,7 +219,7 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
           <span style="font-size: 20px;">🛡️</span>
           <div>
             <div style="font-weight: 700; color: #34d399; font-size: 14px;">Network Forensics Engine Active (Privacy Guard Enabled)</div>
-            <div style="font-size: 12px; color: #94a3b8;">Local IP & MAC: <b style="color: #38bdf8;">Protected / Masked</b> (${primaryIface}) | Ready to probe target: <b style="color: #38bdf8;">${host}:${port}</b></div>
+            <div style="font-size: 12px; color: #94a3b8;">Local IP & MAC: <b style="color: #38bdf8;">Protected / Masked</b> (${primaryIface}) | Ready to probe target: <b style="color: #38bdf8;">${escapeHtml(host)}:${port}</b></div>
           </div>
         </div>
         <div style="text-align: right;">
@@ -231,13 +246,13 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
       </div>
 
       <div style="font-size: 12px; color: #94a3b8; line-height: 1.5;">
-        💡 <b>Quick Actions</b>: Click <b>🔌 Scan Port</b> or <b>🌐 Scan Top Ports</b> above to audit open services on <code style="color: #38bdf8;">${host}</code>, or click any <b>DNS Record</b> button to resolve upstream addresses instantly.
+        💡 <b>Quick Actions</b>: Click <b>🔌 Scan Port</b> or <b>🌐 Scan Top Ports</b> above to audit open services on <code style="color: #38bdf8;">${escapeHtml(host)}</code>, or click any <b>DNS Record</b> button to resolve upstream addresses instantly.
       </div>
     </div>
   `;
 }
 
-function renderPortScanHtml(host: string, results: PortScanResult[], elapsedTotal: number): string {
+export function renderPortScanHtml(host: string, results: PortScanResult[], elapsedTotal: number, hiddenCount = 0): string {
   const openCount = results.filter((r) => r.status === "OPEN").length;
   const closedCount = results.filter((r) => r.status === "CLOSED").length;
   const timeoutCount = results.filter((r) => r.status === "TIMEOUT").length;
@@ -267,8 +282,8 @@ function renderPortScanHtml(host: string, results: PortScanResult[], elapsedTota
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
       <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
         <div>
-          <div style="font-weight: 700; font-size: 14px; color: #f1f5f9;">Port Scan Audit: <span style="color: #38bdf8; font-family: monospace;">${host}</span></div>
-          <div style="font-size: 12px; color: #94a3b8;">Audited ${results.length} ports in <b style="color: #f1f5f9;">${elapsedTotal.toFixed(1)}ms</b></div>
+          <div style="font-weight: 700; font-size: 14px; color: #f1f5f9;">Port Scan Audit: <span style="color: #38bdf8; font-family: monospace;">${escapeHtml(host)}</span></div>
+          <div style="font-size: 12px; color: #94a3b8;">Audited ${results.length + hiddenCount} ports in <b style="color: #f1f5f9;">${elapsedTotal.toFixed(1)}ms</b>${hiddenCount > 0 ? ` &middot; ${hiddenCount} closed/timeout hidden` : ""}</div>
         </div>
         <div style="display: flex; gap: 8px;">
           <span style="background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.4); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${openCount} Open</span>
@@ -296,7 +311,7 @@ function renderPortScanHtml(host: string, results: PortScanResult[], elapsedTota
   `;
 }
 
-export type DnsRecordType = "A" | "AAAA" | "MX" | "TXT" | "NS" | "SOA" | "CNAME";
+export type DnsRecordType = "A" | "AAAA" | "MX" | "TXT" | "NS" | "SOA" | "CNAME" | "CAA";
 
 export interface DnsResolveResult {
   host: string;
@@ -337,6 +352,7 @@ export function resolveDnsRecordSync(host: string, type: DnsRecordType): DnsReso
           case "NS": return await resolver.resolveNs(host);
           case "SOA": return await resolver.resolveSoa(host);
           case "CNAME": return await resolver.resolveCname(host);
+          case "CAA": return await resolver.resolveCaa(host);
         }
       };
 
@@ -470,14 +486,14 @@ export function resolveAllDnsRecordsSync(host: string): { results: DnsResolveRes
   };
 }
 
-function renderDnsHtml(res: DnsResolveResult): string {
+export function renderDnsHtml(res: DnsResolveResult): string {
   if (res.isNoData) {
     return `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
           <div>
-            <div style="font-weight: 700; font-size: 14px; color: #facc15;">DNS <span style="background: rgba(234, 179, 8, 0.25); color: #fde047; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${res.type}</span> Query: <span style="font-family: monospace; color: #fff;">${res.host}</span></div>
-            <div style="font-size: 12px; color: #94a3b8;">Queried in <b style="color: #f1f5f9;">${res.elapsedMs}ms</b> via <span style="color: #facc15; font-weight: 600;">${res.source}</span></div>
+            <div style="font-weight: 700; font-size: 14px; color: #facc15;">DNS <span style="background: rgba(234, 179, 8, 0.25); color: #fde047; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${res.type}</span> Query: <span style="font-family: monospace; color: #fff;">${escapeHtml(res.host)}</span></div>
+            <div style="font-size: 12px; color: #94a3b8;">Queried in <b style="color: #f1f5f9;">${res.elapsedMs}ms</b> via <span style="color: #facc15; font-weight: 600;">${escapeHtml(res.source)}</span></div>
           </div>
           <div>
             <span style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">NODATA / EMPTY</span>
@@ -485,7 +501,7 @@ function renderDnsHtml(res: DnsResolveResult): string {
         </div>
 
         <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; padding: 14px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
-          ℹ️ The domain <code style="color: #38bdf8;">${res.host}</code> is online and valid, but <b>no ${res.type} records</b> are published in this zone.<br/>
+          ℹ️ The domain <code style="color: #38bdf8;">${escapeHtml(res.host)}</code> is online and valid, but <b>no ${res.type} records</b> are published in this zone.<br/>
           This is normal for domains that do not advertise this specific record type (e.g., IPv4-only domains have no AAAA records, and domains without mail routing have no MX records).
         </div>
       </div>
@@ -499,7 +515,7 @@ function renderDnsHtml(res: DnsResolveResult): string {
       .map(
         (item) => `
         <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;">
-          <span style="font-family: ui-monospace, monospace; font-size: 13px; color: #7dd3fc; font-weight: 600;">${item}</span>
+          <span style="font-family: ui-monospace, monospace; font-size: 13px; color: #7dd3fc; font-weight: 600;">${escapeHtml(item)}</span>
           <span style="background: rgba(56,189,248,0.15); color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${res.type} Record</span>
         </div>`
       )
@@ -512,7 +528,7 @@ function renderDnsHtml(res: DnsResolveResult): string {
         (mx) => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
           <td style="padding: 8px 12px; font-weight: 700; color: #38bdf8;">${mx.priority}</td>
-          <td style="padding: 8px 12px; font-family: ui-monospace, monospace; color: #f1f5f9;">${mx.exchange}</td>
+          <td style="padding: 8px 12px; font-family: ui-monospace, monospace; color: #f1f5f9;">${escapeHtml(mx.exchange)}</td>
         </tr>`
       )
       .join("");
@@ -532,8 +548,8 @@ function renderDnsHtml(res: DnsResolveResult): string {
     const soa = res.records || {};
     contentHtml = `
       <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; font-size: 12px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-        <div><span style="color: #94a3b8;">Primary Nameserver:</span> <b style="color: #38bdf8; font-family: monospace;">${soa.nsname || "N/A"}</b></div>
-        <div><span style="color: #94a3b8;">Hostmaster / Admin:</span> <b style="color: #f1f5f9; font-family: monospace;">${soa.hostmaster || "N/A"}</b></div>
+        <div><span style="color: #94a3b8;">Primary Nameserver:</span> <b style="color: #38bdf8; font-family: monospace;">${escapeHtml(soa.nsname || "N/A")}</b></div>
+        <div><span style="color: #94a3b8;">Hostmaster / Admin:</span> <b style="color: #f1f5f9; font-family: monospace;">${escapeHtml(soa.hostmaster || "N/A")}</b></div>
         <div><span style="color: #94a3b8;">Serial Number:</span> <b style="color: #4ade80; font-family: monospace;">${soa.serial ?? "N/A"}</b></div>
         <div><span style="color: #94a3b8;">Refresh Interval:</span> <b style="color: #cbd5e1;">${soa.refresh ?? "N/A"}s</b></div>
         <div><span style="color: #94a3b8;">Retry Interval:</span> <b style="color: #cbd5e1;">${soa.retry ?? "N/A"}s</b></div>
@@ -556,21 +572,21 @@ function renderDnsHtml(res: DnsResolveResult): string {
               <span style="background: rgba(255,255,255,0.08); color: ${badgeColor}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">${badgeText}</span>
               <span style="color: #64748b; font-size: 11px;">Length: ${item.length} chars</span>
             </div>
-            <div style="font-family: ui-monospace, monospace; font-size: 12px; color: #cbd5e1; word-break: break-all; line-height: 1.4;">${item}</div>
+            <div style="font-family: ui-monospace, monospace; font-size: 12px; color: #cbd5e1; word-break: break-all; line-height: 1.4;">${escapeHtml(item)}</div>
           </div>`;
       })
       .join("");
     contentHtml = `<div>${cards}</div>`;
   } else {
-    contentHtml = `<pre style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px; color: #7dd3fc; overflow: auto; margin: 0; line-height: 1.5;">${JSON.stringify(res.records, null, 2)}</pre>`;
+    contentHtml = `<pre style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px; color: #7dd3fc; overflow: auto; margin: 0; line-height: 1.5;">${escapeHtml(JSON.stringify(res.records, null, 2))}</pre>`;
   }
 
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
       <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
         <div>
-          <div style="font-weight: 700; font-size: 14px; color: #38bdf8;">DNS <span style="background: #0284c7; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${res.type}</span> Resolution: <span style="font-family: monospace; color: #fff;">${res.host}</span></div>
-          <div style="font-size: 12px; color: #94a3b8;">Resolved in <b style="color: #f1f5f9;">${res.elapsedMs}ms</b> via <span style="color: #38bdf8; font-weight: 600;">${res.source}</span></div>
+          <div style="font-weight: 700; font-size: 14px; color: #38bdf8;">DNS <span style="background: #0284c7; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${res.type}</span> Resolution: <span style="font-family: monospace; color: #fff;">${escapeHtml(res.host)}</span></div>
+          <div style="font-size: 12px; color: #94a3b8;">Resolved in <b style="color: #f1f5f9;">${res.elapsedMs}ms</b> via <span style="color: #38bdf8; font-weight: 600;">${escapeHtml(res.source)}</span></div>
         </div>
         <div>
           <span style="background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.4); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">ACTIVE</span>
@@ -583,7 +599,7 @@ function renderDnsHtml(res: DnsResolveResult): string {
   `;
 }
 
-function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalElapsed: number): string {
+export function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalElapsed: number): string {
   const activeCount = results.filter((r) => !r.isNoData && (Array.isArray(r.records) ? r.records.length > 0 : !!r.records)).length;
   const aRes = results.find((r) => r.type === "A");
   const aaaaRes = results.find((r) => r.type === "AAAA");
@@ -603,20 +619,20 @@ function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalEl
 
   // Render IP list
   const ipBadges = [
-    ...ipv4List.map((ip) => `<span style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv4: ${ip}</span>`),
-    ...ipv6List.map((ip) => `<span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv6: ${ip}</span>`),
+    ...ipv4List.map((ip) => `<span style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv4: ${escapeHtml(ip)}</span>`),
+    ...ipv6List.map((ip) => `<span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv6: ${escapeHtml(ip)}</span>`),
   ].join("");
 
   // Render MX rows
   const mxRows = mxList.length > 0
     ? mxList
-        .map((m) => `<tr><td style="padding: 4px 8px; font-weight: 700; color: #38bdf8;">${m.priority}</td><td style="padding: 4px 8px; font-family: monospace; color: #f1f5f9;">${m.exchange}</td></tr>`)
+        .map((m) => `<tr><td style="padding: 4px 8px; font-weight: 700; color: #38bdf8;">${m.priority}</td><td style="padding: 4px 8px; font-family: monospace; color: #f1f5f9;">${escapeHtml(m.exchange)}</td></tr>`)
         .join("")
     : `<tr><td colspan="2" style="padding: 6px 8px; color: #94a3b8; font-style: italic;">No MX mail exchangers advertised</td></tr>`;
 
   // Render NS rows
   const nsBadges = nsList.length > 0
-    ? nsList.map((ns) => `<span style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">${ns}</span>`).join("")
+    ? nsList.map((ns) => `<span style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">${escapeHtml(ns)}</span>`).join("")
     : `<span style="color: #94a3b8; font-style: italic;">No nameservers found</span>`;
 
   // Render TXT samples
@@ -625,7 +641,7 @@ function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalEl
         .slice(0, 8)
         .map((t) => {
           const isSpf = t.startsWith("v=spf1");
-          return `<div style="font-family: monospace; font-size: 11px; color: ${isSpf ? "#34d399" : "#cbd5e1"}; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); word-break: break-all;">${t}</div>`;
+          return `<div style="font-family: monospace; font-size: 11px; color: ${isSpf ? "#34d399" : "#cbd5e1"}; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); word-break: break-all;">${escapeHtml(t)}</div>`;
         })
         .join("")
     : `<div style="color: #94a3b8; font-style: italic; padding: 6px;">No TXT records configured</div>`;
@@ -636,7 +652,7 @@ function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalEl
         <div>
           <div style="font-weight: 800; font-size: 16px; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
             <span>⚡ Complete DNS Forensic Dossier:</span>
-            <span style="font-family: monospace; color: #ffffff;">${host}</span>
+            <span style="font-family: monospace; color: #ffffff;">${escapeHtml(host)}</span>
           </div>
           <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
             Audited <b>${results.length}</b> record types in <b style="color: #f1f5f9;">${totalElapsed}ms</b> | Active Sets: <b style="color: #4ade80;">${activeCount}/${results.length}</b>
@@ -681,8 +697,8 @@ function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalEl
             ${
               soa
                 ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                    <div><span style="color: #94a3b8;">Primary:</span> <b style="color: #38bdf8; font-family: monospace;">${soa.nsname || "N/A"}</b></div>
-                    <div><span style="color: #94a3b8;">Admin:</span> <b style="color: #f1f5f9; font-family: monospace;">${soa.hostmaster || "N/A"}</b></div>
+                    <div><span style="color: #94a3b8;">Primary:</span> <b style="color: #38bdf8; font-family: monospace;">${escapeHtml(soa.nsname || "N/A")}</b></div>
+                    <div><span style="color: #94a3b8;">Admin:</span> <b style="color: #f1f5f9; font-family: monospace;">${escapeHtml(soa.hostmaster || "N/A")}</b></div>
                     <div><span style="color: #94a3b8;">Serial:</span> <b style="color: #4ade80;">${soa.serial ?? "N/A"}</b></div>
                     <div><span style="color: #94a3b8;">TTL:</span> <b>${soa.minttl ?? "N/A"}s</b></div>
                   </div>`
@@ -701,14 +717,14 @@ function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalEl
   `;
 }
 
-function renderHttpProbeHtml(url: string, status: number, statusText: string, elapsed: string, headers: [string, string][]): string {
+export function renderHttpProbeHtml(url: string, status: number, statusText: string, elapsed: string, headers: [string, string][], timings?: HttpTimings): string {
   const statusCol = status >= 200 && status < 300 ? "#4ade80" : status >= 300 && status < 400 ? "#38bdf8" : "#f87171";
   const headerRows = headers
     .map(
       ([k, v]) => `
       <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <td style="padding: 4px 8px; font-family: monospace; color: #38bdf8; width: 220px;">${k}</td>
-        <td style="padding: 4px 8px; font-family: monospace; color: #cbd5e1; word-break: break-all;">${v}</td>
+        <td style="padding: 4px 8px; font-family: monospace; color: #38bdf8; width: 220px;">${escapeHtml(k)}</td>
+        <td style="padding: 4px 8px; font-family: monospace; color: #cbd5e1; word-break: break-all;">${escapeHtml(v)}</td>
       </tr>`
     )
     .join("");
@@ -717,14 +733,17 @@ function renderHttpProbeHtml(url: string, status: number, statusText: string, el
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
       <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
         <div>
-          <div style="font-weight: 700; font-size: 14px; color: #f1f5f9;">HTTP Probe Response: <span style="font-family: monospace; color: #38bdf8;">${url}</span></div>
+          <div style="font-weight: 700; font-size: 14px; color: #f1f5f9;">HTTP Probe Response: <span style="font-family: monospace; color: #38bdf8;">${escapeHtml(url)}</span></div>
           <div style="font-size: 12px; color: #94a3b8;">Round-Trip Time-To-First-Byte: <b style="color: #f1f5f9;">${elapsed}ms</b></div>
         </div>
         <div>
-          <span style="background: rgba(0,0,0,0.4); color: ${statusCol}; border: 1px solid ${statusCol}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 700;">${status} ${statusText}</span>
+          <span style="background: rgba(0,0,0,0.4); color: ${statusCol}; border: 1px solid ${statusCol}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 700;">${status} ${escapeHtml(statusText)}</span>
         </div>
       </div>
 
+      ${timings ? `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 11px;">${[
+        ["DNS", timings.dnsMs], ["TCP", timings.connectMs], ["TLS", timings.tlsMs], ["TTFB", timings.ttfbMs], ["Total", timings.totalMs],
+      ].map(([l, v]) => `<span style="background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); color: #7dd3fc; padding: 3px 8px; border-radius: 4px;">${l}: <b>${v}ms</b></span>`).join("")}${timings.redirects > 0 ? `<span style="background: rgba(234,179,8,0.15); color: #facc15; padding: 3px 8px; border-radius: 4px;">${timings.redirects} redirect(s) &rarr; ${escapeHtml(timings.finalUrl)}</span>` : ""}${timings.remoteIp ? `<span style="background: rgba(255,255,255,0.06); color: #cbd5e1; padding: 3px 8px; border-radius: 4px;">Remote IP: ${escapeHtml(timings.remoteIp)}</span>` : ""}</div>` : ""}
       <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Response Headers (${headers.length}):</div>
       <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; max-height: 180px; overflow: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
@@ -735,7 +754,9 @@ function renderHttpProbeHtml(url: string, status: number, statusText: string, el
   `;
 }
 
-export function probeHttpSync(url: string): { success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string } {
+export interface HttpTimings { dnsMs: number; connectMs: number; tlsMs: number; ttfbMs: number; totalMs: number; redirects: number; finalUrl: string; remoteIp: string }
+
+export function probeHttpSync(url: string): { success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string; timings?: HttpTimings } {
   const t0 = performance.now();
   try {
     const proc = Bun.spawnSync([
@@ -743,7 +764,7 @@ export function probeHttpSync(url: string): { success: boolean; status?: number;
       "--connect-timeout", "2",
       "-m", "4",
       "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      "-w", "\n__RAD_META__\n%{http_code}\n%{time_total}\n",
+      "-w", "\n__RAD_META__\n%{http_code}\n%{time_total}\n%{time_namelookup}\n%{time_connect}\n%{time_appconnect}\n%{time_starttransfer}\n%{num_redirects}\n%{url_effective}\n%{remote_ip}\n",
       url,
     ]);
     const elapsedMs = (performance.now() - t0).toFixed(2);
@@ -752,7 +773,9 @@ export function probeHttpSync(url: string): { success: boolean; status?: number;
       return { success: false, error: proc.stderr.toString().trim() || "Probe failed", elapsedMs, headers: [] };
     }
     const [headerText, metaText] = out.split("\n__RAD_META__\n");
-    const [codeStr] = (metaText || "").trim().split("\n");
+    const meta = (metaText || "").trim().split("\n");
+    const [codeStr] = meta;
+    const ms = (v: string | undefined) => Math.round(parseFloat(v || "0") * 1000 * 10) / 10 || 0;
     const status = parseInt(codeStr || "0", 10);
 
     // Parse headers
@@ -767,17 +790,53 @@ export function probeHttpSync(url: string): { success: boolean; status?: number;
     return {
       success: status > 0,
       status: status || 200,
-      statusText: status === 200 ? "OK" : `HTTP ${status}`,
+      statusText: httpStatusText(status),
       elapsedMs,
       headers,
+      timings: {
+        totalMs: ms(meta[1]),
+        dnsMs: ms(meta[2]),
+        connectMs: ms(meta[3]),
+        tlsMs: ms(meta[4]),
+        ttfbMs: ms(meta[5]),
+        redirects: parseInt(meta[6] || "0", 10) || 0,
+        finalUrl: meta[7] || url,
+        remoteIp: meta[8] || "",
+      },
     };
   } catch (e: any) {
     return { success: false, error: e.message, elapsedMs: (performance.now() - t0).toFixed(2), headers: [] };
   }
 }
 
-export function probeHttp(url: string): Promise<{ success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string }> {
+export function probeHttp(url: string): Promise<{ success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string; timings?: HttpTimings }> {
   return Promise.resolve(probeHttpSync(url));
+}
+
+
+/** Generic escaped key/value card used by the toolkit (TLS, TCP ping, reverse DNS). */
+function renderKeyValueHtml(title: string, subtitle: string, rows: string[][], tone: "ok" | "warn" | "bad" = "ok"): string {
+  const col = tone === "ok" ? "56,189,248" : tone === "warn" ? "234,179,8" : "239,68,68";
+  const body = rows
+    .map(
+      ([k, v]) => `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 5px 10px; color: #94a3b8; width: 200px;">${escapeHtml(k)}</td><td style="padding: 5px 10px; font-family: ui-monospace, monospace; color: #e2e8f0; word-break: break-all;">${escapeHtml(v)}</td></tr>`
+    )
+    .join("");
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
+      <div style="background: rgba(${col},0.12); border: 1px solid rgba(${col},0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 14px; color: #f1f5f9;">${escapeHtml(title)}</div>
+        <div style="font-size: 12px; color: #94a3b8;">${escapeHtml(subtitle)}</div>
+      </div>
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;"><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+}
+
+function textTable(rows: string[][]): string {
+  const w = Math.max(...rows.map((r) => r[0]!.length), 0) + 2;
+  return rows.map(([k, v]) => `${(k ?? "").padEnd(w)}${v}`).join("\n");
 }
 
 export function createNetworkStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
@@ -828,8 +887,27 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   win.addButton("btn_dns_txt", "TXT Records");
   win.addButton("btn_dns_ns", "NS (NameServers)");
   win.addButton("btn_dns_soa", "SOA Record");
+  win.addButton("btn_dns_caa", "CAA Record");
+  win.addButton("btn_dns_ptr", "↩ Reverse DNS (PTR)");
   win.addButton("btn_clear_diag", "🧹 Clear");
-  win.addButton("btn_export_diag", "📋 Export");
+  win.endRow();
+  win.endGroupBox();
+
+  // Productivity Toolkit
+  win.beginGroupBox("Productivity Toolkit");
+  win.beginRow();
+  win.addLabel("lbl_ports", "Ports:").width(50);
+  win.addInput("txt_ports", "22,80,443,3000,5432,8000-8010", "e.g. 22,80,443,8000-8010").width(280);
+  win.addLabel("lbl_timeout", "Timeout (ms):").width(95);
+  win.addInput("txt_timeout", "500").width(70);
+  win.addCheckbox("chk_open_only", "Show open ports only", false);
+  win.addButton("btn_scan_custom", "🎯 Scan Port List");
+  win.endRow();
+  win.beginRow();
+  win.addButton("btn_tls_cert", "🔒 SSL Certificate");
+  win.addButton("btn_tcp_ping", "📡 TCP Ping x5");
+  win.addButton("btn_copy_report", "📋 Copy Report");
+  win.addButton("btn_export_diag", "💾 Save Report...");
   win.endRow();
   win.endGroupBox();
 
@@ -856,6 +934,33 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   );
 
   // Handlers
+  let lastScan: { host: string; results: ScanResult[] } | null = null;
+  const clampNum = (v: any, min: number, max: number, dflt: number) => {
+    const n = parseInt(String(v), 10);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : dflt;
+  };
+  /** Returns the sanitized host from the Target box, or null (with a toast) if it is not valid. */
+  const pickHost = (fallback: string): string | null => {
+    const raw = String(win.getValue("txt_host") ?? "").trim();
+    if (!raw) return fallback;
+    const h = sanitizeHost(raw);
+    if (!h) {
+      win.toast(`"${raw}" is not a valid host name or IP address`, 3500, "error");
+      win.setStatus("Invalid host");
+      return null;
+    }
+    return h;
+  };
+  const pickPort = (): number | null => {
+    const port = parseInt(String(win.getValue("txt_port") || "443"), 10);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      win.toast("Port must be a number between 1 and 65535");
+      win.setStatus("Invalid port");
+      return null;
+    }
+    return port;
+  };
+
   win.onClick("btn_center", () => win.center());
   win.onClick("btn_fullscreen", () => win.toggleFullscreen());
   win.onClick("btn_save_state", (w) => {
@@ -925,7 +1030,8 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
   win.onClick("btn_scan_socket", () => {
     const rawHost = win.getValue("txt_host") || "google.com";
-    const host = sanitizeHost(rawHost) || "127.0.0.1";
+    const host = pickHost("127.0.0.1");
+    if (!host) return;
     const port = parseInt(win.getValue("txt_port") || "443", 10);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       win.toast("Port must be a number between 1 and 65535");
@@ -938,6 +1044,7 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const t0 = performance.now();
     const res = checkSocketSync(host, port);
     const elapsed = performance.now() - t0;
+    lastScan = { host, results: [res] };
     const html = renderPortScanHtml(host, [res], elapsed);
     const raw = `[Socket Test Result]\nHost:    ${host}\nPort:    ${port} (${res.service})\nStatus:  ${res.status}\nLatency: ${res.latencyMs}ms\n`;
 
@@ -949,15 +1056,18 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
   win.onClick("btn_scan_all", () => {
     const rawHost = win.getValue("txt_host") || "google.com";
-    const host = sanitizeHost(rawHost) || "127.0.0.1";
+    const host = pickHost("127.0.0.1");
+    if (!host) return;
     win.appendConsole("net_console", `[Batch Scan] Scanning ${COMMON_PORTS.length} common services on ${host}...\n`, 1);
     win.setStatus(`Scanning common ports on ${host}...`);
 
     const t0 = performance.now();
-    const results = checkCommonSocketsSync(host);
+    const allResults = checkCommonSocketsSync(host);
     const elapsed = performance.now() - t0;
+    const results = win.getBool("chk_open_only") ? allResults.filter((r) => r.status === "OPEN") : allResults;
+    lastScan = { host, results: allResults };
 
-    const html = renderPortScanHtml(host, results, elapsed);
+    const html = renderPortScanHtml(host, results, elapsed, allResults.length - results.length);
     const lines: string[] = [
       `========================================================================`,
       `PORT SCAN AUDIT REPORT: ${host}`,
@@ -976,14 +1086,15 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
     setResults(html, lines.join("\n"));
     const openCount = results.filter((r) => r.status === "OPEN").length;
-    win.appendConsole("net_console", `[Batch Scan] Finished auditing ${results.length} ports (${openCount} OPEN) in ${elapsed.toFixed(1)}ms\n`, 2);
+    win.appendConsole("net_console", `[Batch Scan] Finished auditing ${allResults.length} ports (${openCount} OPEN) in ${elapsed.toFixed(1)}ms\n`, 2);
     win.setStatus(`Scan completed: ${openCount} open ports found (${elapsed.toFixed(0)}ms)`);
     win.toast(`✅ Scanned ${results.length} ports: ${openCount} OPEN (${elapsed.toFixed(0)}ms)`);
   });
 
   win.onClick("btn_ping_http", () => {
     const rawHost = win.getValue("txt_host") || "google.com";
-    const host = sanitizeHost(rawHost) || "google.com";
+    const host = pickHost("google.com");
+    if (!host) return;
     const port = parseInt(win.getValue("txt_port") || "443", 10);
     let url = rawHost.trim();
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -999,12 +1110,22 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
     const probeRes = probeHttpSync(url);
     if (probeRes.success) {
-      const html = renderHttpProbeHtml(url, probeRes.status!, probeRes.statusText || "", probeRes.elapsedMs, probeRes.headers);
+      const html = renderHttpProbeHtml(url, probeRes.status!, probeRes.statusText || "", probeRes.elapsedMs, probeRes.headers, probeRes.timings);
       const report = [
         `[HTTP Probe Response]`,
         `URL:             ${url}`,
         `Status Code:     ${probeRes.status} ${probeRes.statusText}`,
         `Total Latency:   ${probeRes.elapsedMs}ms`,
+        ...(probeRes.timings
+          ? [
+              `DNS Lookup:      ${probeRes.timings.dnsMs}ms`,
+              `TCP Connect:     ${probeRes.timings.connectMs}ms`,
+              `TLS Handshake:   ${probeRes.timings.tlsMs}ms`,
+              `Time To 1st Byte:${" "}${probeRes.timings.ttfbMs}ms`,
+              `Redirects:       ${probeRes.timings.redirects}${probeRes.timings.redirects > 0 ? ` -> ${probeRes.timings.finalUrl}` : ""}`,
+              `Remote IP:       ${probeRes.timings.remoteIp || "-"}`,
+            ]
+          : []),
         `Response Headers:`,
         ...probeRes.headers.map(([k, v]) => `  ${k}: ${v}`),
       ].join("\n");
@@ -1017,8 +1138,8 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
       const errHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px;">
           <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">❌ HTTP Probe Failed</div>
-          <div style="font-size: 12px; color: #e2e8f0;">Target: <code style="color: #38bdf8;">${url}</code> | Latency: ${probeRes.elapsedMs}ms</div>
-          <div style="font-size: 12px; margin-top: 8px; color: #fca5a5;"><b>Error:</b> ${probeRes.error || "Probe failed"}</div>
+          <div style="font-size: 12px; color: #e2e8f0;">Target: <code style="color: #38bdf8;">${escapeHtml(url)}</code> | Latency: ${probeRes.elapsedMs}ms</div>
+          <div style="font-size: 12px; margin-top: 8px; color: #fca5a5;"><b>Error:</b> ${escapeHtml(probeRes.error || "Probe failed")}</div>
         </div>`;
       setResults(errHtml, `[HTTP Probe Failed]\nTarget:  ${url}\nLatency: ${probeRes.elapsedMs}ms\nError:   ${probeRes.error || "Probe failed"}`);
       win.appendConsole("net_console", `[HTTP Error] ${probeRes.error || "Probe failed"} (${probeRes.elapsedMs}ms)\n`, 3);
@@ -1030,8 +1151,8 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const errHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px;">
         <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">❌ DNS Lookup Failed</div>
-        <div style="font-size: 12px; color: #e2e8f0;">Host: <code style="color: #38bdf8;">${host}</code> | Record: <span style="background: #334155; padding: 1px 6px; border-radius: 4px;">${type}</span> | Latency: ${elapsed}ms</div>
-        <div style="font-size: 12px; margin-top: 8px; color: #fca5a5;"><b>Error:</b> ${err.message || String(err)}</div>
+        <div style="font-size: 12px; color: #e2e8f0;">Host: <code style="color: #38bdf8;">${escapeHtml(host)}</code> | Record: <span style="background: #334155; padding: 1px 6px; border-radius: 4px;">${type}</span> | Latency: ${elapsed}ms</div>
+        <div style="font-size: 12px; margin-top: 8px; color: #fca5a5;"><b>Error:</b> ${escapeHtml(err.message || String(err))}</div>
         <div style="font-size: 11px; margin-top: 8px; color: #94a3b8; line-height: 1.4;">
           💡 <b>Tip:</b> If your network or VPN blocks port 53 UDP traffic, test with <b>⚡ HTTP Probe</b> which queries through standard HTTPS port 443, or verify the domain spelling.
         </div>
@@ -1043,7 +1164,8 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
   const queryDns = (type: DnsRecordType) => {
     const rawHost = win.getValue("txt_host") || "google.com";
-    const host = sanitizeHost(rawHost) || "google.com";
+    const host = pickHost("google.com");
+    if (!host) return;
     win.appendConsole("net_console", `[DNS] Resolving ${type} records for ${host}...\n`, 1);
     win.setStatus(`Resolving ${type} for ${host}...`);
 
@@ -1076,7 +1198,8 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
   win.onClick("btn_dns_all", () => {
     const rawHost = win.getValue("txt_host") || "google.com";
-    const host = sanitizeHost(rawHost) || "google.com";
+    const host = pickHost("google.com");
+    if (!host) return;
     win.appendConsole("net_console", `[DNS Audit] Running full forensic inspection for ${host}...\n`, 1);
     win.setStatus(`Auditing all DNS records for ${host}...`);
 
@@ -1116,21 +1239,131 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   win.onClick("btn_dns_txt", () => queryDns("TXT"));
   win.onClick("btn_dns_ns", () => queryDns("NS"));
   win.onClick("btn_dns_soa", () => queryDns("SOA"));
+  win.onClick("btn_dns_caa", () => queryDns("CAA"));
+
+  const currentReport = (): string => String(win.getValue("txt_net_results_raw") || "");
+
+  win.onClick("btn_copy_report", () => {
+    const t = currentReport();
+    if (!t.trim()) { win.toast("No diagnostics output to copy", 2500, "warning"); return; }
+    win.copyToClipboard(t);
+    win.toast("Report copied", 2000, "success");
+  });
 
   win.onClick("btn_export_diag", () => {
-    const rawContent = win.getValue("txt_net_results_raw") || win.getValue("txt_net_results") || "";
+    const rawContent = currentReport() || String(win.getValue("txt_net_results") || "");
     if (!rawContent.trim()) {
       win.toast("No diagnostics output to export");
       return;
     }
-    const exportPath = resolve(process.cwd(), "network_report.txt");
-    try {
-      writeFileSync(exportPath, rawContent, "utf8");
-      win.appendConsole("net_console", `[Export] Saved network report to ${exportPath}\n`, 2);
-      win.toast(`Report saved: ${basename(exportPath)}`);
-    } catch (e: any) {
-      win.appendConsole("net_console", `[Export Error] ${e.message}\n`, 3);
-    }
+    win.saveFile({ title: "Save network report (.txt or .csv)", defaultName: "network_report.txt" }, (p) => {
+      if (!p) return;
+      try {
+        const asCsv = p.toLowerCase().endsWith(".csv") && lastScan;
+        writeFileSync(p, asCsv ? scanResultsToCsv(lastScan!.host, lastScan!.results) : rawContent, "utf8");
+        win.appendConsole("net_console", `[Export] Saved network report to ${p}\n`, 2);
+        win.toast(`Report saved: ${basename(p)}`, 3000, "success");
+      } catch (e: any) {
+        win.appendConsole("net_console", `[Export Error] ${e.message}\n`, 3);
+        win.toast(`Save failed: ${e.message}`, 4000, "error");
+      }
+    });
+  });
+
+  win.onClick("btn_scan_custom", () => {
+    const host = pickHost("127.0.0.1");
+    if (!host) return;
+    const spec = parsePortSpec(String(win.getValue("txt_ports") || ""));
+    if (spec.error) { win.toast(spec.error, 3500, "error"); win.setStatus("Invalid port list"); return; }
+    const timeout = clampNum(win.getValue("txt_timeout"), 100, 5000, 500);
+    win.appendConsole("net_console", `[Port List] Scanning ${spec.ports.length} port(s) on ${host} (timeout ${timeout}ms)...\n`, 1);
+    win.setStatus(`Scanning ${spec.ports.length} ports on ${host}...`);
+    const t0 = performance.now();
+    const all = checkPortsSync(host, spec.ports, timeout);
+    const elapsed = performance.now() - t0;
+    const shown = win.getBool("chk_open_only") ? all.filter((r) => r.status === "OPEN") : all;
+    lastScan = { host, results: all };
+    const withNames = shown.map((r) => ({ ...r, service: serviceName(r.port) })) as PortScanResult[];
+    const html = renderPortScanHtml(host, withNames, elapsed, all.length - shown.length);
+    const lines = [
+      `PORT LIST SCAN: ${host}`,
+      `Timestamp: ${new Date().toISOString()}`,
+      `Scanned ${all.length} port(s) in ${elapsed.toFixed(1)}ms (timeout ${timeout}ms)${spec.truncated ? ` - list truncated to ${spec.ports.length}` : ""}`,
+      `PORT      SERVICE              STATUS       LATENCY`,
+      ...withNames.map((r) => `${String(r.port).padEnd(9)} ${r.service.padEnd(20)} ${r.status.padEnd(12)} ${r.latencyMs}ms`),
+    ];
+    setResults(html, lines.join("\n"));
+    const sum = summarizeScan(all);
+    win.appendConsole("net_console", `[Port List] ${sum.open} open, ${sum.closed} closed, ${sum.timeout} timeout in ${elapsed.toFixed(0)}ms\n`, 2);
+    win.setStatus(`Port list scan: ${sum.open} open of ${all.length} (${elapsed.toFixed(0)}ms)`);
+    win.toast(`Scanned ${all.length} ports: ${sum.open} open${spec.truncated ? " (list truncated)" : ""}`, 3000, sum.open > 0 ? "success" : "info");
+  });
+
+  win.onClick("btn_tcp_ping", () => {
+    const host = pickHost("google.com");
+    if (!host) return;
+    const port = pickPort();
+    if (port === null) return;
+    const timeout = Math.max(500, clampNum(win.getValue("txt_timeout"), 100, 5000, 1000));
+    win.appendConsole("net_console", `[TCP Ping] ${host}:${port} x5...\n`, 1);
+    win.setStatus(`TCP ping ${host}:${port}...`);
+    const samples = tcpPingSync(host, port, 5, timeout);
+    const sum = summarizeLatencies(samples);
+    const rows: string[][] = samples.map((v, i) => [`Reply ${i + 1}`, v === null ? "timeout / refused" : `${v}ms`]);
+    rows.push(
+      ["Sent / Received", `${sum.sent} / ${sum.received}`],
+      ["Packet Loss", `${sum.lossPct}%`],
+      ["Min / Avg / Max", sum.min === null ? "-" : `${sum.min} / ${sum.avg} / ${sum.max} ms`],
+      ["Jitter", sum.jitter === null ? "-" : `${sum.jitter}ms`]
+    );
+    const tone = sum.received === 0 ? "bad" : sum.lossPct > 0 ? "warn" : "ok";
+    setResults(
+      renderKeyValueHtml(`TCP Ping: ${host}:${port}`, `${sum.received}/${sum.sent} connections succeeded`, rows, tone),
+      `[TCP Ping] ${host}:${port}\n` + textTable(rows)
+    );
+    win.appendConsole("net_console", `[TCP Ping] ${sum.received}/${sum.sent} replies, avg ${sum.avg ?? "-"}ms\n`, sum.received > 0 ? 2 : 3);
+    win.setStatus(sum.received > 0 ? `TCP ping avg ${sum.avg}ms, ${sum.lossPct}% loss` : `TCP ping failed: ${host}:${port} unreachable`);
+  });
+
+  win.onClick("btn_tls_cert", () => {
+    const host = pickHost("google.com");
+    if (!host) return;
+    const port = pickPort();
+    if (port === null) return;
+    win.appendConsole("net_console", `[TLS] Inspecting certificate of ${host}:${port}...\n`, 1);
+    win.setStatus(`Inspecting TLS certificate for ${host}:${port}...`);
+    const info = getTlsCertSync(host, port);
+    const rows = describeCert(info);
+    const failed = !!info.error;
+    const expired = rows.some((r) => r[0] === "Expiry Status" && /EXPIRED/.test(r[1]!));
+    const soon = rows.some((r) => r[0] === "Expiry Status" && /soon/.test(r[1]!));
+    setResults(
+      renderKeyValueHtml(
+        failed ? "TLS Inspection Failed" : `TLS Certificate: ${host}:${port}`,
+        failed ? info.error! : rows.find((r) => r[0] === "Expiry Status")![1]!,
+        rows,
+        failed || expired ? "bad" : soon || !info.authorized ? "warn" : "ok"
+      ),
+      `[TLS Certificate] ${host}:${port}\n` + textTable(rows)
+    );
+    win.appendConsole("net_console", failed ? `[TLS Error] ${info.error}\n` : `[TLS] ${rows.find((r) => r[0] === "Expiry Status")![1]}\n`, failed || expired ? 3 : 2);
+    win.setStatus(failed ? "TLS inspection failed" : `Certificate: ${rows.find((r) => r[0] === "Expiry Status")![1]}`);
+    if (failed) win.toast(info.error!, 3500, "error");
+  });
+
+  win.onClick("btn_dns_ptr", () => {
+    const host = pickHost("8.8.8.8");
+    if (!host) return;
+    win.appendConsole("net_console", `[PTR] Reverse lookup for ${host}...\n`, 1);
+    const res = reversePtrSync(host);
+    const rows: string[][] = res.hostnames.length > 0 ? res.hostnames.map((h, i) => [`PTR ${i + 1}`, h]) : [["Result", res.error ? `No PTR record (${res.error})` : "No PTR record"]];
+    setResults(
+      renderKeyValueHtml(`Reverse DNS: ${host}`, res.hostnames.length > 0 ? `${res.hostnames.length} name(s)` : "No hostname found", rows, res.hostnames.length > 0 ? "ok" : "warn"),
+      `[Reverse DNS] ${host}\n` + textTable(rows)
+    );
+    win.appendConsole("net_console", res.hostnames.length > 0 ? `[PTR] ${res.hostnames.join(", ")}\n` : `[PTR] none (${res.error || "empty"})\n`, res.hostnames.length > 0 ? 2 : 4);
+    win.setStatus(res.hostnames.length > 0 ? `PTR: ${res.hostnames[0]}` : "No PTR record");
+    if (res.error && res.hostnames.length === 0 && /needs an IP/.test(res.error)) win.toast(res.error, 3500, "warning");
   });
 
   return win;
