@@ -325,6 +325,7 @@ $metadataRegistry = @{
     'lolo_studio'          = @{ Name = 'Adventures of Lolo Remaster'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk remastered Adventures of Lolo with procedural puzzles and sound engine' }
     'maze_generator_studio'= @{ Name = 'Cyberpunk Maze Runner'; Category = 'Games'; Icon = '[Game]'; Desc = 'Procedural neon labyrinth with Recursive Backtracking, fog of war and A* AI solver' }
     'rodents_revenge_studio'=@{ Name = 'Rodent''s Revenge Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Deluxe arcade revival of Rodent''s Revenge with retro maze and cat trapping' }
+    'minesweeper_studio'   = @{ Name = 'Minesweeper Pro Championship'; Category = 'Games'; Icon = '[Game]'; Desc = 'Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine' }
     'tictactoe_studio'     = @{ Name = 'Neon Tic-Tac-Toe Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Unbeatable Minimax AI and 2-player local battle with glowing neon canvas' }
     'word_search_studio'   = @{ Name = 'Neon Word Search Labyrinth'; Category = 'Games'; Icon = '[Game]'; Desc = 'AAA cyber word search with Web Audio synthesizer and procedural dictionaries' }
     'world_time_zones_studio'=@{ Name = 'World Time Zones Studio Pro'; Category = 'Productivity'; Icon = '[App]'; Desc = 'Real-time global time zones with search, UTC offsets and clock synchronization' }
@@ -567,6 +568,8 @@ function Resolve-CatalogItem {
         'maze'          = 'maze_generator_studio'
         'rodent'        = 'rodents_revenge_studio'
         'rodents'       = 'rodents_revenge_studio'
+        'minesweeper'   = 'minesweeper_studio'
+        'mines'         = 'minesweeper_studio'
         'tictactoe'     = 'tictactoe_studio'
         'wordsearch'    = 'word_search_studio'
         'word_search'   = 'word_search_studio'

@@ -73,6 +73,8 @@
     "app:pacman": "bun run applications/pacman_studio.ts",
     "app:pong": "bun run applications/pong_studio.ts",
     "app:rodents_revenge": "bun run applications/rodents_revenge_studio.ts",
+    "app:minesweeper": "bun run applications/minesweeper_studio.ts",
+    "app:mines": "bun run applications/minesweeper_studio.ts",
     "app:tictactoe": "bun run applications/tictactoe_studio.ts",
     "app:word_search": "bun run applications/word_search_studio.ts",
     "app:world_time_zones": "bun run applications/world_time_zones_studio.ts",

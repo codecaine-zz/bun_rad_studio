@@ -228,6 +228,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🟡",
     description: "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
   },
+  minesweeper_studio: {
+    displayName: "Minesweeper Pro Championship",
+    category: "Games & Entertainment",
+    icon: "💣",
+    description: "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
+  },
   pong_studio: {
     displayName: "Neon Cyber Pong",
     category: "Games & Entertainment",

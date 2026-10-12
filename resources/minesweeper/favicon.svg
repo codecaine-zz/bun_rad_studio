@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Minesweeper Pro app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="mineSphere" cx="40%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="35%" stop-color="#334155"/>
+      <stop offset="75%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="spike" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <radialGradient id="dangerCore" cx="45%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="70%" stop-color="#991b1b"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background rounded card -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <rect x="8" y="8" width="112" height="112" rx="22" fill="none" stroke="#ef4444" stroke-width="2" stroke-opacity="0.3"/>
+  <rect x="12" y="12" width="104" height="104" rx="18" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.2"/>
+
+  <!-- Danger ambient aura -->
+  <circle cx="64" cy="64" r="44" fill="url(#glow)"/>
+
+  <!-- Mine Spikes (8 cardinal & diagonal directions) -->
+  <g stroke="#334155" stroke-width="8" stroke-linecap="round">
+    <line x1="64" y1="64" x2="64" y2="18"/>
+    <line x1="64" y1="64" x2="64" y2="110"/>
+    <line x1="64" y1="64" x2="18" y2="64"/>
+    <line x1="64" y1="64" x2="110" y2="64"/>
+    <line x1="64" y1="64" x2="31" y2="31"/>
+    <line x1="64" y1="64" x2="97" y2="97"/>
+    <line x1="64" y1="64" x2="97" y2="31"/>
+    <line x1="64" y1="64" x2="31" y2="97"/>
+  </g>
+
+  <!-- Spike tips -->
+  <circle cx="64" cy="18" r="5" fill="url(#spike)"/>
+  <circle cx="64" cy="110" r="5" fill="url(#spike)"/>
+  <circle cx="18" cy="64" r="5" fill="url(#spike)"/>
+  <circle cx="110" cy="64" r="5" fill="url(#spike)"/>
+  <circle cx="31" cy="31" r="4.5" fill="url(#spike)"/>
+  <circle cx="97" cy="97" r="4.5" fill="url(#spike)"/>
+  <circle cx="97" cy="31" r="4.5" fill="url(#spike)"/>
+  <circle cx="31" cy="97" r="4.5" fill="url(#spike)"/>
+
+  <!-- Main Mine Sphere -->
+  <circle cx="64" cy="64" r="34" fill="url(#mineSphere)" stroke="#475569" stroke-width="2.5"/>
+
+  <!-- Sphere highlight shine -->
+  <ellipse cx="53" cy="52" rx="10" ry="6" fill="#f8fafc" opacity="0.35" transform="rotate(-30 53 52)"/>
+
+  <!-- Core Hazard LED / Blinking Primer -->
+  <circle cx="64" cy="64" r="14" fill="url(#dangerCore)" stroke="#fca5a5" stroke-width="1.8"/>
+  <circle cx="61" cy="61" r="4" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Digital Grid Accent dots -->
+  <circle cx="28" cy="28" r="2" fill="#38bdf8" opacity="0.6"/>
+  <circle cx="100" cy="28" r="2" fill="#38bdf8" opacity="0.6"/>
+  <circle cx="28" cy="100" r="2" fill="#38bdf8" opacity="0.6"/>
+  <circle cx="100" cy="100" r="2" fill="#38bdf8" opacity="0.6"/>
+</svg>
