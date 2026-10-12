@@ -1,6 +1,22 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { stdlib } from "../src/simplecli/stdlib";
 import { createHmac } from "crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import {
+  hashFile,
+  matchChecksum,
+  generatePassword,
+  clampPasswordLength,
+  toBase64,
+  fromBase64,
+  toHex,
+  fromHex,
+  describeJwtTimes,
+  verifyJwtHmac,
+  formatDigestReport,
+  type HashRow,
+} from "../src/crypto_tools";
 
 function estimateEntropy(str: string): { bits: number; strength: string } {
   let pool = 0;
@@ -98,6 +114,53 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.endRow();
   win.endGroupBox();
 
+  // Productivity Toolkit
+  win.beginGroupBox("Productivity Toolkit: File Hashing, Checksum Verify, Password Generator & Encoders");
+  win.beginRow();
+  win.addLabel("lbl_file_path", "File to hash:");
+  win.addInput("txt_file_path", "", "Choose a file to compute SHA-256/512/384, SHA-1 and MD5...").width(360);
+  win.addButton("btn_browse_file", "📄 Browse...");
+  win.addButton("btn_hash_file", "🧮 Hash File");
+  win.endRow();
+
+  win.beginRow();
+  win.addLabel("lbl_expected", "Expected checksum:");
+  win.addInput("txt_expected", "", "Paste a published SHA-256 / SHA-1 / MD5 ... to compare").width(420);
+  win.addButton("btn_verify_checksum", "✔ Verify Checksum");
+  win.addButton("btn_copy_digests", "📋 Copy Digests");
+  win.addButton("btn_save_digests", "💾 Save Digests As...");
+  win.endRow();
+
+  win.beginRow();
+  win.addLabel("lbl_pw_len", "Password length:");
+  win.addInput("txt_pw_len", "20").width(60);
+  win.addCheckbox("chk_pw_lower", "a-z", true);
+  win.addCheckbox("chk_pw_upper", "A-Z", true);
+  win.addCheckbox("chk_pw_digits", "0-9", true);
+  win.addCheckbox("chk_pw_symbols", "Symbols", true);
+  win.addCheckbox("chk_pw_noamb", "No look-alikes", false);
+  win.addButton("btn_gen_password", "🔐 Generate Password");
+  win.endRow();
+
+  win.beginRow();
+  win.addLabel("lbl_pw_out", "Generated password:");
+  win.addInput("txt_pw_out", "", "Click Generate Password").width(420);
+  win.addButton("btn_copy_password", "📋 Copy Password");
+  win.endRow();
+
+  win.beginRow();
+  win.addButton("btn_b64_encode", "Base64 Encode");
+  win.addButton("btn_b64_decode", "Base64 Decode");
+  win.addButton("btn_hex_encode", "Hex Encode");
+  win.addButton("btn_hex_decode", "Hex Decode");
+  win.addLabel("lbl_jwt_secret", "JWT secret:");
+  win.addInput("txt_jwt_secret", "", "HS256/384/512 shared secret").width(220);
+  win.addButton("btn_verify_jwt", "🛡 Verify JWT Signature");
+  win.addButton("btn_copy_output", "📋 Copy Output");
+  win.addButton("btn_clear_all", "✕ Clear All");
+  win.endRow();
+  win.endGroupBox();
+
   // Console Telemetry
   win.beginGroupBox("Cryptographic Operations Telemetry & Audit Log");
   win.addConsole("crypto_console", 85);
@@ -107,6 +170,9 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.beginRow();
   win.addLabel("lbl_status", "Status: Ready  |  Hardware WebCrypto Acceleration: Active  |  Zero Homebrew");
   win.endRow();
+
+  let lastRows: HashRow[] = [];
+  let lastSource = "";
 
   // Handlers
   win.onClick("btn_center", () => win.center());
@@ -133,13 +199,15 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
     }
 
     const elapsed = (performance.now() - t0).toFixed(2);
-    win.setTableData("tbl_hashes", ["Algorithm / Primitive", "Computed Digest (Hex)"], [
+    lastRows = [
       ["SHA-256", sha256],
       ["HMAC-SHA256", hmacSha256],
       ["SHA-512", sha512],
       ["MD5", md5],
       ["SHA-1", sha1],
-    ]);
+    ];
+    lastSource = "Text input";
+    win.setTableData("tbl_hashes", ["Algorithm / Primitive", "Computed Digest (Hex)"], lastRows);
 
     win.appendConsole("crypto_console", `[Hashes] Computed SHA-256/512, MD5, SHA-1 and HMAC in ${elapsed}ms\n`, 2);
     win.setStatus(`Hashes calculated (${elapsed}ms)`);
@@ -233,6 +301,7 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
       JSON.stringify(decoded.header, null, 2),
       "// Payload / Claims:",
       JSON.stringify(decoded.payload, null, 2),
+      ...(describeJwtTimes(decoded.payload).length ? ["// Time claims:", ...describeJwtTimes(decoded.payload).map((l) => "// " + l)] : []),
     ].join("\n");
 
     win.setText("txt_cipher_text", report);
@@ -260,6 +329,146 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
       win.appendConsole("crypto_console", `[URL Encode] Encoded -> ${encoded}\n`, 1);
       win.toast("URL Encoded");
     }
+  });
+
+  // ---------------------------------------------------------------------------------------------
+  // Productivity toolkit
+  // ---------------------------------------------------------------------------------------------
+  const HASH_HEADERS = ["Algorithm / Primitive", "Computed Digest (Hex)"];
+
+  win.onClick("btn_browse_file", () => {
+    win.openFile({ title: "Select a file to hash" }, (p) => {
+      if (p) win.setValue("txt_file_path", p);
+    });
+  });
+
+  win.onClick("btn_hash_file", async () => {
+    const file = String(win.getValue("txt_file_path") || "").trim();
+    if (!file) { win.toast("Choose a file first", 2500, "warning"); return; }
+    if (!fs.existsSync(file)) { win.toast(`File not found: ${file}`, 3500, "error"); return; }
+    try {
+      win.setStatus("Hashing file...");
+      const t0 = performance.now();
+      const { rows, size } = await hashFile(file);
+      lastRows = rows;
+      lastSource = `${file} (${size} bytes)`;
+      win.setTableData("tbl_hashes", HASH_HEADERS, rows);
+      const ms = (performance.now() - t0).toFixed(1);
+      win.appendConsole("crypto_console", `[File Hash] ${path.basename(file)} (${size} bytes) hashed in ${ms}ms; SHA-256 ${rows[0]![1]}\n`, 2);
+      win.setStatus(`File hashed (${ms}ms)`);
+      win.toast("File hashed", 2000, "success");
+    } catch (e: any) {
+      win.appendConsole("crypto_console", `[File Hash Error] ${e.message}\n`, 3);
+      win.toast(`Could not hash file: ${e.message}`, 4000, "error");
+    }
+  });
+
+  win.onClick("btn_verify_checksum", () => {
+    if (lastRows.length === 0) { win.toast("Calculate hashes or hash a file first", 3000, "warning"); return; }
+    const expected = String(win.getValue("txt_expected") || "");
+    if (!expected.trim()) { win.toast("Paste the expected checksum first", 2500, "warning"); return; }
+    const res = matchChecksum(expected, lastRows);
+    if (res.match) {
+      win.appendConsole("crypto_console", `[Checksum] MATCH (${res.match}) for ${lastSource}\n`, 2);
+      win.setStatus(`Checksum verified: ${res.match} matches`);
+      win.toast(`\u2714 Checksum matches (${res.match})`, 3500, "success");
+    } else {
+      win.appendConsole("crypto_console", `[Checksum] MISMATCH for ${lastSource}\n`, 3);
+      win.setStatus("Checksum does NOT match any computed digest");
+      win.toast("\u2716 Checksum does not match", 4000, "error");
+    }
+  });
+
+  const digestText = () => (lastRows.length ? formatDigestReport(lastRows, lastSource) : "");
+  win.onClick("btn_copy_digests", () => {
+    const t = digestText();
+    if (!t) { win.toast("Nothing to copy yet", 2500, "warning"); return; }
+    win.copyToClipboard(t);
+    win.toast("Digests copied", 2000, "success");
+  });
+  win.onClick("btn_save_digests", () => {
+    const t = digestText();
+    if (!t) { win.toast("Nothing to save yet", 2500, "warning"); return; }
+    win.saveFile({ title: "Save digests", defaultName: "digests.txt", filter: "txt" }, (p) => {
+      if (!p) return;
+      try {
+        fs.writeFileSync(p, t, "utf-8");
+        win.toast(`Saved ${path.basename(p)}`, 3000, "success");
+      } catch (e: any) {
+        win.toast(`Save failed: ${e.message}`, 4000, "error");
+      }
+    });
+  });
+
+  win.onClick("btn_gen_password", () => {
+    try {
+      const len = clampPasswordLength(parseInt(String(win.getValue("txt_pw_len") || "20"), 10));
+      const pw = generatePassword({
+        length: len,
+        lower: win.getBool("chk_pw_lower"),
+        upper: win.getBool("chk_pw_upper"),
+        digits: win.getBool("chk_pw_digits"),
+        symbols: win.getBool("chk_pw_symbols"),
+        noAmbiguous: win.getBool("chk_pw_noamb"),
+      });
+      win.setValue("txt_pw_out", pw);
+      win.setValue("txt_pw_len", String(len));
+      const e = estimateEntropy(pw);
+      win.setText("lbl_entropy_out", `Entropy: ~${e.bits} bits (${e.strength})`);
+      win.appendConsole("crypto_console", `[Password] Generated ${len}-char password (~${e.bits} bits)\n`, 1);
+      win.toast("Password generated", 2000, "success");
+    } catch (e: any) {
+      win.toast(e.message, 3000, "warning");
+    }
+  });
+  win.onClick("btn_copy_password", () => {
+    const pw = String(win.getValue("txt_pw_out") || "");
+    if (!pw) { win.toast("Generate a password first", 2500, "warning"); return; }
+    win.copyToClipboard(pw);
+    win.toast("Password copied", 2000, "success");
+  });
+
+  const transform = (label: string, fn: (s: string) => string) => {
+    const input = String(win.getValue("txt_hash_input") || "");
+    try {
+      const out = fn(input);
+      win.setText("txt_hash_input", out);
+      win.appendConsole("crypto_console", `[${label}] ${input.length} -> ${out.length} chars\n`, 1);
+      win.toast(`${label} done`, 1800, "success");
+    } catch (e: any) {
+      win.appendConsole("crypto_console", `[${label} Error] ${e.message}\n`, 3);
+      win.toast(e.message, 3500, "error");
+    }
+  };
+  win.onClick("btn_b64_encode", () => transform("Base64 Encode", toBase64));
+  win.onClick("btn_b64_decode", () => transform("Base64 Decode", fromBase64));
+  win.onClick("btn_hex_encode", () => transform("Hex Encode", toHex));
+  win.onClick("btn_hex_decode", () => transform("Hex Decode", fromHex));
+
+  win.onClick("btn_verify_jwt", () => {
+    const token = String(win.getValue("txt_hash_input") || "").trim() || String(win.getValue("txt_cipher_text") || "").trim();
+    const secret = String(win.getValue("txt_jwt_secret") || "");
+    if (!token) { win.toast("Paste a JWT into the Input Payload first", 3000, "warning"); return; }
+    if (!secret) { win.toast("Enter the JWT secret", 2500, "warning"); return; }
+    const r = verifyJwtHmac(token, secret);
+    win.appendConsole("crypto_console", `[JWT Verify] ${r.ok ? "VALID" : "INVALID"} (${r.alg})${r.reason ? " - " + r.reason : ""}\n`, r.ok ? 2 : 3);
+    win.toast(r.ok ? `\u2714 Signature valid (${r.alg})` : `\u2716 ${r.reason}`, 4000, r.ok ? "success" : "error");
+  });
+
+  win.onClick("btn_copy_output", () => {
+    const t = String(win.getValue("txt_cipher_text") || "");
+    if (!t) { win.toast("Output box is empty", 2500, "warning"); return; }
+    win.copyToClipboard(t);
+    win.toast("Output copied", 2000, "success");
+  });
+
+  win.onClick("btn_clear_all", () => {
+    for (const id of ["txt_hash_input", "txt_cipher_text", "txt_expected", "txt_file_path", "txt_pw_out", "txt_jwt_secret"]) win.setText(id, "");
+    win.setTableData("tbl_hashes", HASH_HEADERS, []);
+    win.clearConsole("crypto_console");
+    lastRows = [];
+    lastSource = "";
+    win.toast("Cleared", 1500, "info");
   });
 
   win.onClick("btn_fullscreen", () => win.toggleFullscreen());

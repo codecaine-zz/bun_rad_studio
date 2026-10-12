@@ -249,55 +249,42 @@ bun run cli:crypto uuid
 
 ## 🧭 Complete Cryptographic Workspaces
 
-### 1. 🔑 Cryptographic Hash & Digest Suite
-- **Algorithms Supported**: \`SHA-256\`, \`SHA-512\`, \`SHA-384\`, \`SHA-1\`, \`MD5\`, \`RIPEMD-160\`.
-- **HMAC Signatures**: Optional secret key input to calculate keyed-hash message authentication codes.
-- **Output Formats**: Hexadecimal, Base64, and Base64URL.
+### 1. 🔑 Hash & HMAC Table
+- Enter text in **Input Payload** (and optionally a secret) and compute **SHA-256, HMAC-SHA256, SHA-512, MD5, SHA-1** in one table.
 
-### 2. 🛡️ Symmetric Cipher Lab (AES-256-GCM)
-- **Encryption**: Encrypts plaintext using authenticated AES-256-GCM with automatically generated 12-byte initialization vectors (IV).
-- **Authentication Tag**: Computes and verifies 16-byte authentication tags to guarantee integrity.
-- **Decryption**: Verifies ciphertext integrity and decrypts back to original plaintext.
+### 2. 🛡️ AES-256 Cipher (CBC / PKCS7)
+- **Encrypt / Decrypt** the payload with a passphrase-derived key. Decryption fails cleanly on a wrong key.
 
-### 3. 🎫 JWT Decoder & Token Dissector
-- **Header & Payload**: Decodes base64url JSON Web Tokens into formatted, inspectable JSON structures.
-- **Expiration Diagnostics**: Calculates token validity, issue time (\`iat\`), and expiration timestamp (\`exp\`) with relative countdown.
+### 3. 🎫 JWT Decoder
+- Decodes header and payload into readable JSON and lists the time claims (\`iat\`, \`nbf\`, \`exp\`) with relative times and an expired flag.
 
-### 4. 🎲 Secure Random & UUID Generator
-- **UUID v4 & UUID v7**: Cryptographically secure random identifiers.
-- **Random Byte Generator**: Generates cryptographically secure random bytes in Hex, Base64, or integer arrays.
+### 4. 🎲 Generators & Entropy
+- **UUID v4**, **32-byte hex key**, **base64 256-bit key**, an **entropy check**, and **URL encode/decode**.
 
----
-
-## 🛠️ Step-by-Step Practical Tutorials
-
-### Tutorial: Encrypting and Decrypting Confidential Credentials with AES-256-GCM
-1. Launch Crypto Studio Pro: \`bun run app:crypto\`.
-2. Select the **AES-256-GCM** tab.
-3. Enter your secret passphrase in **Secret Key** (e.g. \`super-secret-master-key-32ch!\`).
-4. Type your confidential message in **Plaintext**:
-   \`\`\`text
-   DATABASE_PASSWORD=postgres://admin:top_secret_99@prod.internal:5432/main
-   \`\`\`
-5. Click **🔒 Encrypt Plaintext**.
-6. The workstation displays the combined ciphertext and authentication tag in Base64 format.
-7. To verify, paste the generated ciphertext into the Decryption panel, provide the same key, and click **🔓 Decrypt Ciphertext** to recover the exact original text.
+### 5. 🧰 Productivity Toolkit
+- **File hashing**: type a path or click **Browse** to pick a file. SHA-256/512/384/1 and MD5 are computed in one streaming pass, so large files are fine.
+- **Checksum verify**: paste an expected digest (uppercase, \`0x\` prefix, colons and spaces are accepted). It is matched against every non-HMAC digest.
+- **Copy / Save digests**: copy the digest report or save it to a file.
+- **Password generator**: length 4-256, lower/upper/digits/symbols, optional no look-alikes (\`O0l1I\`). Uses a CSPRNG, guarantees each selected class, and shows entropy.
+- **Base64 / Hex**: encode or decode the Input Payload, with validation of malformed input.
+- **JWT verify**: check an HS256/384/512 signature with a secret. Tokens with \`alg=none\` are rejected.
+- **Copy Output / Clear All**.
 
 ---
 
-## ⌨️ Complete Keyboard Shortcuts Reference
-
-| Shortcut | Context | Action |
-| :--- | :--- | :--- |
-| **Cmd + Enter** / **Ctrl + Enter** | Active Tab | Compute Hash / Encrypt / Decrypt |
-| **Cmd + 1..4** / **Ctrl + 1..4** | Workspace | Switch between Hash, AES, JWT, and UUID |
-| **Cmd + Shift + C** | Output | Copy active hash or ciphertext to clipboard |
-| **F11** or **F** | Global | Toggle borderless fullscreen |
+## 🛠️ Step-by-Step Tutorial: Verify a Download
+1. Launch with \`bun run app:crypto\`.
+2. In the Productivity Toolkit click **Browse** and choose the downloaded file.
+3. Click **Hash File**.
+4. Paste the publisher's checksum into **Expected** and click **Verify Checksum**.
+5. A match toast names the algorithm; a mismatch is reported as an error.
 
 ---
 
-## 💡 Pro Tips & Enterprise Best Practices
-- **Always Prefer AES-GCM over CBC**: AES-GCM is an AEAD (Authenticated Encryption with Associated Data) cipher. It protects both confidentiality and authenticity, preventing padding oracle attacks that affect older CBC modes.
+## 💡 Pro Tips & Best Practices
+- **Privacy**: values typed into the app (including secrets and generated passwords) may be kept in the saved form state. Use **Clear All** after sensitive work.
+- **MD5 and SHA-1 are not collision-resistant**: use them only for legacy checksums.
+- **CBC provides no authentication**: do not rely on it to detect tampering.
 `);
 
   // 10_regex_studio.md
