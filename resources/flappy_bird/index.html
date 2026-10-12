@@ -880,6 +880,12 @@
     let slowMoTimer = 0;
     let gravityDirection = 1; // 1 = normal down, -1 = upside down
 
+    // FX State
+    let screenShake = 0;
+    let screenFlashAlpha = 0;
+    let screenFlashColor = "#ffffff";
+    let birdHistory = []; // for ghost trails
+
     // -------------------------------------------------------------------------
     // 4. Game Initialization & Physics
     // -------------------------------------------------------------------------
@@ -903,6 +909,10 @@
       bird.hasShield = false;
       bird.isMini = false;
       bird.invulnerableTimer = 0.5;
+
+      screenShake = 0;
+      screenFlashAlpha = 0;
+      birdHistory = [];
 
       updateHUD();
       gameState = STATE_PLAYING;
@@ -969,22 +979,27 @@
 
     function applyPowerup(p) {
       AudioEngine.playPowerup();
+      screenFlashAlpha = 0.8; // Trigger flash
       if (p.type === "shield") {
         bird.hasShield = true;
+        screenFlashColor = "#10b981";
         addFloatingText("🛡️ SHIELD ACTIVE!", bird.x, bird.y - 20, "#10b981");
         createExplosion(p.x, p.y, "#10b981");
       } else if (p.type === "slow") {
         slowMoTimer = 5.0;
+        screenFlashColor = "#38bdf8";
         addFloatingText("⏱️ SLOW MOTION!", bird.x, bird.y - 20, "#38bdf8");
         createExplosion(p.x, p.y, "#38bdf8");
       } else if (p.type === "mini") {
         bird.isMini = true;
         bird.radius = 11;
+        screenFlashColor = "#facc15";
         setTimeout(() => { bird.isMini = false; bird.radius = 17; }, 7000);
         addFloatingText("🤏 MINI BIRD!", bird.x, bird.y - 20, "#facc15");
         createExplosion(p.x, p.y, "#facc15");
       } else if (p.type === "gem") {
         score += 5;
+        screenFlashColor = "#ff007f";
         addFloatingText("+5 GEM BONUS!", bird.x, bird.y - 20, "#ff007f");
         createExplosion(p.x, p.y, "#ff007f");
         updateHUD();
@@ -994,6 +1009,7 @@
     function triggerCrash() {
       AudioEngine.playHit();
       createExplosion(bird.x, bird.y, selectedSkin === "yellow" ? "#facc15" : "#00f3ff");
+      screenShake = 18; // Heavy impact shake
 
       setTimeout(() => {
         AudioEngine.playDie();
@@ -1056,7 +1072,16 @@
     // 5. High-Performance Canvas Rendering
     // -------------------------------------------------------------------------
     function drawGame() {
-      ctx.clearRect(0, 0, W, H);
+      ctx.save(); // Global save for screen shake
+      
+      // Apply Screen Shake
+      if (screenShake > 0) {
+        const dx = (Math.random() - 0.5) * screenShake;
+        const dy = (Math.random() - 0.5) * screenShake;
+        ctx.translate(dx, dy);
+      }
+
+      ctx.clearRect(-10, -10, W + 20, H + 20);
 
       // 1. Cyber Sky Gradient
       const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -1141,12 +1166,42 @@
         ctx.restore();
       });
 
+      // Draw Bird Ghost Trails (Hyper-dash)
+      if (birdHistory.length > 0 && Math.abs(bird.vy) > 400) {
+        birdHistory.forEach((pos, idx) => {
+          const ghostAlpha = (idx + 1) / birdHistory.length * 0.4;
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+          ctx.rotate(pos.angle);
+          ctx.globalAlpha = ghostAlpha;
+          ctx.fillStyle = selectedSkin === "yellow" ? "#facc15" : (selectedSkin === "cyan" ? "#00f3ff" : (selectedSkin === "crimson" ? "#ff007f" : "#94a3b8"));
+          ctx.beginPath();
+          ctx.ellipse(0, 0, pos.r * 1.15, pos.r, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
       // 5. Draw Cyber Flappy Bird
       ctx.save();
       ctx.translate(bird.x, bird.y);
       ctx.rotate(bird.angle);
 
       const birdRadius = bird.radius;
+
+      // Speed lines around bird when diving rapidly
+      if (bird.vy > 650) {
+        ctx.strokeStyle = "rgba(0, 243, 255, 0.6)";
+        ctx.lineWidth = 1.5;
+        for (let s = 0; s < 4; s++) {
+          ctx.beginPath();
+          const slX = (Math.random() - 0.5) * 40;
+          const slY = -birdRadius - 10 - Math.random() * 30;
+          ctx.moveTo(slX, slY);
+          ctx.lineTo(slX, slY - 20 - Math.random() * 20);
+          ctx.stroke();
+        }
+      }
 
       // Shield Bubble
       if (bird.hasShield) {
@@ -1284,6 +1339,16 @@
         ctx.fillText(score, W / 2, 85);
         ctx.restore();
       }
+
+      ctx.restore(); // Restore from Screen Shake global context
+
+      // 10. Draw Screen Flash Overlay
+      if (screenFlashAlpha > 0) {
+        ctx.fillStyle = screenFlashColor;
+        ctx.globalAlpha = screenFlashAlpha;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1.0;
+      }
     }
 
     function createFeatherTrail(x, y) {
@@ -1339,6 +1404,10 @@
       const scrollSpeed = (selectedMode === "cyber" ? 170 : 135) * timeScale;
       groundOffset = (groundOffset + scrollSpeed * dt) % 22;
       cityOffset = (cityOffset + scrollSpeed * 0.3 * dt) % (W + 60);
+
+      // Record Ghost Trail History
+      if (birdHistory.length > 4) birdHistory.shift();
+      birdHistory.push({ x: bird.x, y: bird.y, angle: bird.angle, r: bird.radius });
 
       // Bird Physics
       const gravity = (selectedMode === "cyber" ? 1200 : 1050) * gravityDirection;
@@ -1472,6 +1541,16 @@
         ft.y -= 0.8;
         ft.alpha -= 0.02;
         if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+      }
+
+      // Decay FX
+      if (screenShake > 0) {
+        screenShake *= 0.85;
+        if (screenShake < 0.5) screenShake = 0;
+      }
+      if (screenFlashAlpha > 0) {
+        screenFlashAlpha -= 2 * dt;
+        if (screenFlashAlpha < 0) screenFlashAlpha = 0;
       }
     }
 
