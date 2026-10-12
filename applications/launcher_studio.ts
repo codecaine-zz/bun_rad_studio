@@ -234,6 +234,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🧱",
     description: "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
   },
+  skifree_studio: {
+    displayName: "SkiFree Deluxe",
+    category: "Games & Entertainment",
+    icon: "⛷️",
+    description: "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
+  },
   minesweeper_studio: {
     displayName: "Minesweeper Pro Championship",
     category: "Games & Entertainment",

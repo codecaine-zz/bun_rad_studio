@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Ski Free Deluxe app icon">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="55%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="pine" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#14532d"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#sky)"/>
+
+  <!-- mountain slope -->
+  <path d="M0 98 L52 52 L74 70 L92 56 L128 92 L128 128 L0 128 Z" fill="url(#snow)"/>
+  <path d="M52 52 L40 64 L50 62 L56 68 L62 60 Z" fill="#ffffff" opacity="0.9"/>
+
+  <!-- pines -->
+  <g transform="translate(20 84)">
+    <rect x="-2" y="14" width="4" height="8" fill="#5b3a29"/>
+    <path d="M0 -14 L11 6 L-11 6 Z" fill="url(#pine)"/>
+    <path d="M0 -4 L14 16 L-14 16 Z" fill="url(#pine)"/>
+    <path d="M0 -14 L4 -7 L-4 -7 Z" fill="#f8fafc"/>
+  </g>
+  <g transform="translate(106 92) scale(0.8)">
+    <rect x="-2" y="14" width="4" height="8" fill="#5b3a29"/>
+    <path d="M0 -14 L11 6 L-11 6 Z" fill="url(#pine)"/>
+    <path d="M0 -4 L14 16 L-14 16 Z" fill="url(#pine)"/>
+    <path d="M0 -14 L4 -7 L-4 -7 Z" fill="#f8fafc"/>
+  </g>
+
+  <!-- ski tracks -->
+  <path d="M60 128 C 62 112, 70 104, 66 92" stroke="#7dd3fc" stroke-width="2" fill="none" opacity="0.8"/>
+  <path d="M68 128 C 70 112, 78 104, 74 92" stroke="#7dd3fc" stroke-width="2" fill="none" opacity="0.8"/>
+
+  <!-- skier -->
+  <g transform="translate(66 76) rotate(-8)">
+    <line x1="-5" y1="14" x2="-2" y2="32" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="5" y1="14" x2="8" y2="32" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="-4" y1="6" x2="-4" y2="18" stroke="#1e3a8a" stroke-width="4" stroke-linecap="round"/>
+    <line x1="4" y1="6" x2="5" y2="18" stroke="#1e3a8a" stroke-width="4" stroke-linecap="round"/>
+    <rect x="-8" y="-12" width="16" height="20" rx="6" fill="#ef4444"/>
+    <rect x="-8" y="-12" width="6" height="20" rx="3" fill="#b91c1c" opacity="0.6"/>
+    <line x1="-8" y1="-6" x2="-17" y2="8" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="8" y1="-6" x2="17" y2="8" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+    <line x1="-17" y1="8" x2="-21" y2="30" stroke="#475569" stroke-width="1.6"/>
+    <line x1="17" y1="8" x2="21" y2="30" stroke="#475569" stroke-width="1.6"/>
+    <circle cx="0" cy="-22" r="7.5" fill="#fcd5b0"/>
+    <path d="M-8 -23 A8 8 0 0 1 8 -23 Z" fill="#0ea5e9"/>
+    <rect x="-6" y="-24" width="12" height="4" rx="2" fill="#0f172a"/>
+    <rect x="-4" y="-23.4" width="8" height="1.6" rx="0.8" fill="#7dd3fc"/>
+  </g>
+</svg>

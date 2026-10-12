@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>⛷️ SkiFree Deluxe — Winter Legends Arcade</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    :root {
+      --bg-winter: #0b192c;
+      --snow-white: #f8fafc;
+      --snow-shade: #cbd5e1;
+      --ice-blue: #38bdf8;
+      --accent-red: #ef4444;
+      --accent-gold: #f59e0b;
+      --pine-green: #15803d;
+      --yeti-fur: #e2e8f0;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-mono: "JetBrains Mono", "Fira Code", monospace;
+      --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-winter);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Master Bar */
+    .master-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: rgba(11, 25, 44, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      z-index: 100;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .brand-titles h1 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-deluxe {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    .brand-titles p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.18s ease;
+    }
+
+    .btn-icon:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.5);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Main Viewport Area */
+    .arcade-cabinet {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0b192c 100%);
+      padding: 8px;
+    }
+
+    /* Telemetry HUD */
+    .arcade-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 8px;
+      padding: 6px 14px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hud-stat-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hud-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .hud-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--font-mono);
+    }
+
+    .hud-value.highlight {
+      color: var(--ice-blue);
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+    }
+
+    .hud-value.yeti-warning {
+      color: var(--accent-red);
+      animation: pulseAlert 0.6s infinite alternate;
+    }
+
+    @keyframes pulseAlert {
+      from { transform: scale(1); text-shadow: 0 0 4px #ef4444; }
+      to { transform: scale(1.1); text-shadow: 0 0 14px #ef4444; }
+    }
+
+    /* Viewport Frame */
+    .viewport-frame {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      height: 580px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 2px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(56, 189, 248, 0.15);
+      background: #f8fafc;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Game Overlay Menus */
+    .game-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(11, 25, 44, 0.88);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 50;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .game-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-title {
+      font-size: 2.3rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #38bdf8, #ffffff, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 4px 20px rgba(56, 189, 248, 0.5);
+    }
+
+    .overlay-subtitle {
+      font-size: 0.95rem;
+      color: var(--snow-shade);
+      max-width: 480px;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .mode-select-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .mode-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 10px 8px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: center;
+    }
+
+    .mode-card:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .mode-card.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.35));
+      border-color: #38bdf8;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+
+    .mode-card .icon {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+
+    .mode-card .name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .mode-card .desc {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-arcade {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #fff;
+      border: none;
+      padding: 12px 32px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.45);
+      transition: all 0.2s ease;
+      font-family: var(--font-ui);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-arcade:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 28px rgba(56, 189, 248, 0.65);
+    }
+
+    .btn-arcade:active {
+      transform: scale(0.97);
+    }
+
+    .overlay-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-card span {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      display: block;
+    }
+
+    .stat-card b {
+      font-size: 1.15rem;
+      color: var(--ice-blue);
+      font-family: var(--font-mono);
+    }
+
+    /* Controls Strip */
+    .controls-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 900px;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .kbd-tag {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="master-bar">
+    <div class="brand-cluster">
+      <svg class="brand-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="128" height="128" rx="28" fill="#0c4a6e"/>
+        <path d="M0 98 L52 52 L74 70 L92 56 L128 92 L128 128 L0 128 Z" fill="#e0f2fe"/>
+        <circle cx="66" cy="70" r="10" fill="#ef4444"/>
+        <line x1="56" y1="84" x2="76" y2="84" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <div class="brand-titles">
+        <h1>SkiFree <span class="badge-deluxe">Deluxe Legends</span></h1>
+        <p>Dynamic Slopes • Freestyle Tricks • The Infamous Yeti Chase</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn-icon" id="btnSound" title="Toggle Audio (M)">🔊</button>
+      <button class="btn-icon" id="btnPause" title="Pause / Resume (P / Esc)">⏸️</button>
+      <button class="btn-icon" id="btnFullscreen" title="Toggle Fullscreen (F11)">⛶</button>
+      <a href="/" class="btn-icon" title="Return to RAD Hub" id="btnHub" style="text-decoration:none;">⚡</a>
+    </div>
+  </header>
+
+  <!-- Arcade Arena -->
+  <main class="arcade-cabinet">
+    <div class="arcade-hud">
+      <div class="hud-stat-box">
+        <span class="hud-label">Distance</span>
+        <span class="hud-value highlight" id="hudDist">0m</span>
+      </div>
+      <div class="hud-stat-box">
+        <span class="hud-label">Speed</span>
+        <span class="hud-value" id="hudSpeed">0 km/h</span>
+      </div>
+      <div class="hud-stat-box">
+        <span class="hud-label">Style / Tricks</span>
+        <span class="hud-value" id="hudStyle">0 pts</span>
+      </div>
+      <div class="hud-stat-box">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="hudScore">00000</span>
+      </div>
+      <div class="hud-stat-box">
+        <span class="hud-label">High Score</span>
+        <span class="hud-value" id="hudHigh">00000</span>
+      </div>
+    </div>
+
+    <div class="viewport-frame" id="viewportFrame">
+      <canvas id="gameCanvas" width="900" height="580"></canvas>
+
+      <!-- Overlay Menu -->
+      <div class="game-overlay show" id="overlayMenu">
+        <h2 class="overlay-title" id="overlayTitle">SKIFREE DELUXE</h2>
+        <p class="overlay-subtitle" id="overlaySubtitle">
+          Carve fresh alpine powder, leap off moguls, perform sick mid-air tricks, and beware the ravenous 2,000m Abominable Snow Monster!
+        </p>
+
+        <div class="mode-select-grid" id="modeSelectGrid">
+          <div class="mode-card active" data-mode="freeride">
+            <div class="icon">🏔️</div>
+            <div class="name">Freeride</div>
+            <div class="desc">Endless mountain & Yeti survival</div>
+          </div>
+          <div class="mode-card" data-mode="slalom">
+            <div class="icon">🚩</div>
+            <div class="name">Slalom</div>
+            <div class="desc">Speed through timed slalom gates</div>
+          </div>
+          <div class="mode-card" data-mode="tree_slalom">
+            <div class="icon">🌲</div>
+            <div class="name">Tree Slalom</div>
+            <div class="desc">Dense pine forest navigation</div>
+          </div>
+          <div class="mode-card" data-mode="freestyle">
+            <div class="icon">🛹</div>
+            <div class="name">Freestyle</div>
+            <div class="desc">Ramps, spins, backflips & combos</div>
+          </div>
+        </div>
+
+        <div class="overlay-stats" id="overlayStats" style="display:none;">
+          <div class="stat-card">
+            <span>Distance</span>
+            <b id="ovDist">0m</b>
+          </div>
+          <div class="stat-card">
+            <span>Style Score</span>
+            <b id="ovStyle">0</b>
+          </div>
+          <div class="stat-card">
+            <span>Final Score</span>
+            <b id="ovScore">0</b>
+          </div>
+        </div>
+
+        <button class="btn-arcade" id="btnStartGame">START DOWNHILL (SPACE)</button>
+      </div>
+    </div>
+
+    <!-- Controls Footstrip -->
+    <footer class="controls-strip">
+      <div>
+        <span><span class="kbd-tag">Left / Right / A,D</span> Steer</span>
+        <span style="margin-left:8px;"><span class="kbd-tag">Down / S</span> Accelerate</span>
+        <span style="margin-left:8px;"><span class="kbd-tag">F / Shift</span> Fast Turbo</span>
+        <span style="margin-left:8px;"><span class="kbd-tag">Space</span> Jump / Trick</span>
+        <span style="margin-left:8px;"><span class="kbd-tag">Mouse / Touch</span> Follow</span>
+      </div>
+      <div id="gamepadStatus" style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted);">
+        🎮 Gamepad Supported
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. Procedural Alpine WebAudio Synthesizer Engine
+    // -------------------------------------------------------------------------
+    const AudioEngine = (function() {
+      let ctx = null;
+      let soundEnabled = true;
+
+      function getContext() {
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) ctx = new AudioCtx();
+        }
+        if (ctx && ctx.state === "suspended") ctx.resume();
+        return ctx;
+      }
+
+      return {
+        toggle() {
+          soundEnabled = !soundEnabled;
+          return soundEnabled;
+        },
+        isEnabled() {
+          return soundEnabled;
+        },
+        playSkiWhoosh() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            const bufSize = ac.sampleRate * 0.08;
+            const buf = ac.createBuffer(1, bufSize, ac.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < bufSize; i++) {
+              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ac.sampleRate * 0.03));
+            }
+            const noise = ac.createBufferSource();
+            noise.buffer = buf;
+            const filter = ac.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(800, ac.currentTime);
+            filter.Q.setValueAtTime(3, ac.currentTime);
+            const gain = ac.createGain();
+            gain.gain.setValueAtTime(0.08, ac.currentTime);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ac.destination);
+            noise.start();
+          } catch {}
+        },
+        playJump() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(320, ac.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(750, ac.currentTime + 0.16);
+            gain.gain.setValueAtTime(0.25, ac.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.16);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start();
+            osc.stop(ac.currentTime + 0.16);
+          } catch {}
+        },
+        playTrick() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+              const osc = ac.createOscillator();
+              const gain = ac.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(f, ac.currentTime + i * 0.04);
+              gain.gain.setValueAtTime(0.18, ac.currentTime + i * 0.04);
+              gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + i * 0.04 + 0.12);
+              osc.connect(gain);
+              gain.connect(ac.destination);
+              osc.start(ac.currentTime + i * 0.04);
+              osc.stop(ac.currentTime + i * 0.04 + 0.12);
+            });
+          } catch {}
+        },
+        playCrash() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(160, ac.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, ac.currentTime + 0.28);
+            gain.gain.setValueAtTime(0.35, ac.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.28);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start();
+            osc.stop(ac.currentTime + 0.28);
+          } catch {}
+        },
+        playGate() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(880, ac.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1320, ac.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, ac.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start();
+            osc.stop(ac.currentTime + 0.1);
+          } catch {}
+        },
+        playYetiRoar() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(90, ac.currentTime);
+            osc.frequency.linearRampToValueAtTime(180, ac.currentTime + 0.2);
+            osc.frequency.exponentialRampToValueAtTime(50, ac.currentTime + 0.6);
+            gain.gain.setValueAtTime(0.4, ac.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.6);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start();
+            osc.stop(ac.currentTime + 0.6);
+          } catch {}
+        },
+        playChomp() {
+          if (!soundEnabled) return;
+          try {
+            const ac = getContext();
+            if (!ac) return;
+            [180, 130, 90].forEach((freq, idx) => {
+              const osc = ac.createOscillator();
+              const gain = ac.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(freq, ac.currentTime + idx * 0.1);
+              gain.gain.setValueAtTime(0.35, ac.currentTime + idx * 0.1);
+              gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + idx * 0.1 + 0.12);
+              osc.connect(gain);
+              gain.connect(ac.destination);
+              osc.start(ac.currentTime + idx * 0.1);
+              osc.stop(ac.currentTime + idx * 0.1 + 0.12);
+            });
+          } catch {}
+        }
+      };
+    })();
+
+    // -------------------------------------------------------------------------
+    // 2. Game Entities & State Machine
+    // -------------------------------------------------------------------------
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const STATE_IDLE = 0;
+    const STATE_PLAYING = 1;
+    const STATE_PAUSED = 2;
+    const STATE_CRASHED = 3;
+    const STATE_EATEN = 4;
+    let gameState = STATE_IDLE;
+
+    let selectedMode = "freeride";
+    let score = 0;
+    let styleScore = 0;
+    let distanceSkied = 0; // In meters
+    let highScore = parseInt(localStorage.getItem("skifree_highscore") || "0", 10);
+
+    // Skier Status
+    const skier = {
+      x: W / 2,
+      y: 180,
+      vx: 0,
+      vy: 0,
+      baseSpeed: 5.5,
+      currentSpeed: 5.5,
+      isFast: false,
+      angle: 0, // -2: sharp left, -1: left, 0: straight, 1: right, 2: sharp right
+      isAirborne: false,
+      airTime: 0,
+      airDuration: 0,
+      trickRotation: 0,
+      trickType: null,
+      crashed: false,
+      crashTimer: 0,
+      invulnerableTimer: 0
+    };
+
+    // Camera view offset (in world coordinates)
+    let camY = 0;
+    let camX = W / 2;
+
+    // Yeti Monster
+    const yeti = {
+      active: false,
+      x: 0,
+      y: 0,
+      speed: 10.5,
+      frame: 0,
+      animTimer: 0,
+      eatingTimer: 0,
+      hasEaten: false
+    };
+
+    // Obstacles Pool
+    let obstacles = [];
+    let skiTracks = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    // Obstacle types definitions
+    const TYPE_SMALL_TREE = 1;
+    const TYPE_LARGE_TREE = 2;
+    const TYPE_ROCK = 3;
+    const TYPE_BUMP = 4;
+    const TYPE_RAMP = 5;
+    const TYPE_GATE = 6;
+    const TYPE_DOG = 7;
+    const TYPE_SNOWBOARDER = 8;
+
+    // -------------------------------------------------------------------------
+    // 3. World Generation & Slopes
+    // -------------------------------------------------------------------------
+    function initWorld() {
+      obstacles = [];
+      skiTracks = [];
+      particles = [];
+      floatingTexts = [];
+      camY = 0;
+      distanceSkied = 0;
+      score = 0;
+      styleScore = 0;
+
+      skier.x = W / 2;
+      skier.y = 180;
+      skier.vx = 0;
+      skier.vy = skier.baseSpeed;
+      skier.angle = 0;
+      skier.isAirborne = false;
+      skier.trickRotation = 0;
+      skier.crashed = false;
+      skier.crashTimer = 0;
+      skier.invulnerableTimer = 1.0;
+
+      yeti.active = false;
+      yeti.hasEaten = false;
+      yeti.eatingTimer = 0;
+
+      // Populate initial downhill field
+      for (let y = 300; y < 2500; y += 70) {
+        spawnRowObstacles(y);
+      }
+    }
+
+    function spawnRowObstacles(y) {
+      const count = selectedMode === "tree_slalom" ? 5 : 3;
+      for (let i = 0; i < count; i++) {
+        const x = skier.x - W + Math.random() * (W * 2);
+        const rand = Math.random();
+
+        let type = TYPE_SMALL_TREE;
+        if (rand < 0.35) type = TYPE_SMALL_TREE;
+        else if (rand < 0.60) type = TYPE_LARGE_TREE;
+        else if (rand < 0.75) type = TYPE_ROCK;
+        else if (rand < 0.88) type = TYPE_BUMP;
+        else if (rand < 0.96) type = TYPE_RAMP;
+        else type = Math.random() < 0.5 ? TYPE_DOG : TYPE_SNOWBOARDER;
+
+        if (selectedMode === "slalom" && Math.random() < 0.3) {
+          type = TYPE_GATE;
+        }
+
+        obstacles.push({
+          x,
+          y,
+          type,
+          cleared: false,
+          gatePassed: false,
+          w: type === TYPE_LARGE_TREE ? 28 : (type === TYPE_ROCK ? 22 : 20),
+          h: type === TYPE_LARGE_TREE ? 38 : (type === TYPE_ROCK ? 18 : 22),
+          vx: type === TYPE_SNOWBOARDER ? (Math.random() - 0.5) * 2 : 0
+        });
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. Input & Control Logic
+    // -------------------------------------------------------------------------
+    const keysDown = {};
+    window.addEventListener("keydown", (e) => {
+      keysDown[e.key.toLowerCase()] = true;
+
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        if (gameState === STATE_IDLE || gameState === STATE_CRASHED || gameState === STATE_EATEN) {
+          startNewGame();
+        } else if (gameState === STATE_PAUSED) {
+          togglePause();
+        } else if (gameState === STATE_PLAYING) {
+          triggerSkierJump();
+        }
+      }
+
+      if (e.key.toLowerCase() === "p" || e.key === "Escape") {
+        e.preventDefault();
+        togglePause();
+      }
+
+      if (e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        toggleSound();
+      }
+
+      // Fast toggle
+      if (e.key.toLowerCase() === "f" || e.key === "Shift") {
+        skier.isFast = true;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keysDown[e.key.toLowerCase()] = false;
+      if (e.key.toLowerCase() === "f" || e.key === "Shift") {
+        skier.isFast = false;
+      }
+    });
+
+    // Touch & Mouse Steering
+    let mouseActive = false;
+    let targetX = W / 2;
+
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      targetX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      mouseActive = true;
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (gameState === STATE_PLAYING) {
+        triggerSkierJump();
+      } else if (gameState === STATE_IDLE || gameState === STATE_CRASHED || gameState === STATE_EATEN) {
+        startNewGame();
+      }
+    });
+
+    function handleTouch(e) {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (t) {
+        const rect = canvas.getBoundingClientRect();
+        targetX = (t.clientX - rect.left) * (canvas.width / rect.width);
+        mouseActive = true;
+      }
+    }
+
+    canvas.addEventListener("touchstart", (e) => {
+      handleTouch(e);
+      if (gameState === STATE_PLAYING) triggerSkierJump();
+    }, { passive: false });
+    canvas.addEventListener("touchmove", handleTouch, { passive: false });
+
+    // Gamepad API
+    function pollGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const gp = pads[0];
+      if (gp) {
+        document.getElementById("gamepadStatus").textContent = `🎮 ${gp.id.substring(0, 16)}…`;
+        const ax = gp.axes[0];
+        if (Math.abs(ax) > 0.15) {
+          skier.vx = ax * 6.5;
+          skier.angle = ax < -0.4 ? -2 : (ax < -0.15 ? -1 : (ax > 0.4 ? 2 : (ax > 0.15 ? 1 : 0)));
+        }
+
+        // Down / Trigger accelerates
+        skier.isFast = gp.buttons[7]?.pressed || gp.axes[1] > 0.5;
+
+        // Button A or X jumps
+        if (gp.buttons[0]?.pressed && !skier.isAirborne && gameState === STATE_PLAYING) {
+          triggerSkierJump();
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. Physics & Downhill Dynamics
+    // -------------------------------------------------------------------------
+    function triggerSkierJump(boostMultiplier = 1) {
+      if (skier.isAirborne || skier.crashed) return;
+      skier.isAirborne = true;
+      skier.airTime = 0;
+      skier.airDuration = 0.55 * boostMultiplier;
+      skier.trickRotation = 0;
+      skier.trickType = Math.random() < 0.4 ? "360 Spin" : (Math.random() < 0.7 ? "Backflip" : "Mute Grab");
+      AudioEngine.playJump();
+    }
+
+    let lastTime = performance.now();
+    let skiWhooshTimer = 0;
+
+    function updateGame(dt) {
+      if (gameState !== STATE_PLAYING) return;
+
+      // Handle Keyboard steer
+      if (keysDown["arrowleft"] || keysDown["a"]) {
+        skier.angle = keysDown["shift"] ? -2 : -1;
+        mouseActive = false;
+      } else if (keysDown["arrowright"] || keysDown["d"]) {
+        skier.angle = keysDown["shift"] ? 2 : 1;
+        mouseActive = false;
+      } else if (keysDown["arrowup"] || keysDown["w"]) {
+        skier.angle = 0;
+        skier.currentSpeed = Math.max(2, skier.currentSpeed - dt * 6);
+      } else if (keysDown["arrowdown"] || keysDown["s"]) {
+        skier.angle = 0;
+        skier.isFast = true;
+      }
+
+      // Mouse following angle
+      if (mouseActive) {
+        const dx = targetX - (skier.x - camX + W / 2);
+        if (Math.abs(dx) > 18) {
+          skier.angle = dx < -60 ? -2 : (dx < -18 ? -1 : (dx > 60 ? 2 : 1));
+        } else {
+          skier.angle = 0;
+        }
+      }
+
+      // Crash recovery
+      if (skier.crashed) {
+        skier.crashTimer -= dt;
+        if (skier.crashTimer <= 0) {
+          skier.crashed = false;
+          skier.invulnerableTimer = 1.2;
+          skier.angle = 0;
+        }
+        return;
+      }
+
+      // Invulnerability tick
+      if (skier.invulnerableTimer > 0) {
+        skier.invulnerableTimer -= dt;
+      }
+
+      // Speed calculation
+      const topSpeed = skier.isFast ? 11.5 : (selectedMode === "slalom" ? 8.5 : 7.2);
+      skier.currentSpeed = skier.isFast 
+        ? Math.min(topSpeed, skier.currentSpeed + dt * 8) 
+        : Math.min(topSpeed, Math.max(skier.baseSpeed, skier.currentSpeed + dt * 2));
+
+      // Calculate directional velocities based on ski angle
+      let forwardVx = 0;
+      let forwardVy = skier.currentSpeed;
+
+      switch (skier.angle) {
+        case -2: forwardVx = -skier.currentSpeed * 1.1; forwardVy = skier.currentSpeed * 0.35; break;
+        case -1: forwardVx = -skier.currentSpeed * 0.65; forwardVy = skier.currentSpeed * 0.85; break;
+        case 0:  forwardVx = 0; forwardVy = skier.currentSpeed; break;
+        case 1:  forwardVx = skier.currentSpeed * 0.65; forwardVy = skier.currentSpeed * 0.85; break;
+        case 2:  forwardVx = skier.currentSpeed * 1.1; forwardVy = skier.currentSpeed * 0.35; break;
+      }
+
+      skier.x += forwardVx * 60 * dt;
+      skier.y += forwardVy * 60 * dt;
+
+      // Update distance & score
+      distanceSkied = Math.floor(skier.y / 20);
+      score = distanceSkied * 10 + styleScore;
+
+      // Update camera
+      camX += (skier.x - camX) * 0.12;
+      camY = skier.y - 180;
+
+      // Ski swoosh sound
+      skiWhooshTimer += dt;
+      if (skiWhooshTimer > 0.15 && !skier.isAirborne && !skier.crashed) {
+        skiWhooshTimer = 0;
+        AudioEngine.playSkiWhoosh();
+        // Add ski tracks
+        skiTracks.push({
+          x1: skier.x - 3,
+          y1: skier.y,
+          x2: skier.x + 3,
+          y2: skier.y,
+          alpha: 0.6
+        });
+        if (skiTracks.length > 200) skiTracks.shift();
+      }
+
+      // Airborne & Trick rotation
+      if (skier.isAirborne) {
+        skier.airTime += dt;
+        skier.trickRotation += dt * Math.PI * 4;
+
+        if (skier.airTime >= skier.airDuration) {
+          skier.isAirborne = false;
+          const trickPts = 250;
+          styleScore += trickPts;
+          addFloatingText(`✨ ${skier.trickType}! +${trickPts}`, skier.x, skier.y - 20, "#38bdf8");
+          AudioEngine.playTrick();
+          createSnowSpray(skier.x, skier.y, 25);
+        }
+      }
+
+      // Update Snowboarders movement
+      obstacles.forEach(o => {
+        if (o.type === TYPE_SNOWBOARDER) {
+          o.x += o.vx;
+          o.y += 1.5;
+        }
+      });
+
+      // Spawn next downhill obstacles as skier progresses
+      const lastObstacleY = obstacles.length > 0 ? obstacles[obstacles.length - 1].y : 0;
+      if (lastObstacleY < skier.y + H + 800) {
+        spawnRowObstacles(lastObstacleY + 65);
+      }
+
+      // Prune past obstacles
+      if (obstacles.length > 300) {
+        obstacles = obstacles.filter(o => o.y > camY - 200);
+      }
+
+      // Check Obstacle Collisions
+      if (!skier.isAirborne && !skier.crashed && skier.invulnerableTimer <= 0) {
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          const dist = Math.hypot(skier.x - o.x, skier.y - o.y);
+
+          if (o.type === TYPE_BUMP || o.type === TYPE_RAMP) {
+            if (dist < 22 && !o.cleared) {
+              o.cleared = true;
+              triggerSkierJump(o.type === TYPE_RAMP ? 1.4 : 1.0);
+              addFloatingText(o.type === TYPE_RAMP ? "🚀 SUPER JUMP!" : "⛷️ AIR!", skier.x, skier.y - 20, "#f59e0b");
+              break;
+            }
+          } else if (o.type === TYPE_GATE) {
+            if (Math.abs(skier.y - o.y) < 14 && Math.abs(skier.x - o.x) < 32 && !o.gatePassed) {
+              o.gatePassed = true;
+              styleScore += 150;
+              AudioEngine.playGate();
+              addFloatingText("🚩 GATE +150", skier.x, skier.y - 15, "#10b981");
+            }
+          } else {
+            // Harmful obstacles (Trees, rocks, dogs)
+            if (dist < o.w) {
+              triggerCrash(o);
+              break;
+            }
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 6. The Abominable Snow Monster (Yeti) Chasing Engine!
+      // -----------------------------------------------------------------------
+      // Yeti appears once distance crosses 2,000 meters or in endless mode
+      if (distanceSkied >= 2000 && !yeti.active) {
+        yeti.active = true;
+        yeti.x = skier.x + (Math.random() - 0.5) * 200;
+        yeti.y = skier.y - 350;
+        AudioEngine.playYetiRoar();
+        addFloatingText("⚠️ YETI SPOTTED! FAST SKI TO SURVIVE!", skier.x, skier.y - 40, "#ef4444");
+        document.getElementById("hudDist").classList.add("yeti-warning");
+      }
+
+      if (yeti.active && !yeti.hasEaten) {
+        const dx = skier.x - yeti.x;
+        const dy = skier.y - yeti.y;
+        const distToSkier = Math.hypot(dx, dy);
+
+        // Yeti moves faster than normal skier unless fast ski turbo is applied
+        const yetiSpeed = skier.isFast ? 10.2 : 12.5;
+        yeti.x += (dx / distToSkier) * yetiSpeed;
+        yeti.y += (dy / distToSkier) * yetiSpeed;
+
+        // Animate Yeti running
+        yeti.animTimer += dt;
+        if (yeti.animTimer > 0.12) {
+          yeti.animTimer = 0;
+          yeti.frame = (yeti.frame + 1) % 2;
+        }
+
+        // Yeti catches skier!
+        if (distToSkier < 25) {
+          triggerYetiCatch();
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+
+      // Update Floating Texts
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const t = floatingTexts[i];
+        t.y -= 1.2;
+        t.alpha -= 0.02;
+        if (t.alpha <= 0) floatingTexts.splice(i, 1);
+      }
+
+      updateHUD();
+    }
+
+    function triggerCrash(obstacle) {
+      skier.crashed = true;
+      skier.crashTimer = 1.0;
+      skier.currentSpeed = 0;
+      AudioEngine.playCrash();
+      createSnowSpray(skier.x, skier.y, 30);
+      addFloatingText("💥 CRASH!", skier.x, skier.y - 20, "#ef4444");
+    }
+
+    function triggerYetiCatch() {
+      yeti.hasEaten = true;
+      gameState = STATE_EATEN;
+      AudioEngine.playChomp();
+      createSnowSpray(skier.x, skier.y, 45, "#ef4444");
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("skifree_highscore", highScore);
+      }
+
+      setTimeout(() => {
+        document.getElementById("overlayTitle").textContent = "FEASTED UPON!";
+        document.getElementById("overlayTitle").style.color = "var(--accent-red)";
+        document.getElementById("overlaySubtitle").textContent = "The Abominable Snow Monster has made you his mid-mountain snack.";
+        document.getElementById("overlayStats").style.display = "grid";
+        document.getElementById("ovDist").textContent = `${distanceSkied}m`;
+        document.getElementById("ovStyle").textContent = `${styleScore} pts`;
+        document.getElementById("ovScore").textContent = score;
+        document.getElementById("btnStartGame").textContent = "RETRY RUN (SPACE)";
+        document.getElementById("overlayMenu").classList.add("show");
+      }, 1000);
+    }
+
+    function createSnowSpray(x, y, count = 15, color = "#ffffff") {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 4;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1,
+          alpha: 1,
+          decay: 0.03 + Math.random() * 0.03,
+          size: 2 + Math.random() * 4,
+          color
+        });
+      }
+    }
+
+    function addFloatingText(text, x, y, color = "#38bdf8") {
+      floatingTexts.push({ text, x, y, alpha: 1, color });
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. High-DPI Canvas Rendering
+    // -------------------------------------------------------------------------
+    function drawGame() {
+      ctx.save();
+      ctx.clearRect(0, 0, W, H);
+
+      // Alpine snow gradient background
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, "#f8fafc");
+      grad.addColorStop(1, "#e2e8f0");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // World Camera Transform
+      ctx.save();
+      ctx.translate(-camX + W / 2, -camY);
+
+      // Draw Ski Tracks
+      ctx.strokeStyle = "rgba(186, 230, 253, 0.7)";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      for (let i = 0; i < skiTracks.length - 1; i++) {
+        const t1 = skiTracks[i];
+        const t2 = skiTracks[i + 1];
+        ctx.beginPath();
+        ctx.moveTo(t1.x1, t1.y1);
+        ctx.lineTo(t2.x1, t2.y1);
+        ctx.moveTo(t1.x2, t1.y2);
+        ctx.lineTo(t2.x2, t2.y2);
+        ctx.stroke();
+      }
+
+      // Draw Obstacles
+      obstacles.forEach(o => {
+        if (o.y < camY - 50 || o.y > camY + H + 50) return;
+
+        ctx.save();
+        ctx.translate(o.x, o.y);
+
+        switch (o.type) {
+          case TYPE_SMALL_TREE:
+            // Pine trunk
+            ctx.fillStyle = "#78350f";
+            ctx.fillRect(-2, 8, 4, 6);
+            // Foliage
+            ctx.fillStyle = "#15803d";
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(10, 8);
+            ctx.lineTo(-10, 8);
+            ctx.closePath();
+            ctx.fill();
+            // Snow dusting
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(4, -4);
+            ctx.lineTo(-4, -4);
+            ctx.closePath();
+            ctx.fill();
+            break;
+
+          case TYPE_LARGE_TREE:
+            // Big Pine
+            ctx.fillStyle = "#451a03";
+            ctx.fillRect(-3, 14, 6, 8);
+            ctx.fillStyle = "#166534";
+            // Tier 1
+            ctx.beginPath();
+            ctx.moveTo(0, -18);
+            ctx.lineTo(14, 4);
+            ctx.lineTo(-14, 4);
+            ctx.fill();
+            // Tier 2
+            ctx.beginPath();
+            ctx.moveTo(0, -4);
+            ctx.lineTo(18, 14);
+            ctx.lineTo(-18, 14);
+            ctx.fill();
+            // Snow cap
+            ctx.fillStyle = "#f8fafc";
+            ctx.beginPath();
+            ctx.moveTo(0, -18);
+            ctx.lineTo(6, -8);
+            ctx.lineTo(-6, -8);
+            ctx.fill();
+            break;
+
+          case TYPE_ROCK:
+            ctx.fillStyle = "#64748b";
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 11, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#cbd5e1";
+            ctx.beginPath();
+            ctx.ellipse(-2, -2, 7, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            break;
+
+          case TYPE_BUMP:
+            ctx.fillStyle = "#cbd5e1";
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, Math.PI, 0);
+            ctx.fill();
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            break;
+
+          case TYPE_RAMP:
+            ctx.fillStyle = "#b45309";
+            ctx.fillRect(-16, -6, 32, 12);
+            ctx.fillStyle = "#f59e0b";
+            ctx.fillRect(-14, -4, 28, 8);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 9px monospace";
+            ctx.fillText("JUMP", -11, 3);
+            break;
+
+          case TYPE_GATE:
+            // Slalom Poles
+            ctx.strokeStyle = o.gatePassed ? "#10b981" : "#ef4444";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-24, -18);
+            ctx.lineTo(-24, 6);
+            ctx.moveTo(24, -18);
+            ctx.lineTo(24, 6);
+            ctx.stroke();
+            // Flags
+            ctx.fillStyle = o.gatePassed ? "#10b981" : "#ef4444";
+            ctx.fillRect(-24, -18, 12, 8);
+            ctx.fillRect(12, -18, 12, 8);
+            break;
+
+          case TYPE_DOG:
+            ctx.fillStyle = "#d97706";
+            ctx.fillRect(-8, -4, 16, 8);
+            ctx.fillRect(6, -8, 6, 6);
+            ctx.fillRect(-6, 4, 3, 5);
+            ctx.fillRect(3, 4, 3, 5);
+            break;
+
+          case TYPE_SNOWBOARDER:
+            // Board
+            ctx.fillStyle = "#ec4899";
+            ctx.fillRect(-14, 6, 28, 4);
+            // Rider
+            ctx.fillStyle = "#3b82f6";
+            ctx.fillRect(-6, -8, 12, 14);
+            ctx.fillStyle = "#fcd34d";
+            ctx.beginPath();
+            ctx.arc(0, -12, 4, 0, Math.PI * 2);
+            ctx.fill();
+            break;
+        }
+
+        ctx.restore();
+      });
+
+      // Draw Yeti Monster
+      if (yeti.active && !yeti.hasEaten) {
+        ctx.save();
+        ctx.translate(yeti.x, yeti.y);
+
+        // Shaggy White Body
+        ctx.fillStyle = "#e2e8f0";
+        ctx.shadowColor = "rgba(0,0,0,0.25)";
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 20, 26, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Yeti Head
+        ctx.beginPath();
+        ctx.arc(0, -22, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glowing Red Angry Eyes
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(-4, -24, 3, 0, Math.PI * 2);
+        ctx.arc(4, -24, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Menacing Mouth & Fangs
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(-7, -16, 14, 6);
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(-5, -16); ctx.lineTo(-3, -12); ctx.lineTo(-1, -16);
+        ctx.moveTo(1, -16); ctx.lineTo(3, -12); ctx.lineTo(5, -16);
+        ctx.fill();
+
+        // Running Yeti Claws
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        const legOffset = yeti.frame === 0 ? 12 : -12;
+        ctx.beginPath();
+        ctx.moveTo(-10, 15); ctx.lineTo(-14, 28 + legOffset);
+        ctx.moveTo(10, 15); ctx.lineTo(14, 28 - legOffset);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // Draw Skier
+      if (!yeti.hasEaten) {
+        ctx.save();
+        ctx.translate(skier.x, skier.y);
+
+        if (skier.isAirborne) {
+          ctx.rotate(skier.trickRotation);
+          ctx.scale(1.25, 1.25);
+        }
+
+        if (skier.crashed) {
+          // Tangled Skis Crash Animation
+          ctx.strokeStyle = "#0f172a";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(-16, -10); ctx.lineTo(12, 14);
+          ctx.moveTo(-12, 14); ctx.lineTo(14, -12);
+          ctx.stroke();
+
+          // Dazed skier
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(-6, -4, 12, 10);
+          ctx.fillStyle = "#fcd34d";
+          ctx.beginPath();
+          ctx.arc(0, -9, 5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Active Skiing Skier
+          // Skis
+          ctx.strokeStyle = "#0f172a";
+          ctx.lineWidth = 2.8;
+          ctx.lineCap = "round";
+
+          const angle = skier.angle;
+          if (angle === 0) {
+            // Straight downhill
+            ctx.beginPath();
+            ctx.moveTo(-5, -10); ctx.lineTo(-5, 14);
+            ctx.moveTo(5, -10); ctx.lineTo(5, 14);
+            ctx.stroke();
+          } else if (angle === -1 || angle === 1) {
+            // Slight turn
+            const sign = angle > 0 ? 1 : -1;
+            ctx.beginPath();
+            ctx.moveTo(-5 * sign, -8); ctx.lineTo(2 * sign, 14);
+            ctx.moveTo(-1 * sign, -12); ctx.lineTo(6 * sign, 10);
+            ctx.stroke();
+          } else {
+            // Sharp turn / Braking
+            const sign = angle > 0 ? 1 : -1;
+            ctx.beginPath();
+            ctx.moveTo(-12 * sign, 4); ctx.lineTo(12 * sign, 4);
+            ctx.moveTo(-12 * sign, 9); ctx.lineTo(12 * sign, 9);
+            ctx.stroke();
+          }
+
+          // Red Parker Jacket
+          ctx.fillStyle = "#ef4444";
+          ctx.beginPath();
+          ctx.roundRect(-6, -8, 12, 14, 4);
+          ctx.fill();
+
+          // Blue Beanie Hat
+          ctx.fillStyle = "#0284c7";
+          ctx.beginPath();
+          ctx.arc(0, -11, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Yellow Pom-pom
+          ctx.fillStyle = "#facc15";
+          ctx.beginPath();
+          ctx.arc(0, -17, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Ski Poles
+          ctx.strokeStyle = "#64748b";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(-7, -2); ctx.lineTo(-12, 10);
+          ctx.moveTo(7, -2); ctx.lineTo(12, 10);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      // Draw Particles
+      particles.forEach(p => {
+        ctx.save();
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Draw Floating Texts
+      floatingTexts.forEach(t => {
+        ctx.save();
+        ctx.fillStyle = t.color;
+        ctx.globalAlpha = Math.max(0, t.alpha);
+        ctx.font = "bold 13px JetBrains Mono";
+        ctx.shadowColor = t.color;
+        ctx.shadowBlur = 8;
+        ctx.fillText(t.text, t.x, t.y);
+        ctx.restore();
+      });
+
+      ctx.restore(); // End world transform
+      ctx.restore(); // End frame
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. Main Game Loop & Telemetry
+    // -------------------------------------------------------------------------
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+
+      pollGamepad();
+      updateGame(dt);
+      drawGame();
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function startNewGame() {
+      initWorld();
+      gameState = STATE_PLAYING;
+      document.getElementById("overlayMenu").classList.remove("show");
+    }
+
+    function togglePause() {
+      if (gameState === STATE_PLAYING) {
+        gameState = STATE_PAUSED;
+        document.getElementById("overlayTitle").textContent = "SLOPE PAUSED";
+        document.getElementById("overlaySubtitle").textContent = "Resting in the alpine ski lodge.";
+        document.getElementById("btnStartGame").textContent = "RESUME (SPACE)";
+        document.getElementById("overlayStats").style.display = "none";
+        document.getElementById("overlayMenu").classList.add("show");
+      } else if (gameState === STATE_PAUSED) {
+        gameState = STATE_PLAYING;
+        document.getElementById("overlayMenu").classList.remove("show");
+      }
+    }
+
+    function updateHUD() {
+      document.getElementById("hudDist").textContent = `${distanceSkied}m`;
+      document.getElementById("hudSpeed").textContent = `${Math.round(skier.currentSpeed * 4.2)} km/h`;
+      document.getElementById("hudStyle").textContent = `${styleScore} pts`;
+      document.getElementById("hudScore").textContent = String(score).padStart(5, "0");
+      document.getElementById("hudHigh").textContent = String(highScore).padStart(5, "0");
+    }
+
+    // Mode Selector Buttons
+    document.querySelectorAll(".mode-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+        selectedMode = card.getAttribute("data-mode");
+      });
+    });
+
+    const btnSound = document.getElementById("btnSound");
+    function toggleSound() {
+      const enabled = AudioEngine.toggle();
+      btnSound.textContent = enabled ? "🔊" : "🔇";
+    }
+    btnSound.addEventListener("click", toggleSound);
+    document.getElementById("btnPause").addEventListener("click", togglePause);
+    document.getElementById("btnStartGame").addEventListener("click", () => {
+      if (gameState === STATE_PAUSED) togglePause();
+      else startNewGame();
+    });
+
+    document.getElementById("btnFullscreen").addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // Initial HUD update
+    updateHUD();
+  </script>
+</body>
+</html>
