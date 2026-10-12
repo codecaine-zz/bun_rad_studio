@@ -869,7 +869,9 @@
       };
     }
 
+    let serveTimer = 0;
     function resetPaddleAndBall() {
+      serveTimer = 1.6;
       paddle.x = W / 2 - paddle.baseW / 2;
       paddle.targetX = paddle.x;
       paddle.w = paddle.baseW;
@@ -903,6 +905,12 @@
 
     function updateGame(dt) {
       if (gameState !== STATE_PLAYING) return;
+
+      // Auto-serve shortly after each spawn so the game never looks stuck
+      if (serveTimer > 0) {
+        serveTimer -= dt;
+        if (serveTimer <= 0 && balls.some(b => b.isGlued)) launchGluedBalls();
+      }
 
       // Screen shake decay
       if (screenShake > 0) {
@@ -1564,6 +1572,18 @@
         ctx.fillText(t.text, t.x, t.y);
         ctx.restore();
       });
+
+      // Serve hint
+      if (gameState === STATE_PLAYING && balls.some(b => b.isGlued)) {
+        ctx.save();
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.font = "bold 14px JetBrains Mono, monospace";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "#ec4899";
+        ctx.shadowBlur = 10;
+        ctx.fillText("CLICK / SPACE TO LAUNCH", W / 2, paddle.y - 60);
+        ctx.restore();
+      }
 
       ctx.restore();
     }
