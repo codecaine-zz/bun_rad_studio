@@ -34,7 +34,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 | **07** | [API Studio Pro](07_api_studio.md) | HTTP/REST client with variables, auth, cURL import/export, request files, history, JSON filter and load benchmark. | \`bun run app:api\` | \`bun run cli:api\` |
 | **08** | [Data Converter Studio](08_data_converter_studio.md) | Bidirectional transformer across CSV, TSV, JSON, YAML, Base64, and Markdown. | \`bun run app:convert\` | \`bun run cli:convert\` |
 | **09** | [Crypto Studio Pro](09_crypto_studio.md) | SHA-256/512, MD5, HMAC, AES-256-GCM encryption/decryption, JWT decoder, UUID. | \`bun run app:crypto\` | \`bun run cli:crypto\` |
-| **10** | [Regex Studio Pro](10_regex_studio.md) | Pattern evaluator, match group table, substitution preview, TypeScript code gen. | \`bun run app:regex\` | \`bun run cli:regex\` |
+| **10** | [Regex Studio Pro](10_regex_studio.md) | Live pattern tester, match + capture-group table, substitution preview, pattern explainer, presets, code gen for 6 languages. | \`bun run app:regex\` | \`bun run cli:regex\` |
 
 ### 📦 3. Advanced Engineering Systems & Tooling
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
