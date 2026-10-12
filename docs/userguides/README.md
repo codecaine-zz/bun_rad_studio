@@ -27,7 +27,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### 🛠️ 2. Developer Utilities & Data Engineering
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- |
-| **07** | [API Studio Pro](07_api_studio.md) | Full HTTP/REST client (GET/POST/PUT/DELETE/PATCH), auth presets, cURL generator. | `bun run app:api` | `bun run cli:api` |
+| **07** | [API Studio Pro](07_api_studio.md) | HTTP/REST client with variables, auth, cURL import/export, request files, history, JSON filter and load benchmark. | `bun run app:api` | `bun run cli:api` |
 | **08** | [Data Converter Studio](08_data_converter_studio.md) | Bidirectional transformer across CSV, TSV, JSON, YAML, Base64, and Markdown. | `bun run app:convert` | `bun run cli:convert` |
 | **09** | [Crypto Studio Pro](09_crypto_studio.md) | SHA-256/512, MD5, HMAC, AES-256-GCM encryption/decryption, JWT decoder, UUID. | `bun run app:crypto` | `bun run cli:crypto` |
 | **10** | [Regex Studio Pro](10_regex_studio.md) | Pattern evaluator, match group table, substitution preview, TypeScript code gen. | `bun run app:regex` | `bun run cli:regex` |

@@ -1,41 +1,40 @@
 # 🌐 API Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.4.0  •  Engine: Native fetch & Web Standards  •  Dependencies: 0  •  Offline: 100%
+Version: 2.4.0  •  Engine: curl  •  Dependencies: 0  •  Local endpoints work offline
 Launchers: [Desktop GUI: bun run app:api]  •  [Terminal CLI: bun run cli:api]
 ```
 
 ---
 
 ## 🌟 Executive Overview
-**API Studio Pro** is an enterprise-grade REST and HTTP API testing client built natively into Bun RAD Studio. Designed as a lightweight, private, and instant alternative to heavy electronic tools like Postman and Insomnia, it operates with zero cloud telemetry, stores all requests locally on your machine, and executes requests at native Bun HTTP speeds.
+**API Studio Pro** is a desktop HTTP/REST client built into Bun RAD Studio. Requests are sent with the system `curl` binary, so what you test is exactly what `curl` would do. There is no account and no cloud sync. Your requests go only to the endpoints you type, and nothing is sent to any other server.
 
-Whether testing local development endpoints (`http://127.0.0.1:3000`), inspecting third-party OAuth microservices, analyzing response headers, or generating ready-to-paste `cURL` commands, API Studio Pro delivers a responsive, privacy-first developer experience.
+It covers the everyday jobs: sending requests with auth, reusing values through variables, importing a `curl` command copied from your browser, inspecting response headers, filtering JSON and load-testing an endpoint.
+
+> Remote endpoints need an internet connection. Local endpoints (`http://127.0.0.1:3000`) work offline.
 
 ---
 
 ## 🚀 Quick Start & Launch
 
-### 1. Launch Desktop GUI Window
 ```bash
-# Standard desktop launch
+# Desktop GUI
 bun run app:api
+
+# Interactive terminal client
+bun run cli:api
 ```
 
-### 2. Launch Terminal CLI HTTP Client Mode
-```bash
-# Fast GET request via CLI
-bun run cli:api "https://api.github.com/users/octocat"
-
-# POST request with JSON payload via CLI
-bun run cli:api -X POST "https://httpbin.org/post" -d '{"hello":"world"}'
-```
+1. Pick a **Quick Endpoint** preset, or type a URL (`localhost:3000/health` and `example.com` get a scheme automatically).
+2. Click **🚀 Send Request**.
+3. Read the body, the **Response headers** table and the status line (code, latency, size).
 
 ---
 
 ## 🖼️ Visual Interface Tour
 
-| High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
+| High-Resolution Desktop | Responsive Viewport |
 | :---: | :---: |
 | ![API Studio Desktop](../../screenshots/apps/api_studio_desktop.png) | ![API Studio Responsive](../../screenshots/apps/api_studio_responsive.png) |
 
@@ -43,56 +42,69 @@ bun run cli:api -X POST "https://httpbin.org/post" -d '{"hello":"world"}'
 
 ## 🧭 Complete UI Tour & Element Guide
 
-### 1. Request Address & Method Bar
-- **HTTP Method Selector**: Dropdown supporting `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, and `OPTIONS`.
-- **URL Endpoint Bar**: Complete URL input supporting query strings, ports, and protocols.
-- **⚡ Send Request Button (Cmd+Enter)**: Executes the HTTP request and starts high-precision latency measurement.
-- **cURL Generator Button**: Converts the configured method, headers, and body into a reproducible `curl` command string.
+### 1. Presets, Auth & cURL
+- **Quick Endpoints**: ready-made examples (JSONPlaceholder, GitHub, HTTPBin). Choosing one fills the form **and sends it immediately**.
+- **Auth Mode + credential**: `Bearer Token`, `Basic Auth` (enter `user:pass`) or `API Key Header` (sent as `X-API-Key`).
+- **📋 Copy cURL**: copies a reproducible `curl` command that includes your auth, query parameters, redirect/TLS/timeout options, and also logs it in the console.
 
-### 2. Request Configuration Tabs
-- **Headers Tab**: Key-value table for standard and custom headers (e.g. `Content-Type: application/json`, `User-Agent`).
-- **Query Params Tab**: Interactive key-value editor that automatically encodes and syncs with the URL address bar.
-- **Body Editor Tab**: Multi-line editor for `JSON`, `Form-Data`, `Text`, or `GraphQL` payloads with formatting validation.
-- **Auth Preset Tab**: Supports `No Auth`, `Bearer Token`, `Basic Auth` (Base64 username/password), and `API Key`.
+### 2. Request
+- **Method**, **Target URL** and **Headers** (one `Key: Value` per line).
+- **Query parameters**: one `key=value` per line. They are appended to the URL and percent-encoded for you.
+- **Request Body**: sent for `POST`, `PUT`, `PATCH` and `DELETE`. If you did not set a `Content-Type`, API Studio adds `application/json` for JSON bodies and `text/plain` otherwise. **✨ Format JSON Body** pretty-prints and validates it.
+- **🚀 Send Request** and **⚡ Benchmark**.
 
-### 3. Response Telemetry & Inspector Panel
-- **Status Code Pill**: Visual badge displaying HTTP status code and message (e.g. `200 OK`, `404 Not Found`, `500 Internal Error`) color-coded green, yellow, or red.
-- **Latency & Size Metrics**: Displays exact round-trip time in milliseconds (e.g., `48ms`) and payload size in KB/MB.
-- **Response Body Viewer**: Formatted, syntax-highlighted response viewer with collapsible JSON nodes and search.
-- **Response Headers Table**: Displays all incoming HTTP headers (Cache-Control, Content-Type, CORS, etc.).
+### 3. Variables, Options & Import
+- **Variables**: define `NAME=value` lines, then use `{{NAME}}` in the URL, headers, query, body or credential. Built-ins: `{{$uuid}}`, `{{$timestamp}}`, `{{$isoTimestamp}}`, `{{$randomInt}}`. If a variable is undefined the request is **blocked** with a message instead of being sent with a literal `{{NAME}}`.
+- **Follow redirects**, **Ignore TLS certificate errors** (for self-signed dev servers only), **Pretty-print JSON** and **Timeout (s)**.
+- **Benchmark requests / Concurrency**: how many requests to send (1-200) and how many at once (1-20).
+- **⬇ Import cURL**: paste a command (for example Chrome DevTools → right-click request → *Copy as cURL*) and the method, URL, headers, body, basic-auth and options fill the form.
+
+### 4. Response
+- **Body viewer**: JSON is pretty-printed. Bodies larger than 1 MB are truncated on screen only. **Export** always saves the full response.
+- **📋 Copy Response**, **💾 Export Response JSON** (asks where to save) and **Clear Response**.
+- **Filter**: type a path such as `.items[0].name` and click **Apply Filter** to view just that part. Clear the filter and apply it again to see the full response.
+- **Response headers** table and the console, which logs every dispatch and response.
+
+### 5. Request History
+- The last 30 requests are listed with method, URL, status and time. **Click a row** to restore its method, URL, headers and body. History is kept for the current session only. **Clear History** empties it.
+
+### 6. Saving Your Work
+- **💾 Save Request** remembers the current form for the next launch.
+- **📄 Save Request File… / 📂 Open Request File…** store a request (including query and variables) as a `.apireq.json` file you can share. **Credentials are never written to these files.**
 
 ---
 
 ## 🛠️ Step-by-Step Practical Tutorials
 
-### Tutorial: Testing an Authenticated POST Endpoint
-1. Launch API Studio Pro: `bun run app:api`.
-2. Change the method dropdown to **POST**.
-3. Enter URL: `https://httpbin.org/post`.
-4. Switch to the **Auth Preset Tab**, select **Bearer Token**, and enter `my-secret-jwt-token`.
-5. Switch to the **Body Editor Tab** and enter:
-   ```json
-   {
-     "action": "create_user",
-     "email": "developer@example.com"
-   }
-   ```
-6. Click **⚡ Send Request** (or press `Cmd+Enter`).
-7. Review the response in the bottom panel; confirm status `200 OK` and inspect the mirrored payload.
-8. Click **cURL Generator** to copy the equivalent terminal command.
+### Tutorial: Testing an Authenticated POST with Variables
+1. Run `bun run app:api`.
+2. In **Variables** enter `host=https://httpbin.org` and `token=my-secret-jwt-token`.
+3. Set the method to **POST** and the URL to `{{host}}/post`.
+4. Set **Auth Mode** to **Bearer Token** and the credential to `{{token}}`.
+5. Enter a JSON body and click **✨ Format JSON Body**.
+6. Click **🚀 Send Request**. Confirm `200 OK`, check the mirrored body, then read the `Authorization` header you sent in the response.
+7. Click **📋 Copy cURL** to get the equivalent terminal command.
+
+### Tutorial: Reproduce a Browser Request
+1. In your browser, open DevTools → Network, right-click a request and choose **Copy as cURL**.
+2. Paste into **Import cURL** and click **⬇ Import cURL**.
+3. Click **🚀 Send Request**, then use **Filter** to pull out the field you care about.
+
+### Tutorial: Quick Load Test
+1. Set a **GET** URL and choose **Benchmark requests** (for example 50) and **Concurrency** (for example 5).
+2. Click **⚡ Benchmark**. The console reports success count, min/avg/p50/p95/p99/max latency and requests per second.
+3. For **POST**, **PUT**, **PATCH** and **DELETE** you are asked to confirm first, because they can change data on the server.
 
 ---
 
-## ⌨️ Complete Keyboard Shortcuts Reference
-
-| Shortcut | Context | Action |
-| :--- | :--- | :--- |
-| **Cmd + Enter** / **Ctrl + Enter** | URL / Body | Execute HTTP Request |
-| **Cmd + L** / **Ctrl + L** | Global | Focus URL address bar |
-| **Cmd + Shift + C** | Response Pane | Copy formatted response to clipboard |
-| **F11** or **F** | Global | Toggle borderless fullscreen |
+## 🔒 Safety Notes
+- Only `http://` and `https://` URLs are accepted. `file://` and other schemes are refused, including through redirects.
+- The credential field and variables are saved with the form when you use **💾 Save Request** or when the app remembers its state. Do not keep production secrets there on a shared computer.
+- **Ignore TLS certificate errors** disables certificate checking for that request. Use it only for servers you trust.
 
 ---
 
-## 💡 Pro Tips & Enterprise Best Practices
-- **Zero Cloud Leakage**: Unlike cloud-synced API clients, API Studio Pro never transmits your secret API keys, staging tokens, or customer payloads to external third-party servers. All request history remains 100% on your local machine.
+## 💡 Pro Tips
+- Use `{{$uuid}}` in a header such as `X-Request-Id` to get a unique value on every send.
+- Switch off **Follow redirects** to see the `302` and its `Location` header.
+- Lower the **Timeout** when testing flaky services so a hung request fails fast.
