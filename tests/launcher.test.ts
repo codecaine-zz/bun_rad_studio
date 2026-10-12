@@ -9,6 +9,7 @@ import {
   getAvailableLinuxTerminal,
   killApplication,
   createLauncherStudio,
+  isPidAlive,
 } from "../applications/launcher_studio";
 
 describe("Launcher Studio Pro - Application Auto-Detection", () => {
@@ -238,5 +239,233 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     tblDblHandler(win, "rad_sqlite_studio");
     expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
   });
+
+  it("verifies isPidAlive detects active vs terminated PIDs", () => {
+    expect(isPidAlive(process.pid)).toBe(true);
+    expect(isPidAlive(-1)).toBe(false);
+    expect(isPidAlive(0)).toBe(false);
+    expect(isPidAlive(99999999)).toBe(false);
+  });
+
+  it("allows re-launching a Studio app after the process exits without becoming stuck", async () => {
+    const res1 = await launchApplication("rad_ipinfo_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.pid).toBeDefined();
+
+    if (res1.pid) {
+      expect(isPidAlive(res1.pid)).toBe(true);
+
+      // Simulate closing the app out
+      try { process.kill(res1.pid, "SIGTERM"); } catch {}
+      let dead = false;
+      for (let i = 0; i < 20; i++) {
+        if (!isPidAlive(res1.pid)) { dead = true; break; }
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      expect(dead).toBe(true);
+
+      // Verify scanWorkspaceApps prunes the dead PID and marks app as not running
+      const apps = scanWorkspaceApps();
+      const ipApp = apps.find((a) => a.id === "rad_ipinfo_studio");
+      expect(ipApp).toBeDefined();
+      expect(ipApp?.isRunning).toBe(false);
+
+      // Second launch should succeed smoothly and not be blocked
+      const res2 = await launchApplication("rad_ipinfo_studio");
+      expect(res2.success).toBe(true);
+      expect(res2.pid).toBeDefined();
+      if (res2.pid) {
+        try { process.kill(res2.pid, "SIGKILL"); } catch {}
+      }
+    }
+  });
+
+  it("allows opening 2 or more of the same application concurrently", async () => {
+    // Launch instance 1
+    const res1 = await launchApplication("rad_ipinfo_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.pid).toBeDefined();
+
+    // Launch instance 2 of the SAME application
+    const res2 = await launchApplication("rad_ipinfo_studio");
+    expect(res2.success).toBe(true);
+    expect(res2.pid).toBeDefined();
+    expect(res2.pid).not.toBe(res1.pid);
+
+    try {
+      const apps = scanWorkspaceApps();
+      const ipApp = apps.find((a) => a.id === "rad_ipinfo_studio");
+      expect(ipApp).toBeDefined();
+      expect(ipApp?.isRunning).toBe(true);
+      expect(ipApp?.instanceCount).toBeGreaterThanOrEqual(2);
+
+      // Verify killApplication terminates all active instances when no PID is specified
+      const killRes = killApplication("rad_ipinfo_studio");
+      expect(killRes.success).toBe(true);
+      expect(killRes.message).toContain("Terminated");
+    } finally {
+      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
+      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+    }
+  });
+
+  it("allows opening sqlite_studio twice and resolves SQLite Studio Pro cleanly", async () => {
+    const res1 = await launchApplication("sqlite_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.message).toContain("SQLite Studio Pro");
+    expect(res1.pid).toBeDefined();
+
+    const res2 = await launchApplication("sqlite_studio");
+    expect(res2.success).toBe(true);
+    expect(res2.message).toContain("SQLite Studio Pro");
+    expect(res2.pid).toBeDefined();
+    expect(res2.pid).not.toBe(res1.pid);
+
+    try {
+      const apps = scanWorkspaceApps();
+      const sqliteApp = apps.find((a) => a.id === "rad_sqlite_studio");
+      expect(sqliteApp).toBeDefined();
+      expect(sqliteApp?.isRunning).toBe(true);
+      expect(sqliteApp?.instanceCount).toBeGreaterThanOrEqual(2);
+
+      const killRes = killApplication("rad_sqlite_studio");
+      expect(killRes.success).toBe(true);
+    } finally {
+      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
+      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+    }
+  });
+
+  it("allows opening system_studio twice and resolves System Information Studio Pro cleanly", async () => {
+    const res1 = await launchApplication("system_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.message).toContain("System Information Studio Pro");
+    expect(res1.pid).toBeDefined();
+
+    const res2 = await launchApplication("system_studio");
+    expect(res2.success).toBe(true);
+    expect(res2.message).toContain("System Information Studio Pro");
+    expect(res2.pid).toBeDefined();
+    expect(res2.pid).not.toBe(res1.pid);
+
+    try {
+      const apps = scanWorkspaceApps();
+      const sysApp = apps.find((a) => a.id === "rad_system_studio");
+      expect(sysApp).toBeDefined();
+      expect(sysApp?.isRunning).toBe(true);
+      expect(sysApp?.instanceCount).toBeGreaterThanOrEqual(2);
+
+      const killRes = killApplication("rad_system_studio");
+      expect(killRes.success).toBe(true);
+    } finally {
+      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
+      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+    }
+  });
+
+  it("allows opening redis_studio twice and resolves Redis Studio Pro cleanly", async () => {
+    const res1 = await launchApplication("redis_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.message).toContain("Redis Studio Pro");
+    expect(res1.pid).toBeDefined();
+
+    const res2 = await launchApplication("redis_studio");
+    expect(res2.success).toBe(true);
+    expect(res2.message).toContain("Redis Studio Pro");
+    expect(res2.pid).toBeDefined();
+    expect(res2.pid).not.toBe(res1.pid);
+
+    try {
+      const apps = scanWorkspaceApps();
+      const redisApp = apps.find((a) => a.id === "rad_redis_studio");
+      expect(redisApp).toBeDefined();
+      expect(redisApp?.isRunning).toBe(true);
+      expect(redisApp?.instanceCount).toBeGreaterThanOrEqual(2);
+
+      const killRes = killApplication("rad_redis_studio");
+      expect(killRes.success).toBe(true);
+    } finally {
+      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
+      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+    }
+  });
+
+  it("allows opening rip_studio twice and resolves Rip Studio Pro cleanly", async () => {
+    const res1 = await launchApplication("rip_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.message).toContain("Rip Studio Pro");
+    expect(res1.pid).toBeDefined();
+
+    const res2 = await launchApplication("rip_studio");
+    expect(res2.success).toBe(true);
+    expect(res2.message).toContain("Rip Studio Pro");
+    expect(res2.pid).toBeDefined();
+    expect(res2.pid).not.toBe(res1.pid);
+
+    try {
+      const apps = scanWorkspaceApps();
+      const ripApp = apps.find((a) => a.id === "rad_rip_studio");
+      expect(ripApp).toBeDefined();
+      expect(ripApp?.isRunning).toBe(true);
+      expect(ripApp?.instanceCount).toBeGreaterThanOrEqual(2);
+
+      const killRes = killApplication("rad_rip_studio");
+      expect(killRes.success).toBe(true);
+    } finally {
+      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
+      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+    }
+  });
+
+  it("allows opening fd_studio twice and resolves Fd Studio Pro cleanly", async () => {
+    const res1 = await launchApplication("fd_studio");
+    expect(res1.success).toBe(true);
+    expect(res1.message).toContain("Fd Studio Pro");
+    expect(res1.pid).toBeDefined();
+
+    const res2 = await launchApplication("fd_studio");
+    expect(res2.success).toBe(true);
+    expect(res2.message).toContain("Fd Studio Pro");
+    expect(res2.pid).toBeDefined();
+    expect(res2.pid).not.toBe(res1.pid);
+
+    try {
+      const apps = scanWorkspaceApps();
+      const fdApp = apps.find((a) => a.id === "rad_fd_studio");
+      expect(fdApp).toBeDefined();
+      expect(fdApp?.isRunning).toBe(true);
+      expect(fdApp?.instanceCount).toBeGreaterThanOrEqual(2);
+
+      const killRes = killApplication("rad_fd_studio");
+      expect(killRes.success).toBe(true);
+    } finally {
+      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
+      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+    }
+  });
+
+  it("dynamically falls back to ephemeral ports when fd_studio and rip_studio servers are launched multiple times", async () => {
+    const { startFdStudioServer } = await import("../applications/fd_studio.ts");
+    const { startRipStudioServer } = await import("../applications/rip_studio.ts");
+
+    const fd1 = startFdStudioServer({ port: 0 });
+    const fd2 = startFdStudioServer({ port: fd1.port });
+    expect(fd1.port).toBeGreaterThan(0);
+    expect(fd2.port).toBeGreaterThan(0);
+    expect(fd2.port).not.toBe(fd1.port);
+
+    const rip1 = startRipStudioServer({ port: 0 });
+    const rip2 = startRipStudioServer({ port: rip1.port });
+    expect(rip1.port).toBeGreaterThan(0);
+    expect(rip2.port).toBeGreaterThan(0);
+    expect(rip2.port).not.toBe(rip1.port);
+
+    fd1.stop();
+    fd2.stop();
+    rip1.stop();
+    rip2.stop();
+  });
 });
+
+
 

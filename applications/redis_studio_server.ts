@@ -1154,7 +1154,17 @@ if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKE
 // -------------------------------------------------------------------------------------------------
 
 if (import.meta.main) {
-  const preferredPort = Number(process.env.PORT) || 5820;
-  const serverInstance = startRedisStudioServer({ port: preferredPort, host: "0.0.0.0" });
+  const specifiedPort = Number(process.env.PORT);
+  let serverInstance: any;
+  if (specifiedPort) {
+    serverInstance = startRedisStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+  } else {
+    try {
+      serverInstance = startRedisStudioServer({ port: 5820, host: "0.0.0.0" });
+    } catch {
+      serverInstance = startRedisStudioServer({ port: 0, host: "0.0.0.0" });
+    }
+  }
+  console.log(`READY:${serverInstance.port}`);
   console.log(`⚡ Redis Studio Pro Telemetry Server active at: ${serverInstance.url}`);
 }

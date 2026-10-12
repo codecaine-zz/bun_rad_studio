@@ -1073,152 +1073,168 @@ export function generateRipStudioHtml(): string {
  * Enables interactive browser testing via browser_subagent and remote web usage.
  */
 export function startRipStudioServer(options: { port?: number; host?: string; graveyardDir?: string } = {}) {
-  const port = options.port ?? 0;
+  const requestedPort = options.port ?? (Number(process.env.PORT) || 0);
   const hostname = options.host ?? "127.0.0.1";
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   const win = createRipStudio({ fullscreen: false, graveyardDir });
 
-  const server = Bun.serve({
-    port,
-    hostname,
-    async fetch(req) {
-      const url = new URL(req.url);
-      const __blocked = guardLocalRequest(req);
-      if (__blocked) return __blocked;
-      const corsHeaders = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      };
-      if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
 
-      if (url.pathname === "/" || url.pathname === "/index.html") {
-        return new Response(win.generateHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+  const fetchHandler = async (req: Request) => {
+    const url = new URL(req.url);
+    const __blocked = guardLocalRequest(req);
+    if (__blocked) return __blocked;
+    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      return new Response(win.generateHtml(), {
+        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      });
+    }
+
+    if (url.pathname === "/api/stats") {
+      const stats = getGraveyardStats(graveyardDir);
+      return Response.json(stats, { headers: corsHeaders });
+    }
+
+    if (url.pathname === "/api/graveyard") {
+      const items = seanceGraveyard({ graveyardDir, all: true });
+      return Response.json(items, { headers: corsHeaders });
+    }
+
+    if (url.pathname === "/api/inspect") {
+      const target = url.searchParams.get("target") || "";
+      const insp = await inspectTargets([target], { graveyardDir });
+      return Response.json(insp, { headers: corsHeaders });
+    }
+
+    if (url.pathname === "/api/browse") {
+      const type = url.searchParams.get("type") || "file";
+      const title = type === "folder" ? "Select Folder to Safely Bury or Inspect" : "Select File to Safely Bury or Inspect";
+      let selectedPath: string | null = null;
+      try {
+        if (type === "folder") {
+          selectedPath = await win.openFolderDialog(title);
+        } else {
+          selectedPath = await win.openFileDialog(title);
+        }
+      } catch {
+        selectedPath = null;
+      }
+      if (!selectedPath) {
+        return Response.json({ success: false, cancelled: true }, { headers: corsHeaders });
+      }
+      return Response.json({
+        success: true,
+        path: selectedPath,
+        name: path.basename(selectedPath),
+        type,
+      }, { headers: corsHeaders });
+    }
+
+    if (url.pathname === "/api/preview") {
+      const id = url.searchParams.get("id") || "";
+      const items = seanceGraveyard({ graveyardDir, all: true });
+      const item = items.find((it) => it.id === id || it.name === id);
+      if (!item) {
+        return Response.json({ error: "Item not found in graveyard" }, { status: 404, headers: corsHeaders });
+      }
+      if (!fs.existsSync(item.graveyardPath)) {
+        return Response.json({ error: `Payload missing on disk: ${item.graveyardPath}` }, { status: 404, headers: corsHeaders });
+      }
+      try {
+        if (item.type === "directory") {
+          const files = fs.readdirSync(item.graveyardPath);
+          return Response.json({
+            type: "directory",
+            name: item.name,
+            files: files.slice(0, 50),
+            totalFiles: files.length,
+          }, { headers: corsHeaders });
+        } else {
+          const content = fs.readFileSync(item.graveyardPath, "utf-8");
+          return Response.json({
+            type: "file",
+            name: item.name,
+            content: content.slice(0, 4000),
+            truncated: content.length > 4000,
+          }, { headers: corsHeaders });
+        }
+      } catch (e: any) {
+        return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/clipboard" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as { text?: string };
+        const text = body.text || "";
+        writeClipboardSync(text);
+        return Response.json({ success: true }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/bury" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as { targets: string[] };
+        const res = await buryTargets(body.targets || [], { graveyardDir });
+        return Response.json(res, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/unbury" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as { targets?: string[] };
+        const res = await unburyTargets(body.targets, { graveyardDir });
+        return Response.json(res, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/decompose" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as { targets?: string[]; all?: boolean };
+        const res = await decomposeGraveyard({
+          graveyardDir,
+          targets: body.targets,
+          all: body.all,
         });
+        return Response.json(res, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
       }
+    }
 
-      if (url.pathname === "/api/stats") {
-        const stats = getGraveyardStats(graveyardDir);
-        return Response.json(stats, { headers: corsHeaders });
-      }
+    return new Response("Not Found", { status: 404, headers: corsHeaders });
+  };
 
-      if (url.pathname === "/api/graveyard") {
-        const items = seanceGraveyard({ graveyardDir, all: true });
-        return Response.json(items, { headers: corsHeaders });
-      }
-
-      if (url.pathname === "/api/inspect") {
-        const target = url.searchParams.get("target") || "";
-        const insp = await inspectTargets([target], { graveyardDir });
-        return Response.json(insp, { headers: corsHeaders });
-      }
-
-      if (url.pathname === "/api/browse") {
-        const type = url.searchParams.get("type") || "file";
-        const title = type === "folder" ? "Select Folder to Safely Bury or Inspect" : "Select File to Safely Bury or Inspect";
-        let selectedPath: string | null = null;
-        try {
-          if (type === "folder") {
-            selectedPath = await win.openFolderDialog(title);
-          } else {
-            selectedPath = await win.openFileDialog(title);
-          }
-        } catch {
-          selectedPath = null;
-        }
-        if (!selectedPath) {
-          return Response.json({ success: false, cancelled: true }, { headers: corsHeaders });
-        }
-        return Response.json({
-          success: true,
-          path: selectedPath,
-          name: path.basename(selectedPath),
-          type,
-        }, { headers: corsHeaders });
-      }
-
-      if (url.pathname === "/api/preview") {
-        const id = url.searchParams.get("id") || "";
-        const items = seanceGraveyard({ graveyardDir, all: true });
-        const item = items.find((it) => it.id === id || it.name === id);
-        if (!item) {
-          return Response.json({ error: "Item not found in graveyard" }, { status: 404, headers: corsHeaders });
-        }
-        if (!fs.existsSync(item.graveyardPath)) {
-          return Response.json({ error: `Payload missing on disk: ${item.graveyardPath}` }, { status: 404, headers: corsHeaders });
-        }
-        try {
-          if (item.type === "directory") {
-            const files = fs.readdirSync(item.graveyardPath);
-            return Response.json({
-              type: "directory",
-              name: item.name,
-              files: files.slice(0, 50),
-              totalFiles: files.length,
-            }, { headers: corsHeaders });
-          } else {
-            const content = fs.readFileSync(item.graveyardPath, "utf-8");
-            return Response.json({
-              type: "file",
-              name: item.name,
-              content: content.slice(0, 4000),
-              truncated: content.length > 4000,
-            }, { headers: corsHeaders });
-          }
-        } catch (e: any) {
-          return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
-        }
-      }
-
-      if (url.pathname === "/api/clipboard" && req.method === "POST") {
-        try {
-          const body = (await req.json()) as { text?: string };
-          const text = body.text || "";
-          writeClipboardSync(text);
-          return Response.json({ success: true }, { headers: corsHeaders });
-        } catch (e: any) {
-          return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
-        }
-      }
-
-      if (url.pathname === "/api/bury" && req.method === "POST") {
-        try {
-          const body = (await req.json()) as { targets: string[] };
-          const res = await buryTargets(body.targets || [], { graveyardDir });
-          return Response.json(res, { headers: corsHeaders });
-        } catch (e: any) {
-          return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
-        }
-      }
-
-      if (url.pathname === "/api/unbury" && req.method === "POST") {
-        try {
-          const body = (await req.json()) as { targets?: string[] };
-          const res = await unburyTargets(body.targets, { graveyardDir });
-          return Response.json(res, { headers: corsHeaders });
-        } catch (e: any) {
-          return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
-        }
-      }
-
-      if (url.pathname === "/api/decompose" && req.method === "POST") {
-        try {
-          const body = (await req.json()) as { targets?: string[]; all?: boolean };
-          const res = await decomposeGraveyard({
-            graveyardDir,
-            targets: body.targets,
-            all: body.all,
-          });
-          return Response.json(res, { headers: corsHeaders });
-        } catch (e: any) {
-          return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
-        }
-      }
-
-      return new Response("Not Found", { status: 404, headers: corsHeaders });
-    },
-  });
+  let server: any;
+  try {
+    server = Bun.serve({
+      port: requestedPort,
+      hostname,
+      fetch: fetchHandler,
+    });
+  } catch (err: any) {
+    if (requestedPort !== 0) {
+      server = Bun.serve({
+        port: 0,
+        hostname,
+        fetch: fetchHandler,
+      });
+    } else {
+      throw err;
+    }
+  }
 
   const resolvedPort = server.port;
   console.log(`⚡ Rip Studio Pro server online: http://${hostname}:${resolvedPort}`);
@@ -1231,10 +1247,36 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
 }
 
 if (import.meta.main) {
-  try {
-    startRipStudioServer({ port: 3899 });
-  } catch {}
-  const win = createRipStudio({ fullscreen: true });
-  console.log("⚡ Launching Rip Studio Pro (Safe & Ergonomic Alternative to rm)...");
-  win.run();
+  if (process.argv.includes("--server") || process.env.SERVER_MODE) {
+    const specifiedPort = Number(process.env.PORT);
+    let serverObj: any;
+    if (specifiedPort) {
+      serverObj = startRipStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+    } else {
+      try {
+        serverObj = startRipStudioServer({ port: 3899, host: "0.0.0.0" });
+      } catch {
+        serverObj = startRipStudioServer({ port: 0, host: "0.0.0.0" });
+      }
+    }
+    console.log(`READY:${serverObj.port}`);
+    console.log(`\n⚡ Rip Studio Pro server online: http://127.0.0.1:${serverObj.port}\n`);
+    setInterval(() => {}, 60000);
+  } else {
+    try {
+      const preferredPort = Number(process.env.PORT);
+      if (preferredPort) {
+        startRipStudioServer({ port: preferredPort });
+      } else {
+        try {
+          startRipStudioServer({ port: 3899 });
+        } catch {
+          startRipStudioServer({ port: 0 });
+        }
+      }
+    } catch {}
+    const win = createRipStudio({ fullscreen: true });
+    console.log("⚡ Launching Rip Studio Pro (Safe & Ergonomic Alternative to rm)...");
+    win.run();
+  }
 }

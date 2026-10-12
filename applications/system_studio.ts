@@ -2734,6 +2734,7 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
 
       let serverProc: any = null;
 
+      process.env.STUDIO_WORKER = "system_studio";
       try {
         const workerUrl = new URL("./system_studio_server.ts", import.meta.url);
         const worker = new Worker(workerUrl);
@@ -2742,8 +2743,10 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
         info = await new Promise((res, rej) => {
           const timer = setTimeout(() => rej(new Error("Timeout initializing background telemetry engine")), 1500);
           worker.onmessage = (e) => {
-            clearTimeout(timer);
-            res(e.data);
+            if (!e.data?.type || e.data.type === "system_studio") {
+              clearTimeout(timer);
+              res(e.data);
+            }
           };
           worker.onerror = (err) => {
             clearTimeout(timer);
@@ -2777,7 +2780,7 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
           if (done) break;
           buffer += decoder.decode(value);
           const m = buffer.match(/READY:(\d+)/);
-          if (m) {
+          if (m && m[1]) {
             detectedPort = parseInt(m[1], 10);
             break;
           }
@@ -2789,6 +2792,7 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
             ready: true,
             port: detectedPort,
             url: `http://127.0.0.1:${detectedPort}`,
+            type: "system_studio",
           };
         } else {
           const srv = startSystemStudioServer({
@@ -2796,10 +2800,12 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
             host: "127.0.0.1",
           });
           app.server = srv;
+          const serverPort = srv.port ?? 0;
           info = {
             ready: true,
-            port: srv.port,
-            url: `http://127.0.0.1:${srv.port}`,
+            port: serverPort,
+            url: `http://127.0.0.1:${serverPort}`,
+            type: "system_studio",
           };
         }
       }

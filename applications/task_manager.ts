@@ -1013,8 +1013,18 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
 
 if (import.meta.main) {
   if (process.argv.includes("--server") || process.env.SERVER_MODE) {
-    const port = Number(process.env.PORT) || 4848;
-    const server = startTaskManagerServer({ port, host: "0.0.0.0" });
+    const specifiedPort = Number(process.env.PORT);
+    let server: any;
+    if (specifiedPort) {
+      server = startTaskManagerServer({ port: specifiedPort, host: "0.0.0.0" });
+    } else {
+      try {
+        server = startTaskManagerServer({ port: 4848, host: "0.0.0.0" });
+      } catch {
+        server = startTaskManagerServer({ port: 0, host: "0.0.0.0" });
+      }
+    }
+    console.log(`READY:${server.port}`);
     console.log(`\n⚡ Task Manager Pro Web Workstation Server running at http://127.0.0.1:${server.port}\n`);
   } else {
     const win = createProcessStudio({ fullscreen: true });

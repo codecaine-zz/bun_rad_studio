@@ -1,3 +1,4 @@
+import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
 import {
@@ -1995,39 +1996,57 @@ export function generateFdStudioHtml(): string {
  * HTTP Web Server for Fd Studio Pro Workstation
  * Enables interactive browser testing via browser_subagent and remote web usage.
  */
-export function startFdStudioServer(options: { port?: number; host?: string } = {}) {
-  const port = options.port ?? 0;
+export function startFdStudioServer(options: { port?: number; host?: string; graveyardDir?: string } = {}) {
+  const requestedPort = options.port ?? (Number(process.env.PORT) || 0);
   const hostname = options.host ?? "127.0.0.1";
-  const win = createFdStudio({ fullscreen: false });
+  const win = createFdStudio({ fullscreen: false, graveyardDir: options.graveyardDir });
 
-  const server = Bun.serve({
-    port,
-    hostname,
-    async fetch(req) {
-      const url = new URL(req.url);
-      const corsHeaders = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      };
-      if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
 
-      if (url.pathname === "/" || url.pathname === "/index.html") {
-        return new Response(win.generateHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
-        });
-      }
+  const fetchHandler = async (req: Request) => {
+    const url = new URL(req.url);
+    const __blocked = guardLocalRequest(req);
+    if (__blocked) return __blocked;
+    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-      if (url.pathname === "/api/search") {
-        const pattern = url.searchParams.get("pattern") || "";
-        const searchRoot = url.searchParams.get("root") || ".";
-        const result = executeFdSearch({ pattern, searchRoot });
-        return Response.json(result, { headers: corsHeaders });
-      }
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      return new Response(win.generateHtml(), {
+        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      });
+    }
 
-      return new Response("Not Found", { status: 404, headers: corsHeaders });
-    },
-  });
+    if (url.pathname === "/api/search") {
+      const pattern = url.searchParams.get("pattern") || "";
+      const searchRoot = url.searchParams.get("root") || ".";
+      const result = executeFdSearch({ pattern, searchRoot });
+      return Response.json(result, { headers: corsHeaders });
+    }
+
+    return new Response("Not Found", { status: 404, headers: corsHeaders });
+  };
+
+  let server: any;
+  try {
+    server = Bun.serve({
+      port: requestedPort,
+      hostname,
+      fetch: fetchHandler,
+    });
+  } catch (err: any) {
+    if (requestedPort !== 0) {
+      server = Bun.serve({
+        port: 0,
+        hostname,
+        fetch: fetchHandler,
+      });
+    } else {
+      throw err;
+    }
+  }
 
   const resolvedPort = server.port;
   console.log(`⚡ Fd Studio Pro server online: http://${hostname}:${resolvedPort}`);
@@ -2040,7 +2059,36 @@ export function startFdStudioServer(options: { port?: number; host?: string } = 
 }
 
 if (import.meta.main) {
-  const win = createFdStudio({ fullscreen: true });
-  console.log("⚡ Launching Fd Studio Pro (Native Bun Filesystem Traversal)...");
-  win.run();
+  if (process.argv.includes("--server") || process.env.SERVER_MODE) {
+    const specifiedPort = Number(process.env.PORT);
+    let serverObj: any;
+    if (specifiedPort) {
+      serverObj = startFdStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+    } else {
+      try {
+        serverObj = startFdStudioServer({ port: 4610, host: "0.0.0.0" });
+      } catch {
+        serverObj = startFdStudioServer({ port: 0, host: "0.0.0.0" });
+      }
+    }
+    console.log(`READY:${serverObj.port}`);
+    console.log(`\n⚡ Fd Studio Pro server online: http://127.0.0.1:${serverObj.port}\n`);
+    setInterval(() => {}, 60000);
+  } else {
+    try {
+      const preferredPort = Number(process.env.PORT);
+      if (preferredPort) {
+        startFdStudioServer({ port: preferredPort });
+      } else {
+        try {
+          startFdStudioServer({ port: 4610 });
+        } catch {
+          startFdStudioServer({ port: 0 });
+        }
+      }
+    } catch {}
+    const win = createFdStudio({ fullscreen: true });
+    console.log("⚡ Launching Fd Studio Pro (Native Bun Filesystem Traversal)...");
+    win.run();
+  }
 }

@@ -2317,7 +2317,7 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
   const height = options.height ?? (fullscreen ? screen.height : 820);
   const initialUrl = options.url || "redis://127.0.0.1:6379";
   const initialDb = options.db || 0;
-  const port = options.port || 5820;
+  const port = options.port || 0;
 
   const app: RedisStudioInstance = {
     title,
@@ -2389,7 +2389,7 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
           if (done) break;
           buffer += decoder.decode(value);
           const m = buffer.match(/READY:(\d+)/);
-          if (m) {
+          if (m && m[1]) {
             detectedPort = parseInt(m[1], 10);
             break;
           }
@@ -2411,10 +2411,11 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
             db: initialDb,
           });
           app.server = srv;
+          const serverPort = srv.port ?? 0;
           info = {
             ready: true,
-            port: srv.port,
-            url: `http://127.0.0.1:${srv.port}`,
+            port: serverPort,
+            url: `http://127.0.0.1:${serverPort}`,
             type: "redis_studio",
           };
         }

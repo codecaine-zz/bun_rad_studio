@@ -36,6 +36,7 @@ export interface DetectedApp {
   command: string;
   isRunning: boolean;
   pid?: number;
+  instanceCount?: number;
   isFavorite: boolean;
   lastLaunched?: number;
   launchCount: number;
@@ -457,8 +458,56 @@ export function getRunningProcesses(): RunningProcessInfo[] {
   }
 }
 
-const ACTIVE_CHILD_PROCESSES: Map<string, { pid: number; appName: string; startedAt: number }> =
-  new Map();
+export function isPidAlive(pid?: number): boolean {
+  if (!pid || !Number.isInteger(pid) || pid <= 1) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface ActiveChildProcessInfo {
+  pid: number;
+  appName: string;
+  startedAt: number;
+}
+
+const ACTIVE_CHILD_PROCESSES: Map<string, ActiveChildProcessInfo[]> = new Map();
+
+export function getAliveChildren(id: string): ActiveChildProcessInfo[] {
+  const list = ACTIVE_CHILD_PROCESSES.get(id);
+  if (!list) return [];
+  const alive = list.filter((item) => isPidAlive(item.pid));
+  if (alive.length === 0) {
+    ACTIVE_CHILD_PROCESSES.delete(id);
+  } else if (alive.length !== list.length) {
+    ACTIVE_CHILD_PROCESSES.set(id, alive);
+  }
+  return alive;
+}
+
+export function registerChildProcess(id: string, info: ActiveChildProcessInfo): void {
+  const list = getAliveChildren(id);
+  list.push(info);
+  ACTIVE_CHILD_PROCESSES.set(id, list);
+}
+
+export function unregisterChildProcess(id: string, pid?: number): void {
+  if (pid === undefined) {
+    ACTIVE_CHILD_PROCESSES.delete(id);
+    return;
+  }
+  const list = ACTIVE_CHILD_PROCESSES.get(id);
+  if (!list) return;
+  const remaining = list.filter((item) => item.pid !== pid && isPidAlive(item.pid));
+  if (remaining.length === 0) {
+    ACTIVE_CHILD_PROCESSES.delete(id);
+  } else {
+    ACTIVE_CHILD_PROCESSES.set(id, remaining);
+  }
+}
 
 // -------------------------------------------------------------------------------------------------
 // Application Auto-Detection Engine (Project Scoped)
@@ -548,6 +597,9 @@ export function scanWorkspaceApps(): DetectedApp[] {
             (f.endsWith(".ts") || f.endsWith(".js")) &&
             !f.endsWith(".d.ts") &&
             !f.includes("_server.") &&
+            !f.includes("_crud.") &&
+            !f.includes("_engine.") &&
+            !f.includes("_ops.") &&
             f !== "launcher_studio.ts"
         )
         .sort();
@@ -558,20 +610,24 @@ export function scanWorkspaceApps(): DetectedApp[] {
         const meta = deriveAppMetadata(relPath);
         const id = `rad_${meta.name}`;
 
-        const child = ACTIVE_CHILD_PROCESSES.get(id);
+        const children = getAliveChildren(id);
         let isRunning = false;
         let pid: number | undefined = undefined;
+        let instanceCount = 0;
 
-        if (child) {
+        if (children.length > 0) {
           isRunning = true;
-          pid = child.pid;
-        } else {
+          pid = children[children.length - 1]!.pid;
+          instanceCount = children.length;
+        }
+        if (!isRunning) {
           const matchedProc = runningProcs.find(
             (p) => p.args.includes(file) || p.args.includes(relPath)
           );
           if (matchedProc) {
             isRunning = true;
             pid = matchedProc.pid;
+            instanceCount = 1;
           }
         }
 
@@ -593,6 +649,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
           command: `bun run ${relPath}`,
           isRunning,
           pid,
+          instanceCount: instanceCount || undefined,
           isFavorite,
           lastLaunched: hist?.lastLaunched,
           launchCount: hist?.count || 0,
@@ -615,20 +672,24 @@ export function scanWorkspaceApps(): DetectedApp[] {
         const meta = deriveAppMetadata(relPath);
         const id = `cli_${meta.name}`;
 
-        const child = ACTIVE_CHILD_PROCESSES.get(id);
+        const children = getAliveChildren(id);
         let isRunning = false;
         let pid: number | undefined = undefined;
+        let instanceCount = 0;
 
-        if (child) {
+        if (children.length > 0) {
           isRunning = true;
-          pid = child.pid;
-        } else {
+          pid = children[children.length - 1]!.pid;
+          instanceCount = children.length;
+        }
+        if (!isRunning) {
           const matchedProc = runningProcs.find(
             (p) => p.args.includes(file) || p.args.includes(relPath)
           );
           if (matchedProc) {
             isRunning = true;
             pid = matchedProc.pid;
+            instanceCount = 1;
           }
         }
 
@@ -650,6 +711,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
           command: `bun run ${relPath}`,
           isRunning,
           pid,
+          instanceCount: instanceCount || undefined,
           isFavorite,
           lastLaunched: hist?.lastLaunched,
           launchCount: hist?.count || 0,
@@ -672,20 +734,24 @@ export function scanWorkspaceApps(): DetectedApp[] {
         const meta = deriveAppMetadata(relPath);
         const id = `demo_${meta.name}`;
 
-        const child = ACTIVE_CHILD_PROCESSES.get(id);
+        const children = getAliveChildren(id);
         let isRunning = false;
         let pid: number | undefined = undefined;
+        let instanceCount = 0;
 
-        if (child) {
+        if (children.length > 0) {
           isRunning = true;
-          pid = child.pid;
-        } else {
+          pid = children[children.length - 1]!.pid;
+          instanceCount = children.length;
+        }
+        if (!isRunning) {
           const matchedProc = runningProcs.find(
             (p) => p.args.includes(file) || p.args.includes(relPath)
           );
           if (matchedProc) {
             isRunning = true;
             pid = matchedProc.pid;
+            instanceCount = 1;
           }
         }
 
@@ -707,6 +773,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
           command: `bun run ${relPath}`,
           isRunning,
           pid,
+          instanceCount: instanceCount || undefined,
           isFavorite,
           lastLaunched: hist?.lastLaunched,
           launchCount: hist?.count || 0,
@@ -928,7 +995,7 @@ end tell`;
 export async function launchApplication(
   appId: string,
   extraArgs = "",
-  options: { openTerminal?: boolean; timeoutMs?: number } = {}
+  options: { openTerminal?: boolean; timeoutMs?: number; onExit?: () => void } = {}
 ): Promise<{
   success: boolean;
   message: string;
@@ -938,15 +1005,22 @@ export async function launchApplication(
   const { apps } = scanAllApplications();
   const lowerTarget = appId.toLowerCase();
   const app =
+    // 1. Exact ID or prefixed ID match
     apps.find(
       (a) =>
         a.id.toLowerCase() === lowerTarget ||
-        a.name.toLowerCase() === lowerTarget ||
-        a.displayName.toLowerCase() === lowerTarget
+        a.id.toLowerCase() === `rad_${lowerTarget}` ||
+        a.id.toLowerCase() === `cli_${lowerTarget}` ||
+        a.id.toLowerCase() === `demo_${lowerTarget}`
     ) ||
+    // 2. Exact script name match
+    apps.find((a) => a.name.toLowerCase() === lowerTarget) ||
+    // 3. Exact display name match
+    apps.find((a) => a.displayName.toLowerCase() === lowerTarget) ||
+    // 4. Substring fallback
+    apps.find((a) => a.id.toLowerCase().includes(lowerTarget)) ||
     apps.find(
       (a) =>
-        a.id.toLowerCase().includes(lowerTarget) ||
         a.name.toLowerCase().includes(lowerTarget) ||
         a.displayName.toLowerCase().includes(lowerTarget)
     );
@@ -968,14 +1042,24 @@ export async function launchApplication(
         env: process.env,
       });
 
-      proc.unref();
-
       const pid = proc.pid;
-      ACTIVE_CHILD_PROCESSES.set(app.id, {
+      registerChildProcess(app.id, {
         pid,
         appName: app.displayName,
         startedAt: Date.now(),
       });
+
+      // Automatically prune child process record and notify when GUI app closes
+      proc.exited.then(() => {
+        unregisterChildProcess(app.id, pid);
+        if (options.onExit) {
+          try {
+            options.onExit();
+          } catch {}
+        }
+      }).catch(() => {});
+
+      proc.unref();
 
       return {
         success: true,
@@ -1045,18 +1129,62 @@ export async function launchApplication(
 }
 
 export function killApplication(appId: string, pid?: number): { success: boolean; message: string } {
-  let targetPid = pid;
-
-  if (!targetPid) {
-    const child = ACTIVE_CHILD_PROCESSES.get(appId);
-    if (child) targetPid = child.pid;
+  if (pid !== undefined) {
+    const targetPid = Number(pid);
+    if (!Number.isInteger(targetPid) || targetPid <= 1 || targetPid === process.pid) {
+      return { success: false, message: `Refusing to signal invalid or protected PID ${targetPid}.` };
+    }
+    try {
+      process.kill(targetPid, "SIGTERM");
+      unregisterChildProcess(appId, targetPid);
+      return { success: true, message: `Terminated process PID ${targetPid}.` };
+    } catch (err: any) {
+      try {
+        process.kill(targetPid, "SIGKILL");
+        unregisterChildProcess(appId, targetPid);
+        return { success: true, message: `Force-killed process PID ${targetPid}.` };
+      } catch (e2: any) {
+        unregisterChildProcess(appId, targetPid);
+        return { success: false, message: e2.message };
+      }
+    }
   }
 
-  if (!targetPid) {
-    const { apps } = scanAllApplications();
-    const app = apps.find((a) => a.id === appId || a.name === appId);
-    if (app && app.pid) targetPid = app.pid;
+  // No specific PID specified: terminate all active instances of this app
+  const aliveChildren = getAliveChildren(appId);
+  if (aliveChildren.length > 0) {
+    const killedPids: number[] = [];
+    const errors: string[] = [];
+
+    for (const child of aliveChildren) {
+      const p = child.pid;
+      if (!Number.isInteger(p) || p <= 1 || p === process.pid) continue;
+      try {
+        process.kill(p, "SIGTERM");
+        killedPids.push(p);
+      } catch {
+        try {
+          process.kill(p, "SIGKILL");
+          killedPids.push(p);
+        } catch (e: any) {
+          errors.push(`PID ${p}: ${e.message}`);
+        }
+      }
+    }
+    unregisterChildProcess(appId);
+    if (killedPids.length > 0) {
+      return {
+        success: true,
+        message: `Terminated ${killedPids.length} active instance(s) [PIDs: ${killedPids.join(", ")}].`,
+      };
+    }
+    return { success: false, message: errors.join("; ") || "Failed to terminate instances." };
   }
+
+  // Fallback to external process scan
+  const { apps } = scanAllApplications();
+  const app = apps.find((a) => a.id === appId || a.name === appId);
+  let targetPid = app?.pid;
 
   if (!targetPid) {
     return { success: false, message: "No active PID found for tool." };
@@ -1069,14 +1197,15 @@ export function killApplication(appId: string, pid?: number): { success: boolean
 
   try {
     process.kill(targetPid, "SIGTERM");
-    ACTIVE_CHILD_PROCESSES.delete(appId);
+    unregisterChildProcess(appId);
     return { success: true, message: `Terminated process PID ${targetPid}.` };
   } catch (err: any) {
     try {
       process.kill(targetPid, "SIGKILL");
-      ACTIVE_CHILD_PROCESSES.delete(appId);
+      unregisterChildProcess(appId);
       return { success: true, message: `Force-killed process PID ${targetPid}.` };
     } catch (e2: any) {
+      unregisterChildProcess(appId);
       return { success: false, message: e2.message };
     }
   }
@@ -1185,7 +1314,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // 4. Primary Tool Selector & Action Dispatcher
   const formatItemStr = (a: DetectedApp) =>
-    `${a.isFavorite ? "⭐ " : ""}[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`;
+    `${a.isFavorite ? "⭐ " : ""}${a.isRunning && a.instanceCount && a.instanceCount > 1 ? `[${a.instanceCount}x] ` : ""}[${a.sourceLabel}] ${a.displayName} (${a.displayPath})`;
 
   const dropdownItems = currentApps.map(formatItemStr);
 
@@ -1271,7 +1400,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     a.sourceLabel,
     `${a.icon || "⚡"} ${a.displayName}`,
     a.category,
-    a.isRunning ? `🟢 Running (#${a.pid || "?"})` : "⚪ Ready",
+    a.isRunning
+      ? (a.instanceCount && a.instanceCount > 1
+          ? `🟢 Running (${a.instanceCount}x)`
+          : `🟢 Running (#${a.pid || "?"})`)
+      : "⚪ Ready",
     a.command,
   ];
 
@@ -1452,13 +1585,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             favBtn.textContent = favLabel;
           }
 
-          // 5. Wrap IPC doubleclick callbacks on window to prevent duplicate rapid dispatches (< 800ms)
+          // 5. Wrap IPC doubleclick callbacks on window to prevent duplicate rapid dispatches (< 300ms)
           if (window.on_lst_apps_doubleclick && !window._raw_lst_apps_dbl) {
             window._raw_lst_apps_dbl = window.on_lst_apps_doubleclick;
             let lastLstTime = 0;
             window.on_lst_apps_doubleclick = function(val) {
               const now = Date.now();
-              if (now - lastLstTime < 800) return;
+              if (now - lastLstTime < 200) return;
               lastLstTime = now;
               window._raw_lst_apps_dbl(val);
             };
@@ -1469,7 +1602,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             let lastTblTime = 0;
             window.on_tbl_apps_doubleclick = function(val) {
               const now = Date.now();
-              if (now - lastTblTime < 800) return;
+              if (now - lastTblTime < 200) return;
               lastTblTime = now;
               window._raw_tbl_apps_dbl(val);
             };
@@ -1485,12 +1618,15 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
               const now = Date.now();
               const val = lst.value;
               if (now - lastClickTime < 350 && lastClickedVal === val) {
+                lastClickTime = 0;
+                lastClickedVal = null;
                 if (window.on_lst_apps_doubleclick) {
                   window.on_lst_apps_doubleclick(val);
                 }
+              } else {
+                lastClickTime = now;
+                lastClickedVal = val;
               }
-              lastClickTime = now;
-              lastClickedVal = val;
             });
           }
 
@@ -1507,11 +1643,14 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
               if (!pid) return;
               const now = Date.now();
               if (now - lastRowClick < 350 && lastRowPid === pid) {
+                lastRowClick = 0;
+                lastRowPid = null;
                 const fn = window.on_tbl_apps_doubleclick || window.tbl_apps_onDoubleClick;
                 if (fn) fn(pid);
+              } else {
+                lastRowClick = now;
+                lastRowPid = pid;
               }
-              lastRowClick = now;
-              lastRowPid = pid;
             });
           }
         }
@@ -1531,15 +1670,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     overrideArgs?: string,
     inTerminal?: boolean
   ) {
-    const now = Date.now();
-    const lastTime = lastLaunchTimes.get(app.id) || 0;
-    // Guard against duplicate rapid launches for the same app (< 1000ms)
-    if (launchingApps.has(app.id) || (now - lastTime < 1000)) {
-      console.log(`[Launch Dispatcher] Suppressed duplicate launch request for ${app.displayName}`);
-      return;
-    }
+    // Users are free to open 2 or more instances of the same application concurrently.
+    // Duplicate events from a single physical double-click are already collapsed by the
+    // client-side debounce wrappers on the table/listbox, so no server-side suppression here.
     launchingApps.add(app.id);
-    lastLaunchTimes.set(app.id, now);
+    lastLaunchTimes.set(app.id, Date.now());
 
     try {
       const rawArgs = overrideArgs !== undefined ? overrideArgs : (w.getValue("txt_cli_args") || "");
@@ -1552,7 +1687,16 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       );
       w.setStatus(`Running ${app.displayName}...`);
 
-      const res = await launchApplication(app.id, rawArgs, { openTerminal: openInTerminal });
+      const res = await launchApplication(app.id, rawArgs, {
+        openTerminal: openInTerminal,
+        onExit: () => {
+          setTimeout(() => {
+            try {
+              applyFilters(w, undefined, true);
+            } catch {}
+          }, 250);
+        },
+      });
 
       if (res.success) {
         w.appendConsole("launcher_console", `[Success] ${res.message}\n`, 2);
@@ -1581,9 +1725,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         w.toast(`❌ ${res.message}`);
       }
     } finally {
-      setTimeout(() => {
-        launchingApps.delete(app.id);
-      }, 1000);
+      launchingApps.delete(app.id);
     }
   }
 
@@ -1938,7 +2080,26 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Quick Launch Handlers for Common Studios
   const bindQuick = (btnId: string, appId: string, defaultArgs = "", inTerminal?: boolean) => {
     win.onClick(btnId, (w) => {
-      const app = currentApps.find((a) => a.id.includes(appId) || a.name === appId);
+      const fresh = scanAllApplications();
+      const lower = appId.toLowerCase();
+      const app =
+        currentApps.find(
+          (a) =>
+            a.id.toLowerCase() === `rad_${lower}` ||
+            a.id.toLowerCase() === `cli_${lower}` ||
+            a.name.toLowerCase() === lower ||
+            a.id.toLowerCase() === lower
+        ) ||
+        fresh.apps.find(
+          (a) =>
+            a.id.toLowerCase() === `rad_${lower}` ||
+            a.id.toLowerCase() === `cli_${lower}` ||
+            a.name.toLowerCase() === lower ||
+            a.id.toLowerCase() === lower
+        ) ||
+        currentApps.find((a) => a.id.toLowerCase().includes(lower)) ||
+        fresh.apps.find((a) => a.id.toLowerCase().includes(lower));
+
       if (app) {
         updateSelectedView(w, app);
         if (defaultArgs) {

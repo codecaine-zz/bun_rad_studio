@@ -152,8 +152,18 @@ if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKE
 // -------------------------------------------------------------------------------------------------
 
 if (import.meta.main) {
-  const preferredPort = Number(process.env.PORT) || 4567;
-  const server = startSystemStudioServer({ port: preferredPort, host: "0.0.0.0" });
+  const specifiedPort = Number(process.env.PORT);
+  let server: any;
+  if (specifiedPort) {
+    server = startSystemStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+  } else {
+    try {
+      server = startSystemStudioServer({ port: 4567, host: "0.0.0.0" });
+    } catch {
+      server = startSystemStudioServer({ port: 0, host: "0.0.0.0" });
+    }
+  }
+  console.log(`READY:${server.port}`);
   console.log(`\n⚡ -----------------------------------------------------------------`);
   console.log(`⚡ System Information Studio Pro - Hardware Telemetry Web Server`);
   console.log(`⚡ Local URL:    http://127.0.0.1:${server.port}`);

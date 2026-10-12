@@ -1805,9 +1805,19 @@ if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKE
 // -------------------------------------------------------------------------------------------------
 
 if (import.meta.main) {
-  const preferredPort = Number(process.env.PORT) || 5757;
+  const specifiedPort = Number(process.env.PORT);
   const initialDb = process.argv[2] || ":memory:";
-  const server = startSqliteStudioServer({ port: preferredPort, initialDbPath: initialDb });
+  let server: any;
+  if (specifiedPort) {
+    server = startSqliteStudioServer({ port: specifiedPort, initialDbPath: initialDb });
+  } else {
+    try {
+      server = startSqliteStudioServer({ port: 5757, initialDbPath: initialDb });
+    } catch {
+      server = startSqliteStudioServer({ port: 0, initialDbPath: initialDb });
+    }
+  }
+  console.log(`READY:${server.port}`);
   console.log(`\n⚡ -----------------------------------------------------------------`);
   console.log(`⚡ SQLite Studio Pro - Enterprise Database Workstation Server`);
   console.log(`⚡ Local URL:    http://127.0.0.1:${server.port}`);
