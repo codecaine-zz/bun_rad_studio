@@ -183,6 +183,61 @@
       box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
     }
 
+    .retro-select {
+      background: rgba(10, 16, 30, 0.95);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      color: var(--neon-cyan);
+      font-family: var(--font-arcade);
+      font-size: 0.72rem;
+      padding: 5px 8px;
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .vol-cluster {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.25);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+
+    .retro-slider {
+      -webkit-appearance: none;
+      width: 64px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .retro-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 8px var(--neon-cyan);
+      cursor: pointer;
+    }
+
+    .btn-arcade-secondary {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(0, 243, 255, 0.4) !important;
+      color: var(--neon-cyan) !important;
+      box-shadow: none !important;
+    }
+
+    .btn-arcade-secondary:hover {
+      background: rgba(0, 243, 255, 0.2) !important;
+      border-color: var(--neon-cyan) !important;
+      color: #fff !important;
+    }
+
     /* Main Arcade Cabinet */
     .arcade-cabinet {
       flex: 1;
@@ -681,11 +736,24 @@
       </div>
     </div>
     <div class="top-actions">
-      <button class="btn-icon" id="btnShader" title="Cycle CRT Shader (Clean/Subtle/Heavy)">📺</button>
-      <button class="btn-icon" id="btnSound" title="Toggle Sound (M)">🔊</button>
-      <button class="btn-icon" id="btnManual" title="Field Manual / Rules (?)">📖</button>
-      <button class="btn-icon" id="btnPause" title="Pause / Resume (P / Esc)">⏸️</button>
-      <button class="btn-icon" id="btnFullscreen" title="Toggle Fullscreen (F11 / F)">⛶</button>
+      <!-- Music Track Select -->
+      <select id="musicSelect" class="retro-select" title="BGM Track" onchange="if(window.AudioEngine)AudioEngine.changeMusic(this.value)">
+        <option value="matrix">Matrix Synth</option>
+        <option value="arcade">Arcade Pulse</option>
+        <option value="retro">Cyber 8-Bit</option>
+        <option value="none">Music Muted</option>
+      </select>
+      <!-- Master Volume -->
+      <div class="vol-cluster" title="Volume">
+        <span style="font-size:0.75rem;">🔊</span>
+        <input type="range" id="volSlider" class="retro-slider" min="0" max="1" step="0.05" value="0.4" oninput="if(window.AudioEngine)AudioEngine.setVolume(parseFloat(this.value))">
+      </div>
+      <button class="btn-icon" id="btnHallOfFame" title="Hall of Fame" onclick="openHallOfFame()">🏆</button>
+      <button class="btn-icon" id="btnShader" title="Cycle CRT Shader (Clean/Subtle/Heavy)" onclick="cycleShader()">📺</button>
+      <button class="btn-icon" id="btnSound" title="Toggle Sound (M)" onclick="toggleSound()">🔊</button>
+      <button class="btn-icon" id="btnManual" title="Field Manual / Rules (?)" onclick="openManual()">📖</button>
+      <button class="btn-icon" id="btnPause" title="Pause / Resume (P / Esc)" onclick="togglePause()">⏸️</button>
+      <button class="btn-icon" id="btnFullscreen" title="Toggle Fullscreen (F11 / F)" onclick="toggleFullscreen()">⛶</button>
       <a href="/" class="btn-icon" title="Return to RAD Hub" id="btnHub" style="text-decoration:none;">⚡</a>
     </div>
   </header>
@@ -723,6 +791,10 @@
             <span class="life-dot">👾</span>
           </div>
         </div>
+        <div class="stat-chip">
+          <span>Active Boosts</span>
+          <div id="hudActiveBoosts" style="font-size:0.75rem; font-family:var(--font-arcade); color:var(--text-muted); padding-top:2px;">None</div>
+        </div>
       </div>
     </div>
 
@@ -730,49 +802,90 @@
     <div class="viewport-frame crt-subtle" id="viewportFrame">
       <canvas id="gameCanvas" width="900" height="540"></canvas>
 
-      <!-- Overlay Menu (Start / Pause / Game Over) -->
-      <div class="game-overlay show" id="overlayMenu">
+      <!-- Start Mission Overlay -->
+      <div class="game-overlay show" id="startOverlay">
         <h2 class="overlay-title" id="overlayTitle">MATH MUNCHERS</h2>
         <p class="overlay-subtitle" id="overlaySubtitle">
-          Navigate the neon matrix, munch numbers that satisfy the mathematical rule, seize power-ups, and evade the lurking Troggles!
+          Navigate the neon matrix, munch numbers that satisfy the mathematical directive, seize power-ups, and evade the lurking Troggles!
         </p>
 
         <!-- Mode Select Grid -->
         <div class="mode-select-grid" id="modeSelectGrid">
-          <div class="mode-card active" data-mode="multiples">
+          <div class="mode-card active" data-mode="multiples" onclick="selectGameMode('multiples', this)">
             <div class="icon">✖️</div>
             <div class="name">Multiples</div>
             <div class="desc">Find multiples of target number</div>
           </div>
-          <div class="mode-card" data-mode="factors">
+          <div class="mode-card" data-mode="factors" onclick="selectGameMode('factors', this)">
             <div class="icon">➗</div>
             <div class="name">Factors</div>
             <div class="desc">Find divisors of target number</div>
           </div>
-          <div class="mode-card" data-mode="primes">
+          <div class="mode-card" data-mode="primes" onclick="selectGameMode('primes', this)">
             <div class="icon">🔢</div>
             <div class="name">Primes</div>
             <div class="desc">Chomp prime numbers only</div>
           </div>
-          <div class="mode-card" data-mode="equalities">
+          <div class="mode-card" data-mode="equalities" onclick="selectGameMode('equalities', this)">
             <div class="icon">🟰</div>
             <div class="name">Equalities</div>
             <div class="desc">Chomp equations matching target</div>
           </div>
-          <div class="mode-card" data-mode="inequalities">
+          <div class="mode-card" data-mode="inequalities" onclick="selectGameMode('inequalities', this)">
             <div class="icon">🔀</div>
             <div class="name">Inequalities</div>
             <div class="desc">Greater than or less than values</div>
           </div>
-          <div class="mode-card" data-mode="campaign">
+          <div class="mode-card" data-mode="campaign" onclick="selectGameMode('campaign', this)">
             <div class="icon">🏆</div>
             <div class="name">Campaign</div>
             <div class="desc">Progressive rounds across all modes</div>
           </div>
         </div>
 
-        <!-- End of Round Stats (hidden on initial load) -->
-        <div class="overlay-stats" id="overlayStats" style="display:none;">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="btn-arcade" id="btnStartGame" onclick="startGame()">START MISSION (SPACE)</button>
+          <button class="btn-arcade btn-arcade-secondary" onclick="openHallOfFame()">HALL OF FAME 🏆</button>
+        </div>
+      </div>
+
+      <!-- Sector Cleared Overlay -->
+      <div class="game-overlay" id="sectorOverlay" style="display:none;">
+        <h2 class="overlay-title" style="color:var(--neon-green); text-shadow:0 0 25px var(--neon-green);">SECTOR CLEARED!</h2>
+        <p class="overlay-subtitle" id="sectorClearedSub">Outstanding calculations, Cyber Muncher!</p>
+        <div class="overlay-stats">
+          <div class="stat-card">
+            <span>Level Cleared</span>
+            <b id="secLevelNum">1</b>
+          </div>
+          <div class="stat-card">
+            <span>Sector Bonus</span>
+            <b id="secBonusPts" style="color:var(--neon-yellow);">+1,250</b>
+          </div>
+          <div class="stat-card">
+            <span>Total Score</span>
+            <b id="secTotalScore">0</b>
+          </div>
+        </div>
+        <button class="btn-arcade" onclick="nextSector()">ENGAGE NEXT SECTOR (SPACE)</button>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div class="game-overlay" id="pauseOverlay" style="display:none;">
+        <h2 class="overlay-title">SYSTEM PAUSED</h2>
+        <p class="overlay-subtitle">Muncher telemetry & Troggle movement suspended.</p>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="btn-arcade" onclick="resumeGame()">RESUME (SPACE)</button>
+          <button class="btn-arcade btn-arcade-secondary" onclick="quitToMenu()">ABORT MISSION</button>
+        </div>
+      </div>
+
+      <!-- Game Over Overlay -->
+      <div class="game-overlay" id="gameOverOverlay" style="display:none;">
+        <h2 class="overlay-title" style="color:var(--neon-pink); text-shadow:0 0 25px var(--neon-pink);">GRID OFFLINE</h2>
+        <p class="overlay-subtitle">All Cyber Munchers have been neutralized by the Troggle network.</p>
+
+        <div class="overlay-stats" id="overlayStats">
           <div class="stat-card">
             <span>Rounds Cleared</span>
             <b id="ovRounds">0</b>
@@ -787,7 +900,19 @@
           </div>
         </div>
 
-        <button class="btn-arcade" id="btnStartGame">START MISSION (SPACE)</button>
+        <!-- High Score Initials Entry -->
+        <div id="highScoreEntryBox" style="display:none; flex-direction:column; align-items:center; margin-bottom:16px; background:rgba(255,183,3,0.12); border:1px solid rgba(255,183,3,0.5); border-radius:10px; padding:12px 20px;">
+          <div style="color:var(--neon-yellow); font-family:var(--font-arcade); font-size:0.85rem; margin-bottom:8px;">★ NEW HIGH SCORE! ENTER INITIALS ★</div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="hofInitials" maxlength="3" value="MCH" style="background:#05070e; border:2px solid var(--neon-cyan); border-radius:6px; color:#fff; font-family:var(--font-arcade); font-size:1.3rem; font-weight:900; text-align:center; width:90px; padding:4px 6px; text-transform:uppercase; letter-spacing:4px; outline:none;">
+            <button class="btn-arcade" style="padding:8px 18px; font-size:0.85rem;" onclick="submitHofInitials()">SUBMIT</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="btn-arcade" onclick="startGame()">PLAY AGAIN (SPACE)</button>
+          <button class="btn-arcade btn-arcade-secondary" onclick="openHallOfFame()">HALL OF FAME 🏆</button>
+        </div>
       </div>
     </div>
 
@@ -867,6 +992,21 @@
     </div>
   </div>
 
+  <!-- Hall of Fame Modal Dialog -->
+  <div class="modal-backdrop" id="hallOfFameModal">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <h2>
+        <span style="color: var(--neon-yellow);">🏆 HALL OF FAME</span>
+        <button class="modal-close" onclick="closeHallOfFame()">✕</button>
+      </h2>
+      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Top Math Muncher operators recorded across all sectors.</p>
+      <div id="hofList" style="display:flex; flex-direction:column; gap:8px;">
+        <!-- Populated via renderHallOfFame() -->
+      </div>
+      <button class="btn-arcade" style="margin-top:20px; width:100%;" onclick="closeHallOfFame()">CLOSE</button>
+    </div>
+  </div>
+
   <script>
     // -------------------------------------------------------------------------
     // 1. Resilient In-Memory Safe Storage
@@ -897,56 +1037,270 @@
     })();
 
     // -------------------------------------------------------------------------
-    // 2. Triple-A Pentatonic WebAudio Synthesizer Engine
+    // 2. Triple-A Polyphonic WebAudio Synthesizer & Sequencer Engine
     // -------------------------------------------------------------------------
     const AudioEngine = (function() {
       let ctx = null;
       let soundEnabled = true;
+      let masterGain = null;
+      let musicGain = null;
+      let sfxGain = null;
+      let currentTrack = "matrix";
+      let isPlayingMusic = false;
+      let timerID = null;
+      let step = 0;
+      const bpm = 138;
+      let nextNoteTime = 0;
 
       function getContext() {
         if (!ctx) {
           const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) ctx = new AudioCtx();
+          if (AudioCtx) {
+            ctx = new AudioCtx();
+            masterGain = ctx.createGain();
+            masterGain.gain.value = 0.4;
+            masterGain.connect(ctx.destination);
+
+            musicGain = ctx.createGain();
+            musicGain.gain.value = 0.32;
+            musicGain.connect(masterGain);
+
+            sfxGain = ctx.createGain();
+            sfxGain.gain.value = 0.55;
+            sfxGain.connect(masterGain);
+          }
         }
-        if (ctx && ctx.state === "suspended") ctx.resume();
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
         return ctx;
+      }
+
+      function triggerSynth(freq, type, dur, time, vol, targetGain, filterCutoff) {
+        if (!ctx || !soundEnabled) return;
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, time);
+
+          gain.gain.setValueAtTime(vol, time);
+          gain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+          if (filterCutoff) {
+            const filter = ctx.createBiquadFilter();
+            filter.type = "lowpass";
+            filter.frequency.setValueAtTime(filterCutoff, time);
+            osc.connect(filter);
+            filter.connect(gain);
+          } else {
+            osc.connect(gain);
+          }
+          gain.connect(targetGain || sfxGain);
+          osc.start(time);
+          osc.stop(time + dur);
+        } catch(e) {}
+      }
+
+      function triggerKick(time) {
+        if (!ctx || !soundEnabled) return;
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(140, time);
+          osc.frequency.exponentialRampToValueAtTime(32, time + 0.08);
+          gain.gain.setValueAtTime(0.48, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.09);
+          osc.connect(gain);
+          gain.connect(musicGain);
+          osc.start(time);
+          osc.stop(time + 0.09);
+        } catch(e) {}
+      }
+
+      function triggerSnare(time) {
+        if (!ctx || !soundEnabled) return;
+        try {
+          const bufferSize = Math.floor(ctx.sampleRate * 0.06);
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "highpass";
+          filter.frequency.value = 1000;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.25, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(musicGain);
+          noise.start(time);
+        } catch(e) {}
+      }
+
+      function triggerHiHat(time, vol = 0.08) {
+        if (!ctx || !soundEnabled) return;
+        try {
+          const bufferSize = Math.floor(ctx.sampleRate * 0.03);
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "highpass";
+          filter.frequency.value = 6000;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(vol, time);
+          gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.03);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(musicGain);
+          noise.start(time);
+        } catch(e) {}
+      }
+
+      function playSequencerStep(currStep, time) {
+        if (!ctx || !soundEnabled) return;
+        if (currentTrack === "matrix") {
+          const bassNotes = [110, 110, 130.81, 110, 146.83, 110, 164.81, 130.81];
+          const bFreq = bassNotes[currStep % 8];
+          triggerSynth(bFreq, "sawtooth", 0.08, time, 0.22, musicGain, 450);
+
+          if (currStep % 4 === 0) triggerKick(time);
+          if (currStep % 8 === 4) triggerSnare(time);
+          if (currStep % 2 === 1) triggerHiHat(time, 0.06);
+
+          const leadNotes = [
+            440, 0, 523.25, 659.25, 587.33, 0, 523.25, 440,
+            659.25, 0, 783.99, 880, 783.99, 659.25, 587.33, 523.25,
+            440, 0, 523.25, 659.25, 880, 0, 783.99, 659.25,
+            587.33, 659.25, 587.33, 523.25, 493.88, 523.25, 440, 0
+          ];
+          const lFreq = leadNotes[currStep];
+          if (lFreq > 0) triggerSynth(lFreq, "square", 0.1, time, 0.15, musicGain);
+        } else if (currentTrack === "arcade") {
+          const chipBass = [130.81, 164.81, 196.00, 261.63, 130.81, 164.81, 196.00, 246.94];
+          triggerSynth(chipBass[currStep % 8], "triangle", 0.09, time, 0.32, musicGain);
+
+          if (currStep % 4 === 0) triggerKick(time);
+          if (currStep % 8 === 4) triggerSnare(time);
+          if (currStep % 2 === 1) triggerHiHat(time, 0.05);
+
+          const arcadeLead = [
+            523.25, 523.25, 0, 659.25, 783.99, 0, 659.25, 523.25,
+            587.33, 0, 659.25, 587.33, 523.25, 0, 392.00, 440,
+            523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 0,
+            659.25, 587.33, 523.25, 440, 493.88, 523.25, 0, 0
+          ];
+          const lFreq = arcadeLead[currStep];
+          if (lFreq > 0) triggerSynth(lFreq, "square", 0.09, time, 0.14, musicGain);
+        } else if (currentTrack === "retro") {
+          const retroBass = [98.0, 98.0, 123.47, 98.0, 146.83, 123.47, 98.0, 164.81];
+          triggerSynth(retroBass[currStep % 8], "sawtooth", 0.08, time, 0.2, musicGain, 380);
+
+          if (currStep % 4 === 0) triggerKick(time);
+          if (currStep % 8 === 4) triggerSnare(time);
+          if (currStep % 2 === 1) triggerHiHat(time, 0.07);
+
+          const retroLead = [
+            392.0, 0, 440.0, 493.88, 587.33, 0, 493.88, 440.0,
+            392.0, 440.0, 493.88, 587.33, 659.25, 0, 587.33, 493.88,
+            392.0, 0, 440.0, 493.88, 783.99, 0, 659.25, 587.33,
+            493.88, 440.0, 392.0, 440.0, 493.88, 0, 392.0, 0
+          ];
+          const lFreq = retroLead[currStep];
+          if (lFreq > 0) triggerSynth(lFreq, "triangle", 0.1, time, 0.16, musicGain);
+        }
+      }
+
+      function schedule() {
+        if (!isPlayingMusic || currentTrack === "none" || !ctx) return;
+        const lookahead = 0.12;
+        const secondsPer16th = 60.0 / (bpm * 4);
+
+        while (nextNoteTime < ctx.currentTime + lookahead) {
+          playSequencerStep(step, nextNoteTime);
+          nextNoteTime += secondsPer16th;
+          step = (step + 1) % 32;
+        }
+        timerID = setTimeout(() => schedule(), 35);
       }
 
       return {
         toggle() {
           soundEnabled = !soundEnabled;
+          if (!soundEnabled) {
+            if (masterGain && ctx) masterGain.gain.setValueAtTime(0, ctx.currentTime);
+          } else {
+            const v = parseFloat(document.getElementById("volSlider")?.value || "0.4");
+            if (masterGain && ctx) masterGain.gain.setValueAtTime(v, ctx.currentTime);
+          }
           return soundEnabled;
         },
         isEnabled() {
           return soundEnabled;
         },
+        setVolume(val) {
+          getContext();
+          if (masterGain && ctx) {
+            masterGain.gain.setValueAtTime(val, ctx.currentTime);
+          }
+        },
+        changeMusic(trackName) {
+          currentTrack = trackName;
+          if (currentTrack === "none") {
+            this.stopMusic();
+          } else if (isPlayingMusic) {
+            this.startMusic(currentTrack);
+          }
+        },
+        startMusic(trackName) {
+          if (trackName) currentTrack = trackName;
+          this.stopMusic();
+          if (currentTrack === "none") return;
+          getContext();
+          if (!ctx) return;
+          isPlayingMusic = true;
+          step = 0;
+          nextNoteTime = ctx.currentTime + 0.05;
+          schedule();
+        },
+        stopMusic() {
+          isPlayingMusic = false;
+          if (timerID) {
+            clearTimeout(timerID);
+            timerID = null;
+          }
+        },
+        // SFX
         playChomp(combo = 1) {
           if (!soundEnabled) return;
           try {
             const ac = getContext();
             if (!ac) return;
             const now = ac.currentTime;
-
-            // Pentatonic base pitches corresponding to combo
             const scale = [261.63, 293.66, 329.63, 392.00, 523.25, 659.25];
             const baseFreq = scale[Math.min(combo - 1, scale.length - 1)];
 
-            // Crunchy arcade square wave bite
             const osc = ac.createOscillator();
             const gain = ac.createGain();
             osc.type = "triangle";
             osc.frequency.setValueAtTime(baseFreq * 1.5, now);
             osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, now + 0.12);
-
             gain.gain.setValueAtTime(0.28, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
             osc.connect(gain);
-            gain.connect(ac.destination);
+            gain.connect(sfxGain || ac.destination);
             osc.start(now);
             osc.stop(now + 0.12);
 
-            // Pop sound accent
             const osc2 = ac.createOscillator();
             const gain2 = ac.createGain();
             osc2.type = "sine";
@@ -955,7 +1309,7 @@
             gain2.gain.setValueAtTime(0.18, now + 0.04);
             gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
             osc2.connect(gain2);
-            gain2.connect(ac.destination);
+            gain2.connect(sfxGain || ac.destination);
             osc2.start(now + 0.04);
             osc2.stop(now + 0.14);
           } catch {}
@@ -974,7 +1328,7 @@
             gain.gain.setValueAtTime(0.35, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
             osc.connect(gain);
-            gain.connect(ac.destination);
+            gain.connect(sfxGain || ac.destination);
             osc.start(now);
             osc.stop(now + 0.28);
           } catch {}
@@ -993,7 +1347,7 @@
             gain.gain.setValueAtTime(0.08, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
             osc.connect(gain);
-            gain.connect(ac.destination);
+            gain.connect(sfxGain || ac.destination);
             osc.start(now);
             osc.stop(now + 0.04);
           } catch {}
@@ -1013,7 +1367,7 @@
             gain.gain.setValueAtTime(0.25, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
             osc.connect(gain);
-            gain.connect(ac.destination);
+            gain.connect(sfxGain || ac.destination);
             osc.start(now);
             osc.stop(now + 0.4);
           } catch {}
@@ -1032,7 +1386,7 @@
               gain.gain.setValueAtTime(0.18, now + i * 0.04);
               gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.1);
               osc.connect(gain);
-              gain.connect(ac.destination);
+              gain.connect(sfxGain || ac.destination);
               osc.start(now + i * 0.04);
               osc.stop(now + i * 0.04 + 0.1);
             });
@@ -1052,7 +1406,7 @@
               gain.gain.setValueAtTime(0.22, now + i * 0.06);
               gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.22);
               osc.connect(gain);
-              gain.connect(ac.destination);
+              gain.connect(sfxGain || ac.destination);
               osc.start(now + i * 0.06);
               osc.stop(now + i * 0.06 + 0.22);
             });
@@ -1072,7 +1426,7 @@
               gain.gain.setValueAtTime(0.25, now + i * 0.12);
               gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.2);
               osc.connect(gain);
-              gain.connect(ac.destination);
+              gain.connect(sfxGain || ac.destination);
               osc.start(now + i * 0.12);
               osc.stop(now + i * 0.12 + 0.2);
             });
@@ -1145,9 +1499,125 @@
     // Visual Particles & Floating FX
     let particles = [];
     let floatingTexts = [];
+    let multiplierTimer = 0;
 
     // -------------------------------------------------------------------------
-    // 4. Mathematical Problem Generator
+    // Hall of Fame Leaderboard System
+    // -------------------------------------------------------------------------
+    const HOF_KEY = "math_munchers_hof";
+    const DEFAULT_HOF = [
+      { initials: "NEO", score: 18500, rounds: 5, date: "2026-10-12" },
+      { initials: "TRG", score: 14200, rounds: 4, date: "2026-10-11" },
+      { initials: "MCH", score: 10800, rounds: 3, date: "2026-10-10" },
+      { initials: "BYT", score: 7500, rounds: 2, date: "2026-10-09" },
+      { initials: "CYB", score: 4200, rounds: 2, date: "2026-10-08" }
+    ];
+
+    function getLeaderboard() {
+      try {
+        const raw = SafeStorage.getItem(HOF_KEY);
+        if (!raw) return DEFAULT_HOF.slice();
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch(e) {}
+      return DEFAULT_HOF.slice();
+    }
+
+    function saveLeaderboard(list) {
+      try {
+        SafeStorage.setItem(HOF_KEY, JSON.stringify(list));
+      } catch(e) {}
+    }
+
+    function qualifiesForHof(s) {
+      const list = getLeaderboard();
+      return s > list[list.length - 1].score;
+    }
+
+    function submitHofInitials() {
+      const input = document.getElementById("hofInitials");
+      let initials = (input ? input.value : "MCH").trim().toUpperCase();
+      if (!initials) initials = "MCH";
+      initials = initials.substring(0, 3);
+
+      const list = getLeaderboard();
+      list.push({
+        initials,
+        score,
+        rounds: Math.max(1, level - 1),
+        date: new Date().toISOString().split("T")[0]
+      });
+      list.sort((a, b) => b.score - a.score);
+      const top5 = list.slice(0, 5);
+      saveLeaderboard(top5);
+
+      const box = document.getElementById("highScoreEntryBox");
+      if (box) box.style.display = "none";
+      openHallOfFame();
+    }
+
+    function openHallOfFame() {
+      renderHallOfFame();
+      const modal = document.getElementById("hallOfFameModal");
+      if (modal) modal.classList.add("open");
+    }
+
+    function closeHallOfFame() {
+      const modal = document.getElementById("hallOfFameModal");
+      if (modal) modal.classList.remove("open");
+    }
+
+    function renderHallOfFame() {
+      const container = document.getElementById("hofList");
+      if (!container) return;
+      const list = getLeaderboard();
+      const medals = ["🥇 1ST", "🥈 2ND", "🥉 3RD", "4TH", "5TH"];
+      const colors = ["var(--neon-yellow)", "#cbd5e1", "#f97316", "var(--neon-cyan)", "#a855f7"];
+
+      let html = "";
+      list.forEach((entry, i) => {
+        html += `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,243,255,0.18); border-radius:8px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-family:var(--font-arcade); font-weight:900; font-size:0.85rem; color:${colors[i]}; width:54px;">${medals[i]}</span>
+              <b style="font-family:var(--font-arcade); font-size:1.1rem; color:#fff; letter-spacing:2px;">${entry.initials}</b>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">Rounds: ${entry.rounds}</span>
+              <b style="font-family:var(--font-arcade); font-size:1.15rem; color:${colors[i]};">${entry.score.toLocaleString()}</b>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function hideAllOverlays() {
+      const ids = ["startOverlay", "pauseOverlay", "sectorOverlay", "gameOverOverlay"];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove("show");
+          el.style.display = "none";
+        }
+      });
+    }
+
+    function showOverlay(id) {
+      hideAllOverlays();
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = "flex";
+        el.classList.add("show");
+      }
+    }
+
+    function selectGameMode(mode, el) {
+      selectedMode = mode;
+      document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
+      if (el) el.classList.add("active");
+      populateGrid();
+    }
     // -------------------------------------------------------------------------
     function generateRuleForMode(mode, currentLvl) {
       if (mode === "campaign") {
@@ -1333,7 +1803,7 @@
       if (Math.random() < 0.7) {
         const pr = Math.floor(Math.random() * ROWS);
         const pc = Math.floor(Math.random() * COLS);
-        const pTypes = ["freeze", "zapper", "shield", "diamond"];
+        const pTypes = ["freeze", "zapper", "shield", "diamond", "multiplier"];
         grid[pr][pc].powerup = pTypes[Math.floor(Math.random() * pTypes.length)];
       }
 
@@ -1357,6 +1827,7 @@
     // 5. Game Loop, Input & Entities
     // -------------------------------------------------------------------------
     function initGame() {
+      hideAllOverlays();
       score = 0;
       level = 1;
       lives = 3;
@@ -1367,6 +1838,7 @@
       floatingTexts = [];
       troggleSpawnTimer = 3.0;
       freezeTimer = 0;
+      multiplierTimer = 0;
 
       muncher.row = 2;
       muncher.col = 2;
@@ -1380,10 +1852,21 @@
 
       populateGrid();
       gameState = STATE_PLAYING;
+      AudioEngine.startMusic(document.getElementById("musicSelect")?.value || "matrix");
+      updateHUD();
+    }
 
-      const overlay = document.getElementById("overlayMenu");
-      overlay.classList.remove("show");
-      overlay.style.display = "none";
+    function nextSector() {
+      level++;
+      hideAllOverlays();
+      muncher.invulnerableTimer = 1.0;
+      troggles = [];
+      freezeTimer = 0;
+      multiplierTimer = 0;
+      populateGrid();
+      gameState = STATE_PLAYING;
+      AudioEngine.startMusic(document.getElementById("musicSelect")?.value || "matrix");
+      updateHUD();
     }
 
     function moveMuncher(dRow, dCol) {
@@ -1430,14 +1913,15 @@
       const cellCenterY = muncher.row * CELL_H + CELL_H / 2;
 
       if (isCorrect) {
-        const pts = 100 * streakCombo;
+        let pts = 100 * streakCombo;
+        if (multiplierTimer > 0) pts *= 2;
         score += pts;
         streakCombo = Math.min(5, streakCombo + 1);
         if (streakCombo > maxStreak) maxStreak = streakCombo;
 
         AudioEngine.playChomp(streakCombo);
         createNumberBurst(cellCenterX, cellCenterY, "#00f3ff");
-        addFloatingText(`+${pts}! ${streakCombo > 1 ? streakCombo + "x" : ""}`, cellCenterX, cellCenterY - 10, "#00f3ff");
+        addFloatingText(`+${pts}! ${streakCombo > 1 ? streakCombo + "x" : ""}${multiplierTimer > 0 ? " [2X]" : ""}`, cellCenterX, cellCenterY - 10, "#00f3ff");
 
         // Check if level is cleared
         const remaining = countRemainingCorrect();
@@ -1483,6 +1967,10 @@
         score += 500;
         addFloatingText("+500 DIAMOND!", x, y - 20, "#a855f7");
         createNumberBurst(x, y, "#a855f7");
+      } else if (type === "multiplier") {
+        multiplierTimer = 10.0;
+        addFloatingText("💎 2X MULTIPLIER (10s)!", x, y - 20, "#ffb703");
+        createNumberBurst(x, y, "#ffb703");
       }
     }
 
@@ -1518,21 +2006,23 @@
       gameState = STATE_LEVEL_CLEAR;
       const clearBonus = 1000 + level * 250;
       score += clearBonus;
+      AudioEngine.stopMusic();
       AudioEngine.playLevelClear();
 
       addFloatingText(`🎉 LEVEL ${level} CLEARED! +${clearBonus}`, W / 2, H / 2, "#10b981");
-      createConfetti(W / 2, H / 2, 60);
+      createConfetti(W / 2, H / 2, 70);
 
       setTimeout(() => {
-        level++;
-        muncher.invulnerableTimer = 1.0;
-        populateGrid();
-        gameState = STATE_PLAYING;
-      }, 1500);
+        document.getElementById("secLevelNum").textContent = level;
+        document.getElementById("secBonusPts").textContent = `+${clearBonus.toLocaleString()}`;
+        document.getElementById("secTotalScore").textContent = score.toLocaleString();
+        showOverlay("sectorOverlay");
+      }, 1200);
     }
 
     function triggerGameOver() {
       gameState = STATE_GAMEOVER;
+      AudioEngine.stopMusic();
       AudioEngine.playGameOver();
 
       if (score > highScore) {
@@ -1541,34 +2031,48 @@
       }
 
       setTimeout(() => {
-        const overlay = document.getElementById("overlayMenu");
-        document.getElementById("overlayTitle").textContent = "GRID OFFLINE";
-        document.getElementById("overlaySubtitle").textContent = "All Cyber Munchers have been neutralized by the Troggle network.";
-        document.getElementById("overlayStats").style.display = "grid";
-        document.getElementById("ovRounds").textContent = level - 1;
+        document.getElementById("ovRounds").textContent = Math.max(0, level - 1);
         document.getElementById("ovStreak").textContent = `${maxStreak}x`;
-        document.getElementById("ovScore").textContent = score;
-        document.getElementById("btnStartGame").textContent = "PLAY AGAIN (SPACE)";
-        overlay.style.display = "flex";
-        overlay.classList.add("show");
+        document.getElementById("ovScore").textContent = score.toLocaleString();
+
+        const qualifies = qualifiesForHof(score);
+        const box = document.getElementById("highScoreEntryBox");
+        if (box) {
+          box.style.display = qualifies ? "flex" : "none";
+          if (qualifies) {
+            setTimeout(() => {
+              const inp = document.getElementById("hofInitials");
+              if (inp) { inp.focus(); inp.select(); }
+            }, 100);
+          }
+        }
+        showOverlay("gameOverOverlay");
       }, 900);
     }
 
     function togglePause() {
-      const overlay = document.getElementById("overlayMenu");
       if (gameState === STATE_PLAYING) {
         gameState = STATE_PAUSED;
-        document.getElementById("overlayTitle").textContent = "MISSION PAUSED";
-        document.getElementById("overlaySubtitle").textContent = "Muncher grid telemetry suspended.";
-        document.getElementById("overlayStats").style.display = "none";
-        document.getElementById("btnStartGame").textContent = "RESUME (SPACE)";
-        overlay.style.display = "flex";
-        overlay.classList.add("show");
+        AudioEngine.stopMusic();
+        showOverlay("pauseOverlay");
       } else if (gameState === STATE_PAUSED) {
-        gameState = STATE_PLAYING;
-        overlay.classList.remove("show");
-        overlay.style.display = "none";
+        resumeGame();
       }
+    }
+
+    function resumeGame() {
+      if (gameState !== STATE_PAUSED) return;
+      hideAllOverlays();
+      gameState = STATE_PLAYING;
+      AudioEngine.startMusic(document.getElementById("musicSelect")?.value || "matrix");
+    }
+
+    function quitToMenu() {
+      gameState = STATE_IDLE;
+      AudioEngine.stopMusic();
+      showOverlay("startOverlay");
+      populateGrid();
+      updateHUD();
     }
 
     // -------------------------------------------------------------------------
@@ -1581,11 +2085,15 @@
       const isSpaceOrEnter = k === " " || k === "spacebar" || code === "Space" || k === "enter" || code === "Enter" || code === "NumpadEnter";
 
       if (isSpaceOrEnter) {
+        if (document.activeElement && document.activeElement.id === "hofInitials") return;
+
         e.preventDefault();
         if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) {
           initGame();
+        } else if (gameState === STATE_LEVEL_CLEAR) {
+          nextSector();
         } else if (gameState === STATE_PAUSED) {
-          togglePause();
+          resumeGame();
         } else if (gameState === STATE_PLAYING) {
           munchCurrentTile();
         }
@@ -1723,11 +2231,19 @@
             // Draw Power-up Pod Icon if present
             if (item.powerup) {
               ctx.save();
-              ctx.font = "16px sans-serif";
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
-              const pIcons = { freeze: "❄️", zapper: "⚡", shield: "🛡️", diamond: "💎" };
-              ctx.fillText(pIcons[item.powerup] || "⭐", x + CELL_W / 2, y + 16);
+              if (item.powerup === "multiplier") {
+                ctx.fillStyle = "#ffb703";
+                ctx.font = "bold 13px 'Orbitron', monospace";
+                ctx.shadowColor = "#ffb703";
+                ctx.shadowBlur = 8;
+                ctx.fillText("2X", x + CELL_W / 2, y + 16);
+              } else {
+                ctx.font = "16px sans-serif";
+                const pIcons = { freeze: "❄️", zapper: "⚡", shield: "🛡️", diamond: "💎" };
+                ctx.fillText(pIcons[item.powerup] || "⭐", x + CELL_W / 2, y + 16);
+              }
               ctx.restore();
             }
           } else if (item && item.eaten) {
@@ -1935,6 +2451,11 @@
         freezeTimer -= dt;
       }
 
+      // Multiplier Timer
+      if (multiplierTimer > 0) {
+        multiplierTimer -= dt;
+      }
+
       // Spawn Troggles
       troggleSpawnTimer -= dt;
       if (troggleSpawnTimer <= 0) {
@@ -2052,12 +2573,26 @@
 
       // Lives
       const livesContainer = document.getElementById("hudLives");
-      livesContainer.innerHTML = "";
-      for (let i = 0; i < lives; i++) {
-        const span = document.createElement("span");
-        span.className = "life-dot";
-        span.textContent = "👾";
-        livesContainer.appendChild(span);
+      if (livesContainer) {
+        livesContainer.innerHTML = "";
+        for (let i = 0; i < lives; i++) {
+          const span = document.createElement("span");
+          span.className = "life-dot";
+          span.textContent = "👾";
+          livesContainer.appendChild(span);
+        }
+      }
+
+      // Active Boosts Chip
+      const boostChip = document.getElementById("hudActiveBoosts");
+      if (boostChip) {
+        let boosts = [];
+        if (muncher.hasShield) boosts.push("🛡️ SHIELD");
+        if (freezeTimer > 0) boosts.push(`❄️ ${Math.ceil(freezeTimer)}s`);
+        if (multiplierTimer > 0) boosts.push(`💎 2X (${Math.ceil(multiplierTimer)}s)`);
+        boostChip.innerHTML = boosts.length > 0 
+          ? `<span style="color:var(--neon-green); font-weight:bold;">${boosts.join(" ")}</span>` 
+          : `<span style="color:var(--text-muted); font-size:0.75rem;">None</span>`;
       }
     }
 
@@ -2078,60 +2613,94 @@
         e.stopPropagation();
         if (e.cancelable) e.preventDefault();
       }
-      if (gameState === STATE_PAUSED) togglePause();
+      if (gameState === STATE_PAUSED) resumeGame();
+      else if (gameState === STATE_LEVEL_CLEAR) nextSector();
       else initGame();
     };
-    btnStart.addEventListener("click", onStartTrigger);
-    btnStart.addEventListener("pointerup", onStartTrigger);
-    btnStart.addEventListener("touchend", onStartTrigger);
-
-    // Overlay click outside cards fallback
-    document.getElementById("overlayMenu").addEventListener("click", (e) => {
-      if (!e.target.closest(".mode-card")) {
-        onStartTrigger(e);
-      }
-    });
+    if (btnStart) {
+      btnStart.addEventListener("click", onStartTrigger);
+      btnStart.addEventListener("pointerup", onStartTrigger);
+      btnStart.addEventListener("touchend", onStartTrigger);
+    }
 
     // Sound Button
     const btnSound = document.getElementById("btnSound");
     function toggleSound() {
       const enabled = AudioEngine.toggle();
-      btnSound.textContent = enabled ? "🔊" : "🔇";
+      if (btnSound) btnSound.textContent = enabled ? "🔊" : "🔇";
     }
-    btnSound.addEventListener("click", toggleSound);
+    if (btnSound) btnSound.addEventListener("click", toggleSound);
 
     // Pause Button
-    document.getElementById("btnPause").addEventListener("click", togglePause);
+    const btnPause = document.getElementById("btnPause");
+    if (btnPause) btnPause.addEventListener("click", togglePause);
 
     // Fullscreen Button
-    document.getElementById("btnFullscreen").addEventListener("click", () => {
+    const btnFullscreen = document.getElementById("btnFullscreen");
+    function toggleFullscreen() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
       } else {
         document.exitFullscreen().catch(() => {});
       }
-    });
+    }
+    if (btnFullscreen) btnFullscreen.addEventListener("click", toggleFullscreen);
 
     // CRT Shader Toggle
     const shaderModes = ["crt-subtle", "crt-heavy", ""];
     let currentShaderIdx = 0;
     const viewportFrame = document.getElementById("viewportFrame");
-    document.getElementById("btnShader").addEventListener("click", () => {
+    function cycleShader() {
       currentShaderIdx = (currentShaderIdx + 1) % shaderModes.length;
-      viewportFrame.className = `viewport-frame ${shaderModes[currentShaderIdx]}`;
-    });
+      if (viewportFrame) viewportFrame.className = `viewport-frame ${shaderModes[currentShaderIdx]}`;
+    }
+    const btnShader = document.getElementById("btnShader");
+    if (btnShader) btnShader.addEventListener("click", cycleShader);
 
     // Manual Modal
     const manualModal = document.getElementById("manualModal");
-    document.getElementById("btnManual").addEventListener("click", () => {
-      manualModal.classList.add("open");
-    });
-    document.getElementById("btnCloseManual").addEventListener("click", () => {
-      manualModal.classList.remove("open");
-    });
-    manualModal.addEventListener("click", (e) => {
-      if (e.target === manualModal) manualModal.classList.remove("open");
-    });
+    function openManual() {
+      if (manualModal) manualModal.classList.add("open");
+    }
+    function closeManual() {
+      if (manualModal) manualModal.classList.remove("open");
+    }
+    const btnManual = document.getElementById("btnManual");
+    if (btnManual) btnManual.addEventListener("click", openManual);
+    const btnCloseManual = document.getElementById("btnCloseManual");
+    if (btnCloseManual) btnCloseManual.addEventListener("click", closeManual);
+    if (manualModal) {
+      manualModal.addEventListener("click", (e) => {
+        if (e.target === manualModal) closeManual();
+      });
+    }
+
+    // Hall of Fame modal outside click
+    const hallOfFameModal = document.getElementById("hallOfFameModal");
+    if (hallOfFameModal) {
+      hallOfFameModal.addEventListener("click", (e) => {
+        if (e.target === hallOfFameModal) closeHallOfFame();
+      });
+    }
+
+    // Direct Window API Bindings for Bulletproof Desktop WKWebView Integration
+    window.startGame = initGame;
+    window.onStartTrigger = onStartTrigger;
+    window.nextSector = nextSector;
+    window.togglePause = togglePause;
+    window.resumeGame = resumeGame;
+    window.quitToMenu = quitToMenu;
+    window.openHallOfFame = openHallOfFame;
+    window.closeHallOfFame = closeHallOfFame;
+    window.submitHofInitials = submitHofInitials;
+    window.selectGameMode = selectGameMode;
+    window.cycleShader = cycleShader;
+    window.toggleSound = toggleSound;
+    window.openManual = openManual;
+    window.closeManual = closeManual;
+    window.toggleFullscreen = toggleFullscreen;
+    window.munchCurrentTile = munchCurrentTile;
+    window.AudioEngine = AudioEngine;
 
     // Initial HUD Populate
     populateGrid();

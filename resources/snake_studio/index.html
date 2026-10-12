@@ -362,9 +362,12 @@
       <!-- Start Overlay -->
       <div id="start-overlay" class="overlay">
         <h1>NEON SNAKE</h1>
-        <p style="color: #a4c2e6; font-size: 13px; margin-bottom: 20px; text-align: center; max-width: 340px; line-height: 1.6;">
+        <p style="color: #a4c2e6; font-size: 13px; margin-bottom: 12px; text-align: center; max-width: 340px; line-height: 1.6;">
           Navigate 5 hazardous cyberpunk sectors, collect quantum food, grab power-up capsules, and claim your place in the Hall of Fame!
         </p>
+        <div style="background: rgba(255, 0, 85, 0.12); border: 1px solid rgba(255, 0, 85, 0.4); border-radius: 6px; padding: 6px 12px; margin-bottom: 16px; font-size: 11px; color: #ff99bb; text-align: center;">
+          ⚡ <b>FATAL PERIMETER:</b> Boundary walls are electrified! Crashing into edges or barricades destroys your snake!
+        </div>
         <button id="start-btn" class="neon-btn" onclick="startGame()">INITIALIZE RUN</button>
         <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;" onclick="openHallOfFame()">HALL OF FAME</button>
       </div>
@@ -437,6 +440,9 @@
         • ⏱️ <b>Chrono</b>: Slows down speed<br>
         • 🧲 <b>Magnet</b>: Draws food to head<br>
         • 💎 <b>2X Chip</b>: Doubles score
+        <div style="margin-top: 8px; color: #ff88a3; font-size: 10px; border-top: 1px dashed rgba(255,0,85,0.4); padding-top: 6px; line-height: 1.4;">
+          ⚡ <b>WALLS ARE DEADLY:</b> Grid borders are sealed & fatal. Turn before hitting the edges!
+        </div>
       </div>
     </div>
   </div>
@@ -1193,10 +1199,11 @@ function stepGame() {
 
   let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-  if (head.x < 0) head.x = GRID - 1;
-  if (head.x >= GRID) head.x = 0;
-  if (head.y < 0) head.y = GRID - 1;
-  if (head.y >= GRID) head.y = 0;
+  // Wall collision (cannot go through boundary walls)
+  if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID) {
+    triggerDeath();
+    return;
+  }
 
   if (isTileBlockedByObstacle(head.x, head.y)) {
     triggerDeath();
@@ -1298,6 +1305,26 @@ function drawBoard(interpRatio) {
     ctx.beginPath();
     ctx.moveTo(0, i * TILE_SIZE); ctx.lineTo(canvas.width, i * TILE_SIZE); ctx.stroke();
   }
+
+  // Fatal Electrified Perimeter Walls
+  ctx.save();
+  ctx.strokeStyle = '#ff0055';
+  ctx.shadowColor = '#ff0055';
+  ctx.shadowBlur = 14;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3);
+
+  // Corner warning brackets
+  ctx.strokeStyle = '#00ffcc';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 8;
+  ctx.lineWidth = 2;
+  const bracket = 20;
+  ctx.beginPath(); ctx.moveTo(0, bracket); ctx.lineTo(0, 0); ctx.lineTo(bracket, 0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(canvas.width - bracket, 0); ctx.lineTo(canvas.width, 0); ctx.lineTo(canvas.width, bracket); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, canvas.height - bracket); ctx.lineTo(0, canvas.height); ctx.lineTo(bracket, canvas.height); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(canvas.width - bracket, canvas.height); ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(canvas.width, canvas.height - bracket); ctx.stroke();
+  ctx.restore();
 
   for (let obs of cfg.obstacles) {
     const ox = obs.x * TILE_SIZE;
