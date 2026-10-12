@@ -1157,17 +1157,17 @@ export function killApplication(appId: string, pid?: number): { success: boolean
     const errors: string[] = [];
 
     for (const child of aliveChildren) {
-      const p = child.pid;
-      if (!Number.isInteger(p) || p <= 1 || p === process.pid) continue;
+      const childPid = child.pid;
+      if (!Number.isInteger(childPid) || childPid <= 1 || childPid === process.pid) continue;
       try {
-        process.kill(p, "SIGTERM");
-        killedPids.push(p);
+        process.kill(childPid, "SIGTERM");
+        killedPids.push(childPid);
       } catch {
         try {
-          process.kill(p, "SIGKILL");
-          killedPids.push(p);
-        } catch (e: any) {
-          errors.push(`PID ${p}: ${e.message}`);
+          process.kill(childPid, "SIGKILL");
+          killedPids.push(childPid);
+        } catch (killError: any) {
+          errors.push(`PID ${childPid}: ${killError.message}`);
         }
       }
     }
@@ -1687,7 +1687,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       );
       w.setStatus(`Running ${app.displayName}...`);
 
-      const res = await launchApplication(app.id, rawArgs, {
+      const launchResult = await launchApplication(app.id, rawArgs, {
         openTerminal: openInTerminal,
         onExit: () => {
           setTimeout(() => {
@@ -1698,14 +1698,14 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         },
       });
 
-      if (res.success) {
-        w.appendConsole("launcher_console", `[Success] ${res.message}\n`, 2);
-        w.toast(`✅ ${res.message}`);
+      if (launchResult.success) {
+        w.appendConsole("launcher_console", `[Success] ${launchResult.message}\n`, 2);
+        w.toast(`✅ ${launchResult.message}`);
 
         if (app.source === "rad_studio" || app.source === "rad_demo") {
           w.setText(
             "txt_output",
-            `[Desktop GUI Application Launched]\nApplication: ${app.displayName}\nPID: ${res.pid}\nPath: ${app.path}\nCommand: bun run ${app.displayPath}\nStatus: The application window should now be open on your desktop!`
+            `[Desktop GUI Application Launched]\nApplication: ${app.displayName}\nPID: ${launchResult.pid}\nPath: ${app.path}\nCommand: bun run ${app.displayPath}\nStatus: The application window should now be open on your desktop!`
           );
         } else if (openInTerminal) {
           w.setText(
@@ -1715,14 +1715,14 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         } else {
           w.setText(
             "txt_output",
-            `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${res.output || "(No console output returned)"}`
+            `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${launchResult.output || "(No console output returned)"}`
           );
         }
         setTimeout(() => applyFilters(w, undefined, true), 800);
       } else {
-        w.appendConsole("launcher_console", `[Launch Error] ${res.message}\n`, 3);
-        w.setText("txt_output", `[Error Launching Tool]\n${res.message}`);
-        w.toast(`❌ ${res.message}`);
+        w.appendConsole("launcher_console", `[Launch Error] ${launchResult.message}\n`, 3);
+        w.setText("txt_output", `[Error Launching Tool]\n${launchResult.message}`);
+        w.toast(`❌ ${launchResult.message}`);
       }
     } finally {
       launchingApps.delete(app.id);

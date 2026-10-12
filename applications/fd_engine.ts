@@ -71,11 +71,11 @@ export interface FdSearchResult {
  */
 export function formatHumanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
-  const k = 1024;
+  const kilo = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const val = bytes / Math.pow(k, i);
-  return `${val.toFixed(val < 10 ? 1 : 0)} ${sizes[i]}`;
+  const unitIndex = Math.floor(Math.log(bytes) / Math.log(kilo));
+  const scaledSize = bytes / Math.pow(kilo, unitIndex);
+  return `${scaledSize.toFixed(scaledSize < 10 ? 1 : 0)} ${sizes[unitIndex]}`;
 }
 
 /**
@@ -98,18 +98,18 @@ export function parseSizeFilter(sizeStr: string): { mode: "greater" | "less" | "
   const match = numPart.match(/^([\d.]+)\s*([a-zA-Z]*)$/);
   if (!match) return null;
 
-  const num = parseFloat(match[1]);
-  if (isNaN(num)) return null;
+  const sizeValue = parseFloat(match[1] ?? "");
+  if (isNaN(sizeValue)) return null;
 
   const unit = (match[2] || "").toLowerCase();
-  let mult = 1;
-  if (unit.startsWith("k")) mult = 1024;
-  else if (unit.startsWith("m")) mult = 1024 * 1024;
-  else if (unit.startsWith("g")) mult = 1024 * 1024 * 1024;
-  else if (unit.startsWith("t")) mult = 1024 * 1024 * 1024 * 1024;
-  else if (unit.startsWith("b")) mult = 1;
+  let multiplier = 1;
+  if (unit.startsWith("k")) multiplier = 1024;
+  else if (unit.startsWith("m")) multiplier = 1024 * 1024;
+  else if (unit.startsWith("g")) multiplier = 1024 * 1024 * 1024;
+  else if (unit.startsWith("t")) multiplier = 1024 * 1024 * 1024 * 1024;
+  else if (unit.startsWith("b")) multiplier = 1;
 
-  return { mode, bytes: Math.round(num * mult) };
+  return { mode, bytes: Math.round(sizeValue * multiplier) };
 }
 
 /**
@@ -122,35 +122,35 @@ export function parseDurationMs(durStr: string): number | null {
   const match = trimmed.match(/^([\d.]+)\s*([a-z]+)?$/);
   if (!match) return null;
 
-  const val = parseFloat(match[1]);
-  if (isNaN(val)) return null;
+  const durationValue = parseFloat(match[1] ?? "");
+  if (isNaN(durationValue)) return null;
 
   const unit = match[2] || "s";
   switch (unit) {
     case "s":
     case "sec":
     case "seconds":
-      return val * 1000;
+      return durationValue * 1000;
     case "m":
     case "min":
     case "minutes":
-      return val * 60 * 1000;
+      return durationValue * 60 * 1000;
     case "h":
     case "hr":
     case "hours":
-      return val * 60 * 60 * 1000;
+      return durationValue * 60 * 60 * 1000;
     case "d":
     case "day":
     case "days":
-      return val * 24 * 60 * 60 * 1000;
+      return durationValue * 24 * 60 * 60 * 1000;
     case "w":
     case "wk":
     case "weeks":
-      return val * 7 * 24 * 60 * 60 * 1000;
+      return durationValue * 7 * 24 * 60 * 60 * 1000;
     case "y":
     case "yr":
     case "years":
-      return val * 365 * 24 * 60 * 60 * 1000;
+      return durationValue * 365 * 24 * 60 * 60 * 1000;
     default:
       return null;
   }
@@ -164,28 +164,28 @@ export function globToRegExp(glob: string, caseSensitive: boolean): RegExp {
   let inGroup = false;
 
   for (let i = 0; i < glob.length; i++) {
-    const c = glob[i];
-    if (c === "*") {
+    const globChar = glob[i] ?? "";
+    if (globChar === "*") {
       if (glob[i + 1] === "*") {
         reStr += ".*";
         i++;
       } else {
         reStr += "[^/]*";
       }
-    } else if (c === "?") {
+    } else if (globChar === "?") {
       reStr += "[^/]";
-    } else if (c === "{") {
+    } else if (globChar === "{") {
       inGroup = true;
       reStr += "(";
-    } else if (c === "}" && inGroup) {
+    } else if (globChar === "}" && inGroup) {
       inGroup = false;
       reStr += ")";
-    } else if (c === "," && inGroup) {
+    } else if (globChar === "," && inGroup) {
       reStr += "|";
-    } else if ("[].^$()+\\|".includes(c)) {
-      reStr += "\\" + c;
+    } else if ("[].^$()+\\|".includes(globChar)) {
+      reStr += "\\" + globChar;
     } else {
-      reStr += c;
+      reStr += globChar;
     }
   }
   reStr += "$";
@@ -668,14 +668,14 @@ export function runFdCommand(commandTemplate: string, filePaths: string[]): { st
       ? expandBatchExecCommand(commandTemplate, filePaths)
       : interpolateExecCommand(commandTemplate, filePaths[0] || "");
 
-    const res = Bun.spawnSync(["/bin/sh", "-c", fullCommand], {
+    const spawnResult = Bun.spawnSync(["/bin/sh", "-c", fullCommand], {
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
     });
-    const stdoutBuf = res.stdout ? Buffer.from(res.stdout).toString("utf-8") : "";
-    const stderrBuf = res.stderr ? Buffer.from(res.stderr).toString("utf-8") : "";
-    return { stdout: stdoutBuf.trim(), stderr: stderrBuf.trim(), exitCode: res.exitCode };
+    const stdoutBuf = spawnResult.stdout ? Buffer.from(spawnResult.stdout).toString("utf-8") : "";
+    const stderrBuf = spawnResult.stderr ? Buffer.from(spawnResult.stderr).toString("utf-8") : "";
+    return { stdout: stdoutBuf.trim(), stderr: stderrBuf.trim(), exitCode: spawnResult.exitCode };
   } catch (err: any) {
     return { stdout: "", stderr: err?.message || String(err), exitCode: 1 };
   }

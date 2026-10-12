@@ -369,19 +369,19 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     logConsole(`[Bury] Quarantining target into graveyard: ${target}...`, 1);
     const result = buryTargetsSync([target], { graveyardDir });
 
-    if (result.buriedItems.length > 0) {
-      const b = result.buriedItems[0];
-      logConsole(`[Bury ✓] Successfully buried '${b.name}' (${b.humanSize}) into graveyard.`, 1);
-      win.toast(`Buried '${b.name}' safely. Undo with Unbury anytime.`);
+    const buriedItem = result.buriedItems[0];
+    if (buriedItem) {
+      logConsole(`[Bury ✓] Successfully buried '${buriedItem.name}' (${buriedItem.humanSize}) into graveyard.`, 1);
+      win.toast(`Buried '${buriedItem.name}' safely. Undo with Unbury anytime.`);
       win.setValue("txt_bury_target", "");
-      win.setText("lbl_inspect_status", `✓ Buried '${b.name}' into graveyard.`);
+      win.setText("lbl_inspect_status", `✓ Buried '${buriedItem.name}' into graveyard.`);
       refreshGraveyard();
     }
 
-    if (result.failed.length > 0) {
-      const f = result.failed[0];
-      logConsole(`[Bury ⛔ Failed] Cannot bury: ${f.error}`, 3);
-      win.toast(`Failed to bury: ${f.error}`);
+    const failedBury = result.failed[0];
+    if (failedBury) {
+      logConsole(`[Bury ⛔ Failed] Cannot bury: ${failedBury.error}`, 3);
+      win.toast(`Failed to bury: ${failedBury.error}`);
     }
   });
 
@@ -395,19 +395,20 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     logConsole(`[Unbury] Restoring '${selectedItem.name}' to ${selectedItem.originalPath}...`, 1);
     const result = unburyTargetsSync([selectedItem.id], { graveyardDir });
 
-    if (result.restoredItems.length > 0) {
-      const u = result.restoredItems[0];
-      logConsole(`[Unbury ✓] Restored '${u.name}' to ${u.originalPath}`, 1);
-      win.toast(`Restored '${u.name}' successfully!`);
+    const restoredItem = result.restoredItems[0];
+    if (restoredItem) {
+      logConsole(`[Unbury ✓] Restored '${restoredItem.name}' to ${restoredItem.originalPath}`, 1);
+      win.toast(`Restored '${restoredItem.name}' successfully!`);
       selectedItem = null;
       win.setText("lbl_selected_name", "Selected Item: (None Selected)");
       win.setText("lbl_selected_stats", "Size: — | Perms: — | SHA-256: —");
       refreshGraveyard();
     }
 
-    if (result.failed.length > 0) {
-      logConsole(`[Unbury ⛔ Failed] ${result.failed[0].error}`, 3);
-      win.toast(`Failed to restore: ${result.failed[0].error}`);
+    const failedRestore = result.failed[0];
+    if (failedRestore) {
+      logConsole(`[Unbury ⛔ Failed] ${failedRestore.error}`, 3);
+      win.toast(`Failed to restore: ${failedRestore.error}`);
     }
   });
 
@@ -416,14 +417,15 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     logConsole("[Unbury] Restoring most recently buried item...", 1);
     const result = unburyTargetsSync(undefined, { graveyardDir });
 
-    if (result.restoredItems.length > 0) {
-      const u = result.restoredItems[0];
-      logConsole(`[Unbury ✓] Restored '${u.name}' to ${u.originalPath}`, 1);
-      win.toast(`Restored '${u.name}' successfully!`);
+    const restoredItem = result.restoredItems[0];
+    const failedRestore = result.failed[0];
+    if (restoredItem) {
+      logConsole(`[Unbury ✓] Restored '${restoredItem.name}' to ${restoredItem.originalPath}`, 1);
+      win.toast(`Restored '${restoredItem.name}' successfully!`);
       refreshGraveyard();
-    } else if (result.failed.length > 0) {
-      logConsole(`[Unbury] ${result.failed[0].error}`, 2);
-      win.toast(result.failed[0].error);
+    } else if (failedRestore) {
+      logConsole(`[Unbury] ${failedRestore.error}`, 2);
+      win.toast(failedRestore.error);
     }
   });
 
@@ -1183,8 +1185,8 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
     if (url.pathname === "/api/bury" && req.method === "POST") {
       try {
         const body = (await req.json()) as { targets: string[] };
-        const res = await buryTargets(body.targets || [], { graveyardDir });
-        return Response.json(res, { headers: corsHeaders });
+        const buryResult = await buryTargets(body.targets || [], { graveyardDir });
+        return Response.json(buryResult, { headers: corsHeaders });
       } catch (e: any) {
         return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
       }
@@ -1193,8 +1195,8 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
     if (url.pathname === "/api/unbury" && req.method === "POST") {
       try {
         const body = (await req.json()) as { targets?: string[] };
-        const res = await unburyTargets(body.targets, { graveyardDir });
-        return Response.json(res, { headers: corsHeaders });
+        const unburyResult = await unburyTargets(body.targets, { graveyardDir });
+        return Response.json(unburyResult, { headers: corsHeaders });
       } catch (e: any) {
         return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
       }
@@ -1203,12 +1205,12 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
     if (url.pathname === "/api/decompose" && req.method === "POST") {
       try {
         const body = (await req.json()) as { targets?: string[]; all?: boolean };
-        const res = await decomposeGraveyard({
+        const decomposeResult = await decomposeGraveyard({
           graveyardDir,
           targets: body.targets,
           all: body.all,
         });
-        return Response.json(res, { headers: corsHeaders });
+        return Response.json(decomposeResult, { headers: corsHeaders });
       } catch (e: any) {
         return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
       }

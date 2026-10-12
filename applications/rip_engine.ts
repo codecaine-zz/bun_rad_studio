@@ -95,17 +95,17 @@ export interface DecomposeResult {
 export function formatHumanSize(bytes: number): string {
   if (bytes <= 0 || isNaN(bytes)) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const size = bytes / Math.pow(1024, i);
-  return `${size >= 100 || i === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[i]}`;
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const scaledSize = bytes / Math.pow(1024, unitIndex);
+  return `${scaledSize >= 100 || unitIndex === 0 ? scaledSize.toFixed(0) : scaledSize.toFixed(1)} ${units[unitIndex]}`;
 }
 
 export function formatPermissions(mode: number): string {
   const perms = ["---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"];
-  const u = (mode >> 6) & 7;
-  const g = (mode >> 3) & 7;
-  const o = mode & 7;
-  return `${perms[u]}${perms[g]}${perms[o]}`;
+  const ownerBits = (mode >> 6) & 7;
+  const groupBits = (mode >> 3) & 7;
+  const otherBits = mode & 7;
+  return `${perms[ownerBits]}${perms[groupBits]}${perms[otherBits]}`;
 }
 
 export function parseDurationMs(durationStr: string): number | null {
@@ -114,7 +114,7 @@ export function parseDurationMs(durationStr: string): number | null {
   const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)$/);
   if (!match) return null;
 
-  const val = parseFloat(match[1] ?? "0");
+  const durationValue = parseFloat(match[1] ?? "0");
   const unit = (match[2] ?? "").toLowerCase();
 
   switch (unit) {
@@ -122,34 +122,34 @@ export function parseDurationMs(durationStr: string): number | null {
     case "sec":
     case "second":
     case "seconds":
-      return Math.round(val * 1000);
+      return Math.round(durationValue * 1000);
     case "m":
     case "min":
     case "minute":
     case "minutes":
-      return Math.round(val * 60 * 1000);
+      return Math.round(durationValue * 60 * 1000);
     case "h":
     case "hr":
     case "hour":
     case "hours":
-      return Math.round(val * 60 * 60 * 1000);
+      return Math.round(durationValue * 60 * 60 * 1000);
     case "d":
     case "day":
     case "days":
-      return Math.round(val * 24 * 60 * 60 * 1000);
+      return Math.round(durationValue * 24 * 60 * 60 * 1000);
     case "w":
     case "week":
     case "weeks":
-      return Math.round(val * 7 * 24 * 60 * 60 * 1000);
+      return Math.round(durationValue * 7 * 24 * 60 * 60 * 1000);
     case "mo":
     case "month":
     case "months":
-      return Math.round(val * 30 * 24 * 60 * 60 * 1000);
+      return Math.round(durationValue * 30 * 24 * 60 * 60 * 1000);
     case "y":
     case "yr":
     case "year":
     case "years":
-      return Math.round(val * 365 * 24 * 60 * 60 * 1000);
+      return Math.round(durationValue * 365 * 24 * 60 * 60 * 1000);
     default:
       return null;
   }
@@ -339,8 +339,8 @@ export function calculatePathMetrics(targetPath: string): { sizeBytes: number; f
             stack.push(full);
           } else {
             try {
-              const s = fs.lstatSync(full);
-              totalSize += s.size;
+              const fileStats = fs.lstatSync(full);
+              totalSize += fileStats.size;
             } catch {
               // Ignore unreadable individual files
             }
@@ -873,8 +873,8 @@ export function decomposeGraveyardSync(
     try {
       if (fs.existsSync(entriesDir)) {
         const entries = fs.readdirSync(entriesDir);
-        for (const e of entries) {
-          const entryPath = path.join(entriesDir, e);
+        for (const entryName of entries) {
+          const entryPath = path.join(entriesDir, entryName);
           if (entryPath.startsWith(entriesDir) && entryPath !== entriesDir) {
             fs.rmSync(entryPath, { recursive: true, force: true });
           }
