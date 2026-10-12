@@ -282,11 +282,7 @@ export function createBreakoutStudio(options: BreakoutStudioOptions = {}): Break
           fullscreen,
         });
 
-        if (app.url) {
-          webview.navigate(app.url);
-        } else {
-          webview.setHTML(html);
-        }
+        webview.setHTML(html);
         console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
 
         webview.run();
