@@ -11,7 +11,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### ⚡ 0. Master Workstation Launcher & Dispatcher
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- |
-| **00** | [Launcher Studio Pro](00_launcher_studio.md) | Unified command cockpit for all 150+ tools with **Pinned Favorites**, 1-click execution, and rock-solid selection stability. | `bun run app:launcher` | `bun run cli:launcher` |
+| **00** | [Launcher Studio Pro](00_launcher_studio.md) | Unified command cockpit for all 169+ tools with **Pinned Favorites**, 1-click execution for 16 studios & 8 CLI tools, category filtering, and Return-key auto-launch. | `bun run app:launcher` | `bun run cli:launcher` |
 
 ### 🗄️ 1. Core Systems & Workstations
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |

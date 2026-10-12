@@ -8,9 +8,9 @@ Launchers: [Desktop GUI: bun run app:launcher]  •  [Terminal CLI: bun run cli:
 ---
 
 ## 🌟 Executive Overview
-**Launcher Studio Pro** is the unified central command workstation for the entire **Bun RAD Studio** ecosystem. It dynamically auto-detects, catalogs, inspects, and launches all **150+ project tools**—including **39 full-featured Desktop Studio Applications**, **75+ Terminal CLI Utilities**, and **25+ Interactive Showcase Demos**—with zero external clutter and sub-second execution.
+**Launcher Studio Pro** is the unified central command workstation for the entire **Bun RAD Studio** ecosystem. It dynamically auto-detects, catalogs, inspects, and launches all **169+ project tools**—including **65 full-featured Desktop Studio Applications**, **77 Terminal CLI Utilities**, and **27 Interactive Showcase Demos**—with zero external clutter and sub-second execution.
 
-With its enterprise **Pinned Favorites** engine and **Rock-Solid Selection Stability Architecture**, Launcher Studio Pro guarantees that your working context is preserved whether you navigate from the top dropdown, the interactive listbox, or the catalog data table.
+With its enterprise **Pinned Favorites** engine, **1-Click Quick Launch toolbars**, **Category Filter strip**, and **Rock-Solid Selection Stability Architecture**, Launcher Studio Pro guarantees that your working context is preserved whether you navigate from the top dropdown, the interactive listbox, or the catalog data table.
 
 ![Launcher Studio Pro Desktop Screenshot](../../screenshots/apps/launcher_studio_desktop.png)
 
@@ -18,8 +18,12 @@ With its enterprise **Pinned Favorites** engine and **Rock-Solid Selection Stabi
 
 ## 🚀 Quick Start & Launch
 
-### 1. Launch Desktop GUI Workstation
+### 1. Install & Launch Desktop GUI Workstation
+First thing when cloning this repository from GitHub, run `bun install` to install all dependencies:
 ```bash
+# Install dependencies first
+bun install
+
 # Standard desktop launch (Full workstation cockpit)
 bun run app:launcher
 
@@ -29,7 +33,7 @@ bun run applications/launcher_studio.ts
 
 ### 2. Launch Terminal CLI Companion
 ```bash
-# List all 150+ auto-detected tools
+# List all 169+ auto-detected tools
 bun run cli:launcher --list
 
 # Filter by Pinned Favorites
@@ -70,8 +74,9 @@ Launcher Studio Pro provides persistent, 1-click favorite bookmarking for your d
 
 ### 2. ⚡ Quick Favorites & Category Filtering
 - **⭐ Favorites Only (`btn_quick_favs` / `btn_quick_favs_filter`)**: A single click filters the entire workspace catalog down to your pinned favorites.
+- **📁 1-Click Category Filter Strip**: Filter tools with 1-click dedicated category buttons: `⭐ All Tools`, `🗄️ Database (4)`, `🛠️ DevTools (17)`, `🖥️ System (5)`, `🔍 Files (3)`, `🌐 Network (3)`, `📝 Productivity (4)`, `🎮 Games (24)`, `🔒 Security (2)`, `🎨 Design (2)`, `🕹️ Demos (27)`, and `💻 CLI (77)` with live badge counts and instant 0ms DOM filtering.
 - **🔍 Real-Time Live Search (`txt_search`)**: Type any keywords in any order -- every word must match (name, id, category, path, description or command), so `task manager` and `manager task` both find Task Manager. Close matches rank first and even rough abbreviations such as `tskmgr` work. Filtering applies automatically with live debouncing.
-- **🗂️ Category Selector (`dd_category`)**: Jump instantly between `🌟 All Project Tools`, `⭐ Pinned Favorites`, `🖥️ Studio Applications`, `🛠️ CLI Utilities`, `🎮 Showcase Demos`, `🟢 Running Processes` and `🕘 Recently Used`.
+- **🗂️ Category Selector (`dd_category` & `dd_app_category`)**: Jump instantly between `🌟 All Project Tools`, `⭐ Pinned Favorites`, `🖥️ Studio Applications`, `🛠️ CLI Utilities`, `🎮 Showcase Demos`, `🟢 Running Processes`, and `🕘 Recently Used`, or select from 11 specialized tool categories.
 - **↕️ Sort (`dd_sort`)**: `Favorites, running, A-Z` (default), `Recently used`, `Most used` or `Name A-Z`.
 - **✕ Show All (`btn_clear_filter`)**: Resets all filters and restores the full workspace catalog in one click.
 
@@ -80,13 +85,14 @@ In complex workstation UIs, applying filters often leads to desynchronized selec
 - **Zero-Drift Selection Preservation**: When you apply a search or filter, the system checks if your currently selected tool is still present in the results. If it is, **it stays selected and highlighted**! It never resets to the first item unexpectedly.
 - **Graceful Fallback**: If your active tool does not match the active filter, the selection cleanly transitions to the first matching tool, updating both top and bottom views simultaneously.
 - **Top ➔ Bottom Sync**: Selecting an item in the top dropdown (`dd_select_app`) or top listbox (`lst_apps`) automatically highlights the corresponding row in the bottom table (`tbl_apps`) with glowing cyan accenting and smoothly scrolls it into view.
-- **Double-Click Auto-Launch**: Double-clicking any list item in the interactive top listbox (`lst_apps`) or row in the catalog table (`tbl_apps`) instantly auto-launches that tool with instant visual toast feedback.
+- **⚡ Double-Click & ⌨️ Return Key Auto-Launch**: Double-clicking any list item in the interactive top listbox (`lst_apps`) or row in the catalog table (`tbl_apps`), or simply pressing <kbd>Enter</kbd> / <kbd>Return</kbd> while navigating the top ListBox, immediately auto-launches that tool with instant visual toast feedback.
 
 ### 4. ⚡ 1-Click Quick Launch Toolbars
 Located right below telemetry cards, these high-density buttons trigger the most common engineering tools with optimal preset arguments:
-- **Popular Studio Apps**: SQLite Studio, Redis Studio, System Studio, Fd Studio, Git Studio, API Studio, Task Manager, App Bundler.
-- **Popular CLI Utilities**: System CLI (`--telemetry`), Database CLI (`--help`), Fd CLI, Git CLI, Tokei CLI, Gdu CLI, Network CLI, Crypto CLI.
-- **Quick Favorites Strip**: `⭐ Filter to Favorites`, `🚀 Launch Top Favorite`, `⭐ Toggle Star for Selected`.
+- **Popular Core Studios (Row 1)**: SQLite Studio, Redis Studio, System Studio, Fd Studio, Git Studio, API Studio, Task Manager, App Bundler.
+- **Featured Popular Studios (Row 2)**: IP Geolocation Studio (`ipinfo_studio`), Network Diagnostics Studio (`network_studio`), NovaCode Studio Pro (`code_studio`), Environment Variable Studio (`env_studio`), Interval Timer & Workout Suite (`interval_timer_studio`), Dr. Codecaine Arcade (`dr_codecaine_studio`), Adventures of Lolo Remaster (`lolo_studio`), Tetris Ultra Deluxe (`tetris_studio`).
+- **Popular CLI Utilities (Row 3)**: System CLI (`--telemetry`), Database CLI (`--help`), Fd CLI, Git CLI, Tokei CLI, Gdu CLI, Network CLI, Crypto CLI.
+- **Quick Favorites Strip (Row 4)**: `⭐ Filter to Favorites`, `🚀 Launch Top Favorite`, `⭐ Toggle Star for Selected`.
 
 ### 5. 🖥️ Multi-Mode Process Dispatcher
 Every tool can be executed in the mode that best fits your workflow:

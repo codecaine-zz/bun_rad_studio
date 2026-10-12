@@ -8,26 +8,41 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](docs/API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [⚡ Project Launcher](#-instant-unified-project-workstation-launcher-bun-run-applauncher) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+
+---
+
+## 🚀 Quick Start: Clone, Install & Launch
+
+First thing when cloning this repository from GitHub, run `bun install` to install all dependencies, then launch the project workstation:
+
+```bash
+# 1. Clone repository & install dependencies
+git clone https://github.com/codecaine-zz/bun_rad_studio.git
+cd bun_rad_studio
+bun install
+
+# 2. Open the Unified Project Workstation Launcher (169+ Tools Auto-Detected)
+bun run app:launcher
+
+# 🛠️ Or search & run from Terminal (CLI Companion)
+bun run cli:launcher --list
+bun run cli:launcher --search sqlite
+```
 
 > [!TIP]
 > ### ⚡ Instant Unified Project Workstation Launcher (`bun run app:launcher`)
 > **Quickly test and launch every single tool in this repository with 1-click:**
-> ```bash
-> # 🚀 Open the Desktop GUI Workstation Launcher (134 Tools Auto-Detected)
-> bun run app:launcher
->
-> # 🛠️ Or search & run from Terminal (CLI Companion)
-> bun run cli:launcher --list
-> bun run cli:launcher --search sqlite
-> ```
-> *Auto-detects and launches all **39 Studio Applications**, **75 CLI Utilities**, and **25 Showcase Demos** with real-time process monitoring, 1-click execution, and native Terminal client spawning!*
+> *Auto-detects and launches all **65 Studio Applications**, **77 CLI Utilities**, and **27 Showcase Demos** (169+ tools total) with real-time process monitoring, 1-click quick execution, category filtering, and native Terminal client spawning!*
 
 ### ⚡ Launcher Studio Pro (`bun run app:launcher`)
 
 ![Launcher Studio Pro Desktop Screenshot](screenshots/apps/launcher_studio_desktop.png)
 
 > **✨ New in Launcher Studio Pro:**
+> - **⚡ 1-Click Quick Launch Toolbars**: Instant 1-click execution buttons for **16 Popular Studios** (SQLite Studio, Redis Studio, System Studio, Fd Studio, Git Studio, API Studio, Task Manager, App Bundler, IP Geolocation, Network Studio, NovaCode, Env Studio, Interval Timer, Dr. Codecaine, Lolo Arcade, Tetris Ultra) and **8 CLI Tools** (System, Database, Fd, Git, Tokei, Gdu, Network, Crypto).
+> - **⌨️ Return / Enter Key Launch**: Pressing <kbd>Enter</kbd> or <kbd>Return</kbd> while navigating or selecting any tool in the interactive ListBox (`lst_apps`) instantly auto-launches the application.
+> - **📁 1-Click Category Filter Strip**: Filter tools with 1-click buttons: All Tools, Database, DevTools, System, Files, Network, Productivity, Games, Security, Design, Demos, CLI with live count badges.
 > - **⭐ Pinned Favorites & 1-Click Launch**: Star any tool with the `⭐ Favorite` (`btn_fav`) toggle button. Telemetry card tracks live `⭐ Favorites: N`. Launch your highest priority tool with a single click via `🚀 Launch Top Favorite` (`btn_quick_launch_fav1`).
 > - **⚡ 1-Click Favorites Filter**: Instantly isolate your pinned tools using the dedicated `⭐ Favorites Only` filter button in the search toolbar or `⭐ Filter to Favorites` in the quick launch strip.
 > - **🎯 Rock-Solid Top ⇄ Bottom Selection Stability**: Selection across Top controls (`dd_select_app` dropdown and `lst_apps` listbox) and the Bottom table catalog (`tbl_apps`) stays 100% synchronized and stable. Applying any filter, search query, or category preserves your active selection if it still matches, without jumping or desynchronizing.
