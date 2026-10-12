@@ -916,7 +916,7 @@
 
     function triggerFlap() {
       if (gameState === STATE_PLAYING) {
-        const flapStrength = (selectedMode === "cyber" ? -7.8 : -7.2) * gravityDirection;
+        const flapStrength = (selectedMode === "cyber" ? -360 : -330) * gravityDirection;
         bird.vy = flapStrength;
         bird.wingFrame = 1;
         bird.wingTimer = 0.15;
@@ -946,10 +946,11 @@
         bottomY,
         bottomHeight,
         w: 58,
+        gapSize,
         scored: false,
         isMoving,
         moveDir: Math.random() < 0.5 ? 1 : -1,
-        moveSpeed: 35
+        moveSpeed: 45
       });
 
       // Spawn occasional power-up in gap
@@ -1340,9 +1341,9 @@
       cityOffset = (cityOffset + scrollSpeed * 0.3 * dt) % (W + 60);
 
       // Bird Physics
-      const gravity = (selectedMode === "cyber" ? 22 : 19) * gravityDirection;
-      bird.vy += gravity * effectiveDt * 30;
-      bird.y += bird.vy * effectiveDt * 30;
+      const gravity = (selectedMode === "cyber" ? 1200 : 1050) * gravityDirection;
+      bird.vy += gravity * effectiveDt;
+      bird.y += bird.vy * effectiveDt;
 
       // Bird Angle based on vertical speed
       if (bird.vy < 0) {
@@ -1372,10 +1373,10 @@
         // Moving pipe oscillation
         if (p.isMoving) {
           p.topHeight += p.moveDir * p.moveSpeed * effectiveDt;
-          if (p.topHeight < 40 || p.topHeight > GROUND_Y - 180) {
+          if (p.topHeight < 40 || p.topHeight > GROUND_Y - p.gapSize - 40) {
             p.moveDir *= -1;
           }
-          p.bottomY = p.topHeight + 116;
+          p.bottomY = p.topHeight + p.gapSize;
           p.bottomHeight = GROUND_Y - p.bottomY;
         }
 
@@ -1420,10 +1421,10 @@
       if (bird.invulnerableTimer <= 0) {
         for (let i = 0; i < pipes.length; i++) {
           const p = pipes[i];
-          const birdLeft = bird.x - bird.radius + 4;
-          const birdRight = bird.x + bird.radius - 4;
-          const birdTop = bird.y - bird.radius + 4;
-          const birdBottom = bird.y + bird.radius - 4;
+          const birdLeft = bird.x - bird.radius + 6;
+          const birdRight = bird.x + bird.radius - 6;
+          const birdTop = bird.y - bird.radius + 6;
+          const birdBottom = bird.y + bird.radius - 6;
 
           if (birdRight > p.x && birdLeft < p.x + p.w) {
             if (birdTop < p.topHeight || birdBottom > p.bottomY) {
