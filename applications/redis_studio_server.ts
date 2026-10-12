@@ -17,6 +17,17 @@
 import { guardLocalRequest } from "../src/localGuard";
 import { redis, RedisClient } from "bun";
 import { generateRedisStudioHtml } from "./redis_studio.ts";
+import { homedir } from "node:os";
+import * as nodePath from "node:path";
+import * as nodeFs from "node:fs";
+import {
+  REDIS_EXPORT_VERSION,
+  REDIS_EXPORTABLE_TYPES,
+  exportFileName,
+  normalizeDeletePattern,
+  validateExportDoc,
+  type RedisExportKey,
+} from "../src/redis_helpers";
 
 export interface RedisServerOptions {
   port?: number;
@@ -545,6 +556,137 @@ export class RedisManager {
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
+  }
+
+  /** Collects up to `cap` keys matching a glob using SCAN. */
+  public async collectKeys(pattern: string, cap = 20000): Promise<string[]> {
+    const out: string[] = [];
+    let cursor = "0";
+    do {
+      const res: any = await this.client.send("SCAN", [cursor, "MATCH", pattern, "COUNT", "1000"]);
+      cursor = String(res[0]);
+      for (const k of res[1] as string[]) {
+        if (out.length < cap) out.push(String(k));
+      }
+    } while (cursor !== "0" && out.length < cap);
+    return out;
+  }
+
+  /** Deletes every key matching a glob (UNLINK in batches). Empty patterns are rejected. */
+  public async deleteByPattern(rawPattern: string): Promise<{ success: boolean; deleted: number; error?: string }> {
+    const norm = normalizeDeletePattern(rawPattern);
+    if (!norm.ok) return { success: false, deleted: 0, error: norm.error };
+    try {
+      const keys = await this.collectKeys(norm.pattern);
+      for (let i = 0; i < keys.length; i += 500) {
+        await this.client.send("UNLINK", keys.slice(i, i + 500));
+      }
+      return { success: true, deleted: keys.length };
+    } catch (err: any) {
+      return { success: false, deleted: 0, error: err?.message || String(err) };
+    }
+  }
+
+  /** Copies a key to a new name (never overwrites). */
+  public async duplicateKey(src: string, dst: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!src || !dst) throw new Error("Source and destination key names are required");
+      if (src === dst) throw new Error("Destination must differ from source");
+      if (await this.client.exists(dst)) throw new Error(`Key '${dst}' already exists`);
+      const res: any = await this.client.send("COPY", [src, dst]);
+      if (Number(res) !== 1) throw new Error("Copy failed (does the source key exist?)");
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  /** Reads full values (not the 1000-item editor preview) for string/hash/list/set/zset keys. */
+  public async exportKeys(pattern: string = "*"): Promise<{ doc: any; skipped: number }> {
+    const keys = await this.collectKeys(pattern || "*", 5000);
+    const out: RedisExportKey[] = [];
+    let skipped = 0;
+    for (const key of keys) {
+      const type = String(await this.client.type(key)).toLowerCase();
+      if (!(REDIS_EXPORTABLE_TYPES as readonly string[]).includes(type)) { skipped++; continue; }
+      const ttl = Number(await this.client.ttl(key));
+      let value: any;
+      if (type === "string") {
+        value = await this.client.get(key);
+        if (value === null || value === undefined || /[\x00-\x08\x0E-\x1F]/.test(String(value))) { skipped++; continue; }
+        if (String(value).startsWith("HYLL")) { skipped++; continue; }
+        value = String(value);
+      } else if (type === "hash") {
+        const h: any = await this.client.hgetall(key);
+        value = Array.isArray(h) ? Object.fromEntries(Array.from({ length: h.length / 2 }, (_, i) => [String(h[2 * i]), String(h[2 * i + 1])])) : h;
+      } else if (type === "list") {
+        value = (await this.client.lrange(key, 0, -1)).map(String);
+      } else if (type === "set") {
+        value = (await this.client.smembers(key)).map(String);
+      } else {
+        const raw: any = await this.client.send("ZRANGE", [key, "0", "-1", "WITHSCORES"]);
+        const items: { member: string; score: number }[] = [];
+        if (Array.isArray(raw) && raw.length && Array.isArray(raw[0])) {
+          for (const e of raw) items.push({ member: String(e[0]), score: parseFloat(e[1]) });
+        } else if (Array.isArray(raw)) {
+          for (let i = 0; i < raw.length; i += 2) items.push({ member: String(raw[i]), score: parseFloat(raw[i + 1]) });
+        }
+        value = items;
+      }
+      out.push({ key, type: type as any, ttl: ttl > 0 ? ttl : -1, value });
+    }
+    return {
+      skipped,
+      doc: { format: "redis-studio-export", version: REDIS_EXPORT_VERSION, db: this.activeDb, exportedAt: new Date().toISOString(), keys: out, skipped },
+    };
+  }
+
+  /** Writes an export file into ~/Downloads (or the home directory) and returns its path. */
+  public async saveExportFile(pattern: string): Promise<{ success: boolean; path?: string; count?: number; skipped?: number; error?: string }> {
+    try {
+      const { doc, skipped } = await this.exportKeys(pattern);
+      const dl = nodePath.join(homedir(), "Downloads");
+      const dir = nodeFs.existsSync(dl) ? dl : homedir();
+      const file = nodePath.join(dir, exportFileName(this.activeDb));
+      nodeFs.writeFileSync(file, JSON.stringify(doc, null, 2), "utf-8");
+      return { success: true, path: file, count: doc.keys.length, skipped };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  /** Imports an export document into the active DB. Existing keys are skipped unless overwrite is true. */
+  public async importKeys(input: unknown, overwrite = false): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> {
+    const v = validateExportDoc(input);
+    if (!v.doc) return { success: false, imported: 0, skipped: 0, errors: v.errors };
+    let imported = 0;
+    let skipped = 0;
+    const errors = v.errors.slice();
+    for (const k of v.doc.keys) {
+      try {
+        if (await this.client.exists(k.key)) {
+          if (!overwrite) { skipped++; continue; }
+          await this.client.del(k.key);
+        }
+        if (k.type === "string") await this.client.set(k.key, k.value);
+        else if (k.type === "hash") {
+          const args: string[] = [k.key];
+          for (const [f, val] of Object.entries(k.value)) args.push(f, String(val));
+          if (args.length > 1) await this.client.send("HSET", args);
+        } else if (k.type === "list") { if (k.value.length) await this.client.send("RPUSH", [k.key, ...k.value]); }
+        else if (k.type === "set") { if (k.value.length) await this.client.send("SADD", [k.key, ...k.value]); }
+        else if (k.type === "zset") {
+          const args: string[] = [k.key];
+          for (const m of k.value) args.push(String(m.score), m.member);
+          if (args.length > 1) await this.client.send("ZADD", args);
+        }
+        if (k.ttl > 0) await this.client.expire(k.key, k.ttl);
+        imported++;
+      } catch (err: any) {
+        errors.push(`'${k.key}': ${err?.message || err}`);
+      }
+    }
+    return { success: errors.length === 0 || imported > 0, imported, skipped, errors };
   }
 
   public async unlinkKey(key: string): Promise<{ success: boolean; error?: string }> {
@@ -1103,6 +1245,48 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           return Response.json({ success: true, message: `Database ${manager.activeDb} flushed` }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 15b. Productivity: bulk delete, duplicate, export, import
+      if (pathname === "/api/keys/delete-pattern" && req.method === "POST") {
+        try {
+          const body: any = await req.json();
+          const result = await manager.deleteByPattern(body.pattern || "");
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+      if (pathname === "/api/key/duplicate" && req.method === "POST") {
+        try {
+          const body: any = await req.json();
+          const result = await manager.duplicateKey(body.key || "", body.newKey || "");
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+      if (pathname === "/api/export" && req.method === "GET") {
+        const { doc } = await manager.exportKeys(url.searchParams.get("pattern") || "*");
+        return Response.json(doc, { headers: corsHeaders });
+      }
+      if (pathname === "/api/export/save" && req.method === "POST") {
+        try {
+          const body: any = await req.json().catch(() => ({}));
+          const result = await manager.saveExportFile(body.pattern || "*");
+          return Response.json(result, { status: result.success ? 200 : 500, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+      if (pathname === "/api/import" && req.method === "POST") {
+        try {
+          const body: any = await req.json();
+          const result = await manager.importKeys(body.doc ?? body.text, Boolean(body.overwrite));
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, imported: 0, skipped: 0, errors: [err.message] }, { status: 400, headers: corsHeaders });
         }
       }
 

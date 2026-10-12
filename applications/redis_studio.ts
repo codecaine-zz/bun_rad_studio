@@ -472,6 +472,16 @@ export function generateRedisStudioHtml(): string {
     }
 
     /* Key Tree List */
+    .key-toolbar { padding: 8px 10px; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px; }
+    .key-toolbar-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .key-toolbar .btn { font-size: 10px; padding: 3px 8px; }
+    .key-toolbar select { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 10px; }
+    .key-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); flex: 1; }
+    #toastHost { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 99999; }
+    .toast-msg { background: rgba(15,23,42,0.96); border: 1px solid var(--border-color); border-left: 4px solid #38bdf8; color: #e2e8f0; padding: 10px 14px; border-radius: 8px; font-size: 12px; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .toast-msg.success { border-left-color: #34d399; }
+    .toast-msg.error { border-left-color: #f87171; }
+    .toast-msg.warning { border-left-color: #fbbf24; }
     .key-list-container {
       flex: 1;
       overflow-y: auto;
@@ -985,6 +995,31 @@ export function generateRedisStudioHtml(): string {
         </div>
       </div>
 
+      <div class="key-toolbar" id="keyToolbar">
+        <div class="key-toolbar-row">
+          <span id="keyCountLabel" class="key-count">0 keys</span>
+          <select id="keySort" onchange="renderKeysList()" title="Sort keys">
+            <option value="default">Sort: Default</option>
+            <option value="name">Name A→Z</option>
+            <option value="name-desc">Name Z→A</option>
+            <option value="type">Type</option>
+            <option value="ttl">TTL (soonest)</option>
+          </select>
+          <select id="autoRefresh" onchange="setAutoRefresh(this.value)" title="Auto-refresh key list">
+            <option value="0">Auto: Off</option>
+            <option value="5">Auto: 5s</option>
+            <option value="10">Auto: 10s</option>
+            <option value="30">Auto: 30s</option>
+          </select>
+        </div>
+        <div class="key-toolbar-row">
+          <button class="btn" onclick="exportKeys()" title="Save keys matching the current pattern to a JSON file in Downloads">⬇ Export</button>
+          <button class="btn" onclick="openImportModal()" title="Import keys from an export file">⬆ Import</button>
+          <button class="btn btn-danger" onclick="deleteMatchingKeys()" title="Delete all keys matching the search pattern">🧹 Delete Matching</button>
+          <button class="btn btn-danger" onclick="flushCurrentDb()" title="Delete every key in this database">☢ Flush DB</button>
+        </div>
+      </div>
+
       <div class="key-list-container" id="keyList">
         <!-- Dynamic keys list -->
       </div>
@@ -1010,6 +1045,8 @@ export function generateRedisStudioHtml(): string {
             <div class="key-ttl" id="activeKeyTtl">TTL: -1 (No Expiry)</div>
           </div>
           <div class="key-actions-right">
+            <button class="btn" onclick="copyKeyName()">📋 Copy Name</button>
+            <button class="btn" onclick="duplicateCurrentKey()">⧉ Duplicate</button>
             <button class="btn btn-cyan" onclick="openTtlModal()">⏱️ Set TTL</button>
             <button class="btn" onclick="openRenameModal()">✏️ Rename</button>
             <button class="btn btn-danger" onclick="deleteCurrentKey()">🗑️ Delete</button>
@@ -1201,6 +1238,33 @@ export function generateRedisStudioHtml(): string {
       <div class="modal-footer">
         <button class="btn" onclick="closeModal('connectModal')">Cancel</button>
         <button class="btn btn-primary" onclick="submitConnect()">Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-backdrop" id="importModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span>⬆ Import Keys</span>
+        <button class="btn" onclick="closeModal('importModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Choose an export file (.json)</label>
+          <input type="file" id="importFile" accept=".json,application/json" onchange="loadImportFile(this)" />
+        </div>
+        <div class="form-group">
+          <label>...or paste export JSON</label>
+          <textarea id="importText" rows="8" style="width:100%; font-family: var(--font-mono); font-size: 11px;" placeholder="{ &quot;format&quot;: &quot;redis-studio-export&quot;, ... }"></textarea>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="importOverwrite" /> Overwrite keys that already exist</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('importModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitImport()">Import</button>
       </div>
     </div>
   </div>
@@ -1440,6 +1504,8 @@ export function generateRedisStudioHtml(): string {
         return true;
       });
 
+      applyKeySort(filtered);
+      updateKeyCount(filtered.length);
       if (filtered.length === 0) {
         container.innerHTML = '<div style="color: var(--text-dim); padding: 16px; text-align: center;">No keys match current filter</div>';
         return;
@@ -1928,9 +1994,31 @@ export function generateRedisStudioHtml(): string {
     // CLI Terminal Console (Human-Friendly Formatter)
     // ---------------------------------------------------------------------------------------------
 
+    var cliHistoryList = [];
+    var cliHistoryIdx = -1;
+    var DANGEROUS_CLI = ['FLUSHALL', 'FLUSHDB', 'SHUTDOWN', 'DEBUG', 'SLAVEOF', 'REPLICAOF', 'ACL', 'MODULE', 'BGREWRITEAOF'];
+    function isDangerousCli(line) {
+      var t = (line || '').trim().split(/ +/);
+      var c = (t[0] || '').toUpperCase();
+      if (DANGEROUS_CLI.indexOf(c) >= 0) return true;
+      return c === 'CONFIG' && ['SET', 'REWRITE', 'RESETSTAT'].indexOf((t[1] || '').toUpperCase()) >= 0;
+    }
+
     function handleCliKeyDown(event) {
+      var input = document.getElementById('cliInput');
       if (event.key === 'Enter') {
         submitCli();
+      } else if (event.key === 'ArrowUp') {
+        if (cliHistoryList.length === 0) return;
+        event.preventDefault();
+        cliHistoryIdx = cliHistoryIdx < 0 ? cliHistoryList.length - 1 : Math.max(0, cliHistoryIdx - 1);
+        input.value = cliHistoryList[cliHistoryIdx];
+      } else if (event.key === 'ArrowDown') {
+        if (cliHistoryIdx < 0) return;
+        event.preventDefault();
+        cliHistoryIdx++;
+        if (cliHistoryIdx >= cliHistoryList.length) { cliHistoryIdx = -1; input.value = ''; }
+        else input.value = cliHistoryList[cliHistoryIdx];
       }
     }
 
@@ -1963,6 +2051,14 @@ export function generateRedisStudioHtml(): string {
       const input = document.getElementById('cliInput');
       const cmd = (input.value || '').trim();
       if (!cmd) return;
+
+      if (isDangerousCli(cmd)) {
+        var okRun = await uiAsk('Dangerous command', 'Run "' + cmd + '"? This can delete data or change server configuration.', { okText: 'Run anyway', danger: true });
+        if (!okRun) return;
+      }
+      if (cliHistoryList[cliHistoryList.length - 1] !== cmd) cliHistoryList.push(cmd);
+      if (cliHistoryList.length > 100) cliHistoryList.shift();
+      cliHistoryIdx = -1;
 
       input.value = '';
       appendCliEntry(cmd, 'Running command...', 0);
@@ -2102,6 +2198,204 @@ export function generateRedisStudioHtml(): string {
     // ---------------------------------------------------------------------------------------------
     // Modal Helpers
     // ---------------------------------------------------------------------------------------------
+
+    // ---------------------------------------------------------------------------------------------
+    // Productivity: toasts, confirm dialogs, sort, auto-refresh, export/import, bulk operations
+    // ---------------------------------------------------------------------------------------------
+
+    function notify(msg, kind) {
+      var host = document.getElementById('toastHost');
+      if (!host) { host = document.createElement('div'); host.id = 'toastHost'; document.body.appendChild(host); }
+      var el = document.createElement('div');
+      el.className = 'toast-msg ' + (kind || 'info');
+      el.textContent = msg;
+      host.appendChild(el);
+      setTimeout(function() { el.remove(); }, 3500);
+    }
+
+    // In-page confirm/prompt (native dialogs are unreliable inside embedded webviews).
+    function uiAsk(title, message, opts) {
+      opts = opts || {};
+      return new Promise(function(resolve) {
+        var back = document.createElement('div');
+        back.className = 'modal-backdrop active';
+        var win = document.createElement('div');
+        win.className = 'modal-window';
+        var head = document.createElement('div');
+        head.className = 'modal-header';
+        var ht = document.createElement('span');
+        ht.textContent = title;
+        head.appendChild(ht);
+        var body = document.createElement('div');
+        body.className = 'modal-body';
+        var p = document.createElement('div');
+        p.textContent = message;
+        body.appendChild(p);
+        var input = null;
+        if (opts.input) {
+          input = document.createElement('input');
+          input.type = 'text';
+          input.value = opts.input.value || '';
+          input.placeholder = opts.input.placeholder || '';
+          input.style.marginTop = '10px';
+          body.appendChild(input);
+        }
+        var foot = document.createElement('div');
+        foot.className = 'modal-footer';
+        var cancel = document.createElement('button');
+        cancel.className = 'btn';
+        cancel.textContent = 'Cancel';
+        var ok = document.createElement('button');
+        ok.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+        ok.textContent = opts.okText || 'OK';
+        foot.appendChild(cancel);
+        foot.appendChild(ok);
+        win.appendChild(head); win.appendChild(body); win.appendChild(foot);
+        back.appendChild(win);
+        document.body.appendChild(back);
+        function done(v) { back.remove(); resolve(v); }
+        cancel.onclick = function() { done(null); };
+        ok.onclick = function() { done(input ? input.value : true); };
+        back.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') done(null);
+          if (e.key === 'Enter') ok.click();
+        });
+        setTimeout(function() { (input || ok).focus(); }, 80);
+      });
+    }
+
+    function updateKeyCount(shown) {
+      var el = document.getElementById('keyCountLabel');
+      if (!el) return;
+      el.textContent = shown === allKeysList.length ? (shown + ' keys') : (shown + ' of ' + allKeysList.length + ' keys');
+    }
+
+    function applyKeySort(list) {
+      var mode = (document.getElementById('keySort') || {}).value || 'default';
+      if (mode === 'default') return list;
+      var cmpName = function(a, b) { return a.key.localeCompare(b.key, undefined, { numeric: true }); };
+      if (mode === 'name') list.sort(cmpName);
+      else if (mode === 'name-desc') list.sort(function(a, b) { return cmpName(b, a); });
+      else if (mode === 'type') list.sort(function(a, b) { return a.type.localeCompare(b.type) || cmpName(a, b); });
+      else if (mode === 'ttl') list.sort(function(a, b) {
+        var ta = a.ttl >= 0 ? a.ttl : Infinity;
+        var tb = b.ttl >= 0 ? b.ttl : Infinity;
+        return ta === tb ? cmpName(a, b) : ta - tb;
+      });
+      return list;
+    }
+
+    var autoRefreshTimer = null;
+    function setAutoRefresh(seconds) {
+      if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+      var s = parseInt(seconds, 10) || 0;
+      if (s > 0) {
+        autoRefreshTimer = setInterval(refreshKeysList, s * 1000);
+        notify('Key list refreshes every ' + s + 's', 'info');
+      }
+    }
+
+    function copyKeyName() {
+      if (!activeKey) return;
+      var done = function() { notify('Copied key name', 'success'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(activeKey).then(done, function() { fallbackCopy(activeKey); done(); });
+      } else { fallbackCopy(activeKey); done(); }
+    }
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+    }
+
+    async function duplicateCurrentKey() {
+      if (!activeKey) return;
+      var name = await uiAsk('Duplicate key', 'New name for a copy of "' + activeKey + '":', { input: { value: activeKey + ':copy' }, okText: 'Duplicate' });
+      if (!name) return;
+      try {
+        var res = await fetch('/api/key/duplicate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: activeKey, newKey: name }) });
+        var r = await res.json();
+        if (r.success) { notify('Created ' + name, 'success'); await refreshAll(); selectKey(name); }
+        else notify(r.error || 'Duplicate failed', 'error');
+      } catch (e) { notify('Request failed: ' + e.message, 'error'); }
+    }
+
+    function currentPattern() {
+      return (document.getElementById('searchPattern').value || '').trim();
+    }
+
+    async function deleteMatchingKeys() {
+      var pat = currentPattern();
+      if (!pat) { notify('Type a key pattern in the search box first (e.g. session:*)', 'warning'); return; }
+      var typed = await uiAsk('Delete matching keys', 'Delete ALL keys matching "' + pat + '" in DB ' + currentDbIndex() + '? This cannot be undone. Type the pattern to confirm:', { input: { placeholder: pat }, okText: 'Delete keys', danger: true });
+      if (typed === null) return;
+      if (typed !== pat) { notify('Pattern did not match - nothing deleted', 'warning'); return; }
+      try {
+        var res = await fetch('/api/keys/delete-pattern', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pattern: pat }) });
+        var r = await res.json();
+        if (r.success) { notify('Deleted ' + r.deleted + ' keys', 'success'); activeKey = null; refreshAll(); }
+        else notify(r.error || 'Delete failed', 'error');
+      } catch (e) { notify('Request failed: ' + e.message, 'error'); }
+    }
+
+    function currentDbIndex() {
+      var el = document.getElementById('dbSelect');
+      return el ? el.value : '0';
+    }
+
+    async function flushCurrentDb() {
+      var db = currentDbIndex();
+      var typed = await uiAsk('Flush database', 'This permanently deletes EVERY key in database ' + db + '. Type FLUSH to confirm:', { input: { placeholder: 'FLUSH' }, okText: 'Flush DB ' + db, danger: true });
+      if (typed === null) return;
+      if (typed !== 'FLUSH') { notify('Confirmation text did not match - nothing deleted', 'warning'); return; }
+      try {
+        var res = await fetch('/api/flushdb', { method: 'POST' });
+        var r = await res.json();
+        if (r.success) { notify('Database ' + db + ' flushed', 'success'); activeKey = null; refreshAll(); }
+        else notify(r.error || 'Flush failed', 'error');
+      } catch (e) { notify('Request failed: ' + e.message, 'error'); }
+    }
+
+    async function exportKeys() {
+      var pat = currentPattern() || '*';
+      try {
+        var res = await fetch('/api/export/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pattern: pat }) });
+        var r = await res.json();
+        if (r.success) {
+          var extra = r.skipped ? (' (' + r.skipped + ' unsupported keys skipped)') : '';
+          notify('Exported ' + r.count + ' keys to ' + r.path + extra, 'success');
+        } else notify(r.error || 'Export failed', 'error');
+      } catch (e) { notify('Request failed: ' + e.message, 'error'); }
+    }
+
+    function openImportModal() {
+      document.getElementById('importText').value = '';
+      document.getElementById('importFile').value = '';
+      openModal('importModal');
+    }
+
+    function loadImportFile(input) {
+      var f = input.files && input.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function() { document.getElementById('importText').value = String(reader.result || ''); };
+      reader.readAsText(f);
+    }
+
+    async function submitImport() {
+      var text = document.getElementById('importText').value.trim();
+      if (!text) { notify('Choose a file or paste export JSON first', 'warning'); return; }
+      try {
+        var res = await fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, overwrite: document.getElementById('importOverwrite').checked }) });
+        var r = await res.json();
+        if (r.success) {
+          closeModal('importModal');
+          notify('Imported ' + r.imported + ' keys' + (r.skipped ? (', skipped ' + r.skipped + ' existing') : ''), 'success');
+          refreshAll();
+        } else notify((r.errors && r.errors[0]) || 'Import failed', 'error');
+      } catch (e) { notify('Request failed: ' + e.message, 'error'); }
+    }
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
