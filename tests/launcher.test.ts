@@ -637,6 +637,27 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       expect(typeof handler).toBe("function");
     }
   });
+
+  it("triggers auto-launch when Return / Enter key is pressed in lst_apps listbox", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    const handlers = (win as any).eventHandlersMap;
+    expect(handlers).toBeDefined();
+
+    // Verify onEnter handlers are registered
+    const enterHandler = handlers.get("lst_apps:onenter") || handlers.get("lst_apps:enter");
+    expect(enterHandler).toBeDefined();
+    expect(typeof enterHandler).toBe("function");
+
+    // Verify HTML includes Return key detection on lst_apps
+    const html = win.generateHtml();
+    expect(html).toContain('id="lst_apps"');
+    expect(html.toLowerCase()).toContain("onkeydown");
+    expect(html).toContain("on_lst_apps_enter");
+
+    // Invoking enter handler updates selection
+    enterHandler(win, "rad_sqlite_studio");
+    expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+  });
 });
 
 

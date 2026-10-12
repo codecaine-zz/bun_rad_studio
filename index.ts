@@ -1484,6 +1484,10 @@ export function generatePreviewHtml(spec: any): string {
             ...(c.ondblclick ? { onDoubleClick: c.ondblclick } : {}),
             ...(c.onDoubleClick ? { onDoubleClick: c.onDoubleClick } : {}),
             ...(c.ondoubleclick ? { onDoubleClick: c.ondoubleclick } : {}),
+            ...(c.onkeydown ? { onKeyDown: c.onkeydown } : {}),
+            ...(c.onKeyDown ? { onKeyDown: c.onKeyDown } : {}),
+            ...(c.onenter ? { onEnter: c.onenter } : {}),
+            ...(c.onEnter ? { onEnter: c.onEnter } : {}),
         };
         if (c.id) {
             const ctrlType = (c.control_type || c.type || '').toLowerCase();

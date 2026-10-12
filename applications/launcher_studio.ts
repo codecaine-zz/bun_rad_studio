@@ -1865,7 +1865,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel(
     "lbl_listbox_info",
-    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click to auto-launch):"
+    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click or Enter to auto-launch):"
   );
   win.endRow();
 
@@ -1887,6 +1887,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       height: 140,
       onDoubleClick: "on_lst_apps_doubleclick",
       ondblclick: "on_lst_apps_doubleclick",
+      onEnter: "on_lst_apps_enter",
+      onenter: "on_lst_apps_enter",
+      onKeyDown: "if(event.key==='Enter'||event.keyCode===13){event.preventDefault();if(window.on_lst_apps_enter){window.on_lst_apps_enter(this.value);}else if(window.on_lst_apps_doubleclick){window.on_lst_apps_doubleclick(this.value);}}",
+      event_handlers: {
+        onKeyDown: "if(event.key==='Enter'||event.keyCode===13){event.preventDefault();if(window.on_lst_apps_enter){window.on_lst_apps_enter(this.value);}else if(window.on_lst_apps_doubleclick){window.on_lst_apps_doubleclick(this.value);}}",
+      },
     }
   );
   win.endRow();
@@ -2151,6 +2157,17 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             };
           }
 
+          if (window.on_lst_apps_enter && !window._raw_lst_apps_enter) {
+            window._raw_lst_apps_enter = window.on_lst_apps_enter;
+            let lastLstEnterTime = 0;
+            window.on_lst_apps_enter = function(val) {
+              const now = Date.now();
+              if (now - lastLstEnterTime < 200) return;
+              lastLstEnterTime = now;
+              window._raw_lst_apps_enter(val);
+            };
+          }
+
           if (window.on_tbl_apps_doubleclick && !window._raw_tbl_apps_dbl) {
             window._raw_tbl_apps_dbl = window.on_tbl_apps_doubleclick;
             let lastTblTime = 0;
@@ -2162,11 +2179,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             };
           }
 
-          // 6. Rapid-click fallback detector for listbox
+          // 6. Rapid-click fallback & Return key detector for listbox
           if (lst && !lst.dataset.dblBound) {
             lst.dataset.dblBound = "true";
             let lastClickTime = 0;
             let lastClickedVal = null;
+            let lastEnterTime = 0;
 
             lst.addEventListener("click", function() {
               const now = Date.now();
@@ -2180,6 +2198,24 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
               } else {
                 lastClickTime = now;
                 lastClickedVal = val;
+              }
+            });
+
+            lst.addEventListener("keydown", function(e) {
+              if (e.key === "Enter" || e.keyCode === 13) {
+                const now = Date.now();
+                if (now - lastEnterTime < 500) return;
+                lastEnterTime = now;
+                e.preventDefault();
+                const val = lst.value;
+                if (window.on_lst_apps_enter) {
+                  window.on_lst_apps_enter(val);
+                } else if (window.on_lst_apps_doubleclick) {
+                  window.on_lst_apps_doubleclick(val);
+                } else {
+                  const btn = document.getElementById("btn_launch");
+                  if (btn) btn.click();
+                }
               }
             });
           }
@@ -2630,7 +2666,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     }
   });
 
-  win.onDoubleClick("lst_apps", (w, val: any) => {
+  const autoLaunchFromSelection = (w: SimpleWindow, val: any) => {
     const matched = findAppFromSelection(val) || selectedApp;
     if (matched) {
       selectedApp = matched;
@@ -2638,7 +2674,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       w.toast(`🚀 Auto-launching: ${matched.displayName}...`);
       executeToolLaunch(matched, w, undefined, matched.source === "cli_tool");
     }
-  });
+  };
+
+  win.onDoubleClick("lst_apps", autoLaunchFromSelection);
+  win.onEnter("lst_apps", autoLaunchFromSelection);
+  win.on("lst_apps", "enter", autoLaunchFromSelection);
+  win.on("lst_apps", "onEnter", autoLaunchFromSelection);
 
   // Table selection change and click
   win.onClick("tbl_apps", (w, val: any) => {
@@ -3232,6 +3273,51 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
               const app = ALL_APPS.find(a => a.itemStr === val || val.includes(a.id));
               if (app) selectAppClient(app.id);
             });
+          }
+        }
+
+        // Listbox Return/Enter key launch delegation
+        if (lstEl && !lstEl.dataset.keyEnterBound) {
+          lstEl.dataset.keyEnterBound = "true";
+          const sel = lstEl.tagName === "SELECT" ? lstEl : lstEl.querySelector("select");
+          const target = sel || lstEl;
+          let lastEnterKeyTime = 0;
+
+          const handleListboxEnter = function(e) {
+            if (e.key === "Enter" || e.keyCode === 13) {
+              const now = Date.now();
+              if (now - lastEnterKeyTime < 600) return;
+              lastEnterKeyTime = now;
+              e.preventDefault();
+              e.stopPropagation();
+
+              const val = target.value || (sel ? sel.value : "") || "";
+              const app = ALL_APPS.find(a => a.itemStr === val || val.includes(a.id)) ||
+                          ALL_APPS.find(a => a.id === window.selectedRowPid) ||
+                          ALL_APPS[0];
+              if (app) {
+                selectAppClient(app.id);
+                const statusEl = document.getElementById("lbl_status");
+                if (statusEl) statusEl.textContent = "🚀 Launching: " + app.name + "...";
+                const out = document.getElementById("txt_output");
+                if (out) {
+                  out.value = "=== Application Launch Dispatched (Return Key) ===\\nName: " + app.name + "\\nID: " + app.id + "\\nCommand: " + app.cmd + "\\nPath: " + app.path + "\\nStatus: 🚀 Executing launch...";
+                }
+              }
+              if (typeof window.on_lst_apps_enter === "function") {
+                window.on_lst_apps_enter(val);
+              } else if (typeof window.on_lst_apps_doubleclick === "function") {
+                window.on_lst_apps_doubleclick(val);
+              } else {
+                const btnLaunch = document.getElementById("btn_launch");
+                if (btnLaunch) btnLaunch.click();
+              }
+            }
+          };
+
+          target.addEventListener("keydown", handleListboxEnter);
+          if (sel && sel !== lstEl) {
+            lstEl.addEventListener("keydown", handleListboxEnter);
           }
         }
       }
