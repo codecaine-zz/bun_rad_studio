@@ -117,6 +117,10 @@
         max-height: 68vh;
       }
     }
+
+    body.low-res-mode * {
+      backdrop-filter: none !important;
+    }
   </style>
 </head>
 <body class="w-full h-full flex flex-col justify-between items-center select-none text-slate-100">
@@ -187,6 +191,10 @@
         <div>
           <span class="text-[10px] text-slate-500 uppercase block font-mono">HIGH</span>
           <span id="highScoreVal" class="text-slate-300 font-extrabold text-sm sm:text-base font-mono">025000</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-slate-500 uppercase block font-mono">TIME</span>
+          <span id="timerVal" class="text-rose-400 font-extrabold text-sm sm:text-base font-mono">00:00.0</span>
         </div>
       </div>
 
@@ -322,6 +330,15 @@
         <input type="checkbox" id="toggleScanlines" checked class="w-5 h-5 accent-cyan-400 rounded cursor-pointer">
       </div>
 
+      <!-- Low Resource Mode -->
+      <div class="flex items-center justify-between py-1">
+        <div>
+          <div class="text-xs font-semibold text-slate-200">Low Resource Mode</div>
+          <div class="text-[10px] text-slate-400">Disables shadows and particles for speed</div>
+        </div>
+        <input type="checkbox" id="toggleLowResource" class="w-5 h-5 accent-rose-400 rounded cursor-pointer">
+      </div>
+
       <!-- Music Toggle -->
       <div class="flex items-center justify-between py-1">
         <div>
@@ -338,6 +355,20 @@
   </div>
 
   <script>
+    const origShadowBlur = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
+    Object.defineProperty(CanvasRenderingContext2D.prototype, 'shadowBlur', {
+      set: function(val) {
+        if (typeof lowResourceMode !== 'undefined' && lowResourceMode) {
+          origShadowBlur.set.call(this, 0);
+        } else {
+          origShadowBlur.set.call(this, val);
+        }
+      },
+      get: function() {
+        return origShadowBlur.get.call(this);
+      }
+    });
+
     // Safe storage polyfill for Webview/sandboxed environments
     (function() {
       try {
@@ -981,6 +1012,9 @@
 
     // Triple-A Evolved Graphics & FX Systems
     let crtEnabled = false;
+    let lowResourceMode = localStorage.getItem('codecaine_bros_lowres') === 'true';
+    if (lowResourceMode) document.body.classList.add('low-res-mode');
+
     let hitStop = 0;
     let fireballs = [];
     let fireballTimer = 0;
@@ -2665,6 +2699,49 @@
 
     // Input handlers
     const keys = {};
+
+    // ==========================================
+    // HTML5 GAMEPAD API INTEGRATION
+    // ==========================================
+    let gamepadLoopId = null;
+    let prevGamepadState = {};
+    function processGamepad() {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let gp = null;
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i]) { gp = gamepads[i]; break; }
+      }
+      if (!gp) {
+        gamepadLoopId = requestAnimationFrame(processGamepad);
+        return;
+      }
+      
+      const state = {
+        left: gp.buttons[14]?.pressed || gp.axes[0] < -0.5,
+        right: gp.buttons[15]?.pressed || gp.axes[0] > 0.5,
+        up: gp.buttons[12]?.pressed || gp.axes[1] < -0.5,
+        jump: gp.buttons[0]?.pressed || gp.buttons[2]?.pressed, // A or X
+        pause: gp.buttons[9]?.pressed, // Start
+        mute: gp.buttons[8]?.pressed // Select
+      };
+
+      keys['ArrowLeft'] = state.left;
+      keys['ArrowRight'] = state.right;
+      keys['ArrowUp'] = state.up || state.jump;
+
+      if (state.pause && !prevGamepadState.pause) togglePause();
+      if (state.mute && !prevGamepadState.mute) toggleMute();
+
+      prevGamepadState = state;
+      gamepadLoopId = requestAnimationFrame(processGamepad);
+    }
+    window.addEventListener("gamepadconnected", (e) => {
+      console.log("Gamepad connected at index %d: %s.", e.gamepad.index, e.gamepad.id);
+      if (!gamepadLoopId) gamepadLoopId = requestAnimationFrame(processGamepad);
+    });
+    window.addEventListener("gamepaddisconnected", (e) => {
+      console.log("Gamepad disconnected from index %d: %s", e.gamepad.index, e.gamepad.id);
+    });
     window.addEventListener('keydown', (e) => {
       sound.init();
       sound.resume();
@@ -2753,6 +2830,7 @@
     document.getElementById('btnNewGame').addEventListener('click', () => {
       score = 0;
       lives = 3;
+      speedrunTimerMs = 0;
       updateLivesHUD();
       scoreVal.textContent = '000000';
       startPhase(1);
@@ -2767,6 +2845,7 @@
 
     document.getElementById('btnSettings').addEventListener('click', () => {
       if (gameState === 'PLAYING') togglePause();
+      document.getElementById('toggleLowResource').checked = lowResourceMode;
       settingsModal.classList.remove('hidden');
     });
 
@@ -2793,6 +2872,11 @@
     document.getElementById('btnApplySettings').addEventListener('click', () => {
       const targetP = parseInt(phaseRange.value, 10);
       document.getElementById('scanlineOverlay').style.display = document.getElementById('toggleScanlines').checked ? 'block' : 'none';
+      lowResourceMode = document.getElementById('toggleLowResource').checked;
+      localStorage.setItem('codecaine_bros_lowres', lowResourceMode);
+      if (lowResourceMode) document.body.classList.add('low-res-mode');
+      else document.body.classList.remove('low-res-mode');
+
       sound.musicEnabled = document.getElementById('toggleMusic').checked;
       settingsModal.classList.add('hidden');
       startPhase(targetP);
@@ -2804,6 +2888,16 @@
       if (hitStop > 0) {
         hitStop--;
         return;
+      }
+
+      if (lowResourceMode) {
+        particles = [];
+        shockwaves = [];
+        steamPuffs = [];
+        waterDrops = [];
+        comicStars = [];
+        brickDebris = [];
+        ambientSpores = [];
       }
 
       if (gameState === 'PLAYING') {
@@ -3511,8 +3605,25 @@
       ctx.restore();
     }
 
-    function gameLoop() {
+    let speedrunTimerMs = 0;
+    let lastTime = 0;
+
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+
       try {
+        if (gameState === 'PLAYING') {
+          speedrunTimerMs += dt;
+          const mins = Math.floor(speedrunTimerMs / 60000);
+          const secs = Math.floor((speedrunTimerMs % 60000) / 1000);
+          const ms = Math.floor((speedrunTimerMs % 1000) / 100);
+          const timerEl = document.getElementById('timerVal');
+          if (timerEl) {
+             timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
+          }
+        }
         update();
         render();
       } catch (e) {
