@@ -53,9 +53,11 @@ export function deriveAppName(filepath: string): string {
     task_manager: "TaskManagerStudio",
     watcher_studio: "WatcherStudioPro",
     watchexec_studio: "WatchExecStudioPro",
+    subprocess_pipe_studio: "SubprocessPipeStudioPro",
   };
-  if (knownMap[base.toLowerCase()]) {
-    return knownMap[base.toLowerCase()];
+  const mapped = knownMap[base.toLowerCase()];
+  if (mapped) {
+    return mapped;
   }
   return (
     base
@@ -436,8 +438,8 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
 
   const availableApps = getAvailableApplications();
   const defaultApp = availableApps.find((a) => a.path.includes("devtools_studio")) || availableApps[0];
-  const defaultAppPath = defaultApp.path;
-  const defaultAppName = defaultApp.appName;
+  const defaultAppPath = defaultApp?.path || "./applications/devtools_studio.ts";
+  const defaultAppName = defaultApp?.appName || "DevToolsStudio";
 
   const appPaths = availableApps.map((a) => a.path);
   const appLabels: Record<string, string> = {};

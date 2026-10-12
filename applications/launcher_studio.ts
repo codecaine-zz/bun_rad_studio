@@ -444,6 +444,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "⏱️",
     description: "Automated command execution engine reacting to directory updates",
   },
+  subprocess_pipe_studio: {
+    displayName: "Subprocess Pipe Pro",
+    category: "Developer Tools",
+    icon: "🔀",
+    description: "Multi-stage subprocess orchestrator, stream pipelining (stdout ➔ stdin), privilege elevation & shell master",
+  },
   brew_studio: {
     displayName: "Homebrew Package Studio",
     category: "System & Hardware",
