@@ -1,7 +1,7 @@
 # ⚡ Launcher Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.0.0  •  Engine: SimpleGUI Desktop WKWebView  •  Dependencies: 0  •  Offline: 100%
+Engine: SimpleGUI Desktop WKWebView  •  Dependencies: 0  •  Network: none (everything runs locally)
 Launchers: [Desktop GUI: bun run app:launcher]  •  [Terminal CLI: bun run cli:launcher]
 ```
 
@@ -66,12 +66,13 @@ Launcher Studio Pro provides persistent, 1-click favorite bookmarking for your d
 - **🚀 1-Click Launch Top Favorite (`btn_quick_launch_fav1`)**: Located right on the quick launch strip, this button immediately executes your #1 pinned favorite tool with zero clicks in navigation.
 - **📊 Real-Time Telemetry KPI Card (`lbl_kpi_favs`)**: Dedicated KPI badge displays `⭐ Favorites: N`, updating instantly whenever tools are starred or unstarred.
 - **⭐ Visual Badging**: Pinned tools are visibly badged with a bright `⭐` in the Top Dropdown, the Top ListBox, and the `Fav` column in the Bottom Catalog Table.
-- **💾 Local Persistence (`.launcher_history.json`)**: All pinned favorites and launch execution metrics are safely persisted locally across sessions.
+- **💾 Local Persistence (`.launcher_history.json`)**: Pinned favorites and launch metrics persist across sessions in your project folder. The file is written atomically and a damaged file is ignored rather than crashing the app.
 
 ### 2. ⚡ Quick Favorites & Category Filtering
 - **⭐ Favorites Only (`btn_quick_favs` / `btn_quick_favs_filter`)**: A single click filters the entire workspace catalog down to your pinned favorites.
-- **🔍 Real-Time Live Search (`txt_search`)**: Type any keyword, category, file path, or script name. Filtering applies automatically with live debouncing.
-- **🗂️ Category Selector (`dd_category`)**: Jump instantly between `🌟 All Project Tools`, `⭐ Pinned Favorites`, `🖥️ Studio Applications`, `🛠️ CLI Utilities`, `🎮 Showcase Demos`, and `🟢 Running Processes`.
+- **🔍 Real-Time Live Search (`txt_search`)**: Type any keywords in any order -- every word must match (name, id, category, path, description or command), so `task manager` and `manager task` both find Task Manager. Close matches rank first and even rough abbreviations such as `tskmgr` work. Filtering applies automatically with live debouncing.
+- **🗂️ Category Selector (`dd_category`)**: Jump instantly between `🌟 All Project Tools`, `⭐ Pinned Favorites`, `🖥️ Studio Applications`, `🛠️ CLI Utilities`, `🎮 Showcase Demos`, `🟢 Running Processes` and `🕘 Recently Used`.
+- **↕️ Sort (`dd_sort`)**: `Favorites, running, A-Z` (default), `Recently used`, `Most used` or `Name A-Z`.
 - **✕ Show All (`btn_clear_filter`)**: Resets all filters and restores the full workspace catalog in one click.
 
 ### 3. 🎯 Rock-Solid Top ⇄ Bottom Selection Stability
@@ -95,6 +96,18 @@ Every tool can be executed in the mode that best fits your workflow:
 - **🛑 Stop / Kill**: Instantly terminates active child processes via SIGTERM / SIGKILL.
 - **📂 Reveal**: Reveals the script file in Finder / file manager.
 - **📋 Copy Cmd**: Copies the full execution command with custom CLI flags to your clipboard.
+- **📝 Open Source (`btn_edit`)**: Opens the tool's script in VS Code (if installed) or your default text editor.
+- **📎 Copy Path (`btn_copy_path`)**: Copies the script's absolute path.
+- **⏹ Stop All Running (`btn_stop_all`)**: Stops every running tool after a confirmation that lists them.
+- **🧹 Clear Usage History (`btn_clear_history`)**: Resets launch counts and last-used times after confirmation. Favorites are kept.
+
+### 6. 🕘 Usage Tracking
+The **Used** column shows how often and how recently you launched each tool (for example `14× · 10m ago`). Use `🕘 Recently Used` or the `Recently used` / `Most used` sort orders to bring your daily tools to the top. Only launches that actually start count -- a tool that crashes immediately is not recorded.
+
+### 7. 🛡️ Reliable Launching
+- **Crash reporting**: if a studio exits within a moment of starting (syntax error, missing dependency, port clash) the launcher reports it, shows the last lines of its error output and the log path (`rad_launcher_logs` in your temp folder) instead of claiming success.
+- **Safe arguments**: `CLI Flags / Args` supports quotes (`--name "hello world"`). Arguments are passed to the tool directly, and in Terminal mode every argument is shell-quoted, so pasted text like `; rm -rf ~` stays harmless.
+- **Accurate running status**: a tool shows as running only when Bun/Node is actually executing that script -- an editor with the file open or a look-alike filename no longer counts.
 
 ---
 
@@ -103,7 +116,7 @@ Every tool can be executed in the mode that best fits your workflow:
 | Control ID | Label / Type | Purpose & Behavior |
 | :--- | :--- | :--- |
 | `dd_theme` | Theme Selector | Switch across 60+ desktop themes (Midnight, Emerald, Obsidian, Neon, Cyberpunk). |
-| `btn_rescan` | 🔄 Rescan Tools | Re-indexes workspace files, detects running PIDs, and refreshes telemetry. |
+| `btn_rescan` | 🔄 Rescan Tools | Re-indexes workspace files, detects running PIDs, and refreshes telemetry (the counters also refresh on every filter, launch and stop). |
 | `lbl_kpi_favs` | ⭐ Favorites: N | Live counter of pinned favorite applications. |
 | `btn_quick_favs_filter` | ⭐ Filter to Favorites | Instantly sets category filter to Pinned Favorites. |
 | `btn_quick_launch_fav1` | 🚀 Launch Top Favorite | Executes the highest-priority pinned favorite tool in 1 click. |
@@ -117,11 +130,16 @@ Every tool can be executed in the mode that best fits your workflow:
 | `btn_kill` | 🛑 Stop | Kills active process for the selected application. |
 | `btn_reveal` | 📂 Reveal | Opens enclosing folder in macOS Finder. |
 | `btn_copy` | 📋 Copy Cmd | Copies `bun run ./path [args]` to clipboard. |
+| `btn_edit` | 📝 Open Source | Opens the selected tool's script in your editor. |
+| `btn_copy_path` | 📎 Copy Path | Copies the script's absolute path. |
+| `btn_stop_all` | ⏹ Stop All Running | Confirms, then stops every running tool. |
+| `btn_clear_history` | 🧹 Clear Usage History | Confirms, then resets launch counts and last-used times (favorites kept). |
+| `dd_sort` | Sort Dropdown | Favorites/running/A-Z, Recently used, Most used, Name A-Z. |
 | `lst_apps` | Top ListBox | Multi-row interactive selector (Click to sync, double-click to launch). |
-| `txt_search` | 🔍 Filter Input | Real-time text filter (matches name, category, or script path). |
+| `txt_search` | 🔍 Filter Input | Real-time multi-word filter (name, id, category, path, description, command). |
 | `dd_category` | Category Dropdown | Pre-configured filter categories including ⭐ Pinned Favorites. |
 | `btn_quick_favs` | ⭐ Favorites Only | Quick filter button placed directly in the search toolbar. |
-| `tbl_apps` | Catalog Table | Multi-column table (`ID`, `Fav`, `Type`, `Name`, `Category`, `Status`, `Command Path`). |
+| `tbl_apps` | Catalog Table | Multi-column table (`ID`, `Fav`, `Type`, `Name`, `Category`, `Status`, `Used`, `Command Path`). |
 | `txt_output` | Output View | Multi-line text display for metadata summary and inline CLI results. |
 | `launcher_console` | Telemetry Console | Real-time log stream tracking process executions, PID assignments, and errors. |
 
@@ -167,6 +185,6 @@ Every tool can be executed in the mode that best fits your workflow:
 ---
 
 ## 🧩 Architectural Integrity & Zero Dependencies
-- **Sub-Second Boot Time**: Native macOS WKWebView bridge initializes in under 250ms.
+- **Sub-Second Boot Time**: Native macOS WKWebView bridge starts the window quickly.
 - **Process Isolation**: Every launched tool runs in its own isolated process space, preventing crashes in one workstation from impacting others.
 - **Zero External Runtimes**: Pure Bun and Node API primitives—no Electron bloat, no Python wrappers, no Docker requirements.

@@ -13,7 +13,12 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { writeClipboardSync } from "../src/localGuard";
 import { resolve, join, basename } from "path";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "fs";
+import { tmpdir } from "os";
+import {
+  parseArgs, buildShellCommand, searchScore, sortApps, sortModeFromLabel, SORT_LABELS, usageLabel, isScriptProcess,
+  type SortMode,
+} from "../src/launcher_tools";
 
 // -------------------------------------------------------------------------------------------------
 // Types & Interfaces
@@ -381,13 +386,21 @@ const KNOWN_DEMO_TITLES: Record<string, string> = {
 // Persistence & History Management
 // -------------------------------------------------------------------------------------------------
 
-const HISTORY_FILE = resolve(process.cwd(), ".launcher_history.json");
+/** History lives next to the project; LAUNCHER_HISTORY_FILE overrides it (used by tests). */
+function historyFile(): string {
+  return process.env.LAUNCHER_HISTORY_FILE || resolve(process.cwd(), ".launcher_history.json");
+}
 
 export function loadHistory(): HistoryData {
   try {
-    if (existsSync(HISTORY_FILE)) {
-      const content = readFileSync(HISTORY_FILE, "utf-8");
-      return JSON.parse(content);
+    const file = historyFile();
+    if (existsSync(file)) {
+      const parsed = JSON.parse(readFileSync(file, "utf-8"));
+      // Tolerate hand-edited or older files with missing/invalid fields.
+      return {
+        favorites: Array.isArray(parsed?.favorites) ? parsed.favorites.filter((f: any) => typeof f === "string") : [],
+        launchHistory: parsed?.launchHistory && typeof parsed.launchHistory === "object" ? parsed.launchHistory : {},
+      };
     }
   } catch {}
   return { favorites: [], launchHistory: {} };
@@ -395,8 +408,19 @@ export function loadHistory(): HistoryData {
 
 export function saveHistory(data: HistoryData): void {
   try {
-    writeFileSync(HISTORY_FILE, JSON.stringify(data, null, 2), "utf-8");
+    // Write-then-rename so a crash never leaves a truncated history file.
+    const file = historyFile();
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
+    renameSync(tmp, file);
   } catch {}
+}
+
+/** Forget launch counts and last-used times; favorites are kept. */
+export function clearLaunchHistory(): void {
+  const data = loadHistory();
+  data.launchHistory = {};
+  saveHistory(data);
 }
 
 export function toggleFavorite(appId: string): boolean {
@@ -622,7 +646,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
         }
         if (!isRunning) {
           const matchedProc = runningProcs.find(
-            (p) => p.args.includes(file) || p.args.includes(relPath)
+            (p) => isScriptProcess(p.comm, p.args, relPath)
           );
           if (matchedProc) {
             isRunning = true;
@@ -684,7 +708,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
         }
         if (!isRunning) {
           const matchedProc = runningProcs.find(
-            (p) => p.args.includes(file) || p.args.includes(relPath)
+            (p) => isScriptProcess(p.comm, p.args, relPath)
           );
           if (matchedProc) {
             isRunning = true;
@@ -746,7 +770,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
         }
         if (!isRunning) {
           const matchedProc = runningProcs.find(
-            (p) => p.args.includes(file) || p.args.includes(relPath)
+            (p) => isScriptProcess(p.comm, p.args, relPath)
           );
           if (matchedProc) {
             isRunning = true;
@@ -995,7 +1019,7 @@ end tell`;
 export async function launchApplication(
   appId: string,
   extraArgs = "",
-  options: { openTerminal?: boolean; timeoutMs?: number; onExit?: () => void } = {}
+  options: { openTerminal?: boolean; timeoutMs?: number; onExit?: () => void; earlyExitMs?: number } = {}
 ): Promise<{
   success: boolean;
   message: string;
@@ -1029,14 +1053,16 @@ export async function launchApplication(
     return { success: false, message: `Tool '${appId}' not found in project.` };
   }
 
-  recordLaunch(app.id);
-
   try {
     if (app.source === "rad_studio" || app.source === "rad_demo") {
-      // Launch GUI Studio application in independent detached process
+      // Launch GUI Studio application in independent detached process.
+      // stderr goes to a log file so a crash on startup can be reported instead of silently vanishing.
+      const logDir = join(tmpdir(), "rad_launcher_logs");
+      try { mkdirSync(logDir, { recursive: true }); } catch {}
+      const logPath = join(logDir, `${app.id}.log`);
       const proc = Bun.spawn(["bun", "run", app.path], {
         stdout: "ignore",
-        stderr: "ignore",
+        stderr: Bun.file(logPath),
         detached: true,
         cwd: process.cwd(),
         env: process.env,
@@ -1061,6 +1087,23 @@ export async function launchApplication(
 
       proc.unref();
 
+      // If it dies almost immediately it crashed (syntax error, missing dependency, port clash...).
+      const earlyMs = options.earlyExitMs ?? 800;
+      if (earlyMs > 0) {
+        const early = await Promise.race([proc.exited, Bun.sleep(earlyMs).then(() => null)]);
+        if (early !== null) {
+          let tail = "";
+          try { tail = readFileSync(logPath, "utf-8").trim().split("\n").slice(-12).join("\n"); } catch {}
+          return {
+            success: false,
+            message: `${app.displayName} exited immediately (code ${early}).`,
+            output: `${tail || "(no error output captured)"}\n\nFull log: ${logPath}`,
+            pid,
+          };
+        }
+      }
+
+      recordLaunch(app.id);
       return {
         success: true,
         message: `Started ${app.displayName} GUI (PID: ${pid})`,
@@ -1068,9 +1111,14 @@ export async function launchApplication(
       };
     } else {
       // CLI Tool Execution
-      const splitArgs = extraArgs.trim() ? extraArgs.trim().split(/\s+/) : ["--help"];
+      // Quote-aware split; arguments are passed to the process directly (never through a shell).
+      const parsed = parseArgs(extraArgs);
+      const splitArgs = parsed.length ? parsed : ["--help"];
       const fullCmd = ["bun", "run", app.path, ...splitArgs];
-      const fullCmdStr = fullCmd.join(" ");
+      // For the terminal every token is shell-quoted so pasted text like `; rm -rf ~` stays an inert argument.
+      const fullCmdStr = buildShellCommand(fullCmd);
+
+      recordLaunch(app.id);
 
       if (options.openTerminal) {
         const termRes = launchInTerminal(fullCmdStr);
@@ -1232,6 +1280,37 @@ export function copyToClipboard(text: string): { success: boolean } {
   return { success: writeClipboardSync(text) };
 }
 
+/** Open a tool's source file in VS Code if installed, otherwise the OS default text editor. */
+export function openInEditor(filePath: string): { success: boolean; message: string } {
+  try {
+    if (!existsSync(filePath)) return { success: false, message: `File not found: ${filePath}` };
+    const code = Bun.which("code");
+    if (code) {
+      Bun.spawn([code, filePath], { stdout: "ignore", stderr: "ignore" });
+      return { success: true, message: "Opened in VS Code" };
+    }
+    if (process.platform === "darwin") Bun.spawn(["open", "-t", filePath], { stdout: "ignore", stderr: "ignore" });
+    else if (process.platform === "win32") Bun.spawn(["cmd.exe", "/c", "start", "", filePath], { stdout: "ignore", stderr: "ignore" });
+    else Bun.spawn(["xdg-open", filePath], { stdout: "ignore", stderr: "ignore" });
+    return { success: true, message: "Opened in default editor" };
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+}
+
+/** Stop every running tool (instances started here and externally-started ones). Returns how many were stopped. */
+export function stopAllApplications(): { stopped: number; messages: string[] } {
+  const messages: string[] = [];
+  let stopped = 0;
+  for (const a of scanAllApplications().apps) {
+    if (!a.isRunning) continue;
+    const r = killApplication(a.id, getAliveChildren(a.id).length ? undefined : a.pid);
+    messages.push(`${a.displayName}: ${r.message}`);
+    if (r.success) stopped++;
+  }
+  return { stopped, messages };
+}
+
 // -------------------------------------------------------------------------------------------------
 // Primary SimpleGUI Desktop Application Window
 // -------------------------------------------------------------------------------------------------
@@ -1335,6 +1414,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.addButton("btn_copy", "📋 Copy Cmd");
   win.endRow();
 
+  win.beginRow();
+  win.addButton("btn_edit", "📝 Open Source");
+  win.addButton("btn_copy_path", "📎 Copy Path");
+  win.addButton("btn_stop_all", "⏹ Stop All Running");
+  win.addButton("btn_clear_history", "🧹 Clear Usage History");
+  win.endRow();
+
   // Interactive Workspace Tools ListBox Row
   win.beginRow();
   win.addLabel(
@@ -1382,10 +1468,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       "🛠️ CLI Utilities (cli_apps/)",
       "🎮 Showcase Demos (demos/)",
       "🟢 Running Processes",
+      "🕘 Recently Used",
     ],
     "🌟 All Project Tools",
     { width: 240 }
   );
+  win.addLabel("lbl_sort", "Sort:");
+  win.addDropdown("dd_sort", Object.values(SORT_LABELS), SORT_LABELS.default, { width: 190 });
   win.addButton("btn_quick_favs", "⭐ Favorites Only");
   win.addButton("btn_filter", "🔍 Apply");
   win.addButton("btn_clear_filter", "✕ Show All");
@@ -1393,7 +1482,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.endGroupBox();
 
   // 6. Project Tools Data Table
-  const tableHeaders = ["ID", "Fav", "Type", "Name", "Category", "Status", "Command Path"];
+  const tableHeaders = ["ID", "Fav", "Type", "Name", "Category", "Status", "Used", "Command Path"];
   const formatRow = (a: DetectedApp) => [
     a.id,
     a.isFavorite ? "⭐ Fav" : "—",
@@ -1405,6 +1494,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
           ? `🟢 Running (${a.instanceCount}x)`
           : `🟢 Running (#${a.pid || "?"})`)
       : "⚪ Ready",
+    usageLabel(a),
     a.command,
   ];
 
@@ -1721,7 +1811,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         setTimeout(() => applyFilters(w, undefined, true), 800);
       } else {
         w.appendConsole("launcher_console", `[Launch Error] ${launchResult.message}\n`, 3);
-        w.setText("txt_output", `[Error Launching Tool]\n${launchResult.message}`);
+        w.setText("txt_output", `[Error Launching Tool]\n${launchResult.message}${launchResult.output ? `\n\n${launchResult.output}` : ""}`);
         w.toast(`❌ ${launchResult.message}`);
       }
     } finally {
@@ -1751,6 +1841,15 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     return cachedScan;
   }
 
+  function updateKpiLabels(w: SimpleWindow, k: LauncherKpis) {
+    w.setValue("lbl_kpi_total", `⚡ Total Tools: ${k.total}`);
+    w.setValue("lbl_kpi_studios", `🖥️ Studio Applications: ${k.radStudios}`);
+    w.setValue("lbl_kpi_cli", `🛠️ CLI Utilities: ${k.cliTools}`);
+    w.setValue("lbl_kpi_demos", `🎮 Showcase Demos: ${k.demos}`);
+    w.setValue("lbl_kpi_running", `🟢 Active Running: ${k.running}`);
+    w.setValue("lbl_kpi_favs", `⭐ Favorites: ${k.favorites}`);
+  }
+
   function applyFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string }, forceScan = false) {
     try {
       applyFiltersInner(w, overrides, forceScan);
@@ -1764,9 +1863,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     const query = String(rawQuery ?? "").trim().toLowerCase();
     const rawCat = overrides?.cat !== undefined ? overrides.cat : w.getValue("dd_category");
     const catChoice = String(rawCat || "🌟 All Project Tools");
+    const sortMode: SortMode = sortModeFromLabel(String(w.getValue("dd_sort") || SORT_LABELS.default));
 
     const fresh = getScan(forceScan);
 
+    const scores = new Map<string, number>();
     currentApps = fresh.apps.filter((a) => {
       // Category filter
       if (catChoice.includes("Studio Applications") && a.source !== "rad_studio") return false;
@@ -1774,16 +1875,21 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       if (catChoice.includes("Showcase Demos") && a.source !== "rad_demo") return false;
       if (catChoice.includes("Running Processes") && !a.isRunning) return false;
       if (catChoice.includes("Pinned Favorites") && !a.isFavorite) return false;
+      if (catChoice.includes("Recently Used") && !a.lastLaunched) return false;
 
-      // Search query
-      if (query) {
-        const mName = a.displayName.toLowerCase().includes(query) || a.name.toLowerCase().includes(query);
-        const mCat = a.category.toLowerCase().includes(query);
-        const mPath = a.displayPath.toLowerCase().includes(query);
-        return mName || mCat || mPath;
-      }
-      return true;
+      // Multi-word AND search over name, id, category, path, description and command
+      const s = searchScore(a, query);
+      scores.set(a.id, s);
+      return s > 0;
     });
+
+    // "Recently Used" implies newest first unless the user picked another order.
+    const effectiveSort: SortMode = catChoice.includes("Recently Used") && sortMode === "default" ? "recent" : sortMode;
+    currentApps = sortApps(currentApps, effectiveSort);
+    // With a search query the best match comes first (stable, keeps the chosen order for ties).
+    if (query && effectiveSort === "default") {
+      currentApps = currentApps.map((a, i) => ({ a, i })).sort((x, y) => (scores.get(y.a.id)! - scores.get(x.a.id)!) || x.i - y.i).map((x) => x.a);
+    }
 
     const rows = currentApps.map(formatRow);
     w.setTableData("tbl_apps", tableHeaders, rows);
@@ -1792,6 +1898,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setListItems("lst_apps", filteredItems);
     w.setListItems("dd_select_app", filteredItems);
 
+    updateKpiLabels(w, fresh.kpis);
     w.setText(
       "lbl_status",
       `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}  |  Favorites: ${fresh.kpis.favorites}`
@@ -1890,31 +1997,47 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onEnter("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0));
   win.onChange("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }));
   win.onChange("dd_category", (w, val: any) => scheduleFilters(w, { cat: typeof val === "string" ? val : undefined }, 0));
+  win.onChange("dd_sort", (w) => scheduleFilters(w, undefined, 0));
 
   win.onClick("btn_rescan", (w) => {
-    const fresh = scanAllApplications();
-    currentApps = fresh.apps;
-    const rows = currentApps.map(formatRow);
-    w.setTableData("tbl_apps", tableHeaders, rows);
-
-    const freshItems = currentApps.map(formatItemStr);
-    w.setListItems("lst_apps", freshItems);
-    w.setListItems("dd_select_app", freshItems);
-
-    w.setValue("lbl_kpi_total", `⚡ Total Tools: ${fresh.kpis.total}`);
-    w.setValue("lbl_kpi_studios", `🖥️ Studio Applications: ${fresh.kpis.radStudios}`);
-    w.setValue("lbl_kpi_cli", `🛠️ CLI Utilities: ${fresh.kpis.cliTools}`);
-    w.setValue("lbl_kpi_demos", `🎮 Showcase Demos: ${fresh.kpis.demos}`);
-    w.setValue("lbl_kpi_running", `🟢 Active Running: ${fresh.kpis.running}`);
-    w.setValue("lbl_kpi_favs", `⭐ Favorites: ${fresh.kpis.favorites}`);
+    applyFilters(w, undefined, true);
+    const fresh = getScan(false);
     w.appendConsole("launcher_console", `[Rescan] Discovered ${fresh.kpis.total} project tools (${fresh.kpis.radStudios} Studios, ${fresh.kpis.cliTools} CLI tools, ${fresh.kpis.favorites} Favorites).\n`, 2);
     w.toast(`Rescanned: ${fresh.kpis.total} tools ready`);
+  });
 
-    if (currentApps.length > 0) {
-      const stillPresent = selectedApp ? currentApps.find((a) => a.id === selectedApp?.id) : null;
-      selectedApp = stillPresent || currentApps[0]!;
-      updateSelectedView(w, selectedApp);
-    }
+  // Open the tool's source in an editor
+  win.onClick("btn_edit", (w) => {
+    if (!selectedApp) { w.toast("No tool selected."); return; }
+    const r = openInEditor(selectedApp.path);
+    w.appendConsole("launcher_console", `[Open Source] ${selectedApp.displayPath}: ${r.message}\n`, r.success ? 1 : 3);
+    w.toast(r.success ? `📝 ${r.message}` : `❌ ${r.message}`);
+  });
+
+  win.onClick("btn_copy_path", (w) => {
+    if (!selectedApp) { w.toast("No tool selected."); return; }
+    copyToClipboard(selectedApp.path);
+    w.toast(`Copied: ${selectedApp.path}`);
+  });
+
+  win.onClick("btn_stop_all", async (w) => {
+    const running = getScan(true).apps.filter((a) => a.isRunning);
+    if (running.length === 0) { w.toast("Nothing is running."); return; }
+    const ok = await w.confirm(`Stop ${running.length} running tool(s)?\n\n${running.map((a) => `• ${a.displayName}`).join("\n")}`);
+    if (!ok) { w.appendConsole("launcher_console", "[Stop All] Cancelled.\n", 1); return; }
+    const res = stopAllApplications();
+    w.appendConsole("launcher_console", `[Stop All] Stopped ${res.stopped} of ${running.length}.\n${res.messages.map((m) => `  ${m}\n`).join("")}`, res.stopped ? 2 : 3);
+    w.toast(`⏹ Stopped ${res.stopped} of ${running.length}`);
+    setTimeout(() => applyFilters(w, undefined, true), 600);
+  });
+
+  win.onClick("btn_clear_history", async (w) => {
+    const ok = await w.confirm("Clear launch counts and last-used times for every tool? Favorites are kept.");
+    if (!ok) return;
+    clearLaunchHistory();
+    w.appendConsole("launcher_console", "[History] Usage history cleared.\n", 2);
+    w.toast("Usage history cleared");
+    applyFilters(w, undefined, true);
   });
 
   // ListBox selection change and click
