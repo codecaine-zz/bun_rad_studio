@@ -246,6 +246,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "👾",
     description: "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
   },
+  flappy_bird_studio: {
+    displayName: "Flappy Bird Deluxe",
+    category: "Games & Entertainment",
+    icon: "🐦",
+    description: "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+  },
   minesweeper_studio: {
     displayName: "Minesweeper Pro Championship",
     category: "Games & Entertainment",
