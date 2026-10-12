@@ -61,12 +61,24 @@ bun run cli:json data.json ".users[] | {name: .name, email: .email}"
 - **Transformed Result Output (Right Pane)**: Formatted, color-highlighted output viewer displaying filtered results.
 - **Telemetry Pill**: Displays input byte size, result byte size, and query execution time in microseconds.
 
-### 3. Formatting & Utility Toolbar
-- **Format / Pretty-Print**: Re-indents the active JSON with standardized 2-space indentation.
-- **Minify / Compact**: Strips all whitespace, tabs, and newlines for optimized network payloads.
-- **📋 Copy Result**: Copies transformed JSON to clipboard with tactile feedback.
-- **💾 Export File**: Saves output directly to disk.
+### 3. Document Tools (File I/O, Formatting, Conversion, Search)
+- **📂 Open File... / 🌐 Load URL...**: Load a `.json`, `.geojson`, `.txt` or `.csv` file (CSV is converted to JSON automatically) or fetch JSON from an http(s) URL.
+- **💾 Save Output... / 💾 Save Input...**: Save either pane to disk (the output defaults to `.csv` / `.yaml` when you converted it). **📋 Copy Output** copies it to the clipboard.
+- **⇄ Output → Input**: Moves the result into the input pane so you can chain queries. **🗑 Clear** empties everything.
+- **✨ Format / 🗜 Minify / 🔤 Sort Keys**: Re-indent the input (**Indent**: 2 spaces, 4 spaces or Tab), strip all whitespace, or sort object keys alphabetically at every level.
+- **✔ Validate**: Checks the input and reports the **line and column** of the first syntax error. Invalid input is also reported by every other tool.
+- **📊 Stats**: Size in bytes, nesting depth and counts of objects, arrays, keys, strings, numbers, booleans and nulls.
+- **Convert Output**: **→ CSV** (array of objects becomes a table), **→ YAML**, and **CSV Input → JSON** for pasted CSV.
+- **Find**: Search every key and value; matching jq-style paths (e.g. `.modules[2].status`) are listed in the console and the output pane.
+- **Compact Output / Live Query**: Print results on a single line, or re-run the query automatically as you type.
 
+### 4. Supported Query Syntax
+- **Paths & iteration**: `.a.b`, `.items[0]`, `.items[]`, `.items[].name`, `[ ... ]` array wrapping, and `|` pipelines.
+- **Filtering**: `select(.lines > 2000)`, `select(.status == "stable" and .lines < 3000)`, `select(.name | contains("x"))`, with `==  !=  >  <  >=  <=`, `and`, `or`, `not`.
+- **Transforms**: `map`, `sort`, `sort_by`, `unique`, `unique_by`, `group_by`, `min_by`, `max_by`, `del(.key)`, `to_entries`, `from_entries`, `keys`, `values`, `add`, `length`, `flatten`, `any`, `all`, and the alternative operator `.a // "default"`.
+- **Strings**: `contains`, `startswith`, `endswith`, `test("regex")`, `split`, `join`, `ltrimstr`, `rtrimstr`, `ascii_downcase`, `ascii_upcase`, `tostring`, `tonumber`.
+- **JavaScript mode**: start with `$` (e.g. `$.modules.map(m => m.name.toUpperCase())`) for full JavaScript expressions.
+- **External jq**: choose **External jq CLI** in the Engine dropdown to use the real `jq` binary if it is installed.
 ---
 
 ## 🛠️ Step-by-Step Practical Tutorials
