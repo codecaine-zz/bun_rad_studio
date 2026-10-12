@@ -387,6 +387,15 @@
     .btn-arcade:active {
       transform: scale(0.96);
     }
+    .diff-row { display:flex; gap:8px; margin: 4px 0 14px; justify-content:center; }
+    .diff-btn {
+      font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+      padding: 6px 14px; border-radius: 999px; cursor: pointer;
+      background: rgba(255,255,255,0.06); color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.15); transition: all .15s ease;
+    }
+    .diff-btn:hover { color:#fff; border-color: rgba(255,255,255,0.4); }
+    .diff-btn.active { color:#fff; background: linear-gradient(135deg,#06b6d4,#a855f7); border-color: transparent; box-shadow: 0 0 14px rgba(168,85,247,0.55); }
   </style>
 </head>
 <body>
@@ -469,6 +478,11 @@
             <span>Sector</span>
             <b id="ovSector">1</b>
           </div>
+        </div>
+        <div class="diff-row" id="diffRow">
+          <button class="diff-btn" data-diff="chill" title="5 lives, slower ball">Chill</button>
+          <button class="diff-btn" data-diff="normal" title="3 lives">Normal</button>
+          <button class="diff-btn" data-diff="insane" title="2 lives, faster ball">Insane</button>
         </div>
         <button class="btn-arcade" id="btnStartGame">LAUNCH GAME (SPACE)</button>
       </div>
@@ -694,6 +708,24 @@
     let comboTimer = 0;
     let maxComboReached = 1;
 
+    // Difficulty (persisted)
+    const DIFFICULTIES = {
+      chill:  { speed: 0.85, lives: 5 },
+      normal: { speed: 1.0,  lives: 3 },
+      insane: { speed: 1.25, lives: 2 }
+    };
+    let difficulty = localStorage.getItem("cyber_breakout_diff");
+    if (!DIFFICULTIES[difficulty]) difficulty = "normal";
+    function sectorSpeed() {
+      return DIFFICULTIES[difficulty].speed * Math.min(1.5, 1 + (currentSector - 1) * 0.03);
+    }
+
+    // Parallax starfield
+    const stars = Array.from({ length: 70 }, () => ({
+      x: Math.random() * 800, y: Math.random() * 600,
+      r: 1 + Math.random() * 1.6, v: 0.15 + Math.random() * 0.5, a: 0.2 + Math.random() * 0.5
+    }));
+
     // Paddle Model
     const paddle = {
       x: W / 2 - 55,
@@ -739,6 +771,7 @@
     const POWER_WIDE = "wide";
     const POWER_CATCH = "catch";
     const POWER_LIFE = "life";
+    const POWER_SHRINK = "shrink";
 
     const POWER_DEF = {
       [POWER_LASER]: { label: "Twin Lasers", color: "#ef4444", icon: "⚡" },
@@ -748,7 +781,8 @@
       [POWER_SLOWMO]: { label: "Time Warp", color: "#a855f7", icon: "⏱️" },
       [POWER_WIDE]: { label: "Wide Paddle", color: "#06b6d4", icon: "📏" },
       [POWER_CATCH]: { label: "Magnetic Catch", color: "#fbbf24", icon: "🧲" },
-      [POWER_LIFE]: { label: "Extra Life", color: "#ec4899", icon: "💖" }
+      [POWER_LIFE]: { label: "Extra Life", color: "#ec4899", icon: "💖" },
+      [POWER_SHRINK]: { label: "Curse: Shrink", color: "#64748b", icon: "☠️" }
     };
 
     let activePowers = {};
@@ -797,6 +831,10 @@
             if (r === 0 && sector > 2) hp = 2; // Armored top row
             if (r === 1 && sector > 4) hp = 2;
 
+            // Indestructible steel bricks (only fireball breaks them)
+            const steel = sector >= 4 && r > 0 && !isExplosive && Math.random() < 0.07;
+            if (steel) { hp = 1; hasPowerup = false; }
+
             bricks.push({
               x: offsetX + c * (brickW + 4),
               y: offsetY + r * (brickH + 4),
@@ -804,9 +842,10 @@
               h: brickH,
               hp,
               maxHp: hp,
-              color: colors[r % colors.length],
+              color: steel ? "#64748b" : colors[r % colors.length],
               isExplosive,
-              hasPowerup
+              hasPowerup,
+              steel
             });
           }
         }
@@ -825,7 +864,8 @@
         vy,
         isFireball,
         isGlued: false,
-        glueOffset: 0
+        glueOffset: 0,
+        trail: []
       };
     }
 
@@ -835,6 +875,7 @@
       paddle.w = paddle.baseW;
       paddle.hasLaser = false;
       paddle.hasCatch = false;
+      paddle.hasShield = false;
       activePowers = {};
       renderActivePowersUI();
 
@@ -848,7 +889,7 @@
         if (b.isGlued) {
           b.isGlued = false;
           const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
-          const speed = 7.5;
+          const speed = 7.5 * sectorSpeed();
           b.vx = Math.cos(angle) * speed;
           b.vy = Math.sin(angle) * speed;
         }
@@ -1004,7 +1045,8 @@
             const maxBounceAngle = Math.PI * 0.38; // 68 degrees
             const bounceAngle = hitPoint * maxBounceAngle;
 
-            const currentSpeed = Math.min(13, Math.max(7.5, Math.hypot(ball.vx, ball.vy) + 0.1));
+            const sp = sectorSpeed();
+            const currentSpeed = Math.min(13 * sp, Math.max(7.5 * sp, Math.hypot(ball.vx, ball.vy) + 0.1));
             ball.vx = currentSpeed * Math.sin(bounceAngle) + (paddle.vx * 0.001);
             ball.vy = -currentSpeed * Math.cos(bounceAngle);
             ball.y = paddle.y - ball.radius - 1;
@@ -1040,11 +1082,18 @@
                 }
               }
 
-              damageBrick(b, bIdx);
+              damageBrick(b, bIdx, ball.isFireball);
               break;
             }
           }
         }
+
+        // Anti-stall: keep a minimum vertical speed so rallies never go flat
+        if (Math.abs(ball.vy) < 2.2) ball.vy = (ball.vy < 0 ? -1 : 1) * 2.2;
+
+        // Motion trail
+        ball.trail.push({ x: ball.x, y: ball.y });
+        if (ball.trail.length > 12) ball.trail.shift();
 
         // Ball fell off screen
         if (ball.y - ball.radius > H) {
@@ -1067,7 +1116,7 @@
       }
 
       // Check Sector Clear
-      if (bricks.length === 0) {
+      if (gameState === STATE_PLAYING && !bricks.some(b => !b.steel)) {
         triggerSectorClear();
       }
 
@@ -1092,7 +1141,13 @@
     }
 
     // Brick Damage & Explosion Logic
-    function damageBrick(b, bIdx) {
+    function damageBrick(b, bIdx, force = false) {
+      if (b.steel && !force) {
+        SoundEngine.playPaddleBounce();
+        createSparks(b.x + b.w / 2, b.y + b.h / 2, "#cbd5e1", 6);
+        screenShake = Math.max(screenShake, 1.5);
+        return;
+      }
       b.hp--;
       SoundEngine.playBrickHit(comboMultiplier);
       comboMultiplier = Math.min(16, comboMultiplier + 1);
@@ -1107,6 +1162,7 @@
         bricks.splice(bIdx, 1);
         screenShake = Math.max(screenShake, b.isExplosive ? 14 : 3);
         shatterBrick(b);
+        addFloatingText(`+${pointsEarned}`, b.x + b.w / 2 - 14, b.y, b.color);
 
         // Check Power-up Drop
         if (b.hasPowerup || Math.random() < 0.16) {
@@ -1180,8 +1236,10 @@
     // 6. Power-Up Implementation
     // -------------------------------------------------------------------------
     function spawnRandomPowerup(x, y) {
+      // Curses are rarer than boons
       const keys = Object.keys(POWER_DEF);
-      const chosen = keys[Math.floor(Math.random() * keys.length)];
+      let chosen = keys[Math.floor(Math.random() * keys.length)];
+      if (chosen === POWER_SHRINK && Math.random() < 0.5) chosen = POWER_WIDE;
       powerups.push({
         x, y,
         vy: 120,
@@ -1189,6 +1247,13 @@
         type: chosen,
         rot: 0
       });
+    }
+
+    function setPaddleWidth(w) {
+      const center = paddle.x + paddle.w / 2;
+      paddle.w = w;
+      paddle.x = Math.max(8, Math.min(W - w - 8, center - w / 2));
+      paddle.targetX = paddle.x;
     }
 
     function applyPowerup(type) {
@@ -1220,8 +1285,15 @@
           activePowers[POWER_SLOWMO] = { duration: 9 };
           break;
         case POWER_WIDE:
-          paddle.w = paddle.baseW * 1.5;
+          delete activePowers[POWER_SHRINK];
+          setPaddleWidth(paddle.baseW * 1.5);
           activePowers[POWER_WIDE] = { duration: 14 };
+          break;
+        case POWER_SHRINK:
+          delete activePowers[POWER_WIDE];
+          setPaddleWidth(paddle.baseW * 0.65);
+          activePowers[POWER_SHRINK] = { duration: 10 };
+          addFloatingText("☠️ CURSED!", paddle.x, paddle.y - 20, "#94a3b8");
           break;
         case POWER_CATCH:
           paddle.hasCatch = true;
@@ -1248,7 +1320,8 @@
           paddle.hasShield = false;
           break;
         case POWER_WIDE:
-          paddle.w = paddle.baseW;
+        case POWER_SHRINK:
+          setPaddleWidth(paddle.baseW);
           break;
         case POWER_CATCH:
           paddle.hasCatch = false;
@@ -1290,6 +1363,17 @@
         ctx.translate(sx, sy);
       }
 
+      // Parallax starfield
+      ctx.save();
+      ctx.fillStyle = "#c7d2fe";
+      stars.forEach(s => {
+        s.y += s.v;
+        if (s.y > H) { s.y = 0; s.x = Math.random() * W; }
+        ctx.globalAlpha = s.a;
+        ctx.fillRect(s.x, s.y, s.r, s.r);
+      });
+      ctx.restore();
+
       // Draw Safety Shield Floor
       if (paddle.hasShield) {
         ctx.save();
@@ -1319,6 +1403,17 @@
         // Gloss highlight line
         ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
         ctx.fillRect(b.x + 4, b.y + 2, b.w - 8, 3);
+
+        // Steel texture
+        if (b.steel) {
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(b.x + 6, b.y + b.h - 4);
+          ctx.lineTo(b.x + b.w / 2, b.y + 4);
+          ctx.lineTo(b.x + b.w - 6, b.y + b.h - 4);
+          ctx.stroke();
+        }
 
         // Armored texture
         if (b.hp > 1) {
@@ -1401,6 +1496,14 @@
       // Draw Balls
       balls.forEach(b => {
         ctx.save();
+        b.trail.forEach((t, i) => {
+          ctx.globalAlpha = (i / b.trail.length) * 0.35;
+          ctx.fillStyle = b.isFireball ? "#f97316" : "#38bdf8";
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, b.radius * (0.35 + 0.65 * i / b.trail.length), 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
         const ballGrad = ctx.createRadialGradient(
           b.x - 2, b.y - 2, 1,
           b.x, b.y, b.radius
@@ -1480,9 +1583,26 @@
     }
     requestAnimationFrame(loop);
 
+    function continueNextSector() {
+      lasers = [];
+      powerups = [];
+      gameState = STATE_PLAYING;
+      document.getElementById("overlayMenu").classList.remove("show");
+    }
+
+    function primaryAction() {
+      if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) startNewGame();
+      else if (gameState === STATE_SECTOR_CLEAR) continueNextSector();
+      else if (gameState === STATE_PAUSED) togglePause();
+      else if (gameState === STATE_PLAYING) {
+        launchGluedBalls();
+        if (paddle.hasLaser) fireLaserBlasters();
+      }
+    }
+
     function startNewGame() {
       score = 0;
-      lives = 3;
+      lives = DIFFICULTIES[difficulty].lives;
       currentSector = 1;
       comboMultiplier = 1;
       maxComboReached = 1;
@@ -1504,13 +1624,16 @@
 
     function triggerSectorClear() {
       gameState = STATE_SECTOR_CLEAR;
+      const bonus = lives * 500 + currentSector * 250;
+      score += bonus;
+      updateScoreUI();
       currentSector++;
       updateSectorUI();
       SoundEngine.playPowerup();
 
       document.getElementById("overlayTitle").textContent = "SECTOR SECURED!";
       document.getElementById("overlayTitle").style.color = "var(--accent-color)";
-      document.getElementById("overlaySubtitle").textContent = `Advancing to Sector ${currentSector}...`;
+      document.getElementById("overlaySubtitle").textContent = `Clear bonus +${bonus}! Next up: Sector ${currentSector}.`;
       document.getElementById("overlayStats").style.display = "grid";
       document.getElementById("ovScore").textContent = score;
       document.getElementById("ovCombo").textContent = `${maxComboReached}x`;
@@ -1567,12 +1690,22 @@
       paddle.targetX = mouseX - paddle.w / 2;
     });
 
-    canvas.addEventListener("mousedown", (e) => {
-      if (gameState === STATE_PLAYING) {
-        launchGluedBalls();
-        if (paddle.hasLaser) fireLaserBlasters();
-      }
+    canvas.addEventListener("mousedown", () => {
+      if (gameState === STATE_PLAYING) primaryAction();
     });
+
+    // Touch controls
+    function touchToPaddle(e) {
+      const t = e.touches[0];
+      if (!t) return;
+      const rect = canvas.getBoundingClientRect();
+      paddle.targetX = (t.clientX - rect.left) * (canvas.width / rect.width) - paddle.w / 2;
+    }
+    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); touchToPaddle(e); if (gameState === STATE_PLAYING) primaryAction(); }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); touchToPaddle(e); }, { passive: false });
+
+    // Auto-pause when the window loses focus
+    window.addEventListener("blur", () => { if (gameState === STATE_PLAYING) togglePause(); });
 
     // Keyboard controls
     const keysDown = {};
@@ -1581,14 +1714,7 @@
 
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
-        if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER || gameState === STATE_SECTOR_CLEAR) {
-          startNewGame();
-        } else if (gameState === STATE_PAUSED) {
-          togglePause();
-        } else if (gameState === STATE_PLAYING) {
-          launchGluedBalls();
-          if (paddle.hasLaser) fireLaserBlasters();
-        }
+        primaryAction();
       }
 
       if (e.key.toLowerCase() === "p" || e.key === "Escape") {
@@ -1617,6 +1743,7 @@
     setInterval(handleKeyboardSmoothMotion, 16);
 
     // Gamepad API Polling
+    const padPrev = { a: false, start: false };
     function pollGamepad() {
       const pads = navigator.getGamepads ? navigator.getGamepads() : [];
       const gp = pads[0];
@@ -1626,14 +1753,19 @@
         if (Math.abs(axisX) > 0.12) {
           paddle.targetX += axisX * 18;
         }
+        // D-pad left/right
+        if (gp.buttons[14]?.pressed) paddle.targetX -= 16;
+        if (gp.buttons[15]?.pressed) paddle.targetX += 16;
 
-        // Button A or Trigger to launch/fire
-        if (gp.buttons[0]?.pressed || gp.buttons[7]?.pressed) {
-          if (gameState === STATE_PLAYING) {
-            launchGluedBalls();
-            if (paddle.hasLaser) fireLaserBlasters();
-          }
-        }
+        // Button A or Trigger: launch/fire (held while playing), menu confirm (edge)
+        const a = !!(gp.buttons[0]?.pressed || gp.buttons[7]?.pressed);
+        if (a && (gameState === STATE_PLAYING || !padPrev.a)) primaryAction();
+        padPrev.a = a;
+
+        // Start button toggles pause
+        const start = !!gp.buttons[9]?.pressed;
+        if (start && !padPrev.start) togglePause();
+        padPrev.start = start;
       }
     }
 
@@ -1646,9 +1778,25 @@
     btnSound.addEventListener("click", toggleSound);
     document.getElementById("btnPause").addEventListener("click", togglePause);
     document.getElementById("btnStartGame").addEventListener("click", () => {
-      if (gameState === STATE_PAUSED) togglePause();
-      else startNewGame();
+      if (gameState === STATE_PLAYING) return;
+      primaryAction();
     });
+
+    // Difficulty selector
+    function syncDiffButtons() {
+      document.querySelectorAll(".diff-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.diff === difficulty);
+      });
+    }
+    document.querySelectorAll(".diff-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        difficulty = btn.dataset.diff;
+        localStorage.setItem("cyber_breakout_diff", difficulty);
+        syncDiffButtons();
+        btn.blur();
+      });
+    });
+    syncDiffButtons();
 
     document.getElementById("btnFullscreen").addEventListener("click", () => {
       if (!document.fullscreenElement) {
