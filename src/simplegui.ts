@@ -6033,7 +6033,16 @@ export class SimpleWindow {
             if (!boundHandlers.has(changeBind)) {
                 boundHandlers.add(changeBind);
                 try {
+                    let lastSig = "";
+                    let lastAt = 0;
                     this.webview?.bind(changeBind, async (val: any) => {
+                        // A <select>/checkbox fires input + change (+ inline handlers) for one user action;
+                        // collapse identical bursts so user callbacks run once.
+                        const sig = typeof val === "object" ? JSON.stringify(val) : String(val);
+                        const now = Date.now();
+                        if (sig === lastSig && now - lastAt < 120) return;
+                        lastSig = sig;
+                        lastAt = now;
                         if (val !== undefined && val !== null) {
                             this.formValuesStore[cid] = val;
                         }

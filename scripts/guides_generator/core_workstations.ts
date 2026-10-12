@@ -398,6 +398,13 @@ bun run cli:watcher -d ./ -x "ts,js,json" -e "bun run build"
 - **File Extensions Filter**: Comma-separated list of extensions to monitor (e.g., \`ts,tsx,js,json,css,html\`).
 - **Ignore Patterns**: Comma-separated list of paths or subdirectories to ignore (e.g. \`node_modules,.git,dist,.temp,build\`).
 - **Debounce Delay (ms)**: Debounce buffer window (default \`300ms\`) to coalesce rapid multi-file IDE saves into a single run.
+- **📁 Browse... (Watch Directory / Run In)**: Opens a folder picker so you never have to type a path. **Run In** sets the working directory the command executes in (blank = current directory).
+- **Preset Dropdown**: One-click commands (\`bun test\`, \`tsc --noEmit\`, \`eslint\`, \`bun build\`, \`npm test\`, ...) that fill the Execute Command box; you can still edit it afterwards.
+- **Restart on Change**: When on, a new file change kills the running command and restarts it. When off, the running command finishes and extra changes are logged and ignored.
+- **Notify When Done**: Shows a success or failure toast (with run number and duration) when a run ends.
+- **Copy Log / Export Log**: Copy the console output to the clipboard or save it to a file through a save dialog.
+- **Clear History**: Empties the File Modification History table (which now includes a **Duration** column).
+- **Live Streaming & Validation**: Output streams into the console as it is produced, and a missing watch or working directory shows an error toast instead of failing silently.
 
 ### 2. Execution Control Panel
 - **▶ Start Watching Button**: Starts the native background recursive file watcher.

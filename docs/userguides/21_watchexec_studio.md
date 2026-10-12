@@ -35,4 +35,9 @@ bun run cli:watchexec -w ./src -e "bun test"
 ## 🧭 Key Capabilities
 - **Debounce Buffer**: Avoids multiple executions when saving multi-file projects.
 - **Extension & Ignore Filters**: Focuses watcher on relevant source files only.
-- **Subprocess Supervision**: Gracefully terminates prior execution before restarting tasks.
+- **Subprocess Supervision**: Gracefully terminates prior execution before restarting tasks (toggle with **Restart on Change**).
+- **Folder Browsers**: 📁 Browse buttons for the **Watch Directory** and the new **Run In** working directory.
+- **Command Presets**: Dropdown of common commands (tests, type-check, lint, build) that fills the command box.
+- **Live Console Streaming**: stdout/stderr appear as they are produced, with **Copy Log** and **Export Log** buttons.
+- **Run History with Duration**: Status and duration per run, a **Clear History** button, and optional success/failure toasts (**Notify When Done**).
+- **Path Validation**: Missing watch or working directories raise a clear error instead of failing silently.
