@@ -228,6 +228,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🟡",
     description: "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
   },
+  breakout_studio: {
+    displayName: "Cyber Breakout Deluxe",
+    category: "Games & Entertainment",
+    icon: "🧱",
+    description: "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+  },
   minesweeper_studio: {
     displayName: "Minesweeper Pro Championship",
     category: "Games & Entertainment",
