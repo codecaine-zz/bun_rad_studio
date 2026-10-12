@@ -332,8 +332,9 @@ $metadataRegistry = @{
     'markdown_studio'      = @{ Name = 'Markdown Live Editor Studio'; Category = 'Productivity'; Icon = '[App]'; Desc = 'Real-time dual-pane WYSIWYG Markdown editor with live preview and exports' }
     'system_studio'        = @{ Name = 'System Information Studio Pro'; Category = 'Developer'; Icon = '[App]'; Desc = 'Hardware intelligence and telemetry workstation covering all 10 domain areas' }
     'devtools_studio'      = @{ Name = 'DevTools and OmniTool Studio'; Category = 'Developer'; Icon = '[App]'; Desc = 'Unified developer CLI toolkit with 6 developer engines powered natively' }
-    'database_studio'      = @{ Name = 'Unified Database Studio'; Category = 'Database'; Icon = '[App]'; Desc = 'Universal SQL query runner and connection dispatcher for SQLite and Redis' }
+    'database_studio'      = @{ Name = 'Unified Database Studio'; Category = 'Database'; Icon = '[App]'; Desc = 'Universal SQL query runner and connection dispatcher for SQLite, MySQL and Redis' }
     'sqlite_studio'        = @{ Name = 'SQLite Studio Pro'; Category = 'Database'; Icon = '[App]'; Desc = 'Enterprise embedded database workstation and query IDE with zero-latency execution' }
+    'mysql_studio'         = @{ Name = 'MySQL Studio Pro'; Category = 'Database'; Icon = '[App]'; Desc = 'Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite' }
     'redis_studio'         = @{ Name = 'Redis Studio Pro'; Category = 'Database'; Icon = '[App]'; Desc = 'Real-time Redis telemetry, live key-value inspector and memory diagnostics' }
     'json_studio'          = @{ Name = 'JSON and JQ Studio Pro'; Category = 'Developer'; Icon = '[App]'; Desc = 'Interactive JSON inspector, schema validator, live JQ filtering and formatter' }
     'process_studio'       = @{ Name = 'Process Monitor Studio'; Category = 'System'; Icon = '[App]'; Desc = 'Real-time process telemetry, signal dispatcher and TCP connection inspector' }
@@ -358,6 +359,10 @@ $metadataRegistry = @{
     'doggo_studio'         = @{ Name = 'DNS Query Studio (Doggo)'; Category = 'Network'; Icon = '[App]'; Desc = 'Modern DNS lookup client with DoH, DoT, trace recursion and record browser' }
     'subfinder_studio'     = @{ Name = 'Subdomain Finder Studio'; Category = 'Security'; Icon = '[App]'; Desc = 'Passive DNS and Certificate Transparency subdomain discovery engine' }
     'rad_studio'           = @{ Name = 'RAD Utilities Studio Pro'; Category = 'Developer'; Icon = '[App]'; Desc = '44 high-velocity development modules for Rapid Application Development' }
+    'jq_studio'            = @{ Name = 'JQ JSON Query Studio'; Category = 'Developer'; Icon = '[App]'; Desc = 'Interactive JSON query and transformation workstation powered by native JQ filters' }
+    'omnitool_studio'      = @{ Name = 'OmniTool Studio Pro'; Category = 'Developer'; Icon = '[App]'; Desc = 'Swiss-army knife for encoding, decoding, hash generation and text processing' }
+    'task_manager'         = @{ Name = 'Task Manager & Process Studio'; Category = 'System'; Icon = '[App]'; Desc = 'Live CPU/Memory monitor, process tree visualizer and port listener' }
+    'brew_studio'          = @{ Name = 'Homebrew Package Studio'; Category = 'System'; Icon = '[App]'; Desc = 'Package dependency manager and Bun ecosystem workstation' }
 
     # Demos
     '01_standard_controls'                 = @{ Name = 'Standard UI Controls Showcase'; Category = 'UI Controls'; Icon = '[Demo]'; Desc = 'Core buttons, inputs, checkboxes, radios, sliders and progress bars' }
@@ -385,6 +390,8 @@ $metadataRegistry = @{
     '23_all_themes_all_controls_showcase'  = @{ Name = 'Universal 42 Themes Showcase'; Category = 'Themes'; Icon = '[Demo]'; Desc = 'Master showcase of all 42 bespoke desktop themes and controls' }
     '24_extended_controls_showcase'        = @{ Name = 'Extended Controls Showcase'; Category = 'UI Controls'; Icon = '[Demo]'; Desc = 'Rich widgets, dial gauges, rating stars, timeline and stepper' }
     '25_vlang_all_themes_showcase'         = @{ Name = 'V-Lang All Themes Showcase'; Category = 'Themes'; Icon = '[Demo]'; Desc = 'Comprehensive theme engine applied to V-Lang parity controls' }
+    '26_modal_and_non_modal_dialogs_demo'  = @{ Name = 'Modal & Non-Modal Dialogs Showcase'; Category = 'UI Controls'; Icon = '[Demo]'; Desc = 'Declarative modal dialogs, non-modal tool windows, drawer panels and backdrops' }
+    '27_enterprise_components_demo'        = @{ Name = 'Enterprise Components Showcase'; Category = 'Enterprise'; Icon = '[Demo]'; Desc = 'AppBar, navigation drawer, autocomplete, tree view, stepper and metrics' }
 
     # CLI tools
     'launcher_cli'                         = @{ Name = 'Launcher CLI'; Category = 'CLI Tools'; Icon = '[CLI]'; Desc = 'Terminal companion to search, inspect and launch project apps' }
@@ -434,7 +441,13 @@ function Get-AppCatalog {
 
     # 2. Studio Applications
     $appFiles = Get-ChildItem -Path (Join-Path $projectRoot 'applications') -Filter '*.ts' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -notmatch '_server\.ts$' -and $_.Name -notmatch '_engine\.ts$' } |
+        Where-Object {
+            $_.Name -notmatch '_server\.ts$' -and
+            $_.Name -notmatch '_crud\.ts$' -and
+            $_.Name -notmatch '_engine\.ts$' -and
+            $_.Name -notmatch '_extras\.ts$' -and
+            $_.Name -notmatch '_ops\.ts$'
+        } |
         Sort-Object Name
 
     foreach ($file in $appFiles) {
@@ -567,18 +580,30 @@ function Resolve-CatalogItem {
         'system'        = 'system_studio'
         'sys'           = 'system_studio'
         'devtools'      = 'devtools_studio'
-        'omnitool'      = 'devtools_studio'
+        'omnitool'      = 'omnitool_studio'
+        'omni'          = 'omnitool_studio'
+        'omnitool_studio'= 'omnitool_studio'
         'database'      = 'database_studio'
         'db'            = 'database_studio'
         'sqlite'        = 'sqlite_studio'
+        'sqlite_studio' = 'sqlite_studio'
+        'mysql'         = 'mysql_studio'
+        'mysql_studio'  = 'mysql_studio'
         'redis'         = 'redis_studio'
+        'redis_studio'  = 'redis_studio'
         'json'          = 'json_studio'
         'jq'            = 'json_studio'
+        'jq_studio'     = 'jq_studio'
         'process'       = 'process_studio'
         'processes'     = 'process_studio'
         'task'          = 'process_studio'
-        'taskmanager'   = 'process_studio'
+        'taskmanager'   = 'task_manager'
+        'task_manager'  = 'task_manager'
+        'tm'            = 'task_manager'
         'procs'         = 'procs_studio'
+        'brew'          = 'brew_studio'
+        'brew_studio'   = 'brew_studio'
+        'homebrew'      = 'brew_studio'
         'watcher'       = 'watcher_studio'
         'watchexec'     = 'watchexec_studio'
         'network'       = 'network_studio'
@@ -618,6 +643,10 @@ function Resolve-CatalogItem {
         'settings'      = '11_app_settings_preferences_template'
         'preferences'   = '11_app_settings_preferences_template'
         'standard'      = '01_standard_controls'
+        'dialog'        = '26_modal_and_non_modal_dialogs_demo'
+        'dialogs'       = '26_modal_and_non_modal_dialogs_demo'
+        'modal'         = '26_modal_and_non_modal_dialogs_demo'
+        'enterprise'    = '27_enterprise_components_demo'
         'modern'        = '02_advanced_modern_controls'
         'data'          = '03_data_and_non_visual'
         'window'        = '04_window_placement_and_pin'
@@ -685,13 +714,16 @@ function Launch-Item {
 # -------------------------------------------------------------------------------------------------
 
 function Show-CatalogList {
-    param([string]$Filter)
+    param([string]$Filter, [string]$TypeFilter)
 
     Write-BrandHeader
     $items = $allCatalog
+    if ($TypeFilter) {
+        $items = $items | Where-Object { $_.Type -eq $TypeFilter }
+    }
     if ($Filter) {
         $q = $Filter.ToLower()
-        $items = $allCatalog | Where-Object {
+        $items = $items | Where-Object {
             $_.Id.ToLower().Contains($q) -or
             $_.DisplayName.ToLower().Contains($q) -or
             $_.Category.ToLower().Contains($q) -or
@@ -699,7 +731,11 @@ function Show-CatalogList {
         }
         Write-Host "[?] Showing results matching '$Filter' ($($items.Count) found):" -ForegroundColor Yellow
     } else {
-        Write-Host "[-] Complete Bun RAD Studio Workspace Catalog ($($items.Count) items):" -ForegroundColor Green
+        if ($TypeFilter) {
+            Write-Host "[-] Bun RAD Studio $($TypeFilter)s ($($items.Count) items):" -ForegroundColor Green
+        } else {
+            Write-Host "[-] Complete Bun RAD Studio Workspace Catalog ($($items.Count) items):" -ForegroundColor Green
+        }
     }
     Write-Host ""
 
@@ -765,9 +801,9 @@ function Show-InteractiveMenu {
         Write-Host "  WebView2:     $webStatus" -ForegroundColor $webColor
         Write-Host "------------------------------------------------------------------------" -ForegroundColor DarkCyan
         Write-Host "  [1] Open Launcher Studio Pro (Full Desktop GUI Hub)" -ForegroundColor Yellow
-        Write-Host "  [2] Showcase Demos (01 - 25: Controls, Themes, Windows)" -ForegroundColor Cyan
+        Write-Host "  [2] Showcase Demos (01 - 27: Controls, Themes, Dialogs, Enterprise)" -ForegroundColor Cyan
         Write-Host "  [3] Arcade and Games (Pacman, Mario Bros, Pong, Connect 4...)" -ForegroundColor Red
-        Write-Host "  [4] Developer and System Studios (DevTools, Process, SQLite...)" -ForegroundColor Green
+        Write-Host "  [4] Developer and System Studios (DevTools, Process, SQLite, MySQL...)" -ForegroundColor Green
         Write-Host "  [5] Productivity and Math (Universal Calculator, Markdown...)" -ForegroundColor Magenta
         Write-Host "  [6] CLI Tools and Utilities (Launcher CLI, DevTools CLI...)" -ForegroundColor Blue
         Write-Host "  [7] Search All Apps and Demos by keyword" -ForegroundColor White
@@ -964,6 +1000,26 @@ if ($List) {
 if ($Search) {
     Show-CatalogList -Filter $Search
     exit 0
+}
+
+# Direct list commands like "app list", "apps", "list", "ls", "demos list", "demos"
+if ($Target -in @('list', 'ls', 'all')) {
+    Show-CatalogList
+    exit 0
+}
+
+if ($Target -in @('app', 'apps')) {
+    if ($ExtraArgs -contains 'list' -or -not $ExtraArgs -or $Target -eq 'apps') {
+        Show-CatalogList -TypeFilter 'Application'
+        exit 0
+    }
+}
+
+if ($Target -in @('demo', 'demos')) {
+    if ($ExtraArgs -contains 'list' -or -not $ExtraArgs -or $Target -eq 'demos') {
+        Show-CatalogList -TypeFilter 'Demo'
+        exit 0
+    }
 }
 
 # Direct target provided via CLI parameter
