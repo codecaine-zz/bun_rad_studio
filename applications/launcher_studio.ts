@@ -270,6 +270,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🎲",
     description: "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
   },
+  paint_studio: {
+    displayName: "Chroma Studio Pro",
+    category: "Design & Media",
+    icon: "🎨",
+    description: "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",

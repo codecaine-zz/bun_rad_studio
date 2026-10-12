@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="70%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="paletteGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="70%" stop-color="#e2e8f0"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+    <linearGradient id="brushMetal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="brushWood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Cosmic Rim -->
+  <circle cx="50" cy="50" r="48" fill="url(#bgGlow)" stroke="#6366f1" stroke-width="2.5" filter="url(#shadow)"/>
+  <circle cx="50" cy="50" r="44" fill="none" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="3, 3" opacity="0.6"/>
+
+  <!-- Artist Palette Shape -->
+  <path d="M 52 18 C 30 18 18 32 18 52 C 18 70 30 82 48 82 C 55 82 60 77 60 71 C 60 67 58 64 58 60 C 58 55 62 51 67 51 L 70 51 C 78 51 84 45 84 37 C 84 26 70 18 52 18 Z" 
+        fill="url(#paletteGrad)" stroke="#475569" stroke-width="2" filter="url(#shadow)"/>
+  
+  <!-- Palette Thumbhole -->
+  <ellipse cx="68" cy="65" rx="5" ry="6" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+
+  <!-- Vibrant Paint Daubs -->
+  <circle cx="32" cy="30" r="5.5" fill="#ef4444" stroke="#b91c1c" stroke-width="1"/>
+  <circle cx="48" cy="26" r="5.5" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+  <circle cx="64" cy="29" r="5.5" fill="#10b981" stroke="#047857" stroke-width="1"/>
+  <circle cx="30" cy="46" r="5.5" fill="#06b6d4" stroke="#0e7490" stroke-width="1"/>
+  <circle cx="28" cy="63" r="5.5" fill="#8b5cf6" stroke="#6d28d9" stroke-width="1"/>
+  <circle cx="44" cy="72" r="5.5" fill="#ec4899" stroke="#be185d" stroke-width="1"/>
+
+  <!-- Stylus / Paintbrush crossing through -->
+  <g transform="translate(48, 48) rotate(-42)" filter="url(#shadow)">
+    <!-- Wooden Handle -->
+    <rect x="-3" y="-38" width="6" height="38" rx="2" fill="url(#brushWood)" stroke="#451a03" stroke-width="1"/>
+    <!-- Metal Ferrule -->
+    <rect x="-3.5" y="0" width="7" height="12" rx="1" fill="url(#brushMetal)" stroke="#334155" stroke-width="1"/>
+    <!-- Bristles with Color Tip -->
+    <path d="M -3.5 12 C -3.5 18 -1 25 0 27 C 1 25 3.5 18 3.5 12 Z" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1"/>
+  </g>
+
+  <!-- Sparkle of Creativity -->
+  <path d="M 80 18 Q 84 22 88 22 Q 84 22 80 26 Q 80 22 76 22 Q 80 22 80 18 Z" fill="#fbbf24"/>
+</svg>
