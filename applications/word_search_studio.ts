@@ -10,7 +10,7 @@
 
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, renameSync } from "fs";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -67,6 +67,40 @@ export function getWordSearchAssetsDir(): string {
   return candidates[0]!;
 }
 
+/** Where settings and statistics live. WORD_SEARCH_STATE_FILE overrides it (used by tests). */
+export function getWordSearchStatePath(): string {
+  return process.env.WORD_SEARCH_STATE_FILE || resolve(process.cwd(), ".word_search_state.json");
+}
+
+/** Read saved settings/statistics; anything unreadable yields an empty object (the page sanitises the rest). */
+export function loadWordSearchState(): { settings?: unknown; stats?: unknown } {
+  try {
+    const file = getWordSearchStatePath();
+    if (!existsSync(file)) return {};
+    const parsed = JSON.parse(readFileSync(file, "utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { settings: parsed.settings, stats: parsed.stats } : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Persist settings/statistics atomically. Returns false for malformed or oversized input. */
+export function saveWordSearchState(raw: unknown): boolean {
+  try {
+    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+    const body = JSON.stringify({ settings: (data as any).settings ?? {}, stats: (data as any).stats ?? {} });
+    if (body.length > 64 * 1024) return false;
+    const file = getWordSearchStatePath();
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, body, "utf8");
+    renameSync(tmp, file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Generates the complete HTML for Neon Word Search with desktop shortcuts injected.
  */
@@ -75,6 +109,15 @@ export function generateWordSearchStudioHtml(): string {
   const indexPath = join(assetsDir, "index.html");
 
   let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Neon Word Search</h1>";
+
+  // The desktop window loads this HTML with no base URL, so relative scripts cannot load: inline the engine,
+  // and inject the saved state so settings and records are there on the first frame.
+  const enginePath = join(assetsDir, "engine.js");
+  if (existsSync(enginePath)) {
+    const stateJson = JSON.stringify(loadWordSearchState()).replace(/</g, "\\u003c");
+    const inline = `<script>window.__WS_STATE__ = ${stateJson};</script>\n<script>\n${readFileSync(enginePath, "utf8")}\n</script>`;
+    html = html.replace('<script src="engine.js"></script>', () => inline);
+  }
 
   const desktopHooks = `
   <script>
@@ -171,6 +214,18 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
         );
       }
 
+      // Saved settings and statistics. No CORS headers: other sites can neither read nor (via the Origin
+      // check) write them.
+      if (pathname === "/api/state") {
+        if (req.method === "GET") return Response.json(loadWordSearchState());
+        if (req.method === "POST") {
+          const origin = req.headers.get("origin");
+          if (origin && new URL(origin).host !== req.headers.get("host")) return new Response("Forbidden", { status: 403 });
+          return req.text().then((text) => (saveWordSearchState(text) ? Response.json({ ok: true }) : new Response("Bad Request", { status: 400 })));
+        }
+        return new Response("Method Not Allowed", { status: 405 });
+      }
+
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
@@ -230,6 +285,8 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
         });
         app.webview = webview;
         webview.title = title;
+        // Lets the page save settings/statistics (the HTML is loaded without an origin, so localStorage is unreliable)
+        try { webview.bind("wsSaveState", (json: string) => { saveWordSearchState(json); }); } catch {}
 
         try {
           if (fullscreen) {

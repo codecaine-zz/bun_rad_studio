@@ -745,6 +745,35 @@
                 overflow-y: auto;
             }
         }
+
+        /* ---- Added: pause, toast, stats, reveal, best-line ---- */
+        #gridBox { position: relative; }
+        #gridBox.paused #wordGrid { filter: blur(16px); pointer-events: none; }
+        .pause-overlay {
+            position: absolute; inset: 0; z-index: 12; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+            background: rgba(5, 7, 12, 0.55); border-radius: inherit;
+        }
+        .pause-title { font-family: var(--font-title); font-weight: 900; font-size: 1.8rem; letter-spacing: 6px; color: var(--neon-cyan); text-shadow: 0 0 18px var(--neon-cyan); }
+        .pause-sub { font-family: var(--font-hud); font-size: 0.95rem; color: #cbd5e1; }
+        .best-line { display: none; font-family: var(--font-title); font-size: 0.75rem; letter-spacing: 3px; color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+        .ws-toast {
+            position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+            z-index: 60; padding: 9px 18px; border-radius: 999px; background: rgba(11, 16, 24, 0.94);
+            border: 1px solid var(--neon-cyan); color: #e2e8f0; font-family: var(--font-hud); font-weight: 600; font-size: 0.95rem;
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.25); transition: opacity .2s ease, transform .2s ease;
+        }
+        .ws-toast.show { opacity: 1; transform: translate(-50%, 0); }
+        .action-btn.active { border-color: var(--neon-orange); color: var(--neon-orange); }
+        .grid-cell.revealed-cell { color: #ffffff; text-shadow: 0 0 10px #ffffff; background: rgba(255, 255, 255, 0.10); }
+        .word-chip.revealed { opacity: 0.85; text-decoration: underline wavy rgba(255, 255, 255, 0.5); }
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 6px 0 12px; text-align: center; font-family: var(--font-hud); font-size: 0.7rem; letter-spacing: 2px; color: #94a3b8; }
+        .stats-grid span { display: block; font-family: var(--font-title); font-weight: 800; font-size: 1.25rem; letter-spacing: 0; color: var(--neon-cyan); }
+        .stats-table { width: 100%; border-collapse: collapse; font-family: var(--font-hud); font-size: 0.95rem; color: #e2e8f0; }
+        .stats-table th { text-align: left; font-size: 0.75rem; letter-spacing: 2px; color: #94a3b8; padding: 4px 6px; border-bottom: 1px solid var(--border-color); }
+        .stats-table td { padding: 5px 6px; border-bottom: 1px solid rgba(27, 38, 59, 0.6); }
+        .stats-table td:not(:first-child), .stats-table th:not(:first-child) { text-align: right; }
+        @media (max-width: 560px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
     </style>
 </head>
 <body>
@@ -771,6 +800,9 @@
             </button>
             <button type="button" class="nav-btn" id="soundToggle" title="Toggle Sound FX">
                 <span id="soundIcon">🔊</span>
+            </button>
+            <button type="button" class="nav-btn" id="statsBtn" title="Statistics (T)">
+                <span>📊</span> <span class="btn-label">Stats</span>
             </button>
             <button type="button" class="nav-btn" id="settingsBtn" title="Game Settings">
                 <span>⚙</span> <span class="btn-label">Settings</span>
@@ -816,6 +848,12 @@
                 <canvas id="vfxCanvas"></canvas>
                 <div id="wordGrid"></div>
 
+                <!-- Pause Overlay -->
+                <div class="pause-overlay" id="pauseOverlay" style="display:none;">
+                    <div class="pause-title">PAUSED</div>
+                    <div class="pause-sub">Press P or click Resume to continue</div>
+                </div>
+
                 <!-- Victory Overlay -->
                 <div class="game-overlay" id="victoryOverlay" style="display: none;">
                     <div class="overlay-title">SECTOR CLEARED!</div>
@@ -838,6 +876,7 @@
                             <span id="resCat">CYBER</span>
                         </div>
                     </div>
+                    <div class="best-line" id="resBest"></div>
                     <p style="font-size:0.85rem; color:#cbd5e1; max-width:300px; margin-top:4px;">
                         All hidden data sequences decoded. Sector integrity restored.
                     </p>
@@ -858,6 +897,18 @@
                 </button>
                 <button type="button" class="action-btn" id="hintBtn" title="Reveal the start of an unfound word">
                     <span>💡</span> Hint
+                </button>
+                <button type="button" class="action-btn" id="replayBtn" title="Restart this same puzzle (R)">
+                    <span>🔁</span> Replay
+                </button>
+                <button type="button" class="action-btn" id="dailyBtn" title="Today's puzzle, the same for everyone (D)">
+                    <span>📅</span> Daily
+                </button>
+                <button type="button" class="action-btn" id="pauseBtn" title="Pause the timer and hide the board (P)">
+                    <span>⏸</span> <span id="pauseText">Pause</span>
+                </button>
+                <button type="button" class="action-btn" id="giveUpBtn" title="Reveal all remaining words (G)">
+                    <span>🏳</span> <span id="giveUpText">Give Up</span>
                 </button>
                 <button type="button" class="action-btn" id="categoryQuickBtn" title="Switch word category">
                     <span>🌐</span> <span id="quickCatLabel">Cyber</span>
@@ -880,6 +931,12 @@
                     <option value="cosmos">Cosmos & Sci-Fi</option>
                     <option value="arcade">Arcade & Gaming</option>
                     <option value="nature">Nature & Elements</option>
+                    <option value="animals">Animals & Wildlife</option>
+                    <option value="food">Food & Kitchen</option>
+                    <option value="geography">World Geography</option>
+                    <option value="science">Science & Lab</option>
+                    <option value="music">Music & Sound</option>
+                    <option value="sports">Sports & Games</option>
                 </select>
             </div>
             <div class="setting-row">
@@ -888,6 +945,14 @@
                     <option value="10">Casual (10 x 10)</option>
                     <option value="12" selected>Standard (12 x 12)</option>
                     <option value="14">Master (14 x 14)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Difficulty</span>
+                <select id="difficultySelect" class="select-field" aria-label="Difficulty">
+                    <option value="easy">Easy (right &amp; down)</option>
+                    <option value="medium">Medium (4 directions)</option>
+                    <option value="hard" selected>Hard (all 8, backwards)</option>
                 </select>
             </div>
             <div class="setting-row">
@@ -908,6 +973,23 @@
         </div>
     </div>
 
+    <!-- Stats Modal -->
+    <div class="modal-backdrop" id="statsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">📊 YOUR STATISTICS</div>
+                <button type="button" class="modal-close" id="statsClose">&times;</button>
+            </div>
+            <div id="statsBody"></div>
+            <div class="setting-row" style="margin-top: 8px;">
+                <span class="setting-label">Reset all statistics</span>
+                <button type="button" class="action-btn" id="resetStatsBtn"><span id="resetStatsText">Reset</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ws-toast" id="wsToast" role="status" aria-live="polite"></div>
+
     <!-- Help Modal -->
     <div class="modal-backdrop" id="helpModal">
         <div class="modal-card">
@@ -921,10 +1003,13 @@
                 <div><kbd>HINT</kbd> Tap any word in the list or click the Hint button to beacon its first letter</div>
                 <div><kbd>STREAK</kbd> Finding words in quick succession multiplies your score bonus</div>
                 <div><kbd>FULL</kbd> Tap Fullscreen for immersive edge-to-edge gameplay</div>
+                <div><kbd>N</kbd> New game &nbsp; <kbd>R</kbd> Replay same puzzle &nbsp; <kbd>D</kbd> Daily puzzle</div>
+                <div><kbd>H</kbd> Hint &nbsp; <kbd>P</kbd> Pause &nbsp; <kbd>G</kbd> Give up &nbsp; <kbd>M</kbd> Mute &nbsp; <kbd>T</kbd> Stats &nbsp; <kbd>?</kbd> Help &nbsp; <kbd>Esc</kbd> Close</div>
             </div>
         </div>
     </div>
 
+    <script src="engine.js"></script>
     <script>
         // =====================================================
         // 1. AAA WEB AUDIO SYNTHESIZER & AMBIENT DRONE ENGINE
@@ -1136,94 +1221,45 @@
         }
 
         // =====================================================
-        // 3. WORD BANKS & THEMED CATEGORIES
+        // 3. GAME ENGINE (word banks, generator, scoring) -- see engine.js
         // =====================================================
-        const CATEGORIES = {
-            cyber: {
-                name: "Cyber & Tech",
-                words: [
-                    "ALGORITHM", "QUANTUM", "FIREWALL", "ENCRYPTION", "NEURAL", "SYNAPSE",
-                    "MATRIX", "KERNEL", "CIPHER", "PROTOCOL", "BITCOIN", "DATABASE",
-                    "BITMAP", "HACKER", "PYTHON", "REACT", "DOCKER", "CLOUD", "LINUX",
-                    "CYBER", "TERMINAL", "PAYLOAD", "OPTIC", "ROBOTIC", "BYTE", "VECTOR",
-                    "CIRCUIT", "GATEWAY", "SUBROUTINE", "FIRMWARE"
-                ]
-            },
-            cosmos: {
-                name: "Cosmos & Sci-Fi",
-                words: [
-                    "GALAXY", "NEBULA", "PULSAR", "ECLIPSE", "HORIZON", "QUASAR",
-                    "SUPERNOVA", "VOYAGER", "ORBITAL", "ANDROMEDA", "COSMOS", "ASTEROID",
-                    "GRAVITY", "CELESTIAL", "STARSHIP", "JUPITER", "PARADOX", "QUANTUM",
-                    "CORONA", "SPACETIME", "SOLAR", "ZENITH", "METEOR", "TITAN", "INTERSTELLAR"
-                ]
-            },
-            arcade: {
-                name: "Arcade & Gaming",
-                words: [
-                    "PIXEL", "COMBO", "JOYSTICK", "STEALTH", "GLITCH", "RESPAWN",
-                    "DUNGEON", "CRITICAL", "LEVEL", "SHADOW", "AVATAR", "CHRONO",
-                    "SHURIKEN", "ARCADE", "QUEST", "BLASTER", "SHIELD", "POWERUP",
-                    "HIGHWAY", "WARRIOR", "PLATFORM", "RETRO", "VORTEX", "NINJA"
-                ]
-            },
-            nature: {
-                name: "Nature & Elements",
-                words: [
-                    "TSUNAMI", "AURORA", "VOLCANO", "GLACIER", "CYCLONE", "MONSOON",
-                    "LIGHTNING", "BLIZZARD", "CRYSTAL", "CASCADE", "AVALANCHE", "ZEPHYR",
-                    "WILDERNESS", "SOLAR", "RAINBOW", "GEYSER", "OCEAN", "TROPICAL",
-                    "EVERGREEN", "HORIZON", "CANYON", "SAVANNA", "WHIRLPOOL"
-                ]
-            }
-        };
-
-        const PALETTES = [
-            '#00f0ff', // Cyan
-            '#ff0077', // Pink
-            '#00ff9d', // Emerald
-            '#ffd43b', // Amber
-            '#b026ff', // Purple
-            '#ff7700', // Orange
-            '#38bdf8', // Ice Blue
-            '#a6ff00', // Lime
-            '#f43f5e', // Rose
-            '#818cf8'  // Indigo
-        ];
-
-        // 8 Directional Vectors
-        const DIRECTIONS = [
-            { dr: 0, dc: 1 },   // Right
-            { dr: 1, dc: 0 },   // Down
-            { dr: 1, dc: 1 },   // Down-Right
-            { dr: -1, dc: 1 },  // Up-Right
-            { dr: 0, dc: -1 },  // Left
-            { dr: -1, dc: 0 },  // Up
-            { dr: -1, dc: -1 }, // Up-Left
-            { dr: 1, dc: -1 }   // Down-Left
-        ];
+        const WS = window.WordSearchEngine;
+        const CATEGORIES = WS.CATEGORIES;
+        const THEMES = WS.THEMES;
 
         // =====================================================
         // 4. GAME STATE & VARIABLES
         // =====================================================
-        let currentCategory = 'cyber';
+        let settings = WS.sanitizeSettings(null);   // the player's preferences (used for the next new game)
+        let stats = WS.emptyStats();
+        let currentCategory = 'cyber';              // configuration of the board on screen
         let gridSize = 12;
+        let difficulty = 'hard';
         let currentTheme = 'cyber';
+        let currentSeed = '';
+        let currentMode = 'random';                 // 'random' | 'daily'
+        let puzzle = null;
 
         let grid = [];
         let placedWords = [];
         let foundWords = new Set();
+        let revealedWords = new Set();
         let wordColors = {};
+        let activePalette = THEMES.cyber.palette;
+        let themeAccent = '#00f0ff';
 
         let score = 0;
         let streak = 0;
         let maxStreak = 0;
-        let lastWordFoundTime = 0;
+        let lastWordFoundTime = 0;                  // game-clock ms of the last found word
         let hintsLeft = 3;
 
-        let startTime = 0;
+        // Game clock: accumulates only while running, so pausing really stops it
         let timerInterval = null;
+        let accumulatedMs = 0;
+        let runningSince = 0;
         let elapsedTime = 0;
+        const pauseReasons = new Set();             // 'user' | 'hidden' | 'modal'
         let gameActive = true;
         let gameWon = false;
 
@@ -1307,121 +1343,220 @@
         window.addEventListener('orientationchange', () => setTimeout(setupGridDimensions, 80));
 
         // =====================================================
-        // 6. PROCEDURAL PUZZLE GENERATOR
+        // 6. GAME FLOW: persistence, themes, pause, new / replay / daily
         // =====================================================
-        function initNewGame() {
+        const statsBtn = document.getElementById('statsBtn');
+        const statsModal = document.getElementById('statsModal');
+        const statsClose = document.getElementById('statsClose');
+        const statsBody = document.getElementById('statsBody');
+        const resetStatsBtn = document.getElementById('resetStatsBtn');
+        const resetStatsText = document.getElementById('resetStatsText');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const replayBtn = document.getElementById('replayBtn');
+        const dailyBtn = document.getElementById('dailyBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseText = document.getElementById('pauseText');
+        const giveUpBtn = document.getElementById('giveUpBtn');
+        const giveUpText = document.getElementById('giveUpText');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        const resBest = document.getElementById('resBest');
+        const wsToast = document.getElementById('wsToast');
+
+        let toastTimer = null;
+        function showToast(msg) {
+            wsToast.textContent = msg;
+            wsToast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => wsToast.classList.remove('show'), 2200);
+        }
+
+        // ---- persistence: injected state -> localStorage; saved via the desktop bridge, the local server, or localStorage
+        function loadPersisted() {
+            let raw = null;
+            if (window.__WS_STATE__ && typeof window.__WS_STATE__ === 'object') raw = window.__WS_STATE__;
+            else {
+                try { raw = JSON.parse(localStorage.getItem('neon_word_search') || 'null'); } catch (e) {}
+            }
+            settings = WS.sanitizeSettings(raw && raw.settings);
+            stats = WS.sanitizeStats(raw && raw.stats);
+        }
+        function persist() {
+            const json = JSON.stringify({ settings, stats });
+            try { localStorage.setItem('neon_word_search', json); } catch (e) {}
+            try {
+                if (typeof window.wsSaveState === 'function') window.wsSaveState(json);
+                else if (location.protocol === 'http:' || location.protocol === 'https:') {
+                    fetch('/api/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json }).catch(() => {});
+                }
+            } catch (e) {}
+        }
+
+        // ---- themes
+        function applyTheme(name) {
+            const t = THEMES[name] || THEMES.cyber;
+            currentTheme = THEMES[name] ? name : 'cyber';
+            const root = document.documentElement;
+            Object.keys(THEMES).forEach(k => Object.keys(THEMES[k].vars).forEach(v => root.style.removeProperty(v)));
+            Object.keys(t.vars).forEach(v => root.style.setProperty(v, t.vars[v]));
+            activePalette = t.palette;
+            themeAccent = t.vars['--neon-cyan'] || '#00f0ff';
+            // recolor the words of the board on screen
+            placedWords.forEach((pw, i) => {
+                const color = activePalette[i % activePalette.length];
+                wordColors[pw.word] = color;
+                if (foundWords.has(pw.word)) {
+                    const chip = document.getElementById(`chip-${pw.word}`);
+                    if (chip) { chip.style.color = color; chip.style.borderColor = color; chip.style.boxShadow = `0 0 10px ${color}`; }
+                    pw.cells.forEach(c => {
+                        const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
+                        if (el) el.style.color = color;
+                    });
+                }
+            });
+        }
+
+        function syncSettingsUI() {
+            categorySelect.value = settings.category;
+            gridSizeSelect.value = String(settings.size);
+            difficultySelect.value = settings.difficulty;
+            themeSelect.value = settings.theme;
+            soundIcon.textContent = soundOn ? '🔊' : '🔇';
+        }
+
+        // ---- game clock & pause
+        function getElapsed() { return accumulatedMs + (runningSince ? Date.now() - runningSince : 0); }
+        function tickTimer() {
+            elapsedTime = getElapsed();
+            timerVal.textContent = WS.formatTime(elapsedTime);
+        }
+        function anyModalOpen() {
+            return [settingsModal, helpModal, statsModal].some(m => m.style.display === 'flex');
+        }
+        function updatePauseUI() {
+            const showOverlay = gameActive && !gameWon && (pauseReasons.has('user') || pauseReasons.has('hidden'));
+            gridBox.classList.toggle('paused', showOverlay);
+            pauseOverlay.style.display = showOverlay ? 'flex' : 'none';
+            pauseText.textContent = pauseReasons.has('user') ? 'Resume' : 'Pause';
+        }
+        function setPauseReason(reason, on) {
+            if (!gameActive || gameWon) { pauseReasons.delete(reason); updatePauseUI(); return; }
+            const before = pauseReasons.size > 0;
+            if (on) pauseReasons.add(reason); else pauseReasons.delete(reason);
+            const after = pauseReasons.size > 0;
+            if (after && !before) { accumulatedMs = getElapsed(); runningSince = 0; }
+            else if (!after && before) { runningSince = Date.now(); }
+            updatePauseUI();
+        }
+        function syncModalPause() { setPauseReason('modal', anyModalOpen()); }
+        function togglePause() {
+            if (!gameActive || gameWon) return;
+            setPauseReason('user', !pauseReasons.has('user'));
+        }
+        function stopClock() {
+            elapsedTime = getElapsed();
+            accumulatedMs = elapsedTime;
+            runningSince = 0;
+            pauseReasons.clear();
+            clearInterval(timerInterval);
+            timerVal.textContent = WS.formatTime(elapsedTime);
+        }
+
+        // ---- starting puzzles
+        function startPuzzle(cfg, mode) {
+            currentMode = mode;
+            currentSeed = cfg.seed;
+            puzzle = WS.generatePuzzle(cfg);
+            currentCategory = puzzle.category;
+            gridSize = puzzle.size;
+            difficulty = puzzle.difficulty;
+            grid = puzzle.grid;
+            placedWords = puzzle.placed;
+            foundWords.clear();
+            revealedWords.clear();
+            wordColors = {};
+            placedWords.forEach((pw, i) => { wordColors[pw.word] = activePalette[i % activePalette.length]; });
+
             gameActive = true;
             gameWon = false;
             victoryOverlay.style.display = 'none';
+            giveUpText.textContent = 'Give Up';
+            giveUpBtn.classList.remove('active');
 
-            score = 0;
-            streak = 0;
-            maxStreak = 0;
-            hintsLeft = 3;
-            scoreVal.textContent = '0';
-            streakVal.textContent = 'x1';
-            hintsVal.textContent = '3';
+            score = 0; streak = 0; maxStreak = 0; lastWordFoundTime = 0; hintsLeft = 3;
+            isDragging = false; dragStart = null; currentDragCells = [];
 
+            pauseReasons.clear();
+            accumulatedMs = 0;
+            runningSince = Date.now();
             clearInterval(timerInterval);
-            startTime = Date.now();
-            elapsedTime = 0;
-            timerVal.textContent = '00:00';
-            timerInterval = setInterval(() => {
-                elapsedTime = Date.now() - startTime;
-                const sec = Math.floor(elapsedTime / 1000);
-                const m = Math.floor(sec / 60).toString().padStart(2, '0');
-                const s = (sec % 60).toString().padStart(2, '0');
-                timerVal.textContent = `${m}:${s}`;
-            }, 500);
+            timerInterval = setInterval(tickTimer, 250);
+            if (anyModalOpen()) setPauseReason('modal', true);
+            if (document.hidden) setPauseReason('hidden', true);
+            tickTimer();
 
-            generatePuzzle();
+            quickCatLabel.textContent = (currentMode === 'daily' ? 'Daily · ' : '') + CATEGORIES[currentCategory].name.split(' ')[0];
             renderDOMGrid();
             renderWordsTray();
             updateHUD();
+            updatePauseUI();
             setupGridDimensions();
         }
 
-        function generatePuzzle() {
-            grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(''));
-            placedWords = [];
-            foundWords.clear();
-            wordColors = {};
-
-            const cat = CATEGORIES[currentCategory];
-            quickCatLabel.textContent = cat.name.split(' ')[0];
-            const candidatePool = [...new Set(cat.words.map(w => String(w).toUpperCase()))].filter(w => w.length >= 3 && w.length <= gridSize);
-            shuffleArray(candidatePool);
-
-            // Determine target number of words based on size
-            const targetWordCount = gridSize === 10 ? 10 : (gridSize === 12 ? 13 : 16);
-            let colorIdx = 0;
-
-            for (const word of candidatePool) {
-                if (placedWords.length >= targetWordCount) break;
-                const placed = tryPlaceWord(word);
-                if (placed) {
-                    wordColors[word] = PALETTES[colorIdx % PALETTES.length];
-                    colorIdx++;
-                }
-            }
-
-            // Fill empty cells with random uppercase letters
-            const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            for (let r = 0; r < gridSize; r++) {
-                for (let c = 0; c < gridSize; c++) {
-                    if (grid[r][c] === '') {
-                        grid[r][c] = LETTERS[Math.floor(Math.random() * LETTERS.length)];
-                    }
-                }
-            }
+        function initNewGame() {
+            startPuzzle({ category: settings.category, size: settings.size, difficulty: settings.difficulty, seed: WS.randomSeed() }, 'random');
+        }
+        function replayGame() {
+            if (!puzzle) return initNewGame();
+            startPuzzle({ category: currentCategory, size: gridSize, difficulty, seed: currentSeed }, currentMode);
+            showToast('Same puzzle, fresh start');
+        }
+        function startDaily() {
+            const d = WS.dailyConfig();
+            startPuzzle(d, 'daily');
+            showToast(`Daily puzzle ${d.key}: ${CATEGORIES[d.category].name}`);
         }
 
-        function tryPlaceWord(word) {
-            const wordToPlace = Math.random() < 0.35 ? word.split('').reverse().join('') : word;
-            const shuffledDirs = [...DIRECTIONS];
-            shuffleArray(shuffledDirs);
-
-            for (let attempt = 0; attempt < 80; attempt++) {
-                const dir = shuffledDirs[Math.floor(Math.random() * shuffledDirs.length)];
-                const maxR = gridSize - 1 - Math.max(0, (wordToPlace.length - 1) * dir.dr);
-                const minR = Math.abs(Math.min(0, (wordToPlace.length - 1) * dir.dr));
-                const maxC = gridSize - 1 - Math.max(0, (wordToPlace.length - 1) * dir.dc);
-                const minC = Math.abs(Math.min(0, (wordToPlace.length - 1) * dir.dc));
-
-                if (maxR < minR || maxC < minC) continue;
-                const r = Math.floor(Math.random() * (maxR - minR + 1)) + minR;
-                const c = Math.floor(Math.random() * (maxC - minC + 1)) + minC;
-
-                let canPlace = true;
-                const cells = [];
-                for (let i = 0; i < wordToPlace.length; i++) {
-                    const cr = r + i * dir.dr;
-                    const cc = c + i * dir.dc;
-                    const existing = grid[cr][cc];
-                    if (existing !== '' && existing !== wordToPlace[i]) {
-                        canPlace = false;
-                        break;
-                    }
-                    cells.push({ r: cr, c: cc });
-                }
-
-                if (canPlace) {
-                    for (let i = 0; i < wordToPlace.length; i++) {
-                        grid[cells[i].r][cells[i].c] = wordToPlace[i];
-                    }
-                    // Always record the canonical unreversed word
-                    placedWords.push({ word, cells });
-                    return true;
-                }
-            }
-            return false;
+        // ---- statistics
+        function statsConfig() {
+            return { category: currentMode === 'daily' ? 'daily' : currentCategory, size: gridSize, difficulty };
         }
-
-        function shuffleArray(arr) {
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
+        function labelForStatsKey(key) {
+            const [cat, size, diff] = key.split('|');
+            const catName = cat === 'daily' ? 'Daily puzzle' : (CATEGORIES[cat] ? CATEGORIES[cat].name : cat);
+            const diffName = WS.DIFFICULTIES[diff] ? WS.DIFFICULTIES[diff].label.split(' ')[0] : diff;
+            return `${catName} · ${size}×${size} · ${diffName}`;
+        }
+        function renderStats() {
+            const winRate = stats.played ? Math.round((stats.won / stats.played) * 100) : 0;
+            const keys = Object.keys(stats.best).sort();
+            const rows = keys.length
+                ? keys.map(k => `<tr><td>${labelForStatsKey(k)}</td><td>${stats.best[k].score.toLocaleString()}</td><td>${WS.formatTime(stats.best[k].timeMs)}</td></tr>`).join('')
+                : '<tr><td colspan="3" style="opacity:.7">Finish a puzzle to set your first record.</td></tr>';
+            statsBody.innerHTML = `
+                <div class="stats-grid">
+                    <div><span>${stats.played}</span>GAMES</div>
+                    <div><span>${stats.won}</span>SOLVED</div>
+                    <div><span>${winRate}%</span>WIN RATE</div>
+                    <div><span>${stats.words}</span>WORDS FOUND</div>
+                    <div><span>x${stats.bestStreak}</span>BEST STREAK</div>
+                </div>
+                <table class="stats-table"><thead><tr><th>Best results</th><th>Score</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+        function toggleStats() {
+            const open = statsModal.style.display !== 'flex';
+            if (open) renderStats();
+            statsModal.style.display = open ? 'flex' : 'none';
+            syncModalPause();
+        }
+        function closeModals() {
+            [settingsModal, helpModal, statsModal].forEach(m => { m.style.display = 'none'; });
+            syncModalPause();
+        }
+        function recordFinishedGame(won) {
+            const res = WS.recordGame(stats, statsConfig(), { won, words: foundWords.size, score, timeMs: elapsedTime, maxStreak });
+            stats = res.stats;
+            persist();
+            return res;
         }
 
         // =====================================================
@@ -1575,26 +1710,21 @@
         }
 
         function checkSelection(cells) {
-            const forward = cells.map(pos => grid[pos.r][pos.c]).join('');
-            const reversed = forward.split('').reverse().join('');
-
-            let matched = null;
-            for (const pw of placedWords) {
-                if (!foundWords.has(pw.word) && (pw.word === forward || pw.word === reversed)) {
-                    // Any in-grid occurrence of the word counts (random filler can create a second one).
-                    // Adopt the selected cells so highlights and effects land where the player drew.
-                    pw.cells = (pw.word === forward) ? cells.map(c => ({ r: c.r, c: c.c })) : cells.map(c => ({ r: c.r, c: c.c })).reverse();
-                    matched = pw;
-                    break;
-                }
-            }
-
-            if (matched) {
-                handleWordFound(matched);
+            if (!gameActive || gameWon || pauseReasons.size) return;
+            const res = WS.matchSelection(puzzle, foundWords, cells);
+            if (res.status === 'found') {
+                const pw = placedWords.find(p => p.word === res.word);
+                // Any in-grid occurrence of the word counts; adopt the cells the player drew
+                pw.cells = res.cells;
+                handleWordFound(pw);
+            } else if (res.status === 'already') {
+                // Re-selecting a word you already have is harmless: no penalty, streak untouched
+                playSynthTone(660, 'sine', 0.06, 0.08);
+                showToast(`${res.word} is already found`);
             } else {
                 SFX.invalid();
                 streak = 0;
-                streakVal.textContent = 'x1';
+                updateHUD();
             }
         }
 
@@ -1602,29 +1732,21 @@
             foundWords.add(pw.word);
             SFX.wordFound();
 
-            // Streak calculation
-            const now = Date.now();
-            if (now - lastWordFoundTime < 10000) {
-                streak++;
-            } else {
-                streak = 1;
-            }
+            // Streak and score use the game clock, so pausing never costs a streak
+            const now = getElapsed();
+            streak = WS.nextStreak(streak, lastWordFoundTime, now);
             lastWordFoundTime = now;
             maxStreak = Math.max(maxStreak, streak);
 
-            // Score calculation: 100 per letter * streak multiplier
-            const points = pw.word.length * 100 * Math.max(1, streak);
+            const points = WS.pointsForWord(pw.word.length, streak);
             score += points;
 
-            // Spawn floating score popup
             const centerCell = pw.cells[Math.floor(pw.cells.length / 2)];
             spawnFloatingScore(centerCell.r, centerCell.c, `+${points}${streak > 1 ? ' (x' + streak + ')' : ''}`);
 
-            // Spawn particle burst on every cell of the found word
-            const color = wordColors[pw.word] || '#00f0ff';
+            const color = wordColors[pw.word] || themeAccent;
             pw.cells.forEach(c => spawnCellParticles(c.r, c.c, color));
 
-            // Mark chip in tray
             const chip = document.getElementById(`chip-${pw.word}`);
             if (chip) {
                 chip.classList.add('found');
@@ -1633,7 +1755,6 @@
                 chip.style.boxShadow = `0 0 10px ${color}`;
             }
 
-            // Mark letters in DOM
             pw.cells.forEach(c => {
                 const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
                 if (el) {
@@ -1644,35 +1765,71 @@
 
             updateHUD();
 
-            // Check victory condition
             if (foundWords.size === placedWords.length) {
                 setTimeout(handleVictory, 400);
             }
         }
 
         function handleVictory() {
+            if (gameWon || !gameActive) return;
             gameWon = true;
             gameActive = false;
-            clearInterval(timerInterval);
+            stopClock();
             SFX.victory();
             launchConfetti();
 
-            let stars = '★★★';
-            if (elapsedTime > 180000) stars = '★☆☆';
-            else if (elapsedTime > 110000) stars = '★★☆';
-
-            overlayStars.textContent = stars;
+            const res = recordFinishedGame(true);
+            overlayStars.textContent = ['★☆☆', '★☆☆', '★★☆', '★★★'][WS.starsFor(elapsedTime, gridSize)];
             resScore.textContent = score;
-            resTime.textContent = timerVal.textContent;
+            resTime.textContent = WS.formatTime(elapsedTime);
             resStreak.textContent = `x${maxStreak}`;
-            resCat.textContent = CATEGORIES[currentCategory].name.toUpperCase();
-
+            resCat.textContent = (currentMode === 'daily' ? 'DAILY · ' : '') + CATEGORIES[currentCategory].name.toUpperCase();
+            const notes = [];
+            if (res.newBestScore) notes.push('NEW BEST SCORE');
+            if (res.newBestTime) notes.push('NEW BEST TIME');
+            resBest.textContent = notes.join('  ·  ');
+            resBest.style.display = notes.length ? 'block' : 'none';
+            updatePauseUI();
             victoryOverlay.style.display = 'flex';
+        }
+
+        // Give up: the first click arms it, a second click within 3s reveals the board (no accidental losses)
+        let giveUpArmedUntil = 0;
+        function giveUp() {
+            if (!gameActive || gameWon) return;
+            const now = Date.now();
+            if (now > giveUpArmedUntil) {
+                giveUpArmedUntil = now + 3000;
+                giveUpText.textContent = 'Sure?';
+                giveUpBtn.classList.add('active');
+                setTimeout(() => { if (Date.now() >= giveUpArmedUntil && gameActive) { giveUpText.textContent = 'Give Up'; giveUpBtn.classList.remove('active'); } }, 3100);
+                return;
+            }
+            giveUpArmedUntil = 0;
+            gameActive = false;
+            stopClock();
+            recordFinishedGame(false);
+            placedWords.forEach(pw => {
+                if (foundWords.has(pw.word)) return;
+                revealedWords.add(pw.word);
+                const chip = document.getElementById(`chip-${pw.word}`);
+                if (chip) chip.classList.add('revealed');
+                pw.cells.forEach(c => {
+                    const el = wordGrid.querySelector(`.grid-cell[data-r="${c.r}"][data-c="${c.c}"]`);
+                    if (el) el.classList.add('revealed-cell');
+                });
+            });
+            giveUpText.textContent = 'Give Up';
+            giveUpBtn.classList.remove('active');
+            updatePauseUI();
+            updateHUD();
+            showToast('Board revealed. Press N for a new puzzle');
         }
 
         // Hint Logic
         function triggerHintForWord(targetPw = null) {
-            if (hintsLeft <= 0 || !gameActive || gameWon) return;
+            if (!gameActive || gameWon || pauseReasons.size) return;
+            if (hintsLeft <= 0) { showToast('No hints left this puzzle'); return; }
 
             let target = targetPw;
             if (!target || foundWords.has(target.word)) {
@@ -1796,13 +1953,15 @@
             // 1. Draw glowing translucent neon capsules for found words
             placedWords.forEach(pw => {
                 if (foundWords.has(pw.word)) {
-                    drawWordCapsule(pw.cells, cellSize, wordColors[pw.word] || '#00f0ff', 0.28);
+                    drawWordCapsule(pw.cells, cellSize, wordColors[pw.word] || themeAccent, 0.28);
+                } else if (revealedWords.has(pw.word)) {
+                    drawWordCapsule(pw.cells, cellSize, '#ffffff', 0.16);
                 }
             });
 
             // 2. Draw live dragging selection capsule
             if (isDragging && currentDragCells.length >= 2) {
-                drawWordCapsule(currentDragCells, cellSize, '#00f0ff', 0.42, true);
+                drawWordCapsule(currentDragCells, cellSize, themeAccent, 0.42, true);
             }
 
             // 3. Render Particles
@@ -1919,24 +2078,101 @@
         nextGameBtn.addEventListener('click', initNewGame);
         hintBtn.addEventListener('click', () => triggerHintForWord());
         exportBtn.addEventListener('click', exportPuzzlePNG);
+        replayBtn.addEventListener('click', replayGame);
+        dailyBtn.addEventListener('click', startDaily);
+        pauseBtn.addEventListener('click', togglePause);
+        pauseOverlay.addEventListener('click', togglePause);
+        giveUpBtn.addEventListener('click', giveUp);
+        statsBtn.addEventListener('click', toggleStats);
+        statsClose.addEventListener('click', toggleStats);
+        statsModal.addEventListener('click', (e) => { if (e.target === statsModal) toggleStats(); });
+
+        let resetArmedUntil = 0;
+        resetStatsBtn.addEventListener('click', () => {
+            const now = Date.now();
+            if (now > resetArmedUntil) {
+                resetArmedUntil = now + 3000;
+                resetStatsText.textContent = 'Click again to confirm';
+                setTimeout(() => { if (Date.now() >= resetArmedUntil) resetStatsText.textContent = 'Reset'; }, 3100);
+                return;
+            }
+            resetArmedUntil = 0;
+            resetStatsText.textContent = 'Reset';
+            stats = WS.emptyStats();
+            persist();
+            renderStats();
+        });
 
         categoryQuickBtn.addEventListener('click', () => {
             const keys = Object.keys(CATEGORIES);
-            const nextIdx = (keys.indexOf(currentCategory) + 1) % keys.length;
-            currentCategory = keys[nextIdx];
-            categorySelect.value = currentCategory;
+            settings.category = keys[(keys.indexOf(settings.category) + 1) % keys.length];
+            categorySelect.value = settings.category;
+            persist();
             initNewGame();
         });
 
         categorySelect.addEventListener('change', () => {
-            currentCategory = categorySelect.value;
+            settings.category = categorySelect.value;
+            persist();
             initNewGame();
+            categorySelect.blur();
         });
 
         gridSizeSelect.addEventListener('change', () => {
-            gridSize = parseInt(gridSizeSelect.value);
+            settings.size = parseInt(gridSizeSelect.value, 10);
+            persist();
             initNewGame();
+            gridSizeSelect.blur();
         });
+
+        difficultySelect.addEventListener('change', () => {
+            settings.difficulty = difficultySelect.value;
+            persist();
+            initNewGame();
+            difficultySelect.blur();
+        });
+
+        themeSelect.addEventListener('change', () => {
+            settings.theme = themeSelect.value;
+            applyTheme(settings.theme);
+            persist();
+            themeSelect.blur();
+        });
+
+        // The mute button's own handler (below) flips soundOn; save the result afterwards
+        soundToggle.addEventListener('click', () => setTimeout(() => { settings.sound = soundOn; persist(); }, 0));
+
+        // Pause automatically when the window is hidden so the clock is fair
+        document.addEventListener('visibilitychange', () => setPauseReason('hidden', document.hidden));
+
+        // Keyboard shortcuts (plain keys only; never while typing in a control)
+        document.addEventListener('keydown', (e) => {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const tag = (e.target && e.target.tagName) || '';
+            if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+            const k = (e.key || '').toLowerCase();
+            if (e.key === 'Escape') { closeModals(); return; }
+            if (k === 'n') initNewGame();
+            else if (k === 'r') replayGame();
+            else if (k === 'd') startDaily();
+            else if (k === 'h') triggerHintForWord();
+            else if (k === 'p') togglePause();
+            else if (k === 'g') giveUp();
+            else if (k === 'm') soundToggle.click();
+            else if (k === 't') toggleStats();
+            else if (e.key === '?' || k === '/') toggleHelp();
+            else return;
+            e.preventDefault();
+        });
+
+        function bootstrap() {
+            loadPersisted();
+            soundOn = settings.sound;
+            applyTheme(settings.theme);
+            syncSettingsUI();
+            initNewGame();
+        }
+
 
         soundToggle.addEventListener('click', () => {
             soundOn = !soundOn;
@@ -1991,6 +2227,7 @@
         // Settings Modal
         function toggleSettings() {
             settingsModal.style.display = settingsModal.style.display === 'flex' ? 'none' : 'flex';
+            syncModalPause();
         }
         settingsBtn.addEventListener('click', toggleSettings);
         settingsClose.addEventListener('click', toggleSettings);
@@ -2001,6 +2238,7 @@
         // Help Modal
         function toggleHelp() {
             helpModal.style.display = helpModal.style.display === 'flex' ? 'none' : 'flex';
+            syncModalPause();
         }
         helpBtn.addEventListener('click', toggleHelp);
         helpClose.addEventListener('click', toggleHelp);
@@ -2009,7 +2247,7 @@
         });
 
         // Start Game & VFX Animation Loop
-        initNewGame();
+        bootstrap();
         requestAnimationFrame(renderVFXLoop);
     </script>
 </body>
