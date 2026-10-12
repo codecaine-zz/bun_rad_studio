@@ -77,6 +77,8 @@
     "app:mines": "bun run applications/minesweeper_studio.ts",
     "app:breakout": "bun run applications/breakout_studio.ts",
     "app:arkanoid": "bun run applications/breakout_studio.ts",
+    "app:balatro": "bun run applications/balatro_studio.ts",
+    "app:joker": "bun run applications/balatro_studio.ts",
     "app:skifree": "bun run applications/skifree_studio.ts",
     "app:ski": "bun run applications/skifree_studio.ts",
     "app:math_munchers": "bun run applications/math_munchers_studio.ts",

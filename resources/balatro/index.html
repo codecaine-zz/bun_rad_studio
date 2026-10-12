@@ -1,0 +1,2432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Joker Royale — Balatro Deluxe Roguelike Poker Studio</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=JetBrains+Mono:wght@500;700;800&family=Orbitron:wght@700;900&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --felt-dark: #0d2818;
+      --felt-light: #164228;
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ec4899;
+      --neon-gold: #f59e0b;
+      --neon-red: #ef4444;
+      --neon-blue: #3b82f6;
+      --neon-green: #10b981;
+      --neon-purple: #a855f7;
+      --card-w: 86px;
+      --card-h: 124px;
+      --font-display: "Cinzel", "Orbitron", serif;
+      --font-sans: "Plus Jakarta Sans", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 30%, #173d27 0%, #0a1f13 60%, #050b07 100%);
+      color: #f8fafc;
+      font-family: var(--font-sans);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      perspective: 1000px;
+    }
+
+    /* Subtle CRT Scanline Overlay */
+    .crt-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      z-index: 999;
+      opacity: 0.6;
+    }
+
+    /* Screen shake container */
+    #gameApp {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      transition: transform 0.05s ease-out;
+    }
+
+    /* Top Bar Telemetry */
+    header.game-header {
+      height: 52px;
+      background: rgba(8, 13, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      z-index: 100;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-cluster .logo {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #f59e0b, #ec4899, #00f3ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 12px rgba(236, 72, 153, 0.4);
+    }
+
+    .badge-ante {
+      background: rgba(236, 72, 153, 0.15);
+      border: 1px solid rgba(236, 72, 153, 0.5);
+      color: var(--neon-pink);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      letter-spacing: 1px;
+    }
+
+    .telemetry-cluster {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0.3rem 0.65rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+
+    .stat-pill.money {
+      border-color: rgba(245, 158, 11, 0.5);
+      color: var(--neon-gold);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f1f5f9;
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.15s ease;
+    }
+
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Main Table Felt */
+    main.poker-felt {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      padding: 0.8rem 1.5rem;
+    }
+
+    /* Top Row: Left Blind Panel + Joker Tray + Consumables Tray */
+    .top-felt-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      min-height: 140px;
+    }
+
+    /* Blind Target Card */
+    .blind-panel {
+      width: 220px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(59, 130, 246, 0.4);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .blind-panel.boss {
+      border-color: rgba(239, 68, 68, 0.7);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+
+    .blind-panel::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #00f3ff);
+    }
+
+    .blind-panel.boss::before {
+      background: linear-gradient(90deg, #ef4444, #f59e0b);
+    }
+
+    .blind-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .blind-name {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .blind-score-target {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--neon-cyan);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .blind-rule {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      line-height: 1.25;
+      min-height: 28px;
+    }
+
+    .blind-reward {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--neon-gold);
+    }
+
+    /* Jokers Area */
+    .joker-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .tray-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .tray-slots {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-height: 110px;
+    }
+
+    .empty-slot {
+      width: 72px;
+      height: 104px;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.2);
+      font-size: 1.5rem;
+      transition: all 0.2s ease;
+    }
+
+    /* Consumables (Tarots & Planets) */
+    .consumable-section {
+      width: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    /* Center Stage: The Live Score Flames & Poker Hand Telemetry */
+    .center-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin: 0.5rem 0;
+      position: relative;
+    }
+
+    /* Multi-step Score Box */
+    .score-banner {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      background: rgba(10, 16, 26, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 0.6rem 1.8rem;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+      position: relative;
+    }
+
+    .hand-eval-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 150px;
+    }
+
+    .hand-name {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .hand-level {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--neon-cyan);
+    }
+
+    .score-math-row {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-family: var(--font-mono);
+    }
+
+    .chip-block {
+      background: rgba(59, 130, 246, 0.25);
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      min-width: 85px;
+      text-align: center;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+      transition: transform 0.1s ease;
+    }
+
+    .math-operator {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #f1f5f9;
+    }
+
+    .mult-block {
+      background: rgba(239, 68, 68, 0.25);
+      border: 1px solid #ef4444;
+      color: #f87171;
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      min-width: 85px;
+      text-align: center;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+      transition: transform 0.1s ease;
+    }
+
+    .equal-operator {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #cbd5e1;
+    }
+
+    .total-score-block {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.2));
+      border: 2px solid var(--neon-gold);
+      color: #fbbf24;
+      padding: 0.4rem 1.2rem;
+      border-radius: 10px;
+      font-size: 1.7rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      min-width: 130px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+      transition: transform 0.1s ease;
+    }
+
+    /* Hand Played Slots Row */
+    .played-cards-tray {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      min-height: 130px;
+      perspective: 800px;
+    }
+
+    /* Bottom Felt Row: Player Hands, Discards & Controls */
+    .bottom-felt-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: center;
+      position: relative;
+    }
+
+    .action-button-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      width: 100%;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 0.65rem 1.75rem;
+      border-radius: 12px;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-action.play {
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-color: #34d399;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-action.play:hover:not(:disabled) {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.6);
+    }
+
+    .btn-action.discard {
+      background: linear-gradient(135deg, #b91c1c, #ef4444);
+      border-color: #f87171;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-action.discard:hover:not(:disabled) {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.55);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(0.8);
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .hand-meta-pill {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+    }
+
+    /* Player's In-Hand Card Fan */
+    .player-hand-fan {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 0.35rem;
+      min-height: 140px;
+      perspective: 900px;
+      width: 100%;
+      padding-bottom: 0.5rem;
+    }
+
+    /* 3D Realistic Playing Card Styles */
+    .poker-card {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: 10px;
+      background: #ffffff;
+      color: #1e293b;
+      position: relative;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease;
+      transform-style: preserve-3d;
+      will-change: transform;
+      flex-shrink: 0;
+    }
+
+    .poker-card:hover {
+      transform: translateY(-16px) scale(1.05);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 255, 255, 0.4);
+      z-index: 50;
+    }
+
+    .poker-card.selected {
+      transform: translateY(-28px) scale(1.07);
+      box-shadow: 0 20px 32px rgba(0, 0, 0, 0.6), 0 0 20px var(--neon-cyan);
+      border: 2px solid var(--neon-cyan);
+      z-index: 60;
+    }
+
+    .poker-card.red {
+      color: #dc2626;
+    }
+
+    .poker-card.black {
+      color: #0f172a;
+    }
+
+    /* Card Face Inner */
+    .card-face {
+      width: 100%;
+      height: 100%;
+      padding: 0.35rem 0.45rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      background: #fafaf9;
+    }
+
+    .card-top-left, .card-bottom-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+    }
+
+    .card-bottom-right {
+      transform: rotate(180deg);
+    }
+
+    .card-rank {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .card-suit {
+      font-size: 1rem;
+    }
+
+    .card-center-art {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.2rem;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .card-chip-val {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.12);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    /* Card Editions: Foil, Holo, Polychrome */
+    .poker-card.edition-foil::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(236, 72, 153, 0.25), rgba(245, 158, 11, 0.25));
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    .poker-card.edition-holographic::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 10px;
+      background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.2) 0px, rgba(59, 130, 246, 0.2) 10px);
+      pointer-events: none;
+    }
+
+    .poker-card.edition-polychrome::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,165,0,0.3), rgba(255,255,0,0.3), rgba(0,255,0,0.3), rgba(0,0,255,0.3), rgba(238,130,238,0.3));
+      animation: rainbowShift 3s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes rainbowShift {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* Seals */
+    .card-seal {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 900;
+      color: #ffffff;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+    }
+    .card-seal.red { background: #ef4444; }
+    .card-seal.blue { background: #3b82f6; }
+    .card-seal.gold { background: #f59e0b; color: #000; }
+    .card-seal.purple { background: #a855f7; }
+
+    /* Joker Card Item in Tray */
+    .joker-card {
+      width: 76px;
+      height: 108px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #1e1b4b, #0f172a);
+      border: 2px solid #8b5cf6;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4rem 0.3rem;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      flex-shrink: 0;
+    }
+
+    .joker-card:hover {
+      transform: translateY(-8px) scale(1.06);
+      box-shadow: 0 12px 24px rgba(139, 92, 246, 0.5);
+      border-color: var(--neon-cyan);
+      z-index: 40;
+    }
+
+    .joker-icon {
+      font-size: 1.8rem;
+      margin-top: 0.2rem;
+    }
+
+    .joker-name {
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-align: center;
+      color: #f1f5f9;
+      line-height: 1.1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .joker-rarity {
+      font-size: 0.55rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+    .joker-rarity.common { color: #60a5fa; background: rgba(59, 130, 246, 0.15); }
+    .joker-rarity.uncommon { color: #34d399; background: rgba(16, 185, 129, 0.15); }
+    .joker-rarity.rare { color: #f43f5e; background: rgba(244, 63, 94, 0.15); }
+    .joker-rarity.legendary { color: #fbbf24; background: rgba(245, 158, 11, 0.25); border: 1px solid #f59e0b; }
+
+    /* Consumable Tarot/Planet Card */
+    .consumable-card {
+      width: 72px;
+      height: 104px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #2e1065, #0f172a);
+      border: 1px solid #c084fc;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.35rem 0.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .consumable-card:hover {
+      transform: translateY(-6px) scale(1.05);
+      border-color: var(--neon-gold);
+      box-shadow: 0 10px 20px rgba(192, 132, 252, 0.4);
+    }
+
+    /* Modal Windows (Shop, Run End, Deck Viewer, Hall of Fame) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(4, 7, 13, 0.85);
+      backdrop-filter: blur(14px);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .modal-card {
+      background: #0d1527;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 1.25rem 1.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .modal-body {
+      padding: 1.5rem 1.75rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* The Shop Grid */
+    .shop-shelves {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .shelf-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .shelf-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .shelf-items {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .shop-item-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 1rem;
+      width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .shop-item-card:hover {
+      border-color: var(--neon-gold);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(245, 158, 11, 0.3);
+    }
+
+    .shop-item-desc {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      line-height: 1.3;
+      min-height: 48px;
+    }
+
+    .btn-buy {
+      width: 100%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border: none;
+      color: #000000;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 900;
+      padding: 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-buy:hover:not(:disabled) {
+      filter: brightness(1.2);
+      transform: scale(1.02);
+    }
+
+    .btn-buy:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .shop-footer-bar {
+      padding: 1rem 1.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 16, 26, 0.95);
+    }
+
+    /* Deck Viewer Grid */
+    .deck-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+      gap: 0.75rem;
+      max-height: 60vh;
+      padding: 0.5rem;
+    }
+
+    /* Tooltip Bubble */
+    #cardTooltip {
+      position: fixed;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      max-width: 220px;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      font-size: 0.78rem;
+      line-height: 1.3;
+      color: #f1f5f9;
+    }
+
+    #cardTooltip .tt-title {
+      font-weight: 900;
+      color: var(--neon-gold);
+      margin-bottom: 0.2rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 860px) {
+      :root {
+        --card-w: 70px;
+        --card-h: 102px;
+      }
+      .blind-panel { width: 170px; }
+      .score-banner { padding: 0.5rem 1rem; gap: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="crt-overlay"></div>
+  <div id="cardTooltip"></div>
+
+  <div id="gameApp">
+    <!-- Header -->
+    <header class="game-header">
+      <div class="brand-cluster">
+        <span class="logo">JOKER ROYALE</span>
+        <span class="badge-ante" id="hudAnte">ANTE 1/8</span>
+        <span class="badge-ante" style="border-color:var(--neon-blue); color:#60a5fa;" id="hudRound">ROUND 1</span>
+      </div>
+
+      <div class="telemetry-cluster">
+        <div class="stat-pill money" id="hudMoneyWrap">
+          <span>💰</span>
+          <span id="hudMoney">$4</span>
+        </div>
+        <div class="stat-pill" style="color:var(--neon-cyan);" id="hudHandsWrap">
+          <span>🖐️ HANDS</span>
+          <span id="hudHands">4</span>
+        </div>
+        <div class="stat-pill" style="color:var(--neon-pink);" id="hudDiscardsWrap">
+          <span>🗑️ DISCARDS</span>
+          <span id="hudDiscards">3</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-icon" id="btnDeckView" title="Inspect Deck (D)">🃏</button>
+        <button class="btn-icon" id="btnMusicToggle" title="Toggle Music (M)">🎵</button>
+        <button class="btn-icon" id="btnHof" title="Hall of Fame">🏆</button>
+        <button class="btn-icon" id="btnNewRun" title="Restart Run">🔄</button>
+      </div>
+    </header>
+
+    <!-- Main Poker Felt Area -->
+    <main class="poker-felt">
+      <!-- Top Row: Blind info + Jokers + Consumables -->
+      <div class="top-felt-row">
+        <!-- Blind info card -->
+        <div class="blind-panel" id="blindCard">
+          <div class="blind-title">
+            <span id="blindTypeLabel">SMALL BLIND</span>
+            <span class="blind-reward" id="blindRewardLabel">REWARD: $3</span>
+          </div>
+          <div class="blind-name" id="blindNameLabel">The Neon Gate</div>
+          <div class="blind-score-target">
+            <span>🎯</span>
+            <span id="blindTargetLabel">300</span>
+          </div>
+          <div class="blind-rule" id="blindRuleLabel">No boss restrictions active.</div>
+        </div>
+
+        <!-- Jokers Tray (Up to 5) -->
+        <div class="joker-section">
+          <div class="tray-header">
+            <span>Jokers (<span id="jokerCount">0</span>/<span id="jokerMax">5</span>)</span>
+            <span style="font-size:0.65rem; color:#64748b;">Triggers Left → Right</span>
+          </div>
+          <div class="tray-slots" id="jokerTray">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Consumables Tray (Tarot & Planets, Up to 2) -->
+        <div class="consumable-section">
+          <div class="tray-header">
+            <span>Consumables (<span id="consumableCount">0</span>/2)</span>
+          </div>
+          <div class="tray-slots" id="consumableTray">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Stage: The Live Score Flames & Hand Preview -->
+      <div class="center-stage">
+        <div class="score-banner" id="scoreBanner">
+          <div class="hand-eval-badge">
+            <span class="hand-name" id="evalHandName">High Card</span>
+            <span class="hand-level" id="evalHandLevel">Lv. 1</span>
+          </div>
+
+          <div class="score-math-row">
+            <div class="chip-block" id="calcChips">5</div>
+            <span class="math-operator">×</span>
+            <div class="mult-block" id="calcMult">1</div>
+            <span class="equal-operator">=</span>
+            <div class="total-score-block" id="calcTotal">5</div>
+          </div>
+        </div>
+
+        <!-- Played Cards Tray (When playing a hand) -->
+        <div class="played-cards-tray" id="playedCardsTray">
+          <!-- Cards step forward here sequentially during scoring -->
+        </div>
+      </div>
+
+      <!-- Bottom Felt Row: Action buttons + Player Cards -->
+      <div class="bottom-felt-row">
+        <div class="action-button-row">
+          <button class="btn-action play" id="btnPlayHand" disabled>
+            <span>💥 PLAY HAND</span>
+            <span class="hand-meta-pill" id="selectedCountPill">0/5</span>
+          </button>
+          <button class="btn-action discard" id="btnDiscard" disabled>
+            <span>🗑️ DISCARD</span>
+          </button>
+          <button class="btn-icon" id="btnSortRank" title="Sort by Rank (R)" style="width:42px; height:42px;">123</button>
+          <button class="btn-icon" id="btnSortSuit" title="Sort by Suit (S)" style="width:42px; height:42px;">♠♥</button>
+        </div>
+
+        <!-- Player's In-Hand Card Fan -->
+        <div class="player-hand-fan" id="playerHandFan">
+          <!-- 8 Cards Fan Out Here with 3D Gyro Tilt -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Shop Modal Window -->
+  <div class="modal-overlay" id="shopModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <span class="modal-title">THE CYBER SHOP</span>
+          <span class="badge-ante" style="border-color:var(--neon-gold); color:var(--neon-gold);">💰 CASH: <span id="shopCashVal">$4</span></span>
+        </div>
+        <button class="btn-icon" onclick="closeShop()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="shop-shelves">
+          <!-- Card Shelf: Jokers & Consumables -->
+          <div class="shelf-group">
+            <div class="shelf-title">Featured Cards (Jokers, Tarots, Planets)</div>
+            <div class="shelf-items" id="shopCardItems">
+              <!-- Dynamically generated -->
+            </div>
+          </div>
+
+          <!-- Booster Packs -->
+          <div class="shelf-group">
+            <div class="shelf-title">Booster Packs</div>
+            <div class="shelf-items" id="shopBoosterItems">
+              <!-- Dynamically generated -->
+            </div>
+          </div>
+
+          <!-- Vouchers -->
+          <div class="shelf-group">
+            <div class="shelf-title">Run Vouchers</div>
+            <div class="shelf-items" id="shopVoucherItems">
+              <!-- Dynamically generated -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="shop-footer-bar">
+        <button class="btn-action" id="btnShopReroll" style="padding:0.5rem 1.25rem; font-size:0.9rem;">
+          <span>🎲 REROLL</span>
+          <span class="hand-meta-pill" id="shopRerollCost">$5</span>
+        </button>
+        <button class="btn-action play" onclick="nextRoundFromShop()">
+          <span>NEXT BLIND ➔</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deck Inspector Modal -->
+  <div class="modal-overlay" id="deckModal">
+    <div class="modal-card" style="max-width:800px;">
+      <div class="modal-header">
+        <span class="modal-title">FULL DECK TELEMETRY (<span id="deckTotalCards">52</span> CARDS)</span>
+        <button class="btn-icon" onclick="closeDeckModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom:1rem; display:flex; gap:1.5rem; font-family:var(--font-mono); font-size:0.85rem;">
+          <span>♠ Spades: <b id="spadeCount">13</b></span>
+          <span>♥ Hearts: <b id="heartCount">13</b></span>
+          <span>♣ Clubs: <b id="clubCount">13</b></span>
+          <span>♦ Diamonds: <b id="diamondCount">13</b></span>
+        </div>
+        <div class="deck-grid" id="deckGridContainer">
+          <!-- Full 52+ cards generated here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hall of Fame Modal -->
+  <div class="modal-overlay" id="hofModal">
+    <div class="modal-card" style="max-width:560px;">
+      <div class="modal-header">
+        <span class="modal-title">🏆 HALL OF FAME</span>
+        <button class="btn-icon" onclick="closeHofModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="hofList" style="display:flex; flex-direction:column; gap:0.6rem; font-family:var(--font-mono);">
+          <!-- Top scores -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over / Victory Modal -->
+  <div class="modal-overlay" id="gameOverModal">
+    <div class="modal-card" style="max-width:500px; text-align:center;">
+      <div class="modal-header" style="justify-content:center;">
+        <span class="modal-title" id="endTitle" style="color:var(--neon-pink);">RUN DEFEATED</span>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem; align-items:center;">
+        <p id="endSubtitle" style="color:#94a3b8; font-size:0.9rem;">You did not satisfy the Blind target score.</p>
+        <div style="background:rgba(0,0,0,0.4); padding:1rem; border-radius:12px; width:100%; font-family:var(--font-mono);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span>Ante Reached:</span>
+            <b id="endAnte" style="color:var(--neon-cyan);">Ante 4</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span>Highest Hand:</span>
+            <b id="endHighestScore" style="color:var(--neon-gold);">14,250</b>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Favorite Hand:</span>
+            <b id="endFavHand" style="color:var(--neon-pink);">Flush</b>
+          </div>
+        </div>
+        <button class="btn-action play" onclick="startNewRun()" style="width:100%; justify-content:center;">
+          <span>NEW RUN</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Engine & Full Game Logic -->
+  <script>
+    // -------------------------------------------------------------------------
+    // SafeStorage Cross-Platform Polyfill
+    // -------------------------------------------------------------------------
+    const SafeStorage = {
+      getItem(k) {
+        try { return window.localStorage.getItem(k); } catch(e) { return null; }
+      },
+      setItem(k, v) {
+        try { window.localStorage.setItem(k, v); } catch(e) {}
+      }
+    };
+
+    // -------------------------------------------------------------------------
+    // 1. Procedural WebAudio Synthesizer & Sound Effects
+    // -------------------------------------------------------------------------
+    const AudioEngine = {
+      ctx: null,
+      muted: false,
+      musicNode: null,
+      musicTimer: null,
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      },
+
+      playCardSelect() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      },
+
+      playCardDeselect() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(660, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(330, this.ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.06);
+      },
+
+      playChipChime(pitchMultiplier = 1.0) {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        const baseFreq = 523.25 * pitchMultiplier; // C5
+        osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.16);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.16);
+      },
+
+      playMultFire(pitchMultiplier = 1.0) {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        const baseFreq = 329.63 * pitchMultiplier; // E4
+        osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, this.ctx.currentTime + 0.22);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.22);
+      },
+
+      playCashKaching() {
+        if (this.muted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        [880, 1174.66, 1760].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + i * 0.06);
+          gain.gain.setValueAtTime(0.18, now + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 0.15);
+        });
+      },
+
+      playNopeBuzzer() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+      },
+
+      playVictoryFanfare() {
+        if (this.muted) return;
+        this.init();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        const now = this.ctx.currentTime;
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.1);
+          osc.stop(now + idx * 0.1 + 0.35);
+        });
+      },
+
+      // Ambient Cyber Lofi Synth Loop
+      startLofiMusic() {
+        if (this.muted || this.musicTimer) return;
+        this.init();
+        const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C major pentatonic
+        let step = 0;
+
+        this.musicTimer = setInterval(() => {
+          if (this.muted) return;
+          try {
+            const freq = scale[step % scale.length];
+            step = (step + 1) % scale.length;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.025, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.9);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.9);
+          } catch(e) {}
+        }, 550);
+      },
+
+      stopMusic() {
+        if (this.musicTimer) {
+          clearInterval(this.musicTimer);
+          this.musicTimer = null;
+        }
+      },
+
+      toggle() {
+        this.muted = !this.muted;
+        if (this.muted) {
+          this.stopMusic();
+        } else {
+          this.startLofiMusic();
+        }
+        return !this.muted;
+      }
+    };
+
+    // -------------------------------------------------------------------------
+    // 2. Data Definitions: Jokers, Tarots, Planets, Boss Blinds
+    // -------------------------------------------------------------------------
+    const SUITS = [
+      { name: "spades", symbol: "♠", color: "black" },
+      { name: "hearts", symbol: "♥", color: "red" },
+      { name: "clubs", symbol: "♣", color: "black" },
+      { name: "diamonds", symbol: "♦", color: "red" }
+    ];
+
+    const RANKS = [
+      { id: "2", label: "2", chips: 2, order: 2 },
+      { id: "3", label: "3", chips: 3, order: 3 },
+      { id: "4", label: "4", chips: 4, order: 4 },
+      { id: "5", label: "5", chips: 5, order: 5 },
+      { id: "6", label: "6", chips: 6, order: 6 },
+      { id: "7", label: "7", chips: 7, order: 7 },
+      { id: "8", label: "8", chips: 8, order: 8 },
+      { id: "9", label: "9", chips: 9, order: 9 },
+      { id: "10", label: "10", chips: 10, order: 10 },
+      { id: "J", label: "J", chips: 10, order: 11, isFace: true },
+      { id: "Q", label: "Q", chips: 10, order: 12, isFace: true },
+      { id: "K", label: "K", chips: 10, order: 13, isFace: true },
+      { id: "A", label: "A", chips: 11, order: 14 }
+    ];
+
+    const POKER_HANDS = {
+      "High Card":        { baseChips: 5,   baseMult: 1,  chipPerLvl: 10, multPerLvl: 1, planet: "Pluto" },
+      "Pair":             { baseChips: 10,  baseMult: 2,  chipPerLvl: 15, multPerLvl: 1, planet: "Mercury" },
+      "Two Pair":         { baseChips: 20,  baseMult: 2,  chipPerLvl: 20, multPerLvl: 1, planet: "Uranus" },
+      "Three of a Kind":  { baseChips: 30,  baseMult: 3,  chipPerLvl: 20, multPerLvl: 2, planet: "Venus" },
+      "Straight":         { baseChips: 30,  baseMult: 4,  chipPerLvl: 30, multPerLvl: 3, planet: "Saturn" },
+      "Flush":            { baseChips: 35,  baseMult: 4,  chipPerLvl: 15, multPerLvl: 2, planet: "Jupiter" },
+      "Full House":       { baseChips: 40,  baseMult: 4,  chipPerLvl: 25, multPerLvl: 2, planet: "Earth" },
+      "Four of a Kind":   { baseChips: 60,  baseMult: 7,  chipPerLvl: 30, multPerLvl: 3, planet: "Mars" },
+      "Straight Flush":   { baseChips: 100, baseMult: 8,  chipPerLvl: 40, multPerLvl: 4, planet: "Neptune" },
+      "Royal Flush":      { baseChips: 100, baseMult: 8,  chipPerLvl: 40, multPerLvl: 4, planet: "Neptune" },
+      "Five of a Kind":   { baseChips: 120, baseMult: 12, chipPerLvl: 35, multPerLvl: 3, planet: "Planet X" }
+    };
+
+    // Iconic Joker Library
+    const JOKER_CATALOG = [
+      { id: "joker", name: "Joker", cost: 2, rarity: "common", icon: "🃏", desc: "+4 Mult", onEval: (ctx) => { ctx.mult += 4; } },
+      { id: "greedy_joker", name: "Greedy Joker", cost: 5, rarity: "common", icon: "♦️", desc: "Played Diamonds give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "diamonds") ctx.mult += 4; } },
+      { id: "lusty_joker", name: "Lusty Joker", cost: 5, rarity: "common", icon: "♥️", desc: "Played Hearts give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "hearts") ctx.mult += 4; } },
+      { id: "wrathful_joker", name: "Wrathful Joker", cost: 5, rarity: "common", icon: "♠️", desc: "Played Spades give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "spades") ctx.mult += 4; } },
+      { id: "gluttonous_joker", name: "Gluttonous Joker", cost: 5, rarity: "common", icon: "♣️", desc: "Played Clubs give +4 Mult", onCardScored: (card, ctx) => { if (card.suit === "clubs") ctx.mult += 4; } },
+      { id: "jolly_joker", name: "Jolly Joker", cost: 3, rarity: "common", icon: "😄", desc: "+8 Mult if hand contains a Pair", onEval: (ctx) => { if (ctx.handType.includes("Pair") || ctx.handType === "Full House") ctx.mult += 8; } },
+      { id: "mad_joker", name: "Mad Joker", cost: 4, rarity: "common", icon: "😡", desc: "+10 Mult if hand contains Two Pair", onEval: (ctx) => { if (ctx.handType === "Two Pair") ctx.mult += 10; } },
+      { id: "zany_joker", name: "Zany Joker", cost: 4, rarity: "common", icon: "🤪", desc: "+12 Mult if hand contains 3 of a Kind", onEval: (ctx) => { if (ctx.handType === "Three of a Kind" || ctx.handType === "Full House") ctx.mult += 12; } },
+      { id: "droll_joker", name: "Droll Joker", cost: 4, rarity: "common", icon: "🎭", desc: "+10 Mult if hand contains a Flush", onEval: (ctx) => { if (ctx.handType.includes("Flush")) ctx.mult += 10; } },
+      { id: "crazy_joker", name: "Crazy Joker", cost: 4, rarity: "common", icon: "🌀", desc: "+12 Mult if hand contains a Straight", onEval: (ctx) => { if (ctx.handType.includes("Straight")) ctx.mult += 12; } },
+      { id: "half_joker", name: "Half Joker", cost: 5, rarity: "common", icon: "🌓", desc: "+20 Mult if hand has 3 or fewer cards", onEval: (ctx) => { if (ctx.playedCount <= 3) ctx.mult += 20; } },
+      { id: "banner", name: "Banner", cost: 5, rarity: "common", icon: "🚩", desc: "+30 Chips for each remaining Discard", onEval: (ctx) => { ctx.chips += ctx.discardsLeft * 30; } },
+      { id: "even_steven", name: "Even Steven", cost: 4, rarity: "common", icon: "⚖️", desc: "Played even cards give +4 Mult", onCardScored: (card, ctx) => { if ([2,4,6,8,10].includes(card.rank.order)) ctx.mult += 4; } },
+      { id: "odd_todd", name: "Odd Todd", cost: 4, rarity: "common", icon: "🎲", desc: "Played odd cards give +31 Chips", onCardScored: (card, ctx) => { if ([3,5,7,9,14].includes(card.rank.order)) ctx.chips += 31; } },
+      { id: "scholar", name: "Scholar", cost: 4, rarity: "common", icon: "🎓", desc: "Played Aces give +20 Chips and +4 Mult", onCardScored: (card, ctx) => { if (card.rank.id === "A") { ctx.chips += 20; ctx.mult += 4; } } },
+      { id: "smiley_face", name: "Smiley Face", cost: 4, rarity: "common", icon: "🙂", desc: "Played face cards give +5 Mult", onCardScored: (card, ctx) => { if (card.rank.isFace) ctx.mult += 5; } },
+      { id: "scary_face", name: "Scary Face", cost: 4, rarity: "common", icon: "👹", desc: "Played face cards give +30 Chips", onCardScored: (card, ctx) => { if (card.rank.isFace) ctx.chips += 30; } },
+      { id: "bull", name: "Bull", cost: 6, rarity: "uncommon", icon: "🐂", desc: "+2 Chips for every dollar you have", onEval: (ctx) => { ctx.chips += ctx.money * 2; } },
+      { id: "gros_michel", name: "Gros Michel", cost: 5, rarity: "common", icon: "🍌", desc: "+15 Mult. 1 in 6 chance to expire each round", onEval: (ctx) => { ctx.mult += 15; } },
+      { id: "cavendish", name: "Cavendish", cost: 5, rarity: "common", icon: "✨🍌", desc: "×3 Mult. 1 in 1000 chance to expire", onEval: (ctx) => { ctx.mult *= 3; } },
+      { id: "the_duo", name: "The Duo", cost: 7, rarity: "rare", icon: "👥", desc: "×2 Mult if hand contains a Pair", onEval: (ctx) => { if (ctx.handType.includes("Pair") || ctx.handType === "Full House") ctx.mult *= 2; } },
+      { id: "the_trio", name: "The Trio", cost: 7, rarity: "rare", icon: "👥👤", desc: "×3 Mult if hand contains 3 of a Kind", onEval: (ctx) => { if (ctx.handType === "Three of a Kind" || ctx.handType === "Full House") ctx.mult *= 3; } },
+      { id: "the_tribe", name: "The Tribe", cost: 7, rarity: "rare", icon: "🏕️", desc: "×2 Mult if hand contains a Flush", onEval: (ctx) => { if (ctx.handType.includes("Flush")) ctx.mult *= 2; } },
+      { id: "the_order", name: "The Order", cost: 7, rarity: "rare", icon: "📜", desc: "×3 Mult if hand contains a Straight", onEval: (ctx) => { if (ctx.handType.includes("Straight")) ctx.mult *= 3; } },
+      { id: "baron", name: "Baron", cost: 8, rarity: "rare", icon: "👑", desc: "Each King held in hand gives ×1.5 Mult", onHeldInHand: (card, ctx) => { if (card.rank.id === "K") ctx.mult *= 1.5; } },
+      { id: "golden_joker", name: "Golden Joker", cost: 6, rarity: "common", icon: "🥇", desc: "Earn $4 at end of round", onRoundEnd: (gameState) => { gameState.money += 4; } },
+      { id: "cyber_quantum", name: "Cyber Quantum", cost: 9, rarity: "rare", icon: "⚡", desc: "Balatro+ Exclusive: Played cards have 50% chance to double their chips & mult!", onCardScored: (card, ctx) => {
+        if (Math.random() < 0.5) {
+          ctx.chips += card.rank.chips;
+          ctx.mult += 2;
+        }
+      }}
+    ];
+
+    // Tarot Cards
+    const TAROT_CATALOG = [
+      { id: "the_fool", name: "The Fool", icon: "🃏", desc: "Spawns the last Tarot or Planet used this run" },
+      { id: "the_magician", name: "The Magician", icon: "🪄", desc: "Enhances 2 selected cards into Lucky Cards" },
+      { id: "the_empress", name: "The Empress", icon: "👑", desc: "Enhances 2 selected cards to +4 Mult Cards" },
+      { id: "the_hierophant", name: "The Hierophant", icon: "🏛️", desc: "Enhances 2 selected cards to +30 Bonus Chips" },
+      { id: "the_lovers", name: "The Lovers", icon: "❤️", desc: "Enhances 1 selected card into a Wild Card (all suits)" },
+      { id: "the_chariot", name: "The Chariot", icon: "🛡️", desc: "Enhances 1 selected card into Steel (×1.5 Mult in hand)" },
+      { id: "justice", name: "Justice", icon: "⚖️", desc: "Enhances 1 selected card into Glass (×2 Mult, 1 in 4 break)" },
+      { id: "the_hermit", name: "The Hermit", icon: "💰", desc: "Doubles current money (Max +$20)" },
+      { id: "wheel_of_fortune", name: "Wheel of Fortune", icon: "🎡", desc: "1 in 4 chance to add Foil, Holo, or Polychrome to a random Joker" },
+      { id: "the_hanged_man", name: "The Hanged Man", icon: "✂️", desc: "Destroys up to 2 selected cards from your deck" },
+      { id: "death", name: "Death", icon: "💀", desc: "Converts the left selected card into the right selected card" }
+    ];
+
+    // Boss Blinds
+    const BOSS_BLINDS = [
+      { name: "The Hook", rule: "Discards 2 random cards when hand is played" },
+      { name: "The Needle", rule: "Play only 1 hand this round!" },
+      { name: "The Wall", rule: "Extra giant blind (2.5x score requirement)" },
+      { name: "The Arm", rule: "Decreases level of played poker hand by 1" },
+      { name: "The Eye", rule: "No repeat hand types allowed this round" },
+      { name: "The Psychic", rule: "Must play exactly 5 cards" },
+      { name: "The Goad", rule: "All Spade cards are debuffed" },
+      { name: "The Club", rule: "All Club cards are debuffed" },
+      { name: "The Window", rule: "All Diamond cards are debuffed" },
+      { name: "The Head", rule: "All Heart cards are debuffed" }
+    ];
+
+    // -------------------------------------------------------------------------
+    // 3. Core Game State & Run Engine
+    // -------------------------------------------------------------------------
+    let deck = [];
+    let playerHand = [];
+    let selectedIndices = [];
+    let jokers = [];
+    let consumables = [];
+    let handLevels = {};
+    let handUsage = {};
+
+    let ante = 1;
+    let blindIndex = 0; // 0 = Small, 1 = Big, 2 = Boss
+    let currentBlind = null;
+    let round = 1;
+    let money = 4;
+    let handsLeft = 4;
+    let discardsLeft = 3;
+    let currentRoundScore = 0;
+    let isScoring = false;
+    let highestHandScore = 0;
+    let lastUsedConsumable = null;
+
+    function buildStandardDeck() {
+      const d = [];
+      let uid = 0;
+      for (const suit of SUITS) {
+        for (const rank of RANKS) {
+          d.push({
+            uid: ++uid,
+            suit: suit.name,
+            suitSymbol: suit.symbol,
+            suitColor: suit.color,
+            rank: rank,
+            enhancement: "none", // bonus, mult, wild, glass, steel, stone, lucky, gold
+            edition: "none",     // foil, holographic, polychrome
+            seal: "none",        // red, blue, gold, purple
+            debuffed: false
+          });
+        }
+      }
+      return shuffle(d);
+    }
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function initRun() {
+      deck = buildStandardDeck();
+      playerHand = [];
+      selectedIndices = [];
+      jokers = [
+        { ...JOKER_CATALOG[0], uid: 1 } // Start with basic Joker
+      ];
+      consumables = [];
+      handLevels = {};
+      handUsage = {};
+      for (const h in POKER_HANDS) {
+        handLevels[h] = 1;
+        handUsage[h] = 0;
+      }
+
+      ante = 1;
+      blindIndex = 0;
+      round = 1;
+      money = 4;
+      highestHandScore = 0;
+      setupBlind();
+    }
+
+    function calculateBlindTarget(anteNum, bIdx) {
+      // Classic Balatro progression formula:
+      const baseAnteScores = [300, 800, 2000, 5000, 11000, 20000, 35000, 50000];
+      const base = baseAnteScores[Math.min(anteNum - 1, baseAnteScores.length - 1)] || (anteNum * 35000);
+      if (bIdx === 0) return Math.round(base * 1.0);
+      if (bIdx === 1) return Math.round(base * 1.5);
+      return Math.round(base * 2.0); // Boss blind
+    }
+
+    function setupBlind() {
+      const targetScore = calculateBlindTarget(ante, blindIndex);
+      const isBoss = blindIndex === 2;
+      const boss = isBoss ? BOSS_BLINDS[Math.floor(Math.random() * BOSS_BLINDS.length)] : null;
+
+      currentBlind = {
+        name: isBoss ? boss.name : (blindIndex === 0 ? "Small Blind" : "Big Blind"),
+        type: isBoss ? "BOSS BLIND" : (blindIndex === 0 ? "SMALL BLIND" : "BIG BLIND"),
+        target: isBoss && boss.name === "The Wall" ? Math.round(targetScore * 2.5) : targetScore,
+        reward: isBoss ? 5 : (blindIndex === 0 ? 3 : 4),
+        rule: isBoss ? boss.rule : "No boss restrictions active.",
+        isBoss: isBoss,
+        bossRule: boss ? boss.name : null
+      };
+
+      currentRoundScore = 0;
+      handsLeft = currentBlind.bossRule === "The Needle" ? 1 : 4;
+      discardsLeft = currentBlind.bossRule === "The Water" ? 0 : 3;
+
+      // Draw initial hand of 8 cards
+      deck = buildStandardDeck();
+      playerHand = [];
+      selectedIndices = [];
+      drawCards(8);
+
+      updateHUD();
+      renderJokers();
+      renderConsumables();
+      updateScorePreview();
+    }
+
+    function drawCards(count) {
+      for (let i = 0; i < count; i++) {
+        if (deck.length === 0) break;
+        playerHand.push(deck.pop());
+      }
+      renderPlayerHand();
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. Poker Hand Evaluation Algorithm
+    // -------------------------------------------------------------------------
+    function evaluateHand(cards) {
+      if (!cards || cards.length === 0) {
+        return { name: "High Card", scoringCards: [] };
+      }
+
+      // Sort cards descending by order
+      const sorted = cards.slice().sort((a, b) => b.rank.order - a.rank.order);
+      const rankCounts = {};
+      const suitCounts = {};
+
+      sorted.forEach(c => {
+        rankCounts[c.rank.order] = (rankCounts[c.rank.order] || 0) + 1;
+        const s = c.enhancement === "wild" ? "wild" : c.suit;
+        suitCounts[s] = (suitCounts[s] || 0) + 1;
+      });
+
+      const counts = Object.values(rankCounts).sort((a, b) => b - a);
+      const isFlush = Object.keys(suitCounts).some(s => s !== "wild" && (suitCounts[s] + (suitCounts["wild"] || 0)) >= 5) || (suitCounts["wild"] || 0) >= 5;
+
+      // Straight check
+      const uniqueRanks = Array.from(new Set(sorted.map(c => c.rank.order))).sort((a, b) => b - a);
+      let isStraight = false;
+      let straightRanks = [];
+
+      if (uniqueRanks.length >= 5) {
+        for (let i = 0; i <= uniqueRanks.length - 5; i++) {
+          if (uniqueRanks[i] - uniqueRanks[i + 4] === 4) {
+            isStraight = true;
+            straightRanks = uniqueRanks.slice(i, i + 5);
+            break;
+          }
+        }
+        // Ace-low straight: A, 5, 4, 3, 2
+        if (!isStraight && uniqueRanks.includes(14) && uniqueRanks.includes(5) && uniqueRanks.includes(4) && uniqueRanks.includes(3) && uniqueRanks.includes(2)) {
+          isStraight = true;
+          straightRanks = [5, 4, 3, 2, 14];
+        }
+      }
+
+      if (counts[0] >= 5) return { name: "Five of a Kind", scoringCards: sorted };
+      if (isStraight && isFlush && uniqueRanks[0] === 14 && uniqueRanks[4] === 10) return { name: "Royal Flush", scoringCards: sorted };
+      if (isStraight && isFlush) return { name: "Straight Flush", scoringCards: sorted };
+      if (counts[0] === 4) return { name: "Four of a Kind", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 4) };
+      if (counts[0] === 3 && counts[1] >= 2) return { name: "Full House", scoringCards: sorted };
+      if (isFlush) return { name: "Flush", scoringCards: sorted };
+      if (isStraight) return { name: "Straight", scoringCards: sorted };
+      if (counts[0] === 3) return { name: "Three of a Kind", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 3) };
+      if (counts[0] === 2 && counts[1] === 2) return { name: "Two Pair", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 2) };
+      if (counts[0] === 2) return { name: "Pair", scoringCards: sorted.filter(c => rankCounts[c.rank.order] === 2) };
+
+      return { name: "High Card", scoringCards: [sorted[0]] };
+    }
+
+    function calculateHandScore(cards) {
+      const evaluation = evaluateHand(cards);
+      const handConfig = POKER_HANDS[evaluation.name] || POKER_HANDS["High Card"];
+      const level = handLevels[evaluation.name] || 1;
+
+      let chips = handConfig.baseChips + (level - 1) * handConfig.chipPerLvl;
+      let mult = handConfig.baseMult + (level - 1) * handConfig.multPerLvl;
+
+      // Add played card chips
+      cards.forEach(c => {
+        let cardChips = c.rank.chips;
+        if (c.enhancement === "bonus") cardChips += 30;
+        if (c.enhancement === "stone") cardChips += 50;
+        if (c.edition === "foil") cardChips += 50;
+        chips += cardChips;
+
+        if (c.enhancement === "mult") mult += 4;
+        if (c.edition === "holographic") mult += 10;
+        if (c.edition === "polychrome") mult = Math.round(mult * 1.5);
+      });
+
+      // Context for Joker triggers
+      const evalContext = {
+        chips,
+        mult,
+        handType: evaluation.name,
+        playedCount: cards.length,
+        discardsLeft,
+        money,
+        scoringCards: evaluation.scoringCards
+      };
+
+      // 1. Card scored triggers
+      cards.forEach(card => {
+        jokers.forEach(j => {
+          if (j.onCardScored) j.onCardScored(card, evalContext);
+        });
+      });
+
+      // 2. Joker overall triggers
+      jokers.forEach(j => {
+        if (j.onEval) j.onEval(evalContext);
+      });
+
+      // 3. Held in hand triggers
+      const heldInHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
+      heldInHand.forEach(card => {
+        if (card.enhancement === "steel") evalContext.mult = Math.round(evalContext.mult * 1.5);
+        jokers.forEach(j => {
+          if (j.onHeldInHand) j.onHeldInHand(card, evalContext);
+        });
+      });
+
+      return {
+        name: evaluation.name,
+        level,
+        chips: Math.round(evalContext.chips),
+        mult: Math.round(evalContext.mult),
+        total: Math.round(evalContext.chips * evalContext.mult)
+      };
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. Playing Hands & Dramatic Scoring Sequence
+    // -------------------------------------------------------------------------
+    async function playSelectedHand() {
+      if (isScoring || selectedIndices.length === 0 || handsLeft <= 0) return;
+
+      isScoring = true;
+      document.getElementById("btnPlayHand").disabled = true;
+      document.getElementById("btnDiscard").disabled = true;
+
+      const playedCards = selectedIndices.map(i => playerHand[i]);
+      const scoredData = calculateHandScore(playedCards);
+
+      // Decrement hands
+      handsLeft--;
+      handUsage[scoredData.name] = (handUsage[scoredData.name] || 0) + 1;
+      AudioEngine.playChipChime(1.0);
+
+      // Boss restrictions check:
+      if (currentBlind.bossRule === "The Hook") {
+        // Discard 2 random cards
+        const remaining = playerHand.filter((_, i) => !selectedIndices.includes(i));
+        if (remaining.length >= 2) {
+          remaining.splice(Math.floor(Math.random() * remaining.length), 1);
+          remaining.splice(Math.floor(Math.random() * remaining.length), 1);
+        }
+      }
+
+      // Step-by-Step Scoring Animation
+      const playedTray = document.getElementById("playedCardsTray");
+      playedTray.innerHTML = "";
+
+      // Move played cards to played tray
+      playedCards.forEach(c => {
+        const el = createCardElement(c, false);
+        el.style.transform = "translateY(40px) scale(0.9)";
+        el.style.opacity = "0";
+        playedTray.appendChild(el);
+      });
+
+      // Slide played cards into center
+      await sleep(100);
+      const domCards = Array.from(playedTray.children);
+      domCards.forEach((c, idx) => {
+        setTimeout(() => {
+          c.style.transition = "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
+          c.style.transform = "translateY(0) scale(1.05)";
+          c.style.opacity = "1";
+          AudioEngine.playCardSelect();
+        }, idx * 100);
+      });
+
+      await sleep(domCards.length * 100 + 200);
+
+      // Sequential card chip pops
+      for (let i = 0; i < domCards.length; i++) {
+        const cardEl = domCards[i];
+        cardEl.style.transform = "translateY(-12px) scale(1.15)";
+        cardEl.style.boxShadow = "0 0 25px var(--neon-cyan)";
+        AudioEngine.playChipChime(1.0 + i * 0.1);
+        await sleep(150);
+        cardEl.style.transform = "translateY(0) scale(1.05)";
+        cardEl.style.boxShadow = "0 8px 18px rgba(0,0,0,0.4)";
+      }
+
+      // Joker trigger activations
+      const jokerEls = document.querySelectorAll(".joker-card");
+      for (let j = 0; j < jokerEls.length; j++) {
+        const jEl = jokerEls[j];
+        jEl.style.transform = "translateY(-14px) scale(1.18)";
+        jEl.style.borderColor = "var(--neon-pink)";
+        AudioEngine.playMultFire(1.0 + j * 0.15);
+        await sleep(180);
+        jEl.style.transform = "";
+        jEl.style.borderColor = "";
+      }
+
+      // Grand Multiplier Flame Burst
+      const totalBlock = document.getElementById("calcTotal");
+      totalBlock.style.transform = "scale(1.35)";
+      totalBlock.style.boxShadow = "0 0 35px var(--neon-gold)";
+      shakeScreen(6);
+      AudioEngine.playVictoryFanfare();
+
+      currentRoundScore += scoredData.total;
+      if (scoredData.total > highestHandScore) {
+        highestHandScore = scoredData.total;
+      }
+
+      await sleep(400);
+      totalBlock.style.transform = "scale(1)";
+      totalBlock.style.boxShadow = "";
+
+      // Remove played cards from player's hand
+      playerHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
+      selectedIndices = [];
+      playedTray.innerHTML = "";
+
+      updateHUD();
+
+      // Check if target met or out of hands
+      if (currentRoundScore >= currentBlind.target) {
+        // Blind Cleared!
+        await sleep(500);
+        AudioEngine.playCashKaching();
+        money += currentBlind.reward;
+        openShop();
+      } else if (handsLeft <= 0) {
+        // Run Over!
+        await sleep(500);
+        AudioEngine.playNopeBuzzer();
+        triggerGameOver();
+      } else {
+        // Draw up to 8 cards
+        drawCards(8 - playerHand.length);
+        isScoring = false;
+        updateScorePreview();
+      }
+    }
+
+    function discardSelectedCards() {
+      if (isScoring || selectedIndices.length === 0 || discardsLeft <= 0) return;
+
+      discardsLeft--;
+      AudioEngine.playCardDeselect();
+
+      playerHand = playerHand.filter((_, idx) => !selectedIndices.includes(idx));
+      selectedIndices = [];
+      drawCards(8 - playerHand.length);
+      updateHUD();
+      updateScorePreview();
+    }
+
+    function sleep(ms) {
+      return new Promise(res => setTimeout(res, ms));
+    }
+
+    function shakeScreen(amount = 5) {
+      const app = document.getElementById("gameApp");
+      app.style.transform = `translate(${(Math.random() - 0.5) * amount}px, ${(Math.random() - 0.5) * amount}px)`;
+      setTimeout(() => { app.style.transform = "none"; }, 80);
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. UI Rendering & 3D Interactive Card Physics
+    // -------------------------------------------------------------------------
+    function createCardElement(card, isInteractive = true) {
+      const el = document.createElement("div");
+      el.className = `poker-card ${card.suitColor}`;
+      if (card.edition !== "none") el.classList.add(`edition-${card.edition}`);
+
+      el.innerHTML = `
+        <div class="card-face">
+          <div class="card-top-left">
+            <span class="card-rank">${card.rank.label}</span>
+            <span class="card-suit">${card.suitSymbol}</span>
+          </div>
+          <div class="card-center-art">${card.suitSymbol}</div>
+          <div class="card-bottom-right">
+            <span class="card-rank">${card.rank.label}</span>
+            <span class="card-suit">${card.suitSymbol}</span>
+          </div>
+          <div class="card-chip-val">+${card.rank.chips}</div>
+        </div>
+      `;
+
+      if (card.seal !== "none") {
+        const seal = document.createElement("div");
+        seal.className = `card-seal ${card.seal}`;
+        seal.textContent = card.seal[0].toUpperCase();
+        el.appendChild(seal);
+      }
+
+      // 3D Gyro Mouse Tilt Physics
+      if (isInteractive) {
+        el.addEventListener("mousemove", (e) => {
+          const rect = el.getBoundingClientRect();
+          const x = e.clientX - rect.left - rect.width / 2;
+          const y = e.clientY - rect.top - rect.height / 2;
+          const rotX = -(y / (rect.height / 2)) * 14;
+          const rotY = (x / (rect.width / 2)) * 14;
+          const isSel = el.classList.contains("selected");
+          el.style.transform = `translateY(${isSel ? -28 : -14}px) scale(1.06) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+        });
+
+        el.addEventListener("mouseleave", () => {
+          el.style.transform = "";
+        });
+      }
+
+      return el;
+    }
+
+    function renderPlayerHand() {
+      const fan = document.getElementById("playerHandFan");
+      fan.innerHTML = "";
+
+      playerHand.forEach((card, idx) => {
+        const el = createCardElement(card, true);
+        if (selectedIndices.includes(idx)) {
+          el.classList.add("selected");
+        }
+
+        el.addEventListener("click", () => {
+          if (isScoring) return;
+          toggleCardSelection(idx);
+        });
+
+        fan.appendChild(el);
+      });
+
+      updateSelectionButtons();
+    }
+
+    function toggleCardSelection(index) {
+      const pos = selectedIndices.indexOf(index);
+      if (pos >= 0) {
+        selectedIndices.splice(pos, 1);
+        AudioEngine.playCardDeselect();
+      } else {
+        if (selectedIndices.length >= 5) {
+          // Max 5 cards selectable
+          selectedIndices.shift();
+        }
+        selectedIndices.push(index);
+        AudioEngine.playCardSelect();
+      }
+
+      renderPlayerHand();
+      updateScorePreview();
+    }
+
+    function updateSelectionButtons() {
+      const count = selectedIndices.length;
+      document.getElementById("selectedCountPill").textContent = `${count}/5`;
+      document.getElementById("btnPlayHand").disabled = count === 0 || handsLeft <= 0 || isScoring;
+      document.getElementById("btnDiscard").disabled = count === 0 || discardsLeft <= 0 || isScoring;
+    }
+
+    function updateScorePreview() {
+      const played = selectedIndices.map(i => playerHand[i]);
+      const scored = calculateHandScore(played);
+
+      document.getElementById("evalHandName").textContent = scored.name;
+      document.getElementById("evalHandLevel").textContent = `Lv. ${scored.level}`;
+      document.getElementById("calcChips").textContent = scored.chips.toLocaleString();
+      document.getElementById("calcMult").textContent = scored.mult.toLocaleString();
+      document.getElementById("calcTotal").textContent = scored.total.toLocaleString();
+    }
+
+    function renderJokers() {
+      const tray = document.getElementById("jokerTray");
+      tray.innerHTML = "";
+      document.getElementById("jokerCount").textContent = jokers.length;
+
+      jokers.forEach((j, idx) => {
+        const el = document.createElement("div");
+        el.className = "joker-card";
+        el.innerHTML = `
+          <div class="joker-icon">${j.icon}</div>
+          <div class="joker-name">${j.name}</div>
+          <div class="joker-rarity ${j.rarity}">${j.rarity}</div>
+        `;
+
+        el.addEventListener("mouseenter", (e) => showTooltip(e, j.name, j.desc));
+        el.addEventListener("mouseleave", hideTooltip);
+        tray.appendChild(el);
+      });
+
+      // Fill empty slots up to 5
+      for (let i = jokers.length; i < 5; i++) {
+        const empty = document.createElement("div");
+        empty.className = "empty-slot";
+        empty.textContent = "+";
+        tray.appendChild(empty);
+      }
+    }
+
+    function renderConsumables() {
+      const tray = document.getElementById("consumableTray");
+      tray.innerHTML = "";
+      document.getElementById("consumableCount").textContent = consumables.length;
+
+      consumables.forEach((c, idx) => {
+        const el = document.createElement("div");
+        el.className = "consumable-card";
+        el.innerHTML = `
+          <div style="font-size:1.6rem; margin-top:0.2rem;">${c.icon}</div>
+          <div style="font-size:0.65rem; font-weight:800; text-align:center; color:#f1f5f9;">${c.name}</div>
+          <button style="font-size:0.6rem; padding:0.15rem 0.4rem; background:#a855f7; border:none; color:#fff; border-radius:4px; font-weight:800; cursor:pointer;" onclick="useConsumable(${idx})">USE</button>
+        `;
+        el.addEventListener("mouseenter", (e) => showTooltip(e, c.name, c.desc));
+        el.addEventListener("mouseleave", hideTooltip);
+        tray.appendChild(el);
+      });
+
+      for (let i = consumables.length; i < 2; i++) {
+        const empty = document.createElement("div");
+        empty.className = "empty-slot";
+        empty.style.width = "64px";
+        empty.textContent = "+";
+        tray.appendChild(empty);
+      }
+    }
+
+    function useConsumable(index) {
+      const c = consumables[index];
+      if (!c) return;
+      lastUsedConsumable = c;
+
+      if (c.id === "the_hermit") {
+        const bonus = Math.min(20, money);
+        money += bonus;
+        AudioEngine.playCashKaching();
+      } else if (c.id === "the_empress" && selectedIndices.length > 0) {
+        selectedIndices.slice(0, 2).forEach(i => { playerHand[i].enhancement = "mult"; });
+        AudioEngine.playCardSelect();
+      } else if (c.id === "the_hierophant" && selectedIndices.length > 0) {
+        selectedIndices.slice(0, 2).forEach(i => { playerHand[i].enhancement = "bonus"; });
+        AudioEngine.playCardSelect();
+      } else if (c.id === "the_lovers" && selectedIndices.length > 0) {
+        playerHand[selectedIndices[0]].enhancement = "wild";
+        AudioEngine.playCardSelect();
+      } else if (c.id === "the_chariot" && selectedIndices.length > 0) {
+        playerHand[selectedIndices[0]].enhancement = "steel";
+        AudioEngine.playCardSelect();
+      } else if (c.id === "justice" && selectedIndices.length > 0) {
+        playerHand[selectedIndices[0]].enhancement = "glass";
+        AudioEngine.playCardSelect();
+      } else if (c.id === "the_hanged_man" && selectedIndices.length > 0) {
+        playerHand = playerHand.filter((_, idx) => !selectedIndices.slice(0, 2).includes(idx));
+        selectedIndices = [];
+        AudioEngine.playCardSelect();
+      } else if (c.planetHand) {
+        // Planet card levels up specific hand
+        handLevels[c.planetHand] = (handLevels[c.planetHand] || 1) + 1;
+        AudioEngine.playVictoryFanfare();
+      }
+
+      consumables.splice(index, 1);
+      renderConsumables();
+      renderPlayerHand();
+      updateScorePreview();
+      updateHUD();
+    }
+
+    function showTooltip(e, title, desc) {
+      const tt = document.getElementById("cardTooltip");
+      tt.innerHTML = `<div class="tt-title">${title}</div><div>${desc}</div>`;
+      tt.style.display = "block";
+      const x = Math.min(window.innerWidth - 240, e.clientX + 14);
+      const y = Math.min(window.innerHeight - 100, e.clientY + 14);
+      tt.style.left = `${x}px`;
+      tt.style.top = `${y}px`;
+    }
+
+    function hideTooltip() {
+      document.getElementById("cardTooltip").style.display = "none";
+    }
+
+    function updateHUD() {
+      document.getElementById("hudAnte").textContent = `ANTE ${ante}/8`;
+      document.getElementById("hudRound").textContent = `ROUND ${round}`;
+      document.getElementById("hudMoney").textContent = `$${money}`;
+      document.getElementById("hudHands").textContent = handsLeft;
+      document.getElementById("hudDiscards").textContent = discardsLeft;
+
+      if (currentBlind) {
+        document.getElementById("blindNameLabel").textContent = currentBlind.name;
+        document.getElementById("blindTypeLabel").textContent = currentBlind.type;
+        document.getElementById("blindTargetLabel").textContent = currentBlind.target.toLocaleString();
+        document.getElementById("blindRewardLabel").textContent = `REWARD: $${currentBlind.reward}`;
+        document.getElementById("blindRuleLabel").textContent = currentBlind.rule;
+        const bCard = document.getElementById("blindCard");
+        if (currentBlind.isBoss) bCard.classList.add("boss");
+        else bCard.classList.remove("boss");
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. Shop & Booster Pack Engine
+    // -------------------------------------------------------------------------
+    let rerollCost = 5;
+
+    function openShop() {
+      document.getElementById("shopCashVal").textContent = `$${money}`;
+      document.getElementById("shopRerollCost").textContent = `$${rerollCost}`;
+      populateShopItems();
+      document.getElementById("shopModal").style.display = "flex";
+    }
+
+    function closeShop() {
+      document.getElementById("shopModal").style.display = "none";
+    }
+
+    function populateShopItems() {
+      const cardShelf = document.getElementById("shopCardItems");
+      cardShelf.innerHTML = "";
+
+      // 2 Random Cards (Jokers, Planets, Tarots)
+      for (let i = 0; i < 2; i++) {
+        const isJoker = Math.random() < 0.6;
+        let item;
+        if (isJoker) {
+          const j = JOKER_CATALOG[Math.floor(Math.random() * JOKER_CATALOG.length)];
+          item = { type: "joker", ...j };
+        } else {
+          const t = TAROT_CATALOG[Math.floor(Math.random() * TAROT_CATALOG.length)];
+          item = { type: "tarot", cost: 3, ...t };
+        }
+
+        const el = document.createElement("div");
+        el.className = "shop-item-card";
+        el.innerHTML = `
+          <div style="font-size:2rem;">${item.icon}</div>
+          <b style="font-size:0.85rem; color:#f8fafc;">${item.name}</b>
+          <div class="shop-item-desc">${item.desc}</div>
+          <button class="btn-buy" onclick="buyShopItem(${i})" ${money < item.cost ? "disabled" : ""}>
+            BUY $${item.cost}
+          </button>
+        `;
+        el.dataset.itemJson = JSON.stringify(item);
+        cardShelf.appendChild(el);
+      }
+
+      // Booster Packs
+      const boosterShelf = document.getElementById("shopBoosterItems");
+      boosterShelf.innerHTML = `
+        <div class="shop-item-card">
+          <div style="font-size:2rem;">📦🃏</div>
+          <b>Buffoon Pack</b>
+          <div class="shop-item-desc">Choose 1 of 2 Joker cards to add to your deck</div>
+          <button class="btn-buy" onclick="buyBooster('buffoon', 4)" ${money < 4 ? "disabled" : ""}>BUY $4</button>
+        </div>
+        <div class="shop-item-card">
+          <div style="font-size:2rem;">📦🪐</div>
+          <b>Celestial Pack</b>
+          <div class="shop-item-desc">Choose 1 of 3 Planet cards to level up your hands</div>
+          <button class="btn-buy" onclick="buyBooster('celestial', 4)" ${money < 4 ? "disabled" : ""}>BUY $4</button>
+        </div>
+      `;
+
+      // Vouchers
+      const voucherShelf = document.getElementById("shopVoucherItems");
+      voucherShelf.innerHTML = `
+        <div class="shop-item-card" style="width:220px;">
+          <div style="font-size:2rem;">🎫</div>
+          <b>Overstock Voucher</b>
+          <div class="shop-item-desc">+1 Card slot available in the shop permanently</div>
+          <button class="btn-buy" onclick="buyVoucher('overstock', 10)" ${money < 10 ? "disabled" : ""}>BUY $10</button>
+        </div>
+      `;
+    }
+
+    function buyShopItem(index) {
+      const items = document.querySelectorAll("#shopCardItems .shop-item-card");
+      const cardEl = items[index];
+      if (!cardEl) return;
+      const item = JSON.parse(cardEl.dataset.itemJson);
+
+      if (money < item.cost) return;
+
+      if (item.type === "joker") {
+        if (jokers.length >= 5) {
+          alert("Joker slots full! (Max 5)");
+          return;
+        }
+        money -= item.cost;
+        jokers.push({ ...item, uid: Date.now() });
+        AudioEngine.playCashKaching();
+      } else {
+        if (consumables.length >= 2) {
+          alert("Consumable slots full! (Max 2)");
+          return;
+        }
+        money -= item.cost;
+        consumables.push({ ...item, uid: Date.now() });
+        AudioEngine.playCashKaching();
+      }
+
+      cardEl.remove();
+      document.getElementById("shopCashVal").textContent = `$${money}`;
+      renderJokers();
+      renderConsumables();
+      updateHUD();
+    }
+
+    function buyBooster(type, cost) {
+      if (money < cost) return;
+      money -= cost;
+      AudioEngine.playCashKaching();
+
+      if (type === "buffoon" && jokers.length < 5) {
+        const j = JOKER_CATALOG[Math.floor(Math.random() * JOKER_CATALOG.length)];
+        jokers.push({ ...j, uid: Date.now() });
+        alert(`🎉 Unpacked Joker: ${j.name}!`);
+      } else if (type === "celestial") {
+        // Random hand level up
+        const keys = Object.keys(POKER_HANDS);
+        const randHand = keys[Math.floor(Math.random() * keys.length)];
+        handLevels[randHand] = (handLevels[randHand] || 1) + 1;
+        alert(`🌌 Celestial Upgrade! ${randHand} upgraded to Lv. ${handLevels[randHand]}!`);
+      }
+
+      document.getElementById("shopCashVal").textContent = `$${money}`;
+      renderJokers();
+      updateHUD();
+      populateShopItems();
+    }
+
+    function buyVoucher(name, cost) {
+      if (money < cost) return;
+      money -= cost;
+      AudioEngine.playVictoryFanfare();
+      alert(`🎫 Overstock Voucher activated!`);
+      document.getElementById("shopCashVal").textContent = `$${money}`;
+      updateHUD();
+    }
+
+    document.getElementById("btnShopReroll").addEventListener("click", () => {
+      if (money < rerollCost) return;
+      money -= rerollCost;
+      rerollCost += 1;
+      AudioEngine.playCardSelect();
+      document.getElementById("shopCashVal").textContent = `$${money}`;
+      document.getElementById("shopRerollCost").textContent = `$${rerollCost}`;
+      populateShopItems();
+      updateHUD();
+    });
+
+    function nextRoundFromShop() {
+      closeShop();
+      blindIndex++;
+      if (blindIndex > 2) {
+        blindIndex = 0;
+        ante++;
+        if (ante > 8) {
+          // Victory!
+          triggerVictory();
+          return;
+        }
+      }
+      round++;
+      rerollCost = 5;
+      setupBlind();
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. Modals: Deck View, Hall of Fame, Game Over
+    // -------------------------------------------------------------------------
+    function openDeckModal() {
+      const container = document.getElementById("deckGridContainer");
+      container.innerHTML = "";
+      document.getElementById("deckTotalCards").textContent = deck.length + playerHand.length;
+
+      // Group counts
+      let sp = 0, he = 0, cl = 0, di = 0;
+      const allCards = deck.concat(playerHand);
+      allCards.forEach(c => {
+        if (c.suit === "spades") sp++;
+        else if (c.suit === "hearts") he++;
+        else if (c.suit === "clubs") cl++;
+        else if (c.suit === "diamonds") di++;
+      });
+      document.getElementById("spadeCount").textContent = sp;
+      document.getElementById("heartCount").textContent = he;
+      document.getElementById("clubCount").textContent = cl;
+      document.getElementById("diamondCount").textContent = di;
+
+      allCards.sort((a, b) => b.rank.order - a.rank.order).forEach(c => {
+        const el = createCardElement(c, false);
+        el.style.transform = "scale(0.85)";
+        container.appendChild(el);
+      });
+
+      document.getElementById("deckModal").style.display = "flex";
+    }
+
+    function closeDeckModal() {
+      document.getElementById("deckModal").style.display = "none";
+    }
+
+    function openHofModal() {
+      const list = getLeaderboard();
+      const container = document.getElementById("hofList");
+      container.innerHTML = "";
+
+      list.forEach((entry, idx) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex; justify-content:space-between; padding:0.5rem; background:rgba(255,255,255,0.04); border-radius:6px;";
+        row.innerHTML = `
+          <span><b>#${idx + 1}</b> ${entry.name}</span>
+          <span style="color:var(--neon-gold); font-weight:800;">${entry.score.toLocaleString()} PTS</span>
+          <span style="color:#94a3b8;">Ante ${entry.ante}</span>
+        `;
+        container.appendChild(row);
+      });
+
+      document.getElementById("hofModal").style.display = "flex";
+    }
+
+    function closeHofModal() {
+      document.getElementById("hofModal").style.display = "none";
+    }
+
+    const HOF_KEY = "joker_royale_hof";
+    const DEFAULT_HOF = [
+      { name: "CYBER_ACE", score: 850000, ante: 8 },
+      { name: "JOKER_GOD", score: 420000, ante: 7 },
+      { name: "NEO_POKER", score: 180000, ante: 5 },
+      { name: "ROYAL_FLUSH", score: 75000, ante: 4 }
+    ];
+
+    function getLeaderboard() {
+      try {
+        const raw = SafeStorage.getItem(HOF_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch(e) {}
+      return DEFAULT_HOF;
+    }
+
+    function saveScore(score, anteNum) {
+      const list = getLeaderboard();
+      list.push({ name: "YOU", score, ante: anteNum });
+      list.sort((a, b) => b.score - a.score);
+      const top = list.slice(0, 5);
+      SafeStorage.setItem(HOF_KEY, JSON.stringify(top));
+    }
+
+    function triggerGameOver() {
+      document.getElementById("endTitle").textContent = "RUN DEFEATED";
+      document.getElementById("endTitle").style.color = "var(--neon-red)";
+      document.getElementById("endSubtitle").textContent = `Failed to beat ${currentBlind.target.toLocaleString()} on ${currentBlind.name}.`;
+      document.getElementById("endAnte").textContent = `Ante ${ante}`;
+      document.getElementById("endHighestScore").textContent = highestHandScore.toLocaleString();
+
+      let fav = "High Card", maxVal = 0;
+      for (const h in handUsage) {
+        if (handUsage[h] > maxVal) { maxVal = handUsage[h]; fav = h; }
+      }
+      document.getElementById("endFavHand").textContent = fav;
+      saveScore(highestHandScore, ante);
+
+      document.getElementById("gameOverModal").style.display = "flex";
+    }
+
+    function triggerVictory() {
+      document.getElementById("endTitle").textContent = "🏆 ANTE 8 CONQUERED!";
+      document.getElementById("endTitle").style.color = "var(--neon-gold)";
+      document.getElementById("endSubtitle").textContent = "You beat the Final Boss Blind and became the Joker Royale Champion!";
+      document.getElementById("endAnte").textContent = "Ante 8 Completed";
+      document.getElementById("endHighestScore").textContent = highestHandScore.toLocaleString();
+      saveScore(highestHandScore, 8);
+
+      document.getElementById("gameOverModal").style.display = "flex";
+    }
+
+    function startNewRun() {
+      document.getElementById("gameOverModal").style.display = "none";
+      initRun();
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. Keyboard Shortcuts & Event Listeners
+    // -------------------------------------------------------------------------
+    window.addEventListener("keydown", (e) => {
+      const k = (e.key || "").toLowerCase();
+      if (k === " " || k === "enter") {
+        e.preventDefault();
+        playSelectedHand();
+      } else if (k === "d") {
+        discardSelectedCards();
+      } else if (k === "r") {
+        // Sort by Rank
+        playerHand.sort((a, b) => b.rank.order - a.rank.order);
+        selectedIndices = [];
+        renderPlayerHand();
+        updateScorePreview();
+      } else if (k === "s") {
+        // Sort by Suit
+        playerHand.sort((a, b) => a.suit.localeCompare(b.suit) || b.rank.order - a.rank.order);
+        selectedIndices = [];
+        renderPlayerHand();
+        updateScorePreview();
+      } else if (k === "m") {
+        toggleMusic();
+      }
+    });
+
+    document.getElementById("btnPlayHand").addEventListener("click", playSelectedHand);
+    document.getElementById("btnDiscard").addEventListener("click", discardSelectedCards);
+    document.getElementById("btnDeckView").addEventListener("click", openDeckModal);
+    document.getElementById("btnHof").addEventListener("click", openHofModal);
+    document.getElementById("btnNewRun").addEventListener("click", () => {
+      if (confirm("Restart current run?")) initRun();
+    });
+
+    document.getElementById("btnSortRank").addEventListener("click", () => {
+      playerHand.sort((a, b) => b.rank.order - a.rank.order);
+      selectedIndices = [];
+      renderPlayerHand();
+      updateScorePreview();
+    });
+
+    document.getElementById("btnSortSuit").addEventListener("click", () => {
+      playerHand.sort((a, b) => a.suit.localeCompare(b.suit) || b.rank.order - a.rank.order);
+      selectedIndices = [];
+      renderPlayerHand();
+      updateScorePreview();
+    });
+
+    function toggleMusic() {
+      const active = AudioEngine.toggle();
+      const btn = document.getElementById("btnMusicToggle");
+      btn.textContent = active ? "🎵" : "🔇";
+    }
+    document.getElementById("btnMusicToggle").addEventListener("click", toggleMusic);
+
+    // Initial startup
+    window.addEventListener("DOMContentLoaded", () => {
+      initRun();
+    });
+  </script>
+</body>
+</html>

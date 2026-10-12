@@ -240,6 +240,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "⛷️",
     description: "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
   },
+  balatro_studio: {
+    displayName: "Joker Royale (Balatro Deluxe)",
+    category: "Games & Entertainment",
+    icon: "🃏",
+    description: "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",
