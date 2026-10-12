@@ -122,7 +122,6 @@
       font-size: 20px; margin-top: 4px;
     }
 
-    /* Active Powerup Indicators */
     .powerup-box {
       text-align: left;
       font-size: 11px;
@@ -145,7 +144,6 @@
       background: var(--cyan);
     }
 
-    /* Sound and Music Select Controls */
     .audio-control-group {
       text-align: left;
       font-size: 11px;
@@ -199,12 +197,13 @@
     .overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
-      background: rgba(3, 2, 8, 0.9);
+      background: rgba(3, 2, 8, 0.92);
       border-radius: 8px;
-      z-index: 10;
+      z-index: 20;
       backdrop-filter: blur(8px);
       transition: opacity 0.3s ease;
       padding: 24px;
+      pointer-events: auto;
     }
 
     .overlay h1 {
@@ -223,22 +222,23 @@
     button.neon-btn {
       font-family: 'Orbitron', sans-serif;
       padding: 12px 28px; font-size: 14px; font-weight: bold;
-      color: #fff; background: rgba(255, 0, 255, 0.14);
+      color: #fff; background: rgba(255, 0, 255, 0.18);
       border: 1px solid var(--accent); border-radius: 8px;
       cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 0 20px rgba(255, 0, 255, 0.28), inset 0 0 10px rgba(255, 0, 255, 0.15);
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 10px rgba(255, 0, 255, 0.2);
       text-transform: uppercase; letter-spacing: 2px;
       margin-top: 6px;
+      pointer-events: auto !important;
     }
 
     button.neon-btn:hover {
-      background: rgba(255, 0, 255, 0.35);
-      box-shadow: 0 0 30px rgba(255, 0, 255, 0.65), inset 0 0 20px rgba(255, 0, 255, 0.4);
+      background: rgba(255, 0, 255, 0.4);
+      box-shadow: 0 0 30px rgba(255, 0, 255, 0.7), inset 0 0 20px rgba(255, 0, 255, 0.5);
       transform: translateY(-2px) scale(1.02);
     }
 
     button.neon-btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.08);
       border-color: rgba(255, 255, 255, 0.3);
       color: #caa0e8;
     }
@@ -263,7 +263,6 @@
       border-radius: 4px; color: var(--cyan); font-family: monospace; font-size: 10px;
     }
 
-    /* Leaderboard Modal / Hall of Fame */
     .hall-of-fame-list {
       width: 100%; max-width: 320px;
       background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 0, 255, 0.25);
@@ -355,8 +354,8 @@
         <p style="color: #d1b8eb; font-size: 13px; margin-bottom: 20px; text-align: center; max-width: 340px; line-height: 1.6;">
           Cross 5 hazardous cyberpunk sectors, dodge hover-speeders, ride cyber-logs across boiling acid, and capture neon flies!
         </p>
-        <button id="start-btn" class="neon-btn">INITIALIZE RUN</button>
-        <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">HALL OF FAME</button>
+        <button id="start-btn" class="neon-btn" onclick="startGame()">INITIALIZE RUN</button>
+        <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;" onclick="openHallOfFame()">HALL OF FAME</button>
       </div>
 
       <!-- Sector Cleared Overlay -->
@@ -367,14 +366,14 @@
           <div style="color: var(--gold); font-size: 22px;">SECTOR BONUS: <span id="sector-bonus-pts">+2,000</span></div>
           <div style="font-size: 13px; color: var(--cyan);">TRAFFIC SPEED & CURRENT ACCELERATING</div>
         </div>
-        <button id="next-sector-btn" class="neon-btn">ENGAGE NEXT SECTOR</button>
+        <button id="next-sector-btn" class="neon-btn" onclick="nextSector()">ENGAGE NEXT SECTOR</button>
       </div>
 
       <!-- Pause Overlay -->
       <div id="pause-overlay" class="overlay hidden">
         <h1>MISSION PAUSED</h1>
-        <button id="resume-btn" class="neon-btn">RESUME</button>
-        <button id="quit-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">ABORT MISSION</button>
+        <button id="resume-btn" class="neon-btn" onclick="resumeGame()">RESUME</button>
+        <button id="quit-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;" onclick="quitGame()">ABORT MISSION</button>
       </div>
       
       <!-- Game Over Overlay -->
@@ -388,17 +387,17 @@
         <div id="high-score-entry" class="hidden" style="display:flex; flex-direction:column; align-items:center;">
           <div style="color: var(--gold); font-size: 13px; margin-bottom: 8px;">★ NEW HIGH SCORE! ENTER INITIALS ★</div>
           <input type="text" id="player-initials" class="initials-input" maxlength="3" value="HOP">
-          <button id="save-score-btn" class="neon-btn">SUBMIT RECORD</button>
+          <button id="save-score-btn" class="neon-btn" onclick="submitInitials()">SUBMIT RECORD</button>
         </div>
 
-        <button id="restart-btn" class="neon-btn" style="margin-top: 10px;">RETRY HOP</button>
+        <button id="restart-btn" class="neon-btn" style="margin-top: 10px;" onclick="startGame()">RETRY HOP</button>
       </div>
 
       <!-- Hall of Fame View -->
       <div id="hall-of-fame-modal" class="overlay hidden">
         <h1 style="color: var(--gold); text-shadow: 0 0 25px var(--gold);">HALL OF FAME</h1>
         <div class="hall-of-fame-list" id="hall-of-fame-content"></div>
-        <button id="close-hall-btn" class="neon-btn">CLOSE</button>
+        <button id="close-hall-btn" class="neon-btn" onclick="closeHallOfFame()">CLOSE</button>
       </div>
     </div>
 
@@ -428,6 +427,49 @@
 </div>
 
 <script>
+// Polyfill for roundRect on older WKWebView
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'undefined') r = 0;
+    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+    this.beginPath();
+    this.moveTo(x + r.tl, y);
+    this.lineTo(x + w - r.tr, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    this.lineTo(x + w, y + h - r.br);
+    this.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    this.lineTo(x + r.bl, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    this.lineTo(x, y + r.tl);
+    this.quadraticCurveTo(x, y, x + r.tl, y);
+    this.closePath();
+    return this;
+  };
+}
+
+// In-Memory Safe Storage (Avoids WebKit SecurityError in setHTML / about:blank)
+const memoryStorage = {};
+const safeStorage = {
+  getItem(key) {
+    try {
+      if (window.localStorage) {
+        const val = localStorage.getItem(key);
+        if (val !== null) return val;
+      }
+    } catch(e) {}
+    return memoryStorage[key] || null;
+  },
+  setItem(key, val) {
+    try {
+      if (window.localStorage) {
+        localStorage.setItem(key, val);
+        return;
+      }
+    } catch(e) {}
+    memoryStorage[key] = val;
+  }
+};
+
 // ==========================================
 // --- ADVANCED WEBAUDIO MUSIC & SYNTH ENGINE
 // ==========================================
@@ -442,33 +484,37 @@ class SoundEngine {
     this.timerID = null;
     this.step = 0;
     this.bpm = 132;
-    this.init();
   }
 
   init() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AudioCtx();
-    this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = 0.4;
-    this.masterGain.connect(this.ctx.destination);
+    if (this.ctx) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      this.ctx = new AudioCtx();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.4;
+      this.masterGain.connect(this.ctx.destination);
 
-    this.musicGain = this.ctx.createGain();
-    this.musicGain.gain.value = 0.35;
-    this.musicGain.connect(this.masterGain);
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.35;
+      this.musicGain.connect(this.masterGain);
 
-    this.sfxGain = this.ctx.createGain();
-    this.sfxGain.gain.value = 0.5;
-    this.sfxGain.connect(this.masterGain);
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.5;
+      this.sfxGain.connect(this.masterGain);
+    } catch(e) {}
   }
 
   resume() {
+    this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      try { this.ctx.resume(); } catch(e){}
     }
   }
 
   setVolume(val) {
-    if (this.masterGain) {
+    if (this.masterGain && this.ctx) {
       this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
     }
   }
@@ -478,6 +524,7 @@ class SoundEngine {
     this.stopMusic();
     if (this.currentTrack === 'none') return;
     this.resume();
+    if (!this.ctx) return;
     this.isPlaying = true;
     this.step = 0;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
@@ -493,7 +540,7 @@ class SoundEngine {
   }
 
   schedule() {
-    if (!this.isPlaying || this.currentTrack === 'none') return;
+    if (!this.isPlaying || this.currentTrack === 'none' || !this.ctx) return;
     const lookahead = 0.12;
     const secondsPer16th = 60.0 / (this.bpm * 4);
 
@@ -506,6 +553,7 @@ class SoundEngine {
   }
 
   playSequencerStep(step, time) {
+    if (!this.ctx) return;
     if (this.currentTrack === 'tokyo') {
       const bassNotes = [130.81, 0, 130.81, 164.81, 0, 196.00, 0, 220.00];
       const bFreq = bassNotes[step % 8];
@@ -541,6 +589,7 @@ class SoundEngine {
   }
 
   triggerSynth(freq, type, dur, time, vol, targetNode, filterFreq=0) {
+    if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -563,6 +612,7 @@ class SoundEngine {
   }
 
   triggerLead(freq, type, dur, time, vol) {
+    if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -577,6 +627,7 @@ class SoundEngine {
   }
 
   triggerKick(time) {
+    if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.frequency.setValueAtTime(150, time);
@@ -590,6 +641,7 @@ class SoundEngine {
   }
 
   triggerSnare(time) {
+    if (!this.ctx) return;
     const bufferSize = this.ctx.sampleRate * 0.1;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -610,6 +662,7 @@ class SoundEngine {
   }
 
   triggerHiHat(time, vol=0.08) {
+    if (!this.ctx) return;
     const bufferSize = this.ctx.sampleRate * 0.03;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -631,6 +684,7 @@ class SoundEngine {
 
   playJump() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -647,6 +701,7 @@ class SoundEngine {
 
   playSquish() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -663,6 +718,7 @@ class SoundEngine {
 
   playAcidSplash() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const bufferSize = this.ctx.sampleRate * 0.4;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -686,6 +742,7 @@ class SoundEngine {
 
   playDockSuccess() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const notes = [523.25, 659.25, 783.99, 1046.50];
     notes.forEach((freq, idx) => {
@@ -704,6 +761,7 @@ class SoundEngine {
 
   playFlyBonus() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const notes = [880, 1174.66, 1318.51, 1760];
     notes.forEach((freq, idx) => {
@@ -722,6 +780,7 @@ class SoundEngine {
 
   playShieldAbsorb() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -740,22 +799,19 @@ class SoundEngine {
 const audio = new SoundEngine();
 
 // ==========================================
-// --- SECTOR PROGRESSION CONFIGS
+// --- SECTOR CONFIGS & LEADERBOARD
 // ==========================================
 const SECTOR_CONFIGS = [
-  { name: "NEO HIGHWAY", speedMult: 1.0, trafficColor: '#ff00ff', acidColor: '#00ff88', bargeBonus: 0 },
-  { name: "ACID INDUSTRIAL", speedMult: 1.25, trafficColor: '#ffaa00', acidColor: '#ff0055', bargeBonus: 1 },
-  { name: "TOKYO EXPRESSWAY", speedMult: 1.5, trafficColor: '#00ffff', acidColor: '#bf00ff', bargeBonus: 2 },
-  { name: "ORBITAL HIGHWAY", speedMult: 1.75, trafficColor: '#ff0055', acidColor: '#00ffff', bargeBonus: 3 },
-  { name: "THE REACTOR CORE", speedMult: 2.1, trafficColor: '#ffcc00', acidColor: '#ff00ff', bargeBonus: 4 }
+  { name: "NEO HIGHWAY", speedMult: 1.0, trafficColor: '#ff00ff', acidColor: '#00ff88' },
+  { name: "ACID INDUSTRIAL", speedMult: 1.25, trafficColor: '#ffaa00', acidColor: '#ff0055' },
+  { name: "TOKYO EXPRESSWAY", speedMult: 1.5, trafficColor: '#00ffff', acidColor: '#bf00ff' },
+  { name: "ORBITAL HIGHWAY", speedMult: 1.75, trafficColor: '#ff0055', acidColor: '#00ffff' },
+  { name: "THE REACTOR CORE", speedMult: 2.1, trafficColor: '#ffcc00', acidColor: '#ff00ff' }
 ];
 
-// ==========================================
-// --- PERSISTENT HALL OF FAME
-// ==========================================
 const LEADERBOARD_KEY = 'cyberfrog_hall_of_fame';
 function getLeaderboard() {
-  const saved = localStorage.getItem(LEADERBOARD_KEY);
+  const saved = safeStorage.getItem(LEADERBOARD_KEY);
   if (saved) {
     try { return JSON.parse(saved); } catch(e){}
   }
@@ -774,12 +830,13 @@ function saveLeaderboardRecord(name, score, sector) {
   list.sort((a, b) => b.score - a.score);
   list = list.slice(0, 5);
   list.forEach((entry, idx) => entry.rank = idx + 1);
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
+  safeStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
   renderHallOfFameUI();
 }
 
 function renderHallOfFameUI() {
   const container = document.getElementById('hall-of-fame-content');
+  if (!container) return;
   const list = getLeaderboard();
   container.innerHTML = list.map(item => `
     <div class="hall-row">
@@ -920,9 +977,7 @@ let gameState = 'start';
 let lastTime = 0;
 let animationId = null;
 
-// Power-ups
-let activePowerup = null; // { type: 'shield'|'stasis', timer, maxTimer }
-let droppedCapsule = null; // { x, row, type, timer }
+let activePowerup = null;
 
 let frog = {
   gridX: 4, gridY: 11,
@@ -941,7 +996,6 @@ let docks = [
   { x: 430, filled: false, hasFly: false }
 ];
 let flyTimer = 0;
-
 let lanes = [];
 
 function initSectorData(sectorIdx) {
@@ -954,20 +1008,16 @@ function initSectorData(sectorIdx) {
 
   lanes = [
     { row: 0, type: 'dock' },
-    // Rows 1-5: Acid River
     { row: 1, type: 'river', speed: 1.6 * speedScale, dir: 1, itemW: 130, spacing: 230, items: [], subtype: 'log', color: '#ff00ff' },
     { row: 2, type: 'river', speed: -2.1 * speedScale, dir: -1, itemW: 90, spacing: 180, items: [], subtype: 'turtle', color: '#00ffff', submerge: true },
     { row: 3, type: 'river', speed: 2.8 * speedScale, dir: 1, itemW: 180, spacing: 320, items: [], subtype: 'log', color: cfg.acidColor },
     { row: 4, type: 'river', speed: 1.4 * speedScale, dir: 1, itemW: 90, spacing: 170, items: [], subtype: 'log', color: '#ff00ff' },
     { row: 5, type: 'river', speed: -1.8 * speedScale, dir: -1, itemW: 80, spacing: 170, items: [], subtype: 'turtle', color: '#00ffff' },
-    // Row 6: Safe Median
     { row: 6, type: 'safe' },
-    // Rows 7-10: Cyber Highway
     { row: 7, type: 'road', speed: -3.2 * speedScale, dir: -1, itemW: 55, spacing: 200, items: [], subtype: 'speeder', color: '#ff0055' },
     { row: 8, type: 'road', speed: 1.8 * speedScale, dir: 1, itemW: 100, spacing: 260, items: [], subtype: 'truck', color: '#ffaa00' },
     { row: 9, type: 'road', speed: -2.4 * speedScale, dir: -1, itemW: 60, spacing: 190, items: [], subtype: 'car', color: cfg.trafficColor },
     { row: 10, type: 'road', speed: 3.5 * speedScale, dir: 1, itemW: 50, spacing: 240, items: [], subtype: 'speeder', color: '#00ffff' },
-    // Row 11: Starting Safe Sidewalk
     { row: 11, type: 'safe' }
   ];
 
@@ -981,7 +1031,6 @@ function initSectorData(sectorIdx) {
   });
 
   docks.forEach(d => { d.filled = false; d.hasFly = false; });
-  droppedCapsule = null;
   resetFrog();
   updateUI();
 }
@@ -1017,7 +1066,6 @@ function updateUI() {
   document.getElementById('docks-count').innerText = `${filledCount} / 5`;
   document.getElementById('docks-meter').style.width = `${(filledCount / 5) * 100}%`;
 
-  // Powerup HUD
   const pContainer = document.getElementById('powerups-active');
   if (activePowerup) {
     const names = { shield: '🛡️ SHIELD MATRIX', stasis: '⏱️ CHRONO STASIS' };
@@ -1038,7 +1086,6 @@ function updateUI() {
 function killFrog(reason) {
   if (frog.dead) return;
 
-  // Check Shield Powerup
   if (activePowerup && activePowerup.type === 'shield') {
     activePowerup = null;
     audio.playShieldAbsorb();
@@ -1131,7 +1178,6 @@ function checkCollisions() {
         bonus += 500;
         audio.playFlyBonus();
         docks[dockedIndex].hasFly = false;
-        // Also award shield on fly!
         activePowerup = { type: 'shield', timer: 14000, maxTimer: 14000 };
         spawnFloatingText('CYBER FLY + SHIELD!', frogCenterX, frog.renderY, '#ffcc00');
       }
@@ -1191,9 +1237,7 @@ function checkCollisions() {
   }
 }
 
-// ==========================================
-// --- PROCEDURAL RENDERING
-// ==========================================
+// Procedural rendering
 function drawCyberVehicle(ctx, x, y, w, h, color, subtype, dir) {
   ctx.save();
   ctx.translate(x, y);
@@ -1267,14 +1311,12 @@ function drawCyberLog(ctx, x, y, w, h, color) {
 function drawCyberTurtle(ctx, x, y, w, h, submerged) {
   ctx.save();
   ctx.translate(x, y);
-
   if (submerged) ctx.globalAlpha = 0.25;
 
   const numTurtles = Math.floor(w / 35);
   for (let i = 0; i < numTurtles; i++) {
     const tx = 15 + i * 32;
     const ty = h / 2;
-
     ctx.fillStyle = '#052924';
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 1.5;
@@ -1316,7 +1358,6 @@ function drawCyberFrog(ctx, frog) {
   }
   ctx.scale(scaleX, scaleY);
 
-  // Shield aura
   if (activePowerup && activePowerup.type === 'shield') {
     ctx.shadowColor = '#3399ff';
     ctx.shadowBlur = 24;
@@ -1455,14 +1496,12 @@ function gameLoop(timestamp) {
   lastTime = timestamp;
   if (dt > 150) dt = 16;
 
-  // Active powerup decay
   if (activePowerup) {
     activePowerup.timer -= dt;
     if (activePowerup.timer <= 0) activePowerup = null;
     updateUI();
   }
 
-  // Move river and road items
   lanes.forEach(lane => {
     if (lane.items) {
       let speed = lane.speed;
@@ -1481,7 +1520,6 @@ function gameLoop(timestamp) {
     }
   });
 
-  // Fly timer
   flyTimer += dt;
   if (flyTimer > 6000) {
     flyTimer = 0;
@@ -1492,7 +1530,6 @@ function gameLoop(timestamp) {
     }
   }
 
-  // Frog jump leap animation
   if (frog.isJumping) {
     frog.jumpProgress += dt * 0.007;
     if (frog.jumpProgress >= 1.0) {
@@ -1516,8 +1553,55 @@ function gameLoop(timestamp) {
 }
 
 // ==========================================
-// --- INPUTS & LIFECYCLE
+// --- INTERACTION & LIFECYCLE HANDLERS
 // ==========================================
+window.startGame = function() {
+  audio.resume();
+  initGame();
+  gameState = 'playing';
+  document.getElementById('start-overlay').classList.add('hidden');
+  document.getElementById('game-over-overlay').classList.add('hidden');
+  document.getElementById('sector-overlay').classList.add('hidden');
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+};
+
+window.nextSector = function() {
+  document.getElementById('sector-overlay').classList.add('hidden');
+  initSectorData(currentSectorIndex + 1);
+  gameState = 'playing';
+  audio.startMusic(document.getElementById('music-select').value);
+};
+
+window.resumeGame = function() {
+  gameState = 'playing';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+};
+
+window.quitGame = function() {
+  gameState = 'start';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  document.getElementById('start-overlay').classList.remove('hidden');
+};
+
+window.openHallOfFame = function() {
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+};
+
+window.closeHallOfFame = function() {
+  document.getElementById('hall-of-fame-modal').classList.add('hidden');
+};
+
+window.submitInitials = function() {
+  const initials = document.getElementById('player-initials').value;
+  saveLeaderboardRecord(initials, score, currentSectorIndex + 1);
+  document.getElementById('high-score-entry').classList.add('hidden');
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+};
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
     if (gameState === 'playing') {
@@ -1525,9 +1609,7 @@ window.addEventListener('keydown', (e) => {
       audio.stopMusic();
       document.getElementById('pause-overlay').classList.remove('hidden');
     } else if (gameState === 'paused') {
-      gameState = 'playing';
-      document.getElementById('pause-overlay').classList.add('hidden');
-      audio.startMusic(document.getElementById('music-select').value);
+      window.resumeGame();
     }
     return;
   }
@@ -1568,56 +1650,6 @@ window.addEventListener('keydown', (e) => {
     frog.jumpProgress = 0;
     spawnParticles(frog.startX + COL_WIDTH/2, frog.startY + ROW_HEIGHT/2, '#00ff88', 5, 0.4);
   }
-});
-
-function startGame() {
-  audio.resume();
-  initGame();
-  gameState = 'playing';
-  document.getElementById('start-overlay').classList.add('hidden');
-  document.getElementById('game-over-overlay').classList.add('hidden');
-  document.getElementById('sector-overlay').classList.add('hidden');
-  document.getElementById('pause-overlay').classList.add('hidden');
-  audio.startMusic(document.getElementById('music-select').value);
-}
-
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('restart-btn').addEventListener('click', startGame);
-
-document.getElementById('next-sector-btn').addEventListener('click', () => {
-  document.getElementById('sector-overlay').classList.add('hidden');
-  initSectorData(currentSectorIndex + 1);
-  gameState = 'playing';
-  audio.startMusic(document.getElementById('music-select').value);
-});
-
-document.getElementById('resume-btn').addEventListener('click', () => {
-  gameState = 'playing';
-  document.getElementById('pause-overlay').classList.add('hidden');
-  audio.startMusic(document.getElementById('music-select').value);
-});
-
-document.getElementById('quit-btn').addEventListener('click', () => {
-  gameState = 'start';
-  document.getElementById('pause-overlay').classList.add('hidden');
-  document.getElementById('start-overlay').classList.remove('hidden');
-});
-
-document.getElementById('hall-of-fame-btn').addEventListener('click', () => {
-  renderHallOfFameUI();
-  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
-});
-
-document.getElementById('close-hall-btn').addEventListener('click', () => {
-  document.getElementById('hall-of-fame-modal').classList.add('hidden');
-});
-
-document.getElementById('save-score-btn').addEventListener('click', () => {
-  const initials = document.getElementById('player-initials').value;
-  saveLeaderboardRecord(initials, score, currentSectorIndex + 1);
-  document.getElementById('high-score-entry').classList.add('hidden');
-  renderHallOfFameUI();
-  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
 });
 
 document.getElementById('music-select').addEventListener('change', (e) => {

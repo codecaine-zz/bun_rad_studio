@@ -132,7 +132,6 @@
       transition: width 0.1s linear;
     }
 
-    /* Active Powerup Indicators */
     .powerup-box {
       text-align: left;
       font-size: 11px;
@@ -155,7 +154,6 @@
       background: var(--accent);
     }
 
-    /* Sound and Music Select Controls */
     .audio-control-group {
       text-align: left;
       font-size: 11px;
@@ -209,12 +207,13 @@
     .overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
-      background: rgba(3, 4, 12, 0.9);
+      background: rgba(3, 4, 12, 0.92);
       border-radius: 8px;
-      z-index: 10;
+      z-index: 20;
       backdrop-filter: blur(8px);
       transition: opacity 0.3s ease;
       padding: 24px;
+      pointer-events: auto;
     }
 
     .overlay h1 {
@@ -233,22 +232,23 @@
     button.neon-btn {
       font-family: 'Orbitron', sans-serif;
       padding: 12px 28px; font-size: 14px; font-weight: bold;
-      color: #fff; background: rgba(0, 255, 204, 0.12);
+      color: #fff; background: rgba(0, 255, 204, 0.18);
       border: 1px solid var(--accent); border-radius: 8px;
       cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.25), inset 0 0 10px rgba(0, 255, 204, 0.15);
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.3), inset 0 0 10px rgba(0, 255, 204, 0.2);
       text-transform: uppercase; letter-spacing: 2px;
       margin-top: 6px;
+      pointer-events: auto !important;
     }
 
     button.neon-btn:hover {
-      background: rgba(0, 255, 204, 0.3);
-      box-shadow: 0 0 30px rgba(0, 255, 204, 0.6), inset 0 0 20px rgba(0, 255, 204, 0.4);
+      background: rgba(0, 255, 204, 0.4);
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.7), inset 0 0 20px rgba(0, 255, 204, 0.5);
       transform: translateY(-2px) scale(1.02);
     }
 
     button.neon-btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.08);
       border-color: rgba(255, 255, 255, 0.3);
       color: #9cb3d6;
     }
@@ -273,7 +273,6 @@
       border-radius: 4px; color: var(--accent); font-family: monospace; font-size: 10px;
     }
 
-    /* Leaderboard Modal / Hall of Fame */
     .hall-of-fame-list {
       width: 100%; max-width: 320px;
       background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 255, 204, 0.2);
@@ -366,8 +365,8 @@
         <p style="color: #a4c2e6; font-size: 13px; margin-bottom: 20px; text-align: center; max-width: 340px; line-height: 1.6;">
           Navigate 5 hazardous cyberpunk sectors, collect quantum food, grab power-up capsules, and claim your place in the Hall of Fame!
         </p>
-        <button id="start-btn" class="neon-btn">INITIALIZE RUN</button>
-        <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">HALL OF FAME</button>
+        <button id="start-btn" class="neon-btn" onclick="startGame()">INITIALIZE RUN</button>
+        <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;" onclick="openHallOfFame()">HALL OF FAME</button>
       </div>
 
       <!-- Sector Cleared Overlay -->
@@ -378,14 +377,14 @@
           <div style="color: var(--gold); font-size: 22px;">BONUS: <span id="sector-bonus-pts">+1,500</span></div>
           <div style="font-size: 13px; color: #79a6d2;">NEW HAZARDS UNLOCKED IN NEXT SECTOR</div>
         </div>
-        <button id="next-sector-btn" class="neon-btn">ENGAGE NEXT SECTOR</button>
+        <button id="next-sector-btn" class="neon-btn" onclick="nextSector()">ENGAGE NEXT SECTOR</button>
       </div>
 
       <!-- Pause Overlay -->
       <div id="pause-overlay" class="overlay hidden">
         <h1>SYSTEM PAUSED</h1>
-        <button id="resume-btn" class="neon-btn">RESUME</button>
-        <button id="quit-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">ABORT MISSION</button>
+        <button id="resume-btn" class="neon-btn" onclick="resumeGame()">RESUME</button>
+        <button id="quit-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;" onclick="quitGame()">ABORT MISSION</button>
       </div>
       
       <!-- Game Over Overlay -->
@@ -399,19 +398,17 @@
         <div id="high-score-entry" class="hidden" style="display:flex; flex-direction:column; align-items:center;">
           <div style="color: var(--gold); font-size: 13px; margin-bottom: 8px;">★ NEW HIGH SCORE! ENTER INITIALS ★</div>
           <input type="text" id="player-initials" class="initials-input" maxlength="3" value="NEO">
-          <button id="save-score-btn" class="neon-btn">SUBMIT RECORD</button>
+          <button id="save-score-btn" class="neon-btn" onclick="submitInitials()">SUBMIT RECORD</button>
         </div>
 
-        <button id="restart-btn" class="neon-btn" style="margin-top: 10px;">REBOOT SYSTEM</button>
+        <button id="restart-btn" class="neon-btn" style="margin-top: 10px;" onclick="startGame()">REBOOT SYSTEM</button>
       </div>
 
       <!-- Hall of Fame View -->
       <div id="hall-of-fame-modal" class="overlay hidden">
         <h1 style="color: var(--gold); text-shadow: 0 0 25px var(--gold);">HALL OF FAME</h1>
-        <div class="hall-of-fame-list" id="hall-of-fame-content">
-          <!-- Populated dynamically -->
-        </div>
-        <button id="close-hall-btn" class="neon-btn">CLOSE</button>
+        <div class="hall-of-fame-list" id="hall-of-fame-content"></div>
+        <button id="close-hall-btn" class="neon-btn" onclick="closeHallOfFame()">CLOSE</button>
       </div>
     </div>
 
@@ -446,6 +443,49 @@
 </div>
 
 <script>
+// Polyfill for roundRect on older WKWebView
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'undefined') r = 0;
+    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+    this.beginPath();
+    this.moveTo(x + r.tl, y);
+    this.lineTo(x + w - r.tr, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    this.lineTo(x + w, y + h - r.br);
+    this.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    this.lineTo(x + r.bl, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    this.lineTo(x, y + r.tl);
+    this.quadraticCurveTo(x, y, x + r.tl, y);
+    this.closePath();
+    return this;
+  };
+}
+
+// In-Memory Safe Storage (Avoids WebKit SecurityError in setHTML / about:blank)
+const memoryStorage = {};
+const safeStorage = {
+  getItem(key) {
+    try {
+      if (window.localStorage) {
+        const val = localStorage.getItem(key);
+        if (val !== null) return val;
+      }
+    } catch(e) {}
+    return memoryStorage[key] || null;
+  },
+  setItem(key, val) {
+    try {
+      if (window.localStorage) {
+        localStorage.setItem(key, val);
+        return;
+      }
+    } catch(e) {}
+    memoryStorage[key] = val;
+  }
+};
+
 // ==========================================
 // --- ADVANCED WEBAUDIO MUSIC & SYNTH ENGINE
 // ==========================================
@@ -460,33 +500,37 @@ class SoundEngine {
     this.timerID = null;
     this.step = 0;
     this.bpm = 136;
-    this.init();
   }
 
   init() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AudioCtx();
-    this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = 0.4;
-    this.masterGain.connect(this.ctx.destination);
+    if (this.ctx) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      this.ctx = new AudioCtx();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.4;
+      this.masterGain.connect(this.ctx.destination);
 
-    this.musicGain = this.ctx.createGain();
-    this.musicGain.gain.value = 0.35;
-    this.musicGain.connect(this.masterGain);
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.35;
+      this.musicGain.connect(this.masterGain);
 
-    this.sfxGain = this.ctx.createGain();
-    this.sfxGain.gain.value = 0.5;
-    this.sfxGain.connect(this.masterGain);
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.5;
+      this.sfxGain.connect(this.masterGain);
+    } catch(e) {}
   }
 
   resume() {
+    this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      try { this.ctx.resume(); } catch(e){}
     }
   }
 
   setVolume(val) {
-    if (this.masterGain) {
+    if (this.masterGain && this.ctx) {
       this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
     }
   }
@@ -496,6 +540,7 @@ class SoundEngine {
     this.stopMusic();
     if (this.currentTrack === 'none') return;
     this.resume();
+    if (!this.ctx) return;
     this.isPlaying = true;
     this.step = 0;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
@@ -511,7 +556,7 @@ class SoundEngine {
   }
 
   schedule() {
-    if (!this.isPlaying || this.currentTrack === 'none') return;
+    if (!this.isPlaying || this.currentTrack === 'none' || !this.ctx) return;
     const lookahead = 0.12;
     const secondsPer16th = 60.0 / (this.bpm * 4);
 
@@ -524,6 +569,7 @@ class SoundEngine {
   }
 
   playSequencerStep(step, time) {
+    if (!this.ctx) return;
     if (this.currentTrack === 'cyber') {
       const bassNotes = [110, 110, 130.81, 110, 146.83, 110, 164.81, 130.81];
       const freq = bassNotes[step % 8];
@@ -558,6 +604,7 @@ class SoundEngine {
   }
 
   triggerSynth(freq, type, dur, time, vol, targetNode, filterFreq=0) {
+    if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -580,6 +627,7 @@ class SoundEngine {
   }
 
   triggerLead(freq, type, dur, time, vol) {
+    if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -594,6 +642,7 @@ class SoundEngine {
   }
 
   triggerKick(time) {
+    if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.frequency.setValueAtTime(140, time);
@@ -607,6 +656,7 @@ class SoundEngine {
   }
 
   triggerSnare(time) {
+    if (!this.ctx) return;
     const bufferSize = this.ctx.sampleRate * 0.1;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -627,6 +677,7 @@ class SoundEngine {
   }
 
   triggerHiHat(time, vol=0.1) {
+    if (!this.ctx) return;
     const bufferSize = this.ctx.sampleRate * 0.04;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -648,6 +699,7 @@ class SoundEngine {
 
   playEat(combo = 1) {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const baseFreq = 520 + (combo * 60);
     [baseFreq, baseFreq * 1.5, baseFreq * 2].forEach((f, idx) => {
@@ -666,6 +718,7 @@ class SoundEngine {
 
   playPowerup() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const chords = [440, 554.37, 659.25, 880, 1108.73];
     chords.forEach((freq, idx) => {
@@ -684,6 +737,7 @@ class SoundEngine {
 
   playSectorClear() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51];
     fanfare.forEach((freq, idx) => {
@@ -702,6 +756,7 @@ class SoundEngine {
 
   playShieldAbsorb() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -718,6 +773,7 @@ class SoundEngine {
 
   playTurn() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -733,6 +789,7 @@ class SoundEngine {
 
   playCrash() {
     this.resume();
+    if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -765,76 +822,50 @@ class SoundEngine {
 const audio = new SoundEngine();
 
 // ==========================================
-// --- SECTORS / MULTIPLE LEVELS CONFIG
+// --- SECTORS & OBSTACLES
 // ==========================================
 const SECTOR_CONFIGS = [
+  { name: "NEO MATRIX", targetFood: 10, obstacles: [], themeColor: "#00ffcc", speed: 110 },
   {
-    name: "NEO MATRIX",
-    targetFood: 10,
-    obstacles: [], // open field
-    themeColor: "#00ffcc",
-    speed: 110
+    name: "CYBER BARRICADES", targetFood: 12,
+    obstacles: [
+      { x: 3, y: 3, w: 2, h: 2 }, { x: 15, y: 3, w: 2, h: 2 },
+      { x: 3, y: 15, w: 2, h: 2 }, { x: 15, y: 15, w: 2, h: 2 }
+    ],
+    themeColor: "#3399ff", speed: 100
   },
   {
-    name: "CYBER BARRICADES",
-    targetFood: 12,
+    name: "LASER CORE", targetFood: 14,
     obstacles: [
-      // 4 Corner Obstacle Nodes
-      { x: 3, y: 3, w: 2, h: 2 },
-      { x: 15, y: 3, w: 2, h: 2 },
-      { x: 3, y: 15, w: 2, h: 2 },
-      { x: 15, y: 15, w: 2, h: 2 }
+      { x: 9, y: 5, w: 2, h: 3 }, { x: 9, y: 12, w: 2, h: 3 },
+      { x: 5, y: 9, w: 3, h: 2 }, { x: 12, y: 9, w: 3, h: 2 }
     ],
-    themeColor: "#3399ff",
-    speed: 100
+    themeColor: "#bf00ff", speed: 92
   },
   {
-    name: "LASER CORE",
-    targetFood: 14,
+    name: "DATA LABYRINTH", targetFood: 16,
     obstacles: [
-      // Central Pylons
-      { x: 9, y: 5, w: 2, h: 3 },
-      { x: 9, y: 12, w: 2, h: 3 },
-      { x: 5, y: 9, w: 3, h: 2 },
-      { x: 12, y: 9, w: 3, h: 2 }
+      { x: 2, y: 6, w: 7, h: 1 }, { x: 11, y: 6, w: 7, h: 1 },
+      { x: 2, y: 13, w: 7, h: 1 }, { x: 11, y: 13, w: 7, h: 1 }
     ],
-    themeColor: "#bf00ff",
-    speed: 92
+    themeColor: "#ff0055", speed: 85
   },
   {
-    name: "DATA LABYRINTH",
-    targetFood: 16,
+    name: "QUANTUM SINGULARITY", targetFood: 20,
     obstacles: [
-      // Horizontal Barrier Gates
-      { x: 2, y: 6, w: 7, h: 1 },
-      { x: 11, y: 6, w: 7, h: 1 },
-      { x: 2, y: 13, w: 7, h: 1 },
-      { x: 11, y: 13, w: 7, h: 1 }
+      { x: 7, y: 7, w: 6, h: 1 }, { x: 7, y: 12, w: 6, h: 1 },
+      { x: 7, y: 8, w: 1, h: 4 }, { x: 12, y: 8, w: 1, h: 4 }
     ],
-    themeColor: "#ff0055",
-    speed: 85
-  },
-  {
-    name: "QUANTUM SINGULARITY",
-    targetFood: 20,
-    obstacles: [
-      // Concentric core ring
-      { x: 7, y: 7, w: 6, h: 1 },
-      { x: 7, y: 12, w: 6, h: 1 },
-      { x: 7, y: 8, w: 1, h: 4 },
-      { x: 12, y: 8, w: 1, h: 4 }
-    ],
-    themeColor: "#ffcc00",
-    speed: 78
+    themeColor: "#ffcc00", speed: 78
   }
 ];
 
 // ==========================================
-// --- PERSISTENT HALL OF FAME LEADERBOARD
+// --- HALL OF FAME
 // ==========================================
 const LEADERBOARD_KEY = 'neon_snake_hall_of_fame';
 function getLeaderboard() {
-  const saved = localStorage.getItem(LEADERBOARD_KEY);
+  const saved = safeStorage.getItem(LEADERBOARD_KEY);
   if (saved) {
     try { return JSON.parse(saved); } catch(e){}
   }
@@ -853,12 +884,13 @@ function saveLeaderboardRecord(name, score, sector) {
   list.sort((a, b) => b.score - a.score);
   list = list.slice(0, 5);
   list.forEach((entry, idx) => entry.rank = idx + 1);
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
+  safeStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
   renderHallOfFameUI();
 }
 
 function renderHallOfFameUI() {
   const container = document.getElementById('hall-of-fame-content');
+  if (!container) return;
   const list = getLeaderboard();
   container.innerHTML = list.map(item => `
     <div class="hall-row">
@@ -871,7 +903,7 @@ function renderHallOfFameUI() {
 }
 
 // ==========================================
-// --- VISUALS, PARTICLE SYSTEM & SHAKE
+// --- PARTICLES & EFFECTS
 // ==========================================
 const pCanvas = document.getElementById('particles-canvas');
 const pCtx = pCanvas.getContext('2d');
@@ -981,13 +1013,13 @@ function updateAndRenderEffects() {
 }
 
 // ==========================================
-// --- GAMEPLAY ENGINE WITH MULTI-LEVEL LOGIC
+// --- GAMEPLAY ENGINE
 // ==========================================
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 
 const GRID = 20;
-const TILE_SIZE = canvas.width / GRID; // 26px
+const TILE_SIZE = canvas.width / GRID;
 
 let snake = [];
 let prevSnake = [];
@@ -998,9 +1030,8 @@ let food = { x: 15, y: 10 };
 let currentSectorIndex = 0;
 let sectorFoodEaten = 0;
 
-// Power-ups
-let activePowerup = null; // { type, timer, maxTimer }
-let droppedCapsule = null; // { x, y, type, timer }
+let activePowerup = null;
+let droppedCapsule = null;
 
 let score = 0;
 let highScore = 0;
@@ -1011,7 +1042,6 @@ let gameState = 'start';
 let lastTime = 0;
 let moveAccumulator = 0;
 let animationId = null;
-
 let pulseWaves = [];
 
 function initSector(sectorIdx) {
@@ -1022,7 +1052,6 @@ function initSector(sectorIdx) {
   document.getElementById('sector-badge').innerText = `${currentSectorIndex + 1}: ${cfg.name}`;
   document.getElementById('sector-display').innerText = `${currentSectorIndex + 1}`;
 
-  // Reset snake position safe from obstacles
   snake = [
     { x: 2, y: 1 },
     { x: 1, y: 1 },
@@ -1095,7 +1124,6 @@ function updateUI() {
   const pct = Math.min(100, (sectorFoodEaten / cfg.targetFood) * 100);
   document.getElementById('sector-meter').style.width = `${pct}%`;
 
-  // Powerup HUD
   const pContainer = document.getElementById('powerups-active');
   if (activePowerup) {
     const names = { shield: '🛡️ SHIELD MATRIX', chrono: '⏱️ CHRONO FREEZE', magnet: '🧲 QUANTUM MAGNET', chip: '💎 2X MULTIPLIER' };
@@ -1114,7 +1142,6 @@ function updateUI() {
 }
 
 function triggerDeath() {
-  // If shield active, consume shield instead of dying!
   if (activePowerup && activePowerup.type === 'shield') {
     activePowerup = null;
     audio.playShieldAbsorb();
@@ -1140,11 +1167,9 @@ function triggerDeath() {
   document.getElementById('final-score').innerText = score;
   document.getElementById('final-sector').innerText = `SECTOR ${currentSectorIndex + 1}: ${SECTOR_CONFIGS[currentSectorIndex].name}`;
 
-  if (qualifies) {
-    document.getElementById('high-score-entry').classList.remove('hidden');
-  } else {
-    document.getElementById('high-score-entry').classList.add('hidden');
-  }
+  if (qualifies) document.getElementById('high-score-entry').classList.remove('hidden');
+  else document.getElementById('high-score-entry').classList.add('hidden');
+
   document.getElementById('game-over-overlay').classList.remove('hidden');
 }
 
@@ -1168,19 +1193,16 @@ function stepGame() {
 
   let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-  // Wrap around screen border
   if (head.x < 0) head.x = GRID - 1;
   if (head.x >= GRID) head.x = 0;
   if (head.y < 0) head.y = GRID - 1;
   if (head.y >= GRID) head.y = 0;
 
-  // Collision with obstacles
   if (isTileBlockedByObstacle(head.x, head.y)) {
     triggerDeath();
     return;
   }
 
-  // Collision with self
   for (let i = 0; i < snake.length; i++) {
     if (snake[i].x === head.x && snake[i].y === head.y) {
       triggerDeath();
@@ -1190,7 +1212,6 @@ function stepGame() {
 
   snake.unshift(head);
 
-  // Magnet effect: attract food if within 4 tiles
   if (activePowerup && activePowerup.type === 'magnet') {
     const dx = food.x - head.x;
     const dy = food.y - head.y;
@@ -1203,7 +1224,6 @@ function stepGame() {
     }
   }
 
-  // Advance pulse waves
   for (let i = pulseWaves.length - 1; i >= 0; i--) {
     pulseWaves[i].progress += 1;
     if (pulseWaves[i].progress >= snake.length) pulseWaves.splice(i, 1);
@@ -1211,7 +1231,6 @@ function stepGame() {
 
   let ateFood = false;
 
-  // Check food eat
   if (head.x === food.x && head.y === food.y) {
     ateFood = true;
     let gained = 100 * multiplier;
@@ -1243,7 +1262,6 @@ function stepGame() {
     updateUI();
   }
 
-  // Check capsule collect
   if (droppedCapsule && head.x === droppedCapsule.x && head.y === droppedCapsule.y) {
     audio.playPowerup();
     triggerScreenShake(6);
@@ -1265,9 +1283,6 @@ function stepGame() {
   }
 }
 
-// ==========================================
-// --- CANVAS DRAWING ROUTINE
-// ==========================================
 function drawBoard(interpRatio) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1275,7 +1290,6 @@ function drawBoard(interpRatio) {
   const theme = cfg.themeColor;
   const now = performance.now();
 
-  // Grid Lines
   ctx.strokeStyle = 'rgba(0, 255, 204, 0.04)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= GRID; i++) {
@@ -1285,7 +1299,6 @@ function drawBoard(interpRatio) {
     ctx.moveTo(0, i * TILE_SIZE); ctx.lineTo(canvas.width, i * TILE_SIZE); ctx.stroke();
   }
 
-  // --- DRAW SECTOR OBSTACLES ---
   for (let obs of cfg.obstacles) {
     const ox = obs.x * TILE_SIZE;
     const oy = obs.y * TILE_SIZE;
@@ -1303,14 +1316,12 @@ function drawBoard(interpRatio) {
     ctx.fill();
     ctx.stroke();
 
-    // Laser Core Pattern
     ctx.fillStyle = theme;
     ctx.globalAlpha = 0.4;
     ctx.fillRect(ox + 6, oy + 6, ow - 12, oh - 12);
     ctx.restore();
   }
 
-  // --- DRAW FOOD ---
   const foodPx = food.x * TILE_SIZE + TILE_SIZE/2;
   const foodPy = food.y * TILE_SIZE + TILE_SIZE/2;
   const pulse = Math.sin(now * 0.008) * 2;
@@ -1335,7 +1346,6 @@ function drawBoard(interpRatio) {
   ctx.fill();
   ctx.restore();
 
-  // --- DRAW DROPPED CAPSULE ---
   if (droppedCapsule) {
     const cx = droppedCapsule.x * TILE_SIZE + TILE_SIZE/2;
     const cy = droppedCapsule.y * TILE_SIZE + TILE_SIZE/2;
@@ -1356,7 +1366,6 @@ function drawBoard(interpRatio) {
     ctx.restore();
   }
 
-  // --- DRAW SNAKE ---
   if (snake.length > 0) {
     ctx.save();
     for (let i = snake.length - 1; i >= 0; i--) {
@@ -1384,13 +1393,11 @@ function drawBoard(interpRatio) {
       ctx.arc(px, py, segRadius, 0, Math.PI * 2);
 
       if (i === 0) {
-        // Head
         ctx.fillStyle = '#ffffff';
         ctx.shadowColor = (activePowerup && activePowerup.type === 'shield') ? '#3399ff' : (isPulsing ? '#ffcc00' : '#00ffcc');
         ctx.shadowBlur = 22;
         ctx.fill();
 
-        // Eyes
         const eyeOffset = 5;
         let eye1X = px, eye1Y = py, eye2X = px, eye2Y = py;
         if (dir.x === 1) { eye1X = px + 4; eye1Y = py - eyeOffset; eye2X = px + 4; eye2Y = py + eyeOffset; }
@@ -1403,7 +1410,6 @@ function drawBoard(interpRatio) {
         ctx.beginPath(); ctx.arc(eye1X, eye1Y, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(eye2X, eye2Y, 2.5, 0, Math.PI * 2); ctx.fill();
       } else {
-        // Body
         const r = Math.round(0 + progress * 160);
         const g = Math.round(255 - progress * 180);
         const b = Math.round(204 + progress * 51);
@@ -1417,9 +1423,6 @@ function drawBoard(interpRatio) {
   }
 }
 
-// ==========================================
-// --- GAME LOOP & UPDATES
-// ==========================================
 function gameLoop(timestamp) {
   if (gameState !== 'playing') {
     lastTime = timestamp;
@@ -1432,7 +1435,6 @@ function gameLoop(timestamp) {
   lastTime = timestamp;
   if (dt > 150) dt = 16;
 
-  // Combo decay
   if (comboTimer > 0) {
     comboTimer -= dt;
     const fillPct = Math.max(0, (comboTimer / MAX_COMBO_TIME) * 100);
@@ -1445,27 +1447,20 @@ function gameLoop(timestamp) {
     document.getElementById('multiplier-fill').style.width = '0%';
   }
 
-  // Active powerup decay
   if (activePowerup) {
     activePowerup.timer -= dt;
-    if (activePowerup.timer <= 0) {
-      activePowerup = null;
-    }
+    if (activePowerup.timer <= 0) activePowerup = null;
     updateUI();
   }
 
-  // Dropped capsule decay
   if (droppedCapsule) {
     droppedCapsule.timer -= dt;
     if (droppedCapsule.timer <= 0) droppedCapsule = null;
   }
 
-  // Speed calculation based on sector & Chrono powerup
   const cfg = SECTOR_CONFIGS[currentSectorIndex];
   let effectiveSpeed = cfg.speed;
-  if (activePowerup && activePowerup.type === 'chrono') {
-    effectiveSpeed *= 1.45; // Slow down
-  }
+  if (activePowerup && activePowerup.type === 'chrono') effectiveSpeed *= 1.45;
 
   moveAccumulator += dt;
   while (moveAccumulator >= effectiveSpeed) {
@@ -1481,8 +1476,59 @@ function gameLoop(timestamp) {
 }
 
 // ==========================================
-// --- INPUTS & LIFECYCLE
+// --- INTERACTION & LIFECYCLE HANDLERS
 // ==========================================
+window.startGame = function() {
+  audio.resume();
+  score = 0;
+  multiplier = 1;
+  comboTimer = 0;
+  activePowerup = null;
+  initSector(0);
+  gameState = 'playing';
+  document.getElementById('start-overlay').classList.add('hidden');
+  document.getElementById('game-over-overlay').classList.add('hidden');
+  document.getElementById('sector-overlay').classList.add('hidden');
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+};
+
+window.nextSector = function() {
+  document.getElementById('sector-overlay').classList.add('hidden');
+  initSector(currentSectorIndex + 1);
+  gameState = 'playing';
+  audio.startMusic(document.getElementById('music-select').value);
+};
+
+window.resumeGame = function() {
+  gameState = 'playing';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+};
+
+window.quitGame = function() {
+  gameState = 'start';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  document.getElementById('start-overlay').classList.remove('hidden');
+};
+
+window.openHallOfFame = function() {
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+};
+
+window.closeHallOfFame = function() {
+  document.getElementById('hall-of-fame-modal').classList.add('hidden');
+};
+
+window.submitInitials = function() {
+  const initials = document.getElementById('player-initials').value;
+  saveLeaderboardRecord(initials, score, currentSectorIndex + 1);
+  document.getElementById('high-score-entry').classList.add('hidden');
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+};
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
     if (gameState === 'playing') {
@@ -1490,9 +1536,7 @@ window.addEventListener('keydown', (e) => {
       audio.stopMusic();
       document.getElementById('pause-overlay').classList.remove('hidden');
     } else if (gameState === 'paused') {
-      gameState = 'playing';
-      document.getElementById('pause-overlay').classList.add('hidden');
-      audio.startMusic(document.getElementById('music-select').value);
+      window.resumeGame();
     }
     return;
   }
@@ -1511,60 +1555,6 @@ window.addEventListener('keydown', (e) => {
   }
 
   if (changed) audio.playTurn();
-});
-
-function startGame() {
-  audio.resume();
-  score = 0;
-  multiplier = 1;
-  comboTimer = 0;
-  activePowerup = null;
-  initSector(0);
-  gameState = 'playing';
-  document.getElementById('start-overlay').classList.add('hidden');
-  document.getElementById('game-over-overlay').classList.add('hidden');
-  document.getElementById('sector-overlay').classList.add('hidden');
-  document.getElementById('pause-overlay').classList.add('hidden');
-  audio.startMusic(document.getElementById('music-select').value);
-}
-
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('restart-btn').addEventListener('click', startGame);
-
-document.getElementById('next-sector-btn').addEventListener('click', () => {
-  document.getElementById('sector-overlay').classList.add('hidden');
-  initSector(currentSectorIndex + 1);
-  gameState = 'playing';
-  audio.startMusic(document.getElementById('music-select').value);
-});
-
-document.getElementById('resume-btn').addEventListener('click', () => {
-  gameState = 'playing';
-  document.getElementById('pause-overlay').classList.add('hidden');
-  audio.startMusic(document.getElementById('music-select').value);
-});
-
-document.getElementById('quit-btn').addEventListener('click', () => {
-  gameState = 'start';
-  document.getElementById('pause-overlay').classList.add('hidden');
-  document.getElementById('start-overlay').classList.remove('hidden');
-});
-
-document.getElementById('hall-of-fame-btn').addEventListener('click', () => {
-  renderHallOfFameUI();
-  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
-});
-
-document.getElementById('close-hall-btn').addEventListener('click', () => {
-  document.getElementById('hall-of-fame-modal').classList.add('hidden');
-});
-
-document.getElementById('save-score-btn').addEventListener('click', () => {
-  const initials = document.getElementById('player-initials').value;
-  saveLeaderboardRecord(initials, score, currentSectorIndex + 1);
-  document.getElementById('high-score-entry').classList.add('hidden');
-  renderHallOfFameUI();
-  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
 });
 
 document.getElementById('music-select').addEventListener('change', (e) => {
