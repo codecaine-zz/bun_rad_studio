@@ -2805,6 +2805,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         }
 
         let visible = 0;
+        const visiblePids = new Set();
         if (tbl) {
           const rows = tbl.querySelectorAll("tbody tr");
           rows.forEach(tr => {
@@ -2821,11 +2822,53 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             if (catOk && queryOk) {
               tr.style.display = "";
               visible++;
+              if (pid) {
+                visiblePids.add(pid.toLowerCase());
+                visiblePids.add(pid.toLowerCase().replace(/^(rad|cli|demo)_/, ""));
+              }
             } else {
               tr.style.display = "none";
             }
           });
         }
+
+        // Also filter ListBox and Dropdown for full visual consistency
+        function filterSelect(selId) {
+          const el = document.getElementById(selId);
+          if (!el) return;
+          const sel = el.tagName === "SELECT" ? el : el.querySelector("select");
+          if (!sel) return;
+          if (!sel._allOptions) {
+            sel._allOptions = Array.from(sel.options).map(o => ({ value: o.value, text: o.text }));
+          }
+          sel.innerHTML = "";
+          let firstMatch = null;
+          for (const opt of sel._allOptions) {
+            const optVal = (opt.value || opt.text || "").toLowerCase();
+            let keep = isAll;
+            if (!keep) {
+              for (const pid of visiblePids) {
+                if (pid && optVal.includes(pid)) {
+                  keep = true;
+                  break;
+                }
+              }
+            }
+            if (keep) {
+              const o = document.createElement("option");
+              o.value = opt.value;
+              o.text = opt.text;
+              sel.appendChild(o);
+              if (!firstMatch) firstMatch = o.value;
+            }
+          }
+          if (firstMatch && (!sel.value || !visiblePids.has(sel.value.toLowerCase()))) {
+            sel.value = firstMatch;
+          }
+        }
+
+        filterSelect("lst_apps");
+        filterSelect("dd_select_app");
 
         if (statusEl) {
           const catLabel = isAll ? "All Categories" : catName;
