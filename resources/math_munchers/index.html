@@ -2224,13 +2224,30 @@
           // Draw Number / Equation
           if (item && !item.eaten) {
             ctx.save();
-            ctx.font = item.text.length > 5 ? "800 13px 'Orbitron', monospace" : "900 17px 'Orbitron', monospace";
+            const text = item.text;
+            const hasPowerup = !!item.powerup;
+            const textY = hasPowerup ? y + CELL_H / 2 + 10 : y + CELL_H / 2;
+
+            // Use JetBrains Mono for pristine mathematical & numerical legibility
+            // Eliminates the issue where '17' resembled 'π' in Orbitron and adds generous letter spacing
+            if ("letterSpacing" in ctx) {
+              ctx.letterSpacing = text.length > 5 ? "1.5px" : "3.5px";
+            }
+
+            if (text.length <= 3) {
+              ctx.font = "800 24px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
+            } else if (text.length <= 6) {
+              ctx.font = "700 20px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
+            } else {
+              ctx.font = "700 17px 'JetBrains Mono', 'Plus Jakarta Sans', monospace";
+            }
+
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.shadowColor = "rgba(0, 243, 255, 0.5)";
+            ctx.shadowColor = "rgba(0, 243, 255, 0.55)";
             ctx.shadowBlur = 6;
-            ctx.fillText(item.text, x + CELL_W / 2, y + CELL_H / 2);
+            ctx.fillText(text, x + CELL_W / 2, textY);
             ctx.restore();
 
             // Draw Power-up Pod Icon if present
@@ -2240,14 +2257,14 @@
               ctx.textBaseline = "middle";
               if (item.powerup === "multiplier") {
                 ctx.fillStyle = "#ffb703";
-                ctx.font = "bold 13px 'Orbitron', monospace";
+                ctx.font = "800 13px 'JetBrains Mono', monospace";
                 ctx.shadowColor = "#ffb703";
                 ctx.shadowBlur = 8;
-                ctx.fillText("2X", x + CELL_W / 2, y + 16);
+                ctx.fillText("2X", x + CELL_W / 2, y + 18);
               } else {
                 ctx.font = "16px sans-serif";
                 const pIcons = { freeze: "❄️", zapper: "⚡", shield: "🛡️", diamond: "💎" };
-                ctx.fillText(pIcons[item.powerup] || "⭐", x + CELL_W / 2, y + 16);
+                ctx.fillText(pIcons[item.powerup] || "⭐", x + CELL_W / 2, y + 18);
               }
               ctx.restore();
             }
