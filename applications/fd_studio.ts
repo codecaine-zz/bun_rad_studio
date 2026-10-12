@@ -472,7 +472,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   const renderView = () => {
     const sorted = sortResults(allResults, String(win.getValue("dd_sort") || FD_SORT_KEYS[0]));
     currentResults = filterResults(sorted, String(win.getValue("txt_filter") || ""));
-    const rows = win.isWindowRunning ? resultRows(currentResults) : resultRows(currentResults.slice(0, 30));
+    const rows = win.isRunning() ? resultRows(currentResults) : resultRows(currentResults.slice(0, 30));
     win.setTableData("tbl_results", tableHeaders, rows);
   };
 
