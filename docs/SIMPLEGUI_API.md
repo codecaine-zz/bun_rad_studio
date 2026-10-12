@@ -1618,3 +1618,43 @@ win.addPullDown("pd_export", ["Export JSON", "Export CSV", "Export PDF"]);
 
 🎉 **You are all set to build amazing desktop apps with SimpleGUI!**
 
+
+
+## Dialogs (SweetAlert2-style)
+
+Every dialog method takes an optional **trailing callback** and also returns a Promise. Inside window event handlers use the callback form (`await` is not reliable while the webview loop is running).
+
+```ts
+win.fire("Saved!", "Your file was saved.", "success");                       // title, text, icon
+win.fire({ title: "Delete?", icon: "warning", showCancelButton: true, showDenyButton: true,
+           confirmButtonText: "Delete", confirmButtonColor: "#dc2626" },
+         (r) => { if (r.isConfirmed) {/* ... */} else if (r.isDenied) {/* ... */} });
+win.confirm("Proceed?", "Confirm", (ok) => {});
+win.prompt("Name?", "default", "Title", (value /* null when cancelled */) => {});
+win.inputDialog("email", "Your email", { validate: "email" }, (v) => {});     // text email password number textarea select radio checkbox range file date color ...
+win.selectDialog("Pick one", { a: "Apple", b: "Banana" }, (v) => {});
+win.queueDialogs([{ title: "Step 1" }, { title: "Step 2", input: "text" }], (out) => {});
+win.toast("Copied", 2000, "success");  win.toast({ title: "Hi", icon: "info", position: "bottom-end", timer: 3000 });
+win.showLoading("Working..."); win.closeDialog();
+win.dialogs.mixin({ confirmButtonColor: "#0ea5e9" })                          // reusable defaults (like Swal.mixin)
+```
+
+**File dialogs** — native OS dialog first; the in-webview picker opens only when the native dialog is *unavailable* (cancel never opens a second dialog). Force it with `native: "never"`.
+
+```ts
+win.openFile({ title: "Open", filter: "ts,json" }, (path /* null if cancelled */) => {});
+win.openFiles({ native: "never" }, (paths) => {});   win.saveFile({ defaultName: "report.md" }, cb);   win.openFolder({}, cb);
+```
+
+## Enterprise components (MUI/Ant-style, only what SimpleGUI did not already have)
+
+Demo: `bun run demos/27_enterprise_components_demo.ts`. All helpers accept `{ id, width, height, onChange, onClick }`.
+
+| Group | Methods |
+| --- | --- |
+| Feedback / surfaces | `skeleton`, `paper`, `emptyState`, `result`, `backdrop` (+`showBackdrop`/`hideBackdrop`) |
+| Navigation | `appBar`, `bottomNav`, `fab`, `speedDial`, `backToTop`, `scrollProgress`, `drawer` (+`openDrawer`/`closeDrawer`/`toggleDrawer`), `popover`, `hoverCard`, `popconfirm`, `tour` (+`startTour`), `anchorLinks` |
+| Inputs | `autocomplete` (multi / free-solo / groups), `cascader`, `treeSelect`, `mentions`, `signaturePad`, `richText`, `copyButton`, `loadingButton` (+`setLoading`) |
+| Data display | `chips`, `avatarGroup`, `descriptions`, `statistic`, `countdown`, `watermark`, `masonry`, `imageCompare`, `marquee`, `typography`, `virtualList` |
+
+`win.ui("<type>", cfg)` is the generic entry point and `win.uiCall(id, method, ...args)` calls a component method at runtime.

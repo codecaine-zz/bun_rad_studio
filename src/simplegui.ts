@@ -4,6 +4,8 @@ import { Sys } from "./simplecli/sys/index.ts";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { SimpleDialogs, DIALOG_CLIENT_HTML, type DialogOptions, type DialogResult, type DialogCallback, type DialogIcon, type DialogInputType, type DialogInputOptions, type FileDialogOptions } from "./simplegui_dialogs.ts";
+import { UI_CLIENT_HTML, UI_DEFAULT_SIZES, renderUIComponent, type UIComponentType } from "./simplegui_components.ts";
 
 export function forceExit(code = 0): void {
     process.exit(code);
@@ -96,6 +98,9 @@ export interface FormSpec {
 }
 
 export type EventCallback = (win: SimpleWindow, val?: any) => void;
+
+/** Options shared by every enterprise component: free-form config plus the usual event hooks. */
+export type UIOpts = Record<string, any> & { id?: string; width?: number; height?: number; onChange?: EventCallback; onClick?: EventCallback };
 
 export class SimpleControlRef {
     public spec: any;
@@ -4810,57 +4815,68 @@ export class SimpleWindow {
     }
 
     // --- Dialogs & Native Integration ---
-    public showAlert(message: string, title = "Alert"): void {
-        if (this.isWindowRunning) {
-            const safeMsg = JSON.stringify(message);
-            const safeTitle = JSON.stringify(title);
-            this.evalJS(`if(window.showSimpleguiModalDialog){window.showSimpleguiModalDialog({type:"alert",title:${safeTitle},message:${safeMsg}});}else{alert(${safeMsg});}`);
-        } else {
-            console.log(`[Alert - ${title}] ${message}`);
+    private _dialogs?: SimpleDialogs;
+
+    /**
+     * SweetAlert2-style dialog engine. Every method takes an optional trailing callback and also returns a Promise.
+     * Inside window event handlers prefer callbacks: `win.dialogs.confirm("Sure?", "Title", ok => { ... })`.
+     */
+    public get dialogs(): SimpleDialogs {
+        if (!this._dialogs) {
+            this._dialogs = new SimpleDialogs({
+                isRunning: () => this.isWindowRunning,
+                eval: (code: string) => this.evalJS(code),
+                resolvers: this.promptResolversMap,
+            });
         }
+        return this._dialogs;
+    }
+    /** Alias of `dialogs` (`win.swal.fire({...})`). */
+    public get swal(): SimpleDialogs { return this.dialogs; }
+    /** Alias of `dialogs`. */
+    public get dialog(): SimpleDialogs { return this.dialogs; }
+
+    /** Show a customizable dialog: `fire({title, text, icon, ...})` or `fire("Title", "Text", "success", cb)`. */
+    public fire(options?: DialogOptions | string, text?: string | DialogOptions | DialogCallback, icon?: DialogIcon | DialogOptions | DialogCallback, cb?: DialogCallback): Promise<DialogResult> {
+        return this.dialogs.fire(options, text, icon, cb);
+    }
+    public success(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.dialogs.success(title, text, opts, cb); }
+    public question(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.dialogs.question(title, text, opts, cb); }
+    public confirmDelete(what = "this item", opts?: DialogOptions | DialogCallback<boolean>, cb?: DialogCallback<boolean>) { return this.dialogs.confirmDelete(what, opts, cb); }
+    /** Ask for a typed value (`email`, `password`, `number`, `date`, `color`, `range`, `textarea`...). Result is `undefined` when cancelled. */
+    public inputDialog(type: DialogInputType, title: string, opts?: DialogOptions | DialogCallback<any>, cb?: DialogCallback<any>) { return this.dialogs.inputDialog(type, title, opts, cb); }
+    public selectDialog(title: string, options: DialogInputOptions, opts?: DialogOptions | DialogCallback<any>, cb?: DialogCallback<any>) { return this.dialogs.selectDialog(title, options, opts, cb); }
+    /** Run several dialogs in sequence with step indicators. */
+    public queueDialogs(steps: DialogOptions[], cb?: (out: { completed: boolean; results: DialogResult[] }) => void) { return this.dialogs.queue(steps, cb); }
+    public showLoading(title = "Loading...", text?: string) { return this.dialogs.showLoading(title, text); }
+    public hideLoading(): this { this.dialogs.close(); return this; }
+    public closeDialog(): this { this.dialogs.close(); return this; }
+
+    public showAlert(message: string, title = "Alert", cb?: () => void): void {
+        if (!this.isWindowRunning) {
+            console.log(`[Alert - ${title}] ${message}`);
+            cb?.();
+            return;
+        }
+        this.dialogs.fire({ title, text: message }, () => cb?.());
     }
 
-    public async showConfirm(message: string, title = "Confirm"): Promise<boolean> {
-        if (!this.isWindowRunning) return true;
-        const reqId = `confirm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        return new Promise((resolve) => {
-            this.promptResolversMap.set(reqId, resolve);
-            const safeMsg = JSON.stringify(message);
-            const safeTitle = JSON.stringify(title);
-            this.evalJS(`
-                if(window.showSimpleguiModalDialog){
-                    window.showSimpleguiModalDialog({type:"confirm",title:${safeTitle},message:${safeMsg},reqId:"${reqId}"});
-                } else {
-                    const res = confirm(${safeMsg});
-                    const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
-                    if (fn) fn("${reqId}", res);
-                }
-            `);
-        });
+    public showConfirm(message: string, title: string | ((ok: boolean) => void) = "Confirm", cb?: (ok: boolean) => void): Promise<boolean> {
+        const callback = typeof title === "function" ? title : cb;
+        const t = typeof title === "string" ? title : "Confirm";
+        return this.dialogs.confirm(message, t, callback);
     }
 
-    public async showPrompt(message: string, defaultVal = "", title = "Prompt"): Promise<string | null> {
-        if (!this.isWindowRunning) return defaultVal;
-        const reqId = `prompt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        return new Promise((resolve) => {
-            this.promptResolversMap.set(reqId, resolve);
-            const safeMsg = JSON.stringify(message);
-            const safeDef = JSON.stringify(defaultVal);
-            const safeTitle = JSON.stringify(title);
-            this.evalJS(`
-                if(window.showSimpleguiModalDialog){
-                    window.showSimpleguiModalDialog({type:"prompt",title:${safeTitle},message:${safeMsg},defaultVal:${safeDef},reqId:"${reqId}"});
-                } else {
-                    const res = prompt(${safeMsg}, ${safeDef});
-                    const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
-                    if (fn) fn("${reqId}", res);
-                }
-            `);
-        });
+    public showPrompt(message: string, defaultVal: string | ((v: string | null) => void) = "", title: string | ((v: string | null) => void) = "Prompt", cb?: (v: string | null) => void): Promise<string | null> {
+        const callback = typeof defaultVal === "function" ? defaultVal : typeof title === "function" ? title : cb;
+        const def = typeof defaultVal === "string" ? defaultVal : "";
+        const t = typeof title === "string" ? title : "Prompt";
+        if (!this.isWindowRunning) { callback?.(def); return Promise.resolve(def); }
+        return this.dialogs.prompt(message, def, t, callback);
     }
 
-    public alert(message: string, title = "Alert"): void {
-        this.showAlert(message, title);
+    public alert(message: string, title = "Alert", cb?: () => void): void {
+        this.showAlert(message, title, cb);
     }
 
     public copyToClipboard(text: string): void {
@@ -4901,93 +4917,57 @@ export class SimpleWindow {
         });
     }
 
-    public async openFileDialog(title = "Open File", filter = ""): Promise<string | null> {
-        try {
-            if (process.platform === "darwin") {
-                const safeTitle = title.replace(/"/g, '\\"');
-                const script = `try\nactivate\nPOSIX path of (choose file with prompt "${safeTitle}")\non error\nreturn ""\nend try`;
-                const proc = Bun.spawnSync(["osascript", "-e", script]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            } else if (process.platform === "linux") {
-                const proc = Bun.spawnSync(["zenity", "--file-selection", `--title=${title}`]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            } else if (process.platform === "win32") {
-                const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = '${title}'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
-                const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            }
-        } catch {
-            // fallback
-        }
-        return null;
+    /**
+     * File dialogs. Native OS dialog first; the in-webview picker is used only when the native one is unavailable
+     * (cancelling a native dialog never opens another). Last argument may be a callback `(path|null) => void`.
+     * Pass `true` / `"never"` as `native` option via the options-object overloads on `win.dialogs.openFile({...})`.
+     */
+    public openFileDialog(title = "Open File", filter: string | ((p: string | null) => void) = "", cb?: ((p: string | null) => void) | boolean): Promise<string | null> {
+        const callback = typeof filter === "function" ? filter : typeof cb === "function" ? cb : undefined;
+        return this.dialogs.openFile({ title, filter: typeof filter === "string" ? filter : "", native: cb === true ? "never" : "auto" }, callback);
+    }
+    public saveFileDialog(title = "Save File", defaultName: string | ((p: string | null) => void) = "untitled.txt", cb?: ((p: string | null) => void) | boolean): Promise<string | null> {
+        const callback = typeof defaultName === "function" ? defaultName : typeof cb === "function" ? cb : undefined;
+        return this.dialogs.saveFile({ title, defaultName: typeof defaultName === "string" ? defaultName : "untitled.txt", native: cb === true ? "never" : "auto" }, callback);
+    }
+    public openFolderDialog(title = "Select Folder", cb?: ((p: string | null) => void) | boolean): Promise<string | null> {
+        return this.dialogs.openFolder({ title, native: cb === true ? "never" : "auto" }, typeof cb === "function" ? cb : undefined);
+    }
+    public openFilesDialog(title = "Open Files", filter = "", cb?: (p: string[] | null) => void): Promise<string[] | null> {
+        return this.dialogs.openFiles({ title, filter }, cb);
+    }
+    public openFile(opts?: FileDialogOptions, cb?: (p: string | null) => void) { return this.dialogs.openFile(opts, cb); }
+    public openFiles(opts?: FileDialogOptions, cb?: (p: string[] | null) => void) { return this.dialogs.openFiles(opts, cb); }
+    public saveFile(opts?: FileDialogOptions, cb?: (p: string | null) => void) { return this.dialogs.saveFile(opts, cb); }
+    public openFolder(opts?: FileDialogOptions, cb?: (p: string | null) => void) { return this.dialogs.openFolder(opts, cb); }
+
+    public showWebviewFileDialog(opts: { mode?: "open" | "save" | "folder"; title?: string; initialDir?: string; defaultName?: string; filter?: string; multiple?: boolean } = {}, cb?: (p: any) => void): Promise<string | string[] | null> {
+        return this.dialogs.fileDialog(opts.mode || "open", { ...opts, native: "never" }, cb);
     }
 
-    public async saveFileDialog(title = "Save File", defaultName = "untitled.txt"): Promise<string | null> {
-        try {
-            if (process.platform === "darwin") {
-                const safeTitle = title.replace(/"/g, '\\"');
-                const safeName = defaultName.replace(/"/g, '\\"');
-                const script = `try\nactivate\nPOSIX path of (choose file name with prompt "${safeTitle}" default name "${safeName}")\non error\nreturn ""\nend try`;
-                const proc = Bun.spawnSync(["osascript", "-e", script]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            } else if (process.platform === "linux") {
-                const proc = Bun.spawnSync(["zenity", "--file-selection", "--save", "--confirm-overwrite", `--title=${title}`, `--filename=${defaultName}`]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            } else if (process.platform === "win32") {
-                const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.SaveFileDialog; $f.Title = '${title}'; $f.FileName = '${defaultName}'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
-                const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            }
-        } catch {
-            // fallback
-        }
-        return null;
+    public open_file_dialog(title = "Open File", filter = "", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.openFileDialog(title, filter, cb);
     }
-
-    public async openFolderDialog(title = "Select Folder"): Promise<string | null> {
-        try {
-            if (process.platform === "darwin") {
-                const safeTitle = title.replace(/"/g, '\\"');
-                const script = `try\nactivate\nPOSIX path of (choose folder with prompt "${safeTitle}")\non error\nreturn ""\nend try`;
-                const proc = Bun.spawnSync(["osascript", "-e", script]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            } else if (process.platform === "linux") {
-                const proc = Bun.spawnSync(["zenity", "--file-selection", "--directory", `--title=${title}`]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            } else if (process.platform === "win32") {
-                const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = '${title}'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.SelectedPath}`;
-                const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
-                const out = proc.stdout.toString().trim();
-                return out || null;
-            }
-        } catch {
-            // fallback
-        }
-        return null;
+    public save_file_dialog(title = "Save File", defaultName = "untitled.txt", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.saveFileDialog(title, defaultName, cb);
     }
-
-    public open_file_dialog(title = "Open File", filter = ""): Promise<string | null> {
-        return this.openFileDialog(title, filter);
+    public open_folder_dialog(title = "Select Folder", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.openFolderDialog(title, cb);
     }
-    public save_file_dialog(title = "Save File", defaultName = "untitled.txt"): Promise<string | null> {
-        return this.saveFileDialog(title, defaultName);
+    public browse_file(title = "Open File", filter = "", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.openFileDialog(title, filter, cb);
     }
-    public open_folder_dialog(title = "Select Folder"): Promise<string | null> {
-        return this.openFolderDialog(title);
+    public browse_folder(title = "Select Folder", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.openFolderDialog(title, cb);
     }
-    public browse_file(title = "Open File", filter = ""): Promise<string | null> {
-        return this.openFileDialog(title, filter);
+    public open_webview_file_dialog(title = "Open File", filter = "", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.dialogs.openFile({ title, filter, native: "never" }, cb);
     }
-    public browse_folder(title = "Select Folder"): Promise<string | null> {
-        return this.openFolderDialog(title);
+    public save_webview_file_dialog(title = "Save File", defaultName = "untitled.txt", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.dialogs.saveFile({ title, defaultName, native: "never" }, cb);
+    }
+    public open_webview_folder_dialog(title = "Select Folder", cb?: (p: string | null) => void): Promise<string | null> {
+        return this.dialogs.openFolder({ title, native: "never" }, cb);
     }
 
     public delay(ms: number, cb?: () => void): Promise<void> | void {
@@ -5168,17 +5148,8 @@ export class SimpleWindow {
 
         // Inject SimpleGUI modal dialog & IPC scripts
         const scriptInject = `
-            <div id="simplegui-dialog-backdrop" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:999999;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;">
-              <div id="simplegui-dialog-box" style="background:#1e293b;color:#f8fafc;border:1px solid rgba(255,255,255,0.18);border-radius:12px;padding:20px;width:340px;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:12px;">
-                <div id="simplegui-dialog-title" style="font-weight:700;font-size:15px;color:#38bdf8;display:flex;align-items:center;gap:8px;"></div>
-                <div id="simplegui-dialog-msg" style="font-size:13px;line-height:1.4;opacity:0.9;white-space:pre-wrap;color:#e2e8f0;"></div>
-                <input id="simplegui-dialog-input" type="text" style="display:none;background:rgba(0,0,0,0.3);color:#fff;border:1px solid rgba(56,189,248,0.4);border-radius:6px;padding:6px 10px;font-size:13px;outline:none;" />
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
-                  <button id="simplegui-dialog-cancel" style="display:none;padding:6px 14px;background:rgba(255,255,255,0.1);color:#cbd5e1;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
-                  <button id="simplegui-dialog-ok" style="padding:6px 16px;background:#0284c7;color:#ffffff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">OK</button>
-                </div>
-              </div>
-            </div>
+            ${DIALOG_CLIENT_HTML}
+            ${UI_CLIENT_HTML}
             <script>
             (function() {
                 window.onSimpleguiPromptResult = function(reqId, result) {
@@ -5187,52 +5158,6 @@ export class SimpleWindow {
                     }
                 };
 
-                window.showSimpleguiModalDialog = function(opts) {
-                    const backdrop = document.getElementById("simplegui-dialog-backdrop");
-                    const titleEl = document.getElementById("simplegui-dialog-title");
-                    const msgEl = document.getElementById("simplegui-dialog-msg");
-                    const inputEl = document.getElementById("simplegui-dialog-input");
-                    const cancelBtn = document.getElementById("simplegui-dialog-cancel");
-                    const okBtn = document.getElementById("simplegui-dialog-ok");
-                    if (!backdrop) return;
-
-                    titleEl.textContent = opts.title || "Information";
-                    msgEl.textContent = opts.message || "";
-                    
-                    if (opts.type === "prompt") {
-                      inputEl.style.display = "block";
-                      inputEl.value = opts.defaultVal || "";
-                      setTimeout(() => inputEl.focus(), 50);
-                    } else {
-                      inputEl.style.display = "none";
-                    }
-
-                    if (opts.type === "confirm" || opts.type === "prompt") {
-                      cancelBtn.style.display = "inline-block";
-                    } else {
-                      cancelBtn.style.display = "none";
-                    }
-
-                    backdrop.style.display = "flex";
-
-                    const cleanup = () => {
-                      backdrop.style.display = "none";
-                      okBtn.onclick = null;
-                      cancelBtn.onclick = null;
-                    };
-
-                    okBtn.onclick = () => {
-                      cleanup();
-                      const val = opts.type === "prompt" ? inputEl.value : true;
-                      if (opts.reqId && window.onSimpleguiPromptResult) window.onSimpleguiPromptResult(opts.reqId, val);
-                    };
-
-                    cancelBtn.onclick = () => {
-                      cleanup();
-                      const val = opts.type === "prompt" ? null : false;
-                      if (opts.reqId && window.onSimpleguiPromptResult) window.onSimpleguiPromptResult(opts.reqId, val);
-                    };
-                };
 
                 setInterval(function() {
                     if (window.handleHeartbeatIPC) window.handleHeartbeatIPC();
@@ -6095,6 +6020,8 @@ export class SimpleWindow {
             return this.openUrl(url);
         });
 
+        this.dialogs.bindIpc(this.webview);
+
         // Auto-bind state synchronization IPC handlers for all controls BEFORE setHTML
         const boundHandlers = new Set<string>();
 
@@ -6903,33 +6830,9 @@ export class SimpleWindow {
         }
         return this;
     }
-    public toast(message: string, durationMs = 3000): this {
-        if (this.isWindowRunning) {
-            this.evalJS(`
-                let t = document.getElementById("__simplegui_toast");
-                if (!t) {
-                    t = document.createElement("div");
-                    t.id = "__simplegui_toast";
-                    t.style.position = "fixed";
-                    t.style.bottom = "20px";
-                    t.style.right = "20px";
-                    t.style.backgroundColor = "rgba(15, 23, 42, 0.9)";
-                    t.style.color = "#f8fafc";
-                    t.style.padding = "10px 16px";
-                    t.style.borderRadius = "8px";
-                    t.style.boxShadow = "0 10px 25px rgba(0,0,0,0.5)";
-                    t.style.zIndex = "99999";
-                    t.style.transition = "opacity 0.3s ease";
-                    t.style.fontFamily = "sans-serif";
-                    t.style.fontSize = "13px";
-                    t.style.pointerEvents = "none";
-                    document.body.appendChild(t);
-                }
-                t.textContent = "${message.replace(/"/g, '\\"')}";
-                t.style.opacity = "1";
-                setTimeout(() => { if (t) t.style.opacity = "0"; }, ${durationMs});
-            `);
-        }
+    /** Non-blocking toast. `toast("Saved!")`, `toast("Oops", 4000, "error")` or `toast({title, icon, position, timer, ...})`. */
+    public toast(message: string | DialogOptions, durationMs = 3000, icon?: DialogIcon): this {
+        this.dialogs.toast(message, durationMs, icon);
         return this;
     }
 
@@ -7556,21 +7459,21 @@ export class SimpleWindow {
     public info(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Information";
         const msg = message ? message : titleOrMessage;
-        this.showAlert(msg, title);
+        this.dialogs.info(title, msg);
         return this;
     }
 
     public warn(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Warning";
         const msg = message ? message : titleOrMessage;
-        this.showAlert(`⚠️ ${msg}`, title);
+        this.dialogs.warning(title, msg);
         return this;
     }
 
     public errorDialog(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Error";
         const msg = message ? message : titleOrMessage;
-        this.showAlert(`❌ ${msg}`, title);
+        this.dialogs.error(title, msg);
         return this;
     }
 
@@ -7582,16 +7485,16 @@ export class SimpleWindow {
         return this.errorDialog(titleOrMessage, message);
     }
 
-    public confirm(question: string, title = "Confirm"): Promise<boolean> {
-        return this.showConfirm(question, title);
+    public confirm(question: string, title: string | ((ok: boolean) => void) = "Confirm", cb?: (ok: boolean) => void): Promise<boolean> {
+        return this.showConfirm(question, title, cb);
     }
 
-    public ask(question: string, title = "Confirm"): Promise<boolean> {
-        return this.showConfirm(question, title);
+    public ask(question: string, title: string | ((ok: boolean) => void) = "Confirm", cb?: (ok: boolean) => void): Promise<boolean> {
+        return this.showConfirm(question, title, cb);
     }
 
-    public prompt(message: string, defaultVal = "", title = "Prompt"): Promise<string | null> {
-        return this.showPrompt(message, defaultVal, title);
+    public prompt(message: string, defaultVal: string | ((v: string | null) => void) = "", title: string | ((v: string | null) => void) = "Prompt", cb?: (v: string | null) => void): Promise<string | null> {
+        return this.showPrompt(message, defaultVal, title, cb);
     }
 
     // 2. Control Enabled / Visible & Batch Operations
@@ -9245,6 +9148,119 @@ export class SimpleWindow {
     public raw_html(html: string): SimpleControlRef {
         return this.rawHtml(html);
     }
+
+    // ===== Enterprise component suite (src/simplegui_components.ts) =====
+    // Only components that did not already exist. Every method returns a SimpleControlRef (so `.id()`, `.width()`,
+    // `.onChange()` / `.onClick()` work as usual) and accepts `onChange` / `onClick` / `id` / `width` / `height` options.
+
+    /** Generic entry point: `win.ui("fab", { icon: "add" })`. All the named helpers below call this. */
+    public ui(type: UIComponentType, cfg: UIOpts = {}): SimpleControlRef {
+        let [dw, dh] = UI_DEFAULT_SIZES[type] ?? [320, 60];
+        if ((type === "backdrop" || type === "tour") && cfg.trigger) { dw = Math.max(dw, 150); dh = 38; }
+        const opts: Record<string, any> = { text: renderUIComponent(type, cfg) };
+        if (cfg.id) opts.id = cfg.id;
+        if (cfg.width !== undefined) opts.width = cfg.width;
+        if (cfg.height !== undefined) opts.height = cfg.height;
+        if (cfg.value !== undefined && typeof cfg.value !== "object") opts.value = cfg.value;
+        const ref = this.addVisualControl("raw_html", dw, dh, opts);
+        if (typeof cfg.onChange === "function") ref.onChange(cfg.onChange);
+        if (typeof cfg.onClick === "function") ref.onClick(cfg.onClick);
+        return ref;
+    }
+    /** Call a method on a hydrated component in the page: `win.uiCall("nav", "open")`. */
+    public uiCall(id: string, method: string, ...args: any[]): this {
+        if (this.isWindowRunning) this.evalJS(`window.SimpleUI&&window.SimpleUI.call(${JSON.stringify(id)},${JSON.stringify(method)},${JSON.stringify(args)});`);
+        return this;
+    }
+
+    // --- Feedback & surfaces ---
+    /** Loading placeholder. `skeleton({ variant: "text"|"circular"|"rect"|"rounded", lines: 3, animation: "pulse"|"wave" })` */
+    public skeleton(opts: UIOpts = {}) { return this.ui("skeleton", opts); }
+    /** Elevated card surface. `paper("Title", "text", { elevation: 0-8, outlined, radius })` */
+    public paper(title = "", text = "", opts: UIOpts = {}) { return this.ui("paper", { title, text, ...opts }); }
+    /** "Nothing here" placeholder. `emptyState("No files", "Upload one to begin", { icon, actions: ["Upload"] })` */
+    public emptyState(title = "Nothing here yet", text = "", opts: UIOpts = {}) { return this.ui("emptyState", { title, text, ...opts }); }
+    /** Status page. `result("success"|"error"|"warning"|"info"|"404"|"403"|"500", "Title", "Subtitle", { actions: ["Retry"] })` */
+    public result(status: string, title: string, subtitle = "", opts: UIOpts = {}) { return this.ui("result", { status, title, subtitle, ...opts }); }
+    /** Full-screen dim + spinner. Show with `showBackdrop(id)`. */
+    public backdrop(opts: UIOpts = {}) { return this.ui("backdrop", opts); }
+    public showBackdrop(id: string) { return this.uiCall(id, "show"); }
+    public hideBackdrop(id: string) { return this.uiCall(id, "hide"); }
+
+    // --- Navigation ---
+    /** Top bar. `appBar("My App", ["Home", "Docs"], { actions: [{label:"Alerts", icon:"bell", badge:3}], search: true, menuButton: true })`. Click value = item value. */
+    public appBar(title: string, items: any[] = [], opts: UIOpts = {}) { return this.ui("appBar", { title, items, ...opts }); }
+    /** Mobile-style bottom navigation. `bottomNav([{label:"Home", icon:"home", value:"h"}, ...], { value })`. onChange gets the value. */
+    public bottomNav(items: any[], opts: UIOpts = {}) { return this.ui("bottomNav", { items, ...opts }); }
+    /** Floating action button. `fab("add", { label: "New", color: "success", size: "small"|"large" })` */
+    public fab(icon = "add", opts: UIOpts = {}) { return this.ui("fab", { icon, ...opts }); }
+    /** FAB that fans out actions. `speedDial([{id:"copy", icon:"copy", label:"Copy"}], { direction: "up"|"down"|"left"|"right" })`. onClick gets the action id. */
+    public speedDial(actions: any[], opts: UIOpts = {}) { return this.ui("speedDial", { actions, ...opts }); }
+    /** Scroll-to-top button that appears after scrolling. */
+    public backToTop(opts: UIOpts = {}) { return this.ui("backToTop", opts); }
+    /** Thin reading-progress bar pinned to the top of the window. */
+    public scrollProgress(opts: UIOpts = {}) { return this.ui("scrollProgress", opts); }
+    /** Slide-in panel. `drawer("Menu", { anchor: "left"|"right"|"top"|"bottom", items: [...], html, trigger: "Open" })`. Control with openDrawer/closeDrawer/toggleDrawer. */
+    public drawer(title: string, opts: UIOpts = {}) { return this.ui("drawer", { title, ...opts }); }
+    public openDrawer(id: string) { return this.uiCall(id, "open"); }
+    public closeDrawer(id: string) { return this.uiCall(id, "close"); }
+    public toggleDrawer(id: string) { return this.uiCall(id, "toggle"); }
+    /** Anchored popup. `popover("Info", { title, text | html, trigger: "click"|"hover", placement })`. Use `{ name, avatar, text }` for a hover profile card. */
+    public popover(label: string, opts: UIOpts = {}) { return this.ui("popover", { label, ...opts }); }
+    /** Hover profile card shortcut. */
+    public hoverCard(label: string, opts: UIOpts = {}) { return this.ui("popover", { label, trigger: "hover", variant: "text", ...opts }); }
+    /** Button that asks "Are you sure?" in a small popup. onChange receives true/false. */
+    public popconfirm(label: string, title = "Are you sure?", opts: UIOpts = {}) { return this.ui("popconfirm", { label, title, ...opts }); }
+    /** Guided onboarding tour. `tour([{target:"btn_save", title:"Save", text:"Click here"}], { trigger: "Start tour" })`. Start with `startTour(id)`. */
+    public tour(steps: Array<{ target?: string; title?: string; text?: string; placement?: string }>, opts: UIOpts = {}) { return this.ui("tour", { steps, ...opts }); }
+    public startTour(id: string, step = 0) { return this.uiCall(id, "start", step); }
+    public stopTour(id: string) { return this.uiCall(id, "stop"); }
+    /** Anchor links that smooth-scroll to controls/elements. `anchorLinks([{label:"Intro", target:"intro"}])` */
+    public anchorLinks(links: any[], opts: UIOpts = {}) { return this.ui("anchor", { links, ...opts }); }
+
+    // --- Inputs ---
+    /** Searchable select. `autocomplete(["A","B"], { multiple, freeSolo, label, placeholder, clearable, limitTags, value })`. Options may be `{label,value,group,disabled}`. onChange gets value or array. */
+    public autocomplete(options: any[], opts: UIOpts = {}) { return this.ui("autocomplete", { options, ...opts }); }
+    /** Multi-level picker. `cascader([{label:"A", value:"a", children:[...]}], { placeholder })`. onChange gets the path array. */
+    public cascader(options: any[], opts: UIOpts = {}) { return this.ui("cascader", { options, ...opts }); }
+    /** Dropdown tree. `treeSelect(tree, { multiple, leafOnly, expandAll })`. */
+    public treeSelect(options: any[], opts: UIOpts = {}) { return this.ui("treeSelect", { options, ...opts }); }
+    /** Textarea with @mention suggestions. `mentions(["Ada","Linus"], { trigger: "@" })`. */
+    public mentions(options: any[], opts: UIOpts = {}) { return this.ui("mentions", { options, ...opts }); }
+    /** Draw-a-signature canvas. onChange gets a PNG data URL ("" when cleared). */
+    public signaturePad(opts: UIOpts = {}) { return this.ui("signaturePad", opts); }
+    /** WYSIWYG editor. onChange gets the HTML. `toolbar` accepts: bold italic underline strike h1 h2 h3 quote ul ol link code hr left center right clear undo redo | */
+    public richText(opts: UIOpts = {}) { return this.ui("richText", opts); }
+    /** One-click copy. `copyButton("Copy key", "sk-123")` or `{ target: "#some_input" }`. */
+    public copyButton(label = "Copy", text = "", opts: UIOpts = {}) { return this.ui("copyButton", { label, text, ...opts }); }
+    /** Button with a built-in spinner. `loadingButton("Save", { autoLoadingMs: 1500 })`; control with `setLoading(id, bool)`. */
+    public loadingButton(label: string, opts: UIOpts = {}) { return this.ui("loadingButton", { label, ...opts }); }
+    public setLoading(id: string, loading = true) { return this.uiCall(id, "setLoading", loading); }
+
+    // --- Data display ---
+    /** Standalone chips. `chips(["React","Bun"], { deletable, clickable, selectable, variant: "outlined", color })`. Items may be `{label,icon,avatar,color}`. */
+    public chips(chips: any[], opts: UIOpts = {}) { return this.ui("chips", { chips, ...opts }); }
+    /** Overlapping avatars with "+N". `avatarGroup(["Ada Lovelace", {name:"Bob", src:"..."}], { max: 4, size: 36 })` */
+    public avatarGroup(avatars: any[], opts: UIOpts = {}) { return this.ui("avatarGroup", { avatars, ...opts }); }
+    /** Key/value details. `descriptions("Order", [["ID","42"],["Status","Paid"]], { columns: 2, bordered })` */
+    public descriptions(title: string, items: any[], opts: UIOpts = {}) { return this.ui("descriptions", { title, items, ...opts }); }
+    /** Big number with count-up animation. `statistic("Revenue", 12890, { prefix: "$", trend: "+12%", precision: 0 })` */
+    public statistic(title: string, value: number | string, opts: UIOpts = {}) { return this.ui("statistic", { title, value, ...opts }); }
+    /** Live countdown. `countdown("Sale ends", { seconds: 300 })` or `{ target: "2030-01-01" }`. onChange fires when finished. Restart with `uiCall(id,"reset",secs)`. */
+    public countdown(title: string, opts: UIOpts = {}) { return this.ui("countdown", { title, ...opts }); }
+    /** Content with a repeating text watermark. */
+    public watermark(mark: string, content: string, opts: UIOpts = {}) { return this.ui("watermark", { watermark: mark, text: content, ...opts }); }
+    /** Pinterest-style columns. Items: strings, image URLs, or `{image,title,text,html,height}`. */
+    public masonry(items: any[], opts: UIOpts = {}) { return this.ui("masonry", { items, ...opts }); }
+    /** Before/after image slider. */
+    public imageCompare(before: string, after: string, opts: UIOpts = {}) { return this.ui("imageCompare", { before, after, ...opts }); }
+    /** Scrolling ticker. `marquee(["Breaking: ...", "Deploy done"], { duration: 20 })` */
+    public marquee(items: any[], opts: UIOpts = {}) { return this.ui("marquee", { items, ...opts }); }
+    /** Themed text. `typography("h3", "Hello", { color, align, gradient: ["#f0f","#0ff"] })`. Variants: h1-h6 subtitle1/2 body1/2 caption overline button. */
+    public typography(variant: string, text: string, opts: UIOpts = {}) { return this.ui("typography", { variant, text, ...opts }); }
+    /** Windowed list that stays fast with 100k+ items. `virtualList(items, { itemHeight: 36, search: true })`. */
+    public virtualList(items: any[], opts: UIOpts = {}) { return this.ui("virtualList", { items, ...opts }); }
+
 
     public input_named(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
         const ref = this.addTextInput(placeholder, defaultVal).id(name);
