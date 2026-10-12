@@ -236,7 +236,7 @@ describe("API Studio GUI", () => {
     expect(body.query).toBe("?q=Ann&n=2");
     expect(String(win.getValue("lbl_status"))).toContain("200");
     const hdrs = win.getValue("tbl_resp_headers") as string[][];
-    expect(hdrs.some((r) => r[0].toLowerCase() === "x-test" && r[1] === "yes")).toBe(true);
+    expect(hdrs.some((r) => r[0]?.toLowerCase() === "x-test" && r[1] === "yes")).toBe(true);
     const hist = win.getValue("tbl_history") as string[][];
     expect(hist.length).toBe(1);
     expect(hist[0]![2]).toBe("{{host}}/echo");
