@@ -258,6 +258,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "♠️",
     description: "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
   },
+  blackjack_studio: {
+    displayName: "Blackjack Royale VIP",
+    category: "Games & Entertainment",
+    icon: "🪙",
+    description: "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",

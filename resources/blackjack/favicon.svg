@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="chipEdge" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="85%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <radialGradient id="goldRim" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="70%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </radialGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Casino Chip Outer Rim -->
+  <circle cx="32" cy="32" r="30" fill="url(#goldRim)"/>
+  <circle cx="32" cy="32" r="26" fill="url(#chipEdge)"/>
+
+  <!-- Chip Dashed Inner Inlay -->
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+  <!-- Blackjack Cards (Ace of Spades & Jack of Spades) -->
+  <g transform="translate(18, 14) rotate(-10 10 16)">
+    <rect x="0" y="0" width="18" height="26" rx="2" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="3" y="8" font-family="'Cinzel', serif" font-weight="900" font-size="7" fill="#0f172a">A</text>
+    <path d="M 9 14 C 7 11 5 12.5 5 15 C 5 17 8 19 9 20 C 10 19 13 17 13 15 C 13 12.5 11 11 9 14 Z M 8.5 20 L 9.5 20 L 9.5 22 L 8.5 22 Z" fill="#0f172a"/>
+  </g>
+  <g transform="translate(28, 14) rotate(12 10 16)">
+    <rect x="0" y="0" width="18" height="26" rx="2" fill="url(#cardGrad)" stroke="#cbd5e1" stroke-width="0.8"/>
+    <text x="3" y="8" font-family="'Cinzel', serif" font-weight="900" font-size="7" fill="#dc2626">J</text>
+    <path d="M 9 14 C 7 11 5 12.5 5 15 C 5 17 8 19 9 20 C 10 19 13 17 13 15 C 13 12.5 11 11 9 14 Z M 8.5 20 L 9.5 20 L 9.5 22 L 8.5 22 Z" fill="#dc2626"/>
+  </g>
+
+  <!-- "21" Ribbon / Badge -->
+  <rect x="18" y="44" width="28" height="13" rx="3" fill="#dc2626" stroke="#fef08a" stroke-width="1"/>
+  <text x="32" y="53.5" font-family="'Cinzel', serif" font-weight="900" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">21</text>
+</svg>
