@@ -197,6 +197,10 @@ function scanWorkspace(rootDir: string, currentDir: string = rootDir, maxDepth =
   return results;
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Starts the Bun.serve server hosting NovaCode Studio Pro and its workspace filesystem APIs.
  */
@@ -263,6 +267,93 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
       if (pathname === "/api/fs/workspace") {
         const files = scanWorkspace(workspaceRoot);
         return Response.json({ success: true, workspaceRoot, files }, { headers: corsHeaders });
+      }
+
+      // API: Search Workspace Files
+      if (pathname === "/api/fs/search" && req.method === "POST") {
+        try {
+          const body = await req.json() as {
+            query?: string;
+            matchCase?: boolean;
+            wholeWord?: boolean;
+            isRegex?: boolean;
+            maxResults?: number;
+          };
+
+          if (!body?.query) {
+            return Response.json({ success: false, error: "Missing query parameter" }, { status: 400, headers: corsHeaders });
+          }
+
+          const query = body.query;
+          const matchCase = Boolean(body.matchCase);
+          const wholeWord = Boolean(body.wholeWord);
+          const isRegex = Boolean(body.isRegex);
+          const maxResults = body.maxResults || 300;
+
+          let regexFlags = matchCase ? "g" : "gi";
+          let regex: RegExp;
+          try {
+            if (isRegex) {
+              regex = new RegExp(query, regexFlags);
+            } else if (wholeWord) {
+              regex = new RegExp(`\\b${escapeRegExp(query)}\\b`, regexFlags);
+            } else {
+              regex = new RegExp(escapeRegExp(query), regexFlags);
+            }
+          } catch (e: any) {
+            return Response.json({ success: false, error: "Invalid regex: " + e.message }, { status: 400, headers: corsHeaders });
+          }
+
+          const scanned = scanWorkspace(workspaceRoot, workspaceRoot, 6);
+          const fileResults: Array<{ path: string; matches: Array<{ line: number; col: number; snippet: string }> }> = [];
+          let totalMatches = 0;
+
+          for (const item of scanned) {
+            if (item.isDirectory) continue;
+            if (item.size > 1024 * 1024) continue;
+
+            const fullPath = resolve(workspaceRoot, item.path);
+            try {
+              const content = readFileSync(fullPath, "utf8");
+              if (content.includes("\0")) continue; // skip binary
+
+              const lines = content.split("\n");
+              const matches: Array<{ line: number; col: number; snippet: string }> = [];
+
+              for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+                const lineText = lines[lineIdx]!;
+                regex.lastIndex = 0;
+                let m: RegExpExecArray | null;
+                while ((m = regex.exec(lineText)) !== null) {
+                  matches.push({
+                    line: lineIdx + 1,
+                    col: m.index,
+                    snippet: lineText.trim().slice(0, 160),
+                  });
+                  totalMatches++;
+                  if (totalMatches >= maxResults) break;
+                  if (!regex.global) break;
+                }
+                if (totalMatches >= maxResults) break;
+              }
+
+              if (matches.length > 0) {
+                fileResults.push({ path: item.path, matches });
+              }
+              if (totalMatches >= maxResults) break;
+            } catch {}
+          }
+
+          return Response.json({
+            success: true,
+            query,
+            totalMatches,
+            fileCount: fileResults.length,
+            results: fileResults,
+          }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+        }
       }
 
       // API: Read File

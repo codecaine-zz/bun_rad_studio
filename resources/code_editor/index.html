@@ -326,6 +326,39 @@
       height: 100vh;
       overflow: hidden;
       background: var(--bg-main);
+      position: relative;
+    }
+
+    /* Zen / Distraction-Free Mode */
+    #app-container.zen-mode #top-toolbar,
+    #app-container.zen-mode #activity-bar,
+    #app-container.zen-mode #sidebar-pane,
+    #app-container.zen-mode #preview-pane,
+    #app-container.zen-mode #bottom-drawer,
+    #app-container.zen-mode #status-bar {
+      display: none !important;
+    }
+    #app-container.zen-mode #workspace-body {
+      height: 100vh !important;
+    }
+    #zen-exit-btn {
+      display: none;
+      position: fixed;
+      top: 12px;
+      right: 18px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-bright);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 999;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow-sm);
+    }
+    #app-container.zen-mode #zen-exit-btn {
+      display: block;
     }
 
     /* ==========================================================================
@@ -341,13 +374,13 @@
       border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
       z-index: 30;
-      gap: 12px;
+      gap: 10px;
     }
 
     .toolbar-left, .toolbar-center, .toolbar-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .app-brand {
@@ -376,8 +409,8 @@
     }
 
     .version-tag {
-      font-size: 10.5px;
-      padding: 2px 6px;
+      font-size: 10px;
+      padding: 2px 5px;
       border-radius: 4px;
       background: var(--bg-hover);
       color: var(--text-muted);
@@ -395,7 +428,7 @@
       background: var(--bg-main);
       border-radius: 5px;
       border: 1px solid var(--border-color);
-      max-width: 400px;
+      max-width: 320px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -409,11 +442,11 @@
     button.tool-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-main);
-      padding: 5px 9px;
+      padding: 5px 8px;
       border-radius: 5px;
       font-size: 12px;
       font-family: inherit;
@@ -450,6 +483,11 @@
       color: var(--accent);
       border-color: var(--accent);
     }
+    button.tool-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
 
     select.theme-dropdown {
       background: var(--bg-main);
@@ -484,7 +522,7 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 0;
+      padding: 8px 0;
       flex-shrink: 0;
       z-index: 20;
     }
@@ -492,14 +530,14 @@
     .activity-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       width: 100%;
       align-items: center;
     }
 
     .activity-icon-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -508,7 +546,7 @@
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      font-size: 17px;
+      font-size: 16px;
       transition: all 0.15s ease;
       position: relative;
     }
@@ -524,8 +562,8 @@
       content: "";
       position: absolute;
       left: 0;
-      top: 8px;
-      bottom: 8px;
+      top: 6px;
+      bottom: 6px;
       width: 3px;
       background: var(--accent);
       border-radius: 0 3px 3px 0;
@@ -533,7 +571,7 @@
 
     /* Left Sidebar */
     aside#sidebar-pane {
-      width: 260px;
+      width: 270px;
       background: var(--bg-sidebar);
       border-right: 1px solid var(--border-color);
       display: flex;
@@ -579,6 +617,13 @@
     .sidebar-actions button:hover {
       color: var(--text-bright);
       background: var(--bg-hover);
+    }
+
+    .sidebar-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
     }
 
     /* Tree View */
@@ -629,10 +674,6 @@
       text-overflow: ellipsis;
       flex: 1;
     }
-    .tree-node .node-badge {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
     .tree-folder-group {
       display: flex;
       flex-direction: column;
@@ -644,6 +685,210 @@
     }
     .tree-folder-children.collapsed {
       display: none;
+    }
+
+    /* Global Search Sidebar Styles */
+    .search-sidebar-box {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .search-input-field {
+      width: 100%;
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 5px;
+      padding: 6px 8px;
+      color: var(--text-bright);
+      font-family: var(--font-code);
+      font-size: 12px;
+      outline: none;
+    }
+    .search-input-field:focus {
+      border-color: var(--accent);
+    }
+    .search-options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .search-results-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+      font-size: 12px;
+    }
+    .search-result-group {
+      margin-bottom: 8px;
+    }
+    .search-file-header {
+      padding: 4px 10px;
+      font-weight: 600;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: var(--bg-hover);
+    }
+    .search-match-item {
+      padding: 3px 12px 3px 24px;
+      cursor: pointer;
+      color: var(--text-main);
+      display: flex;
+      gap: 8px;
+      font-family: var(--font-code);
+      font-size: 11.5px;
+    }
+    .search-match-item:hover {
+      background: var(--accent-subtle);
+      color: var(--text-bright);
+    }
+    .search-line-num {
+      color: var(--text-muted);
+      min-width: 24px;
+    }
+
+    /* Outline / Symbols Styles */
+    .symbol-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .symbol-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12.5px;
+      color: var(--text-main);
+      transition: background 0.1s;
+    }
+    .symbol-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+    }
+    .symbol-badge {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .symbol-badge.fn { background: rgba(97, 175, 239, 0.2); color: #61afef; }
+    .symbol-badge.cls { background: rgba(229, 192, 123, 0.2); color: #e5c07b; }
+    .symbol-badge.int { background: rgba(152, 195, 121, 0.2); color: #98c379; }
+    .symbol-badge.cst { background: rgba(198, 120, 221, 0.2); color: #c678dd; }
+
+    /* Bookmarks Sidebar Styles */
+    .bookmarks-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .bookmark-item {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 12px;
+    }
+    .bookmark-item:hover {
+      border-color: var(--accent);
+      background: var(--bg-hover);
+    }
+    .bookmark-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    /* Clipboard History Sidebar Styles */
+    .clipboard-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .clip-item {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .clip-item:hover {
+      border-color: var(--accent);
+      background: var(--bg-hover);
+    }
+    .clip-text-preview {
+      font-family: var(--font-code);
+      font-size: 11.5px;
+      color: var(--text-bright);
+      white-space: pre;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-height: 48px;
+    }
+    .clip-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+    .clip-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    /* Settings View Styles */
+    .settings-container {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      font-size: 12.5px;
+    }
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .setting-group label {
+      font-weight: 600;
+      color: var(--text-bright);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .setting-desc {
+      font-size: 11px;
+      color: var(--text-muted);
     }
 
     /* ==========================================================================
@@ -860,6 +1105,7 @@
       opacity: 0;
       transition: opacity 0.1s;
       color: var(--text-muted);
+      padding: 0 2px;
     }
     .gutter-line:hover .gutter-fold-btn {
       opacity: 1;
@@ -921,6 +1167,13 @@
       tab-size: 2;
       box-sizing: border-box;
       z-index: 2;
+    }
+
+    /* Word Wrap Enabled Mode */
+    .word-wrap #editor-highlight-layer,
+    .word-wrap #editor-textarea {
+      white-space: pre-wrap !important;
+      word-break: break-all;
     }
 
     /* Active Line Indicator Background */
@@ -1394,9 +1647,9 @@
     }
 
     /* ==========================================================================
-       Quick Command Palette Modal (Ctrl+P / Cmd+P)
+       Modals: Command Palette, Clipboard Ring, Shortcuts Cheat Sheet
        ========================================================================== */
-    #command-palette-backdrop {
+    .modal-backdrop {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.6);
@@ -1405,14 +1658,15 @@
       display: none;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 60px;
+      padding-top: 50px;
     }
-    #command-palette-backdrop.open {
+    .modal-backdrop.open {
       display: flex;
     }
 
-    #command-palette {
+    .modal-window {
       width: 580px;
+      max-width: 90vw;
       background: var(--bg-sidebar);
       border: 1px solid var(--border-subtle);
       border-radius: 10px;
@@ -1422,7 +1676,19 @@
       flex-direction: column;
     }
 
-    .palette-input-wrapper {
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-bright);
+      background: var(--bg-main);
+    }
+
+    .modal-input-wrapper {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1430,7 +1696,7 @@
       border-bottom: 1px solid var(--border-color);
       background: var(--bg-main);
     }
-    .palette-input {
+    .modal-input {
       flex: 1;
       background: transparent;
       border: none;
@@ -1440,12 +1706,12 @@
       outline: none;
     }
 
-    .palette-list {
-      max-height: 340px;
+    .modal-list {
+      max-height: 380px;
       overflow-y: auto;
       padding: 6px;
     }
-    .palette-item {
+    .modal-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1456,22 +1722,53 @@
       color: var(--text-main);
       transition: background 0.1s;
     }
-    .palette-item:hover, .palette-item.selected {
+    .modal-item:hover, .modal-item.selected {
       background: var(--accent-subtle);
       color: var(--accent);
     }
-    .palette-item-left {
+    .modal-item-left {
       display: flex;
       align-items: center;
       gap: 8px;
+      overflow: hidden;
     }
-    .palette-shortcut {
+    .modal-shortcut {
       font-size: 11px;
       color: var(--text-muted);
       background: var(--bg-hover);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: var(--font-code);
+    }
+
+    /* Shortcuts Table in Modal */
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 16px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+    .shortcut-group {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .shortcut-group h4 {
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .shortcut-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+      border-bottom: 1px solid var(--bg-hover);
     }
 
     /* ==========================================================================
@@ -1496,13 +1793,16 @@
 
   <div id="app-container">
     
+    <!-- Floating Exit Button for Zen Mode -->
+    <button id="zen-exit-btn" title="Exit Zen Mode (F11)">✕ Exit Zen Mode</button>
+
     <!-- Top Workstation Header Toolbar -->
     <header id="top-toolbar">
       <div class="toolbar-left">
         <div class="app-brand" id="brand-logo" title="NovaCode Studio Pro">
           <div class="brand-icon">&lt;/&gt;</div>
           <span>NovaCode Studio</span>
-          <span class="version-tag">Pro v1.0</span>
+          <span class="version-tag">Pro v1.1</span>
         </div>
 
         <button class="tool-btn" id="btn-toggle-sidebar" title="Toggle Sidebar (Ctrl+B)">
@@ -1519,11 +1819,22 @@
       </div>
 
       <div class="toolbar-center">
+        <!-- Undo / Redo Buttons -->
+        <button class="tool-btn icon-only" id="btn-undo" title="Undo (Ctrl+Z / Cmd+Z)" disabled>
+          ↩
+        </button>
+        <button class="tool-btn icon-only" id="btn-redo" title="Redo (Ctrl+Shift+Z / Cmd+Shift+Z)" disabled>
+          ↪
+        </button>
+
         <button class="tool-btn primary" id="btn-run-cmd" title="Execute Code or Shell Command">
           ▶ Run
         </button>
-        <button class="tool-btn" id="btn-format-doc" title="Format Document">
+        <button class="tool-btn" id="btn-format-doc" title="Format Document (Shift+Alt+F)">
           ✨ Prettify
+        </button>
+        <button class="tool-btn" id="btn-clipboard-ring" title="Clipboard Ring History (Ctrl+Shift+V)">
+          📋 Clipboard
         </button>
         <button class="tool-btn" id="btn-find" title="Find & Replace (Ctrl+F)">
           🔍 Find
@@ -1534,6 +1845,14 @@
       </div>
 
       <div class="toolbar-right">
+        <button class="tool-btn icon-only" id="btn-toggle-wrap" title="Toggle Word Wrap (Alt+Z)">
+          Wrap
+        </button>
+
+        <button class="tool-btn icon-only" id="btn-zen-mode" title="Toggle Zen Mode (F11)">
+          Zen
+        </button>
+
         <select class="theme-dropdown" id="theme-selector" title="Switch Color Theme">
           <option value="onedark">One Dark Pro</option>
           <option value="dracula">Dracula Modern</option>
@@ -1559,21 +1878,24 @@
       <!-- Activity Bar (Far Left) -->
       <nav id="activity-bar">
         <div class="activity-group">
-          <button class="activity-icon-btn active" id="act-files" title="Explorer">📁</button>
-          <button class="activity-icon-btn" id="act-search" title="Search">🔍</button>
-          <button class="activity-icon-btn" id="act-git" title="Diff / Git">🔀</button>
-          <button class="activity-icon-btn" id="act-snippets" title="Snippets">📋</button>
+          <button class="activity-icon-btn active" id="act-files" data-view="explorer" title="Files Explorer (Ctrl+Shift+E)">📁</button>
+          <button class="activity-icon-btn" id="act-search" data-view="search" title="Global Search (Ctrl+Shift+F)">🔍</button>
+          <button class="activity-icon-btn" id="act-outline" data-view="outline" title="Code Outline & Symbols">📑</button>
+          <button class="activity-icon-btn" id="act-bookmarks" data-view="bookmarks" title="Bookmarks & Breakpoints">🔖</button>
+          <button class="activity-icon-btn" id="act-clipboard" data-view="clipboard" title="Clipboard Ring History">📋</button>
+          <button class="activity-icon-btn" id="act-git" data-view="git" title="File Changes & Diff">🔀</button>
         </div>
         <div class="activity-group">
-          <button class="activity-icon-btn" id="act-settings" title="Settings">⚙</button>
+          <button class="activity-icon-btn" id="act-shortcuts" title="Keyboard Shortcuts (F1 / ?)">⌨</button>
+          <button class="activity-icon-btn" id="act-settings" data-view="settings" title="Editor Preferences">⚙</button>
         </div>
       </nav>
 
-      <!-- Sidebar Explorer Pane -->
+      <!-- Sidebar Multi-View Pane -->
       <aside id="sidebar-pane">
         <div class="sidebar-header">
           <span id="sidebar-title">Workspace Explorer</span>
-          <div class="sidebar-actions">
+          <div class="sidebar-actions" id="sidebar-actions-area">
             <button id="btn-new-file" title="New File">📄+</button>
             <button id="btn-new-folder" title="New Folder">📁+</button>
             <button id="btn-refresh-tree" title="Refresh Tree">🔄</button>
@@ -1581,8 +1903,104 @@
           </div>
         </div>
 
-        <div class="file-tree-container" id="file-tree">
-          <!-- Dynamic Tree Structure Injected via JavaScript -->
+        <!-- View 1: File Explorer -->
+        <div class="sidebar-view" id="view-explorer">
+          <div class="file-tree-container" id="file-tree"></div>
+        </div>
+
+        <!-- View 2: Global Search in Workspace -->
+        <div class="sidebar-view" id="view-search" style="display: none;">
+          <div class="search-sidebar-box">
+            <input type="text" class="search-input-field" id="ws-search-query" placeholder="Search across all files...">
+            <input type="text" class="search-input-field" id="ws-replace-query" placeholder="Replace across all files...">
+            <div class="search-options-row">
+              <div style="display: flex; gap: 4px;">
+                <button class="fr-toggle-btn" id="ws-opt-case" title="Match Case">Aa</button>
+                <button class="fr-toggle-btn" id="ws-opt-word" title="Whole Word">\b</button>
+                <button class="fr-toggle-btn" id="ws-opt-regex" title="Regex">.*</button>
+              </div>
+              <button class="tool-btn" id="btn-ws-replace-all" style="font-size: 11px; padding: 2px 6px;">Replace All</button>
+            </div>
+            <div id="ws-search-stats" style="font-size: 11px; color: var(--text-muted);">Type to search...</div>
+          </div>
+          <div class="search-results-list" id="ws-search-results"></div>
+        </div>
+
+        <!-- View 3: Code Outline & Symbols -->
+        <div class="sidebar-view" id="view-outline" style="display: none;">
+          <div style="padding: 8px 12px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
+            Symbols in active document
+          </div>
+          <div class="symbol-list" id="symbol-tree"></div>
+        </div>
+
+        <!-- View 4: Bookmarks & Breakpoints -->
+        <div class="sidebar-view" id="view-bookmarks" style="display: none;">
+          <div style="padding: 8px 12px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+            <span>Active Bookmarks</span>
+            <button id="btn-clear-bookmarks" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">Clear All</button>
+          </div>
+          <div class="bookmarks-list" id="bookmarks-tree"></div>
+        </div>
+
+        <!-- View 5: Clipboard Ring History -->
+        <div class="sidebar-view" id="view-clipboard" style="display: none;">
+          <div style="padding: 8px 12px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+            <span>Clipboard History Ring</span>
+            <button id="btn-clear-clipboard" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">Clear</button>
+          </div>
+          <div class="clipboard-list" id="clipboard-tree"></div>
+        </div>
+
+        <!-- View 6: Git & File History -->
+        <div class="sidebar-view" id="view-git" style="display: none;">
+          <div style="padding: 8px 12px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
+            Modified Files & Diff
+          </div>
+          <div style="padding: 12px; font-size: 12px;" id="git-status-content">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- View 7: Editor Settings & Preferences -->
+        <div class="sidebar-view" id="view-settings" style="display: none;">
+          <div class="settings-container">
+            <div class="setting-group">
+              <label>
+                <span>Word Wrap</span>
+                <input type="checkbox" id="set-word-wrap">
+              </label>
+              <div class="setting-desc">Wrap lines that exceed the viewport width</div>
+            </div>
+
+            <div class="setting-group">
+              <label>
+                <span>Font Size (<span id="set-font-size-val">14px</span>)</span>
+                <input type="range" id="set-font-size" min="11" max="22" value="14">
+              </label>
+              <div class="setting-desc">Editor font scale in pixels</div>
+            </div>
+
+            <div class="setting-group">
+              <label>
+                <span>Tab Size</span>
+                <select id="set-tab-size" style="background: var(--bg-main); color: var(--text-bright); border: 1px solid var(--border-subtle); padding: 2px 6px; border-radius: 4px;">
+                  <option value="2">2 Spaces</option>
+                  <option value="4">4 Spaces</option>
+                  <option value="8">8 Spaces</option>
+                </select>
+              </label>
+              <div class="setting-desc">Number of spaces per indentation level</div>
+            </div>
+
+            <div class="setting-group">
+              <label>
+                <span>Auto Save</span>
+                <input type="checkbox" id="set-auto-save" checked>
+              </label>
+              <div class="setting-desc">Automatically save files 3s after last edit</div>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -1605,9 +2023,9 @@
               <button class="fr-toggle-btn" id="fr-opt-word" title="Match Whole Word">\b</button>
               <button class="fr-toggle-btn" id="fr-opt-regex" title="Regular Expression">.*</button>
             </div>
-            <button class="tool-btn icon-only" id="fr-prev-btn" title="Previous Match">▲</button>
-            <button class="tool-btn icon-only" id="fr-next-btn" title="Next Match">▼</button>
-            <button class="tool-btn icon-only" id="fr-close-btn" title="Close">✕</button>
+            <button class="tool-btn icon-only" id="fr-prev-btn" title="Previous Match (Shift+Enter)">▲</button>
+            <button class="tool-btn icon-only" id="fr-next-btn" title="Next Match (Enter)">▼</button>
+            <button class="tool-btn icon-only" id="fr-close-btn" title="Close (Escape)">✕</button>
           </div>
           <div class="fr-row">
             <div class="fr-input-wrapper">
@@ -1766,14 +2184,78 @@
   </div>
 
   <!-- Command Palette Modal Backdrop -->
-  <div id="command-palette-backdrop">
-    <div id="command-palette">
-      <div class="palette-input-wrapper">
+  <div class="modal-backdrop" id="command-palette-backdrop">
+    <div class="modal-window" id="command-palette">
+      <div class="modal-input-wrapper">
         <span>⚡</span>
-        <input type="text" class="palette-input" id="palette-search-input" placeholder="Type a command or file name...">
+        <input type="text" class="modal-input" id="palette-search-input" placeholder="Type a command or file name...">
       </div>
-      <div class="palette-list" id="palette-results">
-        <!-- Results injected dynamically -->
+      <div class="modal-list" id="palette-results"></div>
+    </div>
+  </div>
+
+  <!-- Floating Clipboard Ring Modal Backdrop -->
+  <div class="modal-backdrop" id="clipboard-modal-backdrop">
+    <div class="modal-window" id="clipboard-modal">
+      <div class="modal-header">
+        <span>📋 Clipboard Ring History</span>
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">Select item to paste (Enter or 1-9)</span>
+      </div>
+      <div class="modal-input-wrapper">
+        <span>🔍</span>
+        <input type="text" class="modal-input" id="clipboard-search-input" placeholder="Search clipboard clips...">
+      </div>
+      <div class="modal-list" id="clipboard-modal-results"></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Cheat Sheet Modal Backdrop -->
+  <div class="modal-backdrop" id="shortcuts-modal-backdrop">
+    <div class="modal-window" id="shortcuts-modal" style="width: 720px;">
+      <div class="modal-header">
+        <span>⌨️ NovaCode Studio Pro — Keyboard Shortcuts</span>
+        <button class="tool-btn icon-only" id="btn-close-shortcuts-modal" style="color: var(--text-bright);">✕</button>
+      </div>
+      <div class="shortcuts-grid">
+        <div class="shortcut-group">
+          <h4>Navigation & Commands</h4>
+          <div class="shortcut-row"><span>Command Palette</span><span class="modal-shortcut">Ctrl+P</span></div>
+          <div class="shortcut-row"><span>Quick Find</span><span class="modal-shortcut">Ctrl+F</span></div>
+          <div class="shortcut-row"><span>Global Search</span><span class="modal-shortcut">Ctrl+Shift+F</span></div>
+          <div class="shortcut-row"><span>Toggle Explorer</span><span class="modal-shortcut">Ctrl+B</span></div>
+          <div class="shortcut-row"><span>Toggle Terminal</span><span class="modal-shortcut">Ctrl+`</span></div>
+          <div class="shortcut-row"><span>Toggle Preview</span><span class="modal-shortcut">Ctrl+\</span></div>
+        </div>
+
+        <div class="shortcut-group">
+          <h4>Editing & History</h4>
+          <div class="shortcut-row"><span>Undo</span><span class="modal-shortcut">Ctrl+Z</span></div>
+          <div class="shortcut-row"><span>Redo</span><span class="modal-shortcut">Ctrl+Shift+Z / Ctrl+Y</span></div>
+          <div class="shortcut-row"><span>Clipboard Ring</span><span class="modal-shortcut">Ctrl+Shift+V</span></div>
+          <div class="shortcut-row"><span>Save Document</span><span class="modal-shortcut">Ctrl+S</span></div>
+          <div class="shortcut-row"><span>Prettify / Format</span><span class="modal-shortcut">Shift+Alt+F</span></div>
+          <div class="shortcut-row"><span>Toggle Comment</span><span class="modal-shortcut">Ctrl+/</span></div>
+        </div>
+
+        <div class="shortcut-group">
+          <h4>Line Operations</h4>
+          <div class="shortcut-row"><span>Move Line Up</span><span class="modal-shortcut">Alt+Up</span></div>
+          <div class="shortcut-row"><span>Move Line Down</span><span class="modal-shortcut">Alt+Down</span></div>
+          <div class="shortcut-row"><span>Duplicate Line</span><span class="modal-shortcut">Shift+Alt+Down</span></div>
+          <div class="shortcut-row"><span>Delete Line</span><span class="modal-shortcut">Ctrl+Shift+K</span></div>
+          <div class="shortcut-row"><span>Join Lines</span><span class="modal-shortcut">Ctrl+J</span></div>
+          <div class="shortcut-row"><span>Toggle Word Wrap</span><span class="modal-shortcut">Alt+Z</span></div>
+        </div>
+
+        <div class="shortcut-group">
+          <h4>View & Bookmarks</h4>
+          <div class="shortcut-row"><span>Toggle Zen Mode</span><span class="modal-shortcut">F11</span></div>
+          <div class="shortcut-row"><span>Next Bookmark</span><span class="modal-shortcut">F2</span></div>
+          <div class="shortcut-row"><span>Prev Bookmark</span><span class="modal-shortcut">Shift+F2</span></div>
+          <div class="shortcut-row"><span>Zoom In</span><span class="modal-shortcut">Ctrl+=</span></div>
+          <div class="shortcut-row"><span>Zoom Out</span><span class="modal-shortcut">Ctrl+-</span></div>
+          <div class="shortcut-row"><span>Reset Zoom</span><span class="modal-shortcut">Ctrl+0</span></div>
+        </div>
       </div>
     </div>
   </div>
@@ -2035,7 +2517,7 @@ fn main() {
           lang: "json",
           content: `{
   "projectName": "NovaCode Studio Pro",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "environment": "production",
   "features": {
     "tabbedEditor": true,
@@ -2044,7 +2526,12 @@ fn main() {
     "livePreview": true,
     "terminalRunner": true,
     "diffComparator": true,
-    "regexSandbox": true
+    "regexSandbox": true,
+    "clipboardHistory": true,
+    "undoRedo": true,
+    "globalSearch": true,
+    "symbolOutline": true,
+    "bookmarks": true
   },
   "editor": {
     "tabSize": 2,
@@ -2070,11 +2557,16 @@ Welcome to **NovaCode Studio Pro**, the premier developer-focused code and text 
 
 | Feature | Description | Shortcut |
 | :--- | :--- | :--- |
-| **Command Palette** | Fuzzy search actions, themes & files | \`Ctrl+P\` / \`Cmd+P\` |
+| **Undo / Redo** | Stack history with cursor recall | \`Ctrl+Z\` / \`Ctrl+Shift+Z\` |
+| **Clipboard Ring** | Searchable multi-clip history | \`Ctrl+Shift+V\` |
+| **Command Palette** | Fuzzy search actions & files | \`Ctrl+P\` / \`Cmd+P\` |
 | **Find & Replace** | Regex, case & whole-word search | \`Ctrl+F\` / \`Cmd+F\` |
+| **Global Search** | Multi-file workspace search | \`Ctrl+Shift+F\` |
 | **Live Split Preview** | Markdown, HTML Sandbox, JSON Tree | \`Ctrl+\\\` |
 | **Developer Drawer** | Terminal runner, Regex sandbox, Diff | \`Ctrl+\`\` |
 | **Document Formatting** | Prettify JSON, JS/TS, Python | \`Shift+Alt+F\` |
+| **Line Operations** | Move, duplicate, comment, delete | \`Alt+Up/Down\`, \`Ctrl+/\` |
+| **Zen Mode** | Distraction-free full window | \`F11\` |
 
 ### Supported Highlighting Languages
 - **TypeScript / JavaScript**
@@ -2131,7 +2623,7 @@ ORDER BY metric_date DESC, daily_rank ASC;
 set -euo pipefail
 
 APP_NAME="novacode-studio"
-VERSION=$(git describe --tags --always 2>/dev/null || echo "v1.0.0")
+VERSION=$(git describe --tags --always 2>/dev/null || echo "v1.1.0")
 TARGET_DIR="./dist"
 
 echo "⚡ [1/4] Preparing build directory: \${TARGET_DIR}..."
@@ -2158,11 +2650,33 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         openTabs: ["src/index.ts", "docs/README.md", "data/config.json"],
         dirtyFiles: new Set(),
         theme: "onedark",
-        indentMode: 2, // 2 spaces
+        indentMode: 2,
         lineEnding: "LF",
+        wordWrap: false,
+        fontSize: 14,
+        autoSave: true,
+        autoSaveTimer: null,
         backendConnected: false,
+        activeSidebarView: "explorer",
         activePreviewTab: "md",
         activeDrawerPane: "terminal",
+        bookmarks: {}, // filepath -> Set of line numbers (1-indexed)
+        clipboardHistory: [
+          {
+            id: "clip-sample-1",
+            text: `const engine = new WorkstationEngine({ port: 9005 });\nawait engine.start();`,
+            lines: 2,
+            chars: 77,
+            timestamp: Date.now() - 1000 * 60 * 5,
+          },
+          {
+            id: "clip-sample-2",
+            text: `import { serve } from "bun";`,
+            lines: 1,
+            chars: 28,
+            timestamp: Date.now() - 1000 * 60 * 12,
+          }
+        ],
         findOptions: {
           matchCase: false,
           wholeWord: false,
@@ -2171,21 +2685,20 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           matches: [],
           currentMatchIdx: -1,
         },
-        history: {
-          undoStack: [],
-          redoStack: [],
-        },
       };
 
       // ------------------------------------------------------------------------
       // DOM Elements
       // ------------------------------------------------------------------------
       const els = {
+        appContainer: document.getElementById("app-container"),
         themeSelector: document.getElementById("theme-selector"),
         tabBar: document.getElementById("tab-bar"),
         btnAddTab: document.getElementById("btn-add-tab"),
         fileTree: document.getElementById("file-tree"),
         sidebarPane: document.getElementById("sidebar-pane"),
+        sidebarTitle: document.getElementById("sidebar-title"),
+        sidebarActionsArea: document.getElementById("sidebar-actions-area"),
         btnToggleSidebar: document.getElementById("btn-toggle-sidebar"),
         btnCollapseSidebar: document.getElementById("btn-collapse-sidebar"),
         editorGutter: document.getElementById("editor-gutter"),
@@ -2228,6 +2741,11 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         cmdPaletteBackdrop: document.getElementById("command-palette-backdrop"),
         paletteInput: document.getElementById("palette-search-input"),
         paletteResults: document.getElementById("palette-results"),
+        clipboardModalBackdrop: document.getElementById("clipboard-modal-backdrop"),
+        clipboardSearchInput: document.getElementById("clipboard-search-input"),
+        clipboardModalResults: document.getElementById("clipboard-modal-results"),
+        shortcutsModalBackdrop: document.getElementById("shortcuts-modal-backdrop"),
+        btnCloseShortcutsModal: document.getElementById("btn-close-shortcuts-modal"),
         statusBackendText: document.getElementById("status-backend-text"),
         statusBadgeDot: document.getElementById("status-badge-dot"),
         statusCursorPos: document.getElementById("status-cursor-pos"),
@@ -2235,14 +2753,50 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         statusDocMetrics: document.getElementById("status-doc-metrics"),
         statusLangText: document.getElementById("status-lang-text"),
         breadcrumbFilename: document.getElementById("breadcrumb-filename"),
+        btnUndo: document.getElementById("btn-undo"),
+        btnRedo: document.getElementById("btn-redo"),
         btnFormatDoc: document.getElementById("btn-format-doc"),
+        btnClipboardRing: document.getElementById("btn-clipboard-ring"),
         btnSaveFile: document.getElementById("btn-save-file"),
         btnRunCmd: document.getElementById("btn-run-cmd"),
         btnFind: document.getElementById("btn-find"),
         btnQuickOpen: document.getElementById("btn-quick-open"),
+        btnToggleWrap: document.getElementById("btn-toggle-wrap"),
+        btnZenMode: document.getElementById("btn-zen-mode"),
+        zenExitBtn: document.getElementById("zen-exit-btn"),
         btnNewFile: document.getElementById("btn-new-file"),
         btnNewFolder: document.getElementById("btn-new-folder"),
         btnRefreshTree: document.getElementById("btn-refresh-tree"),
+        // Sidebar Views
+        viewExplorer: document.getElementById("view-explorer"),
+        viewSearch: document.getElementById("view-search"),
+        viewOutline: document.getElementById("view-outline"),
+        viewBookmarks: document.getElementById("view-bookmarks"),
+        viewClipboard: document.getElementById("view-clipboard"),
+        viewGit: document.getElementById("view-git"),
+        viewSettings: document.getElementById("view-settings"),
+        // Search View Elements
+        wsSearchQuery: document.getElementById("ws-search-query"),
+        wsReplaceQuery: document.getElementById("ws-replace-query"),
+        wsOptCase: document.getElementById("ws-opt-case"),
+        wsOptWord: document.getElementById("ws-opt-word"),
+        wsOptRegex: document.getElementById("ws-opt-regex"),
+        btnWsReplaceAll: document.getElementById("btn-ws-replace-all"),
+        wsSearchStats: document.getElementById("ws-search-stats"),
+        wsSearchResults: document.getElementById("ws-search-results"),
+        // Outline & Bookmarks & Clipboard Views
+        symbolTree: document.getElementById("symbol-tree"),
+        bookmarksTree: document.getElementById("bookmarks-tree"),
+        clipboardTree: document.getElementById("clipboard-tree"),
+        gitStatusContent: document.getElementById("git-status-content"),
+        btnClearBookmarks: document.getElementById("btn-clear-bookmarks"),
+        btnClearClipboard: document.getElementById("btn-clear-clipboard"),
+        // Settings elements
+        setWordWrap: document.getElementById("set-word-wrap"),
+        setFontSize: document.getElementById("set-font-size"),
+        setFontSizeVal: document.getElementById("set-font-size-val"),
+        setTabSize: document.getElementById("set-tab-size"),
+        setAutoSave: document.getElementById("set-auto-save"),
       };
 
       // ------------------------------------------------------------------------
@@ -2298,12 +2852,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function highlightLine(line, lang) {
-        // Universal Tokenizer with Regex Pass
-        const tokens = [];
-        let remaining = line;
-        let index = 0;
-
-        // Language specific keywords
         const keywords = {
           typescript: ["const", "let", "var", "function", "return", "if", "else", "for", "while", "class", "interface", "type", "export", "import", "from", "async", "await", "new", "this", "try", "catch", "finally", "throw", "switch", "case", "default", "break", "continue", "extends", "implements", "public", "private", "protected", "static", "readonly", "as", "typeof", "instanceof"],
           javascript: ["const", "let", "var", "function", "return", "if", "else", "for", "while", "class", "export", "import", "from", "async", "await", "new", "this", "try", "catch", "finally", "throw", "switch", "case", "default", "break", "continue"],
@@ -2321,7 +2869,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         let i = 0;
 
         while (i < line.length) {
-          // Comments: single-line
+          // Comments
           if (
             (line.startsWith("//", i) && lang !== "python" && lang !== "sql" && lang !== "shell") ||
             (line.startsWith("#", i) && (lang === "python" || lang === "shell")) ||
@@ -2331,7 +2879,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
             break;
           }
 
-          // Strings: double or single quotes or backticks
+          // Strings
           if (line[i] === '"' || line[i] === "'" || line[i] === "`") {
             const quote = line[i];
             let j = i + 1;
@@ -2351,10 +2899,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
             while (j < line.length && line[j] !== ">") j++;
             if (j < line.length) j++;
             const tagSlice = line.slice(i, j);
-            const tagProcessed = tagSlice.replace(
-              /(&lt;|\/|[a-zA-Z0-9-]+)/g,
-              '<span class="token-tag">$1</span>'
-            );
             escaped += `<span class="token-tag">${escapeHtml(tagSlice)}</span>`;
             i = j;
             continue;
@@ -2401,6 +2945,755 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       // ------------------------------------------------------------------------
+      // Multi-File Undo & Redo History System
+      // ------------------------------------------------------------------------
+      function getFileHistory(file) {
+        if (!file.history) {
+          file.history = {
+            undo: [],
+            redo: [],
+            lastPushedText: file.content || "",
+            lastPushedTime: Date.now(),
+          };
+        }
+        return file.history;
+      }
+
+      function pushUndoSnapshot(file, force = false) {
+        if (!file) return;
+        const hist = getFileHistory(file);
+        const currentText = els.textarea.value;
+        const now = Date.now();
+
+        if (currentText === hist.lastPushedText && hist.undo.length > 0) return;
+
+        // If typing rapidly in a burst within 350ms, update the ongoing tracked text
+        if (!force && (now - hist.lastPushedTime < 350) && hist.undo.length > 0) {
+          hist.lastPushedText = currentText;
+          hist.lastPushedTime = now;
+          updateUndoRedoButtons();
+          return;
+        }
+
+        // Push previous stable text snapshot onto undo stack
+        hist.undo.push({
+          text: hist.lastPushedText,
+          selStart: els.textarea.selectionStart,
+          selEnd: els.textarea.selectionEnd,
+        });
+
+        if (hist.undo.length > 100) hist.undo.shift();
+
+        hist.redo = [];
+        hist.lastPushedText = currentText;
+        hist.lastPushedTime = now;
+        updateUndoRedoButtons();
+      }
+
+      function performUndo() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        const hist = getFileHistory(currentFile);
+        if (hist.undo.length === 0) return;
+
+        const currentText = els.textarea.value;
+        const prevState = hist.undo.pop();
+
+        hist.redo.push({
+          text: currentText,
+          selStart: els.textarea.selectionStart,
+          selEnd: els.textarea.selectionEnd,
+        });
+
+        els.textarea.value = prevState.text;
+        els.textarea.setSelectionRange(prevState.selStart, prevState.selEnd);
+        hist.lastPushedText = prevState.text;
+        hist.lastPushedTime = 0;
+        currentFile.content = prevState.text;
+        state.dirtyFiles.add(currentFile.path);
+
+        renderTabs();
+        renderEditor();
+        updateUndoRedoButtons();
+        flashStatusBar("Undo (Ctrl+Z)");
+      }
+
+      function performRedo() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        const hist = getFileHistory(currentFile);
+        if (hist.redo.length === 0) return;
+
+        const currentText = els.textarea.value;
+        const nextState = hist.redo.pop();
+
+        hist.undo.push({
+          text: currentText,
+          selStart: els.textarea.selectionStart,
+          selEnd: els.textarea.selectionEnd,
+        });
+
+        els.textarea.value = nextState.text;
+        els.textarea.setSelectionRange(nextState.selStart, nextState.selEnd);
+        hist.lastPushedText = nextState.text;
+        hist.lastPushedTime = 0;
+        currentFile.content = nextState.text;
+        state.dirtyFiles.add(currentFile.path);
+
+        renderTabs();
+        renderEditor();
+        updateUndoRedoButtons();
+        flashStatusBar("Redo (Ctrl+Y)");
+      }
+
+      function updateUndoRedoButtons() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) {
+          els.btnUndo.disabled = true;
+          els.btnRedo.disabled = true;
+          return;
+        }
+        const hist = getFileHistory(currentFile);
+        els.btnUndo.disabled = hist.undo.length === 0;
+        els.btnRedo.disabled = hist.redo.length === 0;
+      }
+
+      // ------------------------------------------------------------------------
+      // Clipboard Ring History Manager
+      // ------------------------------------------------------------------------
+      function recordClipboard(text) {
+        if (!text || !text.trim()) return;
+        if (state.clipboardHistory.length > 0 && state.clipboardHistory[0].text === text) return;
+
+        const lines = text.split("\n").length;
+        const chars = text.length;
+        const item = {
+          id: "clip-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          text,
+          lines,
+          chars,
+          timestamp: Date.now(),
+        };
+
+        state.clipboardHistory.unshift(item);
+        if (state.clipboardHistory.length > 30) state.clipboardHistory.pop();
+
+        renderClipboardSidebar();
+      }
+
+      function renderClipboardSidebar() {
+        if (!els.clipboardTree) return;
+        if (state.clipboardHistory.length === 0) {
+          els.clipboardTree.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size: 11.5px;">Clipboard ring is empty. Copy text anywhere in the editor to record clips.</div>`;
+          return;
+        }
+
+        els.clipboardTree.innerHTML = state.clipboardHistory.map((item, idx) => {
+          const ago = formatTimeAgo(item.timestamp);
+          return `
+            <div class="clip-item" data-idx="${idx}">
+              <div class="clip-text-preview">${escapeHtml(item.text.slice(0, 140))}</div>
+              <div class="clip-meta-row">
+                <span>${item.lines} lines, ${item.chars} chars • ${ago}</span>
+                <div class="clip-actions">
+                  <button class="tool-btn icon-only clip-paste-btn" data-paste="${idx}" title="Paste at cursor" style="font-size: 11px; padding: 2px 4px;">Paste</button>
+                  <button class="tool-btn icon-only clip-del-btn" data-del="${idx}" title="Remove" style="font-size: 11px; padding: 2px 4px;">✕</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        els.clipboardTree.querySelectorAll("[data-paste]").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.paste, 10);
+            pasteClipboardItem(state.clipboardHistory[idx]);
+          });
+        });
+
+        els.clipboardTree.querySelectorAll("[data-del]").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.del, 10);
+            state.clipboardHistory.splice(idx, 1);
+            renderClipboardSidebar();
+          });
+        });
+      }
+
+      function pasteClipboardItem(clip) {
+        if (!clip) return;
+        insertSnippetAtCursor(clip.text);
+        closeClipboardModal();
+        flashStatusBar("Pasted from clipboard ring!");
+      }
+
+      function openClipboardModal() {
+        els.clipboardModalBackdrop.classList.add("open");
+        els.clipboardSearchInput.value = "";
+        renderClipboardModalItems("");
+        els.clipboardSearchInput.focus();
+      }
+
+      function closeClipboardModal() {
+        els.clipboardModalBackdrop.classList.remove("open");
+        els.textarea.focus();
+      }
+
+      function renderClipboardModalItems(query) {
+        const q = query.toLowerCase().trim();
+        const filtered = state.clipboardHistory.filter((c) => !q || c.text.toLowerCase().includes(q));
+
+        if (filtered.length === 0) {
+          els.clipboardModalResults.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted);">No matching clips found.</div>`;
+          return;
+        }
+
+        els.clipboardModalResults.innerHTML = filtered.slice(0, 10).map((c, idx) => `
+          <div class="modal-item ${idx === 0 ? "selected" : ""}" data-idx="${idx}">
+            <div class="modal-item-left">
+              <span class="modal-shortcut" style="min-width: 18px; text-align: center;">${idx < 9 ? idx + 1 : "•"}</span>
+              <span style="font-family: var(--font-code); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px;">
+                ${escapeHtml(c.text.replace(/\n/g, " ↵ "))}
+              </span>
+            </div>
+            <div>
+              <span class="modal-shortcut">${c.lines}L, ${c.chars}C</span>
+            </div>
+          </div>
+        `).join("");
+
+        els.clipboardModalResults.querySelectorAll(".modal-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            const item = filtered[el.dataset.idx];
+            pasteClipboardItem(item);
+          });
+        });
+      }
+
+      function formatTimeAgo(timestamp) {
+        const sec = Math.floor((Date.now() - timestamp) / 1000);
+        if (sec < 60) return "just now";
+        const min = Math.floor(sec / 60);
+        if (min < 60) return `${min}m ago`;
+        const hrs = Math.floor(min / 60);
+        return `${hrs}h ago`;
+      }
+
+      function getActiveSelectionText() {
+        const active = document.activeElement;
+        if (active && (active.tagName === "TEXTAREA" || (active.tagName === "INPUT" && active.type === "text"))) {
+          const start = active.selectionStart;
+          const end = active.selectionEnd;
+          if (typeof start === "number" && typeof end === "number" && end > start) {
+            return active.value.substring(start, end);
+          }
+        }
+        if (els.textarea) {
+          const s = els.textarea.selectionStart;
+          const e = els.textarea.selectionEnd;
+          if (typeof s === "number" && typeof e === "number" && e > s) {
+            return els.textarea.value.substring(s, e);
+          }
+        }
+        const winSel = window.getSelection()?.toString();
+        if (winSel) return winSel;
+        return "";
+      }
+
+      // Copy & Cut interception for Clipboard Ring
+      window.addEventListener("copy", () => {
+        const sel = getActiveSelectionText();
+        if (sel) recordClipboard(sel);
+      });
+
+      window.addEventListener("cut", () => {
+        const sel = getActiveSelectionText();
+        if (sel) recordClipboard(sel);
+      });
+
+      // ------------------------------------------------------------------------
+      // Line Operations & Code Transformations
+      // ------------------------------------------------------------------------
+      function toggleComment() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        pushUndoSnapshot(currentFile, true);
+
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+
+        const lang = currentFile.lang || detectLanguage(currentFile.path);
+        let prefix = "// ";
+        if (lang === "python" || lang === "shell") prefix = "# ";
+        else if (lang === "sql") prefix = "-- ";
+
+        const lines = text.split("\n");
+        const startLineIdx = text.slice(0, selStart).split("\n").length - 1;
+        const endLineIdx = text.slice(0, selEnd).split("\n").length - 1;
+
+        let allCommented = true;
+        for (let i = startLineIdx; i <= endLineIdx; i++) {
+          if (lines[i].trim().length > 0 && !lines[i].trim().startsWith(prefix.trim())) {
+            allCommented = false;
+            break;
+          }
+        }
+
+        for (let i = startLineIdx; i <= endLineIdx; i++) {
+          if (lines[i].trim().length === 0) continue;
+          if (allCommented) {
+            lines[i] = lines[i].replace(prefix, "").replace(prefix.trim(), "");
+          } else {
+            const indentMatch = lines[i].match(/^\s*/);
+            const indent = indentMatch ? indentMatch[0] : "";
+            lines[i] = indent + prefix + lines[i].slice(indent.length);
+          }
+        }
+
+        els.textarea.value = lines.join("\n");
+        handleTextChange();
+      }
+
+      function moveLine(direction) {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        pushUndoSnapshot(currentFile, true);
+
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const lines = text.split("\n");
+        const curLineIdx = text.slice(0, selStart).split("\n").length - 1;
+
+        if (direction === "up" && curLineIdx > 0) {
+          const tmp = lines[curLineIdx];
+          lines[curLineIdx] = lines[curLineIdx - 1];
+          lines[curLineIdx - 1] = tmp;
+          els.textarea.value = lines.join("\n");
+          const newPos = lines.slice(0, curLineIdx - 1).join("\n").length + (curLineIdx - 1 > 0 ? 1 : 0);
+          els.textarea.setSelectionRange(newPos, newPos);
+          handleTextChange();
+        } else if (direction === "down" && curLineIdx < lines.length - 1) {
+          const tmp = lines[curLineIdx];
+          lines[curLineIdx] = lines[curLineIdx + 1];
+          lines[curLineIdx + 1] = tmp;
+          els.textarea.value = lines.join("\n");
+          const newPos = lines.slice(0, curLineIdx + 1).join("\n").length + 1;
+          els.textarea.setSelectionRange(newPos, newPos);
+          handleTextChange();
+        }
+      }
+
+      function duplicateLine() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        pushUndoSnapshot(currentFile, true);
+
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const lines = text.split("\n");
+        const curLineIdx = text.slice(0, selStart).split("\n").length - 1;
+
+        lines.splice(curLineIdx + 1, 0, lines[curLineIdx]);
+        els.textarea.value = lines.join("\n");
+        handleTextChange();
+      }
+
+      function deleteLine() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        pushUndoSnapshot(currentFile, true);
+
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const lines = text.split("\n");
+        const curLineIdx = text.slice(0, selStart).split("\n").length - 1;
+
+        lines.splice(curLineIdx, 1);
+        els.textarea.value = lines.join("\n");
+        handleTextChange();
+      }
+
+      function joinLines() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        pushUndoSnapshot(currentFile, true);
+
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const lines = text.split("\n");
+        const curLineIdx = text.slice(0, selStart).split("\n").length - 1;
+
+        if (curLineIdx < lines.length - 1) {
+          lines[curLineIdx] = lines[curLineIdx].trimEnd() + " " + lines[curLineIdx + 1].trimStart();
+          lines.splice(curLineIdx + 1, 1);
+          els.textarea.value = lines.join("\n");
+          handleTextChange();
+        }
+      }
+
+      function toggleWordWrap() {
+        state.wordWrap = !state.wordWrap;
+        els.editorSurface.classList.toggle("word-wrap", state.wordWrap);
+        els.btnToggleWrap.classList.toggle("active", state.wordWrap);
+        els.setWordWrap.checked = state.wordWrap;
+        flashStatusBar(`Word wrap ${state.wordWrap ? "Enabled" : "Disabled"}`);
+      }
+
+      function zoomFont(delta) {
+        if (delta === 0) state.fontSize = 14;
+        else state.fontSize = Math.min(24, Math.max(10, state.fontSize + delta));
+
+        document.documentElement.style.setProperty("--font-size-code", `${state.fontSize}px`);
+        document.documentElement.style.setProperty("--line-height-code", `${Math.round(state.fontSize * 1.55)}px`);
+        els.setFontSize.value = state.fontSize;
+        els.setFontSizeVal.textContent = `${state.fontSize}px`;
+        renderEditor();
+        flashStatusBar(`Font size: ${state.fontSize}px`);
+      }
+
+      function toggleZenMode() {
+        const isZen = els.appContainer.classList.toggle("zen-mode");
+        els.btnZenMode.classList.toggle("active", isZen);
+        if (isZen) {
+          flashStatusBar("Zen Mode Active (Press F11 to Exit)");
+        }
+      }
+
+      // ------------------------------------------------------------------------
+      // Code Outline & Symbols Extractor
+      // ------------------------------------------------------------------------
+      function updateSymbolsTree() {
+        if (!els.symbolTree) return;
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+
+        const lines = els.textarea.value.split("\n");
+        const symbols = [];
+
+        lines.forEach((line, idx) => {
+          const lineNum = idx + 1;
+          const trimmed = line.trim();
+
+          // Functions
+          const fnMatch = trimmed.match(/(?:async\s+)?function\s+([a-zA-Z0-9_$]+)/) ||
+                          trimmed.match(/(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?\(/) ||
+                          trimmed.match(/def\s+([a-zA-Z0-9_$]+)\s*\(/) ||
+                          trimmed.match(/fn\s+([a-zA-Z0-9_$]+)\s*\(/);
+          if (fnMatch) {
+            symbols.push({ name: fnMatch[1], type: "fn", badge: "ƒ", line: lineNum });
+            return;
+          }
+
+          // Classes & Structs
+          const clsMatch = trimmed.match(/class\s+([a-zA-Z0-9_$]+)/) ||
+                           trimmed.match(/struct\s+([a-zA-Z0-9_$]+)/) ||
+                           trimmed.match(/impl(?:\s+<.*>)?\s+([a-zA-Z0-9_$]+)/);
+          if (clsMatch) {
+            symbols.push({ name: clsMatch[1], type: "cls", badge: "C", line: lineNum });
+            return;
+          }
+
+          // Interfaces & Types
+          const intMatch = trimmed.match(/interface\s+([a-zA-Z0-9_$]+)/) ||
+                           trimmed.match(/type\s+([a-zA-Z0-9_$]+)\s*=/);
+          if (intMatch) {
+            symbols.push({ name: intMatch[1], type: "int", badge: "I", line: lineNum });
+            return;
+          }
+
+          // Constants
+          const cstMatch = trimmed.match(/(?:export\s+)?const\s+([A-Z0-9_]{3,})\b/);
+          if (cstMatch) {
+            symbols.push({ name: cstMatch[1], type: "cst", badge: "K", line: lineNum });
+            return;
+          }
+        });
+
+        if (symbols.length === 0) {
+          els.symbolTree.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size: 11.5px;">No symbols detected in current file.</div>`;
+          return;
+        }
+
+        els.symbolTree.innerHTML = symbols.map((s) => `
+          <div class="symbol-item" data-line="${s.line}">
+            <span class="symbol-badge ${s.type}">${s.badge}</span>
+            <span style="flex: 1; font-weight: 500;">${escapeHtml(s.name)}</span>
+            <span style="color: var(--text-muted); font-size: 11px;">:${s.line}</span>
+          </div>
+        `).join("");
+
+        els.symbolTree.querySelectorAll(".symbol-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            const line = parseInt(el.dataset.line, 10);
+            jumpToLine(line);
+          });
+        });
+      }
+
+      function jumpToLine(lineNum) {
+        const lines = els.textarea.value.split("\n");
+        let charIndex = 0;
+        for (let i = 0; i < lineNum - 1 && i < lines.length; i++) {
+          charIndex += lines[i].length + 1;
+        }
+
+        els.textarea.focus();
+        els.textarea.setSelectionRange(charIndex, charIndex + (lines[lineNum - 1]?.length || 0));
+        updateActiveLineIndicator();
+
+        const lineHeight = 22;
+        els.editorSurface.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
+      }
+
+      // ------------------------------------------------------------------------
+      // Global Workspace Search Engine
+      // ------------------------------------------------------------------------
+      function setupGlobalSearch() {
+        let searchDebounceTimer = null;
+
+        function triggerGlobalSearch() {
+          clearTimeout(searchDebounceTimer);
+          searchDebounceTimer = setTimeout(executeGlobalSearch, 150);
+        }
+
+        async function executeGlobalSearch() {
+          const query = els.wsSearchQuery.value;
+          if (!query) {
+            els.wsSearchStats.textContent = "Type to search...";
+            els.wsSearchResults.innerHTML = "";
+            return;
+          }
+
+          const matchCase = els.wsOptCase.classList.contains("active");
+          const wholeWord = els.wsOptWord.classList.contains("active");
+          const isRegex = els.wsOptRegex.classList.contains("active");
+
+          if (state.backendConnected) {
+            els.wsSearchStats.textContent = "Searching workspace files...";
+            try {
+              const res = await fetch("/api/fs/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query, matchCase, wholeWord, isRegex, maxResults: 300 }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                  renderGlobalSearchResults(data.results, data.totalMatches, data.fileCount);
+                  return;
+                }
+              }
+            } catch (err) {
+              console.warn("Backend search failed, using local fallback:", err);
+            }
+          }
+
+          // Client-side fallback
+          let regexFlags = matchCase ? "g" : "gi";
+          let regex;
+          try {
+            if (isRegex) regex = new RegExp(query, regexFlags);
+            else if (wholeWord) regex = new RegExp(`\\b${escapeRegExp(query)}\\b`, regexFlags);
+            else regex = new RegExp(escapeRegExp(query), regexFlags);
+          } catch (err) {
+            els.wsSearchStats.textContent = "Invalid regular expression";
+            return;
+          }
+
+          let totalMatches = 0;
+          const fileResults = [];
+
+          state.files.forEach((file) => {
+            const lines = file.content.split("\n");
+            const matches = [];
+
+            lines.forEach((lineText, lineIdx) => {
+              regex.lastIndex = 0;
+              let m;
+              while ((m = regex.exec(lineText)) !== null) {
+                matches.push({
+                  line: lineIdx + 1,
+                  snippet: lineText.trim(),
+                  col: m.index,
+                });
+                totalMatches++;
+                if (!regex.global) break;
+              }
+            });
+
+            if (matches.length > 0) {
+              fileResults.push({ path: file.path, matches });
+            }
+          });
+
+          renderGlobalSearchResults(fileResults, totalMatches, fileResults.length);
+        }
+
+        function renderGlobalSearchResults(fileResults, totalMatches, fileCount) {
+          els.wsSearchStats.textContent = `${totalMatches} match(es) across ${fileCount} file(s)`;
+
+          els.wsSearchResults.innerHTML = fileResults.map((fr) => `
+            <div class="search-result-group">
+              <div class="search-file-header" data-path="${escapeHtml(fr.path)}">
+                <span>📄</span>
+                <span style="flex: 1;">${escapeHtml(fr.path)}</span>
+                <span style="font-size: 10px; background: var(--bg-hover); padding: 1px 5px; border-radius: 3px;">${fr.matches.length}</span>
+              </div>
+              <div class="search-matches-box">
+                ${fr.matches.map((m) => `
+                  <div class="search-match-item" data-path="${escapeHtml(fr.path)}" data-line="${m.line}">
+                    <span class="search-line-num">${m.line}:</span>
+                    <span>${escapeHtml(m.snippet)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `).join("");
+
+          els.wsSearchResults.querySelectorAll(".search-match-item").forEach((el) => {
+            el.addEventListener("click", async () => {
+              const path = el.dataset.path;
+              const line = parseInt(el.dataset.line, 10);
+              await openFile(path);
+              jumpToLine(line);
+            });
+          });
+        }
+
+        els.wsSearchQuery.addEventListener("input", triggerGlobalSearch);
+
+        els.wsOptCase.addEventListener("click", () => {
+          els.wsOptCase.classList.toggle("active");
+          triggerGlobalSearch();
+        });
+
+        els.wsOptWord.addEventListener("click", () => {
+          els.wsOptWord.classList.toggle("active");
+          triggerGlobalSearch();
+        });
+
+        els.wsOptRegex.addEventListener("click", () => {
+          els.wsOptRegex.classList.toggle("active");
+          triggerGlobalSearch();
+        });
+
+        els.btnWsReplaceAll.addEventListener("click", async () => {
+          const query = els.wsSearchQuery.value;
+          const replaceText = els.wsReplaceQuery.value;
+          if (!query) return;
+
+          if (!confirm(`Replace all occurrences of "${query}" with "${replaceText}" across all files?`)) {
+            return;
+          }
+
+          for (const file of state.files) {
+            if (file.content.includes(query)) {
+              pushUndoSnapshot(file, true);
+              file.content = file.content.replaceAll(query, replaceText);
+              state.dirtyFiles.add(file.path);
+              if (state.backendConnected) {
+                await saveFileToServer(file);
+              }
+            }
+          }
+
+          const cur = state.files.find((f) => f.path === state.activeFilePath);
+          if (cur) els.textarea.value = cur.content;
+
+          renderTabs();
+          renderEditor();
+          triggerGlobalSearch();
+          flashStatusBar("Replaced all matches across files!");
+        });
+      }
+
+      // ------------------------------------------------------------------------
+      // Bookmarks Management
+      // ------------------------------------------------------------------------
+      function toggleBookmarkAtLine(lineNum) {
+        const path = state.activeFilePath;
+        if (!state.bookmarks[path]) state.bookmarks[path] = new Set();
+
+        const set = state.bookmarks[path];
+        if (set.has(lineNum)) set.delete(lineNum);
+        else set.add(lineNum);
+
+        renderGutterBookmarks();
+        renderBookmarksSidebar();
+      }
+
+      function renderGutterBookmarks() {
+        const path = state.activeFilePath;
+        const set = state.bookmarks[path] || new Set();
+
+        els.editorGutter.querySelectorAll(".gutter-line").forEach((gl) => {
+          const line = parseInt(gl.dataset.line, 10);
+          gl.classList.toggle("bookmarked", set.has(line));
+        });
+      }
+
+      function renderBookmarksSidebar() {
+        if (!els.bookmarksTree) return;
+        const items = [];
+
+        Object.keys(state.bookmarks).forEach((filePath) => {
+          const file = state.files.find((f) => f.path === filePath);
+          const lines = file ? file.content.split("\n") : [];
+          state.bookmarks[filePath].forEach((lineNum) => {
+            const snippet = lines[lineNum - 1]?.trim() || "(empty line)";
+            items.push({ filePath, lineNum, snippet });
+          });
+        });
+
+        if (items.length === 0) {
+          els.bookmarksTree.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size: 11.5px;">No active bookmarks. Click the line number gutter to bookmark any line.</div>`;
+          return;
+        }
+
+        els.bookmarksTree.innerHTML = items.map((b) => `
+          <div class="bookmark-item" data-path="${escapeHtml(b.filePath)}" data-line="${b.lineNum}">
+            <div class="bookmark-meta">
+              <span style="font-weight: 600; color: var(--text-bright);">${escapeHtml(b.filePath)}</span>
+              <span>Line ${b.lineNum}</span>
+            </div>
+            <div style="font-family: var(--font-code); font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHtml(b.snippet)}
+            </div>
+          </div>
+        `).join("");
+
+        els.bookmarksTree.querySelectorAll(".bookmark-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            openFile(el.dataset.path);
+            jumpToLine(parseInt(el.dataset.line, 10));
+          });
+        });
+      }
+
+      function jumpToNextBookmark(forward = true) {
+        const path = state.activeFilePath;
+        const set = state.bookmarks[path];
+        if (!set || set.size === 0) return;
+
+        const currentLine = getActiveLineIndex() + 1;
+        const sorted = Array.from(set).sort((a, b) => a - b);
+
+        let target = sorted[0];
+        if (forward) {
+          const next = sorted.find((l) => l > currentLine);
+          target = next !== undefined ? next : sorted[0];
+        } else {
+          const prev = sorted.slice().reverse().find((l) => l < currentLine);
+          target = prev !== undefined ? prev : sorted[sorted.length - 1];
+        }
+
+        jumpToLine(target);
+      }
+
+      // ------------------------------------------------------------------------
       // Editor Gutter & Line Synchronizer
       // ------------------------------------------------------------------------
       function updateGutter(lineCount, activeLineIdx) {
@@ -2418,12 +3711,14 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         els.editorGutter.innerHTML = linesHtml.join("");
 
         // Attach click bookmark toggle
-        const gutterEls = els.editorGutter.querySelectorAll(".gutter-line");
-        gutterEls.forEach((el) => {
+        els.editorGutter.querySelectorAll(".gutter-line").forEach((el) => {
           el.addEventListener("click", () => {
-            el.classList.toggle("bookmarked");
+            const line = parseInt(el.dataset.line, 10);
+            toggleBookmarkAtLine(line);
           });
         });
+
+        renderGutterBookmarks();
       }
 
       function updateActiveLineIndicator() {
@@ -2436,13 +3731,11 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
 
         els.activeLineIndicator.style.top = top + "px";
 
-        // Highlight gutter active number
         const prevActive = els.editorGutter.querySelector(".gutter-line.active");
         if (prevActive) prevActive.classList.remove("active");
         const curLineEl = els.editorGutter.querySelector(`.gutter-line[data-line="${lineIdx + 1}"]`);
         if (curLineEl) curLineEl.classList.add("active");
 
-        // Update status bar cursor info
         const colIdx = selStart - textBefore.lastIndexOf("\n");
         els.statusCursorPos.textContent = `Ln ${lineIdx + 1}, Col ${colIdx}`;
 
@@ -2458,31 +3751,21 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         const code = els.textarea.value;
         const lang = currentFile.lang || detectLanguage(currentFile.path);
 
-        // Render Highlight Layer
         let highlighted = highlightCode(code, lang);
-
-        // Highlight Find Matches if any
-        if (state.findOptions.query) {
-          highlighted = applyFindHighlights(highlighted, state.findOptions);
-        }
-
         els.highlightLayer.innerHTML = highlighted;
 
-        // Update Gutter
         const lines = code.split("\n");
         updateGutter(lines.length, lines.length > 0 ? getActiveLineIndex() : 0);
         updateActiveLineIndicator();
 
-        // Update Doc Metrics
         const bytes = new Blob([code]).size;
         const sizeFormatted = bytes > 1024 ? (bytes / 1024).toFixed(1) + " KB" : bytes + " B";
         els.statusDocMetrics.textContent = `${lines.length} lines | ${sizeFormatted}`;
 
-        // Render Minimap
         renderMinimap(code, lang);
-
-        // Live Preview update
         updateLivePreview(code, currentFile);
+        updateSymbolsTree();
+        updateUndoRedoButtons();
       }
 
       function getActiveLineIndex() {
@@ -2516,7 +3799,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           const x = Math.min(indent * 2, 30);
           const width = Math.min(Math.max((line.trim().length) * 1.5, 8), container.clientWidth - x - 8);
 
-          // Color based on keywords or default
           if (line.includes("function") || line.includes("def") || line.includes("fn")) {
             ctx.fillStyle = "rgba(97, 175, 239, 0.7)";
           } else if (line.includes("const") || line.includes("let") || line.includes("var")) {
@@ -2532,7 +3814,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           ctx.fillRect(x, y, width, lineHeight);
         });
 
-        // Update Minimap Viewport Slider
         updateMinimapSlider();
       }
 
@@ -2552,7 +3833,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         els.minimapSlider.style.top = sliderTop + "px";
       }
 
-      // Minimap click & drag to scroll
       els.minimapCanvas.parentElement.addEventListener("mousedown", (e) => {
         const rect = els.minimapCanvas.getBoundingClientRect();
         const y = e.clientY - rect.top;
@@ -2573,9 +3853,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         } else if (state.activePreviewTab === "html") {
           els.previewBody.innerHTML = `<iframe id="html-preview-frame" sandbox="allow-scripts"></iframe>`;
           const iframe = document.getElementById("html-preview-frame");
-          if (iframe) {
-            iframe.srcdoc = code;
-          }
+          if (iframe) iframe.srcdoc = code;
         } else if (state.activePreviewTab === "json") {
           try {
             const parsed = JSON.parse(code);
@@ -2608,12 +3886,10 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       function renderMarkdown(md) {
         let html = escapeHtml(md);
 
-        // Headers
         html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
         html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
         html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
 
-        // Alerts: > [!NOTE], > [!TIP], > [!WARNING], > [!IMPORTANT]
         html = html.replace(
           /&gt; \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\r?\n&gt; ([^\n]*))+/gim,
           (match, type) => {
@@ -2630,37 +3906,22 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           }
         );
 
-        // Blockquotes
         html = html.replace(/^\&gt; (.*$)/gim, "<blockquote>$1</blockquote>");
-
-        // Code Blocks
-        html = html.replace(
-          /```([a-z0-9]*)\n([\s\S]*?)```/gim,
-          "<pre><code>$2</code></pre>"
-        );
-
-        // Inline Code
+        html = html.replace(/```([a-z0-9]*)\n([\s\S]*?)```/gim, "<pre><code>$2</code></pre>");
         html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-        // Bold & Italic
         html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
         html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
 
-        // Tables parse
         html = html.replace(/\|(.+)\|/gim, (row) => {
           if (row.includes("---")) return "";
           const cells = row.split("|").filter((c) => c.trim().length > 0);
           return `<tr>${cells.map((c) => `<td>${c.trim()}</td>`).join("")}</tr>`;
         });
-        html = html.replace(/(?:<tr>(?:.+?)<\/tr>\s*)+/g, (match) => {
-          return `<table>${match}</table>`;
-        });
+        html = html.replace(/(?:<tr>(?:.+?)<\/tr>\s*)+/g, (match) => `<table>${match}</table>`);
 
-        // Unordered Lists
         html = html.replace(/^\- (.*$)/gim, "<li>$1</li>");
         html = html.replace(/(<li>.*<\/li>)/gim, "<ul>$1</ul>");
 
-        // Paragraphs
         html = html
           .split("\n\n")
           .map((p) => {
@@ -2698,7 +3959,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         return result;
       }
 
-      // Preview tabs click
       document.querySelectorAll(".preview-tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
           document.querySelectorAll(".preview-tab-btn").forEach((b) => b.classList.remove("active"));
@@ -2708,6 +3968,101 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           if (currentFile) updateLivePreview(els.textarea.value, currentFile);
         });
       });
+
+      // ------------------------------------------------------------------------
+      // Sidebar Navigation Switcher
+      // ------------------------------------------------------------------------
+      function switchSidebarView(viewName) {
+        state.activeSidebarView = viewName;
+        els.sidebarPane.classList.remove("collapsed");
+
+        document.querySelectorAll(".activity-icon-btn[data-view]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.view === viewName);
+        });
+
+        const titles = {
+          explorer: "Workspace Explorer",
+          search: "Search in Workspace",
+          outline: "Symbols & Outline",
+          bookmarks: "Bookmarks & Breakpoints",
+          clipboard: "Clipboard Ring History",
+          git: "Source Control / Diff",
+          settings: "Editor Settings",
+        };
+        els.sidebarTitle.textContent = titles[viewName] || "Sidebar";
+
+        // Toggle visibility
+        els.viewExplorer.style.display = viewName === "explorer" ? "flex" : "none";
+        els.viewSearch.style.display = viewName === "search" ? "flex" : "none";
+        els.viewOutline.style.display = viewName === "outline" ? "flex" : "none";
+        els.viewBookmarks.style.display = viewName === "bookmarks" ? "flex" : "none";
+        els.viewClipboard.style.display = viewName === "clipboard" ? "flex" : "none";
+        els.viewGit.style.display = viewName === "git" ? "flex" : "none";
+        els.viewSettings.style.display = viewName === "settings" ? "flex" : "none";
+
+        // View-specific actions bar
+        els.sidebarActionsArea.style.display = viewName === "explorer" ? "flex" : "none";
+
+        if (viewName === "outline") updateSymbolsTree();
+        if (viewName === "bookmarks") renderBookmarksSidebar();
+        if (viewName === "clipboard") renderClipboardSidebar();
+        if (viewName === "git") renderGitSidebar();
+        if (viewName === "search") els.wsSearchQuery.focus();
+      }
+
+      document.querySelectorAll(".activity-icon-btn[data-view]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (state.activeSidebarView === btn.dataset.view && !els.sidebarPane.classList.contains("collapsed")) {
+            els.sidebarPane.classList.add("collapsed");
+          } else {
+            switchSidebarView(btn.dataset.view);
+          }
+        });
+      });
+
+      function renderGitSidebar() {
+        if (!els.gitStatusContent) return;
+        const dirty = Array.from(state.dirtyFiles);
+
+        if (dirty.length === 0) {
+          els.gitStatusContent.innerHTML = `
+            <div style="color: var(--text-muted); text-align: center; padding: 20px 0;">
+              <div style="font-size: 24px; margin-bottom: 8px;">✓</div>
+              <div>Working tree clean</div>
+              <div style="font-size: 11px; margin-top: 4px;">No unstaged changes</div>
+            </div>
+          `;
+          return;
+        }
+
+        els.gitStatusContent.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-bright);">Modified Files (${dirty.length}):</div>
+          ${dirty.map((path) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--bg-hover); border-radius: 4px; margin-bottom: 4px; cursor: pointer;" onclick="openFile('${path}')">
+              <span>📄 ${escapeHtml(path)}</span>
+              <span style="color: #e5c07b; font-size: 11px; font-weight: 600;">● M</span>
+            </div>
+          `).join("")}
+          <button class="tool-btn primary" id="btn-save-all-git" style="width: 100%; margin-top: 10px; justify-content: center;">
+            💾 Save All Changes
+          </button>
+        `;
+
+        const saveAllBtn = document.getElementById("btn-save-all-git");
+        if (saveAllBtn) {
+          saveAllBtn.addEventListener("click", () => {
+            dirty.forEach((p) => {
+              const f = state.files.find((file) => file.path === p);
+              if (f) saveFileToServer(f);
+            });
+            state.dirtyFiles.clear();
+            renderTabs();
+            renderFileTree();
+            renderGitSidebar();
+            flashStatusBar("All files saved!");
+          });
+        }
+      }
 
       // ------------------------------------------------------------------------
       // Workspace File Tree & Tabs Management
@@ -2776,11 +4131,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
 
         els.fileTree.innerHTML = buildTreeHtml(treeMap);
 
-        // Attach click events
         els.fileTree.querySelectorAll(".tree-node[data-path]").forEach((node) => {
           node.addEventListener("click", () => {
-            const path = node.dataset.path;
-            openFile(path);
+            openFile(node.dataset.path);
           });
         });
 
@@ -2834,7 +4187,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
 
         els.tabBar.innerHTML = tabsHtml + `<button class="tab-add-btn" id="btn-add-tab" title="New Untitled File">+</button>`;
 
-        // Tab click
         els.tabBar.querySelectorAll(".editor-tab").forEach((tab) => {
           tab.addEventListener("click", (e) => {
             if (e.target.dataset.close) return;
@@ -2842,7 +4194,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           });
         });
 
-        // Tab close
         els.tabBar.querySelectorAll("[data-close]").forEach((btn) => {
           btn.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -2850,16 +4201,42 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           });
         });
 
-        // Re-attach tab add button
         const addBtn = document.getElementById("btn-add-tab");
-        if (addBtn) {
-          addBtn.addEventListener("click", createNewUntitledFile);
-        }
+        if (addBtn) addBtn.addEventListener("click", createNewUntitledFile);
       }
 
-      function openFile(path) {
+      async function openFile(path) {
         let file = state.files.find((f) => f.path === path);
+        if (!file && state.backendConnected) {
+          file = {
+            path: path,
+            name: path.split("/").pop(),
+            lang: detectLanguage(path),
+            content: "",
+            isLoaded: false,
+          };
+          state.files.push(file);
+        }
         if (!file) return;
+
+        if (state.backendConnected && !file.isLoaded && file.content === "") {
+          try {
+            const res = await fetch("/api/fs/read", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: file.path }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.content !== undefined) {
+                file.content = data.content;
+                file.isLoaded = true;
+              }
+            }
+          } catch (err) {
+            console.warn("Failed to load file content from backend:", err);
+          }
+        }
 
         state.activeFilePath = path;
         if (!state.openTabs.includes(path)) {
@@ -2886,6 +4263,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         renderTabs();
         renderFileTree();
         renderEditor();
+        updateUndoRedoButtons();
       }
 
       function closeTab(path) {
@@ -2985,7 +4363,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           els.textarea.setSelectionRange(match.start, match.end);
           updateActiveLineIndicator();
 
-          // Scroll match into view
           const linesBefore = els.textarea.value.slice(0, match.start).split("\n").length;
           const targetTop = (linesBefore - 2) * 22;
           els.editorSurface.scrollTop = Math.max(0, targetTop);
@@ -3035,6 +4412,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           const cur = matches[currentMatchIdx];
           const rep = els.replaceInput.value;
 
+          const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+          if (currentFile) pushUndoSnapshot(currentFile, true);
+
           const text = els.textarea.value;
           els.textarea.value = text.slice(0, cur.start) + rep + text.slice(cur.end);
           handleTextChange();
@@ -3045,9 +4425,11 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           const { matches } = state.findOptions;
           if (matches.length === 0) return;
           const rep = els.replaceInput.value;
-          let text = els.textarea.value;
 
-          // Replace from end to start to keep indices valid
+          const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+          if (currentFile) pushUndoSnapshot(currentFile, true);
+
+          let text = els.textarea.value;
           for (let i = matches.length - 1; i >= 0; i--) {
             const m = matches[i];
             text = text.slice(0, m.start) + rep + text.slice(m.end);
@@ -3070,16 +4452,10 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       }
 
-      function applyFindHighlights(html, options) {
-        // Safe match highlighter
-        return html;
-      }
-
       // ------------------------------------------------------------------------
       // Bottom Developer Drawer (Terminal, Diff, Regex Sandbox, Snippets)
       // ------------------------------------------------------------------------
       function setupDrawer() {
-        // Tab Switcher
         document.querySelectorAll(".drawer-tab-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
             document.querySelectorAll(".drawer-tab-btn").forEach((b) => b.classList.remove("active"));
@@ -3093,7 +4469,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           });
         });
 
-        // Terminal Execution
         els.termInput.addEventListener("keydown", async (e) => {
           if (e.key === "Enter") {
             const cmd = els.termInput.value.trim();
@@ -3116,13 +4491,11 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
                 appendTerminal(`❌ Network execution error: ${err.message}`);
               }
             } else {
-              // Simulated Mock Runner in Standalone mode
               handleMockTerminalCmd(cmd);
             }
           }
         });
 
-        // Quick Command Chips
         document.querySelectorAll(".quick-chip").forEach((chip) => {
           chip.addEventListener("click", () => {
             els.termInput.value = chip.dataset.cmd;
@@ -3130,7 +4503,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           });
         });
 
-        // Regex Sandbox Live Evaluator
         function evaluateRegex() {
           const pat = els.regPattern.value;
           const flags = els.regFlags.value;
@@ -3179,7 +4551,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         els.regFlags.addEventListener("input", evaluateRegex);
         els.regTestString.addEventListener("input", evaluateRegex);
 
-        // Diff Comparator
         function runDiff() {
           const orig = els.diffOriginal.value.split("\n");
           const mod = els.diffModified.value.split("\n");
@@ -3205,7 +4576,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         els.diffOriginal.addEventListener("input", runDiff);
         els.diffModified.addEventListener("input", runDiff);
 
-        // Populate Snippet Library
         populateSnippets();
       }
 
@@ -3282,6 +4652,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function insertSnippetAtCursor(codeSnippet) {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const text = els.textarea.value;
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
@@ -3302,7 +4675,22 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         { label: "Switch Theme: GitHub Dark Dimmed", action: () => setTheme("github"), category: "Theme" },
         { label: "Switch Theme: Nordic Frost", action: () => setTheme("nordic"), category: "Theme" },
         { label: "Switch Theme: Solarized Light", action: () => setTheme("solarized"), category: "Theme" },
-        { label: "Prettify / Format Document", action: formatDocument, category: "Edit", shortcut: "Alt+F" },
+        { label: "Undo Edit", action: performUndo, category: "Edit", shortcut: "Ctrl+Z" },
+        { label: "Redo Edit", action: performRedo, category: "Edit", shortcut: "Ctrl+Shift+Z" },
+        { label: "Clipboard Ring History", action: openClipboardModal, category: "Edit", shortcut: "Ctrl+Shift+V" },
+        { label: "Prettify / Format Document", action: formatDocument, category: "Edit", shortcut: "Shift+Alt+F" },
+        { label: "Toggle Line Comment", action: toggleComment, category: "Edit", shortcut: "Ctrl+/" },
+        { label: "Move Line Up", action: () => moveLine("up"), category: "Edit", shortcut: "Alt+Up" },
+        { label: "Move Line Down", action: () => moveLine("down"), category: "Edit", shortcut: "Alt+Down" },
+        { label: "Duplicate Line Down", action: duplicateLine, category: "Edit", shortcut: "Shift+Alt+Down" },
+        { label: "Delete Line", action: deleteLine, category: "Edit", shortcut: "Ctrl+Shift+K" },
+        { label: "Join Lines", action: joinLines, category: "Edit", shortcut: "Ctrl+J" },
+        { label: "Toggle Word Wrap", action: toggleWordWrap, category: "View", shortcut: "Alt+Z" },
+        { label: "Toggle Zen Mode", action: toggleZenMode, category: "View", shortcut: "F11" },
+        { label: "Zoom In Font", action: () => zoomFont(1), category: "View", shortcut: "Ctrl+=" },
+        { label: "Zoom Out Font", action: () => zoomFont(-1), category: "View", shortcut: "Ctrl+-" },
+        { label: "Reset Font Zoom", action: () => zoomFont(0), category: "View", shortcut: "Ctrl+0" },
+        { label: "Keyboard Shortcuts Help", action: openShortcutsModal, category: "Help", shortcut: "F1" },
         { label: "Convert to UPPERCASE", action: () => convertCase("upper"), category: "Transform" },
         { label: "Convert to lowercase", action: () => convertCase("lower"), category: "Transform" },
         { label: "Convert to Title Case", action: () => convertCase("title"), category: "Transform" },
@@ -3341,7 +4729,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         const q = query.toLowerCase().trim();
         let items = [];
 
-        // File matches
         state.files.forEach((file) => {
           if (!q || file.path.toLowerCase().includes(q)) {
             items.push({
@@ -3353,7 +4740,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           }
         });
 
-        // Command matches
         COMMANDS.forEach((cmd) => {
           if (!q || cmd.label.toLowerCase().includes(q)) {
             items.push({
@@ -3370,22 +4756,21 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           .slice(0, 15)
           .map(
             (it, idx) => `
-            <div class="palette-item ${idx === 0 ? "selected" : ""}" data-idx="${idx}">
-              <div class="palette-item-left">
+            <div class="modal-item ${idx === 0 ? "selected" : ""}" data-idx="${idx}">
+              <div class="modal-item-left">
                 <span>${it.icon || "⚡"}</span>
                 <span>${escapeHtml(it.label)}</span>
               </div>
               <div>
-                ${it.shortcut ? `<span class="palette-shortcut">${escapeHtml(it.shortcut)}</span>` : ""}
-                <span class="palette-shortcut" style="color: var(--text-muted);">${escapeHtml(it.category)}</span>
+                ${it.shortcut ? `<span class="modal-shortcut">${escapeHtml(it.shortcut)}</span>` : ""}
+                <span class="modal-shortcut" style="color: var(--text-muted);">${escapeHtml(it.category)}</span>
               </div>
             </div>
           `
           )
           .join("");
 
-        // Click to execute
-        els.paletteResults.querySelectorAll(".palette-item").forEach((el) => {
+        els.paletteResults.querySelectorAll(".modal-item").forEach((el) => {
           el.addEventListener("click", () => {
             const it = items[el.dataset.idx];
             closeCommandPalette();
@@ -3399,7 +4784,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       });
 
       els.paletteInput.addEventListener("keydown", (e) => {
-        const items = els.paletteResults.querySelectorAll(".palette-item");
+        const items = els.paletteResults.querySelectorAll(".modal-item");
         let selectedIdx = Array.from(items).findIndex((it) => it.classList.contains("selected"));
 
         if (e.key === "ArrowDown") {
@@ -3436,40 +4821,52 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       function formatDocument() {
         const currentFile = state.files.find((f) => f.path === state.activeFilePath);
         if (!currentFile) return;
+        pushUndoSnapshot(currentFile, true);
 
         const ext = currentFile.path.split(".").pop().toLowerCase();
         if (ext === "json") {
           prettifyJson();
         } else {
-          // Standard indentation cleanup
           const lines = els.textarea.value.split("\n");
           const cleaned = lines.map((l) => l.replace(/\s+$/, "")).join("\n");
           els.textarea.value = cleaned;
           handleTextChange();
+          flashStatusBar("Document formatted (Shift+Alt+F)");
         }
       }
 
       function prettifyJson() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         try {
           const parsed = JSON.parse(els.textarea.value);
-          els.textarea.value = JSON.stringify(parsed, null, 2);
+          els.textarea.value = JSON.stringify(parsed, null, state.indentMode);
           handleTextChange();
+          flashStatusBar("JSON Prettified!");
         } catch (err) {
           alert("Invalid JSON: " + err.message);
         }
       }
 
       function minifyJson() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         try {
           const parsed = JSON.parse(els.textarea.value);
           els.textarea.value = JSON.stringify(parsed);
           handleTextChange();
+          flashStatusBar("JSON Minified!");
         } catch (err) {
           alert("Invalid JSON: " + err.message);
         }
       }
 
       function convertCase(type) {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
         const text = els.textarea.value;
@@ -3493,6 +4890,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function sortLines(ascending = true) {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const text = els.textarea.value;
         const lines = text.split("\n");
         lines.sort((a, b) => (ascending ? a.localeCompare(b) : b.localeCompare(a)));
@@ -3501,6 +4901,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function removeDuplicateLines() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const text = els.textarea.value;
         const lines = text.split("\n");
         const unique = Array.from(new Set(lines));
@@ -3509,6 +4912,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function base64Encode() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
         const text = els.textarea.value;
@@ -3528,6 +4934,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function base64Decode() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
         const text = els.textarea.value;
@@ -3547,6 +4956,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function urlEncode() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
         const text = els.textarea.value;
@@ -3562,6 +4974,9 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function urlDecode() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) pushUndoSnapshot(currentFile, true);
+
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
         const text = els.textarea.value;
@@ -3611,7 +5026,6 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           if (res.ok) {
             const data = await res.json();
             if (data.files && Array.isArray(data.files)) {
-              // Merge files
               data.files.forEach((f) => {
                 if (!state.files.some((existing) => existing.path === f.path)) {
                   state.files.push({
@@ -3635,38 +5049,92 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         if (!currentFile) return;
 
         currentFile.content = els.textarea.value;
+        await saveFileToServer(currentFile);
+      }
 
+      async function saveFileToServer(file) {
         if (state.backendConnected) {
           try {
             const res = await fetch("/api/fs/save", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ path: currentFile.path, content: currentFile.content }),
+              body: JSON.stringify({ path: file.path, content: file.content }),
             });
             if (res.ok) {
-              state.dirtyFiles.delete(currentFile.path);
+              state.dirtyFiles.delete(file.path);
               renderTabs();
               renderFileTree();
-              flashStatusBar("File saved to disk successfully!");
+              flashStatusBar(`File saved: ${file.name}`);
             }
           } catch (err) {
-            alert("Save failed: " + err.message);
+            console.warn("Save failed:", err);
           }
         } else {
-          // Virtual save
-          state.dirtyFiles.delete(currentFile.path);
+          state.dirtyFiles.delete(file.path);
           renderTabs();
           renderFileTree();
-          flashStatusBar("File saved (Virtual Storage).");
+          flashStatusBar(`File saved (Virtual Storage): ${file.name}`);
         }
       }
 
       function flashStatusBar(msg) {
-        const orig = els.statusBackendText.textContent;
-        els.statusBackendText.textContent = `💾 ${msg}`;
-        setTimeout(() => {
-          els.statusBackendText.textContent = orig;
+        els.statusBackendText.textContent = `⚡ ${msg}`;
+        clearTimeout(state.flashTimer);
+        state.flashTimer = setTimeout(() => {
+          els.statusBackendText.textContent = state.backendConnected
+            ? "Bun Backend Connected"
+            : "Standalone Mode (Virtual FS)";
         }, 2500);
+      }
+
+      // ------------------------------------------------------------------------
+      // Developer Snippets & Multi-Cursor Utilities
+      // ------------------------------------------------------------------------
+      const SNIPPET_MAP = {
+        clg: "console.log(|);",
+        log: "console.log(|);",
+        fn: "function name(|) {\n  \n}",
+        afn: "const name = (|) => {\n  \n};",
+        try: "try {\n  |\n} catch (err) {\n  console.error(err);\n}",
+        fetch: "const res = await fetch(|);\nconst data = await res.json();",
+        imp: 'import { | } from "";',
+        req: 'const | = require("");',
+        todo: "// TODO: |",
+        fixme: "// FIXME: |",
+      };
+
+      function selectNextOccurrence() {
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+
+        // If no text selected, select word under cursor
+        if (selStart === selEnd) {
+          let start = selStart;
+          let end = selEnd;
+          while (start > 0 && /[\w$]/.test(text[start - 1])) start--;
+          while (end < text.length && /[\w$]/.test(text[end])) end++;
+          if (start < end) {
+            els.textarea.setSelectionRange(start, end);
+            renderEditor();
+            flashStatusBar(`Selected "${text.slice(start, end)}" (Ctrl+D for next)`);
+          }
+          return;
+        }
+
+        // Search next occurrence
+        const selected = text.slice(selStart, selEnd);
+        let nextIdx = text.indexOf(selected, selEnd);
+        if (nextIdx === -1) {
+          nextIdx = text.indexOf(selected, 0); // wrap around
+        }
+
+        if (nextIdx !== -1) {
+          els.textarea.setSelectionRange(nextIdx, nextIdx + selected.length);
+          const line = text.slice(0, nextIdx).split("\n").length;
+          jumpToLine(line);
+          flashStatusBar(`Found next "${selected}"`);
+        }
       }
 
       // ------------------------------------------------------------------------
@@ -3677,7 +5145,16 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         if (currentFile) {
           currentFile.content = els.textarea.value;
           state.dirtyFiles.add(currentFile.path);
+          pushUndoSnapshot(currentFile);
           renderTabs();
+
+          // Auto-save trigger
+          if (state.autoSave) {
+            clearTimeout(state.autoSaveTimer);
+            state.autoSaveTimer = setTimeout(() => {
+              saveFileToServer(currentFile);
+            }, 3000);
+          }
         }
         renderEditor();
       }
@@ -3686,33 +5163,155 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       els.textarea.addEventListener("click", updateActiveLineIndicator);
       els.textarea.addEventListener("keyup", updateActiveLineIndicator);
 
-      // Scroll synchronization
       els.editorSurface.addEventListener("scroll", () => {
         els.editorGutter.scrollTop = els.editorSurface.scrollTop;
         updateMinimapSlider();
       });
 
-      // Advanced Keyboard Interactions: Tab indent, Auto-close brackets, Shortcuts
+      // Advanced Keyboard Navigation & Shortcuts
       els.textarea.addEventListener("keydown", (e) => {
         const selStart = els.textarea.selectionStart;
         const selEnd = els.textarea.selectionEnd;
         const text = els.textarea.value;
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
 
-        // Tab Indent / Outdent
+        // Undo (Ctrl+Z / Cmd+Z)
+        if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          performUndo();
+          return;
+        }
+
+        // Redo (Ctrl+Shift+Z / Cmd+Shift+Z / Ctrl+Y)
+        if (((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) || ((e.ctrlKey || e.metaKey) && e.key === "y")) {
+          e.preventDefault();
+          performRedo();
+          return;
+        }
+
+        // Select Word / Next Occurrence (Ctrl+D / Cmd+D)
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "d" || e.key === "D")) {
+          e.preventDefault();
+          selectNextOccurrence();
+          return;
+        }
+
+        // Clipboard Ring Picker (Ctrl+Shift+V / Cmd+Shift+V)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "V" || e.key === "v")) {
+          e.preventDefault();
+          openClipboardModal();
+          return;
+        }
+
+        // Move Line Up / Down (Alt+Up, Alt+Down)
+        if (e.altKey && !e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+          e.preventDefault();
+          moveLine(e.key === "ArrowUp" ? "up" : "down");
+          return;
+        }
+
+        // Duplicate Line Down (Shift+Alt+Down)
+        if (e.altKey && e.shiftKey && e.key === "ArrowDown") {
+          e.preventDefault();
+          duplicateLine();
+          return;
+        }
+
+        // Delete Line (Ctrl+Shift+K / Cmd+Shift+K)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "K" || e.key === "k")) {
+          e.preventDefault();
+          deleteLine();
+          return;
+        }
+
+        // Join Lines (Ctrl+J / Cmd+J)
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "j" || e.key === "J")) {
+          e.preventDefault();
+          joinLines();
+          return;
+        }
+
+        // Toggle Line Comment (Ctrl+/ / Cmd+/)
+        if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+          e.preventDefault();
+          toggleComment();
+          return;
+        }
+
+        // Tab Indent / Outdent / Snippets
         if (e.key === "Tab") {
           e.preventDefault();
           const indentStr = " ".repeat(state.indentMode);
 
+          // Multi-line selection indent/outdent
+          if (selStart !== selEnd && text.slice(selStart, selEnd).includes("\n")) {
+            const firstLineStart = text.lastIndexOf("\n", selStart - 1) + 1;
+            let lastLineEnd = text.indexOf("\n", selEnd);
+            if (lastLineEnd === -1) lastLineEnd = text.length;
+
+            const blockText = text.slice(firstLineStart, lastLineEnd);
+            const blockLines = blockText.split("\n");
+
+            if (currentFile) pushUndoSnapshot(currentFile, true);
+
+            if (e.shiftKey) {
+              const newBlockLines = blockLines.map((l) => {
+                if (l.startsWith(indentStr)) return l.slice(indentStr.length);
+                if (l.startsWith(" ")) {
+                  let count = 0;
+                  while (count < state.indentMode && l.startsWith(" ")) {
+                    l = l.slice(1);
+                    count++;
+                  }
+                  return l;
+                }
+                return l;
+              });
+              const newBlock = newBlockLines.join("\n");
+              els.textarea.value = text.slice(0, firstLineStart) + newBlock + text.slice(lastLineEnd);
+              els.textarea.setSelectionRange(firstLineStart, firstLineStart + newBlock.length);
+            } else {
+              const newBlock = blockLines.map((l) => indentStr + l).join("\n");
+              els.textarea.value = text.slice(0, firstLineStart) + newBlock + text.slice(lastLineEnd);
+              els.textarea.setSelectionRange(firstLineStart, firstLineStart + newBlock.length);
+            }
+            handleTextChange();
+            return;
+          }
+
+          // Single cursor snippet expansion (e.g. clg, fn, afn, try, fetch)
+          if (!e.shiftKey && selStart === selEnd) {
+            const lineStart = text.lastIndexOf("\n", selStart - 1) + 1;
+            const prefix = text.slice(lineStart, selStart);
+            const wordMatch = prefix.match(/([a-zA-Z0-9_$]+)$/);
+            if (wordMatch && SNIPPET_MAP[wordMatch[1]]) {
+              const trigger = wordMatch[1];
+              const template = SNIPPET_MAP[trigger];
+              const triggerStart = selStart - trigger.length;
+              const caretOffset = template.indexOf("|");
+              const replacement = template.replace("|", "");
+
+              if (currentFile) pushUndoSnapshot(currentFile, true);
+              els.textarea.value = text.slice(0, triggerStart) + replacement + text.slice(selEnd);
+              const newPos = triggerStart + (caretOffset !== -1 ? caretOffset : replacement.length);
+              els.textarea.setSelectionRange(newPos, newPos);
+              handleTextChange();
+              flashStatusBar(`Expanded snippet: ${trigger}`);
+              return;
+            }
+          }
+
+          // Single line Tab / Shift+Tab
           if (e.shiftKey) {
-            // Outdent
             const lineStart = text.lastIndexOf("\n", selStart - 1) + 1;
             if (text.startsWith(indentStr, lineStart)) {
+              if (currentFile) pushUndoSnapshot(currentFile, true);
               els.textarea.value = text.slice(0, lineStart) + text.slice(lineStart + indentStr.length);
-              els.textarea.setSelectionRange(selStart - indentStr.length, selEnd - indentStr.length);
+              els.textarea.setSelectionRange(Math.max(lineStart, selStart - indentStr.length), Math.max(lineStart, selEnd - indentStr.length));
               handleTextChange();
             }
           } else {
-            // Indent
+            if (currentFile) pushUndoSnapshot(currentFile, true);
             els.textarea.value = text.slice(0, selStart) + indentStr + text.slice(selEnd);
             els.textarea.setSelectionRange(selStart + indentStr.length, selStart + indentStr.length);
             handleTextChange();
@@ -3720,7 +5319,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           return;
         }
 
-        // Auto-close pairs: (), [], {}, "", '', ``
+        // Auto-close pairs & selection wrap: (), [], {}, "", '', ``
         const pairs = {
           "(": ")",
           "[": "]",
@@ -3730,38 +5329,86 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           "`": "`",
         };
 
-        if (pairs[e.key] && selStart === selEnd) {
+        if (pairs[e.key]) {
           e.preventDefault();
           const closeChar = pairs[e.key];
+
+          // If text is selected, wrap it!
+          if (selStart !== selEnd) {
+            if (currentFile) pushUndoSnapshot(currentFile, true);
+            const selectedText = text.slice(selStart, selEnd);
+            els.textarea.value = text.slice(0, selStart) + e.key + selectedText + closeChar + text.slice(selEnd);
+            els.textarea.setSelectionRange(selStart + 1, selEnd + 1);
+            handleTextChange();
+            return;
+          }
+
+          // If cursor is right before the closing char, step over it
+          if (text[selStart] === e.key && (e.key === '"' || e.key === "'" || e.key === "`" || e.key === ")" || e.key === "]" || e.key === "}")) {
+            els.textarea.setSelectionRange(selStart + 1, selStart + 1);
+            return;
+          }
+
+          // Auto-insert pair
           els.textarea.value = text.slice(0, selStart) + e.key + closeChar + text.slice(selEnd);
           els.textarea.setSelectionRange(selStart + 1, selStart + 1);
           handleTextChange();
           return;
         }
 
-        // Enter key automatic indentation preservation
+        // Backspace between pairs deletes both
+        if (e.key === "Backspace" && selStart === selEnd && selStart > 0) {
+          const prevChar = text[selStart - 1];
+          const nextChar = text[selStart];
+          if (pairs[prevChar] === nextChar) {
+            e.preventDefault();
+            els.textarea.value = text.slice(0, selStart - 1) + text.slice(selStart + 1);
+            els.textarea.setSelectionRange(selStart - 1, selStart - 1);
+            handleTextChange();
+            return;
+          }
+        }
+
+        // Enter key automatic indentation preservation and block expansion
         if (e.key === "Enter") {
           e.preventDefault();
           const lineStart = text.lastIndexOf("\n", selStart - 1) + 1;
           const currentLine = text.slice(lineStart, selStart);
           const matchIndent = currentLine.match(/^\s*/);
-          let extraIndent = matchIndent ? matchIndent[0] : "";
+          let baseIndent = matchIndent ? matchIndent[0] : "";
+          const extraIndentStr = " ".repeat(state.indentMode);
 
-          if (currentLine.trim().endsWith("{") || currentLine.trim().endsWith(":") || currentLine.trim().endsWith("[")) {
-            extraIndent += " ".repeat(state.indentMode);
+          // Between { and }, [ and ], or ( and )
+          const prevChar = selStart > 0 ? text[selStart - 1] : "";
+          const nextChar = text[selStart] || "";
+          if ((prevChar === "{" && nextChar === "}") || (prevChar === "[" && nextChar === "]") || (prevChar === "(" && nextChar === ")")) {
+            const middleIndent = baseIndent + extraIndentStr;
+            const insertStr = "\n" + middleIndent + "\n" + baseIndent;
+            els.textarea.value = text.slice(0, selStart) + insertStr + text.slice(selEnd);
+            const targetPos = selStart + 1 + middleIndent.length;
+            els.textarea.setSelectionRange(targetPos, targetPos);
+            handleTextChange();
+            return;
           }
 
-          const insertStr = "\n" + extraIndent;
+          if (currentLine.trim().endsWith("{") || currentLine.trim().endsWith(":") || currentLine.trim().endsWith("[")) {
+            baseIndent += extraIndentStr;
+          }
+
+          const insertStr = "\n" + baseIndent;
           els.textarea.value = text.slice(0, selStart) + insertStr + text.slice(selEnd);
           els.textarea.setSelectionRange(selStart + insertStr.length, selStart + insertStr.length);
           handleTextChange();
           return;
         }
 
-        // Global Shortcuts handled when typing in editor
+        // Shortcuts
         if ((e.ctrlKey || e.metaKey) && e.key === "s") {
           e.preventDefault();
           saveActiveFile();
+        } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "F" || e.key === "f")) {
+          e.preventDefault();
+          switchSidebarView("search");
         } else if ((e.ctrlKey || e.metaKey) && e.key === "f") {
           e.preventDefault();
           toggleFind();
@@ -3777,22 +5424,55 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         } else if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
           e.preventDefault();
           togglePreview();
+        } else if (e.altKey && (e.key === "z" || e.key === "Z")) {
+          e.preventDefault();
+          toggleWordWrap();
+        } else if (e.key === "F2") {
+          e.preventDefault();
+          jumpToNextBookmark(!e.shiftKey);
+        } else if (e.key === "F11") {
+          e.preventDefault();
+          toggleZenMode();
         }
       });
 
-      // Window-level Keyboard Shortcuts
+      // Window-level Shortcuts
       window.addEventListener("keydown", (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+        if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+          if (document.activeElement !== els.textarea) {
+            e.preventDefault();
+            performUndo();
+          }
+        } else if (((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) || ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y"))) {
+          if (document.activeElement !== els.textarea) {
+            e.preventDefault();
+            performRedo();
+          }
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "p") {
           e.preventDefault();
           openCommandPalette();
-        } else if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "V" || e.key === "v")) {
           e.preventDefault();
-          saveActiveFile();
-        } else if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+          openClipboardModal();
+        } else if (e.key === "F1") {
           e.preventDefault();
-          toggleFind();
+          openShortcutsModal();
+        } else if (e.key === "F11") {
+          e.preventDefault();
+          toggleZenMode();
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === "=" || e.key === "+")) {
+          e.preventDefault();
+          zoomFont(1);
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+          e.preventDefault();
+          zoomFont(-1);
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+          e.preventDefault();
+          zoomFont(0);
         } else if (e.key === "Escape") {
           closeCommandPalette();
+          closeClipboardModal();
+          closeShortcutsModal();
           els.findDrawer.classList.remove("open");
         }
       });
@@ -3840,6 +5520,15 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         renderEditor();
       }
 
+      function openShortcutsModal() {
+        els.shortcutsModalBackdrop.classList.add("open");
+      }
+
+      function closeShortcutsModal() {
+        els.shortcutsModalBackdrop.classList.remove("open");
+        els.textarea.focus();
+      }
+
       els.themeSelector.addEventListener("change", (e) => setTheme(e.target.value));
       els.btnToggleSidebar.addEventListener("click", toggleSidebar);
       els.btnCollapseSidebar.addEventListener("click", toggleSidebar);
@@ -3860,6 +5549,90 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       els.btnFind.addEventListener("click", toggleFind);
       els.btnSaveFile.addEventListener("click", saveActiveFile);
       els.btnFormatDoc.addEventListener("click", formatDocument);
+      els.btnUndo.addEventListener("click", performUndo);
+      els.btnRedo.addEventListener("click", performRedo);
+      els.btnClipboardRing.addEventListener("click", openClipboardModal);
+      els.btnToggleWrap.addEventListener("click", toggleWordWrap);
+      els.btnZenMode.addEventListener("click", toggleZenMode);
+      els.zenExitBtn.addEventListener("click", toggleZenMode);
+      els.actShortcuts.addEventListener("click", openShortcutsModal);
+      els.btnCloseShortcutsModal.addEventListener("click", closeShortcutsModal);
+
+      els.shortcutsModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === els.shortcutsModalBackdrop) closeShortcutsModal();
+      });
+
+      els.clipboardModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === els.clipboardModalBackdrop) closeClipboardModal();
+      });
+
+      els.clipboardSearchInput.addEventListener("input", (e) => {
+        renderClipboardModalItems(e.target.value);
+      });
+
+      els.clipboardSearchInput.addEventListener("keydown", (e) => {
+        const items = els.clipboardModalResults.querySelectorAll(".modal-item");
+        let selectedIdx = Array.from(items).findIndex((it) => it.classList.contains("selected"));
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (items.length === 0) return;
+          if (selectedIdx >= 0) items[selectedIdx].classList.remove("selected");
+          selectedIdx = (selectedIdx + 1) % items.length;
+          items[selectedIdx].classList.add("selected");
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (items.length === 0) return;
+          if (selectedIdx >= 0) items[selectedIdx].classList.remove("selected");
+          selectedIdx = (selectedIdx - 1 + items.length) % items.length;
+          items[selectedIdx].classList.add("selected");
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (selectedIdx >= 0 && items[selectedIdx]) items[selectedIdx].click();
+        } else if (["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(e.key) && !els.clipboardSearchInput.value) {
+          e.preventDefault();
+          const target = items[parseInt(e.key, 10) - 1];
+          if (target) target.click();
+        } else if (e.key === "Escape") {
+          closeClipboardModal();
+        }
+      });
+
+      els.btnClearBookmarks.addEventListener("click", () => {
+        state.bookmarks = {};
+        renderGutterBookmarks();
+        renderBookmarksSidebar();
+      });
+
+      els.btnClearClipboard.addEventListener("click", () => {
+        state.clipboardHistory = [];
+        renderClipboardSidebar();
+      });
+
+      // Settings listeners
+      els.setWordWrap.addEventListener("change", (e) => {
+        state.wordWrap = e.target.checked;
+        els.editorSurface.classList.toggle("word-wrap", state.wordWrap);
+        els.btnToggleWrap.classList.toggle("active", state.wordWrap);
+      });
+
+      els.setFontSize.addEventListener("input", (e) => {
+        state.fontSize = parseInt(e.target.value, 10);
+        els.setFontSizeVal.textContent = `${state.fontSize}px`;
+        document.documentElement.style.setProperty("--font-size-code", `${state.fontSize}px`);
+        document.documentElement.style.setProperty("--line-height-code", `${Math.round(state.fontSize * 1.55)}px`);
+        renderEditor();
+      });
+
+      els.setTabSize.addEventListener("change", (e) => {
+        state.indentMode = parseInt(e.target.value, 10);
+        document.getElementById("status-indent-mode").querySelector("span").textContent = `Spaces: ${state.indentMode}`;
+      });
+
+      els.setAutoSave.addEventListener("change", (e) => {
+        state.autoSave = e.target.checked;
+      });
+
       els.btnRunCmd.addEventListener("click", () => {
         toggleDrawer();
         document.querySelector('.drawer-tab-btn[data-pane="terminal"]').click();
@@ -3902,6 +5675,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       // ------------------------------------------------------------------------
       function init() {
         setupFindReplace();
+        setupGlobalSearch();
         setupDrawer();
         openFile(state.activeFilePath);
         checkBackendStatus();

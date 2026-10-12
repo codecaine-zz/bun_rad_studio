@@ -83,6 +83,25 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     expect(pkg.isDirectory).toBe(false);
   });
 
+  test("searches workspace files with /api/fs/search", async () => {
+    const res = await fetch(`${baseUrl}/api/fs/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "NovaCode Studio Pro",
+        matchCase: false,
+      }),
+    });
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.totalMatches).toBeGreaterThan(0);
+    expect(data.fileCount).toBeGreaterThan(0);
+    expect(Array.isArray(data.results)).toBe(true);
+    expect(data.results[0].matches.length).toBeGreaterThan(0);
+  });
+
   test("supports filesystem lifecycle: new, read, save, rename, delete", async () => {
     const testFileRel = "scratch/test_code_studio_temp.txt";
     const testFileRenamedRel = "scratch/test_code_studio_renamed.txt";
