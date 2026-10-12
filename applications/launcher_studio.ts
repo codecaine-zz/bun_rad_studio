@@ -1801,6 +1801,17 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.endRow();
 
   win.beginRow();
+  win.addButton("btn_quick_ipinfo", "🌍 IP Geolocation");
+  win.addButton("btn_quick_network", "🌐 Network Studio");
+  win.addButton("btn_quick_code", "💻 NovaCode");
+  win.addButton("btn_quick_env", "⚙️ Env Studio");
+  win.addButton("btn_quick_interval", "⏱️ Interval Timer");
+  win.addButton("btn_quick_drcodecaine", "💊 Dr. Codecaine");
+  win.addButton("btn_quick_lolo", "👾 Lolo Arcade");
+  win.addButton("btn_quick_tetris", "🧱 Tetris Ultra");
+  win.endRow();
+
+  win.beginRow();
   win.addButton("btn_quick_sys_cli", "🖥️ System CLI");
   win.addButton("btn_quick_db_cli", "🗄️ Database CLI");
   win.addButton("btn_quick_fd_cli", "🔍 Fd CLI");
@@ -2806,6 +2817,15 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   bindQuick("btn_quick_task", "task_manager");
   bindQuick("btn_quick_bundler", "app_bundler_studio");
 
+  bindQuick("btn_quick_ipinfo", "ipinfo_studio");
+  bindQuick("btn_quick_network", "network_studio");
+  bindQuick("btn_quick_code", "code_studio");
+  bindQuick("btn_quick_env", "env_studio");
+  bindQuick("btn_quick_interval", "interval_timer_studio");
+  bindQuick("btn_quick_drcodecaine", "dr_codecaine_studio");
+  bindQuick("btn_quick_lolo", "lolo_studio");
+  bindQuick("btn_quick_tetris", "tetris_studio");
+
   bindQuick("btn_quick_sys_cli", "system_cli", "--telemetry", true);
   bindQuick("btn_quick_db_cli", "database_cli", "--help", true);
   bindQuick("btn_quick_fd_cli", "fd_cli", "--help", true);
@@ -2813,6 +2833,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   bindQuick("btn_quick_tokei_cli", "tokei_cli", "--help", true);
   bindQuick("btn_quick_gdu_cli", "gdu_cli", "--help", true);
   bindQuick("btn_quick_net_cli", "network_cli", "--help", true);
+  bindQuick("btn_quick_crypto_cli", "crypto_cli", "--help", true);
   // Client-side DOM reactive filtering for instant 0ms responses across all browser & webview runtimes
   const appsJsonData = JSON.stringify(
     initialData.apps.map((a) => ({

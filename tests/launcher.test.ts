@@ -605,6 +605,38 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       killApplication("rad_rip_studio");
     }
   });
+
+  it("registers 1-click quick launch buttons for all requested popular studios and tools", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    const handlers = (win as any).eventHandlersMap;
+    expect(handlers).toBeDefined();
+
+    const expectedButtons = [
+      "btn_quick_ipinfo",
+      "btn_quick_network",
+      "btn_quick_code",
+      "btn_quick_env",
+      "btn_quick_interval",
+      "btn_quick_drcodecaine",
+      "btn_quick_lolo",
+      "btn_quick_tetris",
+      "btn_quick_crypto_cli",
+      "btn_quick_sqlite",
+      "btn_quick_redis",
+      "btn_quick_system",
+      "btn_quick_fd",
+      "btn_quick_git",
+      "btn_quick_api",
+      "btn_quick_task",
+      "btn_quick_bundler",
+    ];
+
+    for (const btnId of expectedButtons) {
+      const handler = handlers.get(`${btnId}:onclick`);
+      expect(handler).toBeDefined();
+      expect(typeof handler).toBe("function");
+    }
+  });
 });
 
 
