@@ -243,7 +243,7 @@ export function fetchIpDetails(
   }
 
   const cleanIp = ip && ip !== "myip" ? `${ip.trim()}/` : "";
-  const query = token ? `?token=${token}` : "";
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
   const primaryUrl = `https://ipinfo.io/${cleanIp}json${query}`;
 
   // 1. Synchronous ipinfo.io query

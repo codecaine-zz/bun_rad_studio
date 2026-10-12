@@ -12,6 +12,29 @@ import {
   formatSubnetInfo,
 } from "../src/features/ipinfo/ipinfoDoers.ts";
 import type { IpInfoResult, SubnetInfo, LocalInterfaceInfo } from "../src/features/ipinfo/ipinfoTypes.ts";
+import {
+  parseTargets,
+  bulkLookup,
+  bulkToTableRows,
+  bulkToCsv,
+  tableToTsv,
+  tableToCsv,
+  BULK_HEADERS,
+  MAX_BULK_TARGETS,
+  cidrContains,
+  splitCidr,
+  describeIpv4,
+  prefixToMask,
+  maskToPrefix,
+  isValidCidr,
+  pushHistory,
+  ipInfoUrl,
+  bgpUrl,
+  type BulkRow,
+  type HistoryEntry,
+} from "../src/features/ipinfo/ipinfoTools.ts";
+import { readFileSync, writeFileSync } from "fs";
+import { basename } from "path";
 
 export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
   const win = newSimpleWindow(
@@ -38,6 +61,9 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     timezone: "America/Los_Angeles",
   };
   let lastSubnet: SubnetInfo | null = null;
+  let lastBulk: BulkRow[] | null = null;
+  let lastTable: { headers: string[]; rows: string[][] } | null = null;
+  let history: HistoryEntry[] = [];
 
   // -----------------------------------------------------------------------------------------------
   // 1. Header Toolbar
@@ -89,6 +115,33 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
+  // 3b. Productivity Toolkit
+  // -----------------------------------------------------------------------------------------------
+  win.beginGroupBox("Productivity Toolkit");
+  win.addLabel("lbl_bulk", `Bulk lookup: one IP or domain per line (max ${MAX_BULK_TARGETS}, # for comments)`);
+  win.addTextarea("txt_bulk", "", "8.8.8.8\n1.1.1.1\ngithub.com");
+  win.beginRow();
+  win.addButton("btn_bulk_load", "📄 Load List...", { width: 130 });
+  win.addButton("btn_bulk_run", "⚡ Bulk Lookup", { width: 130 });
+  win.addButton("btn_copy_ip", "📋 Copy IP", { width: 110 });
+  win.addButton("btn_copy_table", "📋 Copy Table", { width: 120 });
+  win.addButton("btn_save_results", "💾 Save Results...", { width: 150 });
+  win.addButton("btn_open_ipinfo", "🌐 ipinfo.io Page", { width: 150 });
+  win.addButton("btn_open_bgp", "🛰️ BGP / ASN Page", { width: 150 });
+  win.endRow();
+  win.beginRow();
+  win.addLabel("lbl_check_ip", "Test IP:");
+  win.addInput("txt_check_ip", "", "e.g. 192.168.1.77", { width: 170 });
+  win.addButton("btn_in_cidr", "✔ Is IP in Target CIDR?", { width: 190 });
+  win.addLabel("lbl_split", "Split into /");
+  win.addInput("txt_split_prefix", "26", "", { width: 60 });
+  win.addButton("btn_split_cidr", "✂ Split CIDR", { width: 120 });
+  win.addButton("btn_ip_formats", "🔢 IP Formats", { width: 120 });
+  win.addButton("btn_mask_convert", "🎭 Mask ⇄ Prefix", { width: 140 });
+  win.endRow();
+  win.endGroupBox();
+
+  // -----------------------------------------------------------------------------------------------
   // 4. Detailed Results Table
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Network Properties & Forensic Metadata");
@@ -106,6 +159,13 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     ["Google Maps Link", "https://maps.google.com/?q=37.4056,-122.0775", "Deep Link", "Clickable Map Location"],
   ];
   win.addTable("tbl_details", tableHeaders, defaultRows, { height: 260 });
+  win.endGroupBox();
+
+  win.beginGroupBox("Recent Lookups (click a row to repeat)");
+  win.addTable("tbl_history", ["Target", "Result", "Time"], [], { height: 130 });
+  win.beginRow();
+  win.addButton("btn_clear_history", "Clear History", { width: 130 });
+  win.endRow();
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
@@ -127,6 +187,21 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   // -----------------------------------------------------------------------------------------------
   // Logic
   // -----------------------------------------------------------------------------------------------
+  const showTable = (headers: string[], rows?: string[][]) => {
+    if (rows) {
+      win.setTableData("tbl_details", headers, rows);
+      lastTable = { headers, rows };
+    } else {
+      win.setTableData("tbl_details", headers);
+      lastTable = null;
+    }
+  };
+
+  const nowStamp = () => new Date().toLocaleTimeString();
+  const recordHistory = (target: string, summary: string) => {
+    history = pushHistory(history, { target, summary, time: nowStamp() });
+    win.setTableData("tbl_history", ["Target", "Result", "Time"], history.map((h) => [h.target, h.summary, h.time]));
+  };
   const lookupIpOrDomain = (targetOverride?: string) => {
     let rawTarget = (targetOverride !== undefined && targetOverride !== null && String(targetOverride).trim() !== ""
       ? String(targetOverride).trim()
@@ -177,13 +252,15 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         rows.push(["Google Maps Link", `https://maps.google.com/?q=${data.loc}`, "Deep Link", "Clickable Map Location"]);
       }
 
-      win.setTableData("tbl_details", ipHeaders, rows);
+      showTable(ipHeaders, rows);
 
       win.clearConsole("console_ipinfo");
       win.appendConsole("console_ipinfo", formatSummary(data) + "\n\n");
       win.appendConsole("console_ipinfo", "RAW JSON:\n" + formatJson(data) + "\n");
 
       win.setValue("lbl_status_bar", `✓ Successfully resolved IP details for ${data.ip} (${resolved.domain || data.hostname || "Host"}).`);
+      lastBulk = null;
+      recordHistory(rawTarget, [data.ip, [data.city, data.country].filter(Boolean).join(", ")].filter(Boolean).join(" · "));
     } catch (err: any) {
       lastResult = null;
       lastSubnet = null;
@@ -201,7 +278,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         ["Query Type", isCidr(rawTarget) ? "CIDR Subnet" : "IP / Hostname", "Analysis", "Supported: IPv4, IPv6, Domain, CIDR block, or interface name"],
         ["Action", "Retry with valid target", "Guidance", "e.g. 1.1.1.1, 8.8.8.8, 192.168.1.1, github.com, or en0"],
       ];
-      win.setTableData("tbl_details", errorHeaders, errorRows);
+      showTable(errorHeaders, errorRows);
 
       win.setValue("lbl_status_bar", `❌ Lookup error: ${err.message}`);
       win.appendConsole("console_ipinfo", `[ERROR] ${err.message}\n`);
@@ -241,10 +318,12 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         ["Total Addresses", subnet.totalHosts.toLocaleString(), "Capacity", "Total mathematical IP block count"],
       ];
 
-      win.setTableData("tbl_details", subnetHeaders, rows);
+      showTable(subnetHeaders, rows);
       win.clearConsole("console_ipinfo");
       win.appendConsole("console_ipinfo", formatSubnetInfo(subnet) + "\n");
       win.setValue("lbl_status_bar", `✓ Calculated subnet ${subnet.cidr}: ${subnet.usableHosts.toLocaleString()} usable hosts.`);
+      lastBulk = null;
+      recordHistory(raw, `${subnet.usableHosts.toLocaleString()} usable hosts`);
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ CIDR Error: ${err.message}`);
     }
@@ -267,7 +346,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
         `${i.internal ? "Internal Loopback" : "Physical/Wi-Fi"} | MAC: ${i.mac || "-"} | Mask: ${i.netmask || "-"}`,
       ]);
 
-      win.setTableData("tbl_details", ifaceHeaders, rows);
+      showTable(ifaceHeaders, rows);
       win.clearConsole("console_ipinfo");
       win.appendConsole("console_ipinfo", "LOCAL NETWORK INTERFACES:\n");
       for (const i of ifaces) {
@@ -402,6 +481,7 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
   win.on("btn_clear", "click", () => {
     lastResult = null;
     lastSubnet = null;
+    lastBulk = null;
     currentInterfaces = [];
     win.setValue("txt_target", "");
     win.setValue("lbl_metric_ip", "Target IP: -");
@@ -409,10 +489,184 @@ export function createIpInfoStudio(options: { fullscreen?: boolean; theme?: stri
     win.setValue("lbl_metric_org", "ASN / Org: -");
     win.setValue("lbl_metric_timezone", "Timezone: -");
     win.setValue("lbl_metric_status", "Status: Cleared");
-    win.setTableData("tbl_details", []);
+    showTable([]);
     win.clearConsole("console_ipinfo");
     win.setValue("lbl_status_bar", "Cleared.");
   });
+  // -----------------------------------------------------------------------------------------------
+  // Productivity Toolkit handlers
+  // -----------------------------------------------------------------------------------------------
+  const targetText = () => String(win.getValue("txt_target") ?? "").trim();
+  const showToolRows = (headers: string[], rows: string[][], status: string, consoleText?: string) => {
+    lastResult = null;
+    lastSubnet = null;
+    lastBulk = null;
+    showTable(headers, rows);
+    win.clearConsole("console_ipinfo");
+    win.appendConsole("console_ipinfo", (consoleText ?? rows.map((r) => r.join("  |  ")).join("\n")) + "\n");
+    win.setValue("lbl_status_bar", status);
+  };
+
+  win.onClick("btn_bulk_load", () => {
+    win.openFile({ title: "Select a list of IPs / domains" }, (p) => {
+      if (!p) return;
+      try {
+        win.setValue("txt_bulk", readFileSync(p, "utf-8"));
+        win.toast(`Loaded ${basename(p)}`, 2500, "success");
+      } catch (e: any) {
+        win.toast(`Could not read file: ${e.message}`, 4000, "error");
+      }
+    });
+  });
+
+  win.onClick("btn_bulk_run", () => {
+    const { targets, skipped } = parseTargets(String(win.getValue("txt_bulk") ?? ""));
+    if (targets.length === 0) { win.toast("Add at least one IP or domain to the bulk list", 3000, "warning"); return; }
+    const token = win.getValue("txt_token")?.trim() || undefined;
+    win.setValue("lbl_status_bar", `Looking up ${targets.length} target(s)...`);
+    const t0 = performance.now();
+    const rows = bulkLookup(targets, token);
+    lastBulk = rows;
+    lastResult = null;
+    lastSubnet = null;
+    showTable(BULK_HEADERS, bulkToTableRows(rows));
+    const ok = rows.filter((r) => r.status === "ok").length;
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    win.setValue("lbl_metric_ip", `Bulk: ${rows.length} target(s)`);
+    win.setValue("lbl_metric_location", `Resolved: ${ok}`);
+    win.setValue("lbl_metric_org", `Failed: ${rows.length - ok}`);
+    win.setValue("lbl_metric_timezone", `Time: ${secs}s`);
+    win.setValue("lbl_metric_status", "Mode: Bulk Lookup");
+    win.clearConsole("console_ipinfo");
+    win.appendConsole("console_ipinfo", bulkToCsv(rows) + "\n");
+    const note = skipped > 0 ? ` (${skipped} over the ${MAX_BULK_TARGETS} limit were skipped)` : "";
+    win.setValue("lbl_status_bar", `✓ Bulk lookup finished: ${ok}/${rows.length} resolved in ${secs}s${note}.`);
+    win.toast(`Bulk lookup: ${ok}/${rows.length} resolved${note}`, 3500, ok === rows.length ? "success" : "warning");
+  });
+
+  const currentIp = (): string => lastResult?.ip || (lastSubnet ? lastSubnet.network : "") || "";
+
+  win.onClick("btn_copy_ip", () => {
+    const ip = currentIp();
+    if (!ip) { win.toast("Look up an IP first", 2500, "warning"); return; }
+    win.copyToClipboard(ip);
+    win.toast(`Copied ${ip}`, 2000, "success");
+  });
+
+  win.onClick("btn_copy_table", () => {
+    if (!lastTable || lastTable.rows.length === 0) { win.toast("Nothing in the table to copy", 2500, "warning"); return; }
+    win.copyToClipboard(tableToTsv(lastTable.headers, lastTable.rows));
+    win.toast("Table copied (tab-separated)", 2500, "success");
+  });
+
+  win.onClick("btn_save_results", () => {
+    if (!lastTable || lastTable.rows.length === 0) { win.toast("Nothing to save yet", 2500, "warning"); return; }
+    win.saveFile({ title: "Save results (.json or .csv)", defaultName: "ipinfo_results.json" }, (p) => {
+      if (!p) return;
+      try {
+        let text: string;
+        if (p.toLowerCase().endsWith(".csv")) {
+          text = lastBulk ? bulkToCsv(lastBulk) : lastResult ? formatCsv(lastResult) : tableToCsv(lastTable!.headers, lastTable!.rows);
+        } else if (lastBulk) text = JSON.stringify(lastBulk, null, 2);
+        else if (lastResult) text = formatJson(lastResult);
+        else if (lastSubnet) text = JSON.stringify(lastSubnet, null, 2);
+        else text = JSON.stringify(lastTable!.rows.map((r) => Object.fromEntries(lastTable!.headers.map((h, i) => [h, r[i] ?? ""]))), null, 2);
+        writeFileSync(p, text, "utf-8");
+        win.toast(`Saved ${basename(p)}`, 3000, "success");
+      } catch (e: any) {
+        win.toast(`Save failed: ${e.message}`, 4000, "error");
+      }
+    });
+  });
+
+  win.onClick("btn_open_ipinfo", () => {
+    const ip = currentIp();
+    if (!ip) { win.toast("Look up an IP first", 2500, "warning"); return; }
+    win.openUrl(ipInfoUrl(ip));
+  });
+  win.onClick("btn_open_bgp", () => {
+    const ip = currentIp();
+    if (!ip) { win.toast("Look up an IP first", 2500, "warning"); return; }
+    win.openUrl(bgpUrl(ip));
+  });
+
+  win.onClick("btn_in_cidr", () => {
+    const cidr = targetText();
+    const ip = String(win.getValue("txt_check_ip") ?? "").trim();
+    if (!isValidCidr(cidr)) { win.toast("Enter a CIDR in the target box (e.g. 192.168.1.0/24)", 3500, "warning"); return; }
+    if (!ip) { win.toast("Enter the IP to test", 2500, "warning"); return; }
+    try {
+      const inside = cidrContains(cidr, ip);
+      showToolRows(
+        ["Check", "Result", "Category", "Description"],
+        [
+          ["CIDR Block", cidr, "Subnet", "Target block"],
+          ["Tested IP", ip, "Address", "Address being tested"],
+          ["Contained", inside ? "YES" : "NO", "Result", inside ? "The IP is inside the block" : "The IP is outside the block"],
+        ],
+        `${inside ? "✓" : "✖"} ${ip} is ${inside ? "inside" : "outside"} ${cidr}.`
+      );
+      win.toast(`${ip} is ${inside ? "inside" : "outside"} ${cidr}`, 3000, inside ? "success" : "warning");
+    } catch (e: any) {
+      win.toast(e.message, 3500, "error");
+      win.setValue("lbl_status_bar", `❌ ${e.message}`);
+    }
+  });
+
+  win.onClick("btn_split_cidr", () => {
+    const cidr = targetText();
+    const prefix = parseInt(String(win.getValue("txt_split_prefix") ?? ""), 10);
+    if (!isValidCidr(cidr)) { win.toast("Enter a CIDR in the target box (e.g. 10.0.0.0/16)", 3500, "warning"); return; }
+    try {
+      const res = splitCidr(cidr, prefix);
+      const rows = res.blocks.map((b, i) => [`#${i + 1}`, b, "Subnet", `/${prefix} block`]);
+      showToolRows(
+        ["Block", "CIDR", "Category", "Description"],
+        rows,
+        `✓ ${cidr} splits into ${res.total.toLocaleString()} /${prefix} block(s)${res.truncated ? ` (showing first ${res.blocks.length})` : ""}.`,
+        res.blocks.join("\n")
+      );
+    } catch (e: any) {
+      win.toast(e.message, 3500, "error");
+      win.setValue("lbl_status_bar", `❌ ${e.message}`);
+    }
+  });
+
+  win.onClick("btn_ip_formats", () => {
+    try {
+      const rows = describeIpv4(targetText()).map((r) => [r[0]!, r[1]!, "Format", "IPv4 notation"]);
+      showToolRows(["Notation", "Value", "Category", "Description"], rows, `✓ Showing notations for ${rows[0]![1]}.`);
+    } catch (e: any) {
+      win.toast(e.message, 3500, "error");
+      win.setValue("lbl_status_bar", `❌ ${e.message}`);
+    }
+  });
+
+  win.onClick("btn_mask_convert", () => {
+    const raw = targetText().replace(/^\//, "");
+    try {
+      let prefix: number;
+      let mask: string;
+      if (/^\d{1,2}$/.test(raw)) { prefix = parseInt(raw, 10); mask = prefixToMask(prefix); }
+      else { mask = raw; prefix = maskToPrefix(raw); }
+      showToolRows(
+        ["Property", "Value", "Category", "Description"],
+        [["Prefix Length", `/${prefix}`, "Subnet", "CIDR prefix"], ["Netmask", mask, "Subnet", "Dotted decimal mask"], ["Hosts per block", (prefix >= 31 ? 2 ** (32 - prefix) : Math.max(0, 2 ** (32 - prefix) - 2)).toLocaleString(), "Capacity", "Usable addresses"]],
+        `✓ /${prefix} = ${mask}`
+      );
+    } catch (e: any) {
+      win.toast("Enter a prefix like /24 or a mask like 255.255.255.0 in the target box", 4000, "warning");
+      win.setValue("lbl_status_bar", `❌ ${e.message}`);
+    }
+  });
+
+  win.on("tbl_history", "click", (_w, pid) => { if (pid) handleSearch(String(pid)); });
+  win.onClick("btn_clear_history", () => {
+    history = [];
+    win.setTableData("tbl_history", ["Target", "Result", "Time"], []);
+    win.toast("History cleared", 2000, "info");
+  });
+
   win.onClick("btn_fullscreen", () => win.toggleFullscreen());
   win.onClick("btn_center", () => win.center());
   win.onClick("btn_save_state", (w) => {
