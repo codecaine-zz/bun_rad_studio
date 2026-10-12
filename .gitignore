@@ -56,4 +56,6 @@ bun-debug.log*
 *.sqlite-shm
 *.db-wal
 *.db-shm
-test_db_*.sqlite*.word_search_state.json
+test_db_*.sqlite
+.word_search_state.json
+.maze_generator_state.json

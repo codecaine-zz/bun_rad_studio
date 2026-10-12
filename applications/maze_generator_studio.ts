@@ -11,7 +11,7 @@
 
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, renameSync } from "fs";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -68,6 +68,40 @@ export function getMazeAssetsDir(): string {
   return candidates[0]!;
 }
 
+/** Where settings and statistics live. MAZE_GENERATOR_STATE_FILE overrides it (used by tests). */
+export function getMazeStatePath(): string {
+  return process.env.MAZE_GENERATOR_STATE_FILE || resolve(process.cwd(), ".maze_generator_state.json");
+}
+
+/** Read saved settings/statistics; anything unreadable yields an empty object (the page sanitises the rest). */
+export function loadMazeState(): { settings?: unknown; stats?: unknown } {
+  try {
+    const file = getMazeStatePath();
+    if (!existsSync(file)) return {};
+    const parsed = JSON.parse(readFileSync(file, "utf8"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { settings: parsed.settings, stats: parsed.stats } : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Persist settings/statistics atomically. Returns false for malformed or oversized input. */
+export function saveMazeState(raw: unknown): boolean {
+  try {
+    const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+    const body = JSON.stringify({ settings: (data as any).settings ?? {}, stats: (data as any).stats ?? {} });
+    if (body.length > 64 * 1024) return false;
+    const file = getMazeStatePath();
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, body, "utf8");
+    renameSync(tmp, file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Generates the complete HTML for Maze Runner with desktop shortcuts injected.
  */
@@ -76,6 +110,21 @@ export function generateMazeStudioHtml(): string {
   const indexPath = join(assetsDir, "index.html");
 
   let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Cyberpunk Maze Runner</h1>";
+
+  // The desktop window loads this HTML with no base URL, so relative scripts cannot load: inline the engine,
+  // and inject the saved state so settings and records are there on the first frame.
+  const enginePath = join(assetsDir, "engine.js");
+  if (existsSync(enginePath)) {
+    const stateJson = JSON.stringify(loadMazeState()).replace(/</g, "\\u003c");
+    const inline = `<script>window.__MAZE_STATE__ = ${stateJson};</script>\n<script>\n${readFileSync(enginePath, "utf8")}\n</script>`;
+    if (html.includes('<script src="engine.js"></script>')) {
+      html = html.replace('<script src="engine.js"></script>', () => inline);
+    } else if (html.includes("</head>")) {
+      html = html.replace("</head>", `${inline}\n</head>`);
+    } else {
+      html = inline + "\n" + html;
+    }
+  }
 
   const storagePolyfill = `
   <script>
@@ -115,7 +164,7 @@ export function generateMazeStudioHtml(): string {
   <script>
     // Desktop RAD Studio Integration
     window.addEventListener("DOMContentLoaded", function() {
-      var hubBtn = document.querySelector("a[href='/']") || document.querySelector("a[title*='Hub']");
+      var hubBtn = document.querySelector(".nav-btn[aria-label*='Hub']") || document.querySelector("a[href='/']") || document.querySelector("a[title*='Hub']");
       if (hubBtn) {
         hubBtn.addEventListener("click", function(e) {
           if (typeof window.quitApp === "function" || typeof window.closeWindow === "function") {
@@ -152,7 +201,7 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
   const server = Bun.serve({
     port,
     hostname: host,
-    fetch(req) {
+    async fetch(req) {
       const url = new URL(req.url);
       const pathname = url.pathname;
 
@@ -174,6 +223,16 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
         });
       }
 
+      // Engine
+      if (pathname === "/engine.js") {
+        const filePath = join(assetsDir, "engine.js");
+        if (existsSync(filePath)) {
+          return new Response(Bun.file(filePath), {
+            headers: { "Content-Type": "application/javascript; charset=utf-8", ...corsHeaders },
+          });
+        }
+      }
+
       // Favicon Icon
       if (pathname === "/favicon.svg") {
         const filePath = join(assetsDir, "favicon.svg");
@@ -193,6 +252,36 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
         }
       }
 
+      // State API
+      if (pathname === "/api/state") {
+        if (req.method === "GET") {
+          return Response.json(loadMazeState());
+        }
+        if (req.method === "POST") {
+          const origin = req.headers.get("origin");
+          const hostHeader = req.headers.get("host");
+          if (origin && hostHeader) {
+            try {
+              const u = new URL(origin);
+              if (u.host !== hostHeader) {
+                return new Response("Forbidden: Cross-origin state mutation rejected", { status: 403 });
+              }
+            } catch {
+              return new Response("Forbidden", { status: 403 });
+            }
+          }
+          try {
+            const body = await req.json();
+            const ok = saveMazeState(body);
+            if (!ok) return new Response("Bad Request: Invalid state structure or size", { status: 400 });
+            return Response.json({ success: true, saved: loadMazeState() });
+          } catch {
+            return new Response("Bad Request: Malformed JSON body", { status: 400 });
+          }
+        }
+        return new Response("Method Not Allowed", { status: 405 });
+      }
+
       // API Health Check
       if (pathname === "/api/health") {
         return Response.json(
@@ -200,7 +289,7 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
             status: "ok",
             app: "maze_generator_studio",
             name: "Cyberpunk Maze Runner - Neon Labyrinth",
-            version: "1.0.0",
+            version: "2.5.0",
             timestamp: Date.now(),
           },
           { headers: corsHeaders }
@@ -289,6 +378,10 @@ export function createMazeStudio(options: MazeStudioOptions = {}): MazeStudioIns
             toggleFullscreenNative(webview);
           },
           fullscreen,
+        });
+
+        webview.bind("mazeSaveState", (json: string) => {
+          saveMazeState(json);
         });
 
         webview.setHTML(html);

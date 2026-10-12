@@ -738,6 +738,118 @@
             pointer-events: none;
             z-index: 999;
         }
+    
+        /* Pause Overlay */
+        .pause-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 5, 9, 0.88);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .pause-title {
+            font-family: var(--font-arcade);
+            font-size: 2rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 16px var(--neon-cyan);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .pause-sub {
+            font-family: var(--font-hud);
+            font-size: 0.85rem;
+            color: #94a3b8;
+            letter-spacing: 1px;
+        }
+
+        /* Toast Notifications */
+        .maze-toast {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--neon-cyan);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: var(--font-hud);
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+            z-index: 1000;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Stats Telemetry */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+        .stat-card-title {
+            font-size: 0.65rem;
+            font-family: var(--font-arcade);
+            color: #64748b;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+        .stat-card-val {
+            font-size: 1.25rem;
+            font-family: var(--font-hud);
+            font-weight: 700;
+            color: var(--neon-cyan);
+        }
+        .records-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .record-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #cbd5e1;
+        }
+        .record-row span:last-child {
+            color: var(--neon-yellow);
+            font-weight: 600;
+        }
+        .res-best {
+            font-family: var(--font-arcade);
+            font-size: 0.75rem;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px rgba(255, 212, 59, 0.6);
+            margin: 6px 0;
+            min-height: 18px;
+        }
+        .action-btn.warn {
+            border-color: #ff0077;
+            color: #ff0077;
+        }
+        .action-btn.warn:hover {
+            background: rgba(255, 0, 119, 0.2);
+        }
+
     </style>
 </head>
 <body>
@@ -770,6 +882,9 @@
             </button>
             <button type="button" class="nav-btn" id="soundToggle" title="Toggle Sound FX">
                 <span id="soundIcon">🔊</span>
+            </button>
+            <button type="button" class="nav-btn" id="statsBtn" title="Maze Statistics">
+                <span>📊</span> <span class="btn-label">Stats</span>
             </button>
             <button type="button" class="nav-btn" id="settingsBtn" title="Maze Settings">
                 <span>⚙</span> <span class="btn-label">Settings</span>
@@ -829,11 +944,16 @@
         <div class="canvas-container" id="canvasContainer">
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="mazeCanvas"></canvas>
+                <div class="pause-overlay" id="pauseOverlay" style="display: none;">
+                    <div class="pause-title">PAUSED</div>
+                    <div class="pause-sub">PRESS P OR CLICK TO RESUME</div>
+                </div>
 
                 <!-- Overlay for Victory / Defeat -->
                 <div class="game-overlay" id="victoryOverlay" style="display: none;">
                     <div class="overlay-title" id="overlayTitle">SYSTEM PURGED!</div>
                     <div class="overlay-stars" id="overlayStars">★★★</div>
+                    <div class="res-best" id="resBest"></div>
                     <div class="overlay-stats-grid" id="overlayStatsGrid">
                         <div class="overlay-stats-item">
                             <span>TIME ELAPSED</span>
@@ -866,13 +986,25 @@
         <!-- Bottom Controls & Action Bar -->
         <div class="bottom-controls" id="bottomControls">
             <div class="actions-row">
-                <button type="button" class="action-btn primary" id="regenBtn">
-                    <span>⚡</span> Regen
+                <button type="button" class="action-btn primary" id="regenBtn" title="New Random Maze (N)">
+                    <span>⚡</span> <span id="regenText">New</span>
                 </button>
-                <button type="button" class="action-btn" id="hintBtn">
+                <button type="button" class="action-btn" id="replayBtn" title="Replay Current Maze (R)">
+                    <span>🔄</span> Replay
+                </button>
+                <button type="button" class="action-btn" id="dailyBtn" title="Daily Labyrinth Challenge (D)">
+                    <span>📅</span> Daily
+                </button>
+                <button type="button" class="action-btn" id="pauseBtn" title="Pause / Resume (P or Space)">
+                    <span>⏸️</span> <span id="pauseText">Pause</span>
+                </button>
+                <button type="button" class="action-btn" id="hintBtn" title="Hint (H)">
                     <span>💡</span> Hint
                 </button>
-                <button type="button" class="action-btn" id="trailToggleBtn">
+                <button type="button" class="action-btn" id="giveUpBtn" title="Give Up & Reveal Solution (G)">
+                    <span>🏳️</span> <span id="giveUpText">Give Up</span>
+                </button>
+                <button type="button" class="action-btn" id="trailToggleBtn" title="Toggle Trail">
                     <span>🐾</span> Trail
                 </button>
                 <button type="button" class="action-btn" id="dpadToggleBtn" title="Toggle On-Screen D-Pad">
@@ -889,6 +1021,27 @@
             </div>
         </div>
     </main>
+
+    <!-- Stats Modal Sheet -->
+    <div class="modal-backdrop" id="statsModal" style="display: none;">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <div class="modal-title">📊 LABYRINTH TELEMETRY & RECORDS</div>
+                <button type="button" class="modal-close" id="statsClose">&times;</button>
+            </div>
+            <div class="stats-body" id="statsBody">
+                <!-- Dynamically rendered -->
+            </div>
+            <div style="margin-top: 14px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="action-btn warn" id="resetStatsBtn">
+                    <span>🗑️</span> <span id="resetStatsText">Reset Stats</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maze Toast Notification -->
+    <div class="maze-toast" id="mazeToast" style="display: none;"></div>
 
     <!-- Settings Modal Sheet -->
     <div class="modal-backdrop" id="settingsModal">
@@ -911,8 +1064,22 @@
                 <select id="algoSelect" class="select-field" aria-label="Maze Algorithm">
                     <option value="dfs" selected>DFS Backtracker</option>
                     <option value="prim">Randomized Prim's</option>
+                    <option value="kruskal">Randomized Kruskal's</option>
+                    <option value="wilson">Wilson's (Uniform Spanning)</option>
                     <option value="braided">Braided (Loops)</option>
                 </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">AI Pathfinding Solver</span>
+                <select id="solverSelect" class="select-field" aria-label="Solver Algorithm">
+                    <option value="astar" selected>A* Search (Heuristic)</option>
+                    <option value="dijkstra">Dijkstra Wavefront</option>
+                    <option value="bfs">Breadth-First Search</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Labyrinth Seed</span>
+                <input type="text" id="seedInput" class="select-field" style="width:140px;" placeholder="random" />
             </div>
             <div class="setting-row">
                 <span class="setting-label">Color Palette</span>
@@ -940,14 +1107,19 @@
                 <button type="button" class="modal-close" id="helpClose">&times;</button>
             </div>
             <div class="help-list">
-                <div><kbd>SWIPE</kbd> Swipe anywhere on the maze to glide in that direction</div>
-                <div><kbd>TAP</kbd> Tap any tile in corridors to auto-pathfind directly to it</div>
-                <div><kbd>D-PAD</kbd> Hold any virtual arrow for continuous smooth movement</div>
-                <div><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or <kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd> Desktop keyboard control</div>
-                <div><kbd>H</kbd> Activate AI neural path hint (consumes 1 hint charge)</div>
-                <div><kbd>R</kbd> Procedurally regenerate new labyrinth</div>
+                <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> Desktop movement</div>
+                <div><kbd>N</kbd> Generate brand-new random labyrinth</div>
+                <div><kbd>R</kbd> Replay current labyrinth from scratch (same seed)</div>
+                <div><kbd>D</kbd> Daily Labyrinth Challenge (synchronized daily puzzle)</div>
+                <div><kbd>P</kbd> / <kbd>Space</kbd> Pause or resume exploration & timer</div>
+                <div><kbd>H</kbd> Activate neural path hint (consumes 1 hint charge)</div>
+                <div><kbd>G</kbd> Give Up: reveal optimal path & finish attempt</div>
+                <div><kbd>T</kbd> Open telemetry & records statistics</div>
+                <div><kbd>M</kbd> Toggle Sound FX on / off</div>
+                <div><kbd>SWIPE</kbd> Swipe anywhere on canvas to glide</div>
+                <div><kbd>TAP</kbd> Tap any corridor tile to auto-pathfind directly to it</div>
                 <div><kbd>GAMEPAD</kbd> Plug in any USB / Bluetooth controller</div>
-                <div><span style="color:var(--neon-yellow);">◆ Energy Shards:</span> Collect shards in corridors for extra hint charges</div>
+                <div><span style="color:var(--neon-yellow);">◆ Energy Shards:</span> Collect dead-end shards for extra hint charges</div>
             </div>
         </div>
     </div>
@@ -1150,6 +1322,8 @@
         // =====================================================
         // 3. HIGH-DPI CANVAS & PROCEDURAL LABYRINTH ENGINE
         // =====================================================
+        const E = window.MazeEngine || (typeof MazeEngine !== 'undefined' ? MazeEngine : null);
+
         const canvas = document.getElementById('mazeCanvas');
         const ctx = canvas.getContext('2d');
         const canvasContainer = document.getElementById('canvasContainer');
@@ -1170,19 +1344,54 @@
         };
 
         const themes = {
-            cyan: { wall: '#00f0ff', glow: 'rgba(0, 240, 255, 0.45)', bg: '#04070d', node: '#00f0ff' },
-            magenta: { wall: '#ff0077', glow: 'rgba(255, 0, 119, 0.45)', bg: '#0b040a', node: '#ff0077' },
-            green: { wall: '#00ff9d', glow: 'rgba(0, 255, 157, 0.45)', bg: '#030a06', node: '#00ff9d' },
-            amber: { wall: '#ffd43b', glow: 'rgba(255, 212, 59, 0.45)', bg: '#0a0802', node: '#ffd43b' }
+            cyan: { wall: '#00f0ff', glow: 'rgba(0, 240, 255, 0.45)', bg: '#04070d', node: '#00f0ff', name: 'Cyan Matrix' },
+            magenta: { wall: '#ff0077', glow: 'rgba(255, 0, 119, 0.45)', bg: '#0b040a', node: '#ff0077', name: 'Neon Sunset' },
+            green: { wall: '#00ff9d', glow: 'rgba(0, 255, 157, 0.45)', bg: '#030a06', node: '#00ff9d', name: 'Emerald Grid' },
+            amber: { wall: '#ffd43b', glow: 'rgba(255, 212, 59, 0.45)', bg: '#0a0802', node: '#ffd43b', name: 'Solar Flare' }
         };
 
-        let currentMode = 'classic'; // 'classic' | 'timeAttack' | 'darkness' | 'solver'
-        let currentDiff = 'medium';
-        let currentAlgo = 'dfs';
-        let currentTheme = 'cyan';
+        // State persistence & synchronization
+        const rawInitialState = window.__MAZE_STATE__ || {};
+        let settings = E ? E.sanitizeSettings(rawInitialState.settings) : {
+            mode: 'classic', diff: 'medium', algo: 'dfs', solver: 'astar', theme: 'cyan',
+            sound: true, drone: false, trail: true, dpad: true
+        };
+        let stats = E ? E.sanitizeStats(rawInitialState.stats) : (E ? E.emptyStats() : {
+            played: 0, won: 0, surrendered: 0, totalSteps: 0, shardsCollected: 0, best: {}
+        });
 
-        let cols = diffSettings[currentDiff];
-        let rows = diffSettings[currentDiff];
+        function persistState() {
+            const payload = JSON.stringify({ settings, stats });
+            if (typeof window.mazeSaveState === 'function') {
+                try { window.mazeSaveState(payload); } catch(e){}
+            } else if (typeof window.fetch === 'function') {
+                try {
+                    fetch('/api/state', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload
+                    }).catch(() => {});
+                } catch(e){}
+            }
+            try { localStorage.setItem('cyber_maze_state', payload); } catch(e){}
+        }
+
+        // Active game options
+        let currentMode = settings.mode || 'classic';
+        let currentDiff = settings.diff || 'medium';
+        let currentAlgo = settings.algo || 'dfs';
+        let currentSolver = settings.solver || 'astar';
+        let currentTheme = settings.theme || 'cyan';
+        let currentSeed = Math.random().toString(36).slice(2, 10);
+        let isDaily = false;
+        let isPaused = false;
+        let giveUpPending = false;
+        let giveUpTimeout = null;
+        let resetStatsPending = false;
+        let resetStatsTimeout = null;
+
+        let cols = diffSettings[currentDiff] || 19;
+        let rows = diffSettings[currentDiff] || 19;
         let cellSize = 600 / cols;
 
         // Maze grid structure
@@ -1191,15 +1400,17 @@
         let exit = { x: cols - 1, y: rows - 1 };
         let shards = [];
         let particles = [];
+        let optimalSolutionPath = null;
+        let optimalSteps = 0;
 
         let visitedTrail = new Set();
-        let showTrail = true;
+        let showTrail = settings.trail !== false;
         let hintPath = null;
         let hintsLeft = 3;
 
         let steps = 0;
-        let startTime = 0;
-        let elapsedTime = 0;
+        let timerStartedAt = 0;
+        let accumulatedElapsed = 0;
         let timeRemaining = 0;
         let timerInterval = null;
         let gameActive = true;
@@ -1212,6 +1423,7 @@
         let solverPath = [];
         let solverStepIndex = 0;
         let solverTimer = null;
+        let autoWalkTimer = null;
 
         // Key-state tracking for continuous fluid movement
         const activeKeys = {};
@@ -1221,7 +1433,9 @@
         const modeTabs = document.querySelectorAll('.mode-tab');
         const diffSelect = document.getElementById('diffSelect');
         const algoSelect = document.getElementById('algoSelect');
+        const solverSelect = document.getElementById('solverSelect');
         const themeSelect = document.getElementById('themeSelect');
+        const seedInput = document.getElementById('seedInput');
         const timerVal = document.getElementById('timerVal');
         const bestTimeVal = document.getElementById('bestTimeVal');
         const stepsVal = document.getElementById('stepsVal');
@@ -1235,10 +1449,19 @@
         const resSteps = document.getElementById('resSteps');
         const resShards = document.getElementById('resShards');
         const resDiff = document.getElementById('resDiff');
+        const resBest = document.getElementById('resBest');
         const nextMazeBtn = document.getElementById('nextMazeBtn');
         const overlayExportBtn = document.getElementById('overlayExportBtn');
         const regenBtn = document.getElementById('regenBtn');
+        const regenText = document.getElementById('regenText');
+        const replayBtn = document.getElementById('replayBtn');
+        const dailyBtn = document.getElementById('dailyBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseText = document.getElementById('pauseText');
+        const pauseOverlay = document.getElementById('pauseOverlay');
         const hintBtn = document.getElementById('hintBtn');
+        const giveUpBtn = document.getElementById('giveUpBtn');
+        const giveUpText = document.getElementById('giveUpText');
         const trailToggleBtn = document.getElementById('trailToggleBtn');
         const dpadToggleBtn = document.getElementById('dpadToggleBtn');
         const mobileDpad = document.getElementById('mobileDpad');
@@ -1255,12 +1478,42 @@
         const helpBtn = document.getElementById('helpBtn');
         const helpModal = document.getElementById('helpModal');
         const helpClose = document.getElementById('helpClose');
+        const statsBtn = document.getElementById('statsBtn');
+        const statsModal = document.getElementById('statsModal');
+        const statsClose = document.getElementById('statsClose');
+        const statsBody = document.getElementById('statsBody');
+        const resetStatsBtn = document.getElementById('resetStatsBtn');
+        const resetStatsText = document.getElementById('resetStatsText');
+        const mazeToast = document.getElementById('mazeToast');
+
+        // Toast notifications
+        let toastTimeout = null;
+        function showToast(msg, duration = 2200) {
+            if (!mazeToast) return;
+            mazeToast.textContent = msg;
+            mazeToast.style.display = 'block';
+            mazeToast.style.opacity = '1';
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                mazeToast.style.opacity = '0';
+                setTimeout(() => { mazeToast.style.display = 'none'; }, 200);
+            }, duration);
+        }
+
+        // Apply saved controls / audio preferences
+        if (typeof settings.sound === 'boolean') {
+            soundOn = settings.sound;
+            if (soundIcon) soundIcon.textContent = soundOn ? '🔊' : '🔇';
+        }
+        if (diffSelect) diffSelect.value = currentDiff;
+        if (algoSelect) algoSelect.value = currentAlgo;
+        if (solverSelect) solverSelect.value = currentSolver;
+        if (themeSelect) themeSelect.value = currentTheme;
 
         // Dynamic Full-Screen Crisp Retina Display Scaling
         function setupCanvasDPI() {
             if (!canvasContainer || !canvasWrapper || !canvas) return;
             const containerRect = canvasContainer.getBoundingClientRect();
-            // Leave a clean margin of 4px around the canvas
             const maxW = Math.max(120, containerRect.width - 8);
             const maxH = Math.max(120, containerRect.height - 8);
             const size = Math.floor(Math.min(maxW, maxH));
@@ -1275,7 +1528,6 @@
             canvasWrapper.style.height = size + 'px';
         }
 
-        // Use ResizeObserver for instant, seamless adaptation to orientation changes, keyboard, and viewport resizing
         if (window.ResizeObserver && canvasContainer) {
             const ro = new ResizeObserver(() => setupCanvasDPI());
             ro.observe(canvasContainer);
@@ -1283,23 +1535,18 @@
         window.addEventListener('resize', setupCanvasDPI);
         window.addEventListener('orientationchange', () => setTimeout(setupCanvasDPI, 100));
 
-        // Best Times persistence (Indexed by diff and mode)
         function loadBestTime() {
-            const key = `cyber_maze_best_${currentMode}_${currentDiff}`;
-            const best = localStorage.getItem(key);
-            bestTimeVal.textContent = best ? formatTime(parseInt(best)) : '--:--';
-        }
-
-        function saveBestTime(timeMs) {
-            const key = `cyber_maze_best_${currentMode}_${currentDiff}`;
-            const best = localStorage.getItem(key);
-            if (!best || timeMs < parseInt(best)) {
-                localStorage.setItem(key, timeMs);
-                bestTimeVal.textContent = formatTime(timeMs);
+            const key = `${currentMode}|${currentDiff}`;
+            const record = stats.best && stats.best[key];
+            if (record && record.timeMs) {
+                bestTimeVal.textContent = E ? E.formatTime(record.timeMs) : formatTime(record.timeMs);
+            } else {
+                bestTimeVal.textContent = '--:--';
             }
         }
 
         function formatTime(ms) {
+            if (typeof ms !== 'number' || isNaN(ms) || ms < 0) ms = 0;
             const totalSec = Math.floor(ms / 1000);
             const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
             const s = (totalSec % 60).toString().padStart(2, '0');
@@ -1307,164 +1554,89 @@
         }
 
         // =====================================================
-        // 4. MAZE GENERATION ALGORITHMS
+        // 4. MAZE GENERATION & SESSION MANAGEMENT
         // =====================================================
-        function generateMaze() {
+        function generateMaze(options = {}) {
             if (solverTimer) { clearInterval(solverTimer); solverTimer = null; }
             if (autoWalkTimer) { clearInterval(autoWalkTimer); autoWalkTimer = null; }
-            cols = diffSettings[currentDiff];
-            rows = diffSettings[currentDiff];
+
+            // Determine seed & configuration
+            if (options.daily) {
+                if (E) {
+                    const d = E.dailyConfig();
+                    currentSeed = d.seed;
+                    currentDiff = d.diff;
+                    currentAlgo = d.algo;
+                } else {
+                    currentSeed = 'DAILY-' + new Date().toISOString().slice(0, 10);
+                }
+                isDaily = true;
+                if (diffSelect) diffSelect.value = currentDiff;
+                if (algoSelect) algoSelect.value = currentAlgo;
+                showToast(`📅 Daily Challenge: ${currentDiff.toUpperCase()} (${currentAlgo.toUpperCase()})`);
+            } else if (options.newSeed) {
+                currentSeed = Math.random().toString(36).slice(2, 10);
+                isDaily = false;
+            } else if (options.seed) {
+                currentSeed = String(options.seed);
+                isDaily = false;
+            }
+            if (seedInput) seedInput.value = currentSeed;
+
+            cols = diffSettings[currentDiff] || 19;
+            rows = diffSettings[currentDiff] || 19;
             cellSize = 600 / cols;
             exit = { x: cols - 1, y: rows - 1 };
 
-            // Initialize Grid
-            grid = [];
-            for (let r = 0; r < rows; r++) {
-                grid[r] = [];
-                for (let c = 0; c < cols; c++) {
-                    grid[r][c] = {
-                        c, r,
-                        walls: { top: true, right: true, bottom: true, left: true },
-                        visited: false
-                    };
-                }
-            }
-
-            if (currentAlgo === 'prim') {
-                carvePrims();
+            if (E) {
+                const puzzle = E.generatePuzzle({
+                    cols,
+                    rows,
+                    diff: currentDiff,
+                    algo: currentAlgo,
+                    seed: currentSeed
+                });
+                grid = puzzle.grid;
+                shards = puzzle.shards;
+                optimalSolutionPath = puzzle.solutionPath;
+                optimalSteps = puzzle.optimalSteps;
             } else {
-                carveDFS();
+                // Fallback manual generation
+                grid = [];
+                for (let r = 0; r < rows; r++) {
+                    grid[r] = [];
+                    for (let c = 0; c < cols; c++) {
+                        grid[r][c] = { c, r, walls: { top: true, right: true, bottom: true, left: true }, visited: false };
+                    }
+                }
+                const stack = [];
+                let current = grid[0][0];
+                current.visited = true;
+                let visitedCount = 1;
+                const total = cols * rows;
+                while (visitedCount < total) {
+                    const neighbors = [];
+                    const { c, r } = current;
+                    if (r > 0 && !grid[r - 1][c].visited) neighbors.push({ cell: grid[r - 1][c], dir: 'top', opp: 'bottom' });
+                    if (c < cols - 1 && !grid[r][c + 1].visited) neighbors.push({ cell: grid[r][c + 1], dir: 'right', opp: 'left' });
+                    if (r < rows - 1 && !grid[r + 1][c].visited) neighbors.push({ cell: grid[r + 1][c], dir: 'bottom', opp: 'top' });
+                    if (c > 0 && !grid[r][c - 1].visited) neighbors.push({ cell: grid[r][c - 1], dir: 'left', opp: 'right' });
+                    if (neighbors.length > 0) {
+                        const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                        current.walls[next.dir] = false;
+                        next.cell.walls[next.opp] = false;
+                        next.cell.visited = true;
+                        visitedCount++;
+                        stack.push(current);
+                        current = next.cell;
+                    } else if (stack.length > 0) {
+                        current = stack.pop();
+                    } else break;
+                }
+                shards = [];
             }
 
-            // If braided maze requested, remove random dead-ends to create loops
-            if (currentAlgo === 'braided') {
-                braidMaze(0.4);
-            }
-
-            // Scatter Energy Shards in Dead Ends
-            populateShards();
-
-            // Setup fresh game session
             resetGameSession();
-        }
-
-        // Depth-First Search with Backtracking
-        function carveDFS() {
-            const stack = [];
-            let current = grid[0][0];
-            current.visited = true;
-            let visitedCount = 1;
-            const total = cols * rows;
-
-            while (visitedCount < total) {
-                const neighbors = getUnvisitedNeighbors(current);
-                if (neighbors.length > 0) {
-                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-                    current.walls[next.dir] = false;
-                    next.cell.walls[next.opp] = false;
-                    next.cell.visited = true;
-                    visitedCount++;
-                    stack.push(current);
-                    current = next.cell;
-                } else if (stack.length > 0) {
-                    current = stack.pop();
-                } else {
-                    break;
-                }
-            }
-        }
-
-        // Randomized Prim's Algorithm
-        function carvePrims() {
-            const wallsList = [];
-            const startCell = grid[0][0];
-            startCell.visited = true;
-
-            function addCellWalls(cell) {
-                const { c, r } = cell;
-                if (r > 0 && !grid[r - 1][c].visited) wallsList.push({ c1: cell, c2: grid[r - 1][c], dir: 'top', opp: 'bottom' });
-                if (c < cols - 1 && !grid[r][c + 1].visited) wallsList.push({ c1: cell, c2: grid[r][c + 1], dir: 'right', opp: 'left' });
-                if (r < rows - 1 && !grid[r + 1][c].visited) wallsList.push({ c1: cell, c2: grid[r + 1][c], dir: 'bottom', opp: 'top' });
-                if (c > 0 && !grid[r][c - 1].visited) wallsList.push({ c1: cell, c2: grid[r][c - 1], dir: 'left', opp: 'right' });
-            }
-
-            addCellWalls(startCell);
-
-            while (wallsList.length > 0) {
-                const randIndex = Math.floor(Math.random() * wallsList.length);
-                const { c1, c2, dir, opp } = wallsList.splice(randIndex, 1)[0];
-
-                if (!c2.visited) {
-                    c1.walls[dir] = false;
-                    c2.walls[opp] = false;
-                    c2.visited = true;
-                    addCellWalls(c2);
-                }
-            }
-        }
-
-        function getUnvisitedNeighbors(cell) {
-            const neighbors = [];
-            const { c, r } = cell;
-            if (r > 0 && !grid[r - 1][c].visited) neighbors.push({ cell: grid[r - 1][c], dir: 'top', opp: 'bottom' });
-            if (c < cols - 1 && !grid[r][c + 1].visited) neighbors.push({ cell: grid[r][c + 1], dir: 'right', opp: 'left' });
-            if (r < rows - 1 && !grid[r + 1][c].visited) neighbors.push({ cell: grid[r + 1][c], dir: 'bottom', opp: 'top' });
-            if (c > 0 && !grid[r][c - 1].visited) neighbors.push({ cell: grid[r][c - 1], dir: 'left', opp: 'right' });
-            return neighbors;
-        }
-
-        // Braid maze by removing walls at dead-ends
-        function braidMaze(factor = 0.4) {
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const cell = grid[r][c];
-                    let wallCount = 0;
-                    if (cell.walls.top) wallCount++;
-                    if (cell.walls.right) wallCount++;
-                    if (cell.walls.bottom) wallCount++;
-                    if (cell.walls.left) wallCount++;
-
-                    // If it's a dead-end (3 walls) and rolls under factor
-                    if (wallCount === 3 && Math.random() < factor) {
-                        const candidates = [];
-                        if (cell.walls.top && r > 0) candidates.push({ dir: 'top', opp: 'bottom', target: grid[r - 1][c] });
-                        if (cell.walls.right && c < cols - 1) candidates.push({ dir: 'right', opp: 'left', target: grid[r][c + 1] });
-                        if (cell.walls.bottom && r < rows - 1) candidates.push({ dir: 'bottom', opp: 'top', target: grid[r + 1][c] });
-                        if (cell.walls.left && c > 0) candidates.push({ dir: 'left', opp: 'right', target: grid[r][c - 1] });
-
-                        if (candidates.length > 0) {
-                            const pick = candidates[Math.floor(Math.random() * candidates.length)];
-                            cell.walls[pick.dir] = false;
-                            pick.target.walls[pick.opp] = false;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Populate Energy Shards in dead-ends
-        function populateShards() {
-            shards = [];
-            let shardId = 0;
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if ((c === 0 && r === 0) || (c === exit.x && r === exit.y)) continue;
-                    const cell = grid[r][c];
-                    let wallCount = 0;
-                    if (cell.walls.top) wallCount++;
-                    if (cell.walls.right) wallCount++;
-                    if (cell.walls.bottom) wallCount++;
-                    if (cell.walls.left) wallCount++;
-
-                    // Place in dead ends
-                    if (wallCount >= 3) {
-                        if (Math.random() < 0.65) {
-                            shards.push({ id: shardId++, x: c, y: r, collected: false });
-                        }
-                    }
-                }
-            }
-            updateShardsHUD();
         }
 
         function updateShardsHUD() {
@@ -1472,7 +1644,6 @@
             shardsVal.textContent = `${collected}/${shards.length}`;
         }
 
-        // Reset Game Session
         function resetGameSession() {
             player.x = 0;
             player.y = 0;
@@ -1491,18 +1662,26 @@
             gameActive = true;
             gameWon = false;
             gameLost = false;
-            victoryOverlay.style.display = 'none';
+            isPaused = false;
+            giveUpPending = false;
+            if (giveUpText) giveUpText.textContent = 'Give Up';
+            if (giveUpBtn) giveUpBtn.classList.remove('warn');
+            if (pauseOverlay) pauseOverlay.style.display = 'none';
+            if (pauseText) pauseText.textContent = 'Pause';
+            if (victoryOverlay) victoryOverlay.style.display = 'none';
+            if (resBest) resBest.textContent = '';
 
             clearInterval(timerInterval);
-            startTime = Date.now();
-            elapsedTime = 0;
+            accumulatedElapsed = 0;
+            timerStartedAt = Date.now();
 
             if (currentMode === 'timeAttack') {
-                timeRemaining = timeAttackDurations[currentDiff] * 1000;
+                timeRemaining = (timeAttackDurations[currentDiff] || 55) * 1000;
                 timerVal.textContent = formatTime(timeRemaining);
                 timerVal.classList.remove('warning');
 
                 timerInterval = setInterval(() => {
+                    if (isPaused || !gameActive) return;
                     timeRemaining -= 250;
                     if (timeRemaining <= 10000) {
                         timerVal.classList.add('warning');
@@ -1518,40 +1697,65 @@
                 timerVal.classList.remove('warning');
                 timerVal.textContent = '00:00';
                 timerInterval = setInterval(() => {
-                    elapsedTime = Date.now() - startTime;
-                    timerVal.textContent = formatTime(elapsedTime);
-                }, 500);
+                    if (isPaused || !gameActive) return;
+                    const elapsed = accumulatedElapsed + (Date.now() - timerStartedAt);
+                    timerVal.textContent = formatTime(elapsed);
+                }, 250);
             }
 
             loadBestTime();
+            updateShardsHUD();
             setupCanvasDPI();
 
-            // Auto-Solver mode initialization
             if (currentMode === 'solver') {
                 startAutoSolver();
             }
         }
 
+        function pauseGame() {
+            if (!gameActive || gameWon || gameLost || isPaused) return;
+            isPaused = true;
+            accumulatedElapsed += (Date.now() - timerStartedAt);
+            if (pauseOverlay) pauseOverlay.style.display = 'flex';
+            if (pauseText) pauseText.textContent = 'Resume';
+            if (canvasContainer) canvasContainer.classList.add('paused');
+        }
+
+        function resumeGame() {
+            if (!isPaused || !gameActive) return;
+            isPaused = false;
+            timerStartedAt = Date.now();
+            if (pauseOverlay) pauseOverlay.style.display = 'none';
+            if (pauseText) pauseText.textContent = 'Pause';
+            if (canvasContainer) canvasContainer.classList.remove('paused');
+        }
+
+        function togglePause() {
+            if (isPaused) resumeGame();
+            else pauseGame();
+        }
+
         // =====================================================
-        // 5. BFS PATHFINDING & CLICK-TO-MOVE
+        // 5. PATHFINDING & SOLVERS
         // =====================================================
-        function findPath(from, to) {
+        function findPath(from, to, solverType = currentSolver) {
+            if (E) {
+                const res = E.solveMaze(grid, cols, rows, from, to, solverType);
+                return res.path;
+            }
+            // Fallback BFS
             const queue = [[from]];
             const visited = new Set([`${from.x},${from.y}`]);
-
             while (queue.length > 0) {
                 const path = queue.shift();
                 const curr = path[path.length - 1];
-
                 if (curr.x === to.x && curr.y === to.y) return path;
-
                 const cell = grid[curr.y][curr.x];
                 const moves = [];
                 if (!cell.walls.top && curr.y > 0) moves.push({ x: curr.x, y: curr.y - 1 });
                 if (!cell.walls.right && curr.x < cols - 1) moves.push({ x: curr.x + 1, y: curr.y });
                 if (!cell.walls.bottom && curr.y < rows - 1) moves.push({ x: curr.x, y: curr.y + 1 });
                 if (!cell.walls.left && curr.x > 0) moves.push({ x: curr.x - 1, y: curr.y });
-
                 for (const next of moves) {
                     const key = `${next.x},${next.y}`;
                     if (!visited.has(key)) {
@@ -1564,7 +1768,7 @@
         }
 
         function handleCanvasTapAtClientCoords(clientX, clientY) {
-            if (!gameActive || gameWon || gameLost) return;
+            if (!gameActive || gameWon || gameLost || isPaused) return;
             const rect = canvas.getBoundingClientRect();
             const clickX = ((clientX - rect.left) / rect.width) * 600;
             const clickY = ((clientY - rect.top) / rect.height) * 600;
@@ -1580,35 +1784,38 @@
             }
         }
 
-        // Click / Tap on canvas to navigate
         canvas.addEventListener('click', (e) => {
             handleCanvasTapAtClientCoords(e.clientX, e.clientY);
         });
 
-        var autoWalkTimer = null;
         function walkPathSmoothly(path) {
             if (autoWalkTimer) clearInterval(autoWalkTimer);
             let idx = 0;
             autoWalkTimer = setInterval(() => {
-                if (idx < path.length && gameActive && !gameWon) {
+                if (isPaused) return;
+                if (idx < path.length && gameActive && !gameWon && !gameLost) {
                     const pt = path[idx++];
                     const dx = pt.x - player.x;
                     const dy = pt.y - player.y;
                     executeStep(dx, dy);
                 } else {
                     clearInterval(autoWalkTimer);
+                    autoWalkTimer = null;
                 }
             }, 65);
         }
 
-        // Auto-Solver Run
         function startAutoSolver() {
-            solverPath = findPath({ x: 0, y: 0 }, { x: exit.x, y: exit.y });
+            const solverResult = E ? E.solveMaze(grid, cols, rows, { x: 0, y: 0 }, exit, currentSolver) : null;
+            solverPath = solverResult && solverResult.path ? solverResult.path : findPath({ x: 0, y: 0 }, exit);
             solverStepIndex = 0;
             if (!solverPath) return;
 
             hintPath = solverPath;
+            showToast(`🤖 Solving via ${currentSolver.toUpperCase()}...`);
+
             solverTimer = setInterval(() => {
+                if (isPaused) return;
                 if (solverStepIndex < solverPath.length && !gameWon) {
                     const next = solverPath[solverStepIndex++];
                     player.x = next.x;
@@ -1618,7 +1825,6 @@
                     visitedTrail.add(`${player.x},${player.y}`);
                     SFX.step();
 
-                    // Check shard pickup
                     shards.forEach(s => {
                         if (!s.collected && s.x === player.x && s.y === player.y) {
                             s.collected = true;
@@ -1629,6 +1835,7 @@
 
                     if (player.x === exit.x && player.y === exit.y) {
                         clearInterval(solverTimer);
+                        solverTimer = null;
                         handleVictory();
                     }
                 }
@@ -1639,7 +1846,7 @@
         // 6. MOVEMENT & GAMEPLAY CONTROLS
         // =====================================================
         function executeStep(dx, dy) {
-            if (!gameActive || gameWon || gameLost) return;
+            if (!gameActive || gameWon || gameLost || isPaused) return;
             getAudioContext();
 
             const cell = grid[player.y][player.x];
@@ -1651,7 +1858,6 @@
             if (dx === -1 && !cell.walls.left) canMove = true;
 
             if (canMove) {
-                // Emit contrail particles before moving
                 for (let i = 0; i < 3; i++) {
                     particles.push({
                         x: (player.x + 0.5) * cellSize,
@@ -1673,7 +1879,6 @@
 
                 if (navigator.vibrate) navigator.vibrate(8);
 
-                // Collect shards
                 shards.forEach(shard => {
                     if (!shard.collected && shard.x === player.x && shard.y === player.y) {
                         shard.collected = true;
@@ -1685,7 +1890,7 @@
                 });
 
                 if (hintPath) {
-                    hintPath = findPath({ x: player.x, y: player.y }, { x: exit.x, y: exit.y });
+                    hintPath = findPath({ x: player.x, y: player.y }, exit);
                 }
 
                 if (player.x === exit.x && player.y === exit.y) {
@@ -1704,24 +1909,41 @@
             SFX.win();
             launchConfetti();
 
-            const finalTime = currentMode === 'timeAttack' ? (timeAttackDurations[currentDiff] * 1000 - timeRemaining) : elapsedTime;
-            if (currentMode !== 'solver') saveBestTime(finalTime);
-            overlayDesc.textContent = 'Optimal neural path confirmed. Portal coordinates locked.';
+            const finalTime = currentMode === 'timeAttack'
+                ? ((timeAttackDurations[currentDiff] || 55) * 1000 - timeRemaining)
+                : (accumulatedElapsed + (Date.now() - timerStartedAt));
 
-            // Compute star rating
-            const parSteps = (cols + rows) * 1.35;
-            let stars = '★★★';
-            if (steps > parSteps * 1.7) stars = '★☆☆';
-            else if (steps > parSteps * 1.3) stars = '★★☆';
+            // Record game in statistics
+            let isNewBest = false;
+            if (currentMode !== 'solver' && E) {
+                const rec = E.recordGame(stats, {
+                    won: true,
+                    mode: currentMode,
+                    diff: currentDiff,
+                    timeMs: finalTime,
+                    steps,
+                    shards: shards.filter(s => s.collected).length
+                });
+                stats = rec.stats;
+                isNewBest = rec.isNewBestTime || rec.isNewBestSteps;
+                persistState();
+            }
+
+            overlayDesc.textContent = 'Optimal neural path confirmed. Portal coordinates locked.';
+            const stars = E ? E.calculateStars(steps, cols, rows, optimalSteps) : '★★★';
 
             overlayTitle.textContent = 'SYSTEM PURGED!';
             overlayTitle.className = 'overlay-title';
             overlayStars.textContent = stars;
+            if (resBest) {
+                resBest.textContent = isNewBest ? '⚡ NEW BEST RECORD DETECTED! ⚡' : '';
+            }
             resTime.textContent = formatTime(finalTime);
             resSteps.textContent = steps;
             resShards.textContent = `${shards.filter(s=>s.collected).length} / ${shards.length}`;
             resDiff.textContent = currentDiff.toUpperCase();
 
+            loadBestTime();
             victoryOverlay.style.display = 'flex';
         }
 
@@ -1731,9 +1953,22 @@
             clearInterval(timerInterval);
             SFX.lose();
 
+            if (E) {
+                const rec = E.recordGame(stats, {
+                    won: false,
+                    mode: currentMode,
+                    diff: currentDiff,
+                    steps,
+                    shards: shards.filter(s => s.collected).length
+                });
+                stats = rec.stats;
+                persistState();
+            }
+
             overlayTitle.textContent = 'TIME EXPIRED!';
             overlayTitle.className = 'overlay-title defeat';
             overlayStars.textContent = '☆☆☆';
+            if (resBest) resBest.textContent = '';
             resTime.textContent = '00:00';
             resSteps.textContent = steps;
             resShards.textContent = `${shards.filter(s=>s.collected).length} / ${shards.length}`;
@@ -1743,29 +1978,82 @@
             victoryOverlay.style.display = 'flex';
         }
 
+        function handleSurrender() {
+            if (!gameActive || gameWon || gameLost) return;
+            gameLost = true;
+            gameActive = false;
+            clearInterval(timerInterval);
+            hintPath = optimalSolutionPath || findPath({ x: player.x, y: player.y }, exit);
+
+            if (E) {
+                const rec = E.recordGame(stats, {
+                    won: false,
+                    surrendered: true,
+                    mode: currentMode,
+                    diff: currentDiff,
+                    steps,
+                    shards: shards.filter(s => s.collected).length
+                });
+                stats = rec.stats;
+                persistState();
+            }
+
+            showToast("🏳️ Labyrinth surrendered. Optimal path revealed.");
+            if (giveUpText) giveUpText.textContent = 'Revealed';
+            if (giveUpBtn) giveUpBtn.classList.remove('warn');
+        }
+
         // =====================================================
         // 7. INPUT HANDLERS (KEYBOARD, TOUCH, SWIPE, GAMEPAD)
         // =====================================================
         function handleKeyDown(e) {
-            if (['ArrowUp', 'w', 'W'].includes(e.key)) { e.preventDefault(); activeKeys.up = true; }
-            else if (['ArrowDown', 's', 'S'].includes(e.key)) { e.preventDefault(); activeKeys.down = true; }
-            else if (['ArrowLeft', 'a', 'A'].includes(e.key)) { e.preventDefault(); activeKeys.left = true; }
-            else if (['ArrowRight', 'd', 'D'].includes(e.key)) { e.preventDefault(); activeKeys.right = true; }
-            else if (['h', 'H'].includes(e.key)) { useHint(); }
-            else if (['r', 'R'].includes(e.key)) { generateMaze(); }
-            else if (['?'].includes(e.key)) { toggleHelp(); }
+            // Ignore keystrokes when typing in inputs/selects or when modifier keys held
+            const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-            if (!keyMoveInterval) {
+            const k = e.key.toLowerCase();
+
+            // Navigation
+            if (['arrowup', 'w'].includes(k)) { e.preventDefault(); activeKeys.up = true; }
+            else if (['arrowdown', 's'].includes(k)) { e.preventDefault(); activeKeys.down = true; }
+            else if (['arrowleft', 'a'].includes(k)) { e.preventDefault(); activeKeys.left = true; }
+            else if (['arrowright', 'd'].includes(k)) {
+                // If D is pressed with no other keys, check if user is moving or triggering daily
+                if (k === 'd') {
+                    // ArrowRight or D moves player right
+                    e.preventDefault(); activeKeys.right = true;
+                }
+            }
+            // Shortcuts
+            else if (k === 'n') { e.preventDefault(); generateMaze({ newSeed: true }); }
+            else if (k === 'r') { e.preventDefault(); generateMaze(); }
+            else if (k === 'p' || e.code === 'Space') { e.preventDefault(); togglePause(); }
+            else if (k === 'h') { e.preventDefault(); useHint(); }
+            else if (k === 'g') { e.preventDefault(); giveUpBtn.click(); }
+            else if (k === 't') { e.preventDefault(); toggleStats(); }
+            else if (k === 'm') { e.preventDefault(); soundToggle.click(); }
+            else if (k === '?') { e.preventDefault(); toggleHelp(); }
+            else if (e.key === 'Escape') {
+                e.preventDefault();
+                if (settingsModal.style.display === 'flex') toggleSettings();
+                else if (helpModal.style.display === 'flex') toggleHelp();
+                else if (statsModal && statsModal.style.display === 'flex') toggleStats();
+                else if (isPaused) resumeGame();
+            }
+
+            if (!keyMoveInterval && (activeKeys.up || activeKeys.down || activeKeys.left || activeKeys.right)) {
                 processKeyMovement();
                 keyMoveInterval = setInterval(processKeyMovement, 110);
             }
         }
 
         function handleKeyUp(e) {
-            if (['ArrowUp', 'w', 'W'].includes(e.key)) activeKeys.up = false;
-            else if (['ArrowDown', 's', 'S'].includes(e.key)) activeKeys.down = false;
-            else if (['ArrowLeft', 'a', 'A'].includes(e.key)) activeKeys.left = false;
-            else if (['ArrowRight', 'd', 'D'].includes(e.key)) activeKeys.right = false;
+            const k = e.key.toLowerCase();
+            if (['arrowup', 'w'].includes(k)) activeKeys.up = false;
+            else if (['arrowdown', 's'].includes(k)) activeKeys.down = false;
+            else if (['arrowleft', 'a'].includes(k)) activeKeys.left = false;
+            else if (['arrowright', 'd'].includes(k)) activeKeys.right = false;
 
             if (!activeKeys.up && !activeKeys.down && !activeKeys.left && !activeKeys.right) {
                 clearInterval(keyMoveInterval);
@@ -1783,7 +2071,7 @@
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
-        // Virtual D-Pad with Hold-to-Repeat for Smooth Corridors
+        // Virtual D-Pad
         const dpadMap = { btnUp: [0, -1], btnDown: [0, 1], btnLeft: [-1, 0], btnRight: [1, 0] };
         let dpadHoldInterval = null;
 
@@ -1792,7 +2080,7 @@
             executeStep(dx, dy);
             clearInterval(dpadHoldInterval);
             dpadHoldInterval = setInterval(() => {
-                if (gameActive && !gameWon && !gameLost) {
+                if (gameActive && !gameWon && !gameLost && !isPaused) {
                     executeStep(dx, dy);
                 } else {
                     stopDpadHold();
@@ -1811,34 +2099,15 @@
         Object.entries(dpadMap).forEach(([id, [dx, dy]]) => {
             const el = document.getElementById(id);
             if (!el) return;
-
-            // Touch events for iOS / mobile
-            el.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                startDpadHold(dx, dy, el);
-            }, { passive: false });
-
-            el.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                stopDpadHold();
-            }, { passive: false });
-
-            el.addEventListener('touchcancel', (e) => {
-                e.preventDefault();
-                stopDpadHold();
-            }, { passive: false });
-
-            // Mouse events for desktop testing
-            el.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                startDpadHold(dx, dy, el);
-            });
-
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); startDpadHold(dx, dy, el); }, { passive: false });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); stopDpadHold(); }, { passive: false });
+            el.addEventListener('touchcancel', (e) => { e.preventDefault(); stopDpadHold(); }, { passive: false });
+            el.addEventListener('mousedown', (e) => { e.preventDefault(); startDpadHold(dx, dy, el); });
             el.addEventListener('mouseup', () => stopDpadHold());
             el.addEventListener('mouseleave', () => stopDpadHold());
         });
 
-        // Touch Swipe & Tap on Canvas (with iOS overscroll prevention)
+        // Touch Swipe & Tap on Canvas
         let touchStartX = 0;
         let touchStartY = 0;
         let touchStartTime = 0;
@@ -1855,9 +2124,7 @@
         }, { passive: true });
 
         canvas.addEventListener('touchmove', (e) => {
-            if (isSwiping) {
-                e.preventDefault(); // Stop iOS rubber-band scroll
-            }
+            if (isSwiping) e.preventDefault();
         }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
@@ -1878,12 +2145,11 @@
                     executeStep(0, dy > 0 ? 1 : -1);
                 }
             } else if (dist < 10 && duration < 320) {
-                // Short tap -> auto pathfind
                 handleCanvasTapAtClientCoords(touchEndX, touchEndY);
             }
         }, { passive: false });
 
-        // Gamepad API Polling
+        // Gamepad API
         let lastGamepadTime = 0;
         function pollGamepads() {
             const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -1909,13 +2175,15 @@
         }
         window.addEventListener('gamepadconnected', () => requestAnimationFrame(pollGamepads));
 
-        // Hint Logic
         function useHint() {
-            if (hintsLeft <= 0 || gameWon || gameLost) return;
+            if (hintsLeft <= 0 || gameWon || gameLost || isPaused) {
+                if (hintsLeft <= 0) showToast("No hint charges remaining! Collect shards for hints.");
+                return;
+            }
             hintsLeft--;
             hintsVal.textContent = hintsLeft;
             SFX.hint();
-            hintPath = findPath({ x: player.x, y: player.y }, { x: exit.x, y: exit.y });
+            hintPath = findPath({ x: player.x, y: player.y }, exit);
         }
 
         // =====================================================
@@ -1927,16 +2195,14 @@
         }
 
         function render() {
-            // Apply scale so all drawing uses logical 600x600 space
             const scaleX = canvas.width / 600;
             const scaleY = canvas.height / 600;
             ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
 
-            const t = themes[currentTheme];
+            const t = themes[currentTheme] || themes.cyan;
             ctx.fillStyle = t.bg;
             ctx.fillRect(0, 0, 600, 600);
 
-            // Interpolate player drawing position (smooth lerp movement)
             player.drawX += (player.x - player.drawX) * 0.35;
             player.drawY += (player.y - player.drawY) * 0.35;
 
@@ -1978,7 +2244,8 @@
 
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
-                    const cell = grid[r][c];
+                    const cell = grid[r] && grid[r][c];
+                    if (!cell) continue;
                     const x = c * cellSize;
                     const y = r * cellSize;
 
@@ -2004,7 +2271,7 @@
             }
             ctx.restore();
 
-            // Draw Energy Shards (Rotating Data Crystals)
+            // Draw Energy Shards
             shards.forEach(s => {
                 if (s.collected) return;
                 const sx = (s.x + 0.5) * cellSize;
@@ -2027,7 +2294,7 @@
                 ctx.restore();
             });
 
-            // Draw Exit Portal (Rotating Event Horizon)
+            // Draw Exit Portal
             portalAngle += 0.035;
             const exitX = (exit.x + 0.5) * cellSize;
             const exitY = (exit.y + 0.5) * cellSize;
@@ -2096,14 +2363,13 @@
             ctx.arc(pX, pY, pRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Avatar Inner Energy Core
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.arc(pX, pY, pRadius * 0.42, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
 
-            // Fog of War / Darkness Mode Overlay with Sonar Radar Sweep
+            // Fog of War
             if (currentMode === 'darkness') {
                 radarAngle += 0.04;
                 const fogRadius = cellSize * 4.0;
@@ -2115,7 +2381,6 @@
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, 600, 600);
 
-                // Sonar Radar Sweep Line
                 ctx.save();
                 ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
                 ctx.lineWidth = 1.5;
@@ -2136,23 +2401,22 @@
             expCanvas.height = 1200;
             const eCtx = expCanvas.getContext('2d');
 
-            // Draw High-Res Canvas
-            eCtx.fillStyle = themes[currentTheme].bg;
+            const t = themes[currentTheme] || themes.cyan;
+            eCtx.fillStyle = t.bg;
             eCtx.fillRect(0, 0, 1200, 1200);
 
-            // Scale to 1200
             eCtx.scale(2, 2);
             renderOnCustomContext(eCtx);
 
-            // Download trigger
             const link = document.createElement('a');
             link.download = `cyber_maze_${currentDiff}_${Date.now()}.png`;
             link.href = expCanvas.toDataURL('image/png');
             link.click();
+            showToast("📷 Wallpaper exported successfully!");
         }
 
         function renderOnCustomContext(targetCtx) {
-            const t = themes[currentTheme];
+            const t = themes[currentTheme] || themes.cyan;
             targetCtx.strokeStyle = t.wall;
             targetCtx.lineWidth = Math.max(2, cellSize * 0.12);
             targetCtx.shadowBlur = 10;
@@ -2161,7 +2425,8 @@
             targetCtx.beginPath();
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
-                    const cell = grid[r][c];
+                    const cell = grid[r] && grid[r][c];
+                    if (!cell) continue;
                     const x = c * cellSize;
                     const y = r * cellSize;
                     if (cell.walls.top) { targetCtx.moveTo(x, y); targetCtx.lineTo(x + cellSize, y); }
@@ -2174,70 +2439,225 @@
         }
 
         // =====================================================
-        // 10. EVENT LISTENERS & INITIALIZATION
+        // 10. STATS TELEMETRY MODAL
+        // =====================================================
+        function renderStats() {
+            if (!statsBody) return;
+            const winRate = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
+
+            let recordsHtml = '';
+            const bestEntries = stats.best ? Object.entries(stats.best) : [];
+            if (bestEntries.length === 0) {
+                recordsHtml = '<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:12px;">No recorded completed missions yet.</div>';
+            } else {
+                recordsHtml = bestEntries.map(([k, v]) => {
+                    const [mode, diff] = k.split('|');
+                    const timeStr = v.timeMs ? formatTime(v.timeMs) : '--:--';
+                    const stepsStr = v.steps ? `${v.steps} steps` : '';
+                    return `<div class="record-row">
+                        <span>${(mode || '').toUpperCase()} · ${(diff || '').toUpperCase()}</span>
+                        <span>${timeStr} ${stepsStr ? '· ' + stepsStr : ''}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            statsBody.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-title">EXPEDITIONS</div>
+                        <div class="stat-card-val">${stats.played}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-title">WIN RATE</div>
+                        <div class="stat-card-val">${winRate}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-title">TOTAL STEPS</div>
+                        <div class="stat-card-val">${stats.totalSteps.toLocaleString()}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-title">SHARDS FOUND</div>
+                        <div class="stat-card-val" style="color:var(--neon-yellow);">${stats.shardsCollected}</div>
+                    </div>
+                </div>
+                <div class="stat-card-title" style="margin-bottom:6px;">BEST MISSION RECORDS</div>
+                <div class="records-section">${recordsHtml}</div>
+            `;
+        }
+
+        function toggleStats() {
+            if (!statsModal) return;
+            const open = statsModal.style.display === 'flex';
+            if (open) {
+                statsModal.style.display = 'none';
+                resetStatsPending = false;
+                if (resetStatsText) resetStatsText.textContent = 'Reset Stats';
+                if (resetStatsBtn) resetStatsBtn.classList.remove('warn');
+                if (isPaused) resumeGame();
+            } else {
+                pauseGame();
+                renderStats();
+                statsModal.style.display = 'flex';
+            }
+        }
+
+        if (statsBtn) statsBtn.addEventListener('click', toggleStats);
+        if (statsClose) statsClose.addEventListener('click', toggleStats);
+        if (statsModal) statsModal.addEventListener('click', (e) => {
+            if (e.target === statsModal) toggleStats();
+        });
+
+        if (resetStatsBtn) {
+            resetStatsBtn.addEventListener('click', () => {
+                if (!resetStatsPending) {
+                    resetStatsPending = true;
+                    if (resetStatsText) resetStatsText.textContent = 'Click again to confirm';
+                    clearTimeout(resetStatsTimeout);
+                    resetStatsTimeout = setTimeout(() => {
+                        resetStatsPending = false;
+                        if (resetStatsText) resetStatsText.textContent = 'Reset Stats';
+                    }, 3500);
+                } else {
+                    resetStatsPending = false;
+                    clearTimeout(resetStatsTimeout);
+                    if (resetStatsText) resetStatsText.textContent = 'Reset Stats';
+                    stats = E ? E.emptyStats() : { played: 0, won: 0, surrendered: 0, totalSteps: 0, shardsCollected: 0, best: {} };
+                    persistState();
+                    renderStats();
+                    loadBestTime();
+                    showToast("Telemetry records reset.");
+                }
+            });
+        }
+
+        // =====================================================
+        // 11. EVENT LISTENERS & INITIALIZATION
         // =====================================================
         modeTabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 modeTabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 currentMode = tab.getAttribute('data-mode');
+                settings.mode = currentMode;
+                persistState();
                 generateMaze();
             });
         });
 
-        diffSelect.addEventListener('change', () => {
-            currentDiff = diffSelect.value;
-            generateMaze();
-        });
+        if (diffSelect) {
+            diffSelect.addEventListener('change', () => {
+                currentDiff = diffSelect.value;
+                settings.diff = currentDiff;
+                persistState();
+                generateMaze({ newSeed: true });
+            });
+        }
 
-        algoSelect.addEventListener('change', () => {
-            currentAlgo = algoSelect.value;
-            generateMaze();
-        });
+        if (algoSelect) {
+            algoSelect.addEventListener('change', () => {
+                currentAlgo = algoSelect.value;
+                settings.algo = currentAlgo;
+                persistState();
+                generateMaze({ newSeed: true });
+            });
+        }
 
-        themeSelect.addEventListener('change', () => {
-            currentTheme = themeSelect.value;
-        });
+        if (solverSelect) {
+            solverSelect.addEventListener('change', () => {
+                currentSolver = solverSelect.value;
+                settings.solver = currentSolver;
+                persistState();
+                if (currentMode === 'solver') startAutoSolver();
+            });
+        }
 
-        hintBtn.addEventListener('click', useHint);
-        regenBtn.addEventListener('click', generateMaze);
-        nextMazeBtn.addEventListener('click', generateMaze);
-        exportBtn.addEventListener('click', exportMazePNG);
-        overlayExportBtn.addEventListener('click', exportMazePNG);
+        if (themeSelect) {
+            themeSelect.addEventListener('change', () => {
+                currentTheme = themeSelect.value;
+                settings.theme = currentTheme;
+                persistState();
+            });
+        }
 
-        trailToggleBtn.addEventListener('click', () => {
-            showTrail = !showTrail;
+        if (seedInput) {
+            seedInput.addEventListener('change', () => {
+                const s = seedInput.value.trim();
+                if (s) generateMaze({ seed: s });
+            });
+        }
+
+        if (hintBtn) hintBtn.addEventListener('click', useHint);
+        if (regenBtn) regenBtn.addEventListener('click', () => generateMaze({ newSeed: true }));
+        if (replayBtn) replayBtn.addEventListener('click', () => generateMaze());
+        if (dailyBtn) dailyBtn.addEventListener('click', () => generateMaze({ daily: true }));
+        if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+        if (pauseOverlay) pauseOverlay.addEventListener('click', resumeGame);
+
+        if (giveUpBtn) {
+            giveUpBtn.addEventListener('click', () => {
+                if (!giveUpPending) {
+                    giveUpPending = true;
+                    if (giveUpText) giveUpText.textContent = 'Sure?';
+                    giveUpBtn.classList.add('warn');
+                    clearTimeout(giveUpTimeout);
+                    giveUpTimeout = setTimeout(() => {
+                        giveUpPending = false;
+                        if (giveUpText) giveUpText.textContent = 'Give Up';
+                        giveUpBtn.classList.remove('warn');
+                    }, 3500);
+                } else {
+                    giveUpPending = false;
+                    clearTimeout(giveUpTimeout);
+                    handleSurrender();
+                }
+            });
+        }
+
+        if (nextMazeBtn) nextMazeBtn.addEventListener('click', () => generateMaze({ newSeed: true }));
+        if (exportBtn) exportBtn.addEventListener('click', exportMazePNG);
+        if (overlayExportBtn) overlayExportBtn.addEventListener('click', exportMazePNG);
+
+        if (trailToggleBtn) {
+            trailToggleBtn.addEventListener('click', () => {
+                showTrail = !showTrail;
+                settings.trail = showTrail;
+                persistState();
+                trailToggleBtn.innerHTML = `<span>🐾</span> Trail: ${showTrail ? 'ON' : 'OFF'}`;
+            });
             trailToggleBtn.innerHTML = `<span>🐾</span> Trail: ${showTrail ? 'ON' : 'OFF'}`;
-        });
+        }
 
-        // D-Pad Visibility Toggle (saves extra space on mobile if swiping)
-        let dpadVisible = localStorage.getItem('cyber_maze_dpad') !== 'false';
+        // D-Pad Visibility
+        let dpadVisible = settings.dpad !== false;
         function applyDpadVisibility() {
-            if (mobileDpad) {
-                mobileDpad.style.display = dpadVisible ? 'flex' : 'none';
-            }
-            if (dpadToggleBtn) {
-                dpadToggleBtn.classList.toggle('active', dpadVisible);
-            }
+            if (mobileDpad) mobileDpad.style.display = dpadVisible ? 'flex' : 'none';
+            if (dpadToggleBtn) dpadToggleBtn.classList.toggle('active', dpadVisible);
             setTimeout(setupCanvasDPI, 50);
         }
         applyDpadVisibility();
 
-        dpadToggleBtn.addEventListener('click', () => {
-            dpadVisible = !dpadVisible;
-            localStorage.setItem('cyber_maze_dpad', dpadVisible ? 'true' : 'false');
-            applyDpadVisibility();
-        });
+        if (dpadToggleBtn) {
+            dpadToggleBtn.addEventListener('click', () => {
+                dpadVisible = !dpadVisible;
+                settings.dpad = dpadVisible;
+                persistState();
+                applyDpadVisibility();
+            });
+        }
 
-        soundToggle.addEventListener('click', () => {
-            soundOn = !soundOn;
-            soundIcon.textContent = soundOn ? '🔊' : '🔇';
-            if (soundOn) getAudioContext();
-        });
+        if (soundToggle) {
+            soundToggle.addEventListener('click', () => {
+                soundOn = !soundOn;
+                settings.sound = soundOn;
+                persistState();
+                if (soundIcon) soundIcon.textContent = soundOn ? '🔊' : '🔇';
+                if (soundOn) getAudioContext();
+            });
+        }
 
-        droneToggleBtn.addEventListener('click', toggleDrone);
+        if (droneToggleBtn) droneToggleBtn.addEventListener('click', toggleDrone);
 
-        // iOS & Universal Fullscreen Mode
+        // Fullscreen Mode
         function toggleFullscreen() {
             const isCurrentlyFs = document.body.classList.contains('zen-fullscreen') || 
                                   !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -2267,8 +2687,8 @@
             setTimeout(setupCanvasDPI, 60);
         }
 
-        fullscreenBtn.addEventListener('click', toggleFullscreen);
-        floatingExitFs.addEventListener('click', toggleFullscreen);
+        if (fullscreenBtn) fullscreenBtn.addEventListener('click', toggleFullscreen);
+        if (floatingExitFs) floatingExitFs.addEventListener('click', toggleFullscreen);
 
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) document.body.classList.remove('zen-fullscreen');
@@ -2281,27 +2701,46 @@
 
         // Settings Modal
         function toggleSettings() {
-            settingsModal.style.display = settingsModal.style.display === 'flex' ? 'none' : 'flex';
+            const open = settingsModal.style.display === 'flex';
+            if (open) {
+                settingsModal.style.display = 'none';
+                if (isPaused) resumeGame();
+            } else {
+                pauseGame();
+                settingsModal.style.display = 'flex';
+            }
         }
-        settingsBtn.addEventListener('click', toggleSettings);
-        settingsClose.addEventListener('click', toggleSettings);
-        settingsModal.addEventListener('click', (e) => {
+        if (settingsBtn) settingsBtn.addEventListener('click', toggleSettings);
+        if (settingsClose) settingsClose.addEventListener('click', toggleSettings);
+        if (settingsModal) settingsModal.addEventListener('click', (e) => {
             if (e.target === settingsModal) toggleSettings();
         });
 
         // Help Modal
         function toggleHelp() {
-            helpModal.style.display = helpModal.style.display === 'flex' ? 'none' : 'flex';
+            const open = helpModal.style.display === 'flex';
+            if (open) {
+                helpModal.style.display = 'none';
+                if (isPaused) resumeGame();
+            } else {
+                pauseGame();
+                helpModal.style.display = 'flex';
+            }
         }
-        helpBtn.addEventListener('click', toggleHelp);
-        helpClose.addEventListener('click', toggleHelp);
-        helpModal.addEventListener('click', (e) => {
+        if (helpBtn) helpBtn.addEventListener('click', toggleHelp);
+        if (helpClose) helpClose.addEventListener('click', toggleHelp);
+        if (helpModal) helpModal.addEventListener('click', (e) => {
             if (e.target === helpModal) toggleHelp();
+        });
+
+        // Visibility change auto-pause
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) pauseGame();
         });
 
         // Initialize Engine & Animation Loop
         generateMaze();
         requestAnimationFrame(renderLoop);
-    </script>
+</script>
 </body>
 </html>

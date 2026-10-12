@@ -353,14 +353,14 @@ bun run applications/connect4_studio.ts --server
   writeFileSync(join(outDir, "37_maze_generator_studio.md"), `# 🌀 Cyberpunk Maze Generator & Solver -- Complete Production User Guide
 
 \`\`\`
-Version: 2.4.0  •  Engine: Procedural Maze Graph Algorithms & A*/Dijkstra Solvers  •  Dependencies: 0  •  Offline: 100%
+Version: 2.5.0  •  Engine: 5 Graph Theory Generators & A*/Dijkstra/BFS Solvers  •  Dependencies: 0  •  Works offline (fonts load online, with system fallback)
 Launchers: [Desktop GUI: bun run app:maze]  •  [Headless Server: bun run applications/maze_generator_studio.ts --server]
 \`\`\`
 
 ---
 
 ## 🌟 Executive Overview
-**Cyberpunk Maze Generator & Solver** is an interactive procedural labyrinth generation, pathfinding visualization, and exploration studio built natively for Bun RAD Studio. It provides live visual demonstrations of graph theory algorithms, dynamic neon particle trails, and interactive player navigation with optional fog-of-war.
+**Cyberpunk Maze Generator & Solver** is an interactive procedural labyrinth workstation, pathfinding visualization platform, and exploration arcade game built natively for Bun RAD Studio. It provides mathematical demonstrations of 5 graph theory algorithms, 3 real-time pathfinding solvers, high-DPI neon canvas rendering with circuit glow, ambient cyber drone synthesizer, daily challenges, and telemetry records.
 
 ---
 
@@ -387,23 +387,47 @@ bun run applications/maze_generator_studio.ts --server
 ## 🧭 Procedural Algorithms & Solvers
 
 ### 1. Maze Generation Algorithms
-- **Recursive Backtracker**: Produces long, winding corridors with deep solution paths.
-- **Prim's Algorithm**: Generates short, highly branched mazes with numerous dead ends.
-- **Kruskal's Algorithm**: Randomized minimum spanning tree algorithm creating balanced labyrinths.
-- **Wilson's Algorithm**: Generates completely unbiased uniform spanning trees using loop-erased random walks.
+- **Recursive Backtracker (DFS)**: Produces long, winding corridors with deep solution paths and high bottleneck complexity.
+- **Randomized Prim's**: Generates short, highly branched mazes with numerous dead ends and high fractal density.
+- **Randomized Kruskal's**: Balanced spanning tree built via disjoint set edge merges and minimum spanning tree logic.
+- **Wilson's Algorithm**: Generates completely unbiased uniform random spanning trees using loop-erased random walks.
+- **Braided Labyrinth**: Removes dead ends by selectively punching loop connections, creating multiple viable paths.
 
 ### 2. Real-Time Pathfinding Solvers
 - **A* Search (A-Star)**: Heuristic-driven shortest path finder using Manhattan distance ($f(n) = g(n) + h(n)$).
-- **Dijkstra's Algorithm**: Exhaustive breadth-first wavefront exploration showing every visited node in glowing neon.
+- **Dijkstra's Algorithm**: Exhaustive uniform-cost wavefront expansion showing every visited node in glowing neon.
+- **Breadth-First Search (BFS)**: Unweighted level-order exploration exploring radially from the player position.
+
+---
+
+## 🕹️ Exploration Modes & Gameplay
+- **Classic**: Pure exploration at your own pace with move counting and personal best tracking.
+- **Time Attack**: High-stress neural countdown timer with audible warning ticks under 10 seconds.
+- **Fog of War**: Deep darkness with a rotating sonar sweep illuminating only nearby corridors.
+- **AI Solver**: Automated real-time step navigation watching algorithms explore and navigate to the exit portal.
+- **Daily Challenge (D)**: Synchronized calendar-day puzzle identical across all users on that date.
+- **Replay (R)**: Restarts the exact same labyrinth from scratch with 0 steps and reset timer.
+- **Pause (P / Space)**: Real timer freeze with backdrop blur overlay; also pauses on modal open or window blur.
+- **Give Up (G)**: Two-click confirmation reveals the optimal solution path and logs mission surrender.
+- **Telemetry & Stats (T)**: Tracks expeditions, win rate, total steps, shards found, and best times/steps per mode and size (with 2-click reset).
+- **Energy Shards**: Scattered throughout dead-end corridors; collecting them replenishes neural hint charges.
+- **Persistence**: Preferences and telemetry persist across runs in \`.maze_generator_state.json\` in the launch folder.
 
 ---
 
 ## ⌨️ Controls Reference
-- **Interactive Player Movement**: \`WASD\` or \`Arrow Keys\`
-- **Generate New Maze**: \`N\` or \`Space\`
-- **Toggle AI Solver**: \`S\`
-- **Clear Solution Path**: \`C\`
-- **Fullscreen**: \`F\` / \`F11\`
+- **Player Movement**: \`W\` \`A\` \`S\` \`D\` or \`Arrow Keys\`
+- **New Labyrinth (N)**: Generates a fresh random maze with new seed
+- **Replay Labyrinth (R)**: Restarts current maze from start with same seed
+- **Daily Labyrinth (D)**: Loads synchronized daily challenge
+- **Pause / Resume (P / Space)**: Freezes game session and timer
+- **Neural Hint (H)**: Highlights optimal path (consumes 1 hint charge)
+- **Give Up (G)**: 2-click confirm reveals solution and logs surrender
+- **Telemetry & Stats (T)**: Opens mission records and performance metrics
+- **Toggle Sound (M)**: Mutes or unmutes Web Audio sound effects
+- **Help (?)**: Opens system protocols and rules
+- **Close / Unpause (Esc)**: Closes open modals or resumes game
+- **Fullscreen (F / F11)**: Toggles distraction-free fullscreen mode
 `);
 
   // 38_pong_arcade.md
