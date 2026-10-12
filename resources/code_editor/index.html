@@ -330,6 +330,7 @@
     }
 
     /* Zen / Distraction-Free Mode */
+    #app-container.zen-mode #app-menubar,
     #app-container.zen-mode #top-toolbar,
     #app-container.zen-mode #activity-bar,
     #app-container.zen-mode #sidebar-pane,
@@ -359,6 +360,306 @@
     }
     #app-container.zen-mode #zen-exit-btn {
       display: block;
+    }
+
+    /* ==========================================================================
+       Desktop Application Menu Bar (Top Tier)
+       ========================================================================== */
+    #app-menubar {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 30px;
+      padding: 0 10px;
+      background: var(--bg-activity);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      z-index: 100;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .menubar-left {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      height: 100%;
+    }
+
+    .menubar-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px 0 2px;
+      margin-right: 6px;
+      border-right: 1px solid var(--border-subtle);
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--text-bright);
+      cursor: pointer;
+    }
+
+    .menubar-logo-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+
+    .menubar-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 4px;
+      color: var(--text-main);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+
+    .menubar-item:hover,
+    .menubar-item.active {
+      background: var(--bg-tab-hover);
+      color: var(--text-bright);
+    }
+
+    .menubar-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 250px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+      padding: 5px 0;
+      z-index: 10000;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .menubar-item.active .menubar-dropdown {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      animation: menuFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes menuFadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .menu-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: var(--text-main);
+      cursor: pointer;
+      gap: 16px;
+      transition: background 0.1s ease, color 0.1s ease;
+      white-space: nowrap;
+    }
+
+    .menu-row:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .menu-row:hover .menu-shortcut {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .menu-row:hover .menu-check {
+      color: #fff;
+    }
+
+    .menu-row.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .menu-row-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-check {
+      display: inline-block;
+      width: 14px;
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .menu-check.hidden {
+      visibility: hidden;
+    }
+
+    .menu-label {
+      font-weight: 400;
+    }
+
+    .menu-shortcut {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.2px;
+    }
+
+    .menu-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 4px 0;
+    }
+
+    /* Menubar Center */
+    .menubar-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      max-width: 440px;
+    }
+
+    .menubar-title-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .menubar-title-pill:hover {
+      border-color: var(--accent);
+      color: var(--text-bright);
+    }
+
+    .title-pill-icon {
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .title-pill-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Menubar Right & Auto Save Pill */
+    .menubar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .autosave-quick-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .autosave-quick-badge:hover {
+      border-color: var(--accent);
+    }
+
+    .autosave-quick-badge.on {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(34, 197, 94, 0.12);
+      color: #4ade80;
+    }
+
+    .autosave-quick-badge.on .autosave-indicator-dot {
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+    }
+
+    .autosave-quick-badge.saving {
+      border-color: rgba(56, 189, 248, 0.5);
+      background: rgba(56, 189, 248, 0.18);
+      color: #38bdf8;
+    }
+
+    .autosave-quick-badge.saving .autosave-indicator-dot {
+      background: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+      animation: pulseDot 0.8s infinite alternate;
+    }
+
+    .autosave-indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      display: inline-block;
+      transition: background 0.2s ease;
+    }
+
+    @keyframes pulseDot {
+      from { transform: scale(0.85); opacity: 0.5; }
+      to { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* Status Bar Clickable & Auto Save */
+    .status-item.clickable {
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+    .status-item.clickable:hover {
+      color: var(--text-bright);
+    }
+    .autosave-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+      background: var(--text-muted);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .autosave-status-dot.on {
+      background: #22c55e;
+      box-shadow: 0 0 5px rgba(34, 197, 94, 0.6);
+    }
+    .autosave-status-dot.off {
+      background: #ef4444;
     }
 
     /* ==========================================================================
@@ -1654,7 +1955,7 @@
       inset: 0;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(4px);
-      z-index: 100;
+      z-index: 20000;
       display: none;
       align-items: flex-start;
       justify-content: center;
@@ -1795,6 +2096,438 @@
     
     <!-- Floating Exit Button for Zen Mode -->
     <button id="zen-exit-btn" title="Exit Zen Mode (F11)">✕ Exit Zen Mode</button>
+
+    <!-- Top Workstation Menu Bar (Tier 1 Desktop Menu) -->
+    <nav id="app-menubar" aria-label="Application Menu Bar">
+      <div class="menubar-left">
+        <div class="menubar-brand" id="menubar-brand-logo" title="NovaCode Studio Pro">
+          <span class="menubar-logo-icon">&lt;/&gt;</span>
+          <span class="menubar-app-title">NovaCode</span>
+        </div>
+
+        <!-- 1. File Menu -->
+        <div class="menubar-item" data-menu="file" tabindex="0">
+          <span class="menubar-item-label">File</span>
+          <div class="menubar-dropdown" id="dropdown-file">
+            <div class="menu-row" data-action="new-file">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">New File...</span></div>
+              <span class="menu-shortcut">Ctrl+N</span>
+            </div>
+            <div class="menu-row" data-action="new-untitled">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">New Untitled Document</span></div>
+              <span class="menu-shortcut">Alt+N</span>
+            </div>
+            <div class="menu-row" data-action="open-file">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Open File / Quick Open...</span></div>
+              <span class="menu-shortcut">Ctrl+P</span>
+            </div>
+            <div class="menu-row" data-action="open-workspace">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Open Workspace...</span></div>
+              <span class="menu-shortcut">Ctrl+O</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="save">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Save</span></div>
+              <span class="menu-shortcut">Ctrl+S</span>
+            </div>
+            <div class="menu-row" data-action="save-as">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Save As...</span></div>
+              <span class="menu-shortcut">Ctrl+Shift+S</span>
+            </div>
+            <div class="menu-row" data-action="save-all">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Save All</span></div>
+              <span class="menu-shortcut">Ctrl+Alt+S</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row checkable" data-action="toggle-autosave" id="menu-row-autosave">
+              <div class="menu-row-left"><span class="menu-check" id="menu-check-autosave">✓</span><span class="menu-label">Auto Save</span></div>
+              <span class="menu-shortcut">Auto</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="close-tab">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Close Tab</span></div>
+              <span class="menu-shortcut">Ctrl+W</span>
+            </div>
+            <div class="menu-row" data-action="close-all-tabs">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Close All Tabs</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="close-other-tabs">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Close Other Tabs</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="revert-file">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Revert File Changes</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="download-file">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Download Active File</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Edit Menu -->
+        <div class="menubar-item" data-menu="edit" tabindex="0">
+          <span class="menubar-item-label">Edit</span>
+          <div class="menubar-dropdown" id="dropdown-edit">
+            <div class="menu-row" data-action="undo">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Undo</span></div>
+              <span class="menu-shortcut">Ctrl+Z</span>
+            </div>
+            <div class="menu-row" data-action="redo">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Redo</span></div>
+              <span class="menu-shortcut">Ctrl+Y</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="cut">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Cut</span></div>
+              <span class="menu-shortcut">Ctrl+X</span>
+            </div>
+            <div class="menu-row" data-action="copy">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Copy</span></div>
+              <span class="menu-shortcut">Ctrl+C</span>
+            </div>
+            <div class="menu-row" data-action="paste">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Paste</span></div>
+              <span class="menu-shortcut">Ctrl+V</span>
+            </div>
+            <div class="menu-row" data-action="clipboard-history">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clipboard Ring History...</span></div>
+              <span class="menu-shortcut">Ctrl+Shift+V</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="find">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Find in File...</span></div>
+              <span class="menu-shortcut">Ctrl+F</span>
+            </div>
+            <div class="menu-row" data-action="replace">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Replace in File...</span></div>
+              <span class="menu-shortcut">Ctrl+H</span>
+            </div>
+            <div class="menu-row" data-action="find-in-workspace">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Find in Workspace...</span></div>
+              <span class="menu-shortcut">Ctrl+Shift+F</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="toggle-comment">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Line Comment</span></div>
+              <span class="menu-shortcut">Ctrl+/</span>
+            </div>
+            <div class="menu-row" data-action="toggle-block-comment">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Block Comment</span></div>
+              <span class="menu-shortcut">Shift+Alt+A</span>
+            </div>
+            <div class="menu-row" data-action="format-doc">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Format Document</span></div>
+              <span class="menu-shortcut">Shift+Alt+F</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="transform-upper">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Transform to UPPERCASE</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="transform-lower">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Transform to lowercase</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="transform-title">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Transform to Title Case</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="sort-lines-asc">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Sort Lines (A-Z)</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="sort-lines-desc">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Sort Lines (Z-A)</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="remove-duplicate-lines">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Remove Duplicate Lines</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="trim-whitespace">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Trim Trailing Whitespace</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Selection Menu -->
+        <div class="menubar-item" data-menu="selection" tabindex="0">
+          <span class="menubar-item-label">Selection</span>
+          <div class="menubar-dropdown" id="dropdown-selection">
+            <div class="menu-row" data-action="select-all">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Select All</span></div>
+              <span class="menu-shortcut">Ctrl+A</span>
+            </div>
+            <div class="menu-row" data-action="select-word">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Expand Word / Next Match</span></div>
+              <span class="menu-shortcut">Ctrl+D</span>
+            </div>
+            <div class="menu-row" data-action="select-line">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Select Current Line</span></div>
+              <span class="menu-shortcut">Ctrl+L</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="duplicate-line-down">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Duplicate Line Down</span></div>
+              <span class="menu-shortcut">Shift+Alt+Down</span>
+            </div>
+            <div class="menu-row" data-action="duplicate-line-up">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Duplicate Line Up</span></div>
+              <span class="menu-shortcut">Shift+Alt+Up</span>
+            </div>
+            <div class="menu-row" data-action="move-line-up">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Move Line Up</span></div>
+              <span class="menu-shortcut">Alt+Up</span>
+            </div>
+            <div class="menu-row" data-action="move-line-down">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Move Line Down</span></div>
+              <span class="menu-shortcut">Alt+Down</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="delete-line">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Delete Line</span></div>
+              <span class="menu-shortcut">Ctrl+Shift+K</span>
+            </div>
+            <div class="menu-row" data-action="join-lines">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Join Lines</span></div>
+              <span class="menu-shortcut">Ctrl+J</span>
+            </div>
+            <div class="menu-row" data-action="indent-selection">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Indent Line / Selection</span></div>
+              <span class="menu-shortcut">Tab / Ctrl+]</span>
+            </div>
+            <div class="menu-row" data-action="outdent-selection">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Outdent Line / Selection</span></div>
+              <span class="menu-shortcut">Shift+Tab / Ctrl+[</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. View Menu -->
+        <div class="menubar-item" data-menu="view" tabindex="0">
+          <span class="menubar-item-label">View</span>
+          <div class="menubar-dropdown" id="dropdown-view">
+            <div class="menu-row checkable" data-action="toggle-word-wrap">
+              <div class="menu-row-left"><span class="menu-check" id="menu-check-wrap">✓</span><span class="menu-label">Toggle Word Wrap</span></div>
+              <span class="menu-shortcut">Alt+Z</span>
+            </div>
+            <div class="menu-row checkable" data-action="toggle-minimap">
+              <div class="menu-row-left"><span class="menu-check" id="menu-check-minimap">✓</span><span class="menu-label">Toggle Minimap</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row checkable" data-action="toggle-line-numbers">
+              <div class="menu-row-left"><span class="menu-check" id="menu-check-linenums">✓</span><span class="menu-label">Toggle Line Numbers</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row checkable" data-action="toggle-preview">
+              <div class="menu-row-left"><span class="menu-check" id="menu-check-preview">✓</span><span class="menu-label">Toggle Split Live Preview</span></div>
+              <span class="menu-shortcut">Ctrl+\</span>
+            </div>
+            <div class="menu-row" data-action="toggle-drawer">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Developer Drawer</span></div>
+              <span class="menu-shortcut">Ctrl+`</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="view-explorer">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">File Explorer</span></div>
+              <span class="menu-shortcut">Ctrl+Shift+E</span>
+            </div>
+            <div class="menu-row" data-action="view-search">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Global Workspace Search</span></div>
+              <span class="menu-shortcut">Ctrl+Shift+F</span>
+            </div>
+            <div class="menu-row" data-action="view-outline">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Symbol Outline</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="view-bookmarks">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Bookmarks & Breakpoints</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="view-clipboard">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clipboard Ring History</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="view-git">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Git Diff & Changes</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="zoom-in">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Zoom In (Text Scale)</span></div>
+              <span class="menu-shortcut">Ctrl+=</span>
+            </div>
+            <div class="menu-row" data-action="zoom-out">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Zoom Out (Text Scale)</span></div>
+              <span class="menu-shortcut">Ctrl+-</span>
+            </div>
+            <div class="menu-row" data-action="zoom-reset">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Reset Zoom</span></div>
+              <span class="menu-shortcut">Ctrl+0</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row checkable" data-action="toggle-zen">
+              <div class="menu-row-left"><span class="menu-check" id="menu-check-zen">✓</span><span class="menu-label">Zen / Fullscreen Mode</span></div>
+              <span class="menu-shortcut">F11</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="theme-onedark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Theme: One Dark Pro</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="theme-dracula">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Theme: Dracula Modern</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="theme-monokai">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Theme: Monokai Pro</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="theme-github">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Theme: GitHub Dark</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="theme-nordic">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Theme: Nordic Frost</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="theme-solarized">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Theme: Solarized Light</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Go Menu -->
+        <div class="menubar-item" data-menu="go" tabindex="0">
+          <span class="menubar-item-label">Go</span>
+          <div class="menubar-dropdown" id="dropdown-go">
+            <div class="menu-row" data-action="go-to-file">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Go to File / Quick Open...</span></div>
+              <span class="menu-shortcut">Ctrl+P</span>
+            </div>
+            <div class="menu-row" data-action="go-to-line">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Go to Line...</span></div>
+              <span class="menu-shortcut">Ctrl+G</span>
+            </div>
+            <div class="menu-row" data-action="go-to-symbol">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Go to Symbol in File...</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="next-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Next Bookmark</span></div>
+              <span class="menu-shortcut">F2</span>
+            </div>
+            <div class="menu-row" data-action="prev-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Previous Bookmark</span></div>
+              <span class="menu-shortcut">Shift+F2</span>
+            </div>
+            <div class="menu-row" data-action="toggle-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Bookmark on Line</span></div>
+              <span class="menu-shortcut">Ctrl+F2</span>
+            </div>
+            <div class="menu-row" data-action="clear-bookmarks">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clear All Bookmarks</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="next-match">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Next Search Match</span></div>
+              <span class="menu-shortcut">Enter</span>
+            </div>
+            <div class="menu-row" data-action="prev-match">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Previous Search Match</span></div>
+              <span class="menu-shortcut">Shift+Enter</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Tools Menu -->
+        <div class="menubar-item" data-menu="tools" tabindex="0">
+          <span class="menubar-item-label">Tools</span>
+          <div class="menubar-dropdown" id="dropdown-tools">
+            <div class="menu-row" data-action="run-file">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">▶ Run Active File</span></div>
+              <span class="menu-shortcut">Ctrl+Enter</span>
+            </div>
+            <div class="menu-row" data-action="prettify">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">✨ Format / Prettify Document</span></div>
+              <span class="menu-shortcut">Shift+Alt+F</span>
+            </div>
+            <div class="menu-row" data-action="minify-code">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Minify JSON / Code</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="base64-encode">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Base64 Encode Selection</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="base64-decode">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Base64 Decode Selection</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="url-encode">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">URL Encode Selection</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="url-decode">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">URL Decode Selection</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="regex-sandbox">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Regex Sandbox Tester</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Help Menu -->
+        <div class="menubar-item" data-menu="help" tabindex="0">
+          <span class="menubar-item-label">Help</span>
+          <div class="menubar-dropdown" id="dropdown-help">
+            <div class="menu-row" data-action="shortcuts">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Keyboard Shortcuts Reference</span></div>
+              <span class="menu-shortcut">F1</span>
+            </div>
+            <div class="menu-row" data-action="user-guide">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">NovaCode Studio Guide</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="about">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">About NovaCode Studio Pro</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Menubar Center Title Pill -->
+      <div class="menubar-center">
+        <div class="menubar-title-pill" id="menubar-title-pill" title="Click to Open Quick Palette (Ctrl+P)">
+          <span class="title-pill-icon">⚡</span>
+          <span class="title-pill-text" id="menubar-active-title">src/index.ts — NovaCode Studio Pro</span>
+        </div>
+      </div>
+
+      <!-- Menubar Right: Auto Save Quick Toggle Badge -->
+      <div class="menubar-right">
+        <div class="autosave-quick-badge on" id="menubar-autosave-badge" title="Auto Save (Click to toggle ON/OFF)">
+          <span class="autosave-indicator-dot"></span>
+          <span class="autosave-badge-label">Auto Save</span>
+          <span class="autosave-badge-state" id="menubar-autosave-state">ON</span>
+        </div>
+      </div>
+    </nav>
 
     <!-- Top Workstation Header Toolbar -->
     <header id="top-toolbar">
@@ -1998,7 +2731,20 @@
                 <span>Auto Save</span>
                 <input type="checkbox" id="set-auto-save" checked>
               </label>
-              <div class="setting-desc">Automatically save files 3s after last edit</div>
+              <div class="setting-desc">Automatically save files after debounce delay</div>
+            </div>
+
+            <div class="setting-group" id="group-autosave-delay">
+              <label>
+                <span>Auto Save Delay</span>
+                <select id="set-autosave-delay" style="background: var(--bg-main); color: var(--text-bright); border: 1px solid var(--border-subtle); padding: 2px 6px; border-radius: 4px;">
+                  <option value="1000">1 second</option>
+                  <option value="2000" selected>2 seconds</option>
+                  <option value="3000">3 seconds</option>
+                  <option value="5000">5 seconds</option>
+                </select>
+              </label>
+              <div class="setting-desc">Wait time before automatically saving edits</div>
             </div>
           </div>
         </div>
@@ -2163,6 +2909,10 @@
       </div>
 
       <div class="status-right">
+        <div class="status-item clickable" id="status-autosave-indicator" title="Auto Save Status (Click to toggle ON/OFF)">
+          <span class="autosave-status-dot on" id="status-autosave-dot"></span>
+          <span id="status-autosave-text">Auto Save: ON</span>
+        </div>
         <div class="status-item" id="status-doc-metrics">
           <span>0 lines | 0 bytes</span>
         </div>
@@ -2259,6 +3009,27 @@
       </div>
     </div>
   </div>
+
+  <!-- About NovaCode Studio Pro Modal Backdrop -->
+  <div class="modal-backdrop" id="about-modal-backdrop">
+    <div class="modal-window" id="about-modal" style="width: 540px; text-align: center; padding: 24px;">
+      <div style="width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 12px; background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%); color: #fff; font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);">&lt;/&gt;</div>
+      <h2 style="color: var(--text-bright); font-size: 18px; margin-bottom: 4px;">NovaCode Studio Pro</h2>
+      <div style="font-size: 12px; color: var(--accent); margin-bottom: 16px; font-weight: 600;">v1.2 — Advanced Developer Workstation</div>
+      <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;">
+        A high-performance desktop-grade developer IDE powered by Bun RAD Studio. Features a standard desktop Menu Bar, Live Auto-Save Engine, Multi-clip Ring, Live Split Previews, Symbol Outline Navigator, Bookmarks, and Full Terminal Integration.
+      </p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: left; background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-size: 11px; margin-bottom: 20px;">
+        <div><strong style="color: var(--text-bright);">Runtime:</strong> Bun Native Engine</div>
+        <div><strong style="color: var(--text-bright);">Architecture:</strong> Bun RAD Studio Pro</div>
+        <div><strong style="color: var(--text-bright);">Auto Save:</strong> Debounced Live Sync</div>
+        <div><strong style="color: var(--text-bright);">Menu System:</strong> Desktop Standard Menus</div>
+      </div>
+      <button class="tool-btn primary" id="btn-close-about-modal" style="padding: 6px 20px; margin: 0 auto;">Close</button>
+    </div>
+  </div>
+
+  </div> <!-- /#app-container -->
 
   <!-- ==========================================================================
        NovaCode Studio Pro — Complete JavaScript Application Logic
@@ -2654,8 +3425,12 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         lineEnding: "LF",
         wordWrap: false,
         fontSize: 14,
-        autoSave: true,
+        autoSave: localStorage.getItem("novacode_autosave") !== null
+          ? localStorage.getItem("novacode_autosave") === "true"
+          : true,
+        autoSaveDelay: parseInt(localStorage.getItem("novacode_autosave_delay") || "2000", 10),
         autoSaveTimer: null,
+        autoSaveIndicatorTimer: null,
         backendConnected: false,
         activeSidebarView: "explorer",
         activePreviewTab: "md",
@@ -2706,6 +3481,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         highlightLayer: document.getElementById("editor-highlight-layer"),
         textarea: document.getElementById("editor-textarea"),
         activeLineIndicator: document.getElementById("active-line-indicator"),
+        editorMinimap: document.getElementById("editor-minimap-container"),
         minimapCanvas: document.getElementById("minimap-canvas"),
         minimapSlider: document.getElementById("minimap-slider"),
         previewPane: document.getElementById("preview-pane"),
@@ -2744,6 +3520,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         clipboardModalBackdrop: document.getElementById("clipboard-modal-backdrop"),
         clipboardSearchInput: document.getElementById("clipboard-search-input"),
         clipboardModalResults: document.getElementById("clipboard-modal-results"),
+        actShortcuts: document.getElementById("act-shortcuts"),
         shortcutsModalBackdrop: document.getElementById("shortcuts-modal-backdrop"),
         btnCloseShortcutsModal: document.getElementById("btn-close-shortcuts-modal"),
         statusBackendText: document.getElementById("status-backend-text"),
@@ -2797,6 +3574,17 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         setFontSizeVal: document.getElementById("set-font-size-val"),
         setTabSize: document.getElementById("set-tab-size"),
         setAutoSave: document.getElementById("set-auto-save"),
+        setAutoSaveDelay: document.getElementById("set-autosave-delay"),
+        appMenubar: document.getElementById("app-menubar"),
+        menubarTitlePill: document.getElementById("menubar-title-pill"),
+        menubarActiveTitle: document.getElementById("menubar-active-title"),
+        menubarAutosaveBadge: document.getElementById("menubar-autosave-badge"),
+        menubarAutosaveState: document.getElementById("menubar-autosave-state"),
+        statusAutosaveIndicator: document.getElementById("status-autosave-indicator"),
+        statusAutosaveDot: document.getElementById("status-autosave-dot"),
+        statusAutosaveText: document.getElementById("status-autosave-text"),
+        aboutModalBackdrop: document.getElementById("about-modal-backdrop"),
+        btnCloseAboutModal: document.getElementById("btn-close-about-modal"),
       };
 
       // ------------------------------------------------------------------------
@@ -4264,6 +5052,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         renderFileTree();
         renderEditor();
         updateUndoRedoButtons();
+        updateTitleBar();
       }
 
       function closeTab(path) {
@@ -4282,6 +5071,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         } else {
           renderTabs();
         }
+        updateTitleBar();
       }
 
       function createNewUntitledFile() {
@@ -5044,15 +5834,26 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         }
       }
 
+      function updateTitleBar() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!els.menubarActiveTitle) return;
+        if (currentFile) {
+          const isDirty = state.dirtyFiles.has(currentFile.path);
+          els.menubarActiveTitle.textContent = `${isDirty ? "● " : ""}${currentFile.name} — ${currentFile.path} — NovaCode Studio Pro`;
+        } else {
+          els.menubarActiveTitle.textContent = "NovaCode Studio Pro — Advanced Developer Workstation";
+        }
+      }
+
       async function saveActiveFile() {
         const currentFile = state.files.find((f) => f.path === state.activeFilePath);
         if (!currentFile) return;
 
         currentFile.content = els.textarea.value;
-        await saveFileToServer(currentFile);
+        await saveFileToServer(currentFile, false);
       }
 
-      async function saveFileToServer(file) {
+      async function saveFileToServer(file, isAutoSave = false) {
         if (state.backendConnected) {
           try {
             const res = await fetch("/api/fs/save", {
@@ -5064,7 +5865,12 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
               state.dirtyFiles.delete(file.path);
               renderTabs();
               renderFileTree();
-              flashStatusBar(`File saved: ${file.name}`);
+              updateTitleBar();
+              if (isAutoSave) {
+                flashAutoSaveIndicator(file.name);
+              } else {
+                flashStatusBar(`File saved: ${file.name}`);
+              }
             }
           } catch (err) {
             console.warn("Save failed:", err);
@@ -5073,7 +5879,92 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           state.dirtyFiles.delete(file.path);
           renderTabs();
           renderFileTree();
-          flashStatusBar(`File saved (Virtual Storage): ${file.name}`);
+          updateTitleBar();
+          if (isAutoSave) {
+            flashAutoSaveIndicator(file.name);
+          } else {
+            flashStatusBar(`File saved (Virtual Storage): ${file.name}`);
+          }
+        }
+      }
+
+      function flashAutoSaveIndicator(filename) {
+        if (els.statusAutosaveText) {
+          els.statusAutosaveText.textContent = `Auto-saved ✓ (${filename})`;
+          els.statusAutosaveText.style.color = "#4ade80";
+        }
+        if (els.menubarAutosaveBadge) {
+          els.menubarAutosaveBadge.classList.add("saving");
+          setTimeout(() => {
+            if (els.menubarAutosaveBadge) els.menubarAutosaveBadge.classList.remove("saving");
+          }, 1200);
+        }
+        clearTimeout(state.autoSaveIndicatorTimer);
+        state.autoSaveIndicatorTimer = setTimeout(() => {
+          if (els.statusAutosaveText) {
+            els.statusAutosaveText.textContent = `Auto Save: ${state.autoSave ? "ON" : "OFF"}`;
+            els.statusAutosaveText.style.color = "";
+          }
+        }, 2200);
+      }
+
+      function toggleAutoSave(forcedState) {
+        const newState = typeof forcedState === "boolean" ? forcedState : !state.autoSave;
+        state.autoSave = newState;
+        localStorage.setItem("novacode_autosave", String(newState));
+        updateAutoSaveUI();
+        flashStatusBar(`Auto Save: ${newState ? `Enabled (Debounced ${state.autoSaveDelay / 1000}s)` : "Disabled (Manual Ctrl+S)"}`);
+      }
+
+      function updateAutoSaveUI() {
+        const enabled = state.autoSave;
+
+        // 1. Menu checkmark
+        const elCheck = document.getElementById("menu-check-autosave");
+        if (elCheck) elCheck.classList.toggle("hidden", !enabled);
+
+        // 2. Menubar top badge
+        if (els.menubarAutosaveBadge) {
+          els.menubarAutosaveBadge.classList.toggle("on", enabled);
+          els.menubarAutosaveBadge.title = `Auto Save is ${enabled ? "ON" : "OFF"} (Click to toggle)`;
+        }
+        if (els.menubarAutosaveState) {
+          els.menubarAutosaveState.textContent = enabled ? "ON" : "OFF";
+        }
+
+        // 3. Status bar indicator
+        if (els.statusAutosaveDot) {
+          els.statusAutosaveDot.className = `autosave-status-dot ${enabled ? "on" : "off"}`;
+        }
+        if (els.statusAutosaveText) {
+          els.statusAutosaveText.textContent = `Auto Save: ${enabled ? "ON" : "OFF"}`;
+          els.statusAutosaveText.style.color = "";
+        }
+
+        // 4. Settings tab checkbox
+        if (els.setAutoSave) {
+          els.setAutoSave.checked = enabled;
+        }
+      }
+
+      function initAutoSave() {
+        updateAutoSaveUI();
+
+        if (els.menubarAutosaveBadge) {
+          els.menubarAutosaveBadge.addEventListener("click", () => toggleAutoSave());
+        }
+
+        if (els.statusAutosaveIndicator) {
+          els.statusAutosaveIndicator.addEventListener("click", () => toggleAutoSave());
+        }
+
+        if (els.setAutoSaveDelay) {
+          els.setAutoSaveDelay.value = String(state.autoSaveDelay);
+          els.setAutoSaveDelay.addEventListener("change", (e) => {
+            state.autoSaveDelay = parseInt(e.target.value, 10);
+            localStorage.setItem("novacode_autosave_delay", String(state.autoSaveDelay));
+            flashStatusBar(`Auto Save delay set to ${state.autoSaveDelay / 1000}s`);
+          });
         }
       }
 
@@ -5147,13 +6038,21 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           state.dirtyFiles.add(currentFile.path);
           pushUndoSnapshot(currentFile);
           renderTabs();
+          updateTitleBar();
 
           // Auto-save trigger
           if (state.autoSave) {
             clearTimeout(state.autoSaveTimer);
-            state.autoSaveTimer = setTimeout(() => {
-              saveFileToServer(currentFile);
-            }, 3000);
+            if (els.menubarAutosaveBadge) {
+              els.menubarAutosaveBadge.classList.add("saving");
+            }
+            const delay = state.autoSaveDelay || 2000;
+            state.autoSaveTimer = setTimeout(async () => {
+              if (els.menubarAutosaveBadge) {
+                els.menubarAutosaveBadge.classList.remove("saving");
+              }
+              await saveFileToServer(currentFile, true);
+            }, delay);
           }
         }
         renderEditor();
@@ -5630,7 +6529,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       });
 
       els.setAutoSave.addEventListener("change", (e) => {
-        state.autoSave = e.target.checked;
+        toggleAutoSave(e.target.checked);
       });
 
       els.btnRunCmd.addEventListener("click", () => {
@@ -5671,12 +6570,675 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       });
 
       // ------------------------------------------------------------------------
+      // Extended Editor Operations & Standard Actions
+      // ------------------------------------------------------------------------
+      function transformText(mode) {
+        const start = els.textarea.selectionStart;
+        const end = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        if (start === end) {
+          const lines = text.split("\n");
+          const activeIdx = getActiveLineIndex();
+          if (activeIdx >= 0 && activeIdx < lines.length) {
+            if (mode === "upper") lines[activeIdx] = lines[activeIdx].toUpperCase();
+            else if (mode === "lower") lines[activeIdx] = lines[activeIdx].toLowerCase();
+            else if (mode === "title") lines[activeIdx] = lines[activeIdx].replace(/\b\w/g, (c) => c.toUpperCase());
+            els.textarea.value = lines.join("\n");
+            handleTextChange();
+          }
+          return;
+        }
+
+        const selectedText = text.substring(start, end);
+        let transformed = selectedText;
+        if (mode === "upper") transformed = selectedText.toUpperCase();
+        else if (mode === "lower") transformed = selectedText.toLowerCase();
+        else if (mode === "title") transformed = selectedText.replace(/\b\w/g, (c) => c.toUpperCase());
+
+        els.textarea.value = text.substring(0, start) + transformed + text.substring(end);
+        els.textarea.selectionStart = start;
+        els.textarea.selectionEnd = start + transformed.length;
+        handleTextChange();
+      }
+
+      function sortLines(ascending = true) {
+        const start = els.textarea.selectionStart;
+        const end = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+
+        if (start === end) {
+          const lines = text.split("\n");
+          lines.sort((a, b) => (ascending ? a.localeCompare(b) : b.localeCompare(a)));
+          els.textarea.value = lines.join("\n");
+          handleTextChange();
+          flashStatusBar(`Sorted ${lines.length} lines ${ascending ? "A-Z" : "Z-A"}`);
+          return;
+        }
+
+        const before = text.substring(0, start);
+        const selected = text.substring(start, end);
+        const after = text.substring(end);
+        const lines = selected.split("\n");
+        lines.sort((a, b) => (ascending ? a.localeCompare(b) : b.localeCompare(a)));
+        const sorted = lines.join("\n");
+        els.textarea.value = before + sorted + after;
+        els.textarea.selectionStart = start;
+        els.textarea.selectionEnd = start + sorted.length;
+        handleTextChange();
+        flashStatusBar(`Sorted ${lines.length} lines ${ascending ? "A-Z" : "Z-A"}`);
+      }
+
+      function removeDuplicateLines() {
+        const text = els.textarea.value;
+        const lines = text.split("\n");
+        const unique = Array.from(new Set(lines));
+        const removed = lines.length - unique.length;
+        els.textarea.value = unique.join("\n");
+        handleTextChange();
+        flashStatusBar(`Removed ${removed} duplicate line${removed === 1 ? "" : "s"}`);
+      }
+
+      function trimTrailingWhitespace() {
+        const text = els.textarea.value;
+        const lines = text.split("\n");
+        const trimmed = lines.map((l) => l.trimEnd()).join("\n");
+        els.textarea.value = trimmed;
+        handleTextChange();
+        flashStatusBar("Trimmed trailing whitespace across document");
+      }
+
+      function toggleLineNumbers() {
+        const isHidden = els.editorGutter.style.display === "none";
+        els.editorGutter.style.display = isHidden ? "block" : "none";
+        updateMenuCheckmarks();
+        flashStatusBar(`Line numbers ${isHidden ? "shown" : "hidden"}`);
+      }
+
+      function toggleMinimap() {
+        const isHidden = els.editorMinimap.style.display === "none";
+        els.editorMinimap.style.display = isHidden ? "block" : "none";
+        updateMenuCheckmarks();
+        flashStatusBar(`Minimap ${isHidden ? "shown" : "hidden"}`);
+      }
+
+      function saveAsFile() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        const initial = currentFile ? currentFile.path : "untitled.ts";
+        const newPath = prompt("Save file as (relative path):", initial);
+        if (!newPath || newPath === (currentFile && currentFile.path)) return;
+
+        const newFile = {
+          path: newPath,
+          name: newPath.split("/").pop(),
+          lang: detectLanguage(newPath),
+          content: els.textarea.value,
+        };
+        state.files.push(newFile);
+        if (!state.openTabs.includes(newPath)) {
+          state.openTabs.push(newPath);
+        }
+        state.activeFilePath = newPath;
+        saveFileToServer(newFile, false);
+        renderTabs();
+        renderEditor();
+        updateTitleBar();
+      }
+
+      async function saveAllFiles() {
+        const dirtyList = Array.from(state.dirtyFiles);
+        if (dirtyList.length === 0) {
+          flashStatusBar("All files already saved");
+          return;
+        }
+        for (const filePath of dirtyList) {
+          const file = state.files.find((f) => f.path === filePath);
+          if (file) {
+            await saveFileToServer(file, false);
+          }
+        }
+        flashStatusBar(`Saved all files (${dirtyList.length})`);
+      }
+
+      function closeActiveTab() {
+        if (!state.activeFilePath) return;
+        closeTab(state.activeFilePath);
+        updateTitleBar();
+      }
+
+      function closeAllTabs() {
+        state.openTabs = [];
+        state.activeFilePath = null;
+        els.textarea.value = "";
+        renderTabs();
+        renderEditor();
+        updateTitleBar();
+      }
+
+      function closeOtherTabs() {
+        if (!state.activeFilePath) return;
+        state.openTabs = [state.activeFilePath];
+        renderTabs();
+      }
+
+      async function revertActiveFile() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        if (!confirm(`Revert unsaved changes to "${currentFile.name}"?`)) return;
+
+        if (state.backendConnected) {
+          try {
+            const res = await fetch(`/api/fs/read?path=${encodeURIComponent(currentFile.path)}`);
+            if (res.ok) {
+              const data = await res.json();
+              currentFile.content = data.content;
+              els.textarea.value = data.content;
+              state.dirtyFiles.delete(currentFile.path);
+              renderTabs();
+              renderEditor();
+              updateTitleBar();
+              flashStatusBar(`Reverted ${currentFile.name}`);
+              return;
+            }
+          } catch (e) {
+            console.warn("Revert failed:", e);
+          }
+        }
+        state.dirtyFiles.delete(currentFile.path);
+        renderTabs();
+        renderEditor();
+        updateTitleBar();
+        flashStatusBar(`Reverted ${currentFile.name}`);
+      }
+
+      function downloadActiveFile() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+        const blob = new Blob([els.textarea.value], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = currentFile.name || "document.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        flashStatusBar(`Downloaded ${currentFile.name}`);
+      }
+
+      function minifyCode() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        const text = els.textarea.value;
+        if (currentFile && currentFile.lang === "json") {
+          try {
+            const parsed = JSON.parse(text);
+            els.textarea.value = JSON.stringify(parsed);
+            handleTextChange();
+            flashStatusBar("JSON Minified");
+            return;
+          } catch (e) {
+            flashStatusBar("Cannot minify invalid JSON");
+            return;
+          }
+        }
+        const minified = text
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0)
+          .join(" ");
+        els.textarea.value = minified;
+        handleTextChange();
+        flashStatusBar("Code Minified");
+      }
+
+      function transformBase64(encode = true) {
+        const start = els.textarea.selectionStart;
+        const end = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const target = start !== end ? text.substring(start, end) : text;
+
+        try {
+          const res = encode ? btoa(target) : atob(target);
+          if (start !== end) {
+            els.textarea.value = text.substring(0, start) + res + text.substring(end);
+            els.textarea.selectionStart = start;
+            els.textarea.selectionEnd = start + res.length;
+          } else {
+            els.textarea.value = res;
+          }
+          handleTextChange();
+          flashStatusBar(`Base64 ${encode ? "Encoded" : "Decoded"} successfully`);
+        } catch (err) {
+          flashStatusBar(`Base64 error: ${err.message}`);
+        }
+      }
+
+      function transformUrl(encode = true) {
+        const start = els.textarea.selectionStart;
+        const end = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const target = start !== end ? text.substring(start, end) : text;
+
+        try {
+          const res = encode ? encodeURIComponent(target) : decodeURIComponent(target);
+          if (start !== end) {
+            els.textarea.value = text.substring(0, start) + res + text.substring(end);
+            els.textarea.selectionStart = start;
+            els.textarea.selectionEnd = start + res.length;
+          } else {
+            els.textarea.value = res;
+          }
+          handleTextChange();
+          flashStatusBar(`URL ${encode ? "Encoded" : "Decoded"} successfully`);
+        } catch (err) {
+          flashStatusBar(`URL error: ${err.message}`);
+        }
+      }
+
+      function promptGoToLine() {
+        const totalLines = els.textarea.value.split("\n").length;
+        const input = prompt(`Go to line (1 - ${totalLines}):`);
+        if (!input) return;
+        const lineNum = parseInt(input, 10);
+        if (isNaN(lineNum) || lineNum < 1 || lineNum > totalLines) {
+          flashStatusBar(`Invalid line number: ${input}`);
+          return;
+        }
+        jumpToLine(lineNum);
+        flashStatusBar(`Jumped to line ${lineNum}`);
+      }
+
+      function selectCurrentLine() {
+        const text = els.textarea.value;
+        const cursor = els.textarea.selectionStart;
+        const start = text.lastIndexOf("\n", cursor - 1) + 1;
+        let end = text.indexOf("\n", cursor);
+        if (end === -1) end = text.length;
+        els.textarea.focus();
+        els.textarea.setSelectionRange(start, end);
+        updateActiveLineIndicator();
+      }
+
+      function openAboutModal() {
+        if (els.aboutModalBackdrop) els.aboutModalBackdrop.classList.add("open");
+      }
+
+      function closeAboutModal() {
+        if (els.aboutModalBackdrop) els.aboutModalBackdrop.classList.remove("open");
+      }
+
+      // ------------------------------------------------------------------------
+      // Menu Actions Registry
+      // ------------------------------------------------------------------------
+      const MENU_ACTIONS = {
+        // File
+        "new-file": () => {
+          const filename = prompt("Enter new file path (e.g. src/utils.ts):");
+          if (!filename) return;
+          state.files.push({
+            path: filename,
+            name: filename.split("/").pop(),
+            lang: detectLanguage(filename),
+            content: "",
+          });
+          openFile(filename);
+        },
+        "new-untitled": () => createNewUntitledFile(),
+        "open-file": () => openCommandPalette(),
+        "open-workspace": () => {
+          const ws = prompt("Enter workspace directory path:", "/Users/codecaine/bun_rad_studio");
+          if (ws) {
+            flashStatusBar(`Switching workspace: ${ws}`);
+            loadWorkspaceFromBackend();
+          }
+        },
+        save: () => saveActiveFile(),
+        "save-as": () => saveAsFile(),
+        "save-all": () => saveAllFiles(),
+        "toggle-autosave": () => toggleAutoSave(),
+        "close-tab": () => closeActiveTab(),
+        "close-all-tabs": () => closeAllTabs(),
+        "close-other-tabs": () => closeOtherTabs(),
+        "revert-file": () => revertActiveFile(),
+        "download-file": () => downloadActiveFile(),
+
+        // Edit
+        undo: () => performUndo(),
+        redo: () => performRedo(),
+        cut: () => {
+          const sel = getActiveSelectionText();
+          if (sel) {
+            recordClipboard(sel);
+            document.execCommand("cut");
+            handleTextChange();
+          }
+        },
+        copy: () => {
+          const sel = getActiveSelectionText();
+          if (sel) {
+            recordClipboard(sel);
+            navigator.clipboard.writeText(sel).catch(() => {});
+            flashStatusBar(`Copied ${sel.length} chars to clipboard ring`);
+          }
+        },
+        paste: () => {
+          navigator.clipboard.readText().then((clipText) => {
+            if (clipText) {
+              const start = els.textarea.selectionStart;
+              const end = els.textarea.selectionEnd;
+              const val = els.textarea.value;
+              els.textarea.value = val.substring(0, start) + clipText + val.substring(end);
+              els.textarea.selectionStart = start + clipText.length;
+              els.textarea.selectionEnd = start + clipText.length;
+              handleTextChange();
+            }
+          }).catch(() => {
+            flashStatusBar("Paste shortcut: Use Ctrl+V or Ctrl+Shift+V for Clipboard Ring");
+          });
+        },
+        "clipboard-history": () => openClipboardModal(),
+        find: () => {
+          els.findDrawer.classList.add("open");
+          els.findInput.focus();
+        },
+        replace: () => {
+          els.findDrawer.classList.add("open");
+          els.replaceInput.focus();
+        },
+        "find-in-workspace": () => switchSidebarView("search"),
+        "toggle-comment": () => toggleComment(),
+        "toggle-block-comment": () => {
+          const start = els.textarea.selectionStart;
+          const end = els.textarea.selectionEnd;
+          const text = els.textarea.value;
+          const sel = text.substring(start, end);
+          const wrapped = `/* ${sel} */`;
+          els.textarea.value = text.substring(0, start) + wrapped + text.substring(end);
+          els.textarea.selectionStart = start + 3;
+          els.textarea.selectionEnd = end + 3;
+          handleTextChange();
+        },
+        "format-doc": () => formatDocument(),
+        "transform-upper": () => transformText("upper"),
+        "transform-lower": () => transformText("lower"),
+        "transform-title": () => transformText("title"),
+        "sort-lines-asc": () => sortLines(true),
+        "sort-lines-desc": () => sortLines(false),
+        "remove-duplicate-lines": () => removeDuplicateLines(),
+        "trim-whitespace": () => trimTrailingWhitespace(),
+
+        // Selection
+        "select-all": () => {
+          els.textarea.focus();
+          els.textarea.setSelectionRange(0, els.textarea.value.length);
+          updateActiveLineIndicator();
+        },
+        "select-word": () => selectNextOccurrence(),
+        "select-line": () => selectCurrentLine(),
+        "duplicate-line-down": () => duplicateLine(),
+        "duplicate-line-up": () => duplicateLine(),
+        "move-line-up": () => moveLine(-1),
+        "move-line-down": () => moveLine(1),
+        "delete-line": () => deleteLine(),
+        "join-lines": () => joinLines(),
+        "indent-selection": () => {
+          const start = els.textarea.selectionStart;
+          const end = els.textarea.selectionEnd;
+          const text = els.textarea.value;
+          const lines = text.substring(start, end).split("\n");
+          const indented = lines.map((l) => "  " + l).join("\n");
+          els.textarea.value = text.substring(0, start) + indented + text.substring(end);
+          els.textarea.selectionStart = start;
+          els.textarea.selectionEnd = start + indented.length;
+          handleTextChange();
+        },
+        "outdent-selection": () => {
+          const start = els.textarea.selectionStart;
+          const end = els.textarea.selectionEnd;
+          const text = els.textarea.value;
+          const lines = text.substring(start, end).split("\n");
+          const outdented = lines.map((l) => l.startsWith("  ") ? l.substring(2) : (l.startsWith(" ") ? l.substring(1) : l)).join("\n");
+          els.textarea.value = text.substring(0, start) + outdented + text.substring(end);
+          els.textarea.selectionStart = start;
+          els.textarea.selectionEnd = start + outdented.length;
+          handleTextChange();
+        },
+
+        // View
+        "toggle-word-wrap": () => toggleWordWrap(),
+        "toggle-minimap": () => toggleMinimap(),
+        "toggle-line-numbers": () => toggleLineNumbers(),
+        "toggle-preview": () => {
+          const isHidden = els.previewPane.style.display === "none";
+          els.previewPane.style.display = isHidden ? "flex" : "none";
+          updateMenuCheckmarks();
+        },
+        "toggle-drawer": () => toggleDrawer(),
+        "view-explorer": () => switchSidebarView("explorer"),
+        "view-search": () => switchSidebarView("search"),
+        "view-outline": () => switchSidebarView("outline"),
+        "view-bookmarks": () => switchSidebarView("bookmarks"),
+        "view-clipboard": () => switchSidebarView("clipboard"),
+        "view-git": () => switchSidebarView("git"),
+        "zoom-in": () => zoomFont(1),
+        "zoom-out": () => zoomFont(-1),
+        "zoom-reset": () => {
+          state.fontSize = 14;
+          els.setFontSizeVal.textContent = "14px";
+          document.documentElement.style.setProperty("--font-size-code", "14px");
+          document.documentElement.style.setProperty("--line-height-code", "22px");
+          renderEditor();
+        },
+        "toggle-zen": () => toggleZenMode(),
+        "theme-onedark": () => { els.themeSelector.value = "onedark"; els.themeSelector.dispatchEvent(new Event("change")); },
+        "theme-dracula": () => { els.themeSelector.value = "dracula"; els.themeSelector.dispatchEvent(new Event("change")); },
+        "theme-monokai": () => { els.themeSelector.value = "monokai"; els.themeSelector.dispatchEvent(new Event("change")); },
+        "theme-github": () => { els.themeSelector.value = "github"; els.themeSelector.dispatchEvent(new Event("change")); },
+        "theme-nordic": () => { els.themeSelector.value = "nordic"; els.themeSelector.dispatchEvent(new Event("change")); },
+        "theme-solarized": () => { els.themeSelector.value = "solarized"; els.themeSelector.dispatchEvent(new Event("change")); },
+
+        // Go
+        "go-to-file": () => openCommandPalette(),
+        "go-to-line": () => promptGoToLine(),
+        "go-to-symbol": () => switchSidebarView("outline"),
+        "next-bookmark": () => jumpToNextBookmark(true),
+        "prev-bookmark": () => jumpToNextBookmark(false),
+        "toggle-bookmark": () => {
+          const line = getActiveLineIndex() + 1;
+          toggleBookmarkAtLine(line);
+        },
+        "clear-bookmarks": () => {
+          state.bookmarks[state.activeFilePath] = new Set();
+          renderGutterBookmarks();
+          renderBookmarksSidebar();
+          flashStatusBar("Cleared bookmarks in active file");
+        },
+        "next-match": () => els.frNextBtn.click(),
+        "prev-match": () => els.frPrevBtn.click(),
+
+        // Tools
+        "run-file": () => els.btnRunCmd.click(),
+        prettify: () => formatDocument(),
+        "minify-code": () => minifyCode(),
+        "base64-encode": () => transformBase64(true),
+        "base64-decode": () => transformBase64(false),
+        "url-encode": () => transformUrl(true),
+        "url-decode": () => transformUrl(false),
+        "regex-sandbox": () => {
+          toggleDrawer();
+          document.querySelector('.drawer-tab-btn[data-pane="regex"]').click();
+        },
+
+        // Help
+        shortcuts: () => {
+          els.shortcutsModalBackdrop.classList.add("open");
+        },
+        "user-guide": () => {
+          els.shortcutsModalBackdrop.classList.add("open");
+        },
+        about: () => openAboutModal(),
+      };
+
+      // ------------------------------------------------------------------------
+      // Desktop Menu Bar Setup
+      // ------------------------------------------------------------------------
+      let activeOpenMenu = null;
+
+      function setupMenuBar() {
+        const menubarItems = document.querySelectorAll(".menubar-item");
+
+        menubarItems.forEach((item) => {
+          item.addEventListener("click", (e) => {
+            if (e.target.closest(".menubar-dropdown")) return;
+            e.stopPropagation();
+            if (activeOpenMenu === item) {
+              closeAllMenus();
+            } else {
+              openMenu(item);
+            }
+          });
+
+          item.addEventListener("mouseenter", () => {
+            if (activeOpenMenu && activeOpenMenu !== item) {
+              openMenu(item);
+            }
+          });
+
+          item.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+              e.preventDefault();
+              openMenu(item);
+            }
+          });
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest("#app-menubar")) {
+            closeAllMenus();
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && activeOpenMenu) {
+            closeAllMenus();
+            els.textarea.focus();
+          }
+        });
+
+        document.querySelectorAll(".menu-row").forEach((row) => {
+          row.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const action = row.getAttribute("data-action");
+            closeAllMenus();
+            if (action && MENU_ACTIONS[action]) {
+              MENU_ACTIONS[action]();
+            }
+          });
+        });
+
+        if (els.menubarTitlePill) {
+          els.menubarTitlePill.addEventListener("click", () => {
+            openCommandPalette();
+          });
+        }
+
+        if (els.btnCloseAboutModal) {
+          els.btnCloseAboutModal.addEventListener("click", closeAboutModal);
+        }
+        if (els.aboutModalBackdrop) {
+          els.aboutModalBackdrop.addEventListener("click", (e) => {
+            if (e.target === els.aboutModalBackdrop) closeAboutModal();
+          });
+        }
+
+        // Global Desktop Shortcuts
+        window.addEventListener("keydown", (e) => {
+          const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+          // Ctrl+N / Cmd+N (New File)
+          if (isCtrlOrCmd && e.key.toLowerCase() === "n" && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            MENU_ACTIONS["new-file"]();
+          }
+          // Alt+N (New Untitled File)
+          else if (e.altKey && e.key.toLowerCase() === "n") {
+            e.preventDefault();
+            createNewUntitledFile();
+          }
+          // Ctrl+Shift+S (Save As)
+          else if (isCtrlOrCmd && e.shiftKey && e.key.toLowerCase() === "s") {
+            e.preventDefault();
+            saveAsFile();
+          }
+          // Ctrl+Alt+S (Save All)
+          else if (isCtrlOrCmd && e.altKey && e.key.toLowerCase() === "s") {
+            e.preventDefault();
+            saveAllFiles();
+          }
+          // Ctrl+G (Go to line)
+          else if (isCtrlOrCmd && e.key.toLowerCase() === "g") {
+            e.preventDefault();
+            promptGoToLine();
+          }
+          // Ctrl+F2 (Toggle Bookmark)
+          else if (isCtrlOrCmd && e.key === "F2") {
+            e.preventDefault();
+            MENU_ACTIONS["toggle-bookmark"]();
+          }
+        });
+      }
+
+      function openMenu(item) {
+        closeAllMenus();
+        item.classList.add("active");
+        activeOpenMenu = item;
+        updateMenuCheckmarks();
+      }
+
+      function closeAllMenus() {
+        document.querySelectorAll(".menubar-item").forEach((i) => i.classList.remove("active"));
+        activeOpenMenu = null;
+      }
+
+      function updateMenuCheckmarks() {
+        const elAutoSaveCheck = document.getElementById("menu-check-autosave");
+        if (elAutoSaveCheck) {
+          elAutoSaveCheck.classList.toggle("hidden", !state.autoSave);
+        }
+        const elWrapCheck = document.getElementById("menu-check-wrap");
+        if (elWrapCheck) {
+          elWrapCheck.classList.toggle("hidden", !state.wordWrap);
+        }
+        const elMinimapCheck = document.getElementById("menu-check-minimap");
+        if (elMinimapCheck) {
+          const isMinimapVisible = els.editorMinimap && els.editorMinimap.style.display !== "none";
+          elMinimapCheck.classList.toggle("hidden", !isMinimapVisible);
+        }
+        const elLinenumsCheck = document.getElementById("menu-check-linenums");
+        if (elLinenumsCheck) {
+          const isGutterVisible = els.editorGutter && els.editorGutter.style.display !== "none";
+          elLinenumsCheck.classList.toggle("hidden", !isGutterVisible);
+        }
+        const elPreviewCheck = document.getElementById("menu-check-preview");
+        if (elPreviewCheck) {
+          const isPreviewOpen = els.previewPane && els.previewPane.style.display !== "none";
+          elPreviewCheck.classList.toggle("hidden", !isPreviewOpen);
+        }
+        const elZenCheck = document.getElementById("menu-check-zen");
+        if (elZenCheck) {
+          const isZen = els.appContainer.classList.contains("zen-mode");
+          elZenCheck.classList.toggle("hidden", !isZen);
+        }
+      }
+
+      // ------------------------------------------------------------------------
       // Initialization
       // ------------------------------------------------------------------------
       function init() {
         setupFindReplace();
         setupGlobalSearch();
         setupDrawer();
+        setupMenuBar();
+        initAutoSave();
         openFile(state.activeFilePath);
         checkBackendStatus();
       }
