@@ -228,6 +228,17 @@ bun run cli:sd "http://localhost:3000" "https://api.prod.com" config.json --back
 ### 3. Execution Action Bar
 - **🔍 Preview Changes**: Evaluates replacements in memory without touching files.
 - **⚡ Apply Replacements**: Writes modified files to disk safely.
+
+### 4. Productivity Features
+- **📄 Browse File… / 📁 Browse Folder…**: Pick the target with native dialogs instead of typing a path.
+- **Preset dropdown**: One-click recipes that fill Find, Replace, flags and options — Trim trailing whitespace, Tabs → 4 spaces, Collapse 3+ blank lines, Windows (CRLF) → Unix (LF), Remove console.log lines, http:// → https://, and Rename identifier (whole word). Review with **Preview Diffs** before applying.
+- **⇄ Swap Find/Replace**: Reverse a replacement in one click.
+- **Replacement escapes (\\n \\t)**: When ticked, \`\\n\`, \`\\t\` and \`\\r\` in *Replace With* become real newlines/tabs/carriage returns (\`$1\` captures still work).
+- **Only extensions / Exclude**: Limit a run to certain file types (\`ts,tsx,md\`) and skip paths by glob (\`*.min.js\`, \`vendor\`, \`test/**\`).
+- **Safety**: Binary files and files over 5 MB are skipped automatically (the status bar says how many), so they cannot be corrupted by a text replace.
+- **↶ Undo Last Replace**: Restores every file changed by the most recent *Replace In Files* to its previous content (kept for the current session, no backup files needed).
+- **📋 Copy Diff / 💾 Save Diff As… / 📊 Save Report As…**: Copy or save the unified diff of the last preview/replace, or save a Markdown report listing each file's matches and hunks.
+- **Feedback**: A toast summarises each run (matches and files), warns when nothing matched, and shows regex errors immediately.
 `);
 
   // 20_procs_studio.md
