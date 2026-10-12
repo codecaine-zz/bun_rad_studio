@@ -748,6 +748,27 @@ function formatHumanName(str: string): string {
 }
 
 /**
+ * Returns a recognizable emoji icon corresponding to the tool's functional category.
+ */
+export function getCategoryIcon(cat: string): string {
+  const c = cat.toLowerCase();
+  if (c.includes("database") || c.includes("storage")) return "🗄️";
+  if (c.includes("developer") || c.includes("devtools")) return "🛠️";
+  if (c.includes("system") || c.includes("hardware")) return "🖥️";
+  if (c.includes("file") || c.includes("directory")) return "🔍";
+  if (c.includes("network") || c.includes("cloud")) return "🌐";
+  if (c.includes("productivity") || c.includes("text")) return "📝";
+  if (c.includes("game") || c.includes("entertainment")) return "🎮";
+  if (c.includes("security") || c.includes("crypto")) return "🔒";
+  if (c.includes("design") && c.includes("media")) return "🎬";
+  if (c.includes("design") || c.includes("ux")) return "🎨";
+  if (c.includes("demo") || c.includes("template")) return "🧪";
+  if (c.includes("cli")) return "💻";
+  if (c.includes("rad")) return "⚡";
+  return "📦";
+}
+
+/**
  * Scans all project applications, CLI tools, and demos
  */
 export function scanWorkspaceApps(): DetectedApp[] {
@@ -1608,6 +1629,16 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   let currentApps = initialData.apps;
   let selectedApp: DetectedApp | null = currentApps[0] || null;
 
+  const catCounts: Record<string, number> = {};
+  for (const a of initialData.apps) {
+    catCounts[a.category] = (catCounts[a.category] || 0) + 1;
+  }
+
+  const categoryDropdownOptions = [
+    `📁 All Categories (${initialData.apps.length})`,
+    ...initialData.categories.map((cat) => `${getCategoryIcon(cat)} ${cat} (${catCounts[cat] || 0})`),
+  ];
+
   const win = newSimpleWindow(
     "Project Application & CLI Launcher Pro -- Bun RAD Studio",
     1240,
@@ -1743,9 +1774,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // 5. Search & Filter Bar
   win.beginGroupBox("Catalog Search & Category Filter");
   win.beginRow();
-  win.addLabel("lbl_search", "🔍 Filter:");
-  win.addInput("txt_search", "", "Filter tools by name, category, or command...", { width: 300 });
-  win.addLabel("lbl_cat", "Category:");
+  win.addLabel("lbl_search", "🔍 Search:");
+  win.addInput("txt_search", "", "Search tools by name, command, or keyword...", { width: 200 });
+  win.addLabel("lbl_cat", "Scope:");
   win.addDropdown(
     "dd_category",
     [
@@ -1758,13 +1789,37 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       "🕘 Recently Used",
     ],
     "🌟 All Project Tools",
-    { width: 240 }
+    { width: 175 }
+  );
+  win.addLabel("lbl_app_cat", "Category:");
+  win.addDropdown(
+    "dd_app_category",
+    categoryDropdownOptions,
+    categoryDropdownOptions[0],
+    { width: 220 }
   );
   win.addLabel("lbl_sort", "Sort:");
-  win.addDropdown("dd_sort", Object.values(SORT_LABELS), SORT_LABELS.default, { width: 190 });
-  win.addButton("btn_quick_favs", "⭐ Favorites Only");
+  win.addDropdown("dd_sort", Object.values(SORT_LABELS), SORT_LABELS.default, { width: 160 });
+  win.addButton("btn_quick_favs", "⭐ Favs Only");
   win.addButton("btn_filter", "🔍 Apply");
   win.addButton("btn_clear_filter", "✕ Show All");
+  win.endRow();
+
+  // 1-Click Apps by Category Quick-Filter Bar
+  win.beginRow();
+  win.addLabel("lbl_quick_cats", "📂 Apps by Category:");
+  win.addButton("btn_cat_all", "🌟 All Tools");
+  win.addButton("btn_cat_db", `🗄️ Database (${catCounts["Database & Storage"] || 0})`);
+  win.addButton("btn_cat_devtools", `🛠️ DevTools (${catCounts["Developer Tools"] || 0})`);
+  win.addButton("btn_cat_system", `🖥️ System (${catCounts["System & Hardware"] || 0})`);
+  win.addButton("btn_cat_files", `🔍 Files (${catCounts["File & Directory Tools"] || 0})`);
+  win.addButton("btn_cat_network", `🌐 Network (${catCounts["Network & Cloud"] || 0})`);
+  win.addButton("btn_cat_prod", `📝 Productivity (${catCounts["Productivity & Text"] || 0})`);
+  win.addButton("btn_cat_games", `🎮 Games (${catCounts["Games & Entertainment"] || 0})`);
+  win.addButton("btn_cat_security", `🔒 Security (${catCounts["Security & Crypto"] || 0})`);
+  win.addButton("btn_cat_design", `🎨 Design (${(catCounts["Design & UX"] || 0) + (catCounts["Design & Media"] || 0)})`);
+  win.addButton("btn_cat_demos", `🧪 Demos (${catCounts["Demos & Templates"] || 0})`);
+  win.addButton("btn_cat_cli", `💻 CLI (${catCounts["CLI Utilities"] || 0})`);
   win.endRow();
   win.endGroupBox();
 
@@ -2109,7 +2164,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Debounced entry point: collapses rapid keystroke/dropdown events into one filter pass
   // so overlapping IPC callbacks cannot interleave DOM rebuilds.
   let filterTimer: ReturnType<typeof setTimeout> | null = null;
-  function scheduleFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string }, delay = 120) {
+  function scheduleFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string; appCat?: string }, delay = 120) {
     if (filterTimer) clearTimeout(filterTimer);
     filterTimer = setTimeout(() => {
       filterTimer = null;
@@ -2137,7 +2192,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setValue("lbl_kpi_favs", `⭐ Favorites: ${k.favorites}`);
   }
 
-  function applyFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string }, forceScan = false) {
+  function applyFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string; appCat?: string }, forceScan = false) {
     try {
       applyFiltersInner(w, overrides, forceScan);
     } catch (err) {
@@ -2145,18 +2200,20 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     }
   }
 
-  function applyFiltersInner(w: SimpleWindow, overrides?: { query?: string; cat?: string }, forceScan = false) {
+  function applyFiltersInner(w: SimpleWindow, overrides?: { query?: string; cat?: string; appCat?: string }, forceScan = false) {
     const rawQuery = overrides?.query !== undefined ? overrides.query : w.getValue("txt_search");
     const query = String(rawQuery ?? "").trim().toLowerCase();
     const rawCat = overrides?.cat !== undefined ? overrides.cat : w.getValue("dd_category");
     const catChoice = String(rawCat || "🌟 All Project Tools");
+    const rawAppCat = overrides?.appCat !== undefined ? overrides.appCat : w.getValue("dd_app_category");
+    const appCatChoice = String(rawAppCat || "📁 All Categories");
     const sortMode: SortMode = sortModeFromLabel(String(w.getValue("dd_sort") || SORT_LABELS.default));
 
     const fresh = getScan(forceScan);
 
     const scores = new Map<string, number>();
     currentApps = fresh.apps.filter((a) => {
-      // Category filter
+      // 1. Source Scope / State filter
       if (catChoice.includes("Studio Applications") && a.source !== "rad_studio") return false;
       if (catChoice.includes("CLI Utilities") && a.source !== "cli_tool") return false;
       if (catChoice.includes("Showcase Demos") && a.source !== "rad_demo") return false;
@@ -2164,7 +2221,27 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       if (catChoice.includes("Pinned Favorites") && !a.isFavorite) return false;
       if (catChoice.includes("Recently Used") && !a.lastLaunched) return false;
 
-      // Multi-word AND search over name, id, category, path, description and command
+      // Allow direct functional category in catChoice if not a known scope
+      if (
+        !catChoice.includes("All Project Tools") &&
+        !catChoice.includes("Pinned Favorites") &&
+        !catChoice.includes("Studio Applications") &&
+        !catChoice.includes("CLI Utilities") &&
+        !catChoice.includes("Showcase Demos") &&
+        !catChoice.includes("Running Processes") &&
+        !catChoice.includes("Recently Used")
+      ) {
+        const cleanChoice = catChoice.replace(/^[\p{Emoji}\s]+/u, "").replace(/\s*\(\d+\)\s*$/, "").trim().toLowerCase();
+        if (cleanChoice && !a.category.toLowerCase().includes(cleanChoice)) return false;
+      }
+
+      // 2. Functional Category Filter (dd_app_category)
+      if (appCatChoice && !appCatChoice.includes("All Categories")) {
+        const cleanAppCat = appCatChoice.replace(/^[\p{Emoji}\s]+/u, "").replace(/\s*\(\d+\)\s*$/, "").trim().toLowerCase();
+        if (cleanAppCat && !a.category.toLowerCase().includes(cleanAppCat)) return false;
+      }
+
+      // 3. Multi-word AND search over name, id, category, path, description and command
       const s = searchScore(a, query);
       scores.set(a.id, s);
       return s > 0;
@@ -2186,9 +2263,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setListItems("dd_select_app", filteredItems);
 
     updateKpiLabels(w, fresh.kpis);
+    const catNotice = appCatChoice && !appCatChoice.includes("All Categories")
+      ? `  |  Category: ${appCatChoice.replace(/\s*\(\d+\)\s*$/, "")}`
+      : "";
     w.setText(
       "lbl_status",
-      `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}  |  Favorites: ${fresh.kpis.favorites}`
+      `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools${catNotice}  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}  |  Favorites: ${fresh.kpis.favorites}`
     );
 
     // Stable selection resolution:
@@ -2200,7 +2280,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       updateSelectedView(w, selectedApp);
     } else {
       selectedApp = null;
-      w.setText("txt_output", "No project tools matched the specified search and filter criteria.");
+      w.setText("txt_output", "No project tools matched the specified search and category filter criteria.");
       w.setStatus("No tools match filter");
       w.evalJS(`
         (function() {
@@ -2232,8 +2312,34 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onClick("btn_clear_filter", (w) => {
     w.setValue("txt_search", "");
     w.setValue("dd_category", "🌟 All Project Tools");
-    applyFilters(w, { query: "", cat: "🌟 All Project Tools" }, true);
+    w.setValue("dd_app_category", categoryDropdownOptions[0]);
+    applyFilters(w, { query: "", cat: "🌟 All Project Tools", appCat: "📁 All Categories" }, true);
   });
+
+  // Category Quick Filter Buttons
+  const filterByAppCategory = (w: SimpleWindow, categorySearch: string) => {
+    const matching = categoryDropdownOptions.find((opt) => opt.toLowerCase().includes(categorySearch.toLowerCase())) || categorySearch;
+    w.setValue("dd_app_category", matching);
+    applyFilters(w, { appCat: categorySearch }, true);
+    w.toast(`📂 Filtered to Category: ${categorySearch}`);
+  };
+
+  win.onClick("btn_cat_all", (w) => {
+    w.setValue("dd_app_category", categoryDropdownOptions[0]);
+    applyFilters(w, { appCat: "📁 All Categories" }, true);
+    w.toast("📂 Showing All Categories");
+  });
+  win.onClick("btn_cat_db", (w) => filterByAppCategory(w, "Database & Storage"));
+  win.onClick("btn_cat_devtools", (w) => filterByAppCategory(w, "Developer Tools"));
+  win.onClick("btn_cat_system", (w) => filterByAppCategory(w, "System & Hardware"));
+  win.onClick("btn_cat_files", (w) => filterByAppCategory(w, "File & Directory Tools"));
+  win.onClick("btn_cat_network", (w) => filterByAppCategory(w, "Network & Cloud"));
+  win.onClick("btn_cat_prod", (w) => filterByAppCategory(w, "Productivity & Text"));
+  win.onClick("btn_cat_games", (w) => filterByAppCategory(w, "Games & Entertainment"));
+  win.onClick("btn_cat_security", (w) => filterByAppCategory(w, "Security & Crypto"));
+  win.onClick("btn_cat_design", (w) => filterByAppCategory(w, "Design"));
+  win.onClick("btn_cat_demos", (w) => filterByAppCategory(w, "Demos & Templates"));
+  win.onClick("btn_cat_cli", (w) => filterByAppCategory(w, "CLI Utilities"));
 
   // Quick Favorites Filter Action
   const filterToFavorites = (w: SimpleWindow) => {
@@ -2284,6 +2390,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onEnter("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0));
   win.onChange("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }));
   win.onChange("dd_category", (w, val: any) => scheduleFilters(w, { cat: typeof val === "string" ? val : undefined }, 0));
+  win.onChange("dd_app_category", (w, val: any) => scheduleFilters(w, { appCat: typeof val === "string" ? val : undefined }, 0));
   win.onChange("dd_sort", (w) => scheduleFilters(w, undefined, 0));
 
   win.onClick("btn_rescan", (w) => {

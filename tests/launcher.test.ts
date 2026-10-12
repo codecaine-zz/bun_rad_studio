@@ -465,6 +465,67 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     rip1.stop();
     rip2.stop();
   });
+
+  it("provides functional apps-by-category dropdown and 1-click category quick buttons", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    expect(win).toBeDefined();
+
+    // Verify category dropdown exists and has items
+    const ddAppCatVal = win.getValue("dd_app_category");
+    expect(ddAppCatVal).toBeDefined();
+    expect(String(ddAppCatVal)).toContain("All Categories");
+
+    // Verify 1-click category quick buttons are registered
+    const controls = (win as any).controls || [];
+    const catBtnIds = [
+      "btn_cat_all",
+      "btn_cat_db",
+      "btn_cat_devtools",
+      "btn_cat_system",
+      "btn_cat_files",
+      "btn_cat_network",
+      "btn_cat_prod",
+      "btn_cat_games",
+      "btn_cat_security",
+      "btn_cat_design",
+      "btn_cat_demos",
+      "btn_cat_cli",
+    ];
+    for (const btnId of catBtnIds) {
+      const found = controls.find((c: any) => c.id === btnId);
+      expect(found).toBeDefined();
+      expect((win as any).eventHandlersMap?.has(`${btnId}:onclick`)).toBe(true);
+    }
+
+    // Filter to Database & Storage via quick button click
+    const dbHandler = (win as any).eventHandlersMap?.get("btn_cat_db:onclick");
+    expect(dbHandler).toBeDefined();
+    dbHandler(win);
+
+    expect(win.getValue("dd_app_category")).toContain("Database & Storage");
+    const statusText = win.getText("lbl_status");
+    expect(statusText).toContain("Database & Storage");
+
+    // Verify the listbox and table only contain database tools
+    const lstItems = win.getListItems("lst_apps");
+    expect(lstItems.length).toBeGreaterThan(0);
+    expect(lstItems.length).toBeLessThan(10); // database tools count is ~4
+
+    const tblRows = (win.getValue("tbl_apps") as string[][]) || [];
+    expect(tblRows.length).toBe(lstItems.length);
+    for (const r of tblRows) {
+      expect(r[4]).toBe("Database & Storage");
+    }
+
+    // Test clearing category filter via btn_cat_all
+    const allHandler = (win as any).eventHandlersMap?.get("btn_cat_all:onclick");
+    expect(allHandler).toBeDefined();
+    allHandler(win);
+
+    expect(win.getValue("dd_app_category")).toContain("All Categories");
+    const restoredItems = win.getListItems("lst_apps");
+    expect(restoredItems.length).toBeGreaterThan(100);
+  });
 });
 
 
