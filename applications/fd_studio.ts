@@ -55,6 +55,7 @@ import {
 } from "../src/fd_helpers";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import * as os from "node:os";
 
 export function createFdStudio(options: { fullscreen?: boolean; theme?: string; graveyardDir?: string } = {}): SimpleWindow {
   const win = newSimpleWindow(
@@ -284,7 +285,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.addLabel("lbl_rip_metric_total", "Buried Items: 0");
   win.addLabel("lbl_rip_metric_size", "Total Size: 0 B");
   win.addLabel("lbl_rip_metric_today", "Buried Today: 0");
-  const homeDir = process.env.HOME || "";
+  const homeDir = os.homedir() || process.env.USERPROFILE || process.env.HOME || "";
   const displayGraveyard = homeDir && graveyardDir.startsWith(homeDir) ? "~" + graveyardDir.slice(homeDir.length) : graveyardDir;
   win.addLabel("lbl_rip_metric_path", `Graveyard: ${displayGraveyard}`);
   win.endRow();
@@ -471,7 +472,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   const renderView = () => {
     const sorted = sortResults(allResults, String(win.getValue("dd_sort") || FD_SORT_KEYS[0]));
     currentResults = filterResults(sorted, String(win.getValue("txt_filter") || ""));
-    win.setTableData("tbl_results", tableHeaders, resultRows(currentResults));
+    const rows = win.isWindowRunning ? resultRows(currentResults) : resultRows(currentResults.slice(0, 30));
+    win.setTableData("tbl_results", tableHeaders, rows);
   };
 
   const HISTORY_PLACEHOLDER = "Recent searches…";
@@ -1651,6 +1653,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     (function() {
       function initFdStudioResponsiveEngine() {
         if (document.getElementById("fd_root")) return;
+        try {
 
         // Inject responsive styles
         const styleEl = document.createElement("style");
@@ -1680,7 +1683,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           "  padding: 14px 18px !important;",
           "  box-sizing: border-box !important;",
           "}",
-          "#groupbox_1, #groupbox_2, #groupbox_3, #groupbox_4, #groupbox_5, #groupbox_6, #groupbox_7, #groupbox_8, fieldset {",
+          "body.fd-mounted > fieldset, body.fd-mounted > [id^='groupbox_'], body.fd-mounted > .rad-groupbox {",
           "  display: none !important;",
           "}",
           ".fd-card {",
@@ -2049,6 +2052,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
 
         // Mount responsive root
         document.body.insertBefore(root, document.body.firstChild);
+        document.body.classList.add("fd-mounted");
 
         // Dynamic Viewport Sizing on Window Resize
         function updateDynamicViewportHeights() {
@@ -2080,13 +2084,20 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
             }
           }
         };
+      } catch (err) {
+        console.error("[Fd Studio UI Engine Error]:", err);
       }
+    }
 
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initFdStudioResponsiveEngine);
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        initFdStudioResponsiveEngine();
       } else {
-        setTimeout(initFdStudioResponsiveEngine, 20);
+        document.addEventListener("DOMContentLoaded", initFdStudioResponsiveEngine);
+        window.addEventListener("load", initFdStudioResponsiveEngine);
       }
+      setTimeout(initFdStudioResponsiveEngine, 25);
+      setTimeout(initFdStudioResponsiveEngine, 100);
+      setTimeout(initFdStudioResponsiveEngine, 300);
     })();
   `);
 
@@ -2105,9 +2116,18 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   process.on("SIGTERM", onProcessShutdown);
   process.on("beforeExit", () => stopAll());
 
-  // Pre-populate search and graveyard immediately on creation so initial tables are populated on first frame
-  performSearch();
+  // Populate initial graveyard telemetry
   refreshGraveyard();
+
+  // Defer initial search so initial window HTML payload is ultra-compact (<250KB),
+  // completely preventing Edge WebView2's 2MB NavigateToString limit on Windows from blanking the screen.
+  setTimeout(() => {
+    try {
+      performSearch();
+    } catch (e: any) {
+      logConsole(`[Search Init] ${e?.message || e}`, 3);
+    }
+  }, 40);
 
   return win;
 }

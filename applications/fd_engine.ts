@@ -465,9 +465,10 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
 
       const fullPath = path.join(dir, name);
       const relativePath = path.relative(resolvedRoot, fullPath) || ".";
+      const normalizedRelPath = relativePath.split(path.sep).join("/");
 
       // Exclude filter
-      const isExcluded = excludeRegexes.some(rx => rx.test(name) || rx.test(relativePath));
+      const isExcluded = excludeRegexes.some(rx => rx.test(name) || rx.test(relativePath) || rx.test(normalizedRelPath));
       if (isExcluded) {
         continue;
       }
@@ -480,7 +481,7 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       let isFile = entry.isFile();
 
       // Gitignore check
-      if (gitignore && gitignore.isIgnored(relativePath, isDir)) {
+      if (gitignore && (gitignore.isIgnored(relativePath, isDir) || gitignore.isIgnored(normalizedRelPath, isDir))) {
         continue;
       }
 
@@ -600,14 +601,15 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       // Pattern matching
       if (matcherRegex) {
         const targetText = options.fullPath ? relativePath : name;
-        if (!matcherRegex.test(targetText)) {
+        const targetNorm = options.fullPath ? normalizedRelPath : name;
+        if (!matcherRegex.test(targetText) && !matcherRegex.test(targetNorm)) {
           continue;
         }
       }
 
       const item: FdItem = {
         path: fullPath,
-        relativePath,
+        relativePath: normalizedRelPath,
         name,
         extension: ext,
         type: itemType,
