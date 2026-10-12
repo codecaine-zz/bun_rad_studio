@@ -483,6 +483,76 @@
   </main>
 
   <script>
+    // In-memory Storage & Canvas Polyfills for Webview / macOS WebKit
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+
+      if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+          if (typeof r === "undefined") r = 0;
+          if (typeof r === "number") r = [r, r, r, r];
+          var tl = r[0] || 0, tr = r[1] || r[0] || 0, br = r[2] || r[0] || 0, bl = r[3] || r[1] || r[0] || 0;
+          this.beginPath();
+          this.moveTo(x + tl, y);
+          this.lineTo(x + w - tr, y);
+          this.quadraticCurveTo(x + w, y, x + w, y + tr);
+          this.lineTo(x + w, y + h - br);
+          this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+          this.lineTo(x + bl, y + h);
+          this.quadraticCurveTo(x, y + h, x, y + h - bl);
+          this.lineTo(x, y + tl);
+          this.quadraticCurveTo(x, y, x + tl, y);
+          this.closePath();
+          return this;
+        };
+      }
+    })();
+
+    const SafeStorage = (function() {
+      const _mem = {};
+      return {
+        getItem(k) {
+          try {
+            const v = window.localStorage.getItem(k);
+            if (v !== null && v !== undefined) return v;
+          } catch(e) {}
+          return _mem.hasOwnProperty(k) ? _mem[k] : null;
+        },
+        setItem(k, v) {
+          _mem[k] = String(v);
+          try {
+            window.localStorage.setItem(k, String(v));
+          } catch(e) {}
+        },
+        removeItem(k) {
+          delete _mem[k];
+          try {
+            window.localStorage.removeItem(k);
+          } catch(e) {}
+        }
+      };
+    })();
+
     // -------------------------------------------------------------------------
     // 1. Procedural Alpine WebAudio Synthesizer Engine
     // -------------------------------------------------------------------------
@@ -665,7 +735,7 @@
     let score = 0;
     let styleScore = 0;
     let distanceSkied = 0; // In meters
-    let highScore = parseInt(localStorage.getItem("skifree_highscore") || "0", 10);
+    let highScore = parseInt(SafeStorage.getItem("skifree_highscore") || "0", 10);
 
     // Skier Status
     const skier = {
@@ -789,9 +859,13 @@
     // -------------------------------------------------------------------------
     const keysDown = {};
     window.addEventListener("keydown", (e) => {
-      keysDown[e.key.toLowerCase()] = true;
+      const k = (e.key || "").toLowerCase();
+      const code = e.code || "";
+      keysDown[k] = true;
 
-      if (e.key === " " || e.key === "Enter") {
+      const isSpaceOrEnter = k === " " || k === "spacebar" || code === "Space" || k === "enter" || code === "Enter" || code === "NumpadEnter";
+
+      if (isSpaceOrEnter) {
         e.preventDefault();
         if (gameState === STATE_IDLE || gameState === STATE_CRASHED || gameState === STATE_EATEN) {
           startNewGame();
@@ -802,25 +876,27 @@
         }
       }
 
-      if (e.key.toLowerCase() === "p" || e.key === "Escape") {
+      if (k === "p" || code === "KeyP" || k === "escape" || code === "Escape") {
         e.preventDefault();
         togglePause();
       }
 
-      if (e.key.toLowerCase() === "m") {
+      if (k === "m" || code === "KeyM") {
         e.preventDefault();
         toggleSound();
       }
 
       // Fast toggle
-      if (e.key.toLowerCase() === "f" || e.key === "Shift") {
+      if (k === "f" || code === "KeyF" || k === "shift" || code === "ShiftLeft" || code === "ShiftRight") {
         skier.isFast = true;
       }
     });
 
     window.addEventListener("keyup", (e) => {
-      keysDown[e.key.toLowerCase()] = false;
-      if (e.key.toLowerCase() === "f" || e.key === "Shift") {
+      const k = (e.key || "").toLowerCase();
+      const code = e.code || "";
+      keysDown[k] = false;
+      if (k === "f" || code === "KeyF" || k === "shift" || code === "ShiftLeft" || code === "ShiftRight") {
         skier.isFast = false;
       }
     });
@@ -855,30 +931,46 @@
 
     canvas.addEventListener("touchstart", (e) => {
       handleTouch(e);
-      if (gameState === STATE_PLAYING) triggerSkierJump();
+      if (gameState === STATE_PLAYING) {
+        triggerSkierJump();
+      } else if (gameState === STATE_IDLE || gameState === STATE_CRASHED || gameState === STATE_EATEN) {
+        startNewGame();
+      }
     }, { passive: false });
     canvas.addEventListener("touchmove", handleTouch, { passive: false });
 
     // Gamepad API
+    let padPrevA = false;
     function pollGamepad() {
-      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-      const gp = pads[0];
-      if (gp) {
-        document.getElementById("gamepadStatus").textContent = `🎮 ${gp.id.substring(0, 16)}…`;
-        const ax = gp.axes[0];
-        if (Math.abs(ax) > 0.15) {
-          skier.vx = ax * 6.5;
-          skier.angle = ax < -0.4 ? -2 : (ax < -0.15 ? -1 : (ax > 0.4 ? 2 : (ax > 0.15 ? 1 : 0)));
-        }
+      try {
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const gp = pads && pads[0];
+        if (gp) {
+          const statusElem = document.getElementById("gamepadStatus");
+          if (statusElem) statusElem.textContent = `🎮 ${gp.id ? gp.id.substring(0, 16) : 'Gamepad'}…`;
+          const ax = gp.axes && gp.axes[0] ? gp.axes[0] : 0;
+          if (Math.abs(ax) > 0.15) {
+            skier.vx = ax * 6.5;
+            skier.angle = ax < -0.4 ? -2 : (ax < -0.15 ? -1 : (ax > 0.4 ? 2 : (ax > 0.15 ? 1 : 0)));
+          }
 
-        // Down / Trigger accelerates
-        skier.isFast = gp.buttons[7]?.pressed || gp.axes[1] > 0.5;
+          // Down / Trigger accelerates
+          skier.isFast = !!(gp.buttons && (gp.buttons[7]?.pressed || (gp.axes && gp.axes[1] > 0.5)));
 
-        // Button A or X jumps
-        if (gp.buttons[0]?.pressed && !skier.isAirborne && gameState === STATE_PLAYING) {
-          triggerSkierJump();
+          // Button A (jump/select) edge triggered
+          const aPressed = !!(gp.buttons && gp.buttons[0]?.pressed);
+          if (aPressed && !padPrevA) {
+            if (gameState === STATE_PLAYING && !skier.isAirborne) {
+              triggerSkierJump();
+            } else if (gameState === STATE_IDLE || gameState === STATE_CRASHED || gameState === STATE_EATEN) {
+              startNewGame();
+            } else if (gameState === STATE_PAUSED) {
+              togglePause();
+            }
+          }
+          padPrevA = aPressed;
         }
-      }
+      } catch (err) {}
     }
 
     // -------------------------------------------------------------------------
@@ -1123,10 +1215,11 @@
 
       if (score > highScore) {
         highScore = score;
-        localStorage.setItem("skifree_highscore", highScore);
+        SafeStorage.setItem("skifree_highscore", highScore);
       }
 
       setTimeout(() => {
+        const overlay = document.getElementById("overlayMenu");
         document.getElementById("overlayTitle").textContent = "FEASTED UPON!";
         document.getElementById("overlayTitle").style.color = "var(--accent-red)";
         document.getElementById("overlaySubtitle").textContent = "The Abominable Snow Monster has made you his mid-mountain snack.";
@@ -1135,7 +1228,8 @@
         document.getElementById("ovStyle").textContent = `${styleScore} pts`;
         document.getElementById("ovScore").textContent = score;
         document.getElementById("btnStartGame").textContent = "RETRY RUN (SPACE)";
-        document.getElementById("overlayMenu").classList.add("show");
+        overlay.style.display = "flex";
+        overlay.classList.add("show");
       }, 1000);
     }
 
@@ -1499,20 +1593,25 @@
     function startNewGame() {
       initWorld();
       gameState = STATE_PLAYING;
-      document.getElementById("overlayMenu").classList.remove("show");
+      const overlay = document.getElementById("overlayMenu");
+      overlay.classList.remove("show");
+      overlay.style.display = "none";
     }
 
     function togglePause() {
+      const overlay = document.getElementById("overlayMenu");
       if (gameState === STATE_PLAYING) {
         gameState = STATE_PAUSED;
         document.getElementById("overlayTitle").textContent = "SLOPE PAUSED";
         document.getElementById("overlaySubtitle").textContent = "Resting in the alpine ski lodge.";
         document.getElementById("btnStartGame").textContent = "RESUME (SPACE)";
         document.getElementById("overlayStats").style.display = "none";
-        document.getElementById("overlayMenu").classList.add("show");
+        overlay.style.display = "flex";
+        overlay.classList.add("show");
       } else if (gameState === STATE_PAUSED) {
         gameState = STATE_PLAYING;
-        document.getElementById("overlayMenu").classList.remove("show");
+        overlay.classList.remove("show");
+        overlay.style.display = "none";
       }
     }
 
@@ -1526,7 +1625,8 @@
 
     // Mode Selector Buttons
     document.querySelectorAll(".mode-card").forEach(card => {
-      card.addEventListener("click", () => {
+      card.addEventListener("click", (e) => {
+        e.stopPropagation();
         document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("active"));
         card.classList.add("active");
         selectedMode = card.getAttribute("data-mode");
@@ -1540,9 +1640,25 @@
     }
     btnSound.addEventListener("click", toggleSound);
     document.getElementById("btnPause").addEventListener("click", togglePause);
-    document.getElementById("btnStartGame").addEventListener("click", () => {
+
+    const btnStart = document.getElementById("btnStartGame");
+    const onStartTrigger = (e) => {
+      if (e) {
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+      }
       if (gameState === STATE_PAUSED) togglePause();
       else startNewGame();
+    };
+    btnStart.addEventListener("click", onStartTrigger);
+    btnStart.addEventListener("pointerup", onStartTrigger);
+    btnStart.addEventListener("touchend", onStartTrigger);
+
+    // Fallback: clicking overlay outside mode selector cards starts/resumes
+    document.getElementById("overlayMenu").addEventListener("click", (e) => {
+      if (!e.target.closest(".mode-card")) {
+        onStartTrigger(e);
+      }
     });
 
     document.getElementById("btnFullscreen").addEventListener("click", () => {

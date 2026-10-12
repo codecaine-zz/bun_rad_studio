@@ -77,6 +77,40 @@ export function generateBreakoutStudioHtml(): string {
 
   let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Cyber Breakout</h1>";
 
+  const storagePolyfill = `
+  <script>
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+    })();
+  </script>
+  `;
+
+  if (html.includes("<head>")) {
+    html = html.replace("<head>", `<head>\n${storagePolyfill}`);
+  } else {
+    html = storagePolyfill + html;
+  }
+
   const desktopHooks = `
   <script>
     // Desktop RAD Studio Integration
@@ -248,7 +282,11 @@ export function createBreakoutStudio(options: BreakoutStudioOptions = {}): Break
           fullscreen,
         });
 
-        webview.setHTML(html);
+        if (app.url) {
+          webview.navigate(app.url);
+        } else {
+          webview.setHTML(html);
+        }
         console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
 
         webview.run();

@@ -506,6 +506,76 @@
   </main>
 
   <script>
+    // In-memory Storage & Canvas Polyfills for Webview / macOS WebKit
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+
+      if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+          if (typeof r === "undefined") r = 0;
+          if (typeof r === "number") r = [r, r, r, r];
+          var tl = r[0] || 0, tr = r[1] || r[0] || 0, br = r[2] || r[0] || 0, bl = r[3] || r[1] || r[0] || 0;
+          this.beginPath();
+          this.moveTo(x + tl, y);
+          this.lineTo(x + w - tr, y);
+          this.quadraticCurveTo(x + w, y, x + w, y + tr);
+          this.lineTo(x + w, y + h - br);
+          this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+          this.lineTo(x + bl, y + h);
+          this.quadraticCurveTo(x, y + h, x, y + h - bl);
+          this.lineTo(x, y + tl);
+          this.quadraticCurveTo(x, y, x + tl, y);
+          this.closePath();
+          return this;
+        };
+      }
+    })();
+
+    const SafeStorage = (function() {
+      const _mem = {};
+      return {
+        getItem(k) {
+          try {
+            const v = window.localStorage.getItem(k);
+            if (v !== null && v !== undefined) return v;
+          } catch(e) {}
+          return _mem.hasOwnProperty(k) ? _mem[k] : null;
+        },
+        setItem(k, v) {
+          _mem[k] = String(v);
+          try {
+            window.localStorage.setItem(k, String(v));
+          } catch(e) {}
+        },
+        removeItem(k) {
+          delete _mem[k];
+          try {
+            window.localStorage.removeItem(k);
+          } catch(e) {}
+        }
+      };
+    })();
+
     // -------------------------------------------------------------------------
     // 1. Triple-A Pentatonic WebAudio Synthesizer Engine
     // -------------------------------------------------------------------------
@@ -701,7 +771,7 @@
 
     // Stats & High Score
     let score = 0;
-    let highScore = parseInt(localStorage.getItem("cyber_breakout_highscore") || "0");
+    let highScore = parseInt(SafeStorage.getItem("cyber_breakout_highscore") || "0");
     let lives = 3;
     let currentSector = 1;
     let comboMultiplier = 1;
@@ -714,7 +784,7 @@
       normal: { speed: 1.0,  lives: 3 },
       insane: { speed: 1.25, lives: 2 }
     };
-    let difficulty = localStorage.getItem("cyber_breakout_diff");
+    let difficulty = SafeStorage.getItem("cyber_breakout_diff");
     if (!DIFFICULTIES[difficulty]) difficulty = "normal";
     function sectorSpeed() {
       return DIFFICULTIES[difficulty].speed * Math.min(1.5, 1 + (currentSector - 1) * 0.03);
@@ -1607,22 +1677,15 @@
       lasers = [];
       powerups = [];
       gameState = STATE_PLAYING;
-      document.getElementById("overlayMenu").classList.remove("show");
-    }
-
-    function primaryAction() {
-      if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) startNewGame();
-      else if (gameState === STATE_SECTOR_CLEAR) continueNextSector();
-      else if (gameState === STATE_PAUSED) togglePause();
-      else if (gameState === STATE_PLAYING) {
-        launchGluedBalls();
-        if (paddle.hasLaser) fireLaserBlasters();
-      }
+      const overlay = document.getElementById("overlayMenu");
+      overlay.classList.remove("show");
+      overlay.style.display = "none";
+      launchGluedBalls();
     }
 
     function startNewGame() {
       score = 0;
-      lives = DIFFICULTIES[difficulty].lives;
+      lives = (DIFFICULTIES[difficulty] && DIFFICULTIES[difficulty].lives) || 3;
       currentSector = 1;
       comboMultiplier = 1;
       maxComboReached = 1;
@@ -1639,7 +1702,10 @@
       updateSectorUI();
 
       gameState = STATE_PLAYING;
-      document.getElementById("overlayMenu").classList.remove("show");
+      const overlay = document.getElementById("overlayMenu");
+      overlay.classList.remove("show");
+      overlay.style.display = "none";
+      launchGluedBalls();
     }
 
     function triggerSectorClear() {
@@ -1659,7 +1725,9 @@
       document.getElementById("ovCombo").textContent = `${maxComboReached}x`;
       document.getElementById("ovSector").textContent = currentSector;
       document.getElementById("btnStartGame").textContent = "NEXT SECTOR (SPACE)";
-      document.getElementById("overlayMenu").classList.add("show");
+      const overlay = document.getElementById("overlayMenu");
+      overlay.style.display = "flex";
+      overlay.classList.add("show");
 
       buildSectorBricks(currentSector);
       resetPaddleAndBall();
@@ -1669,7 +1737,7 @@
       gameState = STATE_GAMEOVER;
       if (score > highScore) {
         highScore = score;
-        localStorage.setItem("cyber_breakout_highscore", highScore);
+        SafeStorage.setItem("cyber_breakout_highscore", highScore);
         document.getElementById("hudHigh").textContent = String(highScore).padStart(5, "0");
       }
 
@@ -1681,10 +1749,13 @@
       document.getElementById("ovCombo").textContent = `${maxComboReached}x`;
       document.getElementById("ovSector").textContent = currentSector;
       document.getElementById("btnStartGame").textContent = "PLAY AGAIN (SPACE)";
-      document.getElementById("overlayMenu").classList.add("show");
+      const overlay = document.getElementById("overlayMenu");
+      overlay.style.display = "flex";
+      overlay.classList.add("show");
     }
 
     function togglePause() {
+      const overlay = document.getElementById("overlayMenu");
       if (gameState === STATE_PLAYING) {
         gameState = STATE_PAUSED;
         document.getElementById("overlayTitle").textContent = "GAME PAUSED";
@@ -1692,10 +1763,12 @@
         document.getElementById("overlaySubtitle").textContent = "Tactical recess initiated.";
         document.getElementById("overlayStats").style.display = "none";
         document.getElementById("btnStartGame").textContent = "RESUME (SPACE)";
-        document.getElementById("overlayMenu").classList.add("show");
+        overlay.style.display = "flex";
+        overlay.classList.add("show");
       } else if (gameState === STATE_PAUSED) {
         gameState = STATE_PLAYING;
-        document.getElementById("overlayMenu").classList.remove("show");
+        overlay.classList.remove("show");
+        overlay.style.display = "none";
       }
     }
 
@@ -1711,7 +1784,14 @@
     });
 
     canvas.addEventListener("mousedown", () => {
-      if (gameState === STATE_PLAYING) primaryAction();
+      if (gameState === STATE_PLAYING) {
+        launchGluedBalls();
+        if (paddle.hasLaser) fireLaserBlasters();
+      } else if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) {
+        startNewGame();
+      } else if (gameState === STATE_SECTOR_CLEAR) {
+        continueNextSector();
+      }
     });
 
     // Touch controls
@@ -1721,11 +1801,19 @@
       const rect = canvas.getBoundingClientRect();
       paddle.targetX = (t.clientX - rect.left) * (canvas.width / rect.width) - paddle.w / 2;
     }
-    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); touchToPaddle(e); if (gameState === STATE_PLAYING) primaryAction(); }, { passive: false });
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      touchToPaddle(e);
+      if (gameState === STATE_PLAYING) {
+        launchGluedBalls();
+        if (paddle.hasLaser) fireLaserBlasters();
+      } else if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) {
+        startNewGame();
+      } else if (gameState === STATE_SECTOR_CLEAR) {
+        continueNextSector();
+      }
+    }, { passive: false });
     canvas.addEventListener("touchmove", (e) => { e.preventDefault(); touchToPaddle(e); }, { passive: false });
-
-    // Auto-pause when the window loses focus
-    window.addEventListener("blur", () => { if (gameState === STATE_PLAYING) togglePause(); });
 
     // Keyboard controls
     const keysDown = {};
@@ -1734,7 +1822,16 @@
 
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
-        primaryAction();
+        if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) {
+          startNewGame();
+        } else if (gameState === STATE_SECTOR_CLEAR) {
+          continueNextSector();
+        } else if (gameState === STATE_PAUSED) {
+          togglePause();
+        } else if (gameState === STATE_PLAYING) {
+          launchGluedBalls();
+          if (paddle.hasLaser) fireLaserBlasters();
+        }
       }
 
       if (e.key.toLowerCase() === "p" || e.key === "Escape") {
@@ -1777,9 +1874,18 @@
         if (gp.buttons[14]?.pressed) paddle.targetX -= 16;
         if (gp.buttons[15]?.pressed) paddle.targetX += 16;
 
-        // Button A or Trigger: launch/fire (held while playing), menu confirm (edge)
-        const a = !!(gp.buttons[0]?.pressed || gp.buttons[7]?.pressed);
-        if (a && (gameState === STATE_PLAYING || !padPrev.a)) primaryAction();
+        // Button A (jump/launch/select) edge triggered
+        const a = !!gp.buttons[0]?.pressed;
+        if (a && !padPrev.a) {
+          if (gameState === STATE_IDLE || gameState === STATE_GAMEOVER) {
+            startNewGame();
+          } else if (gameState === STATE_SECTOR_CLEAR) {
+            continueNextSector();
+          } else if (gameState === STATE_PLAYING) {
+            launchGluedBalls();
+            if (paddle.hasLaser) fireLaserBlasters();
+          }
+        }
         padPrev.a = a;
 
         // Start button toggles pause
@@ -1797,9 +1903,30 @@
     }
     btnSound.addEventListener("click", toggleSound);
     document.getElementById("btnPause").addEventListener("click", togglePause);
-    document.getElementById("btnStartGame").addEventListener("click", () => {
-      if (gameState === STATE_PLAYING) return;
-      primaryAction();
+    
+    const btnStart = document.getElementById("btnStartGame");
+    const onStartTrigger = (e) => {
+      if (e) {
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+      }
+      if (gameState === STATE_PAUSED) {
+        togglePause();
+      } else if (gameState === STATE_SECTOR_CLEAR) {
+        continueNextSector();
+      } else {
+        startNewGame();
+      }
+    };
+    btnStart.addEventListener("click", onStartTrigger);
+    btnStart.addEventListener("pointerup", onStartTrigger);
+    btnStart.addEventListener("touchend", onStartTrigger);
+
+    // Fallback: clicking overlay outside difficulty buttons continues / starts
+    document.getElementById("overlayMenu").addEventListener("click", (e) => {
+      if (!e.target.closest(".diff-btn")) {
+        onStartTrigger(e);
+      }
     });
 
     // Difficulty selector
@@ -1809,9 +1936,10 @@
       });
     }
     document.querySelectorAll(".diff-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         difficulty = btn.dataset.diff;
-        localStorage.setItem("cyber_breakout_diff", difficulty);
+        SafeStorage.setItem("cyber_breakout_diff", difficulty);
         syncDiffButtons();
         btn.blur();
       });
