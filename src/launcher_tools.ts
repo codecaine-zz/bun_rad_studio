@@ -59,6 +59,18 @@ export function buildShellCommand(tokens: string[]): string {
   return tokens.map(shellQuote).join(" ");
 }
 
+/** Quote a single token for Windows Command Prompt (cmd.exe) using double quotes. */
+export function windowsCmdQuote(token: string): string {
+  if (token === "") return '""';
+  if (/^[A-Za-z0-9_@%+=:,./\\-]+$/.test(token)) return token;
+  return `"${token.replace(/"/g, '""')}"`;
+}
+
+/** Join tokens into a safe Windows command line for cmd.exe / PowerShell. */
+export function buildWindowsCommand(tokens: string[]): string {
+  return tokens.map(windowsCmdQuote).join(" ");
+}
+
 /** Multi-word AND search over name, id, category, path, description and command. Returns a score (0 = no match). */
 export function searchScore(app: LauncherApp, query: string): number {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -147,9 +159,17 @@ export function usageLabel(app: LauncherApp, now = Date.now()): string {
  * editors that merely have the file open, `grep`, `tail`, or look-alike names do not count.
  */
 export function isScriptProcess(comm: string, args: string, relPath: string): boolean {
-  const exe = (comm.split("/").pop() || "").toLowerCase();
-  if (!/^(bun|node|deno|bunx)$/.test(exe) && !/^(bun|node|deno)\b/.test((args.split(/\s+/)[0]!.split("/").pop() || "").toLowerCase())) return false;
-  const rel = relPath.replace(/^\.\//, "");
-  const tokens = args.split(/\s+/);
+  // Normalize Windows separators and .exe extension
+  const cleanComm = comm.replace(/\\/g, "/");
+  const rawExe = (cleanComm.split("/").pop() || "").toLowerCase();
+  const exe = rawExe.replace(/\.exe$/, "");
+
+  const cleanArgs = args.replace(/\\/g, "/");
+  const firstArg = (cleanArgs.split(/\s+/)[0] || "").split("/").pop()?.toLowerCase().replace(/\.exe$/, "") || "";
+
+  if (!/^(bun|node|deno|bunx)$/.test(exe) && !/^(bun|node|deno)$/.test(firstArg)) return false;
+
+  const rel = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  const tokens = cleanArgs.split(/\s+/);
   return tokens.some((tok) => tok === rel || tok === `./${rel}` || tok.endsWith(`/${rel}`));
 }

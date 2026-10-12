@@ -3,12 +3,12 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
-  parseArgs, shellQuote, buildShellCommand, searchScore, sortApps, sortModeFromLabel, SORT_LABELS,
+  parseArgs, shellQuote, buildShellCommand, windowsCmdQuote, buildWindowsCommand, searchScore, sortApps, sortModeFromLabel, SORT_LABELS,
   relativeTime, usageLabel, isScriptProcess, type LauncherApp,
 } from "../src/launcher_tools";
 import {
   createLauncherStudio, launchApplication, scanAllApplications, stopAllApplications, getAliveChildren,
-  loadHistory, saveHistory, toggleFavorite, clearLaunchHistory, killApplication,
+  loadHistory, saveHistory, toggleFavorite, clearLaunchHistory, killApplication, getBunExecutable, ensureWebView2Loader,
 } from "../applications/launcher_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
@@ -99,6 +99,24 @@ describe("isScriptProcess", () => {
     expect(isScriptProcess("tail", "tail -f /p/applications/fd_studio.ts", rel)).toBe(false);
     expect(isScriptProcess("bun", "bun run /p/applications/old_fd_studio.ts", rel)).toBe(false);
     expect(isScriptProcess("bun", "bun run /p/applications/fd_studio.ts.bak", rel)).toBe(false);
+    // Windows bun.exe and backslash support
+    expect(isScriptProcess("bun.exe", "bun.exe run .\\applications\\fd_studio.ts", rel)).toBe(true);
+    expect(isScriptProcess("C:\\Users\\user\\.bun\\bin\\bun.exe", "\"C:\\Users\\user\\.bun\\bin\\bun.exe\" run C:\\repo\\applications\\fd_studio.ts", rel)).toBe(true);
+  });
+
+  test("Windows command quoting and formatting", () => {
+    expect(windowsCmdQuote("simple")).toBe("simple");
+    expect(windowsCmdQuote("path with spaces")).toBe(`"path with spaces"`);
+    expect(windowsCmdQuote("")).toBe('""');
+    expect(buildWindowsCommand(["C:\\Program Files\\bun.exe", "run", "C:\\app.ts", "--flag"])).toBe(
+      `"C:\\Program Files\\bun.exe" run C:\\app.ts --flag`
+    );
+  });
+
+  test("Windows helper utilities resolve safely", () => {
+    const bun = getBunExecutable();
+    expect(bun.length).toBeGreaterThan(0);
+    expect(typeof ensureWebView2Loader()).toBe("boolean");
   });
 });
 

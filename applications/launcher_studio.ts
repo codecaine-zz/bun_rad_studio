@@ -16,7 +16,7 @@ import { resolve, join, basename } from "path";
 import { existsSync, readdirSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import {
-  parseArgs, buildShellCommand, searchScore, sortApps, sortModeFromLabel, SORT_LABELS, usageLabel, isScriptProcess,
+  parseArgs, buildShellCommand, buildWindowsCommand, windowsCmdQuote, searchScore, sortApps, sortModeFromLabel, SORT_LABELS, usageLabel, isScriptProcess,
   type SortMode,
 } from "../src/launcher_tools";
 
@@ -467,6 +467,43 @@ export interface RunningProcessInfo {
 
 export function getRunningProcesses(): RunningProcessInfo[] {
   try {
+    if (process.platform === "win32") {
+      const proc = Bun.spawnSync([
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId)`t$($_.Name)`t$($_.CommandLine)\" }",
+      ]);
+      if (proc.exitCode !== 0) {
+        const tl = Bun.spawnSync(["tasklist.exe", "/fo", "csv", "/nh"]);
+        if (tl.exitCode !== 0) return [];
+        const lines = tl.stdout.toString().split("\n");
+        const result: RunningProcessInfo[] = [];
+        for (const line of lines) {
+          const match = line.match(/^"([^"]+)","(\d+)"/);
+          if (match) {
+            const comm = match[1] || "";
+            const pid = parseInt(match[2] || "0", 10);
+            if (pid) result.push({ pid, comm, args: comm });
+          }
+        }
+        return result;
+      }
+      const lines = proc.stdout.toString().split("\n");
+      const result: RunningProcessInfo[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const [pidStr, comm, ...rest] = trimmed.split("\t");
+        const pid = parseInt(pidStr || "0", 10);
+        if (!pid) continue;
+        const args = rest.join("\t") || comm || "";
+        result.push({ pid, comm: comm || "", args });
+      }
+      return result;
+    }
+
     const proc = Bun.spawnSync(["ps", "-eo", "pid,comm,args"]);
     if (proc.exitCode !== 0) return [];
     const lines = proc.stdout.toString().split("\n");
@@ -854,6 +891,98 @@ export function scanAllApplications(): {
 // -------------------------------------------------------------------------------------------------
 
 /**
+ * Resolves the absolute path to the Bun executable on the current system.
+ * Guaranteed to find the running Bun binary across Windows, macOS, and Linux.
+ */
+export function getBunExecutable(): string {
+  if (process.execPath && existsSync(process.execPath)) {
+    return process.execPath;
+  }
+  const whichBun = Bun.which("bun") || (process.platform === "win32" ? Bun.which("bun.exe") : null);
+  if (whichBun && existsSync(whichBun)) {
+    return whichBun;
+  }
+  if (process.platform === "win32") {
+    const userProfile = process.env.USERPROFILE || "";
+    const localApp = process.env.LOCALAPPDATA || "";
+    const candidates = [
+      "C:\\Tools\\bun-x64\\bun-windows-x64\\bun.exe",
+      join(userProfile, ".bun", "bin", "bun.exe"),
+      join(localApp, "bun", "bin", "bun.exe"),
+      "C:\\Program Files\\Bun\\bun.exe",
+      "C:\\Tools\\bun-x64\\bun.exe",
+      "C:\\Tools\\bun-arm64\\bun.exe",
+    ];
+    for (const c of candidates) {
+      if (c && existsSync(c)) return c;
+    }
+    return "bun.exe";
+  }
+  return "bun";
+}
+
+/**
+ * Ensures WebView2Loader.dll is present in node_modules/webview-bun/build on Windows.
+ * Automatically searches installed Edge and EdgeWebView locations.
+ */
+export function ensureWebView2Loader(projectRoot = process.cwd()): boolean {
+  if (process.platform !== "win32") return true;
+
+  const buildDir = join(projectRoot, "node_modules", "webview-bun", "build");
+  const targetLoader = join(buildDir, "WebView2Loader.dll");
+
+  if (existsSync(targetLoader)) {
+    return true;
+  }
+
+  try { mkdirSync(buildDir, { recursive: true }); } catch {}
+
+  const localApp = process.env.LOCALAPPDATA || "";
+  const searchRoots = [
+    "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application",
+    "C:\\Program Files\\Microsoft\\EdgeWebView\\Application",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application",
+    "C:\\Program Files\\Microsoft\\Edge\\Application",
+    "C:\\Program Files (x86)\\Microsoft\\EdgeWebView",
+    "C:\\Program Files\\Microsoft\\EdgeWebView",
+    "C:\\Program Files (x86)\\Microsoft\\Edge",
+    "C:\\Program Files\\Microsoft\\Edge",
+    ...(localApp ? [join(localApp, "Microsoft", "EdgeWebView")] : []),
+    "C:\\Windows\\System32",
+    "C:\\Windows\\SysWOW64",
+    "C:\\Windows\\Arm64",
+  ];
+
+  for (const root of searchRoots) {
+    if (!existsSync(root)) continue;
+    try {
+      const findDll = (dir: string, depth = 0): string | null => {
+        if (depth > 4) return null;
+        const entries = readdirSync(dir, { withFileTypes: true });
+        for (const e of entries) {
+          const full = join(dir, e.name);
+          if (!e.isDirectory() && e.name.toLowerCase() === "webview2loader.dll") {
+            return full;
+          } else if (e.isDirectory()) {
+            const res = findDll(full, depth + 1);
+            if (res) return res;
+          }
+        }
+        return null;
+      };
+      const found = findDll(root);
+      if (found) {
+        const data = readFileSync(found);
+        writeFileSync(targetLoader, data);
+        return true;
+      }
+    } catch {}
+  }
+
+  return false;
+}
+
+/**
  * Detects the best available terminal emulator on Linux systems
  */
 export function getAvailableLinuxTerminal(): {
@@ -997,7 +1126,13 @@ end tell`;
         return { success: false, message: `Failed to launch Terminal on macOS: ${err}` };
       }
     } else if (process.platform === "win32") {
-      Bun.spawn(["cmd.exe", "/c", "start", "cmd.exe", "/k", command], { cwd, detached: true });
+      const title = (options as any).title || "Bun RAD Studio";
+      const wt = Bun.which("wt.exe") || Bun.which("wt");
+      if (wt) {
+        Bun.spawn([wt, "-d", cwd, "cmd.exe", "/k", command], { cwd, detached: true });
+        return { success: true, message: `Opened CLI in Windows Terminal: ${command}`, terminalEmulator: "wt.exe" };
+      }
+      Bun.spawn(["cmd.exe", "/c", "start", title, "cmd.exe", "/k", `cd /d "${cwd}" && ${command}`], { cwd, detached: true });
       return { success: true, message: `Opened CLI in Command Prompt: ${command}`, terminalEmulator: "cmd.exe" };
     } else {
       // Linux & Unix-like desktop environments
@@ -1060,19 +1195,52 @@ export async function launchApplication(
   }
 
   try {
+    const bunExe = getBunExecutable();
+    const env = { ...process.env };
+    if (process.platform === "win32") {
+      const buildDir = resolve(process.cwd(), "node_modules", "webview-bun", "build");
+      const bunDir = resolve(bunExe, "..");
+      env.PATH = `${buildDir};${bunDir};${env.PATH || ""}`;
+      ensureWebView2Loader(process.cwd());
+    }
+
     if (app.source === "rad_studio" || app.source === "rad_demo") {
       // Launch GUI Studio application in independent detached process.
       // stderr goes to a log file so a crash on startup can be reported instead of silently vanishing.
       const logDir = join(tmpdir(), "rad_launcher_logs");
       try { mkdirSync(logDir, { recursive: true }); } catch {}
       const logPath = join(logDir, `${app.id}.log`);
-      const proc = Bun.spawn(["bun", "run", app.path], {
-        stdout: "ignore",
-        stderr: Bun.file(logPath),
-        detached: true,
-        cwd: process.cwd(),
-        env: process.env,
-      });
+
+      let proc;
+      try {
+        proc = Bun.spawn([bunExe, "run", app.path], {
+          stdout: "ignore",
+          stderr: Bun.file(logPath),
+          detached: true,
+          cwd: process.cwd(),
+          env,
+        });
+      } catch (spawnErr: any) {
+        if (process.platform === "win32") {
+          const fallbackProc = Bun.spawn(
+            ["cmd.exe", "/c", "start", "", bunExe, "run", app.path],
+            { cwd: process.cwd(), detached: true, env }
+          );
+          const pid = fallbackProc.pid;
+          registerChildProcess(app.id, {
+            pid,
+            appName: app.displayName,
+            startedAt: Date.now(),
+          });
+          recordLaunch(app.id);
+          return {
+            success: true,
+            message: `Started ${app.displayName} GUI via Windows start (PID: ${pid})`,
+            pid,
+          };
+        }
+        throw spawnErr;
+      }
 
       const pid = proc.pid;
       registerChildProcess(app.id, {
@@ -1097,7 +1265,7 @@ export async function launchApplication(
       const earlyMs = options.earlyExitMs ?? 800;
       if (earlyMs > 0) {
         const early = await Promise.race([proc.exited, Bun.sleep(earlyMs).then(() => null)]);
-        if (early !== null) {
+        if (early !== null && early !== 0) {
           let tail = "";
           try { tail = readFileSync(logPath, "utf-8").trim().split("\n").slice(-12).join("\n"); } catch {}
           return {
@@ -1120,14 +1288,16 @@ export async function launchApplication(
       // Quote-aware split; arguments are passed to the process directly (never through a shell).
       const parsed = parseArgs(extraArgs);
       const splitArgs = parsed.length ? parsed : ["--help"];
-      const fullCmd = ["bun", "run", app.path, ...splitArgs];
-      // For the terminal every token is shell-quoted so pasted text like `; rm -rf ~` stays an inert argument.
-      const fullCmdStr = buildShellCommand(fullCmd);
+      const fullCmd = [bunExe, "run", app.path, ...splitArgs];
+      // For the terminal, format command line appropriately for current OS
+      const fullCmdStr = process.platform === "win32"
+        ? buildWindowsCommand(fullCmd)
+        : buildShellCommand(fullCmd);
 
       recordLaunch(app.id);
 
       if (options.openTerminal) {
-        const termRes = launchInTerminal(fullCmdStr);
+        const termRes = launchInTerminal(fullCmdStr, process.cwd(), { title: app.displayName } as any);
         return {
           success: termRes.success,
           message: termRes.message,
@@ -1141,7 +1311,7 @@ export async function launchApplication(
         stdout: "pipe",
         stderr: "pipe",
         cwd: process.cwd(),
-        env: process.env,
+        env,
       });
 
       let timeoutHandle: any;
@@ -1250,12 +1420,20 @@ export function killApplication(appId: string, pid?: number): { success: boolean
   }
 
   try {
-    process.kill(targetPid, "SIGTERM");
+    if (process.platform === "win32") {
+      try { Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]); } catch {}
+    } else {
+      process.kill(targetPid, "SIGTERM");
+    }
     unregisterChildProcess(appId);
     return { success: true, message: `Terminated process PID ${targetPid}.` };
   } catch (err: any) {
     try {
-      process.kill(targetPid, "SIGKILL");
+      if (process.platform === "win32") {
+        try { Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]); } catch {}
+      } else {
+        process.kill(targetPid, "SIGKILL");
+      }
       unregisterChildProcess(appId);
       return { success: true, message: `Force-killed process PID ${targetPid}.` };
     } catch (e2: any) {
@@ -1271,7 +1449,8 @@ export function revealInFinder(filePath: string): { success: boolean; message: s
       Bun.spawn(["open", "-R", filePath]);
       return { success: true, message: "Revealed in Finder" };
     } else if (process.platform === "win32") {
-      Bun.spawn(["explorer", `/select,${filePath}`]);
+      const winPath = filePath.replace(/\//g, "\\");
+      Bun.spawn(["explorer.exe", `/select,${winPath}`]);
       return { success: true, message: "Revealed in Explorer" };
     } else {
       Bun.spawn(["xdg-open", filePath]);
@@ -1290,13 +1469,13 @@ export function copyToClipboard(text: string): { success: boolean } {
 export function openInEditor(filePath: string): { success: boolean; message: string } {
   try {
     if (!existsSync(filePath)) return { success: false, message: `File not found: ${filePath}` };
-    const code = Bun.which("code");
+    const code = Bun.which("code") || (process.platform === "win32" ? Bun.which("code.cmd") : null);
     if (code) {
       Bun.spawn([code, filePath], { stdout: "ignore", stderr: "ignore" });
       return { success: true, message: "Opened in VS Code" };
     }
     if (process.platform === "darwin") Bun.spawn(["open", "-t", filePath], { stdout: "ignore", stderr: "ignore" });
-    else if (process.platform === "win32") Bun.spawn(["cmd.exe", "/c", "start", "", filePath], { stdout: "ignore", stderr: "ignore" });
+    else if (process.platform === "win32") Bun.spawn(["cmd.exe", "/c", "start", "", filePath.replace(/\//g, "\\")], { stdout: "ignore", stderr: "ignore" });
     else Bun.spawn(["xdg-open", filePath], { stdout: "ignore", stderr: "ignore" });
     return { success: true, message: "Opened in default editor" };
   } catch (err: any) {
