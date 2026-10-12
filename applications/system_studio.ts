@@ -15,6 +15,15 @@ import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
 import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript, getScreenDimensions } from "../index.ts";
 import { startSystemStudioServer } from "./system_studio_server.ts";
+import {
+  SYSTEM_STUDIO_EXTRA_CSS,
+  SYSTEM_STUDIO_EXTRA_HEADER_HTML,
+  SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML,
+  SYSTEM_STUDIO_EXTRA_BANNER_HTML,
+  SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML,
+  SYSTEM_STUDIO_EXTRA_OVERLAY_HTML,
+  systemStudioExtraScript,
+} from "./system_studio_extras";
 
 // -------------------------------------------------------------------------------------------------
 // API Registry & Domain Metadata (All 60 Methods Across 10 Domain Categories)
@@ -1499,6 +1508,7 @@ export function generateEnterpriseAppHtml(): string {
       transform: translateY(0);
     }
   </style>
+  ${SYSTEM_STUDIO_EXTRA_CSS}
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
 
@@ -1521,7 +1531,7 @@ export function generateEnterpriseAppHtml(): string {
       <button class="btn" onclick="triggerPreset('getStaticData')">🏛️ Static Hardware</button>
       <button class="btn" onclick="triggerPreset('getDynamicData')">📈 Dynamic Telemetry</button>
       <button class="btn" onclick="refreshKpiCards()">🔄 Refresh KPIs</button>
-      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen ? window.doToggleFullscreen() : (window.toggleFullscreen && window.toggleFullscreen())" title="Toggle Fullscreen (Fn+F / F / F11 / Cmd+Ctrl+F)">⛶ Fullscreen</button>
+      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen ? window.doToggleFullscreen() : (window.toggleFullscreen && window.toggleFullscreen())" title="Toggle Fullscreen (Fn+F / F / F11 / Cmd+Ctrl+F)">⛶ Fullscreen</button>${SYSTEM_STUDIO_EXTRA_HEADER_HTML}
     </div>
   </header>
 
@@ -1580,6 +1590,7 @@ export function generateEnterpriseAppHtml(): string {
       <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiPowerBar" style="width: 100%; background: #fbbf24;"></div></div>
     </div>
   </section>
+${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
 
   <!-- Workspace -->
   <div class="workspace">
@@ -1651,7 +1662,7 @@ export function generateEnterpriseAppHtml(): string {
           <button class="btn" onclick="copyCurrentJson()">📋 Copy JSON</button>
           <button class="btn" onclick="exportCurrentReport()">💾 Save Report</button>
           <button class="btn" onclick="clearResults()">🧹 Clear</button>
-        </div>
+        </div>${SYSTEM_STUDIO_EXTRA_BANNER_HTML}
       </section>
 
       <!-- View Selection Tabs -->
@@ -1672,6 +1683,7 @@ export function generateEnterpriseAppHtml(): string {
 
         <!-- 2. JSON View -->
         <div id="viewJson" style="display: none; height: 100%;">
+${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
           <div class="json-inspector" id="jsonInspector">{\n  "status": "ready"\n}</div>
         </div>
 
@@ -1702,6 +1714,7 @@ export function generateEnterpriseAppHtml(): string {
 
   <!-- Toast -->
   <div class="toast" id="toastBox">Notification message</div>
+${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
   <script>
     const ALL_METHODS = ${methodsJson};
@@ -2670,6 +2683,9 @@ export function generateEnterpriseAppHtml(): string {
         setExecuting(false);
       }
     });
+  </script>
+  <script>
+${systemStudioExtraScript()}
   </script>
   <!-- System & Package Workstation (Compatibility Tags) -->
   <div style="display:none">

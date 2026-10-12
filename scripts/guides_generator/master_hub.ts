@@ -21,7 +21,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- |
 | **01** | [Database Studio Pro](01_database_studio.md) | Full GUI CRUD (no SQL needed): table designer, row forms, inline edit, CSV/JSON/SQL/clipboard import, export & backup, query plans. | \`bun run app:database\` | \`bun run cli:database\` |
-| **02** | [System & Package Workstation](02_system_package_studio.md) | Hardware telemetry (RAM/CPU/Uptime), Bun cache analysis, npm/bun registry search. | \`bun run app:system\` | \`bun run cli:system\` |
+| **02** | [System & Package Workstation](02_system_package_studio.md) | 60-API hardware & OS telemetry, live KPI sparklines, snapshot compare, JSON/CSV/Markdown/HTML export. | \`bun run app:system\` | \`bun run cli:system\` |
 | **03** | [Task Watcher Studio](03_task_watcher_studio.md) | Native \`fs.watch\` event pipeline, extension filters, ignore rules, build console. | \`bun run app:watcher\` | \`bun run cli:watcher\` |
 | **04** | [JSON Query Studio Pro](04_json_query_studio.md) | High-throughput JSON query engine, nested selectors, key projection, formatting. | \`bun run app:json\` | \`bun run cli:json\` |
 | **05** | [DevTools Studio Pro](05_devtools_studio.md) | 6-in-1 suite: Ripgrep search, Fd file finder, Sd regex replace, Trash, JQ. | \`bun run app:devtools\` | \`bun run cli:devtools\` |

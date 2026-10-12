@@ -9,6 +9,7 @@
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { resolve, join } from "path";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
+import { exportFormatInfo } from "../src/system_report";
 import {
   SI_METHODS,
   SI_CATEGORIES,
@@ -94,8 +95,16 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
           const reportsDir = resolve(process.cwd(), "reports");
           if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
 
-          const filename = `system_report_${body.method || "telemetry"}_${Date.now()}.json`;
+          const { ext } = exportFormatInfo(String(body.format || "json"));
+          const safeMethod = String(body.method || "telemetry").replace(/[^A-Za-z0-9_-]/g, "_");
+          const filename = `system_report_${safeMethod}_${Date.now()}.${ext}`;
           const fullPath = join(reportsDir, filename);
+
+          if (typeof body.content === "string") {
+            // Pre-rendered export (csv / markdown / html / json) produced by the studio page
+            writeFileSync(fullPath, body.content, "utf-8");
+            return Response.json({ success: true, filename, path: fullPath }, { headers: corsHeaders });
+          }
 
           const report = {
             title: "System Information Studio Pro - Hardware Telemetry Report",

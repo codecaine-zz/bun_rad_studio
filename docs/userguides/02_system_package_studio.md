@@ -1,45 +1,28 @@
-# 💻 System & Package Workstation -- Complete Production User Guide
+# 💻 System Information Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.4.0  •  Engine: Native Node:os & Bun Package Subsystem  •  Dependencies: 0  •  Offline: 100%
+Version: 2.5.0  •  Engine: systeminformation (60 APIs) via a local Bun telemetry server  •  Offline: 100%
 Launchers: [Desktop GUI: bun run app:system]  •  [Terminal CLI: bun run cli:system]
 ```
 
 ---
 
 ## 🌟 Executive Overview
-**System & Package Workstation** is an enterprise hardware diagnostics, memory telemetry, and package exploration control center built natively for Bun RAD Studio. It replaces external, slow package manager utilities with real-time access to machine hardware telemetry, local Bun module cache footprint analysis, and lightning-fast package search directly against the npm/bun registries.
+**System Information Studio Pro** is a hardware and OS intelligence workstation. It exposes the entire `systeminformation` API surface (60 methods across 10 domains: hardware, OS, CPU, memory/battery, graphics, disks, network, processes, peripherals and virtualization) through a fast desktop UI with live KPI cards, visual smart cards, a raw JSON inspector and a telemetry log.
 
-Designed for software engineers, systems architects, and DevOps professionals, this workstation gives you complete visibility into system load, CPU architecture, memory pressure, and package dependencies in a unified cockpit.
+The studio runs a background telemetry server on a local loopback port, so the window never blocks while a slow query (for example a full audit) is running.
 
 ---
 
 ## 🚀 Quick Start & Launch
 
-### 1. Launch Desktop GUI Window
 ```bash
-# Standard desktop launch
+# Desktop GUI
 bun run app:system
 
-# Backwards-compatible alias
-bun run app:brew
-```
-
-### 2. Launch Terminal CLI Diagnostic Mode
-```bash
-# Print machine telemetry and cache stats to terminal
-bun run cli:system
-
-# Search packages from the command line
-bun run cli:system --search "express"
-```
-
-### 3. Launch Programmatically in TypeScript
-```typescript
+# Programmatic launch
 import { createSystemStudio } from "./applications/system_studio";
-
-const app = createSystemStudio({ fullscreen: false });
-await app.run();
+await createSystemStudio({ fullscreen: false }).run();
 ```
 
 ---
@@ -48,63 +31,77 @@ await app.run();
 
 | High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
 | :---: | :---: |
-| ![System Workstation Desktop](../../screenshots/apps/system_studio_desktop.png) | ![System Workstation Responsive](../../screenshots/apps/system_studio_responsive.png) |
+| ![System Studio Desktop](../../screenshots/apps/system_studio_desktop.png) | ![System Studio Responsive](../../screenshots/apps/system_studio_responsive.png) |
 
 ---
 
 ## 🧭 Complete UI Tour & Element Guide
 
-### 1. Hardware Telemetry Bento Grid
-- **RAM Usage Gauge**: Displays total physical memory, active consumption, free buffer memory, and dynamic percentage utilization bar.
-- **CPU Architecture Card**: Displays CPU model string (e.g. Apple M1/M2/M3 or Intel x86_64), core count, logical thread topology, and system architecture.
-- **System Uptime Counter**: Formatted live display of system uptime (Days, Hours, Minutes, Seconds).
-- **OS Platform Badge**: Shows kernel version, macOS/Darwin build number, and host architecture.
+### 1. Header & KPI Cards
+- **Full System Audit / Static Hardware / Dynamic Telemetry**: one-click presets (`getAllData`, `getStaticData`, `getDynamicData`).
+- **KPI cards**: CPU cores and speed, live CPU load, memory used / total, primary network gateway and battery or AC power. **Load and Memory show a rolling sparkline** of the last 60 samples.
+- **🌓 Theme**: switch between the dark and light theme (remembered). **⌨ Shortcuts** lists every keyboard shortcut.
 
-### 2. Bun Module Cache Diagnostics Panel
-- **Global Cache Directory**: Displays the exact filesystem location of Bun's global package cache (`~/.bun/install/cache`).
-- **Cache Size Footprint**: Calculates total disk space consumed by cached tarballs and unpacked module dependencies.
-- **Cached Package Count**: Total count of unique dependency versions currently cached offline.
-- **🧹 Clean Cache Button**: Triggers safe removal of stale, dangling packages to reclaim gigabytes of drive space.
+### 2. Quick Bar
+- **Favorites (★) and Recents**: chips for the methods you pinned and the ones you used last; click a chip to run it.
+- **Auto-refresh**: refresh the KPI cards every 1, 2, 5, 10 or 30 seconds. Tick **Re-run method** to also re-run the selected method each time.
+- **Alerts (90%)**: shows a warning toast and a log entry when CPU load or memory reaches 90% (at most once per minute per metric).
 
-### 3. Package Registry Explorer & Search
-- **Search Package Input**: Type any keyword (e.g. `typescript`, `zod`, `tailwind`, `drizzle`).
-- **🔎 Search Registry Button**: Queries registry API asynchronously with zero blocking.
-- **Package Results Table**: Lists package name, latest semver version, package description, weekly downloads, license, and repository URL.
-- **Install Command Generator**: Click any row to generate one-click `bun add <package>` installation snippets.
+### 3. API Sidebar
+- Search box, collapsible categories, category pills and a resizable width. Every method shows its description and, where relevant, a parameter box.
+
+### 4. Method Toolbar
+- **🚀 Run Method / 📋 Run Entire Category / ⏱️ Live Stream (1s) / 📋 Copy JSON / 💾 Save Report / 🧹 Clear**.
+- **☆ Favorite**: pin the current method to the quick bar.
+- **📸 Snapshot and 🔀 Compare**: remember a result, then re-run the method and see exactly which values **changed, were added or were removed** (for example before and after plugging in a drive or joining a network).
+- **⬇ Export**: save the current result as **JSON, CSV, Markdown or an HTML report** into the `reports/` folder.
+- **📄 Full Report**: runs a complete system audit and saves it as a single readable HTML report.
+
+### 5. Result Tabs
+- **📊 Visual Smart Cards**: human-readable cards, tables and gauges.
+- **💻 Raw JSON Inspector**: syntax-highlighted JSON with a **search box** that filters to matching lines and highlights hits.
+- **⚡ Telemetry Log**: timestamped record of every query, export, alert and refresh.
 
 ---
 
 ## 🛠️ Step-by-Step Practical Tutorials
 
-### Tutorial 1: Checking System Memory Pressure During Heavy Builds
-1. Launch the workstation: `bun run app:system`.
-2. Observe the **RAM Usage Gauge** before starting your build or container cluster.
-3. Launch your compilation or test suite in the background.
-4. Watch the memory percentage bar update live; identify if your workstation is approaching swap memory pressure.
+### Tutorial 1: Spot What Changed After a Hardware or Network Event
+1. Select a method such as `networkInterfaces` or `blockDevices`.
+2. Click **📸 Snapshot**.
+3. Make the change (connect a USB drive, switch Wi-Fi, ...).
+4. Click **🔀 Compare**. A dialog lists every changed, added and removed field.
 
-### Tutorial 2: Auditing and Cleaning Bun Package Cache
-1. Open the workstation and navigate to the **Bun Module Cache** card.
-2. Review the **Cache Size Footprint** (often 5GB–15GB after working on multiple projects).
-3. Click **🧹 Clean Cache**.
-4. The workstation safely purges orphaned packages while keeping your project-level `node_modules` intact.
+### Tutorial 2: Create a Shareable System Report
+1. Click **📄 Full Report**.
+2. Open the HTML file shown in the toast (inside `reports/`) in any browser, or attach it to a support ticket.
+3. For a single method, choose **CSV**, **Markdown** or **HTML report** in the export menu and click **⬇ Export**.
+
+### Tutorial 3: Watch for Resource Pressure
+1. Set **Auto-refresh** to 2s and tick **Alerts (90%)**.
+2. Start a heavy build. The sparklines show the trend and you get a warning if CPU or memory reaches 90%.
 
 ---
 
 ## ⌨️ Complete Keyboard Shortcuts Reference
 
-| Shortcut | Context | Action |
-| :--- | :--- | :--- |
-| **Cmd + R** / **Ctrl + R** | Global | Refresh telemetry & metrics |
-| **Cmd + F** / **Ctrl + F** | Package Search | Focus package search bar |
-| **Cmd + S** / **Ctrl + S** | Window | Save window state & theme |
-| **F11** or **F** | Global | Toggle borderless fullscreen |
-| **Escape** | Window | Cancel search or close modal |
+| Shortcut | Action |
+| :--- | :--- |
+| **Cmd/Ctrl + Enter** or **R** | Run the selected method |
+| **Cmd/Ctrl + K** or **/** | Focus the API filter |
+| **Cmd/Ctrl + S** | Export in the chosen format |
+| **Cmd/Ctrl + Shift + C** | Copy JSON |
+| **1 / 2 / 3** | Visual / JSON / Log tab |
+| ***** | Toggle favorite |
+| **?** | Show shortcuts |
+| **Esc** | Close dialogs |
+| **F11** or **F** | Toggle fullscreen |
 
 ---
 
-## 💡 Pro Tips & Enterprise Best Practices
-- **Zero Homebrew Dependency**: This workstation uses native `node:os`, `node:v8`, and Bun C++ APIs. It will run on a brand-new pristine macOS machine without Homebrew or Xcode command line tools installed.
-- **Fast Package Discovery**: When evaluating dependencies for a new project, use the package registry search to compare download trends, bundle size impact, and open-source licenses before running `bun add`.
+## 💡 Pro Tips
+- Favorites, recent methods, theme and export settings are stored locally in the window and survive restarts.
+- Exported reports contain hardware serial numbers and UUIDs for some methods (for example `system`, `uuid`) -- review them before sharing publicly.
 
 ---
 
@@ -112,5 +109,6 @@ await app.run();
 
 | Question | Answer |
 | :--- | :--- |
-| **Why is cache size showing 0 bytes?** | You have not yet run `bun install` or `bun add` on this user profile. Once you install any package, Bun populates its global cache. |
-| **Does Clean Cache break my existing projects?** | No. Your project's local `node_modules` directory contains all installed files. Cleaning the global cache only frees up downloaded tarballs. |
+| **A method shows an error or empty values.** | Some APIs need OS permissions or are not available on every platform (for example temperatures on some machines). The Telemetry Log shows the exact error. |
+| **Where are exported files saved?** | In the `reports/` folder of the directory the studio was launched from. |
+| **Compare is greyed out.** | Take a **📸 Snapshot** first; the button enables once a snapshot exists. |
