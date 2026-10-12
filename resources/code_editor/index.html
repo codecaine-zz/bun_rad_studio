@@ -2418,9 +2418,17 @@
             </div>
             <div class="menu-row" data-action="go-to-symbol">
               <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Go to Symbol in File...</span></div>
-              <span class="menu-shortcut"></span>
+              <span class="menu-shortcut">Ctrl+Shift+O</span>
+            </div>
+            <div class="menu-row" data-action="go-to-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Go to Bookmark...</span></div>
+              <span class="menu-shortcut">Ctrl+Alt+B</span>
             </div>
             <div class="menu-divider"></div>
+            <div class="menu-row" data-action="toggle-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Bookmark on Line</span></div>
+              <span class="menu-shortcut">Ctrl+F2</span>
+            </div>
             <div class="menu-row" data-action="next-bookmark">
               <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Next Bookmark</span></div>
               <span class="menu-shortcut">F2</span>
@@ -2429,12 +2437,17 @@
               <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Previous Bookmark</span></div>
               <span class="menu-shortcut">Shift+F2</span>
             </div>
-            <div class="menu-row" data-action="toggle-bookmark">
-              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Bookmark on Line</span></div>
-              <span class="menu-shortcut">Ctrl+F2</span>
-            </div>
             <div class="menu-row" data-action="clear-bookmarks">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clear Bookmarks in File</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="clear-all-bookmarks-workspace">
               <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clear All Bookmarks</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="view-bookmarks">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Show Bookmarks Explorer</span></div>
               <span class="menu-shortcut"></span>
             </div>
             <div class="menu-divider"></div>
@@ -2445,6 +2458,44 @@
             <div class="menu-row" data-action="prev-match">
               <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Previous Search Match</span></div>
               <span class="menu-shortcut">Shift+Enter</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Bookmarks Menu -->
+        <div class="menubar-item" data-menu="bookmarks" tabindex="0">
+          <span class="menubar-item-label">Bookmarks</span>
+          <div class="menubar-dropdown" id="dropdown-bookmarks">
+            <div class="menu-row" data-action="toggle-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Toggle Bookmark on Current Line</span></div>
+              <span class="menu-shortcut">Ctrl+F2</span>
+            </div>
+            <div class="menu-row" data-action="go-to-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Go to Bookmark / Pick...</span></div>
+              <span class="menu-shortcut">Ctrl+Alt+B</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="next-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Next Bookmark</span></div>
+              <span class="menu-shortcut">F2</span>
+            </div>
+            <div class="menu-row" data-action="prev-bookmark">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Previous Bookmark</span></div>
+              <span class="menu-shortcut">Shift+F2</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="clear-bookmarks">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clear Bookmarks in Active File</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-row" data-action="clear-all-bookmarks-workspace">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Clear All Workspace Bookmarks</span></div>
+              <span class="menu-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-row" data-action="view-bookmarks">
+              <div class="menu-row-left"><span class="menu-check hidden">✓</span><span class="menu-label">Show Bookmarks Explorer</span></div>
+              <span class="menu-shortcut"></span>
             </div>
           </div>
         </div>
@@ -3029,6 +3080,28 @@
     </div>
   </div>
 
+  <!-- Quick Input Modal Backdrop (Go to Line, Bookmarks, New File, Save As, Quick Open) -->
+  <div class="modal-backdrop" id="quick-input-backdrop">
+    <div class="modal-window" id="quick-input-modal" style="width: 560px;">
+      <div class="modal-header" id="quick-input-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="quick-input-icon" style="font-size: 16px;">🧭</span>
+          <span id="quick-input-title" style="font-weight: 600;">Go to Line</span>
+        </div>
+        <span id="quick-input-hint" style="font-size: 11px; color: var(--text-muted); font-weight: normal;">Press Enter to confirm, Esc to cancel</span>
+      </div>
+      <div class="modal-input-wrapper">
+        <input type="text" class="modal-input" id="quick-input-field" autocomplete="off" spellcheck="false" placeholder="Type line number (e.g. 42 or 42:5)...">
+      </div>
+      <div id="quick-input-preview" style="padding: 8px 16px; font-size: 12px; color: var(--text-muted); background: var(--bg-main); border-bottom: 1px solid var(--border-color); display: none;"></div>
+      <div class="modal-list" id="quick-input-list" style="display: none; max-height: 320px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; background: var(--bg-sidebar); border-top: 1px solid var(--border-color);">
+        <button id="quick-input-cancel-btn" class="tool-btn" style="padding: 4px 12px; font-size: 12px;">Cancel</button>
+        <button id="quick-input-confirm-btn" class="tool-btn primary" style="padding: 4px 16px; font-size: 12px;">Go</button>
+      </div>
+    </div>
+  </div>
+
   </div> <!-- /#app-container -->
 
   <!-- ==========================================================================
@@ -3585,6 +3658,16 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         statusAutosaveText: document.getElementById("status-autosave-text"),
         aboutModalBackdrop: document.getElementById("about-modal-backdrop"),
         btnCloseAboutModal: document.getElementById("btn-close-about-modal"),
+        quickInputBackdrop: document.getElementById("quick-input-backdrop"),
+        quickInputModal: document.getElementById("quick-input-modal"),
+        quickInputIcon: document.getElementById("quick-input-icon"),
+        quickInputTitle: document.getElementById("quick-input-title"),
+        quickInputHint: document.getElementById("quick-input-hint"),
+        quickInputField: document.getElementById("quick-input-field"),
+        quickInputPreview: document.getElementById("quick-input-preview"),
+        quickInputList: document.getElementById("quick-input-list"),
+        quickInputCancelBtn: document.getElementById("quick-input-cancel-btn"),
+        quickInputConfirmBtn: document.getElementById("quick-input-confirm-btn"),
       };
 
       // ------------------------------------------------------------------------
@@ -4221,19 +4304,24 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         });
       }
 
-      function jumpToLine(lineNum) {
+      function jumpToLine(lineNum, colNum = 1) {
         const lines = els.textarea.value.split("\n");
+        const safeLine = Math.max(1, Math.min(lineNum, lines.length));
         let charIndex = 0;
-        for (let i = 0; i < lineNum - 1 && i < lines.length; i++) {
+        for (let i = 0; i < safeLine - 1 && i < lines.length; i++) {
           charIndex += lines[i].length + 1;
         }
 
+        const lineLen = lines[safeLine - 1]?.length || 0;
+        const targetCol = Math.max(1, Math.min(colNum || 1, lineLen + 1));
+        const cursorChar = charIndex + targetCol - 1;
+
         els.textarea.focus();
-        els.textarea.setSelectionRange(charIndex, charIndex + (lines[lineNum - 1]?.length || 0));
+        els.textarea.setSelectionRange(cursorChar, cursorChar);
         updateActiveLineIndicator();
 
         const lineHeight = 22;
-        els.editorSurface.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
+        els.editorSurface.scrollTop = Math.max(0, (safeLine - 3) * lineHeight);
       }
 
       // ------------------------------------------------------------------------
@@ -4406,11 +4494,35 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         if (!state.bookmarks[path]) state.bookmarks[path] = new Set();
 
         const set = state.bookmarks[path];
-        if (set.has(lineNum)) set.delete(lineNum);
-        else set.add(lineNum);
+        let added = false;
+        if (set.has(lineNum)) {
+          set.delete(lineNum);
+          added = false;
+        } else {
+          set.add(lineNum);
+          added = true;
+        }
 
         renderGutterBookmarks();
         renderBookmarksSidebar();
+        flashStatusBar(`Bookmark ${added ? "added to" : "removed from"} line ${lineNum}`);
+      }
+
+      function clearFileBookmarks() {
+        const path = state.activeFilePath;
+        if (state.bookmarks[path]) {
+          state.bookmarks[path] = new Set();
+        }
+        renderGutterBookmarks();
+        renderBookmarksSidebar();
+        flashStatusBar("Cleared bookmarks in active file");
+      }
+
+      function clearAllBookmarks() {
+        state.bookmarks = {};
+        renderGutterBookmarks();
+        renderBookmarksSidebar();
+        flashStatusBar("Cleared all bookmarks across workspace");
       }
 
       function renderGutterBookmarks() {
@@ -4437,15 +4549,18 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         });
 
         if (items.length === 0) {
-          els.bookmarksTree.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size: 11.5px;">No active bookmarks. Click the line number gutter to bookmark any line.</div>`;
+          els.bookmarksTree.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size: 11.5px;">No active bookmarks. Click line numbers in the gutter or press <strong>Ctrl+F2</strong> to bookmark lines.</div>`;
           return;
         }
 
         els.bookmarksTree.innerHTML = items.map((b) => `
           <div class="bookmark-item" data-path="${escapeHtml(b.filePath)}" data-line="${b.lineNum}">
             <div class="bookmark-meta">
-              <span style="font-weight: 600; color: var(--text-bright);">${escapeHtml(b.filePath)}</span>
-              <span>Line ${b.lineNum}</span>
+              <span style="font-weight: 600; color: var(--text-bright);">${escapeHtml(b.filePath.split("/").pop())}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>Line ${b.lineNum}</span>
+                <button class="btn-del-bm" data-path="${escapeHtml(b.filePath)}" data-line="${b.lineNum}" title="Delete bookmark" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0 3px; font-size: 12px;">×</button>
+              </div>
             </div>
             <div style="font-family: var(--font-code); font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               ${escapeHtml(b.snippet)}
@@ -4454,9 +4569,24 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         `).join("");
 
         els.bookmarksTree.querySelectorAll(".bookmark-item").forEach((el) => {
-          el.addEventListener("click", () => {
+          el.addEventListener("click", (e) => {
+            if (e.target.closest(".btn-del-bm")) return;
             openFile(el.dataset.path);
             jumpToLine(parseInt(el.dataset.line, 10));
+          });
+        });
+
+        els.bookmarksTree.querySelectorAll(".btn-del-bm").forEach((delBtn) => {
+          delBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const p = delBtn.getAttribute("data-path");
+            const l = parseInt(delBtn.getAttribute("data-line"), 10);
+            if (state.bookmarks[p]) {
+              state.bookmarks[p].delete(l);
+              renderGutterBookmarks();
+              renderBookmarksSidebar();
+              flashStatusBar(`Bookmark removed from line ${l}`);
+            }
           });
         });
       }
@@ -4464,7 +4594,10 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       function jumpToNextBookmark(forward = true) {
         const path = state.activeFilePath;
         const set = state.bookmarks[path];
-        if (!set || set.size === 0) return;
+        if (!set || set.size === 0) {
+          flashStatusBar("No bookmarks in this file. Press Ctrl+F2 to toggle bookmark.");
+          return;
+        }
 
         const currentLine = getActiveLineIndex() + 1;
         const sorted = Array.from(set).sort((a, b) => a - b);
@@ -4479,6 +4612,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         }
 
         jumpToLine(target);
+        flashStatusBar(`Jumped to bookmark on line ${target}`);
       }
 
       // ------------------------------------------------------------------------
@@ -5501,6 +5635,17 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         { label: "Toggle Sidebar Explorer", action: toggleSidebar, category: "View", shortcut: "Ctrl+B" },
         { label: "Save File to Disk", action: saveActiveFile, category: "File", shortcut: "Ctrl+S" },
         { label: "New Untitled File", action: createNewUntitledFile, category: "File" },
+        { label: "New File...", action: () => showNewFileModal(), category: "File", shortcut: "Ctrl+N" },
+        { label: "Save File As...", action: () => showSaveAsModal(), category: "File", shortcut: "Ctrl+Shift+S" },
+        { label: "Open Workspace Directory...", action: () => showOpenWorkspaceModal(), category: "File" },
+        { label: "Go to Line:Column...", action: () => showGoToLineModal(), category: "Go", shortcut: "Ctrl+G" },
+        { label: "Go to Bookmark / Pick Bookmark...", action: () => showGoToBookmarkModal(), category: "Bookmarks", shortcut: "Ctrl+Alt+B" },
+        { label: "Toggle Bookmark on Current Line", action: () => toggleBookmarkAtLine(getActiveLineIndex() + 1), category: "Bookmarks", shortcut: "Ctrl+F2" },
+        { label: "Next Bookmark", action: () => jumpToNextBookmark(true), category: "Bookmarks", shortcut: "F2" },
+        { label: "Previous Bookmark", action: () => jumpToNextBookmark(false), category: "Bookmarks", shortcut: "Shift+F2" },
+        { label: "Clear Bookmarks in Active File", action: clearFileBookmarks, category: "Bookmarks" },
+        { label: "Clear All Workspace Bookmarks", action: clearAllBookmarks, category: "Bookmarks" },
+        { label: "Show Bookmarks Explorer", action: () => switchSidebarView("bookmarks"), category: "View" },
       ];
 
       function openCommandPalette() {
@@ -5518,6 +5663,21 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       function renderPaletteItems(query) {
         const q = query.toLowerCase().trim();
         let items = [];
+
+        if (q.startsWith(":") || /^\d+$/.test(q)) {
+          const rawNum = q.startsWith(":") ? q.slice(1).trim() : q;
+          const targetLine = parseInt(rawNum, 10);
+          const totalLines = els.textarea.value.split("\n").length;
+          if (!isNaN(targetLine) && targetLine > 0) {
+            items.unshift({
+              label: `Jump to Line ${targetLine} (1 - ${totalLines})`,
+              action: () => jumpToLine(targetLine),
+              category: "Navigation",
+              shortcut: "Enter",
+              icon: "🧭",
+            });
+          }
+        }
 
         state.files.forEach((file) => {
           if (!q || file.path.toLowerCase().includes(q)) {
@@ -6540,28 +6700,11 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       });
 
       els.btnNewFile.addEventListener("click", () => {
-        const filename = prompt("Enter new file path (e.g. src/utils.ts):");
-        if (!filename) return;
-        state.files.push({
-          path: filename,
-          name: filename.split("/").pop(),
-          lang: detectLanguage(filename),
-          content: "",
-        });
-        openFile(filename);
+        showNewFileModal();
       });
 
       els.btnNewFolder.addEventListener("click", () => {
-        const foldername = prompt("Enter new folder path (e.g. components):");
-        if (!foldername) return;
-        const dummyPath = `${foldername}/.keep`;
-        state.files.push({
-          path: dummyPath,
-          name: ".keep",
-          lang: "plaintext",
-          content: "",
-        });
-        renderFileTree();
+        showNewFolderModal();
       });
 
       els.btnRefreshTree.addEventListener("click", () => {
@@ -6662,26 +6805,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       }
 
       function saveAsFile() {
-        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
-        const initial = currentFile ? currentFile.path : "untitled.ts";
-        const newPath = prompt("Save file as (relative path):", initial);
-        if (!newPath || newPath === (currentFile && currentFile.path)) return;
-
-        const newFile = {
-          path: newPath,
-          name: newPath.split("/").pop(),
-          lang: detectLanguage(newPath),
-          content: els.textarea.value,
-        };
-        state.files.push(newFile);
-        if (!state.openTabs.includes(newPath)) {
-          state.openTabs.push(newPath);
-        }
-        state.activeFilePath = newPath;
-        saveFileToServer(newFile, false);
-        renderTabs();
-        renderEditor();
-        updateTitleBar();
+        showSaveAsModal();
       }
 
       async function saveAllFiles() {
@@ -6834,17 +6958,452 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         }
       }
 
-      function promptGoToLine() {
-        const totalLines = els.textarea.value.split("\n").length;
-        const input = prompt(`Go to line (1 - ${totalLines}):`);
-        if (!input) return;
-        const lineNum = parseInt(input, 10);
-        if (isNaN(lineNum) || lineNum < 1 || lineNum > totalLines) {
-          flashStatusBar(`Invalid line number: ${input}`);
-          return;
+      // ------------------------------------------------------------------------
+      // Interactive Quick Input Modal Engine (Go to Line, Bookmarks, File Prompts)
+      // ------------------------------------------------------------------------
+      let currentQuickInputConfig = null;
+
+      function openQuickInput({
+        icon = "🧭",
+        title = "Quick Input",
+        hint = "Press Enter to confirm, Esc to cancel",
+        placeholder = "",
+        initialValue = "",
+        confirmText = "Go",
+        onInput = null,
+        onConfirm = null,
+        renderList = null,
+      }) {
+        currentQuickInputConfig = {
+          icon,
+          title,
+          hint,
+          placeholder,
+          initialValue,
+          confirmText,
+          onInput,
+          onConfirm,
+          renderList,
+        };
+
+        if (!els.quickInputBackdrop) return;
+
+        els.quickInputIcon.textContent = icon;
+        els.quickInputTitle.textContent = title;
+        els.quickInputHint.textContent = hint;
+        els.quickInputField.placeholder = placeholder;
+        els.quickInputField.value = initialValue;
+        els.quickInputConfirmBtn.textContent = confirmText;
+
+        if (renderList) {
+          els.quickInputList.style.display = "block";
+          renderList(els.quickInputList, initialValue, closeQuickInput);
+        } else {
+          els.quickInputList.style.display = "none";
+          els.quickInputList.innerHTML = "";
         }
-        jumpToLine(lineNum);
-        flashStatusBar(`Jumped to line ${lineNum}`);
+
+        if (onInput) {
+          els.quickInputPreview.style.display = "block";
+          onInput(initialValue, els.quickInputPreview);
+        } else {
+          els.quickInputPreview.style.display = "none";
+          els.quickInputPreview.innerHTML = "";
+        }
+
+        els.quickInputBackdrop.classList.add("open");
+        els.quickInputField.focus();
+        if (initialValue) {
+          els.quickInputField.select();
+        }
+      }
+
+      function closeQuickInput() {
+        if (els.quickInputBackdrop) {
+          els.quickInputBackdrop.classList.remove("open");
+        }
+        currentQuickInputConfig = null;
+        els.textarea.focus();
+      }
+
+      function showGoToLineModal() {
+        const lines = els.textarea.value.split("\n");
+        const totalLines = lines.length;
+        const currentLine = getActiveLineIndex() + 1;
+
+        openQuickInput({
+          icon: "🧭",
+          title: "Go to Line:Column",
+          hint: `File has ${totalLines} line${totalLines === 1 ? "" : "s"} (currently on line ${currentLine})`,
+          placeholder: `Type line number (1 - ${totalLines}) or line:col (e.g. 42 or 42:5)...`,
+          initialValue: "",
+          confirmText: "Go to Line",
+          onInput: (val, previewEl) => {
+            const trimmed = val.trim();
+            if (!trimmed) {
+              previewEl.innerHTML = `<span style="color: var(--text-muted);">Current position: <strong>Line ${currentLine}</strong> of ${totalLines}</span>`;
+              return;
+            }
+            const parts = trimmed.split(":");
+            const targetLine = parseInt(parts[0], 10);
+            const targetCol = parts[1] ? parseInt(parts[1], 10) : 1;
+
+            if (isNaN(targetLine) || targetLine < 1 || targetLine > totalLines) {
+              previewEl.innerHTML = `<span style="color: #e06c75;">Line ${escapeHtml(parts[0])} is out of range (1 - ${totalLines})</span>`;
+              return;
+            }
+
+            const snippet = lines[targetLine - 1] || "(empty line)";
+            previewEl.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #98c379; font-weight: 600;">Jump to Line ${targetLine}${parts[1] ? `, Col ${targetCol}` : ""}</span>
+                <span style="font-family: var(--font-code); font-size: 11px; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  ${escapeHtml(snippet.trim())}
+                </span>
+              </div>
+            `;
+          },
+          onConfirm: (val) => {
+            const trimmed = val.trim();
+            if (!trimmed) return true;
+            const parts = trimmed.split(":");
+            const targetLine = parseInt(parts[0], 10);
+            const targetCol = parts[1] ? parseInt(parts[1], 10) : 1;
+
+            if (isNaN(targetLine) || targetLine < 1 || targetLine > totalLines) {
+              flashStatusBar(`Line ${parts[0]} is out of range (1 - ${totalLines})`);
+              return false;
+            }
+
+            jumpToLine(targetLine, targetCol);
+            flashStatusBar(`Jumped to line ${targetLine}${parts[1] ? `, column ${targetCol}` : ""}`);
+            return true;
+          },
+        });
+      }
+
+      function promptGoToLine() {
+        showGoToLineModal();
+      }
+
+      function showGoToBookmarkModal() {
+        const currentLine = getActiveLineIndex() + 1;
+        const activePath = state.activeFilePath;
+
+        function getBookmarkList() {
+          const list = [];
+          Object.keys(state.bookmarks).forEach((filePath) => {
+            const set = state.bookmarks[filePath];
+            if (!set || set.size === 0) return;
+            const file = state.files.find((f) => f.path === filePath);
+            const lines = file ? file.content.split("\n") : [];
+            Array.from(set).sort((a, b) => a - b).forEach((lineNum) => {
+              const snippet = lines[lineNum - 1]?.trim() || "(empty line)";
+              list.push({
+                filePath,
+                lineNum,
+                snippet,
+                isCurrentFile: filePath === activePath,
+              });
+            });
+          });
+          return list;
+        }
+
+        openQuickInput({
+          icon: "🔖",
+          title: "Bookmarks",
+          hint: "Select a bookmark to navigate, or filter by line number/code",
+          placeholder: "Type to filter bookmarks...",
+          initialValue: "",
+          confirmText: "Jump to Bookmark",
+          renderList: (listEl, filterQuery, closeFn) => {
+            const items = getBookmarkList();
+            const q = (filterQuery || "").toLowerCase().trim();
+            const filtered = items.filter((b) => {
+              if (!q) return true;
+              return (
+                b.lineNum.toString().includes(q) ||
+                b.filePath.toLowerCase().includes(q) ||
+                b.snippet.toLowerCase().includes(q)
+              );
+            });
+
+            if (items.length === 0) {
+              listEl.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
+                  <div style="font-size: 24px; margin-bottom: 8px;">🔖</div>
+                  <div style="font-weight: 600; color: var(--text-bright); margin-bottom: 4px;">No active bookmarks</div>
+                  <div>Click any line number in the editor gutter or press <strong>Ctrl+F2</strong> to bookmark lines.</div>
+                  <button id="btn-quick-add-bm" class="tool-btn primary" style="margin-top: 12px; padding: 4px 14px; font-size: 11.5px;">
+                    + Bookmark Current Line (${currentLine})
+                  </button>
+                </div>
+              `;
+              const addBtn = listEl.querySelector("#btn-quick-add-bm");
+              if (addBtn) {
+                addBtn.addEventListener("click", () => {
+                  toggleBookmarkAtLine(currentLine);
+                  closeFn();
+                });
+              }
+              return;
+            }
+
+            if (filtered.length === 0) {
+              listEl.innerHTML = `
+                <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">
+                  No bookmarks matching "${escapeHtml(filterQuery)}"
+                </div>
+              `;
+              return;
+            }
+
+            listEl.innerHTML = filtered.map((b, idx) => `
+              <div class="modal-item ${idx === 0 ? "selected" : ""}" data-idx="${idx}" data-path="${escapeHtml(b.filePath)}" data-line="${b.lineNum}">
+                <div class="modal-item-left" style="flex: 1; min-width: 0;">
+                  <span style="color: #61afef; font-weight: 700;">🔖 Line ${b.lineNum}</span>
+                  <span style="font-family: var(--font-code); font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 290px;">
+                    ${escapeHtml(b.snippet)}
+                  </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="modal-shortcut" style="color: var(--text-muted); font-size: 10px;">${escapeHtml(b.filePath.split("/").pop())}</span>
+                  <button class="btn-del-quick-bm" data-path="${escapeHtml(b.filePath)}" data-line="${b.lineNum}" title="Delete bookmark" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 4px; font-size: 12px;">×</button>
+                </div>
+              </div>
+            `).join("");
+
+            listEl.querySelectorAll(".modal-item").forEach((itemEl) => {
+              itemEl.addEventListener("click", (e) => {
+                if (e.target.closest(".btn-del-quick-bm")) return;
+                const p = itemEl.getAttribute("data-path");
+                const l = parseInt(itemEl.getAttribute("data-line"), 10);
+                closeFn();
+                if (p !== state.activeFilePath) {
+                  openFile(p);
+                }
+                jumpToLine(l);
+                flashStatusBar(`Jumped to bookmark at Line ${l}`);
+              });
+            });
+
+            listEl.querySelectorAll(".btn-del-quick-bm").forEach((delBtn) => {
+              delBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const p = delBtn.getAttribute("data-path");
+                const l = parseInt(delBtn.getAttribute("data-line"), 10);
+                if (state.bookmarks[p]) {
+                  state.bookmarks[p].delete(l);
+                  renderGutterBookmarks();
+                  renderBookmarksSidebar();
+                  flashStatusBar(`Bookmark removed from Line ${l}`);
+                  renderList(listEl, els.quickInputField.value, closeFn);
+                }
+              });
+            });
+          },
+          onConfirm: () => {
+            const sel = els.quickInputList.querySelector(".modal-item.selected") || els.quickInputList.querySelector(".modal-item");
+            if (sel) {
+              const p = sel.getAttribute("data-path");
+              const l = parseInt(sel.getAttribute("data-line"), 10);
+              if (p !== state.activeFilePath) {
+                openFile(p);
+              }
+              jumpToLine(l);
+              flashStatusBar(`Jumped to bookmark at Line ${l}`);
+              return true;
+            }
+            return false;
+          },
+        });
+      }
+
+      function showNewFileModal() {
+        openQuickInput({
+          icon: "📄",
+          title: "New File",
+          hint: "Enter relative file path (e.g. src/components/Button.tsx)",
+          placeholder: "path/to/filename.ext",
+          initialValue: "",
+          confirmText: "Create File",
+          onConfirm: (val) => {
+            const filename = val.trim();
+            if (!filename) return false;
+            const existing = state.files.find((f) => f.path === filename);
+            if (existing) {
+              openFile(filename);
+              flashStatusBar(`Opened existing file: ${filename}`);
+              return true;
+            }
+            state.files.push({
+              path: filename,
+              name: filename.split("/").pop(),
+              lang: detectLanguage(filename),
+              content: "",
+            });
+            openFile(filename);
+            renderFileTree();
+            flashStatusBar(`Created new file: ${filename}`);
+            return true;
+          },
+        });
+      }
+
+      function showNewFolderModal() {
+        openQuickInput({
+          icon: "📁",
+          title: "New Folder",
+          hint: "Enter new folder path (e.g. components)",
+          placeholder: "folder/name",
+          initialValue: "",
+          confirmText: "Create Folder",
+          onConfirm: (val) => {
+            const foldername = val.trim();
+            if (!foldername) return false;
+            const dummyPath = `${foldername.replace(/\/$/, "")}/.keep`;
+            if (!state.files.some((f) => f.path === dummyPath)) {
+              state.files.push({
+                path: dummyPath,
+                name: ".keep",
+                lang: "plaintext",
+                content: "",
+              });
+              renderFileTree();
+              flashStatusBar(`Created folder: ${foldername}`);
+            }
+            return true;
+          },
+        });
+      }
+
+      function showSaveAsModal() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        const initial = currentFile ? currentFile.path : "untitled.ts";
+        openQuickInput({
+          icon: "💾",
+          title: "Save File As",
+          hint: "Enter new file path for current document",
+          placeholder: "path/to/filename.ext",
+          initialValue: initial,
+          confirmText: "Save As",
+          onConfirm: (val) => {
+            const newPath = val.trim();
+            if (!newPath) return false;
+            let targetFile = state.files.find((f) => f.path === newPath);
+            if (!targetFile) {
+              targetFile = {
+                path: newPath,
+                name: newPath.split("/").pop(),
+                lang: detectLanguage(newPath),
+                content: els.textarea.value,
+              };
+              state.files.push(targetFile);
+            } else {
+              targetFile.content = els.textarea.value;
+            }
+            if (!state.openTabs.includes(newPath)) {
+              state.openTabs.push(newPath);
+            }
+            state.activeFilePath = newPath;
+            saveFileToServer(targetFile, false);
+            renderTabs();
+            renderEditor();
+            updateTitleBar();
+            flashStatusBar(`Saved file as ${newPath}`);
+            return true;
+          },
+        });
+      }
+
+      function showOpenWorkspaceModal() {
+        openQuickInput({
+          icon: "📂",
+          title: "Open Workspace Folder",
+          hint: "Enter workspace directory path",
+          placeholder: "/Users/username/project",
+          initialValue: "/Users/codecaine/bun_rad_studio",
+          confirmText: "Open Folder",
+          onConfirm: (val) => {
+            const ws = val.trim();
+            if (!ws) return false;
+            flashStatusBar(`Switching workspace: ${ws}`);
+            loadWorkspaceFromBackend();
+            return true;
+          },
+        });
+      }
+
+      function setupQuickInput() {
+        if (!els.quickInputBackdrop) return;
+
+        if (els.quickInputField) {
+          els.quickInputField.addEventListener("input", (e) => {
+            if (!currentQuickInputConfig) return;
+            if (currentQuickInputConfig.onInput) {
+              currentQuickInputConfig.onInput(e.target.value, els.quickInputPreview);
+            }
+            if (currentQuickInputConfig.renderList) {
+              currentQuickInputConfig.renderList(els.quickInputList, e.target.value, closeQuickInput);
+            }
+          });
+
+          els.quickInputField.addEventListener("keydown", (e) => {
+            if (!currentQuickInputConfig) return;
+
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const val = els.quickInputField.value;
+              if (currentQuickInputConfig.onConfirm) {
+                const res = currentQuickInputConfig.onConfirm(val);
+                if (res !== false) closeQuickInput();
+              } else {
+                closeQuickInput();
+              }
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              closeQuickInput();
+            } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              if (els.quickInputList && els.quickInputList.style.display !== "none") {
+                e.preventDefault();
+                const items = Array.from(els.quickInputList.querySelectorAll(".modal-item"));
+                if (items.length === 0) return;
+                let idx = items.findIndex((it) => it.classList.contains("selected"));
+                if (e.key === "ArrowDown") {
+                  idx = (idx + 1) % items.length;
+                } else {
+                  idx = (idx - 1 + items.length) % items.length;
+                }
+                items.forEach((it, i) => it.classList.toggle("selected", i === idx));
+                if (items[idx]) items[idx].scrollIntoView({ block: "nearest" });
+              }
+            }
+          });
+        }
+
+        if (els.quickInputConfirmBtn) {
+          els.quickInputConfirmBtn.addEventListener("click", () => {
+            if (!currentQuickInputConfig) return;
+            const val = els.quickInputField.value;
+            if (currentQuickInputConfig.onConfirm) {
+              const res = currentQuickInputConfig.onConfirm(val);
+              if (res !== false) closeQuickInput();
+            } else {
+              closeQuickInput();
+            }
+          });
+        }
+
+        if (els.quickInputCancelBtn) {
+          els.quickInputCancelBtn.addEventListener("click", closeQuickInput);
+        }
+
+        if (els.quickInputBackdrop) {
+          els.quickInputBackdrop.addEventListener("click", (e) => {
+            if (e.target === els.quickInputBackdrop) closeQuickInput();
+          });
+        }
       }
 
       function selectCurrentLine() {
@@ -6871,28 +7430,12 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
       // ------------------------------------------------------------------------
       const MENU_ACTIONS = {
         // File
-        "new-file": () => {
-          const filename = prompt("Enter new file path (e.g. src/utils.ts):");
-          if (!filename) return;
-          state.files.push({
-            path: filename,
-            name: filename.split("/").pop(),
-            lang: detectLanguage(filename),
-            content: "",
-          });
-          openFile(filename);
-        },
+        "new-file": () => showNewFileModal(),
         "new-untitled": () => createNewUntitledFile(),
         "open-file": () => openCommandPalette(),
-        "open-workspace": () => {
-          const ws = prompt("Enter workspace directory path:", "/Users/codecaine/bun_rad_studio");
-          if (ws) {
-            flashStatusBar(`Switching workspace: ${ws}`);
-            loadWorkspaceFromBackend();
-          }
-        },
+        "open-workspace": () => showOpenWorkspaceModal(),
         save: () => saveActiveFile(),
-        "save-as": () => saveAsFile(),
+        "save-as": () => showSaveAsModal(),
         "save-all": () => saveAllFiles(),
         "toggle-autosave": () => toggleAutoSave(),
         "close-tab": () => closeActiveTab(),
@@ -7036,22 +7579,20 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         "theme-nordic": () => { els.themeSelector.value = "nordic"; els.themeSelector.dispatchEvent(new Event("change")); },
         "theme-solarized": () => { els.themeSelector.value = "solarized"; els.themeSelector.dispatchEvent(new Event("change")); },
 
-        // Go
+        // Go & Bookmarks
         "go-to-file": () => openCommandPalette(),
-        "go-to-line": () => promptGoToLine(),
+        "go-to-line": () => showGoToLineModal(),
         "go-to-symbol": () => switchSidebarView("outline"),
+        "go-to-bookmark": () => showGoToBookmarkModal(),
         "next-bookmark": () => jumpToNextBookmark(true),
         "prev-bookmark": () => jumpToNextBookmark(false),
         "toggle-bookmark": () => {
           const line = getActiveLineIndex() + 1;
           toggleBookmarkAtLine(line);
         },
-        "clear-bookmarks": () => {
-          state.bookmarks[state.activeFilePath] = new Set();
-          renderGutterBookmarks();
-          renderBookmarksSidebar();
-          flashStatusBar("Cleared bookmarks in active file");
-        },
+        "clear-bookmarks": () => clearFileBookmarks(),
+        "clear-all-bookmarks-workspace": () => clearAllBookmarks(),
+        "view-bookmarks": () => switchSidebarView("bookmarks"),
         "next-match": () => els.frNextBtn.click(),
         "prev-match": () => els.frPrevBtn.click(),
 
@@ -7177,12 +7718,27 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           // Ctrl+G (Go to line)
           else if (isCtrlOrCmd && e.key.toLowerCase() === "g") {
             e.preventDefault();
-            promptGoToLine();
+            showGoToLineModal();
+          }
+          // Ctrl+Alt+B (Go to Bookmark)
+          else if (isCtrlOrCmd && e.altKey && e.key.toLowerCase() === "b") {
+            e.preventDefault();
+            showGoToBookmarkModal();
           }
           // Ctrl+F2 (Toggle Bookmark)
           else if (isCtrlOrCmd && e.key === "F2") {
             e.preventDefault();
             MENU_ACTIONS["toggle-bookmark"]();
+          }
+          // F2 (Next Bookmark)
+          else if (!isCtrlOrCmd && e.key === "F2" && !e.shiftKey) {
+            e.preventDefault();
+            jumpToNextBookmark(true);
+          }
+          // Shift+F2 (Previous Bookmark)
+          else if (!isCtrlOrCmd && e.key === "F2" && e.shiftKey) {
+            e.preventDefault();
+            jumpToNextBookmark(false);
           }
         });
       }
@@ -7238,6 +7794,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
         setupGlobalSearch();
         setupDrawer();
         setupMenuBar();
+        setupQuickInput();
         initAutoSave();
         openFile(state.activeFilePath);
         checkBackendStatus();
