@@ -19122,6 +19122,84 @@
                 }
             };
 
+            // ==========================================
+            // HTML5 GAMEPAD API INTEGRATION
+            // ==========================================
+            let prevGamepadState = {};
+            let gamepadLoopId = null;
+            let lastAxisMove = 0;
+
+            function processGamepad() {
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                let gp = null;
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) { gp = gamepads[i]; break; }
+                }
+                if (!gp) {
+                    gamepadLoopId = requestAnimationFrame(processGamepad);
+                    return;
+                }
+
+                // If any modal is currently displayed, do not process character movement
+                if (typeof isAnyModalOpen === 'function' && isAnyModalOpen()) {
+                    gamepadLoopId = requestAnimationFrame(processGamepad);
+                    return;
+                }
+
+                const state = {
+                    up: gp.buttons[12]?.pressed || gp.axes[1] < -0.5,
+                    down: gp.buttons[13]?.pressed || gp.axes[1] > 0.5,
+                    left: gp.buttons[14]?.pressed || gp.axes[0] < -0.5,
+                    right: gp.buttons[15]?.pressed || gp.axes[0] > 0.5,
+                    shoot: gp.buttons[0]?.pressed || gp.buttons[2]?.pressed, // A or X
+                    undo: gp.buttons[1]?.pressed || gp.buttons[4]?.pressed, // B or L1
+                    restart: gp.buttons[8]?.pressed || gp.buttons[5]?.pressed, // Select or R1
+                    next: gp.buttons[9]?.pressed // Start
+                };
+
+                const now = Date.now();
+                const axisCooldown = 180; // ms between continuous axis movements
+
+                const move = (dx, dy, key) => {
+                    if (state[key] && !prevGamepadState[key]) {
+                        setPadActive('btn-pad-' + key, true);
+                        game.moveLolo(dx, dy);
+                        lastAxisMove = now;
+                    } else if (state[key] && prevGamepadState[key] && (now - lastAxisMove > axisCooldown)) {
+                        setPadActive('btn-pad-' + key, true);
+                        game.moveLolo(dx, dy);
+                        lastAxisMove = now;
+                    } else if (!state[key] && prevGamepadState[key]) {
+                        setPadActive('btn-pad-' + key, false);
+                    }
+                };
+
+                move(0, -1, 'up');
+                move(0, 1, 'down');
+                move(-1, 0, 'left');
+                move(1, 0, 'right');
+
+                if (state.shoot && !prevGamepadState.shoot) { setPadActive('btn-pad-shoot', true); game.shoot(); }
+                else if (!state.shoot && prevGamepadState.shoot) { setPadActive('btn-pad-shoot', false); }
+
+                if (state.undo && !prevGamepadState.undo) { setPadActive('btn-undo', true); game.undo(); }
+                else if (!state.undo && prevGamepadState.undo) { setPadActive('btn-undo', false); }
+
+                if (state.restart && !prevGamepadState.restart) restartActiveLevel();
+                if (state.next && !prevGamepadState.next) goToNextLevel();
+
+                prevGamepadState = state;
+                gamepadLoopId = requestAnimationFrame(processGamepad);
+            }
+
+            window.addEventListener("gamepadconnected", (e) => {
+                console.log("Gamepad connected at index %d: %s.", e.gamepad.index, e.gamepad.id);
+                if (!gamepadLoopId) gamepadLoopId = requestAnimationFrame(processGamepad);
+            });
+            window.addEventListener("gamepaddisconnected", (e) => {
+                console.log("Gamepad disconnected from index %d: %s", e.gamepad.index, e.gamepad.id);
+            });
+
             // Keyboard Listeners with Gamepad Visual Mirroring
             window.addEventListener('keyup', (e) => {
                 if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') setPadActive('btn-pad-up', false);
