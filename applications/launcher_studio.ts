@@ -769,6 +769,117 @@ export function getCategoryIcon(cat: string): string {
 }
 
 /**
+ * Resiliently tests whether an application's category matches the user-selected category choice,
+ * supporting exact names, abbreviations, emojis, and aliases (e.g. Games, Game, Arcade, Database, DevTools).
+ */
+export function matchAppCategory(appCategory: string, selectedChoice: string): boolean {
+  if (!selectedChoice || selectedChoice.includes("All Categories") || selectedChoice.includes("All Tools")) return true;
+  const choiceLower = selectedChoice.toLowerCase();
+  const appCatLower = appCategory.toLowerCase();
+
+  // 1. Direct or substring match
+  if (choiceLower.includes(appCatLower) || appCatLower.includes(choiceLower)) {
+    return true;
+  }
+
+  // 2. Games & Entertainment aliases
+  if (
+    (choiceLower.includes("game") || choiceLower.includes("arcade")) &&
+    appCatLower.includes("game")
+  ) {
+    return true;
+  }
+
+  // 3. Database & Storage aliases
+  if (
+    (choiceLower.includes("database") || choiceLower.includes("storage") || choiceLower.includes("db") || choiceLower.includes("sql")) &&
+    appCatLower.includes("database")
+  ) {
+    return true;
+  }
+
+  // 4. Developer Tools aliases
+  if (
+    (choiceLower.includes("developer") || choiceLower.includes("devtools") || choiceLower.includes("dev")) &&
+    appCatLower.includes("developer")
+  ) {
+    return true;
+  }
+
+  // 5. System & Hardware aliases
+  if (
+    (choiceLower.includes("system") || choiceLower.includes("hardware") || choiceLower.includes("sys")) &&
+    appCatLower.includes("system")
+  ) {
+    return true;
+  }
+
+  // 6. File & Directory Tools aliases
+  if (
+    (choiceLower.includes("file") || choiceLower.includes("directory") || choiceLower.includes("dir") || choiceLower.includes("disk")) &&
+    appCatLower.includes("file")
+  ) {
+    return true;
+  }
+
+  // 7. Network & Cloud aliases
+  if (
+    (choiceLower.includes("network") || choiceLower.includes("cloud") || choiceLower.includes("net")) &&
+    appCatLower.includes("network")
+  ) {
+    return true;
+  }
+
+  // 8. Productivity & Text aliases
+  if (
+    (choiceLower.includes("productivity") || choiceLower.includes("text") || choiceLower.includes("prod")) &&
+    appCatLower.includes("productivity")
+  ) {
+    return true;
+  }
+
+  // 9. Security & Crypto aliases
+  if (
+    (choiceLower.includes("security") || choiceLower.includes("crypto") || choiceLower.includes("sec")) &&
+    appCatLower.includes("security")
+  ) {
+    return true;
+  }
+
+  // 10. Design & UX / Media aliases
+  if (
+    choiceLower.includes("design") &&
+    appCatLower.includes("design")
+  ) {
+    return true;
+  }
+
+  // 11. Demos & Templates aliases
+  if (
+    (choiceLower.includes("demo") || choiceLower.includes("template")) &&
+    appCatLower.includes("demo")
+  ) {
+    return true;
+  }
+
+  // 12. CLI Utilities aliases
+  if (
+    choiceLower.includes("cli") &&
+    appCatLower.includes("cli")
+  ) {
+    return true;
+  }
+
+  // Fallback: strip leading non-alphanumeric chars (emojis, spaces) and count suffix
+  const clean = choiceLower.replace(/^[^\p{L}\p{N}]+/u, "").replace(/\s*\(\d+\)\s*$/, "").trim();
+  if (clean && (appCatLower.includes(clean) || clean.includes(appCatLower))) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Scans all project applications, CLI tools, and demos
  */
 export function scanWorkspaceApps(): DetectedApp[] {
@@ -2231,14 +2342,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
         !catChoice.includes("Running Processes") &&
         !catChoice.includes("Recently Used")
       ) {
-        const cleanChoice = catChoice.replace(/^[\p{Emoji}\s]+/u, "").replace(/\s*\(\d+\)\s*$/, "").trim().toLowerCase();
-        if (cleanChoice && !a.category.toLowerCase().includes(cleanChoice)) return false;
+        if (!matchAppCategory(a.category, catChoice)) return false;
       }
 
       // 2. Functional Category Filter (dd_app_category)
       if (appCatChoice && !appCatChoice.includes("All Categories")) {
-        const cleanAppCat = appCatChoice.replace(/^[\p{Emoji}\s]+/u, "").replace(/\s*\(\d+\)\s*$/, "").trim().toLowerCase();
-        if (cleanAppCat && !a.category.toLowerCase().includes(cleanAppCat)) return false;
+        if (!matchAppCategory(a.category, appCatChoice)) return false;
       }
 
       // 3. Multi-word AND search over name, id, category, path, description and command
@@ -2318,9 +2427,29 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // Category Quick Filter Buttons
   const filterByAppCategory = (w: SimpleWindow, categorySearch: string) => {
-    const matching = categoryDropdownOptions.find((opt) => opt.toLowerCase().includes(categorySearch.toLowerCase())) || categorySearch;
+    // 1. Clear search input so stray search terms don't hide category items
+    w.setValue("txt_search", "");
+    // 2. Reset restrictive scopes (like Pinned Favorites or CLI Utilities) that could filter out tools
+    const curScope = String(w.getValue("dd_category") || "");
+    let scopeOverride: string | undefined = undefined;
+    if (
+      curScope.includes("CLI Utilities") ||
+      curScope.includes("Showcase Demos") ||
+      curScope.includes("Pinned Favorites") ||
+      curScope.includes("Running Processes") ||
+      curScope.includes("Recently Used")
+    ) {
+      w.setValue("dd_category", "🌟 All Project Tools");
+      scopeOverride = "🌟 All Project Tools";
+    }
+    // 3. Set category dropdown value
+    const matching =
+      categoryDropdownOptions.find((opt) => !opt.includes("All Categories") && matchAppCategory(categorySearch, opt)) ||
+      categoryDropdownOptions.find((opt) => !opt.includes("All Categories") && opt.toLowerCase().includes(categorySearch.toLowerCase())) ||
+      categorySearch;
     w.setValue("dd_app_category", matching);
-    applyFilters(w, { appCat: categorySearch }, true);
+    // 4. Apply filter immediately
+    applyFilters(w, { query: "", cat: scopeOverride, appCat: matching }, true);
     w.toast(`📂 Filtered to Category: ${categorySearch}`);
   };
 
@@ -2645,7 +2774,138 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   bindQuick("btn_quick_tokei_cli", "tokei_cli", "--help", true);
   bindQuick("btn_quick_gdu_cli", "gdu_cli", "--help", true);
   bindQuick("btn_quick_net_cli", "network_cli", "--help", true);
-  bindQuick("btn_quick_crypto_cli", "crypto_cli", "--help", true);
+  // Client-side DOM reactive filtering for instant 0ms responses across all browser & webview runtimes
+  win.addScript(`
+    (function initClientCategoryFilter() {
+      function runFilter(catName) {
+        const tbl = document.getElementById("tbl_apps");
+        const searchInput = document.getElementById("txt_search");
+        const ddAppCat = document.getElementById("dd_app_category");
+        const statusEl = document.getElementById("lbl_status");
+
+        const q = searchInput ? (searchInput.value || "").trim().toLowerCase() : "";
+        const cTarget = (catName || "").trim().toLowerCase();
+        const isAll = !cTarget || cTarget.includes("all categories") || cTarget.includes("all tools");
+
+        function matchesCat(cat) {
+          if (isAll) return true;
+          const cl = cat.toLowerCase();
+          if ((cTarget.includes("game") || cTarget.includes("arcade")) && cl.includes("game")) return true;
+          if ((cTarget.includes("db") || cTarget.includes("database") || cTarget.includes("storage")) && cl.includes("database")) return true;
+          if ((cTarget.includes("dev") || cTarget.includes("developer")) && cl.includes("developer")) return true;
+          if ((cTarget.includes("sys") || cTarget.includes("system") || cTarget.includes("hardware")) && cl.includes("system")) return true;
+          if (cTarget.includes("file") && cl.includes("file")) return true;
+          if (cTarget.includes("net") && cl.includes("network")) return true;
+          if (cTarget.includes("prod") && cl.includes("productivity")) return true;
+          if (cTarget.includes("sec") && cl.includes("security")) return true;
+          if (cTarget.includes("design") && cl.includes("design")) return true;
+          if (cTarget.includes("demo") && cl.includes("demo")) return true;
+          if (cTarget.includes("cli") && cl.includes("cli")) return true;
+          return cl.includes(cTarget) || cTarget.includes(cl);
+        }
+
+        let visible = 0;
+        if (tbl) {
+          const rows = tbl.querySelectorAll("tbody tr");
+          rows.forEach(tr => {
+            const tds = tr.querySelectorAll("td");
+            if (tds.length < 5) return;
+            const pid = tr.getAttribute("data-pid") || (tds[0] ? tds[0].textContent.trim() : "");
+            const name = tds[3] ? tds[3].textContent.toLowerCase() : "";
+            const cat = tds[4] ? tds[4].textContent.toLowerCase() : "";
+            const cmd = tds[7] ? tds[7].textContent.toLowerCase() : "";
+
+            const catOk = matchesCat(cat);
+            const queryOk = !q || name.includes(q) || cat.includes(q) || pid.toLowerCase().includes(q) || cmd.includes(q);
+
+            if (catOk && queryOk) {
+              tr.style.display = "";
+              visible++;
+            } else {
+              tr.style.display = "none";
+            }
+          });
+        }
+
+        if (statusEl) {
+          const catLabel = isAll ? "All Categories" : catName;
+          statusEl.textContent = "Filtered: " + visible + " project tools  |  Category: " + catLabel;
+        }
+
+        // Sync dropdown selection
+        if (ddAppCat) {
+          const sel = ddAppCat.tagName === "SELECT" ? ddAppCat : ddAppCat.querySelector("select");
+          if (sel) {
+            for (let i = 0; i < sel.options.length; i++) {
+              if (matchesCat(sel.options[i].text) || (isAll && i === 0)) {
+                sel.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      window.filterByCategoryClient = runFilter;
+
+      function bindListeners() {
+        const catMap = {
+          btn_cat_all: "All Categories",
+          btn_cat_db: "Database & Storage",
+          btn_cat_devtools: "Developer Tools",
+          btn_cat_system: "System & Hardware",
+          btn_cat_files: "File & Directory Tools",
+          btn_cat_network: "Network & Cloud",
+          btn_cat_prod: "Productivity & Text",
+          btn_cat_games: "Games & Entertainment",
+          btn_cat_security: "Security & Crypto",
+          btn_cat_design: "Design",
+          btn_cat_demos: "Demos & Templates",
+          btn_cat_cli: "CLI Utilities",
+        };
+
+        for (const [id, catName] of Object.entries(catMap)) {
+          const btn = document.getElementById(id);
+          if (btn && !btn.dataset.clientFilterBound) {
+            btn.dataset.clientFilterBound = "true";
+            btn.addEventListener("click", function() {
+              const searchInput = document.getElementById("txt_search");
+              if (searchInput) searchInput.value = "";
+              runFilter(catName);
+            });
+          }
+        }
+
+        const ddAppCat = document.getElementById("dd_app_category");
+        if (ddAppCat && !ddAppCat.dataset.clientFilterBound) {
+          ddAppCat.dataset.clientFilterBound = "true";
+          const sel = ddAppCat.tagName === "SELECT" ? ddAppCat : ddAppCat.querySelector("select");
+          if (sel) {
+            sel.addEventListener("change", function() {
+              runFilter(this.value);
+            });
+          }
+        }
+
+        const clearBtn = document.getElementById("btn_clear_filter");
+        if (clearBtn && !clearBtn.dataset.clientFilterBound) {
+          clearBtn.dataset.clientFilterBound = "true";
+          clearBtn.addEventListener("click", function() {
+            const searchInput = document.getElementById("txt_search");
+            if (searchInput) searchInput.value = "";
+            runFilter("All Categories");
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindListeners);
+      } else {
+        bindListeners();
+        setTimeout(bindListeners, 250);
+      }
+    })();
+  `);
 
   return win;
 }

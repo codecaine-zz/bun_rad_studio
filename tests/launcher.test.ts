@@ -517,6 +517,23 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       expect(r[4]).toBe("Database & Storage");
     }
 
+    // Filter to Games & Entertainment via quick button click
+    const gamesHandler = (win as any).eventHandlersMap?.get("btn_cat_games:onclick");
+    expect(gamesHandler).toBeDefined();
+    gamesHandler(win);
+
+    expect(win.getValue("dd_app_category")).toContain("Games & Entertainment");
+    const gamesStatus = win.getText("lbl_status");
+    expect(gamesStatus).toContain("Games & Entertainment");
+
+    const gamesItems = win.getListItems("lst_apps");
+    expect(gamesItems.length).toBeGreaterThanOrEqual(20);
+    const gamesRows = (win.getValue("tbl_apps") as string[][]) || [];
+    expect(gamesRows.length).toBe(gamesItems.length);
+    for (const r of gamesRows) {
+      expect(r[4]).toBe("Games & Entertainment");
+    }
+
     // Test clearing category filter via btn_cat_all
     const allHandler = (win as any).eventHandlersMap?.get("btn_cat_all:onclick");
     expect(allHandler).toBeDefined();
