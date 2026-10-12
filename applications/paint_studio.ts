@@ -82,6 +82,28 @@ export function generatePaintStudioHtml(): string {
 
   let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Chroma Studio Pro</h1>";
 
+  const libPath = join(assetsDir, "coloring_library.js");
+  let libContent = "";
+  if (existsSync(libPath)) {
+    libContent = readFileSync(libPath, "utf8");
+    libContent = libContent.replace(/export\s+const\s+COLORING_LIBRARY\s*=/, "var COLORING_LIBRARY = window.COLORING_LIBRARY =");
+    libContent = libContent.replace(/export\s*\{\s*COLORING_LIBRARY\s*\}\s*;?/, "");
+  }
+
+  const inlinedLibScript = `
+  <script>
+    ${libContent}
+  </script>
+  `;
+
+  if (html.includes('<script type="module" src="coloring_library.js"></script>')) {
+    html = html.replace('<script type="module" src="coloring_library.js"></script>', inlinedLibScript);
+  } else if (html.includes('<script src="coloring_library.js"></script>')) {
+    html = html.replace('<script src="coloring_library.js"></script>', inlinedLibScript);
+  } else if (html.includes("</head>")) {
+    html = html.replace("</head>", `${inlinedLibScript}\n</head>`);
+  }
+
   const storagePolyfill = `
   <script>
     (function() {
@@ -166,6 +188,9 @@ export function startPaintServer(options: PaintServerOptions = {}) {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
       };
 
       if (req.method === "OPTIONS") {

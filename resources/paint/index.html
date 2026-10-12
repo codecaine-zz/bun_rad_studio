@@ -618,10 +618,16 @@
       transition: fill 0.15s ease, opacity 0.15s ease;
     }
 
-    .color-fill-target:hover {
+    .tap-fill-active .color-fill-target:hover {
       stroke: var(--accent-pink) !important;
       stroke-width: 3.5px !important;
-      filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.6));
+      filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.8));
+    }
+
+    .coloring-mode-btn.active {
+      background: var(--accent-purple) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
     }
   </style>
 </head>
@@ -710,9 +716,15 @@
         <input type="checkbox" id="shapeFillCheck" onchange="toggleShapeFill(this.checked)">
       </div>
 
-      <div class="option-group" id="activeArtLabel" style="display:none; color: var(--accent-purple); font-weight: 700;">
-        <span>Art: <span id="currentArtTitle">-</span></span>
-        <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="resetVectorArt()">Reset Fills</button>
+      <div class="option-group" id="activeArtLabel" style="display:none; align-items:center; gap:8px;">
+        <span style="color: var(--accent-purple); font-weight: 700; white-space: nowrap;">🎨 <span id="currentArtTitle">-</span></span>
+        <div class="btn-group" id="coloringModeGroup" style="display:inline-flex; background:rgba(0,0,0,0.3); border-radius:6px; padding:2px; gap:2px;">
+          <button class="btn-action active coloring-mode-btn" id="btnModeTapFill" style="padding: 2px 8px; font-size: 11px;" onclick="setColoringMode('tap-to-fill', this)" title="Click any vector region to fill with color">🪣 Tap to Fill</button>
+          <button class="btn-action coloring-mode-btn" id="btnModeFreehand" style="padding: 2px 8px; font-size: 11px;" onclick="setColoringMode('freehand', this)" title="Freehand paint with brushes">🖌️ Freehand Draw</button>
+        </div>
+        <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="toggleColoringBookGallery()" title="Browse & switch artwork">📚 Change Art</button>
+        <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="resetVectorArt()" title="Reset all colored shapes back to white">🔄 Reset</button>
+        <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="clearVectorArt()" title="Clear vector artwork from canvas">✖ Remove</button>
       </div>
     </div>
 
@@ -812,7 +824,7 @@
     <div class="gallery-header">
       <div class="gallery-title">
         <span>🎨 106 Vector Coloring Book Library</span>
-        <span style="font-size: 13px; font-weight: 600; color: var(--accent-purple);">(Tap-to-Fill & Paint Inside Lines)</span>
+        <span id="galleryResultsCount" style="font-size: 13px; font-weight: 600; color: var(--accent-purple);">(106 graphics)</span>
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
         <div class="gallery-search-wrap">
@@ -824,17 +836,17 @@
 
     <!-- Category Filter Pills -->
     <div class="category-pills" id="categoryPills">
-      <button class="cat-pill active" onclick="setGalleryCategory('all')">All Graphics (106)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('animals')">🦁 Animals (12)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('mandala')">☸️ Mandala & Geometry (11)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('fantasy')">🐉 Fantasy & Myth (11)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('nature')">🌻 Nature & Plants (11)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('space')">🚀 Space & Cosmos (11)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('vehicles')">🚗 Vehicles (10)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('food')">🧁 Food & Sweets (10)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('architecture')">🏛️ Architecture (10)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('popart')">💎 Pop Art & Kawaii (10)</button>
-      <button class="cat-pill" onclick="setGalleryCategory('ocean')">🐠 Under the Sea (10)</button>
+      <button class="cat-pill active" data-cat="all" onclick="setGalleryCategory('all', this)">All Graphics (106)</button>
+      <button class="cat-pill" data-cat="animals" onclick="setGalleryCategory('animals', this)">🦁 Animals (12)</button>
+      <button class="cat-pill" data-cat="mandala" onclick="setGalleryCategory('mandala', this)">☸️ Mandala & Geometry (11)</button>
+      <button class="cat-pill" data-cat="fantasy" onclick="setGalleryCategory('fantasy', this)">🐉 Fantasy & Myth (11)</button>
+      <button class="cat-pill" data-cat="nature" onclick="setGalleryCategory('nature', this)">🌻 Nature & Plants (11)</button>
+      <button class="cat-pill" data-cat="space" onclick="setGalleryCategory('space', this)">🚀 Space & Cosmos (11)</button>
+      <button class="cat-pill" data-cat="vehicles" onclick="setGalleryCategory('vehicles', this)">🚗 Vehicles (10)</button>
+      <button class="cat-pill" data-cat="food" onclick="setGalleryCategory('food', this)">🧁 Food & Sweets (10)</button>
+      <button class="cat-pill" data-cat="architecture" onclick="setGalleryCategory('architecture', this)">🏛️ Architecture (10)</button>
+      <button class="cat-pill" data-cat="popart" onclick="setGalleryCategory('popart', this)">💎 Pop Art & Kawaii (10)</button>
+      <button class="cat-pill" data-cat="ocean" onclick="setGalleryCategory('ocean', this)">🐠 Under the Sea (10)</button>
     </div>
 
     <!-- 106 Cards Grid -->
@@ -861,6 +873,10 @@
     let startX = 0, startY = 0;
     let lastX = 0, lastY = 0;
     let currentArt = null;
+    let coloringMode = "tap-to-fill";
+    let appMode = "freehand";
+    let currentGalleryCategory = "all";
+    let currentSearchQuery = "";
 
     // Canvas references
     let bgCanvas, drawCanvas, previewCanvas;
@@ -871,6 +887,18 @@
     const historyStack = [];
     let historyStep = -1;
     const MAX_HISTORY = 30;
+
+    // Helper to get coloring library reliably in any runtime
+    function getLibrary() {
+      if (typeof window !== "undefined" && Array.isArray(window.COLORING_LIBRARY) && window.COLORING_LIBRARY.length > 0) {
+        return window.COLORING_LIBRARY;
+      }
+      if (typeof COLORING_LIBRARY !== "undefined" && Array.isArray(COLORING_LIBRARY) && COLORING_LIBRARY.length > 0) {
+        if (typeof window !== "undefined") window.COLORING_LIBRARY = COLORING_LIBRARY;
+        return COLORING_LIBRARY;
+      }
+      return [];
+    }
 
     // Preset Palettes
     const PALETTES = {
@@ -900,28 +928,52 @@
       bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
       loadPalette("vibrant");
-      saveHistory();
       setupEventListeners();
 
-      // Poll until coloring library module is loaded
-      const checkLib = setInterval(() => {
-        if (window.COLORING_LIBRARY && window.COLORING_LIBRARY.length > 0) {
-          clearInterval(checkLib);
-          initGallery();
-        }
-      }, 50);
+      // Check if coloring library is available immediately or poll
+      if (getLibrary().length > 0) {
+        initGallery();
+      } else {
+        let attempts = 0;
+        const checkLib = setInterval(() => {
+          attempts++;
+          if (getLibrary().length > 0) {
+            clearInterval(checkLib);
+            initGallery();
+          } else if (attempts > 40) {
+            clearInterval(checkLib);
+            fetch("/coloring_library.js")
+              .then(res => res.text())
+              .then(code => {
+                const clean = code.replace(/export\s+const\s+COLORING_LIBRARY\s*=/, "var COLORING_LIBRARY = window.COLORING_LIBRARY =");
+                try {
+                  new Function(clean)();
+                  initGallery();
+                } catch (e) {
+                  console.error("Failed to eval coloring_library fallback", e);
+                }
+              })
+              .catch(err => console.warn("Could not fetch coloring_library", err));
+          }
+        }, 50);
+      }
+
+      saveHistory();
     });
 
     /**
      * History & State Management
      */
     function saveHistory() {
-      // Trim forward history if we were in the middle
+      if (!drawCtx || !drawCanvas) return;
       if (historyStep < historyStack.length - 1) {
         historyStack.length = historyStep + 1;
       }
-      // Save canvas imageData
-      const state = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+      const state = {
+        canvas: drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height),
+        vector: vectorWrap ? vectorWrap.innerHTML : "",
+        art: currentArt
+      };
       historyStack.push(state);
       if (historyStack.length > MAX_HISTORY) {
         historyStack.shift();
@@ -935,7 +987,12 @@
       if (historyStep > 0) {
         historyStep--;
         const state = historyStack[historyStep];
-        drawCtx.putImageData(state, 0, 0);
+        drawCtx.putImageData(state.canvas, 0, 0);
+        if (vectorWrap && vectorWrap.innerHTML !== state.vector) {
+          vectorWrap.innerHTML = state.vector;
+        }
+        currentArt = state.art;
+        updateArtworkLabelUI();
         updateUndoRedoButtons();
       }
     }
@@ -944,14 +1001,32 @@
       if (historyStep < historyStack.length - 1) {
         historyStep++;
         const state = historyStack[historyStep];
-        drawCtx.putImageData(state, 0, 0);
+        drawCtx.putImageData(state.canvas, 0, 0);
+        if (vectorWrap && vectorWrap.innerHTML !== state.vector) {
+          vectorWrap.innerHTML = state.vector;
+        }
+        currentArt = state.art;
+        updateArtworkLabelUI();
         updateUndoRedoButtons();
       }
     }
 
     function updateUndoRedoButtons() {
-      document.getElementById("btnUndo").disabled = historyStep <= 0;
-      document.getElementById("btnRedo").disabled = historyStep >= historyStack.length - 1;
+      const btnUndo = document.getElementById("btnUndo");
+      const btnRedo = document.getElementById("btnRedo");
+      if (btnUndo) btnUndo.disabled = historyStep <= 0;
+      if (btnRedo) btnRedo.disabled = historyStep >= historyStack.length - 1;
+    }
+
+    function updateArtworkLabelUI() {
+      const label = document.getElementById("activeArtLabel");
+      const titleEl = document.getElementById("currentArtTitle");
+      if (currentArt && vectorWrap && vectorWrap.innerHTML.trim() !== "") {
+        if (label) label.style.display = "flex";
+        if (titleEl) titleEl.textContent = currentArt.title;
+      } else {
+        if (label) label.style.display = "none";
+      }
     }
 
     function clearCanvas() {
@@ -1084,6 +1159,27 @@
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
 
+      // Event delegation for Tap-to-Fill on vector shapes
+      if (vectorWrap) {
+        vectorWrap.addEventListener("click", (e) => {
+          if (!currentArt || coloringMode !== "tap-to-fill") return;
+
+          const target = e.target.closest(".color-fill-target, path, polygon, circle, ellipse, rect");
+          if (!target || !vectorWrap.contains(target)) return;
+
+          const fillAttr = target.getAttribute("fill");
+          if (fillAttr === "none" && !target.classList.contains("color-fill-target")) return;
+
+          e.preventDefault();
+          e.stopPropagation();
+
+          target.setAttribute("fill", currentColor);
+          target.style.fill = currentColor;
+
+          saveHistory();
+        });
+      }
+
       // Keyboard Shortcuts
       window.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -1107,6 +1203,12 @@
 
     function handleMouseDown(e) {
       if (e.button !== 0) return;
+
+      // When vector artwork is active in Tap-to-Fill mode, clicking an SVG shape should NOT draw on canvas
+      if (currentArt && coloringMode === "tap-to-fill" && e.target.closest("#vectorLayerWrap")) {
+        return;
+      }
+
       const { x, y } = getCanvasCoords(e);
       isDrawing = true;
       startX = x;
@@ -1453,14 +1555,22 @@
      */
     function initGallery() {
       const grid = document.getElementById("graphicsGrid");
+      if (!grid) return;
       grid.innerHTML = "";
 
-      window.COLORING_LIBRARY.forEach(item => {
+      const library = getLibrary();
+      if (!library || library.length === 0) {
+        grid.innerHTML = `<div style="padding: 40px; color: var(--text-muted); text-align: center; grid-column: 1/-1;">Loading 106 vector graphics...</div>`;
+        return;
+      }
+
+      library.forEach(item => {
         const card = document.createElement("div");
         card.className = "graphic-card";
         card.dataset.id = item.id;
         card.dataset.category = item.category;
-        card.dataset.title = item.title.toLowerCase();
+        card.dataset.title = (item.title || "").toLowerCase();
+        card.dataset.tags = ((item.tags || []).join(" ")).toLowerCase();
 
         card.innerHTML = `
           <div class="graphic-card-preview">
@@ -1468,60 +1578,139 @@
           </div>
           <div class="graphic-card-footer">
             <div class="graphic-card-title">${item.title}</div>
-            <div class="graphic-card-cat">${item.category} • ${item.difficulty}</div>
+            <div class="graphic-card-cat">${item.category} • ${item.difficulty || "Vector"}</div>
           </div>
         `;
 
-        card.onclick = () => loadVectorArtwork(item);
+        card.addEventListener("click", () => {
+          loadVectorArtwork(item);
+        });
+
         grid.appendChild(card);
       });
+
+      applyGalleryFilter();
     }
 
-    function toggleColoringBookGallery() {
+    function toggleColoringBookGallery(forceState) {
       const overlay = document.getElementById("galleryOverlay");
-      overlay.classList.toggle("active");
+      if (!overlay) return;
+      if (typeof forceState === "boolean") {
+        overlay.classList.toggle("active", forceState);
+      } else {
+        overlay.classList.toggle("active");
+      }
+      if (overlay.classList.contains("active")) {
+        const input = document.getElementById("gallerySearchInput");
+        if (input) {
+          input.focus();
+        }
+        applyGalleryFilter();
+      }
     }
 
-    function setGalleryCategory(cat) {
-      document.querySelectorAll(".cat-pill").forEach(p => p.classList.remove("active"));
-      event.target.classList.add("active");
+    function setAppMode(mode) {
+      appMode = mode;
+      const tabFreehand = document.getElementById("tabFreehand");
+      const tabColoring = document.getElementById("tabColoring");
+      if (tabFreehand) tabFreehand.classList.toggle("active", mode === "freehand");
+      if (tabColoring) tabColoring.classList.toggle("active", mode === "coloring");
 
-      document.querySelectorAll(".graphic-card").forEach(card => {
-        if (cat === "all" || card.dataset.category === cat) {
+      if (mode === "coloring") {
+        if (!currentArt) {
+          toggleColoringBookGallery(true);
+        }
+      }
+    }
+
+    function setColoringMode(mode, btn) {
+      coloringMode = mode;
+      document.querySelectorAll(".coloring-mode-btn").forEach(b => b.classList.remove("active"));
+      if (btn) {
+        btn.classList.add("active");
+      } else {
+        const b = document.getElementById(mode === "tap-to-fill" ? "btnModeTapFill" : "btnModeFreehand");
+        if (b) b.classList.add("active");
+      }
+
+      const stage = document.getElementById("stageWrapper");
+      if (stage) {
+        stage.classList.toggle("tap-fill-active", mode === "tap-to-fill");
+      }
+
+      if (vectorWrap) {
+        vectorWrap.style.pointerEvents = mode === "tap-to-fill" ? "auto" : "none";
+      }
+    }
+
+    function setGalleryCategory(cat, btn) {
+      currentGalleryCategory = cat;
+      document.querySelectorAll(".cat-pill").forEach(p => p.classList.remove("active"));
+      if (btn) {
+        btn.classList.add("active");
+      } else {
+        const targetBtn = document.querySelector(`.cat-pill[data-cat="${cat}"]`);
+        if (targetBtn) targetBtn.classList.add("active");
+      }
+      applyGalleryFilter();
+    }
+
+    function filterGallery() {
+      const input = document.getElementById("gallerySearchInput");
+      currentSearchQuery = (input ? input.value : "").trim().toLowerCase();
+      applyGalleryFilter();
+    }
+
+    function applyGalleryFilter() {
+      const cards = document.querySelectorAll(".graphic-card");
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const cat = card.dataset.category || "";
+        const title = card.dataset.title || "";
+        const tags = card.dataset.tags || "";
+
+        const catMatch = currentGalleryCategory === "all" || cat === currentGalleryCategory;
+        const qMatch = !currentSearchQuery || title.includes(currentSearchQuery) || tags.includes(currentSearchQuery) || cat.includes(currentSearchQuery);
+
+        if (catMatch && qMatch) {
           card.style.display = "flex";
+          visibleCount++;
         } else {
           card.style.display = "none";
         }
       });
-    }
 
-    function filterGallery() {
-      const q = document.getElementById("gallerySearchInput").value.toLowerCase();
-      document.querySelectorAll(".graphic-card").forEach(card => {
-        const title = card.dataset.title;
-        const match = title.includes(q);
-        card.style.display = match ? "flex" : "none";
-      });
+      const countBadge = document.getElementById("galleryResultsCount");
+      if (countBadge) {
+        countBadge.textContent = `(${visibleCount} of ${cards.length} graphics)`;
+      }
     }
 
     function loadVectorArtwork(item) {
+      if (!item) return;
       currentArt = item;
-      document.getElementById("galleryOverlay").classList.remove("active");
+      toggleColoringBookGallery(false);
+      setAppMode("coloring");
 
-      // Set Vector Layer
+      // Inject SVG into vectorWrap
       vectorWrap.innerHTML = item.svg;
+      const svg = vectorWrap.querySelector("svg");
+      if (svg) {
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.pointerEvents = "auto";
 
-      // Attach Vector Click Tap-to-Fill listeners
-      const fillableElements = vectorWrap.querySelectorAll(".color-fill-target");
-      fillableElements.forEach(el => {
-        el.addEventListener("click", (e) => {
-          e.stopPropagation();
-          el.setAttribute("fill", currentColor);
+        const shapes = svg.querySelectorAll("path, polygon, circle, ellipse, rect");
+        shapes.forEach(shape => {
+          const fill = shape.getAttribute("fill");
+          if (fill !== "none") {
+            shape.classList.add("color-fill-target");
+          }
         });
-      });
+      }
 
-      document.getElementById("activeArtLabel").style.display = "flex";
-      document.getElementById("currentArtTitle").textContent = item.title;
+      updateArtworkLabelUI();
+      setColoringMode("tap-to-fill");
 
       // Clear raster canvas for clean coloring session
       drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
@@ -1532,6 +1721,14 @@
       if (currentArt) {
         loadVectorArtwork(currentArt);
       }
+    }
+
+    function clearVectorArt() {
+      currentArt = null;
+      vectorWrap.innerHTML = "";
+      updateArtworkLabelUI();
+      setAppMode("freehand");
+      saveHistory();
     }
 
     /**

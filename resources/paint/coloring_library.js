@@ -1285,6 +1285,6 @@ export const COLORING_LIBRARY = [
   }
 ];
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && typeof COLORING_LIBRARY !== "undefined") {
   window.COLORING_LIBRARY = COLORING_LIBRARY;
 }
