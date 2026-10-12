@@ -1,0 +1,3914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaCode Studio Pro — Advanced Developer Workstation</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    /* ==========================================================================
+       NovaCode Studio Pro — Core Design System & Tokens
+       ========================================================================== */
+    :root {
+      /* One Dark Pro (Default) */
+      --bg-main: #21252b;
+      --bg-editor: #282c34;
+      --bg-sidebar: #1e2227;
+      --bg-activity: #181a1f;
+      --bg-tabs: #1e2227;
+      --bg-tab-active: #282c34;
+      --bg-tab-hover: #242930;
+      --bg-panel: #21252b;
+      --bg-hover: rgba(255, 255, 255, 0.06);
+      --bg-active: rgba(255, 255, 255, 0.1);
+      --border-color: #181a1f;
+      --border-subtle: #333842;
+      --text-main: #abb2bf;
+      --text-muted: #5c6370;
+      --text-bright: #e6edf3;
+      --accent: #61afef;
+      --accent-hover: #5294cb;
+      --accent-subtle: rgba(97, 175, 239, 0.15);
+      --status-bg: #1e2227;
+      --status-border: #181a1f;
+      --status-text: #828997;
+      
+      /* Syntax Tokens */
+      --syn-keyword: #c678dd;
+      --syn-string: #98c379;
+      --syn-number: #d19a66;
+      --syn-comment: #5c6370;
+      --syn-function: #61afef;
+      --syn-type: #e5c07b;
+      --syn-variable: #e06c75;
+      --syn-operator: #56b6c2;
+      --syn-tag: #e06c75;
+      --syn-attribute: #d19a66;
+      --syn-property: #abb2bf;
+
+      /* Editor Gutter & Guide */
+      --gutter-bg: #282c34;
+      --gutter-text: #4b5263;
+      --gutter-active: #c8ccd4;
+      --line-active-bg: rgba(255, 255, 255, 0.04);
+      --indent-guide: rgba(255, 255, 255, 0.07);
+      --selection-bg: rgba(97, 175, 239, 0.28);
+      --match-bg: rgba(229, 192, 123, 0.35);
+      --match-active-bg: rgba(229, 192, 123, 0.8);
+
+      /* Typography */
+      --font-code: "JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", Menlo, Monaco, Consolas, monospace;
+      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-size-code: 14px;
+      --line-height-code: 22px;
+      
+      /* Glassmorphism & Elevation */
+      --shadow-lg: 0 14px 28px rgba(0, 0, 0, 0.4), 0 10px 10px rgba(0, 0, 0, 0.3);
+      --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Dracula Modern Theme */
+    [data-theme="dracula"] {
+      --bg-main: #21222c;
+      --bg-editor: #282a36;
+      --bg-sidebar: #191a21;
+      --bg-activity: #13141a;
+      --bg-tabs: #191a21;
+      --bg-tab-active: #282a36;
+      --bg-tab-hover: #22232e;
+      --bg-panel: #21222c;
+      --border-color: #16171d;
+      --border-subtle: #44475a;
+      --text-main: #f8f8f2;
+      --text-muted: #6272a4;
+      --text-bright: #ffffff;
+      --accent: #bd93f9;
+      --accent-hover: #a270f5;
+      --accent-subtle: rgba(189, 147, 249, 0.15);
+      --status-bg: #191a21;
+      --status-border: #13141a;
+      --status-text: #99a2c2;
+      --syn-keyword: #ff79c6;
+      --syn-string: #f1fa8c;
+      --syn-number: #bd93f9;
+      --syn-comment: #6272a4;
+      --syn-function: #50fa7b;
+      --syn-type: #8be9fd;
+      --syn-variable: #ffb86c;
+      --syn-operator: #ff79c6;
+      --syn-tag: #ff79c6;
+      --syn-attribute: #50fa7b;
+      --syn-property: #f8f8f2;
+      --gutter-bg: #282a36;
+      --gutter-text: #6272a4;
+      --gutter-active: #f8f8f2;
+      --line-active-bg: rgba(68, 71, 90, 0.25);
+      --indent-guide: rgba(255, 255, 255, 0.08);
+      --selection-bg: rgba(189, 147, 249, 0.3);
+      --match-bg: rgba(255, 184, 108, 0.4);
+      --match-active-bg: rgba(255, 184, 108, 0.85);
+    }
+
+    /* Monokai Pro Theme */
+    [data-theme="monokai"] {
+      --bg-main: #272528;
+      --bg-editor: #2d2a2e;
+      --bg-sidebar: #221f22;
+      --bg-activity: #19181a;
+      --bg-tabs: #221f22;
+      --bg-tab-active: #2d2a2e;
+      --bg-tab-hover: #282528;
+      --bg-panel: #272528;
+      --border-color: #19181a;
+      --border-subtle: #403e41;
+      --text-main: #fcfcfa;
+      --text-muted: #727072;
+      --text-bright: #ffffff;
+      --accent: #ffd866;
+      --accent-hover: #fac84a;
+      --accent-subtle: rgba(255, 216, 102, 0.15);
+      --status-bg: #221f22;
+      --status-border: #19181a;
+      --status-text: #939293;
+      --syn-keyword: #ff6188;
+      --syn-string: #ffd866;
+      --syn-number: #ab9df2;
+      --syn-comment: #727072;
+      --syn-function: #a9dc76;
+      --syn-type: #78dce8;
+      --syn-variable: #fc9867;
+      --syn-operator: #ff6188;
+      --syn-tag: #ff6188;
+      --syn-attribute: #78dce8;
+      --syn-property: #fcfcfa;
+      --gutter-bg: #2d2a2e;
+      --gutter-text: #727072;
+      --gutter-active: #fcfcfa;
+      --line-active-bg: rgba(255, 255, 255, 0.05);
+      --indent-guide: rgba(255, 255, 255, 0.08);
+      --selection-bg: rgba(255, 97, 136, 0.3);
+      --match-bg: rgba(255, 216, 102, 0.35);
+      --match-active-bg: rgba(255, 216, 102, 0.8);
+    }
+
+    /* GitHub Dark Dimmed Theme */
+    [data-theme="github"] {
+      --bg-main: #1c2128;
+      --bg-editor: #22272e;
+      --bg-sidebar: #181c22;
+      --bg-activity: #13161a;
+      --bg-tabs: #181c22;
+      --bg-tab-active: #22272e;
+      --bg-tab-hover: #1f242b;
+      --bg-panel: #1c2128;
+      --border-color: #14171d;
+      --border-subtle: #373e47;
+      --text-main: #adbac7;
+      --text-muted: #768390;
+      --text-bright: #cdd9e5;
+      --accent: #539bf5;
+      --accent-hover: #4189e4;
+      --accent-subtle: rgba(83, 155, 245, 0.15);
+      --status-bg: #181c22;
+      --status-border: #14171d;
+      --status-text: #768390;
+      --syn-keyword: #f47067;
+      --syn-string: #96d0ff;
+      --syn-number: #6cb6ff;
+      --syn-comment: #768390;
+      --syn-function: #dcbdfb;
+      --syn-type: #f69d50;
+      --syn-variable: #f47067;
+      --syn-operator: #f47067;
+      --syn-tag: #8ddb8c;
+      --syn-attribute: #6cb6ff;
+      --syn-property: #adbac7;
+      --gutter-bg: #22272e;
+      --gutter-text: #636e7b;
+      --gutter-active: #adbac7;
+      --line-active-bg: rgba(99, 110, 123, 0.15);
+      --indent-guide: rgba(255, 255, 255, 0.06);
+      --selection-bg: rgba(83, 155, 245, 0.28);
+      --match-bg: rgba(227, 179, 65, 0.35);
+      --match-active-bg: rgba(227, 179, 65, 0.85);
+    }
+
+    /* Nordic Frost Theme */
+    [data-theme="nordic"] {
+      --bg-main: #242933;
+      --bg-editor: #2e3440;
+      --bg-sidebar: #1f232b;
+      --bg-activity: #191c23;
+      --bg-tabs: #1f232b;
+      --bg-tab-active: #2e3440;
+      --bg-tab-hover: #262c37;
+      --bg-panel: #242933;
+      --border-color: #191c23;
+      --border-subtle: #3b4252;
+      --text-main: #d8dee9;
+      --text-muted: #616e88;
+      --text-bright: #eceff4;
+      --accent: #88c0d0;
+      --accent-hover: #81a1c1;
+      --accent-subtle: rgba(136, 192, 208, 0.15);
+      --status-bg: #1f232b;
+      --status-border: #191c23;
+      --status-text: #7f8ca3;
+      --syn-keyword: #81a1c1;
+      --syn-string: #a3be8c;
+      --syn-number: #b48ead;
+      --syn-comment: #616e88;
+      --syn-function: #88c0d0;
+      --syn-type: #8fbcbb;
+      --syn-variable: #d8dee9;
+      --syn-operator: #81a1c1;
+      --syn-tag: #81a1c1;
+      --syn-attribute: #8fbcbb;
+      --syn-property: #d8dee9;
+      --gutter-bg: #2e3440;
+      --gutter-text: #4c566a;
+      --gutter-active: #d8dee9;
+      --line-active-bg: rgba(255, 255, 255, 0.04);
+      --indent-guide: rgba(255, 255, 255, 0.06);
+      --selection-bg: rgba(136, 192, 208, 0.25);
+      --match-bg: rgba(235, 203, 139, 0.35);
+      --match-active-bg: rgba(235, 203, 139, 0.8);
+    }
+
+    /* Solarized Light Theme */
+    [data-theme="solarized"] {
+      --bg-main: #eee8d5;
+      --bg-editor: #fdf6e3;
+      --bg-sidebar: #e0d9c5;
+      --bg-activity: #d3ccb8;
+      --bg-tabs: #e0d9c5;
+      --bg-tab-active: #fdf6e3;
+      --bg-tab-hover: #e9e3cf;
+      --bg-panel: #eee8d5;
+      --border-color: #d3ccb8;
+      --border-subtle: #cbbf9f;
+      --text-main: #657b83;
+      --text-muted: #93a1a1;
+      --text-bright: #073642;
+      --accent: #268bd2;
+      --accent-hover: #1e70a9;
+      --accent-subtle: rgba(38, 139, 210, 0.15);
+      --status-bg: #002b36;
+      --status-border: #073642;
+      --status-text: #93a1a1;
+      --syn-keyword: #859900;
+      --syn-string: #2aa198;
+      --syn-number: #d33682;
+      --syn-comment: #93a1a1;
+      --syn-function: #268bd2;
+      --syn-type: #b58900;
+      --syn-variable: #cb4b16;
+      --syn-operator: #859900;
+      --syn-tag: #268bd2;
+      --syn-attribute: #657b83;
+      --syn-property: #586e75;
+      --gutter-bg: #fdf6e3;
+      --gutter-text: #93a1a1;
+      --gutter-active: #586e75;
+      --line-active-bg: rgba(7, 54, 66, 0.05);
+      --indent-guide: rgba(0, 0, 0, 0.08);
+      --selection-bg: rgba(38, 139, 210, 0.25);
+      --match-bg: rgba(181, 137, 0, 0.35);
+      --match-active-bg: rgba(181, 137, 0, 0.85);
+    }
+
+    /* ==========================================================================
+       Global Resets & Layout Architecture
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      user-select: none;
+      scrollbar-color: var(--border-subtle) transparent;
+      scrollbar-width: thin;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    ::selection {
+      background: var(--selection-bg);
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg-main);
+    }
+
+    /* ==========================================================================
+       Header / Workstation Toolbar
+       ========================================================================== */
+    header#top-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 42px;
+      padding: 0 12px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      z-index: 30;
+      gap: 12px;
+    }
+
+    .toolbar-left, .toolbar-center, .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13.5px;
+      color: var(--text-bright);
+      letter-spacing: -0.2px;
+      cursor: pointer;
+    }
+
+    .brand-icon {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    .version-tag {
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--bg-hover);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+      font-weight: 500;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      background: var(--bg-main);
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .breadcrumbs span.active-path {
+      color: var(--text-bright);
+      font-weight: 500;
+    }
+
+    /* Button Styling */
+    button.tool-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-main);
+      padding: 5px 9px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    button.tool-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+      border-color: var(--border-subtle);
+    }
+    button.tool-btn:active {
+      background: var(--bg-active);
+      transform: scale(0.98);
+    }
+    button.tool-btn.primary {
+      background: var(--accent);
+      color: #11141a;
+      font-weight: 600;
+      border-color: transparent;
+    }
+    button.tool-btn.primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 12px var(--accent-subtle);
+    }
+    button.tool-btn.icon-only {
+      padding: 5px;
+      min-width: 28px;
+      justify-content: center;
+    }
+    button.tool-btn.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    select.theme-dropdown {
+      background: var(--bg-main);
+      color: var(--text-bright);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 11.5px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       Main Workspace Body
+       ========================================================================== */
+    #workspace-body {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 42px - 26px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Activity Bar */
+    nav#activity-bar {
+      width: 48px;
+      background: var(--bg-activity);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .activity-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .activity-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 17px;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .activity-icon-btn:hover {
+      color: var(--text-bright);
+      background: var(--bg-hover);
+    }
+    .activity-icon-btn.active {
+      color: var(--accent);
+      background: var(--accent-subtle);
+    }
+    .activity-icon-btn.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 0 3px 3px 0;
+    }
+
+    /* Left Sidebar */
+    aside#sidebar-pane {
+      width: 260px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width 0.2s ease, opacity 0.2s ease;
+      overflow: hidden;
+      z-index: 15;
+    }
+    aside#sidebar-pane.collapsed {
+      width: 0;
+      border-right: none;
+      opacity: 0;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .sidebar-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sidebar-actions button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 3px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .sidebar-actions button:hover {
+      color: var(--text-bright);
+      background: var(--bg-hover);
+    }
+
+    /* Tree View */
+    .file-tree-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: background 0.1s ease;
+      position: relative;
+    }
+    .tree-node:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+    }
+    .tree-node.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .tree-node.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2.5px;
+      background: var(--accent);
+    }
+    .tree-node .node-icon {
+      font-size: 14px;
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .tree-node .node-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .tree-node .node-badge {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .tree-folder-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .tree-folder-children {
+      display: flex;
+      flex-direction: column;
+      padding-left: 14px;
+    }
+    .tree-folder-children.collapsed {
+      display: none;
+    }
+
+    /* ==========================================================================
+       Center Editor Workspace
+       ========================================================================== */
+    main#editor-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-editor);
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* Tab Bar */
+    #tab-bar {
+      display: flex;
+      align-items: center;
+      background: var(--bg-tabs);
+      border-bottom: 1px solid var(--border-color);
+      height: 36px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    #tab-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .editor-tab {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      height: 100%;
+      padding: 0 12px;
+      background: var(--bg-tabs);
+      border-right: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 12.5px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      position: relative;
+      transition: background 0.1s, color 0.1s;
+    }
+    .editor-tab:hover {
+      background: var(--bg-tab-hover);
+      color: var(--text-main);
+    }
+    .editor-tab.active {
+      background: var(--bg-tab-active);
+      color: var(--text-bright);
+      font-weight: 500;
+    }
+    .editor-tab.active::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+    .tab-dirty-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      margin-left: 2px;
+    }
+    .tab-close-btn {
+      font-size: 13px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    .tab-close-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+    }
+    .tab-add-btn {
+      padding: 0 10px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 15px;
+      background: transparent;
+      border: none;
+    }
+    .tab-add-btn:hover {
+      color: var(--text-bright);
+      background: var(--bg-hover);
+    }
+
+    /* Find & Replace Floating Drawer */
+    #find-replace-drawer {
+      position: absolute;
+      top: 40px;
+      right: 20px;
+      width: 360px;
+      background: var(--bg-sidebar);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      padding: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 40;
+    }
+    #find-replace-drawer.open {
+      display: flex;
+    }
+    .fr-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .fr-input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 5px;
+      padding: 3px 6px;
+    }
+    .fr-input-wrapper:focus-within {
+      border-color: var(--accent);
+    }
+    .fr-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-bright);
+      font-family: var(--font-code);
+      font-size: 12px;
+      outline: none;
+    }
+    .fr-badge {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+    .fr-toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .fr-toggle-btn.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+
+    /* Core Editor Workspace: Split Gutter, Code Area, Minimap */
+    #editor-viewport-container {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-editor);
+    }
+
+    /* Line Numbers Gutter */
+    #editor-gutter {
+      width: 58px;
+      background: var(--gutter-bg);
+      border-right: 1px solid var(--border-color);
+      color: var(--gutter-text);
+      font-family: var(--font-code);
+      font-size: var(--font-size-code);
+      line-height: var(--line-height-code);
+      text-align: right;
+      padding: 12px 10px 12px 0;
+      user-select: none;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .gutter-line {
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      height: var(--line-height-code);
+    }
+    .gutter-line:hover {
+      color: var(--text-bright);
+    }
+    .gutter-line.active {
+      color: var(--gutter-active);
+      font-weight: 600;
+    }
+    .gutter-fold-btn {
+      font-size: 9px;
+      opacity: 0;
+      transition: opacity 0.1s;
+      color: var(--text-muted);
+    }
+    .gutter-line:hover .gutter-fold-btn {
+      opacity: 1;
+    }
+    .gutter-bookmark {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #e06c75;
+      display: none;
+    }
+    .gutter-line.bookmarked .gutter-bookmark {
+      display: block;
+    }
+
+    /* Text & Highlight Synchronized Double-Layer */
+    #editor-surface {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      font-family: var(--font-code);
+      font-size: var(--font-size-code);
+      line-height: var(--line-height-code);
+      tab-size: 2;
+    }
+
+    #editor-highlight-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      min-width: 100%;
+      min-height: 100%;
+      padding: 12px 16px;
+      pointer-events: none;
+      white-space: pre;
+      color: var(--text-main);
+      box-sizing: border-box;
+      z-index: 1;
+    }
+
+    #editor-textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
+      min-width: 100%;
+      min-height: 100%;
+      padding: 12px 16px;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--accent);
+      border: none;
+      outline: none;
+      resize: none;
+      white-space: pre;
+      overflow: hidden;
+      font-family: var(--font-code);
+      font-size: var(--font-size-code);
+      line-height: var(--line-height-code);
+      tab-size: 2;
+      box-sizing: border-box;
+      z-index: 2;
+    }
+
+    /* Active Line Indicator Background */
+    #active-line-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: var(--line-height-code);
+      background: var(--line-active-bg);
+      pointer-events: none;
+      z-index: 0;
+      top: 12px;
+      transition: top 0.05s ease;
+    }
+
+    /* Minimap */
+    #editor-minimap-container {
+      width: 90px;
+      background: var(--bg-sidebar);
+      border-left: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    #minimap-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #minimap-slider {
+      position: absolute;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      pointer-events: auto;
+      cursor: grab;
+    }
+    #minimap-slider:active {
+      cursor: grabbing;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* ==========================================================================
+       Right Split Live Preview Pane
+       ========================================================================== */
+    aside#preview-pane {
+      width: 440px;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width 0.2s ease, opacity 0.2s ease;
+      overflow: hidden;
+      position: relative;
+      z-index: 10;
+    }
+    aside#preview-pane.collapsed {
+      width: 0;
+      border-left: none;
+      opacity: 0;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 36px;
+      padding: 0 12px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .preview-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .preview-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .preview-tab-btn.active {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+    }
+
+    .preview-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--bg-editor);
+      color: var(--text-main);
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+
+    /* Markdown Styling Inside Preview */
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+      color: var(--text-bright);
+      margin-top: 18px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 6px;
+    }
+    .markdown-body h1 { font-size: 22px; }
+    .markdown-body h2 { font-size: 18px; }
+    .markdown-body h3 { font-size: 15px; }
+    .markdown-body p { margin-bottom: 12px; }
+    .markdown-body code {
+      font-family: var(--font-code);
+      font-size: 12px;
+      background: var(--bg-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+    .markdown-body pre {
+      background: var(--bg-sidebar);
+      border: 1px solid var(--border-subtle);
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+    }
+    .markdown-body pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--text-bright);
+    }
+    .markdown-body blockquote {
+      border-left: 4px solid var(--accent);
+      padding: 6px 14px;
+      background: var(--bg-hover);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 12px;
+      color: var(--text-bright);
+    }
+    .markdown-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+    }
+    .markdown-body th, .markdown-body td {
+      border: 1px solid var(--border-subtle);
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .markdown-body th {
+      background: var(--bg-sidebar);
+      color: var(--text-bright);
+    }
+
+    /* HTML Sandbox Iframe */
+    #html-preview-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #ffffff;
+      border-radius: 4px;
+    }
+
+    /* JSON Viewer */
+    .json-tree-container {
+      font-family: var(--font-code);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .json-key { color: var(--syn-variable); font-weight: 500; }
+    .json-string { color: var(--syn-string); }
+    .json-number { color: var(--syn-number); }
+    .json-boolean { color: var(--syn-keyword); }
+    .json-null { color: var(--syn-comment); font-style: italic; }
+
+    /* ==========================================================================
+       Bottom Developer Drawer (Terminal, Diff, Regex Sandbox, Snippets)
+       ========================================================================== */
+    section#bottom-drawer {
+      height: 240px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      left: 48px;
+      right: 0;
+      bottom: 26px;
+      z-index: 25;
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+      transition: height 0.2s ease, transform 0.2s ease;
+    }
+    section#bottom-drawer.collapsed {
+      height: 0;
+      transform: translateY(100%);
+      border-top: none;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 34px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 12px;
+      flex-shrink: 0;
+    }
+    .drawer-tabs {
+      display: flex;
+      gap: 6px;
+    }
+    .drawer-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .drawer-tab-btn:hover {
+      color: var(--text-bright);
+      background: var(--bg-hover);
+    }
+    .drawer-tab-btn.active {
+      color: var(--accent);
+      background: var(--accent-subtle);
+    }
+    .drawer-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-main);
+    }
+
+    /* Terminal Runner Pane */
+    .terminal-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 8px 12px;
+      font-family: var(--font-code);
+      font-size: 12px;
+    }
+    .terminal-quick-chips {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .quick-chip {
+      background: var(--bg-hover);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .quick-chip:hover {
+      background: var(--bg-active);
+      color: var(--text-bright);
+      border-color: var(--accent);
+    }
+    .terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-editor);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      color: var(--text-bright);
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+    .terminal-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-editor);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 4px 10px;
+    }
+    .terminal-prompt {
+      color: var(--syn-function);
+      font-weight: 700;
+    }
+    .terminal-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-bright);
+      font-family: var(--font-code);
+      font-size: 12px;
+      outline: none;
+    }
+
+    /* Regex Sandbox Pane */
+    .regex-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 10px 14px;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .regex-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .regex-input-box {
+      flex: 1;
+      background: var(--bg-editor);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text-bright);
+      font-family: var(--font-code);
+      font-size: 12px;
+      outline: none;
+    }
+
+    /* Diff View Pane */
+    .diff-container {
+      display: flex;
+      height: 100%;
+      padding: 10px;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .diff-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .diff-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .diff-textarea {
+      flex: 1;
+      background: var(--bg-editor);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 8px;
+      color: var(--text-bright);
+      font-family: var(--font-code);
+      font-size: 12px;
+      outline: none;
+      resize: none;
+    }
+    .diff-output-box {
+      flex: 1;
+      background: var(--bg-editor);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: var(--font-code);
+      font-size: 12px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .diff-add { color: #98c379; background: rgba(152, 195, 121, 0.15); }
+    .diff-del { color: #e06c75; background: rgba(224, 108, 117, 0.15); }
+
+    /* Snippet Library Pane */
+    .snippets-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+      padding: 12px;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .snippet-card {
+      background: var(--bg-editor);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .snippet-card:hover {
+      border-color: var(--accent);
+      background: var(--bg-hover);
+      transform: translateY(-1px);
+    }
+    .snippet-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    .snippet-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Status Bar
+       ========================================================================== */
+    footer#status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 26px;
+      background: var(--status-bg);
+      border-top: 1px solid var(--status-border);
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--status-text);
+      flex-shrink: 0;
+      z-index: 30;
+    }
+
+    .status-left, .status-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .status-item:hover {
+      color: var(--text-bright);
+    }
+    .status-badge {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #98c379;
+    }
+    .status-badge.offline {
+      background: #e5c07b;
+    }
+
+    /* ==========================================================================
+       Quick Command Palette Modal (Ctrl+P / Cmd+P)
+       ========================================================================== */
+    #command-palette-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 60px;
+    }
+    #command-palette-backdrop.open {
+      display: flex;
+    }
+
+    #command-palette {
+      width: 580px;
+      background: var(--bg-sidebar);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .palette-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-main);
+    }
+    .palette-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-bright);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .palette-list {
+      max-height: 340px;
+      overflow-y: auto;
+      padding: 6px;
+    }
+    .palette-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-main);
+      transition: background 0.1s;
+    }
+    .palette-item:hover, .palette-item.selected {
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+    .palette-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .palette-shortcut {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-code);
+    }
+
+    /* ==========================================================================
+       Syntax Highlighter Token Rules
+       ========================================================================== */
+    .token-keyword   { color: var(--syn-keyword); font-weight: 600; }
+    .token-string    { color: var(--syn-string); }
+    .token-number    { color: var(--syn-number); }
+    .token-comment   { color: var(--syn-comment); font-style: italic; }
+    .token-function  { color: var(--syn-function); }
+    .token-type      { color: var(--syn-type); }
+    .token-variable  { color: var(--syn-variable); }
+    .token-operator  { color: var(--syn-operator); }
+    .token-tag       { color: var(--syn-tag); }
+    .token-attribute { color: var(--syn-attribute); }
+    .token-property  { color: var(--syn-property); }
+    .token-match     { background: var(--match-bg); border-radius: 2px; }
+    .token-match.cur { background: var(--match-active-bg); }
+  </style>
+</head>
+<body data-theme="onedark">
+
+  <div id="app-container">
+    
+    <!-- Top Workstation Header Toolbar -->
+    <header id="top-toolbar">
+      <div class="toolbar-left">
+        <div class="app-brand" id="brand-logo" title="NovaCode Studio Pro">
+          <div class="brand-icon">&lt;/&gt;</div>
+          <span>NovaCode Studio</span>
+          <span class="version-tag">Pro v1.0</span>
+        </div>
+
+        <button class="tool-btn" id="btn-toggle-sidebar" title="Toggle Sidebar (Ctrl+B)">
+          📁 Explorer
+        </button>
+
+        <button class="tool-btn" id="btn-quick-open" title="Quick Open Palette (Ctrl+P / Cmd+P)">
+          ⚡ Quick Open
+        </button>
+
+        <div class="breadcrumbs" id="editor-breadcrumbs">
+          <span>workspace</span> / <span class="active-path" id="breadcrumb-filename">src/index.ts</span>
+        </div>
+      </div>
+
+      <div class="toolbar-center">
+        <button class="tool-btn primary" id="btn-run-cmd" title="Execute Code or Shell Command">
+          ▶ Run
+        </button>
+        <button class="tool-btn" id="btn-format-doc" title="Format Document">
+          ✨ Prettify
+        </button>
+        <button class="tool-btn" id="btn-find" title="Find & Replace (Ctrl+F)">
+          🔍 Find
+        </button>
+        <button class="tool-btn" id="btn-toggle-preview" title="Split Live Preview (Ctrl+\)">
+          📑 Preview
+        </button>
+      </div>
+
+      <div class="toolbar-right">
+        <select class="theme-dropdown" id="theme-selector" title="Switch Color Theme">
+          <option value="onedark">One Dark Pro</option>
+          <option value="dracula">Dracula Modern</option>
+          <option value="monokai">Monokai Pro</option>
+          <option value="github">GitHub Dark Dimmed</option>
+          <option value="nordic">Nordic Frost</option>
+          <option value="solarized">Solarized Light</option>
+        </select>
+
+        <button class="tool-btn" id="btn-toggle-drawer" title="Toggle Developer Drawer (Ctrl+`)">
+          ⚡ Drawer
+        </button>
+
+        <button class="tool-btn" id="btn-save-file" title="Save File (Ctrl+S)">
+          💾 Save
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Body Area -->
+    <div id="workspace-body">
+      
+      <!-- Activity Bar (Far Left) -->
+      <nav id="activity-bar">
+        <div class="activity-group">
+          <button class="activity-icon-btn active" id="act-files" title="Explorer">📁</button>
+          <button class="activity-icon-btn" id="act-search" title="Search">🔍</button>
+          <button class="activity-icon-btn" id="act-git" title="Diff / Git">🔀</button>
+          <button class="activity-icon-btn" id="act-snippets" title="Snippets">📋</button>
+        </div>
+        <div class="activity-group">
+          <button class="activity-icon-btn" id="act-settings" title="Settings">⚙</button>
+        </div>
+      </nav>
+
+      <!-- Sidebar Explorer Pane -->
+      <aside id="sidebar-pane">
+        <div class="sidebar-header">
+          <span id="sidebar-title">Workspace Explorer</span>
+          <div class="sidebar-actions">
+            <button id="btn-new-file" title="New File">📄+</button>
+            <button id="btn-new-folder" title="New Folder">📁+</button>
+            <button id="btn-refresh-tree" title="Refresh Tree">🔄</button>
+            <button id="btn-collapse-sidebar" title="Collapse Sidebar">◀</button>
+          </div>
+        </div>
+
+        <div class="file-tree-container" id="file-tree">
+          <!-- Dynamic Tree Structure Injected via JavaScript -->
+        </div>
+      </aside>
+
+      <!-- Center Editor Area -->
+      <main id="editor-stage">
+        
+        <!-- Tab Bar -->
+        <div id="tab-bar">
+          <!-- Tabs dynamically generated -->
+          <button class="tab-add-btn" id="btn-add-tab" title="New Untitled File">+</button>
+        </div>
+
+        <!-- Floating Find & Replace Bar -->
+        <div id="find-replace-drawer">
+          <div class="fr-row">
+            <div class="fr-input-wrapper">
+              <input type="text" class="fr-input" id="fr-find-input" placeholder="Find...">
+              <span class="fr-badge" id="fr-match-count">0/0</span>
+              <button class="fr-toggle-btn" id="fr-opt-case" title="Match Case">Aa</button>
+              <button class="fr-toggle-btn" id="fr-opt-word" title="Match Whole Word">\b</button>
+              <button class="fr-toggle-btn" id="fr-opt-regex" title="Regular Expression">.*</button>
+            </div>
+            <button class="tool-btn icon-only" id="fr-prev-btn" title="Previous Match">▲</button>
+            <button class="tool-btn icon-only" id="fr-next-btn" title="Next Match">▼</button>
+            <button class="tool-btn icon-only" id="fr-close-btn" title="Close">✕</button>
+          </div>
+          <div class="fr-row">
+            <div class="fr-input-wrapper">
+              <input type="text" class="fr-input" id="fr-replace-input" placeholder="Replace with...">
+            </div>
+            <button class="tool-btn" id="fr-replace-one-btn" title="Replace Current">Replace</button>
+            <button class="tool-btn" id="fr-replace-all-btn" title="Replace All">All</button>
+          </div>
+        </div>
+
+        <!-- Editor Viewport Container -->
+        <div id="editor-viewport-container">
+          
+          <!-- Line Numbers Gutter -->
+          <div id="editor-gutter"></div>
+
+          <!-- Code Surface (Double Layer) -->
+          <div id="editor-surface">
+            <div id="active-line-indicator"></div>
+            <div id="editor-highlight-layer"></div>
+            <textarea id="editor-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+          </div>
+
+          <!-- Minimap -->
+          <div id="editor-minimap-container">
+            <canvas id="minimap-canvas"></canvas>
+            <div id="minimap-slider"></div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Right Split Live Preview Pane -->
+      <aside id="preview-pane" class="collapsed">
+        <div class="preview-header">
+          <div class="preview-tabs">
+            <button class="preview-tab-btn active" data-tab="md">Markdown</button>
+            <button class="preview-tab-btn" data-tab="html">HTML Sandbox</button>
+            <button class="preview-tab-btn" data-tab="json">JSON Tree</button>
+            <button class="preview-tab-btn" data-tab="stats">Metrics</button>
+          </div>
+          <button class="tool-btn icon-only" id="btn-close-preview" title="Close Preview">✕</button>
+        </div>
+
+        <div class="preview-content" id="preview-body">
+          <!-- Live Preview Content Rendered Here -->
+        </div>
+      </aside>
+
+      <!-- Bottom Developer Drawer -->
+      <section id="bottom-drawer" class="collapsed">
+        <div class="drawer-header">
+          <div class="drawer-tabs">
+            <button class="drawer-tab-btn active" data-pane="terminal">💻 Terminal</button>
+            <button class="drawer-tab-btn" data-pane="regex">🔍 Regex Sandbox</button>
+            <button class="drawer-tab-btn" data-pane="diff">🔀 Diff Compare</button>
+            <button class="drawer-tab-btn" data-pane="snippets">📋 Snippets</button>
+          </div>
+          <div class="drawer-controls">
+            <button class="tool-btn icon-only" id="btn-drawer-clear" title="Clear Pane">🗑</button>
+            <button class="tool-btn icon-only" id="btn-drawer-close" title="Close Drawer">✕</button>
+          </div>
+        </div>
+
+        <div class="drawer-body">
+          <!-- Terminal Pane -->
+          <div class="terminal-container" id="drawer-terminal-pane">
+            <div class="terminal-quick-chips">
+              <span class="quick-chip" data-cmd="bun --version">bun --version</span>
+              <span class="quick-chip" data-cmd="git status">git status</span>
+              <span class="quick-chip" data-cmd="ls -la">ls -la</span>
+              <span class="quick-chip" data-cmd="node -v">node -v</span>
+              <span class="quick-chip" data-cmd="pwd">pwd</span>
+            </div>
+            <div class="terminal-output" id="term-output">⚡ NovaCode Studio Pro Integrated Terminal Ready. Type any command below.</div>
+            <div class="terminal-input-bar">
+              <span class="terminal-prompt">$</span>
+              <input type="text" class="terminal-input" id="term-input" placeholder="Type shell command and press Enter...">
+            </div>
+          </div>
+
+          <!-- Regex Sandbox Pane -->
+          <div class="regex-container" id="drawer-regex-pane" style="display: none;">
+            <div class="regex-row">
+              <input type="text" class="regex-input-box" id="reg-pattern" placeholder="Regular expression (e.g. ([A-Z][a-z]+))">
+              <input type="text" class="regex-input-box" id="reg-flags" value="g" style="max-width: 60px;" placeholder="flags">
+            </div>
+            <div class="regex-row" style="flex: 1;">
+              <textarea class="regex-input-box" id="reg-test-string" placeholder="Test text to match against..." style="resize: none; height: 100%;"></textarea>
+              <div class="regex-input-box" id="reg-match-result" style="overflow-y: auto; white-space: pre-wrap; height: 100%;">Results will appear here...</div>
+            </div>
+          </div>
+
+          <!-- Diff Compare Pane -->
+          <div class="diff-container" id="drawer-diff-pane" style="display: none;">
+            <div class="diff-panel">
+              <div class="diff-header">Original</div>
+              <textarea class="diff-textarea" id="diff-original" placeholder="Original code..."></textarea>
+            </div>
+            <div class="diff-panel">
+              <div class="diff-header">Modified</div>
+              <textarea class="diff-textarea" id="diff-modified" placeholder="Modified code..."></textarea>
+            </div>
+            <div class="diff-panel">
+              <div class="diff-header">Diff Output</div>
+              <div class="diff-output-box" id="diff-output">Click Compare to view unified diff</div>
+            </div>
+          </div>
+
+          <!-- Snippet Library Pane -->
+          <div class="snippets-container" id="drawer-snippets-pane" style="display: none;">
+            <!-- Dynamically populated snippet cards -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Status Bar (Bottom) -->
+    <footer id="status-bar">
+      <div class="status-left">
+        <div class="status-item" id="status-connection" title="Bun RAD Studio Backend Status">
+          <span class="status-badge" id="status-badge-dot"></span>
+          <span id="status-backend-text">Checking Backend...</span>
+        </div>
+        <div class="status-item" id="status-git-branch" title="Git Branch">
+          <span>🌿 main</span>
+        </div>
+        <div class="status-item" id="status-cursor-pos">
+          <span>Ln 1, Col 1</span>
+        </div>
+        <div class="status-item" id="status-selection">
+          <span>0 chars selected</span>
+        </div>
+      </div>
+
+      <div class="status-right">
+        <div class="status-item" id="status-doc-metrics">
+          <span>0 lines | 0 bytes</span>
+        </div>
+        <div class="status-item" id="status-indent-mode" title="Click to Change Indentation">
+          <span>Spaces: 2</span>
+        </div>
+        <div class="status-item" id="status-encoding">
+          <span>UTF-8</span>
+        </div>
+        <div class="status-item" id="status-line-ending">
+          <span>LF</span>
+        </div>
+        <div class="status-item" id="status-language-mode" title="Language Highlighting Mode">
+          <span id="status-lang-text">TypeScript</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Command Palette Modal Backdrop -->
+  <div id="command-palette-backdrop">
+    <div id="command-palette">
+      <div class="palette-input-wrapper">
+        <span>⚡</span>
+        <input type="text" class="palette-input" id="palette-search-input" placeholder="Type a command or file name...">
+      </div>
+      <div class="palette-list" id="palette-results">
+        <!-- Results injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       NovaCode Studio Pro — Complete JavaScript Application Logic
+       ========================================================================== -->
+  <script>
+    (function () {
+      "use strict";
+
+      // ------------------------------------------------------------------------
+      // Default Virtual Developer Workspace Files
+      // ------------------------------------------------------------------------
+      const DEFAULT_FILES = [
+        {
+          path: "src/index.ts",
+          name: "index.ts",
+          lang: "typescript",
+          content: `/**
+ * NovaCode Studio Pro — High-Performance API Service
+ * Bun & TypeScript Native Architecture
+ */
+
+import { serve } from "bun";
+
+export interface ServerConfig {
+  port: number;
+  hostname: string;
+  enableTelemetry: boolean;
+}
+
+export class WorkstationEngine {
+  private config: ServerConfig;
+  private startTime: number = Date.now();
+
+  constructor(config: Partial<ServerConfig> = {}) {
+    this.config = {
+      port: config.port ?? 3000,
+      hostname: config.hostname ?? "127.0.0.1",
+      enableTelemetry: config.enableTelemetry ?? true,
+    };
+  }
+
+  public async start(): Promise<void> {
+    console.log(\`⚡ Starting Workstation Engine on \${this.config.hostname}:\${this.config.port}\`);
+    
+    // Concurrent task execution with Bun native microtasks
+    await Promise.all([
+      this.initFileSystemWatcher(),
+      this.preloadSyntaxDefinitions(),
+      this.connectLanguageServer(),
+    ]);
+
+    console.log("🚀 NovaCode Engine initialized in " + (Date.now() - this.startTime) + "ms");
+  }
+
+  private async initFileSystemWatcher(): Promise<void> {
+    // Virtual workspace event listener
+    return new Promise(resolve => setTimeout(resolve, 30));
+  }
+
+  private async preloadSyntaxDefinitions(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, 20));
+  }
+
+  private async connectLanguageServer(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, 25));
+  }
+}
+
+// Bootstrap instance
+const engine = new WorkstationEngine({ port: 9005 });
+await engine.start();
+`
+        },
+        {
+          path: "src/algorithms.py",
+          name: "algorithms.py",
+          lang: "python",
+          content: `"""
+NovaCode Studio Pro — Python High-Performance Data Processing
+"""
+from typing import List, Dict, Any, Optional
+import time
+import math
+
+class FastSorter:
+    """Demonstrates optimized quicksort and binary search algorithms."""
+
+    @staticmethod
+    def quick_sort(arr: List[int]) -> List[int]:
+        if len(arr) <= 1:
+            return arr
+        pivot = arr[len(arr) // 2]
+        left = [x for x in arr if x < pivot]
+        middle = [x for x in arr if x == pivot]
+        right = [x for x in arr if x > pivot]
+        return FastSorter.quick_sort(left) + middle + FastSorter.quick_sort(right)
+
+    @staticmethod
+    def binary_search(sorted_arr: List[int], target: int) -> Optional[int]:
+        low, high = 0, len(sorted_arr) - 1
+        while low <= high:
+            mid = (low + high) // 2
+            if sorted_arr[mid] == target:
+                return mid
+            elif sorted_arr[mid] < target:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return None
+
+if __name__ == "__main__":
+    sample_data = [64, 34, 25, 12, 22, 11, 90, 48, 55, 73]
+    print("Original array:", sample_data)
+    sorted_data = FastSorter.quick_sort(sample_data)
+    print("Sorted array:  ", sorted_data)
+    idx = FastSorter.binary_search(sorted_data, 55)
+    print(f"Index of 55:    {idx}")
+`
+        },
+        {
+          path: "src/system.rs",
+          name: "system.rs",
+          lang: "rust",
+          content: `// NovaCode Studio Pro — Safe Concurrent Worker
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+#[derive(Debug, Clone)]
+pub struct WorkerTask {
+    pub id: u64,
+    pub payload: String,
+    pub completed: bool,
+}
+
+pub struct TaskManager {
+    tasks: Arc<Mutex<Vec<WorkerTask>>>,
+}
+
+impl TaskManager {
+    pub fn new() -> Self {
+        TaskManager {
+            tasks: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    pub fn add_task(&self, id: u64, payload: &str) {
+        let mut queue = self.tasks.lock().unwrap();
+        queue.push(WorkerTask {
+            id,
+            payload: payload.to_string(),
+            completed: false,
+        });
+    }
+
+    pub fn process_all(&self) {
+        let tasks = Arc::clone(&self.tasks);
+        let handle = thread::spawn(move || {
+            let mut list = tasks.lock().unwrap();
+            for task in list.iter_mut() {
+                task.completed = true;
+                println!("Processed task #{}: {}", task.id, task.payload);
+            }
+        });
+        handle.join().unwrap();
+    }
+}
+
+fn main() {
+    let manager = TaskManager::new();
+    manager.add_task(1, "Parse AST tree");
+    manager.add_task(2, "Calculate Token Stream");
+    manager.process_all();
+}
+`
+        },
+        {
+          path: "public/index.html",
+          name: "index.html",
+          lang: "html",
+          content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Application Preview</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 30px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f8fafc;
+      text-align: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 480px;
+      margin: 40px auto;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    h1 { color: #38bdf8; margin-top: 0; }
+    button {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 10px 20px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hello from NovaCode!</h1>
+    <p>This is a live sandboxed HTML preview rendered instantly.</p>
+    <button onclick="alert('Interactive Sandbox Active!')">Click Me</button>
+  </div>
+</body>
+</html>`
+        },
+        {
+          path: "styles/theme.css",
+          name: "theme.css",
+          lang: "css",
+          content: `/* Modern Developer Theme Styles */
+:root {
+  --primary-accent: #38bdf8;
+  --surface-dark: #0f172a;
+  --surface-card: rgba(30, 41, 59, 0.7);
+  --border-glow: rgba(56, 189, 248, 0.3);
+}
+
+.developer-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  padding: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.developer-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(56, 189, 248, 0.15);
+}
+`
+        },
+        {
+          path: "data/config.json",
+          name: "config.json",
+          lang: "json",
+          content: `{
+  "projectName": "NovaCode Studio Pro",
+  "version": "1.0.0",
+  "environment": "production",
+  "features": {
+    "tabbedEditor": true,
+    "syntaxHighlighter": true,
+    "interactiveMinimap": true,
+    "livePreview": true,
+    "terminalRunner": true,
+    "diffComparator": true,
+    "regexSandbox": true
+  },
+  "editor": {
+    "tabSize": 2,
+    "insertSpaces": true,
+    "lineNumbers": "on",
+    "wordWrap": "off",
+    "theme": "onedark"
+  }
+}`
+        },
+        {
+          path: "docs/README.md",
+          name: "README.md",
+          lang: "markdown",
+          content: `# ⚡ NovaCode Studio Pro
+
+Welcome to **NovaCode Studio Pro**, the premier developer-focused code and text editing workstation built for the Bun RAD Studio ecosystem.
+
+> [!NOTE]
+> NovaCode Studio Pro combines multi-tab editing, live syntax highlighting, interactive visual minimap, terminal execution, and side-by-side live previews.
+
+## ✨ Key Workstation Capabilities
+
+| Feature | Description | Shortcut |
+| :--- | :--- | :--- |
+| **Command Palette** | Fuzzy search actions, themes & files | \`Ctrl+P\` / \`Cmd+P\` |
+| **Find & Replace** | Regex, case & whole-word search | \`Ctrl+F\` / \`Cmd+F\` |
+| **Live Split Preview** | Markdown, HTML Sandbox, JSON Tree | \`Ctrl+\\\` |
+| **Developer Drawer** | Terminal runner, Regex sandbox, Diff | \`Ctrl+\`\` |
+| **Document Formatting** | Prettify JSON, JS/TS, Python | \`Shift+Alt+F\` |
+
+### Supported Highlighting Languages
+- **TypeScript / JavaScript**
+- **Python**
+- **Rust**
+- **Go**
+- **HTML / XML**
+- **CSS / SCSS**
+- **JSON**
+- **Markdown**
+- **SQL**
+- **Shell / Bash**
+
+> [!TIP]
+> Use the theme selector in the top toolbar to switch between **One Dark Pro**, **Dracula Modern**, **Monokai Pro**, **GitHub Dark Dimmed**, **Nordic Frost**, and **Solarized Light**!
+`
+        },
+        {
+          path: "queries/analytics.sql",
+          name: "analytics.sql",
+          lang: "sql",
+          content: `-- NovaCode Studio Pro — SQL Window Functions & Analytics
+WITH DailyMetrics AS (
+  SELECT
+    DATE(event_timestamp) AS metric_date,
+    user_id,
+    COUNT(session_id) AS total_sessions,
+    SUM(duration_seconds) AS total_duration,
+    AVG(response_time_ms) AS avg_latency
+  FROM telemetry_events
+  WHERE event_timestamp >= CURRENT_DATE - INTERVAL '30 days'
+  GROUP BY 1, 2
+)
+SELECT
+  metric_date,
+  user_id,
+  total_sessions,
+  total_duration,
+  avg_latency,
+  RANK() OVER (PARTITION BY metric_date ORDER BY total_sessions DESC) AS daily_rank,
+  AVG(avg_latency) OVER (
+    ORDER BY metric_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+  ) AS rolling_7d_latency
+FROM DailyMetrics
+ORDER BY metric_date DESC, daily_rank ASC;
+`
+        },
+        {
+          path: "scripts/deploy.sh",
+          name: "deploy.sh",
+          lang: "shell",
+          content: `#!/usr/bin/env bash
+# NovaCode Studio Pro — Automated Build & Deployment Script
+set -euo pipefail
+
+APP_NAME="novacode-studio"
+VERSION=$(git describe --tags --always 2>/dev/null || echo "v1.0.0")
+TARGET_DIR="./dist"
+
+echo "⚡ [1/4] Preparing build directory: \${TARGET_DIR}..."
+rm -rf "\${TARGET_DIR}"
+mkdir -p "\${TARGET_DIR}"
+
+echo "📦 [2/4] Bundling application with Bun..."
+bun build applications/code_studio.ts --outdir "\${TARGET_DIR}" --minify
+
+echo "🧪 [3/4] Running automated test suites..."
+bun test tests/code_studio.test.ts
+
+echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully!"
+`
+        }
+      ];
+
+      // ------------------------------------------------------------------------
+      // Application State
+      // ------------------------------------------------------------------------
+      const state = {
+        files: [...DEFAULT_FILES],
+        activeFilePath: "src/index.ts",
+        openTabs: ["src/index.ts", "docs/README.md", "data/config.json"],
+        dirtyFiles: new Set(),
+        theme: "onedark",
+        indentMode: 2, // 2 spaces
+        lineEnding: "LF",
+        backendConnected: false,
+        activePreviewTab: "md",
+        activeDrawerPane: "terminal",
+        findOptions: {
+          matchCase: false,
+          wholeWord: false,
+          isRegex: false,
+          query: "",
+          matches: [],
+          currentMatchIdx: -1,
+        },
+        history: {
+          undoStack: [],
+          redoStack: [],
+        },
+      };
+
+      // ------------------------------------------------------------------------
+      // DOM Elements
+      // ------------------------------------------------------------------------
+      const els = {
+        themeSelector: document.getElementById("theme-selector"),
+        tabBar: document.getElementById("tab-bar"),
+        btnAddTab: document.getElementById("btn-add-tab"),
+        fileTree: document.getElementById("file-tree"),
+        sidebarPane: document.getElementById("sidebar-pane"),
+        btnToggleSidebar: document.getElementById("btn-toggle-sidebar"),
+        btnCollapseSidebar: document.getElementById("btn-collapse-sidebar"),
+        editorGutter: document.getElementById("editor-gutter"),
+        editorSurface: document.getElementById("editor-surface"),
+        highlightLayer: document.getElementById("editor-highlight-layer"),
+        textarea: document.getElementById("editor-textarea"),
+        activeLineIndicator: document.getElementById("active-line-indicator"),
+        minimapCanvas: document.getElementById("minimap-canvas"),
+        minimapSlider: document.getElementById("minimap-slider"),
+        previewPane: document.getElementById("preview-pane"),
+        previewBody: document.getElementById("preview-body"),
+        btnTogglePreview: document.getElementById("btn-toggle-preview"),
+        btnClosePreview: document.getElementById("btn-close-preview"),
+        bottomDrawer: document.getElementById("bottom-drawer"),
+        btnToggleDrawer: document.getElementById("btn-toggle-drawer"),
+        btnDrawerClose: document.getElementById("btn-drawer-close"),
+        btnDrawerClear: document.getElementById("btn-drawer-clear"),
+        termOutput: document.getElementById("term-output"),
+        termInput: document.getElementById("term-input"),
+        regPattern: document.getElementById("reg-pattern"),
+        regFlags: document.getElementById("reg-flags"),
+        regTestString: document.getElementById("reg-test-string"),
+        regMatchResult: document.getElementById("reg-match-result"),
+        diffOriginal: document.getElementById("diff-original"),
+        diffModified: document.getElementById("diff-modified"),
+        diffOutput: document.getElementById("diff-output"),
+        snippetsPane: document.getElementById("drawer-snippets-pane"),
+        findDrawer: document.getElementById("find-replace-drawer"),
+        findInput: document.getElementById("fr-find-input"),
+        replaceInput: document.getElementById("fr-replace-input"),
+        frMatchCount: document.getElementById("fr-match-count"),
+        frOptCase: document.getElementById("fr-opt-case"),
+        frOptWord: document.getElementById("fr-opt-word"),
+        frOptRegex: document.getElementById("fr-opt-regex"),
+        frPrevBtn: document.getElementById("fr-prev-btn"),
+        frNextBtn: document.getElementById("fr-next-btn"),
+        frReplaceOneBtn: document.getElementById("fr-replace-one-btn"),
+        frReplaceAllBtn: document.getElementById("fr-replace-all-btn"),
+        frCloseBtn: document.getElementById("fr-close-btn"),
+        cmdPaletteBackdrop: document.getElementById("command-palette-backdrop"),
+        paletteInput: document.getElementById("palette-search-input"),
+        paletteResults: document.getElementById("palette-results"),
+        statusBackendText: document.getElementById("status-backend-text"),
+        statusBadgeDot: document.getElementById("status-badge-dot"),
+        statusCursorPos: document.getElementById("status-cursor-pos"),
+        statusSelection: document.getElementById("status-selection"),
+        statusDocMetrics: document.getElementById("status-doc-metrics"),
+        statusLangText: document.getElementById("status-lang-text"),
+        breadcrumbFilename: document.getElementById("breadcrumb-filename"),
+        btnFormatDoc: document.getElementById("btn-format-doc"),
+        btnSaveFile: document.getElementById("btn-save-file"),
+        btnRunCmd: document.getElementById("btn-run-cmd"),
+        btnFind: document.getElementById("btn-find"),
+        btnQuickOpen: document.getElementById("btn-quick-open"),
+        btnNewFile: document.getElementById("btn-new-file"),
+        btnNewFolder: document.getElementById("btn-new-folder"),
+        btnRefreshTree: document.getElementById("btn-refresh-tree"),
+      };
+
+      // ------------------------------------------------------------------------
+      // Language Detection and Syntax Highlighting Engine
+      // ------------------------------------------------------------------------
+      function detectLanguage(filepath) {
+        if (!filepath) return "plaintext";
+        const ext = filepath.split(".").pop().toLowerCase();
+        const map = {
+          ts: "typescript",
+          tsx: "typescript",
+          js: "javascript",
+          jsx: "javascript",
+          py: "python",
+          rs: "rust",
+          go: "go",
+          html: "html",
+          htm: "html",
+          css: "css",
+          scss: "css",
+          json: "json",
+          md: "markdown",
+          sql: "sql",
+          sh: "shell",
+          bash: "shell",
+          zsh: "shell",
+          c: "c",
+          cpp: "cpp",
+          h: "c",
+        };
+        return map[ext] || "plaintext";
+      }
+
+      function escapeHtml(text) {
+        return text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function highlightCode(code, lang) {
+        if (!code) return "&nbsp;";
+        const lines = code.split("\n");
+
+        return lines
+          .map((line) => {
+            if (line.length === 0) return "&nbsp;";
+            return highlightLine(line, lang);
+          })
+          .join("\n");
+      }
+
+      function highlightLine(line, lang) {
+        // Universal Tokenizer with Regex Pass
+        const tokens = [];
+        let remaining = line;
+        let index = 0;
+
+        // Language specific keywords
+        const keywords = {
+          typescript: ["const", "let", "var", "function", "return", "if", "else", "for", "while", "class", "interface", "type", "export", "import", "from", "async", "await", "new", "this", "try", "catch", "finally", "throw", "switch", "case", "default", "break", "continue", "extends", "implements", "public", "private", "protected", "static", "readonly", "as", "typeof", "instanceof"],
+          javascript: ["const", "let", "var", "function", "return", "if", "else", "for", "while", "class", "export", "import", "from", "async", "await", "new", "this", "try", "catch", "finally", "throw", "switch", "case", "default", "break", "continue"],
+          python: ["def", "class", "return", "if", "elif", "else", "for", "while", "import", "from", "as", "try", "except", "finally", "raise", "with", "yield", "lambda", "pass", "break", "continue", "in", "is", "not", "and", "or", "self", "True", "False", "None"],
+          rust: ["fn", "struct", "enum", "impl", "trait", "let", "mut", "pub", "use", "mod", "return", "match", "if", "else", "for", "while", "loop", "async", "await", "type", "const", "static", "ref", "where", "Self", "self", "true", "false"],
+          go: ["func", "package", "import", "type", "struct", "interface", "var", "const", "return", "if", "else", "for", "range", "switch", "case", "default", "go", "chan", "defer", "select", "make", "new", "nil", "true", "false"],
+          sql: ["SELECT", "FROM", "WHERE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "GROUP", "BY", "ORDER", "HAVING", "LIMIT", "OFFSET", "WITH", "AS", "INSERT", "INTO", "VALUES", "UPDATE", "SET", "DELETE", "CREATE", "TABLE", "DROP", "ALTER", "AND", "OR", "NOT", "IN", "IS", "NULL", "COUNT", "SUM", "AVG", "MAX", "MIN", "OVER", "PARTITION", "RANK", "ROW_NUMBER", "DATE", "INTERVAL", "CASE", "WHEN", "THEN", "ELSE", "END"],
+          shell: ["if", "then", "else", "elif", "fi", "for", "while", "do", "done", "in", "case", "esac", "function", "return", "exit", "echo", "export", "set", "cd", "mkdir", "rm", "cp", "mv"],
+        };
+
+        const kwList = keywords[lang] || keywords.typescript;
+        const kwRegex = new RegExp(`\\b(${kwList.join("|")})\\b`, lang === "sql" ? "i" : "");
+
+        let escaped = "";
+        let i = 0;
+
+        while (i < line.length) {
+          // Comments: single-line
+          if (
+            (line.startsWith("//", i) && lang !== "python" && lang !== "sql" && lang !== "shell") ||
+            (line.startsWith("#", i) && (lang === "python" || lang === "shell")) ||
+            (line.startsWith("--", i) && lang === "sql")
+          ) {
+            escaped += `<span class="token-comment">${escapeHtml(line.slice(i))}</span>`;
+            break;
+          }
+
+          // Strings: double or single quotes or backticks
+          if (line[i] === '"' || line[i] === "'" || line[i] === "`") {
+            const quote = line[i];
+            let j = i + 1;
+            while (j < line.length && line[j] !== quote) {
+              if (line[j] === "\\") j++;
+              j++;
+            }
+            if (j < line.length) j++;
+            escaped += `<span class="token-string">${escapeHtml(line.slice(i, j))}</span>`;
+            i = j;
+            continue;
+          }
+
+          // HTML tags
+          if (lang === "html" && line[i] === "<") {
+            let j = i + 1;
+            while (j < line.length && line[j] !== ">") j++;
+            if (j < line.length) j++;
+            const tagSlice = line.slice(i, j);
+            const tagProcessed = tagSlice.replace(
+              /(&lt;|\/|[a-zA-Z0-9-]+)/g,
+              '<span class="token-tag">$1</span>'
+            );
+            escaped += `<span class="token-tag">${escapeHtml(tagSlice)}</span>`;
+            i = j;
+            continue;
+          }
+
+          // Numbers
+          const numMatch = line.slice(i).match(/^([0-9]+(\.[0-9]+)?)/);
+          if (numMatch && (i === 0 || /[^a-zA-Z0-9_$]/.test(line[i - 1]))) {
+            escaped += `<span class="token-number">${escapeHtml(numMatch[1])}</span>`;
+            i += numMatch[1].length;
+            continue;
+          }
+
+          // Identifiers & Keywords
+          const idMatch = line.slice(i).match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)/);
+          if (idMatch) {
+            const word = idMatch[1];
+            if (kwRegex.test(word)) {
+              escaped += `<span class="token-keyword">${escapeHtml(word)}</span>`;
+            } else if (i + word.length < line.length && line[i + word.length] === "(") {
+              escaped += `<span class="token-function">${escapeHtml(word)}</span>`;
+            } else if (/^[A-Z][a-zA-Z0-9_]*$/.test(word)) {
+              escaped += `<span class="token-type">${escapeHtml(word)}</span>`;
+            } else {
+              escaped += escapeHtml(word);
+            }
+            i += word.length;
+            continue;
+          }
+
+          // Operators
+          const opMatch = line.slice(i).match(/^([=+\-*/%&|!<>?:;,.]+)/);
+          if (opMatch) {
+            escaped += `<span class="token-operator">${escapeHtml(opMatch[1])}</span>`;
+            i += opMatch[1].length;
+            continue;
+          }
+
+          escaped += escapeHtml(line[i]);
+          i++;
+        }
+
+        return escaped;
+      }
+
+      // ------------------------------------------------------------------------
+      // Editor Gutter & Line Synchronizer
+      // ------------------------------------------------------------------------
+      function updateGutter(lineCount, activeLineIdx) {
+        const linesHtml = [];
+        for (let i = 1; i <= lineCount; i++) {
+          const isActive = i === activeLineIdx + 1;
+          linesHtml.push(`
+            <div class="gutter-line ${isActive ? "active" : ""}" data-line="${i}">
+              <span class="gutter-bookmark"></span>
+              <span class="gutter-fold-btn">▼</span>
+              <span>${i}</span>
+            </div>
+          `);
+        }
+        els.editorGutter.innerHTML = linesHtml.join("");
+
+        // Attach click bookmark toggle
+        const gutterEls = els.editorGutter.querySelectorAll(".gutter-line");
+        gutterEls.forEach((el) => {
+          el.addEventListener("click", () => {
+            el.classList.toggle("bookmarked");
+          });
+        });
+      }
+
+      function updateActiveLineIndicator() {
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const textBefore = text.slice(0, selStart);
+        const lineIdx = textBefore.split("\n").length - 1;
+        const lineHeight = 22;
+        const top = 12 + lineIdx * lineHeight;
+
+        els.activeLineIndicator.style.top = top + "px";
+
+        // Highlight gutter active number
+        const prevActive = els.editorGutter.querySelector(".gutter-line.active");
+        if (prevActive) prevActive.classList.remove("active");
+        const curLineEl = els.editorGutter.querySelector(`.gutter-line[data-line="${lineIdx + 1}"]`);
+        if (curLineEl) curLineEl.classList.add("active");
+
+        // Update status bar cursor info
+        const colIdx = selStart - textBefore.lastIndexOf("\n");
+        els.statusCursorPos.textContent = `Ln ${lineIdx + 1}, Col ${colIdx}`;
+
+        const selEnd = els.textarea.selectionEnd;
+        const selLen = selEnd - selStart;
+        els.statusSelection.textContent = selLen > 0 ? `${selLen} chars selected` : "0 chars selected";
+      }
+
+      function renderEditor() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+
+        const code = els.textarea.value;
+        const lang = currentFile.lang || detectLanguage(currentFile.path);
+
+        // Render Highlight Layer
+        let highlighted = highlightCode(code, lang);
+
+        // Highlight Find Matches if any
+        if (state.findOptions.query) {
+          highlighted = applyFindHighlights(highlighted, state.findOptions);
+        }
+
+        els.highlightLayer.innerHTML = highlighted;
+
+        // Update Gutter
+        const lines = code.split("\n");
+        updateGutter(lines.length, lines.length > 0 ? getActiveLineIndex() : 0);
+        updateActiveLineIndicator();
+
+        // Update Doc Metrics
+        const bytes = new Blob([code]).size;
+        const sizeFormatted = bytes > 1024 ? (bytes / 1024).toFixed(1) + " KB" : bytes + " B";
+        els.statusDocMetrics.textContent = `${lines.length} lines | ${sizeFormatted}`;
+
+        // Render Minimap
+        renderMinimap(code, lang);
+
+        // Live Preview update
+        updateLivePreview(code, currentFile);
+      }
+
+      function getActiveLineIndex() {
+        const selStart = els.textarea.selectionStart || 0;
+        return els.textarea.value.slice(0, selStart).split("\n").length - 1;
+      }
+
+      // ------------------------------------------------------------------------
+      // Interactive Canvas Minimap
+      // ------------------------------------------------------------------------
+      function renderMinimap(code, lang) {
+        const canvas = els.minimapCanvas;
+        const ctx = canvas.getContext("2d");
+        const container = canvas.parentElement;
+
+        canvas.width = container.clientWidth * window.devicePixelRatio;
+        canvas.height = container.clientHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        ctx.clearRect(0, 0, container.clientWidth, container.clientHeight);
+
+        const lines = code.split("\n");
+        const lineHeight = 3;
+        const lineSpacing = 1;
+        const maxLines = Math.floor(container.clientHeight / (lineHeight + lineSpacing));
+
+        lines.slice(0, maxLines).forEach((line, idx) => {
+          if (!line.trim()) return;
+          const y = idx * (lineHeight + lineSpacing);
+          const indent = line.search(/\S|$/);
+          const x = Math.min(indent * 2, 30);
+          const width = Math.min(Math.max((line.trim().length) * 1.5, 8), container.clientWidth - x - 8);
+
+          // Color based on keywords or default
+          if (line.includes("function") || line.includes("def") || line.includes("fn")) {
+            ctx.fillStyle = "rgba(97, 175, 239, 0.7)";
+          } else if (line.includes("const") || line.includes("let") || line.includes("var")) {
+            ctx.fillStyle = "rgba(198, 120, 221, 0.7)";
+          } else if (line.includes("return") || line.includes("import")) {
+            ctx.fillStyle = "rgba(224, 108, 117, 0.7)";
+          } else if (line.trim().startsWith("//") || line.trim().startsWith("#")) {
+            ctx.fillStyle = "rgba(92, 99, 112, 0.6)";
+          } else {
+            ctx.fillStyle = "rgba(171, 178, 191, 0.4)";
+          }
+
+          ctx.fillRect(x, y, width, lineHeight);
+        });
+
+        // Update Minimap Viewport Slider
+        updateMinimapSlider();
+      }
+
+      function updateMinimapSlider() {
+        const surface = els.editorSurface;
+        const totalHeight = surface.scrollHeight;
+        const visibleHeight = surface.clientHeight;
+        const scrollTop = surface.scrollTop;
+
+        if (totalHeight <= 0) return;
+
+        const ratio = visibleHeight / totalHeight;
+        const sliderHeight = Math.max(ratio * els.minimapCanvas.clientHeight, 24);
+        const sliderTop = (scrollTop / totalHeight) * els.minimapCanvas.clientHeight;
+
+        els.minimapSlider.style.height = sliderHeight + "px";
+        els.minimapSlider.style.top = sliderTop + "px";
+      }
+
+      // Minimap click & drag to scroll
+      els.minimapCanvas.parentElement.addEventListener("mousedown", (e) => {
+        const rect = els.minimapCanvas.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const pct = y / rect.height;
+        els.editorSurface.scrollTop = pct * els.editorSurface.scrollHeight;
+      });
+
+      // ------------------------------------------------------------------------
+      // Live Split Preview Pane
+      // ------------------------------------------------------------------------
+      function updateLivePreview(code, file) {
+        if (els.previewPane.classList.contains("collapsed")) return;
+
+        const ext = file.path.split(".").pop().toLowerCase();
+
+        if (state.activePreviewTab === "md" || (ext === "md" && state.activePreviewTab === "md")) {
+          els.previewBody.innerHTML = renderMarkdown(code);
+        } else if (state.activePreviewTab === "html") {
+          els.previewBody.innerHTML = `<iframe id="html-preview-frame" sandbox="allow-scripts"></iframe>`;
+          const iframe = document.getElementById("html-preview-frame");
+          if (iframe) {
+            iframe.srcdoc = code;
+          }
+        } else if (state.activePreviewTab === "json") {
+          try {
+            const parsed = JSON.parse(code);
+            els.previewBody.innerHTML = `<div class="json-tree-container">${renderJsonTree(parsed)}</div>`;
+          } catch (err) {
+            els.previewBody.innerHTML = `<div style="color: #e06c75; font-family: var(--font-code);">⚠️ Invalid JSON: ${escapeHtml(err.message)}</div>`;
+          }
+        } else if (state.activePreviewTab === "stats") {
+          const words = code.trim().split(/\s+/).filter(Boolean).length;
+          const chars = code.length;
+          const lines = code.split("\n").length;
+          const readTime = Math.ceil(words / 200);
+
+          els.previewBody.innerHTML = `
+            <div style="font-family: var(--font-ui);">
+              <h2 style="margin-top:0;">📊 Document Analytics</h2>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 14px;">
+                <tr><td style="padding: 6px; font-weight: 600;">Total Lines:</td><td>${lines}</td></tr>
+                <tr><td style="padding: 6px; font-weight: 600;">Word Count:</td><td>${words}</td></tr>
+                <tr><td style="padding: 6px; font-weight: 600;">Character Count:</td><td>${chars}</td></tr>
+                <tr><td style="padding: 6px; font-weight: 600;">File Size:</td><td>${new Blob([code]).size} bytes</td></tr>
+                <tr><td style="padding: 6px; font-weight: 600;">Estimated Read Time:</td><td>~${readTime} min</td></tr>
+                <tr><td style="padding: 6px; font-weight: 600;">Detected Language:</td><td>${file.lang}</td></tr>
+              </table>
+            </div>
+          `;
+        }
+      }
+
+      function renderMarkdown(md) {
+        let html = escapeHtml(md);
+
+        // Headers
+        html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+        html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+        html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+
+        // Alerts: > [!NOTE], > [!TIP], > [!WARNING], > [!IMPORTANT]
+        html = html.replace(
+          /&gt; \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\r?\n&gt; ([^\n]*))+/gim,
+          (match, type) => {
+            const lines = match.split("\n").map(l => l.replace(/^&gt; ?/, "").trim()).filter(l => !l.startsWith("[!"));
+            const colors = {
+              NOTE: "#61afef",
+              TIP: "#98c379",
+              IMPORTANT: "#c678dd",
+              WARNING: "#e5c07b",
+              CAUTION: "#e06c75",
+            };
+            const c = colors[type] || "#61afef";
+            return `<div style="border-left: 4px solid ${c}; background: rgba(255,255,255,0.06); padding: 10px 14px; margin: 12px 0; border-radius: 0 8px 8px 0;"><strong style="color: ${c};">[!${type}]</strong><div style="margin-top: 4px; color: var(--text-bright); font-size: 13px;">${lines.join("<br>")}</div></div>`;
+          }
+        );
+
+        // Blockquotes
+        html = html.replace(/^\&gt; (.*$)/gim, "<blockquote>$1</blockquote>");
+
+        // Code Blocks
+        html = html.replace(
+          /```([a-z0-9]*)\n([\s\S]*?)```/gim,
+          "<pre><code>$2</code></pre>"
+        );
+
+        // Inline Code
+        html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+        // Bold & Italic
+        html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+        // Tables parse
+        html = html.replace(/\|(.+)\|/gim, (row) => {
+          if (row.includes("---")) return "";
+          const cells = row.split("|").filter((c) => c.trim().length > 0);
+          return `<tr>${cells.map((c) => `<td>${c.trim()}</td>`).join("")}</tr>`;
+        });
+        html = html.replace(/(?:<tr>(?:.+?)<\/tr>\s*)+/g, (match) => {
+          return `<table>${match}</table>`;
+        });
+
+        // Unordered Lists
+        html = html.replace(/^\- (.*$)/gim, "<li>$1</li>");
+        html = html.replace(/(<li>.*<\/li>)/gim, "<ul>$1</ul>");
+
+        // Paragraphs
+        html = html
+          .split("\n\n")
+          .map((p) => {
+            if (p.startsWith("<h") || p.startsWith("<pre") || p.startsWith("<table") || p.startsWith("<div") || p.startsWith("<ul")) {
+              return p;
+            }
+            return `<p>${p}</p>`;
+          })
+          .join("");
+
+        return `<div class="markdown-body">${html}</div>`;
+      }
+
+      function renderJsonTree(obj, depth = 0) {
+        if (obj === null) return `<span class="json-null">null</span>`;
+        if (typeof obj === "boolean") return `<span class="json-boolean">${obj}</span>`;
+        if (typeof obj === "number") return `<span class="json-number">${obj}</span>`;
+        if (typeof obj === "string") return `<span class="json-string">"${escapeHtml(obj)}"</span>`;
+
+        const isArr = Array.isArray(obj);
+        const keys = Object.keys(obj);
+        const indent = "&nbsp;&nbsp;".repeat(depth);
+
+        if (keys.length === 0) return isArr ? "[]" : "{}";
+
+        let result = isArr ? "[\n" : "{\n";
+        keys.forEach((k, idx) => {
+          result += `${indent}&nbsp;&nbsp;`;
+          if (!isArr) result += `<span class="json-key">"${escapeHtml(k)}"</span>: `;
+          result += renderJsonTree(obj[k], depth + 1);
+          if (idx < keys.length - 1) result += ",";
+          result += "\n";
+        });
+        result += `${indent}${isArr ? "]" : "}"}`;
+        return result;
+      }
+
+      // Preview tabs click
+      document.querySelectorAll(".preview-tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".preview-tab-btn").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          state.activePreviewTab = btn.dataset.tab;
+          const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+          if (currentFile) updateLivePreview(els.textarea.value, currentFile);
+        });
+      });
+
+      // ------------------------------------------------------------------------
+      // Workspace File Tree & Tabs Management
+      // ------------------------------------------------------------------------
+      function renderFileTree() {
+        const treeMap = {};
+
+        state.files.forEach((file) => {
+          const parts = file.path.split("/");
+          let current = treeMap;
+          for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const isFile = i === parts.length - 1;
+            if (isFile) {
+              current[part] = { __file: file };
+            } else {
+              if (!current[part]) current[part] = {};
+              current = current[part];
+            }
+          }
+        });
+
+        function buildTreeHtml(map, pathPrefix = "") {
+          let html = "";
+          const entries = Object.keys(map).sort((a, b) => {
+            const isFileA = !!map[a].__file;
+            const isFileB = !!map[b].__file;
+            if (isFileA !== isFileB) return isFileA ? 1 : -1;
+            return a.localeCompare(b);
+          });
+
+          for (const key of entries) {
+            const item = map[key];
+            const fullPath = pathPrefix ? `${pathPrefix}/${key}` : key;
+
+            if (item.__file) {
+              const file = item.__file;
+              const isActive = file.path === state.activeFilePath;
+              const isDirty = state.dirtyFiles.has(file.path);
+              const ext = key.split(".").pop().toLowerCase();
+              const icon = getFileIcon(ext);
+
+              html += `
+                <div class="tree-node ${isActive ? "active" : ""}" data-path="${escapeHtml(file.path)}">
+                  <span class="node-icon">${icon}</span>
+                  <span class="node-name">${escapeHtml(key)}</span>
+                  ${isDirty ? '<span style="color: var(--accent); font-size: 14px;">●</span>' : ""}
+                </div>
+              `;
+            } else {
+              html += `
+                <div class="tree-folder-group">
+                  <div class="tree-node folder-node" data-folder="${escapeHtml(fullPath)}">
+                    <span class="node-icon">📁</span>
+                    <span class="node-name" style="font-weight: 600;">${escapeHtml(key)}</span>
+                  </div>
+                  <div class="tree-folder-children">
+                    ${buildTreeHtml(item, fullPath)}
+                  </div>
+                </div>
+              `;
+            }
+          }
+          return html;
+        }
+
+        els.fileTree.innerHTML = buildTreeHtml(treeMap);
+
+        // Attach click events
+        els.fileTree.querySelectorAll(".tree-node[data-path]").forEach((node) => {
+          node.addEventListener("click", () => {
+            const path = node.dataset.path;
+            openFile(path);
+          });
+        });
+
+        els.fileTree.querySelectorAll(".folder-node").forEach((node) => {
+          node.addEventListener("click", () => {
+            const children = node.nextElementSibling;
+            if (children) children.classList.toggle("collapsed");
+          });
+        });
+      }
+
+      function getFileIcon(ext) {
+        const icons = {
+          ts: "🔷",
+          tsx: "⚛️",
+          js: "🟨",
+          jsx: "⚛️",
+          py: "🐍",
+          rs: "🦀",
+          go: "🐹",
+          html: "🌐",
+          css: "🎨",
+          json: "📋",
+          md: "📝",
+          sql: "🗄️",
+          sh: "🐚",
+          c: "⚙️",
+          cpp: "⚙️",
+        };
+        return icons[ext] || "📄";
+      }
+
+      function renderTabs() {
+        const tabsHtml = state.openTabs.map((path) => {
+          const file = state.files.find((f) => f.path === path);
+          const name = file ? file.name : path.split("/").pop();
+          const ext = name.split(".").pop().toLowerCase();
+          const icon = getFileIcon(ext);
+          const isActive = path === state.activeFilePath;
+          const isDirty = state.dirtyFiles.has(path);
+
+          return `
+            <div class="editor-tab ${isActive ? "active" : ""}" data-path="${escapeHtml(path)}">
+              <span>${icon}</span>
+              <span>${escapeHtml(name)}</span>
+              ${isDirty ? '<span class="tab-dirty-dot"></span>' : ""}
+              <button class="tab-close-btn" data-close="${escapeHtml(path)}" title="Close Tab">×</button>
+            </div>
+          `;
+        }).join("");
+
+        els.tabBar.innerHTML = tabsHtml + `<button class="tab-add-btn" id="btn-add-tab" title="New Untitled File">+</button>`;
+
+        // Tab click
+        els.tabBar.querySelectorAll(".editor-tab").forEach((tab) => {
+          tab.addEventListener("click", (e) => {
+            if (e.target.dataset.close) return;
+            openFile(tab.dataset.path);
+          });
+        });
+
+        // Tab close
+        els.tabBar.querySelectorAll("[data-close]").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            closeTab(btn.dataset.close);
+          });
+        });
+
+        // Re-attach tab add button
+        const addBtn = document.getElementById("btn-add-tab");
+        if (addBtn) {
+          addBtn.addEventListener("click", createNewUntitledFile);
+        }
+      }
+
+      function openFile(path) {
+        let file = state.files.find((f) => f.path === path);
+        if (!file) return;
+
+        state.activeFilePath = path;
+        if (!state.openTabs.includes(path)) {
+          state.openTabs.push(path);
+        }
+
+        els.textarea.value = file.content;
+        els.breadcrumbFilename.textContent = path;
+        const lang = file.lang || detectLanguage(path);
+        els.statusLangText.textContent = lang;
+
+        const ext = path.split(".").pop().toLowerCase();
+        if (ext === "md") {
+          state.activePreviewTab = "md";
+          document.querySelectorAll(".preview-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === "md"));
+        } else if (ext === "html") {
+          state.activePreviewTab = "html";
+          document.querySelectorAll(".preview-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === "html"));
+        } else if (ext === "json") {
+          state.activePreviewTab = "json";
+          document.querySelectorAll(".preview-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === "json"));
+        }
+
+        renderTabs();
+        renderFileTree();
+        renderEditor();
+      }
+
+      function closeTab(path) {
+        const idx = state.openTabs.indexOf(path);
+        if (idx === -1) return;
+
+        state.openTabs.splice(idx, 1);
+
+        if (state.activeFilePath === path) {
+          if (state.openTabs.length > 0) {
+            const nextIdx = Math.max(0, idx - 1);
+            openFile(state.openTabs[nextIdx]);
+          } else {
+            createNewUntitledFile();
+          }
+        } else {
+          renderTabs();
+        }
+      }
+
+      function createNewUntitledFile() {
+        let counter = 1;
+        let newName = `Untitled-${counter}.ts`;
+        while (state.files.some((f) => f.path === newName)) {
+          counter++;
+          newName = `Untitled-${counter}.ts`;
+        }
+
+        const newFile = {
+          path: newName,
+          name: newName,
+          lang: "typescript",
+          content: `// New Untitled File\nconsole.log("Hello from NovaCode Studio Pro!");\n`,
+        };
+
+        state.files.push(newFile);
+        state.dirtyFiles.add(newName);
+        openFile(newName);
+      }
+
+      // ------------------------------------------------------------------------
+      // Find & Replace System
+      // ------------------------------------------------------------------------
+      function setupFindReplace() {
+        function executeFind() {
+          const query = els.findInput.value;
+          if (!query) {
+            state.findOptions.query = "";
+            state.findOptions.matches = [];
+            state.findOptions.currentMatchIdx = -1;
+            els.frMatchCount.textContent = "0/0";
+            renderEditor();
+            return;
+          }
+
+          state.findOptions.query = query;
+          const text = els.textarea.value;
+          const matches = [];
+
+          let regexFlags = state.findOptions.matchCase ? "g" : "gi";
+          let regex;
+
+          try {
+            if (state.findOptions.isRegex) {
+              regex = new RegExp(query, regexFlags);
+            } else if (state.findOptions.wholeWord) {
+              regex = new RegExp(`\\b${escapeRegExp(query)}\\b`, regexFlags);
+            } else {
+              regex = new RegExp(escapeRegExp(query), regexFlags);
+            }
+
+            let m;
+            while ((m = regex.exec(text)) !== null) {
+              matches.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+            }
+          } catch (err) {
+            els.frMatchCount.textContent = "Err";
+            return;
+          }
+
+          state.findOptions.matches = matches;
+          if (matches.length > 0) {
+            state.findOptions.currentMatchIdx = 0;
+            els.frMatchCount.textContent = `1/${matches.length}`;
+            jumpToMatch(matches[0]);
+          } else {
+            state.findOptions.currentMatchIdx = -1;
+            els.frMatchCount.textContent = "0/0";
+          }
+
+          renderEditor();
+        }
+
+        function jumpToMatch(match) {
+          if (!match) return;
+          els.textarea.focus();
+          els.textarea.setSelectionRange(match.start, match.end);
+          updateActiveLineIndicator();
+
+          // Scroll match into view
+          const linesBefore = els.textarea.value.slice(0, match.start).split("\n").length;
+          const targetTop = (linesBefore - 2) * 22;
+          els.editorSurface.scrollTop = Math.max(0, targetTop);
+        }
+
+        els.findInput.addEventListener("input", executeFind);
+
+        els.frNextBtn.addEventListener("click", () => {
+          const { matches, currentMatchIdx } = state.findOptions;
+          if (matches.length === 0) return;
+          const nextIdx = (currentMatchIdx + 1) % matches.length;
+          state.findOptions.currentMatchIdx = nextIdx;
+          els.frMatchCount.textContent = `${nextIdx + 1}/${matches.length}`;
+          jumpToMatch(matches[nextIdx]);
+        });
+
+        els.frPrevBtn.addEventListener("click", () => {
+          const { matches, currentMatchIdx } = state.findOptions;
+          if (matches.length === 0) return;
+          const prevIdx = (currentMatchIdx - 1 + matches.length) % matches.length;
+          state.findOptions.currentMatchIdx = prevIdx;
+          els.frMatchCount.textContent = `${prevIdx + 1}/${matches.length}`;
+          jumpToMatch(matches[prevIdx]);
+        });
+
+        els.frOptCase.addEventListener("click", () => {
+          state.findOptions.matchCase = !state.findOptions.matchCase;
+          els.frOptCase.classList.toggle("active", state.findOptions.matchCase);
+          executeFind();
+        });
+
+        els.frOptWord.addEventListener("click", () => {
+          state.findOptions.wholeWord = !state.findOptions.wholeWord;
+          els.frOptWord.classList.toggle("active", state.findOptions.wholeWord);
+          executeFind();
+        });
+
+        els.frOptRegex.addEventListener("click", () => {
+          state.findOptions.isRegex = !state.findOptions.isRegex;
+          els.frOptRegex.classList.toggle("active", state.findOptions.isRegex);
+          executeFind();
+        });
+
+        els.frReplaceOneBtn.addEventListener("click", () => {
+          const { matches, currentMatchIdx } = state.findOptions;
+          if (matches.length === 0 || currentMatchIdx === -1) return;
+          const cur = matches[currentMatchIdx];
+          const rep = els.replaceInput.value;
+
+          const text = els.textarea.value;
+          els.textarea.value = text.slice(0, cur.start) + rep + text.slice(cur.end);
+          handleTextChange();
+          executeFind();
+        });
+
+        els.frReplaceAllBtn.addEventListener("click", () => {
+          const { matches } = state.findOptions;
+          if (matches.length === 0) return;
+          const rep = els.replaceInput.value;
+          let text = els.textarea.value;
+
+          // Replace from end to start to keep indices valid
+          for (let i = matches.length - 1; i >= 0; i--) {
+            const m = matches[i];
+            text = text.slice(0, m.start) + rep + text.slice(m.end);
+          }
+
+          els.textarea.value = text;
+          handleTextChange();
+          executeFind();
+        });
+
+        els.frCloseBtn.addEventListener("click", () => {
+          els.findDrawer.classList.remove("open");
+          state.findOptions.query = "";
+          state.findOptions.matches = [];
+          renderEditor();
+        });
+      }
+
+      function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function applyFindHighlights(html, options) {
+        // Safe match highlighter
+        return html;
+      }
+
+      // ------------------------------------------------------------------------
+      // Bottom Developer Drawer (Terminal, Diff, Regex Sandbox, Snippets)
+      // ------------------------------------------------------------------------
+      function setupDrawer() {
+        // Tab Switcher
+        document.querySelectorAll(".drawer-tab-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".drawer-tab-btn").forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            state.activeDrawerPane = btn.dataset.pane;
+
+            document.getElementById("drawer-terminal-pane").style.display = btn.dataset.pane === "terminal" ? "flex" : "none";
+            document.getElementById("drawer-regex-pane").style.display = btn.dataset.pane === "regex" ? "flex" : "none";
+            document.getElementById("drawer-diff-pane").style.display = btn.dataset.pane === "diff" ? "flex" : "none";
+            document.getElementById("drawer-snippets-pane").style.display = btn.dataset.pane === "snippets" ? "grid" : "none";
+          });
+        });
+
+        // Terminal Execution
+        els.termInput.addEventListener("keydown", async (e) => {
+          if (e.key === "Enter") {
+            const cmd = els.termInput.value.trim();
+            if (!cmd) return;
+            els.termInput.value = "";
+            appendTerminal(`$ ${cmd}`);
+
+            if (state.backendConnected) {
+              try {
+                const res = await fetch("/api/exec", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ command: cmd }),
+                });
+                const data = await res.json();
+                if (data.stdout) appendTerminal(data.stdout);
+                if (data.stderr) appendTerminal(`⚠️ ${data.stderr}`);
+                appendTerminal(`[Process exited with code ${data.exitCode} in ${data.durationMs}ms]`);
+              } catch (err) {
+                appendTerminal(`❌ Network execution error: ${err.message}`);
+              }
+            } else {
+              // Simulated Mock Runner in Standalone mode
+              handleMockTerminalCmd(cmd);
+            }
+          }
+        });
+
+        // Quick Command Chips
+        document.querySelectorAll(".quick-chip").forEach((chip) => {
+          chip.addEventListener("click", () => {
+            els.termInput.value = chip.dataset.cmd;
+            els.termInput.focus();
+          });
+        });
+
+        // Regex Sandbox Live Evaluator
+        function evaluateRegex() {
+          const pat = els.regPattern.value;
+          const flags = els.regFlags.value;
+          const text = els.regTestString.value;
+
+          if (!pat) {
+            els.regMatchResult.textContent = "Enter a regex pattern above...";
+            return;
+          }
+
+          try {
+            const reg = new RegExp(pat, flags);
+            let matches = [];
+            let match;
+
+            if (flags.includes("g")) {
+              while ((match = reg.exec(text)) !== null) {
+                matches.push({ full: match[0], index: match.index, groups: match.slice(1) });
+                if (reg.lastIndex === match.index) reg.lastIndex++;
+              }
+            } else {
+              match = reg.exec(text);
+              if (match) matches.push({ full: match[0], index: match.index, groups: match.slice(1) });
+            }
+
+            if (matches.length === 0) {
+              els.regMatchResult.innerHTML = `<span style="color: var(--text-muted);">No matches found.</span>`;
+            } else {
+              let out = `<strong>Found ${matches.length} match(es):</strong>\n`;
+              matches.forEach((m, idx) => {
+                out += `Match ${idx + 1}: "${escapeHtml(m.full)}" (index: ${m.index})\n`;
+                if (m.groups.length > 0) {
+                  m.groups.forEach((g, gIdx) => {
+                    out += `   Group ${gIdx + 1}: "${escapeHtml(g || "")}"\n`;
+                  });
+                }
+              });
+              els.regMatchResult.innerHTML = out;
+            }
+          } catch (err) {
+            els.regMatchResult.innerHTML = `<span style="color: #e06c75;">Regex Error: ${escapeHtml(err.message)}</span>`;
+          }
+        }
+
+        els.regPattern.addEventListener("input", evaluateRegex);
+        els.regFlags.addEventListener("input", evaluateRegex);
+        els.regTestString.addEventListener("input", evaluateRegex);
+
+        // Diff Comparator
+        function runDiff() {
+          const orig = els.diffOriginal.value.split("\n");
+          const mod = els.diffModified.value.split("\n");
+
+          let out = "";
+          const maxLines = Math.max(orig.length, mod.length);
+
+          for (let i = 0; i < maxLines; i++) {
+            const l1 = orig[i];
+            const l2 = mod[i];
+
+            if (l1 === l2) {
+              out += `  ${l1 || ""}\n`;
+            } else {
+              if (l1 !== undefined) out += `<div class="diff-del">- ${escapeHtml(l1)}</div>`;
+              if (l2 !== undefined) out += `<div class="diff-add">+ ${escapeHtml(l2)}</div>`;
+            }
+          }
+
+          els.diffOutput.innerHTML = out || "Files are identical.";
+        }
+
+        els.diffOriginal.addEventListener("input", runDiff);
+        els.diffModified.addEventListener("input", runDiff);
+
+        // Populate Snippet Library
+        populateSnippets();
+      }
+
+      function appendTerminal(text) {
+        els.termOutput.textContent += `\n${text}`;
+        els.termOutput.scrollTop = els.termOutput.scrollHeight;
+      }
+
+      function handleMockTerminalCmd(cmd) {
+        if (cmd === "bun --version") {
+          appendTerminal("1.2.4 (Simulated Bun Standalone)");
+        } else if (cmd === "git status") {
+          appendTerminal("On branch main\nYour branch is up to date with 'origin/main'.\n\nChanges not staged for commit:\n  modified: src/index.ts\n\nno changes added to commit (use \"git add\" to track)");
+        } else if (cmd === "ls -la" || cmd === "ls") {
+          appendTerminal("total 48\ndrwxr-xr-x   6 dev  staff   192 Oct 12 14:00 .\ndrwxr-xr-x  12 dev  staff   384 Oct 12 14:00 ..\n-rw-r--r--   1 dev  staff  1240 Oct 12 14:00 README.md\n-rw-r--r--   1 dev  staff   480 Oct 12 14:00 config.json\ndrwxr-xr-x   4 dev  staff   128 Oct 12 14:00 src\ndrwxr-xr-x   3 dev  staff    96 Oct 12 14:00 public");
+        } else if (cmd === "pwd") {
+          appendTerminal("/Users/codecaine/bun_rad_studio");
+        } else if (cmd === "node -v") {
+          appendTerminal("v22.11.0");
+        } else {
+          appendTerminal(`NovaCode Runner: Executed '${cmd}'. (Connect to Bun Server for native shell execution)`);
+        }
+      }
+
+      const SNIPPETS = [
+        {
+          title: "TypeScript Bun Server",
+          desc: "Full HTTP serve with routing",
+          code: `import { serve } from "bun";\n\nserve({\n  port: 3000,\n  fetch(req) {\n    const url = new URL(req.url);\n    if (url.pathname === "/api/health") {\n      return Response.json({ status: "ok" });\n    }\n    return new Response("Hello from Bun!");\n  },\n});`,
+        },
+        {
+          title: "Async Try/Catch Wrapper",
+          desc: "Robust error handler with types",
+          code: `export async function safeExecute<T>(\n  promise: Promise<T>\n): Promise<[T | null, Error | null]> {\n  try {\n    const data = await promise;\n    return [data, null];\n  } catch (err: any) {\n    return [null, err instanceof Error ? err : new Error(String(err))];\n  }\n}`,
+        },
+        {
+          title: "Python Timer Decorator",
+          desc: "Measure execution runtime",
+          code: `import time\nfrom functools import wraps\n\ndef timed_execution(func):\n    @wraps(func)\n    def wrapper(*args, **kwargs):\n        start = time.perf_counter()\n        result = func(*args, **kwargs)\n        elapsed = (time.perf_counter() - start) * 1000\n        print(f"[{func.__name__}] finished in {elapsed:.2f}ms")\n        return result\n    return wrapper`,
+        },
+        {
+          title: "Rust Mutex Threadpool",
+          desc: "Thread-safe data sharing",
+          code: `use std::sync::{Arc, Mutex};\nuse std::thread;\n\nlet counter = Arc::new(Mutex::new(0));\nlet mut handles = vec![];\n\nfor _ in 0..10 {\n    let counter_clone = Arc::clone(&counter);\n    let handle = thread::spawn(move || {\n        let mut num = counter_clone.lock().unwrap();\n        *num += 1;\n    });\n    handles.push(handle);\n}\n\nfor handle in handles {\n    handle.join().unwrap();\n}`,
+        },
+        {
+          title: "SQL Window Deduplication",
+          desc: "Keep newest record per ID",
+          code: `WITH RankedRecords AS (\n  SELECT *,\n    ROW_NUMBER() OVER (\n      PARTITION BY user_id \n      ORDER BY updated_at DESC\n    ) AS row_num\n  FROM user_audit_log\n)\nSELECT *\nFROM RankedRecords\nWHERE row_num = 1;`,
+        },
+        {
+          title: "Modern Glassmorphism CSS",
+          desc: "Sleek frosted card styling",
+          code: `.glass-container {\n  background: rgba(255, 255, 255, 0.05);\n  backdrop-filter: blur(16px);\n  -webkit-backdrop-filter: blur(16px);\n  border: 1px solid rgba(255, 255, 255, 0.12);\n  border-radius: 12px;\n  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);\n}`,
+        },
+      ];
+
+      function populateSnippets() {
+        els.snippetsPane.innerHTML = SNIPPETS.map(
+          (s, idx) => `
+          <div class="snippet-card" data-idx="${idx}">
+            <div class="snippet-title">${escapeHtml(s.title)}</div>
+            <div class="snippet-desc">${escapeHtml(s.desc)}</div>
+          </div>
+        `
+        ).join("");
+
+        els.snippetsPane.querySelectorAll(".snippet-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            const snip = SNIPPETS[card.dataset.idx];
+            insertSnippetAtCursor(snip.code);
+          });
+        });
+      }
+
+      function insertSnippetAtCursor(codeSnippet) {
+        const text = els.textarea.value;
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+
+        els.textarea.value = text.slice(0, selStart) + codeSnippet + text.slice(selEnd);
+        els.textarea.setSelectionRange(selStart + codeSnippet.length, selStart + codeSnippet.length);
+        handleTextChange();
+        els.textarea.focus();
+      }
+
+      // ------------------------------------------------------------------------
+      // Quick Command Palette (Ctrl+P / Cmd+P)
+      // ------------------------------------------------------------------------
+      const COMMANDS = [
+        { label: "Switch Theme: One Dark Pro", action: () => setTheme("onedark"), category: "Theme" },
+        { label: "Switch Theme: Dracula Modern", action: () => setTheme("dracula"), category: "Theme" },
+        { label: "Switch Theme: Monokai Pro", action: () => setTheme("monokai"), category: "Theme" },
+        { label: "Switch Theme: GitHub Dark Dimmed", action: () => setTheme("github"), category: "Theme" },
+        { label: "Switch Theme: Nordic Frost", action: () => setTheme("nordic"), category: "Theme" },
+        { label: "Switch Theme: Solarized Light", action: () => setTheme("solarized"), category: "Theme" },
+        { label: "Prettify / Format Document", action: formatDocument, category: "Edit", shortcut: "Alt+F" },
+        { label: "Convert to UPPERCASE", action: () => convertCase("upper"), category: "Transform" },
+        { label: "Convert to lowercase", action: () => convertCase("lower"), category: "Transform" },
+        { label: "Convert to Title Case", action: () => convertCase("title"), category: "Transform" },
+        { label: "Convert to camelCase", action: () => convertCase("camel"), category: "Transform" },
+        { label: "Convert to snake_case", action: () => convertCase("snake"), category: "Transform" },
+        { label: "Convert to CONSTANT_CASE", action: () => convertCase("constant"), category: "Transform" },
+        { label: "Sort Lines Ascending", action: () => sortLines(true), category: "Transform" },
+        { label: "Sort Lines Descending", action: () => sortLines(false), category: "Transform" },
+        { label: "Remove Duplicate Lines", action: removeDuplicateLines, category: "Transform" },
+        { label: "JSON: Prettify (2 spaces)", action: prettifyJson, category: "JSON" },
+        { label: "JSON: Minify", action: minifyJson, category: "JSON" },
+        { label: "Base64 Encode Selection", action: base64Encode, category: "Tools" },
+        { label: "Base64 Decode Selection", action: base64Decode, category: "Tools" },
+        { label: "URL Encode Selection", action: urlEncode, category: "Tools" },
+        { label: "URL Decode Selection", action: urlDecode, category: "Tools" },
+        { label: "Toggle Live Preview Pane", action: togglePreview, category: "View", shortcut: "Ctrl+\\" },
+        { label: "Toggle Developer Drawer", action: toggleDrawer, category: "View", shortcut: "Ctrl+`" },
+        { label: "Toggle Sidebar Explorer", action: toggleSidebar, category: "View", shortcut: "Ctrl+B" },
+        { label: "Save File to Disk", action: saveActiveFile, category: "File", shortcut: "Ctrl+S" },
+        { label: "New Untitled File", action: createNewUntitledFile, category: "File" },
+      ];
+
+      function openCommandPalette() {
+        els.cmdPaletteBackdrop.classList.add("open");
+        els.paletteInput.value = "";
+        renderPaletteItems("");
+        els.paletteInput.focus();
+      }
+
+      function closeCommandPalette() {
+        els.cmdPaletteBackdrop.classList.remove("open");
+        els.textarea.focus();
+      }
+
+      function renderPaletteItems(query) {
+        const q = query.toLowerCase().trim();
+        let items = [];
+
+        // File matches
+        state.files.forEach((file) => {
+          if (!q || file.path.toLowerCase().includes(q)) {
+            items.push({
+              label: file.path,
+              action: () => openFile(file.path),
+              category: "File",
+              icon: getFileIcon(file.path.split(".").pop()),
+            });
+          }
+        });
+
+        // Command matches
+        COMMANDS.forEach((cmd) => {
+          if (!q || cmd.label.toLowerCase().includes(q)) {
+            items.push({
+              label: cmd.label,
+              action: cmd.action,
+              category: cmd.category,
+              shortcut: cmd.shortcut,
+              icon: "⚡",
+            });
+          }
+        });
+
+        els.paletteResults.innerHTML = items
+          .slice(0, 15)
+          .map(
+            (it, idx) => `
+            <div class="palette-item ${idx === 0 ? "selected" : ""}" data-idx="${idx}">
+              <div class="palette-item-left">
+                <span>${it.icon || "⚡"}</span>
+                <span>${escapeHtml(it.label)}</span>
+              </div>
+              <div>
+                ${it.shortcut ? `<span class="palette-shortcut">${escapeHtml(it.shortcut)}</span>` : ""}
+                <span class="palette-shortcut" style="color: var(--text-muted);">${escapeHtml(it.category)}</span>
+              </div>
+            </div>
+          `
+          )
+          .join("");
+
+        // Click to execute
+        els.paletteResults.querySelectorAll(".palette-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            const it = items[el.dataset.idx];
+            closeCommandPalette();
+            if (it && it.action) it.action();
+          });
+        });
+      }
+
+      els.paletteInput.addEventListener("input", (e) => {
+        renderPaletteItems(e.target.value);
+      });
+
+      els.paletteInput.addEventListener("keydown", (e) => {
+        const items = els.paletteResults.querySelectorAll(".palette-item");
+        let selectedIdx = Array.from(items).findIndex((it) => it.classList.contains("selected"));
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (items.length === 0) return;
+          if (selectedIdx >= 0) items[selectedIdx].classList.remove("selected");
+          selectedIdx = (selectedIdx + 1) % items.length;
+          items[selectedIdx].classList.add("selected");
+          items[selectedIdx].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (items.length === 0) return;
+          if (selectedIdx >= 0) items[selectedIdx].classList.remove("selected");
+          selectedIdx = (selectedIdx - 1 + items.length) % items.length;
+          items[selectedIdx].classList.add("selected");
+          items[selectedIdx].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (selectedIdx >= 0 && items[selectedIdx]) {
+            items[selectedIdx].click();
+          }
+        } else if (e.key === "Escape") {
+          closeCommandPalette();
+        }
+      });
+
+      els.cmdPaletteBackdrop.addEventListener("click", (e) => {
+        if (e.target === els.cmdPaletteBackdrop) closeCommandPalette();
+      });
+
+      // ------------------------------------------------------------------------
+      // Developer Transformations
+      // ------------------------------------------------------------------------
+      function formatDocument() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+
+        const ext = currentFile.path.split(".").pop().toLowerCase();
+        if (ext === "json") {
+          prettifyJson();
+        } else {
+          // Standard indentation cleanup
+          const lines = els.textarea.value.split("\n");
+          const cleaned = lines.map((l) => l.replace(/\s+$/, "")).join("\n");
+          els.textarea.value = cleaned;
+          handleTextChange();
+        }
+      }
+
+      function prettifyJson() {
+        try {
+          const parsed = JSON.parse(els.textarea.value);
+          els.textarea.value = JSON.stringify(parsed, null, 2);
+          handleTextChange();
+        } catch (err) {
+          alert("Invalid JSON: " + err.message);
+        }
+      }
+
+      function minifyJson() {
+        try {
+          const parsed = JSON.parse(els.textarea.value);
+          els.textarea.value = JSON.stringify(parsed);
+          handleTextChange();
+        } catch (err) {
+          alert("Invalid JSON: " + err.message);
+        }
+      }
+
+      function convertCase(type) {
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const selected = selStart !== selEnd ? text.slice(selStart, selEnd) : text;
+
+        let converted = selected;
+        if (type === "upper") converted = selected.toUpperCase();
+        else if (type === "lower") converted = selected.toLowerCase();
+        else if (type === "title") converted = selected.replace(/\b\w/g, (c) => c.toUpperCase());
+        else if (type === "camel") converted = selected.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, (match, index) => +match === 0 ? "" : index === 0 ? match.toLowerCase() : match.toUpperCase());
+        else if (type === "snake") converted = selected.replace(/\s+/g, "_").toLowerCase();
+        else if (type === "constant") converted = selected.replace(/\s+/g, "_").toUpperCase();
+
+        if (selStart !== selEnd) {
+          els.textarea.value = text.slice(0, selStart) + converted + text.slice(selEnd);
+          els.textarea.setSelectionRange(selStart, selStart + converted.length);
+        } else {
+          els.textarea.value = converted;
+        }
+        handleTextChange();
+      }
+
+      function sortLines(ascending = true) {
+        const text = els.textarea.value;
+        const lines = text.split("\n");
+        lines.sort((a, b) => (ascending ? a.localeCompare(b) : b.localeCompare(a)));
+        els.textarea.value = lines.join("\n");
+        handleTextChange();
+      }
+
+      function removeDuplicateLines() {
+        const text = els.textarea.value;
+        const lines = text.split("\n");
+        const unique = Array.from(new Set(lines));
+        els.textarea.value = unique.join("\n");
+        handleTextChange();
+      }
+
+      function base64Encode() {
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const selected = selStart !== selEnd ? text.slice(selStart, selEnd) : text;
+
+        try {
+          const encoded = btoa(unescape(encodeURIComponent(selected)));
+          if (selStart !== selEnd) {
+            els.textarea.value = text.slice(0, selStart) + encoded + text.slice(selEnd);
+          } else {
+            els.textarea.value = encoded;
+          }
+          handleTextChange();
+        } catch (err) {
+          alert("Base64 Encode failed: " + err.message);
+        }
+      }
+
+      function base64Decode() {
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const selected = selStart !== selEnd ? text.slice(selStart, selEnd) : text;
+
+        try {
+          const decoded = decodeURIComponent(escape(atob(selected)));
+          if (selStart !== selEnd) {
+            els.textarea.value = text.slice(0, selStart) + decoded + text.slice(selEnd);
+          } else {
+            els.textarea.value = decoded;
+          }
+          handleTextChange();
+        } catch (err) {
+          alert("Base64 Decode failed: " + err.message);
+        }
+      }
+
+      function urlEncode() {
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const selected = selStart !== selEnd ? text.slice(selStart, selEnd) : text;
+
+        const encoded = encodeURIComponent(selected);
+        if (selStart !== selEnd) {
+          els.textarea.value = text.slice(0, selStart) + encoded + text.slice(selEnd);
+        } else {
+          els.textarea.value = encoded;
+        }
+        handleTextChange();
+      }
+
+      function urlDecode() {
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+        const selected = selStart !== selEnd ? text.slice(selStart, selEnd) : text;
+
+        try {
+          const decoded = decodeURIComponent(selected);
+          if (selStart !== selEnd) {
+            els.textarea.value = text.slice(0, selStart) + decoded + text.slice(selEnd);
+          } else {
+            els.textarea.value = decoded;
+          }
+          handleTextChange();
+        } catch (err) {
+          alert("URL Decode failed: " + err.message);
+        }
+      }
+
+      // ------------------------------------------------------------------------
+      // Backend Filesystem API Sync
+      // ------------------------------------------------------------------------
+      async function checkBackendStatus() {
+        try {
+          const res = await fetch("/api/health");
+          if (res.ok) {
+            state.backendConnected = true;
+            els.statusBackendText.textContent = "Bun Backend Connected";
+            els.statusBadgeDot.classList.remove("offline");
+            loadWorkspaceFromBackend();
+          } else {
+            setOfflineMode();
+          }
+        } catch (err) {
+          setOfflineMode();
+        }
+      }
+
+      function setOfflineMode() {
+        state.backendConnected = false;
+        els.statusBackendText.textContent = "Standalone Mode (Virtual FS)";
+        els.statusBadgeDot.classList.add("offline");
+      }
+
+      async function loadWorkspaceFromBackend() {
+        try {
+          const res = await fetch("/api/fs/workspace");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.files && Array.isArray(data.files)) {
+              // Merge files
+              data.files.forEach((f) => {
+                if (!state.files.some((existing) => existing.path === f.path)) {
+                  state.files.push({
+                    path: f.path,
+                    name: f.name || f.path.split("/").pop(),
+                    lang: detectLanguage(f.path),
+                    content: f.content || "",
+                  });
+                }
+              });
+              renderFileTree();
+            }
+          }
+        } catch (err) {
+          console.warn("Backend workspace fetch error:", err);
+        }
+      }
+
+      async function saveActiveFile() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (!currentFile) return;
+
+        currentFile.content = els.textarea.value;
+
+        if (state.backendConnected) {
+          try {
+            const res = await fetch("/api/fs/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: currentFile.path, content: currentFile.content }),
+            });
+            if (res.ok) {
+              state.dirtyFiles.delete(currentFile.path);
+              renderTabs();
+              renderFileTree();
+              flashStatusBar("File saved to disk successfully!");
+            }
+          } catch (err) {
+            alert("Save failed: " + err.message);
+          }
+        } else {
+          // Virtual save
+          state.dirtyFiles.delete(currentFile.path);
+          renderTabs();
+          renderFileTree();
+          flashStatusBar("File saved (Virtual Storage).");
+        }
+      }
+
+      function flashStatusBar(msg) {
+        const orig = els.statusBackendText.textContent;
+        els.statusBackendText.textContent = `💾 ${msg}`;
+        setTimeout(() => {
+          els.statusBackendText.textContent = orig;
+        }, 2500);
+      }
+
+      // ------------------------------------------------------------------------
+      // Textarea Editing & Auto-Closing Handlers
+      // ------------------------------------------------------------------------
+      function handleTextChange() {
+        const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+        if (currentFile) {
+          currentFile.content = els.textarea.value;
+          state.dirtyFiles.add(currentFile.path);
+          renderTabs();
+        }
+        renderEditor();
+      }
+
+      els.textarea.addEventListener("input", handleTextChange);
+      els.textarea.addEventListener("click", updateActiveLineIndicator);
+      els.textarea.addEventListener("keyup", updateActiveLineIndicator);
+
+      // Scroll synchronization
+      els.editorSurface.addEventListener("scroll", () => {
+        els.editorGutter.scrollTop = els.editorSurface.scrollTop;
+        updateMinimapSlider();
+      });
+
+      // Advanced Keyboard Interactions: Tab indent, Auto-close brackets, Shortcuts
+      els.textarea.addEventListener("keydown", (e) => {
+        const selStart = els.textarea.selectionStart;
+        const selEnd = els.textarea.selectionEnd;
+        const text = els.textarea.value;
+
+        // Tab Indent / Outdent
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const indentStr = " ".repeat(state.indentMode);
+
+          if (e.shiftKey) {
+            // Outdent
+            const lineStart = text.lastIndexOf("\n", selStart - 1) + 1;
+            if (text.startsWith(indentStr, lineStart)) {
+              els.textarea.value = text.slice(0, lineStart) + text.slice(lineStart + indentStr.length);
+              els.textarea.setSelectionRange(selStart - indentStr.length, selEnd - indentStr.length);
+              handleTextChange();
+            }
+          } else {
+            // Indent
+            els.textarea.value = text.slice(0, selStart) + indentStr + text.slice(selEnd);
+            els.textarea.setSelectionRange(selStart + indentStr.length, selStart + indentStr.length);
+            handleTextChange();
+          }
+          return;
+        }
+
+        // Auto-close pairs: (), [], {}, "", '', ``
+        const pairs = {
+          "(": ")",
+          "[": "]",
+          "{": "}",
+          '"': '"',
+          "'": "'",
+          "`": "`",
+        };
+
+        if (pairs[e.key] && selStart === selEnd) {
+          e.preventDefault();
+          const closeChar = pairs[e.key];
+          els.textarea.value = text.slice(0, selStart) + e.key + closeChar + text.slice(selEnd);
+          els.textarea.setSelectionRange(selStart + 1, selStart + 1);
+          handleTextChange();
+          return;
+        }
+
+        // Enter key automatic indentation preservation
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const lineStart = text.lastIndexOf("\n", selStart - 1) + 1;
+          const currentLine = text.slice(lineStart, selStart);
+          const matchIndent = currentLine.match(/^\s*/);
+          let extraIndent = matchIndent ? matchIndent[0] : "";
+
+          if (currentLine.trim().endsWith("{") || currentLine.trim().endsWith(":") || currentLine.trim().endsWith("[")) {
+            extraIndent += " ".repeat(state.indentMode);
+          }
+
+          const insertStr = "\n" + extraIndent;
+          els.textarea.value = text.slice(0, selStart) + insertStr + text.slice(selEnd);
+          els.textarea.setSelectionRange(selStart + insertStr.length, selStart + insertStr.length);
+          handleTextChange();
+          return;
+        }
+
+        // Global Shortcuts handled when typing in editor
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault();
+          saveActiveFile();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+          e.preventDefault();
+          toggleFind();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+          e.preventDefault();
+          openCommandPalette();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+          e.preventDefault();
+          toggleSidebar();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "`") {
+          e.preventDefault();
+          toggleDrawer();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
+          e.preventDefault();
+          togglePreview();
+        }
+      });
+
+      // Window-level Keyboard Shortcuts
+      window.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+          e.preventDefault();
+          openCommandPalette();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault();
+          saveActiveFile();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+          e.preventDefault();
+          toggleFind();
+        } else if (e.key === "Escape") {
+          closeCommandPalette();
+          els.findDrawer.classList.remove("open");
+        }
+      });
+
+      // ------------------------------------------------------------------------
+      // UI Controls Toggle Handlers
+      // ------------------------------------------------------------------------
+      function toggleSidebar() {
+        els.sidebarPane.classList.toggle("collapsed");
+      }
+
+      function togglePreview() {
+        els.previewPane.classList.toggle("collapsed");
+        const isOpen = !els.previewPane.classList.contains("collapsed");
+        els.btnTogglePreview.classList.toggle("active", isOpen);
+        if (isOpen) {
+          const currentFile = state.files.find((f) => f.path === state.activeFilePath);
+          if (currentFile) updateLivePreview(els.textarea.value, currentFile);
+        }
+      }
+
+      function toggleDrawer() {
+        els.bottomDrawer.classList.toggle("collapsed");
+        const isOpen = !els.bottomDrawer.classList.contains("collapsed");
+        els.btnToggleDrawer.classList.toggle("active", isOpen);
+        if (isOpen) {
+          els.termInput.focus();
+        }
+      }
+
+      function toggleFind() {
+        els.findDrawer.classList.toggle("open");
+        if (els.findDrawer.classList.contains("open")) {
+          const sel = els.textarea.value.slice(els.textarea.selectionStart, els.textarea.selectionEnd);
+          if (sel) els.findInput.value = sel;
+          els.findInput.focus();
+          els.findInput.select();
+        }
+      }
+
+      function setTheme(themeName) {
+        document.body.dataset.theme = themeName;
+        state.theme = themeName;
+        els.themeSelector.value = themeName;
+        renderEditor();
+      }
+
+      els.themeSelector.addEventListener("change", (e) => setTheme(e.target.value));
+      els.btnToggleSidebar.addEventListener("click", toggleSidebar);
+      els.btnCollapseSidebar.addEventListener("click", toggleSidebar);
+      els.btnTogglePreview.addEventListener("click", togglePreview);
+      els.btnClosePreview.addEventListener("click", () => {
+        els.previewPane.classList.add("collapsed");
+        els.btnTogglePreview.classList.remove("active");
+      });
+      els.btnToggleDrawer.addEventListener("click", toggleDrawer);
+      els.btnDrawerClose.addEventListener("click", () => {
+        els.bottomDrawer.classList.add("collapsed");
+        els.btnToggleDrawer.classList.remove("active");
+      });
+      els.btnDrawerClear.addEventListener("click", () => {
+        els.termOutput.textContent = "⚡ Terminal Output Cleared.";
+      });
+      els.btnQuickOpen.addEventListener("click", openCommandPalette);
+      els.btnFind.addEventListener("click", toggleFind);
+      els.btnSaveFile.addEventListener("click", saveActiveFile);
+      els.btnFormatDoc.addEventListener("click", formatDocument);
+      els.btnRunCmd.addEventListener("click", () => {
+        toggleDrawer();
+        document.querySelector('.drawer-tab-btn[data-pane="terminal"]').click();
+        els.termInput.value = `bun run ${state.activeFilePath}`;
+        els.termInput.focus();
+      });
+
+      els.btnNewFile.addEventListener("click", () => {
+        const filename = prompt("Enter new file path (e.g. src/utils.ts):");
+        if (!filename) return;
+        state.files.push({
+          path: filename,
+          name: filename.split("/").pop(),
+          lang: detectLanguage(filename),
+          content: "",
+        });
+        openFile(filename);
+      });
+
+      els.btnNewFolder.addEventListener("click", () => {
+        const foldername = prompt("Enter new folder path (e.g. components):");
+        if (!foldername) return;
+        const dummyPath = `${foldername}/.keep`;
+        state.files.push({
+          path: dummyPath,
+          name: ".keep",
+          lang: "plaintext",
+          content: "",
+        });
+        renderFileTree();
+      });
+
+      els.btnRefreshTree.addEventListener("click", () => {
+        if (state.backendConnected) loadWorkspaceFromBackend();
+        else renderFileTree();
+      });
+
+      // ------------------------------------------------------------------------
+      // Initialization
+      // ------------------------------------------------------------------------
+      function init() {
+        setupFindReplace();
+        setupDrawer();
+        openFile(state.activeFilePath);
+        checkBackendStatus();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

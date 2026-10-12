@@ -276,6 +276,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🎨",
     description: "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
   },
+  code_studio: {
+    displayName: "NovaCode Studio Pro",
+    category: "Developer Tools",
+    icon: "⚡",
+    description: "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",
