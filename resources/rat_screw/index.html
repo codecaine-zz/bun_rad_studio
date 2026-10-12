@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Egyptian Rat Screw Royale — Deluxe Reflex Card Studio</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070d14;
+      --table-felt: #0c201a;
+      --table-felt-radial: radial-gradient(circle at 50% 48%, #11362c 0%, #0c241c 45%, #071510 85%, #040c09 100%);
+      --gold-primary: #f59e0b;
+      --gold-bright: #fbbf24;
+      --gold-glow: #fef08a;
+      --gold-deep: #b45309;
+      --lapis-blue: #1e3a8a;
+      --lapis-glow: #3b82f6;
+      --scarab-red: #ef4444;
+      --card-w: 86px;
+      --card-h: 124px;
+      --card-radius: 6px;
+      --font-display: 'Cinzel', serif;
+      --font-ui: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-card-rank: 'Playfair Display', Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: #f8fafc;
+      font-family: var(--font-ui);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Header */
+    header.ers-header {
+      height: 52px;
+      background: rgba(7, 13, 20, 0.95);
+      border-bottom: 1.5px solid rgba(245, 158, 11, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+    }
+
+    .brand-badge {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: var(--gold-bright);
+      letter-spacing: 0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .btn-control {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+      font-family: var(--font-ui);
+    }
+
+    .btn-control:hover {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: var(--gold-primary);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn-control.active {
+      background: var(--gold-primary);
+      border-color: var(--gold-bright);
+      color: #000;
+      font-weight: 800;
+    }
+
+    /* Main Gaming Arena */
+    main.table-arena {
+      flex: 1;
+      position: relative;
+      background: var(--table-felt-radial);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-columns: 1fr;
+      padding: 1rem;
+    }
+
+    /* Hieroglyphic Texture Overlay */
+    .table-arena::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 0);
+      background-size: 24px 24px;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .table-wood-rim {
+      position: absolute;
+      inset: 12px;
+      border: 3px solid #78350f;
+      border-radius: 28px;
+      box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      opacity: 0.85;
+    }
+
+    /* Opponents Top Bar */
+    .opponents-row {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      z-index: 10;
+      min-height: 100px;
+    }
+
+    .player-pod {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(10, 20, 28, 0.75);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 8px 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      min-width: 135px;
+    }
+
+    .player-pod.active-turn {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.45), inset 0 0 12px rgba(245, 158, 11, 0.15);
+      transform: translateY(-3px);
+    }
+
+    .player-pod.challenged {
+      border-color: var(--scarab-red);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.2);
+      animation: challengePulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes challengePulse {
+      0%, 100% { transform: translateY(-3px) scale(1); }
+      50% { transform: translateY(-3px) scale(1.04); }
+    }
+
+    .pod-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .pod-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .pod-name {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #f1f5f9;
+    }
+
+    .pod-deck-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mini-deck-stack {
+      width: 28px;
+      height: 38px;
+      position: relative;
+      border-radius: 3px;
+      background: #831843;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 2px 2px 0 #500724, 4px 4px 0 #310416;
+    }
+
+    .pod-card-count {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold-glow);
+    }
+
+    .pod-status-badge {
+      margin-top: 4px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+    }
+
+    /* Central Pot & Slap Zone */
+    .center-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 20;
+    }
+
+    /* Pot Status & Active Challenge Banner */
+    .challenge-banner {
+      min-height: 36px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: var(--gold-bright);
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      margin-bottom: 1rem;
+      backdrop-filter: blur(6px);
+      transition: all 0.25s ease;
+    }
+
+    .challenge-banner.active {
+      background: rgba(153, 27, 27, 0.9);
+      border-color: #f87171;
+      color: #fff;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+      transform: scale(1.05);
+    }
+
+    /* Central Pot Card Stack Surface */
+    .pot-stack-surface {
+      width: 220px;
+      height: 220px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
+      border: 1.5px dashed rgba(245, 158, 11, 0.25);
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+    }
+
+    .pot-card-anchor {
+      position: relative;
+      width: var(--card-w);
+      height: var(--card-h);
+      perspective: 800px;
+    }
+
+    .pot-counter-pill {
+      position: absolute;
+      bottom: -15px;
+      background: #0f172a;
+      border: 1.5px solid var(--gold-bright);
+      color: var(--gold-bright);
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 3px 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    /* Giant Slap Pad Action Button */
+    .slap-pad-wrapper {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-slap-master {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+      border: 2px solid #fef08a;
+      border-radius: 50px;
+      padding: 12px 36px;
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #0b1320;
+      cursor: pointer;
+      box-shadow: 0 6px 25px rgba(245, 158, 11, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+      transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-slap-master:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 10px 35px rgba(245, 158, 11, 0.7);
+    }
+
+    .btn-slap-master:active {
+      transform: translateY(2px) scale(0.97);
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-slap-master .ankh-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .slap-key-hint {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+    }
+
+    /* Player 1 (User) Bottom Controls Area */
+    .player-dock {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      padding: 0 1rem;
+    }
+
+    .user-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(10, 20, 28, 0.85);
+      border: 1.5px solid rgba(245, 158, 11, 0.4);
+      border-radius: 14px;
+      padding: 10px 18px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .user-profile-card.active-turn {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+    }
+
+    .user-avatar-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+      border: 2px solid var(--gold-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .user-details h3 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .user-details .card-count-label {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+
+    .user-card-metric {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--gold-bright);
+      font-family: var(--font-mono);
+    }
+
+    .user-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-play-card {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 1.5px solid #6ee7b7;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-family: var(--font-ui);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      transition: all 0.15s ease;
+    }
+
+    .btn-play-card:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+      background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+    }
+
+    .btn-play-card:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    .btn-play-card span.sub-key {
+      font-size: 0.68rem;
+      font-weight: 600;
+      opacity: 0.85;
+      font-family: var(--font-mono);
+    }
+
+    /* Slap Feedback Explosion Banner */
+    .slap-feedback-banner {
+      position: absolute;
+      top: 36%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slap-feedback-banner.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .slap-title {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: #fef08a;
+      text-shadow: 0 0 25px rgba(245, 158, 11, 0.9), 0 4px 12px #000;
+      letter-spacing: 2px;
+    }
+
+    .slap-subtitle {
+      font-family: var(--font-ui);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--gold-bright);
+      padding: 4px 16px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      margin-top: 6px;
+    }
+
+    .slap-feedback-banner.burn .slap-title {
+      color: #f87171;
+      text-shadow: 0 0 25px rgba(239, 68, 68, 0.9), 0 4px 12px #000;
+    }
+
+    .slap-feedback-banner.burn .slap-subtitle {
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    /* ----------------------------------------------------------------------- */
+    /* AUTHENTIC CASINO PLAYING CARD STYLES                                   */
+    /* ----------------------------------------------------------------------- */
+    .poker-card {
+      width: var(--card-w);
+      height: var(--card-h);
+      background: #fafaf9;
+      border-radius: var(--card-radius);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+      position: absolute;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      transform-origin: center center;
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+    }
+
+    .poker-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: 
+        repeating-linear-gradient(45deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 2px, transparent 2px, transparent 4px),
+        repeating-linear-gradient(-45deg, rgba(0,0,0,0.012) 0px, rgba(0,0,0,0.012) 2px, transparent 2px, transparent 4px);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .poker-card.red {
+      color: #dc2626;
+    }
+
+    .poker-card.black {
+      color: #111827;
+    }
+
+    .card-face {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .card-inner-frame {
+      position: absolute;
+      inset: 2px;
+      border: 0.5px solid rgba(0, 0, 0, 0.08);
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+    .card-corner {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 0.9;
+      pointer-events: none;
+      z-index: 6;
+      width: 15px;
+    }
+
+    .card-corner.top-left {
+      top: 3px;
+      left: 4px;
+    }
+
+    .card-corner.bottom-right {
+      bottom: 3px;
+      right: 4px;
+      transform: rotate(180deg);
+    }
+
+    .card-corner .card-rank {
+      font-family: var(--font-card-rank);
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    .card-corner .card-corner-suit {
+      width: 11px;
+      height: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .suit-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .card-center-area {
+      position: absolute;
+      top: 5px;
+      bottom: 5px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    /* Pips Container */
+    .card-pips-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .card-pip {
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-pip.flipped {
+      transform: translate(-50%, -50%) rotate(180deg);
+    }
+
+    /* Court Face Cards */
+    .court-portrait-box {
+      width: 60px;
+      height: 102px;
+      position: relative;
+      border: 1.5px solid #d97706;
+      border-radius: 4px;
+      background: #faf8f5;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px #78350f, 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .court-half {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 50%;
+      overflow: hidden;
+    }
+
+    .court-half.top {
+      top: 0;
+    }
+
+    .court-half.bottom {
+      bottom: 0;
+      transform: rotate(180deg);
+    }
+
+    .court-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Ornate Aces */
+    .ace-ornate-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .ace-master-spade {
+      width: 88%;
+      max-height: 76px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .ace-label {
+      font-family: var(--font-card-rank);
+      font-size: 0.6rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #111827;
+      margin-top: 2px;
+      opacity: 0.85;
+    }
+
+    .ace-classic-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+    }
+
+    .ace-flourish {
+      width: 80%;
+      height: 12px;
+    }
+
+    .ace-center-suit {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.12));
+    }
+
+    /* Card Back (Ancient Egyptian Pharaoh / Concentric Rosette Pattern) */
+    .card-back-view {
+      position: absolute;
+      inset: 3px;
+      border-radius: 4px;
+      background: #7c2d12;
+      border: 1px solid #ffffff;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .card-back-view.blue-back {
+      background: #1e3a8a;
+    }
+
+    .card-back-rosette {
+      width: 52px;
+      height: 52px;
+      filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+    }
+
+    /* Settings & Rules Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 14, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .modal-card {
+      background: #0f172a;
+      border: 1.5px solid var(--gold-bright);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 620px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      0% { opacity: 0; transform: scale(0.92); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 1rem 1.5rem;
+      background: rgba(245, 158, 11, 0.08);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--gold-bright);
+    }
+
+    .btn-close-modal {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .btn-close-modal:hover {
+      color: #fff;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      max-height: 70vh;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .rule-toggle {
+      margin-top: 3px;
+      accent-color: var(--gold-primary);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .rule-text b {
+      color: var(--gold-glow);
+    }
+
+    .rule-text p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    /* Telemetry Side Log Drawer */
+    #logDrawer {
+      position: fixed;
+      right: 0;
+      top: 52px;
+      bottom: 0;
+      width: 280px;
+      background: rgba(7, 13, 20, 0.95);
+      border-left: 1.5px solid rgba(245, 158, 11, 0.3);
+      backdrop-filter: blur(12px);
+      box-shadow: -8px 0 25px rgba(0, 0, 0, 0.5);
+      z-index: 40;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #logDrawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      color: var(--gold-bright);
+    }
+
+    .drawer-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-entry {
+      padding: 6px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 2px solid var(--gold-primary);
+      line-height: 1.3;
+    }
+
+    .log-entry.slap-success {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .log-entry.slap-burn {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .log-entry.challenge {
+      border-left-color: #f59e0b;
+    }
+
+    /* Screen Shake Animation */
+    .screen-shake {
+      animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Navigation Header -->
+  <header class="ers-header">
+    <div class="brand-group">
+      <svg class="brand-icon" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="30" fill="#1e3a8a" stroke="#f59e0b" stroke-width="2"/>
+        <path d="M32 14 C28 14 26 17 26 21 C26 25 30 28 30 28 L23 28 L23 32 L30 32 L30 46 L34 46 L34 32 L41 32 L41 28 L34 28 C34 28 38 25 38 21 C38 17 36 14 32 14 Z M32 18 C33 18 34 19 34 21 C34 23 32 25 32 25 C32 25 30 23 30 21 C30 19 31 18 32 18 Z" fill="#fbbf24"/>
+      </svg>
+      <span class="brand-title">EGYPTIAN RAT SCREW</span>
+      <span class="brand-badge">ROYALE</span>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-control" id="btnNewGame" onclick="startNewMatch()">
+        <span>🔄</span> New Game
+      </button>
+      <button class="btn-control" id="btnToggleDrawer" onclick="toggleDrawer()">
+        <span>📜</span> Telemetry Log
+      </button>
+      <button class="btn-control" id="btnRules" onclick="openModal('rulesModal')">
+        <span>📖</span> Slap Rules
+      </button>
+      <button class="btn-control" id="btnSound" onclick="AudioEngine.toggleSound()">
+        <span id="soundIcon">🔊</span> Sound
+      </button>
+      <button class="btn-control" id="btnHub" style="display:none;">
+        <span>✕</span> Exit
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Playing Table Felt Arena -->
+  <main class="table-arena" id="tableArena">
+    <div class="table-wood-rim"></div>
+
+    <!-- Opponents Section (AI Players) -->
+    <div class="opponents-row" id="opponentsRow">
+      <!-- Generated dynamically (Cleopatra, Anubis, Horus) -->
+    </div>
+
+    <!-- Central Pot & Reflex Slap Zone -->
+    <div class="center-stage">
+      <!-- Active Challenge / Game Status Banner -->
+      <div class="challenge-banner" id="challengeBanner">
+        <span id="challengeIcon">⚔️</span>
+        <span id="challengeText">Dealing standard 52-card Bicycle deck...</span>
+      </div>
+
+      <!-- Center Discard Stack Surface -->
+      <div class="pot-stack-surface" id="potStackSurface" onclick="handleSlapAttempt(0)" title="Click to Slap the Pot!">
+        <div class="pot-card-anchor" id="potCardAnchor">
+          <!-- Live cards stacked here with realistic offset rotations -->
+        </div>
+        <div class="pot-counter-pill" id="potCounterPill">POT: 0</div>
+      </div>
+
+      <!-- Slap Master Action Button -->
+      <div class="slap-pad-wrapper">
+        <button class="btn-slap-master" id="btnMasterSlap" onclick="handleSlapAttempt(0)">
+          <span class="ankh-icon">☥</span> SLAP!
+        </button>
+        <span class="slap-key-hint">Press <b>SPACE</b> or <b>S</b> to Slap</span>
+      </div>
+    </div>
+
+    <!-- Slap Feedback Explosion Banner -->
+    <div class="slap-feedback-banner" id="slapBanner">
+      <div class="slap-title" id="slapBannerTitle">SLAP!</div>
+      <div class="slap-subtitle" id="slapBannerSub">DOUBLE (+12 CARDS)</div>
+    </div>
+
+    <!-- Bottom Dock: Player 1 (User) -->
+    <div class="player-dock">
+      <div class="user-profile-card" id="userProfileCard">
+        <div class="user-avatar-badge">👑</div>
+        <div class="user-details">
+          <h3 id="userName">You (Pharaoh)</h3>
+          <div class="card-count-label">DECK HOLDINGS</div>
+        </div>
+        <div class="user-card-metric" id="userCardCount">0</div>
+      </div>
+
+      <div class="user-actions-group">
+        <button class="btn-play-card" id="btnPlayCard" onclick="handleUserPlayCard()">
+          <span>FLIP CARD</span>
+          <span class="sub-key">[ENTER or CLICK]</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Side Telemetry Event Log Drawer -->
+  <aside id="logDrawer">
+    <div class="drawer-header">
+      <span>MATCH TELEMETRY</span>
+      <button class="btn-close-modal" onclick="toggleDrawer()">✕</button>
+    </div>
+    <div class="drawer-content" id="drawerContent">
+      <div class="log-entry">Game initialized. Standard 52-card French suite ready.</div>
+    </div>
+  </aside>
+
+  <!-- Slap Rules & House Toggles Modal -->
+  <div class="modal-overlay" id="rulesModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">☥ EGYPTIAN RAT SCREW SLAP RULES</span>
+        <button class="btn-close-modal" onclick="closeModal('rulesModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:1rem; color:#f1f5f9;">
+          Toggle active slap rules for this match. When any active combination hits the center pot, the first player to slap claims all cards! Slapping on an invalid pile burns 1 card to the pot.
+        </p>
+
+        <div class="rule-item">
+          <input type="checkbox" class="rule-toggle" id="ruleDoubles" checked onchange="saveRuleConfig()">
+          <div class="rule-text">
+            <b>Doubles (Standard)</b>
+            <p>Two cards of the exact same rank played consecutively (e.g. 7 on 7, K on K).</p>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <input type="checkbox" class="rule-toggle" id="ruleSandwich" checked onchange="saveRuleConfig()">
+          <div class="rule-text">
+            <b>Sandwich (Standard)</b>
+            <p>Two cards of the same rank separated by exactly one card (e.g. 9, 3, 9 or Q, 5, Q).</p>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <input type="checkbox" class="rule-toggle" id="ruleTens" checked onchange="saveRuleConfig()">
+          <div class="rule-text">
+            <b>Tens (Sum to 10)</b>
+            <p>Two consecutive cards whose numeric ranks sum to 10 (e.g. 4 and 6, Ace (1) and 9).</p>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <input type="checkbox" class="rule-toggle" id="ruleMarriage" checked onchange="saveRuleConfig()">
+          <div class="rule-text">
+            <b>Marriage (King & Queen)</b>
+            <p>A King and Queen played immediately adjacent to each other in any order.</p>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <input type="checkbox" class="rule-toggle" id="ruleTopBottom" checked onchange="saveRuleConfig()">
+          <div class="rule-text">
+            <b>Top-Bottom</b>
+            <p>The top card matches the rank of the very first card placed at the bottom of the current pot.</p>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <input type="checkbox" class="rule-toggle" id="ruleRuns" checked onchange="saveRuleConfig()">
+          <div class="rule-text">
+            <b>Four-in-a-Row (Sequence Run)</b>
+            <p>Four cards in continuous ascending or descending sequence (e.g. 5, 6, 7, 8 or K, Q, J, 10).</p>
+          </div>
+        </div>
+
+        <div style="margin-top:1.25rem; padding:12px; background:rgba(245, 158, 11, 0.08); border-radius:8px; border:1px solid rgba(245, 158, 11, 0.3);">
+          <b style="color:var(--gold-bright);">Face Card Challenge Chances:</b>
+          <ul style="margin-left:1.5rem; margin-top:0.4rem; font-size:0.85rem; line-height:1.4;">
+            <li><b>Ace:</b> 4 chances to play a face card / Ace</li>
+            <li><b>King:</b> 3 chances</li>
+            <li><b>Queen:</b> 2 chances</li>
+            <li><b>Jack:</b> 1 chance</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sound, Audio & Synth Engine -->
+  <script>
+    const AudioEngine = {
+      ctx: null,
+      enabled: true,
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      },
+
+      toggleSound() {
+        this.enabled = !this.enabled;
+        const icon = document.getElementById("soundIcon");
+        if (icon) icon.textContent = this.enabled ? "🔊" : "🔇";
+      },
+
+      playCardSnap() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.06);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      },
+
+      playSlapImpact() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Sub bass thump
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.18);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+
+        // High shimmer chime
+        const chime = this.ctx.createOscillator();
+        const chimeGain = this.ctx.createGain();
+        chime.type = "sine";
+        chime.frequency.setValueAtTime(880, now);
+        chime.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
+        chimeGain.gain.setValueAtTime(0.25, now);
+        chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        chime.connect(chimeGain);
+        chimeGain.connect(this.ctx.destination);
+        chime.start(now);
+        chime.stop(now + 0.25);
+      },
+
+      playBurnError() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(110, now);
+        osc.frequency.setValueAtTime(85, now + 0.12);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.28);
+      },
+
+      playChallengeFanfare() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [392, 523.25, 659.25].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          gain.gain.setValueAtTime(0.2, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.15);
+        });
+      },
+
+      playWinChime() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + i * 0.1);
+          gain.gain.setValueAtTime(0.3, now + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.1);
+          osc.stop(now + i * 0.1 + 0.35);
+        });
+      }
+    };
+  </script>
+
+  <!-- Complete Vector Card Suite & Game State Logic -->
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. Vector Card Artwork Generation (Authentic 12 Courts + Aces + Pips)
+    // -------------------------------------------------------------------------
+    const SUITS = [
+      { id: "spades", name: "Spades", color: "black", symbol: "♠" },
+      { id: "hearts", name: "Hearts", color: "red", symbol: "♥" },
+      { id: "clubs", name: "Clubs", color: "black", symbol: "♣" },
+      { id: "diamonds", name: "Diamonds", color: "red", symbol: "♦" }
+    ];
+
+    const RANKS = [
+      { id: "2", label: "2", numVal: 2, order: 2 },
+      { id: "3", label: "3", numVal: 3, order: 3 },
+      { id: "4", label: "4", numVal: 4, order: 4 },
+      { id: "5", label: "5", numVal: 5, order: 5 },
+      { id: "6", label: "6", numVal: 6, order: 6 },
+      { id: "7", label: "7", numVal: 7, order: 7 },
+      { id: "8", label: "8", numVal: 8, order: 8 },
+      { id: "9", label: "9", numVal: 9, order: 9 },
+      { id: "10", label: "10", numVal: 10, order: 10 },
+      { id: "J", label: "J", numVal: 10, order: 11, isFace: true, chances: 1 },
+      { id: "Q", label: "Q", numVal: 10, order: 12, isFace: true, chances: 2 },
+      { id: "K", label: "K", numVal: 10, order: 13, isFace: true, chances: 3 },
+      { id: "A", label: "A", numVal: 1, order: 14, isFace: true, chances: 4 }
+    ];
+
+    function getSuitSvg(suitId, className = "suit-svg") {
+      if (suitId === "spades") {
+        return `<svg viewBox="0 0 100 100" class="${className}">
+          <path d="M50 8 C40 28 14 46 14 66 C14 80 26 88 38 88 C45 88 48 83 50 78 C52 83 55 88 62 88 C74 88 86 80 86 66 C86 46 60 28 50 8 Z" fill="currentColor"/>
+          <path d="M46 76 L40 94 L60 94 L54 76 Z" fill="currentColor"/>
+        </svg>`;
+      }
+      if (suitId === "hearts") {
+        return `<svg viewBox="0 0 100 100" class="${className}">
+          <path d="M50 90 C46 86 10 58 10 34 C10 18 22 8 36 8 C43 8 47 12 50 16 C53 12 57 8 64 8 C78 8 90 18 90 34 C90 58 54 86 50 90 Z" fill="currentColor"/>
+        </svg>`;
+      }
+      if (suitId === "clubs") {
+        return `<svg viewBox="0 0 100 100" class="${className}">
+          <circle cx="50" cy="30" r="22" fill="currentColor"/>
+          <circle cx="30" cy="58" r="22" fill="currentColor"/>
+          <circle cx="70" cy="58" r="22" fill="currentColor"/>
+          <path d="M46 54 L38 94 L62 94 L54 54 Z" fill="currentColor"/>
+        </svg>`;
+      }
+      return `<svg viewBox="0 0 100 100" class="${className}">
+        <path d="M50 4 L88 50 L50 96 L12 50 Z" fill="currentColor"/>
+      </svg>`;
+    }
+
+    const PIP_MATRICES = {
+      "2": [[50, 22], [50, 78, true]],
+      "3": [[50, 20], [50, 50], [50, 80, true]],
+      "4": [[30, 22], [70, 22], [30, 78, true], [70, 78, true]],
+      "5": [[30, 22], [70, 22], [50, 50], [30, 78, true], [70, 78, true]],
+      "6": [[30, 22], [70, 22], [30, 50], [70, 50], [30, 78, true], [70, 78, true]],
+      "7": [[30, 22], [70, 22], [50, 36], [30, 50], [70, 50], [30, 78, true], [70, 78, true]],
+      "8": [[30, 20], [70, 20], [50, 34], [30, 50], [70, 50], [50, 66, true], [30, 80, true], [70, 80, true]],
+      "9": [[30, 20], [70, 20], [30, 40], [70, 40], [50, 50], [30, 60, true], [70, 60, true], [30, 80, true], [70, 80, true]],
+      "10": [[30, 18], [70, 18], [50, 30], [30, 40], [70, 40], [30, 60, true], [70, 60, true], [50, 70, true], [30, 82, true], [70, 82, true]]
+    };
+
+    function getPipCardHtml(card) {
+      const pips = PIP_MATRICES[card.rank.id] || [];
+      const pipsHtml = pips.map(([x, y, flipped]) => `
+        <div class="card-pip ${flipped ? 'flipped' : ''}" style="left:${x}%; top:${y}%;">
+          ${getSuitSvg(card.suit, "pip-icon-svg")}
+        </div>
+      `).join("");
+      return `<div class="card-pips-container">${pipsHtml}</div>`;
+    }
+
+    function getAceCardHtml(card) {
+      if (card.suit === "spades") {
+        return `
+          <div class="ace-ornate-container">
+            <svg viewBox="0 0 100 120" class="ace-master-spade">
+              <path d="M50 14 C40 34 16 52 16 72 C16 86 28 94 40 94 C46 94 49 89 50 84 C51 89 54 94 60 94 C72 94 84 86 84 72 C84 52 60 34 50 14 Z" fill="#111827"/>
+              <path d="M46 82 L40 102 L60 102 L54 82 Z" fill="#111827"/>
+              <circle cx="50" cy="62" r="14" fill="none" stroke="#f59e0b" stroke-width="1.8"/>
+              <circle cx="50" cy="62" r="9" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2 1"/>
+            </svg>
+            <span class="ace-label">ROYALE</span>
+          </div>
+        `;
+      }
+      return `
+        <div class="ace-classic-container">
+          <svg viewBox="0 0 80 16" class="ace-flourish">
+            <path d="M10 8 Q40 0 70 8 M20 8 Q40 16 60 8" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.65"/>
+          </svg>
+          <div class="ace-center-suit">${getSuitSvg(card.suit, "ace-suit-svg")}</div>
+          <svg viewBox="0 0 80 16" class="ace-flourish" style="transform:rotate(180deg);">
+            <path d="M10 8 Q40 0 70 8 M20 8 Q40 16 60 8" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.65"/>
+          </svg>
+        </div>
+      `;
+    }
+
+    function getCourtCardHtml(card) {
+      const halfSvg = getCourtHalfSvg(card.rank.id, card.suit);
+      return `
+        <div class="court-portrait-box">
+          <div class="court-half top">${halfSvg}</div>
+          <div class="court-half bottom">${halfSvg}</div>
+        </div>
+      `;
+    }
+
+    function getCourtHalfSvg(rankId, suit) {
+      const isRed = suit === "hearts" || suit === "diamonds";
+      const mantleColor = isRed ? "#991b1b" : "#1e3a8a";
+      const mantleHighlight = isRed ? "#ef4444" : "#3b82f6";
+      const goldAccent = "#f59e0b";
+
+      if (rankId === "K") {
+        const isSuicideKing = suit === "hearts";
+        const isProfileCaesar = suit === "diamonds";
+
+        return `
+          <svg viewBox="0 0 66 55" class="court-svg">
+            <rect width="66" height="55" fill="#fdfbf7"/>
+            <path d="M4 22 L20 18 L24 55 L4 55 Z" fill="${mantleColor}" stroke="#111827" stroke-width="0.8"/>
+            <path d="M62 22 L46 18 L42 55 L62 55 Z" fill="${mantleColor}" stroke="#111827" stroke-width="0.8"/>
+            <path d="M22 24 L44 24 L42 55 L24 55 Z" fill="#ffffff" stroke="#111827" stroke-width="0.8"/>
+            <circle cx="28" cy="32" r="1" fill="#111827"/>
+            <circle cx="38" cy="32" r="1" fill="#111827"/>
+            <circle cx="33" cy="42" r="1" fill="#111827"/>
+            <circle cx="33" cy="18" r="9" fill="#fde047" stroke="#111827" stroke-width="0.8"/>
+            ${isProfileCaesar ? `
+              <circle cx="36" cy="17" r="1.5" fill="#111827"/>
+              <path d="M42 18 L38 20" stroke="#111827" stroke-width="0.8"/>
+              <path d="M48 10 L56 16 L48 24" fill="${goldAccent}" stroke="#111827" stroke-width="0.8"/>
+            ` : `
+              <circle cx="30" cy="17" r="1.2" fill="#111827"/>
+              <circle cx="36" cy="17" r="1.2" fill="#111827"/>
+              ${isSuicideKing ? `
+                <path d="M12 8 L54 8 L54 11 L12 11 Z" fill="#94a3b8" stroke="#111827" stroke-width="0.8"/>
+                <rect x="52" y="6" width="4" height="7" fill="${goldAccent}" stroke="#111827" stroke-width="0.8"/>
+              ` : `
+                <path d="M28 20 Q33 22 38 20" stroke="#111827" stroke-width="1.2" fill="none"/>
+                <path d="M14 10 L14 45" stroke="#94a3b8" stroke-width="2.5"/>
+                <path d="M8 30 L20 30" stroke="${goldAccent}" stroke-width="2"/>
+              `}
+            `}
+            <path d="M24 11 L24 5 L28 8 L33 3 L38 8 L42 5 L42 11 Z" fill="${goldAccent}" stroke="#78350f" stroke-width="0.8"/>
+          </svg>
+        `;
+      }
+
+      if (rankId === "Q") {
+        const isQueenOfHearts = suit === "hearts";
+        return `
+          <svg viewBox="0 0 66 55" class="court-svg">
+            <rect width="66" height="55" fill="#fdfbf7"/>
+            <path d="M6 24 L22 20 L26 55 L6 55 Z" fill="${mantleColor}" stroke="#111827" stroke-width="0.8"/>
+            <path d="M60 24 L44 20 L40 55 L60 55 Z" fill="${mantleColor}" stroke="#111827" stroke-width="0.8"/>
+            <path d="M22 26 L44 26 L40 55 L26 55 Z" fill="#ffffff" stroke="#111827" stroke-width="0.8"/>
+            <circle cx="33" cy="20" r="8" fill="#fde047" stroke="#111827" stroke-width="0.8"/>
+            <circle cx="30" cy="19" r="1.2" fill="#111827"/>
+            <circle cx="36" cy="19" r="1.2" fill="#111827"/>
+            <path d="M31 24 Q33 25.5 35 24" stroke="#dc2626" stroke-width="1" fill="none"/>
+            <path d="M23 13 L23 7 L28 10 L33 6 L38 10 L43 7 L43 13 Z" fill="${goldAccent}" stroke="#78350f" stroke-width="0.8"/>
+            ${isQueenOfHearts ? `
+              <circle cx="16" cy="36" r="5" fill="#ef4444" stroke="#991b1b" stroke-width="0.8"/>
+              <circle cx="16" cy="36" r="2" fill="#fef08a"/>
+              <path d="M16 41 L16 50" stroke="#15803d" stroke-width="1.8"/>
+            ` : `
+              <path d="M16 20 L16 48" stroke="${goldAccent}" stroke-width="2"/>
+              <circle cx="16" cy="18" r="3" fill="${mantleHighlight}" stroke="#111827" stroke-width="0.8"/>
+            `}
+          </svg>
+        `;
+      }
+
+      // Jack (Ogier / La Hire)
+      const isOneEyed = suit === "spades" || suit === "hearts";
+      return `
+        <svg viewBox="0 0 66 55" class="court-svg">
+          <rect width="66" height="55" fill="#fdfbf7"/>
+          <path d="M8 22 L22 18 L26 55 L8 55 Z" fill="${mantleColor}" stroke="#111827" stroke-width="0.8"/>
+          <path d="M58 22 L44 18 L40 55 L58 55 Z" fill="${mantleColor}" stroke="#111827" stroke-width="0.8"/>
+          <path d="M22 24 L44 24 L40 55 L26 55 Z" fill="#ffffff" stroke="#111827" stroke-width="0.8"/>
+          <circle cx="33" cy="18" r="8" fill="#fde047" stroke="#111827" stroke-width="0.8"/>
+          ${isOneEyed ? `
+            <circle cx="36" cy="17" r="1.4" fill="#111827"/>
+            <path d="M41 18 L37 20" stroke="#111827" stroke-width="0.8"/>
+          ` : `
+            <circle cx="30" cy="17" r="1.2" fill="#111827"/>
+            <circle cx="36" cy="17" r="1.2" fill="#111827"/>
+          `}
+          <path d="M24 12 C24 7 42 7 42 12 Z" fill="${mantleHighlight}" stroke="#111827" stroke-width="0.8"/>
+          <path d="M38 7 C44 3 50 5 54 8" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <path d="M12 12 L12 50" stroke="#94a3b8" stroke-width="2"/>
+          <polygon points="12,6 8,15 16,15" fill="${goldAccent}" stroke="#111827" stroke-width="0.8"/>
+        </svg>
+      `;
+    }
+
+    function createCardElement(card) {
+      const el = document.createElement("div");
+      el.className = `poker-card ${card.suitColor}`;
+
+      let centerContent = "";
+      if (card.rank.id === "A") {
+        centerContent = getAceCardHtml(card);
+      } else if (card.rank.isFace) {
+        centerContent = getCourtCardHtml(card);
+      } else {
+        centerContent = getPipCardHtml(card);
+      }
+
+      el.innerHTML = `
+        <div class="card-face">
+          <div class="card-inner-frame"></div>
+          <div class="card-corner top-left">
+            <span class="card-rank">${card.rank.label}</span>
+            <div class="card-corner-suit">${getSuitSvg(card.suit)}</div>
+          </div>
+          <div class="card-center-area">
+            ${centerContent}
+          </div>
+          <div class="card-corner bottom-right">
+            <span class="card-rank">${card.rank.label}</span>
+            <div class="card-corner-suit">${getSuitSvg(card.suit)}</div>
+          </div>
+        </div>
+      `;
+      return el;
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. Egyptian Rat Screw Royale Core Engine
+    // -------------------------------------------------------------------------
+    const PLAYERS = [
+      { id: 0, name: "You (Pharaoh)", avatar: "👑", isHuman: true },
+      { id: 1, name: "Cleopatra", avatar: "👸", isHuman: false, reflexMs: 440, blunderRate: 0.04 },
+      { id: 2, name: "Anubis", avatar: "🐺", isHuman: false, reflexMs: 380, blunderRate: 0.03 },
+      { id: 3, name: "Horus", avatar: "🦅", isHuman: false, reflexMs: 320, blunderRate: 0.02 }
+    ];
+
+    let playerHands = [[], [], [], []];
+    let potCards = [];
+    let activePlayerIdx = 0;
+    let challengeState = null; // { challengerIdx, chancesTotal, chancesLeft, faceCard }
+    let gameActive = false;
+    let cpuTimeout = null;
+    let slapLock = false;
+    let lastCardTimestamp = 0;
+
+    // Configurable Slap Rules
+    let rulesConfig = {
+      doubles: true,
+      sandwich: true,
+      tens: true,
+      marriage: true,
+      topBottom: true,
+      runs: true
+    };
+
+    function buildStandard52Deck() {
+      const deck = [];
+      SUITS.forEach(s => {
+        RANKS.forEach(r => {
+          deck.push({
+            suit: s.id,
+            suitColor: s.color,
+            rank: r,
+            id: `${r.id}_${s.id}`
+          });
+        });
+      });
+      // Fisher-Yates Shuffle
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function startNewMatch() {
+      if (cpuTimeout) clearTimeout(cpuTimeout);
+      AudioEngine.playChallengeFanfare();
+
+      const deck = buildStandard52Deck();
+      playerHands = [[], [], [], []];
+      potCards = [];
+      challengeState = null;
+      activePlayerIdx = 0;
+      gameActive = true;
+      slapLock = false;
+
+      // Deal 52 cards evenly among 4 players (13 cards each)
+      let p = 0;
+      while (deck.length > 0) {
+        playerHands[p].push(deck.pop());
+        p = (p + 1) % 4;
+      }
+
+      logEvent("New Egyptian Rat Screw match started! 52 cards dealt to 4 players.");
+      renderArena();
+      updateChallengeBanner("Match underway! Your turn to flip a card.");
+
+      checkNextTurn();
+    }
+
+    function checkNextTurn() {
+      if (!gameActive) return;
+
+      // Check if only 1 player has cards
+      const activeCount = playerHands.filter(h => h.length > 0).length;
+      if (activeCount <= 1 && potCards.length === 0) {
+        const winner = PLAYERS.find((_, i) => playerHands[i].length > 0);
+        handleMatchVictory(winner || PLAYERS[0]);
+        return;
+      }
+
+      // If active player has no cards, advance to next player
+      if (playerHands[activePlayerIdx].length === 0) {
+        advanceToNextPlayer();
+        return;
+      }
+
+      renderArena();
+
+      // If AI's turn, schedule card play
+      const curr = PLAYERS[activePlayerIdx];
+      if (!curr.isHuman && gameActive) {
+        document.getElementById("btnPlayCard").disabled = true;
+        const delay = Math.floor(Math.random() * 250) + 400;
+        cpuTimeout = setTimeout(() => {
+          if (gameActive) playCardFromCurrentPlayer();
+        }, delay);
+      } else {
+        document.getElementById("btnPlayCard").disabled = false;
+      }
+    }
+
+    function advanceToNextPlayer() {
+      let attempts = 0;
+      do {
+        activePlayerIdx = (activePlayerIdx + 1) % 4;
+        attempts++;
+      } while (playerHands[activePlayerIdx].length === 0 && attempts < 5);
+
+      if (attempts >= 5) {
+        // Only one player left
+        return;
+      }
+    }
+
+    function handleUserPlayCard() {
+      if (!gameActive || activePlayerIdx !== 0) return;
+      if (playerHands[0].length === 0) return;
+      playCardFromCurrentPlayer();
+    }
+
+    function playCardFromCurrentPlayer() {
+      if (!gameActive) return;
+      const hand = playerHands[activePlayerIdx];
+      if (hand.length === 0) {
+        advanceToNextPlayer();
+        checkNextTurn();
+        return;
+      }
+
+      const card = hand.shift(); // Flip top card
+      potCards.push(card);
+      lastCardTimestamp = Date.now();
+      AudioEngine.playCardSnap();
+
+      logEvent(`${PLAYERS[activePlayerIdx].name} played ${card.rank.label}${SUITS.find(s=>s.id===card.suit).symbol}`);
+
+      // Evaluate Face Card Challenges
+      if (card.rank.isFace) {
+        // Trigger / escalate challenge!
+        const prevChallenger = PLAYERS[activePlayerIdx].name;
+        advanceToNextPlayer();
+        const nextPlayer = PLAYERS[activePlayerIdx];
+
+        challengeState = {
+          challengerIdx: (activePlayerIdx + 3) % 4, // person who just played the face card
+          chancesTotal: card.rank.chances,
+          chancesLeft: card.rank.chances,
+          faceCard: card
+        };
+
+        AudioEngine.playChallengeFanfare();
+        updateChallengeBanner(`⚠️ ${card.rank.label} played by ${prevChallenger}! ${nextPlayer.name} has ${challengeState.chancesLeft} chance(s)!`, true);
+        logEvent(`⚔️ Face Card! ${nextPlayer.name} must produce a Face Card in ${challengeState.chancesLeft} tries!`);
+      } else if (challengeState) {
+        // In the middle of an active challenge and played a number card
+        challengeState.chancesLeft--;
+
+        if (challengeState.chancesLeft > 0) {
+          updateChallengeBanner(`${PLAYERS[activePlayerIdx].name} failed! ${challengeState.chancesLeft} chance(s) remaining...`, true);
+        } else {
+          // Challenger wins the pot!
+          const winnerIdx = challengeState.challengerIdx;
+          const winner = PLAYERS[winnerIdx];
+          logEvent(`🏆 ${winner.name} won the pot of ${potCards.length} cards! (Challenge was unmet).`);
+          updateChallengeBanner(`🎉 ${winner.name} won ${potCards.length} cards from the challenge!`);
+          awardPotToPlayer(winnerIdx, "CHALLENGE WON");
+          challengeState = null;
+          activePlayerIdx = winnerIdx;
+        }
+      } else {
+        // Standard number card play with no active challenge
+        advanceToNextPlayer();
+        updateChallengeBanner(`${PLAYERS[activePlayerIdx].name}'s turn to play.`);
+      }
+
+      renderArena();
+
+      // Trigger AI Slap Reflex Check after every played card
+      evaluateAiSlapReflexes();
+
+      if (gameActive) {
+        checkNextTurn();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. Slap Evaluation System
+    // -------------------------------------------------------------------------
+    function evaluateCurrentPotSlap() {
+      const len = potCards.length;
+      if (len < 2) return null;
+
+      const top = potCards[len - 1];
+      const prev1 = potCards[len - 2];
+      const prev2 = len >= 3 ? potCards[len - 3] : null;
+      const prev3 = len >= 4 ? potCards[len - 4] : null;
+
+      // 1. Doubles (top 2 cards match rank)
+      if (rulesConfig.doubles && top.rank.id === prev1.rank.id) {
+        return { type: "DOUBLE", desc: `Pair of ${top.rank.label}s!` };
+      }
+
+      // 2. Sandwich (top card matches 2 cards down)
+      if (rulesConfig.sandwich && prev2 && top.rank.id === prev2.rank.id) {
+        return { type: "SANDWICH", desc: `Sandwich of ${top.rank.label}s over ${prev1.rank.label}!` };
+      }
+
+      // 3. Tens (adjacent cards sum to 10)
+      if (rulesConfig.tens) {
+        if (top.rank.numVal + prev1.rank.numVal === 10) {
+          return { type: "TENS", desc: `${top.rank.label} + ${prev1.rank.label} = 10!` };
+        }
+        if (prev2 && top.rank.numVal + prev2.rank.numVal === 10) {
+          return { type: "TENS", desc: `Sandwich 10: ${top.rank.label} + ${prev2.rank.label} = 10!` };
+        }
+      }
+
+      // 4. Marriage (King and Queen adjacent)
+      if (rulesConfig.marriage) {
+        if ((top.rank.id === "K" && prev1.rank.id === "Q") || (top.rank.id === "Q" && prev1.rank.id === "K")) {
+          return { type: "MARRIAGE", desc: "Royal Marriage: King & Queen!" };
+        }
+      }
+
+      // 5. Top-Bottom (top card matches the very first card of the pot)
+      if (rulesConfig.topBottom && len >= 3) {
+        const bottomCard = potCards[0];
+        if (bottomCard && top.rank.id === bottomCard.rank.id) {
+          return { type: "TOP-BOTTOM", desc: `Top-Bottom match on ${top.rank.label}!` };
+        }
+      }
+
+      // 6. Four-in-a-Row (Sequence of 4)
+      if (rulesConfig.runs && len >= 4 && prev1 && prev2 && prev3) {
+        const o1 = prev3.rank.order;
+        const o2 = prev2.rank.order;
+        const o3 = prev1.rank.order;
+        const o4 = top.rank.order;
+        if (o2 === o1 + 1 && o3 === o2 + 1 && o4 === o3 + 1) {
+          return { type: "RUN", desc: `Ascending Run: ${prev3.rank.label}-${top.rank.label}!` };
+        }
+        if (o2 === o1 - 1 && o3 === o2 - 1 && o4 === o3 - 1) {
+          return { type: "RUN", desc: `Descending Run: ${prev3.rank.label}-${top.rank.label}!` };
+        }
+      }
+
+      return null;
+    }
+
+    function handleSlapAttempt(playerIdx) {
+      if (!gameActive || slapLock) return;
+      if (potCards.length === 0) return;
+
+      slapLock = true;
+      const slapRule = evaluateCurrentPotSlap();
+      const player = PLAYERS[playerIdx];
+      const elapsed = Date.now() - lastCardTimestamp;
+
+      if (slapRule) {
+        // VALID SLAP!
+        AudioEngine.playSlapImpact();
+        triggerScreenShake();
+        showSlapBanner(slapRule.type, `${player.name} (${elapsed}ms) +${potCards.length} Cards!`, false);
+        logEvent(`⚡ SLAP! ${player.name} triggered ${slapRule.type} (${slapRule.desc}) in ${elapsed}ms! Won ${potCards.length} cards.`, "slap-success");
+
+        awardPotToPlayer(playerIdx, slapRule.type);
+        challengeState = null;
+        activePlayerIdx = playerIdx;
+
+        setTimeout(() => {
+          slapLock = false;
+          checkNextTurn();
+        }, 800);
+      } else {
+        // INVALID SLAP / BURN PENALTY!
+        AudioEngine.playBurnError();
+        triggerScreenShake();
+        showSlapBanner("BURN PENALTY!", `${player.name} slapped with no match! (-1 Card)`, true);
+
+        if (playerHands[playerIdx].length > 0) {
+          const burned = playerHands[playerIdx].shift();
+          potCards.unshift(burned); // Place burned card under the pot
+          logEvent(`❌ BURN! ${player.name} mis-slapped. 1 card burned under pot.`, "slap-burn");
+        } else {
+          logEvent(`❌ BURN! ${player.name} mis-slapped with 0 cards.`, "slap-burn");
+        }
+
+        renderArena();
+        setTimeout(() => {
+          slapLock = false;
+        }, 500);
+      }
+    }
+
+    function awardPotToPlayer(playerIdx, reason) {
+      const count = potCards.length;
+      playerHands[playerIdx].push(...potCards);
+      potCards = [];
+      AudioEngine.playWinChime();
+      renderArena();
+    }
+
+    // AI Slap Reflex Decision Simulation
+    function evaluateAiSlapReflexes() {
+      const validSlap = evaluateCurrentPotSlap();
+
+      PLAYERS.forEach((ai, idx) => {
+        if (ai.isHuman) return;
+
+        // If a valid slap is active, check AI reaction speed
+        if (validSlap) {
+          const blunder = Math.random() < ai.blunderRate;
+          if (!blunder) {
+            const reactionTime = ai.reflexMs + Math.floor(Math.random() * 120);
+            setTimeout(() => {
+              if (gameActive && !slapLock && evaluateCurrentPotSlap()) {
+                handleSlapAttempt(idx);
+              }
+            }, reactionTime);
+          }
+        } else {
+          // Occasional false slap blunder
+          const falseBlunder = Math.random() < 0.008;
+          if (falseBlunder && potCards.length >= 2) {
+            setTimeout(() => {
+              if (gameActive && !slapLock && !evaluateCurrentPotSlap()) {
+                handleSlapAttempt(idx);
+              }
+            }, Math.floor(Math.random() * 600) + 300);
+          }
+        }
+      });
+    }
+
+    function handleMatchVictory(winner) {
+      gameActive = false;
+      AudioEngine.playWinChime();
+      updateChallengeBanner(`👑 GLORY TO THE PHARAOH! ${winner.name} CONQUERED ALL 52 CARDS! 👑`, true);
+      showSlapBanner("MATCH WON!", `${winner.name} holds all 52 cards!`, false);
+      logEvent(`🏆 MATCH OVER! ${winner.name} won Egyptian Rat Screw Royale!`, "slap-success");
+      document.getElementById("btnPlayCard").disabled = true;
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. UI Rendering & Animations
+    // -------------------------------------------------------------------------
+    function renderArena() {
+      // 1. Render Opponent Pods
+      const oppRow = document.getElementById("opponentsRow");
+      oppRow.innerHTML = "";
+
+      for (let i = 1; i <= 3; i++) {
+        const p = PLAYERS[i];
+        const count = playerHands[i].length;
+        const isTurn = activePlayerIdx === i;
+        const isChallenged = challengeState && challengeState.challengerIdx !== i && isTurn;
+
+        const pod = document.createElement("div");
+        pod.className = `player-pod ${isTurn ? 'active-turn' : ''} ${isChallenged ? 'challenged' : ''}`;
+        pod.innerHTML = `
+          <div class="pod-header">
+            <div class="pod-avatar">${p.avatar}</div>
+            <span class="pod-name">${p.name}</span>
+          </div>
+          <div class="pod-deck-info">
+            <div class="mini-deck-stack"></div>
+            <span class="pod-card-count">${count}</span>
+          </div>
+          <div class="pod-status-badge">
+            ${count === 0 ? 'ELIMINATED' : (isTurn ? (isChallenged ? `CHANCE ${challengeState.chancesLeft}` : 'THINKING...') : 'WAITING')}
+          </div>
+        `;
+        oppRow.appendChild(pod);
+      }
+
+      // 2. Render User Profile
+      const userCount = playerHands[0].length;
+      document.getElementById("userCardCount").textContent = userCount;
+      const userCardEl = document.getElementById("userProfileCard");
+      if (activePlayerIdx === 0) userCardEl.classList.add("active-turn");
+      else userCardEl.classList.remove("active-turn");
+
+      // 3. Render Center Pot Stack
+      const potAnchor = document.getElementById("potCardAnchor");
+      potAnchor.innerHTML = "";
+
+      // Show top 3 cards in pot with random subtle rotation
+      const showCount = Math.min(potCards.length, 3);
+      for (let i = potCards.length - showCount; i < potCards.length; i++) {
+        if (i < 0) continue;
+        const c = potCards[i];
+        const cardEl = createCardElement(c);
+        // Deterministic angle based on index
+        const angle = ((i * 37) % 24) - 12;
+        const offsetX = ((i * 17) % 10) - 5;
+        const offsetY = ((i * 23) % 10) - 5;
+        cardEl.style.transform = `translate(${offsetX}px, ${offsetY}px) rotate(${angle}deg)`;
+        cardEl.style.zIndex = i + 1;
+        potAnchor.appendChild(cardEl);
+      }
+
+      document.getElementById("potCounterPill").textContent = `POT: ${potCards.length}`;
+    }
+
+    function updateChallengeBanner(text, isDanger = false) {
+      const banner = document.getElementById("challengeBanner");
+      const label = document.getElementById("challengeText");
+      label.textContent = text;
+      if (isDanger) banner.classList.add("active");
+      else banner.classList.remove("active");
+    }
+
+    function showSlapBanner(title, subtitle, isBurn = false) {
+      const banner = document.getElementById("slapBanner");
+      const titleEl = document.getElementById("slapBannerTitle");
+      const subEl = document.getElementById("slapBannerSub");
+
+      titleEl.textContent = title;
+      subEl.textContent = subtitle;
+
+      if (isBurn) banner.classList.add("burn");
+      else banner.classList.remove("burn");
+
+      banner.classList.add("show");
+      setTimeout(() => {
+        banner.classList.remove("show");
+      }, 1200);
+    }
+
+    function triggerScreenShake() {
+      const table = document.getElementById("tableArena");
+      table.classList.add("screen-shake");
+      setTimeout(() => table.classList.remove("screen-shake"), 300);
+    }
+
+    function logEvent(msg, className = "") {
+      const drawer = document.getElementById("drawerContent");
+      const entry = document.createElement("div");
+      entry.className = `log-entry ${className}`;
+      const time = new Date().toLocaleTimeString().split(" ")[0];
+      entry.textContent = `[${time}] ${msg}`;
+      drawer.appendChild(entry);
+      drawer.scrollTop = drawer.scrollHeight;
+    }
+
+    function toggleDrawer() {
+      const drawer = document.getElementById("logDrawer");
+      drawer.classList.toggle("open");
+    }
+
+    function openModal(id) {
+      document.getElementById(id).style.display = "flex";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+
+    function saveRuleConfig() {
+      rulesConfig.doubles = document.getElementById("ruleDoubles").checked;
+      rulesConfig.sandwich = document.getElementById("ruleSandwich").checked;
+      rulesConfig.tens = document.getElementById("ruleTens").checked;
+      rulesConfig.marriage = document.getElementById("ruleMarriage").checked;
+      rulesConfig.topBottom = document.getElementById("ruleTopBottom").checked;
+      rulesConfig.runs = document.getElementById("ruleRuns").checked;
+      logEvent("Slap rule configuration updated.");
+    }
+
+    // Keyboard Shortcuts (Space/S to Slap, Enter to Flip Card)
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSlapAttempt(0);
+      } else if (e.code === "Enter" || e.code === "KeyF") {
+        e.preventDefault();
+        handleUserPlayCard();
+      }
+    });
+
+    // Boot match on load
+    window.addEventListener("DOMContentLoaded", () => {
+      startNewMatch();
+    });
+  </script>
+</body>
+</html>

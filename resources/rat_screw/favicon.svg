@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="70%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </radialGradient>
+    <linearGradient id="lapisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Disc -->
+  <circle cx="32" cy="32" r="30" fill="url(#lapisGrad)" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2 2"/>
+  
+  <!-- Slanted Playing Cards Behind -->
+  <rect x="14" y="14" width="22" height="32" rx="3" fill="#ffffff" stroke="#94a3b8" stroke-width="1" transform="rotate(-15 25 30)"/>
+  <rect x="28" y="14" width="22" height="32" rx="3" fill="#ffffff" stroke="#94a3b8" stroke-width="1" transform="rotate(15 39 30)"/>
+  
+  <!-- Golden Ankh / Hand of Power -->
+  <path d="M32 12 C28 12 25 15 25 19 C25 24 30 27 30 27 L22 27 L22 31 L30 31 L30 46 L34 46 L34 31 L42 31 L42 27 L34 27 C34 27 39 24 39 19 C39 15 36 12 32 12 Z M32 16 C33.5 16 35 17.5 35 19 C35 21.5 32 23.5 32 23.5 C32 23.5 29 21.5 29 19 C29 17.5 30.5 16 32 16 Z" fill="url(#goldGlow)" stroke="#78350f" stroke-width="0.8"/>
+  
+  <!-- Red Scarab Ruby -->
+  <circle cx="32" cy="19.5" r="2.2" fill="#ef4444" stroke="#7f1d1d" stroke-width="0.5"/>
+</svg>

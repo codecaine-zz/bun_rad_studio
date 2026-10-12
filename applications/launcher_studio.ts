@@ -246,6 +246,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🃏",
     description: "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
   },
+  rat_screw_studio: {
+    displayName: "Egyptian Rat Screw Royale",
+    category: "Games & Entertainment",
+    icon: "🎴",
+    description: "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",
