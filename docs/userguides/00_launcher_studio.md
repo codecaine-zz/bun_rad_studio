@@ -89,10 +89,11 @@ In complex workstation UIs, applying filters often leads to desynchronized selec
 
 ### 4. ⚡ 1-Click Quick Launch Toolbars
 Located right below telemetry cards, these high-density buttons trigger the most common engineering tools with optimal preset arguments:
-- **Popular Core Studios (Row 1)**: SQLite Studio, Redis Studio, System Studio, Fd Studio, Git Studio, API Studio, Task Manager, App Bundler.
-- **Featured Popular Studios (Row 2)**: IP Geolocation Studio (`ipinfo_studio`), Network Diagnostics Studio (`network_studio`), NovaCode Studio Pro (`code_studio`), Environment Variable Studio (`env_studio`), Interval Timer & Workout Suite (`interval_timer_studio`), Dr. Codecaine Arcade (`dr_codecaine_studio`), Adventures of Lolo Remaster (`lolo_studio`), Tetris Ultra Deluxe (`tetris_studio`).
-- **Popular CLI Utilities (Row 3)**: System CLI (`--telemetry`), Database CLI (`--help`), Fd CLI, Git CLI, Tokei CLI, Gdu CLI, Network CLI, Crypto CLI.
-- **Quick Favorites Strip (Row 4)**: `⭐ Filter to Favorites`, `🚀 Launch Top Favorite`, `⭐ Toggle Star for Selected`.
+- **Core Studios & Workstations (Row 1)**: SQLite Studio (`sqlite_studio`), Redis Studio (`redis_studio`), API Studio (`api_studio`), Task Manager (`task_manager`), App Bundler (`app_bundler_studio`), NovaCode (`code_studio`), Env Studio (`env_studio`), IP Geolocation (`ipinfo_studio`).
+- **Featured Utilities & Arcade (Row 2)**: Interval Timer (`interval_timer_studio`), Dr. Codecaine Arcade (`dr_codecaine_studio`), Lolo Arcade (`lolo_studio`), Tetris Ultra (`tetris_studio`), RAD Studio (`rad_studio`), Universal Calculator (`calculator_studio`), Markdown Live Editor (`markdown_studio`), Chroma Studio (`paint_studio`).
+- **GUI Studio Versions of CLI Tools (Row 3)**: System Information Studio (`system_studio`), Unified Database Studio (`database_studio`), Fd Studio (`fd_studio`), Git Studio (`git_studio`), Tokei Code Statistics Studio (`tokei_studio`), GDU Disk Usage Studio (`gdu_studio`), Network Diagnostics Studio (`network_studio`), Cryptography & Hashing Studio (`crypto_studio`).
+- **Terminal CLI Tools Companion (Row 4)**: System CLI (`--telemetry`), Database CLI (`--help`), Fd CLI, Git CLI, Tokei CLI, Gdu CLI, Network CLI, Crypto CLI (each opens in interactive terminal with 1-click).
+- **Quick Favorites Strip (Row 5)**: `⭐ Filter to Favorites`, `🚀 Launch Top Favorite`, `⭐ Toggle Star for Selected`.
 
 ### 5. 🖥️ Multi-Mode Process Dispatcher
 Every tool can be executed in the mode that best fits your workflow:

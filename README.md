@@ -40,7 +40,7 @@ bun run cli:launcher --search sqlite
 ![Launcher Studio Pro Desktop Screenshot](screenshots/apps/launcher_studio_desktop.png)
 
 > **✨ New in Launcher Studio Pro:**
-> - **⚡ 1-Click Quick Launch Toolbars**: Instant 1-click execution buttons for **16 Popular Studios** (SQLite Studio, Redis Studio, System Studio, Fd Studio, Git Studio, API Studio, Task Manager, App Bundler, IP Geolocation, Network Studio, NovaCode, Env Studio, Interval Timer, Dr. Codecaine, Lolo Arcade, Tetris Ultra) and **8 CLI Tools** (System, Database, Fd, Git, Tokei, Gdu, Network, Crypto).
+> - **⚡ 1-Click Quick Launch Toolbars**: Instant 1-click execution buttons for **Core & Featured Studios** (SQLite, Redis, API, Task Manager, App Bundler, NovaCode, Env Studio, IP Geolocation, Interval Timer, Dr. Codecaine, Lolo, Tetris), matching **GUI Studio Versions of CLI Tools** (System Studio, Database Studio, Fd Studio, Git Studio, Tokei Studio, Gdu Studio, Network Studio, Crypto Studio), and **Terminal CLI Companions** (System CLI, Database CLI, Fd CLI, Git CLI, Tokei CLI, Gdu CLI, Network CLI, Crypto CLI).
 > - **⌨️ Return / Enter Key Launch**: Pressing <kbd>Enter</kbd> or <kbd>Return</kbd> while navigating or selecting any tool in the interactive ListBox (`lst_apps`) instantly auto-launches the application.
 > - **📁 1-Click Category Filter Strip**: Filter tools with 1-click buttons: All Tools, Database, DevTools, System, Files, Network, Productivity, Games, Security, Design, Demos, CLI with live count badges.
 > - **⭐ Pinned Favorites & 1-Click Launch**: Star any tool with the `⭐ Favorite` (`btn_fav`) toggle button. Telemetry card tracks live `⭐ Favorites: N`. Launch your highest priority tool with a single click via `🚀 Launch Top Favorite` (`btn_quick_launch_fav1`).

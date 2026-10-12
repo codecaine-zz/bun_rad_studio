@@ -1792,25 +1792,38 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addButton("btn_quick_sqlite", "🗄️ SQLite Studio");
   win.addButton("btn_quick_redis", "⚡ Redis Studio");
-  win.addButton("btn_quick_system", "🖥️ System Studio");
-  win.addButton("btn_quick_fd", "🔍 Fd Studio");
-  win.addButton("btn_quick_git", "🌿 Git Studio");
   win.addButton("btn_quick_api", "📡 API Studio");
   win.addButton("btn_quick_task", "📊 Task Manager");
   win.addButton("btn_quick_bundler", "📦 App Bundler");
+  win.addButton("btn_quick_code", "💻 NovaCode");
+  win.addButton("btn_quick_env", "⚙️ Env Studio");
+  win.addButton("btn_quick_ipinfo", "🌍 IP Geolocation");
   win.endRow();
 
   win.beginRow();
-  win.addButton("btn_quick_ipinfo", "🌍 IP Geolocation");
-  win.addButton("btn_quick_network", "🌐 Network Studio");
-  win.addButton("btn_quick_code", "💻 NovaCode");
-  win.addButton("btn_quick_env", "⚙️ Env Studio");
   win.addButton("btn_quick_interval", "⏱️ Interval Timer");
   win.addButton("btn_quick_drcodecaine", "💊 Dr. Codecaine");
   win.addButton("btn_quick_lolo", "👾 Lolo Arcade");
   win.addButton("btn_quick_tetris", "🧱 Tetris Ultra");
+  win.addButton("btn_quick_rad", "⚡ RAD Studio");
+  win.addButton("btn_quick_calc", "🧮 Calculator");
+  win.addButton("btn_quick_markdown", "📝 Markdown");
+  win.addButton("btn_quick_paint", "🎨 Chroma Studio");
   win.endRow();
 
+  // GUI Studio Versions of CLI Tools
+  win.beginRow();
+  win.addButton("btn_quick_system", "🖥️ System Studio");
+  win.addButton("btn_quick_db", "🗄️ Database Studio");
+  win.addButton("btn_quick_fd", "🔍 Fd Studio");
+  win.addButton("btn_quick_git", "🌿 Git Studio");
+  win.addButton("btn_quick_tokei", "📊 Tokei Studio");
+  win.addButton("btn_quick_gdu", "💾 Gdu Studio");
+  win.addButton("btn_quick_network", "🌐 Network Studio");
+  win.addButton("btn_quick_crypto", "🔒 Crypto Studio");
+  win.endRow();
+
+  // Terminal CLI Tools Companion
   win.beginRow();
   win.addButton("btn_quick_sys_cli", "🖥️ System CLI");
   win.addButton("btn_quick_db_cli", "🗄️ Database CLI");
@@ -2851,22 +2864,34 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   bindQuick("btn_quick_sqlite", "sqlite_studio");
   bindQuick("btn_quick_redis", "redis_studio");
-  bindQuick("btn_quick_system", "system_studio");
-  bindQuick("btn_quick_fd", "fd_studio");
-  bindQuick("btn_quick_git", "git_studio");
   bindQuick("btn_quick_api", "api_studio");
   bindQuick("btn_quick_task", "task_manager");
   bindQuick("btn_quick_bundler", "app_bundler_studio");
-
-  bindQuick("btn_quick_ipinfo", "ipinfo_studio");
-  bindQuick("btn_quick_network", "network_studio");
   bindQuick("btn_quick_code", "code_studio");
   bindQuick("btn_quick_env", "env_studio");
+  bindQuick("btn_quick_ipinfo", "ipinfo_studio");
+
   bindQuick("btn_quick_interval", "interval_timer_studio");
   bindQuick("btn_quick_drcodecaine", "dr_codecaine_studio");
   bindQuick("btn_quick_lolo", "lolo_studio");
   bindQuick("btn_quick_tetris", "tetris_studio");
+  bindQuick("btn_quick_rad", "rad_studio");
+  bindQuick("btn_quick_calc", "calculator_studio");
+  bindQuick("btn_quick_markdown", "markdown_studio");
+  bindQuick("btn_quick_paint", "paint_studio");
 
+  // GUI Studio Versions of CLI Tools
+  bindQuick("btn_quick_system", "system_studio");
+  bindQuick("btn_quick_db", "database_studio");
+  bindQuick("btn_quick_database", "database_studio");
+  bindQuick("btn_quick_fd", "fd_studio");
+  bindQuick("btn_quick_git", "git_studio");
+  bindQuick("btn_quick_tokei", "tokei_studio");
+  bindQuick("btn_quick_gdu", "gdu_studio");
+  bindQuick("btn_quick_network", "network_studio");
+  bindQuick("btn_quick_crypto", "crypto_studio");
+
+  // Terminal CLI Tools Companion
   bindQuick("btn_quick_sys_cli", "system_cli", "--telemetry", true);
   bindQuick("btn_quick_db_cli", "database_cli", "--help", true);
   bindQuick("btn_quick_fd_cli", "fd_cli", "--help", true);

@@ -629,6 +629,24 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       "btn_quick_api",
       "btn_quick_task",
       "btn_quick_bundler",
+      "btn_quick_rad",
+      "btn_quick_calc",
+      "btn_quick_markdown",
+      "btn_quick_paint",
+      // GUI Studio versions of CLI tools
+      "btn_quick_db",
+      "btn_quick_database",
+      "btn_quick_tokei",
+      "btn_quick_gdu",
+      "btn_quick_crypto",
+      // CLI tools companion
+      "btn_quick_sys_cli",
+      "btn_quick_db_cli",
+      "btn_quick_fd_cli",
+      "btn_quick_git_cli",
+      "btn_quick_tokei_cli",
+      "btn_quick_gdu_cli",
+      "btn_quick_net_cli",
     ];
 
     for (const btnId of expectedButtons) {
@@ -657,6 +675,32 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     // Invoking enter handler updates selection
     enterHandler(win, "rad_sqlite_studio");
     expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+  });
+
+  it("ensures every CLI tool in 1-clicks has a corresponding GUI Studio version in 1-clicks", () => {
+    const win = createLauncherStudio({ fullscreen: false });
+    const handlers = (win as any).eventHandlersMap;
+    expect(handlers).toBeDefined();
+
+    const cliAndGuiPairs = [
+      { cli: "btn_quick_sys_cli", gui: "btn_quick_system", label: "System Information" },
+      { cli: "btn_quick_db_cli", gui: "btn_quick_db", label: "Database" },
+      { cli: "btn_quick_fd_cli", gui: "btn_quick_fd", label: "Fd File Discovery" },
+      { cli: "btn_quick_git_cli", gui: "btn_quick_git", label: "Git Version Control" },
+      { cli: "btn_quick_tokei_cli", gui: "btn_quick_tokei", label: "Tokei Code Stats" },
+      { cli: "btn_quick_gdu_cli", gui: "btn_quick_gdu", label: "GDU Disk Usage" },
+      { cli: "btn_quick_net_cli", gui: "btn_quick_network", label: "Network Diagnostics" },
+      { cli: "btn_quick_crypto_cli", gui: "btn_quick_crypto", label: "Cryptography & Hashing" },
+    ];
+
+    for (const pair of cliAndGuiPairs) {
+      const cliHandler = handlers.get(`${pair.cli}:onclick`);
+      const guiHandler = handlers.get(`${pair.gui}:onclick`);
+      expect(cliHandler).toBeDefined();
+      expect(typeof cliHandler).toBe("function");
+      expect(guiHandler).toBeDefined();
+      expect(typeof guiHandler).toBe("function");
+    }
   });
 });
 
