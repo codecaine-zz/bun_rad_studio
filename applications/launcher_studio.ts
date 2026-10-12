@@ -252,6 +252,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🎴",
     description: "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
   },
+  poker_studio: {
+    displayName: "Texas Hold'em & 5-Card Draw Poker Royale",
+    category: "Games & Entertainment",
+    icon: "♠️",
+    description: "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+  },
   math_munchers_studio: {
     displayName: "Math Munchers Deluxe",
     category: "Games & Entertainment",
