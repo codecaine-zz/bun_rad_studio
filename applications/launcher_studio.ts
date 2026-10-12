@@ -282,6 +282,18 @@ const KNOWN_STUDIO_META: Record<
     icon: "🧱",
     description: "Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme",
   },
+  snake_studio: {
+    displayName: "Neon Snake Deluxe",
+    category: "Games & Entertainment",
+    icon: "🐍",
+    description: "High-speed glowing cyber snake with looping walls and combo multipliers",
+  },
+  frogger_studio: {
+    displayName: "CyberFrog Deluxe",
+    category: "Games & Entertainment",
+    icon: "🐸",
+    description: "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
+  },
   tictactoe_studio: {
     displayName: "Neon Tic-Tac-Toe Arcade",
     category: "Games & Entertainment",

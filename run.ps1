@@ -332,6 +332,8 @@ $metadataRegistry = @{
     'flappy_bird_studio'   = @{ Name = 'Flappy Bird Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth' }
     'typing_studio'        = @{ Name = 'CyberType Deluxe — Mavis Edition'; Category = 'Games'; Icon = '[Game]'; Desc = 'Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.' }
     'tetris_studio'        = @{ Name = 'Tetris Ultra Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme.' }
+    'snake_studio'         = @{ Name = 'Neon Snake Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'High-speed glowing cyber snake with looping walls and combo multipliers' }
+    'frogger_studio'       = @{ Name = 'CyberFrog Deluxe'; Category = 'Games'; Icon = '[Game]'; Desc = 'Navigate a cyberpunk highway and acid river with fluid interpolation physics' }
     'tictactoe_studio'     = @{ Name = 'Neon Tic-Tac-Toe Arcade'; Category = 'Games'; Icon = '[Game]'; Desc = 'Unbeatable Minimax AI and 2-player local battle with glowing neon canvas' }
     'word_search_studio'   = @{ Name = 'Neon Word Search Labyrinth'; Category = 'Games'; Icon = '[Game]'; Desc = 'AAA cyber word search with Web Audio synthesizer and procedural dictionaries' }
     'world_time_zones_studio'=@{ Name = 'World Time Zones Studio Pro'; Category = 'Productivity'; Icon = '[App]'; Desc = 'Real-time global time zones with search, UTC offsets and clock synchronization' }
@@ -590,6 +592,8 @@ function Resolve-CatalogItem {
         'type'          = 'typing_studio'
         'mavis'         = 'typing_studio'
         'tetris'        = 'tetris_studio'
+        'snake'         = 'snake_studio'
+        'frogger'       = 'frogger_studio'
         'tictactoe'     = 'tictactoe_studio'
         'wordsearch'    = 'word_search_studio'
         'word_search'   = 'word_search_studio'

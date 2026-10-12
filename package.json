@@ -90,6 +90,8 @@
     "app:type": "bun run applications/typing_studio.ts",
     "app:mavis": "bun run applications/typing_studio.ts",
     "app:tetris": "bun run applications/tetris_studio.ts",
+    "app:snake": "bun run applications/snake_studio.ts",
+    "app:frogger": "bun run applications/frogger_studio.ts",
     "app:tictactoe": "bun run applications/tictactoe_studio.ts",
     "app:word_search": "bun run applications/word_search_studio.ts",
     "app:world_time_zones": "bun run applications/world_time_zones_studio.ts",

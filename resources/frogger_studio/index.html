@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CyberFrog Deluxe</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
+
+    :root {
+      --bg: #030208;
+      --text: #ffffff;
+      --accent: #ff00ff;
+      --accent-glow: rgba(255, 0, 255, 0.4);
+      --cyan: #00ffff;
+      --acid: #00ff88;
+      --hazard: #ffaa00;
+      --danger: #ff0055;
+      --gold: #ffcc00;
+      --shield: #3399ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Orbitron', sans-serif;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, #150928 0%, #030208 100%);
+      user-select: none;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(255, 0, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 255, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      z-index: 0;
+      transform: perspective(600px) rotateX(45deg) translateY(-80px) scale(2.5);
+      animation: gridScroll 10s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridScroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 64px; }
+    }
+
+    #app-container {
+      position: relative;
+      z-index: 1;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px;
+    }
+
+    .header-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 940px; padding: 0 8px;
+    }
+
+    .title {
+      font-size: 34px; font-weight: 900;
+      margin: 0;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 50%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
+      letter-spacing: 4px;
+    }
+
+    .subtitle-badge {
+      font-size: 11px; padding: 4px 10px; border-radius: 20px;
+      background: rgba(255, 0, 255, 0.12); border: 1px solid rgba(255, 0, 255, 0.35);
+      color: var(--accent); letter-spacing: 2px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    #game-container {
+      display: flex; gap: 20px;
+      padding: 20px;
+      background: rgba(10, 5, 20, 0.88);
+      border: 1px solid rgba(255, 0, 255, 0.25);
+      border-radius: 24px;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 0, 255, 0.12);
+      backdrop-filter: blur(16px);
+      align-items: flex-start;
+      transition: transform 0.05s ease-out;
+    }
+
+    .panel {
+      display: flex; flex-direction: column; gap: 12px;
+      width: 180px;
+    }
+
+    .box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 0, 255, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: center;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+    }
+    
+    .box-title {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+      color: #caa0e8; margin-bottom: 4px;
+    }
+    
+    .box-value {
+      font-size: 24px; font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 12px var(--cyan);
+      font-family: 'Orbitron', monospace;
+    }
+
+    .lives-container {
+      display: flex; justify-content: center; gap: 6px;
+      font-size: 20px; margin-top: 4px;
+    }
+
+    /* Active Powerup Indicators */
+    .powerup-box {
+      text-align: left;
+      font-size: 11px;
+    }
+
+    .powerup-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 6px; padding: 4px 6px; border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      font-family: 'Rajdhani', sans-serif; font-size: 12px;
+    }
+
+    .powerup-meter-bg {
+      width: 50px; height: 5px; background: rgba(0,0,0,0.6);
+      border-radius: 3px; overflow: hidden;
+    }
+
+    .powerup-meter-fill {
+      height: 100%; width: 100%;
+      background: var(--cyan);
+    }
+
+    /* Sound and Music Select Controls */
+    .audio-control-group {
+      text-align: left;
+      font-size: 11px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+
+    .audio-label {
+      color: #caa0e8; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    select.retro-select {
+      width: 100%;
+      background: #140822;
+      border: 1px solid rgba(255, 0, 255, 0.35);
+      color: var(--cyan);
+      padding: 5px 6px;
+      border-radius: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    input[type=range].retro-slider {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    #board-wrapper {
+      position: relative;
+      border-radius: 12px;
+      padding: 4px;
+      background: linear-gradient(135deg, rgba(255, 0, 255, 0.8), rgba(0, 255, 255, 0.7), rgba(0, 255, 136, 0.8));
+      box-shadow: 0 0 25px rgba(255, 0, 255, 0.35), 0 0 50px rgba(0, 255, 255, 0.2);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 8px;
+    }
+    
+    #board {
+      background: #020208;
+    }
+
+    .overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background: rgba(3, 2, 8, 0.9);
+      border-radius: 8px;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      transition: opacity 0.3s ease;
+      padding: 24px;
+    }
+
+    .overlay h1 {
+      font-size: 38px; margin: 0 0 16px 0;
+      color: #fff;
+      text-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
+      text-align: center;
+      letter-spacing: 3px;
+    }
+
+    .overlay-stats {
+      color: var(--cyan); font-size: 18px; margin-bottom: 20px;
+      display: flex; flex-direction: column; gap: 6px; text-align: center;
+    }
+
+    button.neon-btn {
+      font-family: 'Orbitron', sans-serif;
+      padding: 12px 28px; font-size: 14px; font-weight: bold;
+      color: #fff; background: rgba(255, 0, 255, 0.14);
+      border: 1px solid var(--accent); border-radius: 8px;
+      cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.28), inset 0 0 10px rgba(255, 0, 255, 0.15);
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-top: 6px;
+    }
+
+    button.neon-btn:hover {
+      background: rgba(255, 0, 255, 0.35);
+      box-shadow: 0 0 30px rgba(255, 0, 255, 0.65), inset 0 0 20px rgba(255, 0, 255, 0.4);
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    button.neon-btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #caa0e8;
+    }
+
+    .hidden { display: none !important; }
+
+    #particles-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .controls-hint {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px; color: #b7a0d4; line-height: 1.4;
+      text-align: left;
+    }
+    .key-badge {
+      display: inline-block; padding: 1px 4px;
+      background: #1c0e33; border: 1px solid #4a2177;
+      border-radius: 4px; color: var(--cyan); font-family: monospace; font-size: 10px;
+    }
+
+    /* Leaderboard Modal / Hall of Fame */
+    .hall-of-fame-list {
+      width: 100%; max-width: 320px;
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 0, 255, 0.25);
+      border-radius: 8px; padding: 10px; margin-bottom: 16px;
+      font-family: 'Orbitron', monospace; font-size: 12px;
+    }
+    .hall-row {
+      display: flex; justify-content: space-between; padding: 4px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .hall-row:last-child { border-bottom: none; }
+    .hall-rank { color: var(--gold); }
+    .hall-name { color: #fff; font-weight: bold; }
+    .hall-score { color: var(--cyan); }
+
+    .initials-input {
+      background: #140822; border: 2px solid var(--accent);
+      color: #fff; font-family: 'Orbitron', monospace; font-size: 22px;
+      width: 120px; text-align: center; text-transform: uppercase;
+      padding: 6px; border-radius: 6px; outline: none; margin-bottom: 14px;
+      letter-spacing: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <div class="header-bar">
+    <h1 class="title">CYBERFROG</h1>
+    <div class="subtitle-badge">
+      <span>SECTOR:</span>
+      <b id="sector-badge" style="color:#fff;">1: NEO HIGHWAY</b>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <!-- Left Panel -->
+    <div class="panel">
+      <div class="box">
+        <div class="box-title">Score</div>
+        <div id="score" class="box-value">0</div>
+      </div>
+      
+      <div class="box">
+        <div class="box-title">Lives</div>
+        <div id="lives-display" class="lives-container">
+          <span>🐸</span><span>🐸</span><span>🐸</span>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Docks Filled</div>
+        <div id="docks-count" class="box-value" style="color: var(--acid);">0 / 5</div>
+        <div class="multiplier-meter" style="margin-top: 6px; height: 5px; width: 100%; background: rgba(0,0,0,0.5); border-radius: 3px; overflow: hidden;">
+          <div id="docks-meter" style="height: 100%; width: 0%; background: var(--acid); transition: width 0.2s;"></div>
+        </div>
+      </div>
+
+      <div class="box powerup-box">
+        <div class="box-title" style="color: var(--cyan);">Active Boosts</div>
+        <div id="powerups-active">
+          <div style="color: #667799; font-size: 10px; padding: 4px 0; text-align: center;">No Boosts Active</div>
+        </div>
+      </div>
+
+      <div class="box audio-control-group">
+        <div class="audio-label">Music Track</div>
+        <select id="music-select" class="retro-select">
+          <option value="tokyo">Tokyo Neon Hop (Synth)</option>
+          <option value="acid">Acid Expressway (Fast)</option>
+          <option value="none">Music Muted</option>
+        </select>
+
+        <div class="audio-label" style="margin-top: 2px;">Volume</div>
+        <div class="slider-row">
+          <input type="range" id="volume-slider" class="retro-slider" min="0" max="1" step="0.05" value="0.4">
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Board -->
+    <div id="board-wrapper">
+      <canvas id="board" width="500" height="576"></canvas>
+      <canvas id="particles-canvas" width="500" height="576"></canvas>
+      
+      <!-- Start Overlay -->
+      <div id="start-overlay" class="overlay">
+        <h1>CYBERFROG</h1>
+        <p style="color: #d1b8eb; font-size: 13px; margin-bottom: 20px; text-align: center; max-width: 340px; line-height: 1.6;">
+          Cross 5 hazardous cyberpunk sectors, dodge hover-speeders, ride cyber-logs across boiling acid, and capture neon flies!
+        </p>
+        <button id="start-btn" class="neon-btn">INITIALIZE RUN</button>
+        <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">HALL OF FAME</button>
+      </div>
+
+      <!-- Sector Cleared Overlay -->
+      <div id="sector-overlay" class="overlay hidden">
+        <h1 style="color: var(--acid); text-shadow: 0 0 25px var(--acid);">SECTOR CLEARED!</h1>
+        <div class="overlay-stats">
+          <div style="font-size: 14px; color: #caa0e8;">ALL 5 DOCKS SECURED IN <b id="cleared-sector-name" style="color:#fff;">SECTOR 1</b></div>
+          <div style="color: var(--gold); font-size: 22px;">SECTOR BONUS: <span id="sector-bonus-pts">+2,000</span></div>
+          <div style="font-size: 13px; color: var(--cyan);">TRAFFIC SPEED & CURRENT ACCELERATING</div>
+        </div>
+        <button id="next-sector-btn" class="neon-btn">ENGAGE NEXT SECTOR</button>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div id="pause-overlay" class="overlay hidden">
+        <h1>MISSION PAUSED</h1>
+        <button id="resume-btn" class="neon-btn">RESUME</button>
+        <button id="quit-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">ABORT MISSION</button>
+      </div>
+      
+      <!-- Game Over Overlay -->
+      <div id="game-over-overlay" class="overlay hidden">
+        <h1 style="text-shadow: 0 0 25px var(--danger); color: #fff;">FLATLINED</h1>
+        <div class="overlay-stats">
+          <div>FINAL SCORE: <span id="final-score" style="color:#fff; font-weight: bold;">0</span></div>
+          <div style="font-size: 13px; color: #ff99bb;">REACHED: <span id="final-sector">SECTOR 1</span></div>
+        </div>
+
+        <div id="high-score-entry" class="hidden" style="display:flex; flex-direction:column; align-items:center;">
+          <div style="color: var(--gold); font-size: 13px; margin-bottom: 8px;">★ NEW HIGH SCORE! ENTER INITIALS ★</div>
+          <input type="text" id="player-initials" class="initials-input" maxlength="3" value="HOP">
+          <button id="save-score-btn" class="neon-btn">SUBMIT RECORD</button>
+        </div>
+
+        <button id="restart-btn" class="neon-btn" style="margin-top: 10px;">RETRY HOP</button>
+      </div>
+
+      <!-- Hall of Fame View -->
+      <div id="hall-of-fame-modal" class="overlay hidden">
+        <h1 style="color: var(--gold); text-shadow: 0 0 25px var(--gold);">HALL OF FAME</h1>
+        <div class="hall-of-fame-list" id="hall-of-fame-content"></div>
+        <button id="close-hall-btn" class="neon-btn">CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="panel">
+      <div class="box">
+        <div class="box-title">High Score</div>
+        <div id="high-score" class="box-value" style="color: var(--accent); text-shadow: 0 0 12px var(--accent);">0</div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Sector Level</div>
+        <div id="sector-display" class="box-value" style="color: var(--cyan); font-size: 22px;">1</div>
+      </div>
+
+      <div class="box controls-hint">
+        <b style="color:#fff; font-family:'Orbitron'; font-size: 11px;">PROTOCOL:</b><br><br>
+        • Leap: <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span> / <span class="key-badge">↑←↓→</span><br>
+        • Pause: <span class="key-badge">ESC</span> or <span class="key-badge">P</span><br>
+        • 🛡️ <b>Shield</b>: Absorbs 1 crash/dunk<br>
+        • ⏱️ <b>Stasis</b>: Slows traffic by 50%<br>
+        • 🪰 <b>Cyber-Fly</b>: +500 Pts + Shield<br>
+        • ⚠️ Flashing turtles submerge!
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// --- ADVANCED WEBAUDIO MUSIC & SYNTH ENGINE
+// ==========================================
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.currentTrack = 'tokyo';
+    this.isPlaying = false;
+    this.timerID = null;
+    this.step = 0;
+    this.bpm = 132;
+    this.init();
+  }
+
+  init() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AudioCtx();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.4;
+    this.masterGain.connect(this.ctx.destination);
+
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = 0.35;
+    this.musicGain.connect(this.masterGain);
+
+    this.sfxGain = this.ctx.createGain();
+    this.sfxGain.gain.value = 0.5;
+    this.sfxGain.connect(this.masterGain);
+  }
+
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  setVolume(val) {
+    if (this.masterGain) {
+      this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  startMusic(trackName) {
+    if (trackName) this.currentTrack = trackName;
+    this.stopMusic();
+    if (this.currentTrack === 'none') return;
+    this.resume();
+    this.isPlaying = true;
+    this.step = 0;
+    this.nextNoteTime = this.ctx.currentTime + 0.05;
+    this.schedule();
+  }
+
+  stopMusic() {
+    this.isPlaying = false;
+    if (this.timerID) {
+      clearTimeout(this.timerID);
+      this.timerID = null;
+    }
+  }
+
+  schedule() {
+    if (!this.isPlaying || this.currentTrack === 'none') return;
+    const lookahead = 0.12;
+    const secondsPer16th = 60.0 / (this.bpm * 4);
+
+    while (this.nextNoteTime < this.ctx.currentTime + lookahead) {
+      this.playSequencerStep(this.step, this.nextNoteTime);
+      this.nextNoteTime += secondsPer16th;
+      this.step = (this.step + 1) % 32;
+    }
+    this.timerID = setTimeout(() => this.schedule(), 35);
+  }
+
+  playSequencerStep(step, time) {
+    if (this.currentTrack === 'tokyo') {
+      const bassNotes = [130.81, 0, 130.81, 164.81, 0, 196.00, 0, 220.00];
+      const bFreq = bassNotes[step % 8];
+      if (bFreq > 0) this.triggerSynth(bFreq, 'sawtooth', 0.1, time, 0.28, this.musicGain, 550);
+
+      if (step % 4 === 0) this.triggerKick(time);
+      if (step % 8 === 4) this.triggerSnare(time);
+      if (step % 2 === 1) this.triggerHiHat(time, 0.07);
+
+      const melody = [
+        523.25, 659.25, 783.99, 0, 659.25, 783.99, 1046.50, 0,
+        880.00, 0, 783.99, 659.25, 587.33, 659.25, 523.25, 0,
+        659.25, 0, 587.33, 523.25, 440.00, 523.25, 587.33, 0,
+        783.99, 880.00, 783.99, 659.25, 587.33, 523.25, 440.00, 0
+      ];
+      const mFreq = melody[step];
+      if (mFreq > 0) this.triggerLead(mFreq, 'square', 0.12, time, 0.16);
+    } else if (this.currentTrack === 'acid') {
+      const bass = [110, 110, 146.83, 110, 130.81, 110, 164.81, 146.83];
+      this.triggerSynth(bass[step % 8], 'sawtooth', 0.08, time, 0.32, this.musicGain, 450);
+
+      if (step % 4 === 0) this.triggerKick(time);
+      if (step % 8 === 4) this.triggerSnare(time);
+      this.triggerHiHat(time, 0.05);
+
+      const lead = [
+        880, 0, 880, 783.99, 0, 659.25, 783.99, 0,
+        1046.5, 0, 880, 0, 783.99, 659.25, 587.33, 659.25
+      ];
+      const lFreq = lead[step % 16];
+      if (lFreq > 0) this.triggerLead(lFreq, 'square', 0.1, time, 0.18);
+    }
+  }
+
+  triggerSynth(freq, type, dur, time, vol, targetNode, filterFreq=0) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+    if (filterFreq > 0) {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(filterFreq, time);
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
+      osc.connect(gain);
+    }
+    gain.connect(targetNode);
+    osc.start(time);
+    osc.stop(time + dur);
+  }
+
+  triggerLead(freq, type, dur, time, vol) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+    gain.gain.setValueAtTime(0.01, time);
+    gain.gain.linearRampToValueAtTime(vol, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+    osc.start(time);
+    osc.stop(time + dur);
+  }
+
+  triggerKick(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(35, time + 0.11);
+    gain.gain.setValueAtTime(0.65, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.11);
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+    osc.start(time);
+    osc.stop(time + 0.11);
+  }
+
+  triggerSnare(time) {
+    const bufferSize = this.ctx.sampleRate * 0.1;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1100;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain);
+    noise.start(time);
+    noise.stop(time + 0.1);
+  }
+
+  triggerHiHat(time, vol=0.08) {
+    const bufferSize = this.ctx.sampleRate * 0.03;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 7000;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain);
+    noise.start(time);
+    noise.stop(time + 0.03);
+  }
+
+  playJump() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(260, t);
+    osc.frequency.exponentialRampToValueAtTime(620, t + 0.12);
+    gain.gain.setValueAtTime(0.28, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
+
+  playSquish() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.35);
+    gain.gain.setValueAtTime(0.6, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.36);
+  }
+
+  playAcidSplash() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const bufferSize = this.ctx.sampleRate * 0.4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3000, t);
+    filter.frequency.exponentialRampToValueAtTime(800, t + 0.4);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.45, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+    noise.start(t);
+    noise.stop(t + 0.4);
+  }
+
+  playDockSuccess() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + (idx * 0.07));
+      gain.gain.setValueAtTime(0.35, t + (idx * 0.07));
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (idx * 0.07) + 0.25);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t + (idx * 0.07));
+      osc.stop(t + (idx * 0.07) + 0.26);
+    });
+  }
+
+  playFlyBonus() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const notes = [880, 1174.66, 1318.51, 1760];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t + (idx * 0.05));
+      gain.gain.setValueAtTime(0.3, t + (idx * 0.05));
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (idx * 0.05) + 0.2);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t + (idx * 0.05));
+      osc.stop(t + (idx * 0.05) + 0.21);
+    });
+  }
+
+  playShieldAbsorb() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(150, t + 0.3);
+    gain.gain.setValueAtTime(0.5, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.32);
+  }
+}
+
+const audio = new SoundEngine();
+
+// ==========================================
+// --- SECTOR PROGRESSION CONFIGS
+// ==========================================
+const SECTOR_CONFIGS = [
+  { name: "NEO HIGHWAY", speedMult: 1.0, trafficColor: '#ff00ff', acidColor: '#00ff88', bargeBonus: 0 },
+  { name: "ACID INDUSTRIAL", speedMult: 1.25, trafficColor: '#ffaa00', acidColor: '#ff0055', bargeBonus: 1 },
+  { name: "TOKYO EXPRESSWAY", speedMult: 1.5, trafficColor: '#00ffff', acidColor: '#bf00ff', bargeBonus: 2 },
+  { name: "ORBITAL HIGHWAY", speedMult: 1.75, trafficColor: '#ff0055', acidColor: '#00ffff', bargeBonus: 3 },
+  { name: "THE REACTOR CORE", speedMult: 2.1, trafficColor: '#ffcc00', acidColor: '#ff00ff', bargeBonus: 4 }
+];
+
+// ==========================================
+// --- PERSISTENT HALL OF FAME
+// ==========================================
+const LEADERBOARD_KEY = 'cyberfrog_hall_of_fame';
+function getLeaderboard() {
+  const saved = localStorage.getItem(LEADERBOARD_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e){}
+  }
+  return [
+    { rank: 1, name: "HOP", score: 9800, sector: 4 },
+    { rank: 2, name: "CYB", score: 7200, sector: 3 },
+    { rank: 3, name: "NEO", score: 5400, sector: 2 },
+    { rank: 4, name: "ACE", score: 3600, sector: 2 },
+    { rank: 5, name: "RIB", score: 1800, sector: 1 }
+  ];
+}
+
+function saveLeaderboardRecord(name, score, sector) {
+  let list = getLeaderboard();
+  list.push({ name: name.toUpperCase().slice(0, 3) || "HOP", score: score, sector: sector });
+  list.sort((a, b) => b.score - a.score);
+  list = list.slice(0, 5);
+  list.forEach((entry, idx) => entry.rank = idx + 1);
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
+  renderHallOfFameUI();
+}
+
+function renderHallOfFameUI() {
+  const container = document.getElementById('hall-of-fame-content');
+  const list = getLeaderboard();
+  container.innerHTML = list.map(item => `
+    <div class="hall-row">
+      <span class="hall-rank">#${item.rank}</span>
+      <span class="hall-name">${item.name}</span>
+      <span style="color:#caa0e8;">SEC ${item.sector}</span>
+      <span class="hall-score">${item.score.toLocaleString()}</span>
+    </div>
+  `).join('');
+}
+
+// ==========================================
+// --- PARTICLES, SHOCKWAVES & FLOATING TEXT
+// ==========================================
+const pCanvas = document.getElementById('particles-canvas');
+const pCtx = pCanvas.getContext('2d');
+let particles = [];
+let floatingTexts = [];
+let shockwaves = [];
+let screenShake = 0;
+
+function triggerScreenShake(amt = 10) { screenShake = amt; }
+
+function spawnParticles(x, y, color, count = 25, speedMult = 1) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = (Math.random() * 5 + 1.5) * speedMult;
+    particles.push({
+      x: x, y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: Math.random() * 4 + 2,
+      life: 1.0,
+      decay: Math.random() * 0.025 + 0.02,
+      color: color
+    });
+  }
+}
+
+function spawnShockwave(x, y, color) {
+  shockwaves.push({ x: x, y: y, radius: 4, maxRadius: 65, color: color, alpha: 1.0 });
+}
+
+function spawnFloatingText(text, x, y, color = '#00ffff') {
+  floatingTexts.push({ text: text, x: x, y: y, vy: -1.4, alpha: 1.0, color: color });
+}
+
+function updateAndRenderEffects() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const sw = shockwaves[i];
+    sw.radius += 3.0;
+    sw.alpha = 1 - (sw.radius / sw.maxRadius);
+    if (sw.alpha <= 0) {
+      shockwaves.splice(i, 1);
+      continue;
+    }
+    pCtx.save();
+    pCtx.beginPath();
+    pCtx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+    pCtx.strokeStyle = sw.color;
+    pCtx.globalAlpha = sw.alpha * 0.8;
+    pCtx.lineWidth = 3;
+    pCtx.stroke();
+    pCtx.restore();
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.95;
+    p.vy *= 0.95;
+    p.life -= p.decay;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      continue;
+    }
+    pCtx.save();
+    pCtx.globalAlpha = p.life;
+    pCtx.fillStyle = p.color;
+    pCtx.shadowBlur = 10;
+    pCtx.shadowColor = p.color;
+    pCtx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    pCtx.restore();
+  }
+
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy;
+    ft.alpha -= 0.02;
+    if (ft.alpha <= 0) {
+      floatingTexts.splice(i, 1);
+      continue;
+    }
+    pCtx.save();
+    pCtx.globalAlpha = ft.alpha;
+    pCtx.font = "bold 15px 'Orbitron'";
+    pCtx.fillStyle = ft.color;
+    pCtx.shadowBlur = 12;
+    pCtx.shadowColor = ft.color;
+    pCtx.textAlign = 'center';
+    pCtx.fillText(ft.text, ft.x, ft.y);
+    pCtx.restore();
+  }
+
+  const gameContainer = document.getElementById('game-container');
+  if (screenShake > 0) {
+    const sx = (Math.random() - 0.5) * screenShake;
+    const sy = (Math.random() - 0.5) * screenShake;
+    gameContainer.style.transform = `translate(${sx}px, ${sy}px)`;
+    screenShake *= 0.84;
+    if (screenShake < 0.5) {
+      screenShake = 0;
+      gameContainer.style.transform = 'none';
+    }
+  }
+}
+
+// ==========================================
+// --- GAMEPLAY ENGINE
+// ==========================================
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+
+const COLS = 10;
+const ROWS = 12;
+const ROW_HEIGHT = 48;
+const COL_WIDTH = 50;
+
+let score = 0;
+let highScore = 0;
+let lives = 3;
+let currentSectorIndex = 0;
+let gameState = 'start';
+let lastTime = 0;
+let animationId = null;
+
+// Power-ups
+let activePowerup = null; // { type: 'shield'|'stasis', timer, maxTimer }
+let droppedCapsule = null; // { x, row, type, timer }
+
+let frog = {
+  gridX: 4, gridY: 11,
+  renderX: 4 * COL_WIDTH, renderY: 11 * ROW_HEIGHT,
+  isJumping: false, jumpProgress: 0,
+  startX: 4 * COL_WIDTH, startY: 11 * ROW_HEIGHT,
+  targetX: 4 * COL_WIDTH, targetY: 11 * ROW_HEIGHT,
+  dir: 'up', dead: false, deadReason: ''
+};
+
+let docks = [
+  { x: 30, filled: false, hasFly: false },
+  { x: 130, filled: false, hasFly: false },
+  { x: 230, filled: false, hasFly: false },
+  { x: 330, filled: false, hasFly: false },
+  { x: 430, filled: false, hasFly: false }
+];
+let flyTimer = 0;
+
+let lanes = [];
+
+function initSectorData(sectorIdx) {
+  currentSectorIndex = sectorIdx % SECTOR_CONFIGS.length;
+  const cfg = SECTOR_CONFIGS[currentSectorIndex];
+  const speedScale = cfg.speedMult;
+
+  document.getElementById('sector-badge').innerText = `${currentSectorIndex + 1}: ${cfg.name}`;
+  document.getElementById('sector-display').innerText = `${currentSectorIndex + 1}`;
+
+  lanes = [
+    { row: 0, type: 'dock' },
+    // Rows 1-5: Acid River
+    { row: 1, type: 'river', speed: 1.6 * speedScale, dir: 1, itemW: 130, spacing: 230, items: [], subtype: 'log', color: '#ff00ff' },
+    { row: 2, type: 'river', speed: -2.1 * speedScale, dir: -1, itemW: 90, spacing: 180, items: [], subtype: 'turtle', color: '#00ffff', submerge: true },
+    { row: 3, type: 'river', speed: 2.8 * speedScale, dir: 1, itemW: 180, spacing: 320, items: [], subtype: 'log', color: cfg.acidColor },
+    { row: 4, type: 'river', speed: 1.4 * speedScale, dir: 1, itemW: 90, spacing: 170, items: [], subtype: 'log', color: '#ff00ff' },
+    { row: 5, type: 'river', speed: -1.8 * speedScale, dir: -1, itemW: 80, spacing: 170, items: [], subtype: 'turtle', color: '#00ffff' },
+    // Row 6: Safe Median
+    { row: 6, type: 'safe' },
+    // Rows 7-10: Cyber Highway
+    { row: 7, type: 'road', speed: -3.2 * speedScale, dir: -1, itemW: 55, spacing: 200, items: [], subtype: 'speeder', color: '#ff0055' },
+    { row: 8, type: 'road', speed: 1.8 * speedScale, dir: 1, itemW: 100, spacing: 260, items: [], subtype: 'truck', color: '#ffaa00' },
+    { row: 9, type: 'road', speed: -2.4 * speedScale, dir: -1, itemW: 60, spacing: 190, items: [], subtype: 'car', color: cfg.trafficColor },
+    { row: 10, type: 'road', speed: 3.5 * speedScale, dir: 1, itemW: 50, spacing: 240, items: [], subtype: 'speeder', color: '#00ffff' },
+    // Row 11: Starting Safe Sidewalk
+    { row: 11, type: 'safe' }
+  ];
+
+  lanes.forEach(lane => {
+    if (lane.items) {
+      lane.items = [];
+      for (let x = -50; x < canvas.width + lane.spacing; x += lane.spacing) {
+        lane.items.push({ x: x, w: lane.itemW, submerged: false, submergePhase: Math.random() * Math.PI * 2 });
+      }
+    }
+  });
+
+  docks.forEach(d => { d.filled = false; d.hasFly = false; });
+  droppedCapsule = null;
+  resetFrog();
+  updateUI();
+}
+
+function resetFrog() {
+  frog.gridX = 4; frog.gridY = 11;
+  frog.renderX = 4 * COL_WIDTH; frog.renderY = 11 * ROW_HEIGHT;
+  frog.startX = frog.renderX; frog.startY = frog.renderY;
+  frog.targetX = frog.renderX; frog.targetY = frog.renderY;
+  frog.isJumping = false; frog.jumpProgress = 0;
+  frog.dir = 'up'; frog.dead = false; frog.deadReason = '';
+}
+
+function initGame() {
+  score = 0;
+  lives = 3;
+  activePowerup = null;
+  initSectorData(0);
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById('score').innerText = score;
+  const list = getLeaderboard();
+  highScore = Math.max(score, list[0] ? list[0].score : 0);
+  document.getElementById('high-score').innerText = highScore;
+
+  let livesStr = '';
+  for (let i = 0; i < lives; i++) livesStr += '🐸 ';
+  document.getElementById('lives-display').innerText = livesStr || '💀';
+
+  const filledCount = docks.filter(d => d.filled).length;
+  document.getElementById('docks-count').innerText = `${filledCount} / 5`;
+  document.getElementById('docks-meter').style.width = `${(filledCount / 5) * 100}%`;
+
+  // Powerup HUD
+  const pContainer = document.getElementById('powerups-active');
+  if (activePowerup) {
+    const names = { shield: '🛡️ SHIELD MATRIX', stasis: '⏱️ CHRONO STASIS' };
+    const pct = Math.max(0, (activePowerup.timer / activePowerup.maxTimer) * 100);
+    pContainer.innerHTML = `
+      <div class="powerup-row">
+        <span>${names[activePowerup.type]}</span>
+        <div class="powerup-meter-bg">
+          <div class="powerup-meter-fill" style="width:${pct}%;"></div>
+        </div>
+      </div>
+    `;
+  } else {
+    pContainer.innerHTML = `<div style="color: #667799; font-size: 10px; padding: 4px 0; text-align: center;">No Boosts Active</div>`;
+  }
+}
+
+function killFrog(reason) {
+  if (frog.dead) return;
+
+  // Check Shield Powerup
+  if (activePowerup && activePowerup.type === 'shield') {
+    activePowerup = null;
+    audio.playShieldAbsorb();
+    triggerScreenShake(12);
+    spawnShockwave(frog.renderX + COL_WIDTH/2, frog.renderY + ROW_HEIGHT/2, '#3399ff');
+    spawnFloatingText('SHIELD SAVED HOP!', frog.renderX + COL_WIDTH/2, frog.renderY, '#3399ff');
+    updateUI();
+    return;
+  }
+
+  frog.dead = true;
+  frog.deadReason = reason;
+
+  const fx = frog.renderX + COL_WIDTH/2;
+  const fy = frog.renderY + ROW_HEIGHT/2;
+
+  if (reason === 'car') {
+    audio.playSquish();
+    triggerScreenShake(20);
+    spawnParticles(fx, fy, '#ff0055', 40, 1.6);
+    spawnShockwave(fx, fy, '#ff0055');
+  } else {
+    audio.playAcidSplash();
+    triggerScreenShake(14);
+    spawnParticles(fx, fy, '#00ff88', 35, 1.4);
+    spawnShockwave(fx, fy, '#00ff88');
+  }
+
+  lives--;
+  updateUI();
+
+  if (lives <= 0) {
+    gameState = 'gameover';
+    audio.stopMusic();
+
+    const list = getLeaderboard();
+    const qualifies = score > list[list.length - 1].score;
+
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-sector').innerText = `SECTOR ${currentSectorIndex + 1}: ${SECTOR_CONFIGS[currentSectorIndex].name}`;
+
+    if (qualifies) document.getElementById('high-score-entry').classList.remove('hidden');
+    else document.getElementById('high-score-entry').classList.add('hidden');
+
+    document.getElementById('game-over-overlay').classList.remove('hidden');
+  } else {
+    setTimeout(() => {
+      if (gameState === 'playing') resetFrog();
+    }, 900);
+  }
+}
+
+function triggerSectorClear() {
+  gameState = 'cleared';
+  audio.playDockSuccess();
+  triggerScreenShake(10);
+
+  const bonus = 2000 + (currentSectorIndex * 1000);
+  score += bonus;
+  updateUI();
+
+  document.getElementById('cleared-sector-name').innerText = `SECTOR ${currentSectorIndex + 1}: ${SECTOR_CONFIGS[currentSectorIndex].name}`;
+  document.getElementById('sector-bonus-pts').innerText = `+${bonus.toLocaleString()}`;
+  document.getElementById('sector-overlay').classList.remove('hidden');
+}
+
+function checkCollisions() {
+  if (frog.dead || frog.isJumping) return;
+
+  const r = frog.gridY;
+  const lane = lanes[r];
+  if (!lane) return;
+
+  const frogLeft = frog.renderX + 8;
+  const frogRight = frog.renderX + COL_WIDTH - 8;
+  const frogCenterX = frog.renderX + COL_WIDTH/2;
+
+  // Docks
+  if (lane.type === 'dock') {
+    let dockedIndex = -1;
+    docks.forEach((dock, idx) => {
+      if (Math.abs(frogCenterX - (dock.x + 20)) < 24) dockedIndex = idx;
+    });
+
+    if (dockedIndex !== -1 && !docks[dockedIndex].filled) {
+      docks[dockedIndex].filled = true;
+      audio.playDockSuccess();
+      let bonus = 250;
+      if (docks[dockedIndex].hasFly) {
+        bonus += 500;
+        audio.playFlyBonus();
+        docks[dockedIndex].hasFly = false;
+        // Also award shield on fly!
+        activePowerup = { type: 'shield', timer: 14000, maxTimer: 14000 };
+        spawnFloatingText('CYBER FLY + SHIELD!', frogCenterX, frog.renderY, '#ffcc00');
+      }
+      score += bonus;
+      spawnFloatingText(`+${bonus}`, frogCenterX, frog.renderY - 8, '#00ffff');
+      spawnParticles(frogCenterX, frog.renderY + ROW_HEIGHT/2, '#00ff88', 35, 1.5);
+      spawnShockwave(frogCenterX, frog.renderY + ROW_HEIGHT/2, '#00ff88');
+      updateUI();
+
+      if (docks.every(d => d.filled)) {
+        triggerSectorClear();
+      } else {
+        resetFrog();
+      }
+    } else {
+      killFrog('car');
+    }
+    return;
+  }
+
+  // Road
+  if (lane.type === 'road') {
+    for (let item of lane.items) {
+      if (frogRight > item.x && frogLeft < item.x + item.w) {
+        killFrog('car');
+        return;
+      }
+    }
+  }
+
+  // Acid River
+  if (lane.type === 'river') {
+    let onPlatform = false;
+    let platformSpeed = 0;
+
+    for (let item of lane.items) {
+      if (item.submerged) continue;
+      if (frogCenterX > item.x - 5 && frogCenterX < item.x + item.w + 5) {
+        onPlatform = true;
+        let speed = lane.speed;
+        if (activePowerup && activePowerup.type === 'stasis') speed *= 0.5;
+        platformSpeed = speed;
+        break;
+      }
+    }
+
+    if (!onPlatform) {
+      killFrog('acid');
+    } else {
+      frog.renderX += platformSpeed;
+      frog.targetX += platformSpeed;
+      frog.startX += platformSpeed;
+      if (frog.renderX < -10 || frog.renderX > canvas.width - COL_WIDTH + 10) {
+        killFrog('acid');
+      }
+    }
+  }
+}
+
+// ==========================================
+// --- PROCEDURAL RENDERING
+// ==========================================
+function drawCyberVehicle(ctx, x, y, w, h, color, subtype, dir) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = color;
+  ctx.fillRect(4, h - 8, w - 8, 4);
+
+  ctx.fillStyle = '#100c24';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(2, 6, w - 4, h - 14, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.75;
+  const glassW = Math.max(12, w * 0.35);
+  const glassX = dir > 0 ? w * 0.5 : w * 0.15;
+  ctx.beginPath();
+  ctx.roundRect(glassX, 10, glassW, h - 22, 3);
+  ctx.fill();
+  ctx.globalAlpha = 1.0;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 10;
+  const lightX = dir > 0 ? w - 3 : 3;
+  ctx.fillRect(lightX, 10, 2, 4);
+  ctx.fillRect(lightX, h - 16, 2, 4);
+
+  if (Math.random() < 0.25) {
+    const exX = dir > 0 ? x : x + w;
+    spawnParticles(exX, y + h/2, color, 1, 0.4);
+  }
+  ctx.restore();
+}
+
+function drawCyberLog(ctx, x, y, w, h, color) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  ctx.fillStyle = '#0b162a';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.roundRect(2, 6, w - 4, h - 12, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(12, h/2);
+  ctx.lineTo(w - 12, h/2);
+  ctx.stroke();
+
+  for (let nx = 20; nx < w - 10; nx += 30) {
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(nx, h/2, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawCyberTurtle(ctx, x, y, w, h, submerged) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  if (submerged) ctx.globalAlpha = 0.25;
+
+  const numTurtles = Math.floor(w / 35);
+  for (let i = 0; i < numTurtles; i++) {
+    const tx = 15 + i * 32;
+    const ty = h / 2;
+
+    ctx.fillStyle = '#052924';
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = submerged ? 2 : 8;
+
+    ctx.beginPath();
+    ctx.arc(tx, ty, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#00ffff';
+    ctx.beginPath(); ctx.arc(tx - 9, ty - 9, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(tx + 9, ty - 9, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(tx - 9, ty + 9, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(tx + 9, ty + 9, 3, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawCyberFrog(ctx, frog) {
+  if (frog.dead) return;
+
+  ctx.save();
+  const cx = frog.renderX + COL_WIDTH/2;
+  const cy = frog.renderY + ROW_HEIGHT/2;
+  ctx.translate(cx, cy);
+
+  if (frog.dir === 'right') ctx.rotate(Math.PI / 2);
+  else if (frog.dir === 'down') ctx.rotate(Math.PI);
+  else if (frog.dir === 'left') ctx.rotate(-Math.PI / 2);
+
+  let scaleX = 1.0;
+  let scaleY = 1.0;
+  if (frog.isJumping) {
+    const jumpArc = Math.sin(frog.jumpProgress * Math.PI);
+    scaleY = 1.0 + jumpArc * 0.45;
+    scaleX = 1.0 - jumpArc * 0.25;
+  }
+  ctx.scale(scaleX, scaleY);
+
+  // Shield aura
+  if (activePowerup && activePowerup.type === 'shield') {
+    ctx.shadowColor = '#3399ff';
+    ctx.shadowBlur = 24;
+    ctx.strokeStyle = '#3399ff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = '#00ff88';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 12, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (frog.isJumping) {
+    ctx.moveTo(-8, 6); ctx.lineTo(-14, 18);
+    ctx.moveTo(8, 6); ctx.lineTo(14, 18);
+  } else {
+    ctx.moveTo(-8, 4); ctx.lineTo(-14, 10);
+    ctx.moveTo(8, 4); ctx.lineTo(14, 10);
+  }
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-6, -6); ctx.lineTo(-12, -12);
+  ctx.moveTo(6, -6); ctx.lineTo(12, -12);
+  ctx.stroke();
+
+  ctx.fillStyle = '#00ffff';
+  ctx.shadowColor = '#00ffff';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.roundRect(-8, -10, 16, 5, 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function renderBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const now = performance.now();
+
+  lanes.forEach(lane => {
+    const y = lane.row * ROW_HEIGHT;
+
+    if (lane.type === 'dock') {
+      ctx.fillStyle = '#08051a';
+      ctx.fillRect(0, y, canvas.width, ROW_HEIGHT);
+
+      docks.forEach(dock => {
+        ctx.fillStyle = '#140c2e';
+        ctx.strokeStyle = dock.filled ? 'var(--acid)' : 'rgba(255, 0, 255, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = dock.filled ? 'var(--acid)' : 'transparent';
+        ctx.shadowBlur = dock.filled ? 15 : 0;
+        ctx.beginPath();
+        ctx.roundRect(dock.x, y + 6, 40, ROW_HEIGHT - 12, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        if (dock.filled) {
+          ctx.fillStyle = '#00ff88';
+          ctx.beginPath();
+          ctx.arc(dock.x + 20, y + ROW_HEIGHT/2, 10, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (dock.hasFly && !dock.filled) {
+          ctx.fillStyle = '#ffcc00';
+          ctx.shadowColor = '#ffcc00';
+          ctx.shadowBlur = 12;
+          const flyPulse = Math.sin(now * 0.01) * 3;
+          ctx.beginPath();
+          ctx.arc(dock.x + 20, y + ROW_HEIGHT/2 + flyPulse, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    } else if (lane.type === 'river') {
+      ctx.fillStyle = '#02120e';
+      ctx.fillRect(0, y, canvas.width, ROW_HEIGHT);
+
+      ctx.strokeStyle = 'rgba(0, 255, 136, 0.12)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x <= canvas.width; x += 20) {
+        const waveY = y + ROW_HEIGHT/2 + Math.sin((x + now * 0.05) * 0.04) * 6;
+        if (x === 0) ctx.moveTo(x, waveY); else ctx.lineTo(x, waveY);
+      }
+      ctx.stroke();
+
+      lane.items.forEach(item => {
+        if (lane.subtype === 'log') drawCyberLog(ctx, item.x, y, item.w, ROW_HEIGHT, lane.color);
+        else if (lane.subtype === 'turtle') drawCyberTurtle(ctx, item.x, y, item.w, ROW_HEIGHT, item.submerged);
+      });
+    } else if (lane.type === 'road') {
+      ctx.fillStyle = '#0b0917';
+      ctx.fillRect(0, y, canvas.width, ROW_HEIGHT);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+      for (let x = 0; x < canvas.width; x += 40) ctx.fillRect(x, y + ROW_HEIGHT - 2, 22, 2);
+
+      lane.items.forEach(item => {
+        drawCyberVehicle(ctx, item.x, y, item.w, ROW_HEIGHT, lane.color, lane.subtype, lane.dir);
+      });
+    } else if (lane.type === 'safe') {
+      ctx.fillStyle = '#160a2b';
+      ctx.fillRect(0, y, canvas.width, ROW_HEIGHT);
+      ctx.fillStyle = 'rgba(255, 0, 255, 0.08)';
+      ctx.fillRect(0, y, canvas.width, 2);
+      ctx.fillRect(0, y + ROW_HEIGHT - 2, canvas.width, 2);
+    }
+  });
+
+  drawCyberFrog(ctx, frog);
+}
+
+// ==========================================
+// --- GAME LOOP & UPDATES
+// ==========================================
+function gameLoop(timestamp) {
+  if (gameState !== 'playing') {
+    lastTime = timestamp;
+    updateAndRenderEffects();
+    animationId = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  let dt = timestamp - lastTime;
+  lastTime = timestamp;
+  if (dt > 150) dt = 16;
+
+  // Active powerup decay
+  if (activePowerup) {
+    activePowerup.timer -= dt;
+    if (activePowerup.timer <= 0) activePowerup = null;
+    updateUI();
+  }
+
+  // Move river and road items
+  lanes.forEach(lane => {
+    if (lane.items) {
+      let speed = lane.speed;
+      if (activePowerup && activePowerup.type === 'stasis') speed *= 0.5;
+
+      lane.items.forEach(item => {
+        item.x += speed * (dt * 0.06);
+        if (speed > 0 && item.x > canvas.width + 50) item.x = -item.w - 50;
+        else if (speed < 0 && item.x < -item.w - 50) item.x = canvas.width + 50;
+
+        if (lane.submerge) {
+          item.submergePhase += dt * 0.002;
+          item.submerged = Math.sin(item.submergePhase) > 0.65;
+        }
+      });
+    }
+  });
+
+  // Fly timer
+  flyTimer += dt;
+  if (flyTimer > 6000) {
+    flyTimer = 0;
+    const emptyDocks = docks.filter(d => !d.filled);
+    if (emptyDocks.length > 0 && Math.random() < 0.6) {
+      emptyDocks.forEach(d => d.hasFly = false);
+      emptyDocks[Math.floor(Math.random() * emptyDocks.length)].hasFly = true;
+    }
+  }
+
+  // Frog jump leap animation
+  if (frog.isJumping) {
+    frog.jumpProgress += dt * 0.007;
+    if (frog.jumpProgress >= 1.0) {
+      frog.jumpProgress = 1.0;
+      frog.isJumping = false;
+      frog.renderX = frog.targetX;
+      frog.renderY = frog.targetY;
+      checkCollisions();
+    } else {
+      frog.renderX = frog.startX + (frog.targetX - frog.startX) * frog.jumpProgress;
+      frog.renderY = frog.startY + (frog.targetY - frog.startY) * frog.jumpProgress;
+    }
+  } else {
+    checkCollisions();
+  }
+
+  renderBoard();
+  updateAndRenderEffects();
+
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+// ==========================================
+// --- INPUTS & LIFECYCLE
+// ==========================================
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+    if (gameState === 'playing') {
+      gameState = 'paused';
+      audio.stopMusic();
+      document.getElementById('pause-overlay').classList.remove('hidden');
+    } else if (gameState === 'paused') {
+      gameState = 'playing';
+      document.getElementById('pause-overlay').classList.add('hidden');
+      audio.startMusic(document.getElementById('music-select').value);
+    }
+    return;
+  }
+
+  if (gameState !== 'playing' || frog.dead || frog.isJumping) return;
+
+  let moved = false;
+  let newGridX = frog.gridX;
+  let newGridY = frog.gridY;
+
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+    if (newGridY > 0) {
+      newGridY--; frog.dir = 'up'; moved = true; score += 10; updateUI();
+    }
+  } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+    if (newGridY < ROWS - 1) {
+      newGridY++; frog.dir = 'down'; moved = true;
+    }
+  } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+    if (newGridX > 0) {
+      newGridX--; frog.dir = 'left'; moved = true;
+    }
+  } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+    if (newGridX < COLS - 1) {
+      newGridX++; frog.dir = 'right'; moved = true;
+    }
+  }
+
+  if (moved) {
+    audio.playJump();
+    frog.gridX = newGridX;
+    frog.gridY = newGridY;
+    frog.startX = frog.renderX;
+    frog.startY = frog.renderY;
+    frog.targetX = newGridX * COL_WIDTH;
+    frog.targetY = newGridY * ROW_HEIGHT;
+    frog.isJumping = true;
+    frog.jumpProgress = 0;
+    spawnParticles(frog.startX + COL_WIDTH/2, frog.startY + ROW_HEIGHT/2, '#00ff88', 5, 0.4);
+  }
+});
+
+function startGame() {
+  audio.resume();
+  initGame();
+  gameState = 'playing';
+  document.getElementById('start-overlay').classList.add('hidden');
+  document.getElementById('game-over-overlay').classList.add('hidden');
+  document.getElementById('sector-overlay').classList.add('hidden');
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+document.getElementById('next-sector-btn').addEventListener('click', () => {
+  document.getElementById('sector-overlay').classList.add('hidden');
+  initSectorData(currentSectorIndex + 1);
+  gameState = 'playing';
+  audio.startMusic(document.getElementById('music-select').value);
+});
+
+document.getElementById('resume-btn').addEventListener('click', () => {
+  gameState = 'playing';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+});
+
+document.getElementById('quit-btn').addEventListener('click', () => {
+  gameState = 'start';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  document.getElementById('start-overlay').classList.remove('hidden');
+});
+
+document.getElementById('hall-of-fame-btn').addEventListener('click', () => {
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+});
+
+document.getElementById('close-hall-btn').addEventListener('click', () => {
+  document.getElementById('hall-of-fame-modal').classList.add('hidden');
+});
+
+document.getElementById('save-score-btn').addEventListener('click', () => {
+  const initials = document.getElementById('player-initials').value;
+  saveLeaderboardRecord(initials, score, currentSectorIndex + 1);
+  document.getElementById('high-score-entry').classList.add('hidden');
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+});
+
+document.getElementById('music-select').addEventListener('change', (e) => {
+  audio.startMusic(e.target.value);
+});
+
+document.getElementById('volume-slider').addEventListener('input', (e) => {
+  audio.setVolume(parseFloat(e.target.value));
+});
+
+// Boot init
+renderHallOfFameUI();
+initSectorData(0);
+renderBoard();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

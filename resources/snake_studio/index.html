@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon Snake Deluxe</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
+
+    :root {
+      --bg: #030308;
+      --board-bg: #050610;
+      --text: #ffffff;
+      --accent: #00ffcc;
+      --accent-glow: rgba(0, 255, 204, 0.4);
+      --danger: #ff0055;
+      --gold: #ffcc00;
+      --purple: #bf00ff;
+      --shield: #3399ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Orbitron', sans-serif;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, #0d122b 0%, #030308 100%);
+      user-select: none;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0, 255, 204, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 204, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      z-index: 0;
+      transform: perspective(600px) rotateX(45deg) translateY(-80px) scale(2.5);
+      animation: gridScroll 12s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridScroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 64px; }
+    }
+
+    #app-container {
+      position: relative;
+      z-index: 1;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px;
+    }
+
+    .header-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 940px; padding: 0 8px;
+    }
+
+    .title {
+      font-size: 34px; font-weight: 900;
+      margin: 0;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 50%, #0088ff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 25px rgba(0, 255, 204, 0.5);
+      letter-spacing: 4px;
+    }
+
+    .subtitle-badge {
+      font-size: 11px; padding: 4px 10px; border-radius: 20px;
+      background: rgba(0, 255, 204, 0.1); border: 1px solid rgba(0, 255, 204, 0.3);
+      color: var(--accent); letter-spacing: 2px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    #game-container {
+      display: flex; gap: 20px;
+      padding: 20px;
+      background: rgba(8, 10, 22, 0.88);
+      border: 1px solid rgba(0, 255, 204, 0.25);
+      border-radius: 24px;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 255, 204, 0.1);
+      backdrop-filter: blur(16px);
+      align-items: flex-start;
+      transition: transform 0.05s ease-out;
+    }
+
+    .panel {
+      display: flex; flex-direction: column; gap: 12px;
+      width: 180px;
+    }
+
+    .box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 255, 204, 0.15);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: center;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+    }
+    
+    .box-title {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+      color: #79a6d2; margin-bottom: 4px;
+    }
+    
+    .box-value {
+      font-size: 24px; font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 12px var(--accent);
+      font-family: 'Orbitron', monospace;
+    }
+
+    .multiplier-box {
+      background: linear-gradient(180deg, rgba(255, 204, 0, 0.08), rgba(255, 0, 85, 0.05));
+      border: 1px solid rgba(255, 204, 0, 0.3);
+    }
+
+    .multiplier-meter {
+      height: 5px; width: 100%; background: rgba(0,0,0,0.5);
+      border-radius: 3px; overflow: hidden; margin-top: 6px;
+    }
+
+    .multiplier-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--gold), var(--danger));
+      transition: width 0.1s linear;
+    }
+
+    /* Active Powerup Indicators */
+    .powerup-box {
+      text-align: left;
+      font-size: 11px;
+    }
+
+    .powerup-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 6px; padding: 4px 6px; border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      font-family: 'Rajdhani', sans-serif; font-size: 12px;
+    }
+
+    .powerup-meter-bg {
+      width: 50px; height: 5px; background: rgba(0,0,0,0.6);
+      border-radius: 3px; overflow: hidden;
+    }
+
+    .powerup-meter-fill {
+      height: 100%; width: 100%;
+      background: var(--accent);
+    }
+
+    /* Sound and Music Select Controls */
+    .audio-control-group {
+      text-align: left;
+      font-size: 11px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+
+    .audio-label {
+      color: #9cb3d6; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    select.retro-select {
+      width: 100%;
+      background: #090c1a;
+      border: 1px solid rgba(0, 255, 204, 0.3);
+      color: var(--accent);
+      padding: 5px 6px;
+      border-radius: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    input[type=range].retro-slider {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    #board-wrapper {
+      position: relative;
+      border-radius: 12px;
+      padding: 4px;
+      background: linear-gradient(135deg, rgba(0, 255, 204, 0.8), rgba(191, 0, 255, 0.6), rgba(255, 0, 85, 0.8));
+      box-shadow: 0 0 25px rgba(0, 255, 204, 0.3), 0 0 50px rgba(191, 0, 255, 0.2);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 8px;
+    }
+    
+    #board {
+      background: var(--board-bg);
+    }
+
+    .overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background: rgba(3, 4, 12, 0.9);
+      border-radius: 8px;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      transition: opacity 0.3s ease;
+      padding: 24px;
+    }
+
+    .overlay h1 {
+      font-size: 38px; margin: 0 0 16px 0;
+      color: #fff;
+      text-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
+      text-align: center;
+      letter-spacing: 3px;
+    }
+
+    .overlay-stats {
+      color: #00ffcc; font-size: 18px; margin-bottom: 20px;
+      display: flex; flex-direction: column; gap: 6px; text-align: center;
+    }
+
+    button.neon-btn {
+      font-family: 'Orbitron', sans-serif;
+      padding: 12px 28px; font-size: 14px; font-weight: bold;
+      color: #fff; background: rgba(0, 255, 204, 0.12);
+      border: 1px solid var(--accent); border-radius: 8px;
+      cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.25), inset 0 0 10px rgba(0, 255, 204, 0.15);
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-top: 6px;
+    }
+
+    button.neon-btn:hover {
+      background: rgba(0, 255, 204, 0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.6), inset 0 0 20px rgba(0, 255, 204, 0.4);
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    button.neon-btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #9cb3d6;
+    }
+
+    .hidden { display: none !important; }
+
+    #particles-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .controls-hint {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px; color: #8e9db8; line-height: 1.4;
+      text-align: left;
+    }
+    .key-badge {
+      display: inline-block; padding: 1px 4px;
+      background: #141829; border: 1px solid #2d3859;
+      border-radius: 4px; color: var(--accent); font-family: monospace; font-size: 10px;
+    }
+
+    /* Leaderboard Modal / Hall of Fame */
+    .hall-of-fame-list {
+      width: 100%; max-width: 320px;
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 255, 204, 0.2);
+      border-radius: 8px; padding: 10px; margin-bottom: 16px;
+      font-family: 'Orbitron', monospace; font-size: 12px;
+    }
+    .hall-row {
+      display: flex; justify-content: space-between; padding: 4px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .hall-row:last-child { border-bottom: none; }
+    .hall-rank { color: var(--gold); }
+    .hall-name { color: #fff; font-weight: bold; }
+    .hall-score { color: var(--accent); }
+
+    .initials-input {
+      background: #090c1a; border: 2px solid var(--accent);
+      color: #fff; font-family: 'Orbitron', monospace; font-size: 22px;
+      width: 120px; text-align: center; text-transform: uppercase;
+      padding: 6px; border-radius: 6px; outline: none; margin-bottom: 14px;
+      letter-spacing: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <div class="header-bar">
+    <h1 class="title">NEON SNAKE</h1>
+    <div class="subtitle-badge">
+      <span>SECTOR:</span>
+      <b id="sector-badge" style="color:#fff;">1: NEO MATRIX</b>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <!-- Left Panel -->
+    <div class="panel">
+      <div class="box">
+        <div class="box-title">Score</div>
+        <div id="score" class="box-value">0</div>
+      </div>
+      
+      <div class="box multiplier-box">
+        <div class="box-title" style="color: var(--gold);">Combo Boost</div>
+        <div id="multiplier" class="box-value" style="color: var(--gold); text-shadow: 0 0 15px var(--gold);">x1</div>
+        <div class="multiplier-meter">
+          <div id="multiplier-fill" class="multiplier-fill"></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Sector Progress</div>
+        <div id="sector-progress" class="box-value" style="color: var(--accent); font-size: 18px;">0 / 10</div>
+        <div class="multiplier-meter" style="margin-top: 4px;">
+          <div id="sector-meter" style="height:100%; width:0%; background: var(--accent); transition: width 0.2s;"></div>
+        </div>
+      </div>
+
+      <div class="box powerup-box">
+        <div class="box-title" style="color: #66b3ff;">Active Boosts</div>
+        <div id="powerups-active">
+          <div style="color: #667799; font-size: 10px; padding: 4px 0; text-align: center;">No Boosts Active</div>
+        </div>
+      </div>
+
+      <div class="box audio-control-group">
+        <div class="audio-label">Music Track</div>
+        <select id="music-select" class="retro-select">
+          <option value="cyber">Cyber Viper (Synth)</option>
+          <option value="arcade">Neon 8-Bit (Arcade)</option>
+          <option value="none">Music Muted</option>
+        </select>
+
+        <div class="audio-label" style="margin-top: 2px;">Volume</div>
+        <div class="slider-row">
+          <input type="range" id="volume-slider" class="retro-slider" min="0" max="1" step="0.05" value="0.4">
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Board -->
+    <div id="board-wrapper">
+      <canvas id="board" width="520" height="520"></canvas>
+      <canvas id="particles-canvas" width="520" height="520"></canvas>
+      
+      <!-- Start Overlay -->
+      <div id="start-overlay" class="overlay">
+        <h1>NEON SNAKE</h1>
+        <p style="color: #a4c2e6; font-size: 13px; margin-bottom: 20px; text-align: center; max-width: 340px; line-height: 1.6;">
+          Navigate 5 hazardous cyberpunk sectors, collect quantum food, grab power-up capsules, and claim your place in the Hall of Fame!
+        </p>
+        <button id="start-btn" class="neon-btn">INITIALIZE RUN</button>
+        <button id="hall-of-fame-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">HALL OF FAME</button>
+      </div>
+
+      <!-- Sector Cleared Overlay -->
+      <div id="sector-overlay" class="overlay hidden">
+        <h1 style="color: var(--accent); text-shadow: 0 0 25px var(--accent);">SECTOR CLEARED!</h1>
+        <div class="overlay-stats">
+          <div style="font-size: 14px; color: #a4c2e6;">COMPLETED: <b id="cleared-sector-name" style="color:#fff;">SECTOR 1</b></div>
+          <div style="color: var(--gold); font-size: 22px;">BONUS: <span id="sector-bonus-pts">+1,500</span></div>
+          <div style="font-size: 13px; color: #79a6d2;">NEW HAZARDS UNLOCKED IN NEXT SECTOR</div>
+        </div>
+        <button id="next-sector-btn" class="neon-btn">ENGAGE NEXT SECTOR</button>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div id="pause-overlay" class="overlay hidden">
+        <h1>SYSTEM PAUSED</h1>
+        <button id="resume-btn" class="neon-btn">RESUME</button>
+        <button id="quit-btn" class="neon-btn neon-btn-secondary" style="margin-top: 8px;">ABORT MISSION</button>
+      </div>
+      
+      <!-- Game Over Overlay -->
+      <div id="game-over-overlay" class="overlay hidden">
+        <h1 style="text-shadow: 0 0 25px var(--danger); color: #fff;">SYSTEM CRASH</h1>
+        <div class="overlay-stats">
+          <div>FINAL SCORE: <span id="final-score" style="color:#fff; font-weight: bold;">0</span></div>
+          <div style="font-size: 13px; color: #ff99bb;">REACHED: <span id="final-sector">SECTOR 1</span></div>
+        </div>
+
+        <div id="high-score-entry" class="hidden" style="display:flex; flex-direction:column; align-items:center;">
+          <div style="color: var(--gold); font-size: 13px; margin-bottom: 8px;">★ NEW HIGH SCORE! ENTER INITIALS ★</div>
+          <input type="text" id="player-initials" class="initials-input" maxlength="3" value="NEO">
+          <button id="save-score-btn" class="neon-btn">SUBMIT RECORD</button>
+        </div>
+
+        <button id="restart-btn" class="neon-btn" style="margin-top: 10px;">REBOOT SYSTEM</button>
+      </div>
+
+      <!-- Hall of Fame View -->
+      <div id="hall-of-fame-modal" class="overlay hidden">
+        <h1 style="color: var(--gold); text-shadow: 0 0 25px var(--gold);">HALL OF FAME</h1>
+        <div class="hall-of-fame-list" id="hall-of-fame-content">
+          <!-- Populated dynamically -->
+        </div>
+        <button id="close-hall-btn" class="neon-btn">CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="panel">
+      <div class="box">
+        <div class="box-title">High Score</div>
+        <div id="high-score" class="box-value" style="color: #bf00ff; text-shadow: 0 0 12px #bf00ff;">0</div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Sector Level</div>
+        <div id="sector-display" class="box-value" style="color: #00ffcc; font-size: 22px;">1</div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Snake Length</div>
+        <div id="snake-length" class="box-value" style="color: #66b3ff;">3</div>
+      </div>
+
+      <div class="box controls-hint">
+        <b style="color:#fff; font-family:'Orbitron'; font-size: 11px;">PROTOCOL:</b><br><br>
+        • Move: <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span> / <span class="key-badge">↑←↓→</span><br>
+        • Pause: <span class="key-badge">ESC</span> or <span class="key-badge">P</span><br>
+        • 🛡️ <b>Shield</b>: Absorbs 1 crash<br>
+        • ⏱️ <b>Chrono</b>: Slows down speed<br>
+        • 🧲 <b>Magnet</b>: Draws food to head<br>
+        • 💎 <b>2X Chip</b>: Doubles score
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// --- ADVANCED WEBAUDIO MUSIC & SYNTH ENGINE
+// ==========================================
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.currentTrack = 'cyber';
+    this.isPlaying = false;
+    this.timerID = null;
+    this.step = 0;
+    this.bpm = 136;
+    this.init();
+  }
+
+  init() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AudioCtx();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.4;
+    this.masterGain.connect(this.ctx.destination);
+
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = 0.35;
+    this.musicGain.connect(this.masterGain);
+
+    this.sfxGain = this.ctx.createGain();
+    this.sfxGain.gain.value = 0.5;
+    this.sfxGain.connect(this.masterGain);
+  }
+
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  setVolume(val) {
+    if (this.masterGain) {
+      this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  startMusic(trackName) {
+    if (trackName) this.currentTrack = trackName;
+    this.stopMusic();
+    if (this.currentTrack === 'none') return;
+    this.resume();
+    this.isPlaying = true;
+    this.step = 0;
+    this.nextNoteTime = this.ctx.currentTime + 0.05;
+    this.schedule();
+  }
+
+  stopMusic() {
+    this.isPlaying = false;
+    if (this.timerID) {
+      clearTimeout(this.timerID);
+      this.timerID = null;
+    }
+  }
+
+  schedule() {
+    if (!this.isPlaying || this.currentTrack === 'none') return;
+    const lookahead = 0.12;
+    const secondsPer16th = 60.0 / (this.bpm * 4);
+
+    while (this.nextNoteTime < this.ctx.currentTime + lookahead) {
+      this.playSequencerStep(this.step, this.nextNoteTime);
+      this.nextNoteTime += secondsPer16th;
+      this.step = (this.step + 1) % 32;
+    }
+    this.timerID = setTimeout(() => this.schedule(), 35);
+  }
+
+  playSequencerStep(step, time) {
+    if (this.currentTrack === 'cyber') {
+      const bassNotes = [110, 110, 130.81, 110, 146.83, 110, 164.81, 130.81];
+      const freq = bassNotes[step % 8];
+      this.triggerSynth(freq, 'sawtooth', 0.09, time, 0.25, this.musicGain, 400);
+
+      if (step % 4 === 0) this.triggerKick(time);
+      if (step % 8 === 4) this.triggerSnare(time);
+      if (step % 2 === 1) this.triggerHiHat(time, 0.08);
+
+      const leadNotes = [
+        440, 0, 523.25, 659.25, 587.33, 0, 523.25, 440,
+        659.25, 0, 783.99, 880, 783.99, 659.25, 587.33, 523.25,
+        440, 0, 523.25, 659.25, 880, 0, 783.99, 659.25,
+        587.33, 659.25, 587.33, 523.25, 493.88, 523.25, 440, 0
+      ];
+      const lFreq = leadNotes[step];
+      if (lFreq > 0) this.triggerLead(lFreq, 'square', 0.12, time, 0.18);
+    } else if (this.currentTrack === 'arcade') {
+      const chipBass = [130.81, 164.81, 196.00, 261.63, 130.81, 164.81, 196.00, 246.94];
+      this.triggerSynth(chipBass[step % 8], 'triangle', 0.1, time, 0.35, this.musicGain);
+
+      if (step % 4 === 0) this.triggerKick(time);
+      if (step % 4 === 2) this.triggerHiHat(time, 0.15);
+
+      const chipMelody = [
+        523.25, 0, 587.33, 659.25, 0, 783.99, 659.25, 0,
+        587.33, 0, 523.25, 440.00, 0, 493.88, 523.25, 0
+      ];
+      const mFreq = chipMelody[step % 16];
+      if (mFreq > 0) this.triggerSynth(mFreq, 'square', 0.08, time, 0.2, this.musicGain);
+    }
+  }
+
+  triggerSynth(freq, type, dur, time, vol, targetNode, filterFreq=0) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+    if (filterFreq > 0) {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(filterFreq, time);
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
+      osc.connect(gain);
+    }
+    gain.connect(targetNode);
+    osc.start(time);
+    osc.stop(time + dur);
+  }
+
+  triggerLead(freq, type, dur, time, vol) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+    gain.gain.setValueAtTime(0.01, time);
+    gain.gain.linearRampToValueAtTime(vol, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+    osc.start(time);
+    osc.stop(time + dur);
+  }
+
+  triggerKick(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.frequency.setValueAtTime(140, time);
+    osc.frequency.exponentialRampToValueAtTime(32, time + 0.12);
+    gain.gain.setValueAtTime(0.6, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+    osc.start(time);
+    osc.stop(time + 0.12);
+  }
+
+  triggerSnare(time) {
+    const bufferSize = this.ctx.sampleRate * 0.1;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1000;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain);
+    noise.start(time);
+    noise.stop(time + 0.1);
+  }
+
+  triggerHiHat(time, vol=0.1) {
+    const bufferSize = this.ctx.sampleRate * 0.04;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 6500;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain);
+    noise.start(time);
+    noise.stop(time + 0.04);
+  }
+
+  playEat(combo = 1) {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const baseFreq = 520 + (combo * 60);
+    [baseFreq, baseFreq * 1.5, baseFreq * 2].forEach((f, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, t + (idx * 0.04));
+      gain.gain.setValueAtTime(0.35, t + (idx * 0.04));
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (idx * 0.04) + 0.18);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t + (idx * 0.04));
+      osc.stop(t + (idx * 0.04) + 0.2);
+    });
+  }
+
+  playPowerup() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const chords = [440, 554.37, 659.25, 880, 1108.73];
+    chords.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t + (idx * 0.05));
+      gain.gain.setValueAtTime(0.3, t + (idx * 0.05));
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (idx * 0.05) + 0.22);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t + (idx * 0.05));
+      osc.stop(t + (idx * 0.05) + 0.23);
+    });
+  }
+
+  playSectorClear() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    fanfare.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, t + (idx * 0.08));
+      gain.gain.setValueAtTime(0.35, t + (idx * 0.08));
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (idx * 0.08) + 0.35);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t + (idx * 0.08));
+      osc.stop(t + (idx * 0.08) + 0.36);
+    });
+  }
+
+  playShieldAbsorb() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(150, t + 0.3);
+    gain.gain.setValueAtTime(0.5, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.32);
+  }
+
+  playTurn() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(380, t);
+    gain.gain.setValueAtTime(0.04, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.03);
+  }
+
+  playCrash() {
+    this.resume();
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(30, t + 0.5);
+    gain.gain.setValueAtTime(0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.55);
+
+    const bufferSize = this.ctx.sampleRate * 0.4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const nGain = this.ctx.createGain();
+    nGain.gain.setValueAtTime(0.5, t);
+    nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    noise.connect(nGain);
+    nGain.connect(this.sfxGain);
+    noise.start(t);
+    noise.stop(t + 0.4);
+  }
+}
+
+const audio = new SoundEngine();
+
+// ==========================================
+// --- SECTORS / MULTIPLE LEVELS CONFIG
+// ==========================================
+const SECTOR_CONFIGS = [
+  {
+    name: "NEO MATRIX",
+    targetFood: 10,
+    obstacles: [], // open field
+    themeColor: "#00ffcc",
+    speed: 110
+  },
+  {
+    name: "CYBER BARRICADES",
+    targetFood: 12,
+    obstacles: [
+      // 4 Corner Obstacle Nodes
+      { x: 3, y: 3, w: 2, h: 2 },
+      { x: 15, y: 3, w: 2, h: 2 },
+      { x: 3, y: 15, w: 2, h: 2 },
+      { x: 15, y: 15, w: 2, h: 2 }
+    ],
+    themeColor: "#3399ff",
+    speed: 100
+  },
+  {
+    name: "LASER CORE",
+    targetFood: 14,
+    obstacles: [
+      // Central Pylons
+      { x: 9, y: 5, w: 2, h: 3 },
+      { x: 9, y: 12, w: 2, h: 3 },
+      { x: 5, y: 9, w: 3, h: 2 },
+      { x: 12, y: 9, w: 3, h: 2 }
+    ],
+    themeColor: "#bf00ff",
+    speed: 92
+  },
+  {
+    name: "DATA LABYRINTH",
+    targetFood: 16,
+    obstacles: [
+      // Horizontal Barrier Gates
+      { x: 2, y: 6, w: 7, h: 1 },
+      { x: 11, y: 6, w: 7, h: 1 },
+      { x: 2, y: 13, w: 7, h: 1 },
+      { x: 11, y: 13, w: 7, h: 1 }
+    ],
+    themeColor: "#ff0055",
+    speed: 85
+  },
+  {
+    name: "QUANTUM SINGULARITY",
+    targetFood: 20,
+    obstacles: [
+      // Concentric core ring
+      { x: 7, y: 7, w: 6, h: 1 },
+      { x: 7, y: 12, w: 6, h: 1 },
+      { x: 7, y: 8, w: 1, h: 4 },
+      { x: 12, y: 8, w: 1, h: 4 }
+    ],
+    themeColor: "#ffcc00",
+    speed: 78
+  }
+];
+
+// ==========================================
+// --- PERSISTENT HALL OF FAME LEADERBOARD
+// ==========================================
+const LEADERBOARD_KEY = 'neon_snake_hall_of_fame';
+function getLeaderboard() {
+  const saved = localStorage.getItem(LEADERBOARD_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e){}
+  }
+  return [
+    { rank: 1, name: "NEO", score: 8500, sector: 4 },
+    { rank: 2, name: "CYB", score: 6200, sector: 3 },
+    { rank: 3, name: "TRX", score: 4800, sector: 2 },
+    { rank: 4, name: "ACE", score: 3200, sector: 2 },
+    { rank: 5, name: "GLT", score: 1500, sector: 1 }
+  ];
+}
+
+function saveLeaderboardRecord(name, score, sector) {
+  let list = getLeaderboard();
+  list.push({ name: name.toUpperCase().slice(0, 3) || "AAA", score: score, sector: sector });
+  list.sort((a, b) => b.score - a.score);
+  list = list.slice(0, 5);
+  list.forEach((entry, idx) => entry.rank = idx + 1);
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
+  renderHallOfFameUI();
+}
+
+function renderHallOfFameUI() {
+  const container = document.getElementById('hall-of-fame-content');
+  const list = getLeaderboard();
+  container.innerHTML = list.map(item => `
+    <div class="hall-row">
+      <span class="hall-rank">#${item.rank}</span>
+      <span class="hall-name">${item.name}</span>
+      <span style="color:#79a6d2;">SEC ${item.sector}</span>
+      <span class="hall-score">${item.score.toLocaleString()}</span>
+    </div>
+  `).join('');
+}
+
+// ==========================================
+// --- VISUALS, PARTICLE SYSTEM & SHAKE
+// ==========================================
+const pCanvas = document.getElementById('particles-canvas');
+const pCtx = pCanvas.getContext('2d');
+let particles = [];
+let floatingTexts = [];
+let shockwaves = [];
+let screenShake = 0;
+
+function triggerScreenShake(amt = 10) { screenShake = amt; }
+
+function spawnParticles(x, y, color, count = 25, speedMult = 1) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = (Math.random() * 5 + 2) * speedMult;
+    particles.push({
+      x: x, y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: Math.random() * 4 + 2,
+      life: 1.0,
+      decay: Math.random() * 0.02 + 0.02,
+      color: color
+    });
+  }
+}
+
+function spawnShockwave(x, y, color) {
+  shockwaves.push({ x: x, y: y, radius: 4, maxRadius: 75, color: color, alpha: 1.0 });
+}
+
+function spawnFloatingText(text, x, y, color = '#00ffcc') {
+  floatingTexts.push({ text: text, x: x, y: y, vy: -1.3, alpha: 1.0, color: color });
+}
+
+function updateAndRenderEffects() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const sw = shockwaves[i];
+    sw.radius += 3.2;
+    sw.alpha = 1 - (sw.radius / sw.maxRadius);
+    if (sw.alpha <= 0) {
+      shockwaves.splice(i, 1);
+      continue;
+    }
+    pCtx.save();
+    pCtx.beginPath();
+    pCtx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+    pCtx.strokeStyle = sw.color;
+    pCtx.globalAlpha = sw.alpha * 0.8;
+    pCtx.lineWidth = 3;
+    pCtx.stroke();
+    pCtx.restore();
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.94;
+    p.vy *= 0.94;
+    p.life -= p.decay;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      continue;
+    }
+    pCtx.save();
+    pCtx.globalAlpha = p.life;
+    pCtx.fillStyle = p.color;
+    pCtx.shadowBlur = 10;
+    pCtx.shadowColor = p.color;
+    pCtx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    pCtx.restore();
+  }
+
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy;
+    ft.alpha -= 0.02;
+    if (ft.alpha <= 0) {
+      floatingTexts.splice(i, 1);
+      continue;
+    }
+    pCtx.save();
+    pCtx.globalAlpha = ft.alpha;
+    pCtx.font = "bold 15px 'Orbitron'";
+    pCtx.fillStyle = ft.color;
+    pCtx.shadowBlur = 12;
+    pCtx.shadowColor = ft.color;
+    pCtx.textAlign = 'center';
+    pCtx.fillText(ft.text, ft.x, ft.y);
+    pCtx.restore();
+  }
+
+  const gameContainer = document.getElementById('game-container');
+  if (screenShake > 0) {
+    const sx = (Math.random() - 0.5) * screenShake;
+    const sy = (Math.random() - 0.5) * screenShake;
+    gameContainer.style.transform = `translate(${sx}px, ${sy}px)`;
+    screenShake *= 0.85;
+    if (screenShake < 0.5) {
+      screenShake = 0;
+      gameContainer.style.transform = 'none';
+    }
+  }
+}
+
+// ==========================================
+// --- GAMEPLAY ENGINE WITH MULTI-LEVEL LOGIC
+// ==========================================
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+
+const GRID = 20;
+const TILE_SIZE = canvas.width / GRID; // 26px
+
+let snake = [];
+let prevSnake = [];
+let dir = { x: 1, y: 0 };
+let nextDir = { x: 1, y: 0 };
+let food = { x: 15, y: 10 };
+
+let currentSectorIndex = 0;
+let sectorFoodEaten = 0;
+
+// Power-ups
+let activePowerup = null; // { type, timer, maxTimer }
+let droppedCapsule = null; // { x, y, type, timer }
+
+let score = 0;
+let highScore = 0;
+let multiplier = 1;
+let comboTimer = 0;
+const MAX_COMBO_TIME = 2200;
+let gameState = 'start';
+let lastTime = 0;
+let moveAccumulator = 0;
+let animationId = null;
+
+let pulseWaves = [];
+
+function initSector(sectorIdx) {
+  currentSectorIndex = sectorIdx % SECTOR_CONFIGS.length;
+  sectorFoodEaten = 0;
+
+  const cfg = SECTOR_CONFIGS[currentSectorIndex];
+  document.getElementById('sector-badge').innerText = `${currentSectorIndex + 1}: ${cfg.name}`;
+  document.getElementById('sector-display').innerText = `${currentSectorIndex + 1}`;
+
+  // Reset snake position safe from obstacles
+  snake = [
+    { x: 2, y: 1 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 }
+  ];
+  prevSnake = JSON.parse(JSON.stringify(snake));
+  dir = { x: 1, y: 0 };
+  nextDir = { x: 1, y: 0 };
+  pulseWaves = [];
+  droppedCapsule = null;
+
+  randomFood();
+  updateUI();
+}
+
+function isTileBlockedByObstacle(x, y) {
+  const obstacles = SECTOR_CONFIGS[currentSectorIndex].obstacles;
+  for (let obs of obstacles) {
+    if (x >= obs.x && x < obs.x + obs.w && y >= obs.y && y < obs.y + obs.h) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function randomFood() {
+  let valid = false;
+  while (!valid) {
+    food = {
+      x: Math.floor(Math.random() * GRID),
+      y: Math.floor(Math.random() * GRID)
+    };
+    valid = !isTileBlockedByObstacle(food.x, food.y);
+    if (valid) {
+      for (let s of snake) {
+        if (s.x === food.x && s.y === food.y) valid = false;
+      }
+    }
+  }
+}
+
+function maybeSpawnCapsule() {
+  if (droppedCapsule || Math.random() > 0.4) return;
+  const types = ['shield', 'chrono', 'magnet', 'chip'];
+  const type = types[Math.floor(Math.random() * types.length)];
+
+  let valid = false;
+  let cx = 0, cy = 0;
+  while (!valid) {
+    cx = Math.floor(Math.random() * GRID);
+    cy = Math.floor(Math.random() * GRID);
+    valid = !isTileBlockedByObstacle(cx, cy) && (cx !== food.x || cy !== food.y);
+    for (let s of snake) if (s.x === cx && s.y === cy) valid = false;
+  }
+
+  droppedCapsule = { x: cx, y: cy, type: type, timer: 9000, maxTimer: 9000 };
+  spawnShockwave(cx * TILE_SIZE + TILE_SIZE/2, cy * TILE_SIZE + TILE_SIZE/2, '#bf00ff');
+}
+
+function updateUI() {
+  document.getElementById('score').innerText = score;
+  const list = getLeaderboard();
+  highScore = Math.max(score, list[0] ? list[0].score : 0);
+  document.getElementById('high-score').innerText = highScore;
+  document.getElementById('multiplier').innerText = `x${multiplier}`;
+  document.getElementById('snake-length').innerText = snake.length;
+
+  const cfg = SECTOR_CONFIGS[currentSectorIndex];
+  document.getElementById('sector-progress').innerText = `${sectorFoodEaten} / ${cfg.targetFood}`;
+  const pct = Math.min(100, (sectorFoodEaten / cfg.targetFood) * 100);
+  document.getElementById('sector-meter').style.width = `${pct}%`;
+
+  // Powerup HUD
+  const pContainer = document.getElementById('powerups-active');
+  if (activePowerup) {
+    const names = { shield: '🛡️ SHIELD MATRIX', chrono: '⏱️ CHRONO FREEZE', magnet: '🧲 QUANTUM MAGNET', chip: '💎 2X MULTIPLIER' };
+    const pct = Math.max(0, (activePowerup.timer / activePowerup.maxTimer) * 100);
+    pContainer.innerHTML = `
+      <div class="powerup-row">
+        <span>${names[activePowerup.type]}</span>
+        <div class="powerup-meter-bg">
+          <div class="powerup-meter-fill" style="width:${pct}%;"></div>
+        </div>
+      </div>
+    `;
+  } else {
+    pContainer.innerHTML = `<div style="color: #667799; font-size: 10px; padding: 4px 0; text-align: center;">No Boosts Active</div>`;
+  }
+}
+
+function triggerDeath() {
+  // If shield active, consume shield instead of dying!
+  if (activePowerup && activePowerup.type === 'shield') {
+    activePowerup = null;
+    audio.playShieldAbsorb();
+    triggerScreenShake(12);
+    spawnShockwave(snake[0].x * TILE_SIZE + TILE_SIZE/2, snake[0].y * TILE_SIZE + TILE_SIZE/2, '#3399ff');
+    spawnFloatingText('SHIELD ABSORBED CRASH!', snake[0].x * TILE_SIZE + TILE_SIZE/2, snake[0].y * TILE_SIZE, '#3399ff');
+    updateUI();
+    return;
+  }
+
+  gameState = 'gameover';
+  audio.stopMusic();
+  audio.playCrash();
+  triggerScreenShake(24);
+
+  snake.forEach(seg => {
+    spawnParticles(seg.x * TILE_SIZE + TILE_SIZE/2, seg.y * TILE_SIZE + TILE_SIZE/2, '#ff0055', 12, 1.4);
+  });
+
+  const list = getLeaderboard();
+  const qualifies = score > list[list.length - 1].score;
+
+  document.getElementById('final-score').innerText = score;
+  document.getElementById('final-sector').innerText = `SECTOR ${currentSectorIndex + 1}: ${SECTOR_CONFIGS[currentSectorIndex].name}`;
+
+  if (qualifies) {
+    document.getElementById('high-score-entry').classList.remove('hidden');
+  } else {
+    document.getElementById('high-score-entry').classList.add('hidden');
+  }
+  document.getElementById('game-over-overlay').classList.remove('hidden');
+}
+
+function triggerSectorClear() {
+  gameState = 'cleared';
+  audio.playSectorClear();
+  triggerScreenShake(8);
+
+  const bonus = 1000 + (currentSectorIndex * 500);
+  score += bonus;
+  updateUI();
+
+  document.getElementById('cleared-sector-name').innerText = `SECTOR ${currentSectorIndex + 1}: ${SECTOR_CONFIGS[currentSectorIndex].name}`;
+  document.getElementById('sector-bonus-pts').innerText = `+${bonus.toLocaleString()}`;
+  document.getElementById('sector-overlay').classList.remove('hidden');
+}
+
+function stepGame() {
+  dir = nextDir;
+  prevSnake = JSON.parse(JSON.stringify(snake));
+
+  let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+  // Wrap around screen border
+  if (head.x < 0) head.x = GRID - 1;
+  if (head.x >= GRID) head.x = 0;
+  if (head.y < 0) head.y = GRID - 1;
+  if (head.y >= GRID) head.y = 0;
+
+  // Collision with obstacles
+  if (isTileBlockedByObstacle(head.x, head.y)) {
+    triggerDeath();
+    return;
+  }
+
+  // Collision with self
+  for (let i = 0; i < snake.length; i++) {
+    if (snake[i].x === head.x && snake[i].y === head.y) {
+      triggerDeath();
+      return;
+    }
+  }
+
+  snake.unshift(head);
+
+  // Magnet effect: attract food if within 4 tiles
+  if (activePowerup && activePowerup.type === 'magnet') {
+    const dx = food.x - head.x;
+    const dy = food.y - head.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 4.5 && dist > 0.5) {
+      const stepX = Math.sign(dx);
+      const stepY = Math.sign(dy);
+      if (!isTileBlockedByObstacle(food.x - stepX, food.y)) food.x -= stepX;
+      else if (!isTileBlockedByObstacle(food.x, food.y - stepY)) food.y -= stepY;
+    }
+  }
+
+  // Advance pulse waves
+  for (let i = pulseWaves.length - 1; i >= 0; i--) {
+    pulseWaves[i].progress += 1;
+    if (pulseWaves[i].progress >= snake.length) pulseWaves.splice(i, 1);
+  }
+
+  let ateFood = false;
+
+  // Check food eat
+  if (head.x === food.x && head.y === food.y) {
+    ateFood = true;
+    let gained = 100 * multiplier;
+    if (activePowerup && activePowerup.type === 'chip') gained *= 2;
+    score += gained;
+    sectorFoodEaten++;
+
+    audio.playEat(multiplier);
+    triggerScreenShake(4);
+
+    const fx = food.x * TILE_SIZE + TILE_SIZE/2;
+    const fy = food.y * TILE_SIZE + TILE_SIZE/2;
+    spawnParticles(fx, fy, '#00ffcc', 30, 1.2);
+    spawnShockwave(fx, fy, '#00ffcc');
+    spawnFloatingText(`+${gained}`, fx, fy - 10, multiplier > 1 ? '#ffcc00' : '#00ffcc');
+
+    multiplier = Math.min(8, multiplier + 1);
+    comboTimer = MAX_COMBO_TIME;
+    pulseWaves.push({ progress: 0 });
+
+    const cfg = SECTOR_CONFIGS[currentSectorIndex];
+    if (sectorFoodEaten >= cfg.targetFood) {
+      triggerSectorClear();
+      return;
+    }
+
+    maybeSpawnCapsule();
+    randomFood();
+    updateUI();
+  }
+
+  // Check capsule collect
+  if (droppedCapsule && head.x === droppedCapsule.x && head.y === droppedCapsule.y) {
+    audio.playPowerup();
+    triggerScreenShake(6);
+    const cx = droppedCapsule.x * TILE_SIZE + TILE_SIZE/2;
+    const cy = droppedCapsule.y * TILE_SIZE + TILE_SIZE/2;
+    spawnParticles(cx, cy, '#bf00ff', 40, 1.5);
+    spawnShockwave(cx, cy, '#bf00ff');
+
+    const duration = droppedCapsule.type === 'shield' ? 15000 : 7000;
+    activePowerup = { type: droppedCapsule.type, timer: duration, maxTimer: duration };
+    spawnFloatingText(`${droppedCapsule.type.toUpperCase()} ACTIVATED!`, cx, cy - 12, '#ffcc00');
+
+    droppedCapsule = null;
+    updateUI();
+  }
+
+  if (!ateFood) {
+    snake.pop();
+  }
+}
+
+// ==========================================
+// --- CANVAS DRAWING ROUTINE
+// ==========================================
+function drawBoard(interpRatio) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const cfg = SECTOR_CONFIGS[currentSectorIndex];
+  const theme = cfg.themeColor;
+  const now = performance.now();
+
+  // Grid Lines
+  ctx.strokeStyle = 'rgba(0, 255, 204, 0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= GRID; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * TILE_SIZE, 0); ctx.lineTo(i * TILE_SIZE, canvas.height); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i * TILE_SIZE); ctx.lineTo(canvas.width, i * TILE_SIZE); ctx.stroke();
+  }
+
+  // --- DRAW SECTOR OBSTACLES ---
+  for (let obs of cfg.obstacles) {
+    const ox = obs.x * TILE_SIZE;
+    const oy = obs.y * TILE_SIZE;
+    const ow = obs.w * TILE_SIZE;
+    const oh = obs.h * TILE_SIZE;
+
+    ctx.save();
+    ctx.fillStyle = '#0a0d24';
+    ctx.strokeStyle = theme;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = theme;
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.roundRect(ox + 2, oy + 2, ow - 4, oh - 4, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Laser Core Pattern
+    ctx.fillStyle = theme;
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(ox + 6, oy + 6, ow - 12, oh - 12);
+    ctx.restore();
+  }
+
+  // --- DRAW FOOD ---
+  const foodPx = food.x * TILE_SIZE + TILE_SIZE/2;
+  const foodPy = food.y * TILE_SIZE + TILE_SIZE/2;
+  const pulse = Math.sin(now * 0.008) * 2;
+  const foodRadius = (TILE_SIZE / 2 - 4) + pulse;
+
+  const foodGrad = ctx.createRadialGradient(foodPx, foodPy, 2, foodPx, foodPy, foodRadius + 8);
+  foodGrad.addColorStop(0, '#ffffff');
+  foodGrad.addColorStop(0.4, '#00ffcc');
+  foodGrad.addColorStop(1, 'rgba(0, 255, 204, 0)');
+
+  ctx.save();
+  ctx.fillStyle = foodGrad;
+  ctx.beginPath();
+  ctx.arc(foodPx, foodPy, foodRadius + 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.arc(foodPx, foodPy, Math.max(3, foodRadius - 2), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // --- DRAW DROPPED CAPSULE ---
+  if (droppedCapsule) {
+    const cx = droppedCapsule.x * TILE_SIZE + TILE_SIZE/2;
+    const cy = droppedCapsule.y * TILE_SIZE + TILE_SIZE/2;
+    ctx.save();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#bf00ff';
+    ctx.fillStyle = '#bf00ff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, TILE_SIZE/2 - 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = "bold 12px 'Orbitron'";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const icon = { shield: 'S', chrono: 'T', magnet: 'M', chip: '2X' }[droppedCapsule.type];
+    ctx.fillText(icon, cx, cy);
+    ctx.restore();
+  }
+
+  // --- DRAW SNAKE ---
+  if (snake.length > 0) {
+    ctx.save();
+    for (let i = snake.length - 1; i >= 0; i--) {
+      const cur = snake[i];
+      const prev = prevSnake[i] || cur;
+
+      let drawX = cur.x;
+      let drawY = cur.y;
+      if (Math.abs(cur.x - prev.x) <= 1 && Math.abs(cur.y - prev.y) <= 1) {
+        drawX = prev.x + (cur.x - prev.x) * interpRatio;
+        drawY = prev.y + (cur.y - prev.y) * interpRatio;
+      }
+
+      const px = drawX * TILE_SIZE + TILE_SIZE/2;
+      const py = drawY * TILE_SIZE + TILE_SIZE/2;
+
+      let isPulsing = false;
+      for (let pw of pulseWaves) if (Math.floor(pw.progress) === i) isPulsing = true;
+
+      const progress = i / snake.length;
+      let segRadius = (TILE_SIZE / 2 - 2) * (1 - progress * 0.35);
+      if (isPulsing) segRadius *= 1.25;
+
+      ctx.beginPath();
+      ctx.arc(px, py, segRadius, 0, Math.PI * 2);
+
+      if (i === 0) {
+        // Head
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = (activePowerup && activePowerup.type === 'shield') ? '#3399ff' : (isPulsing ? '#ffcc00' : '#00ffcc');
+        ctx.shadowBlur = 22;
+        ctx.fill();
+
+        // Eyes
+        const eyeOffset = 5;
+        let eye1X = px, eye1Y = py, eye2X = px, eye2Y = py;
+        if (dir.x === 1) { eye1X = px + 4; eye1Y = py - eyeOffset; eye2X = px + 4; eye2Y = py + eyeOffset; }
+        else if (dir.x === -1) { eye1X = px - 4; eye1Y = py - eyeOffset; eye2X = px - 4; eye2Y = py + eyeOffset; }
+        else if (dir.y === -1) { eye1X = px - eyeOffset; eye1Y = py - 4; eye2X = px + eyeOffset; eye2Y = py - 4; }
+        else { eye1X = px - eyeOffset; eye1Y = py + 4; eye2X = px + eyeOffset; eye2Y = py + 4; }
+
+        ctx.fillStyle = '#050610';
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(eye1X, eye1Y, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eye2X, eye2Y, 2.5, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // Body
+        const r = Math.round(0 + progress * 160);
+        const g = Math.round(255 - progress * 180);
+        const b = Math.round(204 + progress * 51);
+        ctx.fillStyle = isPulsing ? '#ffcc00' : `rgb(${r}, ${g}, ${b})`;
+        ctx.shadowColor = isPulsing ? '#ffcc00' : '#00ffcc';
+        ctx.shadowBlur = isPulsing ? 18 : 10;
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+}
+
+// ==========================================
+// --- GAME LOOP & UPDATES
+// ==========================================
+function gameLoop(timestamp) {
+  if (gameState !== 'playing') {
+    lastTime = timestamp;
+    updateAndRenderEffects();
+    animationId = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  let dt = timestamp - lastTime;
+  lastTime = timestamp;
+  if (dt > 150) dt = 16;
+
+  // Combo decay
+  if (comboTimer > 0) {
+    comboTimer -= dt;
+    const fillPct = Math.max(0, (comboTimer / MAX_COMBO_TIME) * 100);
+    document.getElementById('multiplier-fill').style.width = `${fillPct}%`;
+    if (comboTimer <= 0) {
+      multiplier = 1;
+      updateUI();
+    }
+  } else {
+    document.getElementById('multiplier-fill').style.width = '0%';
+  }
+
+  // Active powerup decay
+  if (activePowerup) {
+    activePowerup.timer -= dt;
+    if (activePowerup.timer <= 0) {
+      activePowerup = null;
+    }
+    updateUI();
+  }
+
+  // Dropped capsule decay
+  if (droppedCapsule) {
+    droppedCapsule.timer -= dt;
+    if (droppedCapsule.timer <= 0) droppedCapsule = null;
+  }
+
+  // Speed calculation based on sector & Chrono powerup
+  const cfg = SECTOR_CONFIGS[currentSectorIndex];
+  let effectiveSpeed = cfg.speed;
+  if (activePowerup && activePowerup.type === 'chrono') {
+    effectiveSpeed *= 1.45; // Slow down
+  }
+
+  moveAccumulator += dt;
+  while (moveAccumulator >= effectiveSpeed) {
+    moveAccumulator -= effectiveSpeed;
+    stepGame();
+  }
+
+  const interp = Math.min(1.0, moveAccumulator / effectiveSpeed);
+  drawBoard(interp);
+  updateAndRenderEffects();
+
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+// ==========================================
+// --- INPUTS & LIFECYCLE
+// ==========================================
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+    if (gameState === 'playing') {
+      gameState = 'paused';
+      audio.stopMusic();
+      document.getElementById('pause-overlay').classList.remove('hidden');
+    } else if (gameState === 'paused') {
+      gameState = 'playing';
+      document.getElementById('pause-overlay').classList.add('hidden');
+      audio.startMusic(document.getElementById('music-select').value);
+    }
+    return;
+  }
+
+  if (gameState !== 'playing') return;
+
+  let changed = false;
+  if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && dir.y !== 1) {
+    nextDir = { x: 0, y: -1 }; changed = true;
+  } else if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && dir.y !== -1) {
+    nextDir = { x: 0, y: 1 }; changed = true;
+  } else if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && dir.x !== 1) {
+    nextDir = { x: -1, y: 0 }; changed = true;
+  } else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && dir.x !== -1) {
+    nextDir = { x: 1, y: 0 }; changed = true;
+  }
+
+  if (changed) audio.playTurn();
+});
+
+function startGame() {
+  audio.resume();
+  score = 0;
+  multiplier = 1;
+  comboTimer = 0;
+  activePowerup = null;
+  initSector(0);
+  gameState = 'playing';
+  document.getElementById('start-overlay').classList.add('hidden');
+  document.getElementById('game-over-overlay').classList.add('hidden');
+  document.getElementById('sector-overlay').classList.add('hidden');
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+document.getElementById('next-sector-btn').addEventListener('click', () => {
+  document.getElementById('sector-overlay').classList.add('hidden');
+  initSector(currentSectorIndex + 1);
+  gameState = 'playing';
+  audio.startMusic(document.getElementById('music-select').value);
+});
+
+document.getElementById('resume-btn').addEventListener('click', () => {
+  gameState = 'playing';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  audio.startMusic(document.getElementById('music-select').value);
+});
+
+document.getElementById('quit-btn').addEventListener('click', () => {
+  gameState = 'start';
+  document.getElementById('pause-overlay').classList.add('hidden');
+  document.getElementById('start-overlay').classList.remove('hidden');
+});
+
+document.getElementById('hall-of-fame-btn').addEventListener('click', () => {
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+});
+
+document.getElementById('close-hall-btn').addEventListener('click', () => {
+  document.getElementById('hall-of-fame-modal').classList.add('hidden');
+});
+
+document.getElementById('save-score-btn').addEventListener('click', () => {
+  const initials = document.getElementById('player-initials').value;
+  saveLeaderboardRecord(initials, score, currentSectorIndex + 1);
+  document.getElementById('high-score-entry').classList.add('hidden');
+  renderHallOfFameUI();
+  document.getElementById('hall-of-fame-modal').classList.remove('hidden');
+});
+
+document.getElementById('music-select').addEventListener('change', (e) => {
+  audio.startMusic(e.target.value);
+});
+
+document.getElementById('volume-slider').addEventListener('input', (e) => {
+  audio.setVolume(parseFloat(e.target.value));
+});
+
+// Boot init
+renderHallOfFameUI();
+initSector(0);
+drawBoard(1);
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
