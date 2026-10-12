@@ -276,6 +276,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🧀",
     description: "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
   },
+  tetris_studio: {
+    displayName: "Tetris Ultra Deluxe",
+    category: "Games & Entertainment",
+    icon: "🧱",
+    description: "Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme",
+  },
   tictactoe_studio: {
     displayName: "Neon Tic-Tac-Toe Arcade",
     category: "Games & Entertainment",

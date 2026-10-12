@@ -247,20 +247,30 @@
 
     /* Typing Area Container */
     .typing-container {
-      width: 100%; max-width: 960px; min-height: 120px; max-height: 170px;
+      width: 100%; max-width: 960px; min-height: 140px; max-height: 200px;
       position: relative; font-family: var(--font-mono); font-size: 1.85rem;
-      line-height: 1.55; font-weight: 500; color: var(--text-dim);
+      line-height: 1.6; font-weight: 500; color: var(--text-dim);
       display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 14px;
-      margin-bottom: 12px; padding: 10px 18px;
+      margin-bottom: 12px; padding: 16px 20px;
       outline: none; overflow: hidden; border-radius: 12px;
-      background: rgba(10, 16, 30, 0.4); border: 1px solid rgba(255,255,255,0.04);
+      background: rgba(10, 16, 30, 0.6); border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+      -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
     }
-    .word { display: flex; position: relative; margin-bottom: 6px; border-bottom: 2px solid transparent; }
+    #wordsWrapper {
+      display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 14px; width: 100%;
+      transition: margin-top 0.2s ease-out;
+    }
+    .word { display: flex; position: relative; margin-bottom: 6px; border-radius: 4px; border-bottom: 2px solid transparent; transition: background 0.2s, opacity 0.2s; }
+    .word.active-word { background: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 0 var(--neon-cyan); }
     .word.error { border-bottom-color: var(--error-red); }
+    .word.passed { opacity: 0.4; }
     .letter { position: relative; transition: color 0.08s; }
     .letter.correct { color: var(--text-main); text-shadow: 0 0 6px rgba(255,255,255,0.25); }
     .letter.incorrect { color: var(--error-red); text-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
     .letter.extra { color: var(--error-red); opacity: 0.8; }
+
     
     /* Smooth Animated Cursor */
     .cursor {
@@ -481,6 +491,8 @@
     <div class="mode-group">
       <button class="mode-btn active" data-mode="time">⏱️ Time</button>
       <button class="mode-btn" data-mode="words">📝 Words</button>
+      <button class="mode-btn" data-mode="paragraphs">📄 Paragraphs</button>
+      <button class="mode-btn" data-mode="letters">🔤 Letters</button>
       <button class="mode-btn" data-mode="lessons">🎓 Lessons</button>
       <button class="mode-btn" data-mode="quote">📜 Quotes</button>
       <button class="mode-btn" data-mode="code">💻 Code</button>
@@ -756,6 +768,17 @@
       "function binarySearch(arr, target) { let left = 0, right = arr.length - 1; while (left <= right) { const mid = (left + right) >> 1; } }"
     ];
 
+    const paragraphsList = [
+      "The quick brown fox jumps over the lazy dog. This sentence contains every letter in the English alphabet. Typing it repeatedly is a great way to improve your speed and accuracy on a standard QWERTY keyboard layout.",
+      "In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move. Many races believe that it was created by some sort of god.",
+      "The term 'cyberspace' was coined by William Gibson in his 1982 short story 'Burning Chrome'. It popularized the concept of a global computer network, well before the World Wide Web was invented.",
+      "Mechanical keyboards offer a tactile typing experience that many professionals and enthusiasts prefer. The distinct feedback from each keystroke can lead to faster typing speeds and reduced finger fatigue during long sessions.",
+      "To be, or not to be, that is the question: Whether 'tis nobler in the mind to suffer The slings and arrows of outrageous fortune, Or to take Arms against a Sea of troubles, And by opposing end them."
+    ];
+
+    const lettersList = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+
     const lessonCurriculum = [
       { name: "Home Row Mastery", pool: ["asdf", "jkl;", "fdsa", "asdf jkl;", "fads", "glad", "flask", "half", "fall", "salad", "dads", "sash"] },
       { name: "Home Row + E & I", pool: ["fed", "led", "see", "fee", "lie", "die", "kid", "ill", "silk", "like", "file", "idle", "elite", "life"] },
@@ -997,6 +1020,23 @@
         elRemainingLbl.textContent = "Code";
         elTime.textContent = words.length;
       } 
+      else if (currentMode === "paragraphs") {
+        const p = paragraphsList[Math.floor(Math.random() * paragraphsList.length)];
+        words = p.split(" ");
+        elRemainingLbl.textContent = "Paragraph";
+        elTime.textContent = words.length;
+      }
+      else if (currentMode === "letters") {
+        timeRemaining = 0;
+        elRemainingLbl.textContent = "Remaining";
+        elTime.textContent = currentSubVal;
+        words = [];
+        for (let i = 0; i < currentSubVal; i++) {
+          let chunk = "";
+          for(let j=0; j<5; j++) chunk += lettersList[Math.floor(Math.random() * lettersList.length)];
+          words.push(chunk);
+        }
+      } 
       else if (currentMode === "weak") {
         // Build drill from most missed keys or fallback
         const weakList = Object.keys(missedKeysMap).sort((a,b) => missedKeysMap[b] - missedKeysMap[a]);
@@ -1088,7 +1128,7 @@
       elRaw.textContent = Math.max(0, rawWpm);
       elAcc.textContent = `${acc}%`;
 
-      if (currentMode === "words" || currentMode === "quote" || currentMode === "code" || currentMode === "weak") {
+      if (currentMode === "words" || currentMode === "quote" || currentMode === "code" || currentMode === "weak" || currentMode === "paragraphs" || currentMode === "letters") {
         elTime.textContent = Math.max(0, words.length - activeWordIdx);
       }
     }
@@ -1244,9 +1284,23 @@
         }
       }
 
+      // Handle Active Word Highlighting and Passed State
+      Array.from(elWrapper.children).forEach((w, idx) => {
+        if (idx < activeWordIdx) {
+          w.classList.add('passed');
+          w.classList.remove('active-word');
+        } else if (idx === activeWordIdx) {
+          w.classList.remove('passed');
+          w.classList.add('active-word');
+        } else {
+          w.classList.remove('passed');
+          w.classList.remove('active-word');
+        }
+      });
+
       // Multi-line auto scrolling
       if (activeWordEl.offsetTop > 45) {
-        elWrapper.style.marginTop = `-${activeWordEl.offsetTop}px`;
+        elWrapper.style.marginTop = `-${activeWordEl.offsetTop - 5}px`;
       } else {
         elWrapper.style.marginTop = '0px';
       }
@@ -1286,7 +1340,19 @@
       }
       if (keyEl) keyEl.classList.add('target');
 
-      // Highlight Hands SVG Finger
+      // Highlight Shift if uppercase letter
+      if (targetChar !== lookupChar && lookupChar.match(/[a-z]/)) {
+         const isLeftHand = fingerCode.startsWith('l-');
+         const shiftKey = isLeftHand ? 'ShiftRight' : 'ShiftLeft';
+         const shiftEl = document.querySelector(`.key[data-key="${shiftKey}"]`);
+         if (shiftEl) shiftEl.classList.add('target');
+         
+         // Highlight shift finger on hands SVG (pinky of opposite hand)
+         const shiftFinger = isLeftHand ? 'r-pinky' : 'l-pinky';
+         document.querySelectorAll(`.finger[data-finger="${shiftFinger}"]`).forEach(f => f.classList.add('finger-active'));
+      }
+
+      // Highlight Hands SVG Finger for main key
       document.querySelectorAll(`.finger[data-finger="${fingerCode}"]`).forEach(f => {
         f.classList.add('finger-active');
       });
@@ -1480,6 +1546,17 @@
           elSubOptions.appendChild(el);
         });
         currentSubVal = 0;
+      }
+      else if (currentMode === "letters") {
+        [10, 25, 50, 100].forEach((w, idx) => {
+          const el = document.createElement('span');
+          el.className = `sub-btn ${idx === 1 ? 'active' : ''}`;
+          el.textContent = `${w} groups`;
+          el.dataset.val = w;
+          el.onclick = () => selectSubOption(w, el);
+          elSubOptions.appendChild(el);
+        });
+        currentSubVal = 25;
       }
     }
 
