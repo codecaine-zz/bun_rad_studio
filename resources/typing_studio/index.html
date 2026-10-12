@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #05070e; margin: 0; padding: 0;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>⌨️ CyberType Deluxe — Mavis Edition</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+  <script>
+    // Storage Polyfills for Webview
+    (function() {
+      try {
+        var k = '__test__';
+        window.localStorage.setItem(k, '1');
+        window.localStorage.removeItem(k);
+      } catch(e) {
+        var mem = {};
+        try {
+          Object.defineProperty(window, 'localStorage', {
+            value: {
+              getItem: function(k) { return mem.hasOwnProperty(k) ? mem[k] : null; },
+              setItem: function(k, v) { mem[k] = String(v); },
+              removeItem: function(k) { delete mem[k]; },
+              clear: function() { mem = {}; },
+              key: function(i) { return Object.keys(mem)[i] || null; },
+              get length() { return Object.keys(mem).length; }
+            },
+            writable: true,
+            configurable: true
+          });
+        } catch(err) {}
+      }
+    })();
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@500;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #05070e;
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff007f;
+      --neon-yellow: #facc15;
+      --text-main: #f1f5f9;
+      --text-muted: #64748b;
+      --text-dim: #334155;
+      --error-red: #ef4444;
+      --correct-green: #10b981;
+      
+      --font-ui: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+      --font-arcade: "Orbitron", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    
+    body {
+      background: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% -20%, rgba(0, 243, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 80%, rgba(255, 0, 127, 0.05) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Master Bar */
+    .master-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px;
+      background: rgba(5, 7, 14, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.25);
+      z-index: 100;
+    }
+
+    .brand-cluster { display: flex; align-items: center; gap: 14px; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 8px; filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.6)); }
+    .brand-titles h1 {
+      font-family: var(--font-arcade);
+      font-size: 1.15rem; font-weight: 900; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #00f3ff, #ffffff, #facc15);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .badge-deluxe {
+      font-family: var(--font-mono); font-size: 0.6rem;
+      background: rgba(255,0,127,0.2); border: 1px solid var(--neon-pink);
+      color: var(--neon-pink); padding: 3px 6px; border-radius: 4px; font-weight: 800;
+      -webkit-text-fill-color: initial;
+    }
+    .brand-titles p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(0, 243, 255, 0.25);
+      color: var(--text-main); width: 38px; height: 38px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      font-size: 1.1rem; transition: all 0.2s ease;
+    }
+    .btn-icon:hover {
+      background: rgba(0, 243, 255, 0.2); border-color: rgba(0, 243, 255, 0.6);
+      color: #fff; box-shadow: 0 0 14px rgba(0, 243, 255, 0.35); transform: translateY(-1px);
+    }
+
+    /* Main Container */
+    .main-container {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 24px; position: relative; max-width: 1200px; margin: 0 auto; width: 100%;
+    }
+
+    /* HUD Stats */
+    .hud-bar {
+      display: flex; justify-content: center; gap: 40px; margin-bottom: 30px;
+      background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1);
+      padding: 14px 40px; border-radius: 16px; backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+    }
+    .hud-bar.active { border-color: rgba(0, 243, 255, 0.4); box-shadow: 0 0 20px rgba(0, 243, 255, 0.15); }
+    .stat-box { display: flex; flex-direction: column; align-items: center; min-width: 90px; }
+    .stat-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .stat-val { font-family: var(--font-arcade); font-size: 2rem; font-weight: 900; color: #fff; }
+    .stat-val.primary { color: var(--neon-cyan); text-shadow: 0 0 15px rgba(0, 243, 255, 0.5); }
+    .stat-val.warning { color: var(--neon-yellow); text-shadow: 0 0 15px rgba(250, 204, 21, 0.5); }
+
+    /* Typing Area */
+    .typing-container {
+      width: 100%; max-width: 960px; min-height: 140px;
+      position: relative; font-family: var(--font-mono); font-size: 2rem;
+      line-height: 1.6; font-weight: 500; color: var(--text-dim);
+      display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 14px;
+      margin-bottom: 40px; padding: 10px 20px;
+      outline: none; overflow: hidden;
+    }
+    .word { display: flex; position: relative; margin-bottom: 8px; border-bottom: 2px solid transparent; }
+    .word.error { border-bottom-color: var(--error-red); }
+    .letter { position: relative; transition: color 0.1s; }
+    .letter.correct { color: var(--text-main); text-shadow: 0 0 8px rgba(255,255,255,0.3); }
+    .letter.incorrect { color: var(--error-red); text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+    .letter.extra { color: var(--error-red); opacity: 0.8; }
+    
+    /* Blinking Cursor */
+    .cursor {
+      position: absolute; left: 0; top: 10%; width: 3px; height: 80%;
+      background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);
+      transition: left 0.1s ease, top 0.1s ease;
+      animation: blink 1s infinite; border-radius: 2px;
+      z-index: 10; display: none;
+    }
+    .typing-container.focused .cursor { display: block; }
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+    /* Keyboard Visualizer */
+    .keyboard-box {
+      background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px; padding: 24px; box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+      margin-top: auto; margin-bottom: 20px;
+    }
+    .keyboard-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
+    .key {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+      min-width: 44px; height: 48px; color: #94a3b8; font-family: var(--font-ui); font-size: 0.9rem; font-weight: 700;
+      box-shadow: 0 4px 0 #0f172a, 0 5px 10px rgba(0,0,0,0.4);
+      transition: transform 0.05s, box-shadow 0.05s, background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .key.pressed {
+      transform: translateY(4px); box-shadow: 0 0 0 #0f172a, 0 1px 2px rgba(0,0,0,0.4);
+      background: var(--text-main); color: #05070e;
+    }
+    .key.target {
+      border-color: var(--neon-cyan); color: #fff; background: rgba(0, 243, 255, 0.1);
+      box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(0, 243, 255, 0.4);
+    }
+    
+    /* Finger Zones Colors */
+    .key.target[data-finger="l-pinky"] { border-color: #ff007f; background: rgba(255,0,127,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(255,0,127,0.4); }
+    .key.target[data-finger="l-ring"] { border-color: #f59e0b; background: rgba(245,158,11,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(245,158,11,0.4); }
+    .key.target[data-finger="l-middle"] { border-color: #10b981; background: rgba(16,185,129,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(16,185,129,0.4); }
+    .key.target[data-finger="l-index"] { border-color: #00f3ff; background: rgba(0,243,255,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(0,243,255,0.4); }
+    .key.target[data-finger="thumb"] { border-color: #8b5cf6; background: rgba(139,92,246,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(139,92,246,0.4); }
+    .key.target[data-finger="r-index"] { border-color: #00f3ff; background: rgba(0,243,255,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(0,243,255,0.4); }
+    .key.target[data-finger="r-middle"] { border-color: #10b981; background: rgba(16,185,129,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(16,185,129,0.4); }
+    .key.target[data-finger="r-ring"] { border-color: #f59e0b; background: rgba(245,158,11,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(245,158,11,0.4); }
+    .key.target[data-finger="r-pinky"] { border-color: #ff007f; background: rgba(255,0,127,0.15); box-shadow: 0 4px 0 #0f172a, 0 0 15px rgba(255,0,127,0.4); }
+
+    .key-wide-1 { width: 66px; }
+    .key-wide-2 { width: 78px; }
+    .key-wide-3 { width: 98px; }
+    .key-space { width: 300px; }
+
+    /* Results Screen */
+    .results-overlay {
+      position: absolute; inset: 0; background: rgba(5,7,14,0.95); backdrop-filter: blur(16px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 50;
+    }
+    .results-overlay.show { opacity: 1; pointer-events: auto; }
+    .res-title { font-family: var(--font-arcade); font-size: 2.5rem; color: #fff; margin-bottom: 30px; text-shadow: 0 0 20px rgba(0,243,255,0.5); }
+    .res-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 40px; }
+    .res-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px 40px; text-align: center; }
+    .res-card .label { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .res-card .val { font-family: var(--font-arcade); font-size: 2.5rem; font-weight: 900; color: #fff; }
+    .res-card .val.wpm { color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0,243,255,0.5); }
+    .res-card .val.acc { color: var(--neon-yellow); text-shadow: 0 0 20px rgba(250,204,21,0.5); }
+    .btn-action {
+      background: linear-gradient(135deg, #0284c7, #00f3ff); border: none; border-radius: 999px;
+      color: #05070e; font-family: var(--font-arcade); font-size: 1.1rem; font-weight: 900;
+      padding: 14px 48px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,243,255,0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-action:hover { transform: scale(1.05); box-shadow: 0 12px 35px rgba(0,243,255,0.6); }
+    .btn-action:active { transform: scale(0.95); }
+
+    /* Start Overlay */
+    .start-prompt {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(5,7,14,0.7); backdrop-filter: blur(4px); z-index: 20;
+      font-family: var(--font-arcade); font-size: 1.5rem; color: var(--neon-cyan);
+      text-shadow: 0 0 15px var(--neon-cyan); cursor: pointer; transition: opacity 0.2s;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Master Header -->
+  <header class="master-bar">
+    <div class="brand-cluster">
+      <svg class="brand-icon" viewBox="0 0 128 128">
+        <rect width="128" height="128" rx="28" fill="#05070e" stroke="#00f3ff" stroke-width="4"/>
+        <rect x="24" y="24" width="80" height="80" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="3"/>
+        <path d="M 24 84 L 104 84" stroke="#ffffff" stroke-width="3" stroke-opacity="0.3"/>
+        <text x="64" y="70" font-family="'Orbitron', sans-serif" font-size="42" font-weight="900" fill="#facc15" text-anchor="middle">T</text>
+        <path d="M 52 94 L 76 94" stroke="#00f3ff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      <div class="brand-titles">
+        <h1>CyberType <span class="badge-deluxe">Mavis Edition</span></h1>
+        <p>Haptic WebAudio • Advanced Biometric Tracking • Target Mode</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn-icon" id="btnRestart" title="Restart Test (Tab + Enter)">🔄</button>
+      <button class="btn-icon" id="btnSound" title="Toggle Haptics">🔊</button>
+      <a href="/" class="btn-icon" title="Return to RAD Hub" style="text-decoration:none;">⚡</a>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- HUD -->
+    <div class="hud-bar" id="hudBar">
+      <div class="stat-box">
+        <div class="stat-label">Time</div>
+        <div class="stat-val primary" id="hudTime">30</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">WPM</div>
+        <div class="stat-val" id="hudWPM">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-val warning" id="hudAcc">100%</div>
+      </div>
+    </div>
+
+    <!-- Typing Canvas -->
+    <div class="typing-container" id="typeCanvas" tabindex="0">
+      <div class="cursor" id="typeCursor"></div>
+      <div id="wordsWrapper"></div>
+      <div class="start-prompt" id="startPrompt">Click or Type to Begin</div>
+    </div>
+
+    <!-- Interactive Mavis Keyboard -->
+    <div class="keyboard-box" id="keyboardArea">
+      <!-- Row 1 -->
+      <div class="keyboard-row">
+        <div class="key" data-key="`">`</div>
+        <div class="key" data-finger="l-pinky" data-key="1">1</div>
+        <div class="key" data-finger="l-ring" data-key="2">2</div>
+        <div class="key" data-finger="l-middle" data-key="3">3</div>
+        <div class="key" data-finger="l-index" data-key="4">4</div>
+        <div class="key" data-finger="l-index" data-key="5">5</div>
+        <div class="key" data-finger="r-index" data-key="6">6</div>
+        <div class="key" data-finger="r-index" data-key="7">7</div>
+        <div class="key" data-finger="r-middle" data-key="8">8</div>
+        <div class="key" data-finger="r-ring" data-key="9">9</div>
+        <div class="key" data-finger="r-pinky" data-key="0">0</div>
+        <div class="key" data-finger="r-pinky" data-key="-">-</div>
+        <div class="key" data-finger="r-pinky" data-key="=">=</div>
+        <div class="key key-wide-2" data-key="Backspace">Back</div>
+      </div>
+      <!-- Row 2 -->
+      <div class="keyboard-row">
+        <div class="key key-wide-1" data-key="Tab">Tab</div>
+        <div class="key" data-finger="l-pinky" data-key="q">Q</div>
+        <div class="key" data-finger="l-ring" data-key="w">W</div>
+        <div class="key" data-finger="l-middle" data-key="e">E</div>
+        <div class="key" data-finger="l-index" data-key="r">R</div>
+        <div class="key" data-finger="l-index" data-key="t">T</div>
+        <div class="key" data-finger="r-index" data-key="y">Y</div>
+        <div class="key" data-finger="r-index" data-key="u">U</div>
+        <div class="key" data-finger="r-middle" data-key="i">I</div>
+        <div class="key" data-finger="r-ring" data-key="o">O</div>
+        <div class="key" data-finger="r-pinky" data-key="p">P</div>
+        <div class="key" data-finger="r-pinky" data-key="[">[</div>
+        <div class="key" data-finger="r-pinky" data-key="]">]</div>
+        <div class="key key-wide-1" data-finger="r-pinky" data-key="\\">\</div>
+      </div>
+      <!-- Row 3 -->
+      <div class="keyboard-row">
+        <div class="key key-wide-2" data-key="CapsLock">Caps</div>
+        <div class="key" data-finger="l-pinky" data-key="a">A</div>
+        <div class="key" data-finger="l-ring" data-key="s">S</div>
+        <div class="key" data-finger="l-middle" data-key="d">D</div>
+        <div class="key" data-finger="l-index" data-key="f">F</div>
+        <div class="key" data-finger="l-index" data-key="g">G</div>
+        <div class="key" data-finger="r-index" data-key="h">H</div>
+        <div class="key" data-finger="r-index" data-key="j">J</div>
+        <div class="key" data-finger="r-middle" data-key="k">K</div>
+        <div class="key" data-finger="r-ring" data-key="l">L</div>
+        <div class="key" data-finger="r-pinky" data-key=";">;</div>
+        <div class="key" data-finger="r-pinky" data-key="'">'</div>
+        <div class="key key-wide-2" data-key="Enter">Enter</div>
+      </div>
+      <!-- Row 4 -->
+      <div class="keyboard-row">
+        <div class="key key-wide-3" data-finger="l-pinky" data-key="ShiftLeft">Shift</div>
+        <div class="key" data-finger="l-pinky" data-key="z">Z</div>
+        <div class="key" data-finger="l-ring" data-key="x">X</div>
+        <div class="key" data-finger="l-middle" data-key="c">C</div>
+        <div class="key" data-finger="l-index" data-key="v">V</div>
+        <div class="key" data-finger="l-index" data-key="b">B</div>
+        <div class="key" data-finger="r-index" data-key="n">N</div>
+        <div class="key" data-finger="r-index" data-key="m">M</div>
+        <div class="key" data-finger="r-middle" data-key=",">,</div>
+        <div class="key" data-finger="r-ring" data-key=".">.</div>
+        <div class="key" data-finger="r-pinky" data-key="/">/</div>
+        <div class="key key-wide-3" data-finger="r-pinky" data-key="ShiftRight">Shift</div>
+      </div>
+      <!-- Row 5 -->
+      <div class="keyboard-row">
+        <div class="key key-wide-1" data-key="ControlLeft">Ctrl</div>
+        <div class="key" data-key="MetaLeft">Win</div>
+        <div class="key key-wide-1" data-key="AltLeft">Alt</div>
+        <div class="key key-space" data-finger="thumb" data-key=" ">Space</div>
+        <div class="key key-wide-1" data-key="AltRight">Alt</div>
+        <div class="key" data-key="MetaRight">Win</div>
+        <div class="key key-wide-1" data-key="ControlRight">Ctrl</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Results Overlay -->
+  <div class="results-overlay" id="resultsOverlay">
+    <h2 class="res-title">SESSION COMPLETE</h2>
+    <div class="res-grid">
+      <div class="res-card">
+        <div class="label">SPEED (WPM)</div>
+        <div class="val wpm" id="resWPM">0</div>
+      </div>
+      <div class="res-card">
+        <div class="label">ACCURACY</div>
+        <div class="val acc" id="resAcc">0%</div>
+      </div>
+      <div class="res-card">
+        <div class="label">RAW SPEED</div>
+        <div class="val" id="resRaw">0</div>
+      </div>
+      <div class="res-card">
+        <div class="label">CHARACTERS</div>
+        <div class="val" id="resChars">0/0/0/0</div>
+      </div>
+    </div>
+    <button class="btn-action" id="btnNextTest">NEXT PROTOCOL (TAB + ENTER)</button>
+  </div>
+
+  <script>
+    // 1. Dictionary / Word Generator
+    const commonWords = [
+      "the", "be", "of", "and", "a", "to", "in", "he", "have", "it", "that", "for", "they", "I", "with", "as", "not", "on", "she", "at", 
+      "by", "this", "we", "you", "do", "but", "from", "or", "which", "one", "would", "all", "will", "there", "say", "who", "make", "when", 
+      "can", "more", "if", "no", "man", "out", "other", "so", "what", "time", "up", "go", "about", "than", "into", "could", "state", "only", 
+      "new", "year", "some", "take", "come", "these", "know", "see", "use", "get", "like", "then", "first", "any", "work", "now", "may", 
+      "such", "give", "over", "think", "most", "even", "find", "day", "also", "after", "way", "many", "must", "look", "before", "great", 
+      "back", "through", "long", "where", "much", "should", "well", "people", "down", "own", "just", "because", "good", "each", "those", 
+      "feel", "seem", "how", "high", "too", "place", "little", "world", "very", "still", "nation", "hand", "old", "life", "tell", "write", 
+      "become", "here", "show", "house", "both", "between", "need", "mean", "call", "develop", "under", "last", "right", "move", "thing", 
+      "general", "school", "never", "same", "another", "begin", "while", "number", "part", "turn", "real", "leave", "might", "want", "point", 
+      "form", "off", "child", "few", "small", "since", "against", "ask", "late", "home", "interest", "large", "person", "end", "open", 
+      "public", "follow", "during", "present", "without", "again", "hold", "govern", "around", "possible", "head", "consider", "word", 
+      "program", "problem", "however", "lead", "system", "set", "order", "eye", "plan", "run", "keep", "face", "fact", "group", "play", 
+      "stand", "increase", "early", "course", "change", "help", "line"
+    ];
+
+    function generateWordList(count) {
+      let list = [];
+      for(let i=0; i<count; i++) {
+        list.push(commonWords[Math.floor(Math.random() * commonWords.length)]);
+      }
+      return list;
+    }
+
+    // 2. WebAudio Haptic Engine
+    const AudioEngine = (function() {
+      let ctx = null;
+      let enabled = true;
+      function getCtx() {
+        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      }
+      return {
+        toggle() { enabled = !enabled; return enabled; },
+        playClick(isSpace = false) {
+          if (!enabled) return;
+          try {
+            const ac = getCtx();
+            const now = ac.currentTime;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            const filter = ac.createBiquadFilter();
+            
+            // Mechanical switch thock
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(isSpace ? 120 : 180 + Math.random()*20, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.03);
+            
+            filter.type = "lowpass";
+            filter.frequency.value = 1000;
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(ac.destination);
+            osc.start(now);
+            osc.stop(now + 0.03);
+          } catch(e){}
+        },
+        playError() {
+          if (!enabled) return;
+          try {
+            const ac = getCtx();
+            const now = ac.currentTime;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.1);
+            
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start(now);
+            osc.stop(now + 0.1);
+          } catch(e){}
+        }
+      };
+    })();
+
+    // 3. State & Logic
+    const config = {
+      timeLimit: 30, // seconds
+    };
+
+    let words = [];
+    let typedWords = [];
+    let activeWordIdx = 0;
+    
+    // Stats
+    let timeRemaining = config.timeLimit;
+    let isRunning = false;
+    let isFinished = false;
+    let timerInterval = null;
+    let charsTyped = 0;
+    let charsCorrect = 0;
+    let charsIncorrect = 0;
+    let charsExtra = 0;
+    let startTime = 0;
+
+    const elCanvas = document.getElementById('typeCanvas');
+    const elWrapper = document.getElementById('wordsWrapper');
+    const elCursor = document.getElementById('typeCursor');
+    const elStartPrompt = document.getElementById('startPrompt');
+    const elTime = document.getElementById('hudTime');
+    const elWpm = document.getElementById('hudWPM');
+    const elAcc = document.getElementById('hudAcc');
+    const elHud = document.getElementById('hudBar');
+
+    function resetTest() {
+      clearInterval(timerInterval);
+      words = generateWordList(150);
+      typedWords = [];
+      activeWordIdx = 0;
+      timeRemaining = config.timeLimit;
+      isRunning = false;
+      isFinished = false;
+      charsTyped = 0; charsCorrect = 0; charsIncorrect = 0; charsExtra = 0;
+      
+      elTime.textContent = timeRemaining;
+      elWpm.textContent = '0';
+      elAcc.textContent = '100%';
+      elHud.classList.remove('active');
+      
+      document.getElementById('resultsOverlay').classList.remove('show');
+      elStartPrompt.style.display = 'flex';
+      
+      renderWords();
+      updateCursor();
+      updateKeyboardTarget();
+      elCanvas.focus();
+    }
+
+    function renderWords() {
+      elWrapper.innerHTML = '';
+      words.forEach((w, i) => {
+        const wordEl = document.createElement('div');
+        wordEl.className = 'word';
+        wordEl.dataset.idx = i;
+        w.split('').forEach(char => {
+          const charEl = document.createElement('span');
+          charEl.className = 'letter';
+          charEl.textContent = char;
+          wordEl.appendChild(charEl);
+        });
+        elWrapper.appendChild(wordEl);
+      });
+    }
+
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      startTime = Date.now();
+      elStartPrompt.style.display = 'none';
+      elHud.classList.add('active');
+      
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        elTime.textContent = timeRemaining;
+        updateLiveStats();
+        
+        if (timeRemaining <= 0) {
+          endTest();
+        }
+      }, 1000);
+    }
+
+    function endTest() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      isFinished = true;
+      
+      updateLiveStats(); // final calc
+      
+      const resOverlay = document.getElementById('resultsOverlay');
+      document.getElementById('resWPM').textContent = elWpm.textContent;
+      document.getElementById('resAcc').textContent = elAcc.textContent;
+      
+      // Raw WPM calculation
+      const elapsedMins = config.timeLimit / 60;
+      const rawWpm = Math.round((charsTyped / 5) / elapsedMins);
+      document.getElementById('resRaw').textContent = rawWpm;
+      
+      const totalCorrect = charsCorrect;
+      const totalIncorrect = charsIncorrect;
+      const totalExtra = charsExtra;
+      const totalMissed = charsTyped - totalCorrect - totalIncorrect - totalExtra;
+      document.getElementById('resChars').textContent = `${totalCorrect}/${totalIncorrect}/${totalExtra}/${totalMissed < 0 ? 0 : totalMissed}`;
+      
+      resOverlay.classList.add('show');
+    }
+
+    function updateLiveStats() {
+      const elapsedMins = (config.timeLimit - timeRemaining) / 60 || 0.01; // prevent div by zero
+      // Standard WPM: (all correctly typed chars / 5) / timeInMins
+      // Some platforms use (correct chars) for wpm
+      const wpm = Math.round((charsCorrect / 5) / elapsedMins);
+      const acc = charsTyped > 0 ? Math.round((charsCorrect / charsTyped) * 100) : 100;
+      
+      elWpm.textContent = Math.max(0, wpm);
+      elAcc.textContent = `${acc}%`;
+    }
+
+    function updateCursor() {
+      if (isFinished) return;
+      const activeWordEl = elWrapper.children[activeWordIdx];
+      if (!activeWordEl) return;
+      
+      const currentTyped = typedWords[activeWordIdx] || '';
+      let targetEl;
+      
+      if (currentTyped.length < words[activeWordIdx].length) {
+        // Cursor on letter
+        targetEl = activeWordEl.children[currentTyped.length];
+        const rect = targetEl.getBoundingClientRect();
+        const wrapperRect = elWrapper.getBoundingClientRect();
+        elCursor.style.left = `${rect.left - wrapperRect.left}px`;
+        elCursor.style.top = `${rect.top - wrapperRect.top + 4}px`;
+      } else {
+        // Cursor after word (waiting for space)
+        targetEl = activeWordEl.lastElementChild;
+        if (targetEl) {
+          const rect = targetEl.getBoundingClientRect();
+          const wrapperRect = elWrapper.getBoundingClientRect();
+          elCursor.style.left = `${rect.right - wrapperRect.left}px`;
+          elCursor.style.top = `${rect.top - wrapperRect.top + 4}px`;
+        }
+      }
+      
+      // Auto-scroll logic
+      if (activeWordEl.offsetTop > 40) { // simple multi-line scroll
+        const scrollAmt = activeWordEl.offsetTop;
+        elWrapper.style.marginTop = `-${scrollAmt}px`;
+      } else {
+        elWrapper.style.marginTop = `0px`;
+      }
+    }
+
+    // Dynamic Keyboard Highlights
+    function updateKeyboardTarget() {
+      document.querySelectorAll('.key.target').forEach(k => k.classList.remove('target'));
+      if (isFinished) return;
+      
+      const targetWord = words[activeWordIdx];
+      const currentTyped = typedWords[activeWordIdx] || '';
+      
+      let targetChar = '';
+      if (currentTyped.length < targetWord.length) {
+        targetChar = targetWord[currentTyped.length].toLowerCase();
+      } else {
+        targetChar = ' '; // requires space
+      }
+      
+      const keyEl = document.querySelector(`.key[data-key="${targetChar}"]`) || document.querySelector(`.key[data-key="${targetChar.toUpperCase()}"]`);
+      if (keyEl) keyEl.classList.add('target');
+    }
+
+    function renderActiveWord() {
+      const activeWordEl = elWrapper.children[activeWordIdx];
+      if (!activeWordEl) return;
+      
+      const targetWord = words[activeWordIdx];
+      const typed = typedWords[activeWordIdx] || '';
+      
+      // Reset DOM for word
+      activeWordEl.innerHTML = '';
+      let isError = false;
+
+      // Draw original + correctly/incorrectly typed
+      for(let i=0; i<targetWord.length; i++) {
+        const charEl = document.createElement('span');
+        charEl.className = 'letter';
+        charEl.textContent = targetWord[i];
+        
+        if (i < typed.length) {
+          if (typed[i] === targetWord[i]) {
+            charEl.classList.add('correct');
+          } else {
+            charEl.classList.add('incorrect');
+            isError = true;
+          }
+        }
+        activeWordEl.appendChild(charEl);
+      }
+      
+      // Draw extra typed characters
+      if (typed.length > targetWord.length) {
+        isError = true;
+        for(let i=targetWord.length; i<typed.length; i++) {
+          const charEl = document.createElement('span');
+          charEl.className = 'letter extra';
+          charEl.textContent = typed[i];
+          activeWordEl.appendChild(charEl);
+        }
+      }
+      
+      if (isError) activeWordEl.classList.add('error');
+      else activeWordEl.classList.remove('error');
+    }
+
+    // Key handlers
+    elCanvas.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') { e.preventDefault(); return; } // handled by master shortcut
+      if (isFinished) return;
+      
+      // Physical keyboard illumination
+      const keyStr = e.key.toLowerCase();
+      let keyEl = document.querySelector(`.key[data-key="${keyStr}"]`) || document.querySelector(`.key[data-key="${e.code}"]`);
+      if (e.key === ' ') keyEl = document.querySelector('.key-space');
+      if (keyEl) keyEl.classList.add('pressed');
+
+      // Ignore modifiers
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
+      
+      if (!isRunning) startTimer();
+
+      const targetWord = words[activeWordIdx];
+      let typed = typedWords[activeWordIdx] || '';
+
+      if (e.key === 'Backspace') {
+        if (e.ctrlKey || e.metaKey) {
+          // Delete word
+          typedWords[activeWordIdx] = '';
+        } else if (typed.length > 0) {
+          typedWords[activeWordIdx] = typed.slice(0, -1);
+        } else if (activeWordIdx > 0) {
+          // Move to previous word if it was wrong
+          activeWordIdx--;
+          const prevWord = words[activeWordIdx];
+          const prevTyped = typedWords[activeWordIdx] || '';
+          if (prevTyped === prevWord) {
+             // If previous was completely correct, usually don't let them go back, but some engines allow it.
+             // We'll allow going back unless they want to lock correct words.
+             activeWordIdx++; // locking it for this implementation
+          }
+        }
+        AudioEngine.playClick();
+      } 
+      else if (e.key === ' ') {
+        e.preventDefault(); // prevent scroll
+        if (typed.length > 0) {
+           activeWordIdx++;
+           typedWords[activeWordIdx] = '';
+           AudioEngine.playClick(true);
+        }
+      } 
+      else if (e.key.length === 1) { // Normal character
+        // Check correctness for stats
+        charsTyped++;
+        if (typed.length < targetWord.length) {
+          if (e.key === targetWord[typed.length]) {
+            charsCorrect++;
+            AudioEngine.playClick();
+          } else {
+            charsIncorrect++;
+            AudioEngine.playError();
+          }
+        } else {
+          charsExtra++;
+          AudioEngine.playError();
+        }
+        
+        typedWords[activeWordIdx] = typed + e.key;
+      }
+
+      renderActiveWord();
+      updateCursor();
+      updateKeyboardTarget();
+    });
+
+    elCanvas.addEventListener('keyup', (e) => {
+      const keyStr = e.key.toLowerCase();
+      let keyEl = document.querySelector(`.key[data-key="${keyStr}"]`) || document.querySelector(`.key[data-key="${e.code}"]`);
+      if (e.key === ' ') keyEl = document.querySelector('.key-space');
+      if (keyEl) keyEl.classList.remove('pressed');
+    });
+
+    // Global Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        // Wait for Enter to restart (Tab + Enter common restart shortcut)
+        const checkEnter = (ev) => {
+          if (ev.key === 'Enter') {
+            resetTest();
+            window.removeEventListener('keydown', checkEnter);
+          }
+        };
+        window.addEventListener('keydown', checkEnter, { once: true });
+        setTimeout(() => window.removeEventListener('keydown', checkEnter), 1000);
+      }
+    });
+
+    // Click focus
+    elCanvas.addEventListener('click', () => { elCanvas.focus(); elStartPrompt.style.display = isRunning ? 'none' : 'flex'; });
+    elCanvas.addEventListener('focus', () => { elCanvas.classList.add('focused'); elStartPrompt.textContent = 'Type to Begin'; });
+    elCanvas.addEventListener('blur', () => { elCanvas.classList.remove('focused'); if (!isRunning) elStartPrompt.textContent = 'Click to Focus'; });
+
+    // Buttons
+    document.getElementById('btnRestart').addEventListener('click', resetTest);
+    document.getElementById('btnNextTest').addEventListener('click', resetTest);
+    document.getElementById('btnSound').addEventListener('click', () => {
+      const state = AudioEngine.toggle();
+      document.getElementById('btnSound').textContent = state ? '🔊' : '🔇';
+    });
+
+    // Init
+    resetTest();
+  </script>
+</body>
+</html>

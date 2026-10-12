@@ -252,6 +252,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🐦",
     description: "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
   },
+  typing_studio: {
+    displayName: "CyberType Deluxe",
+    category: "Games & Entertainment",
+    icon: "⌨️",
+    description: "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
+  },
   minesweeper_studio: {
     displayName: "Minesweeper Pro Championship",
     category: "Games & Entertainment",
