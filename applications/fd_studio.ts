@@ -42,6 +42,17 @@ import {
   type RenameRules,
   type RenamePlanRow,
 } from "./fd_ops";
+import {
+  FD_PRESETS,
+  FD_PRESET_NONE,
+  FD_SORT_KEYS,
+  findPreset,
+  sortResults,
+  filterResults,
+  parseMaxResults,
+  pushHistory,
+  exportFileName,
+} from "../src/fd_helpers";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
@@ -61,6 +72,9 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
 
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   let currentResults: FdItem[] = [];
+  /** Raw search output; currentResults is the sorted/filtered view of it (what batch actions use). */
+  let allResults: FdItem[] = [];
+  let searchHistory: string[] = [];
   let selectedItem: FdItem | null = null;
   let activeTypeFilter: FdFileType | "all" = "all";
   let activeWatcher: { close: () => void } | null = null;
@@ -91,6 +105,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.addInput("txt_pattern", "", "Regex, Glob (*.ts) or Text...", { width: 260 });
   win.addLabel("lbl_root", "Search Root:");
   win.addInput("txt_root", ".", "Root directory (e.g. ., ./src)", { width: 180 });
+  win.addButton("btn_browse_root", "📁 Browse...", { width: 100 });
   win.addLabel("lbl_mode", "Mode:");
   win.addDropdown("dd_mode", ["Regex (Default)", "Glob Pattern", "Fixed String"], "Regex (Default)", { width: 140 });
   win.addLabel("lbl_case", "Case:");
@@ -98,6 +113,18 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.addButton("btn_search", "🔍 Find Files", { width: 100 });
   win.addButton("btn_toggle_watch", "👀 Start Watcher", { width: 130 });
   win.addButton("btn_clear", "✕ Clear", { width: 75 });
+  win.endRow();
+  win.beginRow();
+  win.addLabel("lbl_preset", "Preset:");
+  win.addDropdown("dd_preset", [FD_PRESET_NONE, ...FD_PRESETS.map((p) => p.label)], FD_PRESET_NONE, { width: 200 });
+  win.addLabel("lbl_history", "Recent:");
+  win.addDropdown("dd_history", ["Recent searches…"], "Recent searches…", { width: 200 });
+  win.addLabel("lbl_max_results", "Max results:");
+  win.addInput("txt_max_results", "1500", "1500", { width: 80 });
+  win.addLabel("lbl_sort", "Sort:");
+  win.addDropdown("dd_sort", [...FD_SORT_KEYS], FD_SORT_KEYS[0], { width: 160 });
+  win.addLabel("lbl_filter", "Filter results:");
+  win.addInput("txt_filter", "", "Narrow current results...", { width: 190 });
   win.endRow();
   win.endGroupBox();
 
@@ -182,6 +209,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.beginRow();
   win.addLabel("lbl_dest", "Target Destination Folder:");
   win.addInput("txt_dest_dir", "./output", "e.g. ./backup, /tmp/export", { width: 220 });
+  win.addButton("btn_browse_dest", "📁 Browse...", { width: 100 });
   win.addButton("btn_copy_all_files", "📁 Copy All to Folder");
   win.addButton("btn_move_all", "📦 Move All to Folder");
   win.addButton("btn_archive_all", "🗜️ Archive All (.tar.gz)");
@@ -192,6 +220,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.addButton("btn_copy_all_abs", "📋 Copy All Full Paths");
   win.addButton("btn_export_json", "💾 Export JSON");
   win.addButton("btn_export_csv", "📊 Export CSV");
+  win.addButton("btn_export_saveas", "💾 Save Results As...");
   win.addButton("btn_bury_all", "🪦 Safe Bury All (Rip)");
   win.addButton("btn_delete_all", "💥 Delete All Matches");
   win.endRow();
@@ -432,7 +461,28 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     }
   };
 
-  const performSearch = () => {
+  const resultRows = (items: FdItem[]) =>
+    items.map((it) => ({
+      rowId: it.relativePath,
+      cells: [it.name, it.type, it.humanSize, it.relativePath, it.mtimeStr, it.permStr],
+    }));
+
+  /** Re-applies sort + filter to the last search output and refreshes the table. */
+  const renderView = () => {
+    const sorted = sortResults(allResults, String(win.getValue("dd_sort") || FD_SORT_KEYS[0]));
+    currentResults = filterResults(sorted, String(win.getValue("txt_filter") || ""));
+    win.setTableData("tbl_results", tableHeaders, resultRows(currentResults));
+  };
+
+  const HISTORY_PLACEHOLDER = "Recent searches…";
+  const refreshHistory = () => {
+    try {
+      const opts = [HISTORY_PLACEHOLDER, ...searchHistory];
+      win.evalJS(`(function(){var s=document.getElementById("dd_history");if(!s)return;var o=${JSON.stringify(opts)};s.innerHTML="";o.forEach(function(t){var e=document.createElement("option");e.value=t;e.textContent=t;s.appendChild(e);});s.selectedIndex=0;})();`);
+    } catch {}
+  };
+
+  const performSearch = (announce = false) => {
     const pattern = win.getValue("txt_pattern") || "";
     const searchRoot = win.getValue("txt_root") || ".";
     const modeRaw = win.getValue("dd_mode") || "Regex (Default)";
@@ -502,36 +552,42 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       minSizeBytes,
       maxSizeBytes,
       changedWithinMs,
-      maxResults: 1500,
+      maxResults: parseMaxResults(String(win.getValue("txt_max_results") || "")),
     };
+
+    const rootCheck = path.resolve(searchRoot);
+    if (!fs.existsSync(rootCheck) || !fs.statSync(rootCheck).isDirectory()) {
+      win.setText("lbl_status", `Status: Search root not found: ${searchRoot}`);
+      logConsole(`[Search Error] Search root is not a directory: ${rootCheck}`, 3);
+      win.toast(`Search root not found: ${searchRoot}`, 3500, "error");
+      return;
+    }
 
     win.setText("lbl_status", "Status: Scanning filesystem...");
     const result = executeFdSearch(searchOpts);
-    currentResults = result.items;
+    allResults = result.items;
+    renderView();
 
-    const rows = result.items.map((it) => ({
-      rowId: it.relativePath,
-      cells: [
-        it.name,
-        it.type,
-        it.humanSize,
-        it.relativePath,
-        it.mtimeStr,
-        it.permStr,
-      ],
-    }));
-
-    win.setTableData("tbl_results", tableHeaders, rows);
-
-    const truncMsg = result.truncated ? " (Results capped at 1500)" : "";
-    const status = `Status: Done  |  Scanned: ${result.totalScanned}  |  Matches: ${result.matchedCount}${truncMsg}  |  Duration: ${result.durationMs}ms  |  Total Size: ${result.totalHumanSize}`;
+    const truncMsg = result.truncated ? ` (Results capped at ${searchOpts.maxResults})` : "";
+    const shown = currentResults.length !== allResults.length ? `  |  Shown: ${currentResults.length}` : "";
+    const status = `Status: Done  |  Scanned: ${result.totalScanned}  |  Matches: ${result.matchedCount}${truncMsg}${shown}  |  Duration: ${result.durationMs}ms  |  Total Size: ${result.totalHumanSize}`;
     win.setText("lbl_status", status);
+
+    if (pattern.trim()) {
+      searchHistory = pushHistory(searchHistory, pattern);
+      refreshHistory();
+    }
+    if (announce) win.toast(
+      result.matchedCount === 0 ? "No matches found" : `Found ${result.matchedCount} item${result.matchedCount === 1 ? "" : "s"} in ${result.durationMs}ms${result.truncated ? " (capped)" : ""}`,
+      2500,
+      result.matchedCount === 0 ? "warning" : "success",
+    );
 
     logConsole(`[Search] Found ${result.matchedCount} matching items in ${result.durationMs}ms (${result.totalHumanSize})${truncMsg}`, 2);
 
-    if (result.items.length > 0) {
-      const stillSelected = selectedItem ? result.items.find((r) => r.relativePath === selectedItem!.relativePath) : null;
-      const targetItem = stillSelected || result.items[0];
+    if (currentResults.length > 0) {
+      const stillSelected = selectedItem ? currentResults.find((r) => r.relativePath === selectedItem!.relativePath) : null;
+      const targetItem = stillSelected || currentResults[0];
       if (targetItem) updateSelectedInspector(targetItem);
     } else {
       selectedItem = null;
@@ -651,13 +707,14 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
     `);
   });
 
-  win.onClick("btn_search", () => performSearch());
+  win.onClick("btn_search", () => performSearch(true));
   win.onClick("btn_toggle_watch", () => toggleWatcher());
-  win.onChange("chk_watch", (val) => {
+  win.onChange("chk_watch", (w) => {
+    const val = Boolean(w.getBool ? w.getBool("chk_watch") : w.getValue("chk_watch"));
     if (val && !activeWatcher) startWatcher();
     else if (!val && activeWatcher) stopWatcher();
   });
-  win.onEnter("txt_pattern", () => performSearch());
+  win.onEnter("txt_pattern", () => performSearch(true));
   win.onEnter("txt_root", () => {
     performSearch();
     if (activeWatcher) startWatcher();
@@ -694,6 +751,49 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.onChange("dd_mode", () => performSearch());
   win.onChange("dd_case", () => performSearch());
   win.onChange("dd_age", () => performSearch());
+
+  // Browse dialogs
+  win.onClick("btn_browse_root", () => {
+    win.openFolder({ title: "Select search root" }, (p) => {
+      if (p) { win.setValue("txt_root", p); performSearch(true); if (activeWatcher) startWatcher(); }
+    });
+  });
+  win.onClick("btn_browse_dest", () => {
+    win.openFolder({ title: "Select destination folder" }, (p) => {
+      if (p) win.setValue("txt_dest_dir", p);
+    });
+  });
+
+  // Saved-search presets
+  win.onChange("dd_preset", () => {
+    const preset = findPreset(String(win.getValue("dd_preset") || ""));
+    if (!preset) return;
+    win.setValue("txt_pattern", preset.pattern);
+    win.setValue("txt_exts", preset.exts);
+    win.setValue("txt_size", preset.size);
+    win.setValue("dd_age", preset.age);
+    activeTypeFilter = preset.type;
+    logConsole(`[Preset] Applied '${preset.label}'`, 1);
+    performSearch(true);
+  });
+
+  // Recent searches
+  win.onChange("dd_history", () => {
+    const sel = String(win.getValue("dd_history") || "");
+    if (!sel || sel === HISTORY_PLACEHOLDER) return;
+    win.setValue("txt_pattern", sel);
+    performSearch(true);
+  });
+
+  // Sort / filter operate on the last results without rescanning
+  const refreshView = () => {
+    renderView();
+    const hint = currentResults.length !== allResults.length ? ` | Shown: ${currentResults.length} of ${allResults.length}` : ` | Shown: ${currentResults.length}`;
+    win.setText("lbl_status", `Status: View updated${hint}`);
+  };
+  win.onChange("dd_sort", () => refreshView());
+  win.onChange("txt_filter", () => refreshView());
+  win.onEnter("txt_filter", () => refreshView());
 
   // Table row click
   win.onClick("tbl_results", (_, rowIdentifier) => {
@@ -879,6 +979,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
       logConsole(`[Delete] Successfully deleted: ${targetPath}`, 2);
       win.toast(`Deleted: ${targetName}`);
       currentResults = currentResults.filter((r) => r.path !== targetPath);
+      allResults = allResults.filter((r) => r.path !== targetPath);
       const rows = currentResults.map((it) => ({
         rowId: it.relativePath,
         cells: [it.name, it.type, it.humanSize, it.relativePath, it.mtimeStr, it.permStr],
@@ -1520,6 +1621,29 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
   win.onClick("btn_export_md", () => exportAs("md", () => toMarkdownTable(currentResults), "Markdown"));
   win.onClick("btn_export_paths", () => exportAs("txt", () => currentResults.map((r) => r.path).join("\n") + "\n", "Path list"));
 
+  // Save results anywhere via a native Save dialog; format follows the chosen extension.
+  win.onClick("btn_export_saveas", () => {
+    if (currentResults.length === 0) { win.toast("No matching items to export.", 2500, "warning"); return; }
+    win.saveFile({ title: "Save search results", defaultName: exportFileName("json"), filter: "json,csv,tsv,md,txt" }, (p) => {
+      if (!p) return;
+      try {
+        const ext = path.extname(p).slice(1).toLowerCase();
+        const csvCell = (v: any) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+        let text: string;
+        if (ext === "csv") {
+          text = ["name,type,size_bytes,path,modified,perms", ...currentResults.map((r) => [r.name, r.type, r.sizeBytes, r.path, r.mtimeStr, r.permStr].map(csvCell).join(","))].join("\n") + "\n";
+        } else if (ext === "tsv") text = toTsv(currentResults);
+        else if (ext === "md") text = toMarkdownTable(currentResults);
+        else if (ext === "txt") text = currentResults.map((r) => r.path).join("\n") + "\n";
+        else text = JSON.stringify(currentResults, null, 2);
+        fs.mkdirSync(path.dirname(p), { recursive: true });
+        fs.writeFileSync(p, text, "utf-8");
+        logConsole(`[Export] Saved ${currentResults.length} records to ${p}`, 2);
+        win.toast(`Saved ${currentResults.length} records to ${path.basename(p)}`, 3000, "success");
+      } catch (e: any) { fail("Export", e); }
+    });
+  });
+
   // -----------------------------------------------------------------------------------------------
   // 7. Client-Side Full-Screen Responsive Layout & Ergonomics Engine
   // -----------------------------------------------------------------------------------------------
@@ -1826,7 +1950,8 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
 
         // 2. Search Target & Pattern Card
         const searchCard = createCard("Search Target & Pattern", [
-          createRow(["lbl_pattern", "txt_pattern", "lbl_root", "txt_root", "lbl_mode", "dd_mode", "lbl_case", "dd_case", "btn_search", "btn_toggle_watch", "btn_clear"])
+          createRow(["lbl_pattern", "txt_pattern", "lbl_root", "txt_root", "btn_browse_root", "lbl_mode", "dd_mode", "lbl_case", "dd_case", "btn_search", "btn_toggle_watch", "btn_clear"]),
+          createRow(["lbl_preset", "dd_preset", "lbl_history", "dd_history", "lbl_max_results", "txt_max_results", "lbl_sort", "dd_sort", "lbl_filter", "txt_filter"])
         ]);
         root.appendChild(searchCard);
 
@@ -1873,7 +1998,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
 
         // 7. Batch Operations, Bulk File Management & Export Toolkit Card
         const batchCard = createCard("Batch Operations, Bulk File Management & Export Toolkit", [
-          createRow(["lbl_dest", "txt_dest_dir", "btn_copy_all_files", "btn_move_all", "btn_archive_all"]),
+          createRow(["lbl_dest", "txt_dest_dir", "btn_browse_dest", "btn_copy_all_files", "btn_move_all", "btn_archive_all"]),
           createRow(["btn_copy_all_rel", "btn_copy_all_abs", "btn_export_json", "btn_export_csv", "btn_bury_all", "btn_delete_all"])
         ]);
         root.appendChild(batchCard);
@@ -1884,7 +2009,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
           createRow(["lbl_chmod", "txt_chmod", "btn_chmod", "btn_preview_hex", "btn_undo_op"]),
           createRow(["lbl_br", "txt_br_find", "txt_br_replace", "chk_br_regex", "dd_br_case", "txt_br_prefix", "txt_br_suffix", "chk_br_number", "chk_br_spaces", "btn_br_preview", "btn_br_apply"]),
           createRow(["lbl_grep", "txt_grep", "chk_grep_regex", "chk_grep_case", "btn_grep", "btn_dupes", "btn_largest", "btn_ext_stats"]),
-          createRow(["btn_export_tsv", "btn_export_md", "btn_export_paths"])
+          createRow(["btn_export_tsv", "btn_export_md", "btn_export_paths", "btn_export_saveas"])
         ]);
         root.appendChild(opsCard);
 

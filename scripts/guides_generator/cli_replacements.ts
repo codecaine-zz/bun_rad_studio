@@ -88,6 +88,16 @@ A beginner-friendly file-manager layer on top of search — everything is a butt
 - **🐘 Largest Files / 📊 Usage by Type**: Top files and size-per-extension breakdown of the current matches.
 - **📑 Export TSV / 📝 Export Markdown / 🗒 Export Path List**: Saved into the *Target Destination Folder* and copied to the clipboard (JSON and CSV exports are still available).
 - **Min Depth filter**: Skip the top N folder levels (companion to Max Depth).
+
+### 5. Productivity Features
+- **📁 Browse… (Search Root / Destination Folder)**: Pick folders with a native dialog instead of typing paths. Picking a new Search Root re-runs the search (and restarts the live watcher if it is on).
+- **Preset dropdown**: One-click saved searches — Large files (>10M), Recently modified (24h), Images, Source code, Documents, Logs, Empty files & folders, Directories only. A preset fills the extension, size, age and type filters and searches immediately.
+- **Recent searches**: The last 15 distinct patterns are kept for the session; choose one to re-run it.
+- **Max results**: Cap the number of matches (default \`1500\`, up to \`20000\`). The status bar tells you when results were capped.
+- **Sort**: Default, Name A→Z / Z→A, Size largest / smallest, Modified newest / oldest — applied instantly without rescanning.
+- **Filter results**: Type to narrow the current results by name or path (case-insensitive) without rescanning. Batch actions, exports and copies use exactly what is shown.
+- **💾 Save Results As…**: Native Save dialog; the format follows the extension you choose — \`.json\`, \`.csv\`, \`.tsv\`, \`.md\` or \`.txt\` (path list).
+- **Feedback**: A toast summarises each search (count and time), and a missing Search Root shows a clear error instead of an empty result.
 `);
 
   // 18_rip_studio.md
