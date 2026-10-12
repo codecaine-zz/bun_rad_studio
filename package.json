@@ -53,6 +53,7 @@
     "app:devtools": "bun run applications/devtools_studio.ts",
     "app:process": "bun run applications/process_studio.ts",
     "app:database": "bun run applications/database_studio.ts",
+    "app:mysql": "bun run applications/mysql_studio.ts",
     "app:api": "bun run applications/api_studio.ts",
     "app:convert": "bun run applications/dataconvert_studio.ts",
     "app:crypto": "bun run applications/crypto_studio.ts",

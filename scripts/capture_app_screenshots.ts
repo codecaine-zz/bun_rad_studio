@@ -20,6 +20,7 @@ import { createProcessStudio } from "../applications/process_studio";
 import { createRedisStudio } from "../applications/redis_studio";
 import { createRegexStudio } from "../applications/regex_studio";
 import { createSqliteStudio } from "../applications/sqlite_studio";
+import { createMysqlStudio } from "../applications/mysql_studio";
 import { createSystemInformationStudio } from "../applications/system_studio";
 import { createTaskTracker } from "../applications/task_manager";
 import { createWatcherStudio } from "../applications/watcher_studio";
@@ -87,6 +88,7 @@ const apps: Record<string, () => { generateHtml: () => string }> = {
   "rip_studio": createRipStudio,
   "sd_studio": createSdStudio,
   "sqlite_studio": createSqliteStudio,
+  "mysql_studio": () => createMysqlStudio(),
   "subfinder_studio": createSubfinderStudio,
   "system_studio": createSystemInformationStudio,
   "task_manager": createTaskTracker,

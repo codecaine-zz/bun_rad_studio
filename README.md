@@ -446,12 +446,13 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 | **38** | **Cyber Pong Neo**                 | [User Guide](docs/userguides/38_pong_arcade.md)              | High-speed kinetic arcade tennis with responsive paddle spin deflection physics & 3-tier AI opponents.                      | `bun run app:pong`      |
 | **39** | **Tic Tac Toe Master**             | [User Guide](docs/userguides/39_tictactoe_studio.md)         | Unbeatable Minimax AI mode, casual mode & local 2-player battle with scoreboard and glowing neon visuals.                   | `bun run app:tictactoe` |
 | **40** | **RAD Utilities Studio Pro**       | [Feature Docs](src/features/rad/README.md)                   | 44 high-velocity development modules for Rapid Application Development with live playground, recipes & benchmark suite.      | `bun run app:rad`       |
+| **41** | **MySQL Studio Pro**               | [User Guide](docs/userguides/41_mysql_studio.md)             | Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite via native Bun SQL.          | `bun run app:mysql`     |
 
 <a id="application-visual-gallery--screenshots"></a>
 
 ### 📸 Application Visual Gallery & Screenshots
 
-Explore live desktop and responsive viewport previews for all 27 enterprise production workstations:
+Explore live desktop and responsive viewport previews for all 28 enterprise production workstations:
 
 #### 🔍 Filesystem, Search & Process Operations
 
@@ -469,6 +470,7 @@ Explore live desktop and responsive viewport previews for all 27 enterprise prod
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
 | :--- | :--- | :--- |
 | **Database Studio Pro**<br>[User Guide](docs/userguides/01_database_studio.md)<br>`bun run app:database` | ![Database Studio Desktop](screenshots/apps/database_studio_desktop.png) | ![Database Studio Responsive](screenshots/apps/database_studio_responsive.png) |
+| **MySQL Studio Pro**<br>[User Guide](docs/userguides/41_mysql_studio.md)<br>`bun run app:mysql` | ![MySQL Studio Desktop](screenshots/apps/mysql_studio_desktop.png) | ![MySQL Studio Responsive](screenshots/apps/mysql_studio_responsive.png) |
 | **JSON Query Studio Pro**<br>[User Guide](docs/userguides/04_json_query_studio.md)<br>`bun run app:json` | ![JSON Query Studio Desktop](screenshots/apps/json_studio_desktop.png) | ![JSON Query Studio Responsive](screenshots/apps/json_studio_responsive.png) |
 | **Data Converter Studio**<br>[User Guide](docs/userguides/08_data_converter_studio.md)<br>`bun run app:convert` | ![Data Converter Studio Desktop](screenshots/apps/dataconvert_studio_desktop.png) | ![Data Converter Studio Responsive](screenshots/apps/dataconvert_studio_responsive.png) |
 

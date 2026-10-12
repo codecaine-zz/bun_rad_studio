@@ -23,6 +23,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 | **05** | [DevTools Studio Pro](05_devtools_studio.md) | 6-in-1 suite: Ripgrep search, Fd finder, Sd replace (dry run, backups), Trash with undo, JQ. | `bun run app:devtools` | `bun run cli:devtools` |
 | **06** | [Process Monitor Studio](06_process_monitor_studio.md) | Process table with group-by-app, tree kill, safe signals with confirmations, listener-only port kill, export. | `bun run app:process` | `bun run cli:process` |
 | **40** | [Redis Studio Pro](40_redis_studio.md) | Key browser with sort/filter, typed editors, export/import backup, bulk delete, duplicate, CLI history with safety prompts, telemetry, Pub/Sub. | `bun run applications/redis_studio.ts` | — |
+| **41** | [MySQL Studio Pro](41_mysql_studio.md) | Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite via native Bun SQL. | `bun run app:mysql` | — |
 
 ### 🛠️ 2. Developer Utilities & Data Engineering
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
@@ -81,6 +82,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ```bash
 # Core Workstations
 bun run app:database       # Database Studio Pro (SQLite)
+bun run app:mysql          # MySQL Studio Pro
 bun run app:system         # System & Package Workstation
 bun run app:watcher        # Task Watcher Studio
 bun run app:json           # JSON Query Studio Pro

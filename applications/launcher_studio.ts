@@ -84,6 +84,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🗄️",
     description: "Enterprise embedded database workstation & query IDE with zero-latency execution",
   },
+  mysql_studio: {
+    displayName: "MySQL Studio Pro",
+    category: "Database & Storage",
+    icon: "🐬",
+    description: "Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite",
+  },
   redis_studio: {
     displayName: "Redis Studio Pro",
     category: "Database & Storage",
