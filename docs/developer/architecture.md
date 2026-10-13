@@ -110,7 +110,7 @@ It is mounted inside the SQLite, MySQL and PostgreSQL studio servers under `/wor
 |---|---|---|
 | Web page in your browser → a local studio server | HTTP requests | Loopback bind; `guardLocalRequest` refuses foreign `Host` and `Origin` |
 | Page inside a window → desktop program | [Bindings](../glossary.md#binding) | The set of bindings is fixed; `openExternalUrl` accepts only `http`, `https`, `mailto` (source) |
-| Pasted JSON layout → designer | `formSpec` | `normalizeImportedSpec` validates; generated code escapes values ([D-021](../documentation-maintenance/discrepancies.md#d-021)); control text is still inserted as raw HTML ([D-024](../documentation-maintenance/discrepancies.md#d-024), open) |
+| Pasted JSON layout → designer | `formSpec` | `normalizeImportedSpec` validates; generated code escapes values ([D-021](../documentation-maintenance/discrepancies.md#d-021)); event handler scripts run by design and control text is inserted as raw HTML; Import warns about scripts ([D-024](../documentation-maintenance/discrepancies.md#d-024)) |
 | Workbench page → database | SQL and row edits | Per-process token, read-only enforced in the engine, server-checked confirmations, parameterised values, rows rendered as text |
 | Programs → files | Workspace paths (Code Studio), exports, state files | Workspace containment check (`isInsideWorkspace`); the maze and word-search state files are written through a temporary file and a rename (source) |
 | Program → your database password | `.env` (older studios) or OS credential store (Workbench) | See [D-009](../documentation-maintenance/discrepancies.md#d-009) |

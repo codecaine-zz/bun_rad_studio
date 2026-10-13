@@ -27,7 +27,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-021 A crafted layout could run code in an exported project (fixed)](#d-021)
 - [D-022 Exporting again silently overwrote the user's edits (fixed)](#d-022)
 - [D-023 Run only worked when the designer was started from the project folder (fixed)](#d-023)
-- [D-024 Preview and export insert control text as raw HTML](#d-024)
+- [D-024 A layout can contain scripts, and control text is inserted as raw HTML (partly addressed)](#d-024)
 - [D-025 Generated preview files were tracked in git (fixed)](#d-025)
 
 <a id="d-001"></a>
@@ -218,12 +218,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Verification:** a real preview process was started from an empty folder and stayed running (the window's contents were not inspected). Automated: `tests/ide_html.test.ts`.
 
 <a id="d-024"></a>
-## D-024: Preview and export insert control text as raw HTML
+## D-024: A layout can contain scripts, and control text is inserted as raw HTML (partly addressed)
 
-- **Status:** Open (documented; not changed because some controls rely on it).
-- **Observed (source):** `generatePreviewHtml` in `index.ts` puts a control's `text` into the page without escaping (for example `<button>${text}</button>`, `value="${text}"`). The raw-HTML and rich-text controls need that. A layout imported from an untrusted source can therefore run script in the preview or exported window.
-- **Limits of the damage (source):** the page can call only the window bindings (`quitApp`, `closeWindow`, `openExternalUrl` and similar). `openExternalUrl` accepts only `http`, `https` and `mailto` links and starts them without a shell on macOS. The Windows branch (`cmd /c start`) was not assessed.
-- **Safe practice:** import only layouts you trust.
+- **Status:** Import now warns about scripts (13 October 2026). Escaping of control text is deliberately **not** changed.
+- **What a layout is:** the designer has an *Event Handler Script Editor*. In `generatePreviewHtml` (`index.ts`) an event handler that is not a plain function name is pasted into the page as **script** (`codeToExec = clean`), in the **Run** preview and in exported projects. So a layout is code, by design. Control text is also inserted unescaped (for example `<button>${text}</button>`, `value="${text}"`), which raw-HTML and rich-text controls need.
+- **Consequence:** escaping control text would not protect against a layout author, who can already write script handlers. The honest model is "importing a layout is like opening a project with scripts". The page can still call only the window bindings (`quitApp`, `closeWindow`, `openExternalUrl` and similar; `openExternalUrl` accepts only `http`, `https` and `mailto` links and starts them without a shell on macOS). The Windows branch (`cmd /c start`) was not assessed.
+- **Change made:** **Import** counts handlers that are script (`countImportedScripts`) and, when there are any, asks "This layout contains N event handler script(s). They run as code when you use Run and in exported projects. Import it only if you trust where it came from. Import anyway?". Cancel leaves the form and the dialog unchanged (checked in a browser: declined, accepted, and a layout with only function names gets no prompt).
+- **Not changed:** the JSON text is not scanned for scripts hidden in other fields, and the Run and Export buttons do not warn (the warning is at import, where the foreign text arrives). Layouts you build yourself never prompt.
+- **Tests:** `tests/ide_html.test.ts` ("importing a layout that contains scripts").
 
 <a id="d-025"></a>
 ## D-025: Generated preview files were tracked in git (fixed)

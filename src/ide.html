@@ -6590,6 +6590,23 @@ wv.bind("backendAlert", (msg: string) => {
 			return { spec: spec };
 		}
 
+		// Counts event handlers that are script rather than a plain function name. Those run as code in the
+		// Run preview and in exported projects, so importing a layout that has them deserves a warning.
+		function countImportedScripts(spec) {
+			const isFunctionName = (v) => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(v);
+			const looksLikeHandlerKey = (k) => /^on[A-Za-z]+$/.test(k);
+			let count = 0;
+			(spec.controls || []).forEach((c) => {
+				const handlers = Object.assign({}, c.event_handlers || {});
+				Object.keys(c).forEach((k) => { if (looksLikeHandlerKey(k) && typeof c[k] === "string") handlers[k] = c[k]; });
+				Object.keys(handlers).forEach((k) => {
+					const v = handlers[k];
+					if (typeof v === "string" && v.trim() && !isFunctionName(v.trim())) count++;
+				});
+			});
+			return count;
+		}
+
 		function processImportJSON() {
 			const text = document.getElementById("importJsonText").value;
 			let parsed;
@@ -6602,6 +6619,10 @@ wv.bind("backendAlert", (msg: string) => {
 			const result = normalizeImportedSpec(parsed);
 			if (result.error) {
 				alert(result.error + "\nYour current form was not changed.");
+				return;
+			}
+			const scripts = countImportedScripts(result.spec);
+			if (scripts > 0 && !confirm("This layout contains " + scripts + " event handler script(s). They run as code when you use Run and in exported projects. Import it only if you trust where it came from.\n\nImport anyway?")) {
 				return;
 			}
 			saveHistoryState();

@@ -42,6 +42,7 @@ Checked in a browser rendering of the designer page, one item at a time (this is
 - The text must be one JSON object with a `title`, a `controls` list, or both.
 - Each control needs a `control_type` (for example `"button"`). A missing `id` is generated, a duplicate `id` is renamed, and a missing position or size becomes 0,0 and 150 by 36. A missing form width and height become 840 by 560.
 - If the text is not valid, you get a message that says what is wrong and **your current form is not changed**.
+- If the layout contains event handler **scripts** (anything other than a plain function name), the designer asks for confirmation first; they run as code in **Run** and in exported projects ([D-024](../documentation-maintenance/discrepancies.md#d-024)).
 - After a successful import, Cmd/Ctrl+Z brings back the previous form.
 
 ## What the source contains

@@ -41,7 +41,7 @@ Severity: **High** means data loss, a security hole or an unusable core workflow
 | R-12 | Button text contrast in the designer: 25 of 51 themes were below 4.5 to 1 | Computed from `getThemeColors` in `src/ide.html`. See [D-019](discrepancies.md#d-019) | Users who rely on readable text | Low | **Fixed**, tested. Solarized body text (published palette) left as is |
 | R-13 | A crafted layout could run code in an exported project or the Run preview | Reproduced on the old code with a string `width`. See [D-021](discrepancies.md#d-021) | Anyone importing a layout they did not write | High | **Fixed**, tested |
 | R-14 | Exporting again overwrote the exported `index.ts` the user had edited | Source and test. See [D-022](discrepancies.md#d-022) | Users of Export | Medium | **Fixed**, tested |
-| R-15 | Preview and export insert control text as raw HTML | Source. See [D-024](discrepancies.md#d-024) | Anyone importing a layout they did not write | Medium | Open, documented |
+| R-15 | A layout is code: script handlers run in Run and export, and control text is raw HTML | Source. See [D-024](discrepancies.md#d-024) | Anyone importing a layout they did not write | Medium | Partly addressed: Import warns about scripts; text is not escaped by design |
 | R-10 | `bun run applications/redis_studio_server.ts --server` crashes at start-up | Observed: `ReferenceError: Cannot access 'RedisManager' before initialization` (a circular import with `redis_studio.ts`, which also reacts to `--server`). Same result on the committed code. See [D-015](discrepancies.md#d-015) | Anyone starting that file directly | Low | **Fixed** (see [D-015](discrepancies.md#d-015)) |
 
 ## Not yet assessed

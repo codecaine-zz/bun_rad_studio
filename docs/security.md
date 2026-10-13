@@ -16,7 +16,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 - Studios run a small web server on **your own computer only** (`127.0.0.1`). Other machines cannot reach it, and web pages open in your browser are refused.
 - Some studios can run commands or change files (Code Studio, Task Manager, Rip Studio, the file tools). They are for **you**; do not expose them to a network.
 - Database passwords are safest in the **Database Workbench** (operating-system credential store). The older MySQL and PostgreSQL studios read a plain-text `.env` file.
-- **Import layouts only from sources you trust.**
+- **A designer layout can contain scripts. Import layouts only from sources you trust;** the designer asks before importing one that has scripts.
 
 ## What is protected
 
@@ -32,7 +32,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 | **Passwords in the credential store**, removed from error messages and logs, never sent back to the page | Passwords in files, logs or the browser | Workbench tests; see [Workbench guide](databases/workbench.md#connections-and-credentials) |
 | **Rows rendered as text**, never HTML, in the Workbench | Script injection through database content | Workbench UI tests |
 | **Escaped generated code** (`tsStringLiteral`, `safeDimension`) in the designer's export and preview | A crafted layout running code when the exported project starts | `tests/ide_html.test.ts`, seven attacks ([D-021](documentation-maintenance/discrepancies.md#d-021)) |
-| **Layout import validation** (`normalizeImportedSpec`) | A malformed layout breaking the open form | `tests/ide_html.test.ts` ([D-018](documentation-maintenance/discrepancies.md#d-018)) |
+| **Layout import validation** (`normalizeImportedSpec`) and a **warning when a layout contains scripts** | A malformed layout breaking the open form; importing code without noticing | `tests/ide_html.test.ts`; the warning also checked in a browser ([D-018](documentation-maintenance/discrepancies.md#d-018), [D-024](documentation-maintenance/discrepancies.md#d-024)) |
 | **Export keeps your edits** (`.bak-<time>` copies) | Losing hand-edited exported code | `tests/ide_html.test.ts` ([D-022](documentation-maintenance/discrepancies.md#d-022)) |
 | **`openExternalUrl`** only opens `http`, `https` and `mailto` links, without a shell on macOS | A page launching arbitrary programs | Source only |
 | **Secret scan** in the documentation checker | Passwords, keys or tokens written into the docs | `bun run docs:check` |
@@ -44,7 +44,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 | **Studios are powerful by design.** Code Studio runs shell commands you type; Task Manager can signal processes; Rip Studio moves files | Anything running as **you** on your computer can use them, because the guard only stops web pages and other machines, not local programs. Do not run them on a shared machine you do not control |
 | **No login.** Local servers have no password. A program or user on the same machine can reach them | Loopback binding is the boundary |
 | **`.env` passwords** for the older MySQL and PostgreSQL studios are plain text, copied into the process environment | [D-009](documentation-maintenance/discrepancies.md#d-009), accepted and documented |
-| **Raw HTML in preview and export**: a layout's control text is inserted unescaped | [D-024](documentation-maintenance/discrepancies.md#d-024), open. The page can call only a few window functions, but still: import trusted layouts only |
+| **A layout is code.** Event handlers that are not plain function names run as script in the Run preview and in exported projects, and control text is inserted as raw HTML | [D-024](documentation-maintenance/discrepancies.md#d-024). Import warns and asks; nothing else stops it. The page can call only a few window functions. Import layouts you did not write only after reading the JSON |
 | **Windows launching of external links** uses `cmd /c start`; not assessed | Source only |
 | **Dependencies were not scanned** for known vulnerabilities, and no software bill of materials exists | Run `bun audit` yourself if this matters to you (*not run here*) |
 | **The CI workflow has not run on GitHub**, so none of the checks above is enforced there yet | [Testing](testing/index.md#continuous-integration) |
@@ -58,7 +58,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 4. Never paste real passwords into `.env.example` (it is committed), issues, chats or layouts.
 5. Do not change a studio's host to `0.0.0.0` or put it behind a tunnel or reverse proxy; its guard assumes loopback.
 6. Run `bun run docs:check` before sharing documentation: it scans for secret-looking text.
-7. Import designer layouts you did not write only after reading the JSON.
+7. Treat a designer layout like a project with scripts: read the `event_handlers` in its JSON before you import or run it, and say no when the import asks.
 
 ## Reporting a problem
 

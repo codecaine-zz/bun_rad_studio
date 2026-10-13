@@ -175,6 +175,42 @@ describe("Designer themes: readable button text (D-019)", () => {
     });
 });
 
+describe("Designer: importing a layout that contains scripts", () => {
+    const html = getIdeHtml();
+    const start = html.indexOf("function countImportedScripts");
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+        if (html[end] === "{") depth++;
+        else if (html[end] === "}" && --depth === 0) break;
+    }
+    const count = new Function(`${html.slice(start, end + 1)}; return countImportedScripts;`)() as (spec: any) => number;
+
+    test("plain function names are not scripts", () => {
+        expect(count({ controls: [{ id: "a", event_handlers: { onClick: "doIt", onChange: " other_1 " } }] })).toBe(0);
+        expect(count({ controls: [] })).toBe(0);
+        expect(count({})).toBe(0);
+    });
+
+    test("code in event_handlers and in onXxx fields is counted", () => {
+        const spec = {
+            controls: [
+                { id: "a", event_handlers: { onClick: "alert(1)", onHover: "doIt" } },
+                { id: "b", onclick: "fetch('/x')", onChange: "go" },
+                { id: "c", text: "onfoo not a handler", event_handlers: { onFocus: "  " } },
+            ],
+        };
+        expect(count(spec)).toBe(2);
+    });
+
+    test("the import asks before replacing the form, and only after validation", () => {
+        const fn = html.slice(html.indexOf("function processImportJSON"), html.indexOf("// MS Access Database CRUD Form Wizard"));
+        expect(fn).toContain("confirm(");
+        expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeLessThan(fn.indexOf("confirm("));
+        expect(fn.indexOf("confirm(")).toBeLessThan(fn.indexOf("formSpec = "));
+    });
+});
+
 describe("Exported project (regression for nested template literals)", () => {
     const dirs: string[] = [];
     afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
