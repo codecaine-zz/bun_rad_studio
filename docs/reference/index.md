@@ -45,7 +45,13 @@ Only variables whose behaviour was read in the source are listed. "Scope" is the
 | `TEST_MYSQL_URL`, `TEST_PG_URL` | Admin URL of a development server for tests | unset (tests skipped) | Tests | `tests/helpers/testdb.ts` |
 | `MSQL_*`, `MYSQL_*`, `PG_*`, `POSTGRES_*`, `DATABASE_URL` | Connection settings read by the legacy MySQL/Postgres studios (host, port, user, password, database, TLS) | see the studios' guides | Legacy studios | `applications/mysql_studio_server.ts`, `applications/postgres_studio_server.ts` |
 
-**Security note:** the legacy MySQL and PostgreSQL studios also read a `.env` file in the current folder and copy its values into the process environment. `.env` is in `.gitignore`, but it is a plain-text file: see the [Workbench guide](../databases/workbench.md#connections-and-credentials) for the safer keychain-based alternative.
+**Security note: the `.env` file used by the legacy MySQL and PostgreSQL studios.** (Decision recorded 13 October 2026: this behaviour is left as it is and documented; see [D-009](../documentation-maintenance/discrepancies.md#d-009).)
+
+- At start-up each of these two studios reads `.env` from the **current folder** and copies **every** `KEY=value` line into its environment, **replacing** any variable of the same name that was already set (read in `applications/mysql_studio_server.ts` and `applications/postgres_studio_server.ts`). The values stay in the process's environment, which programs it starts can inherit.
+- The file is plain text. It is listed in `.gitignore`, so git will not add it, but nothing else protects it. Anyone who can read the file can read the password.
+- Safe practice: keep the file only on your own machine; never copy it into a project folder you share, a backup you upload or a chat; use a database account with the least privileges you need (read-only if you only browse); on macOS and Linux, make the file readable by you alone with `chmod 600 .env`; do not put real passwords in `.env.example`, which **is** committed.
+- The [Database Workbench](../databases/workbench.md#connections-and-credentials) keeps passwords in the operating system's credential store instead, and does not read `.env`.
+
 
 Many other variables exist (for example `PORT`, `SCREENSHOT_MODE`, `STUDIO_WORKER`, `REDIS_URL`); they were not individually verified and are not documented here.
 

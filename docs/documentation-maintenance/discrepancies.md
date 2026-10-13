@@ -82,7 +82,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 <a id="d-009"></a>
 ## D-009: Legacy studios keep database passwords in a plain `.env` file
 
-- **Status:** Open (documented in [Reference: environment variables](../reference/index.md#environment-variables)).
+- **Status:** Accepted and documented (decision recorded 13 October 2026: keep the behaviour, document the risk). See [Reference: environment variables](../reference/index.md#environment-variables) for the facts and safe practice.
 - **Observed:** `applications/mysql_studio_server.ts` and `applications/postgres_studio_server.ts` read `.env` from the current folder and copy every value into the process environment. The Workbench uses the operating system's credential store instead.
 
 <a id="d-010"></a>
