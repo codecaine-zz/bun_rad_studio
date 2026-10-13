@@ -216,4 +216,21 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     expect(typeof app.generateHtml).toBe("function");
     expect(typeof app.run).toBe("function");
   });
+
+  it("9. Correctly resolves MSQL_* environment variable naming convention", async () => {
+    const srv = startMysqlStudioServer({ port: 0 });
+    try {
+      const res = await fetch(`http://127.0.0.1:${srv.port}/api/config`);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as any;
+      expect(data.success).toBe(true);
+      expect(data.config.host).toBe(process.env.MSQL_HOST || "localhost");
+      expect(data.config.port).toBe(Number(process.env.MSQL_PORT) || 3306);
+      expect(data.config.user).toBe(process.env.MSQL_USER || "root");
+      expect(data.config.database).toBe(process.env.MSQL_NAME || "my_app_dev");
+      expect(data.config.hasPassword).toBe(true);
+    } finally {
+      srv.stop(true);
+    }
+  });
 });

@@ -6198,16 +6198,36 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
         url: options.url,
       };
 
-      if (customConfig.host) process.env.MYSQL_HOST = customConfig.host;
-      if (customConfig.port) process.env.MYSQL_PORT = String(customConfig.port);
-      if (customConfig.user) process.env.MYSQL_USER = customConfig.user;
-      if (customConfig.password !== undefined) process.env.MYSQL_PASSWORD = customConfig.password;
+      if (customConfig.host) {
+        process.env.MSQL_HOST = customConfig.host;
+        process.env.MYSQL_HOST = customConfig.host;
+      }
+      if (customConfig.port) {
+        process.env.MSQL_PORT = String(customConfig.port);
+        process.env.MYSQL_PORT = String(customConfig.port);
+      }
+      if (customConfig.user) {
+        process.env.MSQL_USER = customConfig.user;
+        process.env.MYSQL_USER = customConfig.user;
+      }
+      if (customConfig.password !== undefined) {
+        process.env.MSQL_PASSWORD = customConfig.password;
+        process.env.MYSQL_PASSWORD = customConfig.password;
+      }
       if (customConfig.database) {
+        process.env.MSQL_NAME = customConfig.database;
         process.env.MYSQL_DATABASE = customConfig.database;
         process.env.MYSQL_DB_PATH = customConfig.database;
       }
-      if (customConfig.tls !== undefined) process.env.MYSQL_TLS = customConfig.tls ? "true" : "false";
-      if (customConfig.url) process.env.DATABASE_URL = customConfig.url;
+      if (customConfig.tls !== undefined) {
+        const tlsStr = customConfig.tls ? "true" : "false";
+        process.env.MSQL_TLS = tlsStr;
+        process.env.MYSQL_TLS = tlsStr;
+      }
+      if (customConfig.url) {
+        process.env.MSQL_URL = customConfig.url;
+        process.env.DATABASE_URL = customConfig.url;
+      }
 
       let info: { ready: boolean; port: number; url: string; type?: string };
 

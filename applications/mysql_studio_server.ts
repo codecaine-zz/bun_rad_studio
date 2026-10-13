@@ -10,7 +10,7 @@
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { SQL } from "bun";
 import { resolve, basename } from "path";
-import { existsSync, statSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { generateMysqlStudioHtml } from "./mysql_studio.ts";
 
@@ -165,24 +165,75 @@ export class MysqlManager {
   };
 
   constructor(initialDb: string = "", initialConfig?: Partial<MysqlConnectionConfig>) {
-    this.activePath = initialDb || initialConfig?.database || process.env.MYSQL_DATABASE || process.env.DB_NAME || "my_app_dev";
+    this.loadEnvFile();
+    this.activePath = initialDb 
+      || initialConfig?.database 
+      || process.env.MSQL_NAME 
+      || process.env.MSQL_DATABASE 
+      || process.env.MSQL_DB 
+      || process.env.MYSQL_DATABASE 
+      || process.env.DB_NAME 
+      || "my_app_dev";
     this.parseConfig(initialDb, initialConfig);
     this.initConnection();
   }
 
+  private loadEnvFile() {
+    try {
+      const envPath = resolve(process.cwd(), ".env");
+      if (existsSync(envPath)) {
+        const text = readFileSync(envPath, "utf-8");
+        for (const line of text.split("\n")) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith("#")) continue;
+          const eqIdx = trimmed.indexOf("=");
+          if (eqIdx > 0) {
+            const key = trimmed.slice(0, eqIdx).trim();
+            let val = trimmed.slice(eqIdx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            process.env[key] = val;
+          }
+        }
+      }
+    } catch {}
+  }
+
   private parseConfig(overrideDb: string = "", customConfig?: Partial<MysqlConnectionConfig>) {
-    let host = customConfig?.host || process.env.MYSQL_HOST || process.env.DB_HOST || "localhost";
-    let port = customConfig?.port ? Number(customConfig.port) : (Number(process.env.MYSQL_PORT || process.env.DB_PORT) || 3306);
-    let user = customConfig?.user || process.env.MYSQL_USER || process.env.DB_USER || "root";
+    this.loadEnvFile();
+
+    let host = customConfig?.host 
+      || process.env.MSQL_HOST 
+      || process.env.MYSQL_HOST 
+      || process.env.DB_HOST 
+      || "localhost";
+    let port = customConfig?.port 
+      ? Number(customConfig.port) 
+      : (Number(process.env.MSQL_PORT || process.env.MYSQL_PORT || process.env.DB_PORT) || 3306);
+    let user = customConfig?.user 
+      || process.env.MSQL_USER 
+      || process.env.MYSQL_USER 
+      || process.env.DB_USER 
+      || "root";
     let password = customConfig?.password !== undefined 
       ? customConfig.password 
-      : (process.env.MYSQL_PASSWORD !== undefined ? process.env.MYSQL_PASSWORD : (process.env.DB_PASSWORD || ""));
-    let database = customConfig?.database || overrideDb || process.env.MYSQL_DATABASE || process.env.DB_NAME || "my_app_dev";
+      : (process.env.MSQL_PASSWORD !== undefined 
+          ? process.env.MSQL_PASSWORD 
+          : (process.env.MYSQL_PASSWORD !== undefined ? process.env.MYSQL_PASSWORD : (process.env.DB_PASSWORD || "")));
+    let database = customConfig?.database 
+      || overrideDb 
+      || process.env.MSQL_NAME 
+      || process.env.MSQL_DATABASE 
+      || process.env.MSQL_DB 
+      || process.env.MYSQL_DATABASE 
+      || process.env.DB_NAME 
+      || "my_app_dev";
     let tls = customConfig?.tls !== undefined 
       ? Boolean(customConfig.tls) 
-      : (process.env.MYSQL_TLS === "1" || process.env.MYSQL_TLS === "true");
+      : (process.env.MSQL_TLS === "1" || process.env.MSQL_TLS === "true" || process.env.MYSQL_TLS === "1" || process.env.MYSQL_TLS === "true");
 
-    const urlCandidate = customConfig?.url || process.env.DATABASE_URL;
+    const urlCandidate = customConfig?.url || process.env.MSQL_URL || process.env.DATABASE_URL;
     if (urlCandidate) {
       try {
         const u = new URL(urlCandidate.replace(/^mysql:\/\//i, "http://"));
@@ -1798,7 +1849,13 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
 
 if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "mysql_studio")) {
   const preferredPort = 0;
-  const initialDbPath = process.env.MYSQL_DB_PATH || process.env.DB_NAME || "my_app_dev";
+  const initialDbPath = process.env.MYSQL_DB_PATH 
+    || process.env.MSQL_NAME 
+    || process.env.MSQL_DATABASE 
+    || process.env.MSQL_DB 
+    || process.env.MYSQL_DATABASE 
+    || process.env.DB_NAME 
+    || "my_app_dev";
   const server = startMysqlStudioServer({ port: preferredPort, initialDbPath });
 
   (globalThis as any).postMessage({

@@ -68,11 +68,14 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS my_app_dev CHARACTER SET utf8
 ### Step 5: Configure `.env` in `bun_rad_studio`
 Add your database credentials to the `.env` file in the project root:
 ```bash
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=my_app_dev
+# Recommended MSQL_* naming convention
+MSQL_HOST=localhost
+MSQL_PORT=3306
+MSQL_USER=root
+MSQL_PASSWORD=your_password
+MSQL_NAME=my_app_dev
+
+# Note: MYSQL_* and DB_* are also fully supported as fallbacks
 ```
 
 ### Useful Homebrew MySQL Service Commands
@@ -101,15 +104,18 @@ bun run applications/mysql_studio.ts
 By default, MySQL Studio Pro connects to your MySQL server using environment variables configured in your project's `.env` file:
 
 ```bash
-# Option A: Individual connection parameters
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=my_app_dev
+# Option A: Recommended MSQL_* naming convention
+MSQL_HOST=localhost
+MSQL_PORT=3306
+MSQL_USER=root
+MSQL_PASSWORD=your_password
+MSQL_NAME=my_app_dev
 
 # Option B: Single connection string URL
-DATABASE_URL=mysql://root:your_password@localhost:3306/my_app_dev
+MSQL_URL=mysql://root:your_password@localhost:3306/my_app_dev
+# Or standard DATABASE_URL=mysql://root:your_password@localhost:3306/my_app_dev
+
+# Note: MYSQL_* (e.g. MYSQL_HOST) and DB_* (e.g. DB_HOST) are also supported
 ```
 
 ### 3. Manual Connection Configuration (No `.env` Required)
