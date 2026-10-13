@@ -85,9 +85,20 @@ If you do not have or do not want to use `.env` variables, click **`🔌 Connect
 
 ## 🖥️ Workstation Workspace Overview
 
-Postgres Studio Pro features 7 dedicated workspace tabs:
+Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
 
-### 1. 📊 Tabular Data Grid
+### 1. 📊 Tabular Data Grid & Access-Style GUI CRUD Layer
+- **Access-Style CRUD Operations**:
+  - `+ New Row`: Visual dialog with input fields auto-configured for PostgreSQL types (UUID generation, JSONB validator, array tags).
+  - `✎ Edit Row` & **Inline Double-Click Cell Editing**: Direct in-place editing on any cell with automatic type casting ($1::jsonb).
+  - `⧉ Duplicate Row`: Clones selected record for rapid prototyping and mock data population.
+  - `🗑 Delete Row`: Safe deletion with confirmation prompt and primary key resolution.
+  - `📐 Design Table`: Access-style Table Designer modal to add/remove columns, change types (`VARCHAR`, `UUID`, `JSONB`, `NUMERIC`, etc.), toggle PK and NOT NULL.
+  - `⚡ Indexes Manager`: View all table indexes with 1-click index creation supporting **BTREE, GIN, GIST, BRIN, and HASH** algorithms.
+  - `📥 Import Wizard`: Import rows from CSV or JSON format with preview and batch insertion.
+  - `📤 Export Wizard`: Export table data or query results to CSV, JSON, or SQL INSERT scripts.
+- **Sidebar Right-Click Context Menus**:
+  - Context menu on tables and views: *Open Datasheet*, *Design Table*, *Manage Indexes*, *Export Data*, *Truncate Table*, *Drop Table*.
 - Paginated, lightning-fast data viewing with custom page sizing (25, 50, 100, 250).
 - Real-time row filtering across all columns.
 - Dedicated renderers for PostgreSQL native data types:
@@ -95,7 +106,6 @@ Postgres Studio Pro features 7 dedicated workspace tabs:
   - **JSONB**: Highlighted clickable badge; clicking opens the **JSONB Inspector Modal** with tree indentation and full path copying.
   - **Native Arrays**: Formatted tag pills (e.g. `['server', 'datacenter']`).
   - **Timestamps**: Localized date-time formatting with timezone offsets.
-- Export results to CSV and JSON.
 
 ### 2. ⚡ SQL Query IDE
 - Syntax-highlighted query editor with keyboard shortcuts (**Cmd+Enter** or **Ctrl+Enter** to execute).
@@ -119,14 +129,19 @@ Postgres Studio Pro features 7 dedicated workspace tabs:
   - Interactive column lists showing primary keys (🔑) and data types.
   - Automatic relationship discovery via foreign key introspection (`⚡ Auto-Joins`).
   - Automatic clean grid alignment (`📐 Arrange`).
-- Deep Zoom & Room Controls:
-  - Zoom range from 50% to 200% with preset selectors, zoom-in (`🔍+`), zoom-out (`🔍−`), and 1:1 reset.
-  - Canvas stage sized to 2,200px × 1,400px with background grid dots for extensive multi-table schemas.
-- **Join Properties Modal with Venn Diagrams**:
+- **Deep Zoom & Room Expansion Controls**:
+  - Zoom range from 40% to 250% (`🔍+`, `🔍−`, `1:1`, `Fit to View`).
+  - Room presets:
+    - `Canvas Only`: Maximizes canvas view for multi-table relationship design.
+    - `Split View`: Balanced layout with draggable horizontal resizer bar.
+    - `Grid Only`: Maximizes lower QBE matrix and result datasheet.
+  - Resizer Bar: Smooth interactive drag resizing between canvas and matrix.
+- **Join Properties Modal with Interactive Venn Diagrams**:
   - **Option 1**: INNER JOIN (Only matching rows)
   - **Option 2**: LEFT OUTER JOIN (ALL records from Left Table)
   - **Option 3**: RIGHT OUTER JOIN (ALL records from Right Table)
   - **Option 4**: **FULL OUTER JOIN (Postgres Native)** (ALL records from both tables)
+  - Dynamic SVG Venn diagram preview with live SQL snippet generation.
 - Lower QBE Matrix:
   - Configure Field, Table, Total (`GroupBy`, `Sum`, `Avg`, `Count`, `Min`, `Max`), Sort, Show, and Criteria.
 - Switch between **📐 Design View**, **💻 SQL View** (properly double-quoted identifiers), and **📋 Datasheet View** (live data execution).
@@ -150,7 +165,29 @@ Postgres Studio Pro features 7 dedicated workspace tabs:
 - Runs `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` to display the query execution tree.
 - Inspect Seq Scans, Index Scans, Hash Joins, Sort operations, actual execution costs, and buffer cache hits.
 
-### 7. 💻 Raw JSON Telemetry Inspector
+### 7. 🔢 Sequences Manager
+- Catalog of all cluster sequence generators (`pg_sequences`).
+- Displays sequence name, schema, data type (`bigint`, `integer`), start value, minimum, maximum, increment, and current value.
+- 1-Click `Restart Sequence` to reset or advance sequence counters safely.
+
+### 8. 👥 Roles & Privileges Explorer
+- Real-time catalog of PostgreSQL cluster roles (`pg_roles`).
+- Displays role name, superuser status (`is_superuser`), login privileges (`can_login`), replication flags, bypass RLS status, and connection limits (`conn_limit`).
+
+### 9. ⚡ Triggers & Stored Functions Catalog
+- Comprehensive reflection of user triggers (`information_schema.triggers`) and stored procedures / functions (`pg_proc`).
+- Displays event manipulation (`INSERT`, `UPDATE`, `DELETE`), trigger timing (`BEFORE`, `AFTER`), function return types, and argument signatures.
+
+### 10. 🚀 Performance & Telemetry Dashboard
+- Live PostgreSQL cluster health diagnostics:
+  - **Buffer Cache Hit Ratio Gauge**: Real-time ratio of in-memory buffer hits vs. disk block reads.
+  - **Database Storage Footprint**: Human-readable disk size via `pg_size_pretty(pg_database_size())`.
+  - **Cluster Locks Monitor**: Active, granted, and waiting locks count.
+  - **Transaction Commits & Rollbacks**: Live transaction outcome counters.
+  - **Table Bloat & Tuple Analysis**: Live statistics on dead tuples vs. live tuples, vacuum timestamps, and analyze timestamps.
+  - **1-Click Maintenance**: Run global cluster `VACUUM ANALYZE` or per-table vacuum directly from the dashboard.
+
+### 11. 💻 Raw JSON Telemetry Inspector
 - Inspect raw JSON responses from queries and schema reflection.
 - 1-Click copying to clipboard for integration with external tooling.
 
@@ -175,8 +212,8 @@ bun run app:launcher
 
 ### Method 3: Headless / Web Workstation
 ```bash
-# Run server mode on an ephemeral port
-bun run applications/postgres_studio.ts --server
+# Run server mode on custom port (defaults to 54321)
+PORT=54321 bun run applications/postgres_studio.ts --server
 ```
 
 ---
@@ -191,27 +228,37 @@ To test and explore all PostgreSQL-specific features immediately:
    - `orders` and `order_items` (with foreign keys and decimal calculations)
    - `audit_logs` (with JSONB event payloads and `TIMESTAMPTZ`)
    - `v_customer_order_summary` (multi-table view)
-   - `mv_customer_monthly_revenue` (**Materialized View** with 1-click refresh support)
+   - `mv_daily_sales_analytics` (**Materialized View** with 1-click refresh support)
 
 ---
 
-## 🧪 Automated Testing
+## 🧪 Automated Testing Suite
 
-Postgres Studio Pro is backed by a full automated test suite verifying server APIs, security sanitization, schema reflection, and extensions management:
+Postgres Studio Pro is backed by two automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, and complete end-to-end CRUD operations:
 
 ```bash
-# Execute Postgres Studio test suite
+# 1. Run Core Diagnostics & Workstation Unit Tests (11 tests)
 bun test tests/postgres_studio.test.ts
+
+# 2. Run Comprehensive End-to-End Enterprise Test Suite (11 tests)
+bun test tests/postgres_studio_e2e.test.ts
+
+# Run all 22 tests together
+bun test tests/postgres_studio.test.ts tests/postgres_studio_e2e.test.ts
 ```
 
-All 11 tests validate:
-- HTML compilation and PostgreSQL aesthetics
+All 22 automated tests pass with 100% success:
+- HTML compilation and 11 workstation navigation tabs & panes
+- Access-style GUI CRUD layer (inline edits, row modals, table designer, import/export)
+- Visual Query Designer with deep zoom (40%-250%), room presets, and interactive Venn diagrams
 - Sanitized configuration endpoint (no password leak)
-- Safe non-destructive credential testing
-- Reset to `.env` variables
+- Safe non-destructive credential verification
 - Schema namespace reflection and switching
-- Available extensions catalog
-- `pg_stat_activity` diagnostics
-- `VACUUM ANALYZE` maintenance
+- Available extensions catalog (`uuid-ossp`, `pgcrypto`, etc.)
+- `pg_stat_activity` diagnostics and process termination
+- Sequences manager and restart values
+- Roles and privileges inspection
+- Triggers and functions catalog
+- Performance telemetry (cache hit ratio, bloat, locks) and `VACUUM ANALYZE` maintenance
 - Database creation validation and identifier safety
 - Desktop workstation factory instantiation

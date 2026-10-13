@@ -33,6 +33,7 @@ import {
   type PostgresConnectionConfig,
   type PostgresConnectionConfigSanitized,
 } from "./postgres_studio_server.ts";
+import { CRUD_STYLE, CRUD_SCRIPT } from "./postgres_studio_crud.ts";
 
 export interface PostgresStudioOptions {
   fullscreen?: boolean;
@@ -1015,6 +1016,58 @@ export function generatePostgresStudioHtml(): string {
       animation: fadeIn 0.2s ease;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Visual Query Designer Room & Zoom Controls */
+    .qbe-zoom-controls, .qbe-room-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .qbe-resizer-bar {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      cursor: row-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+      position: relative;
+      z-index: 5;
+    }
+    .qbe-resizer-bar:hover { background: var(--cyan); }
+    .qbe-resizer-handle {
+      width: 40px;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--text-dim);
+    }
+    .access-venn-preview-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 12px;
+      align-items: center;
+      background: rgba(10, 15, 29, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .access-venn-svg {
+      width: 150px;
+      height: 90px;
+    }
+    .access-sql-box {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #38bdf8;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    ${CRUD_STYLE}
   </style>
 </head>
 <body>
@@ -1148,6 +1201,10 @@ export function generatePostgresStudioHtml(): string {
         <div class="tab-btn" id="tabBtnExtensions" onclick="switchTab('extensions')">🧩 Extensions Manager</div>
         <div class="tab-btn" id="tabBtnActivity" onclick="switchTab('activity')">⚡ Live Activity Monitor</div>
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan (EXPLAIN)</div>
+        <div class="tab-btn" id="tabBtnSequences" onclick="switchTab('sequences')">🔢 Sequences</div>
+        <div class="tab-btn" id="tabBtnRoles" onclick="switchTab('roles')">👥 Roles &amp; Grants</div>
+        <div class="tab-btn" id="tabBtnTriggers" onclick="switchTab('triggers')">⚡ Triggers &amp; Functions</div>
+        <div class="tab-btn" id="tabBtnTelemetry" onclick="switchTab('telemetry')">🚀 Performance &amp; Telemetry</div>
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
       </div>
 
@@ -1242,6 +1299,33 @@ export function generatePostgresStudioHtml(): string {
             <button class="btn btn-sm" onclick="addDesignerQbeColumn()">+ Column</button>
             <button class="btn btn-sm" onclick="toggleSidebarCollapse()">◀▶ Sidebar</button>
           </div>
+          <div class="qbe-ribbon-group">
+            <!-- Zoom Controls -->
+            <div class="qbe-zoom-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+              <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Zoom:</span>
+              <button class="btn btn-sm" onclick="zoomOutDesignerCanvas()" title="Zoom out canvas (Ctrl + Wheel Down)" style="padding: 1px 6px; font-size: 11px;">🔍−</button>
+              <select id="canvasZoomSelect" onchange="setDesignerCanvasZoom(parseFloat(this.value))" style="padding: 1px 4px; font-size: 10px; width: 62px; height: 22px;">
+                <option value="0.5">50%</option>
+                <option value="0.75">75%</option>
+                <option value="0.9">90%</option>
+                <option value="1" selected>100%</option>
+                <option value="1.25">125%</option>
+                <option value="1.5">150%</option>
+                <option value="2">200%</option>
+              </select>
+              <button class="btn btn-sm" onclick="zoomInDesignerCanvas()" title="Zoom in canvas (Ctrl + Wheel Up)" style="padding: 1px 6px; font-size: 11px;">🔍+</button>
+              <button class="btn btn-sm" onclick="resetDesignerCanvasZoom()" title="Reset zoom to 100%" style="padding: 1px 6px; font-size: 10px;">1:1</button>
+              <button class="btn btn-sm" onclick="fitDesignerCanvasZoom()" title="Fit all tables into viewport" style="padding: 1px 6px; font-size: 10px;">🎯 Fit</button>
+            </div>
+
+            <!-- Room Controls -->
+            <div class="qbe-room-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+              <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Room:</span>
+              <button class="btn btn-sm" id="btnRoomCanvas" onclick="setDesignerRoomMode('canvas-max')" title="Maximize Canvas room" style="padding: 1px 6px; font-size: 10px;">⤢ Canvas</button>
+              <button class="btn btn-sm btn-primary" id="btnRoomSplit" onclick="setDesignerRoomMode('split')" title="Balanced Split room" style="padding: 1px 6px; font-size: 10px;">⤡ Split</button>
+              <button class="btn btn-sm" id="btnRoomGrid" onclick="setDesignerRoomMode('grid-max')" title="Maximize Grid room" style="padding: 1px 6px; font-size: 10px;">⤢ Grid</button>
+            </div>
+          </div>
         </div>
 
         <!-- Designer Main Content Area -->
@@ -1313,6 +1397,190 @@ export function generatePostgresStudioHtml(): string {
         <div style="flex: 1; padding: 16px; overflow: auto;">
           <div class="modal-card" style="max-width: 100%; border: 1px solid var(--border-subtle); padding: 14px; background: rgba(8, 14, 26, 0.8);">
             <pre id="explainOutput" style="font-family: var(--font-mono); font-size: 12px; color: #a5f3fc; line-height: 1.6; white-space: pre-wrap;">Run "Explain" on any SQL query to visualize the execution plan tree, actual vs estimated row counts, cost metrics, and buffer cache hits.</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Sequences Manager -->
+      <div class="tab-pane" id="tabSequences">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--cyan);">PostgreSQL Sequences Manager</span>
+            <input type="text" id="seqSearchInput" placeholder="Filter sequences..." oninput="filterSequences(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; width: 180px; outline: none;">
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm" onclick="loadSequences()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="grid-scroll">
+          <table class="data-grid" id="sequencesGrid">
+            <thead>
+              <tr>
+                <th style="width: 220px;">Sequence Name</th>
+                <th style="width: 120px;">Schema</th>
+                <th style="width: 120px; text-align: right;">Current Value</th>
+                <th style="width: 100px; text-align: right;">Min Value</th>
+                <th style="width: 160px; text-align: right;">Max Value</th>
+                <th style="width: 100px; text-align: right;">Increment</th>
+                <th style="width: 80px; text-align: center;">Cycled</th>
+                <th style="width: 140px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sequencesBody">
+              <tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading sequences...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: Roles & Privileges -->
+      <div class="tab-pane" id="tabRoles">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--emerald);">PostgreSQL Roles &amp; Privileges (pg_roles)</span>
+            <input type="text" id="roleSearchInput" placeholder="Filter roles..." oninput="filterRoles(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; width: 180px; outline: none;">
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm" onclick="loadRoles()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="grid-scroll">
+          <table class="data-grid" id="rolesGrid">
+            <thead>
+              <tr>
+                <th style="width: 180px;">Role Name</th>
+                <th style="width: 110px; text-align: center;">Superuser</th>
+                <th style="width: 110px; text-align: center;">Can Login</th>
+                <th style="width: 110px; text-align: center;">Create DB</th>
+                <th style="width: 110px; text-align: center;">Create Role</th>
+                <th style="width: 110px; text-align: center;">Replication</th>
+                <th style="width: 120px; text-align: right;">Conn Limit</th>
+                <th>Valid Until</th>
+              </tr>
+            </thead>
+            <tbody id="rolesBody">
+              <tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading roles...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: Triggers & Functions -->
+      <div class="tab-pane" id="tabTriggers">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--amber);">Triggers &amp; Stored Functions Catalog</span>
+            <div style="display: flex; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px;">
+              <button class="btn btn-sm btn-primary" id="btnToggleTriggers" onclick="setTriggersSubTab('triggers')">⚡ Triggers</button>
+              <button class="btn btn-sm" id="btnToggleFunctions" onclick="setTriggersSubTab('functions')">📦 Functions</button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm" onclick="loadTriggersAndFunctions()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="grid-scroll" id="triggersContainer">
+          <table class="data-grid" id="triggersGrid">
+            <thead>
+              <tr>
+                <th style="width: 200px;">Trigger Name</th>
+                <th style="width: 180px;">Target Table</th>
+                <th style="width: 120px;">Event</th>
+                <th style="width: 120px;">Timing</th>
+                <th style="width: 120px;">Orientation</th>
+                <th>Action Statement / Routine</th>
+              </tr>
+            </thead>
+            <tbody id="triggersBody">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading triggers...</td></tr>
+            </tbody>
+          </table>
+          <table class="data-grid" id="functionsGrid" style="display: none;">
+            <thead>
+              <tr>
+                <th style="width: 220px;">Routine / Function Name</th>
+                <th style="width: 120px;">Schema</th>
+                <th style="width: 140px;">Return Type</th>
+                <th style="width: 100px;">Type</th>
+                <th style="width: 100px;">Language</th>
+                <th>Argument Types</th>
+              </tr>
+            </thead>
+            <tbody id="functionsBody">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading functions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: Performance & Telemetry -->
+      <div class="tab-pane" id="tabTelemetry">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--rose);">PostgreSQL Performance &amp; Bloat Telemetry</span>
+            <span id="telemetryStatusBadge" class="brand-badge">Optimal</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm" onclick="runGlobalVacuumAnalyze()">🧹 VACUUM ANALYZE</button>
+            <button class="btn btn-sm" onclick="loadTelemetry()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div style="flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+          <!-- Telemetry KPI Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div class="kpi-card" style="border-left: 3px solid var(--cyan);">
+              <div class="kpi-title">Buffer Cache Hit Ratio</div>
+              <div class="kpi-value" id="kpiHitRatio" style="color: var(--cyan);">--%</div>
+              <div style="font-size: 10px; color: var(--text-dim);" id="kpiHitRatioSub">Blocks read from RAM</div>
+            </div>
+            <div class="kpi-card" style="border-left: 3px solid var(--emerald);">
+              <div class="kpi-title">Database Total Size</div>
+              <div class="kpi-value" id="kpiDbSize" style="color: var(--emerald);">--</div>
+              <div style="font-size: 10px; color: var(--text-dim);">On-disk footprint</div>
+            </div>
+            <div class="kpi-card" style="border-left: 3px solid var(--amber);">
+              <div class="kpi-title">Active Locks</div>
+              <div class="kpi-value" id="kpiActiveLocks" style="color: var(--amber);">0</div>
+              <div style="font-size: 10px; color: var(--text-dim);" id="kpiGrantedLocks">0 granted</div>
+            </div>
+            <div class="kpi-card" style="border-left: 3px solid #a855f7;">
+              <div class="kpi-title">Transactions (Commits / Rollbacks)</div>
+              <div class="kpi-value" id="kpiTxSummary" style="color: #a855f7; font-size: 16px;">--</div>
+              <div style="font-size: 10px; color: var(--text-dim);" id="kpiTxSub">Commit Success Rate: --%</div>
+            </div>
+            <div class="kpi-card" style="border-left: 3px solid var(--rose);">
+              <div class="kpi-title">Total Dead Tuples (Bloat)</div>
+              <div class="kpi-value" id="kpiTotalDeadTuples" style="color: var(--rose);">0</div>
+              <div style="font-size: 10px; color: var(--text-dim);" id="kpiTotalLiveTuples">0 live tuples</div>
+            </div>
+          </div>
+
+          <!-- Table Bloat & Dead Tuples Table -->
+          <div style="background: rgba(8, 14, 26, 0.7); border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="padding: 10px 14px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">User Tables Dead Tuples &amp; Maintenance Diagnostics</span>
+              <span style="font-size: 11px; color: var(--text-dim);">Shows bloat, vacuum history, and autovacuum status</span>
+            </div>
+            <div style="overflow-x: auto;">
+              <table class="data-grid" id="tableStatsGrid">
+                <thead>
+                  <tr>
+                    <th>Table Name</th>
+                    <th>Schema</th>
+                    <th style="text-align: right;">Live Tuples</th>
+                    <th style="text-align: right;">Dead Tuples</th>
+                    <th style="text-align: right;">Bloat %</th>
+                    <th>Last Vacuum</th>
+                    <th>Last AutoVacuum</th>
+                    <th>Last Analyze</th>
+                    <th style="text-align: center; width: 140px;">Maintenance</th>
+                  </tr>
+                </thead>
+                <tbody id="tableStatsBody">
+                  <tr><td colspan="9" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading maintenance telemetry...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1536,24 +1804,36 @@ export function generatePostgresStudioHtml(): string {
           <label style="font-size: 11px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 8px;">Relational Join Mode:</label>
 
           <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.02); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="INNER" checked>
+            <input type="radio" name="joinTypeRadio" value="INNER" onchange="updateJoinPropVennDiagram()" checked>
             <span style="font-size: 11px; color: var(--text-main);"><strong>1: Only include rows where the joined fields from both tables are equal (INNER JOIN)</strong></span>
           </label>
 
           <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.02); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="LEFT">
+            <input type="radio" name="joinTypeRadio" value="LEFT" onchange="updateJoinPropVennDiagram()">
             <span style="font-size: 11px; color: var(--text-main);"><strong>2: Include ALL records from <span id="lblLeftTableJoin">Left Table</span> and only matching records from Right Table (LEFT JOIN)</strong></span>
           </label>
 
           <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.02); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="RIGHT">
+            <input type="radio" name="joinTypeRadio" value="RIGHT" onchange="updateJoinPropVennDiagram()">
             <span style="font-size: 11px; color: var(--text-main);"><strong>3: Include ALL records from <span id="lblRightTableJoin">Right Table</span> and only matching records from Left Table (RIGHT JOIN)</strong></span>
           </label>
 
-          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="FULL">
-            <span style="font-size: 11px; color: #7dd3fc;"><strong>4: 🐘 FULL OUTER JOIN (Postgres Native) - Include ALL records from BOTH tables whether they match or not</strong></span>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); margin-bottom: 4px;">
+            <input type="radio" name="joinTypeRadio" value="FULL" onchange="updateJoinPropVennDiagram()">
+            <span style="font-size: 11px; color: #c084fc;"><strong>4: 🐘 FULL OUTER JOIN (Postgres Native) - Include ALL records from BOTH tables</strong></span>
           </label>
+        </div>
+
+        <!-- Live Venn Diagram & SQL Preview -->
+        <div class="access-venn-preview-row">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <svg class="access-venn-svg" viewBox="0 0 160 90" id="jpVennSvg"></svg>
+            <span id="jpVennBadge" style="font-size:10px; font-weight:700; color:var(--cyan); margin-top:2px;">INNER JOIN</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+            <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Generated SQL JOIN Clause</span>
+            <div class="access-sql-box" id="jpSqlSnippet">FROM "table1" INNER JOIN "table2" ON "table1"."id" = "table2"."id"</div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1629,6 +1909,10 @@ export function generatePostgresStudioHtml(): string {
         extensions: "tabBtnExtensions",
         activity: "tabBtnActivity",
         explain: "tabBtnExplain",
+        sequences: "tabBtnSequences",
+        roles: "tabBtnRoles",
+        triggers: "tabBtnTriggers",
+        telemetry: "tabBtnTelemetry",
         json: "tabBtnJson"
       };
 
@@ -1639,6 +1923,10 @@ export function generatePostgresStudioHtml(): string {
         extensions: "tabExtensions",
         activity: "tabActivity",
         explain: "tabExplain",
+        sequences: "tabSequences",
+        roles: "tabRoles",
+        triggers: "tabTriggers",
+        telemetry: "tabTelemetry",
         json: "tabJson"
       };
 
@@ -1648,6 +1936,10 @@ export function generatePostgresStudioHtml(): string {
       if (tabId === "extensions") loadExtensions();
       if (tabId === "activity") loadActivity();
       if (tabId === "designer") renderQueryDesigner();
+      if (tabId === "sequences") loadSequences();
+      if (tabId === "roles") loadRoles();
+      if (tabId === "triggers") loadTriggersAndFunctions();
+      if (tabId === "telemetry") loadTelemetry();
     }
 
     // Load KPIs & Telemetry
@@ -2205,7 +2497,7 @@ export function generatePostgresStudioHtml(): string {
 
     function parseUrlIntoFields(val) {
       try {
-        const u = new URL(val.replace(/^postgres(ql)?:\/\//, "http://"));
+        const u = new URL(val.replace(/^postgres(ql)?:[/][/]/, "http://"));
         if (u.hostname) document.getElementById("cfgHost").value = u.hostname;
         if (u.port) document.getElementById("cfgPort").value = u.port;
         if (u.username) document.getElementById("cfgUser").value = decodeURIComponent(u.username);
@@ -2542,10 +2834,13 @@ export function generatePostgresStudioHtml(): string {
 
       container.innerHTML = \`
         <div class="qbe-viewport" id="qbeViewport">
-          <div class="qbe-canvas-stage" id="qbeStage" style="transform: scale(\${queryDesignerState.canvasZoom});">
+          <div class="qbe-canvas-stage" id="qbeStage" style="transform: scale(\${queryDesignerState.canvasZoom || 1.0});">
             <svg class="qbe-svg-layer" id="qbeSvgLayer"></svg>
             \${tableCardsHtml}
           </div>
+        </div>
+        <div class="qbe-resizer-bar" id="qbeResizerBar" title="Drag to resize Canvas vs Grid room">
+          <div class="qbe-resizer-handle"></div>
         </div>
         <div class="qbe-lower-pane">
           <div class="qbe-matrix-container">
@@ -2562,6 +2857,8 @@ export function generatePostgresStudioHtml(): string {
       \`;
 
       drawJoinLines();
+      initResizerBar();
+      initViewportWheelZoom();
     }
 
     function setDesignerActiveView(view) {
@@ -2871,6 +3168,7 @@ export function generatePostgresStudioHtml(): string {
 
       onJoinTableChange('left');
       onJoinTableChange('right');
+      updateJoinPropVennDiagram();
 
       document.getElementById("joinPropertiesModal").classList.add("active");
     }
@@ -2888,6 +3186,7 @@ export function generatePostgresStudioHtml(): string {
       }
       if (side === 'left') document.getElementById("lblLeftTableJoin").innerText = tName;
       if (side === 'right') document.getElementById("lblRightTableJoin").innerText = tName;
+      updateJoinPropVennDiagram();
     }
 
     function submitJoinProperties() {
@@ -2906,6 +3205,454 @@ export function generatePostgresStudioHtml(): string {
       closeJoinPropertiesModal();
       renderQueryDesigner();
       showToast("✓ Joined " + leftTable + " and " + rightTable + " (" + joinType + ")");
+    }
+
+    function updateJoinPropVennDiagram() {
+      const svg = document.getElementById("jpVennSvg");
+      const badge = document.getElementById("jpVennBadge");
+      const snippet = document.getElementById("jpSqlSnippet");
+      if (!svg) return;
+
+      const lt = document.getElementById("joinLeftTable")?.value || "left_table";
+      const rt = document.getElementById("joinRightTable")?.value || "right_table";
+      const lf = document.getElementById("joinLeftField")?.value || "id";
+      const rf = document.getElementById("joinRightField")?.value || "id";
+      const type = document.querySelector("input[name='joinTypeRadio']:checked")?.value || "INNER";
+
+      const truncL = lt.length > 9 ? lt.slice(0, 8) + "…" : lt;
+      const truncR = rt.length > 9 ? rt.slice(0, 8) + "…" : rt;
+
+      let leftFill = "rgba(255,255,255,0.06)";
+      let rightFill = "rgba(255,255,255,0.06)";
+      let lensFill = "rgba(255,255,255,0.06)";
+      let badgeText = "INNER JOIN (Matching records)";
+      let badgeColor = "var(--cyan)";
+      let joinKeyword = "INNER JOIN";
+
+      if (type === "INNER") {
+        lensFill = "#38bdf8";
+        badgeText = "INNER JOIN (=)";
+        badgeColor = "#38bdf8";
+        joinKeyword = "INNER JOIN";
+      } else if (type === "LEFT") {
+        leftFill = "#10b981";
+        lensFill = "#10b981";
+        badgeText = "LEFT JOIN (All " + truncL + ")";
+        badgeColor = "#10b981";
+        joinKeyword = "LEFT OUTER JOIN";
+      } else if (type === "RIGHT") {
+        rightFill = "#f59e0b";
+        lensFill = "#f59e0b";
+        badgeText = "RIGHT JOIN (All " + truncR + ")";
+        badgeColor = "#f59e0b";
+        joinKeyword = "RIGHT OUTER JOIN";
+      } else if (type === "FULL") {
+        leftFill = "#a855f7";
+        lensFill = "#a855f7";
+        rightFill = "#a855f7";
+        badgeText = "FULL OUTER JOIN (All from Both Tables)";
+        badgeColor = "#a855f7";
+        joinKeyword = "FULL OUTER JOIN";
+      }
+
+      if (badge) {
+        badge.textContent = badgeText;
+        badge.style.color = badgeColor;
+      }
+
+      if (snippet) {
+        snippet.innerText = 'FROM "' + lt + '"\\n' + joinKeyword + ' "' + rt + '"\\n  ON "' + lt + '"."' + lf + '" = "' + rt + '"."' + rf + '"';
+      }
+
+      svg.innerHTML = \`
+        <rect x="0" y="0" width="160" height="90" fill="none" />
+        <path d="M 80,25 A 32 32 0 0 1 80,65 A 32 32 0 1 1 80,25 Z" fill="\${leftFill}" fill-opacity="0.8" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+        <path d="M 80,25 A 32 32 0 0 0 80,65 A 32 32 0 1 0 80,25 Z" fill="\${rightFill}" fill-opacity="0.8" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+        <path d="M 80,25 A 32 32 0 0 1 80,65 A 32 32 0 0 1 80,25 Z" fill="\${lensFill}" fill-opacity="0.9" stroke="\${badgeColor}" stroke-width="2" />
+        <text x="48" y="14" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" font-family="sans-serif">\${escapeHtml(truncL)}</text>
+        <text x="112" y="14" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" font-family="sans-serif">\${escapeHtml(truncR)}</text>
+      \`;
+    }
+
+    function initResizerBar() {
+      const resizer = document.getElementById("qbeResizerBar");
+      const vp = document.getElementById("qbeViewport");
+      const lower = document.querySelector(".qbe-lower-pane");
+      if (!resizer || !vp || !lower || resizer.dataset.initialized) return;
+      resizer.dataset.initialized = "true";
+
+      let isResizing = false;
+      let startY = 0;
+      let startHeight = 0;
+
+      resizer.addEventListener("mousedown", (e) => {
+        isResizing = true;
+        startY = e.clientY;
+        startHeight = vp.offsetHeight;
+        document.body.style.cursor = "row-resize";
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isResizing) return;
+        const delta = e.clientY - startY;
+        const newHeight = Math.max(140, Math.min(window.innerHeight - 200, startHeight + delta));
+        vp.style.height = newHeight + "px";
+        vp.style.flex = "none";
+        drawJoinLines();
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isResizing) {
+          isResizing = false;
+          document.body.style.cursor = "";
+          drawJoinLines();
+        }
+      });
+    }
+
+    function initViewportWheelZoom() {
+      const vp = document.getElementById("qbeViewport");
+      if (!vp || vp.dataset.zoomInitialized) return;
+      vp.dataset.zoomInitialized = "true";
+
+      vp.addEventListener("wheel", (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          if (e.deltaY < 0) zoomInDesignerCanvas();
+          else zoomOutDesignerCanvas();
+        }
+      }, { passive: false });
+    }
+
+    function zoomInDesignerCanvas() {
+      setDesignerCanvasZoom(Math.min(2.5, Math.round(((queryDesignerState.canvasZoom || 1.0) + 0.15) * 100) / 100));
+    }
+
+    function zoomOutDesignerCanvas() {
+      setDesignerCanvasZoom(Math.max(0.4, Math.round(((queryDesignerState.canvasZoom || 1.0) - 0.15) * 100) / 100));
+    }
+
+    function resetDesignerCanvasZoom() {
+      setDesignerCanvasZoom(1.0);
+    }
+
+    function fitDesignerCanvasZoom() {
+      const viewport = document.getElementById("qbeViewport");
+      if (!viewport || !queryDesignerState.selectedTables.length) return;
+      let maxX = 400, maxY = 300;
+      queryDesignerState.selectedTables.forEach(t => {
+        const pos = queryDesignerState.tablePositions[t] || { x: 40, y: 30 };
+        maxX = Math.max(maxX, pos.x + 280);
+        maxY = Math.max(maxY, pos.y + 240);
+      });
+      const scaleX = (viewport.clientWidth - 40) / maxX;
+      const scaleY = (viewport.clientHeight - 40) / maxY;
+      const fit = Math.max(0.4, Math.min(1.2, Math.min(scaleX, scaleY)));
+      setDesignerCanvasZoom(Math.round(fit * 100) / 100);
+    }
+
+    function setDesignerCanvasZoom(zoom) {
+      queryDesignerState.canvasZoom = zoom;
+      const stage = document.getElementById("qbeStage");
+      if (stage) stage.style.transform = "scale(" + zoom + ")";
+      const sel = document.getElementById("canvasZoomSelect");
+      if (sel) sel.value = String(zoom);
+      drawJoinLines();
+    }
+
+    function setDesignerRoomMode(mode) {
+      queryDesignerState.canvasViewMode = mode;
+      document.getElementById("btnRoomCanvas")?.classList.toggle("btn-primary", mode === "canvas-max");
+      document.getElementById("btnRoomSplit")?.classList.toggle("btn-primary", mode === "split");
+      document.getElementById("btnRoomGrid")?.classList.toggle("btn-primary", mode === "grid-max");
+
+      const vp = document.getElementById("qbeViewport");
+      const lower = document.querySelector(".qbe-lower-pane");
+      if (!vp || !lower) return;
+
+      if (mode === "canvas-max") {
+        vp.style.flex = "4";
+        vp.style.height = "";
+        lower.style.flex = "1";
+        lower.style.minHeight = "120px";
+      } else if (mode === "grid-max") {
+        vp.style.flex = "1";
+        vp.style.minHeight = "160px";
+        vp.style.height = "";
+        lower.style.flex = "3";
+      } else {
+        vp.style.flex = "1.5";
+        vp.style.height = "";
+        lower.style.flex = "1";
+      }
+      setTimeout(drawJoinLines, 100);
+    }
+
+    // Sequences Manager
+    let allSequences = [];
+    async function loadSequences() {
+      const tbody = document.getElementById("sequencesBody");
+      if (tbody) tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-dim); padding: 20px;'>Fetching sequences from pg_sequences...</td></tr>";
+      const schemaName = currentSchema?.name || "public";
+      const res = await apiRequest("/api/sequences?schema=" + encodeURIComponent(schemaName));
+      if (res.success) {
+        allSequences = res.sequences || [];
+        renderSequencesTable(allSequences);
+      } else {
+        showToast("Error loading sequences: " + res.error);
+        if (tbody) tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--rose); padding: 20px;'>Error: " + escapeHtml(res.error) + "</td></tr>";
+      }
+    }
+
+    function renderSequencesTable(list) {
+      const tbody = document.getElementById("sequencesBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-dim); padding: 24px;'>No sequences found in schema " + escapeHtml(currentSchema?.name || "public") + "</td></tr>";
+        return;
+      }
+      tbody.innerHTML = list.map(s => \`
+        <tr>
+          <td><strong style="color: var(--cyan);">\${escapeHtml(s.name)}</strong></td>
+          <td style="color: var(--text-muted);">\${escapeHtml(s.schema)}</td>
+          <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #a5f3fc;">\${escapeHtml(String(s.last_value ?? "—"))}</td>
+          <td style="text-align: right; font-family: var(--font-mono); color: var(--text-dim);">\${escapeHtml(String(s.min_value ?? 1))}</td>
+          <td style="text-align: right; font-family: var(--font-mono); color: var(--text-dim);">\${escapeHtml(String(s.max_value ?? "—"))}</td>
+          <td style="text-align: right; font-family: var(--font-mono);">\${escapeHtml(String(s.increment_by ?? 1))}</td>
+          <td style="text-align: center;">\${s.cycle ? '<span style="color: var(--emerald);">✓</span>' : '<span style="color: var(--text-dim);">✕</span>'}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-sm" onclick="restartSequenceModal('\${escapeHtml(s.name)}', \${s.last_value || 1})" style="padding: 1px 7px; font-size: 10px;">🔄 Restart</button>
+          </td>
+        </tr>
+      \`).join('');
+    }
+
+    function filterSequences(q) {
+      const term = (q || "").toLowerCase();
+      const filtered = allSequences.filter(s => s.name.toLowerCase().includes(term) || s.schema.toLowerCase().includes(term));
+      renderSequencesTable(filtered);
+    }
+
+    async function restartSequenceModal(name, currentVal) {
+      const newVal = prompt("Restart sequence \\"" + name + "\\" at value:", "1");
+      if (newVal === null) return;
+      const num = parseInt(newVal, 10);
+      if (isNaN(num)) {
+        showToast("Invalid sequence number.");
+        return;
+      }
+      showToast("Restarting sequence " + name + " at " + num + "...");
+      const res = await apiRequest("/api/sequences/restart", "POST", {
+        name,
+        restartVal: num,
+        schema: currentSchema?.name || "public"
+      });
+      if (res.success) {
+        showToast("✓ Sequence \\"" + name + "\\" restarted at " + num);
+        loadSequences();
+      } else {
+        showToast("Failed to restart sequence: " + res.error);
+      }
+    }
+
+    // Roles & Privileges
+    let allRoles = [];
+    async function loadRoles() {
+      const tbody = document.getElementById("rolesBody");
+      if (tbody) tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-dim); padding: 20px;'>Querying pg_roles...</td></tr>";
+      const res = await apiRequest("/api/roles");
+      if (res.success) {
+        allRoles = res.roles || [];
+        renderRolesTable(allRoles);
+      } else {
+        showToast("Error loading roles: " + res.error);
+        if (tbody) tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--rose); padding: 20px;'>Error: " + escapeHtml(res.error) + "</td></tr>";
+      }
+    }
+
+    function renderRolesTable(list) {
+      const tbody = document.getElementById("rolesBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-dim); padding: 24px;'>No roles found.</td></tr>";
+        return;
+      }
+      tbody.innerHTML = list.map(r => \`
+        <tr>
+          <td><strong style="color: \${r.is_superuser ? 'var(--rose)' : 'var(--emerald)'};">\${escapeHtml(r.name)}</strong></td>
+          <td style="text-align: center;">\${r.is_superuser ? '<span class="crud-badge" style="border-color: var(--rose); color: var(--rose); background: rgba(244,63,94,0.15);">Superuser</span>' : '<span style="color: var(--text-dim);">—</span>'}</td>
+          <td style="text-align: center;">\${r.can_login ? '<span style="color: var(--emerald); font-weight: 700;">✓ Yes</span>' : '<span style="color: var(--text-dim);">No</span>'}</td>
+          <td style="text-align: center;">\${r.create_db ? '<span style="color: var(--cyan); font-weight: 600;">✓</span>' : '<span style="color: var(--text-dim);">—</span>'}</td>
+          <td style="text-align: center;">\${r.create_role ? '<span style="color: var(--cyan); font-weight: 600;">✓</span>' : '<span style="color: var(--text-dim);">—</span>'}</td>
+          <td style="text-align: center;">\${r.replication ? '<span style="color: var(--amber); font-weight: 600;">✓</span>' : '<span style="color: var(--text-dim);">—</span>'}</td>
+          <td style="text-align: right; font-family: var(--font-mono);">\${r.connection_limit === -1 ? 'Unlimited' : r.connection_limit}</td>
+          <td style="color: var(--text-dim); font-size: 11px;">\${escapeHtml(r.valid_until || 'Infinity')}</td>
+        </tr>
+      \`).join('');
+    }
+
+    function filterRoles(q) {
+      const term = (q || "").toLowerCase();
+      const filtered = allRoles.filter(r => r.name.toLowerCase().includes(term));
+      renderRolesTable(filtered);
+    }
+
+    // Triggers & Functions
+    let currentTriggersSubTab = "triggers";
+    async function loadTriggersAndFunctions() {
+      const schemaName = currentSchema?.name || "public";
+      const trigRes = await apiRequest("/api/triggers?schema=" + encodeURIComponent(schemaName));
+      const funcRes = await apiRequest("/api/functions?schema=" + encodeURIComponent(schemaName));
+
+      const tBody = document.getElementById("triggersBody");
+      const fBody = document.getElementById("functionsBody");
+
+      if (trigRes.success && tBody) {
+        const trigs = trigRes.triggers || [];
+        if (trigs.length === 0) {
+          tBody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: var(--text-dim); padding: 24px;'>No triggers configured on tables in this schema.</td></tr>";
+        } else {
+          tBody.innerHTML = trigs.map(t => \`
+            <tr>
+              <td><strong style="color: var(--amber);">\${escapeHtml(t.name)}</strong></td>
+              <td><span style="color: var(--cyan);">\${escapeHtml(t.table_name)}</span></td>
+              <td><span class="crud-badge">\${escapeHtml(t.event)}</span></td>
+              <td><span style="font-weight: 600; color: var(--text-muted);">\${escapeHtml(t.timing)}</span></td>
+              <td style="color: var(--text-dim); font-size: 11px;">\${escapeHtml(t.orientation)}</td>
+              <td style="font-family: var(--font-mono); font-size: 11px; color: #a5f3fc; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="\${escapeHtml(t.action)}">\${escapeHtml(t.action)}</td>
+            </tr>
+          \`).join('');
+        }
+      }
+
+      if (funcRes.success && fBody) {
+        const funcs = funcRes.functions || [];
+        if (funcs.length === 0) {
+          fBody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: var(--text-dim); padding: 24px;'>No user functions found in this schema.</td></tr>";
+        } else {
+          fBody.innerHTML = funcs.map(f => \`
+            <tr>
+              <td><strong style="color: var(--indigo); font-family: var(--font-mono);">\${escapeHtml(f.name)}()</strong></td>
+              <td style="color: var(--text-muted);">\${escapeHtml(f.schema)}</td>
+              <td><span style="color: var(--emerald); font-weight: 600;">\${escapeHtml(f.return_type || 'void')}</span></td>
+              <td style="font-size: 11px; color: var(--text-dim);">\${escapeHtml(f.type)}</td>
+              <td><span class="crud-badge" style="border-color: var(--sapphire); color: var(--cyan);">\${escapeHtml(f.language)}</span></td>
+              <td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">\${escapeHtml(f.argument_types || 'none')}</td>
+            </tr>
+          \`).join('');
+        }
+      }
+    }
+
+    function setTriggersSubTab(sub) {
+      currentTriggersSubTab = sub;
+      document.getElementById("btnToggleTriggers")?.classList.toggle("btn-primary", sub === "triggers");
+      document.getElementById("btnToggleFunctions")?.classList.toggle("btn-primary", sub === "functions");
+      document.getElementById("triggersGrid").style.display = sub === "triggers" ? "table" : "none";
+      document.getElementById("functionsGrid").style.display = sub === "functions" ? "table" : "none";
+    }
+
+    // Performance & Bloat Telemetry
+    async function loadTelemetry() {
+      const schemaName = currentSchema?.name || "public";
+      const [telemetryRes, statsRes] = await Promise.all([
+        apiRequest("/api/telemetry"),
+        apiRequest("/api/table/stats?schema=" + encodeURIComponent(schemaName))
+      ]);
+
+      if (telemetryRes.success && telemetryRes.telemetry) {
+        const m = telemetryRes.telemetry;
+        const hitRatioEl = document.getElementById("kpiHitRatio");
+        const hitRatio = Number(m.cacheHitRatio || 0);
+        if (hitRatioEl) {
+          hitRatioEl.innerText = hitRatio.toFixed(2) + "%";
+          hitRatioEl.style.color = hitRatio >= 95 ? "var(--emerald)" : (hitRatio >= 85 ? "var(--amber)" : "var(--rose)");
+        }
+        document.getElementById("kpiHitRatioSub").innerText = (m.bufferBlocksHit || 0).toLocaleString() + " RAM hits / " + (m.bufferBlocksRead || 0).toLocaleString() + " disk reads";
+        document.getElementById("kpiDbSize").innerText = m.databaseSizeBytesPretty || "--";
+        document.getElementById("kpiActiveLocks").innerText = String(m.activeLocksCount || 0);
+        document.getElementById("kpiGrantedLocks").innerText = (m.grantedLocksCount || 0) + " granted, " + (m.waitingLocksCount || 0) + " waiting";
+
+        const totalTx = (m.xactCommit || 0) + (m.xactRollback || 0);
+        const commitPct = totalTx > 0 ? (((m.xactCommit || 0) / totalTx) * 100).toFixed(1) : "100.0";
+        document.getElementById("kpiTxSummary").innerText = (m.xactCommit || 0).toLocaleString() + " / " + (m.xactRollback || 0).toLocaleString();
+        document.getElementById("kpiTxSub").innerText = "Commit Success Rate: " + commitPct + "%";
+
+        document.getElementById("kpiTotalDeadTuples").innerText = (m.deadTuplesTotal || 0).toLocaleString();
+        document.getElementById("kpiTotalLiveTuples").innerText = (m.liveTuplesTotal || 0).toLocaleString() + " live tuples";
+
+        const badge = document.getElementById("telemetryStatusBadge");
+        if (badge) {
+          if (hitRatio >= 95 && (m.deadTuplesTotal || 0) < 5000) {
+            badge.innerText = "Optimal";
+            badge.style.borderColor = "var(--emerald)";
+            badge.style.color = "var(--emerald)";
+          } else {
+            badge.innerText = "Needs Maintenance";
+            badge.style.borderColor = "var(--amber)";
+            badge.style.color = "var(--amber)";
+          }
+        }
+      }
+
+      if (statsRes.success && statsRes.stats) {
+        renderTableStats(statsRes.stats);
+      }
+    }
+
+    function renderTableStats(stats) {
+      const tbody = document.getElementById("tableStatsBody");
+      if (!tbody) return;
+      if (!stats || stats.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='9' style='text-align: center; color: var(--text-dim); padding: 24px;'>No table statistics available.</td></tr>";
+        return;
+      }
+      tbody.innerHTML = stats.map(s => {
+        const live = s.n_live_tup || 0;
+        const dead = s.n_dead_tup || 0;
+        const total = live + dead;
+        const bloatPct = total > 0 ? ((dead / total) * 100).toFixed(1) : "0.0";
+        const bloatColor = Number(bloatPct) > 20 ? "var(--rose)" : (Number(bloatPct) > 10 ? "var(--amber)" : "var(--emerald)");
+
+        return \`
+          <tr>
+            <td><strong style="color: var(--cyan);">\${escapeHtml(s.table_name)}</strong></td>
+            <td style="color: var(--text-muted);">\${escapeHtml(s.schema)}</td>
+            <td style="text-align: right; font-family: var(--font-mono);">\${live.toLocaleString()}</td>
+            <td style="text-align: right; font-family: var(--font-mono); color: \${dead > 0 ? 'var(--rose)' : 'var(--text-dim)'};">\${dead.toLocaleString()}</td>
+            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: \${bloatColor};">\${bloatPct}%</td>
+            <td style="font-size: 11px; color: var(--text-dim);">\${escapeHtml(s.last_vacuum ? new Date(s.last_vacuum).toLocaleString() : 'Never')}</td>
+            <td style="font-size: 11px; color: var(--text-dim);">\${escapeHtml(s.last_autovacuum ? new Date(s.last_autovacuum).toLocaleString() : 'Never')}</td>
+            <td style="font-size: 11px; color: var(--text-dim);">\${escapeHtml(s.last_analyze ? new Date(s.last_analyze).toLocaleString() : 'Never')}</td>
+            <td style="text-align: center;">
+              <button class="btn btn-sm" onclick="runTableVacuum('\${escapeHtml(s.table_name)}', '\${escapeHtml(s.schema)}')" style="padding: 1px 7px; font-size: 10px;">🧹 VACUUM</button>
+            </td>
+          </tr>
+        \`;
+      }).join('');
+    }
+
+    async function runTableVacuum(tableName, schema) {
+      showToast("Running VACUUM ANALYZE on \\"" + tableName + "\\\"...");
+      const res = await apiRequest("/api/vacuum", "POST", { table: tableName, schema });
+      if (res.success) {
+        showToast("✓ VACUUM completed on \\"" + tableName + "\\"");
+        loadTelemetry();
+      } else {
+        showToast("VACUUM failed: " + res.error);
+      }
+    }
+
+    async function runGlobalVacuumAnalyze() {
+      showToast("Running global database VACUUM ANALYZE...");
+      const res = await apiRequest("/api/vacuum", "POST", { full: false, analyze: true });
+      if (res.success) {
+        showToast("✓ Global VACUUM ANALYZE completed");
+        loadTelemetry();
+      } else {
+        showToast("Global VACUUM failed: " + res.error);
+      }
     }
 
     // Helper: HTML Escaping
@@ -3010,6 +3757,9 @@ export function generatePostgresStudioHtml(): string {
       loadSchema();
       loadKpis();
     });
+  </script>
+  <script>
+    ${CRUD_SCRIPT}
   </script>
 </body>
 </html>`;
@@ -3228,8 +3978,9 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
 if (process.argv.includes("--server")) {
   const initialDb = process.env.PG_STUDIO_DB || "mydb";
   const initialSchema = process.env.PG_SCHEMA || "public";
+  const port = parseInt(process.env.PG_STUDIO_PORT || process.env.PORT || "54321", 10);
   const srv = startPostgresStudioServer({
-    port: 0,
+    port,
     host: "127.0.0.1",
     initialDbPath: initialDb,
     initialSchema: initialSchema,
