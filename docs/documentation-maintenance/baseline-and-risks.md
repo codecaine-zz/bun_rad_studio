@@ -47,7 +47,7 @@ Severity: **High** means data loss, a security hole or an unusable core workflow
 
 ## Not yet assessed
 
-These were not looked at, so this page says nothing about them: Windows and Linux behaviour, the Homebrew formula and install scripts, `run.ps1`, the packaged binaries in `bin/` and `dist/`, performance, and accessibility.
+These were not looked at, so this page says nothing about them: Windows and Linux behaviour, the Homebrew formula and install scripts, `run.ps1`, the packaged binaries in `bin/` and `dist/`, and accessibility. Performance has a [measured baseline](../performance.md) (one machine, no optimisation done).
 
 ## See also
 

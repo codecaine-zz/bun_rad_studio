@@ -162,5 +162,6 @@ Generated text must be treated as untrusted-input territory:
 
 - [Architecture](architecture.md)
 - [Testing](../testing/index.md)
+- [Performance baseline](../performance.md)
 - [Contributor checklist](../documentation-maintenance/contributor-checklist.md)
 - [Baseline and risks](../documentation-maintenance/baseline-and-risks.md)
