@@ -72,7 +72,7 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 ## Type-check ratchet
 
-Bun runs TypeScript without checking types, and the project has 7 existing `tsc` errors in 3 files (679 in 61 files at the start of 13 October 2026; see [D-026](../documentation-maintenance/discrepancies.md#d-026) for the real defects that clean-up found) ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)). `bun run typecheck` (`scripts/typecheck_ratchet.ts`) runs `tsc --noEmit` and compares the number of errors **per file** with `scripts/typecheck_baseline.json`:
+Bun runs TypeScript without checking types, and the project has no `tsc` errors (there were 679 in 61 files at the start of 13 October 2026; see [D-026](../documentation-maintenance/discrepancies.md#d-026) for the real defects that clean-up found) ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)). `bun run typecheck` (`scripts/typecheck_ratchet.ts`) runs `tsc --noEmit` and compares the number of errors **per file** with `scripts/typecheck_baseline.json`:
 
 | Result | Exit code |
 |---|---|
@@ -82,6 +82,7 @@ Bun runs TypeScript without checking types, and the project has 7 existing `tsc`
 
 - After you **fix** errors the check still passes and lists the files that improved. Run `bun run typecheck -- --update` to record the gain so it cannot be lost again.
 - Running `--update` after **adding** errors defeats the check; do it only for a deliberate reason and say so in the commit.
+- With the baseline at zero every error fails the check; the per-file comparison only matters if errors are ever recorded again.
 - The count is per file, so fixing one error and adding another in the same file is not detected.
 - Tests for the script are in `tests/typecheck_ratchet.test.ts` (they use a throwaway project, not the baseline).
 

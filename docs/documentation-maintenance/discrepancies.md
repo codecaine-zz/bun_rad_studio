@@ -30,7 +30,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-024 A layout can contain scripts, and control text is inserted as raw HTML (partly addressed)](#d-024)
 - [D-025 Generated preview files were tracked in git (fixed)](#d-025)
 - [D-026 Defects found by burning down type errors (fixed)](#d-026)
-- [D-027 The unified `src/index.ts` exports some names as undefined (open)](#d-027)
+- [D-027 The unified `src/index.ts` exported some names as undefined (fixed)](#d-027)
 - [D-028 Documents disagreed on how many themes exist (fixed)](#d-028)
 - [D-029 A test-only package was a runtime dependency, with known advisories (fixed)](#d-029)
 
@@ -255,14 +255,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Also changed:** `applications/code_studio.ts` deletes folders with `rmSync(path, { recursive: true, force: true })` instead of the deprecated `rmdirSync(path, { recursive: true })`; behaviour is the same (checked with a non-empty folder).
 
 <a id="d-027"></a>
-## D-027: The unified `src/index.ts` exports some names as undefined (open)
+## D-027: The unified `src/index.ts` exported some names as undefined (fixed)
 
-- **Status:** Open (found on 13 October 2026; not changed because choosing a winner changes a public interface).
-- **Observed:** `src/index.ts` does `export *` from `./simplecli/index.ts`, `./simplegui.ts` and `./features/rad/index.ts`. Three libraries define different things under the same names (`LRUCache`, `Logger`, `LogLevel` in SimpleCLI and in the `rad` modules; `TreeNode`; `writeFileAtomic`, a synchronous function in SimpleGUI and an asynchronous one in `rad`). TypeScript reports the clash and at run time `import { LRUCache, Logger, LogLevel, writeFileAtomic } from "./src/index.ts"` gives `undefined` (checked: `typeof` is `undefined` for those four).
-- **Workaround:** reach them through their namespace, for example `rad.logutils.Logger` or import from the specific module (`src/simplecli/...`, `src/features/rad/modules/...`).
-- **Needs a decision:** which definition each name should refer to, or whether to rename them. No file in the repository imports these names from the hub.
-- **Guard:** the five errors stay in the type-check baseline (`src/index.ts`: 5).
-
+- **Status:** Fixed on 13 October 2026, with a decision that can be reversed.
+- **Observed:** `src/index.ts` does `export *` from `./simplecli/index.ts`, `./simplegui.ts` and `./features/rad/index.ts`. Different libraries define different things under the same names (`LRUCache`, `Logger`, `LogLevel`, `TreeNode`; `writeFileAtomic`, synchronous in SimpleGUI and asynchronous in `rad`). TypeScript reported the clash (5 errors) and at run time `import { LRUCache, Logger, LogLevel, writeFileAtomic } from "./src/index.ts"` gave `undefined`.
+- **Decision:** because the names were `undefined`, nobody could rely on them, so defining them is additive. `src/index.ts` now re-exports them explicitly: `LRUCache`, `Logger`, `LogLevel`, `TreeNode` from SimpleCLI (the library exported first) and `writeFileAtomic` from SimpleGUI. The `rad` versions are unchanged and reachable through the module namespaces: `logutils.Logger`, `logutils.LogLevel`, `cacheutils.LRUCache`, `fileutils.writeFileAtomic`.
+- **To reverse or change it:** edit the two `export { ... }` lines at the end of `src/index.ts`; `tests/hub_exports.test.ts` states the current choice.
+- **Tests:** `tests/hub_exports.test.ts` (each name is defined and is the chosen definition; the alternatives stay reachable). The five type errors are gone.
+- **Note:** a program that wants SimpleGUI's synchronous `writeFileAtomic` and the `rad` asynchronous one in the same file must use `fileutils.writeFileAtomic` for the latter.
 <a id="d-028"></a>
 ## D-028: Documents disagreed on how many themes exist (fixed)
 

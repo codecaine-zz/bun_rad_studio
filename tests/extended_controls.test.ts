@@ -359,7 +359,7 @@ describe("✨ Studio Extended Controls Suite", () => {
             win.addSidebar("sb1", "Nav", ["Item 1", "Item 2"]);
             win.addDropdownMenu("dd1", "Action", ["A", "B"]);
             win.addListGroup("lg1", [{ title: "T1", badge: "OK" }]);
-            win.addContentCard("cc1", "Card", "Desc", "Foot", "Click");
+            win.addContentCard("cc1", "Card", "Desc", "Foot");
             win.addCalloutPanel("cp1", "Note", "Content", "info");
             win.addTooltipBox("tb1", "Tip", "Target");
             win.addAnimatedInput("ai1", "Placeholder");

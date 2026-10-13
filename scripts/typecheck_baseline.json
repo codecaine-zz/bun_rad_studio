@@ -1,8 +1,4 @@
 {
-  "total": 7,
-  "files": {
-    "src/index.ts": 5,
-    "tests/extended_controls.test.ts": 1,
-    "tests/simplegui.test.ts": 1
-  }
+  "total": 0,
+  "files": {}
 }

@@ -276,7 +276,7 @@ A request to a database, written in [SQL](#sql-structured-query-language). **See
 Building programs quickly by arranging ready-made controls instead of coding every part. **Why it matters:** the project's name; the designer follows the Delphi and Visual Basic style. **See:** [Visual designer](visual-designer/index.md).
 
 ### RAD utility modules (`rad`)
-A set of about 44 small helper modules (files, strings, arrays, crypto, time, HTTP, SQLite and more) in `src/features/rad/`. **Why it matters:** they are exported through the `rad` namespace; some names clash with SimpleCLI's, so reach them as `rad.<module>.<name>` ([D-027](documentation-maintenance/discrepancies.md#d-027)). **Related:** [SimpleCLI](#simplecli).
+A set of about 44 small helper modules (files, strings, arrays, crypto, time, HTTP, SQLite and more) in `src/features/rad/`. **Why it matters:** they are exported through the `rad` namespace and as top-level module namespaces (`logutils`, `cacheutils`, `fileutils`, ...). A few names clash with SimpleCLI's or SimpleGUI's; the hub exports the SimpleCLI/SimpleGUI ones and the `rad` ones stay reachable as `logutils.Logger` and so on ([D-027](documentation-maintenance/discrepancies.md#d-027)). **Related:** [SimpleCLI](#simplecli).
 
 ### Ratchet
 A check that lets existing problems stay but forbids new ones. **Example:** `bun run typecheck`. **Related:** [Baseline](#baseline-type-check). **See:** [Testing](testing/index.md#type-check-ratchet).

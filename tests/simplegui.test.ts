@@ -715,7 +715,7 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         const win = createWindow("Ubuntu Workstation", 900, 650, { theme: "ubuntu" });
         win.addButton("btn_launch", "Launch Terminal").bold().width(180);
         win.addHeroDisplay("hero_ubuntu", "Ubuntu 24.04 LTS", "The modern open source desktop");
-        win.addContentCard("card_pkg", "APT Package Manager", "Installed 2,145 packages", "Up to date", "Upgrade");
+        win.addContentCard("card_pkg", "APT Package Manager", "Installed 2,145 packages", "Up to date");
         win.addCalloutPanel("panel_info", "Kernel 6.8", "Running on Linux generic kernel", "info");
 
         const html = win.toHtml();
