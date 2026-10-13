@@ -18,7 +18,7 @@ async function main() {
       host: "localhost",
       port: 3306,
       user: "root",
-      password: "@Delphi32@",
+      password: process.env.MSQL_PASSWORD,
       database: "my_app_dev",
     },
   });

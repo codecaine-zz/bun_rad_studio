@@ -1,24 +1,31 @@
-import { describe, it, expect, afterAll } from "bun:test";
+import { mkdtempSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
+import { describe, it, expect, afterAll, beforeAll } from "bun:test";
 import { startMysqlStudioServer } from "../applications/mysql_studio_server.ts";
 import { generateMysqlStudioHtml } from "../applications/mysql_studio.ts";
+import { provisionTestDb } from "./helpers/testdb.ts";
 
-describe("🐬 MySQL Studio Pro - Comprehensive End-to-End Enterprise Test Suite", () => {
-  const server = startMysqlStudioServer({
-    port: 0,
-    config: {
-      host: "localhost",
-      port: 3306,
-      user: "root",
-      password: "@Delphi32@",
-      database: "my_app_dev",
-    },
+// File exports go to a temp dir, not the repository.
+process.env.STUDIO_EXPORT_DIR = mkdtempSync(join(tmpdir(), "mysql-export-"));
+
+// Runs against a throwaway database (TEST_MYSQL_URL); skipped when it is not configured.
+const testDb = await provisionTestDb("mysql");
+const suite = testDb ? describe : describe.skip;
+
+suite("🐬 MySQL Studio Pro - Comprehensive End-to-End Enterprise Test Suite", () => {
+  const server = testDb ? startMysqlStudioServer({ port: 0, config: testDb.config }) : (null as any);
+  const baseUrl = `http://127.0.0.1:${server?.port}`;
+
+  beforeAll(async () => {
+    if (testDb) await fetch(`${baseUrl}/api/seed`, { method: "POST" });
   });
-  const baseUrl = `http://127.0.0.1:${server.port}`;
 
   afterAll(async () => {
     try {
-      server.stop(true);
+      server?.stop(true);
     } catch {}
+    await testDb?.drop();
   });
 
   // =========================================================================
@@ -461,7 +468,7 @@ describe("🐬 MySQL Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     const kpiData = (await kpiRes.json()) as any;
     expect(kpiData.success).toBe(true);
     expect(kpiData.kpis).toBeDefined();
-    expect(kpiData.kpis.dbName).toBe("my_app_dev");
+    expect(kpiData.kpis.dbName).toBe(testDb!.name);
     expect(kpiData.kpis.tableCount).toBeGreaterThanOrEqual(4);
     expect(typeof kpiData.kpis.totalRows).toBe("number");
   });

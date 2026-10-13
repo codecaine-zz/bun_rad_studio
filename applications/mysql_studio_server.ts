@@ -2596,7 +2596,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
             return Response.json({ success: false, error: "Unsupported export format" }, { status: 400, headers: corsHeaders });
           }
           const filename = `mysql_export_${Date.now()}.${fmt}`;
-          const exportPath = resolve(process.cwd(), filename);
+          const exportPath = resolve(process.env.STUDIO_EXPORT_DIR || process.cwd(), filename);
           let content = "";
           const allKeys: string[] = [];
           for (const r of body.rows) for (const k of Object.keys(r || {})) if (!allKeys.includes(k)) allKeys.push(k);

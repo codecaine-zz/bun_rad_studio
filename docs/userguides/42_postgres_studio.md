@@ -44,13 +44,13 @@ Postgres Studio Pro natively detects and loads connection parameters from `.env`
 PG_HOST=localhost
 PG_PORT=5432
 PG_USER=root
-PG_PASSWORD=@Delphi32@
+PG_PASSWORD=your-password
 PG_DATABASE=mydb
 PG_SCHEMA=public
 PG_TLS=false
 
 # Full Connection URL (Alternative):
-# PG_URL=postgresql://root:@Delphi32@@localhost:5432/mydb?schema=public&sslmode=prefer
+# PG_URL=postgres://user:your-password@localhost:5432/mydb?schema=public&sslmode=prefer
 
 # Supported Fallbacks:
 # POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB

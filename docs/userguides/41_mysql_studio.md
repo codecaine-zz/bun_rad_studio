@@ -81,8 +81,8 @@ mysql -u root
 
 Inside the MySQL prompt, set your root password and refresh privileges:
 ```sql
--- Replace '@Delphi32@' with your desired password
-ALTER USER 'root'@'localhost' IDENTIFIED BY '@Delphi32@';
+-- Replace 'choose-a-strong-password' with your desired password
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'choose-a-strong-password';
 FLUSH PRIVILEGES;
 EXIT;
 ```
@@ -108,12 +108,12 @@ MySQL Studio Pro natively detects and loads connection parameters from `.env` in
 MSQL_HOST=localhost
 MSQL_PORT=3306
 MSQL_USER=root
-MSQL_PASSWORD=@Delphi32@
+MSQL_PASSWORD=your-password
 MSQL_NAME=my_app_dev
 MSQL_TLS=false
 
 # Full Connection URL (Alternative):
-# MSQL_URL=mysql://root:@Delphi32@@localhost:3306/my_app_dev
+# MSQL_URL=mysql://user:your-password@localhost:3306/my_app_dev
 
 # Supported Fallbacks:
 # MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE, MYSQL_DB

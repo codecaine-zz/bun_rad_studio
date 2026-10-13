@@ -1,24 +1,25 @@
-import { describe, it, expect, afterAll } from "bun:test";
+import { describe, it, expect, afterAll, beforeAll } from "bun:test";
 import { startPostgresStudioServer } from "../applications/postgres_studio_server.ts";
 import { generatePostgresStudioHtml } from "../applications/postgres_studio.ts";
+import { provisionTestDb } from "./helpers/testdb.ts";
 
-describe("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite", () => {
-  const server = startPostgresStudioServer({
-    port: 0,
-    config: {
-      host: "localhost",
-      port: 5432,
-      user: "root",
-      database: "mydb",
-      schema: "public",
-    },
+// Runs against a throwaway database (TEST_PG_URL); skipped when it is not configured.
+const testDb = await provisionTestDb("postgres");
+const suite = testDb ? describe : describe.skip;
+
+suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite", () => {
+  const server = testDb ? startPostgresStudioServer({ port: 0, config: testDb.config }) : (null as any);
+  const baseUrl = `http://127.0.0.1:${server?.port}`;
+
+  beforeAll(async () => {
+    if (testDb) await fetch(`${baseUrl}/api/seed-sample`, { method: "POST" });
   });
-  const baseUrl = `http://127.0.0.1:${server.port}`;
 
   afterAll(async () => {
     try {
-      server.stop(true);
+      server?.stop(true);
     } catch {}
+    await testDb?.drop();
   });
 
   // =========================================================================

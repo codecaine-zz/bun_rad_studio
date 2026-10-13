@@ -11,14 +11,17 @@ const { startMysqlStudioServer } = await import("../applications/mysql_studio_se
 const { generateMysqlStudioHtml } = await import("../applications/mysql_studio.ts");
 const { macroToSqlScript, macroToVba, parseRecordFieldsToInsertSql, applyPromptParams } = await import("../applications/sqlite_studio_macros.ts");
 
+import { provisionTestDb } from "./helpers/testdb.ts";
+
+// Runs against a throwaway database (TEST_MYSQL_URL); skipped when it is not configured.
+const testDb = await provisionTestDb("mysql");
+const suite = testDb ? describe : describe.skip;
+
 type Action = { id: string; action: string; enabled: boolean; parameters: any; [k: string]: any };
 
-describe("🐬 MySQL Studio Pro - Access Macro Automation Suite", () => {
-  const server = startMysqlStudioServer({
-    port: 0,
-    config: { host: "localhost", port: 3306, user: "root", password: "@Delphi32@", database: "my_app_dev" },
-  });
-  const baseUrl = `http://127.0.0.1:${server.port}`;
+suite("🐬 MySQL Studio Pro - Access Macro Automation Suite", () => {
+  const server = testDb ? startMysqlStudioServer({ port: 0, config: testDb.config }) : (null as any);
+  const baseUrl = `http://127.0.0.1:${server?.port}`;
   const suffix = Date.now();
   const T = (n: string) => `zz_macro_${n}_${suffix}`;
   const created: string[] = [];
@@ -39,7 +42,8 @@ describe("🐬 MySQL Studio Pro - Access Macro Automation Suite", () => {
 
   afterAll(async () => {
     for (const t of created) await sql(`DROP TABLE IF EXISTS \`${t}\``);
-    try { server.stop(true); } catch {}
+    try { server?.stop(true); } catch {}
+    await testDb?.drop();
     rmSync(storeDir, { recursive: true, force: true });
   });
 

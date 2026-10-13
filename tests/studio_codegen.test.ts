@@ -203,8 +203,9 @@ describe("Generated programs run on native SQLite", () => {
 
 describe("/api/codegen on every studio", () => {
   const sqlite = startSqliteStudioServer({ port: 0, initialDbPath: ":memory:" });
-  const mysql = startMysqlStudioServer({ port: 0, config: { host: "localhost", port: 3306, user: "root", password: "@Delphi32@", database: "my_app_dev" } });
-  const pg = startPostgresStudioServer({ port: 0, config: { host: "localhost", port: 5432, user: "root", database: "mydb" } });
+  // Code generation never queries the database, so these servers point at an unreachable address.
+  const mysql = startMysqlStudioServer({ port: 0, config: { host: "127.0.0.1", port: 1, user: "unused", database: "unused" } });
+  const pg = startPostgresStudioServer({ port: 0, config: { host: "127.0.0.1", port: 1, user: "unused", database: "unused" } });
   afterAll(() => { for (const s of [sqlite, mysql, pg]) { try { s.stop(true); } catch {} } });
 
   const post = async (server: any, body: any) =>

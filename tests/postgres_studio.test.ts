@@ -1,24 +1,21 @@
 import { describe, it, expect, afterAll } from "bun:test";
 import { startPostgresStudioServer } from "../applications/postgres_studio_server.ts";
 import { generatePostgresStudioHtml, createPostgresStudio } from "../applications/postgres_studio.ts";
+import { provisionTestDb } from "./helpers/testdb.ts";
 
-describe("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", () => {
-  const server = startPostgresStudioServer({
-    port: 0,
-    config: {
-      host: "localhost",
-      port: 5432,
-      user: "root",
-      database: "mydb",
-      schema: "public",
-    },
-  });
-  const baseUrl = `http://127.0.0.1:${server.port}`;
+// Runs against a throwaway database (TEST_PG_URL); skipped when it is not configured.
+const testDb = await provisionTestDb("postgres");
+const suite = testDb ? describe : describe.skip;
 
-  afterAll(() => {
+suite("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", () => {
+  const server = testDb ? startPostgresStudioServer({ port: 0, config: testDb.config }) : (null as any);
+  const baseUrl = `http://127.0.0.1:${server?.port}`;
+
+  afterAll(async () => {
     try {
-      server.stop(true);
+      server?.stop(true);
     } catch {}
+    await testDb?.drop();
   });
 
   it("1. GET / serves complete Postgres Studio HTML with advanced PostgreSQL capabilities", async () => {
@@ -68,10 +65,10 @@ describe("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", ()
 
     expect(body.success).toBe(true);
     expect(body.config).toBeDefined();
-    expect(body.config.host).toBe("localhost");
-    expect(body.config.port).toBe(5432);
-    expect(body.config.user).toBe("root");
-    expect(body.config.database).toBe("mydb");
+    expect(body.config.host).toBe(testDb!.config.host);
+    expect(body.config.port).toBe(testDb!.config.port);
+    expect(body.config.user).toBe(testDb!.config.user);
+    expect(body.config.database).toBe(testDb!.name);
     expect(body.config.schema).toBe("public");
     expect(typeof body.config.hasPassword).toBe("boolean");
     expect(body.config.password).toBeUndefined(); // Raw password must not be exposed
@@ -197,7 +194,7 @@ describe("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", ()
     expect(body.success).toBe(true);
     expect(Array.isArray(body.databases)).toBe(true);
     const dbPaths = body.databases.map((d: any) => d.path);
-    expect(dbPaths).toContain("mydb");
+    expect(dbPaths).toContain(testDb!.name);
   });
 
   it("11. createPostgresStudio factory initializes proper defaults and window dimensions", () => {
@@ -205,7 +202,7 @@ describe("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", ()
       fullscreen: false,
       width: 1400,
       height: 950,
-      initialDbPath: "mydb",
+      initialDbPath: testDb!.name,
       initialSchema: "public",
     });
 
@@ -213,7 +210,7 @@ describe("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", ()
     expect(app.width).toBe(1400);
     expect(app.height).toBe(950);
     expect(app.fullscreen).toBe(false);
-    expect(app.activeDbPath).toBe("mydb");
+    expect(app.activeDbPath).toBe(testDb!.name);
     expect(app.activeSchema).toBe("public");
     expect(typeof app.run).toBe("function");
     expect(typeof app.generateHtml).toBe("function");

@@ -12,13 +12,15 @@ const { generatePostgresStudioHtml } = await import("../applications/postgres_st
 const { applyPromptParams, extractPromptParams } = await import("../applications/sqlite_studio_macros.ts");
 type MacroDefinition = import("../applications/sqlite_studio_macros.ts").MacroDefinition;
 type MacroAction = import("../applications/sqlite_studio_macros.ts").MacroAction;
+import { provisionTestDb } from "./helpers/testdb.ts";
 
-describe("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
-  const server = startPostgresStudioServer({
-    port: 0,
-    config: { host: "localhost", port: 5432, user: "root", database: "mydb", schema: "public" },
-  });
-  const baseUrl = `http://127.0.0.1:${server.port}`;
+// Runs against a throwaway database (TEST_PG_URL); skipped when it is not configured.
+const testDb = await provisionTestDb("postgres");
+const suite = testDb ? describe : describe.skip;
+
+suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
+  const server = testDb ? startPostgresStudioServer({ port: 0, config: testDb.config }) : (null as any);
+  const baseUrl = `http://127.0.0.1:${server?.port}`;
   const stamp = Date.now();
   const T = (n: string) => `zz_macro_test_${n}_${stamp}`;
   const scratch = ["a", "b", "c", "crud", "made", "prm", "cond", "sub"].map(T);
@@ -37,6 +39,7 @@ describe("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
   const macro = (id: string, actions: MacroAction[], extra: any = {}): MacroDefinition => ({ id, name: id, description: "", actions, ...extra });
 
   beforeAll(async () => {
+    if (!testDb) return;
     for (const t of [T("a"), T("b"), T("c"), T("cond"), T("sub")]) {
       await sql(`CREATE TABLE "${t}" (id SERIAL PRIMARY KEY, v TEXT)`);
     }
@@ -47,8 +50,9 @@ describe("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
   afterAll(async () => {
     for (const t of scratch) await sql(`DROP TABLE IF EXISTS "${t}"`);
     try {
-      server.stop(true);
+      server?.stop(true);
     } catch {}
+    await testDb?.drop();
     rmSync(storeDir, { recursive: true, force: true });
   });
 

@@ -1,6 +1,11 @@
-import { describe, it, expect, afterAll } from "bun:test";
+import { describe, it, expect, afterAll, beforeAll } from "bun:test";
 import { startMysqlStudioServer } from "../applications/mysql_studio_server.ts";
 import { generateMysqlStudioHtml, createMysqlStudio } from "../applications/mysql_studio.ts";
+import { provisionTestDb } from "./helpers/testdb.ts";
+
+// Query tests run against a throwaway database (TEST_MYSQL_URL) and are skipped when it is not configured.
+const testDb = await provisionTestDb("mysql");
+const itDb = testDb ? it : it.skip;
 
 describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
   const server = startMysqlStudioServer({
@@ -14,10 +19,11 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
   });
   const baseUrl = `http://127.0.0.1:${server.port}`;
 
-  afterAll(() => {
+  afterAll(async () => {
     try {
       server.stop(true);
     } catch {}
+    await testDb?.drop();
   });
 
   it("1. GET /api/config returns sanitized connection details without exposing raw password", async () => {
@@ -234,8 +240,19 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     }
   });
 
-  it("10. POST /api/query executes queries and returns rows, columns, and latency", async () => {
-    const srv = startMysqlStudioServer({ port: 0 });
+  // The audit_logs / sample tables the query tests read are created by the studio's own seeding.
+  beforeAll(async () => {
+    if (!testDb) return;
+    const srv = startMysqlStudioServer({ port: 0, config: testDb.config });
+    try {
+      await fetch(`http://127.0.0.1:${srv.port}/api/seed`, { method: "POST" });
+    } finally {
+      srv.stop(true);
+    }
+  });
+
+  itDb("10. POST /api/query executes queries and returns rows, columns, and latency", async () => {
+    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
     try {
       const res = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
         method: "POST",
@@ -254,13 +271,13 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     }
   });
 
-  it("11. POST /api/explain parses query plan tree with timing and costs", async () => {
-    const srv = startMysqlStudioServer({ port: 0 });
+  itDb("11. POST /api/explain parses query plan tree with timing and costs", async () => {
+    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
     try {
       const res = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT c.id, c.name FROM customers c ORDER BY c.id;" }),
+        body: JSON.stringify({ sql: "SELECT 1 AS id, 'x' AS name ORDER BY id;" }),
       });
       expect(res.status).toBe(200);
       const data = (await res.json()) as any;
@@ -273,14 +290,14 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     }
   });
 
-  it("12. createMysqlStudio resolves default database to real DB and never :memory:", () => {
-    const studio = createMysqlStudio({});
-    expect(studio.activeDbPath).toBe(process.env.MSQL_NAME || "my_app_dev");
+  itDb("12. createMysqlStudio resolves default database to real DB and never :memory:", () => {
+    const studio = createMysqlStudio({ initialDbPath: testDb!.name });
+    expect(studio.activeDbPath).toBe(testDb!.name);
     expect(studio.activeDbPath).not.toBe(":memory:");
   });
 
-  it("13. POST /api/query executes queries with both MySQL backticks and ANSI double quotes seamlessly", async () => {
-    const srv = startMysqlStudioServer({ port: 0 });
+  itDb("13. POST /api/query executes queries with both MySQL backticks and ANSI double quotes seamlessly", async () => {
+    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
     try {
       // 1. Backtick identifier query
       const resBacktick = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
@@ -308,8 +325,8 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     }
   });
 
-  it("14. POST /api/explain handles both MySQL backticks and ANSI double quotes without syntax errors", async () => {
-    const srv = startMysqlStudioServer({ port: 0 });
+  itDb("14. POST /api/explain handles both MySQL backticks and ANSI double quotes without syntax errors", async () => {
+    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
     try {
       // 1. Backtick explain
       const resBacktick = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
