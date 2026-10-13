@@ -16,7 +16,7 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### 🗄️ 1. Core Systems & Workstations
 | # | Application Guide | Focus Area | GUI Launch | CLI Launch |
 | :-: | :--- | :--- | :--- | :--- |
-| **01** | [Database Studio Pro](01_database_studio.md) | Full GUI CRUD (no SQL needed): table designer, row forms, inline edit, CSV/JSON/SQL/clipboard import, export & backup, query plans. | `bun run app:database` | `bun run cli:database` |
+| **01** | [SQLite Studio Pro](01_database_studio.md) | Full Microsoft Access workflow parity: live totals row, quick filter bar, report generator, backup/dump, QBE designer. | `bun run app:sqlite` | `bun run cli:sqlite` |
 | **02** | [System & Package Workstation](02_system_package_studio.md) | 60-API hardware & OS telemetry, live KPI sparklines, snapshot compare, JSON/CSV/Markdown/HTML export. | `bun run app:system` | `bun run cli:system` |
 | **03** | [Task Watcher Studio](03_task_watcher_studio.md) | Native `fs.watch` event pipeline, extension filters, ignore rules, build console. | `bun run app:watcher` | `bun run cli:watcher` |
 | **04** | [JSON Query Studio Pro](04_json_query_studio.md) | High-throughput JSON query engine, nested selectors, key projection, formatting. | `bun run app:json` | `bun run cli:json` |
@@ -82,8 +82,9 @@ Every application in this suite is built to 30-year enterprise standards: **zero
 ### 🖼️ Desktop GUI Applications
 ```bash
 # Core Workstations
-bun run app:database       # Database Studio Pro (SQLite)
-bun run app:mysql          # MySQL Studio Pro
+bun run app:sqlite          # SQLite Studio Pro
+bun run app:database        # SQLite Studio Pro (alias)
+bun run app:mysql           # MySQL Studio Pro
 bun run app:postgres       # Postgres Studio Pro
 bun run app:system         # System & Package Workstation
 bun run app:watcher        # Task Watcher Studio

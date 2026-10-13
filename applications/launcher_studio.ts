@@ -2888,8 +2888,8 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // GUI Studio Versions of CLI Tools
   bindQuick("btn_quick_system", "system_studio");
-  bindQuick("btn_quick_db", "database_studio");
-  bindQuick("btn_quick_database", "database_studio");
+  bindQuick("btn_quick_db", "sqlite_studio");
+  bindQuick("btn_quick_database", "sqlite_studio");
   bindQuick("btn_quick_fd", "fd_studio");
   bindQuick("btn_quick_git", "git_studio");
   bindQuick("btn_quick_tokei", "tokei_studio");

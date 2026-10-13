@@ -450,7 +450,9 @@ export const createDatabaseStudio = createSqliteStudio;
 export { createSqliteStudioPro, startSqliteStudioServer } from "./sqlite_studio";
 
 if (import.meta.main) {
-  const win = createDatabaseStudio(":memory:", { fullscreen: true });
-  console.log("⚡ Launching Database Studio Pro (Enterprise SQLite Fullscreen)...");
-  win.run();
+  const { createSqliteStudio: createStudio } = await import("./sqlite_studio.ts");
+  const initialDb = process.argv[2] || ":memory:";
+  const app = createStudio({ initialDbPath: initialDb, fullscreen: true });
+  await app.run();
+  process.exit(0);
 }

@@ -1,16 +1,16 @@
-# 🗄️ Database Studio Pro -- Complete Production User Guide
+# 🗄️ SQLite Studio Pro -- Complete Production User Guide
 
 ```
 Version: 2.4.0  •  Engine: Native bun:sqlite (WAL Mode)  •  Dependencies: 0  •  Offline: 100%
-Launchers: [Desktop GUI: bun run app:database]  •  [Terminal CLI: bun run cli:database]
+Launchers: [Desktop GUI: bun run app:sqlite (or bun run app:database)]  •  [Terminal CLI: bun run cli:sqlite]
 ```
 
 ---
 
 ## 🌟 Executive Overview
-**Database Studio Pro** is a high-performance, enterprise-grade SQLite query editor, schema browser, and diagnostic workbench engineered natively on Bun's C-level `bun:sqlite` subsystem. It delivers desktop database management speed comparable to Delphi and native desktop database clients—with **zero external software dependencies**, zero brew installations, and instant sub-second boot times.
+**SQLite Studio Pro** is a high-performance, enterprise-grade SQLite query editor, schema browser, and diagnostic workbench engineered natively on Bun's C-level `bun:sqlite` subsystem. It delivers desktop database management speed comparable to Delphi and native desktop database clients—with **zero external software dependencies**, zero brew installations, and instant sub-second boot times.
 
-Whether you are debugging a local application database, inspecting complex relational foreign keys, generating synthetic test data, or benchmarking query plans before deployment, Database Studio Pro gives you a tactile, visual cockpit.
+Whether you are debugging a local application database, inspecting complex relational foreign keys, generating synthetic test data, or benchmarking query plans before deployment, SQLite Studio Pro gives you a tactile, visual cockpit.
 
 ---
 
@@ -19,26 +19,27 @@ Whether you are debugging a local application database, inspecting complex relat
 ### 1. Launch Desktop GUI Window
 ```bash
 # Standard desktop launch (in-memory sandbox or active project DB)
-bun run app:database
-
-# Backwards-compatible shorthand alias
 bun run app:sqlite
+
+# Shorthand alias
+bun run app:database
 ```
 
 ### 2. Launch Terminal CLI Query Mode
 ```bash
 # Direct SQL query evaluation in terminal
-bun run cli:database -f ./app.db "SELECT * FROM users LIMIT 10"
+bun run cli:sqlite -f ./app.db "SELECT * FROM users LIMIT 10"
 
 # Dump table schema directly in terminal
-bun run cli:database -f ./app.db --schema
+bun run cli:sqlite -f ./app.db --schema
 ```
 
 ### 3. Launch Programmatically in TypeScript
 ```typescript
-import { createDatabaseStudio } from "./applications/database_studio";
+import { createSqliteStudio } from "./applications/sqlite_studio";
 
-const studio = createDatabaseStudio("./production.sqlite", {
+const studio = createSqliteStudio({
+  initialDbPath: "./production.sqlite",
   fullscreen: false,
   width: 1400,
   height: 900
@@ -105,7 +106,7 @@ await studio.run();
 
 ## 📐 Visual Query Designer & Microsoft Access Relational Canvas
 
-Database Studio Pro incorporates a complete, full-featured visual query design studio modeled after Microsoft Access. It enables anyone—from non-technical analysts to veteran database administrators—to construct sophisticated multi-table relational queries visually with drag-and-drop ease, full join control, and zero manual SQL required.
+SQLite Studio Pro incorporates a complete, full-featured visual query design studio modeled after Microsoft Access. It enables anyone—from non-technical analysts to veteran database administrators—to construct sophisticated multi-table relational queries visually with drag-and-drop ease, full join control, and zero manual SQL required.
 
 ```mermaid
 graph LR
@@ -195,7 +196,7 @@ Managing complex enterprise databases with dozens of related tables requires ext
 
 ### 4. Expansive Room Modes & Draggable Resizer Splitter
 
-To accommodate both expansive visual table mapping and detailed criteria editing, Database Studio Pro provides dynamic room modes:
+To accommodate both expansive visual table mapping and detailed criteria editing, SQLite Studio Pro provides dynamic room modes:
 
 - **⤢ Canvas (Maximize Canvas)**: Expands the canvas viewport up to 750px (or 70vh), collapsing the lower grid into a compact strip. Ideal when mapping out large multi-table relationships.
 - **⤡ Split (Balanced 50/50)**: Standard split providing equal space for the visual canvas and the lower QBE design matrix.
@@ -276,7 +277,7 @@ SQLite Studio Pro works like Microsoft Access: you can create tables, add/edit/d
 
 ## 🧮 Microsoft Access Workstation Workflow Parity
 
-Database Studio Pro delivers 100% workflow parity with classic desktop databases like Microsoft Access, eliminating the need for ad-hoc SQL for daily operations:
+SQLite Studio Pro delivers 100% workflow parity with classic desktop databases like Microsoft Access, eliminating the need for ad-hoc SQL for daily operations:
 
 ### 1. Pinned Totals Row (`[ 🧮 Totals ]`)
 - Click **[ 🧮 Totals ]** on the data grid toolbar to activate a pinned table footer row.
@@ -331,7 +332,7 @@ Database Studio Pro delivers 100% workflow parity with classic desktop databases
 
 ## 🧪 Comprehensive Automated Test Suites
 
-Database Studio Pro is rigorously tested with **100% test pass rate** across two enterprise test suites:
+SQLite Studio Pro is rigorously tested with **100% test pass rate** across two enterprise test suites:
 
 1. **`tests/sqlite_studio_e2e.test.ts` (20 End-to-End Workstation Tests)**:
    - Workstation HTML shell and 7 navigation panes.
@@ -358,7 +359,7 @@ bun test tests/sqlite_studio_e2e.test.ts tests/sqlite_studio_pro.test.ts
 ## 🛠️ Step-by-Step Practical Tutorials
 
 ### Tutorial 1: Inspecting an Existing Application SQLite Database
-1. Open Database Studio Pro via `bun run app:database`.
+1. Open SQLite Studio Pro via `bun run app:sqlite`.
 2. In the **Database File Path** field, enter your database path: `./my_app.sqlite`.
 3. Click **🔌 Connect / Switch DB**.
 4. Click **📋 DDL Schema** to review all table schemas, primary keys, and foreign keys.
@@ -410,9 +411,9 @@ bun test tests/sqlite_studio_e2e.test.ts tests/sqlite_studio_pro.test.ts
 ---
 
 ## 💡 Pro Tips & Enterprise Best Practices
-- **Write-Ahead Logging (WAL)**: Database Studio Pro automatically activates `PRAGMA journal_mode = WAL;`. This allows concurrent readers to query the database while your application writes to it, eliminating `database is locked` errors.
+- **Write-Ahead Logging (WAL)**: SQLite Studio Pro automatically activates `PRAGMA journal_mode = WAL;`. This allows concurrent readers to query the database while your application writes to it, eliminating `database is locked` errors.
 - **In-Memory Sandbox Testing**: Use `:memory:` as the file path to test risky `ALTER TABLE` or destructive updates without touching production files on disk.
-- **Safe Transaction Rollbacks**: Always wrap multi-statement migrations in `BEGIN TRANSACTION; ... COMMIT;`. If an error occurs midway, Database Studio Pro rolls back changes automatically to maintain ACID consistency.
+- **Safe Transaction Rollbacks**: Always wrap multi-statement migrations in `BEGIN TRANSACTION; ... COMMIT;`. If an error occurs midway, SQLite Studio Pro rolls back changes automatically to maintain ACID consistency.
 
 ---
 
