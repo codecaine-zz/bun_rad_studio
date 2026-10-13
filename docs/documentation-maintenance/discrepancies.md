@@ -33,6 +33,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-027 The unified `src/index.ts` exported some names as undefined (fixed)](#d-027)
 - [D-028 Documents disagreed on how many themes exist (fixed)](#d-028)
 - [D-029 A test-only package was a runtime dependency, with known advisories (fixed)](#d-029)
+- [D-030 The committed command manifest depended on the author's launcher favourites (fixed)](#d-030)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -280,3 +281,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Fix:** `bun remove jsdom` and `bun add -d jsdom@^29.1.1` (now in `devDependencies`), then `bun audit fix`. `bun audit` reports no vulnerabilities for the 46 packages; `bun audit --prod` none for the 3 runtime packages. The full test suite passed afterwards (1164 pass, 0 fail).
 - **Behaviour change:** installing the built `dist/` package no longer installs `jsdom`.
 - **Not done:** `package-lock.json` (an npm lockfile, apparently stale next to `bun.lock`) was not touched.
+
+<a id="d-030"></a>
+## D-030: The committed command manifest depended on the author's launcher favourites (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** a final fresh-clone test run left `bin/manifest.json` modified (the entry `codecaine-sqlite-studio` sat at position 240 in the committed file and at 159 when generated in a clean clone), although only the order differed. The launcher's scan (`scanAllApplications`) sorts favourites first, then running apps, then by name, and `scripts/generate_brew_suite.ts` registered commands in that order, so the generated list, and any commit of it, depended on whose favourites and running apps were present. This is the real cause behind the remaining part of [D-006](#d-006).
+- **Reproduced:** with a launcher history that favourites some studios, the generated command order changed (test failed on the old generator).
+- **Fix:** the generator sorts the scanned apps by path before registering commands. `bin/manifest.json` was regenerated once (522 changed lines, order only: the same 256 commands).
+- **Behaviour change:** commands in `bin/manifest.json` (and anything that lists them in manifest order) now appear in path order instead of favourites-first order.
+- **Tests:** `tests/launcher_listing.test.ts` ("does not depend on the user's launcher history"). A full `bun test` in a fresh clone leaves `git status` clean, also when the launcher tests have created `.launcher_history.json`.
+- **Not tested:** the "running apps" part of the ordering (a headless studio started by hand did not change the order in one trial, so the favourites path is the one proven).
