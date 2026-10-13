@@ -11,6 +11,7 @@
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync, readdirSync } from "fs";
+import { guardLocalRequest } from "../src/localGuard";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -144,6 +145,9 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
     port,
     hostname: host,
     async fetch(req) {
+      const blocked = guardLocalRequest(req);
+      if (blocked) return blocked;
+
       const url = new URL(req.url);
       const pathname = url.pathname;
 

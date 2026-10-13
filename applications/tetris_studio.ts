@@ -1,6 +1,7 @@
 import { Webview } from "webview-bun";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { guardLocalRequest } from "../src/localGuard";
 
 // Find available port between 63000-64000 for local assets
 function findAvailablePort(start: number, end: number): number {
@@ -31,8 +32,12 @@ export class TetrisStudio {
 
     // Start background file server for audio assets if needed
     const server = Bun.serve({
+      hostname: "127.0.0.1",
       port: port,
       fetch(req) {
+        const blocked = guardLocalRequest(req);
+        if (blocked) return blocked;
+
         const url = new URL(req.url);
         const filePath = join(resourcesPath, url.pathname);
         if (existsSync(filePath)) {

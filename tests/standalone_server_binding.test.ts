@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { networkInterfaces } from "os";
 import { join } from "path";
 
-const APPS = ["task_manager", "fd_studio", "rip_studio"] as const;
+const APPS = ["task_manager", "fd_studio", "rip_studio", "system_studio_server"] as const;
 
 function lanAddress(): string | undefined {
   for (const list of Object.values(networkInterfaces())) {

@@ -17,6 +17,7 @@
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
+import { guardLocalRequest } from "../src/localGuard";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -181,6 +182,9 @@ export function startPaintServer(options: PaintServerOptions = {}) {
     port,
     hostname: host,
     fetch(req) {
+      const blocked = guardLocalRequest(req);
+      if (blocked) return blocked;
+
       const url = new URL(req.url);
       const pathname = url.pathname;
 

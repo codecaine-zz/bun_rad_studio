@@ -18,6 +18,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-012 Code Studio accepted commands from any web page (fixed)](#d-012)
 - [D-013 Standalone servers listened on every network interface (fixed)](#d-013)
 - [D-014 The launcher listed library files as applications (fixed)](#d-014)
+- [D-015 Redis server file crashes when started directly](#d-015)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -110,7 +111,8 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Status:** Fixed on 13 October 2026.
 - **Observed:** `bun run applications/<app>.ts --server` for `task_manager`, `fd_studio` and `rip_studio` started the server with `host: "0.0.0.0"`, while printing `http://127.0.0.1:<port>`. The guard only checks the `Host` header, which a client on the same network can set to `localhost`, so these servers (process control, file operations) were reachable from the local network.
 - **Fix:** they now bind to `127.0.0.1`. LAN use did not work before either, because the guard refuses a non-loopback `Host`.
-- **Regression tests:** `tests/standalone_server_binding.test.ts` (skipped on a machine with no non-loopback IPv4 address).
+- **Later in the same change:** the static rule in `tests/studio_servers_local_only.test.ts` found two more files with the same bind, `applications/redis_studio_server.ts` and `applications/system_studio_server.ts`; both now bind to `127.0.0.1`. Frogger, Snake and Tetris called `Bun.serve` without a `hostname`, which makes Bun listen on every interface; they now pass `127.0.0.1`.
+- **Regression tests:** `tests/standalone_server_binding.test.ts` (runs the standalone servers and tries the machine's LAN address; skipped when there is no non-loopback IPv4 address; the Redis server is not in it because of [D-015](#d-015)) and `tests/studio_servers_local_only.test.ts` (static rules over all of `applications/`).
 
 <a id="d-014"></a>
 ## D-014: The launcher listed library files as applications (fixed)
@@ -121,3 +123,10 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Behaviour change:** the launcher and `codecaine list` no longer show those five entries. They did not work.
 - **Regression tests:** `tests/launcher_listing.test.ts` (also checks that every listed application contains `import.meta.main`, so a new library file added to `applications/` is caught).
 - **Not done:** the test `tests/codecaine_homebrew_suite.test.ts` still writes into the real `bin/` ([D-006](#d-006)). The sample diagnostics output in `docs/HOMEBREW_SUITE_GUIDE.md` still shows the old count of 259.
+
+<a id="d-015"></a>
+## D-015: Redis server file crashes when started directly
+
+- **Status:** Open (found on 13 October 2026, not fixed).
+- **Observed:** `PORT=23457 bun applications/redis_studio_server.ts --server` stops with `ReferenceError: Cannot access 'RedisManager' before initialization` at `applications/redis_studio_server.ts:1026`, called from `applications/redis_studio.ts:2798`. The committed version behaves the same. `redis_studio.ts` imports the server file and also starts a server whenever `--server` is on the command line, so starting the server file first loads `redis_studio.ts` in the middle of its own initialization.
+- **Not checked:** whether `bun run applications/redis_studio.ts --server` works (it needs no Redis server to start, but it was not run).

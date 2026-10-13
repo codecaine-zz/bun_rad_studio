@@ -1,6 +1,7 @@
 import { Webview } from "webview-bun";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { guardLocalRequest } from "../src/localGuard";
 
 function findAvailablePort(start: number, end: number): number {
   for (let p = start; p <= end; p++) {
@@ -22,8 +23,12 @@ export class FroggerStudio {
     const indexPath = join(resourcesPath, "index.html");
 
     const server = Bun.serve({
+      hostname: "127.0.0.1",
       port: port,
       fetch(req) {
+        const blocked = guardLocalRequest(req);
+        if (blocked) return blocked;
+
         const url = new URL(req.url);
         const filePath = join(resourcesPath, url.pathname);
         if (existsSync(filePath)) {

@@ -164,12 +164,12 @@ if (import.meta.main) {
   const specifiedPort = Number(process.env.PORT);
   let server: any;
   if (specifiedPort) {
-    server = startSystemStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+    server = startSystemStudioServer({ port: specifiedPort, host: "127.0.0.1" });
   } else {
     try {
-      server = startSystemStudioServer({ port: 4567, host: "0.0.0.0" });
+      server = startSystemStudioServer({ port: 4567, host: "127.0.0.1" });
     } catch {
-      server = startSystemStudioServer({ port: 0, host: "0.0.0.0" });
+      server = startSystemStudioServer({ port: 0, host: "127.0.0.1" });
     }
   }
   console.log(`READY:${server.port}`);

@@ -1341,12 +1341,12 @@ if (import.meta.main) {
   const specifiedPort = Number(process.env.PORT);
   let serverInstance: any;
   if (specifiedPort) {
-    serverInstance = startRedisStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+    serverInstance = startRedisStudioServer({ port: specifiedPort, host: "127.0.0.1" });
   } else {
     try {
-      serverInstance = startRedisStudioServer({ port: 5820, host: "0.0.0.0" });
+      serverInstance = startRedisStudioServer({ port: 5820, host: "127.0.0.1" });
     } catch {
-      serverInstance = startRedisStudioServer({ port: 0, host: "0.0.0.0" });
+      serverInstance = startRedisStudioServer({ port: 0, host: "127.0.0.1" });
     }
   }
   console.log(`READY:${serverInstance.port}`);
