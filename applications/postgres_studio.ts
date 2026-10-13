@@ -290,6 +290,42 @@ export function generatePostgresStudioHtml(): string {
       gap: 8px;
     }
 
+    .theme-control {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(12, 18, 29, 0.96));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(56, 189, 248, 0.12);
+    }
+
+    .theme-control-label {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .theme-control::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      width: 10px;
+      height: 10px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 10px 10px;
+      color: var(--text-main);
+      pointer-events: none;
+    }
+
     .btn {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-subtle);
@@ -297,7 +333,7 @@ export function generatePostgresStudioHtml(): string {
       padding: 6px 12px;
       color: var(--text-main);
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -319,6 +355,12 @@ export function generatePostgresStudioHtml(): string {
     .btn-primary:hover {
       background: linear-gradient(135deg, #25537b, #0369a1);
       box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #059669, #047857);
+      border-color: var(--emerald);
+      color: #ffffff;
+      box-shadow: 0 0 10px var(--emerald-glow);
     }
     .btn-sm { padding: 4px 8px; font-size: 11px; }
 
@@ -343,38 +385,60 @@ export function generatePostgresStudioHtml(): string {
       padding-right: 22px;
     }
 
-    /* KPI Bar */
-    .kpi-bar {
-      height: 40px;
-      background: rgba(10, 17, 32, 0.85);
+    /* Top KPI Telemetry Banner (5 Enterprise Cards) */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(10, 15, 28, 0.85);
       border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 16px;
-      font-size: 11px;
-      overflow-x: auto;
       flex-shrink: 0;
     }
-    .kpi-item {
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 6px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .kpi-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: var(--text-muted);
-      white-space: nowrap;
+      justify-content: space-between;
     }
+
     .kpi-value {
+      font-size: 15px;
       font-weight: 700;
       color: var(--text-main);
       font-family: var(--font-mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .kpi-badge {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--emerald);
-      box-shadow: 0 0 6px var(--emerald-glow);
+
+    .kpi-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .kpi-clickable:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
     }
 
     /* Workspace Body */
@@ -385,20 +449,81 @@ export function generatePostgresStudioHtml(): string {
       position: relative;
     }
 
-    /* Sidebar */
+    /* Left Sidebar */
     aside {
-      width: 270px;
-      background: rgba(10, 17, 32, 0.95);
+      width: 360px;
+      min-width: 260px;
+      max-width: 650px;
+      background: rgba(10, 17, 32, 0.98);
       border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
-      transition: width 0.2s ease;
+      overflow: hidden;
+      position: relative;
+      transition: width 0.15s ease;
     }
     aside.collapsed {
       width: 0;
       overflow: hidden;
       border-right: none;
+    }
+
+    .sidebar-resizer {
+      width: 6px;
+      margin-left: -3px;
+      cursor: col-resize;
+      background: transparent;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 60;
+      transition: background 0.15s ease;
+    }
+
+    .sidebar-resizer:hover,
+    .sidebar-resizer.resizing {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .sidebar-db-card {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-search-box {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+    }
+    .sidebar-search-input:focus {
+      border-color: var(--cyan);
+    }
+
+    .sidebar-subbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
     }
 
     .sidebar-header {
@@ -534,8 +659,99 @@ export function generatePostgresStudioHtml(): string {
       background: rgba(6, 11, 20, 0.6);
     }
 
+    /* SQL Editor Banner */
+    .editor-banner {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .editor-top {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .preset-selector-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      max-width: 500px;
+    }
+
+    .preset-select {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 4px 28px 4px 8px;
+      color: var(--text-main);
+      font-size: 11px;
+      outline: none;
+      color-scheme: dark;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 12px;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    .sql-input-box {
+      padding: 8px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sql-textarea {
+      width: 100%;
+      height: 72px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      resize: vertical;
+      outline: none;
+      line-height: 1.4;
+    }
+    .sql-textarea:focus {
+      border-color: var(--cyan);
+    }
+
+    .editor-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .editor-controls-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .editor-timing {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .editor-banner.collapsed .sql-input-box {
+      display: none;
+    }
+
     /* Tabs Bar */
-    .tabs-bar {
+    .tabs-bar, .view-tabs {
       height: 42px;
       background: rgba(10, 17, 32, 0.95);
       border-bottom: 1px solid var(--border-subtle);
@@ -1566,67 +1782,109 @@ export function generatePostgresStudioHtml(): string {
       <button class="btn btn-sm" onclick="openCreateSchemaModal()" title="Create New PostgreSQL Schema" style="padding: 1px 6px; font-size: 11px;">+ New</button>
     </div>
 
-    <!-- Action Toolbar -->
+    <!-- Action Toolbar with 22 Theme Switcher -->
     <div class="header-actions">
-      <button class="btn" onclick="openConnectionModal()" title="Configure manual host/credentials or switch databases">🔌 Connection Config...</button>
+      <div class="theme-control">
+        <span class="theme-control-label">Theme</span>
+        <select id="ddStudioTheme" class="btn" onchange="applyPostgresStudioTheme(this.value)" title="Switch Workstation Theme" style="padding: 5px 20px 5px 4px; font-weight: 700; cursor: pointer; color: var(--text-main); border: none; background: transparent; outline: none;">
+          <option value="midnight">🌙 Midnight Modern (Dark)</option>
+          <option value="codefreelance">💚 CodeFreelance (Hacker Green)</option>
+          <option value="sonoma_emerald">🌲 Sonoma Emerald (macOS Dark)</option>
+          <option value="dracula">🧛 Dracula Pro (Purple Dark)</option>
+          <option value="nord">❄️ Nord Arctic (Frosted Slate)</option>
+          <option value="cyberpunk">⚡ Cyberpunk Neon (Pink / Yellow)</option>
+          <option value="apple_dark">🍎 Apple Dark (San Francisco)</option>
+          <option value="apple_light">🍏 Apple Light (Clean Cupertino)</option>
+          <option value="solarized_dark">☀️ Solarized Dark (Teal Classic)</option>
+          <option value="github_dark">🐙 GitHub Dark (Dimmed Enterprise)</option>
+          <option value="win95">💾 Windows 95 (Teal / Classic Gray)</option>
+          <option value="gameboy">🎮 Game Boy (DMG-01 Classic Dot Matrix)</option>
+          <option value="c64">🕹️ Commodore 64 (Indigo / Retro Lavender)</option>
+          <option value="mac_classic">🖥️ Mac Classic / System 7 (Platinum Gray)</option>
+          <option value="amber_crt">📟 Amber CRT / VT220 (Phosphor Monochrome)</option>
+          <option value="matrix">🟢 The Matrix / Green CRT (Phosphor Terminal)</option>
+          <option value="synthwave">🌆 Synthwave '84 / Outrun (Neon Magenta)</option>
+          <option value="amiga">✨ Commodore Amiga Workbench (Topaz Blue)</option>
+          <option value="nextstep">⬛ NeXTSTEP / Steve Jobs Black (Display PostScript)</option>
+          <option value="mac_os_aqua">💧 Mac OS X Aqua (Brushed Metal / Glossy Blue)</option>
+          <option value="hotdog_stand">🌭 Windows 3.1 Hot Dog Stand (High-Contrast Red &amp; Yellow)</option>
+          <option value="playstation">🎮 Sony PlayStation 1 BIOS (Midnight Titanium)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" onclick="openConnectionModal()" title="Configure manual host/credentials or switch databases">🔌 Connection Config...</button>
       <button class="btn" onclick="openDatabaseBrowser()" title="Browse and switch server databases">📂 Databases...</button>
       <button id="btnSeedDatabase" class="btn" onclick="seedSampleDatabase()" title="Create rich PostgreSQL sample tables with UUID, JSONB, native Arrays and Materialized Views">🌱 Seed Sample DB</button>
       <button class="btn" onclick="triggerVacuumAnalyze()" title="Run VACUUM ANALYZE to reclaim storage and update planner statistics">🧹 VACUUM ANALYZE</button>
-      <button class="btn btn-primary" onclick="executeCurrentQuery()">▶ Run SQL (Cmd+Enter)</button>
+      <button class="btn" onclick="checkIntegrity()" title="Run schema-wide foreign key, table, and index integrity verification">🛡️ Integrity Check</button>
+      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen()" title="Toggle Fullscreen (F11 / ⌃⌘F)">⛶ Fullscreen</button>
+      <button class="btn btn-primary" onclick="runEditorQuery()">▶ Run SQL (Cmd+Enter)</button>
     </div>
   </header>
 
-  <!-- Live KPI Bar -->
-  <div class="kpi-bar">
-    <div class="kpi-item">
-      <span class="kpi-badge"></span>
-      <span>Database:</span>
-      <span class="kpi-value" id="kpiDbName">mydb</span>
+  <!-- Top KPI Telemetry Banner (5 Enterprise Cards matching MySQL Studio) -->
+  <section class="kpi-row" id="kpiRow">
+    <div class="kpi-card kpi-clickable" onclick="openDatabaseDialog('config')" title="Click to view or edit PostgreSQL connection configuration" style="cursor: pointer;">
+      <div class="kpi-title">Database Profile <span>🐘</span></div>
+      <div class="kpi-value" id="kpiDbName">mydb</div>
+      <div class="kpi-sub" id="kpiDbPath">localhost:5432 • public</div>
     </div>
-    <div class="kpi-item">
-      <span>Latency:</span>
-      <span class="kpi-value" id="kpiLatency">0.4ms</span>
+
+    <div class="kpi-card">
+      <div class="kpi-title">Storage Footprint <span>💾</span></div>
+      <div class="kpi-value" id="kpiSize">0 B (Cluster)</div>
+      <div class="kpi-sub" id="kpiEngine">PostgreSQL 18.6 • bun:postgres</div>
     </div>
-    <div class="kpi-item">
-      <span>Connections:</span>
-      <span class="kpi-value" id="kpiConnections">1</span>
+
+    <div class="kpi-card">
+      <div class="kpi-title">Schema Objects <span>📊</span></div>
+      <div class="kpi-value" id="kpiTables">0 Tables</div>
+      <div class="kpi-sub" id="kpiViewsIndices"><span id="kpiViews">0</span> Views • <span id="kpiMatViews" style="color: var(--cyan);">0</span> MatViews</div>
     </div>
-    <div class="kpi-item">
-      <span>Tables:</span>
-      <span class="kpi-value" id="kpiTables">0</span>
+
+    <div class="kpi-card">
+      <div class="kpi-title">Total Records <span>📈</span></div>
+      <div class="kpi-value" id="kpiRows">0 Rows</div>
+      <div class="kpi-sub" id="kpiJournal">Buffers: <span id="kpiBuffers">128MB</span> • <span id="kpiConnections">1</span> Conn</div>
     </div>
-    <div class="kpi-item">
-      <span>Views:</span>
-      <span class="kpi-value" id="kpiViews">0</span>
+
+    <div class="kpi-card">
+      <div class="kpi-title">Execution Latency <span>⚡</span></div>
+      <div class="kpi-value" id="kpiLatency" style="color: var(--emerald);">0.00 ms</div>
+      <div class="kpi-sub" id="kpiLatencySub">Native sub-ms execution</div>
     </div>
-    <div class="kpi-item">
-      <span style="color: var(--cyan);">⚡ MatViews:</span>
-      <span class="kpi-value" id="kpiMatViews" style="color: var(--cyan);">0</span>
-    </div>
-    <div class="kpi-item">
-      <span>Total Rows:</span>
-      <span class="kpi-value" id="kpiRows">0</span>
-    </div>
-    <div class="kpi-item">
-      <span>Shared Buffers:</span>
-      <span class="kpi-value" id="kpiBuffers">128MB</span>
-    </div>
-  </div>
+  </section>
 
   <!-- Workspace Body -->
   <div class="workspace">
     <!-- Left Object Explorer Sidebar -->
     <aside id="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-title">🐘 PostgreSQL Explorer</span>
-        <button class="sidebar-mini-btn" onclick="loadSchema()" title="Refresh Explorer">🔄</button>
+      <!-- Database Connection Status & Browse -->
+      <div class="sidebar-db-card">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Active Database</span>
+          <span class="brand-badge" id="sidebarDbBadge">CONNECTED</span>
+        </div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="sidebarDbName">mydb</div>
+        <div style="display: flex; gap: 4px;">
+          <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog('config')">🔌 Config...</button>
+          <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog('databases')">📂 Databases</button>
+        </div>
       </div>
 
-      <div class="sidebar-search">
-        <input type="text" placeholder="Filter tables, views, matviews..." oninput="filterSidebarTree(this.value)">
+      <div class="sidebar-search-box">
+        <input type="text" class="sidebar-search-input" id="searchObjects" placeholder="Search tables, views, matviews..." oninput="filterSidebarTree(this.value)">
+        <div class="sidebar-subbar">
+          <button class="sidebar-mini-btn" onclick="toggleAllGroups()">📁 Toggle All</button>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <button class="sidebar-mini-btn" onclick="adjustSidebarWidth(-30)" title="Shrink sidebar">◀</button>
+            <button class="sidebar-mini-btn" onclick="toggleSidebarWidth()" title="Toggle standard/wide">↔ Width</button>
+            <button class="sidebar-mini-btn" onclick="adjustSidebarWidth(30)" title="Expand sidebar">▶</button>
+          </div>
+        </div>
       </div>
 
-      <div class="sidebar-tree" id="sidebarTree">
+      <div class="sidebar-tree object-tree" id="sidebarTree">
         <!-- Tables Section -->
         <div class="tree-section-title">
           <span>📋 Tables</span>
@@ -1665,13 +1923,48 @@ export function generatePostgresStudioHtml(): string {
       </div>
     </aside>
 
+    <!-- Draggable Sidebar Resizer Handle -->
+    <div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize sidebar width"></div>
+
     <!-- Main Workstation View Area -->
     <main>
+      <!-- SQL Query Banner (Persistent Top Collapsible Editor) -->
+      <section class="editor-banner" id="editorBanner">
+        <div class="editor-top">
+          <div class="preset-selector-wrap">
+            <span style="font-size: 11px; color: var(--text-dim); font-weight: 600;">SQL Snippet:</span>
+            <select class="preset-select" id="presetSelect" onchange="applyPreset(this.value)">
+              <option value="">-- Choose PostgreSQL Query Snippet --</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="editor-timing" id="queryTiming">Ready to execute query</div>
+            <button class="sidebar-mini-btn" id="btnToggleEditor" onclick="toggleEditorCollapse()" title="Toggle SQL Editor visibility" style="padding: 2px 8px; font-size: 10px;">▲ Minimize</button>
+          </div>
+        </div>
+
+        <div class="sql-input-box">
+          <textarea class="sql-textarea" id="sqlEditor" placeholder="Enter PostgreSQL SQL statement (e.g. SELECT * FROM customers;)..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runEditorQuery()">SELECT * FROM products LIMIT 25;</textarea>
+          <div class="editor-controls">
+            <div class="editor-controls-left">
+              <button class="btn btn-primary" onclick="runEditorQuery()">🚀 Execute (Cmd+Enter)</button>
+              <button class="btn" onclick="explainCurrentQuery()">🔍 Explain Plan</button>
+              <button class="btn" onclick="clearEditor()">🧹 Clear</button>
+              <button class="btn" onclick="exportResults('csv')">📋 Export CSV</button>
+              <button class="btn" onclick="exportResults('json')">💾 Export JSON</button>
+              <button class="btn" onclick="exportResults('sql')">📝 Export SQL</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim);" id="resultSummary">0 rows returned</div>
+          </div>
+        </div>
+      </section>
+
       <!-- Workstation Navigation Tabs -->
-      <div class="tabs-bar">
+      <div class="tabs-bar view-tabs" id="tabsBar">
         <div class="tab-btn active" id="tabBtnGrid" onclick="switchTab('grid')">📊 Data Grid</div>
-        <div class="tab-btn" id="tabBtnSql" onclick="switchTab('sql')">⚡ SQL Query IDE</div>
+        <div class="tab-btn" id="tabBtnSql" onclick="switchTab('sql')">⚡ SQL Query Console</div>
         <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">📐 Visual Query Designer</div>
+        <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer &amp; DDL</div>
         <div class="tab-btn" id="tabBtnExtensions" onclick="switchTab('extensions')">🧩 Extensions Manager</div>
         <div class="tab-btn" id="tabBtnActivity" onclick="switchTab('activity')">⚡ Live Activity Monitor</div>
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan (EXPLAIN)</div>
@@ -1679,6 +1972,8 @@ export function generatePostgresStudioHtml(): string {
         <div class="tab-btn" id="tabBtnRoles" onclick="switchTab('roles')">👥 Roles &amp; Grants</div>
         <div class="tab-btn" id="tabBtnTriggers" onclick="switchTab('triggers')">⚡ Triggers &amp; Functions</div>
         <div class="tab-btn" id="tabBtnTelemetry" onclick="switchTab('telemetry')">🚀 Performance &amp; Telemetry</div>
+        <div class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">⚡ Telemetry &amp; Audit Log</div>
+        <div class="tab-btn" id="tabBtnPragma" onclick="switchTab('pragma')">⚙️ Engine Tuning (PRAGMA)</div>
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
       </div>
 
@@ -1745,6 +2040,15 @@ export function generatePostgresStudioHtml(): string {
       <div class="tab-pane" id="tabDesigner">
         <div class="designer-layout" id="designerContainer">
           <div class="designer-empty">Load a schema from the sidebar to begin building a visual query.</div>
+        </div>
+      </div>
+
+      <!-- TAB: Schema Designer & DDL -->
+      <div class="tab-pane" id="tabSchema">
+        <div class="schema-layout" id="schemaContainer" style="padding: 14px; overflow-y: auto;">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 16px;">
+            <div class="card-title">Select a table or view from the sidebar to inspect its columns, keys, and DDL</div>
+          </div>
         </div>
       </div>
 
@@ -2010,14 +2314,50 @@ export function generatePostgresStudioHtml(): string {
         </div>
       </div>
 
-      <!-- TAB 7: Raw JSON Inspector -->
+      <!-- TAB: Telemetry & Audit Log -->
+      <div class="tab-pane" id="tabAudit">
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px; height: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: 700; font-size: 13px; color: var(--cyan);">⚡ Audit Trail &amp; Workstation Telemetry</div>
+            <button class="btn btn-sm" onclick="loadAuditLogs()">🔄 Refresh Audit Trail</button>
+          </div>
+          <div class="code-box" id="auditLogBox" style="flex: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; line-height: 1.6; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: #cbd5e1; white-space: pre-wrap;">[SYSTEM] Postgres Studio Pro initialized. All subsystems ready.</div>
+        </div>
+      </div>
+
+      <!-- TAB: Engine Tuning & Server Settings (PRAGMA / SHOW) -->
+      <div class="tab-pane" id="tabPragma">
+        <div class="schema-layout" style="padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 14px;">
+            <div class="card-title" style="font-weight: 700; color: var(--cyan); margin-bottom: 8px;">⚙️ PostgreSQL Engine Configuration &amp; Performance Tuning</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;">
+              <button class="btn" onclick="togglePragma('work_mem', '64MB')">🧠 Set 64MB work_mem</button>
+              <button class="btn" onclick="togglePragma('statement_timeout', '30000')">⏱️ Set 30s Statement Timeout</button>
+              <button class="btn" onclick="togglePragma('synchronous_commit', 'off')">⚡ Tune synchronous_commit=off</button>
+              <button class="btn" onclick="triggerVacuumAnalyze()">🧹 Run Full VACUUM ANALYZE</button>
+              <button class="btn" onclick="runPragmaCommand('ANALYZE')">📈 Run Planner ANALYZE</button>
+              <button class="btn" onclick="checkIntegrity()">🛡️ Run Schema Integrity Check</button>
+            </div>
+          </div>
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-title" style="font-weight: 700; color: var(--text-muted); margin-bottom: 0;">Server Tuning Output &amp; Diagnostics</div>
+              <button class="btn btn-sm" onclick="loadPragmaSettings()">📋 Load pg_settings</button>
+            </div>
+            <pre class="code-box" id="pragmaOutputBox" style="height: 240px; overflow-y: auto; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin: 0; white-space: pre-wrap;">No tuning commands executed yet.</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Raw JSON Inspector -->
       <div class="tab-pane" id="tabJson">
         <div class="activity-toolbar">
           <span style="font-weight: 700; color: var(--amber);">Raw JSON Telemetry Inspector</span>
           <button class="btn btn-sm" onclick="copyJsonInspector()">📋 Copy JSON</button>
         </div>
         <div style="flex: 1; padding: 14px; overflow: auto;">
-          <pre id="rawJsonBox" style="font-family: var(--font-mono); font-size: 12px; color: #fde68a; line-height: 1.5; white-space: pre-wrap;">{\n  "status": "ready"\n}</pre>
+          <pre id="rawJsonBox" class="code-box" style="font-family: var(--font-mono); font-size: 12px; color: #fde68a; line-height: 1.5; white-space: pre-wrap;">{\n  "status": "ready"\n}</pre>
+          <div id="jsonInspectorBox" style="display: none;">{\n  "status": "ready"\n}</div>
         </div>
       </div>
     </main>
@@ -2383,6 +2723,7 @@ export function generatePostgresStudioHtml(): string {
         grid: "tabBtnGrid",
         sql: "tabBtnSql",
         designer: "tabBtnDesigner",
+        schema: "tabBtnSchema",
         extensions: "tabBtnExtensions",
         activity: "tabBtnActivity",
         explain: "tabBtnExplain",
@@ -2390,6 +2731,8 @@ export function generatePostgresStudioHtml(): string {
         roles: "tabBtnRoles",
         triggers: "tabBtnTriggers",
         telemetry: "tabBtnTelemetry",
+        audit: "tabBtnAudit",
+        pragma: "tabBtnPragma",
         json: "tabBtnJson"
       };
 
@@ -2397,6 +2740,7 @@ export function generatePostgresStudioHtml(): string {
         grid: "tabGrid",
         sql: "tabSql",
         designer: "tabDesigner",
+        schema: "tabSchema",
         extensions: "tabExtensions",
         activity: "tabActivity",
         explain: "tabExplain",
@@ -2404,12 +2748,15 @@ export function generatePostgresStudioHtml(): string {
         roles: "tabRoles",
         triggers: "tabTriggers",
         telemetry: "tabTelemetry",
+        audit: "tabAudit",
+        pragma: "tabPragma",
         json: "tabJson"
       };
 
       if (btnMap[tabId]) document.getElementById(btnMap[tabId])?.classList.add("active");
       if (paneMap[tabId]) document.getElementById(paneMap[tabId])?.classList.add("active");
 
+      if (tabId === "schema") renderSchemaDesigner(activeTable);
       if (tabId === "extensions") loadExtensions();
       if (tabId === "activity") loadActivity();
       if (tabId === "designer") renderQueryDesigner();
@@ -2417,6 +2764,8 @@ export function generatePostgresStudioHtml(): string {
       if (tabId === "roles") loadRoles();
       if (tabId === "triggers") loadTriggersAndFunctions();
       if (tabId === "telemetry") loadTelemetry();
+      if (tabId === "audit") loadAuditLogs();
+      if (tabId === "pragma") loadPragmaSettings();
     }
 
     // Load KPIs & Telemetry
@@ -2425,16 +2774,27 @@ export function generatePostgresStudioHtml(): string {
       const k = (res && res.kpis) || res;
       if (k && (k.tableCount !== undefined || (res && res.success))) {
         if (document.getElementById("kpiDbName")) document.getElementById("kpiDbName").innerText = k.dbName || "mydb";
-        if (document.getElementById("kpiLatency")) document.getElementById("kpiLatency").innerText = (k.latencyMs || 0.4) + "ms";
+        if (document.getElementById("sidebarDbName")) document.getElementById("sidebarDbName").innerText = k.dbName || "mydb";
+        if (document.getElementById("kpiDbPath")) {
+          const host = document.getElementById("cfgHost")?.value || "localhost";
+          const port = document.getElementById("cfgPort")?.value || "5432";
+          const schema = currentSchema?.activeSchema || "public";
+          document.getElementById("kpiDbPath").innerText = host + ":" + port + " • " + schema;
+        }
+        if (document.getElementById("kpiSize")) {
+          document.getElementById("kpiSize").innerText = k.databaseSize || k.dbSize || "42 MB (Cluster)";
+        }
+        if (document.getElementById("kpiLatency")) document.getElementById("kpiLatency").innerText = (k.latencyMs !== undefined ? k.latencyMs : 0.4) + " ms";
         if (document.getElementById("kpiConnections")) document.getElementById("kpiConnections").innerText = k.activeConnections || 1;
-        if (document.getElementById("kpiTables")) document.getElementById("kpiTables").innerText = k.tableCount || 0;
-        if (document.getElementById("kpiViews")) document.getElementById("kpiViews").innerText = k.viewCount || 0;
-        if (document.getElementById("kpiMatViews")) document.getElementById("kpiMatViews").innerText = k.matViewCount || 0;
-        if (document.getElementById("kpiRows")) document.getElementById("kpiRows").innerText = (k.totalRows || 0).toLocaleString();
+        if (document.getElementById("kpiTables")) document.getElementById("kpiTables").innerText = (k.tableCount || (currentSchema?.tables || []).length) + " Tables";
+        if (document.getElementById("kpiViews")) document.getElementById("kpiViews").innerText = k.viewCount || (currentSchema?.views || []).length;
+        if (document.getElementById("kpiMatViews")) document.getElementById("kpiMatViews").innerText = k.matViewCount || (currentSchema?.matviews || []).length;
+        if (document.getElementById("kpiRows")) document.getElementById("kpiRows").innerText = (k.totalRows || 0).toLocaleString() + " Rows";
         if (document.getElementById("kpiBuffers")) document.getElementById("kpiBuffers").innerText = k.sharedBuffers || "128MB";
-        if (k.pgVersion && document.getElementById("pgVersionBadge")) {
+        if (k.pgVersion) {
           const v = k.pgVersion.split(" ")[1] || k.pgVersion.slice(0, 14);
-          document.getElementById("pgVersionBadge").innerText = "PG " + v;
+          if (document.getElementById("pgVersionBadge")) document.getElementById("pgVersionBadge").innerText = "PG " + v;
+          if (document.getElementById("kpiEngine")) document.getElementById("kpiEngine").innerText = "PostgreSQL " + v + " • bun:postgres";
         }
       }
     }
@@ -2637,39 +2997,465 @@ export function generatePostgresStudioHtml(): string {
       if (activeTable) loadTableData(activeTable, 1);
     }
 
-    const runExplainPlan = explainCurrentQuery;
+    // ---------------------------------------------------------------------------------------------
+    // Fullscreen Support & Browser Auto-Fullscreen
+    // ---------------------------------------------------------------------------------------------
+    window.doToggleFullscreen = function() {
+      if (typeof window.toggleFullscreen === "function") {
+        try { window.toggleFullscreen(); return; } catch(e) {}
+      }
+      if (typeof window.toggleNativeFullscreen === "function") {
+        try { window.toggleNativeFullscreen(); return; } catch(e) {}
+      }
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    };
 
-    // Execute SQL in Editor
-    async function executeCurrentQuery() {
-      const sqlEl = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+    // ---------------------------------------------------------------------------------------------
+    // Theme Engine (22 Curated & Nostalgic Workstation Themes)
+    // ---------------------------------------------------------------------------------------------
+    window.applyPostgresStudioTheme = function(themeName) {
+      try { localStorage.setItem('postgres_studio_theme', themeName); } catch(e) {}
+      const themes = {
+        midnight: { bg: '#060b14', surface: '#0a1120', accent: '#38bdf8', accentGlow: 'rgba(56, 189, 248, 0.25)', btnColor: '#ffffff' },
+        codefreelance: { bg: '#050505', surface: '#121212', accent: '#0fb36a', accentGlow: 'rgba(15, 179, 106, 0.35)', btnColor: '#000000' },
+        sonoma_emerald: { bg: '#0d1f18', surface: '#132e24', accent: '#30d158', accentGlow: 'rgba(48, 209, 88, 0.35)', btnColor: '#000000' },
+        dracula: { bg: '#1e1f29', surface: '#282a36', accent: '#bd93f9', accentGlow: 'rgba(189, 147, 249, 0.3)', btnColor: '#ffffff' },
+        nord: { bg: '#242933', surface: '#2e3440', accent: '#88c0d0', accentGlow: 'rgba(136, 192, 208, 0.3)', btnColor: '#000000' },
+        cyberpunk: { bg: '#08080f', surface: '#121220', accent: '#ff007f', accentGlow: 'rgba(255, 0, 127, 0.35)', btnColor: '#ffffff' },
+        apple_dark: { bg: '#161618', surface: '#242426', accent: '#0a84ff', accentGlow: 'rgba(10, 132, 255, 0.3)', btnColor: '#ffffff' },
+        apple_light: { bg: '#f5f5f7', surface: '#ffffff', accent: '#007aff', accentGlow: 'rgba(0, 122, 255, 0.25)', btnColor: '#ffffff', textMain: '#1d1d1f', textMuted: '#6e6e73' },
+        solarized_dark: { bg: '#00212b', surface: '#002b36', accent: '#2aa198', accentGlow: 'rgba(42, 161, 152, 0.3)', btnColor: '#ffffff' },
+        github_dark: { bg: '#0d1117', surface: '#161b22', accent: '#58a6ff', accentGlow: 'rgba(88, 166, 255, 0.3)', btnColor: '#ffffff' },
+        win95: { bg: '#008080', surface: '#c0c0c0', accent: '#000080', accentGlow: 'rgba(0, 0, 128, 0.4)', btnColor: '#ffffff', textMain: '#000000', textMuted: '#333333' },
+        windows_95: { bg: '#008080', surface: '#c0c0c0', accent: '#000080', accentGlow: 'rgba(0, 0, 128, 0.4)', btnColor: '#ffffff', textMain: '#000000', textMuted: '#333333' },
+        gameboy: { bg: '#0f380f', surface: '#1c4a1c', accent: '#8bac0f', accentGlow: 'rgba(139, 172, 15, 0.45)', btnColor: '#000000', textMain: '#9bbc0f', textMuted: '#8bac0f' },
+        game_boy: { bg: '#0f380f', surface: '#1c4a1c', accent: '#8bac0f', accentGlow: 'rgba(139, 172, 15, 0.45)', btnColor: '#000000', textMain: '#9bbc0f', textMuted: '#8bac0f' },
+        c64: { bg: '#40318d', surface: '#281b5c', accent: '#7974ff', accentGlow: 'rgba(121, 116, 255, 0.45)', btnColor: '#000000', textMain: '#7974ff', textMuted: '#a09eff' },
+        commodore_64: { bg: '#40318d', surface: '#281b5c', accent: '#7974ff', accentGlow: 'rgba(121, 116, 255, 0.45)', btnColor: '#000000', textMain: '#7974ff', textMuted: '#a09eff' },
+        mac_classic: { bg: '#ebe7df', surface: '#ffffff', accent: '#5555aa', accentGlow: 'rgba(85, 85, 170, 0.35)', btnColor: '#ffffff', textMain: '#1c1b18', textMuted: '#55524c' },
+        system7: { bg: '#ebe7df', surface: '#ffffff', accent: '#5555aa', accentGlow: 'rgba(85, 85, 170, 0.35)', btnColor: '#ffffff', textMain: '#1c1b18', textMuted: '#55524c' },
+        amber_crt: { bg: '#0a0600', surface: '#160d00', accent: '#ffb000', accentGlow: 'rgba(255, 176, 0, 0.45)', btnColor: '#000000', textMain: '#ffb000', textMuted: '#cc8c00' },
+        vt220: { bg: '#0a0600', surface: '#160d00', accent: '#ffb000', accentGlow: 'rgba(255, 176, 0, 0.45)', btnColor: '#000000', textMain: '#ffb000', textMuted: '#cc8c00' },
+        matrix: { bg: '#040a05', surface: '#08140a', accent: '#00ff41', accentGlow: 'rgba(0, 255, 65, 0.45)', btnColor: '#000000', textMain: '#00ff66', textMuted: '#00cc52' },
+        green_crt: { bg: '#040a05', surface: '#08140a', accent: '#00ff41', accentGlow: 'rgba(0, 255, 65, 0.45)', btnColor: '#000000', textMain: '#00ff66', textMuted: '#00cc52' },
+        synthwave: { bg: '#130924', surface: '#22113d', accent: '#ff2a85', accentGlow: 'rgba(255, 42, 133, 0.45)', btnColor: '#ffffff', textMain: '#fce7f3', textMuted: '#d946ef' },
+        outrun: { bg: '#130924', surface: '#22113d', accent: '#ff2a85', accentGlow: 'rgba(255, 42, 133, 0.45)', btnColor: '#ffffff', textMain: '#fce7f3', textMuted: '#d946ef' },
+        amiga: { bg: '#0055aa', surface: '#003870', accent: '#ff8800', accentGlow: 'rgba(255, 136, 0, 0.45)', btnColor: '#000000', textMain: '#ffffff', textMuted: '#ffcc88' },
+        workbench: { bg: '#0055aa', surface: '#003870', accent: '#ff8800', accentGlow: 'rgba(255, 136, 0, 0.45)', btnColor: '#000000', textMain: '#ffffff', textMuted: '#ffcc88' },
+        nextstep: { bg: '#262626', surface: '#333333', accent: '#4a90e2', accentGlow: 'rgba(74, 144, 226, 0.35)', btnColor: '#ffffff', textMain: '#dedede', textMuted: '#999999' },
+        mac_os_aqua: { bg: '#e6ebed', surface: '#ffffff', accent: '#0076fe', accentGlow: 'rgba(0, 118, 254, 0.35)', btnColor: '#ffffff', textMain: '#1d2429', textMuted: '#64748b' },
+        aqua_os_x: { bg: '#e6ebed', surface: '#ffffff', accent: '#0076fe', accentGlow: 'rgba(0, 118, 254, 0.35)', btnColor: '#ffffff', textMain: '#1d2429', textMuted: '#64748b' },
+        hotdog_stand: { bg: '#000000', surface: '#1c0000', accent: '#ff0000', accentGlow: 'rgba(255, 0, 0, 0.5)', btnColor: '#ffffff', textMain: '#ffffff', textMuted: '#ffff00' },
+        playstation: { bg: '#1e1e24', surface: '#2a2b34', accent: '#00d2c4', accentGlow: 'rgba(0, 210, 196, 0.4)', btnColor: '#000000', textMain: '#e4e5eb', textMuted: '#94a3b8' },
+        psx: { bg: '#1e1e24', surface: '#2a2b34', accent: '#00d2c4', accentGlow: 'rgba(0, 210, 196, 0.4)', btnColor: '#000000', textMain: '#e4e5eb', textMuted: '#94a3b8' }
+      };
+      const t = themes[themeName] || themes.midnight;
+      document.documentElement.style.setProperty('--bg-base', t.bg);
+      document.documentElement.style.setProperty('--bg-surface', t.surface);
+      document.documentElement.style.setProperty('--cyan', t.accent);
+      document.documentElement.style.setProperty('--cyan-glow', t.accentGlow);
+      document.documentElement.style.setProperty('--border-focus', t.accent);
+      if (t.textMain) document.documentElement.style.setProperty('--text-main', t.textMain);
+      else document.documentElement.style.setProperty('--text-main', '#f8fafc');
+      if (t.textMuted) document.documentElement.style.setProperty('--text-muted', t.textMuted);
+      else document.documentElement.style.setProperty('--text-muted', '#94a3b8');
+
+      let styleEl = document.getElementById('pg-dyn-theme');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'pg-dyn-theme';
+        document.head.appendChild(styleEl);
+      }
+      styleEl.textContent = 
+        ".btn-primary, .qbe-btn-run, .btn-highlight {\n" +
+        "  background: " + t.accent + " !important;\n" +
+        "  color: " + t.btnColor + " !important;\n" +
+        "  border-color: " + t.accent + " !important;\n" +
+        "  box-shadow: 0 0 10px " + t.accentGlow + " !important;\n" +
+        "}\n" +
+        ".btn-primary:hover, .qbe-btn-run:hover, .btn-highlight:hover {\n" +
+        "  filter: brightness(1.15) !important;\n" +
+        "}\n" +
+        ".qbe-view-btn.active, .qbe-btn-toggle.active {\n" +
+        "  background: " + t.accent + " !important;\n" +
+        "  color: " + t.btnColor + " !important;\n" +
+        "  border-color: " + t.accent + " !important;\n" +
+        "}\n";
+      const sel = document.getElementById('ddStudioTheme');
+      if (sel && sel.value !== themeName) sel.value = themeName;
+    };
+    window.applyMysqlStudioTheme = window.applyPostgresStudioTheme;
+
+    // ---------------------------------------------------------------------------------------------
+    // Presets & Editor Helpers
+    // ---------------------------------------------------------------------------------------------
+    function initPresets() {
+      const select = document.getElementById("presetSelect");
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Choose PostgreSQL Query Snippet --</option>';
+      SQL_PRESETS.forEach((p, idx) => {
+        const opt = document.createElement("option");
+        opt.value = p.sql;
+        opt.textContent = p.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function applyPreset(sql) {
+      if (!sql) return;
+      const el1 = document.getElementById("sqlEditor");
+      const el2 = document.getElementById("sqlEditorTextarea");
+      if (el1) el1.value = sql;
+      if (el2) el2.value = sql;
+      runEditorQuery();
+    }
+
+    function applySqlPreset(idx) {
+      if (idx === "" || idx === undefined || !SQL_PRESETS[idx]) return;
+      const sql = SQL_PRESETS[idx].sql;
+      applyPreset(sql);
+    }
+
+    function clearEditor() {
+      const el1 = document.getElementById("sqlEditor");
+      const el2 = document.getElementById("sqlEditorTextarea");
+      if (el1) el1.value = "";
+      if (el2) el2.value = "";
+    }
+
+    function toggleEditorCollapse() {
+      const banner = document.getElementById("editorBanner");
+      const btn = document.getElementById("btnToggleEditor");
+      if (!banner) return;
+      banner.classList.toggle("collapsed");
+      const isCollapsed = banner.classList.contains("collapsed");
+      if (btn) btn.textContent = isCollapsed ? "▼ Expand" : "▲ Minimize";
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // SQL Execution (Persistent & Tab)
+    // ---------------------------------------------------------------------------------------------
+    async function runEditorQuery() {
+      const sqlEl = document.getElementById("sqlEditor") || document.getElementById("sqlEditorTextarea");
       let sql = sqlEl ? sqlEl.value.trim() : "";
       if ((!sql || activeTab === "designer") && typeof buildDesignerSql === "function") {
         const designerSql = buildDesignerSql();
         if (designerSql) {
           sql = designerSql;
           if (sqlEl) sqlEl.value = sql;
+          const otherEl = document.getElementById("sqlEditorTextarea");
+          if (otherEl) otherEl.value = sql;
         }
       }
       if (!sql) {
-        showToast("Enter a query to run!");
+        showToast("Please enter a SQL query!");
         return;
       }
-      document.getElementById("sqlResultStatus").innerText = "Executing query...";
+
+      // Sync both editor textareas
+      const e1 = document.getElementById("sqlEditor");
+      const e2 = document.getElementById("sqlEditorTextarea");
+      if (e1 && e1 !== sqlEl) e1.value = sql;
+      if (e2 && e2 !== sqlEl) e2.value = sql;
+
+      const timingEl = document.getElementById("queryTiming");
+      const statusEl = document.getElementById("sqlResultStatus");
+      if (timingEl) timingEl.textContent = "Executing...";
+      if (statusEl) statusEl.textContent = "Executing query...";
+
       const start = performance.now();
       const res = await apiRequest("/api/query", "POST", { sql });
       const elapsed = Math.round(performance.now() - start);
 
-      if (res.success) {
+      if (res && res.success) {
+        const latency = res.latencyMs !== undefined ? res.latencyMs : elapsed;
+        if (timingEl) timingEl.textContent = "Executed in " + latency + "ms";
+        const kpiLat = document.getElementById("kpiLatency");
+        if (kpiLat) kpiLat.textContent = latency + " ms";
+
         const rows = res.rows || [];
-        const cols = res.columns || (rows.length ? Object.keys(rows[0]) : []);
-        document.getElementById("sqlResultStatus").innerText = "✓ Executed in " + elapsed + "ms (" + rows.length + " rows)";
-        renderSqlResults(rows, cols);
-        document.getElementById("rawJsonBox").innerText = JSON.stringify(res, null, 2);
-        switchTab("sql");
+        const cols = res.columns || (rows.length > 0 ? Object.keys(rows[0]) : []);
+
+        if (res.rowsAffected === undefined && res.rows) {
+          currentGridData = res;
+          renderGridTable(rows, cols, rows.length, 1, 100);
+          renderSqlResults(rows, cols);
+
+          const targetTitle = document.getElementById("gridTargetTitle");
+          if (targetTitle) targetTitle.textContent = "Ad-Hoc Query Result";
+          const pageInfo = document.getElementById("gridPageInfo");
+          if (pageInfo) pageInfo.textContent = rows.length + " rows returned";
+          const resSum = document.getElementById("resultSummary");
+          if (resSum) resSum.textContent = rows.length + " rows (" + latency + "ms)";
+          if (statusEl) statusEl.textContent = "✓ Executed in " + latency + "ms (" + rows.length + " rows)";
+
+          const jsonBox = document.getElementById("rawJsonBox");
+          if (jsonBox) jsonBox.textContent = JSON.stringify(res, null, 2);
+          const jsonInsp = document.getElementById("jsonInspectorBox");
+          if (jsonInsp) jsonInsp.textContent = JSON.stringify(rows, null, 2);
+
+          switchTab("grid");
+          logAudit("[QUERY OK] " + sql.replace(/\n/g, ' ').slice(0, 100) + " (" + latency + "ms, " + rows.length + " rows)");
+        } else {
+          showToast("Statement executed (" + (res.rowsAffected ?? 0) + " rows affected)");
+          const resSum = document.getElementById("resultSummary");
+          if (resSum) resSum.textContent = "Rows affected: " + (res.rowsAffected ?? 0);
+          if (statusEl) statusEl.textContent = "✓ Executed (" + (res.rowsAffected ?? 0) + " rows affected)";
+          logAudit("[MUTATION OK] " + sql.replace(/\n/g, ' ').slice(0, 100) + " (" + latency + "ms)");
+          await loadSchema();
+          await loadKpis();
+        }
       } else {
-        document.getElementById("sqlResultStatus").innerText = "⚠️ Error: " + res.error;
-        showToast("Query error: " + res.error);
+        if (timingEl) timingEl.textContent = "Execution Error";
+        if (statusEl) statusEl.textContent = "⚠️ Error: " + (res?.error || "Unknown error");
+        showToast("SQL Error: " + (res?.error || "Unknown error"));
+        logAudit("[ERROR] " + (res?.error || "Execution failed"));
       }
+    }
+
+    const executeCurrentQuery = runEditorQuery;
+    window.runEditorQuery = runEditorQuery;
+    window.executeCurrentQuery = runEditorQuery;
+    const runExplainPlan = explainCurrentQuery;
+    window.runExplainPlan = explainCurrentQuery;
+
+    // ---------------------------------------------------------------------------------------------
+    // Results File Export (CSV / JSON / SQL)
+    // ---------------------------------------------------------------------------------------------
+    async function exportResults(format) {
+      let rows = [];
+      if (currentGridData && Array.isArray(currentGridData.rows) && currentGridData.rows.length > 0) {
+        rows = currentGridData.rows;
+      }
+      if (!rows || rows.length === 0) {
+        showToast("No records available to export!");
+        return;
+      }
+
+      const res = await apiRequest("/api/export", "POST", {
+        format,
+        tableName: activeTable || "query_results",
+        rows,
+      });
+
+      if (res && res.success) {
+        showToast("Exported " + res.rowCount + " rows to " + res.filename);
+        logAudit("[EXPORT] Saved " + res.path);
+      } else {
+        showToast("Export failed: " + (res?.error || "Unknown"));
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Schema & DDL Designer Visualizer
+    // ---------------------------------------------------------------------------------------------
+    function renderSchemaDesigner(tableName) {
+      const container = document.getElementById("schemaContainer");
+      if (!container || !currentSchema) return;
+      container.innerHTML = "";
+
+      const name = tableName || activeTable || (currentSchema.tables && currentSchema.tables[0]?.name);
+      if (!name) {
+        container.innerHTML = '<div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 16px;"><div class="card-title">Select a table from the sidebar to inspect its columns, keys, and DDL</div></div>';
+        return;
+      }
+
+      const meta = (currentSchema.tables || []).find(t => t.name === name) 
+        || (currentSchema.views || []).find(v => v.name === name)
+        || (currentSchema.matviews || []).find(m => m.name === name);
+
+      if (!meta) return;
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.background = "var(--bg-card)";
+      card.style.border = "1px solid var(--border-subtle)";
+      card.style.borderRadius = "6px";
+      card.style.padding = "16px";
+      
+      const numRows = (meta.rowCount || meta.rows || 0).toLocaleString();
+      let tableHtml = '<div class="card-title" style="font-weight: 700; color: var(--cyan); margin-bottom: 8px;">🏛️ Table Schema: ' + escapeHtml(meta.name) + ' (' + numRows + ' records)</div>' +
+        '<table class="data-grid" style="margin-top: 8px;">' +
+        '<thead><tr><th>#</th><th>Column Name</th><th>Data Type</th><th>Primary Key</th><th>Not Null</th><th>Default</th></tr></thead>' +
+        '<tbody>';
+
+      (meta.columns || []).forEach((c, i) => {
+        tableHtml += '<tr>' +
+          '<td>' + (c.cid ?? (i + 1)) + '</td>' +
+          '<td style="color: var(--cyan); font-weight: 600;">' + escapeHtml(c.name) + '</td>' +
+          '<td>' + escapeHtml(c.type || c.data_type || 'text') + '</td>' +
+          '<td>' + (c.pk || c.is_primary ? '🔑 YES' : '-') + '</td>' +
+          '<td>' + (c.notnull || !c.is_nullable ? 'YES' : 'NULLABLE') + '</td>' +
+          '<td>' + (c.dflt_value !== null && c.dflt_value !== undefined ? escapeHtml(c.dflt_value) : (c.column_default ? escapeHtml(c.column_default) : '-')) + '</td>' +
+          '</tr>';
+      });
+      tableHtml += '</tbody></table>';
+      card.innerHTML = tableHtml;
+
+      const ddlCard = document.createElement("div");
+      ddlCard.className = "card";
+      ddlCard.style.marginTop = "12px";
+      ddlCard.style.background = "var(--bg-card)";
+      ddlCard.style.border = "1px solid var(--border-subtle)";
+      ddlCard.style.borderRadius = "6px";
+      ddlCard.style.padding = "16px";
+      const defaultDdl = '-- Schema definition for "' + meta.name + '"\nCREATE TABLE "' + meta.name + '" (\n' +
+        (meta.columns || []).map(c => '  "' + c.name + '" ' + (c.type || 'text') + (c.pk ? ' PRIMARY KEY' : '')).join(',\n') + '\n);';
+      const ddlContent = escapeHtml(meta.sql || meta.definition || defaultDdl);
+      ddlCard.innerHTML = '<div class="card-title" style="font-weight: 700; margin-bottom: 8px;">DDL Definition (SQL)</div>' +
+        '<div class="code-box" style="height: 140px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: #cbd5e1; white-space: pre-wrap;">' + ddlContent + '</div>';
+
+      container.appendChild(card);
+      container.appendChild(ddlCard);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Audit Logging
+    // ---------------------------------------------------------------------------------------------
+    async function loadAuditLogs() {
+      const box = document.getElementById("auditLogBox");
+      if (!box) return;
+      const res = await apiRequest("/api/audit-logs");
+      if (res && res.success && Array.isArray(res.logs)) {
+        if (res.logs.length === 0) {
+          box.textContent = "[SYSTEM] No audit logs recorded yet in database.";
+        } else {
+          box.textContent = res.logs.map(l => {
+            const timeStr = new Date(l.timestamp || Date.now()).toLocaleTimeString();
+            const actionStr = l.action || 'MUTATION';
+            const entityStr = l.entity || 'cluster';
+            const detailsStr = typeof l.details === 'object' ? JSON.stringify(l.details) : (l.details || '');
+            return '[' + timeStr + '] ' + actionStr + ' on ' + entityStr + ': ' + detailsStr;
+          }).join('\n');
+        }
+      } else {
+        box.textContent = "[SYSTEM] Postgres Studio Pro initialized. All subsystems ready.";
+      }
+    }
+
+    function logAudit(msg) {
+      const box = document.getElementById("auditLogBox");
+      if (!box) return;
+      const line = "[" + new Date().toLocaleTimeString() + "] " + msg;
+      box.textContent = line + "\n" + box.textContent;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Integrity & Server Settings / PRAGMA
+    // ---------------------------------------------------------------------------------------------
+    async function checkIntegrity() {
+      showToast("Running PostgreSQL schema integrity check...");
+      const res = await apiRequest("/api/integrity");
+      const outBox = document.getElementById("pragmaOutputBox");
+      if (outBox) outBox.textContent = typeof res === 'object' ? JSON.stringify(res, null, 2) : String(res);
+      const healthy = !!res && res.success !== false && (!res.issues || res.issues.length === 0);
+      showToast(healthy ? "Integrity check OK: All tables and indexes are healthy!" : "Integrity check reported issues - see Output");
+      logAudit(healthy ? "[INTEGRITY] Schema integrity check passed: OK" : "[INTEGRITY] Schema integrity check found issues");
+      switchTab("pragma");
+    }
+
+    async function togglePragma(name, val) {
+      const res = await apiRequest("/api/pragma", "POST", { pragma: name, value: val });
+      const outBox = document.getElementById("pragmaOutputBox");
+      if (outBox) outBox.textContent = typeof res === 'object' ? JSON.stringify(res, null, 2) : String(res);
+      if (!res || res.success === false) {
+        showToast("Setting " + name + " failed: " + (res?.error || "Unknown"));
+        return;
+      }
+      showToast("Setting " + name + "=" + val + " applied!");
+      logAudit("[SETTING] " + name + "=" + val);
+      await loadKpis();
+    }
+
+    async function runPragmaCommand(cmd) {
+      const res = await apiRequest("/api/query", "POST", { sql: cmd });
+      const outBox = document.getElementById("pragmaOutputBox");
+      if (outBox) outBox.textContent = typeof res === 'object' ? JSON.stringify(res, null, 2) : String(res);
+      showToast("Command " + cmd + " executed!");
+      logAudit("[COMMAND] " + cmd);
+    }
+
+    async function loadPragmaSettings() {
+      const res = await apiRequest("/api/pragma");
+      const outBox = document.getElementById("pragmaOutputBox");
+      if (outBox) {
+        outBox.textContent = typeof res?.result === 'string' ? res.result : JSON.stringify(res?.result || res, null, 2);
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Sidebar Resizer & Layout Helpers
+    // ---------------------------------------------------------------------------------------------
+    function initSidebarResizer() {
+      const aside = document.getElementById("sidebar") || document.getElementById("mainSidebar");
+      const resizer = document.getElementById("sidebarResizer");
+      if (!aside || !resizer) return;
+
+      let isResizing = false;
+      let startX = 0;
+      let startW = 0;
+
+      resizer.addEventListener("mousedown", (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startW = aside.getBoundingClientRect().width;
+        resizer.classList.add("resizing");
+        document.body.style.cursor = "col-resize";
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isResizing) return;
+        const delta = e.clientX - startX;
+        const newW = Math.max(260, Math.min(650, startW + delta));
+        aside.style.width = newW + "px";
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isResizing) {
+          isResizing = false;
+          resizer.classList.remove("resizing");
+          document.body.style.cursor = "";
+        }
+      });
+    }
+
+    function toggleSidebarWidth() {
+      const aside = document.getElementById("sidebar") || document.getElementById("mainSidebar");
+      if (!aside) return;
+      const curW = aside.getBoundingClientRect().width;
+      aside.style.width = (curW > 350 ? 280 : 480) + "px";
+    }
+
+    function adjustSidebarWidth(delta) {
+      const aside = document.getElementById("sidebar") || document.getElementById("mainSidebar");
+      if (!aside) return;
+      const curW = aside.getBoundingClientRect().width;
+      aside.style.width = Math.max(260, Math.min(650, curW + delta)) + "px";
+    }
+
+    function toggleAllGroups() {
+      const lists = [
+        document.getElementById("sidebarTablesList"),
+        document.getElementById("sidebarMatViewsList"),
+        document.getElementById("sidebarViewsList"),
+      ];
+      const anyHidden = lists.some(el => el && el.style.display === "none");
+      lists.forEach(el => {
+        if (el) el.style.display = anyHidden ? "block" : "none";
+      });
     }
 
     // Explain Current Query (Visual Execution Tree & Raw Output)
@@ -2997,14 +3783,24 @@ export function generatePostgresStudioHtml(): string {
     }
 
     // Connection Configuration Modal Handling
-    function openConnectionModal() {
+    function openConnectionModal(initialTab) {
       loadConnectionConfig();
+      if (initialTab) {
+        switchModalTab(initialTab);
+      }
       document.getElementById("connModal").classList.add("active");
     }
 
     function closeConnectionModal() {
       document.getElementById("connModal").classList.remove("active");
     }
+
+    window.openConnectionModal = openConnectionModal;
+    window.openDatabaseDialog = openConnectionModal;
+    window.openDatabaseBrowser = function() {
+      openConnectionModal("databases");
+    };
+    window.closeDatabaseDialog = closeConnectionModal;
 
     function switchModalTab(tabId) {
       document.getElementById("btnModalTabConfig").classList.remove("active");
@@ -3589,6 +4385,12 @@ export function generatePostgresStudioHtml(): string {
 
     // Auto-initialize on load
     function initPostgresStudio() {
+      try {
+        const savedTheme = localStorage.getItem('postgres_studio_theme') || 'midnight';
+        applyPostgresStudioTheme(savedTheme);
+      } catch(e) {}
+      initPresets();
+      initSidebarResizer();
       loadSchema();
       loadKpis();
     }

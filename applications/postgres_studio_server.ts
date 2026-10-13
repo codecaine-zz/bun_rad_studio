@@ -2043,6 +2043,91 @@ export class PostgresManager {
       );
     } catch {}
   }
+
+  public async getAuditLogs(limit: number = 50): Promise<any[]> {
+    try {
+      const rows = await this.sql_conn.unsafe(
+        `SELECT id, action, entity, details, timestamp FROM "${this.activeSchema}"."audit_logs" ORDER BY id DESC LIMIT $1;`,
+        [Math.min(200, Math.max(1, limit))]
+      );
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async checkIntegrity(schemaName: string = this.activeSchema): Promise<{
+    success: boolean;
+    result: string;
+    tablesChecked: number;
+    issues: string[];
+  }> {
+    const s = schemaName || this.activeSchema || "public";
+    const issues: string[] = [];
+    const outputs: string[] = [];
+    let tablesChecked = 0;
+
+    try {
+      const tables = await this.sql_conn.unsafe(
+        `SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' ORDER BY table_name;`,
+        [s]
+      );
+
+      for (const t of tables) {
+        const tbl = t.table_name || t.TABLE_NAME;
+        if (!tbl) continue;
+        tablesChecked++;
+
+        // 1. Verify table access & row counting
+        try {
+          const countRes = await this.sql_conn.unsafe(`SELECT count(*) AS c FROM "${s}"."${tbl}";`);
+          const count = Number(countRes[0]?.c || 0);
+
+          // 2. Check index validity
+          const idxRes = await this.sql_conn.unsafe(
+            `SELECT i.relname AS index_name, ix.indisvalid 
+             FROM pg_index ix 
+             JOIN pg_class i ON i.oid = ix.indexrelid 
+             JOIN pg_class t ON t.oid = ix.indrelid 
+             JOIN pg_namespace n ON n.oid = t.relnamespace 
+             WHERE n.nspname = $1 AND t.relname = $2;`,
+            [s, tbl]
+          );
+
+          let idxStatus = "All indexes valid";
+          for (const idx of idxRes) {
+            if (!idx.indisvalid) {
+              issues.push(`Index "${idx.index_name}" on table "${tbl}" is INVALID`);
+              idxStatus = `INVALID index: ${idx.index_name}`;
+            }
+          }
+
+          outputs.push(`Table "${s}"."${tbl}": ${count} rows, ${idxRes.length} index(es) OK (${idxStatus})`);
+        } catch (tableErr: any) {
+          issues.push(`Error checking table "${tbl}": ${tableErr.message}`);
+          outputs.push(`Table "${s}"."${tbl}": ERROR (${tableErr.message})`);
+        }
+      }
+
+      await this.logAudit("INTEGRITY_CHECK", s, `Checked ${tablesChecked} tables. Issues found: ${issues.length}`);
+
+      return {
+        success: issues.length === 0,
+        result: outputs.join("\n") || "No tables found to check.",
+        tablesChecked,
+        issues,
+        checks: outputs,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        result: `Integrity check failed: ${err.message}`,
+        tablesChecked: 0,
+        issues: [err.message],
+        checks: [],
+      };
+    }
+  }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -2615,6 +2700,163 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           return Response.json({ success: true, telemetry }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // Integrity Check
+      if (url.pathname === "/api/integrity" && (req.method === "GET" || req.method === "POST")) {
+        try {
+          const result = await manager.checkIntegrity();
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // Audit Logs Trail
+      if (url.pathname === "/api/audit-logs" && (req.method === "GET" || req.method === "POST")) {
+        try {
+          const logs = await manager.getAuditLogs();
+          return Response.json({ success: true, logs }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // Clipboard Helper
+      if (url.pathname === "/api/clipboard" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { text: string };
+          writeClipboardSync(body.text || "");
+          return Response.json({ success: true }, { headers: corsHeaders });
+        } catch {
+          return Response.json({ success: true, fallback: "Clipboard simulated" }, { headers: corsHeaders });
+        }
+      }
+
+      // Unified Table Mutate (Insert / Update / Delete)
+      if (url.pathname === "/api/table/mutate" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as {
+            table: string;
+            action: "insert" | "update" | "delete";
+            payload: { rowId?: any; rowIds?: any[]; pkColumn?: string; data?: Record<string, any> };
+            schema?: string;
+          };
+          const tbl = body.table;
+          const s = body.schema || manager.getActiveSchema();
+          let result: any = { success: false, error: "Invalid action" };
+
+          if (body.action === "insert") {
+            result = await manager.insertRow(tbl, body.payload.data || {}, s);
+          } else if (body.action === "update") {
+            result = await manager.updateRow(tbl, body.payload.pkColumn || "id", body.payload.rowId, body.payload.data || {}, s);
+          } else if (body.action === "delete") {
+            result = await manager.deleteRow(tbl, body.payload.pkColumn || "id", body.payload.rowId, s);
+          }
+
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Export file generation (CSV / JSON / SQL)
+      if ((url.pathname === "/api/export" || url.pathname === "/api/export-file") && req.method === "POST") {
+        try {
+          const body = (await req.json()) as {
+            format?: "json" | "csv" | "sql";
+            rows?: any[];
+            tableName?: string;
+            sql?: string;
+          };
+          const fmt = (body.format || "json").toLowerCase();
+          const rows = Array.isArray(body.rows) ? body.rows : [];
+          const exportsDir = resolve(homedir(), ".bun_rad_studio", "exports");
+          if (!existsSync(exportsDir)) mkdirSync(exportsDir, { recursive: true });
+
+          const filename = `pg_export_${Date.now()}.${fmt}`;
+          const exportPath = resolve(exportsDir, filename);
+
+          let content = "";
+          const allKeys: string[] = [];
+          for (const r of rows) for (const k of Object.keys(r || {})) if (!allKeys.includes(k) && k !== "__rowid__") allKeys.push(k);
+
+          if (fmt === "json") {
+            content = JSON.stringify(rows, null, 2);
+          } else if (fmt === "csv") {
+            const esc = (v: any) => {
+              if (v === null || v === undefined) return "";
+              const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+              return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+            };
+            const lines = [allKeys.map(esc).join(",")];
+            for (const r of rows) {
+              lines.push(allKeys.map((h) => esc(r[h])).join(","));
+            }
+            content = lines.join("\r\n");
+          } else if (fmt === "sql") {
+            const tbl = (body.tableName || "exported_records").replace(/"/g, '""');
+            const headers = allKeys;
+            const escapedHeaders = headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(", ");
+            const lines = rows.map((r) => {
+              const vals = headers.map((h) => {
+                const v = r[h];
+                if (v === null || v === undefined) return "NULL";
+                if (typeof v === "number") return v;
+                if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
+                return `'${String(v).replace(/'/g, "''")}'`;
+              });
+              return `INSERT INTO "${tbl}" (${escapedHeaders}) VALUES (${vals.join(", ")});`;
+            });
+            content = lines.join("\n");
+          }
+
+          writeFileSync(exportPath, content, "utf8");
+          return Response.json({ success: true, filename, path: exportPath, rowCount: rows.length }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // PRAGMA / Server Setting Query & Maintenance
+      if (url.pathname === "/api/pragma" && (req.method === "GET" || req.method === "POST")) {
+        try {
+          let param = url.searchParams.get("pragma") || "";
+          let value: any = url.searchParams.get("value");
+          if (req.method === "POST") {
+            try {
+              const body = await req.json();
+              if (body.pragma) param = body.pragma;
+              if (body.value !== undefined) value = body.value;
+            } catch {}
+          }
+
+          const cleanParam = (param || "").trim().toLowerCase();
+          if (cleanParam === "vacuum") {
+            const vacRes = await manager.vacuum(false, true);
+            return Response.json({ success: true, result: JSON.stringify(vacRes, null, 2) }, { headers: corsHeaders });
+          }
+          if (cleanParam === "integrity_check" || cleanParam === "integrity") {
+            const intRes = await manager.checkIntegrity();
+            return Response.json({ success: intRes.success, result: intRes.result }, { headers: corsHeaders });
+          }
+
+          if (value !== undefined && value !== null) {
+            await manager.query(`SET ${cleanParam} = '${String(value).replace(/'/g, "''")}';`);
+            return Response.json({ success: true, result: `${cleanParam} = ${value}` }, { headers: corsHeaders });
+          } else {
+            const settingRes = await manager.query(
+              cleanParam ? `SHOW ${cleanParam};` : `SELECT name, setting, unit, short_desc FROM pg_settings LIMIT 50;`
+            );
+            return Response.json({
+              success: true,
+              result: JSON.stringify(settingRes.rows, null, 2),
+              settings: settingRes.rows,
+            }, { headers: corsHeaders });
+          }
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
       }
 

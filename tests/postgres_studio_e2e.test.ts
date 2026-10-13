@@ -395,4 +395,96 @@ describe("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Su
     const vacBody = (await vacRes.json()) as any;
     expect(vacBody.success).toBe(true);
   });
+
+  // =========================================================================
+  // 9. MYSQL WORKSTATION PARITY & ENTERPRISE ENHANCEMENTS
+  // =========================================================================
+  it("12. HTML includes MySQL Studio mirrored layout: 22 themes, persistent SQL editor banner, 5 KPI cards, sidebar resizer, and new tabs", () => {
+    const html = generatePostgresStudioHtml();
+
+    // 22-Theme Selector
+    expect(html).toContain('id="ddStudioTheme"');
+    expect(html).toContain('value="midnight"');
+    expect(html).toContain('value="sonoma_emerald"');
+    expect(html).toContain('value="cyberpunk"');
+
+    // Persistent Top SQL Editor Banner & Presets
+    expect(html).toContain('id="editorBanner"');
+    expect(html).toContain('id="presetSelect"');
+    expect(html).toContain('id="sqlEditor"');
+    expect(html).toContain('id="queryTiming"');
+    expect(html).toContain('id="sqlResultStatus"');
+    expect(html).toContain('id="btnToggleEditor"');
+
+    // 5 Enterprise KPI Cards
+    expect(html).toContain('class="kpi-row"');
+    expect(html).toContain('id="kpiDbName"');
+    expect(html).toContain('id="kpiEngine"');
+    expect(html).toContain('id="kpiTables"');
+    expect(html).toContain('id="kpiRows"');
+    expect(html).toContain('id="kpiConnections"');
+
+    // Modern Sidebar & Resizer
+    expect(html).toContain('id="sidebarResizer"');
+    expect(html).toContain('id="sidebarDbBadge"');
+    expect(html).toContain('id="sidebarDbName"');
+    expect(html).toContain('id="searchObjects"');
+
+    // Mirrored Workstation Tabs: Schema Designer, Audit Logs, PRAGMA / GUC Settings
+    expect(html).toContain('id="tabBtnSchema"');
+    expect(html).toContain('id="tabSchema"');
+    expect(html).toContain('id="tabBtnAudit"');
+    expect(html).toContain('id="tabAudit"');
+    expect(html).toContain('id="tabBtnPragma"');
+    expect(html).toContain('id="tabPragma"');
+  });
+
+  it("13. Enterprise API Endpoints: Integrity check, Audit logs, Query export, and PRAGMA settings", async () => {
+    // 1. Schema Integrity Check
+    const intRes = await fetch(`${baseUrl}/api/integrity`);
+    expect(intRes.status).toBe(200);
+    const intBody = (await intRes.json()) as any;
+    expect(intBody.success).toBe(true);
+    expect(Array.isArray(intBody.checks)).toBe(true);
+
+    // 2. Audit Logs
+    const auditRes = await fetch(`${baseUrl}/api/audit-logs`);
+    expect(auditRes.status).toBe(200);
+    const auditBody = (await auditRes.json()) as any;
+    expect(auditBody.success).toBe(true);
+    expect(Array.isArray(auditBody.logs)).toBe(true);
+
+    // 3. Export query rows to JSON
+    const expRes = await fetch(`${baseUrl}/api/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        format: "json",
+        tableName: "customers",
+        rows: [{ id: 1, name: "Alice" }, { id: 2, name: "Bob" }],
+      }),
+    });
+    expect(expRes.status).toBe(200);
+    const expBody = (await expRes.json()) as any;
+    expect(expBody.success).toBe(true);
+    expect(expBody.rowCount).toBe(2);
+    expect(typeof expBody.filename).toBe("string");
+
+    // 4. Server PRAGMA / GUC Settings
+    const pragmaGetRes = await fetch(`${baseUrl}/api/pragma`);
+    expect(pragmaGetRes.status).toBe(200);
+    const pragmaGetBody = (await pragmaGetRes.json()) as any;
+    expect(pragmaGetBody.success).toBe(true);
+    expect(Array.isArray(pragmaGetBody.settings)).toBe(true);
+
+    // 5. Mutate / Set PRAGMA
+    const pragmaSetRes = await fetch(`${baseUrl}/api/pragma`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pragma: "work_mem", value: "8MB" }),
+    });
+    expect(pragmaSetRes.status).toBe(200);
+    const pragmaSetBody = (await pragmaSetRes.json()) as any;
+    expect(pragmaSetBody.success).toBe(true);
+  });
 });
