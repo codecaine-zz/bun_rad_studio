@@ -79,7 +79,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
   it("3. /api/macros/list returns seeded Microsoft Access default sample macros", async () => {
     const res = await fetch(`${baseUrl}/api/macros/list`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
 
     expect(data.success).toBe(true);
     expect(Array.isArray(data.macros)).toBe(true);
@@ -104,11 +104,11 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
   it("4. Internal _studio_macros table does NOT pollute schema tables or KPI table counts", async () => {
     const kpiRes = await fetch(`${baseUrl}/api/kpis`);
     expect(kpiRes.status).toBe(200);
-    const kpis = await kpiRes.json();
+    const kpis = await kpiRes.json() as any;
 
     const schemaRes = await fetch(`${baseUrl}/api/schema`);
     expect(schemaRes.status).toBe(200);
-    const schema = await schemaRes.json();
+    const schema = await schemaRes.json() as any;
 
     const tableNames = schema.tables.map((t: any) => t.name);
     expect(tableNames).not.toContain("_studio_macros");
@@ -161,14 +161,14 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     });
 
     expect(saveRes.status).toBe(200);
-    const saveData = await saveRes.json();
+    const saveData = await saveRes.json() as any;
     expect(saveData.success).toBe(true);
     expect(saveData.macro.name).toBe("Quarterly_Customer_Bonus");
     expect(saveData.macro.actions.length).toBe(3);
 
     // Verify it appears in /api/macros/list
     const listRes = await fetch(`${baseUrl}/api/macros/list`);
-    const listData = await listRes.json();
+    const listData = await listRes.json() as any;
     const found = listData.macros.find((m: any) => m.name === "Quarterly_Customer_Bonus");
     expect(found).toBeDefined();
     expect(found.actions[1].action).toBe("RunSQL");
@@ -220,7 +220,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     });
 
     expect(runRes.status).toBe(200);
-    const runData = await runRes.json();
+    const runData = await runRes.json() as any;
     expect(runData.success).toBe(true);
     expect(runData.result).toBeDefined();
     expect(runData.result.totalSteps).toBe(4);
@@ -251,7 +251,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: "SELECT * FROM audit_logs WHERE action = 'MACRO_EXEC_TEST';" }),
     });
-    const qData = await qRes.json();
+    const qData = await qRes.json() as any;
     expect(qData.success).toBe(true);
     expect(qData.rows.length).toBe(1);
     expect(qData.rows[0].entity).toBe("CUSTOMERS");
@@ -293,7 +293,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.result.executedSteps).toBe(2); // Step 1 and Step 2 (StopMacro)
     expect(data.result.totalSteps).toBe(3);
@@ -304,7 +304,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: "SELECT * FROM audit_logs WHERE action = 'UNREACHABLE';" }),
     });
-    const qData = await qRes.json();
+    const qData = await qRes.json() as any;
     expect(qData.rows.length).toBe(0);
   });
 
@@ -315,18 +315,18 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
       body: JSON.stringify({ id: "macro_custom_test" }),
     });
     expect(delRes.status).toBe(200);
-    const delData = await delRes.json();
+    const delData = await delRes.json() as any;
     expect(delData.success).toBe(true);
 
     const listRes = await fetch(`${baseUrl}/api/macros/list`);
-    const listData = await listRes.json();
+    const listData = await listRes.json() as any;
     expect(listData.macros.some((m: any) => m.id === "macro_custom_test")).toBe(false);
   });
 
   it("9. /api/queries/list returns seeded Access default queries and does NOT pollute user schema or KPIs", async () => {
     const listRes = await fetch(`${baseUrl}/api/queries/list`);
     expect(listRes.status).toBe(200);
-    const data = await listRes.json();
+    const data = await listRes.json() as any;
 
     expect(data.success).toBe(true);
     expect(Array.isArray(data.queries)).toBe(true);
@@ -339,12 +339,12 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
 
     // Verify _studio_queries is not in user schema or table counts
     const schemaRes = await fetch(`${baseUrl}/api/schema`);
-    const schema = await schemaRes.json();
+    const schema = await schemaRes.json() as any;
     const tableNames = schema.tables.map((t: any) => t.name);
     expect(tableNames).not.toContain("_studio_queries");
 
     const kpiRes = await fetch(`${baseUrl}/api/kpis`);
-    const kpis = await kpiRes.json();
+    const kpis = await kpiRes.json() as any;
     expect(kpis.tableCount).toBe(schema.tables.length);
   });
 
@@ -371,13 +371,13 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     });
 
     expect(saveRes.status).toBe(200);
-    const saveData = await saveRes.json();
+    const saveData = await saveRes.json() as any;
     expect(saveData.success).toBe(true);
     expect(saveData.query.name).toBe("QBE_VIP_Loyalty_Analysis");
 
     // Verify presence in list
     const listRes = await fetch(`${baseUrl}/api/queries/list`);
-    const listData = await listRes.json();
+    const listData = await listRes.json() as any;
     const found = listData.queries.find((q: any) => q.name === "QBE_VIP_Loyalty_Analysis");
     expect(found).toBeDefined();
     expect(found.designerStateJson).toBeDefined();
@@ -390,11 +390,11 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
       body: JSON.stringify({ id: "query_vip_loyalty_test" }),
     });
     expect(delRes.status).toBe(200);
-    const delData = await delRes.json();
+    const delData = await delRes.json() as any;
     expect(delData.success).toBe(true);
 
     const reListRes = await fetch(`${baseUrl}/api/queries/list`);
-    const reListData = await reListRes.json();
+    const reListData = await reListRes.json() as any;
     expect(reListData.queries.some((q: any) => q.id === "query_vip_loyalty_test")).toBe(false);
   });
 
@@ -483,7 +483,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     });
 
     expect(runRes.status).toBe(200);
-    const runData = await runRes.json();
+    const runData = await runRes.json() as any;
     expect(runData.success).toBe(true);
     expect(runData.result.totalSteps).toBe(7);
     expect(runData.result.executedSteps).toBe(7);
@@ -504,7 +504,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: "SELECT * FROM customers WHERE name = 'Zenith Corp';" }),
     });
-    const checkDelData = await checkDeleted.json();
+    const checkDelData = await checkDeleted.json() as any;
     expect(checkDelData.rows.length).toBe(0);
 
     // Verify vip_zenith_summary exists and was emptied
@@ -513,7 +513,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: "SELECT COUNT(*) as count FROM vip_zenith_summary;" }),
     });
-    const checkSumData = await checkSummary.json();
+    const checkSumData = await checkSummary.json() as any;
     expect(checkSumData.rows[0].count).toBe(0);
   });
 
@@ -562,12 +562,12 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.result.executedSteps).toBe(5);
     expect(data.result.failedSteps).toBe(0);
   });
-  const post = async (path: string, body: any) => {
+  const post = async (path: string, body: any): Promise<any> => {
     const res = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -700,7 +700,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     expect(vbaOut.content).toContain('MsgBox "Done", vbInformation, "Cleanup"');
 
     await post("/api/macros/save", { macro });
-    const list = await (await fetch(`${baseUrl}/api/macros/list`)).json();
+    const list = await (await fetch(`${baseUrl}/api/macros/list`)).json() as any;
     expect(list.macros.find((m: any) => m.id === "m20").onError).toBe("continue");
   });
 

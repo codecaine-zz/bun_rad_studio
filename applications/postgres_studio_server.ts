@@ -3491,7 +3491,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let value: any = url.searchParams.get("value");
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { pragma?: string; value?: unknown };
               if (body.pragma) param = body.pragma;
               if (body.value !== undefined) value = body.value;
             } catch {}

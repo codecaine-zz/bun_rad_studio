@@ -63,7 +63,7 @@ describe("🎴 Egyptian Rat Screw Royale — Deluxe Reflex Card Studio Suite", (
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("rat_screw_studio");
       expect(healthData.name).toContain("Egyptian Rat Screw Royale");

@@ -31,7 +31,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
   it("2. /api/kpis returns valid database telemetry metrics", async () => {
     const res = await fetch(`${baseUrl}/api/kpis`);
     expect(res.status).toBe(200);
-    const kpis = await res.json();
+    const kpis = await res.json() as any;
     expect(kpis.dbName).toBe(":memory:");
     expect(kpis.isMemory).toBe(true);
     expect(typeof kpis.pageSize).toBe("number");
@@ -44,7 +44,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
   it("3. /api/schema inspects all tables, views, columns and foreign keys", async () => {
     const res = await fetch(`${baseUrl}/api/schema`);
     expect(res.status).toBe(200);
-    const schema = await res.json();
+    const schema = await res.json() as any;
     expect(Array.isArray(schema.tables)).toBe(true);
     expect(Array.isArray(schema.views)).toBe(true);
 
@@ -76,7 +76,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       }),
     });
     expect(res.status).toBe(200);
-    const result = await res.json();
+    const result = await res.json() as any;
     expect(result.success).toBe(true);
     expect(Array.isArray(result.rows)).toBe(true);
     expect(result.rows.length).toBe(5);
@@ -93,7 +93,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       }),
     });
     expect(res.status).toBe(200);
-    const result = await res.json();
+    const result = await res.json() as any;
     expect(result.success).toBe(true);
     expect(Array.isArray(result.queryPlan)).toBe(true);
     expect(result.queryPlan.length).toBeGreaterThan(0);
@@ -113,7 +113,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       }),
     });
     expect(res.status).toBe(200);
-    const result = await res.json();
+    const result = await res.json() as any;
     expect(result.success).toBe(true);
     expect(result.table).toBe("products");
     expect(result.rows.length).toBe(4);
@@ -144,7 +144,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         },
       }),
     });
-    const insertData = await insertRes.json();
+    const insertData = await insertRes.json() as any;
     expect(insertData.success).toBe(true);
     const newId = insertData.lastInsertRowid;
     expect(typeof newId).toBe("number");
@@ -162,7 +162,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         },
       }),
     });
-    const updateData = await updateRes.json();
+    const updateData = await updateRes.json() as any;
     expect(updateData.success).toBe(true);
 
     // Verify update
@@ -171,7 +171,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: `SELECT tier, balance FROM customers WHERE id = ${newId};` }),
     });
-    const verifyData = await verifyRes.json();
+    const verifyData = await verifyRes.json() as any;
     expect(verifyData.rows[0].tier).toBe("VIP");
     expect(verifyData.rows[0].balance).toBe(9999.0);
 
@@ -185,7 +185,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         payload: { rowId: newId },
       }),
     });
-    const deleteData = await deleteRes.json();
+    const deleteData = await deleteRes.json() as any;
     expect(deleteData.success).toBe(true);
   });
 
@@ -196,7 +196,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ pragma: "foreign_keys", value: "ON" }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
   });
 
@@ -213,7 +213,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         body: JSON.stringify({ format, rows: sampleRows, tableName: "sample" }),
       });
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data = await res.json() as any;
       expect(data.success).toBe(true);
       expect(data.rowCount).toBe(2);
       expect(existsSync(data.path)).toBe(true);
@@ -246,7 +246,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
   it("11. /api/workspace-databases scans and returns discovered project databases", async () => {
     const res = await fetch(`${baseUrl}/api/workspace-databases`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(Array.isArray(data.databases)).toBe(true);
     expect(data.databases.length).toBeGreaterThanOrEqual(1);
@@ -268,7 +268,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         body: JSON.stringify({ path: tempDbPath }),
       });
       expect(res.status).toBe(200);
-      const data = await res.json();
+      const data = await res.json() as any;
       expect(data.success).toBe(true);
       expect(data.path).toBe(tempDbPath);
       expect(data.kpis).toBeDefined();
@@ -308,7 +308,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: formData,
     });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.name).toBe("uploaded_test.db");
     expect(data.schema.tables.some((t: any) => t.name === "uploaded_records")).toBe(true);
@@ -482,7 +482,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: generatedSql }),
     });
     expect(queryRes.status).toBe(200);
-    const queryData = await queryRes.json();
+    const queryData = await queryRes.json() as any;
     expect(queryData.success).toBe(true);
     expect(Array.isArray(queryData.columns)).toBe(true);
     expect(queryData.columns).toContain("customer_name");
@@ -524,7 +524,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: topSpendersSql }),
     });
     expect(spendRes.status).toBe(200);
-    const spendData = await spendRes.json();
+    const spendData = await spendRes.json() as any;
     expect(spendData.success).toBe(true);
     expect(spendData.columns).toContain("Customer");
     expect(spendData.columns).toContain("TotalSpend");
@@ -544,7 +544,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: lowStockSql }),
     });
     expect(stockRes.status).toBe(200);
-    const stockData = await stockRes.json();
+    const stockData = await stockRes.json() as any;
     expect(stockData.success).toBe(true);
     expect(stockData.columns).toContain("UnitsInStock");
 
@@ -564,7 +564,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: ordersPipelineSql }),
     });
     expect(orderRes.status).toBe(200);
-    const orderData = await orderRes.json();
+    const orderData = await orderRes.json() as any;
     expect(orderData.success).toBe(true);
     expect(orderData.columns).toContain("OrderID");
     expect(orderData.columns).toContain("Status");
@@ -577,7 +577,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pragma: "foreign_keys; DROP TABLE customers; --" }),
     });
-    const badPragmaNameData = await badPragmaNameRes.json();
+    const badPragmaNameData = await badPragmaNameRes.json() as any;
     expect(badPragmaNameData.success).toBe(false);
     expect(badPragmaNameData.error).toContain("Invalid pragma name");
 
@@ -587,7 +587,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pragma: "foreign_keys", value: "ON; DROP TABLE customers; --" }),
     });
-    const badPragmaValData = await badPragmaValRes.json();
+    const badPragmaValData = await badPragmaValRes.json() as any;
     expect(badPragmaValData.success).toBe(false);
     expect(badPragmaValData.error).toContain("Invalid or unsafe pragma value");
 
@@ -601,7 +601,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         payload: { rowId: 1 },
       }),
     });
-    const badMutateTableData = await badMutateTableRes.json();
+    const badMutateTableData = await badMutateTableRes.json() as any;
     expect(badMutateTableData.success).toBe(false);
     expect(badMutateTableData.error).toContain("does not exist");
 
@@ -615,7 +615,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         payload: { pkColumn: 'id" = 1 OR 1=1; --', rowId: 1 },
       }),
     });
-    const badPkColData = await badPkColRes.json();
+    const badPkColData = await badPkColRes.json() as any;
     expect(badPkColData.success).toBe(false);
     expect(badPkColData.error).toContain("Invalid primary key column");
 
@@ -634,7 +634,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
         },
       }),
     });
-    const badColData = await badColRes.json();
+    const badColData = await badColRes.json() as any;
     // Non-existent columns are safely filtered out, resulting in 0 rows affected or success without injection
     expect(badColData.error).toBeUndefined();
 
@@ -644,7 +644,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: 'SELECT count(*) as count FROM customers;' }),
     });
-    const verifyCustData = await verifyCustRes.json();
+    const verifyCustData = await verifyCustRes.json() as any;
     expect(verifyCustData.success).toBe(true);
     expect(verifyCustData.rows[0].count).toBeGreaterThan(0);
 
@@ -800,7 +800,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     });
 
     expect(queryRes.status).toBe(200);
-    const queryData = await queryRes.json();
+    const queryData = await queryRes.json() as any;
     expect(queryData.success).toBe(true);
     expect(Array.isArray(queryData.columns)).toBe(true);
     expect(queryData.columns).toContain("Customer");
@@ -815,7 +815,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     // 1. Fetch schema and verify the 5 multi-table join views exist
     const schemaRes = await fetch(`${baseUrl}/api/schema`);
     expect(schemaRes.status).toBe(200);
-    const schema = await schemaRes.json();
+    const schema = await schemaRes.json() as any;
     expect(Array.isArray(schema.views)).toBe(true);
 
     const viewNames = schema.views.map((v: any) => v.name);
@@ -832,7 +832,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: "SELECT * FROM v_order_details_extended LIMIT 10;" }),
     });
     expect(orderDetailsRes.status).toBe(200);
-    const orderDetailsData = await orderDetailsRes.json();
+    const orderDetailsData = await orderDetailsRes.json() as any;
     expect(orderDetailsData.success).toBe(true);
     expect(orderDetailsData.rows.length).toBeGreaterThan(0);
     expect(orderDetailsData.columns).toContain("order_id");
@@ -849,7 +849,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: "SELECT * FROM v_customer_order_summary LIMIT 10;" }),
     });
     expect(customerSummaryRes.status).toBe(200);
-    const customerSummaryData = await customerSummaryRes.json();
+    const customerSummaryData = await customerSummaryRes.json() as any;
     expect(customerSummaryData.success).toBe(true);
     expect(customerSummaryData.columns).toContain("total_orders");
     expect(customerSummaryData.columns).toContain("total_spend");
@@ -862,7 +862,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: "SELECT * FROM v_product_sales_performance LIMIT 10;" }),
     });
     expect(productPerfRes.status).toBe(200);
-    const productPerfData = await productPerfRes.json();
+    const productPerfData = await productPerfRes.json() as any;
     expect(productPerfData.success).toBe(true);
     expect(productPerfData.columns).toContain("gross_revenue");
     expect(productPerfData.columns).toContain("units_sold");
@@ -874,7 +874,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       body: JSON.stringify({ sql: "SELECT * FROM v_pending_shipments;" }),
     });
     expect(pendingRes.status).toBe(200);
-    const pendingData = await pendingRes.json();
+    const pendingData = await pendingRes.json() as any;
     expect(pendingData.success).toBe(true);
 
     // 6. Test Dynamic View Creation via DDL
@@ -890,12 +890,12 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       }),
     });
     expect(createViewRes.status).toBe(200);
-    const createViewData = await createViewRes.json();
+    const createViewData = await createViewRes.json() as any;
     expect(createViewData.success).toBe(true);
 
     // Verify newly created view is reflected in /api/schema
     const updatedSchemaRes = await fetch(`${baseUrl}/api/schema`);
-    const updatedSchema = await updatedSchemaRes.json();
+    const updatedSchema = await updatedSchemaRes.json() as any;
     const updatedViewNames = updatedSchema.views.map((v: any) => v.name);
     expect(updatedViewNames).toContain("v_high_value_orders");
 
@@ -905,7 +905,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: "SELECT * FROM v_high_value_orders LIMIT 5;" }),
     });
-    const testNewViewData = await testNewViewRes.json();
+    const testNewViewData = await testNewViewRes.json() as any;
     expect(testNewViewData.success).toBe(true);
     expect(testNewViewData.columns).toContain("order_id");
     expect(testNewViewData.columns).toContain("customer_name");

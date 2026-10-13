@@ -292,7 +292,7 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
     // Test stats endpoint
     const statsRes = await fetch(`${baseUrl}/api/stats`);
     expect(statsRes.status).toBe(200);
-    const stats = await statsRes.json();
+    const stats = await statsRes.json() as any;
     expect(stats.totalItems).toBe(0);
 
     // Test graveyard listing endpoint

@@ -103,7 +103,7 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("paint_studio");
       expect(healthData.totalVectorGraphics).toBe(106);

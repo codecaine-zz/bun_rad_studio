@@ -46,7 +46,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("2. Telemetry and KPIs endpoint reports real-time metrics", async () => {
     const res = await fetch(`${baseUrl}/api/kpis`);
     expect(res.status).toBe(200);
-    const kpis = await res.json();
+    const kpis = await res.json() as any;
     expect(kpis.connected).toBe(true);
     expect(typeof kpis.totalKeys).toBe("number");
     expect(typeof kpis.usedMemoryHuman).toBe("string");
@@ -57,7 +57,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("3. Enterprise Sample Dataset seeder populates rich multi-type keys", async () => {
     const res = await fetch(`${baseUrl}/api/seed`, { method: "POST" });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.keysCreated).toBeGreaterThan(0);
   });
@@ -65,7 +65,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("4. Key scanner reflects seeded keys and calculates namespace hierarchies", async () => {
     const res = await fetch(`${baseUrl}/api/keys?pattern=*`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(Array.isArray(data.keys)).toBe(true);
     expect(data.total).toBeGreaterThan(0);
 
@@ -80,41 +80,41 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("5. Key detail inspection inspects string, hash, list, set, and sorted set types", async () => {
     // String
     const strRes = await fetch(`${baseUrl}/api/key/get?key=config:system:max_concurrency`);
-    const strData = await strRes.json();
+    const strData = await strRes.json() as any;
     expect(strData.type).toBe("string");
     expect(strData.value).toBe("5000");
 
     // Hash
     const hashRes = await fetch(`${baseUrl}/api/key/get?key=catalog:product:SKU-9901`);
-    const hashData = await hashRes.json();
+    const hashData = await hashRes.json() as any;
     expect(hashData.type).toBe("hash");
     expect(hashData.value.name).toBe("Quantum Pro Neural Accelerator");
     expect(hashData.value.category).toBe("Hardware");
 
     // List
     const listRes = await fetch(`${baseUrl}/api/key/get?key=queue:worker:tasks`);
-    const listData = await listRes.json();
+    const listData = await listRes.json() as any;
     expect(listData.type).toBe("list");
     expect(Array.isArray(listData.value)).toBe(true);
     expect(listData.length).toBeGreaterThan(0);
 
     // Set
     const setRes = await fetch(`${baseUrl}/api/key/get?key=cluster:nodes:active`);
-    const setData = await setRes.json();
+    const setData = await setRes.json() as any;
     expect(setData.type).toBe("set");
     expect(Array.isArray(setData.value)).toBe(true);
     expect(setData.length).toBeGreaterThan(0);
 
     // ZSet
     const zsetRes = await fetch(`${baseUrl}/api/key/get?key=leaderboard:global_latency`);
-    const zsetData = await zsetRes.json();
+    const zsetData = await zsetRes.json() as any;
     expect(zsetData.type).toBe("zset");
     expect(Array.isArray(zsetData.value)).toBe(true);
     expect(zsetData.value.some((it: any) => it.member === "edge-tokyo")).toBe(true);
 
     // HyperLogLog (Clean Cardinality Counter inspection without binary text)
     const hllRes = await fetch(`${baseUrl}/api/key/get?key=analytics:unique_visitors:today`);
-    const hllData = await hllRes.json();
+    const hllData = await hllRes.json() as any;
     expect(hllData.type).toBe("hyperloglog");
     expect(hllData.isHyperLogLog).toBe(true);
     expect(hllData.value.cardinality).toBeGreaterThan(0);
@@ -122,7 +122,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
 
     // Bitmap (Bit array offset inspection)
     const bitRes = await fetch(`${baseUrl}/api/key/get?key=bitmap:user_active_days:usr_101`);
-    const bitData = await bitRes.json();
+    const bitData = await bitRes.json() as any;
     expect(bitData.type).toBe("bitmap");
     expect(bitData.isBitmap).toBe(true);
     expect(bitData.value.setBits).toBeGreaterThan(0);
@@ -138,12 +138,12 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: testKey, type: "string", value: "active", ttl: 300 }),
     });
-    const setData = await setRes.json();
+    const setData = await setRes.json() as any;
     expect(setData.success).toBe(true);
 
     // Verify TTL
     const getRes = await fetch(`${baseUrl}/api/key/get?key=${testKey}`);
-    const getData = await getRes.json();
+    const getData = await getRes.json() as any;
     expect(getData.value).toBe("active");
     expect(getData.ttl).toBeGreaterThan(0);
 
@@ -153,12 +153,12 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: testKey, ttl: 600 }),
     });
-    const ttlData = await ttlRes.json();
+    const ttlData = await ttlRes.json() as any;
     expect(ttlData.success).toBe(true);
 
     // Query ground-truth TTL via GET /api/key/ttl
     const getTtlRes = await fetch(`${baseUrl}/api/key/ttl?key=${testKey}`);
-    const getTtlData = await getTtlRes.json();
+    const getTtlData = await getTtlRes.json() as any;
     expect(getTtlData.success).toBe(true);
     expect(getTtlData.ttl).toBeGreaterThan(0);
     expect(getTtlData.ttl).toBeLessThanOrEqual(600);
@@ -169,7 +169,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ oldKey: testKey, newKey: `${testKey}_renamed` }),
     });
-    const renameData = await renameRes.json();
+    const renameData = await renameRes.json() as any;
     expect(renameData.success).toBe(true);
 
     // Delete
@@ -178,7 +178,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: `${testKey}_renamed` }),
     });
-    const delData = await delRes.json();
+    const delData = await delRes.json() as any;
     expect(delData.success).toBe(true);
   });
 
@@ -188,7 +188,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ command: "PING" }),
     });
-    const cliData = await cliRes.json();
+    const cliData = await cliRes.json() as any;
     expect(cliData.result).toBe("PONG");
     expect(typeof cliData.executionTimeMs).toBe("number");
 
@@ -198,7 +198,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ command: "DBSIZE" }),
     });
-    const dbsizeData = await dbsizeRes.json();
+    const dbsizeData = await dbsizeRes.json() as any;
     expect(typeof dbsizeData.result).toBe("number");
   });
 
@@ -209,7 +209,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ channel: "alerts_test" }),
     });
-    const subData = await subRes.json();
+    const subData = await subRes.json() as any;
     expect(subData.success).toBe(true);
 
     // Publish
@@ -218,12 +218,12 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ channel: "alerts_test", message: "CRITICAL: Server CPU spike" }),
     });
-    const pubData = await pubRes.json();
+    const pubData = await pubRes.json() as any;
     expect(typeof pubData.receivers).toBe("number");
 
     // Fetch messages log
     const msgsRes = await fetch(`${baseUrl}/api/pubsub/messages`);
-    const msgsData = await msgsRes.json();
+    const msgsData = await msgsRes.json() as any;
     expect(Array.isArray(msgsData.messages)).toBe(true);
     expect(msgsData.messages.some((m: any) => m.channel === "alerts_test")).toBe(true);
   });
@@ -231,12 +231,12 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("9. Server info and slowlog inspection endpoints respond correctly", async () => {
     const infoRes = await fetch(`${baseUrl}/api/info?section=server`);
     expect(infoRes.status).toBe(200);
-    const infoData = await infoRes.json();
+    const infoData = await infoRes.json() as any;
     expect(infoData.info).toContain("redis_version");
 
     const slowlogRes = await fetch(`${baseUrl}/api/slowlog`);
     expect(slowlogRes.status).toBe(200);
-    const slowlogData = await slowlogRes.json();
+    const slowlogData = await slowlogRes.json() as any;
     expect(Array.isArray(slowlogData.slowlog)).toBe(true);
   });
 

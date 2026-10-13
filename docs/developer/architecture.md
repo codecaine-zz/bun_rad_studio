@@ -127,5 +127,5 @@ Measured on 13 October 2026 with `wc -l` and `ls`: `src/simplegui.ts` 11,612 lin
 
 - **Very large files.** `src/simplegui.ts`, `index.ts` (windowing, export, preview and generators together) and `src/ide.html` (markup, style and script together) are hard to review. Nothing was split: splitting changes nothing for users and risks regressions, so it needs a reason and tests first.
 - **Duplicated server scaffolding.** 34 files in `applications/` define a `generate...Html` function, and the games repeat the same `generate...Html` / `start...Server` / `create...` code. A shared helper would remove the duplication; it was left alone because each copy differs slightly and the tests only check the common behaviour.
-- **679 type errors** are recorded in the [baseline](../testing/index.md#type-check-ratchet); Bun does not check types when running.
+- **266 type errors** (127 in `applications/`, 83 in `tests/`, 32 in `src/`) are recorded in the [baseline](../testing/index.md#type-check-ratchet); Bun does not check types when running.
 - **Generated code lives inside template strings** in `index.ts` (the exported project) and `src/ide.html` (the code tabs), where escaping mistakes are easy; see [D-011](../documentation-maintenance/discrepancies.md#d-011) and [D-021](../documentation-maintenance/discrepancies.md#d-021).

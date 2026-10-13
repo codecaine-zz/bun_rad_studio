@@ -59,7 +59,7 @@ describe("🐦 Flappy Bird Deluxe — Cyber Legends Arcade Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("flappy_bird_studio");
       expect(healthData.name).toContain("Flappy Bird Deluxe");

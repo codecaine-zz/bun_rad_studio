@@ -147,7 +147,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   it("7. /api/kpis returns healthy database metrics and engine details", async () => {
     const res = await fetch(`${baseUrl}/api/kpis`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
 
     expect(data.dbName).toBe(":memory:");
     expect(data.isMemory).toBe(true);
@@ -163,7 +163,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   it("8. /api/schema returns reflected relational tables, columns, indexes, and views", async () => {
     const res = await fetch(`${baseUrl}/api/schema`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
 
     expect(data.tables).toBeDefined();
     expect(Array.isArray(data.tables)).toBe(true);
@@ -192,7 +192,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.aggregates).toBeDefined();
     expect(data.aggregates.__total).toBeDefined();
@@ -209,7 +209,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   it("10. /api/sqlite/attached returns database list", async () => {
     const res = await fetch(`${baseUrl}/api/sqlite/attached`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(Array.isArray(data.databases)).toBe(true);
     expect(data.databases.length).toBeGreaterThanOrEqual(1);
@@ -219,7 +219,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   it("11. /api/sqlite/virtual-tables returns virtual table discovery", async () => {
     const res = await fetch(`${baseUrl}/api/sqlite/virtual-tables`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(Array.isArray(data.virtualTables)).toBe(true);
   });
@@ -235,7 +235,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.mode).toBe("all");
     expect(typeof data.sql).toBe("string");
@@ -259,7 +259,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.mode).toBe("schema");
 
@@ -277,7 +277,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.mode).toBe("data");
 
@@ -294,7 +294,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
 
     const sql = data.sql;
@@ -310,7 +310,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       body: JSON.stringify({ tables: ["customers"] }),
     });
     expect(res1.status).toBe(200);
-    const d1 = await res1.json();
+    const d1 = await res1.json() as any;
     expect(d1.success).toBe(true);
     expect(d1.sql).toContain('customers');
 
@@ -320,7 +320,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       body: JSON.stringify({ mode: "schema", tables: ["customers"] }),
     });
     expect(res2.status).toBe(200);
-    const d2 = await res2.json();
+    const d2 = await res2.json() as any;
     expect(d2.success).toBe(true);
     expect(d2.sql).toContain('DROP TABLE IF EXISTS "customers";');
     expect(d2.sql).not.toContain('INSERT INTO "customers"');
@@ -350,7 +350,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(insertRes.status).toBe(200);
-    const insertData = await insertRes.json();
+    const insertData = await insertRes.json() as any;
     expect(insertData.success).toBe(true);
     const newId = insertData.lastInsertRowid;
     expect(typeof newId).toBe("number");
@@ -361,7 +361,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ table: "customers", search: uniqueEmail }),
     });
-    const verifyData = await verifyRes.json();
+    const verifyData = await verifyRes.json() as any;
     expect(verifyData.rows.length).toBe(1);
     expect(verifyData.rows[0].name).toBe("Dr. Richard Hipp");
 
@@ -376,7 +376,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       }),
     });
     expect(updateRes.status).toBe(200);
-    const updateData = await updateRes.json();
+    const updateData = await updateRes.json() as any;
     expect(updateData.success).toBe(true);
 
     // 4. Delete
@@ -389,7 +389,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       }),
     });
     expect(deleteRes.status).toBe(200);
-    const deleteData = await deleteRes.json();
+    const deleteData = await deleteRes.json() as any;
     expect(deleteData.success).toBe(true);
 
     // 5. Verify deletion
@@ -398,7 +398,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ table: "customers", search: uniqueEmail }),
     });
-    const checkData = await checkRes.json();
+    const checkData = await checkRes.json() as any;
     expect(checkData.rows.length).toBe(0);
   });
 
@@ -417,7 +417,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     });
 
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as any;
     expect(data.success).toBe(true);
     expect(data.count).toBe(3);
   });
@@ -444,7 +444,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       body: JSON.stringify({ table: "temp_scratch" }),
     });
     expect(truncRes.status).toBe(200);
-    const truncData = await truncRes.json();
+    const truncData = await truncRes.json() as any;
     expect(truncData.success).toBe(true);
 
     const countRes = await fetch(`${baseUrl}/api/query`, {
@@ -452,7 +452,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: "SELECT COUNT(*) as count FROM temp_scratch;" }),
     });
-    const countData = await countRes.json();
+    const countData = await countRes.json() as any;
     expect(countData.rows[0].count).toBe(0);
 
     // 4. Drop table
@@ -462,7 +462,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       body: JSON.stringify({ table: "temp_scratch" }),
     });
     expect(dropRes.status).toBe(200);
-    const dropData = await dropRes.json();
+    const dropData = await dropRes.json() as any;
     expect(dropData.success).toBe(true);
   });
 
@@ -473,7 +473,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       body: JSON.stringify({ pragma: "foreign_keys", value: "ON" }),
     });
     expect(pragmaRes.status).toBe(200);
-    const pragmaData = await pragmaRes.json();
+    const pragmaData = await pragmaRes.json() as any;
     expect(pragmaData.success).toBe(true);
 
     const checkRes = await fetch(`${baseUrl}/api/query`, {
@@ -482,7 +482,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
       body: JSON.stringify({ sql: "PRAGMA integrity_check;" }),
     });
     expect(checkRes.status).toBe(200);
-    const checkData = await checkRes.json();
+    const checkData = await checkRes.json() as any;
     expect(checkData.success).toBe(true);
     expect(checkData.rows[0].integrity_check).toBe("ok");
   });

@@ -84,7 +84,7 @@ describe("⌨️ CyberType Deluxe — Mavis Beacon Master Edition", () => {
 
     const healthRes = await fetch(`http://127.0.0.1:${port}/api/health`);
     expect(healthRes.status).toBe(200);
-    const healthJson = await healthRes.json();
+    const healthJson = await healthRes.json() as any;
     expect(healthJson.status).toBe("ok");
     expect(healthJson.game).toBe("typing_studio");
 

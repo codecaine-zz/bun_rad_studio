@@ -42,7 +42,7 @@ async function main() {
     try {
       const res = await fetch(`http://127.0.0.1:${PORT}/json/version`);
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as { webSocketDebuggerUrl: string };
         wsUrl = data.webSocketDebuggerUrl;
         break;
       }
@@ -60,7 +60,7 @@ async function main() {
 
   // Create new target
   const newPageRes = await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(serverUrl)}`, { method: "PUT" });
-  const pageData = await newPageRes.json();
+  const pageData = (await newPageRes.json()) as { webSocketDebuggerUrl: string };
   const pageWsUrl = pageData.webSocketDebuggerUrl;
 
   const ws = new WebSocket(pageWsUrl);

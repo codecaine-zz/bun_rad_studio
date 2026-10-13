@@ -80,7 +80,7 @@ suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
   });
 
   it("2. /api/macros/list seeds default macros; save, update and delete round-trip", async () => {
-    const list = await (await fetch(`${baseUrl}/api/macros/list`)).json();
+    const list = await (await fetch(`${baseUrl}/api/macros/list`)).json() as any;
     expect(list.success).toBe(true);
     expect(list.macros.length).toBeGreaterThanOrEqual(1);
 
@@ -91,11 +91,11 @@ suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
 
     const updated = await post("/api/macros/save", { macro: { ...m, description: "changed" } });
     expect(updated.macro.description).toBe("changed");
-    const again = await (await fetch(`${baseUrl}/api/macros/list`)).json();
+    const again = await (await fetch(`${baseUrl}/api/macros/list`)).json() as any;
     expect(again.macros.filter((x: any) => x.name === "PG_Save_Test").length).toBe(1);
 
     expect((await post("/api/macros/delete", { id: "pg_save" })).success).toBe(true);
-    const after = await (await fetch(`${baseUrl}/api/macros/list`)).json();
+    const after = await (await fetch(`${baseUrl}/api/macros/list`)).json() as any;
     expect(after.macros.some((x: any) => x.id === "pg_save")).toBe(false);
   });
 
@@ -254,7 +254,7 @@ suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
     expect(vbaOut.content).toContain("Public Sub Nightly_Cleanup()");
 
     await post("/api/macros/save", { macro: m });
-    const list = await (await fetch(`${baseUrl}/api/macros/list`)).json();
+    const list = await (await fetch(`${baseUrl}/api/macros/list`)).json() as any;
     expect(list.macros.find((x: any) => x.id === "pg_export").onError).toBe("continue");
     await post("/api/macros/delete", { id: "pg_export" });
   });
@@ -269,14 +269,14 @@ suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
     };
     const saved = await post("/api/queries/save", { query: q });
     expect(saved.success).toBe(true);
-    const list = await (await fetch(`${baseUrl}/api/queries/list`)).json();
+    const list = await (await fetch(`${baseUrl}/api/queries/list`)).json() as any;
     const found = list.queries.find((x: any) => x.name === "PG_QBE_Test");
     expect(found).toBeDefined();
     expect(JSON.parse(found.designerStateJson).selectedTables).toContain("customers");
 
     const del = await post("/api/queries/delete", { id: "pg_query_test" });
     expect(del.success).toBe(true);
-    const re = await (await fetch(`${baseUrl}/api/queries/list`)).json();
+    const re = await (await fetch(`${baseUrl}/api/queries/list`)).json() as any;
     expect(re.queries.some((x: any) => x.id === "pg_query_test")).toBe(false);
   });
 
@@ -317,7 +317,7 @@ suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
   });
 
   it("15. Schema listing is not polluted by macro storage", async () => {
-    const schema = await (await fetch(`${baseUrl}/api/schema`)).json();
+    const schema = await (await fetch(`${baseUrl}/api/schema`)).json() as any;
     const names = (schema.tables || []).map((t: any) => t.name);
     expect(names.some((n: string) => n.includes("studio_macro"))).toBe(false);
   });

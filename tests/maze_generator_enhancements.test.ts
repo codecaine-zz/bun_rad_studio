@@ -230,7 +230,7 @@ describe("maze studio server & persistence", () => {
       expect(await resEng.text()).toContain("MazeEngine");
 
       // 2. Health check
-      const resHealth = await (await fetch(`${base}/api/health`)).json();
+      const resHealth = await (await fetch(`${base}/api/health`)).json() as any;
       expect(resHealth.status).toBe("ok");
       expect(resHealth.app).toBe("maze_generator_studio");
 

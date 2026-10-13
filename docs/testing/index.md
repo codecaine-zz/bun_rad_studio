@@ -72,7 +72,7 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 ## Type-check ratchet
 
-Bun runs TypeScript without checking types, and the project has 679 existing `tsc` errors in 61 files ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)). `bun run typecheck` (`scripts/typecheck_ratchet.ts`) runs `tsc --noEmit` and compares the number of errors **per file** with `scripts/typecheck_baseline.json`:
+Bun runs TypeScript without checking types, and the project has 266 existing `tsc` errors in 40 files (679 in 61 files until 13 October 2026, when the 413 "value is of type `unknown`" errors, almost all `await response.json()` in tests, were typed) ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)). `bun run typecheck` (`scripts/typecheck_ratchet.ts`) runs `tsc --noEmit` and compares the number of errors **per file** with `scripts/typecheck_baseline.json`:
 
 | Result | Exit code |
 |---|---|

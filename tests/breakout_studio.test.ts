@@ -59,7 +59,7 @@ describe("⚡ Cyber Breakout Deluxe — Arcade Master Edition Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("breakout_studio");
       expect(healthData.name).toContain("Cyber Breakout Deluxe");

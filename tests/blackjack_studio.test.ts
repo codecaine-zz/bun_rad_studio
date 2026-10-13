@@ -70,7 +70,7 @@ describe("🪙 Blackjack Royale VIP — Multi-Hand Casino Studio Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("blackjack_studio");
       expect(healthData.name).toContain("Blackjack Royale VIP");

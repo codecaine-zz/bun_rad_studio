@@ -63,7 +63,7 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("balatro_studio");
       expect(healthData.name).toContain("Joker Royale");

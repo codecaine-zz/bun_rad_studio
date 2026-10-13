@@ -87,7 +87,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("dr_codecaine_studio");
       } finally {
@@ -132,7 +132,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resSync = await fetch(`${base}/api/sync_playlist`);
         expect(resSync.status).toBe(200);
-        const syncData = await resSync.json();
+        const syncData = await resSync.json() as any;
         expect(syncData.success).toBe(true);
         expect(syncData.count).toBeGreaterThan(0);
 
@@ -141,7 +141,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("interval_timer_studio");
       } finally {
@@ -187,7 +187,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("lolo_studio");
       } finally {
@@ -232,7 +232,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("rodents_revenge_studio");
       } finally {
@@ -278,7 +278,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("word_search_studio");
       } finally {
@@ -325,7 +325,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("world_time_zones_studio");
       } finally {
@@ -371,7 +371,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json();
+        const data = await resHealth.json() as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("pacman_studio");
       } finally {

@@ -125,7 +125,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(innerRes.status).toBe(200);
-    const innerData = await innerRes.json();
+    const innerData = await innerRes.json() as any;
     expect(innerData.success).toBe(true);
     expect(innerData.rows.length).toBeGreaterThan(0);
     expect(innerData.columns).toContain("customer_name");
@@ -143,7 +143,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(leftRes.status).toBe(200);
-    const leftData = await leftRes.json();
+    const leftData = await leftRes.json() as any;
     expect(leftData.success).toBe(true);
     expect(leftData.rows.length).toBeGreaterThanOrEqual(innerData.rows.length);
 
@@ -159,7 +159,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(rightRes.status).toBe(200);
-    const rightData = await rightRes.json();
+    const rightData = await rightRes.json() as any;
     expect(rightData.success).toBe(true);
     expect(rightData.rows.length).toBe(innerData.rows.length);
 
@@ -174,7 +174,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(fullRes.status).toBe(200);
-    const fullData = await fullRes.json();
+    const fullData = await fullRes.json() as any;
     expect(fullData.success).toBe(true);
     expect(fullData.rows.length).toBeGreaterThanOrEqual(leftData.rows.length);
 
@@ -190,7 +190,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(crossRes.status).toBe(200);
-    const crossData = await crossRes.json();
+    const crossData = await crossRes.json() as any;
     expect(crossData.success).toBe(true);
     expect(crossData.rows.length).toBe(10);
   });
@@ -218,7 +218,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(multiRes.status).toBe(200);
-    const multiData = await multiRes.json();
+    const multiData = await multiRes.json() as any;
     expect(multiData.success).toBe(true);
     expect(multiData.rows.length).toBeGreaterThan(0);
     expect(multiData.columns).toEqual([
@@ -249,7 +249,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       }),
     });
     expect(mixedRes.status).toBe(200);
-    const mixedData = await mixedRes.json();
+    const mixedData = await mixedRes.json() as any;
     expect(mixedData.success).toBe(true);
     expect(mixedData.rows.length).toBeGreaterThanOrEqual(multiData.rows.length);
   });

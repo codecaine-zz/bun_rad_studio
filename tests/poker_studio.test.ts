@@ -69,7 +69,7 @@ describe("♠️ Texas Hold'em & 5-Card Draw Poker Royale — Deluxe Casino Stud
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json();
+      const healthData = await resHealth.json() as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("poker_studio");
       expect(healthData.name).toContain("Texas Hold'em & 5-Card Draw Poker Royale");
