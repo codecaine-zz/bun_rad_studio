@@ -17,7 +17,7 @@
       "page": "visual-designer/index.md",
       "implementation": "Implemented but not verified",
       "verification": "Button, Label and Input were placed in a browser rendering; the other controls were not. Control names come from source.",
-      "missing": "Per-control properties/defaults/events reference not written yet. New buttons took low-contrast text (fixed, D-019); 25 of 51 themes have low-contrast buttons (open)."
+      "missing": "Per-control properties/defaults/events reference not written yet. Button text contrast fixed for all 51 themes (D-019)."
     },
     {
       "name": "Database controls in the designer (db_grid, db_navigator, db_input, db_dropdown, db_connection)",

@@ -22,7 +22,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-016 The designer's script was cut short, so the page did nothing (fixed)](#d-016)
 - [D-017 Import, Keys and Audit dialogs, the status bar and the context menu could never appear (fixed)](#d-017)
 - [D-018 Importing a layout could corrupt the open form or fail silently (fixed)](#d-018)
-- [D-019 Button text on a new button was hard to read; many themes are low contrast](#d-019)
+- [D-019 Button text was hard to read in many themes (fixed)](#d-019)
 - [D-020 Two tests passed only on the author's machine (fixed)](#d-020)
 
 <a id="d-001"></a>
@@ -166,13 +166,16 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Regression tests:** `tests/ide_html.test.ts` ("Designer: importing a JSON layout"), which runs the real function from the page.
 
 <a id="d-019"></a>
-## D-019: Button text on a new button was hard to read; many themes are low contrast
+## D-019: Button text was hard to read in many themes (fixed)
 
-- **Status:** First part fixed on 13 October 2026; second part open.
+- **Status:** Fixed on 13 October 2026.
 - **Observed:** with the default theme, a newly placed button had light text (`#cdd6f4`) on a lavender fill (`#cba6f7`), a contrast of 1.4 to 1 (WCAG AA asks for 4.5 to 1 for normal text). The theme already defines the right button text colour (`btnFg`) and the "change theme" action uses it, but placing a button did not.
 - **Fix:** a new button now takes `btnFg` from the theme (for High Contrast this is the same `#000000` as before).
-- **Open:** computed from the theme table in `getThemeColors`, 25 of the 51 theme choices have a `btnFg` on `btnBg` contrast below 4.5 to 1 (for example Sonoma Emerald 2.5, Linux Mint 2.8, Solarized Light 3.0). Changing theme colours is a design decision, so they were left as they are.
-- **Not covered by a test:** the placement fix was checked in the browser only.
+- **Also found:** computed from the theme table in `getThemeColors`, 25 of the 51 theme choices had a `btnFg` on `btnBg` contrast below 4.5 to 1 (for example Sonoma Emerald 2.5, Linux Mint 2.8, Solarized Light 3.0).
+- **Fix:** `getThemeColors` now wraps the unchanged table (`getRawThemeColors`). A theme keeps its own button text colour when it already reaches 4.5 to 1; otherwise the button text becomes black or white, whichever reads better. No other colour changes. Now all 51 themes reach 4.5 to 1 for button text.
+- **Behaviour change:** in the 25 themes concerned, button text is black or white instead of the theme's original tint.
+- **Not changed:** Solarized Light and Solarized Dark body text on the form or panel colour is below 4.5 to 1 (1 and 2 combinations). These are the published Solarized colours, so they were left.
+- **Tests:** `tests/ide_html.test.ts` ("Designer themes") runs the real functions from the page against every theme in the dropdown.
 
 <a id="d-020"></a>
 ## D-020: Two tests passed only on the author's machine (fixed)

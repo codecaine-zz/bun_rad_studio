@@ -122,6 +122,59 @@ describe("Designer: importing a JSON layout", () => {
     });
 });
 
+describe("Designer themes: readable button text (D-019)", () => {
+    const html = getIdeHtml();
+    const grab = (name: string) => {
+        const start = html.indexOf(`function ${name}(`);
+        expect(start).toBeGreaterThan(-1);
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        return html.slice(start, end + 1);
+    };
+    const api = new Function(`${grab("contrastRatio")}; ${grab("getRawThemeColors")}; ${grab("getThemeColors")}; return { contrastRatio, getThemeColors, getRawThemeColors };`)() as {
+        contrastRatio: (a: string, b: string) => number;
+        getThemeColors: (t: string) => Record<string, string>;
+        getRawThemeColors: (t: string) => Record<string, string>;
+    };
+    const themes = [...html.match(/id="propFormTheme"[\s\S]*?<\/select>/)![0].matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]!);
+
+    test("the theme list is found", () => {
+        expect(themes.length).toBeGreaterThan(40);
+    });
+
+    test("contrastRatio matches known values", () => {
+        expect(api.contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 0);
+        expect(api.contrastRatio("#777777", "#777777")).toBeCloseTo(1, 5);
+    });
+
+    test("every theme's button text reaches 4.5:1 on the button fill", () => {
+        const failing = themes.filter((t) => {
+            const c = api.getThemeColors(t);
+            return api.contrastRatio(c.btnFg!, c.btnBg!) < 4.5;
+        });
+        expect(failing).toEqual([]);
+    });
+
+    test("a theme whose own button text already reads well keeps it", () => {
+        for (const t of themes) {
+            const raw = api.getRawThemeColors(t);
+            if (api.contrastRatio(raw.btnFg!, raw.btnBg!) >= 4.5) expect(api.getThemeColors(t).btnFg).toBe(raw.btnFg);
+        }
+    });
+
+    test("only the button text colour is adjusted", () => {
+        for (const t of themes) {
+            const { btnFg: _a, ...raw } = api.getRawThemeColors(t);
+            const { btnFg: _b, ...adjusted } = api.getThemeColors(t);
+            expect(adjusted).toEqual(raw);
+        }
+    });
+});
+
 describe("Exported project (regression for nested template literals)", () => {
     const dirs: string[] = [];
     afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));

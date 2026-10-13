@@ -79,7 +79,7 @@ Verified (by calling `exportProjectHelper` directly, not through the Export butt
 | Per-control reference (properties, defaults, events, examples) | 95 controls; only Button, Label and Input were placed. The control list above is from the source. |
 | Run, Export, saving and reopening projects in the native window | Needs the native window; not checked. |
 | Keyboard shortcuts | Only Cmd+Z and Cmd+Shift+Z were tested. Tooltips mention others (F5, F11, Cmd+V, Cmd+D) that were not. |
-| Accessibility | Not assessed beyond one finding: button text contrast ([D-019](../documentation-maintenance/discrepancies.md#d-019)). |
+| Accessibility | Not assessed beyond one finding: button text contrast, fixed for all themes ([D-019](../documentation-maintenance/discrepancies.md#d-019)) |
 
 These gaps are tracked in the [coverage matrix](../documentation-maintenance/coverage-matrix.md).
 

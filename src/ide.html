@@ -3553,7 +3553,29 @@
 			if (statusMsg) statusMsg.textContent = "⚡ Distributed " + selectedIndices.length + " controls evenly along " + (axis === "horiz" ? "Horizontal" : "Vertical") + " axis.";
 		}
 
+		function contrastRatio(a, b) {
+			const lum = (hex) => {
+				const h = hex.replace("#", "");
+				const f = (v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+				return 0.2126 * f(parseInt(h.slice(0, 2), 16)) + 0.7152 * f(parseInt(h.slice(2, 4), 16)) + 0.0722 * f(parseInt(h.slice(4, 6), 16));
+			};
+			const x = lum(a), y = lum(b);
+			return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+		}
+
+		// Theme colours with the button text guaranteed readable: a theme's own button text colour is kept when it
+		// reaches the WCAG AA ratio (4.5:1) on the button fill, otherwise black or white, whichever reads better.
 		function getThemeColors(theme) {
+			const colors = getRawThemeColors(theme);
+			if (contrastRatio(colors.btnFg, colors.btnBg) < 4.5) {
+				const black = contrastRatio("#000000", colors.btnBg);
+				const white = contrastRatio("#ffffff", colors.btnBg);
+				colors.btnFg = black >= white ? "#000000" : "#ffffff";
+			}
+			return colors;
+		}
+
+		function getRawThemeColors(theme) {
 			const clean = (theme || "").toLowerCase().replace(/[\s\-_]+/g, "_");
 			if (clean === "sonoma_dark" || clean === "macos_sonoma") return { formBg: "#1e1e1e", formFg: "#ffffff", ctrlBg: "#2c2c2e", ctrlFg: "#ffffff", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#2c2c2e" };
 			if (clean === "sonoma_light") return { formBg: "#f6f6f6", formFg: "#1d1d1f", ctrlBg: "#ffffff", ctrlFg: "#1d1d1f", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#e5e5e7" };
