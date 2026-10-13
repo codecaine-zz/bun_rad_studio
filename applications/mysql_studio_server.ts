@@ -146,6 +146,44 @@ export interface MysqlConnectionConfigSanitized {
   source: "env" | "manual";
 }
 
+export interface MysqlEnumMeta {
+  name: string;
+  table: string;
+  column: string;
+  type: string;
+  values: string[];
+  schema: string;
+}
+
+export interface MysqlPartitionMeta {
+  parentTable: string;
+  parentSchema: string;
+  partitionStrategy: string;
+  partitionName: string;
+  subpartitionName?: string | null;
+  partitionExpression: string;
+  totalSize: string;
+  rowEstimate: number;
+}
+
+export interface MysqlReplicationMeta {
+  replicas: any[];
+  binaryLogs: { logName: string; fileSize: string }[];
+  masterStatus: any;
+  replicaHosts: any[];
+}
+
+export interface MysqlBlockedLockMeta {
+  waitingTrxId: string;
+  waitingPid: number;
+  waitingQuery: string;
+  blockingTrxId: string;
+  blockingPid: number;
+  blockingQuery: string;
+  waitAgeSeconds: number;
+  lockMode: string;
+}
+
 // -------------------------------------------------------------------------------------------------
 // MySQL Database Manager
 // -------------------------------------------------------------------------------------------------
@@ -164,17 +202,25 @@ export class MysqlManager {
     tls?: boolean;
   };
 
-  constructor(initialDb: string = "", initialConfig?: Partial<MysqlConnectionConfig>) {
+  constructor(initialDbOrConfig: string | Partial<MysqlConnectionConfig> = "", initialConfig?: Partial<MysqlConnectionConfig>) {
     this.loadEnvFile();
+    let initialDb = "";
+    let cfg = initialConfig;
+    if (typeof initialDbOrConfig === "object" && initialDbOrConfig !== null) {
+      cfg = initialDbOrConfig;
+      initialDb = cfg.database || "";
+    } else if (typeof initialDbOrConfig === "string") {
+      initialDb = initialDbOrConfig;
+    }
     this.activePath = initialDb 
-      || initialConfig?.database 
+      || cfg?.database 
       || process.env.MSQL_NAME 
       || process.env.MSQL_DATABASE 
       || process.env.MSQL_DB 
       || process.env.MYSQL_DATABASE 
       || process.env.DB_NAME 
       || "my_app_dev";
-    this.parseConfig(initialDb, initialConfig);
+    this.parseConfig(initialDb, cfg);
     this.initConnection();
   }
 
@@ -434,8 +480,9 @@ export class MysqlManager {
     }
   }
 
-  public async ensureDatabaseExists(dbName: string = this.dbConfig.database): Promise<void> {
+  public async ensureDatabaseExists(dbName?: string | any): Promise<void> {
     try {
+      const db = (typeof dbName === "string" ? dbName : this.dbConfig?.database) || "my_app_dev";
       const rootSql = new SQL({
         adapter: "mysql",
         hostname: this.dbConfig.host,
@@ -445,7 +492,7 @@ export class MysqlManager {
         allowPublicKeyRetrieval: true,
         tls: this.dbConfig.tls ?? false,
       });
-      await rootSql.unsafe(`CREATE DATABASE IF NOT EXISTS \`${dbName.replace(/`/g, "``")}\``);
+      await rootSql.unsafe(`CREATE DATABASE IF NOT EXISTS \`${db.replace(/`/g, "``")}\``);
       await rootSql.end?.().catch(() => {});
     } catch (err: any) {
       console.warn("ensureDatabaseExists warning:", err?.message || err);
@@ -968,6 +1015,7 @@ export class MysqlManager {
         rows: rowsWithRowid,
         columns,
         totalRows,
+        total: totalRows,
         page,
         pageSize,
         totalPages: Math.ceil(totalRows / pageSize) || 1,
@@ -1186,38 +1234,340 @@ export class MysqlManager {
   }
 
   public async dumpSql(tables?: string[]): Promise<any> {
+    const res = await this.generateDatabaseDump({ mode: "all", tables });
+    return res;
+  }
+
+  public async generateDatabaseDump(options: { mode?: "all" | "schema" | "data"; tables?: string[] } = {}): Promise<{ success: boolean; sql?: string; dump?: string; error?: string }> {
     try {
+      const mode = options.mode || "all";
       const schema = await this.getSchema();
-      const targetTables = tables && tables.length > 0 ? tables : schema.tables.map((t) => t.name);
-      let dump = `-- MySQL Studio Pro Dump\n-- Database: ${this.dbConfig.database}\n-- Generated: ${new Date().toISOString()}\n\n`;
+      const targetTables = options.tables && options.tables.length > 0 
+        ? options.tables 
+        : schema.tables.map((t) => t.name);
+
+      let dump = `-- ================================================================\n`;
+      dump += `-- 🐬 MYSQL STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT\n`;
+      dump += `-- Generated: ${new Date().toISOString()}\n`;
+      dump += `-- Database: ${this.dbConfig.database} | Mode: ${mode.toUpperCase()}\n`;
+      dump += `-- ================================================================\n\n`;
+      dump += `SET FOREIGN_KEY_CHECKS = 0;\n`;
+      dump += `SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';\n\n`;
 
       for (const t of targetTables) {
         const details = await this.getTableDetails(t);
-        if (details.sql) {
-          dump += `DROP TABLE IF EXISTS ${qm(t)};\n${details.sql};\n\n`;
-        }
-        const rows = await this.sql_conn.unsafe(`SELECT * FROM ${qm(t)}`);
-        if (rows && rows.length > 0) {
-          const cols = Object.keys(rows[0]);
-          const colsStr = cols.map((c) => qm(c)).join(", ");
-          for (const r of rows) {
-            const vals = cols
-              .map((c) => {
-                const v = r[c];
-                if (v === null || v === undefined) return "NULL";
-                if (typeof v === "number") return v;
-                return `'${String(v).replace(/'/g, "''")}'`;
-              })
-              .join(", ");
-            dump += `INSERT INTO ${qm(t)} (${colsStr}) VALUES (${vals});\n`;
+        if (mode === "all" || mode === "schema") {
+          dump += `-- -----------------------------------------------------\n`;
+          dump += `-- Table structure for table \`${t}\`\n`;
+          dump += `-- -----------------------------------------------------\n`;
+          dump += `DROP TABLE IF EXISTS \`${t}\`;\n`;
+          if (details.sql) {
+            dump += `${details.sql};\n\n`;
           }
-          dump += "\n";
+        }
+
+        if (mode === "all" || mode === "data") {
+          const rows = await this.sql_conn.unsafe(`SELECT * FROM ${qm(t)}`);
+          if (rows && rows.length > 0) {
+            dump += `-- Dumping data for table \`${t}\`\n`;
+            const cols = Object.keys(rows[0]);
+            const colsStr = cols.map((c) => `\`${c}\``).join(", ");
+            for (const r of rows) {
+              const vals = cols
+                .map((c) => {
+                  const v = r[c];
+                  if (v === null || v === undefined) return "NULL";
+                  if (typeof v === "number") return v;
+                  return `'${String(v).replace(/'/g, "''").replace(/\\/g, "\\\\")}'`;
+                })
+                .join(", ");
+              dump += `INSERT INTO \`${t}\` (${colsStr}) VALUES (${vals});\n`;
+            }
+            dump += "\n";
+          }
         }
       }
 
-      return { success: true, dump };
+      dump += `SET FOREIGN_KEY_CHECKS = 1;\n`;
+      dump += `-- Dump completed on ${new Date().toISOString()}\n`;
+
+      return { success: true, sql: dump, dump, tablesIncluded: targetTables };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public async getEnumTypes(schema?: string): Promise<MysqlEnumMeta[]> {
+    try {
+      const db = schema || this.dbConfig.database;
+      const rows = await this.sql_conn.unsafe(`
+        SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TABLE_SCHEMA
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+          AND DATA_TYPE IN ('enum', 'set')
+        ORDER BY TABLE_NAME, COLUMN_NAME;
+      `);
+      return (rows || []).map((r: any) => {
+        const colType = String(r.COLUMN_TYPE || "");
+        const match = colType.match(/\((.*)\)/);
+        let values: string[] = [];
+        if (match && match[1]) {
+          values = match[1].split(",").map((v: string) => v.trim().replace(/^'|'$/g, "").replace(/''/g, "'"));
+        }
+        return {
+          name: `${r.TABLE_NAME}.${r.COLUMN_NAME}`,
+          table: r.TABLE_NAME,
+          column: r.COLUMN_NAME,
+          type: r.DATA_TYPE.toUpperCase(),
+          values,
+          schema: r.TABLE_SCHEMA
+        };
+      });
+    } catch (e: any) {
+      return [];
+    }
+  }
+
+  public async addEnumValue(tableName: string, colName: string, newValue: string, schema?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const db = schema || this.dbConfig.database;
+      const rows = await this.sql_conn.unsafe(`
+        SELECT COLUMN_TYPE, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+          AND TABLE_NAME = '${tableName.replace(/'/g, "''")}'
+          AND COLUMN_NAME = '${colName.replace(/'/g, "''")}'
+        LIMIT 1;
+      `);
+      if (!rows || rows.length === 0) return { success: false, error: "Column not found" };
+      const curType = String(rows[0].COLUMN_TYPE);
+      const isNull = rows[0].IS_NULLABLE === "YES";
+      const dflt = rows[0].COLUMN_DEFAULT !== null ? `DEFAULT '${rows[0].COLUMN_DEFAULT}'` : "";
+
+      const match = curType.match(/^(\w+)\((.*)\)$/);
+      if (!match) return { success: false, error: "Invalid column type definition" };
+      const baseType = match[1];
+      const existingVals = match[2].split(",").map((v: string) => v.trim());
+      const escapedNewVal = `'${newValue.replace(/'/g, "''")}'`;
+      if (!existingVals.includes(escapedNewVal)) {
+        existingVals.push(escapedNewVal);
+      }
+      const newTypeStr = `${baseType}(${existingVals.join(", ")})`;
+      const nullStr = isNull ? "NULL" : "NOT NULL";
+
+      await this.sql_conn.unsafe(`
+        ALTER TABLE \`${tableName.replace(/`/g, "")}\`
+        MODIFY COLUMN \`${colName.replace(/`/g, "")}\` ${newTypeStr} ${nullStr} ${dflt};
+      `);
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e?.message || String(e) };
+    }
+  }
+
+  public async getPartitionedTables(schema?: string): Promise<MysqlPartitionMeta[]> {
+    try {
+      const db = schema || this.dbConfig.database;
+      const rows = await this.sql_conn.unsafe(`
+        SELECT 
+          TABLE_NAME,
+          TABLE_SCHEMA,
+          PARTITION_NAME,
+          SUBPARTITION_NAME,
+          PARTITION_METHOD,
+          PARTITION_EXPRESSION,
+          PARTITION_DESCRIPTION,
+          TABLE_ROWS,
+          DATA_LENGTH
+        FROM information_schema.PARTITIONS
+        WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+          AND PARTITION_NAME IS NOT NULL
+        ORDER BY TABLE_NAME, PARTITION_ORDINAL_POSITION;
+      `);
+
+      return (rows || []).map((r: any) => {
+        const bytes = Number(r.DATA_LENGTH) || 0;
+        return {
+          parentTable: r.TABLE_NAME,
+          parentSchema: r.TABLE_SCHEMA,
+          partitionStrategy: r.PARTITION_METHOD || "RANGE",
+          partitionName: r.PARTITION_NAME,
+          subpartitionName: r.SUBPARTITION_NAME || null,
+          partitionExpression: r.PARTITION_DESCRIPTION || r.PARTITION_EXPRESSION || "DEFAULT",
+          totalSize: formatBytes(bytes),
+          rowEstimate: Number(r.TABLE_ROWS) || 0
+        };
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  public async getReplicationStatus(): Promise<MysqlReplicationMeta> {
+    const meta: MysqlReplicationMeta = {
+      replicas: [],
+      binaryLogs: [],
+      masterStatus: null,
+      replicaHosts: []
+    };
+    try {
+      // 1. Replicas / Slaves
+      try {
+        const repl = await this.sql_conn.unsafe("SHOW REPLICA STATUS;");
+        if (repl && repl.length > 0) {
+          meta.replicas = repl;
+        } else {
+          const slave = await this.sql_conn.unsafe("SHOW SLAVE STATUS;");
+          if (slave && slave.length > 0) meta.replicas = slave;
+        }
+      } catch {}
+
+      // 2. Binary Log Coordinator / Master Status
+      try {
+        const binStat = await this.sql_conn.unsafe("SHOW BINARY LOG STATUS;");
+        if (binStat && binStat.length > 0) {
+          meta.masterStatus = binStat[0];
+        } else {
+          const master = await this.sql_conn.unsafe("SHOW MASTER STATUS;");
+          if (master && master.length > 0) meta.masterStatus = master[0];
+        }
+      } catch {}
+
+      // 3. Binary Logs File List
+      try {
+        const logs = await this.sql_conn.unsafe("SHOW BINARY LOGS;");
+        if (logs && logs.length > 0) {
+          meta.binaryLogs = logs.map((l: any) => ({
+            logName: l.Log_name || l.LOG_NAME,
+            fileSize: formatBytes(Number(l.File_size || l.FILE_SIZE || 0))
+          }));
+        }
+      } catch {}
+
+      // 4. Connected Replica Hosts
+      try {
+        const hosts = await this.sql_conn.unsafe("SHOW REPLICAS;");
+        if (hosts && hosts.length > 0) {
+          meta.replicaHosts = hosts;
+        } else {
+          const slaves = await this.sql_conn.unsafe("SHOW SLAVE HOSTS;");
+          if (slaves && slaves.length > 0) meta.replicaHosts = slaves;
+        }
+      } catch {}
+    } catch {}
+    return meta;
+  }
+
+  public async getBlockedLocks(): Promise<MysqlBlockedLockMeta[]> {
+    try {
+      const rows = await this.sql_conn.unsafe(`
+        SELECT 
+          r.trx_id waiting_trx_id,
+          r.trx_mysql_thread_id waiting_pid,
+          r.trx_query waiting_query,
+          b.trx_id blocking_trx_id,
+          b.trx_mysql_thread_id blocking_pid,
+          b.trx_query blocking_query,
+          TIMESTAMPDIFF(SECOND, r.trx_wait_started, NOW()) wait_age_seconds
+        FROM information_schema.innodb_lock_waits w
+        JOIN information_schema.innodb_trx b ON b.trx_id = w.blocking_trx_id
+        JOIN information_schema.innodb_trx r ON r.trx_id = w.requesting_trx_id;
+      `).catch(() => []);
+
+      return (rows || []).map((r: any) => ({
+        waitingTrxId: String(r.waiting_trx_id),
+        waitingPid: Number(r.waiting_pid),
+        waitingQuery: r.waiting_query || "WAITING FOR LOCK",
+        blockingTrxId: String(r.blocking_trx_id),
+        blockingPid: Number(r.blocking_pid),
+        blockingQuery: r.blocking_query || "ACTIVE TRANSACTION",
+        waitAgeSeconds: Number(r.wait_age_seconds) || 0,
+        lockMode: "EXCLUSIVE"
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  public async getActivity(): Promise<any[]> {
+    try {
+      const rows = await this.sql_conn.unsafe(`
+        SELECT 
+          ID as pid,
+          USER as user,
+          HOST as client,
+          DB as database_name,
+          COMMAND as command,
+          TIME as duration_seconds,
+          STATE as state,
+          INFO as query
+        FROM information_schema.PROCESSLIST
+        ORDER BY TIME DESC;
+      `).catch(() => []);
+      return (rows || []).map((r: any) => ({
+        pid: Number(r.pid),
+        user: String(r.user || ""),
+        client: String(r.client || ""),
+        database: String(r.database_name || ""),
+        command: String(r.command || ""),
+        durationSeconds: Number(r.duration_seconds || 0),
+        duration: `${Number(r.duration_seconds || 0)}s`,
+        state: String(r.state || "sleep"),
+        query: r.query || null,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  public async terminateProcess(pid: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.sql_conn.unsafe(`KILL ${Number(pid)};`);
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e?.message || String(e) };
+    }
+  }
+
+  public async getTableAggregates(tableName: string): Promise<Record<string, { count: number; sum?: number; avg?: number; min?: any; max?: any }>> {
+    try {
+      const dbName = this.dbConfig.database;
+      const cols = await this.sql_conn.unsafe(
+        "SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION",
+        [dbName, tableName]
+      );
+      if (!cols || cols.length === 0) return {};
+
+      const numericCols = cols.filter((c: any) => {
+        const t = (c.DATA_TYPE || c.data_type || "").toUpperCase();
+        return t.includes("INT") || t.includes("DECIMAL") || t.includes("FLOAT") || t.includes("DOUBLE") || t.includes("NUMERIC");
+      }).map((c: any) => c.COLUMN_NAME || c.column_name);
+
+      const aggSelects: string[] = ["COUNT(*) as __total_count__"];
+      for (const col of numericCols) {
+        aggSelects.push(`SUM(\`${col}\`) as \`${col}_sum\``);
+        aggSelects.push(`AVG(\`${col}\`) as \`${col}_avg\``);
+        aggSelects.push(`MIN(\`${col}\`) as \`${col}_min\``);
+        aggSelects.push(`MAX(\`${col}\`) as \`${col}_max\``);
+      }
+
+      const res = await this.sql_conn.unsafe(`SELECT ${aggSelects.join(", ")} FROM \`${tableName.replace(/`/g, "")}\``);
+      const row = res && res[0] ? res[0] : {};
+      const totalCount = Number(row.__total_count__) || 0;
+
+      const results: Record<string, any> = { __total: { count: totalCount } };
+      for (const col of numericCols) {
+        results[col] = {
+          count: totalCount,
+          sum: row[`${col}_sum`] !== null ? Number(row[`${col}_sum`]) : null,
+          avg: row[`${col}_avg`] !== null ? Number(parseFloat(row[`${col}_avg`]).toFixed(2)) : null,
+          min: row[`${col}_min`],
+          max: row[`${col}_max`],
+        };
+      }
+      return results;
+    } catch (e: any) {
+      return {};
     }
   }
 
@@ -1234,11 +1584,14 @@ export class MysqlManager {
           email VARCHAR(255) UNIQUE NOT NULL,
           company VARCHAR(255),
           country VARCHAR(255) DEFAULT 'United States',
-          tier VARCHAR(255) DEFAULT 'Standard',
+          tier ENUM('Standard', 'VIP', 'Enterprise', 'Partner', 'Pioneering', 'Honorary') DEFAULT 'Standard',
           balance DECIMAL(10,2) DEFAULT 0.00,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+      await this.sql_conn.unsafe(`
+        ALTER TABLE customers MODIFY COLUMN tier ENUM('Standard', 'VIP', 'Enterprise', 'Partner', 'Pioneering', 'Honorary') DEFAULT 'Standard';
+      `).catch(() => {});
 
       // 2. Products
       await this.sql_conn.unsafe(`
@@ -1260,13 +1613,47 @@ export class MysqlManager {
           id INT AUTO_INCREMENT PRIMARY KEY,
           customer_id INT NOT NULL,
           order_number VARCHAR(255) UNIQUE NOT NULL,
-          status VARCHAR(255) DEFAULT 'pending',
+          status ENUM('pending', 'processing', 'completed', 'shipped', 'cancelled', 'refunded') DEFAULT 'pending',
           total_amount DECIMAL(10,2) DEFAULT 0.00,
           payment_method VARCHAR(255) DEFAULT 'Credit Card',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+      await this.sql_conn.unsafe(`
+        ALTER TABLE orders MODIFY COLUMN status ENUM('pending', 'processing', 'completed', 'shipped', 'cancelled', 'refunded') DEFAULT 'pending';
+      `).catch(() => {});
+
+      // 3b. Declarative Partitioned Table: sales_history
+      await this.sql_conn.unsafe(`
+        CREATE TABLE IF NOT EXISTS sales_history (
+          id INT NOT NULL,
+          customer_id INT NOT NULL,
+          total_amount DECIMAL(10,2) NOT NULL,
+          sale_date DATE NOT NULL,
+          PRIMARY KEY (id, sale_date)
+        ) ENGINE=InnoDB
+        PARTITION BY RANGE (YEAR(sale_date)) (
+          PARTITION p2023 VALUES LESS THAN (2024),
+          PARTITION p2024 VALUES LESS THAN (2025),
+          PARTITION p2025 VALUES LESS THAN (2026),
+          PARTITION p_future VALUES LESS THAN MAXVALUE
+        );
+      `);
+      // Seed sales_history if empty
+      const salesCount = await this.sql_conn.unsafe("SELECT count(*) as cnt FROM sales_history;").catch(() => [{ cnt: 0 }]);
+      if (Number(salesCount?.[0]?.cnt || 0) === 0) {
+        await this.sql_conn.unsafe(`
+          INSERT INTO sales_history (id, customer_id, total_amount, sale_date) VALUES
+          (1, 1, 1499.00, '2023-05-12'),
+          (2, 2, 850.50, '2023-11-20'),
+          (3, 3, 2300.00, '2024-02-14'),
+          (4, 4, 420.00, '2024-08-01'),
+          (5, 5, 5400.00, '2025-01-10'),
+          (6, 6, 1250.00, '2025-06-18'),
+          (7, 7, 3100.00, '2026-03-22');
+        `).catch(() => {});
+      }
 
       // 4. Order Items
       await this.sql_conn.unsafe(`
@@ -1553,12 +1940,13 @@ export class MysqlManager {
         return { success: true, result: outputs.join("\n") || "Tables analyzed" };
       }
 
+      const cleanPragma = pragma.replace(/[^a-zA-Z0-9_]/g, "");
       if (value !== undefined) {
-        await this.sql_conn.unsafe(`SET SESSION ${pragma} = ?`, [value]);
-        return { success: true, result: `${pragma} = ${value}` };
+        await this.sql_conn.unsafe(`SET SESSION ${cleanPragma} = '${String(value).replace(/'/g, "''")}'`);
+        return { success: true, result: `${cleanPragma} = ${value}` };
       }
 
-      const res = await this.sql_conn.unsafe(`SHOW VARIABLES LIKE ?`, [`%${pragma}%`]);
+      const res = await this.sql_conn.unsafe(`SHOW VARIABLES LIKE '%${cleanPragma}%'`);
       return { success: true, result: Array.isArray(res) ? res : JSON.stringify(res, null, 2) };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
@@ -1616,7 +2004,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       // 2. Database KPIs Telemetry
       if (url.pathname === "/api/kpis" && req.method === "GET") {
         const kpis = await manager.getKpis();
-        return Response.json(kpis, { headers: corsHeaders });
+        return Response.json({ success: true, kpis, ...kpis }, { headers: corsHeaders });
       }
 
       // 3. Database Schema
@@ -1675,6 +2063,74 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           };
           const result = await manager.mutateRow(body.table, body.action, body.payload);
           return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 7b. Row Mutation Convenience Endpoints
+      if (url.pathname === "/api/rows/insert" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const result = await manager.mutateRow(body.table, "insert", { data: body.row || body.data });
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/rows/update" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const result = await manager.mutateRow(body.table, "update", {
+            data: body.row || body.data,
+            rowId: body.pkVal ?? body.rowId,
+            pkColumn: body.pkCol ?? body.pkColumn,
+          });
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/rows/delete" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const result = await manager.mutateRow(body.table, "delete", {
+            rowId: body.rowId ?? body.pkVal,
+            pkColumn: body.pkColumn ?? body.pkCol,
+          });
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if ((url.pathname === "/api/rows/import-batch" || url.pathname === "/api/table/import") && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const result = await manager.importRows(body);
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/table/truncate" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          await manager.runScript(`TRUNCATE TABLE \`${body.table.replace(/`/g, "")}\`;`);
+          return Response.json({ success: true }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/schema/drop-table" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          await manager.runScript(`DROP TABLE IF EXISTS \`${body.table.replace(/`/g, "")}\`;`);
+          return Response.json({ success: true }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -1869,8 +2325,116 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
 
       if (url.pathname === "/api/dump" && req.method === "POST") {
         try {
-          const body = (await req.json().catch(() => ({}))) as { tables?: string[] };
+          const body = (await req.json().catch(() => ({}))) as { tables?: string[]; mode?: "all" | "schema" | "data" };
+          if (body.mode) {
+            return Response.json(await manager.generateDatabaseDump(body), { headers: corsHeaders });
+          }
           return Response.json(await manager.dumpSql(body.tables), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Full Database SQL Dump & Backup Generator API
+      if (url.pathname === "/api/database/dump" && req.method === "POST") {
+        try {
+          const body = (await req.json().catch(() => ({}))) as { mode?: "all" | "schema" | "data"; tables?: string[] };
+          const dumpRes = await manager.generateDatabaseDump(body);
+          return Response.json({ success: true, sql: dumpRes.sql || dumpRes.dump, mode: body.mode || "all", timestamp: new Date().toISOString() }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Custom Types & ENUMs API
+      if (url.pathname === "/api/types/enums" && req.method === "GET") {
+        try {
+          const enums = await manager.getEnumTypes(url.searchParams.get("schema") || undefined);
+          return Response.json({ success: true, enums }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/types/enums/add-value" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string; column: string; value: string; schema?: string; name?: string };
+          let tbl = body.table;
+          let col = body.column;
+          if ((!tbl || !col) && body.name && body.name.includes(".")) {
+            const parts = body.name.split(".");
+            tbl = parts[0];
+            col = parts[1];
+          }
+          const res = await manager.addEnumValue(tbl, col, body.value, body.schema);
+          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/types/enums/create" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { name: string; values: string[] };
+          // If name has dot (table.column), alter table to add enum column
+          if (body.name && body.name.includes(".")) {
+            const [tbl, col] = body.name.split(".");
+            const valList = (body.values || []).map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
+            await manager.runScript(`ALTER TABLE \`${tbl.replace(/`/g, "")}\` ADD COLUMN \`${col.replace(/`/g, "")}\` ENUM(${valList});`);
+          }
+          return Response.json({ success: true }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Partitioned Tables API
+      if (url.pathname === "/api/partitions" && req.method === "GET") {
+        try {
+          const partitions = await manager.getPartitionedTables(url.searchParams.get("schema") || undefined);
+          return Response.json({ success: true, partitions }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // Replication & Binary Log Status API
+      if (url.pathname === "/api/replication" && req.method === "GET") {
+        try {
+          const replication = await manager.getReplicationStatus();
+          return Response.json({ success: true, replication }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // Table Aggregates for Access Totals Row
+      if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string };
+          const aggregates = await manager.getTableAggregates(body.table);
+          return Response.json({ success: true, aggregates }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Live Activity & Locks API
+      if ((url.pathname === "/api/activity" || url.pathname === "/api/activity/locks") && req.method === "GET") {
+        try {
+          const activity = await manager.getActivity();
+          const blockedLocks = await manager.getBlockedLocks();
+          return Response.json({ success: true, activity, blockedLocks }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/activity/terminate" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { pid: number };
+          const res = await manager.terminateProcess(body.pid);
+          return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -1983,7 +2547,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           }
 
           writeFileSync(exportPath, content, "utf8");
-          return Response.json({ success: true, filename, path: exportPath, rowCount: body.rows.length }, { headers: corsHeaders });
+          return Response.json({ success: true, filename, path: exportPath, data: content, rowCount: body.rows.length }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }

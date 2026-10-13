@@ -2,6 +2,7 @@ import { describe, it, expect, afterAll } from "bun:test";
 import { startSqliteStudioServer } from "../applications/sqlite_studio_server.ts";
 import { generateSqliteStudioHtml } from "../applications/sqlite_studio.ts";
 import { generateMysqlStudioHtml } from "../applications/mysql_studio.ts";
+import { generatePostgresStudioHtml } from "../applications/postgres_studio.ts";
 import { Database } from "bun:sqlite";
 
 describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite", () => {
@@ -50,9 +51,28 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     expect(html).toContain('findAllDesignerJoins');
   });
 
-  it("3. Client-side embedded scripts in both studios parse with zero syntax errors", () => {
+  it("3. Postgres Studio shell renders Microsoft Access Visual Join Canvas and Properties Modal", () => {
+    const html = generatePostgresStudioHtml();
+    expect(html).toContain('id="accessJoinPropertiesModal"');
+    expect(html).toContain('id="qbeCanvasViewport"');
+    expect(html).toContain('id="qbeCanvasSvg"');
+    expect(html).toContain('class="access-join-radio-card"');
+    expect(html).toContain('jpVennSvg');
+    expect(html).toContain('jpSqlSnippet');
+    expect(html).toContain('updateJoinPropVennDiagram');
+    expect(html).toContain('updateJoinPropPreview');
+    expect(html).toContain('⚡ Auto-Detect Joins');
+    expect(html).toContain('+ Link / Join');
+    expect(html).toContain('autoArrangeDesignerTables()');
+    expect(html).toContain('swapJoinPropDirection()');
+    expect(html).toContain('selectJoinPropType');
+    expect(html).toContain('findAllDesignerJoins');
+  });
+
+  it("4. Client-side embedded scripts in SQLite, MySQL, and Postgres studios parse with zero syntax errors", () => {
     const sqliteHtml = generateSqliteStudioHtml();
     const mysqlHtml = generateMysqlStudioHtml();
+    const postgresHtml = generatePostgresStudioHtml();
 
     const scriptRegex = /<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi;
     
@@ -78,9 +98,21 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
       expect(() => new Function(code)).not.toThrow();
     }
     expect(mysqlScriptCount).toBeGreaterThanOrEqual(2);
+
+    // Postgres Studio scripts validation
+    let pgMatch;
+    let pgScriptCount = 0;
+    const pgScriptRegex = /<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi;
+    while ((pgMatch = pgScriptRegex.exec(postgresHtml)) !== null) {
+      const code = pgMatch[1].trim();
+      if (!code) continue;
+      pgScriptCount++;
+      expect(() => new Function(code)).not.toThrow();
+    }
+    expect(pgScriptCount).toBeGreaterThanOrEqual(2);
   });
 
-  it("4. SQLite Server executes INNER, LEFT, RIGHT, and FULL OUTER joins seamlessly", async () => {
+  it("5. SQLite Server executes INNER, LEFT, RIGHT, and FULL OUTER joins seamlessly", async () => {
     // 4.1 INNER JOIN: only customers with orders
     const innerRes = await fetch(`${baseUrl}/api/query`, {
       method: "POST",
@@ -163,7 +195,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     expect(crossData.rows.length).toBe(10);
   });
 
-  it("5. Multi-Table Joins (> 3 tables) with mixed join types execute correctly", async () => {
+  it("6. Multi-Table Joins (> 3 tables) with mixed join types execute correctly", async () => {
     // 4-Table Join: customers -> orders -> order_items -> products
     const multiRes = await fetch(`${baseUrl}/api/query`, {
       method: "POST",
@@ -222,7 +254,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     expect(mixedData.rows.length).toBeGreaterThanOrEqual(multiData.rows.length);
   });
 
-  it("6. Auto-detection logic identifies foreign keys and naming conventions", () => {
+  it("7. Auto-detection logic identifies foreign keys and naming conventions", () => {
     // In-memory test verifying relationships discovery between schema definitions
     const schema = {
       tables: [
@@ -290,11 +322,12 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     expect(reviewsBooks[0].rightField).toBe("id");
   });
 
-  it("7. Canvas Zooming and Room Expansion Controls (Stage Scaling, Resizer Splitter, Fit, Room Presets) in both Studios", () => {
+  it("8. Canvas Zooming and Room Expansion Controls (Stage Scaling, Resizer Splitter, Fit, Room Presets) in all three Studios", () => {
     const sqliteHtml = generateSqliteStudioHtml();
     const mysqlHtml = generateMysqlStudioHtml();
+    const postgresHtml = generatePostgresStudioHtml();
 
-    for (const [name, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml]]) {
+    for (const [name, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml], ["Postgres Studio", postgresHtml]]) {
       // 7.1 Expansive Viewport and Stage transform architecture
       expect(html).toContain('id="qbeCanvasStage"');
       expect(html).toContain('class="qbe-canvas-stage"');
@@ -323,11 +356,12 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     }
   });
 
-  it("8. Section-by-Section Ease-of-Use Enhancements (Grid Density, SQL Font/Height, Datasheet Density/Font, Sidebar Toggle)", () => {
+  it("9. Section-by-Section Ease-of-Use Enhancements (Grid Density, SQL Font/Height, Datasheet Density/Font, Sidebar Toggle) in all three Studios", () => {
     const sqliteHtml = generateSqliteStudioHtml();
     const mysqlHtml = generateMysqlStudioHtml();
+    const postgresHtml = generatePostgresStudioHtml();
 
-    for (const [name, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml]]) {
+    for (const [name, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml], ["Postgres Studio", postgresHtml]]) {
       // 8.1 QBE Grid Density
       expect(html).toContain('setQbeGridDensity(\'compact\')');
       expect(html).toContain('setQbeGridDensity(\'normal\')');

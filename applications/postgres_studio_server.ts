@@ -123,6 +123,52 @@ export interface PostgresActivityMeta {
   query: string;
 }
 
+export interface PostgresBlockedLockMeta {
+  blockedPid: number;
+  blockedUser: string;
+  blockingPid: number;
+  blockingUser: string;
+  blockedQuery: string;
+  blockingQuery: string;
+}
+
+export interface PostgresEnumMeta {
+  name: string;
+  schema: string;
+  values: string[];
+}
+
+export interface PostgresPartitionMeta {
+  parentTable: string;
+  parentSchema: string;
+  partitionStrategy: string;
+  partitionName: string;
+  partitionExpression: string;
+  totalSize: string;
+  rowEstimate: number;
+}
+
+export interface PostgresReplicationMeta {
+  standbys: Array<{
+    pid: number;
+    clientAddr: string;
+    applicationName: string;
+    state: string;
+    syncState: string;
+    writeLag: string;
+    flushLag: string;
+    replayLag: string;
+  }>;
+  slots: Array<{
+    slotName: string;
+    plugin: string;
+    slotType: string;
+    active: boolean;
+    walStatus: string;
+  }>;
+  walStats: Record<string, any>;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -947,6 +993,46 @@ export class PostgresManager {
     }
   }
 
+  public async getBlockedLocks(): Promise<PostgresBlockedLockMeta[]> {
+    try {
+      const rows = await this.sql_conn.unsafe(`
+        SELECT
+          blocked_locks.pid AS blocked_pid,
+          COALESCE(blocked_activity.usename, '') AS blocked_user,
+          blocking_locks.pid AS blocking_pid,
+          COALESCE(blocking_activity.usename, '') AS blocking_user,
+          COALESCE(blocked_activity.query, '') AS blocked_query,
+          COALESCE(blocking_activity.query, '') AS blocking_query
+        FROM pg_catalog.pg_locks blocked_locks
+        JOIN pg_catalog.pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
+        JOIN pg_catalog.pg_locks blocking_locks 
+            ON blocking_locks.locktype = blocked_locks.locktype
+            AND blocking_locks.database IS NOT DISTINCT FROM blocked_locks.database
+            AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
+            AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
+            AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
+            AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid
+            AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
+            AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
+            AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
+            AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
+            AND blocking_locks.pid != blocked_locks.pid
+        JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
+        WHERE NOT blocked_locks.granted;
+      `);
+      return rows.map((r: any) => ({
+        blockedPid: Number(r.blocked_pid),
+        blockedUser: String(r.blocked_user),
+        blockingPid: Number(r.blocking_pid),
+        blockingUser: String(r.blocking_user),
+        blockedQuery: String(r.blocked_query),
+        blockingQuery: String(r.blocking_query),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
   public async terminateBackend(pid: number): Promise<{ success: boolean; error?: string }> {
     try {
       const res = await this.sql_conn.unsafe(`SELECT pg_terminate_backend(${Number(pid)}) as ok;`);
@@ -1479,6 +1565,394 @@ export class PostgresManager {
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
+    }
+  }
+
+  public async addColumn(
+    tableName: string,
+    column: { name: string; type: string; notnull?: boolean; dflt_value?: any },
+    schemaName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const schema = schemaName || this.activeSchema || "public";
+    try {
+      if (!tableName || !column?.name) throw new Error("Table name and column name required");
+      let def = `"${column.name}" ${column.type || "text"}`;
+      if (column.notnull) def += " NOT NULL";
+      if (column.dflt_value !== undefined && column.dflt_value !== null && column.dflt_value !== "") {
+        def += ` DEFAULT ${column.dflt_value}`;
+      }
+      const sql = `ALTER TABLE "${schema}"."${tableName}" ADD COLUMN ${def};`;
+      await this.sql_conn.unsafe(sql);
+      await this.logAudit("ADD_COLUMN", tableName, `Added column "${column.name}" (${column.type})`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  public async dropColumn(
+    tableName: string,
+    columnName: string,
+    cascade: boolean = false,
+    schemaName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const schema = schemaName || this.activeSchema || "public";
+    try {
+      if (!tableName || !columnName) throw new Error("Table name and column name required");
+      const sql = `ALTER TABLE "${schema}"."${tableName}" DROP COLUMN "${columnName}"${cascade ? " CASCADE" : ""};`;
+      await this.sql_conn.unsafe(sql);
+      await this.logAudit("DROP_COLUMN", tableName, `Dropped column "${columnName}"`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  // PostgreSQL Custom ENUM Types Management
+  public async getEnumTypes(schemaName?: string): Promise<PostgresEnumMeta[]> {
+    const s = schemaName || this.activeSchema;
+    try {
+      const rows = await this.sql_conn.unsafe(`
+        SELECT 
+          t.typname AS name,
+          n.nspname AS schema,
+          array_agg(e.enumlabel ORDER BY e.enumsortorder) AS values
+        FROM pg_type t
+        JOIN pg_enum e ON t.oid = e.enumtypid
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = $1
+        GROUP BY t.typname, n.nspname
+        ORDER BY t.typname;
+      `, [s]);
+
+      return (rows || []).map((r: any) => ({
+        name: r.name,
+        schema: r.schema,
+        values: Array.isArray(r.values) ? r.values : [],
+      }));
+    } catch (err: any) {
+      console.warn("getEnumTypes error:", err.message);
+      return [];
+    }
+  }
+
+  public async createEnumType(name: string, values: string[], schemaName?: string): Promise<{ success: boolean; error?: string }> {
+    const s = schemaName || this.activeSchema;
+    try {
+      if (!name) throw new Error("Enum type name required");
+      if (!values || values.length === 0) throw new Error("At least one enum value required");
+      const escapedVals = values.map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
+      await this.sql_conn.unsafe(`CREATE TYPE "${s}"."${name}" AS ENUM (${escapedVals});`);
+      await this.logAudit("CREATE_TYPE", name, `Values: ${values.join(", ")}`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  public async addEnumValue(name: string, value: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+    const s = schemaName || this.activeSchema;
+    try {
+      if (!name || !value) throw new Error("Enum name and new value required");
+      await this.sql_conn.unsafe(`ALTER TYPE "${s}"."${name}" ADD VALUE '${value.replace(/'/g, "''")}';`);
+      await this.logAudit("ALTER_TYPE", name, `Added value: ${value}`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  public async dropEnumType(name: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+    const s = schemaName || this.activeSchema;
+    try {
+      if (!name) throw new Error("Enum type name required");
+      await this.sql_conn.unsafe(`DROP TYPE "${s}"."${name}" CASCADE;`);
+      await this.logAudit("DROP_TYPE", name, `Dropped ENUM type ${name}`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  // PostgreSQL Partitioned Tables Inspection
+  public async getPartitionedTables(schemaName?: string): Promise<PostgresPartitionMeta[]> {
+    const s = schemaName || this.activeSchema;
+    try {
+      const rows = await this.sql_conn.unsafe(`
+        SELECT 
+          pt.relname AS parent_table,
+          pn.nspname AS parent_schema,
+          CASE p.partstrat
+            WHEN 'r' THEN 'RANGE'
+            WHEN 'l' THEN 'LIST'
+            WHEN 'h' THEN 'HASH'
+            ELSE p.partstrat::text
+          END AS partition_strategy,
+          c.relname AS partition_name,
+          COALESCE(pg_get_expr(c.relpartbound, c.oid), 'DEFAULT') AS partition_expression,
+          pg_size_pretty(pg_total_relation_size(c.oid)) AS total_size,
+          COALESCE(c.reltuples::bigint, 0) AS row_estimate
+        FROM pg_partitioned_table p
+        JOIN pg_class pt ON pt.oid = p.partrelid
+        JOIN pg_namespace pn ON pn.oid = pt.relnamespace
+        JOIN pg_inherits i ON i.inhparent = p.partrelid
+        JOIN pg_class c ON c.oid = i.inhrelid
+        WHERE pn.nspname = $1
+        ORDER BY pt.relname, c.relname;
+      `, [s]);
+
+      return (rows || []).map((r: any) => ({
+        parentTable: r.parent_table,
+        parentSchema: r.parent_schema,
+        partitionStrategy: r.partition_strategy,
+        partitionName: r.partition_name,
+        partitionExpression: r.partition_expression,
+        totalSize: r.total_size,
+        rowEstimate: Number(r.row_estimate || 0),
+      }));
+    } catch (err: any) {
+      console.warn("getPartitionedTables error:", err.message);
+      return [];
+    }
+  }
+
+  // PostgreSQL Streaming Replication & WAL Status
+  public async getReplicationStatus(): Promise<PostgresReplicationMeta> {
+    const result: PostgresReplicationMeta = {
+      standbys: [],
+      slots: [],
+      walStats: {},
+    };
+
+    try {
+      const standbys = await this.sql_conn.unsafe(`
+        SELECT 
+          pid, client_addr::text, application_name, state, sync_state,
+          write_lag::text, flush_lag::text, replay_lag::text
+        FROM pg_stat_replication;
+      `);
+      result.standbys = (standbys || []).map((s: any) => ({
+        pid: s.pid,
+        clientAddr: s.client_addr || "local",
+        applicationName: s.application_name || "unknown",
+        state: s.state || "active",
+        syncState: s.sync_state || "async",
+        writeLag: s.write_lag || "00:00:00",
+        flushLag: s.flush_lag || "00:00:00",
+        replayLag: s.replay_lag || "00:00:00",
+      }));
+    } catch { /* ignored */ }
+
+    try {
+      const slots = await this.sql_conn.unsafe(`
+        SELECT slot_name, plugin, slot_type, active, COALESCE(wal_status, 'normal') as wal_status
+        FROM pg_replication_slots;
+      `);
+      result.slots = (slots || []).map((sl: any) => ({
+        slotName: sl.slot_name,
+        plugin: sl.plugin || "n/a",
+        slotType: sl.slot_type,
+        active: Boolean(sl.active),
+        walStatus: sl.wal_status,
+      }));
+    } catch { /* ignored */ }
+
+    try {
+      const wal = await this.sql_conn.unsafe(`
+        SELECT wal_records, wal_fpi, wal_bytes, wal_buffers_full, wal_write, wal_sync
+        FROM pg_stat_wal;
+      `);
+      if (wal && wal.length > 0) {
+        result.walStats = wal[0];
+      }
+    } catch { /* ignored */ }
+
+    return result;
+  }
+
+  // Full Database SQL Dump & Backup Generator
+  public async generateDatabaseDump(options: { mode?: "all" | "schema" | "data"; tables?: string[]; schema?: string } = {}): Promise<string> {
+    const s = options.schema || this.activeSchema;
+    const mode = options.mode || "all";
+    const out: string[] = [];
+    out.push(`-- =========================================================================`);
+    out.push(`-- 🐘 POSTGRES STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT`);
+    out.push(`-- Generated: ${new Date().toISOString()}`);
+    out.push(`-- Schema: "${s}" | Mode: ${mode.toUpperCase()}`);
+    out.push(`-- Database: ${this.activeDb}`);
+    out.push(`-- =========================================================================\n`);
+
+    out.push(`SET statement_timeout = 0;`);
+    out.push(`SET lock_timeout = 0;`);
+    out.push(`SET client_encoding = 'UTF8';`);
+    out.push(`SET standard_conforming_strings = on;`);
+    out.push(`SET check_function_bodies = false;`);
+    out.push(`SET client_min_messages = warning;\n`);
+
+    const schemaRes = await this.getSchema(s);
+    const tableNames = options.tables && options.tables.length > 0
+      ? options.tables
+      : schemaRes.tables.map(t => t.name);
+
+    // 1. Custom Enums
+    if (mode === "all" || mode === "schema") {
+      const enums = await this.getEnumTypes(s);
+      if (enums.length > 0) {
+        out.push(`-- Custom Enum Types`);
+        for (const e of enums) {
+          const vals = e.values.map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
+          out.push(`DO $$ BEGIN CREATE TYPE "${s}"."${e.name}" AS ENUM (${vals}); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+        }
+        out.push("");
+      }
+    }
+
+    // 2. Tables and Columns
+    for (const tblMeta of schemaRes.tables) {
+      if (!tableNames.includes(tblMeta.name)) continue;
+      const tName = tblMeta.name;
+
+      if (mode === "all" || mode === "schema") {
+        out.push(`-- Table: "${s}"."${tName}"`);
+        out.push(`CREATE TABLE IF NOT EXISTS "${s}"."${tName}" (`);
+        const colDefs: string[] = [];
+        for (const col of tblMeta.columns) {
+          let line = `  "${col.name}" ${col.type}`;
+          if (col.notnull) line += ` NOT NULL`;
+          if (col.dflt_value !== null && col.dflt_value !== undefined && col.dflt_value !== "") {
+            line += ` DEFAULT ${col.dflt_value}`;
+          }
+          if (col.pk) {
+            line += ` PRIMARY KEY`;
+          }
+          colDefs.push(line);
+        }
+        out.push(colDefs.join(",\n"));
+        out.push(`);\n`);
+
+        // Indexes
+        if (tblMeta.indices && tblMeta.indices.length > 0) {
+          for (const idx of tblMeta.indices) {
+            if (idx.name.endsWith("_pkey")) continue;
+            const unique = idx.unique ? "UNIQUE " : "";
+            out.push(`CREATE ${unique}INDEX IF NOT EXISTS "${idx.name}" ON "${s}"."${tName}" (${idx.columns.map(c => `"${c}"`).join(", ")});`);
+          }
+          out.push("");
+        }
+      }
+
+      // 3. Table Data
+      if (mode === "all" || mode === "data") {
+        try {
+          const rows = await this.sql_conn.unsafe(`SELECT * FROM "${s}"."${tName}" LIMIT 5000;`);
+          if (rows && rows.length > 0) {
+            out.push(`-- Data for Table: "${s}"."${tName}" (${rows.length} rows)`);
+            const colNames = Object.keys(rows[0]);
+            const escapedCols = colNames.map(c => `"${c}"`).join(", ");
+            out.push(`INSERT INTO "${s}"."${tName}" (${escapedCols}) VALUES`);
+            const rowValues: string[] = [];
+            for (const r of rows) {
+              const vals = colNames.map(c => {
+                const val = r[c];
+                if (val === null || val === undefined) return "NULL";
+                if (typeof val === "number" || typeof val === "boolean") return String(val);
+                if (typeof val === "object") return `'${JSON.stringify(val).replace(/'/g, "''")}'::jsonb`;
+                return `'${String(val).replace(/'/g, "''")}'`;
+              });
+              rowValues.push(`  (${vals.join(", ")})`);
+            }
+            out.push(rowValues.join(",\n") + `;`);
+            out.push("");
+          }
+        } catch (err: any) {
+          out.push(`-- Error dumping data for "${tName}": ${err.message}\n`);
+        }
+      }
+    }
+
+    // 4. Foreign Keys
+    if (mode === "all" || mode === "schema") {
+      out.push(`-- Foreign Key Constraints`);
+      for (const tblMeta of schemaRes.tables) {
+        if (!tableNames.includes(tblMeta.name)) continue;
+        if (tblMeta.foreignKeys && tblMeta.foreignKeys.length > 0) {
+          for (const fk of tblMeta.foreignKeys) {
+            if (!tableNames.includes(fk.table)) continue;
+            const constraintName = `${tblMeta.name}_${fk.from}_fkey`;
+            out.push(`DO $$ BEGIN ALTER TABLE "${s}"."${tblMeta.name}" ADD CONSTRAINT "${constraintName}" FOREIGN KEY ("${fk.from}") REFERENCES "${s}"."${fk.table}" ("${fk.to}") ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+          }
+        }
+      }
+      out.push("");
+    }
+
+    // 5. Views
+    if (mode === "all" || mode === "schema") {
+      try {
+        const views = await this.sql_conn.unsafe(`
+          SELECT table_name, view_definition
+          FROM information_schema.views
+          WHERE table_schema = $1;
+        `, [s]);
+        if (views && views.length > 0) {
+          out.push(`-- Views`);
+          for (const v of views) {
+            out.push(`CREATE OR REPLACE VIEW "${s}"."${v.table_name}" AS\n${v.view_definition};\n`);
+          }
+        }
+      } catch { /* ignored */ }
+    }
+
+    out.push(`-- =========================================================================`);
+    out.push(`-- Dump complete.`);
+    out.push(`-- =========================================================================`);
+    return out.join("\n");
+  }
+
+  // Access Totals Row & Aggregates Computer
+  public async getTableAggregates(tableName: string, schemaName?: string): Promise<Record<string, any>> {
+    const s = schemaName || this.activeSchema;
+    try {
+      const cols = await this.sql_conn.unsafe(`
+        SELECT column_name, data_type
+        FROM information_schema.columns
+        WHERE table_schema = $1 AND table_name = $2;
+      `, [s, tableName]);
+
+      const aggSelects: string[] = ["COUNT(*)::bigint AS _total_count"];
+      const numericCols: string[] = [];
+
+      for (const c of cols) {
+        const type = String(c.data_type).toLowerCase();
+        const isNum = type.includes("int") || type.includes("numeric") || type.includes("decimal") || type.includes("float") || type.includes("double") || type.includes("real");
+        if (isNum) {
+          numericCols.push(c.column_name);
+          aggSelects.push(`ROUND(SUM("${c.column_name}")::numeric, 2) AS "${c.column_name}__sum"`);
+          aggSelects.push(`ROUND(AVG("${c.column_name}")::numeric, 2) AS "${c.column_name}__avg"`);
+          aggSelects.push(`MIN("${c.column_name}") AS "${c.column_name}__min"`);
+          aggSelects.push(`MAX("${c.column_name}") AS "${c.column_name}__max"`);
+        }
+      }
+
+      const q = `SELECT ${aggSelects.join(", ")} FROM "${s}"."${tableName}";`;
+      const res = await this.sql_conn.unsafe(q);
+      const row = res?.[0] || {};
+      const totalCount = Number(row._total_count || 0);
+
+      const result: Record<string, any> = { _totalCount: totalCount };
+      for (const col of numericCols) {
+        result[col] = {
+          count: totalCount,
+          sum: row[`${col}__sum`] !== null ? Number(row[`${col}__sum`]) : undefined,
+          avg: row[`${col}__avg`] !== null ? Number(row[`${col}__avg`]) : undefined,
+          min: row[`${col}__min`],
+          max: row[`${col}__max`],
+        };
+      }
+      return result;
+    } catch (err: any) {
+      console.warn("getTableAggregates error:", err.message);
+      return { _totalCount: 0 };
     }
   }
 
@@ -2265,11 +2739,94 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         }
       }
 
+      // 5b. Custom Enum Types API
+      if (url.pathname === "/api/types/enums" && req.method === "GET") {
+        try {
+          const enums = await manager.getEnumTypes(url.searchParams.get("schema") || undefined);
+          return Response.json({ success: true, enums }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/types/enums/create" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { name: string; values: string[]; schema?: string };
+          const res = await manager.createEnumType(body.name, body.values, body.schema);
+          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/types/enums/add-value" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { name: string; value: string; schema?: string };
+          const res = await manager.addEnumValue(body.name, body.value, body.schema);
+          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/types/enums/drop" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { name: string; schema?: string };
+          const res = await manager.dropEnumType(body.name, body.schema);
+          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 5c. Partitioned Tables API
+      if (url.pathname === "/api/partitions" && req.method === "GET") {
+        try {
+          const partitions = await manager.getPartitionedTables(url.searchParams.get("schema") || undefined);
+          return Response.json({ success: true, partitions }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 5d. Streaming Replication & WAL Status API
+      if (url.pathname === "/api/replication" && req.method === "GET") {
+        try {
+          const replication = await manager.getReplicationStatus();
+          return Response.json({ success: true, replication }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // 5e. Full Database SQL Dump & Backup Generator API
+      if (url.pathname === "/api/database/dump" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { mode?: "all" | "schema" | "data"; tables?: string[]; schema?: string };
+          const sqlDump = await manager.generateDatabaseDump(body);
+          return Response.json({ success: true, sql: sqlDump, mode: body.mode || "all", timestamp: new Date().toISOString() }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 5f. Table Aggregates for Access Totals Row
+      if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string; schema?: string };
+          const aggregates = await manager.getTableAggregates(body.table, body.schema);
+          return Response.json({ success: true, aggregates }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
       // 6. Live Activity & Process Monitor API (Postgres Specialty)
-      if (url.pathname === "/api/activity" && req.method === "GET") {
+      if ((url.pathname === "/api/activity" || url.pathname === "/api/activity/locks") && req.method === "GET") {
         try {
           const activity = await manager.getActivity();
-          return Response.json({ success: true, activity }, { headers: corsHeaders });
+          const blockedLocks = await manager.getBlockedLocks();
+          return Response.json({ success: true, activity, blockedLocks }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }
@@ -2501,6 +3058,12 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             case "drop-table":
             case "drop":
               result = await manager.dropObject(body.kind || "table", body.name || body.table, body.schema);
+              break;
+            case "add-column":
+              result = await manager.addColumn(body.table || body.name, body.column, body.schema);
+              break;
+            case "drop-column":
+              result = await manager.dropColumn(body.table || body.name, body.column || body.columnName, body.cascade, body.schema);
               break;
             default:
               return Response.json({ success: false, error: `Unknown op ${op}` }, { status: 400, headers: corsHeaders });
@@ -2847,7 +3410,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             return Response.json({ success: true, result: `${cleanParam} = ${value}` }, { headers: corsHeaders });
           } else {
             const settingRes = await manager.query(
-              cleanParam ? `SHOW ${cleanParam};` : `SELECT name, setting, unit, short_desc FROM pg_settings LIMIT 50;`
+              cleanParam ? `SHOW ${cleanParam};` : `SELECT name, setting, unit, category, context, short_desc, boot_val, min_val, max_val FROM pg_settings ORDER BY category, name;`
             );
             return Response.json({
               success: true,

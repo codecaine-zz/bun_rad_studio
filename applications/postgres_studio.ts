@@ -450,7 +450,7 @@ export function generatePostgresStudioHtml(): string {
     }
 
     /* Left Sidebar */
-    aside {
+    aside, #sidebar, #mainSidebar {
       width: 360px;
       min-width: 260px;
       max-width: 650px;
@@ -463,10 +463,13 @@ export function generatePostgresStudioHtml(): string {
       position: relative;
       transition: width 0.15s ease;
     }
-    aside.collapsed {
-      width: 0;
+    aside.collapsed, #sidebar.collapsed, #mainSidebar.collapsed {
+      width: 0 !important;
+      min-width: 0 !important;
+      max-width: 0 !important;
+      padding: 0 !important;
+      border: none !important;
       overflow: hidden;
-      border-right: none;
     }
 
     .sidebar-resizer {
@@ -922,6 +925,82 @@ export function generatePostgresStudioHtml(): string {
     .cell-null {
       color: var(--text-dim);
       font-style: italic;
+    }
+
+    /* Microsoft Access Form View & Record Navigator Styling */
+    .access-form-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+    .access-form-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 24px;
+    }
+    .access-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+      max-width: 1200px;
+    }
+    .access-field-card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .access-field-card:focus-within {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+    .access-field-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .access-field-name {
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .access-field-type {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .access-field-pk {
+      font-size: 9px;
+      font-weight: 700;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .access-record-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(10, 17, 32, 0.95);
+      border-top: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
     }
 
     /* Microsoft Access Query Designer (QBE) Styling */
@@ -1757,6 +1836,179 @@ export function generatePostgresStudioHtml(): string {
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 
+    /* Microsoft Access Totals Row */
+    .access-totals-foot {
+      position: sticky;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.98);
+      backdrop-filter: blur(10px);
+      border-top: 2px solid var(--accent);
+      z-index: 5;
+    }
+    .access-totals-foot td {
+      padding: 6px 10px;
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--text-main);
+      border-right: 1px solid var(--border-subtle);
+    }
+    .access-total-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--cyan);
+      font-size: 10px;
+      font-family: var(--font-mono);
+    }
+
+    /* Microsoft Access Quick Filter Bar */
+    .access-filter-row {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .access-filter-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: 3px;
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .access-filter-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Microsoft Access Publication Report Styles & @media print */
+    .access-report-sheet {
+      background: #ffffff;
+      color: #0f172a;
+      padding: 32px;
+      border-radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .access-report-header {
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .access-report-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0369a1;
+      letter-spacing: -0.5px;
+    }
+    .access-report-meta {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+      text-align: right;
+    }
+    .access-report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    .access-report-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 2px solid #cbd5e1;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .access-report-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    .access-report-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    .access-report-summary {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #accessReportModal, #accessReportModal * {
+        visibility: visible;
+      }
+      #accessReportModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: transparent !important;
+        display: block !important;
+      }
+      .modal-header, .modal-footer, .modal-close {
+        display: none !important;
+      }
+      .modal-card {
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+      .access-report-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+    }
+
+    /* Enum Cards & Partition Cards */
+    .enum-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+    .enum-card:hover {
+      border-color: var(--accent);
+    }
+    .enum-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 12px;
+      color: #d8b4fe;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
     ${CRUD_STYLE}
   </style>
 </head>
@@ -1817,6 +2069,7 @@ export function generatePostgresStudioHtml(): string {
       <button id="btnSeedDatabase" class="btn" onclick="seedSampleDatabase()" title="Create rich PostgreSQL sample tables with UUID, JSONB, native Arrays and Materialized Views">🌱 Seed Sample DB</button>
       <button class="btn" onclick="triggerVacuumAnalyze()" title="Run VACUUM ANALYZE to reclaim storage and update planner statistics">🧹 VACUUM ANALYZE</button>
       <button class="btn" onclick="checkIntegrity()" title="Run schema-wide foreign key, table, and index integrity verification">🛡️ Integrity Check</button>
+      <button class="btn" id="btnDbBackupDump" onclick="openDatabaseDumpModal()" title="1-Click PostgreSQL Database Backup &amp; SQL Dump Generator (Schema &amp; Data)">💾 DB Backup / Dump</button>
       <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen()" title="Toggle Fullscreen (F11 / ⌃⌘F)">⛶ Fullscreen</button>
       <button class="btn btn-primary" onclick="runEditorQuery()">▶ Run SQL (Cmd+Enter)</button>
     </div>
@@ -1965,8 +2218,11 @@ export function generatePostgresStudioHtml(): string {
         <div class="tab-btn" id="tabBtnSql" onclick="switchTab('sql')">⚡ SQL Query Console</div>
         <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">📐 Visual Query Designer</div>
         <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer &amp; DDL</div>
+        <div class="tab-btn" id="tabBtnTypes" onclick="switchTab('types')">🏷️ Custom Types &amp; Enums</div>
+        <div class="tab-btn" id="tabBtnPartitions" onclick="switchTab('partitions')">📦 Partition Trees</div>
         <div class="tab-btn" id="tabBtnExtensions" onclick="switchTab('extensions')">🧩 Extensions Manager</div>
         <div class="tab-btn" id="tabBtnActivity" onclick="switchTab('activity')">⚡ Live Activity Monitor</div>
+        <div class="tab-btn" id="tabBtnReplication" onclick="switchTab('replication')">🔄 Streaming Replication &amp; WAL</div>
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan (EXPLAIN)</div>
         <div class="tab-btn" id="tabBtnSequences" onclick="switchTab('sequences')">🔢 Sequences</div>
         <div class="tab-btn" id="tabBtnRoles" onclick="switchTab('roles')">👥 Roles &amp; Grants</div>
@@ -1977,11 +2233,20 @@ export function generatePostgresStudioHtml(): string {
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
       </div>
 
-      <!-- TAB 1: Tabular Data Grid -->
+      <!-- TAB 1: Tabular Data Grid & Access Form View -->
       <div class="tab-pane active" id="tabGrid">
         <div class="grid-toolbar">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-weight: 700; color: var(--cyan);" id="gridTargetTitle">No table selected</span>
+            <div style="display: flex; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px;">
+              <button class="btn btn-sm btn-primary" id="btnViewDatasheet" onclick="switchGridMode('datasheet')">📋 Datasheet</button>
+              <button class="btn btn-sm" id="btnViewForm" onclick="switchGridMode('form')">📑 Form View</button>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn btn-sm" id="btnToggleTotals" onclick="toggleAccessTotalsRow()" title="Toggle Microsoft Access Totals Row (Sum, Avg, Count, Min, Max)">🧮 Totals</button>
+              <button class="btn btn-sm" id="btnToggleFilterBar" onclick="toggleQuickFilterBar()" title="Toggle Access Column Filter Bar">⚡ Filter Bar</button>
+              <button class="btn btn-sm" id="btnAccessReport" onclick="openAccessReportModal()" title="Generate Microsoft Access Printable Report / PDF">🖨️ Report</button>
+            </div>
             <input type="text" id="gridSearchInput" placeholder="Search rows..." oninput="onGridSearch(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 3px 8px; color: #fff; font-size: 11px; outline: none; width: 140px;">
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -1994,9 +2259,33 @@ export function generatePostgresStudioHtml(): string {
         </div>
         <div class="grid-scroll" id="gridTableContainer">
           <table class="data-grid" id="mainDataGrid">
-            <thead><tr id="gridHeaderRow"><th>Status</th></tr></thead>
+            <thead>
+              <tr id="gridHeaderRow"><th>Status</th></tr>
+              <tr id="gridFilterBarRow" class="access-filter-row" style="display: none;"><th>⚡</th></tr>
+            </thead>
             <tbody id="gridBody"><tr><td>Select a table from the sidebar or run a query.</td></tr></tbody>
+            <tfoot id="gridTotalsFoot" class="access-totals-foot" style="display: none;"></tfoot>
           </table>
+        </div>
+        <div id="gridFormContainer" class="access-form-layout" style="display: none;">
+          <div class="access-form-scroll" id="accessFormFields">
+            <div style="color: var(--text-dim); text-align: center; padding: 40px;">Select a table or record to inspect in Form View.</div>
+          </div>
+          <div class="access-record-nav" id="gridFormNavBar">
+            <button class="btn btn-sm" onclick="formNavRecord('first')" title="First Record (Home)">|◀</button>
+            <button class="btn btn-sm" onclick="formNavRecord('prev')" title="Previous Record (PageUp)">◀</button>
+            <span style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
+              Record: <input type="number" id="formCurrentRecordInput" min="1" value="1" onchange="formJumpToRecord(parseInt(this.value, 10))" style="width: 50px; text-align: center; padding: 2px 4px; font-size: 11px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff;"> of <span id="formTotalRecords">0</span>
+            </span>
+            <button class="btn btn-sm" onclick="formNavRecord('next')" title="Next Record (PageDown)">▶</button>
+            <button class="btn btn-sm" onclick="formNavRecord('last')" title="Last Record (End)">▶|</button>
+            <button class="btn btn-sm btn-primary" onclick="formNewRecord()" title="New Blank Record">➕ New</button>
+            <div style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 4px;"></div>
+            <button class="btn btn-sm btn-primary" onclick="formSaveRecord()" title="Save Record (Update/Insert)">💾 Save</button>
+            <button class="btn btn-sm btn-danger" onclick="formDeleteRecord()" title="Delete Record">🗑️ Delete</button>
+            <button class="btn btn-sm" onclick="formDuplicateRecord()" title="Duplicate Record">📄 Duplicate</button>
+            <span id="formStatusBadge" class="brand-badge" style="margin-left: 8px; font-size: 10px;">Ready</span>
+          </div>
         </div>
       </div>
 
@@ -2052,6 +2341,40 @@ export function generatePostgresStudioHtml(): string {
         </div>
       </div>
 
+      <!-- TAB: Custom Types & ENUMs Explorer (Postgres Specialty) -->
+      <div class="tab-pane" id="tabTypes">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--cyan);">PostgreSQL Custom ENUM Types (pg_enum &amp; pg_type)</span>
+            <input type="text" id="enumSearchInput" placeholder="Filter enum types..." oninput="filterEnumTypes(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; width: 200px; outline: none;">
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm btn-primary" onclick="openCreateEnumModal()">➕ Create ENUM Type</button>
+            <button class="btn btn-sm" onclick="loadEnumTypes()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div style="flex: 1; padding: 16px; overflow: auto;">
+          <div class="ext-grid" id="enumTypesGrid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Partition Trees Explorer (Postgres Specialty) -->
+      <div class="tab-pane" id="tabPartitions">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--amber);">Declarative Partition Trees (pg_partitioned_table &amp; pg_inherits)</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm" onclick="loadPartitions()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div style="flex: 1; padding: 16px; overflow: auto;" id="partitionsContainer">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
       <!-- TAB 4: Extensions Manager (Postgres Specialty) -->
       <div class="tab-pane" id="tabExtensions">
         <div class="activity-toolbar">
@@ -2085,6 +2408,7 @@ export function generatePostgresStudioHtml(): string {
             <button class="btn btn-sm" onclick="loadActivity()">🔄 Refresh Now</button>
           </div>
         </div>
+        <div id="activityLocksAlert" style="margin: 8px 12px 0 12px;"></div>
         <div class="grid-scroll">
           <table class="data-grid" id="activityGrid">
             <thead>
@@ -2103,6 +2427,21 @@ export function generatePostgresStudioHtml(): string {
               <tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading PostgreSQL processes...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- TAB: Streaming Replication & WAL Status (Postgres Specialty) -->
+      <div class="tab-pane" id="tabReplication">
+        <div class="activity-toolbar">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--emerald);">Physical &amp; Logical Replication Diagnostics (pg_stat_replication)</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm" onclick="loadReplicationStatus()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div style="flex: 1; padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 14px;" id="replicationContainer">
+          <!-- Populated dynamically -->
         </div>
       </div>
 
@@ -2339,12 +2678,53 @@ export function generatePostgresStudioHtml(): string {
               <button class="btn" onclick="checkIntegrity()">🛡️ Run Schema Integrity Check</button>
             </div>
           </div>
+          <!-- PostgreSQL GUC Configuration Tuner Card -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 700; color: var(--cyan);">PostgreSQL GUC Parameter Catalog (pg_settings)</span>
+                <span id="gucSettingsCountBadge" class="brand-badge">0 settings</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="text" id="gucSearchInput" placeholder="Filter parameters (e.g. buffers, mem, timeout)..." oninput="filterGucSettings(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; width: 220px; outline: none;">
+                <button class="btn btn-sm" onclick="loadPragmaSettings()">🔄 Refresh</button>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+              <button class="btn btn-sm btn-primary" id="btnGucAll" onclick="setGucCategory('all')">All</button>
+              <button class="btn btn-sm" id="btnGucMem" onclick="setGucCategory('memory')">🧠 Memory</button>
+              <button class="btn btn-sm" id="btnGucPlan" onclick="setGucCategory('planner')">🎯 Query Planner</button>
+              <button class="btn btn-sm" id="btnGucWal" onclick="setGucCategory('wal')">💾 WAL &amp; Checkpoints</button>
+              <button class="btn btn-sm" id="btnGucConn" onclick="setGucCategory('connections')">🔌 Connections</button>
+              <button class="btn btn-sm" id="btnGucVac" onclick="setGucCategory('autovacuum')">🧹 Autovacuum</button>
+            </div>
+
+            <div style="overflow: auto; max-height: 380px; border: 1px solid var(--border-subtle); border-radius: 6px;">
+              <table class="data-grid" id="gucSettingsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 220px;">Parameter Name</th>
+                    <th style="width: 140px;">Current Setting</th>
+                    <th style="width: 80px;">Unit</th>
+                    <th style="width: 130px;">Category</th>
+                    <th style="width: 90px;">Context</th>
+                    <th>Description</th>
+                    <th style="width: 80px; text-align: center;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="gucSettingsBody">
+                  <tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 18px;">Click "Load pg_settings" or select a category to view PostgreSQL runtime configuration.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div class="card-title" style="font-weight: 700; color: var(--text-muted); margin-bottom: 0;">Server Tuning Output &amp; Diagnostics</div>
-              <button class="btn btn-sm" onclick="loadPragmaSettings()">📋 Load pg_settings</button>
             </div>
-            <pre class="code-box" id="pragmaOutputBox" style="height: 240px; overflow-y: auto; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin: 0; white-space: pre-wrap;">No tuning commands executed yet.</pre>
+            <pre class="code-box" id="pragmaOutputBox" style="height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin: 0; white-space: pre-wrap;">Ready.</pre>
           </div>
         </div>
       </div>
@@ -2638,6 +3018,93 @@ export function generatePostgresStudioHtml(): string {
     </div>
   </div>
 
+  <!-- Microsoft Access Printable Publication Report Modal -->
+  <div class="modal-overlay" id="accessReportModal" onclick="if(event.target === this) closeAccessReportModal()">
+    <div class="modal-card" style="max-width: 960px; max-height: 90vh;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📑</span>
+          <span>Microsoft Access Publication Report Preview</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="btn btn-sm btn-primary" onclick="printAccessReport()">🖨️ Print / Save PDF</button>
+          <button class="btn btn-sm" onclick="exportAccessReportHtml()">📥 Export HTML</button>
+          <button class="modal-close" onclick="closeAccessReportModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; background: #e2e8f0;">
+        <div id="accessReportContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PostgreSQL Database Backup & SQL Dump Modal -->
+  <div class="modal-overlay" id="dumpModal" onclick="if(event.target === this) closeDatabaseDumpModal()">
+    <div class="modal-card" style="max-width: 900px; max-height: 90vh;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>💾</span>
+          <span>PostgreSQL Database Backup &amp; SQL Dump Generator</span>
+        </div>
+        <button class="modal-close" onclick="closeDatabaseDumpModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; gap: 12px; overflow-y: auto;">
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">Dump Mode:</label>
+          <select id="dumpModeSelect" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+            <option value="all">Complete (Schema DDL + Table Data)</option>
+            <option value="schema">Schema Only (DDL, Indexes, Keys, Views, Sequences)</option>
+            <option value="data">Data Only (INSERT Statements)</option>
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="runGenerateDump()">⚡ Generate Dump</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">Tables to Include:</span>
+          <div id="dumpTablesList" style="display: flex; gap: 8px; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; border: 1px solid var(--border-subtle); max-height: 90px; overflow-y: auto;">
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--cyan);">SQL DUMP PREVIEW</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm" onclick="copyDumpSql()">📋 Copy SQL</button>
+              <button class="btn btn-sm" onclick="downloadDumpFile()">📥 Download .sql</button>
+              <button class="btn btn-sm btn-primary" onclick="openDumpInSqlIde()">🚀 Open in SQL IDE</button>
+            </div>
+          </div>
+          <textarea id="dumpSqlPreview" readonly style="width: 100%; height: 260px; font-family: var(--font-mono); font-size: 11px; background: rgba(6,11,20,0.95); color: #a5f3fc; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 10px; resize: none; outline: none; white-space: pre;"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Custom ENUM Type Modal -->
+  <div class="modal-overlay" id="createEnumModal" onclick="if(event.target === this) closeCreateEnumModal()">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🏷️</span>
+          <span>Create PostgreSQL ENUM Type</span>
+        </div>
+        <button class="modal-close" onclick="closeCreateEnumModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--text-dim); font-weight: 700;">Type Name (e.g. order_status, priority_level):</label>
+          <input type="text" id="enumNewName" placeholder="e.g. order_status" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 12px; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--text-dim); font-weight: 700;">Allowed Values (comma separated):</label>
+          <input type="text" id="enumNewValues" placeholder="e.g. pending, processing, completed, refunded" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 12px; outline: none;">
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-sm" onclick="closeCreateEnumModal()">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="submitCreateEnum()">Create Type</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast"></div>
 
@@ -2647,6 +3114,8 @@ export function generatePostgresStudioHtml(): string {
 
     let currentSchema = null;
     let activeTable = null;
+    let activeTab = "grid";
+    window.activeTab = "grid";
     let currentGridData = null;
     let gridCurrentPage = 1;
     let gridPageSize = 50;
@@ -2716,6 +3185,8 @@ export function generatePostgresStudioHtml(): string {
 
     // Tab Switching
     function switchTab(tabId) {
+      activeTab = tabId;
+      window.activeTab = tabId;
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
       document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
 
@@ -2724,8 +3195,11 @@ export function generatePostgresStudioHtml(): string {
         sql: "tabBtnSql",
         designer: "tabBtnDesigner",
         schema: "tabBtnSchema",
+        types: "tabBtnTypes",
+        partitions: "tabBtnPartitions",
         extensions: "tabBtnExtensions",
         activity: "tabBtnActivity",
+        replication: "tabBtnReplication",
         explain: "tabBtnExplain",
         sequences: "tabBtnSequences",
         roles: "tabBtnRoles",
@@ -2741,8 +3215,11 @@ export function generatePostgresStudioHtml(): string {
         sql: "tabSql",
         designer: "tabDesigner",
         schema: "tabSchema",
+        types: "tabTypes",
+        partitions: "tabPartitions",
         extensions: "tabExtensions",
         activity: "tabActivity",
+        replication: "tabReplication",
         explain: "tabExplain",
         sequences: "tabSequences",
         roles: "tabRoles",
@@ -2757,8 +3234,11 @@ export function generatePostgresStudioHtml(): string {
       if (paneMap[tabId]) document.getElementById(paneMap[tabId])?.classList.add("active");
 
       if (tabId === "schema") renderSchemaDesigner(activeTable);
+      if (tabId === "types") loadEnumTypes();
+      if (tabId === "partitions") loadPartitions();
       if (tabId === "extensions") loadExtensions();
       if (tabId === "activity") loadActivity();
+      if (tabId === "replication") loadReplicationStatus();
       if (tabId === "designer") renderQueryDesigner();
       if (tabId === "sequences") loadSequences();
       if (tabId === "roles") loadRoles();
@@ -2816,8 +3296,12 @@ export function generatePostgresStudioHtml(): string {
         if (!activeTable || !allItems.find(item => item.name === activeTable)) {
           if (currentSchema.tables && currentSchema.tables.length > 0) {
             const cust = currentSchema.tables.find(t => t.name === "customers") || currentSchema.tables[0];
-            selectEntity(cust.name, cust.type || "table");
+            selectEntity(cust.name, cust.type || "table", { switchTab: false });
           }
+        }
+        if (typeof ensureQueryDesignerState === "function") ensureQueryDesignerState();
+        if (typeof renderQueryDesigner === "function" && activeTab === "designer") {
+          renderQueryDesigner();
         }
       } else {
         showToast("Error loading schema: " + ((res && res.error) || "Unknown error"));
@@ -2909,13 +3393,41 @@ export function generatePostgresStudioHtml(): string {
     }
 
     // Select Entity & Load in Data Grid
-    function selectEntity(name, type) {
+    function selectEntity(name, type, options = {}) {
       activeTable = name;
       renderSidebarTree();
-      document.getElementById("gridTargetTitle").innerText = name + " (" + type + ")";
-      switchTab("grid");
+      const gridTarget = document.getElementById("gridTargetTitle");
+      if (gridTarget) gridTarget.innerText = name + " (" + type + ")";
+      const sqlEditor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+      if (sqlEditor && !sqlEditor.value.trim()) {
+        sqlEditor.value = 'SELECT * FROM "' + name.replace(/"/g, '""') + '" LIMIT 100;';
+      }
+      if (typeof queryDesignerState !== "undefined" && queryDesignerState && queryDesignerState.selectedTables) {
+        if (!queryDesignerState.selectedTables.includes(name)) {
+          queryDesignerState.selectedTables = [name, ...queryDesignerState.selectedTables.filter(n => n !== name)];
+        }
+      }
+      if (options.switchTab !== false && activeTab !== "designer" && activeTab !== "schema") {
+        switchTab("grid");
+      }
       loadTableData(name);
+      if (typeof renderSchemaDesigner === "function") renderSchemaDesigner(name);
+      if (typeof renderQueryDesigner === "function" && activeTab === "designer") renderQueryDesigner();
     }
+
+    function selectTable(tableName) {
+      selectEntity(tableName, 'table');
+    }
+    window.selectTable = selectTable;
+
+    async function refreshAll() {
+      await loadSchema();
+      await loadKpis();
+      if (typeof renderQueryDesigner === "function" && activeTab === "designer") {
+        renderQueryDesigner();
+      }
+    }
+    window.refreshAll = refreshAll;
 
     // Load Table Data (Paginated & Filtered)
     async function loadTableData(tableName, page = 1) {
@@ -2929,7 +3441,11 @@ export function generatePostgresStudioHtml(): string {
 
       if (res.success) {
         currentGridData = res;
+        currentGridData.rawRows = [...(res.rows || [])];
         renderGridTable(res.rows, res.columns, res.total, res.page, res.pageSize);
+        if (typeof gridDisplayMode !== "undefined" && gridDisplayMode === "form") {
+          renderCurrentFormRecord();
+        }
         document.getElementById("rawJsonBox").innerText = JSON.stringify(res, null, 2);
       } else {
         showToast("Error loading data: " + res.error);
@@ -2948,6 +3464,15 @@ export function generatePostgresStudioHtml(): string {
       }
 
       thead.innerHTML = "<th style='width: 36px; text-align: center;'>#</th>" + columns.map(c => "<th>" + c + "</th>").join('');
+
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (filterRow) {
+        filterRow.style.display = accessFilterBarVisible ? "table-row" : "none";
+        filterRow.innerHTML = "<th style='text-align: center; color: var(--accent);'>⚡</th>" + columns.map(c => {
+          const curVal = activeColumnFilters[c] || "";
+          return "<th><input type='text' class='access-filter-input' placeholder='Filter " + escapeHtml(c) + "...' value='" + escapeHtml(curVal) + "' oninput='onColumnFilterInput(&quot;" + escapeHtml(c) + "&quot;, this.value)'></th>";
+        }).join('');
+      }
 
       if (!rows || rows.length === 0) {
         tbody.innerHTML = "<tr><td colspan='" + (columns.length + 1) + "' style='text-align: center; color: var(--text-dim); padding: 24px;'>No rows returned</td></tr>";
@@ -2981,6 +3506,7 @@ export function generatePostgresStudioHtml(): string {
 
       const totalPages = Math.ceil(total / pageSize) || 1;
       document.getElementById("gridPageInfo").innerText = "Page " + page + " of " + totalPages + " (" + total.toLocaleString() + " rows)";
+      updateAccessTotalsRow(rows, columns, total);
     }
 
     function gridChangePage(delta) {
@@ -2996,6 +3522,252 @@ export function generatePostgresStudioHtml(): string {
       gridSearchQuery = val;
       if (activeTable) loadTableData(activeTable, 1);
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Microsoft Access Form View Implementation
+    // ---------------------------------------------------------------------------------------------
+    let gridDisplayMode = "datasheet";
+    let currentFormRecordIndex = 0;
+    let formIsNew = false;
+
+    function switchGridMode(mode) {
+      gridDisplayMode = mode;
+      const btnData = document.getElementById("btnViewDatasheet");
+      const btnForm = document.getElementById("btnViewForm");
+      const tableContainer = document.getElementById("gridTableContainer");
+      const formContainer = document.getElementById("gridFormContainer");
+
+      if (mode === "form") {
+        if (btnData) btnData.classList.remove("btn-primary");
+        if (btnForm) btnForm.classList.add("btn-primary");
+        if (tableContainer) tableContainer.style.display = "none";
+        if (formContainer) {
+          formContainer.style.display = "flex";
+          renderCurrentFormRecord();
+        }
+      } else {
+        if (btnForm) btnForm.classList.remove("btn-primary");
+        if (btnData) btnData.classList.add("btn-primary");
+        if (formContainer) formContainer.style.display = "none";
+        if (tableContainer) tableContainer.style.display = "block";
+      }
+    }
+
+    function renderCurrentFormRecord() {
+      const container = document.getElementById("accessFormFields");
+      const recordInput = document.getElementById("formCurrentRecordInput");
+      const totalSpan = document.getElementById("formTotalRecords");
+      const statusBadge = document.getElementById("formStatusBadge");
+      if (!container) return;
+
+      if (!activeTable || !currentGridData || !Array.isArray(currentGridData.rows) || currentGridData.rows.length === 0) {
+        if (formIsNew && currentGridData && currentGridData.columns) {
+          // Proceed with blank fields for new draft
+        } else {
+          container.innerHTML = '<div style="color: var(--text-dim); text-align: center; padding: 48px;">No records available for table "' + escapeHtml(activeTable || 'none') + '". Click "➕ New" below to add a record.</div>';
+          if (recordInput) recordInput.value = 0;
+          if (totalSpan) totalSpan.innerText = "0";
+          if (statusBadge) statusBadge.innerText = "No Records";
+          return;
+        }
+      }
+
+      const rows = currentGridData ? (currentGridData.rows || []) : [];
+      const total = rows.length;
+
+      if (!formIsNew) {
+        if (currentFormRecordIndex < 0) currentFormRecordIndex = 0;
+        if (currentFormRecordIndex >= total && total > 0) currentFormRecordIndex = total - 1;
+      }
+
+      const activeRow = formIsNew ? {} : (rows[currentFormRecordIndex] || {});
+      const columns = (currentGridData && currentGridData.columns) ? currentGridData.columns : Object.keys(activeRow);
+      
+      const meta = currentSchema && currentSchema.tables ? currentSchema.tables.find(t => t.name === activeTable) : null;
+      const colMetaMap = {};
+      if (meta && meta.columns) {
+        meta.columns.forEach(c => { colMetaMap[c.name] = c; });
+      }
+
+      if (recordInput) recordInput.value = formIsNew ? "*" : (currentFormRecordIndex + 1);
+      if (totalSpan) totalSpan.innerText = String(total);
+      if (statusBadge) {
+        statusBadge.innerText = formIsNew ? "New Record (Unsaved)" : "Record " + (currentFormRecordIndex + 1) + " of " + total;
+        statusBadge.style.color = formIsNew ? "var(--amber)" : "var(--cyan)";
+      }
+
+      let formHtml = '<div style="font-weight: 700; color: var(--cyan); font-size: 13px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">' +
+        '<span>📑 Form Record: ' + escapeHtml(activeTable || '') + '</span>' +
+        '<span style="font-size: 11px; color: var(--text-dim); font-weight: 400;">Access-Style Single Record Inspector</span>' +
+        '</div>' +
+        '<div class="access-form-grid">';
+
+      columns.forEach(col => {
+        const cMeta = colMetaMap[col] || {};
+        const colType = cMeta.type || (typeof activeRow[col] === 'number' ? 'numeric' : (typeof activeRow[col] === 'boolean' ? 'boolean' : 'text'));
+        const isPk = Boolean(cMeta.pk);
+        const val = activeRow[col];
+        const valStr = val === null || val === undefined ? '' : (typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val));
+
+        formHtml += '<div class="access-field-card">' +
+          '<div class="access-field-header">' +
+          '<span class="access-field-name">' + (isPk ? '🔑 ' : '') + escapeHtml(col) + '</span>' +
+          '<div style="display: flex; gap: 4px;">' +
+          (isPk ? '<span class="access-field-pk">PK</span>' : '') +
+          '<span class="access-field-type">' + escapeHtml(colType) + '</span>' +
+          '</div></div>';
+
+        if (/bool/i.test(colType)) {
+          const isTrue = val === true || val === 'true' || val === 't';
+          formHtml += '<select class="form-field-input" data-col="' + escapeHtml(col) + '" style="font-size: 12px; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;">' +
+            '<option value="true" ' + (isTrue ? 'selected' : '') + '>TRUE</option>' +
+            '<option value="false" ' + (!isTrue ? 'selected' : '') + '>FALSE</option>' +
+            '<option value="" ' + (val === null || val === undefined ? 'selected' : '') + '>NULL</option>' +
+            '</select>';
+        } else if (/json/i.test(colType)) {
+          formHtml += '<textarea class="form-field-input" data-col="' + escapeHtml(col) + '" style="font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fde68a; padding: 8px; min-height: 70px; resize: vertical;">' + escapeHtml(valStr) + '</textarea>';
+        } else if (/uuid/i.test(colType)) {
+          formHtml += '<div style="display: flex; gap: 6px;">' +
+            '<input type="text" class="form-field-input" data-col="' + escapeHtml(col) + '" value="' + escapeHtml(valStr) + '" style="font-family: var(--font-mono); font-size: 11px; flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #a5f3fc; padding: 6px 8px;">' +
+            '<button class="btn btn-sm" onclick="this.previousElementSibling.value = crypto.randomUUID()">🎲 UUID</button>' +
+            '</div>';
+        } else if (/timestamp|date/i.test(colType)) {
+          formHtml += '<div style="display: flex; gap: 6px;">' +
+            '<input type="text" class="form-field-input" data-col="' + escapeHtml(col) + '" value="' + escapeHtml(valStr) + '" style="font-family: var(--font-mono); font-size: 11px; flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; padding: 6px 8px;">' +
+            '<button class="btn btn-sm" onclick="this.previousElementSibling.value = new Date().toISOString()">⏱️ Now</button>' +
+            '</div>';
+        } else if (/int|num|float|double|decimal|serial/i.test(colType)) {
+          formHtml += '<input type="number" step="any" class="form-field-input" data-col="' + escapeHtml(col) + '" value="' + escapeHtml(valStr) + '" style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; padding: 6px 8px;">';
+        } else {
+          if (valStr.length > 80) {
+            formHtml += '<textarea class="form-field-input" data-col="' + escapeHtml(col) + '" style="font-size: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; padding: 6px 8px; min-height: 50px; resize: vertical;">' + escapeHtml(valStr) + '</textarea>';
+          } else {
+            formHtml += '<input type="text" class="form-field-input" data-col="' + escapeHtml(col) + '" value="' + escapeHtml(valStr) + '" style="font-size: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; padding: 6px 8px;">';
+          }
+        }
+
+        formHtml += '</div>';
+      });
+
+      formHtml += '</div>';
+      container.innerHTML = formHtml;
+    }
+
+    function formNavRecord(action) {
+      if (!currentGridData || !currentGridData.rows || currentGridData.rows.length === 0) return;
+      formIsNew = false;
+      const total = currentGridData.rows.length;
+      if (action === "first") currentFormRecordIndex = 0;
+      else if (action === "prev" && currentFormRecordIndex > 0) currentFormRecordIndex--;
+      else if (action === "next" && currentFormRecordIndex < total - 1) currentFormRecordIndex++;
+      else if (action === "last") currentFormRecordIndex = total - 1;
+      renderCurrentFormRecord();
+    }
+
+    function formJumpToRecord(idx) {
+      if (!currentGridData || !currentGridData.rows) return;
+      const total = currentGridData.rows.length;
+      if (isNaN(idx) || idx < 1) idx = 1;
+      if (idx > total) idx = total;
+      formIsNew = false;
+      currentFormRecordIndex = idx - 1;
+      renderCurrentFormRecord();
+    }
+
+    function formNewRecord() {
+      formIsNew = true;
+      renderCurrentFormRecord();
+      showToast("Ready to enter new record. Fill fields and click Save.");
+    }
+
+    function formDuplicateRecord() {
+      if (!currentGridData || !currentGridData.rows || currentGridData.rows.length === 0) return;
+      formIsNew = true;
+      renderCurrentFormRecord();
+      const meta = currentSchema && currentSchema.tables ? currentSchema.tables.find(t => t.name === activeTable) : null;
+      if (meta && meta.columns) {
+        const pkCol = meta.columns.find(c => c.pk);
+        if (pkCol) {
+          const input = document.querySelector('.form-field-input[data-col="' + pkCol.name + '"]');
+          if (input) input.value = "";
+        }
+      }
+      showToast("Duplicated record as new draft. Click Save to insert.");
+    }
+
+    async function formSaveRecord() {
+      if (!activeTable) return;
+      const inputs = document.querySelectorAll("#accessFormFields .form-field-input");
+      const record = {};
+      inputs.forEach(inp => {
+        const col = inp.dataset.col;
+        if (!col) return;
+        let v = inp.value;
+        if (v === "" && inp.type === "number") v = null;
+        record[col] = v;
+      });
+
+      const meta = currentSchema && currentSchema.tables ? currentSchema.tables.find(t => t.name === activeTable) : null;
+      const pkColObj = meta && meta.columns ? (meta.columns.find(c => c.pk) || meta.columns[0]) : null;
+
+      if (formIsNew) {
+        showToast("Inserting new record into " + activeTable + "...");
+        const res = await apiRequest("/api/rows/insert", "POST", { table: activeTable, row: record });
+        if (res && res.success) {
+          showToast("✓ New record inserted successfully!");
+          formIsNew = false;
+          await loadTableData(activeTable, gridCurrentPage);
+          if (currentGridData && currentGridData.rows) {
+            currentFormRecordIndex = currentGridData.rows.length - 1;
+          }
+          renderCurrentFormRecord();
+        } else {
+          showToast("Error inserting record: " + (res?.error || "Failed"));
+        }
+      } else {
+        if (!pkColObj) {
+          showToast("Cannot update: no primary key identified for table " + activeTable);
+          return;
+        }
+        const currentRow = currentGridData.rows[currentFormRecordIndex];
+        const pkVal = currentRow ? currentRow[pkColObj.name] : record[pkColObj.name];
+        showToast("Saving changes to record (PK: " + pkVal + ")...");
+        const res = await apiRequest("/api/rows/update", "POST", { table: activeTable, pkCol: pkColObj.name, pkVal: pkVal, row: record });
+        if (res && res.success) {
+          showToast("✓ Record updated successfully!");
+          await loadTableData(activeTable, gridCurrentPage);
+          renderCurrentFormRecord();
+        } else {
+          showToast("Error updating record: " + (res?.error || "Failed"));
+        }
+      }
+    }
+
+    async function formDeleteRecord() {
+      if (!activeTable || !currentGridData || !currentGridData.rows || currentGridData.rows.length === 0) return;
+      const meta = currentSchema && currentSchema.tables ? currentSchema.tables.find(t => t.name === activeTable) : null;
+      const pkColObj = meta && meta.columns ? (meta.columns.find(c => c.pk) || meta.columns[0]) : null;
+      if (!pkColObj) {
+        showToast("Cannot delete: no primary key identified");
+        return;
+      }
+      const currentRow = currentGridData.rows[currentFormRecordIndex];
+      const pkVal = currentRow ? currentRow[pkColObj.name] : null;
+      if (pkVal === null || pkVal === undefined) return;
+
+      if (!confirm("Are you sure you want to delete this record (PK: " + pkVal + ")?")) return;
+      showToast("Deleting record " + pkVal + "...");
+      const res = await apiRequest("/api/rows/delete", "POST", { table: activeTable, pkCol: pkColObj.name, pkVal: pkVal });
+      if (res && res.success) {
+        showToast("✓ Record deleted");
+        await loadTableData(activeTable, gridCurrentPage);
+        if (currentFormRecordIndex > 0) currentFormRecordIndex--;
+        renderCurrentFormRecord();
+      } else {
+        showToast("Error deleting record: " + (res?.error || "Failed"));
+      }
+    }
+
 
     // ---------------------------------------------------------------------------------------------
     // Fullscreen Support & Browser Auto-Fullscreen
@@ -3078,21 +3850,22 @@ export function generatePostgresStudioHtml(): string {
         styleEl.id = 'pg-dyn-theme';
         document.head.appendChild(styleEl);
       }
-      styleEl.textContent = 
-        ".btn-primary, .qbe-btn-run, .btn-highlight {\n" +
-        "  background: " + t.accent + " !important;\n" +
-        "  color: " + t.btnColor + " !important;\n" +
-        "  border-color: " + t.accent + " !important;\n" +
-        "  box-shadow: 0 0 10px " + t.accentGlow + " !important;\n" +
-        "}\n" +
-        ".btn-primary:hover, .qbe-btn-run:hover, .btn-highlight:hover {\n" +
-        "  filter: brightness(1.15) !important;\n" +
-        "}\n" +
-        ".qbe-view-btn.active, .qbe-btn-toggle.active {\n" +
-        "  background: " + t.accent + " !important;\n" +
-        "  color: " + t.btnColor + " !important;\n" +
-        "  border-color: " + t.accent + " !important;\n" +
-        "}\n";
+      styleEl.textContent = \`
+        .btn-primary, .qbe-btn-run, .btn-highlight {
+          background: \${t.accent} !important;
+          color: \${t.btnColor} !important;
+          border-color: \${t.accent} !important;
+          box-shadow: 0 0 10px \${t.accentGlow} !important;
+        }
+        .btn-primary:hover, .qbe-btn-run:hover, .btn-highlight:hover {
+          filter: brightness(1.15) !important;
+        }
+        .qbe-view-btn.active, .qbe-btn-toggle.active {
+          background: \${t.accent} !important;
+          color: \${t.btnColor} !important;
+          border-color: \${t.accent} !important;
+        }
+      \`;
       const sel = document.getElementById('ddStudioTheme');
       if (sel && sel.value !== themeName) sel.value = themeName;
     };
@@ -3207,13 +3980,13 @@ export function generatePostgresStudioHtml(): string {
           if (jsonInsp) jsonInsp.textContent = JSON.stringify(rows, null, 2);
 
           switchTab("grid");
-          logAudit("[QUERY OK] " + sql.replace(/\n/g, ' ').slice(0, 100) + " (" + latency + "ms, " + rows.length + " rows)");
+          logAudit("[QUERY OK] " + sql.replace(/\\n/g, ' ').slice(0, 100) + " (" + latency + "ms, " + rows.length + " rows)");
         } else {
           showToast("Statement executed (" + (res.rowsAffected ?? 0) + " rows affected)");
           const resSum = document.getElementById("resultSummary");
           if (resSum) resSum.textContent = "Rows affected: " + (res.rowsAffected ?? 0);
           if (statusEl) statusEl.textContent = "✓ Executed (" + (res.rowsAffected ?? 0) + " rows affected)";
-          logAudit("[MUTATION OK] " + sql.replace(/\n/g, ' ').slice(0, 100) + " (" + latency + "ms)");
+          logAudit("[MUTATION OK] " + sql.replace(/\\n/g, ' ').slice(0, 100) + " (" + latency + "ms)");
           await loadSchema();
           await loadKpis();
         }
@@ -3259,7 +4032,7 @@ export function generatePostgresStudioHtml(): string {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Schema & DDL Designer Visualizer
+    // Microsoft Access Table Design View & DDL Visualizer
     // ---------------------------------------------------------------------------------------------
     function renderSchemaDesigner(tableName) {
       const container = document.getElementById("schemaContainer");
@@ -3268,7 +4041,7 @@ export function generatePostgresStudioHtml(): string {
 
       const name = tableName || activeTable || (currentSchema.tables && currentSchema.tables[0]?.name);
       if (!name) {
-        container.innerHTML = '<div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 16px;"><div class="card-title">Select a table from the sidebar to inspect its columns, keys, and DDL</div></div>';
+        container.innerHTML = '<div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 16px;"><div class="card-title">Select a table or view from the sidebar to inspect its design, columns, keys, and DDL</div></div>';
         return;
       }
 
@@ -3278,47 +4051,285 @@ export function generatePostgresStudioHtml(): string {
 
       if (!meta) return;
 
-      const card = document.createElement("div");
-      card.className = "card";
-      card.style.background = "var(--bg-card)";
-      card.style.border = "1px solid var(--border-subtle)";
-      card.style.borderRadius = "6px";
-      card.style.padding = "16px";
-      
       const numRows = (meta.rowCount || meta.rows || 0).toLocaleString();
-      let tableHtml = '<div class="card-title" style="font-weight: 700; color: var(--cyan); margin-bottom: 8px;">🏛️ Table Schema: ' + escapeHtml(meta.name) + ' (' + numRows + ' records)</div>' +
-        '<table class="data-grid" style="margin-top: 8px;">' +
-        '<thead><tr><th>#</th><th>Column Name</th><th>Data Type</th><th>Primary Key</th><th>Not Null</th><th>Default</th></tr></thead>' +
+      const isTable = meta.type === "table" || !meta.type;
+
+      // 1. Table Header & Ribbon
+      const headerCard = document.createElement("div");
+      headerCard.className = "card";
+      headerCard.style.background = "var(--bg-card)";
+      headerCard.style.border = "1px solid var(--border-subtle)";
+      headerCard.style.borderRadius = "8px";
+      headerCard.style.padding = "14px 18px";
+      headerCard.style.marginBottom = "12px";
+
+      headerCard.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">' +
+        '<div style="display: flex; align-items: center; gap: 10px;">' +
+        '<span style="font-size: 20px;">📐</span>' +
+        '<div>' +
+        '<div style="font-weight: 700; color: var(--cyan); font-size: 15px;">Table Design View: ' + escapeHtml(meta.name) + '</div>' +
+        '<div style="font-size: 11px; color: var(--text-dim);">' + (meta.type || 'table').toUpperCase() + ' · ' + numRows + ' records · ' + (meta.columns || []).length + ' fields · ' + (meta.indices || []).length + ' indexes</div>' +
+        '</div></div>' +
+        '<div style="display: flex; gap: 6px;">' +
+        '<button class="btn btn-sm btn-primary" onclick="selectEntity(&quot;' + escapeHtml(meta.name) + '&quot;, &quot;' + (meta.type || 'table') + '&quot;)">📋 Open Datasheet</button>' +
+        '<button class="btn btn-sm" onclick="switchGridMode(&quot;form&quot;); switchTab(&quot;grid&quot;);">📑 Open Form View</button>' +
+        '<button class="btn btn-sm" onclick="renderSchemaDesigner(&quot;' + escapeHtml(meta.name) + '&quot;)">🔄 Refresh Design</button>' +
+        '</div></div>';
+      container.appendChild(headerCard);
+
+      // 2. Access-Style Fields Grid Card
+      const fieldsCard = document.createElement("div");
+      fieldsCard.className = "card";
+      fieldsCard.style.background = "var(--bg-card)";
+      fieldsCard.style.border = "1px solid var(--border-subtle)";
+      fieldsCard.style.borderRadius = "8px";
+      fieldsCard.style.padding = "16px";
+      fieldsCard.style.marginBottom = "12px";
+
+      let fieldsHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">' +
+        '<div class="card-title" style="font-weight: 700; color: var(--cyan); margin-bottom: 0;">🏛️ Table Fields (Columns Specification)</div>' +
+        '<span style="font-size: 11px; color: var(--text-dim);">PostgreSQL Schema Definition</span>' +
+        '</div>' +
+        '<div style="overflow-x: auto;">' +
+        '<table class="data-grid" style="margin-top: 4px;">' +
+        '<thead><tr><th style="width: 40px; text-align: center;">#</th><th>Field Name</th><th>Data Type</th><th style="width: 90px; text-align: center;">Primary Key</th><th style="width: 90px; text-align: center;">Not Null</th><th>Default Value</th><th style="width: 80px; text-align: center;">Actions</th></tr></thead>' +
         '<tbody>';
 
       (meta.columns || []).forEach((c, i) => {
-        tableHtml += '<tr>' +
-          '<td>' + (c.cid ?? (i + 1)) + '</td>' +
-          '<td style="color: var(--cyan); font-weight: 600;">' + escapeHtml(c.name) + '</td>' +
-          '<td>' + escapeHtml(c.type || c.data_type || 'text') + '</td>' +
-          '<td>' + (c.pk || c.is_primary ? '🔑 YES' : '-') + '</td>' +
-          '<td>' + (c.notnull || !c.is_nullable ? 'YES' : 'NULLABLE') + '</td>' +
-          '<td>' + (c.dflt_value !== null && c.dflt_value !== undefined ? escapeHtml(c.dflt_value) : (c.column_default ? escapeHtml(c.column_default) : '-')) + '</td>' +
+        fieldsHtml += '<tr>' +
+          '<td style="text-align: center; color: var(--text-dim);">' + (c.cid ?? (i + 1)) + '</td>' +
+          '<td style="color: var(--cyan); font-weight: 600; font-family: var(--font-mono);">' + escapeHtml(c.name) + '</td>' +
+          '<td><span class="access-field-type">' + escapeHtml(c.type || c.data_type || 'text') + '</span></td>' +
+          '<td style="text-align: center;">' + (c.pk || c.is_primary ? '<span class="access-field-pk">🔑 YES</span>' : '<span style="color: var(--text-dim);">-</span>') + '</td>' +
+          '<td style="text-align: center;">' + (c.notnull || !c.is_nullable ? '<span class="brand-badge" style="background: rgba(244,63,94,0.12); color: var(--rose); font-size: 9px;">NOT NULL</span>' : '<span style="color: var(--text-dim); font-size: 10px;">NULLABLE</span>') + '</td>' +
+          '<td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">' + (c.dflt_value !== null && c.dflt_value !== undefined ? escapeHtml(c.dflt_value) : (c.column_default ? escapeHtml(c.column_default) : '<span style="color: var(--text-dim); font-style: italic;">none</span>')) + '</td>' +
+          '<td style="text-align: center;">' + (isTable ? '<button class="btn btn-sm btn-danger" onclick="executeDropColumn(&quot;' + escapeHtml(meta.name) + '&quot;, &quot;' + escapeHtml(c.name) + '&quot;)" title="Drop Column">🗑️</button>' : '-') + '</td>' +
           '</tr>';
       });
-      tableHtml += '</tbody></table>';
-      card.innerHTML = tableHtml;
+      fieldsHtml += '</tbody></table></div>';
 
+      // Inline Add Column for tables
+      if (isTable) {
+        fieldsHtml += '<div style="margin-top: 14px; padding: 12px; background: rgba(0,0,0,0.25); border: 1px dashed var(--border-subtle); border-radius: 6px;">' +
+          '<div style="font-size: 11px; font-weight: 700; color: var(--cyan); margin-bottom: 8px;">➕ Add Field to Table (ALTER TABLE ADD COLUMN)</div>' +
+          '<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">' +
+          '<input type="text" id="addColName" placeholder="Column name (e.g. status, total_cents)..." style="font-size: 11px; padding: 5px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff; width: 180px;">' +
+          '<select id="addColType" style="font-size: 11px; padding: 4px 20px 4px 8px; width: 150px;">' +
+          '<option value="text">text</option>' +
+          '<option value="varchar(255)">varchar(255)</option>' +
+          '<option value="integer">integer</option>' +
+          '<option value="bigint">bigint</option>' +
+          '<option value="numeric(12,2)">numeric(12,2)</option>' +
+          '<option value="boolean">boolean</option>' +
+          '<option value="timestamp with time zone">timestamptz</option>' +
+          '<option value="date">date</option>' +
+          '<option value="jsonb">jsonb</option>' +
+          '<option value="uuid">uuid</option>' +
+          '<option value="bytea">bytea</option>' +
+          '</select>' +
+          '<label style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="addColNotNull"> Not Null</label>' +
+          '<input type="text" id="addColDefault" placeholder="Default (e.g. NOW(), 0)..." style="font-size: 11px; padding: 5px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff; width: 140px;">' +
+          '<button class="btn btn-sm btn-primary" onclick="executeAddColumn(&quot;' + escapeHtml(meta.name) + '&quot;)">➕ Add Column</button>' +
+          '</div></div>';
+      }
+
+      fieldsCard.innerHTML = fieldsHtml;
+      container.appendChild(fieldsCard);
+
+      // 3. Table Indexes Card
+      const idxCard = document.createElement("div");
+      idxCard.className = "card";
+      idxCard.style.background = "var(--bg-card)";
+      idxCard.style.border = "1px solid var(--border-subtle)";
+      idxCard.style.borderRadius = "8px";
+      idxCard.style.padding = "16px";
+      idxCard.style.marginBottom = "12px";
+
+      let idxHtml = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">' +
+        '<div class="card-title" style="font-weight: 700; color: var(--amber); margin-bottom: 0;">🏷️ Table Indexes (' + (meta.indices || []).length + ')</div>' +
+        '<span style="font-size: 11px; color: var(--text-dim);">PostgreSQL Index Catalog (pg_indexes)</span>' +
+        '</div>';
+
+      if (!meta.indices || meta.indices.length === 0) {
+        idxHtml += '<div style="color: var(--text-dim); font-size: 11px; padding: 12px 0;">No indexes registered on this relation.</div>';
+      } else {
+        idxHtml += '<table class="data-grid">' +
+          '<thead><tr><th>Index Name</th><th style="width: 90px; text-align: center;">Unique</th><th>Index Definition (SQL)</th><th style="width: 80px; text-align: center;">Action</th></tr></thead>' +
+          '<tbody>';
+        meta.indices.forEach(idx => {
+          idxHtml += '<tr>' +
+            '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 600;">' + escapeHtml(idx.name) + '</td>' +
+            '<td style="text-align: center;">' + (idx.unique ? '<span class="brand-badge" style="background: rgba(245,158,11,0.2); color: #fbbf24; font-size: 9px;">UNIQUE</span>' : '<span style="color: var(--text-dim);">-</span>') + '</td>' +
+            '<td style="font-family: var(--font-mono); font-size: 11px; color: #94a3b8;">' + escapeHtml(idx.indexDef || '-') + '</td>' +
+            '<td style="text-align: center;">' + (!idx.name.endsWith("_pkey") ? '<button class="btn btn-sm btn-danger" onclick="executeDropIndex(&quot;' + escapeHtml(meta.name) + '&quot;, &quot;' + escapeHtml(idx.name) + '&quot;)" title="Drop Index">🗑️</button>' : '<span style="color: var(--text-dim); font-size: 10px;">PK</span>') + '</td>' +
+            '</tr>';
+        });
+        idxHtml += '</tbody></table>';
+      }
+
+      if (isTable) {
+        idxHtml += '<div style="margin-top: 14px; padding: 12px; background: rgba(0,0,0,0.25); border: 1px dashed var(--border-subtle); border-radius: 6px;">' +
+          '<div style="font-size: 11px; font-weight: 700; color: var(--amber); margin-bottom: 8px;">➕ Create Table Index (CREATE INDEX ON...)</div>' +
+          '<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">' +
+          '<input type="text" id="addIdxName" placeholder="Index name (e.g. idx_' + meta.name + '_col)..." style="font-size: 11px; padding: 5px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff; width: 200px;">' +
+          '<select id="addIdxCol" style="font-size: 11px; padding: 4px 20px 4px 8px; width: 140px;">' +
+          (meta.columns || []).map(c => '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>').join('') +
+          '</select>' +
+          '<select id="addIdxType" style="font-size: 11px; padding: 4px 20px 4px 8px; width: 110px;">' +
+          '<option value="btree">BTREE</option>' +
+          '<option value="gin">GIN</option>' +
+          '<option value="hash">HASH</option>' +
+          '<option value="brin">BRIN</option>' +
+          '</select>' +
+          '<label style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="addIdxUnique"> Unique</label>' +
+          '<button class="btn btn-sm btn-primary" onclick="executeCreateIndex(&quot;' + escapeHtml(meta.name) + '&quot;)">➕ Create Index</button>' +
+          '</div></div>';
+      }
+
+      idxCard.innerHTML = idxHtml;
+      container.appendChild(idxCard);
+
+      // 4. Foreign Keys Card
+      if (meta.foreignKeys && meta.foreignKeys.length > 0) {
+        const fkCard = document.createElement("div");
+        fkCard.className = "card";
+        fkCard.style.background = "var(--bg-card)";
+        fkCard.style.border = "1px solid var(--border-subtle)";
+        fkCard.style.borderRadius = "8px";
+        fkCard.style.padding = "16px";
+        fkCard.style.marginBottom = "12px";
+
+        let fkHtml = '<div class="card-title" style="font-weight: 700; color: var(--indigo); margin-bottom: 10px;">🔗 Foreign Key Relationships (' + meta.foreignKeys.length + ')</div>' +
+          '<table class="data-grid">' +
+          '<thead><tr><th>Constraint</th><th>Source Column</th><th>Referenced Target Table</th><th>Referenced Target Column</th></tr></thead>' +
+          '<tbody>';
+        meta.foreignKeys.forEach(fk => {
+          fkHtml += '<tr>' +
+            '<td style="font-family: var(--font-mono); color: #cbd5e1;">' + escapeHtml(fk.constraint_name || fk.id || 'fk') + '</td>' +
+            '<td style="color: var(--cyan); font-weight: 600;">' + escapeHtml(fk.from || fk.column_name || '-') + '</td>' +
+            '<td style="color: var(--indigo); font-weight: 600;">' + escapeHtml(fk.table || fk.foreign_table_name || '-') + '</td>' +
+            '<td style="color: var(--emerald); font-weight: 600;">' + escapeHtml(fk.to || fk.foreign_column_name || '-') + '</td>' +
+            '</tr>';
+        });
+        fkHtml += '</tbody></table>';
+        fkCard.innerHTML = fkHtml;
+        container.appendChild(fkCard);
+      }
+
+      // 5. Live DDL Definition Card
       const ddlCard = document.createElement("div");
       ddlCard.className = "card";
-      ddlCard.style.marginTop = "12px";
       ddlCard.style.background = "var(--bg-card)";
       ddlCard.style.border = "1px solid var(--border-subtle)";
-      ddlCard.style.borderRadius = "6px";
+      ddlCard.style.borderRadius = "8px";
       ddlCard.style.padding = "16px";
-      const defaultDdl = '-- Schema definition for "' + meta.name + '"\nCREATE TABLE "' + meta.name + '" (\n' +
-        (meta.columns || []).map(c => '  "' + c.name + '" ' + (c.type || 'text') + (c.pk ? ' PRIMARY KEY' : '')).join(',\n') + '\n);';
-      const ddlContent = escapeHtml(meta.sql || meta.definition || defaultDdl);
-      ddlCard.innerHTML = '<div class="card-title" style="font-weight: 700; margin-bottom: 8px;">DDL Definition (SQL)</div>' +
-        '<div class="code-box" style="height: 140px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: #cbd5e1; white-space: pre-wrap;">' + ddlContent + '</div>';
+      const defaultDdl = '-- Schema definition for "' + meta.name + '"\\nCREATE TABLE "' + meta.name + '" (\\n' +
+        (meta.columns || []).map(c => '  "' + c.name + '" ' + (c.type || 'text') + (c.pk ? ' PRIMARY KEY' : '') + (c.notnull ? ' NOT NULL' : '') + (c.dflt_value ? ' DEFAULT ' + c.dflt_value : '')).join(',\\n') + '\\n);';
+      const ddlContent = meta.sql || meta.definition || defaultDdl;
+      ddlCard.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+        '<div class="card-title" style="font-weight: 700; margin-bottom: 0;">DDL Definition (SQL)</div>' +
+        '<div style="display: flex; gap: 6px;">' +
+        '<button class="btn btn-sm" onclick="navigator.clipboard.writeText(' + JSON.stringify(ddlContent) + '); showToast(&quot;DDL copied to clipboard!&quot;);">📋 Copy DDL</button>' +
+        '<button class="btn btn-sm btn-primary" onclick="openDdlInSqlEditor(' + JSON.stringify(ddlContent) + ')">⚡ Open in SQL IDE</button>' +
+        '</div></div>' +
+        '<div class="code-box" style="height: 140px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: #cbd5e1; white-space: pre-wrap;">' + escapeHtml(ddlContent) + '</div>';
 
-      container.appendChild(card);
       container.appendChild(ddlCard);
+    }
+
+    function openDdlInSqlEditor(ddl) {
+      const sqlEditor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+      if (sqlEditor) sqlEditor.value = ddl;
+      switchTab("sql");
+    }
+
+    async function executeAddColumn(tableName) {
+      const nameInput = document.getElementById("addColName");
+      const typeSelect = document.getElementById("addColType");
+      const notNullCheck = document.getElementById("addColNotNull");
+      const defaultInput = document.getElementById("addColDefault");
+
+      const colName = nameInput?.value?.trim();
+      if (!colName) {
+        showToast("Please enter a column name");
+        return;
+      }
+
+      const colPayload = {
+        name: colName,
+        type: typeSelect?.value || "text",
+        notnull: Boolean(notNullCheck?.checked),
+        dflt_value: defaultInput?.value?.trim() || undefined
+      };
+
+      showToast("Adding column " + colName + " to " + tableName + "...");
+      const res = await apiRequest("/api/schema/add-column", "POST", { table: tableName, column: colPayload });
+      if (res && res.success) {
+        showToast("✓ Column " + colName + " added successfully!");
+        await loadSchema();
+        renderSchemaDesigner(tableName);
+      } else {
+        showToast("Error adding column: " + (res?.error || "Failed"));
+      }
+    }
+
+    async function executeDropColumn(tableName, columnName) {
+      if (!confirm("Are you sure you want to drop column \\"" + columnName + "\\" from table \\"" + tableName + "\\"?\\nThis action cannot be undone.")) {
+        return;
+      }
+      showToast("Dropping column " + columnName + "...");
+      const res = await apiRequest("/api/schema/drop-column", "POST", { table: tableName, column: columnName, cascade: true });
+      if (res && res.success) {
+        showToast("✓ Column " + columnName + " dropped");
+        await loadSchema();
+        renderSchemaDesigner(tableName);
+      } else {
+        showToast("Error dropping column: " + (res?.error || "Failed"));
+      }
+    }
+
+    async function executeCreateIndex(tableName) {
+      const nameInput = document.getElementById("addIdxName");
+      const colSelect = document.getElementById("addIdxCol");
+      const typeSelect = document.getElementById("addIdxType");
+      const uniqueCheck = document.getElementById("addIdxUnique");
+
+      const idxName = nameInput?.value?.trim() || ("idx_" + tableName + "_" + colSelect?.value);
+      const col = colSelect?.value;
+      if (!col) {
+        showToast("Select a column to index");
+        return;
+      }
+
+      showToast("Creating index " + idxName + "...");
+      const res = await apiRequest("/api/indexes/create", "POST", {
+        name: idxName,
+        table: tableName,
+        columns: [col],
+        type: typeSelect?.value || "btree",
+        unique: Boolean(uniqueCheck?.checked)
+      });
+
+      if (res && res.success) {
+        showToast("✓ Index " + idxName + " created!");
+        await loadSchema();
+        renderSchemaDesigner(tableName);
+      } else {
+        showToast("Error creating index: " + (res?.error || "Failed"));
+      }
+    }
+
+    async function executeDropIndex(tableName, indexName) {
+      if (!confirm("Drop index \\"" + indexName + "\\"?")) return;
+      showToast("Dropping index " + indexName + "...");
+      const res = await apiRequest("/api/indexes/drop", "POST", { name: indexName });
+      if (res && res.success) {
+        showToast("✓ Index dropped");
+        await loadSchema();
+        renderSchemaDesigner(tableName);
+      } else {
+        showToast("Error dropping index: " + (res?.error || "Failed"));
+      }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -3338,7 +4349,7 @@ export function generatePostgresStudioHtml(): string {
             const entityStr = l.entity || 'cluster';
             const detailsStr = typeof l.details === 'object' ? JSON.stringify(l.details) : (l.details || '');
             return '[' + timeStr + '] ' + actionStr + ' on ' + entityStr + ': ' + detailsStr;
-          }).join('\n');
+          }).join('\\n');
         }
       } else {
         box.textContent = "[SYSTEM] Postgres Studio Pro initialized. All subsystems ready.";
@@ -3349,7 +4360,7 @@ export function generatePostgresStudioHtml(): string {
       const box = document.getElementById("auditLogBox");
       if (!box) return;
       const line = "[" + new Date().toLocaleTimeString() + "] " + msg;
-      box.textContent = line + "\n" + box.textContent;
+      box.textContent = line + "\\n" + box.textContent;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -3387,11 +4398,650 @@ export function generatePostgresStudioHtml(): string {
       logAudit("[COMMAND] " + cmd);
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // PostgreSQL GUC Configuration Tuner (pg_settings)
+    // ---------------------------------------------------------------------------------------------
+    let allGucSettings = [];
+    let currentGucCategory = "all";
+
     async function loadPragmaSettings() {
       const res = await apiRequest("/api/pragma");
-      const outBox = document.getElementById("pragmaOutputBox");
-      if (outBox) {
-        outBox.textContent = typeof res?.result === 'string' ? res.result : JSON.stringify(res?.result || res, null, 2);
+      if (res && res.success) {
+        if (Array.isArray(res.settings)) {
+          allGucSettings = res.settings;
+          renderGucSettingsTable();
+        }
+        const outBox = document.getElementById("pragmaOutputBox");
+        if (outBox) {
+          outBox.textContent = typeof res.result === "string" ? res.result : JSON.stringify(res.result || res.settings || res, null, 2);
+        }
+      }
+    }
+
+    function renderGucSettingsTable() {
+      const tbody = document.getElementById("gucSettingsBody");
+      const badge = document.getElementById("gucSettingsCountBadge");
+      if (!tbody) return;
+
+      let filtered = allGucSettings;
+      if (currentGucCategory === "memory") {
+        filtered = filtered.filter(s => /mem|buffer|cache/i.test(s.name) || /memory|resource/i.test(s.category || ""));
+      } else if (currentGucCategory === "planner") {
+        filtered = filtered.filter(s => /cost|scan|join|plan|geqo/i.test(s.name) || /planner/i.test(s.category || ""));
+      } else if (currentGucCategory === "wal") {
+        filtered = filtered.filter(s => /wal|checkpoint|archive/i.test(s.name) || /write-ahead/i.test(s.category || ""));
+      } else if (currentGucCategory === "connections") {
+        filtered = filtered.filter(s => /conn|listen|port|socket|auth/i.test(s.name) || /connection/i.test(s.category || ""));
+      } else if (currentGucCategory === "autovacuum") {
+        filtered = filtered.filter(s => /vacuum|analyze/i.test(s.name) || /autovacuum/i.test(s.category || ""));
+      }
+
+      const q = (document.getElementById("gucSearchInput")?.value || "").toLowerCase().trim();
+      if (q) {
+        filtered = filtered.filter(s => (s.name || "").toLowerCase().includes(q) || (s.short_desc || "").toLowerCase().includes(q));
+      }
+
+      if (badge) badge.innerText = filtered.length + " settings";
+
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 20px;">No parameters match the current filter</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => {
+        return '<tr>' +
+          '<td style="font-family: var(--font-mono); color: var(--cyan); font-weight: 600;">' + escapeHtml(s.name) + '</td>' +
+          '<td><span class="brand-badge" style="background: rgba(56, 189, 248, 0.15); color: #7dd3fc;">' + escapeHtml(String(s.setting ?? '')) + '</span></td>' +
+          '<td style="font-size: 10px; color: var(--text-dim);">' + escapeHtml(s.unit || '-') + '</td>' +
+          '<td style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(s.category || 'General') + '</td>' +
+          '<td><span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-dim);">' + escapeHtml(s.context || 'user') + '</span></td>' +
+          '<td style="font-size: 11px; color: var(--text-dim); max-width: 300px;">' + escapeHtml(s.short_desc || '-') + '</td>' +
+          '<td style="text-align: center;"><button class="btn btn-sm" onclick="editGucSetting(&quot;' + escapeHtml(s.name) + '&quot;, &quot;' + escapeHtml(String(s.setting ?? '')) + '&quot;, &quot;' + escapeHtml(s.unit || '') + '&quot;)">✎ Edit</button></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function setGucCategory(cat) {
+      currentGucCategory = cat;
+      const cats = ["All", "Mem", "Plan", "Wal", "Conn", "Vac"];
+      cats.forEach(c => {
+        const btn = document.getElementById("btnGuc" + c);
+        if (btn) btn.classList.remove("btn-primary");
+      });
+      const activeBtn = document.getElementById("btnGuc" + (cat === "all" ? "All" : cat === "memory" ? "Mem" : cat === "planner" ? "Plan" : cat === "wal" ? "Wal" : cat === "connections" ? "Conn" : "Vac"));
+      if (activeBtn) activeBtn.classList.add("btn-primary");
+      renderGucSettingsTable();
+    }
+
+    function filterGucSettings() {
+      renderGucSettingsTable();
+    }
+
+    async function editGucSetting(paramName, currentVal, unit) {
+      const promptMsg = "Enter new value for PostgreSQL parameter \\"" + paramName + "\\"" + (unit ? " (" + unit + ")" : "") + ":";
+      const newVal = prompt(promptMsg, currentVal);
+      if (newVal === null || newVal.trim() === "") return;
+      showToast("Updating parameter " + paramName + " -> " + newVal + "...");
+      const res = await apiRequest("/api/pragma", "POST", { pragma: paramName, value: newVal.trim() });
+      if (res && res.success) {
+        showToast("✓ Parameter updated: " + paramName + " = " + newVal);
+        loadPragmaSettings();
+      } else {
+        showToast("Error updating parameter: " + (res?.error || "Failed"));
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Microsoft Access Totals Row & Quick Filter Bar
+    // ---------------------------------------------------------------------------------------------
+    let accessTotalsRowVisible = false;
+    let accessFilterBarVisible = false;
+    let activeColumnFilters = {};
+
+    function toggleAccessTotalsRow() {
+      accessTotalsRowVisible = !accessTotalsRowVisible;
+      const btn = document.getElementById("btnToggleTotals");
+      if (btn) {
+        if (accessTotalsRowVisible) btn.classList.add("btn-primary");
+        else btn.classList.remove("btn-primary");
+      }
+      if (currentGridData && currentGridData.rows && currentGridData.columns) {
+        updateAccessTotalsRow(currentGridData.rows, currentGridData.columns, currentGridData.total);
+      }
+      showToast(accessTotalsRowVisible ? "Access Totals Row enabled" : "Access Totals Row disabled");
+    }
+
+    async function updateAccessTotalsRow(rows, columns, total) {
+      const foot = document.getElementById("gridTotalsFoot");
+      if (!foot) return;
+      if (!accessTotalsRowVisible) {
+        foot.style.display = "none";
+        foot.innerHTML = "";
+        return;
+      }
+      foot.style.display = "table-footer-group";
+
+      if (!columns || columns.length === 0) {
+        foot.innerHTML = "";
+        return;
+      }
+
+      const stats = {};
+      columns.forEach(c => {
+        let isNum = true;
+        let sum = 0;
+        let count = 0;
+        let min = null;
+        let max = null;
+        rows.forEach(r => {
+          const val = r[c];
+          if (val !== null && val !== undefined && val !== "") {
+            const num = Number(val);
+            if (!isNaN(num) && typeof val !== "boolean") {
+              sum += num;
+              count++;
+              if (min === null || num < min) min = num;
+              if (max === null || num > max) max = num;
+            } else {
+              isNum = false;
+            }
+          }
+        });
+        if (isNum && count > 0) {
+          stats[c] = {
+            count,
+            sum: Math.round(sum * 100) / 100,
+            avg: Math.round((sum / count) * 100) / 100,
+            min,
+            max
+          };
+        } else {
+          stats[c] = { count: rows.length };
+        }
+      });
+
+      const cellsHtml = columns.map(c => {
+        const s = stats[c];
+        if (s && s.sum !== undefined) {
+          return "<td><div style='display:flex; flex-direction:column; gap:2px;'>" +
+            "<span class='access-total-badge' title='Sum'>Σ " + s.sum.toLocaleString() + "</span>" +
+            "<span style='font-size:9px; color:var(--text-dim);' title='Average'>x̄ " + s.avg.toLocaleString() + "</span>" +
+            "</div></td>";
+        }
+        return "<td><span style='font-size:10px; color:var(--text-dim);'>Count: " + (s?.count ?? rows.length) + "</span></td>";
+      }).join('');
+
+      foot.innerHTML = "<tr><td style='color:var(--cyan); font-weight:800; text-align:center;'>Total: " + total.toLocaleString() + "</td>" + cellsHtml + "</tr>";
+    }
+
+    function toggleQuickFilterBar() {
+      accessFilterBarVisible = !accessFilterBarVisible;
+      const btn = document.getElementById("btnToggleFilterBar");
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (btn) {
+        if (accessFilterBarVisible) btn.classList.add("btn-primary");
+        else btn.classList.remove("btn-primary");
+      }
+      if (filterRow) {
+        filterRow.style.display = accessFilterBarVisible ? "table-row" : "none";
+      }
+      if (!accessFilterBarVisible) {
+        activeColumnFilters = {};
+        if (activeTable) loadTableData(activeTable, 1);
+      }
+      showToast(accessFilterBarVisible ? "Quick Filter Bar opened" : "Quick Filter Bar cleared");
+    }
+
+    function onColumnFilterInput(colName, filterVal) {
+      if (!filterVal || filterVal.trim() === "") {
+        delete activeColumnFilters[colName];
+      } else {
+        activeColumnFilters[colName] = filterVal.trim();
+      }
+      filterLoadedRowsInMemory();
+    }
+
+    function filterByColumnValue(colName, colVal) {
+      accessFilterBarVisible = true;
+      const btn = document.getElementById("btnToggleFilterBar");
+      if (btn) btn.classList.add("btn-primary");
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (filterRow) filterRow.style.display = "table-row";
+
+      activeColumnFilters[colName] = String(colVal);
+      showToast("Filtered by " + colName + " = " + colVal);
+      filterLoadedRowsInMemory();
+    }
+
+    function filterLoadedRowsInMemory() {
+      if (!currentGridData || !currentGridData.rawRows) return;
+      const filterKeys = Object.keys(activeColumnFilters);
+      if (filterKeys.length === 0) {
+        currentGridData.rows = [...currentGridData.rawRows];
+      } else {
+        currentGridData.rows = currentGridData.rawRows.filter(row => {
+          return filterKeys.every(k => {
+            const needle = activeColumnFilters[k].toLowerCase();
+            const val = row[k];
+            if (val === null || val === undefined) return needle === "null";
+            return String(val).toLowerCase().includes(needle);
+          });
+        });
+      }
+      renderGridTable(currentGridData.rows, currentGridData.columns, currentGridData.rows.length, 1, gridPageSize);
+    }
+
+    async function openAccessReportModal() {
+      const modal = document.getElementById("accessReportModal");
+      const content = document.getElementById("accessReportContent");
+      if (!modal || !content) return;
+
+      modal.style.display = "flex";
+      modal.classList.add("active");
+
+      if ((!currentGridData || !currentGridData.rows || !currentGridData.rows.length) && activeTable) {
+        try { await loadTableData(activeTable); } catch(e) {}
+      }
+
+      const tblName = activeTable || "PostgreSQL Query Report";
+      const rows = currentGridData && currentGridData.rows ? currentGridData.rows : [];
+      let columns = currentGridData && currentGridData.columns ? currentGridData.columns : [];
+
+      if (!columns.length && activeTable && currentSchema && currentSchema.tables) {
+        const tbl = currentSchema.tables.find(t => t.name === activeTable);
+        if (tbl && tbl.columns) columns = tbl.columns.map(c => c.name);
+      }
+
+      const dateStr = new Date().toLocaleString();
+      const dbName = document.getElementById("kpiDbName")?.innerText || "mydb";
+
+      let html = '<div class="access-report-sheet">';
+      html += '<div class="access-report-header">';
+      html += '  <div>';
+      html += '    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#0284c7; letter-spacing:1px;">Microsoft Access Workstation Report</div>';
+      html += '    <div class="access-report-title">' + escapeHtml(tblName) + '</div>';
+      html += '  </div>';
+      html += '  <div class="access-report-meta">';
+      html += '    <div>Database: <strong>' + escapeHtml(dbName) + '</strong></div>';
+      html += '    <div>Generated: <strong>' + dateStr + '</strong></div>';
+      html += '    <div>Total Records: <strong>' + rows.length.toLocaleString() + '</strong></div>';
+      html += '  </div>';
+      html += '</div>';
+
+      html += '<table class="access-report-table">';
+      html += '  <thead><tr><th style="width:36px; text-align:center;">#</th>' + columns.map(c => '<th>' + escapeHtml(c) + '</th>').join('') + '</tr></thead>';
+      html += '  <tbody>';
+      rows.slice(0, 100).forEach((r, idx) => {
+        html += '<tr><td style="text-align:center; color:#94a3b8; font-weight:600;">' + (idx + 1) + '</td>';
+        columns.forEach(c => {
+          const val = r[c];
+          if (val === null || val === undefined) {
+            html += '<td style="color:#94a3b8; font-style:italic;">NULL</td>';
+          } else if (typeof val === 'object') {
+            html += '<td><code>' + escapeHtml(JSON.stringify(val).slice(0, 40)) + '</code></td>';
+          } else {
+            html += '<td>' + escapeHtml(String(val)) + '</td>';
+          }
+        });
+        html += '</tr>';
+      });
+      html += '  </tbody>';
+      html += '</table>';
+
+      html += '<div class="access-report-summary">';
+      html += '  <span>End of Report: ' + rows.length.toLocaleString() + ' Records Processed</span>';
+      html += '  <span>🐘 Postgres Studio Pro / Access Parity Engine</span>';
+      html += '</div>';
+      html += '</div>';
+
+      content.innerHTML = html;
+      modal.style.display = "flex";
+      modal.classList.add("active");
+    }
+
+    function closeAccessReportModal() {
+      const modal = document.getElementById("accessReportModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("active");
+      }
+    }
+
+    function printAccessReport() {
+      window.print();
+    }
+
+    function exportAccessReportHtml() {
+      const content = document.getElementById("accessReportContent");
+      if (!content) return;
+      const fullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report - ' + (activeTable || "Postgres") + '</title><style>' +
+        (document.querySelector("style")?.innerText || "") +
+        '</style></head><body style="background:#f1f5f9; padding:20px;">' +
+        content.innerHTML +
+        '</body></html>';
+
+      const blob = new Blob([fullHtml], { type: "text/html" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "report_" + (activeTable || "query") + "_" + Date.now() + ".html";
+      a.click();
+      showToast("✓ Report HTML exported!");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // PostgreSQL Enterprise Database Backup & SQL Dump
+    // ---------------------------------------------------------------------------------------------
+    let currentDumpSql = "";
+
+    async function openDatabaseDumpModal() {
+      const modal = document.getElementById("dumpModal");
+      const listEl = document.getElementById("dumpTablesList");
+      if (!modal) return;
+
+      if (listEl && currentSchema && currentSchema.tables) {
+        listEl.innerHTML = currentSchema.tables.map(t => {
+          return '<label style="display:flex; align-items:center; gap:4px; font-size:11px; color:#fff; cursor:pointer;">' +
+            '<input type="checkbox" class="dump-table-chk" value="' + escapeHtml(t.name) + '" checked> ' +
+            escapeHtml(t.name) +
+            '</label>';
+        }).join('');
+      }
+
+      modal.style.display = "flex";
+      modal.classList.add("active");
+      await runGenerateDump();
+    }
+
+    function closeDatabaseDumpModal() {
+      const modal = document.getElementById("dumpModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("active");
+      }
+    }
+
+    async function runGenerateDump() {
+      const mode = document.getElementById("dumpModeSelect")?.value || "all";
+      const chks = document.querySelectorAll(".dump-table-chk:checked");
+      const tables = Array.from(chks).map(c => c.value);
+
+      const preview = document.getElementById("dumpSqlPreview");
+      if (preview) preview.value = "-- Generating PostgreSQL SQL Dump...";
+
+      showToast("Generating PostgreSQL database dump (" + mode + ")...");
+      const res = await apiRequest("/api/database/dump", "POST", { mode, tables });
+      if (res && res.success) {
+        currentDumpSql = res.sql;
+        if (preview) preview.value = currentDumpSql;
+        showToast("✓ Database dump generated (" + currentDumpSql.length.toLocaleString() + " bytes)");
+      } else {
+        if (preview) preview.value = "-- Error generating dump: " + (res?.error || "Unknown error");
+        showToast("Error generating dump: " + (res?.error || "Failed"));
+      }
+    }
+
+    function copyDumpSql() {
+      if (!currentDumpSql) return;
+      navigator.clipboard.writeText(currentDumpSql);
+      showToast("✓ SQL dump copied to clipboard!");
+    }
+
+    function downloadDumpFile() {
+      if (!currentDumpSql) return;
+      const dbName = document.getElementById("kpiDbName")?.innerText || "mydb";
+      const blob = new Blob([currentDumpSql], { type: "application/sql" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "pg_dump_" + dbName + "_" + Date.now() + ".sql";
+      a.click();
+      showToast("✓ Downloaded SQL dump file!");
+    }
+
+    function openDumpInSqlIde() {
+      if (!currentDumpSql) return;
+      const sqlEl = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+      if (sqlEl) sqlEl.value = currentDumpSql.slice(0, 10000);
+      closeDatabaseDumpModal();
+      switchTab("sql");
+      showToast("Opened dump in SQL Query Console!");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // PostgreSQL Custom ENUM Types Management
+    // ---------------------------------------------------------------------------------------------
+    let allEnumTypes = [];
+
+    async function loadEnumTypes() {
+      const res = await apiRequest("/api/types/enums");
+      if (res && res.success) {
+        allEnumTypes = res.enums || [];
+        renderEnumTypesGrid(allEnumTypes);
+      }
+    }
+
+    function renderEnumTypesGrid(enums) {
+      const grid = document.getElementById("enumTypesGrid");
+      if (!grid) return;
+
+      if (!enums || enums.length === 0) {
+        grid.innerHTML = '<div class="card" style="padding:24px; text-align:center; color:var(--text-dim); grid-column:1/-1;">' +
+          'No custom ENUM types found in active schema. Click "+ Create ENUM Type" to define one.' +
+          '</div>';
+        return;
+      }
+
+      grid.innerHTML = enums.map(e => {
+        const badges = (e.values || []).map(v => '<span class="enum-badge">' + escapeHtml(v) + '</span>').join(' ');
+        return '<div class="enum-card">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '  <div style="font-weight:700; color:var(--cyan); font-size:13px; font-family:var(--font-mono);">' + escapeHtml(e.name) + '</div>' +
+          '  <span class="brand-badge">' + escapeHtml(e.schema || "public") + '</span>' +
+          '</div>' +
+          '<div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;">' + badges + '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:8px;">' +
+          '  <button class="btn btn-sm" onclick="promptAddEnumValue(&quot;' + escapeHtml(e.name) + '&quot;)">➕ Add Value</button>' +
+          '  <button class="btn btn-sm btn-danger" onclick="dropEnumType(&quot;' + escapeHtml(e.name) + '&quot;)">🗑️ Drop</button>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function filterEnumTypes(q) {
+      const needle = (q || "").toLowerCase();
+      const filtered = allEnumTypes.filter(e => e.name.toLowerCase().includes(needle) || e.values.some(v => v.toLowerCase().includes(needle)));
+      renderEnumTypesGrid(filtered);
+    }
+
+    function openCreateEnumModal() {
+      const modal = document.getElementById("createEnumModal");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.add("active");
+      }
+    }
+
+    function closeCreateEnumModal() {
+      const modal = document.getElementById("createEnumModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("active");
+      }
+    }
+
+    async function submitCreateEnum() {
+      const name = document.getElementById("enumNewName")?.value.trim();
+      const rawVals = document.getElementById("enumNewValues")?.value.trim();
+      if (!name || !rawVals) {
+        showToast("Please provide enum name and at least one value!");
+        return;
+      }
+      const values = rawVals.split(",").map(v => v.trim()).filter(Boolean);
+      showToast("Creating ENUM type " + name + "...");
+      const res = await apiRequest("/api/types/enums/create", "POST", { name, values });
+      if (res && res.success) {
+        showToast("✓ ENUM type " + name + " created successfully!");
+        closeCreateEnumModal();
+        loadEnumTypes();
+      } else {
+        showToast("Error creating enum: " + (res?.error || "Failed"));
+      }
+    }
+
+    async function promptAddEnumValue(enumName) {
+      const val = prompt("Enter new value to append to ENUM " + enumName + ":");
+      if (!val || val.trim() === "") return;
+      showToast("Adding value to " + enumName + "...");
+      const res = await apiRequest("/api/types/enums/add-value", "POST", { name: enumName, value: val.trim() });
+      if (res && res.success) {
+        showToast("✓ Value added to ENUM " + enumName);
+        loadEnumTypes();
+      } else {
+        showToast("Error adding value: " + (res?.error || "Failed"));
+      }
+    }
+
+    async function dropEnumType(enumName) {
+      if (!confirm("Are you sure you want to drop ENUM type " + enumName + " (CASCADE)?")) return;
+      showToast("Dropping ENUM type " + enumName + "...");
+      const res = await apiRequest("/api/types/enums/drop", "POST", { name: enumName });
+      if (res && res.success) {
+        showToast("✓ ENUM type " + enumName + " dropped");
+        loadEnumTypes();
+      } else {
+        showToast("Error dropping enum: " + (res?.error || "Failed"));
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // PostgreSQL Declarative Partition Trees Explorer
+    // ---------------------------------------------------------------------------------------------
+    async function loadPartitions() {
+      const container = document.getElementById("partitionsContainer");
+      if (!container) return;
+      container.innerHTML = '<div style="color:var(--text-dim); padding:20px; text-align:center;">Loading partitioned tables...</div>';
+
+      const res = await apiRequest("/api/partitions");
+      if (res && res.success) {
+        const partitions = res.partitions || [];
+        if (!partitions.length) {
+          container.innerHTML = '<div class="card" style="padding:24px; text-align:center; color:var(--text-dim);">' +
+            'No declarative partitioned tables found in the active schema.<br>' +
+            '<span style="font-size:11px; color:var(--text-muted);">Use <code>PARTITION BY RANGE / LIST / HASH</code> in DDL to enable declarative table partitioning.</span>' +
+            '</div>';
+          return;
+        }
+
+        const grouped = {};
+        partitions.forEach(p => {
+          if (!grouped[p.parentTable]) grouped[p.parentTable] = [];
+          grouped[p.parentTable].push(p);
+        });
+
+        container.innerHTML = Object.keys(grouped).map(parent => {
+          const parts = grouped[parent];
+          const strat = parts[0]?.partitionStrategy || "RANGE";
+          const rows = parts.map(p => {
+            return '<tr>' +
+              '<td style="font-weight:600; color:var(--cyan);">' + escapeHtml(p.partitionName) + '</td>' +
+              '<td><code>' + escapeHtml(p.partitionExpression) + '</code></td>' +
+              '<td>' + escapeHtml(p.totalSize) + '</td>' +
+              '<td>' + p.rowEstimate.toLocaleString() + '</td>' +
+              '</tr>';
+          }).join('');
+
+          return '<div class="card" style="margin-bottom:16px;">' +
+            '<div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">' +
+            '  <span>📦 Table: <strong style="color:var(--cyan);">' + escapeHtml(parent) + '</strong></span>' +
+            '  <span class="brand-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">' + strat + ' PARTITIONED</span>' +
+            '</div>' +
+            '<table class="data-grid" style="margin-top:10px;">' +
+            '  <thead><tr><th>Partition Name</th><th>Partition Bound Expression</th><th>Size</th><th>Estimated Rows</th></tr></thead>' +
+            '  <tbody>' + rows + '</tbody>' +
+            '</table>' +
+            '</div>';
+        }).join('');
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // PostgreSQL Streaming Replication & WAL Diagnostics
+    // ---------------------------------------------------------------------------------------------
+    async function loadReplicationStatus() {
+      const container = document.getElementById("replicationContainer");
+      if (!container) return;
+      container.innerHTML = '<div style="color:var(--text-dim); padding:20px; text-align:center;">Querying replication catalog...</div>';
+
+      const res = await apiRequest("/api/replication");
+      if (res && res.success) {
+        const repl = res.replication || {};
+        const standbys = repl.standbys || [];
+        const slots = repl.slots || [];
+        const wal = repl.walStats || {};
+
+        let standbysHtml = '';
+        if (standbys.length === 0) {
+          standbysHtml = '<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:16px;">No streaming standby replicas currently connected.</td></tr>';
+        } else {
+          standbysHtml = standbys.map(s => {
+            return '<tr>' +
+              '<td>' + s.pid + '</td>' +
+              '<td>' + escapeHtml(s.clientAddr) + '</td>' +
+              '<td>' + escapeHtml(s.applicationName) + '</td>' +
+              '<td><span class="brand-badge">' + escapeHtml(s.state) + '</span></td>' +
+              '<td>' + escapeHtml(s.syncState) + '</td>' +
+              '<td>' + escapeHtml(s.writeLag) + '</td>' +
+              '<td>' + escapeHtml(s.replayLag) + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+
+        let slotsHtml = '';
+        if (slots.length === 0) {
+          slotsHtml = '<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:16px;">No physical or logical replication slots configured.</td></tr>';
+        } else {
+          slotsHtml = slots.map(sl => {
+            return '<tr>' +
+              '<td><strong>' + escapeHtml(sl.slotName) + '</strong></td>' +
+              '<td>' + escapeHtml(sl.plugin) + '</td>' +
+              '<td>' + escapeHtml(sl.slotType) + '</td>' +
+              '<td><span class="brand-badge" style="background:' + (sl.active ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)') + '; color:' + (sl.active ? '#4ade80' : '#f87171') + ';">' + (sl.active ? 'ACTIVE' : 'INACTIVE') + '</span></td>' +
+              '<td>' + escapeHtml(sl.walStatus) + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+
+        container.innerHTML = '' +
+          '<div class="card">' +
+          '  <div class="card-title">📡 Streaming Standby Replicas (pg_stat_replication)</div>' +
+          '  <table class="data-grid" style="margin-top:10px;">' +
+          '    <thead><tr><th>PID</th><th>Client Address</th><th>App Name</th><th>State</th><th>Sync State</th><th>Write Lag</th><th>Replay Lag</th></tr></thead>' +
+          '    <tbody>' + standbysHtml + '</tbody>' +
+          '  </table>' +
+          '</div>' +
+          '<div class="card">' +
+          '  <div class="card-title">🔒 Replication Slots (pg_replication_slots)</div>' +
+          '  <table class="data-grid" style="margin-top:10px;">' +
+          '    <thead><tr><th>Slot Name</th><th>Plugin</th><th>Type</th><th>Active</th><th>WAL Status</th></tr></thead>' +
+          '    <tbody>' + slotsHtml + '</tbody>' +
+          '  </table>' +
+          '</div>' +
+          '<div class="card">' +
+          '  <div class="card-title">💾 Write-Ahead Logging (pg_stat_wal)</div>' +
+          '  <div style="display:flex; gap:16px; margin-top:10px; flex-wrap:wrap;">' +
+          '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
+          '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">WAL Records</div>' +
+          '      <div style="font-size:16px; font-weight:800; color:var(--cyan);">' + (wal.wal_records !== undefined ? Number(wal.wal_records).toLocaleString() : '0') + '</div>' +
+          '    </div>' +
+          '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
+          '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">WAL Full Page Images</div>' +
+          '      <div style="font-size:16px; font-weight:800; color:var(--emerald);">' + (wal.wal_fpi !== undefined ? Number(wal.wal_fpi).toLocaleString() : '0') + '</div>' +
+          '    </div>' +
+          '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
+          '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">WAL Buffers Full</div>' +
+          '      <div style="font-size:16px; font-weight:800; color:var(--amber);">' + (wal.wal_buffers_full !== undefined ? Number(wal.wal_buffers_full).toLocaleString() : '0') + '</div>' +
+          '    </div>' +
+          '  </div>' +
+          '</div>';
       }
     }
 
@@ -3638,15 +5288,49 @@ export function generatePostgresStudioHtml(): string {
       renderExtensionsGrid();
     }
 
-    // Live Activity Monitor
+    // Live Activity & Lock Contention Monitor
     async function loadActivity() {
       const res = await apiRequest("/api/activity");
-      if (res.success && res.activity) {
-        renderActivityGrid(res.activity);
+      if (res && res.success) {
+        renderActivityGrid(res.activity || [], res.blockedLocks || []);
       }
     }
 
-    function renderActivityGrid(processes) {
+    function renderActivityGrid(processes, blockedLocks) {
+      const alertBox = document.getElementById("activityLocksAlert");
+      if (alertBox) {
+        if (blockedLocks && blockedLocks.length > 0) {
+          let alertHtml = '<div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;">' +
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+            '<div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #fca5a5;">' +
+            '<span>⚠️ Active Lock Contention Detected</span>' +
+            '<span class="brand-badge" style="background: rgba(239, 68, 68, 0.3); color: #f87171;">' + blockedLocks.length + ' Blocked Statement(s)</span>' +
+            '</div>' +
+            '<button class="btn btn-sm btn-danger" onclick="terminateAllBlockingProcesses()">⚡ Terminate All Blocking PIDs</button>' +
+            '</div>' +
+            '<table class="data-grid" style="margin-top: 6px;">' +
+            '<thead><tr><th>Blocked PID</th><th>Blocked Query</th><th>Blocking PID</th><th>Blocking Query</th><th>Lock Type</th><th>Relation</th><th>Action</th></tr></thead>' +
+            '<tbody>';
+          blockedLocks.forEach(bl => {
+            alertHtml += '<tr>' +
+              '<td style="font-family: var(--font-mono); color: var(--rose); font-weight: 700;">' + bl.blocked_pid + '</td>' +
+              '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.blocked_query || '-') + '</td>' +
+              '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 700;">' + bl.blocking_pid + '</td>' +
+              '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.blocking_query || '-') + '</td>' +
+              '<td><span class="brand-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">' + escapeHtml(bl.lock_type || 'relation') + '</span></td>' +
+              '<td>' + escapeHtml(bl.relation || '-') + '</td>' +
+              '<td><button class="btn btn-sm btn-danger" onclick="terminateProcess(' + bl.blocking_pid + ')">⚡ Kill ' + bl.blocking_pid + '</button></td>' +
+              '</tr>';
+          });
+          alertHtml += '</tbody></table></div>';
+          alertBox.innerHTML = alertHtml;
+        } else {
+          alertBox.innerHTML = '<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--emerald);">' +
+            '<span>🟢</span><span>No active lock contention detected. All database queries and transactions are executing without blocking.</span>' +
+            '</div>';
+        }
+      }
+
       const tbody = document.getElementById("activityBody");
       document.getElementById("activityCountBadge").innerText = processes.length + " active";
 
@@ -3657,22 +5341,34 @@ export function generatePostgresStudioHtml(): string {
 
       tbody.innerHTML = processes.map(p => {
         const stateClass = p.state === "active" ? "state-active" : (p.state.includes("txn") ? "state-idle-txn" : "state-idle");
-        return \`
-          <tr>
-            <td style="font-family: var(--font-mono); color: var(--cyan);">\${p.pid}</td>
-            <td>\${p.usename || 'postgres'}</td>
-            <td>\${p.datname || '-'}</td>
-            <td>\${p.client_addr || 'local'}</td>
-            <td><span class="state-badge \${stateClass}">\${p.state || 'active'}</span></td>
-            <td style="font-family: var(--font-mono); color: var(--amber);">\${p.duration || '0s'}</td>
-            <td style="font-family: var(--font-mono); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${escapeHtml(p.query || '-')}</td>
-            <td style="text-align: center; display: flex; gap: 4px; justify-content: center;">
-              <button class="btn btn-sm" onclick="cancelProcess(\${p.pid})" title="Cancel Query (pg_cancel_backend)">🛑 Cancel</button>
-              <button class="btn btn-sm" onclick="terminateProcess(\${p.pid})" title="Terminate Connection (pg_terminate_backend)" style="color: var(--rose);">⚡ Kill</button>
-            </td>
-          </tr>
-        \`;
+        return '<tr>' +
+          '<td style="font-family: var(--font-mono); color: var(--cyan);">' + p.pid + '</td>' +
+          '<td>' + (p.usename || 'postgres') + '</td>' +
+          '<td>' + (p.datname || '-') + '</td>' +
+          '<td>' + (p.client_addr || 'local') + '</td>' +
+          '<td><span class="state-badge ' + stateClass + '">' + (p.state || 'active') + '</span></td>' +
+          '<td style="font-family: var(--font-mono); color: var(--amber);">' + (p.duration || '0s') + '</td>' +
+          '<td style="font-family: var(--font-mono); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + escapeHtml(p.query || '-') + '</td>' +
+          '<td style="text-align: center; display: flex; gap: 4px; justify-content: center;">' +
+          '<button class="btn btn-sm" onclick="cancelProcess(' + p.pid + ')" title="Cancel Query (pg_cancel_backend)">🛑 Cancel</button>' +
+          '<button class="btn btn-sm" onclick="terminateProcess(' + p.pid + ')" title="Terminate Connection (pg_terminate_backend)" style="color: var(--rose);">⚡ Kill</button>' +
+          '</td></tr>';
       }).join('');
+    }
+
+    async function terminateAllBlockingProcesses() {
+      const res = await apiRequest("/api/activity/locks");
+      if (res && res.success && Array.isArray(res.blockedLocks) && res.blockedLocks.length > 0) {
+        const pids = [...new Set(res.blockedLocks.map(bl => bl.blocking_pid))];
+        showToast("Terminating " + pids.length + " blocking process(es)...");
+        for (const pid of pids) {
+          await apiRequest("/api/activity/terminate", "POST", { pid });
+        }
+        showToast("✓ All blocking processes terminated!");
+        loadActivity();
+      } else {
+        showToast("No blocking processes to terminate.");
+      }
     }
 
     async function cancelProcess(pid) {
@@ -4384,15 +6080,62 @@ export function generatePostgresStudioHtml(): string {
     });
 
     // Auto-initialize on load
-    function initPostgresStudio() {
+    async function initPostgresStudio() {
       try {
         const savedTheme = localStorage.getItem('postgres_studio_theme') || 'midnight';
         applyPostgresStudioTheme(savedTheme);
       } catch(e) {}
       initPresets();
       initSidebarResizer();
-      loadSchema();
-      loadKpis();
+
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetTab = urlParams.get("tab");
+        if (targetTab) {
+          switchTab(targetTab);
+        }
+        const targetPreset = urlParams.get("preset");
+        if (targetPreset && typeof applyDesignerPreset === "function") {
+          applyDesignerPreset(targetPreset);
+        }
+        const targetModal = urlParams.get("modal");
+        if (targetModal) {
+          if (targetModal === "report" && typeof openAccessReportModal === "function") {
+            openAccessReportModal();
+          } else if (targetModal === "dump" && typeof openDatabaseDumpModal === "function") {
+            openDatabaseDumpModal();
+          } else if (targetModal === "create_enum" && typeof openCreateEnumModal === "function") {
+            openCreateEnumModal();
+          } else if (typeof openJoinPropertiesModal === "function") {
+            openJoinPropertiesModal(targetModal === "new" ? null : targetModal);
+          }
+        }
+        if (urlParams.get("totals") === "1" && typeof toggleGridTotalsRow === "function") {
+          toggleGridTotalsRow();
+        }
+        if (urlParams.get("filter_bar") === "1" && typeof toggleGridFilterBar === "function") {
+          toggleGridFilterBar();
+        }
+        const targetZoom = urlParams.get("zoom");
+        if (targetZoom && typeof setDesignerCanvasZoom === "function") {
+          setDesignerCanvasZoom(parseFloat(targetZoom));
+        }
+        const targetRoom = urlParams.get("room");
+        if (targetRoom && typeof setDesignerRoomMode === "function") {
+          setDesignerRoomMode(targetRoom);
+        }
+        const minEditor = urlParams.get("min_editor");
+        if (minEditor && typeof toggleEditorCollapse === "function") {
+          toggleEditorCollapse();
+        }
+        const hideSidebar = urlParams.get("sidebar");
+        if (hideSidebar === "0" && typeof toggleSidebarCollapse === "function") {
+          toggleSidebarCollapse();
+        }
+      } catch (e) {}
+
+      await loadSchema();
+      await loadKpis();
     }
     if (document.readyState === "loading") {
       window.addEventListener("DOMContentLoaded", initPostgresStudio);

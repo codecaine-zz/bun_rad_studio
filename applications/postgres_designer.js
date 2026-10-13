@@ -795,8 +795,8 @@ function autoArrangeDesignerTables() {
   queryDesignerState.tablePositions = {};
   (queryDesignerState.selectedTables || []).forEach((t, i) => {
     queryDesignerState.tablePositions[t] = {
-      x: 20 + i * 270,
-      y: 15,
+      x: 20 + (i % 4) * 280,
+      y: 15 + Math.floor(i / 4) * 240,
     };
   });
   renderQueryDesigner();
@@ -1035,7 +1035,7 @@ function adjustDatasheetFontSize(delta) {
 }
 
 function toggleSidebarCollapse() {
-  const aside = document.getElementById("mainSidebar");
+  const aside = document.getElementById("mainSidebar") || document.getElementById("sidebar");
   if (!aside) return;
   if (aside.style.display === "none") {
     aside.style.display = "flex";
@@ -1138,9 +1138,39 @@ function updateCanvasSvg() {
       badgeIcon = "×";
     }
 
+    // Determine Access Cardinality Badges (1 to ∞)
+    const leftMeta = getEntityMeta(j.leftTable);
+    const rightMeta = getEntityMeta(j.rightTable);
+    const leftIsPk = Boolean(leftMeta && leftMeta.columns && leftMeta.columns.find(c => c.name === j.leftField)?.pk);
+    const rightIsPk = Boolean(rightMeta && rightMeta.columns && rightMeta.columns.find(c => c.name === j.rightField)?.pk);
+
+    let leftCard = leftIsPk ? "1" : "∞";
+    let rightCard = rightIsPk ? "1" : "∞";
+    if (!leftIsPk && !rightIsPk) {
+      if (j.leftField.toLowerCase().endsWith("_id")) { leftCard = "∞"; rightCard = "1"; }
+      else if (j.rightField.toLowerCase().endsWith("_id")) { leftCard = "1"; rightCard = "∞"; }
+      else { leftCard = "1"; rightCard = "1"; }
+    }
+
+    const cardOff1 = (x2 >= x1 ? 16 : -16);
+    const cardOff2 = (x2 >= x1 ? -16 : 16);
+
     svgContent += `
       <path d="${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
       <path d="${d}" class="qbe-svg-join-line" stroke="${stroke}" ${dash} ${markerAttr} onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
+      
+      <!-- MS Access Style Cardinality Indicators (1 to ∞) -->
+      <foreignObject x="${x1 + cardOff1 - 9}" y="${y1 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid ${stroke}; color: ${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: ${leftCard}">
+          ${leftCard}
+        </div>
+      </foreignObject>
+      <foreignObject x="${x2 + cardOff2 - 9}" y="${y2 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid ${stroke}; color: ${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: ${rightCard}">
+          ${rightCard}
+        </div>
+      </foreignObject>
+
       <foreignObject x="${mx - 50}" y="${my - 13}" width="100" height="26" style="overflow: visible;">
         <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:${stroke}; color:${stroke};" onclick="openJoinPropertiesModal('${j.key}')" title="Join Properties (${type} JOIN): Click to configure">
           <span>${badgeIcon}</span>
@@ -1159,6 +1189,46 @@ function promptAddDesignerJoin(preferredLeft, preferredRight) {
     return;
   }
   openJoinPropertiesModal(null, preferredLeft, preferredRight);
+}
+
+function loadFullSchemaErd() {
+  if (!currentSchema || !currentSchema.tables || !currentSchema.tables.length) {
+    showToast("No tables loaded in the active schema");
+    return;
+  }
+  ensureQueryDesignerState();
+  const allNames = currentSchema.tables.map(t => t.name);
+  queryDesignerState.selectedTables = [...allNames];
+  autoArrangeDesignerTables();
+  autoJoinDesignerTables();
+  setDesignerActiveView("design");
+  showToast("Loaded Full Schema ERD (" + allNames.length + " tables connected)");
+}
+
+function exportDesignerCanvasSvg() {
+  const svg = document.getElementById("qbeCanvasSvg");
+  const stage = document.getElementById("qbeCanvasStage");
+  if (!svg || !stage) {
+    showToast("Canvas stage not ready for export");
+    return;
+  }
+  const clone = svg.cloneNode(true);
+  const w = svg.style.width || "3400px";
+  const h = svg.style.height || "2400px";
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("width", w);
+  clone.setAttribute("height", h);
+
+  const blob = new Blob([clone.outerHTML], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (currentSchema?.activeSchema || "postgres") + "_erd_relationships.svg";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("Exported ERD diagram as SVG");
 }
 
 function updateDesignerJoin(key, prop, value) {
@@ -1284,7 +1354,7 @@ function runDesignerQuery() {
       queryDesignerState.datasheet = {
         rows: res.rows || [],
         columns: res.columns || [],
-        latencyMs: res.latencyMs || 0,
+        latencyMs: res.latencyMs ?? res.executionTimeMs ?? 0,
         error: null,
       };
     } else {
@@ -1340,6 +1410,10 @@ function applyDesignerPreset(presetKey) {
   if (!presetKey) return;
   if (presetKey === "blank") {
     resetDesignerAll();
+    return;
+  }
+  if (presetKey === "all_tables_erd" || presetKey === "erd") {
+    loadFullSchemaErd();
     return;
   }
   if (!currentSchema || !currentSchema.tables || !currentSchema.tables.length) {
@@ -1623,6 +1697,7 @@ function loadDesignerSqlToEditor() {
   const value = buildDesignerSql();
   const editor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
   if (editor) editor.value = value;
+  if (typeof switchTab === "function") switchTab("sql");
   showToast("Designer SQL loaded into editor");
 }
 
@@ -1656,7 +1731,7 @@ function runCustomDesignerSql() {
       queryDesignerState.datasheet = {
         rows: res.rows || [],
         columns: res.columns || [],
-        latencyMs: res.latencyMs || 0,
+        latencyMs: res.latencyMs ?? res.executionTimeMs ?? 0,
         error: null,
       };
     } else {
@@ -1728,9 +1803,17 @@ async function saveDesignerAsView() {
       showToast("Error creating view: " + res.error);
     } else {
       showToast("View " + sanitized + " created successfully!");
-      logAudit("[DDL] Created VIEW: " + sanitized);
-      await refreshAll();
-      selectTable(sanitized);
+      if (typeof logAudit === "function") logAudit("[DDL] Created VIEW: " + sanitized);
+      if (typeof refreshAll === "function") {
+        await refreshAll();
+      } else if (typeof loadSchema === "function") {
+        await loadSchema();
+      }
+      if (typeof selectTable === "function") {
+        selectTable(sanitized);
+      } else if (typeof selectEntity === "function") {
+        selectEntity(sanitized, "view");
+      }
     }
   } catch (err) {
     showToast("Failed to create view: " + (err.message || String(err)));
@@ -1956,14 +2039,14 @@ function renderQueryDesigner() {
     <div class="qbe-ribbon">
       <div class="qbe-ribbon-group">
         <div class="qbe-view-switch">
-          <button class="qbe-view-btn ${queryDesignerState.activeView === 'design' ? 'active' : ''}" onclick="setDesignerActiveView('design')" title="Design View (QBE Matrix & Relationships)">📐 Design</button>
-          <button class="qbe-view-btn ${queryDesignerState.activeView === 'sql' ? 'active' : ''}" onclick="setDesignerActiveView('sql')" title="SQL View (Direct SQL Preview)">💻 SQL</button>
-          <button class="qbe-view-btn ${queryDesignerState.activeView === 'datasheet' ? 'active' : ''}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
+          <button id="btnDesignerViewDesign" class="qbe-view-btn ${queryDesignerState.activeView === 'design' ? 'active' : ''}" onclick="setDesignerActiveView('design')" title="Design View (QBE Matrix & Relationships)">📐 Design</button>
+          <button id="btnDesignerViewSql" class="qbe-view-btn ${queryDesignerState.activeView === 'sql' ? 'active' : ''}" onclick="setDesignerActiveView('sql')" title="SQL View (Direct SQL Preview)">💻 SQL</button>
+          <button id="btnDesignerViewDatasheet" class="qbe-view-btn ${queryDesignerState.activeView === 'datasheet' ? 'active' : ''}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
         </div>
         <div class="qbe-divider"></div>
-        <button class="btn btn-sm qbe-btn-run" onclick="runDesignerQuery()" title="Run query and view Datasheet">! Run</button>
-        <button class="qbe-btn-toggle ${queryDesignerState.showTotals ? 'active' : ''}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
-        <button class="qbe-btn-toggle ${queryDesignerState.distinct ? 'active' : ''}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
+        <button id="btnDesignerRun" class="btn btn-sm qbe-btn-run" onclick="runDesignerQuery()" title="Run query and view Datasheet">! Run</button>
+        <button id="btnDesignerTotals" class="qbe-btn-toggle ${queryDesignerState.showTotals ? 'active' : ''}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
+        <button id="btnDesignerDistinct" class="qbe-btn-toggle ${queryDesignerState.distinct ? 'active' : ''}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
         <span style="font-size: 11px; color: var(--text-dim); margin-left: 2px;">Top:</span>
         <select class="qbe-select" onchange="setDesignerTopLimit(this.value)" style="width: 80px;">
           <option value="0" ${queryDesignerState.topLimit === 0 ? 'selected' : ''}>All</option>
@@ -1977,6 +2060,7 @@ function renderQueryDesigner() {
         </select>
         <select id="designerPresetSelect" class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
           <option value="">⚡ Presets / Templates</option>
+          <option value="all_tables_erd">🌐 Full Schema ERD (All Tables &amp; Joins)</option>
           <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
           <option value="top_spenders">Top Spenders (Aggregated)</option>
           <option value="join_left">Access 2: Customers (LEFT JOIN)</option>
@@ -1994,15 +2078,17 @@ function renderQueryDesigner() {
           ${tablesList.length ? `<optgroup label="📋 Tables">${tablesList.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</optgroup>` : ''}
           ${viewsList.length ? `<optgroup label="👁️ Views">${viewsList.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)} (View)</option>`).join('')}</optgroup>` : ''}
         </select>
-        <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
-        <button class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Microsoft Access Join Properties dialog">+ Link / Join</button>
-        <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">⚡ Auto-Detect Joins</button>
-        <button class="btn btn-sm" onclick="autoArrangeDesignerTables()" title="Auto-arrange table layout on relationship canvas">📐 Auto-Arrange</button>
-        <button class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
-        <button class="btn btn-sm" onclick="clearDesignerQbe()" title="Clear QBE columns">Clear</button>
-        <button class="btn btn-sm" onclick="toggleSidebarCollapse()" title="Toggle sidebar to maximize screen room for visual designer">◀▶ Sidebar</button>
-        <button class="btn btn-sm" onclick="saveDesignerQuery()" title="Save query in workspace memory">💾 Save</button>
-        <button class="btn btn-sm" onclick="saveDesignerAsView()" title="Persist this query as a permanent SQL VIEW in the database">👁️ Create View</button>
+        <button id="btnDesignerAddTable" class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
+        <button id="btnDesignerFullErd" class="btn btn-sm" onclick="loadFullSchemaErd()" title="Load full database ERD with all tables and relationships">🌐 Full Schema ERD</button>
+        <button id="btnDesignerLinkJoin" class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Microsoft Access Join Properties dialog">+ Link / Join</button>
+        <button id="btnDesignerAutoDetect" class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">⚡ Auto-Detect Joins</button>
+        <button id="btnDesignerAutoArrange" class="btn btn-sm" onclick="autoArrangeDesignerTables()" title="Auto-arrange table layout on relationship canvas">📐 Auto-Arrange</button>
+        <button id="btnDesignerAddColumn" class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
+        <button id="btnDesignerExportSvg" class="btn btn-sm" onclick="exportDesignerCanvasSvg()" title="Export Relationship Diagram as SVG vector image">📷 Export ERD</button>
+        <button id="btnDesignerClear" class="btn btn-sm" onclick="clearDesignerQbe()" title="Clear QBE columns">Clear</button>
+        <button id="btnDesignerSidebar" class="btn btn-sm" onclick="toggleSidebarCollapse()" title="Toggle sidebar to maximize screen room for visual designer">◀▶ Sidebar</button>
+        <button id="btnDesignerSave" class="btn btn-sm" onclick="saveDesignerQuery()" title="Save query in workspace memory">💾 Save</button>
+        <button id="btnDesignerCreateView" class="btn btn-sm" onclick="saveDesignerAsView()" title="Persist this query as a permanent SQL VIEW in the database">👁️ Create View</button>
       </div>
     </div>
   `;

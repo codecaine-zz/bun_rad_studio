@@ -88,9 +88,14 @@ If you do not have or do not want to use `.env` variables, click **`🔌 Connect
 Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
 
 ### 1. 📊 Tabular Data Grid & Access-Style GUI CRUD Layer
+- **Microsoft Access Workflow Parity**:
+  - **Pinned Totals Row (`[ 🧮 Totals ]`)**: Pinned footer row calculating live aggregations across all visible records (`Total: N`, `Count: N`, and numeric aggregations `Σ sum`, `x̄ avg`, `min`, `max`).
+  - **Inline Quick Filter Bar (`[ ⚡ Filter Bar ]`)**: Persistent inline filter inputs positioned directly under each column header for instant keystroke filtering, plus cell right-click **"Filter by Selection"** shortcut.
+  - **Publication Report Generator (`🖨️ Report`)**: Opens a publication-ready printable report preview modal with report header, formatted table, summary counts, `@media print` print styles, **`🖨️ Print / Save PDF`**, and **`📥 Export HTML`**.
+  - **Access Form View & Design View**: Switch between Datasheet View and single-record Form View with record stepper/navigator, or open the interactive Table Design View supporting live `ALTER TABLE ADD/DROP COLUMN`, data type modifications, and index toggles.
 - **Access-Style CRUD Operations**:
-  - `+ New Row`: Visual dialog with input fields auto-configured for PostgreSQL types (UUID generation, JSONB validator, array tags).
-  - `✎ Edit Row` & **Inline Double-Click Cell Editing**: Direct in-place editing on any cell with automatic type casting ($1::jsonb).
+  - `+ Add Record`: Visual dialog with input fields auto-configured for PostgreSQL types (UUID generation, JSONB validator, array tags).
+  - `✎ Edit Row` & **Inline Double-Click Cell Editing**: Direct in-place editing on any cell with automatic type casting.
   - `⧉ Duplicate Row`: Clones selected record for rapid prototyping and mock data population.
   - `🗑 Delete Row`: Safe deletion with confirmation prompt and primary key resolution.
   - `📐 Design Table`: Access-style Table Designer modal to add/remove columns, change types (`VARCHAR`, `UUID`, `JSONB`, `NUMERIC`, etc.), toggle PK and NOT NULL.
@@ -99,43 +104,32 @@ Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
   - `📤 Export Wizard`: Export table data or query results to CSV, JSON, or SQL INSERT scripts.
 - **Sidebar Right-Click Context Menus**:
   - Context menu on tables and views: *Open Datasheet*, *Design Table*, *Manage Indexes*, *Export Data*, *Truncate Table*, *Drop Table*.
-- Paginated, lightning-fast data viewing with custom page sizing (25, 50, 100, 250).
-- Real-time row filtering across all columns.
 - Dedicated renderers for PostgreSQL native data types:
   - **UUIDs**: Monospace formatting with 1-click clipboard copying.
-  - **JSONB**: Highlighted clickable badge; clicking opens the **JSONB Inspector Modal** with tree indentation and full path copying.
+  - **JSONB**: Clickable highlighted badge; clicking opens the **JSONB Inspector Modal** with tree indentation and full path copying.
   - **Native Arrays**: Formatted tag pills (e.g. `['server', 'datacenter']`).
   - **Timestamps**: Localized date-time formatting with timezone offsets.
 
-### 2. ⚡ SQL Query IDE
+### 2. ⚡ SQL Query IDE & 1-Click Database Backup
+- **1-Click Database Backup & SQL Dump (`💾 DB Backup / Dump`)**:
+  - High-performance SQL dump generator producing standard PostgreSQL recovery scripts.
+  - 3 dump modes: **Complete (Schema DDL + Table Data)**, **Schema Only (DDL, Indexes, Keys, Sequences, Views)**, or **Data Only (INSERT Statements)**.
+  - Table selection checklist to backup specific tables or the entire schema.
+  - Live syntax-styled SQL preview with **`📋 Copy SQL`**, **`📥 Download .sql`**, and **`🚀 Open in SQL IDE`**.
 - Syntax-highlighted query editor with keyboard shortcuts (**Cmd+Enter** or **Ctrl+Enter** to execute).
-- 12 Curated PostgreSQL-specific SQL presets covering:
-  - Materialized view refreshes
-  - Deep JSONB operators (`->>`, `@>`)
-  - Native array containment and unnesting
-  - Full outer joins
-  - CTEs & window ranking functions
-  - UUID generation
-  - `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)`
-  - Active process diagnostics
-  - Table bloat & disk usage (`pg_size_pretty`)
-  - Extensions inspection
-- Formatted tabular output with execution latency and row counts.
-- Export results to CSV and Markdown.
+- 12 Curated PostgreSQL-specific SQL presets covering Materialized view refreshes, JSONB operators (`->>`, `@>`), array containment, CTEs, window functions, and `EXPLAIN (ANALYZE, BUFFERS)`.
+- Tabular output with execution latency and row counts; export results to CSV and Markdown.
 
 ### 3. 📐 Visual Query Designer & Access Relational Canvas
 - Microsoft Access-style relational canvas:
   - Add tables and views as movable cards with draggable headers.
   - Interactive column lists showing primary keys (🔑) and data types.
   - Automatic relationship discovery via foreign key introspection (`⚡ Auto-Joins`).
+  - Access cardinality badges (`1` and `∞`) displayed on relationship endpoints.
   - Automatic clean grid alignment (`📐 Arrange`).
 - **Deep Zoom & Room Expansion Controls**:
   - Zoom range from 40% to 250% (`🔍+`, `🔍−`, `1:1`, `Fit to View`).
-  - Room presets:
-    - `Canvas Only`: Maximizes canvas view for multi-table relationship design.
-    - `Split View`: Balanced layout with draggable horizontal resizer bar.
-    - `Grid Only`: Maximizes lower QBE matrix and result datasheet.
-  - Resizer Bar: Smooth interactive drag resizing between canvas and matrix.
+  - Room presets: `Canvas Only`, `Split View`, and `Grid Only` with draggable horizontal resizer bar.
 - **Join Properties Modal with Interactive Venn Diagrams**:
   - **Option 1**: INNER JOIN (Only matching rows)
   - **Option 2**: LEFT OUTER JOIN (ALL records from Left Table)
@@ -144,52 +138,52 @@ Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
   - Dynamic SVG Venn diagram preview with live SQL snippet generation.
 - Lower QBE Matrix:
   - Configure Field, Table, Total (`GroupBy`, `Sum`, `Avg`, `Count`, `Min`, `Max`), Sort, Show, and Criteria.
-- Switch between **📐 Design View**, **💻 SQL View** (properly double-quoted identifiers), and **📋 Datasheet View** (live data execution).
+- Switch between **📐 Design View**, **💻 SQL View**, and **📋 Datasheet View**.
 
-### 4. 🧩 PostgreSQL Extensions Manager
+### 4. 🏷️ PostgreSQL Custom Types & ENUMs Manager
+- Dedicated workstation tab inspecting `pg_type` and `pg_enum`.
+- Visual cards grid displaying each custom ENUM type, schema tag, allowed values badges, and cardinality.
+- Inline **`➕ Add Value`** to append new enum labels dynamically (`ALTER TYPE ... ADD VALUE`).
+- **`➕ Create ENUM Type`** modal dialog to define new enumeration types on the fly.
+- Safe `Drop` button with confirmation.
+
+### 5. 📦 Declarative Partition Trees Explorer
+- Dedicated workstation tab inspecting `pg_partitioned_table`, `pg_inherits`, `pg_class`, and `pg_namespace`.
+- Visualizes partition hierarchies with partition strategy badges (**RANGE**, **LIST**, **HASH**).
+- Displays child partition names, partition bound expressions (e.g. `FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')`), relation storage size, and row count estimates.
+
+### 6. 📡 Streaming Replication & WAL Diagnostics
+- Dedicated workstation tab monitoring PostgreSQL high-availability infrastructure:
+  - **Connected Streaming Standbys (`pg_stat_replication`)**: Standby PIDs, client addresses, application names, replication states, sync states, and write/flush/replay lag.
+  - **Replication Slots (`pg_replication_slots`)**: Slot names, plugin drivers, slot types, active statuses, and WAL status.
+  - **Write-Ahead Log Metrics (`pg_stat_wal`)**: Real-time diagnostic cards for total WAL records generated, full page images written, and WAL buffers full events.
+
+### 7. 🧩 PostgreSQL Extensions Manager
 - Complete catalog of all extensions supported by the PostgreSQL server (`pg_available_extensions`).
 - Filter by All, Installed Only, or search by keyword (e.g. `uuid`, `trgm`, `vector`, `citext`).
-- Each card shows extension name, installed version, default available version, and official PostgreSQL documentation comment.
 - 1-Click `+ Install` (`CREATE EXTENSION IF NOT EXISTS`) and `✕ Remove` (`DROP EXTENSION`).
 
-### 5. ⚡ Live Activity & Process Diagnostics
-- Real-time dashboard powered by `pg_stat_activity`.
+### 8. ⚡ Live Activity & Lock Contention Monitor
+- Real-time dashboard powered by `pg_stat_activity` and `pg_locks`.
+- **Lock Contention Detection**: Identifies blocked queries waiting on table or tuple locks, displaying blocked PID, blocking PID, lock mode, granted status, and exact query.
+- 1-Click **`🛑 Cancel Query`** (`pg_cancel_backend`) and **`⚡ Kill Process`** (`pg_terminate_backend`) to clear deadlocks immediately.
 - Visual indicators for backend states: `active` (emerald), `idle` (slate), `idle in transaction` (amber).
-- Runtime duration tracking with color alerts for long-running queries.
-- Action controls:
-  - **🛑 Cancel Query**: Calls `pg_cancel_backend(pid)` to abort a slow query without dropping the client socket.
-  - **⚡ Kill Process**: Calls `pg_terminate_backend(pid)` to immediately sever a runaway connection.
-- Optional 3-second auto-refresh toggle.
 
-### 6. 🔍 Query Plan Visualizer (`EXPLAIN ANALYZE`)
+### 9. 🔍 Query Plan Visualizer (`EXPLAIN ANALYZE`)
 - Runs `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` to display the query execution tree.
 - Inspect Seq Scans, Index Scans, Hash Joins, Sort operations, actual execution costs, and buffer cache hits.
 
-### 7. 🔢 Sequences Manager
-- Catalog of all cluster sequence generators (`pg_sequences`).
-- Displays sequence name, schema, data type (`bigint`, `integer`), start value, minimum, maximum, increment, and current value.
-- 1-Click `Restart Sequence` to reset or advance sequence counters safely.
+### 10. ⚙️ Engine Tuning & GUC Parameter Catalog
+- Interactive configuration catalog powered by `pg_settings`.
+- Categorized by subsystem: **Memory**, **Write-Ahead Log (WAL)**, **Query Tuning**, **Connections**, **Autovacuum**, and **Client Connection**.
+- Displays parameter name, category, current value, unit, and short description with runtime tuning support.
 
-### 8. 👥 Roles & Privileges Explorer
-- Real-time catalog of PostgreSQL cluster roles (`pg_roles`).
-- Displays role name, superuser status (`is_superuser`), login privileges (`can_login`), replication flags, bypass RLS status, and connection limits (`conn_limit`).
-
-### 9. ⚡ Triggers & Stored Functions Catalog
-- Comprehensive reflection of user triggers (`information_schema.triggers`) and stored procedures / functions (`pg_proc`).
-- Displays event manipulation (`INSERT`, `UPDATE`, `DELETE`), trigger timing (`BEFORE`, `AFTER`), function return types, and argument signatures.
-
-### 10. 🚀 Performance & Telemetry Dashboard
+### 11. 🚀 Performance & Telemetry Dashboard
 - Live PostgreSQL cluster health diagnostics:
   - **Buffer Cache Hit Ratio Gauge**: Real-time ratio of in-memory buffer hits vs. disk block reads.
   - **Database Storage Footprint**: Human-readable disk size via `pg_size_pretty(pg_database_size())`.
-  - **Cluster Locks Monitor**: Active, granted, and waiting locks count.
-  - **Transaction Commits & Rollbacks**: Live transaction outcome counters.
   - **Table Bloat & Tuple Analysis**: Live statistics on dead tuples vs. live tuples, vacuum timestamps, and analyze timestamps.
   - **1-Click Maintenance**: Run global cluster `VACUUM ANALYZE` or per-table vacuum directly from the dashboard.
-
-### 11. 💻 Raw JSON Telemetry Inspector
-- Inspect raw JSON responses from queries and schema reflection.
-- 1-Click copying to clipboard for integration with external tooling.
 
 ---
 
@@ -226,6 +220,7 @@ To test and explore all PostgreSQL-specific features immediately:
    - `customers` (with UUID primary keys and JSONB preferences)
    - `products` (with UUIDs, JSONB hardware specs, and native `text[]` tag arrays)
    - `orders` and `order_items` (with foreign keys and decimal calculations)
+   - `sales_history` (declarative range partitioned table with partitions `sales_2024`, `sales_2025`, `sales_2026`)
    - `audit_logs` (with JSONB event payloads and `TIMESTAMPTZ`)
    - `v_customer_order_summary` (multi-table view)
    - `mv_daily_sales_analytics` (**Materialized View** with 1-click refresh support)
@@ -234,31 +229,31 @@ To test and explore all PostgreSQL-specific features immediately:
 
 ## 🧪 Automated Testing Suite
 
-Postgres Studio Pro is backed by two automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, and complete end-to-end CRUD operations:
+Postgres Studio Pro is backed by two automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, Access-style features, and complete end-to-end CRUD operations:
 
 ```bash
-# 1. Run Core Diagnostics & Workstation Unit Tests (11 tests)
-bun test tests/postgres_studio.test.ts
-
-# 2. Run Comprehensive End-to-End Enterprise Test Suite (11 tests)
+# 1. Run Comprehensive End-to-End Enterprise Test Suite (26 tests)
 bun test tests/postgres_studio_e2e.test.ts
 
-# Run all 22 tests together
-bun test tests/postgres_studio.test.ts tests/postgres_studio_e2e.test.ts
+# 2. Run Microsoft Access Visual Joins & Relational Canvas Suite (9 tests)
+bun test tests/access_visual_joins.test.ts
+
+# Run all 35 tests together (509 assertions)
+bun test tests/access_visual_joins.test.ts tests/postgres_studio_e2e.test.ts
 ```
 
-All 22 automated tests pass with 100% success:
-- HTML compilation and 11 workstation navigation tabs & panes
-- Access-style GUI CRUD layer (inline edits, row modals, table designer, import/export)
-- Visual Query Designer with deep zoom (40%-250%), room presets, and interactive Venn diagrams
-- Sanitized configuration endpoint (no password leak)
-- Safe non-destructive credential verification
-- Schema namespace reflection and switching
-- Available extensions catalog (`uuid-ossp`, `pgcrypto`, etc.)
-- `pg_stat_activity` diagnostics and process termination
-- Sequences manager and restart values
-- Roles and privileges inspection
-- Triggers and functions catalog
-- Performance telemetry (cache hit ratio, bloat, locks) and `VACUUM ANALYZE` maintenance
-- Database creation validation and identifier safety
-- Desktop workstation factory instantiation
+All 35 automated tests pass with 100% success:
+- [x] HTML compilation and all 11 workstation navigation tabs & panes
+- [x] Access-style GUI CRUD layer (inline edits, row modals, table designer, import/export)
+- [x] Visual Query Designer with deep zoom (40%-250%), room presets, cardinality badges (`1` and `∞`), and interactive Venn diagrams
+- [x] Microsoft Access Totals Row & Quick Filter Bar in Datasheet view
+- [x] Microsoft Access Publication Report Generator Modal & Print View
+- [x] PostgreSQL 1-Click Database Backup & SQL Dump Generator (`All`, `Schema`, `Data`)
+- [x] PostgreSQL Custom ENUM Types Management (`pg_type` & `pg_enum`)
+- [x] Declarative Partition Trees Explorer (`pg_partitioned_table` & `pg_inherits`)
+- [x] Streaming Replication & Write-Ahead Log Diagnostics (`pg_stat_replication`, `pg_stat_wal`)
+- [x] Lock contention detection with 1-click PID termination
+- [x] Engine Tuning GUC Parameter Catalog (`pg_settings`)
+- [x] Schema namespace reflection, table lifecycles, and GIN/BTREE indexing
+- [x] Performance telemetry (cache hit ratio, bloat, locks) and `VACUUM ANALYZE` maintenance
+

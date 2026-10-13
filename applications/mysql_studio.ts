@@ -1734,6 +1734,199 @@ export function generateMysqlStudioHtml(): string {
       outline: none;
       color: var(--text-main);
     }
+    /* Microsoft Access Totals Row */
+    .access-totals-foot {
+      position: sticky;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.98);
+      backdrop-filter: blur(10px);
+      border-top: 2px solid var(--cyan);
+      z-index: 5;
+    }
+    .access-totals-foot td {
+      padding: 6px 10px;
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--text-main);
+      border-right: 1px solid var(--border-subtle);
+    }
+    .access-total-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--cyan);
+      font-size: 10px;
+      font-family: var(--font-mono);
+    }
+
+    /* Microsoft Access Quick Filter Bar */
+    .access-filter-row {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .access-filter-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: 3px;
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .access-filter-input:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Microsoft Access Publication Report Styles & @media print */
+    .access-report-sheet {
+      background: #ffffff;
+      color: #0f172a;
+      padding: 32px;
+      border-radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .access-report-header {
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .access-report-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0369a1;
+      letter-spacing: -0.5px;
+    }
+    .access-report-meta {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+      text-align: right;
+    }
+    .access-report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    .access-report-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 2px solid #cbd5e1;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .access-report-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    .access-report-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    .access-report-summary {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #accessReportModal, #accessReportModal * {
+        visibility: visible;
+      }
+      #accessReportModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: transparent !important;
+        display: block !important;
+      }
+      .modal-header, .modal-footer, .modal-close {
+        display: none !important;
+      }
+      .modal-card {
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+      .access-report-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+    }
+
+    /* Custom Enum Cards */
+    .enum-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .enum-card:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .enum-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--cyan);
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    /* Live Activity Monitor */
+    .state-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .state-active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .state-idle { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .state-idle-txn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    /* QBE Cardinality Badges */
+    .qbe-cardinality-badge {
+      user-select: none;
+      pointer-events: none;
+    }
 ${CRUD_STYLE}
   </style>
 </head>
@@ -1779,6 +1972,7 @@ ${CRUD_STYLE}
       </select>
       <button class="btn btn-primary" onclick="openDatabaseDialog('config')" title="Configure MySQL server connection, host, user, password, and database manually">🔌 Connection Config...</button>
       <button class="btn" onclick="openDatabaseDialog('databases')" title="Browse discovered databases on MySQL server">📂 Databases...</button>
+      <button class="btn" id="btnDbBackupDump" onclick="openDatabaseDumpModal()" title="1-Click MySQL Database Backup & SQL Dump Generator">💾 DB Backup / Dump</button>
       <button class="btn" onclick="runEditorQuery()">⚡ Run Query</button>
       <button class="btn" onclick="seedDatabase()">🌱 Seed Sample DB</button>
       <button class="btn" onclick="optimizeMysqlTables()">🧹 Optimize Tables</button>
@@ -1893,11 +2087,15 @@ ${CRUD_STYLE}
       <!-- View Tabs -->
       <div class="view-tabs">
         <div class="tab-btn active" id="tabBtnGrid" onclick="switchTab('grid')">📊 Tabular Data Grid</div>
-        <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">🧩 Query Designer</div>
-        <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer & DDL</div>
+        <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">📐 Visual Query Designer</div>
+        <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer &amp; DDL</div>
+        <div class="tab-btn" id="tabBtnTypes" onclick="switchTab('types')">🏷️ Custom Types &amp; ENUMs</div>
+        <div class="tab-btn" id="tabBtnPartitions" onclick="switchTab('partitions')">📦 Partition Trees</div>
+        <div class="tab-btn" id="tabBtnActivity" onclick="switchTab('activity')">⚡ Live Activity &amp; Locks</div>
+        <div class="tab-btn" id="tabBtnReplication" onclick="switchTab('replication')">📡 Replication &amp; Binlog</div>
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan Visualizer</div>
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
-        <div class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">⚡ Telemetry & Audit Log</div>
+        <div class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">⚡ Telemetry &amp; Audit Log</div>
         <div class="tab-btn" id="tabBtnPragma" onclick="switchTab('pragma')">⚙️ MySQL Maintenance</div>
       </div>
 
@@ -1908,7 +2106,12 @@ ${CRUD_STYLE}
           <div class="grid-toolbar">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 11px; font-weight: 700; color: var(--cyan);" id="gridTargetTitle">Active Result Set</span>
-              <input type="text" id="gridSearchInput" placeholder="Filter rows..." style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 3px 8px; color: #fff; font-size: 11px; outline: none;" oninput="onGridSearch(this.value)">
+              <div style="display: flex; gap: 4px;">
+                <button class="btn btn-sm" id="btnToggleTotals" onclick="toggleAccessTotalsRow()" title="Toggle Microsoft Access Totals Row (Sum, Avg, Count, Min, Max)">🧮 Totals</button>
+                <button class="btn btn-sm" id="btnToggleFilterBar" onclick="toggleQuickFilterBar()" title="Toggle Access Column Filter Bar">⚡ Filter Bar</button>
+                <button class="btn btn-sm" id="btnAccessReport" onclick="openAccessReportModal()" title="Generate Microsoft Access Printable Report / PDF">🖨️ Report</button>
+              </div>
+              <input type="text" id="gridSearchInput" placeholder="Filter rows..." style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 3px 8px; color: #fff; font-size: 11px; outline: none; width: 140px;" oninput="onGridSearch(this.value)">
             </div>
             <div class="grid-pagination">
               <span id="gridPageInfo">Page 1 of 1 (0 items)</span>
@@ -1918,8 +2121,12 @@ ${CRUD_STYLE}
           </div>
           <div class="grid-table-container" id="gridTableContainer">
             <table class="data-grid" id="mainDataGrid">
-              <thead><tr id="gridHeaderRow"><th>Status</th></tr></thead>
+              <thead>
+                <tr id="gridHeaderRow"><th>Status</th></tr>
+                <tr id="gridFilterBarRow" class="access-filter-row" style="display: none;"><th>⚡</th></tr>
+              </thead>
               <tbody id="gridBody"><tr><td>Ready. Select a table or run a query.</td></tr></tbody>
+              <tfoot id="gridTotalsFoot" class="access-totals-foot" style="display: none;"></tfoot>
             </table>
           </div>
         </div>
@@ -1936,6 +2143,94 @@ ${CRUD_STYLE}
           <div class="schema-layout" id="schemaContainer">
             <div class="card">
               <div class="card-title">Select a table from the sidebar to inspect its columns, keys, and DDL</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Custom Types & ENUMs Explorer -->
+        <div class="tab-pane" id="tabTypes">
+          <div class="activity-toolbar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; color: var(--cyan);">MySQL Custom ENUM &amp; SET Column Types</span>
+              <input type="text" id="enumSearchInput" placeholder="Filter enum columns..." oninput="filterEnumTypes(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; width: 200px; outline: none;">
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm" onclick="loadEnumTypes()">🔄 Refresh</button>
+              <button class="btn btn-sm btn-primary" onclick="openCreateEnumModal()">➕ Add ENUM Column</button>
+            </div>
+          </div>
+          <div id="enumTypesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 14px; overflow-y: auto;">
+            <div class="card" style="padding: 24px; text-align: center; color: var(--text-dim); grid-column: 1 / -1;">
+              Loading ENUM and SET types...
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Partition Trees Explorer -->
+        <div class="tab-pane" id="tabPartitions">
+          <div class="activity-toolbar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; color: var(--amber);">MySQL Declarative Partition Trees (information_schema.PARTITIONS)</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm" onclick="loadPartitions()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div id="partitionsContainer" style="padding: 14px; overflow-y: auto;">
+            <div class="card" style="padding: 24px; text-align: center; color: var(--text-dim);">
+              Loading partition trees...
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Live Activity & Lock Contention Monitor -->
+        <div class="tab-pane" id="tabActivity">
+          <div class="activity-toolbar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; color: var(--rose);">Live Process &amp; Lock Contention Monitor</span>
+              <span class="brand-badge" id="activityCountBadge">0 active</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm" onclick="loadActivity()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 14px; gap: 10px;">
+            <div id="activityLocksAlert"></div>
+            <div style="flex: 1; overflow: auto; border: 1px solid var(--border-subtle); border-radius: 6px;">
+              <table class="data-grid" id="activityGrid">
+                <thead>
+                  <tr>
+                    <th style="width: 70px;">PID</th>
+                    <th style="width: 110px;">User</th>
+                    <th style="width: 110px;">Database</th>
+                    <th style="width: 110px;">Client Host</th>
+                    <th style="width: 90px;">State</th>
+                    <th style="width: 80px;">Time</th>
+                    <th>Executing Query / Command</th>
+                    <th style="width: 90px; text-align: center;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="activityBody">
+                  <tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 20px;">Loading process activity...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Streaming Replication & Binary Log Diagnostics -->
+        <div class="tab-pane" id="tabReplication">
+          <div class="activity-toolbar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; color: var(--emerald);">MySQL Binary Log &amp; Replication Diagnostics</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm" onclick="loadReplicationStatus()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div id="replicationContainer" style="padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
+            <div class="card" style="padding: 24px; text-align: center; color: var(--text-dim);">
+              Loading replication status...
             </div>
           </div>
         </div>
@@ -2247,6 +2542,93 @@ ${CRUD_STYLE}
     </div>
   </div>
 
+  <!-- Microsoft Access Printable Publication Report Modal -->
+  <div class="modal-overlay" id="accessReportModal" onclick="if(event.target === this) closeAccessReportModal()">
+    <div class="modal-card" style="max-width: 960px; max-height: 90vh;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📑</span>
+          <span>Microsoft Access Publication Report Preview</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="btn btn-sm btn-primary" onclick="printAccessReport()">🖨️ Print / Save PDF</button>
+          <button class="btn btn-sm" onclick="exportAccessReportHtml()">📥 Export HTML</button>
+          <button class="modal-close" onclick="closeAccessReportModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; background: #e2e8f0;">
+        <div id="accessReportContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MySQL Database Backup & SQL Dump Modal -->
+  <div class="modal-overlay" id="dumpModal" onclick="if(event.target === this) closeDatabaseDumpModal()">
+    <div class="modal-card" style="max-width: 900px; max-height: 90vh;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>💾</span>
+          <span>MySQL Database Backup &amp; SQL Dump Generator</span>
+        </div>
+        <button class="modal-close" onclick="closeDatabaseDumpModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; gap: 12px; overflow-y: auto;">
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">Dump Mode:</label>
+          <select id="dumpModeSelect" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+            <option value="all">Complete (Schema DDL + Table Data)</option>
+            <option value="schema">Schema Only (DDL, Indexes, Keys, Views)</option>
+            <option value="data">Data Only (INSERT Statements)</option>
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="runGenerateDump()">⚡ Generate Dump</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">Tables to Include:</span>
+          <div id="dumpTablesList" style="display: flex; gap: 8px; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; border: 1px solid var(--border-subtle); max-height: 90px; overflow-y: auto;">
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--cyan);">SQL DUMP PREVIEW</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm" onclick="copyDumpSql()">📋 Copy SQL</button>
+              <button class="btn btn-sm" onclick="downloadDumpFile()">📥 Download .sql</button>
+              <button class="btn btn-sm btn-primary" onclick="openDumpInSqlIde()">🚀 Open in SQL IDE</button>
+            </div>
+          </div>
+          <textarea id="dumpSqlPreview" readonly style="width: 100%; height: 260px; font-family: var(--font-mono); font-size: 11px; background: rgba(6,11,20,0.95); color: #a5f3fc; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 10px; resize: none; outline: none; white-space: pre;"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Create Custom ENUM Column Modal -->
+  <div class="modal-overlay" id="createEnumModal" onclick="if(event.target === this) closeCreateEnumModal()">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🏷️</span>
+          <span>Add MySQL ENUM Column</span>
+        </div>
+        <button class="modal-close" onclick="closeCreateEnumModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--text-dim); font-weight: 700;">Target Table &amp; Column (table.column, e.g. orders.status):</label>
+          <input type="text" id="enumNewName" placeholder="e.g. orders.status" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 12px; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--text-dim); font-weight: 700;">Allowed Values (comma separated):</label>
+          <input type="text" id="enumNewValues" placeholder="e.g. Pending, Processing, Shipped, Delivered, Cancelled" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 12px; outline: none;">
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-sm" onclick="closeCreateEnumModal()">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="submitCreateEnum()">Save ENUM Column</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toastBox">Notification message</div>
 
@@ -2256,12 +2638,18 @@ ${CRUD_STYLE}
     let currentKpis = null;
     let currentGridRows = [];
     let currentGridColumns = [];
+    let currentGridRawRows = [];
     let activeTable = "";
     let gridPage = 1;
     let gridPageSize = 25;
     let gridSortCol = "";
     let gridSortDir = "ASC";
     let activeTab = "grid";
+    let accessTotalsRowVisible = false;
+    let accessFilterBarVisible = false;
+    let activeColumnFilters = {};
+    let allEnumTypes = [];
+    let currentDumpSql = "";
     let queryDesignerState = {
       activeView: "design",
       selectedTables: [],
@@ -2409,6 +2797,14 @@ ${CRUD_STYLE}
 
       if (tabId === "designer") {
         renderQueryDesigner();
+      } else if (tabId === "types") {
+        loadEnumTypes();
+      } else if (tabId === "partitions") {
+        loadPartitions();
+      } else if (tabId === "activity") {
+        loadActivity();
+      } else if (tabId === "replication") {
+        loadReplicationStatus();
       }
     }
 
@@ -3087,7 +3483,8 @@ ${CRUD_STYLE}
       if (res && res.success) {
         currentGridRows = res.rows || [];
         currentGridColumns = res.columns || [];
-        renderDataGrid(currentGridColumns, currentGridRows);
+        currentGridRawRows = [...currentGridRows];
+        renderDataGrid(currentGridColumns, currentGridRows, true, res.totalRows);
         document.getElementById("gridPageInfo").textContent = \`Page \${res.page} of \${res.totalPages} (\${res.totalRows} records)\`;
         document.getElementById("kpiLatency").textContent = res.latencyMs + " ms";
         document.getElementById("resultSummary").textContent = \`\${res.totalRows} total rows (\${res.rows.length} on page)\`;
@@ -3097,7 +3494,7 @@ ${CRUD_STYLE}
       }
     }
 
-    function renderDataGrid(columns, rows) {
+    function renderDataGrid(columns, rows, updateFilter = true, totalCount = null) {
       const thead = document.getElementById("gridHeaderRow");
       const tbody = document.getElementById("gridBody");
       thead.innerHTML = "";
@@ -3106,6 +3503,10 @@ ${CRUD_STYLE}
       if (columns.length === 0) {
         thead.innerHTML = "<th>Result</th>";
         tbody.innerHTML = "<tr><td>(0 columns)</td></tr>";
+        const foot = document.getElementById("gridTotalsFoot");
+        if (foot) { foot.style.display = "none"; foot.innerHTML = ""; }
+        const filterRow = document.getElementById("gridFilterBarRow");
+        if (filterRow) filterRow.style.display = "none";
         return;
       }
 
@@ -3125,23 +3526,687 @@ ${CRUD_STYLE}
         thead.appendChild(th);
       });
 
+      if (updateFilter) {
+        renderFilterBar(columns);
+      }
+
       if (rows.length === 0) {
         tbody.innerHTML = \`<tr><td colspan="\${columns.length}" style="text-align: center; color: var(--text-dim); padding: 20px;">No records found.</td></tr>\`;
+      } else {
+        rows.forEach(row => {
+          const tr = document.createElement("tr");
+          columns.forEach(col => {
+            const td = document.createElement("td");
+            const val = row[col];
+            td.textContent = val === null ? "NULL" : (typeof val === "object" ? JSON.stringify(val) : String(val));
+            if (val === null) td.style.color = "var(--text-dim)";
+            td.title = \`\${col}: \${td.textContent} (Double-click or right-click to filter)\`;
+            td.ondblclick = (e) => {
+              e.preventDefault();
+              filterByColumnValue(col, val);
+            };
+            td.oncontextmenu = (e) => {
+              e.preventDefault();
+              filterByColumnValue(col, val);
+            };
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      updateAccessTotalsRow(rows, columns, totalCount !== null ? totalCount : rows.length);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Microsoft Access Totals Row & Quick Filter Bar
+    // ---------------------------------------------------------------------------------------------
+    function toggleAccessTotalsRow() {
+      accessTotalsRowVisible = !accessTotalsRowVisible;
+      const btn = document.getElementById("btnToggleTotals");
+      if (btn) {
+        if (accessTotalsRowVisible) btn.classList.add("btn-primary");
+        else btn.classList.remove("btn-primary");
+      }
+      if (currentGridRows && currentGridColumns) {
+        updateAccessTotalsRow(currentGridRows, currentGridColumns, currentGridRows.length);
+      }
+      showToast(accessTotalsRowVisible ? "Access Totals Row enabled" : "Access Totals Row disabled");
+    }
+
+    function updateAccessTotalsRow(rows, columns, total) {
+      const foot = document.getElementById("gridTotalsFoot");
+      if (!foot) return;
+      if (!accessTotalsRowVisible) {
+        foot.style.display = "none";
+        foot.innerHTML = "";
+        return;
+      }
+      foot.style.display = "table-footer-group";
+
+      if (!columns || columns.length === 0) {
+        foot.innerHTML = "";
         return;
       }
 
-      rows.forEach(row => {
-        const tr = document.createElement("tr");
-        columns.forEach(col => {
-          const td = document.createElement("td");
-          const val = row[col];
-          td.textContent = val === null ? "NULL" : (typeof val === "object" ? JSON.stringify(val) : String(val));
-          if (val === null) td.style.color = "var(--text-dim)";
-          td.title = td.textContent;
-          tr.appendChild(td);
+      const stats = {};
+      columns.forEach(c => {
+        let isNum = true;
+        let sum = 0;
+        let count = 0;
+        let min = null;
+        let max = null;
+        rows.forEach(r => {
+          const val = r[c];
+          if (val !== null && val !== undefined && val !== "") {
+            const num = Number(val);
+            if (!isNaN(num) && typeof val !== "boolean") {
+              sum += num;
+              count++;
+              if (min === null || num < min) min = num;
+              if (max === null || num > max) max = num;
+            } else {
+              isNum = false;
+            }
+          }
         });
-        tbody.appendChild(tr);
+        if (isNum && count > 0) {
+          stats[c] = {
+            count,
+            sum: Math.round(sum * 100) / 100,
+            avg: Math.round((sum / count) * 100) / 100,
+            min,
+            max
+          };
+        } else {
+          stats[c] = { count: rows.length };
+        }
       });
+
+      const cellsHtml = columns.map(c => {
+        const s = stats[c];
+        if (s && s.sum !== undefined) {
+          return "<td><div style='display:flex; flex-direction:column; gap:2px;'>" +
+            "<span class='access-total-badge' title='Sum'>Σ " + s.sum.toLocaleString() + "</span>" +
+            "<span style='font-size:9px; color:var(--text-dim);' title='Average'>x̄ " + s.avg.toLocaleString() + "</span>" +
+            "</div></td>";
+        }
+        return "<td><span style='font-size:10px; color:var(--text-dim);'>Count: " + (s?.count ?? rows.length) + "</span></td>";
+      }).join('');
+
+      foot.innerHTML = "<tr><td style='color:var(--cyan); font-weight:800; text-align:center;'>Total: " + total.toLocaleString() + "</td>" + cellsHtml + "</tr>";
+    }
+
+    function toggleQuickFilterBar() {
+      accessFilterBarVisible = !accessFilterBarVisible;
+      const btn = document.getElementById("btnToggleFilterBar");
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (btn) {
+        if (accessFilterBarVisible) btn.classList.add("btn-primary");
+        else btn.classList.remove("btn-primary");
+      }
+      if (filterRow) {
+        filterRow.style.display = accessFilterBarVisible ? "table-row" : "none";
+      }
+      if (!accessFilterBarVisible) {
+        activeColumnFilters = {};
+        if (currentGridRawRows.length > 0) {
+          currentGridRows = [...currentGridRawRows];
+          renderDataGrid(currentGridColumns, currentGridRows, false);
+        } else if (activeTable) {
+          fetchTableData();
+        }
+      } else {
+        renderFilterBar(currentGridColumns);
+      }
+      showToast(accessFilterBarVisible ? "Quick Filter Bar opened" : "Quick Filter Bar cleared");
+    }
+
+    function renderFilterBar(columns) {
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (!filterRow) return;
+      if (!accessFilterBarVisible) {
+        filterRow.style.display = "none";
+        return;
+      }
+      filterRow.style.display = "table-row";
+      filterRow.innerHTML = (columns || []).map(col => {
+        const currentVal = activeColumnFilters[col] || "";
+        const safeCol = String(col || "").replace(/"/g, '&quot;');
+        const safeVal = String(currentVal || "").replace(/"/g, '&quot;');
+        return '<th style="padding: 2px 4px; vertical-align: middle;">' +
+          '<input type="text" class="access-filter-input" placeholder="filter ' + safeCol + '..." value="' + safeVal + '" data-col="' + safeCol + '" oninput="onColumnFilterInput(this.dataset.col, this.value)">' +
+          '</th>';
+      }).join('');
+    }
+
+    function onColumnFilterInput(colName, filterVal) {
+      if (!filterVal || filterVal.trim() === "") {
+        delete activeColumnFilters[colName];
+      } else {
+        activeColumnFilters[colName] = filterVal.trim();
+      }
+      filterLoadedRowsInMemory();
+    }
+
+    function filterByColumnValue(colName, colVal) {
+      accessFilterBarVisible = true;
+      const btn = document.getElementById("btnToggleFilterBar");
+      if (btn) btn.classList.add("btn-primary");
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (filterRow) filterRow.style.display = "table-row";
+
+      activeColumnFilters[colName] = String(colVal);
+      renderFilterBar(currentGridColumns);
+      showToast("Filtered by " + colName + " = " + colVal);
+      filterLoadedRowsInMemory();
+    }
+
+    function filterLoadedRowsInMemory() {
+      if (!currentGridRawRows || currentGridRawRows.length === 0) return;
+      const filterKeys = Object.keys(activeColumnFilters);
+      if (filterKeys.length === 0) {
+        currentGridRows = [...currentGridRawRows];
+      } else {
+        currentGridRows = currentGridRawRows.filter(row => {
+          return filterKeys.every(k => {
+            const needle = activeColumnFilters[k].toLowerCase();
+            const val = row[k];
+            if (val === null || val === undefined) return needle === "null";
+            return String(val).toLowerCase().includes(needle);
+          });
+        });
+      }
+      renderDataGrid(currentGridColumns, currentGridRows, false);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Microsoft Access Publication Report Preview & Print/Export
+    // ---------------------------------------------------------------------------------------------
+    async function openAccessReportModal() {
+      const modal = document.getElementById("accessReportModal");
+      const content = document.getElementById("accessReportContent");
+      if (!modal || !content) return;
+
+      modal.style.display = "flex";
+      modal.classList.add("open");
+
+      if ((!currentGridRows || !currentGridRows.length) && activeTable) {
+        try { await fetchTableData(); } catch(e) {}
+      }
+
+      const tblName = activeTable || "MySQL Workstation Report";
+      const rows = currentGridRows || [];
+      let columns = currentGridColumns || [];
+
+      if (!columns.length && activeTable && currentSchema && currentSchema.tables) {
+        const tbl = currentSchema.tables.find(t => t.name === activeTable);
+        if (tbl && tbl.columns) columns = tbl.columns.map(c => c.name);
+      }
+
+      const dateStr = new Date().toLocaleString();
+      const dbName = document.getElementById("kpiDbName")?.textContent || "my_app_dev";
+
+      let html = '<div class="access-report-sheet">';
+      html += '<div class="access-report-header">';
+      html += '  <div>';
+      html += '    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#0284c7; letter-spacing:1px;">Microsoft Access Workstation Report</div>';
+      html += '    <div class="access-report-title">' + escapeHtml(tblName) + '</div>';
+      html += '  </div>';
+      html += '  <div class="access-report-meta">';
+      html += '    <div>Database: <strong>' + escapeHtml(dbName) + '</strong></div>';
+      html += '    <div>Generated: <strong>' + dateStr + '</strong></div>';
+      html += '    <div>Total Records: <strong>' + rows.length.toLocaleString() + '</strong></div>';
+      html += '  </div>';
+      html += '</div>';
+
+      html += '<table class="access-report-table">';
+      html += '  <thead><tr><th style="width:36px; text-align:center;">#</th>' + columns.map(c => '<th>' + escapeHtml(c) + '</th>').join('') + '</tr></thead>';
+      html += '  <tbody>';
+      rows.slice(0, 100).forEach((r, idx) => {
+        html += '<tr><td style="text-align:center; color:#94a3b8; font-weight:600;">' + (idx + 1) + '</td>';
+        columns.forEach(c => {
+          const val = r[c];
+          if (val === null || val === undefined) {
+            html += '<td style="color:#94a3b8; font-style:italic;">NULL</td>';
+          } else if (typeof val === 'object') {
+            html += '<td><code>' + escapeHtml(JSON.stringify(val).slice(0, 40)) + '</code></td>';
+          } else {
+            html += '<td>' + escapeHtml(String(val)) + '</td>';
+          }
+        });
+        html += '</tr>';
+      });
+      html += '  </tbody>';
+      html += '</table>';
+
+      html += '<div class="access-report-summary">';
+      html += '  <span>End of Report: ' + rows.length.toLocaleString() + ' Records Processed</span>';
+      html += '  <span>🐬 MySQL Studio Pro / Access Parity Engine</span>';
+      html += '</div>';
+      html += '</div>';
+
+      content.innerHTML = html;
+      modal.style.display = "flex";
+      modal.classList.add("open");
+    }
+
+    function closeAccessReportModal() {
+      const modal = document.getElementById("accessReportModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("open");
+      }
+    }
+
+    function printAccessReport() {
+      window.print();
+    }
+
+    function exportAccessReportHtml() {
+      const content = document.getElementById("accessReportContent");
+      if (!content) return;
+      const fullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report - ' + (activeTable || "MySQL") + '</title><style>' +
+        (document.querySelector("style")?.innerText || "") +
+        '</style></head><body style="background:#f1f5f9; padding:20px;">' +
+        content.innerHTML +
+        '</body></html>';
+
+      const blob = new Blob([fullHtml], { type: "text/html" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "report_" + (activeTable || "query") + "_" + Date.now() + ".html";
+      a.click();
+      showToast("✓ Report HTML exported!");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // MySQL Enterprise Database Backup & SQL Dump
+    // ---------------------------------------------------------------------------------------------
+    async function openDatabaseDumpModal() {
+      const modal = document.getElementById("dumpModal");
+      const listEl = document.getElementById("dumpTablesList");
+      if (!modal) return;
+
+      if (listEl && currentSchema && currentSchema.tables) {
+        listEl.innerHTML = currentSchema.tables.map(t => {
+          return '<label style="display:flex; align-items:center; gap:4px; font-size:11px; color:#fff; cursor:pointer;">' +
+            '<input type="checkbox" class="dump-table-chk" value="' + escapeHtml(t.name) + '" checked> ' +
+            escapeHtml(t.name) +
+            '</label>';
+        }).join('');
+      }
+
+      modal.style.display = "flex";
+      modal.classList.add("open");
+      await runGenerateDump();
+    }
+
+    function closeDatabaseDumpModal() {
+      const modal = document.getElementById("dumpModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("open");
+      }
+    }
+
+    async function runGenerateDump() {
+      const mode = document.getElementById("dumpModeSelect")?.value || "all";
+      const chks = document.querySelectorAll(".dump-table-chk:checked");
+      const tables = Array.from(chks).map(c => c.value);
+
+      const preview = document.getElementById("dumpSqlPreview");
+      if (preview) preview.value = "-- Generating MySQL Database SQL Dump...";
+
+      showToast("Generating MySQL database dump (" + mode + ")...");
+      const res = await apiRequest("/api/database/dump", { mode, tables });
+      if (res && res.success) {
+        currentDumpSql = res.sql;
+        if (preview) preview.value = currentDumpSql;
+        showToast("✓ Database dump generated (" + currentDumpSql.length.toLocaleString() + " bytes)");
+      } else {
+        if (preview) preview.value = "-- Error generating dump: " + (res?.error || "Unknown error");
+        showToast("Error generating dump: " + (res?.error || "Failed"));
+      }
+    }
+
+    function copyDumpSql() {
+      if (!currentDumpSql) return;
+      navigator.clipboard.writeText(currentDumpSql);
+      showToast("✓ SQL dump copied to clipboard!");
+    }
+
+    function downloadDumpFile() {
+      if (!currentDumpSql) return;
+      const dbName = document.getElementById("kpiDbName")?.textContent || "my_app_dev";
+      const blob = new Blob([currentDumpSql], { type: "application/sql" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "mysql_dump_" + dbName + "_" + Date.now() + ".sql";
+      a.click();
+      showToast("✓ Downloaded SQL dump file!");
+    }
+
+    function openDumpInSqlIde() {
+      if (!currentDumpSql) return;
+      const sqlEl = document.getElementById("sqlEditor");
+      if (sqlEl) sqlEl.value = currentDumpSql.slice(0, 10000);
+      closeDatabaseDumpModal();
+      showToast("Opened dump in SQL Query Editor!");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // MySQL Custom ENUM/SET Columns Management
+    // ---------------------------------------------------------------------------------------------
+    async function loadEnumTypes() {
+      const res = await apiRequest("/api/types/enums");
+      if (res && res.success) {
+        allEnumTypes = res.enums || [];
+        renderEnumTypesGrid(allEnumTypes);
+      }
+    }
+
+    function renderEnumTypesGrid(enums) {
+      const grid = document.getElementById("enumTypesGrid");
+      if (!grid) return;
+
+      if (!enums || enums.length === 0) {
+        grid.innerHTML = '<div class="card" style="padding:24px; text-align:center; color:var(--text-dim); grid-column:1/-1;">' +
+          'No custom ENUM or SET columns found in database. Click "+ Add ENUM Column" to define one.' +
+          '</div>';
+        return;
+      }
+
+      grid.innerHTML = enums.map(e => {
+        const badges = (e.values || []).map(v => '<span class="enum-badge">' + escapeHtml(v) + '</span>').join(' ');
+        return '<div class="enum-card">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '  <div style="font-weight:700; color:var(--cyan); font-size:13px; font-family:var(--font-mono);">' + escapeHtml(e.name) + '</div>' +
+          '  <span class="badge">' + escapeHtml(e.type || "ENUM") + '</span>' +
+          '</div>' +
+          '<div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;">' + badges + '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:8px;">' +
+          '  <span style="font-size:10px; color:var(--text-dim);">' + escapeHtml(e.table) + ' &bull; ' + escapeHtml(e.column) + '</span>' +
+          '  <button class="btn btn-sm" onclick="promptAddEnumValue(&quot;' + escapeHtml(e.table) + '&quot;, &quot;' + escapeHtml(e.column) + '&quot;)">➕ Add Value</button>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function filterEnumTypes(q) {
+      const needle = (q || "").toLowerCase();
+      const filtered = allEnumTypes.filter(e => e.name.toLowerCase().includes(needle) || (e.values || []).some(v => v.toLowerCase().includes(needle)));
+      renderEnumTypesGrid(filtered);
+    }
+
+    function openCreateEnumModal() {
+      const modal = document.getElementById("createEnumModal");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.add("open");
+      }
+    }
+
+    function closeCreateEnumModal() {
+      const modal = document.getElementById("createEnumModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("open");
+      }
+    }
+
+    async function submitCreateEnum() {
+      const name = document.getElementById("enumNewName")?.value.trim();
+      const rawVals = document.getElementById("enumNewValues")?.value.trim();
+      if (!name || !rawVals) {
+        showToast("Please provide target column (e.g. orders.status) and allowed values!");
+        return;
+      }
+      const values = rawVals.split(",").map(v => v.trim()).filter(Boolean);
+      showToast("Creating ENUM column " + name + "...");
+      const res = await apiRequest("/api/types/enums/create", { name, values });
+      if (res && res.success) {
+        showToast("✓ ENUM column " + name + " configured successfully!");
+        closeCreateEnumModal();
+        await refreshSchema();
+        loadEnumTypes();
+      } else {
+        showToast("Error creating enum: " + (res?.error || "Failed"));
+      }
+    }
+
+    async function promptAddEnumValue(tbl, col) {
+      const val = prompt("Enter new value to append to ENUM " + tbl + "." + col + ":");
+      if (!val || val.trim() === "") return;
+      showToast("Adding value to " + tbl + "." + col + "...");
+      const res = await apiRequest("/api/types/enums/add-value", { table: tbl, column: col, value: val.trim() });
+      if (res && res.success) {
+        showToast("✓ Value added to ENUM " + tbl + "." + col);
+        loadEnumTypes();
+      } else {
+        showToast("Error adding value: " + (res?.error || "Failed"));
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // MySQL Declarative Partition Trees Explorer
+    // ---------------------------------------------------------------------------------------------
+    async function loadPartitions() {
+      const container = document.getElementById("partitionsContainer");
+      if (!container) return;
+      container.innerHTML = '<div style="color:var(--text-dim); padding:20px; text-align:center;">Loading partitioned tables...</div>';
+
+      const res = await apiRequest("/api/partitions");
+      if (res && res.success) {
+        const partitions = res.partitions || [];
+        if (!partitions.length) {
+          container.innerHTML = '<div class="card" style="padding:24px; text-align:center; color:var(--text-dim);">' +
+            'No partitioned tables found in the active MySQL database.<br>' +
+            '<span style="font-size:11px; color:var(--text-muted);">Use <code>PARTITION BY RANGE / LIST / HASH / KEY</code> in DDL to enable partitioned tables.</span>' +
+            '</div>';
+          return;
+        }
+
+        const grouped = {};
+        partitions.forEach(p => {
+          if (!grouped[p.parentTable]) grouped[p.parentTable] = [];
+          grouped[p.parentTable].push(p);
+        });
+
+        container.innerHTML = Object.keys(grouped).map(parent => {
+          const parts = grouped[parent];
+          const strat = parts[0]?.partitionStrategy || "RANGE";
+          const rows = parts.map(p => {
+            return '<tr>' +
+              '<td style="font-weight:600; color:var(--cyan);">' + escapeHtml(p.partitionName) + '</td>' +
+              '<td><code>' + escapeHtml(p.partitionExpression) + '</code></td>' +
+              '<td>' + escapeHtml(p.totalSize) + '</td>' +
+              '<td>' + p.rowEstimate.toLocaleString() + '</td>' +
+              '</tr>';
+          }).join('');
+
+          return '<div class="card" style="margin-bottom:16px;">' +
+            '<div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">' +
+            '  <span>📦 Table: <strong style="color:var(--cyan);">' + escapeHtml(parent) + '</strong></span>' +
+            '  <span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">' + strat + ' PARTITIONED</span>' +
+            '</div>' +
+            '<table class="data-grid" style="margin-top:10px;">' +
+            '  <thead><tr><th>Partition Name</th><th>Partition Bound Expression</th><th>Size</th><th>Estimated Rows</th></tr></thead>' +
+            '  <tbody>' + rows + '</tbody>' +
+            '</table>' +
+            '</div>';
+        }).join('');
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // MySQL Streaming Replication & Binary Log Diagnostics
+    // ---------------------------------------------------------------------------------------------
+    async function loadReplicationStatus() {
+      const container = document.getElementById("replicationContainer");
+      if (!container) return;
+      container.innerHTML = '<div style="color:var(--text-dim); padding:20px; text-align:center;">Querying replication status...</div>';
+
+      const res = await apiRequest("/api/replication");
+      if (res && res.success) {
+        const repl = res.replication || {};
+        const replicas = repl.replicas || [];
+        const binLogs = repl.binaryLogs || [];
+        const master = repl.masterStatus;
+
+        let replicasHtml = '';
+        if (replicas.length === 0) {
+          replicasHtml = '<tr><td colspan="6" style="text-align:center; color:var(--text-dim); padding:16px;">No replica / slave threads currently connected or configured.</td></tr>';
+        } else {
+          replicasHtml = replicas.map(s => {
+            return '<tr>' +
+              '<td>' + escapeHtml(s.Replica_IO_Running || s.Slave_IO_Running || '-') + '</td>' +
+              '<td>' + escapeHtml(s.Replica_SQL_Running || s.Slave_SQL_Running || '-') + '</td>' +
+              '<td>' + escapeHtml(s.Source_Host || s.Master_Host || '-') + '</td>' +
+              '<td>' + escapeHtml(s.Source_Log_File || s.Master_Log_File || '-') + '</td>' +
+              '<td>' + escapeHtml(String(s.Seconds_Behind_Source ?? s.Seconds_Behind_Master ?? '0')) + 's</td>' +
+              '<td>' + escapeHtml(s.Last_IO_Error || 'None') + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+
+        let logsHtml = '';
+        if (binLogs.length === 0) {
+          logsHtml = '<tr><td colspan="2" style="text-align:center; color:var(--text-dim); padding:16px;">Binary logging not enabled (log_bin = OFF) or no log files found.</td></tr>';
+        } else {
+          logsHtml = binLogs.map(l => {
+            return '<tr>' +
+              '<td><strong>' + escapeHtml(l.logName) + '</strong></td>' +
+              '<td>' + escapeHtml(l.fileSize) + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+
+        container.innerHTML = '' +
+          '<div class="card">' +
+          '  <div class="card-title">📡 MySQL Replica Status (SHOW REPLICA STATUS)</div>' +
+          '  <table class="data-grid" style="margin-top:10px;">' +
+          '    <thead><tr><th>IO Running</th><th>SQL Running</th><th>Source Host</th><th>Source Log File</th><th>Lag (Seconds)</th><th>Last Error</th></tr></thead>' +
+          '    <tbody>' + replicasHtml + '</tbody>' +
+          '  </table>' +
+          '</div>' +
+          '<div class="card">' +
+          '  <div class="card-title">📜 Binary Log Files (SHOW BINARY LOGS)</div>' +
+          '  <table class="data-grid" style="margin-top:10px;">' +
+          '    <thead><tr><th>Log File Name</th><th>Size</th></tr></thead>' +
+          '    <tbody>' + logsHtml + '</tbody>' +
+          '  </table>' +
+          '</div>' +
+          '<div class="card">' +
+          '  <div class="card-title">⚡ Master / Binary Log Coordinator Status</div>' +
+          '  <div style="display:flex; gap:16px; margin-top:10px; flex-wrap:wrap;">' +
+          '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
+          '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Current Binlog File</div>' +
+          '      <div style="font-size:14px; font-weight:800; color:var(--cyan);">' + (master?.File || master?.FILE || 'None (Disabled)') + '</div>' +
+          '    </div>' +
+          '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
+          '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Binlog Position</div>' +
+          '      <div style="font-size:14px; font-weight:800; color:var(--emerald);">' + (master?.Position || master?.POSITION || '0') + '</div>' +
+          '    </div>' +
+          '  </div>' +
+          '</div>';
+      }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // MySQL Live Process & Lock Contention Monitor
+    // ---------------------------------------------------------------------------------------------
+    async function loadActivity() {
+      const res = await apiRequest("/api/activity");
+      if (res && res.success) {
+        renderActivityGrid(res.activity || [], res.blockedLocks || []);
+      }
+    }
+
+    function renderActivityGrid(processes, blockedLocks) {
+      const alertBox = document.getElementById("activityLocksAlert");
+      if (alertBox) {
+        if (blockedLocks && blockedLocks.length > 0) {
+          let alertHtml = '<div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;">' +
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
+            '<div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #fca5a5;">' +
+            '<span>⚠️ Active InnoDB Lock Contention Detected</span>' +
+            '<span class="badge" style="background: rgba(239, 68, 68, 0.3); color: #f87171;">' + blockedLocks.length + ' Blocked Statement(s)</span>' +
+            '</div>' +
+            '<button class="btn btn-sm btn-danger" onclick="terminateAllBlockingProcesses()">⚡ Terminate All Blocking PIDs</button>' +
+            '</div>' +
+            '<table class="data-grid" style="margin-top: 6px;">' +
+            '<thead><tr><th>Blocked PID</th><th>Blocked Query</th><th>Blocking PID</th><th>Blocking Query</th><th>Lock Type</th><th>Action</th></tr></thead>' +
+            '<tbody>';
+          blockedLocks.forEach(bl => {
+            alertHtml += '<tr>' +
+              '<td style="font-family: var(--font-mono); color: var(--rose); font-weight: 700;">' + bl.waitingPid + '</td>' +
+              '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.waitingQuery || '-') + '</td>' +
+              '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 700;">' + bl.blockingPid + '</td>' +
+              '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.blockingQuery || '-') + '</td>' +
+              '<td><span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">EXCLUSIVE</span></td>' +
+              '<td><button class="btn btn-sm btn-danger" onclick="terminateProcess(' + bl.blockingPid + ')">⚡ Kill ' + bl.blockingPid + '</button></td>' +
+              '</tr>';
+          });
+          alertHtml += '</tbody></table></div>';
+          alertBox.innerHTML = alertHtml;
+        } else {
+          alertBox.innerHTML = '<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--emerald);">' +
+            '<span>🟢</span><span>No active lock contention detected. All database queries and transactions are executing without blocking.</span>' +
+            '</div>';
+        }
+      }
+
+      const tbody = document.getElementById("activityBody");
+      const badge = document.getElementById("activityCountBadge");
+      if (badge) badge.innerText = processes.length + " active";
+
+      if (!tbody) return;
+      if (!processes.length) {
+        tbody.innerHTML = "<tr><td colspan='8' style='text-align: center; color: var(--text-dim); padding: 20px;'>No active processes</td></tr>";
+        return;
+      }
+
+      tbody.innerHTML = processes.map(p => {
+        const stateClass = p.state === "active" ? "state-active" : (p.state.includes("sleep") ? "state-idle" : "state-idle-txn");
+        return '<tr>' +
+          '<td style="font-family: var(--font-mono); color: var(--cyan);">' + p.pid + '</td>' +
+          '<td>' + escapeHtml(p.user || 'root') + '</td>' +
+          '<td>' + escapeHtml(p.database || '-') + '</td>' +
+          '<td>' + escapeHtml(p.client || 'local') + '</td>' +
+          '<td><span class="state-badge ' + stateClass + '">' + escapeHtml(p.state || 'sleep') + '</span></td>' +
+          '<td style="font-family: var(--font-mono); color: var(--amber);">' + (p.duration || '0s') + '</td>' +
+          '<td style="font-family: var(--font-mono); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + escapeHtml(p.query || p.command || '-') + '</td>' +
+          '<td style="text-align: center;">' +
+          '<button class="btn btn-sm" onclick="terminateProcess(' + p.pid + ')" title="Terminate Connection (KILL PID)" style="color: var(--rose);">⚡ Kill</button>' +
+          '</td></tr>';
+      }).join('');
+    }
+
+    async function terminateAllBlockingProcesses() {
+      const res = await apiRequest("/api/activity/locks");
+      if (res && res.success && Array.isArray(res.blockedLocks) && res.blockedLocks.length > 0) {
+        const pids = [...new Set(res.blockedLocks.map(bl => bl.blockingPid))];
+        showToast("Terminating " + pids.length + " blocking process(es)...");
+        for (const pid of pids) {
+          await apiRequest("/api/activity/terminate", { pid });
+        }
+        showToast("✓ All blocking processes terminated!");
+        loadActivity();
+      } else {
+        showToast("No blocking processes to terminate.");
+      }
+    }
+
+    async function terminateProcess(pid) {
+      if (!confirm("Terminate MySQL connection thread PID " + pid + "?")) return;
+      const res = await apiRequest("/api/activity/terminate", { pid });
+      if (res && res.success) {
+        showToast("✓ Terminated PID: " + pid);
+        loadActivity();
+      } else {
+        showToast("Error terminating PID: " + (res?.error || "Unknown"));
+      }
     }
 
     function gridChangePage(delta) {
@@ -3179,7 +4244,8 @@ ${CRUD_STYLE}
         if (res.rowsAffected === undefined && res.rows) {
           currentGridRows = res.rows;
           currentGridColumns = res.columns || (res.rows.length > 0 ? Object.keys(res.rows[0]) : []);
-          renderDataGrid(currentGridColumns, currentGridRows);
+          currentGridRawRows = [...currentGridRows];
+          renderDataGrid(currentGridColumns, currentGridRows, true, res.rows.length);
           document.getElementById("gridTargetTitle").textContent = "Ad-Hoc Query Result";
           document.getElementById("gridPageInfo").textContent = \`\${res.rows.length} rows returned\`;
           document.getElementById("resultSummary").textContent = \`\${res.rows.length} rows (\${res.latencyMs}ms)\`;
@@ -4489,9 +5555,39 @@ ${CRUD_STYLE}
           badgeIcon = "×";
         }
 
+        // Determine Access Cardinality Badges (1 to ∞)
+        const leftMeta = typeof getEntityMeta === "function" ? getEntityMeta(j.leftTable) : null;
+        const rightMeta = typeof getEntityMeta === "function" ? getEntityMeta(j.rightTable) : null;
+        const leftIsPk = Boolean(leftMeta && leftMeta.columns && leftMeta.columns.find(c => c.name === j.leftField)?.pk);
+        const rightIsPk = Boolean(rightMeta && rightMeta.columns && rightMeta.columns.find(c => c.name === j.rightField)?.pk);
+
+        let leftCard = leftIsPk ? "1" : "∞";
+        let rightCard = rightIsPk ? "1" : "∞";
+        if (!leftIsPk && !rightIsPk) {
+          if (String(j.leftField).toLowerCase().endsWith("_id")) { leftCard = "∞"; rightCard = "1"; }
+          else if (String(j.rightField).toLowerCase().endsWith("_id")) { leftCard = "1"; rightCard = "∞"; }
+          else { leftCard = "1"; rightCard = "1"; }
+        }
+
+        const cardOff1 = (x2 >= x1 ? 16 : -16);
+        const cardOff2 = (x2 >= x1 ? -16 : 16);
+
         svgContent += \`
           <path d="\${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
           <path d="\${d}" class="qbe-svg-join-line" stroke="\${stroke}" \${dash} \${markerAttr} onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
+
+          <!-- MS Access Style Cardinality Indicators (1 to ∞) -->
+          <foreignObject x="\${x1 + cardOff1 - 9}" y="\${y1 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid \${stroke}; color: \${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: \${leftCard}">
+              \${leftCard}
+            </div>
+          </foreignObject>
+          <foreignObject x="\${x2 + cardOff2 - 9}" y="\${y2 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid \${stroke}; color: \${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: \${rightCard}">
+              \${rightCard}
+            </div>
+          </foreignObject>
+
           <foreignObject x="\${mx - 50}" y="\${my - 13}" width="100" height="26" style="overflow: visible;">
             <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:\${stroke}; color:\${stroke};" onclick="openJoinPropertiesModal('\${j.key}')" title="Join Properties (\${type} JOIN): Click to configure">
               <span>\${badgeIcon}</span>
