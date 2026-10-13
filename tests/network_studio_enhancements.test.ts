@@ -33,7 +33,7 @@ async function trigger(win: SimpleWindow, id: string, event = "click", val?: any
   return await h(win, val);
 }
 
-let server: ReturnType<typeof Bun.listen>;
+let server: { port: number; stop(closeActive?: boolean): void };
 let openPort = 0;
 let closedPort = 0;
 

@@ -98,7 +98,8 @@ export interface FormSpec {
     global_context_menu_items?: any[];
 }
 
-export type EventCallback = (win: SimpleWindow, val?: any) => void;
+// Some controls (kanban moves, table sorting, ...) pass extra arguments after the value.
+export type EventCallback = (win: SimpleWindow, val?: any, ...extra: any[]) => void;
 
 /** Options shared by every enterprise component: free-form config plus the usual event hooks. */
 export type UIOpts = Record<string, any> & { id?: string; width?: number; height?: number; onChange?: EventCallback; onClick?: EventCallback };

@@ -405,6 +405,7 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
       if (style === 3 || msg.includes("ERROR") || msg.includes("undefined")) {
         consoleErrors.push(msg);
       }
+      return win;
     };
 
     win.setValue("txt_pattern", "testfile\\.txt");

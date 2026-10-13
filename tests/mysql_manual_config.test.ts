@@ -160,7 +160,7 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     while ((match = scriptRegex.exec(html)) !== null) {
       const code = match[1];
       count++;
-      expect(() => new Function(code)).not.toThrow();
+      expect(() => new Function(code ?? "")).not.toThrow();
     }
 
     expect(count).toBeGreaterThan(0);

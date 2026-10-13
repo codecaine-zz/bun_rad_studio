@@ -63,7 +63,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
   });
 
   it("2. Client scripts embedded in workstation HTML parse with zero JavaScript syntax errors", () => {
-    const html = generateSqliteStudioHtml(3456);
+    const html = generateSqliteStudioHtml();
     const scriptMatches = html.match(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi) || [];
     expect(scriptMatches.length).toBeGreaterThanOrEqual(3);
 
@@ -521,6 +521,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     const recordNavMacro: MacroDefinition = {
       id: "macro_nav_test",
       name: "Record_Navigation_Suite",
+      description: "",
       actions: [
         {
           id: "n1",

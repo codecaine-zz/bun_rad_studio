@@ -45,6 +45,7 @@ describe("subfinder coordinator formatters", () => {
     const silent = formatSubdomainResult(sample, {
       domains: ["example.com"],
       active: false,
+      probe: false,
       silent: true,
       json: false,
       timeoutMs: 1000,
@@ -56,6 +57,7 @@ describe("subfinder coordinator formatters", () => {
     const jsonStr = formatSubdomainResult(sample, {
       domains: ["example.com"],
       active: false,
+      probe: false,
       silent: false,
       json: true,
       timeoutMs: 1000,
