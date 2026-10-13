@@ -69,6 +69,8 @@
         <p class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
           <span id="threat-indicator" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span id="threat-status">Patrolling territory safely</span>
+          <span class="text-slate-600 hidden sm:inline">•</span>
+          <span id="level-subtitle" class="text-amber-300/90 font-semibold truncate max-w-[140px] sm:max-w-[240px] hidden sm:inline">The Mouse's Training</span>
         </p>
       </div>
     </div>
@@ -80,14 +82,19 @@
         <span id="hud-score" class="font-bold text-amber-300 font-mono tracking-tight">0</span>
       </div>
       <div class="w-px h-6 bg-slate-800"></div>
-      <div class="flex flex-col items-center min-w-[36px]">
-        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Level</span>
+      <div id="hud-level-container" class="flex flex-col items-center min-w-[42px] cursor-pointer hover:bg-slate-900/80 px-1 py-0.5 rounded transition" title="Click to view & select from all 20 Nostalgic Levels">
+        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui flex items-center gap-0.5">Level ▾</span>
         <span id="hud-level" class="font-bold text-emerald-400 font-mono">1</span>
       </div>
       <div class="w-px h-6 bg-slate-800"></div>
       <div class="flex flex-col items-center min-w-[48px]">
         <span class="text-[9px] uppercase font-bold text-slate-400 font-ui">Cats Left</span>
         <span id="hud-cats" class="font-bold text-rose-400 font-mono">3</span>
+      </div>
+      <div class="w-px h-6 bg-slate-800"></div>
+      <div class="flex flex-col items-center min-w-[46px]" title="Time until next cat spawns (Original Windows Clock mechanic)">
+        <span class="text-[9px] uppercase font-bold text-slate-400 font-ui flex items-center gap-0.5">⏰ Next</span>
+        <span id="hud-clock" class="font-bold text-cyan-400 font-mono">40s</span>
       </div>
       <div class="w-px h-6 bg-slate-800"></div>
       <div class="flex flex-col items-center min-w-[55px]">
@@ -100,6 +107,12 @@
 
     <!-- Quick action toggles -->
     <div class="flex items-center gap-1.5">
+      <button id="btn-levels" title="Select Nostalgic Level (20 Classic Stages)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 transition text-sm flex items-center justify-center font-bold">
+        🗺️
+      </button>
+      <button id="btn-speed" title="Toggle Speed (Normal ⚡ / Turbo 🚀 / Slow 🐢)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center font-bold">
+        <span id="speed-icon">⚡</span>
+      </button>
       <button id="btn-music" title="Toggle Adaptive BGM (M)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center">
         🎵
       </button>
@@ -132,6 +145,22 @@
         <span id="toast-text">Trap cats to make cheese!</span>
       </div>
 
+      <!-- Level Intro Floating Banner -->
+      <div id="level-intro-card" class="hidden absolute top-14 left-1/2 -translate-x-1/2 pointer-events-none z-30 transition-all duration-500 transform opacity-0 -translate-y-3 bg-slate-950/95 border-2 border-amber-500/70 text-amber-300 px-5 py-3 rounded-2xl shadow-2xl shadow-black/90 flex flex-col items-center gap-1 backdrop-blur-md text-center max-w-sm w-[90%]">
+        <div class="flex items-center gap-2">
+          <span id="intro-badge" class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-500/40">Classic</span>
+          <span id="intro-level" class="text-xs font-mono font-bold text-slate-400">LEVEL 1</span>
+        </div>
+        <h3 id="intro-title" class="text-base sm:text-lg font-black text-white tracking-wide font-ui">The Mouse's Training</h3>
+        <p id="intro-desc" class="text-[11px] text-slate-300 font-normal leading-tight">Original 1991 fundamentals: sliding green cheese blocks and inquisitive cats.</p>
+      </div>
+
+      <!-- Sinkhole Stuck Indicator -->
+      <div id="stuck-indicator" class="hidden absolute top-5 left-1/2 -translate-x-1/2 z-20 bg-rose-950/95 border-2 border-rose-500 text-rose-300 text-xs px-3.5 py-1.5 rounded-full font-bold flex items-center gap-2 animate-bounce backdrop-blur-md shadow-xl shadow-rose-950/80">
+        <span class="text-base">🕳️</span>
+        <span>STUCK IN SINKHOLE! TAP MOVE KEYS (<span id="stuck-wiggles" class="font-mono text-white text-sm">4</span>)</span>
+      </div>
+
       <!-- Combo Indicator -->
       <div id="combo-badge" class="hidden absolute top-5 left-4 z-20 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full shadow-lg transform -rotate-3 animate-pulse">
         COMBO x<span id="combo-val">2</span>! 🔥
@@ -141,6 +170,18 @@
       <div id="freeze-indicator" class="hidden absolute top-5 right-4 z-20 bg-cyan-950/90 border border-cyan-400 text-cyan-300 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 animate-pulse backdrop-blur-sm">
         <span>❄️</span>
         <span>CATS FROZEN: <span id="freeze-timer">5</span>s</span>
+      </div>
+
+      <!-- Spicy Pepper Dash Indicator -->
+      <div id="dash-indicator" class="hidden absolute top-14 right-4 z-20 bg-amber-950/90 border border-amber-400 text-amber-300 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 animate-pulse backdrop-blur-sm shadow-lg shadow-amber-950/50">
+        <span>🌶️</span>
+        <span>SPICY DASH: <span id="dash-timer">6</span>s</span>
+      </div>
+
+      <!-- Stinky Cheese Repel Indicator -->
+      <div id="stinky-indicator" class="hidden absolute top-14 left-4 z-20 bg-emerald-950/90 border border-emerald-400 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 animate-pulse backdrop-blur-sm shadow-lg shadow-emerald-950/50">
+        <span>🤢</span>
+        <span>CATS FLEEING: <span id="stinky-timer">5</span>s</span>
       </div>
 
       <!-- Main Game Canvas -->
@@ -167,7 +208,11 @@
     <div class="w-full max-w-xl mt-3 flex items-center justify-between px-2 gap-2 flex-wrap sm:flex-nowrap">
       
       <!-- Powerup Buttons with Shortcut Keys -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
+        <button id="btn-trap" title="Deploy Pocket Mousetrap behind mouse (Key: T)" class="btn-tactile px-2.5 py-1.5 bg-amber-950/60 hover:bg-amber-900 border border-amber-700/60 rounded-xl text-xs font-bold text-amber-300 flex items-center gap-1.5">
+          <span>🪤</span>
+          <span>Trap (<span id="trap-count">1</span>)</span>
+        </button>
         <button id="btn-bomb" title="Demolish adjacent stuck block (Key: B)" class="btn-tactile px-2.5 py-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-700/60 rounded-xl text-xs font-bold text-rose-300 flex items-center gap-1.5">
           <span>🧨</span>
           <span>Bomb (<span id="bomb-count">1</span>)</span>
@@ -210,7 +255,7 @@
   <!-- Footer with Full Controls Reference -->
   <footer class="w-full max-w-4xl px-4 py-2 border-t border-slate-900 bg-slate-950/80 text-center text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
     <span>8-Way: <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">Q W E A S D Z C</kbd> or <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">Arrows / NumPad</kbd></span>
-    <span class="text-slate-400">Powerups: <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">F</kbd> Freeze, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">B</kbd> Bomb, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">U</kbd> Undo, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">M</kbd> Music</span>
+    <span class="text-slate-400">Tactics: <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">T</kbd> Trap, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">F</kbd> Freeze, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">B</kbd> Bomb, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">U</kbd> Undo, <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 text-amber-300 font-mono text-[10px]">M</kbd> Music</span>
   </footer>
 
   <!-- Level Complete / Victory Modal -->
@@ -219,8 +264,11 @@
       <div class="text-5xl mb-2 animate-bounce">🧀🎉</div>
       <h3 class="text-2xl font-black text-amber-400 tracking-wide font-ui">LEVEL CLEARED!</h3>
       <p class="text-xs text-slate-300 mt-1" id="level-complete-desc">All cats turned into delicious cheese wheels!</p>
+      <div id="next-level-preview" class="text-xs text-amber-300 font-semibold mt-2 mb-1 bg-amber-950/50 border border-amber-600/40 rounded-lg py-1 px-3 inline-block">
+        Next: Level 2 — Spring Loaded
+      </div>
       
-      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 my-4 space-y-1.5 text-xs text-left">
+      <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 my-3 space-y-1.5 text-xs text-left">
         <div class="flex justify-between">
           <span class="text-slate-400">Level Clear Bonus:</span>
           <span id="summary-level-bonus" class="text-emerald-400 font-mono font-bold">+500</span>
@@ -274,24 +322,34 @@
     </div>
   </div>
 
-  <!-- Level Warp Selection Modal -->
+  <!-- Nostalgic Levels Selection Modal (20 Stages) -->
   <div id="modal-warp" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-xs w-full p-5 text-center shadow-2xl">
-      <h3 class="text-lg font-bold text-white mb-2">Select Starting Level</h3>
-      <p class="text-xs text-slate-400 mb-4">Jump directly to higher challenge tiers:</p>
-      <div class="grid grid-cols-4 gap-2 mb-4">
-        <button data-level="1" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">1</button>
-        <button data-level="3" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">3</button>
-        <button data-level="5" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">5</button>
-        <button data-level="7" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">7</button>
-        <button data-level="9" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">9</button>
-        <button data-level="12" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">12</button>
-        <button data-level="15" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">15</button>
-        <button data-level="20" class="warp-btn p-2 bg-slate-800 hover:bg-amber-600 rounded-lg font-bold text-sm">20</button>
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-5 sm:p-6 text-left shadow-2xl relative max-h-[88vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🗺️</span>
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2 font-ui">
+              Nostalgic Classic Levels
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase font-mono font-bold">20 Stages</span>
+            </h3>
+            <p class="text-xs text-slate-400">1991 Microsoft Windows Entertainment Pack campaign + Deluxe expansions</p>
+          </div>
+        </div>
+        <button id="btn-close-warp" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
       </div>
-      <button id="btn-close-warp" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">
-        Cancel
-      </button>
+
+      <!-- Scrollable Level Cards Grid -->
+      <div id="warp-levels-grid" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-1 text-xs">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center mt-2">
+        <span class="text-[11px] text-slate-500 font-medium">Beyond Level 20: Procedural Endless Mode continues</span>
+        <button id="btn-close-warp-footer" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">
+          Resume Game
+        </button>
+      </div>
     </div>
   </div>
 
@@ -333,33 +391,54 @@
         <div class="flex items-start gap-2.5">
           <div class="text-2xl">🟩</div>
           <div>
-            <strong class="text-white">Push Long Trains of Blocks:</strong> You can push multiple connected blocks at once, as long as there is an empty tile at the far end!
+            <strong class="text-white">Push Trains of Blocks:</strong> Push single blocks or connected trains of blocks in 4 cardinal directions, provided the far end is empty or hazard-clearing.
           </div>
         </div>
 
         <div class="flex items-start gap-2.5">
-          <div class="text-2xl">🐱</div>
+          <div class="text-2xl">🧱</div>
           <div>
-            <strong class="text-white">Box in Every Cat:</strong> Trap cats so they have zero escape squares. They instantly turn into delicious cheese wheels!
+            <strong class="text-white">Unmovable Stone Blocks:</strong> Solid granite masonry obstacles from the 1991 classic! They cannot be pushed and create tactical choke points to box in cats.
           </div>
         </div>
 
         <div class="flex items-start gap-2.5">
-          <div class="text-2xl">👑</div>
+          <div class="text-2xl">🪤</div>
           <div>
-            <strong class="text-white">Special Archetypes:</strong> Watch out for the giant <strong>King Fat Cat Boss</strong>, sneaky <strong>Ninja Siamese</strong> that jump gaps, and sleepy orange tabbies!
+            <strong class="text-white">Mousetraps & Pocket Traps:</strong> Watch your step! Walking into an armed trap snaps instantly. Push blocks onto traps to disarm them safely! You can also <strong>bait chasing cats into mousetraps</strong> for instant revenge cheese, or deploy a pocket trap with <kbd class="px-1 py-0.5 bg-slate-800 rounded text-amber-300 font-mono">T</kbd>!
           </div>
         </div>
 
         <div class="flex items-start gap-2.5">
-          <div class="text-2xl">⏳</div>
+          <div class="text-2xl">🕳️</div>
           <div>
-            <strong class="text-white">Cheese Hardening:</strong> Eat the cheese fast! If left unattended, it will petrify into an impassable solid block.
+            <strong class="text-white">Sinkholes:</strong> Dangerous floor pits! If you step in, you get stuck—<strong>tap arrow keys rapidly</strong> to wiggle free before cats reach you! Push a block into a sinkhole to permanently fill and pave it. Normal cats fall in and get eliminated!
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">🚪</div>
+          <div>
+            <strong class="text-white">Mouse Holes (Burrows):</strong> Subterranean express tunnels! Step into any arched mouse hole to instantly teleport to the linked hole across the board with temporary shadow stealth. Cats are too fat to fit inside!
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">⏰</div>
+          <div>
+            <strong class="text-white">Ticking Clock & Reinforcements:</strong> Authentic 1991 pressure! Finish the level before the reinforcement clock runs out, or an extra cat will spawn into the arena!
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2.5">
+          <div class="text-2xl">🧀</div>
+          <div>
+            <strong class="text-white">Cheese Varieties:</strong> Classic Cheddar (+Score), Golden Swiss (+Powerups), Spicy Pepper Jack (Speed Dash burst!), and Stinky Blue Cheese (scares all cats away for 5 seconds!).
           </div>
         </div>
 
         <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] text-amber-300">
-          💡 <strong>Pro Strategy:</strong> Corner cats into 1x1 pockets against the wall. Use <strong class="text-white">Freeze (F)</strong> when swarmed or <strong class="text-white">Dynamite (B)</strong> if you trap yourself.
+          💡 <strong>Pro Strategy:</strong> Corner cats into 1x1 wall pockets. Use <strong class="text-white">Trap (T)</strong> behind you while running, <strong class="text-white">Freeze (F)</strong> when swarmed, or dive into a <strong class="text-white">Mouse Hole</strong> to escape!
         </div>
       </div>
 
@@ -686,6 +765,101 @@
           osc.stop(now + 0.45);
         } catch (e) {}
       }
+
+      playTunnelWhoosh() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(780, now + 0.12);
+          osc.frequency.exponentialRampToValueAtTime(320, now + 0.28);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        } catch (e) {}
+      }
+
+      playMudSquelch() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.linearRampToValueAtTime(60, now + 0.12);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } catch (e) {}
+      }
+
+      playClockChime() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          [880, 1174.66].forEach((f, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(f, now + idx * 0.1);
+            gain.gain.setValueAtTime(0.16, now + idx * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.1);
+            osc.stop(now + idx * 0.1 + 0.35);
+          });
+        } catch (e) {}
+      }
+
+      playCatTrap() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          this.playTrapSnap();
+          const now = this.ctx.currentTime + 0.05;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(950, now);
+          osc.frequency.exponentialRampToValueAtTime(320, now + 0.28);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        } catch (e) {}
+      }
+
+      playSpeedDash() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const notes = [392, 523.25, 659.25, 783.99];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+            gain.gain.setValueAtTime(0.12, now + idx * 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.15);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.04);
+            osc.stop(now + idx * 0.04 + 0.15);
+          });
+        } catch (e) {}
+      }
     }
 
     const sound = new SoundEngine();
@@ -694,14 +868,17 @@
   <script>
     const EMPTY = 0;
     const WALL = 1;
-    const BLOCK = 2;
+    const BLOCK = 2; // Movable green block
     const MOUSE = 3;
     const CAT = 4;
     const CHEESE = 5;
-    const TRAP = 6;
-    const SINKHOLE = 7;
+    const TRAP = 6; // Active floor mousetrap
+    const SINKHOLE = 7; // Dangerous sinkhole pit
     const YARN = 8;
     const GOLD_CHEESE = 9;
+    const SOLID_BLOCK = 10; // Unmovable stone brick obstacle (1991 classic)
+    const MOUSE_HOLE = 11; // Interactive underground burrow tunnel!
+    const SPRUNG_TRAP = 12; // Disarmed / sprung mousetrap (safe to cross)
 
     const DIRS = {
       UP: { dx: 0, dy: -1 },
@@ -717,11 +894,303 @@
     // In-game achievements definition
     const ACHIEVEMENTS = [
       { id: 'first_cheese', title: 'First Bite', desc: 'Trap your very first cat into a cheese wheel', icon: '🧀', unlocked: false },
+      { id: 'trap_master', title: 'The Tables Turned', desc: 'Bait an aggressive cat into an armed mousetrap', icon: '🪤', unlocked: false },
+      { id: 'burrow_runner', title: 'Tunnel Maestro', desc: 'Evade predators by scurrying through an underground mouse hole', icon: '🚪', unlocked: false },
+      { id: 'sinkhole_paved', title: 'Civil Engineer', desc: 'Pave over a hazardous sinkhole with a pushed block', icon: '🕳️', unlocked: false },
+      { id: 'trap_disarmer', title: 'Bomb Squad', desc: 'Disarm 3 mousetraps by safely rolling blocks over them', icon: '🛡️', unlocked: false },
       { id: 'triple_combo', title: 'Cheese Connoisseur', desc: 'Reach a 3x cheese snack combo chain', icon: '🔥', unlocked: false },
-      { id: 'bomb_expert', title: 'Demolition Rodent', desc: 'Use a bomb to free yourself from a trap', icon: '🧨', unlocked: false },
+      { id: 'bomb_expert', title: 'Demolition Rodent', desc: 'Use a bomb to pulverize a stuck block', icon: '🧨', unlocked: false },
       { id: 'boss_slayer', title: 'King Tamer', desc: 'Trap and defeat the giant King Fat Cat Boss', icon: '👑', unlocked: false },
-      { id: 'flawless_five', title: 'Untouchable', desc: 'Clear Level 5 without losing a single life', icon: '🛡️', unlocked: false },
+      { id: 'flawless_five', title: 'Untouchable', desc: 'Clear Level 5 without losing a single life', icon: '✨', unlocked: false },
+      { id: 'turbo_champion', title: 'Blazing Rodent', desc: 'Survive and clear a stage in Turbo mode', icon: '⚡', unlocked: false },
       { id: 'yarn_dodger', title: 'Agile Reflexes', desc: 'Survive a level with active rolling yarn balls', icon: '🧶', unlocked: false }
+    ];
+
+    // 20 Handcrafted Nostalgic Levels (1991 Microsoft Windows Entertainment Pack + Deluxe)
+    const NOSTALGIC_LEVELS = [
+      {
+        level: 1,
+        title: "The Mouse's Training",
+        desc: "Classic 1991 fundamentals: learn to slide green cheese blocks and box in curious cats.",
+        badge: "Classic",
+        catCount: 2,
+        traps: 0,
+        sinkholes: 0,
+        solidBlocks: 0,
+        mouseHolePairs: 0,
+        yarns: 0,
+        blockDensity: 0.38,
+        layout: 'open'
+      },
+      {
+        level: 2,
+        title: "Spring Loaded",
+        desc: "Carpenters left floor mousetraps! Watch your step, push blocks to disarm, or bait cats in.",
+        badge: "Traps",
+        catCount: 3,
+        traps: 2,
+        sinkholes: 0,
+        solidBlocks: 0,
+        mouseHolePairs: 0,
+        yarns: 0,
+        blockDensity: 0.36,
+        layout: 'scattered_traps'
+      },
+      {
+        level: 3,
+        title: "The Paved Abyss",
+        desc: "Hazardous sinkholes open up! Push movable blocks into pits to pave them over safely.",
+        badge: "Sinkholes",
+        catCount: 3,
+        traps: 2,
+        sinkholes: 3,
+        solidBlocks: 0,
+        mouseHolePairs: 0,
+        yarns: 0,
+        blockDensity: 0.35,
+        layout: 'sinkhole_corners'
+      },
+      {
+        level: 4,
+        title: "Granite Alcoves",
+        desc: "Unmovable stone blocks cannot be pushed. Use their corners as anchors to box in cats!",
+        badge: "Stone Blocks",
+        catCount: 4,
+        traps: 2,
+        sinkholes: 2,
+        solidBlocks: 4,
+        mouseHolePairs: 0,
+        yarns: 0,
+        blockDensity: 0.34,
+        layout: 'corner_alcoves'
+      },
+      {
+        level: 5,
+        title: "Burrow Express",
+        desc: "Subterranean mouse tunnels allow fast travel across the board with shadow stealth.",
+        badge: "Mouse Holes",
+        catCount: 4,
+        traps: 3,
+        sinkholes: 2,
+        solidBlocks: 4,
+        mouseHolePairs: 1,
+        yarns: 0,
+        blockDensity: 0.33,
+        layout: 'tunnel_corners'
+      },
+      {
+        level: 6,
+        title: "Playful Yarn Frenzy",
+        desc: "Rolling pink yarn balls bounce continuously, deflecting off walls, blocks, and cats.",
+        badge: "Yarn Ball",
+        catCount: 5,
+        traps: 3,
+        sinkholes: 2,
+        solidBlocks: 4,
+        mouseHolePairs: 1,
+        yarns: 1,
+        blockDensity: 0.32,
+        layout: 'yarn_ring'
+      },
+      {
+        level: 7,
+        title: "The Winding Maze",
+        desc: "Corridors of solid stone masonry channel cats through tight, claustrophobic paths.",
+        badge: "Masonry Maze",
+        catCount: 5,
+        traps: 3,
+        sinkholes: 3,
+        solidBlocks: 8,
+        mouseHolePairs: 1,
+        yarns: 0,
+        blockDensity: 0.30,
+        layout: 'winding_maze'
+      },
+      {
+        level: 8,
+        title: "Sinkhole Alley",
+        desc: "A chasm of dark sinkholes cuts across the room. Pave bridges to escape pursuing cats!",
+        badge: "Abyss Bridge",
+        catCount: 6,
+        traps: 4,
+        sinkholes: 5,
+        solidBlocks: 4,
+        mouseHolePairs: 1,
+        yarns: 0,
+        blockDensity: 0.32,
+        layout: 'sinkhole_alley'
+      },
+      {
+        level: 9,
+        title: "Trapfield Gauntlet",
+        desc: "A minefield of mousetraps. Lure agile ninja cats directly onto the spring bars!",
+        badge: "Ninja Cats",
+        catCount: 6,
+        traps: 6,
+        sinkholes: 2,
+        solidBlocks: 4,
+        mouseHolePairs: 1,
+        yarns: 0,
+        blockDensity: 0.30,
+        layout: 'trap_gauntlet'
+      },
+      {
+        level: 10,
+        title: "The Royal Fortress",
+        desc: "King Fat Cat commands the feline guard from within a solid stone royal sanctum.",
+        badge: "Boss Battle",
+        hasBoss: true,
+        catCount: 6,
+        traps: 4,
+        sinkholes: 3,
+        solidBlocks: 8,
+        mouseHolePairs: 1,
+        yarns: 0,
+        blockDensity: 0.28,
+        layout: 'royal_fortress'
+      },
+      {
+        level: 11,
+        title: "Subterranean Warren",
+        desc: "Multiple interconnected mouse burrows weave beneath solid stone pillars.",
+        badge: "Twin Burrows",
+        catCount: 7,
+        traps: 4,
+        sinkholes: 4,
+        solidBlocks: 6,
+        mouseHolePairs: 2,
+        yarns: 0,
+        blockDensity: 0.29,
+        layout: 'four_corners_burrows'
+      },
+      {
+        level: 12,
+        title: "The Great Library",
+        desc: "Long parallel shelves of stone walls create aisles where sleeping and ninja cats roam.",
+        badge: "Aisles",
+        catCount: 7,
+        traps: 4,
+        sinkholes: 3,
+        solidBlocks: 10,
+        mouseHolePairs: 1,
+        yarns: 1,
+        blockDensity: 0.28,
+        layout: 'library_shelves'
+      },
+      {
+        level: 13,
+        title: "Labyrinth of Whispers",
+        desc: "A cross-hatched stone pillar maze where cautious moves and pocket traps are vital.",
+        badge: "Pillars",
+        catCount: 8,
+        traps: 5,
+        sinkholes: 4,
+        solidBlocks: 9,
+        mouseHolePairs: 2,
+        yarns: 0,
+        blockDensity: 0.28,
+        layout: 'checker_pillars'
+      },
+      {
+        level: 14,
+        title: "Twin Chambers",
+        desc: "A solid masonry wall cuts the room in two. Mouse holes are your only transit passage!",
+        badge: "Divided Room",
+        catCount: 8,
+        traps: 5,
+        sinkholes: 4,
+        solidBlocks: 12,
+        mouseHolePairs: 2,
+        yarns: 1,
+        blockDensity: 0.27,
+        layout: 'twin_chambers'
+      },
+      {
+        level: 15,
+        title: "Cavern of the King",
+        desc: "King Fat Cat strikes back accompanied by dual bouncing yarn balls and tighter clocks!",
+        badge: "Boss Battle",
+        hasBoss: true,
+        catCount: 8,
+        traps: 5,
+        sinkholes: 4,
+        solidBlocks: 8,
+        mouseHolePairs: 2,
+        yarns: 2,
+        blockDensity: 0.26,
+        layout: 'king_cavern'
+      },
+      {
+        level: 16,
+        title: "The Cheese Vault",
+        desc: "Fortified treasury room featuring golden swiss caches guarded by high-speed cats.",
+        badge: "Golden Swiss",
+        catCount: 9,
+        traps: 5,
+        sinkholes: 4,
+        solidBlocks: 8,
+        mouseHolePairs: 2,
+        yarns: 1,
+        blockDensity: 0.26,
+        layout: 'vault_structure'
+      },
+      {
+        level: 17,
+        title: "Four Quadrants",
+        desc: "A massive central stone cross segments the board into four tactical cat-trapping zones.",
+        badge: "Crossroads",
+        catCount: 9,
+        traps: 6,
+        sinkholes: 4,
+        solidBlocks: 12,
+        mouseHolePairs: 2,
+        yarns: 1,
+        blockDensity: 0.25,
+        layout: 'cross_quadrants'
+      },
+      {
+        level: 18,
+        title: "Chaos Crucible",
+        desc: "A swirling storm of sinkholes, yarn balls, and relentless cat reinforcements.",
+        badge: "High Hazard",
+        catCount: 10,
+        traps: 6,
+        sinkholes: 6,
+        solidBlocks: 8,
+        mouseHolePairs: 2,
+        yarns: 2,
+        blockDensity: 0.25,
+        layout: 'chaos_crucible'
+      },
+      {
+        level: 19,
+        title: "The Feline Vanguard",
+        desc: "Elite pack of ninja cats stalking narrow stone corridors. Zero room for error.",
+        badge: "Ninja Pack",
+        catCount: 11,
+        traps: 6,
+        sinkholes: 5,
+        solidBlocks: 10,
+        mouseHolePairs: 2,
+        yarns: 2,
+        blockDensity: 0.24,
+        layout: 'vanguard_corridors'
+      },
+      {
+        level: 20,
+        title: "1991 Final Stand",
+        desc: "The ultimate nostalgic championship finale from the Windows Entertainment Pack!",
+        badge: "Grandmaster",
+        hasBoss: true,
+        catCount: 12,
+        traps: 7,
+        sinkholes: 6,
+        solidBlocks: 12,
+        mouseHolePairs: 2,
+        yarns: 2,
+        blockDensity: 0.24,
+        layout: 'grand_arena'
+      }
     ];
   </script>
 
@@ -781,6 +1250,22 @@
         this.cheeseEatenCount = 0;
         this.achievements = [...ACHIEVEMENTS];
 
+        // Tactical traps & obstacles state
+        this.traps = 1;
+        this.mouseHoles = [];
+        this.stuckInSinkhole = false;
+        this.stuckWigglesNeeded = 0;
+        this.clockSecondsRemaining = 40;
+        this.clockInterval = 40;
+        this.lastClockTick = performance.now();
+        this.gameSpeed = 'normal'; // 'slow', 'normal', 'turbo'
+        this.dashTimeRemaining = 0;
+        this.stinkyRepelTimeRemaining = 0;
+        this.invulnerableTimer = 0;
+        this.trapsDisarmedCount = 0;
+        this.sinkholesFilledCount = 0;
+        this.catsTrappedByMousetrapCount = 0;
+
         this.initCanvasSize();
         this.initLevel(this.level);
         this.bindEvents();
@@ -793,6 +1278,28 @@
         this.canvas.width = 600;
         this.canvas.height = 600;
         this.tileSize = this.canvas.width / this.cols;
+      }
+
+      recalculateCatSpeed() {
+        let base = Math.max(280, 760 - (this.level * 35));
+        if (this.gameSpeed === 'turbo') base = Math.round(base * 0.72);
+        else if (this.gameSpeed === 'slow') base = Math.round(base * 1.35);
+        this.catMoveInterval = base;
+      }
+
+      toggleSpeed() {
+        if (this.gameSpeed === 'normal') {
+          this.gameSpeed = 'turbo';
+          this.showToast("TURBO SPEED ACTIVATED! 🚀", "⚡");
+        } else if (this.gameSpeed === 'turbo') {
+          this.gameSpeed = 'slow';
+          this.showToast("Casual / Relaxed Speed 🐢", "🐢");
+        } else {
+          this.gameSpeed = 'normal';
+          this.showToast("Normal Speed ⚡", "⚡");
+        }
+        this.recalculateCatSpeed();
+        this.updateHUD();
       }
 
       showToast(msg, icon = '🧀') {
@@ -859,21 +1366,449 @@
         }
       }
 
+      showLevelIntro(lvlConfig) {
+        const card = document.getElementById('level-intro-card');
+        const badgeEl = document.getElementById('intro-badge');
+        const lvlEl = document.getElementById('intro-level');
+        const titleEl = document.getElementById('intro-title');
+        const descEl = document.getElementById('intro-desc');
+
+        if (!card || !lvlConfig) return;
+        if (badgeEl) badgeEl.textContent = lvlConfig.badge || 'Deluxe';
+        if (lvlEl) lvlEl.textContent = `LEVEL ${lvlConfig.level}`;
+        if (titleEl) titleEl.textContent = lvlConfig.title;
+        if (descEl) descEl.textContent = lvlConfig.desc;
+
+        card.classList.remove('hidden');
+        card.style.opacity = '1';
+        card.style.transform = 'translate(-50%, 0)';
+
+        clearTimeout(this.introTimeout);
+        this.introTimeout = setTimeout(() => {
+          card.style.opacity = '0';
+          card.style.transform = 'translate(-50%, -15px)';
+          setTimeout(() => card.classList.add('hidden'), 500);
+        }, 2800);
+      }
+
+      applyLevelLayout(layoutName, cfg) {
+        const midX = Math.floor(this.cols / 2);
+        const midY = Math.floor(this.rows / 2);
+
+        const placeSolid = (x, y) => {
+          if (x > 0 && x < this.cols - 1 && y > 0 && y < this.rows - 1) {
+            if (!(x === this.player.x && y === this.player.y)) {
+              this.grid[y][x] = SOLID_BLOCK;
+            }
+          }
+        };
+
+        const placeTrap = (x, y) => {
+          if (x > 0 && x < this.cols - 1 && y > 0 && y < this.rows - 1) {
+            if (this.grid[y][x] === EMPTY && !(x === this.player.x && y === this.player.y)) {
+              this.grid[y][x] = TRAP;
+            }
+          }
+        };
+
+        const placeSinkhole = (x, y) => {
+          if (x > 0 && x < this.cols - 1 && y > 0 && y < this.rows - 1) {
+            if (this.grid[y][x] === EMPTY && !(x === this.player.x && y === this.player.y)) {
+              this.grid[y][x] = SINKHOLE;
+            }
+          }
+        };
+
+        const placeHolePair = (x1, y1, x2, y2) => {
+          if (this.grid[y1][x1] === EMPTY) {
+            this.grid[y1][x1] = MOUSE_HOLE;
+            this.mouseHoles.push({ x: x1, y: y1 });
+          }
+          if (this.grid[y2][x2] === EMPTY) {
+            this.grid[y2][x2] = MOUSE_HOLE;
+            this.mouseHoles.push({ x: x2, y: y2 });
+          }
+        };
+
+        switch (layoutName) {
+          case 'open':
+            // Classic open training field
+            break;
+
+          case 'scattered_traps':
+            placeTrap(4, 4);
+            placeTrap(this.cols - 5, this.rows - 5);
+            break;
+
+          case 'sinkhole_corners':
+            placeTrap(3, 3);
+            placeTrap(this.cols - 4, 3);
+            placeSinkhole(3, this.rows - 4);
+            placeSinkhole(this.cols - 4, this.rows - 4);
+            placeSinkhole(midX, 3);
+            break;
+
+          case 'corner_alcoves':
+            placeSolid(3, 3);
+            placeSolid(this.cols - 4, 3);
+            placeSolid(3, this.rows - 4);
+            placeSolid(this.cols - 4, this.rows - 4);
+            placeTrap(2, 3);
+            placeTrap(this.cols - 3, this.rows - 4);
+            placeSinkhole(midX, 2);
+            placeSinkhole(midX, this.rows - 3);
+            break;
+
+          case 'tunnel_corners':
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeSolid(3, 2);
+            placeSolid(2, 3);
+            placeSolid(this.cols - 4, this.rows - 3);
+            placeSolid(this.cols - 3, this.rows - 4);
+            placeTrap(midX - 2, midY);
+            placeTrap(midX + 2, midY);
+            placeSinkhole(midX, midY - 2);
+            placeSinkhole(midX, midY + 2);
+            break;
+
+          case 'yarn_ring':
+            placeHolePair(2, this.rows - 3, this.cols - 3, 2);
+            placeSolid(midX, midY - 3);
+            placeSolid(midX, midY + 3);
+            placeSolid(midX - 3, midY);
+            placeSolid(midX + 3, midY);
+            placeTrap(3, 3);
+            placeTrap(this.cols - 4, this.rows - 4);
+            placeTrap(midX, midY);
+            placeSinkhole(2, 2);
+            placeSinkhole(this.cols - 3, this.rows - 3);
+            break;
+
+          case 'winding_maze':
+            for (let c = 3; c <= 7; c++) placeSolid(c, 4);
+            placeSolid(7, 5);
+            placeSolid(7, 6);
+            for (let c = this.cols - 8; c <= this.cols - 4; c++) placeSolid(c, this.rows - 5);
+            placeSolid(this.cols - 8, this.rows - 6);
+            placeSolid(this.cols - 8, this.rows - 7);
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeTrap(4, 3);
+            placeTrap(this.cols - 5, this.rows - 4);
+            placeTrap(midX, midY);
+            placeSinkhole(2, this.rows - 3);
+            placeSinkhole(this.cols - 3, 2);
+            placeSinkhole(midX, 2);
+            break;
+
+          case 'sinkhole_alley':
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeSinkhole(2, midY);
+            placeSinkhole(3, midY);
+            placeSinkhole(4, midY);
+            placeSinkhole(this.cols - 5, midY);
+            placeSinkhole(this.cols - 4, midY);
+            placeSinkhole(this.cols - 3, midY);
+            placeSolid(midX - 2, midY - 2);
+            placeSolid(midX + 2, midY - 2);
+            placeSolid(midX - 2, midY + 2);
+            placeSolid(midX + 2, midY + 2);
+            placeTrap(3, 3);
+            placeTrap(this.cols - 4, 3);
+            placeTrap(3, this.rows - 4);
+            placeTrap(this.cols - 4, this.rows - 4);
+            break;
+
+          case 'trap_gauntlet':
+            placeHolePair(2, midY, this.cols - 3, midY);
+            placeTrap(2, 3);
+            placeTrap(this.cols - 3, 3);
+            placeTrap(3, this.rows - 3);
+            placeTrap(this.cols - 4, this.rows - 3);
+            placeTrap(midX - 2, 2);
+            placeTrap(midX + 2, this.rows - 3);
+            placeSolid(4, 4);
+            placeSolid(this.cols - 5, 4);
+            placeSolid(4, this.rows - 5);
+            placeSolid(this.cols - 5, this.rows - 5);
+            placeSinkhole(midX, midY - 3);
+            placeSinkhole(midX, midY + 3);
+            break;
+
+          case 'royal_fortress':
+            placeSolid(midX - 2, midY - 2);
+            placeSolid(midX, midY - 2);
+            placeSolid(midX + 2, midY - 2);
+            placeSolid(midX - 2, midY + 2);
+            placeSolid(midX, midY + 2);
+            placeSolid(midX + 2, midY + 2);
+            placeSolid(midX - 2, midY);
+            placeSolid(midX + 2, midY);
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeTrap(midX - 1, midY - 3);
+            placeTrap(midX + 1, midY - 3);
+            placeTrap(midX - 1, midY + 3);
+            placeTrap(midX + 1, midY + 3);
+            placeSinkhole(2, this.rows - 3);
+            placeSinkhole(this.cols - 3, 2);
+            placeSinkhole(midX, 2);
+            break;
+
+          case 'four_corners_burrows':
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(this.cols - 3, 2, 2, this.rows - 3);
+            placeSolid(midX - 3, midY);
+            placeSolid(midX + 3, midY);
+            placeSolid(midX, midY - 3);
+            placeSolid(midX, midY + 3);
+            placeSolid(midX - 3, midY - 3);
+            placeSolid(midX + 3, midY + 3);
+            placeTrap(4, 4);
+            placeTrap(this.cols - 5, 4);
+            placeTrap(4, this.rows - 5);
+            placeTrap(this.cols - 5, this.rows - 5);
+            placeSinkhole(midX, midY - 1);
+            placeSinkhole(midX, midY + 1);
+            placeSinkhole(midX - 1, midY);
+            placeSinkhole(midX + 1, midY);
+            break;
+
+          case 'library_shelves':
+            for (let c = 3; c <= midX - 2; c++) {
+              placeSolid(c, 4);
+              placeSolid(c, this.rows - 5);
+            }
+            for (let c = midX + 2; c <= this.cols - 4; c++) {
+              placeSolid(c, 4);
+              placeSolid(c, this.rows - 5);
+            }
+            placeHolePair(2, midY, this.cols - 3, midY);
+            placeTrap(midX, 4);
+            placeTrap(midX, this.rows - 5);
+            placeTrap(4, midY);
+            placeTrap(this.cols - 5, midY);
+            placeSinkhole(2, 2);
+            placeSinkhole(this.cols - 3, 2);
+            placeSinkhole(midX, midY);
+            break;
+
+          case 'checker_pillars':
+            [3, midX, this.cols - 4].forEach(px => {
+              [3, midY, this.rows - 4].forEach(py => {
+                if (!(px === midX && py === midY)) placeSolid(px, py);
+              });
+            });
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(this.cols - 3, 2, 2, this.rows - 3);
+            placeTrap(2, midY);
+            placeTrap(this.cols - 3, midY);
+            placeTrap(midX, 2);
+            placeTrap(midX, this.rows - 3);
+            placeTrap(midX, midY - 2);
+            placeSinkhole(4, 4);
+            placeSinkhole(this.cols - 5, 4);
+            placeSinkhole(4, this.rows - 5);
+            placeSinkhole(this.cols - 5, this.rows - 5);
+            break;
+
+          case 'twin_chambers':
+            for (let r = 2; r <= this.rows - 3; r++) {
+              placeSolid(midX, r);
+            }
+            placeHolePair(3, midY, this.cols - 4, midY);
+            placeHolePair(3, 3, this.cols - 4, this.rows - 4);
+            placeTrap(2, 2);
+            placeTrap(2, this.rows - 3);
+            placeTrap(this.cols - 3, 2);
+            placeTrap(this.cols - 3, this.rows - 3);
+            placeTrap(midX - 2, midY);
+            placeSinkhole(4, 4);
+            placeSinkhole(4, this.rows - 5);
+            placeSinkhole(this.cols - 5, 4);
+            placeSinkhole(this.cols - 5, this.rows - 5);
+            break;
+
+          case 'king_cavern':
+            placeSolid(midX - 2, midY - 2);
+            placeSolid(midX + 2, midY - 2);
+            placeSolid(midX - 2, midY + 2);
+            placeSolid(midX + 2, midY + 2);
+            placeSolid(midX, midY - 4);
+            placeSolid(midX, midY + 4);
+            placeSolid(midX - 4, midY);
+            placeSolid(midX + 4, midY);
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(this.cols - 3, 2, 2, this.rows - 3);
+            placeTrap(midX - 1, midY);
+            placeTrap(midX + 1, midY);
+            placeTrap(midX, midY - 1);
+            placeTrap(midX, midY + 1);
+            placeTrap(midX, midY);
+            placeSinkhole(midX - 2, midY);
+            placeSinkhole(midX + 2, midY);
+            placeSinkhole(midX, midY - 2);
+            placeSinkhole(midX, midY + 2);
+            break;
+
+          case 'vault_structure':
+            for (let c = midX - 2; c <= midX + 2; c++) placeSolid(c, midY - 2);
+            placeSolid(midX - 2, midY - 1);
+            placeSolid(midX + 2, midY - 1);
+            placeSolid(midX - 2, midY);
+            placeSolid(midX + 2, midY);
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(2, this.rows - 3, this.cols - 3, 2);
+            this.cheeses.push({
+              x: midX,
+              y: midY - 1,
+              isGold: true,
+              kind: 'gold',
+              timer: 20000,
+              maxTimer: 20000
+            });
+            this.grid[midY - 1][midX] = GOLD_CHEESE;
+            placeTrap(midX - 2, midY + 2);
+            placeTrap(midX + 2, midY + 2);
+            placeTrap(3, 3);
+            placeTrap(this.cols - 4, 3);
+            placeTrap(midX, midY + 3);
+            placeSinkhole(2, midY);
+            placeSinkhole(this.cols - 3, midY);
+            placeSinkhole(midX, 2);
+            placeSinkhole(midX, this.rows - 3);
+            break;
+
+          case 'cross_quadrants':
+            for (let r = 2; r <= 4; r++) placeSolid(midX, r);
+            for (let r = this.rows - 5; r <= this.rows - 3; r++) placeSolid(midX, r);
+            for (let c = 2; c <= 4; c++) placeSolid(c, midY);
+            for (let c = this.cols - 5; c <= this.cols - 3; c++) placeSolid(c, midY);
+            placeHolePair(3, 3, this.cols - 4, this.rows - 4);
+            placeHolePair(this.cols - 4, 3, 3, this.rows - 4);
+            placeTrap(2, 2);
+            placeTrap(this.cols - 3, 2);
+            placeTrap(2, this.rows - 3);
+            placeTrap(this.cols - 3, this.rows - 3);
+            placeTrap(midX - 2, midY - 2);
+            placeTrap(midX + 2, midY + 2);
+            placeSinkhole(midX - 1, midY - 1);
+            placeSinkhole(midX + 1, midY - 1);
+            placeSinkhole(midX - 1, midY + 1);
+            placeSinkhole(midX + 1, midY + 1);
+            break;
+
+          case 'chaos_crucible':
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(this.cols - 3, 2, 2, this.rows - 3);
+            [3, this.cols - 4].forEach(px => {
+              [3, midY, this.rows - 4].forEach(py => placeSolid(px, py));
+            });
+            placeSolid(midX, 3);
+            placeSolid(midX, this.rows - 4);
+            placeTrap(4, 4);
+            placeTrap(this.cols - 5, 4);
+            placeTrap(4, this.rows - 5);
+            placeTrap(this.cols - 5, this.rows - 5);
+            placeTrap(midX - 2, midY);
+            placeTrap(midX + 2, midY);
+            placeSinkhole(3, midY - 2);
+            placeSinkhole(3, midY + 2);
+            placeSinkhole(this.cols - 4, midY - 2);
+            placeSinkhole(this.cols - 4, midY + 2);
+            placeSinkhole(midX, 2);
+            placeSinkhole(midX, this.rows - 3);
+            break;
+
+          case 'vanguard_corridors':
+            for (let c = 2; c <= midX + 1; c++) placeSolid(c, 4);
+            for (let c = midX - 1; c <= this.cols - 3; c++) placeSolid(c, midY);
+            for (let c = 2; c <= midX + 1; c++) placeSolid(c, this.rows - 5);
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(this.cols - 3, 2, 2, this.rows - 3);
+            placeTrap(midX + 2, 4);
+            placeTrap(midX - 2, midY);
+            placeTrap(midX + 2, this.rows - 5);
+            placeTrap(3, 3);
+            placeTrap(this.cols - 4, midY - 1);
+            placeTrap(3, this.rows - 4);
+            placeSinkhole(2, midY - 2);
+            placeSinkhole(this.cols - 3, midY + 2);
+            placeSinkhole(midX, 2);
+            placeSinkhole(midX, this.rows - 3);
+            placeSinkhole(midX, midY - 2);
+            break;
+
+          case 'grand_arena':
+            placeSolid(3, 3);
+            placeSolid(this.cols - 4, 3);
+            placeSolid(3, this.rows - 4);
+            placeSolid(this.cols - 4, this.rows - 4);
+            placeSolid(midX - 2, midY - 2);
+            placeSolid(midX + 2, midY - 2);
+            placeSolid(midX - 2, midY + 2);
+            placeSolid(midX + 2, midY + 2);
+            placeSolid(midX, midY - 3);
+            placeSolid(midX, midY + 3);
+            placeSolid(midX - 3, midY);
+            placeSolid(midX + 3, midY);
+            placeHolePair(2, 2, this.cols - 3, this.rows - 3);
+            placeHolePair(this.cols - 3, 2, 2, this.rows - 3);
+            placeTrap(4, 4);
+            placeTrap(this.cols - 5, 4);
+            placeTrap(4, this.rows - 5);
+            placeTrap(this.cols - 5, this.rows - 5);
+            placeTrap(midX - 1, midY);
+            placeTrap(midX + 1, midY);
+            placeTrap(midX, midY);
+            placeSinkhole(2, midY);
+            placeSinkhole(this.cols - 3, midY);
+            placeSinkhole(midX, 2);
+            placeSinkhole(midX, this.rows - 3);
+            placeSinkhole(midX - 2, midY - 1);
+            placeSinkhole(midX + 2, midY + 1);
+            break;
+        }
+      }
+
       initLevel(lvl) {
         this.level = lvl;
         this.cats = [];
         this.cheeses = [];
         this.yarns = [];
+        this.mouseHoles = [];
         this.particles = [];
         this.floatingTexts = [];
         this.undoStack = [];
         this.undosRemaining = this.maxUndos;
         this.cheeseEatenCount = 0;
         this.freezeTimeRemaining = 0;
+        this.dashTimeRemaining = 0;
+        this.stinkyRepelTimeRemaining = 0;
+        this.invulnerableTimer = 0;
+        this.stuckInSinkhole = false;
+        this.stuckWigglesNeeded = 0;
         this.levelStartTime = performance.now();
         this.bombs = Math.min(4, 1 + Math.floor(lvl / 3));
         this.freezes = Math.min(3, 1 + Math.floor(lvl / 4));
-        this.catMoveInterval = Math.max(320, 780 - (lvl * 35));
+        this.traps = Math.min(3, 1 + Math.floor(lvl / 3));
+        this.clockInterval = Math.max(25, 45 - lvl * 2);
+        this.clockSecondsRemaining = this.clockInterval;
+        this.lastClockTick = performance.now();
+        this.recalculateCatSpeed();
+
+        const stuckInd = document.getElementById('stuck-indicator');
+        if (stuckInd) stuckInd.classList.add('hidden');
+        const dashInd = document.getElementById('dash-indicator');
+        if (dashInd) dashInd.classList.add('hidden');
+        const stinkyInd = document.getElementById('stinky-indicator');
+        if (stinkyInd) stinkyInd.classList.add('hidden');
+
+        // Look up Nostalgic Level definition or procedural fallback
+        const cfg = (lvl >= 1 && lvl <= NOSTALGIC_LEVELS.length) ? NOSTALGIC_LEVELS[lvl - 1] : null;
+        const lvlTitle = cfg ? cfg.title : `Endless Arena ${lvl}`;
+        const lvlDesc = cfg ? cfg.desc : `Survive the feline onslaught in deeper, uncharted labyrinths.`;
+        const subEl = document.getElementById('level-subtitle');
+        if (subEl) subEl.textContent = lvlTitle;
+        this.showLevelIntro(cfg || { level: lvl, title: lvlTitle, desc: lvlDesc, badge: 'Endless' });
 
         // Build solid perimeter
         this.grid = Array.from({ length: this.rows }, (_, r) =>
@@ -892,16 +1827,71 @@
         this.player.renderY = this.player.y;
         this.player.facing = 'DOWN';
 
-        const catCount = Math.min(12, 2 + lvl);
-        const blockDensity = Math.max(0.25, 0.44 - (lvl * 0.012));
-        const trapCount = lvl >= 3 ? Math.min(5, lvl - 1) : 0;
-        const sinkholeCount = lvl >= 4 ? Math.min(4, Math.floor(lvl / 2)) : 0;
-        const yarnCount = lvl >= 6 ? Math.min(2, Math.floor(lvl / 5)) : 0;
-        const hasBoss = (lvl % 5 === 0);
+        const catCount = cfg ? cfg.catCount : Math.min(14, 2 + lvl);
+        const blockDensity = cfg ? cfg.blockDensity : Math.max(0.22, 0.40 - (lvl * 0.012));
+        const trapCount = cfg ? cfg.traps : Math.min(8, 2 + Math.floor(lvl / 3));
+        const sinkholeCount = cfg ? cfg.sinkholes : Math.min(6, 1 + Math.floor(lvl / 3));
+        const solidBlockCount = cfg ? cfg.solidBlocks : Math.min(12, 2 + Math.floor(lvl / 2));
+        const yarnCount = cfg ? cfg.yarns : Math.min(2, Math.floor(lvl / 6));
+        const hasBoss = cfg ? !!cfg.hasBoss : (lvl % 5 === 0);
 
-        // Populate Blocks
+        if (cfg && cfg.layout) {
+          // Handcrafted Nostalgic Stage Architecture
+          this.applyLevelLayout(cfg.layout, cfg);
+        } else {
+          // Procedural Endless Stage Architecture
+          const holePairs = lvl >= 5 ? 2 : 1;
+          for (let p = 0; p < holePairs; p++) {
+            let h1 = { x: 2 + (p * 2), y: 2 + (p * 2) };
+            let h2 = { x: this.cols - 3 - (p * 2), y: this.rows - 3 - (p * 2) };
+            if (this.grid[h1.y][h1.x] === EMPTY) {
+              this.grid[h1.y][h1.x] = MOUSE_HOLE;
+              this.mouseHoles.push(h1);
+            }
+            if (this.grid[h2.y][h2.x] === EMPTY) {
+              this.grid[h2.y][h2.x] = MOUSE_HOLE;
+              this.mouseHoles.push(h2);
+            }
+          }
+
+          let placedSolids = 0, solidAttempts = 0;
+          while (placedSolids < solidBlockCount && solidAttempts < 200) {
+            solidAttempts++;
+            const rx = 2 + Math.floor(Math.random() * (this.cols - 4));
+            const ry = 2 + Math.floor(Math.random() * (this.rows - 4));
+            if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 2.5) {
+              this.grid[ry][rx] = SOLID_BLOCK;
+              placedSolids++;
+            }
+          }
+
+          let placedTraps = 0, trapAttempts = 0;
+          while (placedTraps < trapCount && trapAttempts < 200) {
+            trapAttempts++;
+            const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
+            const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+            if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 3) {
+              this.grid[ry][rx] = TRAP;
+              placedTraps++;
+            }
+          }
+
+          let placedHoles = 0, holeAttempts = 0;
+          while (placedHoles < sinkholeCount && holeAttempts < 200) {
+            holeAttempts++;
+            const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
+            const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
+            if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 3) {
+              this.grid[ry][rx] = SINKHOLE;
+              placedHoles++;
+            }
+          }
+        }
+
+        // Populate Movable Green Blocks around remaining open ground
         for (let r = 1; r < this.rows - 1; r++) {
           for (let c = 1; c < this.cols - 1; c++) {
+            if (this.grid[r][c] !== EMPTY) continue;
             const distFromPlayer = Math.hypot(c - this.player.x, r - this.player.y);
             if (distFromPlayer < 2.2) continue;
             if (Math.random() < blockDensity) {
@@ -910,34 +1900,11 @@
           }
         }
 
-        // Place Mousetraps
-        let placedTraps = 0;
-        while (placedTraps < trapCount) {
-          const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
-          const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
-          if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 3) {
-            this.grid[ry][rx] = TRAP;
-            placedTraps++;
-          }
-        }
-
-        // Place Sinkholes
-        let placedHoles = 0;
-        while (placedHoles < sinkholeCount) {
-          const rx = 1 + Math.floor(Math.random() * (this.cols - 2));
-          const ry = 1 + Math.floor(Math.random() * (this.rows - 2));
-          if (this.grid[ry][rx] === EMPTY && Math.hypot(rx - this.player.x, ry - this.player.y) > 3) {
-            this.grid[ry][rx] = SINKHOLE;
-            placedHoles++;
-          }
-        }
-
         // Spawn Cats & Boss Archetypes
         const breeds = ['tabby', 'tuxedo', 'calico', 'siamese', 'black'];
         let placedCats = 0;
         let attempts = 0;
 
-        // If Boss Level, spawn King Fat Cat Boss first
         if (hasBoss) {
           let bx = 2, by = 2;
           this.cats.push({
@@ -973,7 +1940,6 @@
           const dist = Math.hypot(rx - this.player.x, ry - this.player.y);
           if (this.grid[ry][rx] === EMPTY && dist > 3.5 && !this.cats.some(cat => cat.x === rx && cat.y === ry)) {
             const breed = breeds[placedCats % breeds.length];
-            // Archetype assignment: Ninja (fast), Sleepy (starts dormant), or Normal
             let archetype = 'normal';
             if (lvl >= 4 && Math.random() < 0.25) archetype = 'ninja';
             else if (lvl >= 3 && Math.random() < 0.2) archetype = 'sleepy';
@@ -1015,10 +1981,54 @@
         }
 
         if (!hasBoss) {
-          this.showToast(`Level ${lvl}! Box in ${this.cats.length} felines!`, '🧀');
+          this.showToast(`Level ${lvl}: ${lvlTitle}!`, '🧀');
         }
 
         this.saveUndoState();
+        this.updateHUD();
+      }
+
+      deployTrap() {
+        if (this.isPaused || this.isGameOver || this.traps <= 0) {
+          if (this.traps <= 0) this.showToast("No pocket mousetraps left!", "⚠️");
+          return;
+        }
+        if (this.stuckInSinkhole) {
+          this.showToast("Cannot deploy trap while stuck in sinkhole!", "⚠️");
+          return;
+        }
+
+        sound.init();
+        const facingDir = DIRS[this.player.facing] || DIRS.DOWN;
+        const behindX = this.player.x - facingDir.dx;
+        const behindY = this.player.y - facingDir.dy;
+
+        let targetX = behindX;
+        let targetY = behindY;
+
+        if (targetX <= 0 || targetX >= this.cols - 1 || targetY <= 0 || targetY >= this.rows - 1 || this.grid[targetY]?.[targetX] !== EMPTY) {
+          const neighbors = [
+            { x: this.player.x, y: this.player.y - 1 },
+            { x: this.player.x, y: this.player.y + 1 },
+            { x: this.player.x - 1, y: this.player.y },
+            { x: this.player.x + 1, y: this.player.y }
+          ];
+          const found = neighbors.find(n => n.x > 0 && n.x < this.cols - 1 && n.y > 0 && n.y < this.rows - 1 && this.grid[n.y][n.x] === EMPTY);
+          if (found) {
+            targetX = found.x;
+            targetY = found.y;
+          } else {
+            this.showToast("No open space to place mousetrap!", "⚠️");
+            return;
+          }
+        }
+
+        this.grid[targetY][targetX] = TRAP;
+        this.traps--;
+        sound.playTrapSnap();
+        this.triggerScreenShake(3);
+        this.createSparkles(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize + this.tileSize / 2, '#f59e0b', 18);
+        this.showToast("Pocket Mousetrap armed & deployed!", "🪤");
         this.updateHUD();
       }
 
@@ -1115,12 +2125,73 @@
         }
       }
 
+      spawnReinforcementCat() {
+        sound.playClockChime();
+        this.showToast("TICK-TOCK! Reinforcement cat arrived!", "⏰");
+        const candidates = [];
+        for (let r = 1; r < this.rows - 1; r++) {
+          for (let c = 1; c < this.cols - 1; c++) {
+            if (this.grid[r][c] === EMPTY && Math.hypot(c - this.player.x, r - this.player.y) > 4 && !this.cats.some(cat => cat.x === c && cat.y === r)) {
+              candidates.push({ x: c, y: r });
+            }
+          }
+        }
+        if (candidates.length > 0) {
+          const spot = candidates[Math.floor(Math.random() * candidates.length)];
+          const breeds = ['tabby', 'tuxedo', 'calico', 'siamese', 'black'];
+          this.cats.push({
+            id: Math.random().toString(36).substring(2, 9),
+            x: spot.x,
+            y: spot.y,
+            renderX: spot.x,
+            renderY: spot.y,
+            facing: 'LEFT',
+            state: 'stalking',
+            archetype: Math.random() < 0.3 ? 'ninja' : 'normal',
+            breed: breeds[Math.floor(Math.random() * breeds.length)],
+            walkCycle: 0,
+            isMoving: false,
+            blinkTimer: 100,
+            isBlinking: false,
+            blinkDuration: 0,
+            tailAngle: 0,
+            tailSpeed: 0.05,
+            earTwitchTimer: 120,
+            earTwitchAngle: 0,
+            prowlHeight: 0,
+            scratchTimer: 0
+          });
+          this.createSparkles(spot.x * this.tileSize + this.tileSize / 2, spot.y * this.tileSize + this.tileSize / 2, '#ef4444', 24);
+          this.updateHUD();
+        }
+      }
+
       tryMovePlayer(dirKey) {
         if (this.isPaused || this.isGameOver) return;
         const dir = DIRS[dirKey];
         if (!dir) return;
 
         sound.init();
+
+        // 0. If stuck in a sinkhole, tapping direction keys struggles to pull free!
+        if (this.stuckInSinkhole) {
+          this.stuckWigglesNeeded--;
+          sound.playMudSquelch();
+          this.triggerScreenShake(3);
+          this.createDust(this.player.x * this.tileSize + this.tileSize / 2, this.player.y * this.tileSize + this.tileSize / 2);
+          const wigglesEl = document.getElementById('stuck-wiggles');
+          if (wigglesEl) wigglesEl.textContent = Math.max(0, this.stuckWigglesNeeded).toString();
+
+          if (this.stuckWigglesNeeded <= 0) {
+            this.stuckInSinkhole = false;
+            const stuckInd = document.getElementById('stuck-indicator');
+            if (stuckInd) stuckInd.classList.add('hidden');
+            this.showToast("Wiggled free from the sinkhole!", "🐭");
+            sound.playScurry();
+          }
+          return;
+        }
+
         this.player.facing = dirKey;
         this.player.walkCycle += 0.35;
         this.player.isMoving = true;
@@ -1132,13 +2203,15 @@
 
         const targetCell = this.grid[targetY][targetX];
 
-        // 1. Wall blocked
-        if (targetCell === WALL) return;
+        // 1. Wall or Solid Unmovable Stone Block blocked
+        if (targetCell === WALL || targetCell === SOLID_BLOCK) return;
 
         // 2. Cat caught
         if (this.cats.some(cat => cat.x === targetX && cat.y === targetY && cat.state !== 'asleep')) {
-          this.triggerDeath("A prowling cat caught you! Keep your distance.");
-          return;
+          if (this.invulnerableTimer <= 0) {
+            this.triggerDeath("A prowling cat caught you! Keep your distance.");
+            return;
+          }
         }
 
         // 2b. Sleeping cat occupies its tile; bumping it wakes it up instead of overlapping
@@ -1150,20 +2223,55 @@
           return;
         }
 
-        // 3. Step on mousetrap
+        // 3. Step on active mousetrap
         if (targetCell === TRAP) {
           sound.playTrapSnap();
+          this.grid[targetY][targetX] = SPRUNG_TRAP;
           this.triggerDeath("Snap! You walked right into a mousetrap.");
           return;
         }
 
-        // 4. Step in sinkhole
+        // 4. Step in sinkhole -> STUCK!
         if (targetCell === SINKHOLE) {
-          this.triggerDeath("You fell straight into a deep sinkhole!");
+          this.player.x = targetX;
+          this.player.y = targetY;
+          this.stuckInSinkhole = true;
+          this.stuckWigglesNeeded = 4;
+          sound.playMudSquelch();
+          const stuckInd = document.getElementById('stuck-indicator');
+          if (stuckInd) stuckInd.classList.remove('hidden');
+          const wigglesEl = document.getElementById('stuck-wiggles');
+          if (wigglesEl) wigglesEl.textContent = '4';
+          this.showToast("Stuck in a sinkhole! Tap arrow keys rapidly to pull free!", "🕳️");
+          this.wakeAdjacentSleepyCats();
+          this.saveUndoState();
+          this.updateHUD();
           return;
         }
 
-        // 5. Eat Cheese
+        // 5. Step into Mouse Hole (Underground Burrow Tunnel!)
+        if (targetCell === MOUSE_HOLE) {
+          const destinationHole = this.mouseHoles.find(h => !(h.x === targetX && h.y === targetY));
+          if (destinationHole) {
+            sound.playTunnelWhoosh();
+            this.createSparkles(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize + this.tileSize / 2, '#38bdf8', 25);
+            this.player.x = destinationHole.x;
+            this.player.y = destinationHole.y;
+            this.player.renderX = destinationHole.x;
+            this.player.renderY = destinationHole.y;
+            this.invulnerableTimer = 1800; // 1.8s shadow stealth
+            this.createSparkles(destinationHole.x * this.tileSize + this.tileSize / 2, destinationHole.y * this.tileSize + this.tileSize / 2, '#38bdf8', 25);
+            this.showToast("Scurried through subterranean mouse hole!", "🚪");
+            this.unlockAchievement('burrow_runner');
+            this.wakeAdjacentSleepyCats();
+            this.saveUndoState();
+            this.checkTrappedCats();
+            this.updateHUD();
+            return;
+          }
+        }
+
+        // 6. Eat Cheese
         const cheeseIndex = this.cheeses.findIndex(c => c.x === targetX && c.y === targetY);
         if (cheeseIndex !== -1) {
           const eatenCheese = this.cheeses[cheeseIndex];
@@ -1182,13 +2290,32 @@
             this.unlockAchievement('triple_combo');
           }
 
-          const basePts = (eatenCheese.isGold ? 300 : 120) * this.level;
+          let basePts = (eatenCheese.isGold ? 350 : 120) * this.level;
+          if (eatenCheese.cheeseType === 'pepper') {
+            basePts = 250 * this.level;
+            this.dashTimeRemaining = 6000;
+            sound.playSpeedDash();
+            const dashInd = document.getElementById('dash-indicator');
+            if (dashInd) dashInd.classList.remove('hidden');
+            this.showToast("Spicy Pepper Jack! Turbo Mouse Dash for 6s!", "🌶️");
+          } else if (eatenCheese.cheeseType === 'stinky') {
+            basePts = 300 * this.level;
+            this.stinkyRepelTimeRemaining = 5000;
+            const stinkyInd = document.getElementById('stinky-indicator');
+            if (stinkyInd) stinkyInd.classList.remove('hidden');
+            this.showToast("Stinky Blue Cheese! Cats fleeing in disgust!", "🤢");
+          } else if (eatenCheese.isGold) {
+            this.traps = Math.min(3, this.traps + 1);
+            this.bombs = Math.min(4, this.bombs + 1);
+            this.showToast("Golden Swiss Feasted! +1 Pocket Trap, +1 Bomb!", "✨");
+          }
+
           const multiplier = Math.min(5, this.comboCount);
           const pts = basePts * multiplier;
           this.score += pts;
           
           sound.playEatCheese();
-          this.createSparkles(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize + this.tileSize / 2, '#fbbf24', 18);
+          this.createSparkles(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize + this.tileSize / 2, eatenCheese.isGold ? '#fbbf24' : '#38bdf8', 18);
           this.addFloatingText(targetX * this.tileSize + this.tileSize / 2, targetY * this.tileSize, `+${pts}${multiplier > 1 ? ` (x${multiplier}!)` : ''}`, '#fbbf24');
           
           this.player.x = targetX;
@@ -1198,8 +2325,8 @@
           return;
         }
 
-        // 6. Step into empty tile
-        if (targetCell === EMPTY) {
+        // 7. Step into empty tile or sprung trap
+        if (targetCell === EMPTY || targetCell === SPRUNG_TRAP) {
           this.player.x = targetX;
           this.player.y = targetY;
           sound.playScurry();
@@ -1210,7 +2337,7 @@
           return;
         }
 
-        // 7. Pushing Blocks (Orthogonal only in authentic rules)
+        // 8. Pushing Blocks (Orthogonal only in authentic rules)
         if (targetCell === BLOCK && !['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(dirKey)) {
           return;
         }
@@ -1237,8 +2364,8 @@
           if (destX < 0 || destX >= this.cols || destY < 0 || destY >= this.rows) return;
           const endCell = this.grid[destY][destX];
 
-          // Push into Wall or Live Cat -> blocked
-          if (endCell === WALL || this.cats.some(c => c.x === destX && c.y === destY)) {
+          // Push into Wall, Solid Block, Mouse Hole, or Live Cat -> blocked
+          if (endCell === WALL || endCell === SOLID_BLOCK || endCell === MOUSE_HOLE || this.cats.some(c => c.x === destX && c.y === destY)) {
             return;
           }
 
@@ -1246,8 +2373,11 @@
           if (endCell === SINKHOLE) {
             this.pushBlocksAlongLine(pushLine, dir);
             this.grid[destY][destX] = EMPTY;
+            sound.playMudSquelch();
             sound.playPush();
-            this.showToast("Sinkhole filled with block!", "🕳️");
+            this.showToast("Sinkhole paved over with a block!", "🕳️");
+            this.sinkholesFilledCount++;
+            this.unlockAchievement('sinkhole_paved');
             this.player.x = targetX;
             this.player.y = targetY;
             this.wakeAdjacentSleepyCats();
@@ -1260,10 +2390,14 @@
           // Push into Mousetrap -> disarms it
           if (endCell === TRAP) {
             this.pushBlocksAlongLine(pushLine, dir);
-            this.grid[destY][destX] = BLOCK;
+            this.grid[destY][destX] = SPRUNG_TRAP;
             sound.playTrapSnap();
             sound.playPush();
-            this.showToast("Mousetrap safely disarmed!", "🪤");
+            this.showToast("Mousetrap safely disarmed with a block!", "🪤");
+            this.trapsDisarmedCount++;
+            if (this.trapsDisarmedCount >= 3) {
+              this.unlockAchievement('trap_disarmer');
+            }
             this.player.x = targetX;
             this.player.y = targetY;
             this.wakeAdjacentSleepyCats();
@@ -1273,8 +2407,8 @@
             return;
           }
 
-          // Push into Empty tile (or cheese)
-          if (endCell === EMPTY || this.cheeses.some(c => c.x === destX && c.y === destY)) {
+          // Push into Empty tile or Sprung trap (or cheese)
+          if (endCell === EMPTY || endCell === SPRUNG_TRAP || this.cheeses.some(c => c.x === destX && c.y === destY)) {
             this.cheeses = this.cheeses.filter(c => !(c.x === destX && c.y === destY));
 
             this.pushBlocksAlongLine(pushLine, dir);
@@ -1375,7 +2509,61 @@
 
         this.updateCatAnimations();
 
-        // Calculate proximity threat to mouse
+        // 1. Clock countdown for cat reinforcements
+        if (currentTime - this.lastClockTick >= 1000) {
+          this.lastClockTick = currentTime;
+          this.clockSecondsRemaining--;
+
+          if (this.clockSecondsRemaining <= 5 && this.clockSecondsRemaining > 0) {
+            sound.playScurry();
+          }
+
+          if (this.clockSecondsRemaining <= 0) {
+            this.clockSecondsRemaining = this.clockInterval;
+            this.spawnReinforcementCat();
+          }
+
+          const clockEl = document.getElementById('hud-clock');
+          if (clockEl) {
+            clockEl.textContent = `${this.clockSecondsRemaining}s`;
+            if (this.clockSecondsRemaining <= 5) {
+              clockEl.className = 'font-bold text-rose-400 font-mono animate-ping';
+            } else {
+              clockEl.className = 'font-bold text-cyan-400 font-mono';
+            }
+          }
+        }
+
+        // 2. Dash countdown
+        if (this.dashTimeRemaining > 0) {
+          this.dashTimeRemaining -= 16;
+          const secs = Math.ceil(this.dashTimeRemaining / 1000);
+          const dashEl = document.getElementById('dash-timer');
+          if (dashEl) dashEl.textContent = secs.toString();
+          if (this.dashTimeRemaining <= 0) {
+            const dashInd = document.getElementById('dash-indicator');
+            if (dashInd) dashInd.classList.add('hidden');
+          }
+        }
+
+        // 3. Stinky Cheese repel countdown
+        if (this.stinkyRepelTimeRemaining > 0) {
+          this.stinkyRepelTimeRemaining -= 16;
+          const secs = Math.ceil(this.stinkyRepelTimeRemaining / 1000);
+          const stinkyEl = document.getElementById('stinky-timer');
+          if (stinkyEl) stinkyEl.textContent = secs.toString();
+          if (this.stinkyRepelTimeRemaining <= 0) {
+            const stinkyInd = document.getElementById('stinky-indicator');
+            if (stinkyInd) stinkyInd.classList.add('hidden');
+          }
+        }
+
+        // 4. Invulnerable tunnel stealth
+        if (this.invulnerableTimer > 0) {
+          this.invulnerableTimer -= 16;
+        }
+
+        // Proximity threat calculation
         let closestDist = Infinity;
         for (const cat of this.cats) {
           if (cat.state !== 'asleep') {
@@ -1430,7 +2618,8 @@
         if (currentTime - this.lastCatMove < this.catMoveInterval) return;
         this.lastCatMove = currentTime;
 
-        for (const cat of this.cats) {
+        for (let i = this.cats.length - 1; i >= 0; i--) {
+          const cat = this.cats[i];
           if (cat.state === 'asleep') continue;
 
           const isNinja = cat.archetype === 'ninja';
@@ -1438,12 +2627,15 @@
           if (validMoves.length === 0) continue;
 
           let bestMove = null;
-          let minDistance = Infinity;
+          const fleeing = this.stinkyRepelTimeRemaining > 0;
+          let bestMetric = fleeing ? -Infinity : Infinity;
 
           validMoves.sort(() => Math.random() - 0.5);
 
           for (const move of validMoves) {
-            if (move.x === this.player.x && move.y === this.player.y) {
+            // Direct mouse catch attempt (unless mouse is in tunnel shadow stealth or cat is fleeing)
+            if (!fleeing && move.x === this.player.x && move.y === this.player.y) {
+              if (this.invulnerableTimer > 0) continue;
               cat.x = move.x;
               cat.y = move.y;
               this.triggerDeath("A cat pounced onto you!");
@@ -1451,9 +2643,16 @@
             }
 
             const dist = Math.hypot(move.x - this.player.x, move.y - this.player.y);
-            if (dist < minDistance) {
-              minDistance = dist;
-              bestMove = move;
+            if (fleeing) {
+              if (dist > bestMetric) {
+                bestMetric = dist;
+                bestMove = move;
+              }
+            } else {
+              if (dist < bestMetric) {
+                bestMetric = dist;
+                bestMove = move;
+              }
             }
           }
 
@@ -1461,6 +2660,49 @@
             cat.facing = bestMove.x < cat.x ? 'LEFT' : 'RIGHT';
             cat.x = bestMove.x;
             cat.y = bestMove.y;
+
+            // Cat stepped into active mousetrap!
+            if (this.grid[bestMove.y][bestMove.x] === TRAP) {
+              this.grid[bestMove.y][bestMove.x] = SPRUNG_TRAP;
+              this.cats.splice(i, 1);
+              this.cheeses.push({
+                x: bestMove.x,
+                y: bestMove.y,
+                timer: 15000,
+                maxTimer: 15000,
+                isGold: cat.archetype === 'boss',
+                cheeseType: 'cheddar'
+              });
+              sound.playCatTrap();
+              this.triggerScreenShake(7);
+              this.createSparkles(bestMove.x * this.tileSize + this.tileSize / 2, bestMove.y * this.tileSize + this.tileSize / 2, '#f59e0b', 32);
+              this.addFloatingText(bestMove.x * this.tileSize + this.tileSize / 2, bestMove.y * this.tileSize, "SNAP! TRAPPED! +600", "#f59e0b");
+              this.score += 600 * this.level;
+              this.showToast("Cat snapped in mousetrap! Sweet revenge!", "🪤");
+              this.unlockAchievement('trap_master');
+              this.catsTrappedByMousetrapCount++;
+              this.updateHUD();
+              if (this.cats.length === 0) {
+                setTimeout(() => this.triggerLevelComplete(), 600);
+              }
+              continue;
+            }
+
+            // Cat stepped into hazardous sinkhole!
+            if (this.grid[bestMove.y][bestMove.x] === SINKHOLE) {
+              this.cats.splice(i, 1);
+              sound.playMudSquelch();
+              this.triggerScreenShake(4);
+              this.createDust(bestMove.x * this.tileSize + this.tileSize / 2, bestMove.y * this.tileSize + this.tileSize / 2);
+              this.addFloatingText(bestMove.x * this.tileSize + this.tileSize / 2, bestMove.y * this.tileSize, "CAT FELL IN HOLE! +400", "#38bdf8");
+              this.score += 400 * this.level;
+              this.showToast("Cat fell down the sinkhole!", "🕳️");
+              this.updateHUD();
+              if (this.cats.length === 0) {
+                setTimeout(() => this.triggerLevelComplete(), 600);
+              }
+              continue;
+            }
           }
         }
 
@@ -1482,17 +2724,25 @@
           if (nx < 0 || nx >= this.cols || ny < 0 || ny >= this.rows) continue;
 
           const cell = this.grid[ny][nx];
-          if (cell === EMPTY) {
+          // Can walk on EMPTY, SPRUNG_TRAP, and TRAP (where it gets snapped!)
+          if (cell === EMPTY || cell === SPRUNG_TRAP || cell === TRAP) {
             if (!this.cats.some(c => c.x === nx && c.y === ny)) {
               moves.push({ x: nx, y: ny });
             }
-          } else if (cell === SINKHOLE && canLeapSinkholes) {
-            // Ninja Siamese leap ability
-            const leapX = nx + off.dx;
-            const leapY = ny + off.dy;
-            if (leapX >= 0 && leapX < this.cols && leapY >= 0 && leapY < this.rows) {
-              if (this.grid[leapY][leapX] === EMPTY && !this.cats.some(c => c.x === leapX && c.y === leapY)) {
-                moves.push({ x: leapX, y: leapY });
+          } else if (cell === SINKHOLE) {
+            if (canLeapSinkholes) {
+              // Ninja Siamese leap ability across sinkholes
+              const leapX = nx + off.dx;
+              const leapY = ny + off.dy;
+              if (leapX >= 0 && leapX < this.cols && leapY >= 0 && leapY < this.rows) {
+                if ((this.grid[leapY][leapX] === EMPTY || this.grid[leapY][leapX] === SPRUNG_TRAP) && !this.cats.some(c => c.x === leapX && c.y === leapY)) {
+                  moves.push({ x: leapX, y: leapY });
+                }
+              }
+            } else {
+              // Regular cat can walk into sinkhole and fall in!
+              if (!this.cats.some(c => c.x === nx && c.y === ny)) {
+                moves.push({ x: nx, y: ny });
               }
             }
           }
@@ -1515,13 +2765,21 @@
 
             this.cats.splice(i, 1);
             
-            // Boss yields golden cheese!
+            // Random cheese variety!
+            let cheeseType = isBoss ? 'gold' : 'cheddar';
+            if (!isBoss) {
+              const r = Math.random();
+              if (r < 0.22) cheeseType = 'pepper';
+              else if (r < 0.36) cheeseType = 'stinky';
+            }
+
             this.cheeses.push({
               x: trappedX,
               y: trappedY,
               timer: 15000,
               maxTimer: 15000,
-              isGold: isBoss
+              isGold: isBoss || cheeseType === 'gold',
+              cheeseType: cheeseType
             });
 
             const trapPoints = (isBoss ? 1000 : 250) * this.level;
@@ -1538,11 +2796,11 @@
             this.createSparkles(
               trappedX * this.tileSize + this.tileSize / 2,
               trappedY * this.tileSize + this.tileSize / 2,
-              isBoss ? '#f59e0b' : '#38bdf8',
+              isBoss ? '#f59e0b' : (cheeseType === 'pepper' ? '#ef4444' : (cheeseType === 'stinky' ? '#10b981' : '#38bdf8')),
               isBoss ? 45 : 24
             );
             this.addFloatingText(trappedX * this.tileSize + this.tileSize / 2, trappedY * this.tileSize, `+${trapPoints}`, isBoss ? '#f59e0b' : '#38bdf8');
-            this.showToast(`Cat trapped! +${trapPoints} pts → CHEESE!`, '🧀');
+            this.showToast(`Cat trapped! +${trapPoints} pts → ${cheeseType.toUpperCase()} CHEESE!`, '🧀');
           }
         }
 
@@ -1586,8 +2844,35 @@
 
         if (this.lives > 0) {
           this.showToast(`${reason} Lives left: ${this.lives}`, '⚠️');
-          this.player.x = Math.floor(this.cols / 2);
-          this.player.y = Math.floor(this.rows / 2);
+          this.invulnerableTimer = 2200; // 2.2s safe respawn grace
+          this.stuckInSinkhole = false;
+          const stuckEl = document.getElementById('stuck-indicator');
+          if (stuckEl) stuckEl.classList.add('hidden');
+
+          // Find safe empty tile furthest from cats
+          let bestX = Math.floor(this.cols / 2);
+          let bestY = Math.floor(this.rows / 2);
+          let maxDist = -1;
+          for (let y = 2; y < this.rows - 2; y++) {
+            for (let x = 2; x < this.cols - 2; x++) {
+              if (this.grid[y] && this.grid[y][x] === EMPTY) {
+                let minDistToCat = Infinity;
+                for (const c of this.cats) {
+                  const d = Math.hypot(c.x - x, c.y - y);
+                  if (d < minDistToCat) minDistToCat = d;
+                }
+                if (minDistToCat > maxDist) {
+                  maxDist = minDistToCat;
+                  bestX = x;
+                  bestY = y;
+                }
+              }
+            }
+          }
+          this.player.x = bestX;
+          this.player.y = bestY;
+          this.player.renderX = bestX;
+          this.player.renderY = bestY;
           this.grid[this.player.y][this.player.x] = EMPTY;
         } else {
           this.isGameOver = true;
@@ -1614,8 +2899,13 @@
         if (this.level === 5 && this.lives === 3) {
           this.unlockAchievement('flawless_five');
         }
-        if (this.yarns.length > 0) {
-          this.unlockAchievement('yarn_dodger');
+        const nextLvl = this.level + 1;
+        const nextCfg = (nextLvl <= NOSTALGIC_LEVELS.length) ? NOSTALGIC_LEVELS[nextLvl - 1] : null;
+        const previewEl = document.getElementById('next-level-preview');
+        if (previewEl) {
+          previewEl.textContent = nextCfg
+            ? `Next: Level ${nextLvl} — ${nextCfg.title}`
+            : `Next: Level ${nextLvl} — Endless Gauntlet`;
         }
 
         document.getElementById('summary-level-bonus').textContent = `+${levelBonus.toLocaleString()}`;
@@ -1790,77 +3080,336 @@
                 this.ctx.arc(x + size / 2, y + size / 2, size / 5, 0, Math.PI * 2);
                 this.ctx.stroke();
               }
+            } else if (cell === SOLID_BLOCK) {
+              this.renderSolidBlock(x, y, size, isRetro);
+            } else if (cell === MOUSE_HOLE) {
+              this.renderMouseHole(x, y, size, isRetro);
             } else if (cell === TRAP) {
-              this.renderTrap(x, y, size, isRetro);
+              this.renderTrap(x, y, size, isRetro, false);
+            } else if (cell === SPRUNG_TRAP) {
+              this.renderTrap(x, y, size, isRetro, true);
             } else if (cell === SINKHOLE) {
-              this.renderSinkhole(x, y, size, isRetro);
+              this.renderSinkhole(x, y, size, isRetro, c, r);
             }
           }
         }
       }
 
-      renderTrap(x, y, size, isRetro) {
+      renderSolidBlock(x, y, size, isRetro) {
         if (isRetro) {
-          this.ctx.fillStyle = '#8b5a2b';
-          this.ctx.fillRect(x + 4, y + 6, size - 8, size - 12);
-          this.ctx.fillStyle = '#ffff00';
-          this.ctx.fillRect(x + size / 2 - 2, y + size / 2 - 2, 4, 4);
-          this.ctx.strokeStyle = '#c0c0c0';
-          this.ctx.lineWidth = 2;
-          this.ctx.strokeRect(x + 6, y + 8, size - 12, size - 16);
-        } else {
-          this.ctx.fillStyle = '#78350f';
-          this.roundRect(x + 4, y + 6, size - 8, size - 12, 4, true, false);
-          this.ctx.strokeStyle = '#e2e8f0';
-          this.ctx.lineWidth = 2.5;
-          this.ctx.strokeRect(x + 7, y + 9, size - 14, size - 18);
-          this.ctx.fillStyle = '#f59e0b';
+          this.ctx.fillStyle = '#4b5563';
+          this.ctx.fillRect(x, y, size, size);
+          this.drawBevel(x, y, size, size, '#9ca3af', '#1f2937', 3);
+          // Mortar and stone lines
+          this.ctx.strokeStyle = '#111827';
+          this.ctx.lineWidth = 1.5;
           this.ctx.beginPath();
-          this.ctx.arc(x + size / 2, y + size / 2, 4, 0, Math.PI * 2);
+          this.ctx.moveTo(x + 3, y + size / 2);
+          this.ctx.lineTo(x + size - 3, y + size / 2);
+          this.ctx.moveTo(x + size / 2, y + 3);
+          this.ctx.lineTo(x + size / 2, y + size / 2);
+          this.ctx.moveTo(x + size / 3, y + size / 2);
+          this.ctx.lineTo(x + size / 3, y + size - 3);
+          this.ctx.stroke();
+        } else {
+          const grad = this.ctx.createLinearGradient(x, y, x + size, y + size);
+          grad.addColorStop(0, '#334155');
+          grad.addColorStop(1, '#0f172a');
+          this.ctx.fillStyle = grad;
+          this.roundRect(x + 2, y + 2, size - 4, size - 4, 6, true, false);
+
+          // Chiseled stone masonry texture
+          this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x + 5, y + 5, size - 10, size - 10);
+
+          // Center solid stone cross / anchor
+          this.ctx.fillStyle = '#475569';
+          this.ctx.beginPath();
+          this.ctx.arc(x + size / 2, y + size / 2, size / 5.5, 0, Math.PI * 2);
           this.ctx.fill();
+
+          this.ctx.strokeStyle = '#94a3b8';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + size / 2 - 4, y + size / 2);
+          this.ctx.lineTo(x + size / 2 + 4, y + size / 2);
+          this.ctx.moveTo(x + size / 2, y + size / 2 - 4);
+          this.ctx.lineTo(x + size / 2, y + size / 2 + 4);
+          this.ctx.stroke();
         }
       }
 
-      renderSinkhole(x, y, size, isRetro) {
-        this.ctx.fillStyle = isRetro ? '#000000' : '#030712';
-        this.ctx.beginPath();
-        this.ctx.arc(x + size / 2, y + size / 2, size / 2.5, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.strokeStyle = isRetro ? '#404040' : '#374151';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
+      renderMouseHole(x, y, size, isRetro) {
+        const cx = x + size / 2;
+        const cy = y + size / 2;
+        const now = performance.now();
+        const eyesBlink = Math.sin(now / 400) > 0.85;
+
+        if (isRetro) {
+          // Retro wooden floor with dark hole
+          this.ctx.fillStyle = '#1c1917';
+          this.ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+          // Burrow arch
+          this.ctx.fillStyle = '#000000';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, y + size - 6, size / 3, Math.PI, 0);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#78350f';
+          this.ctx.lineWidth = 2;
+          this.ctx.stroke();
+
+          // Tiny glowing peeking eyes
+          if (!eyesBlink) {
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(cx - 3, y + size - 12, 2, 2);
+            this.ctx.fillRect(cx + 2, y + size - 12, 2, 2);
+          }
+        } else {
+          // Modern burrow with arched stone frame
+          this.ctx.save();
+          // Subtle subterranean tunnel glow
+          this.ctx.shadowColor = 'rgba(168, 85, 247, 0.4)';
+          this.ctx.shadowBlur = 10;
+
+          // Arch trim
+          this.ctx.fillStyle = '#334155';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, y + size - 4, size / 2.6, Math.PI, 0);
+          this.ctx.lineTo(cx + size / 2.6, y + size - 2);
+          this.ctx.lineTo(cx - size / 2.6, y + size - 2);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Deep dark interior
+          this.ctx.fillStyle = '#020617';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, y + size - 4, size / 3.4, Math.PI, 0);
+          this.ctx.lineTo(cx + size / 3.4, y + size - 2);
+          this.ctx.lineTo(cx - size / 3.4, y + size - 2);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Glowing subterranean swirl / eyes
+          if (!eyesBlink) {
+            this.ctx.fillStyle = '#38bdf8';
+            this.ctx.beginPath();
+            this.ctx.arc(cx - 4, y + size - 14, 1.8, 0, Math.PI * 2);
+            this.ctx.arc(cx + 4, y + size - 14, 1.8, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.beginPath();
+            this.ctx.arc(cx - 4, y + size - 14, 0.8, 0, Math.PI * 2);
+            this.ctx.arc(cx + 4, y + size - 14, 0.8, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+
+          this.ctx.restore();
+        }
+      }
+
+      renderTrap(x, y, size, isRetro, isSprung = false) {
+        if (isRetro) {
+          this.ctx.fillStyle = isSprung ? '#573315' : '#8b5a2b';
+          this.ctx.fillRect(x + 4, y + 6, size - 8, size - 12);
+          if (isSprung) {
+            // Sprung flat wire
+            this.ctx.strokeStyle = '#9ca3af';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 6, y + size / 2);
+            this.ctx.lineTo(x + size - 6, y + size / 2);
+            this.ctx.stroke();
+          } else {
+            // Active wire and cheese bait
+            this.ctx.strokeStyle = '#c0c0c0';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x + 6, y + 8, size - 12, size - 16);
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.fillRect(x + size / 2 - 2, y + size / 2 - 2, 5, 5);
+          }
+        } else {
+          // Modern detailed mousetrap
+          this.ctx.save();
+          this.ctx.fillStyle = isSprung ? '#451a03' : '#78350f';
+          this.roundRect(x + 3, y + 5, size - 6, size - 10, 4, true, false);
+
+          // Wood grain edge
+          this.ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+          this.ctx.lineWidth = 1;
+          this.ctx.strokeRect(x + 5, y + 7, size - 10, size - 14);
+
+          if (isSprung) {
+            // Sprung bar snapped down
+            this.ctx.strokeStyle = '#94a3b8';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 7, y + size / 2);
+            this.ctx.lineTo(x + size - 7, y + size / 2);
+            this.ctx.stroke();
+
+            // Spent indicator
+            this.ctx.fillStyle = '#64748b';
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('SNAPPED', x + size / 2, y + size - 8);
+          } else {
+            // Active armed trip-wire & spring
+            this.ctx.strokeStyle = '#e2e8f0';
+            this.ctx.lineWidth = 2.5;
+            this.ctx.strokeRect(x + 7, y + 9, size - 14, size - 18);
+
+            // Center coil spring
+            this.ctx.fillStyle = '#cbd5e1';
+            this.ctx.fillRect(x + size / 2 - 3, y + 10, 6, size - 20);
+
+            // Cheese bait on pedal
+            this.ctx.shadowColor = '#f59e0b';
+            this.ctx.shadowBlur = 6;
+            this.ctx.fillStyle = '#f59e0b';
+            this.ctx.beginPath();
+            this.ctx.arc(x + size / 2, y + size / 2, 4.5, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+          this.ctx.restore();
+        }
+      }
+
+      renderSinkhole(x, y, size, isRetro, gridX, gridY) {
+        const cx = x + size / 2;
+        const cy = y + size / 2;
+        const isPlayerStuckHere = this.isStuckInSinkhole && this.player.x === gridX && this.player.y === gridY;
+
+        if (isRetro) {
+          this.ctx.fillStyle = '#000000';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, size / 2.4, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = isPlayerStuckHere ? '#ef4444' : '#404040';
+          this.ctx.lineWidth = 2.5;
+          this.ctx.stroke();
+        } else {
+          this.ctx.save();
+          // Abyss radial gradient
+          const grad = this.ctx.createRadialGradient(cx, cy, 2, cx, cy, size / 2.3);
+          grad.addColorStop(0, '#000000');
+          grad.addColorStop(0.7, '#090d16');
+          grad.addColorStop(1, isPlayerStuckHere ? '#7f1d1d' : '#1e293b');
+
+          this.ctx.fillStyle = grad;
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, size / 2.3, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.strokeStyle = isPlayerStuckHere ? '#f43f5e' : '#334155';
+          this.ctx.lineWidth = isPlayerStuckHere ? 2.5 : 1.5;
+          this.ctx.stroke();
+
+          // If mouse is stuck inside, draw struggling dirt ripples and squirm effect
+          if (isPlayerStuckHere) {
+            const rippleR = (performance.now() / 20) % (size / 2.5);
+            this.ctx.strokeStyle = 'rgba(244, 63, 94, 0.6)';
+            this.ctx.lineWidth = 1.5;
+            this.ctx.beginPath();
+            this.ctx.arc(cx, cy, rippleR, 0, Math.PI * 2);
+            this.ctx.stroke();
+          }
+          this.ctx.restore();
+        }
       }
 
       renderCheeses() {
         for (const ch of this.cheeses) {
           const cx = ch.x * this.tileSize + this.tileSize / 2;
           const cy = ch.y * this.tileSize + this.tileSize / 2;
-          const r = this.tileSize / (ch.isGold ? 2.2 : 2.6);
+          const isGold = ch.kind === 'gold' || ch.isGold;
+          const isPepper = ch.kind === 'pepper';
+          const isStinky = ch.kind === 'stinky';
+
+          const r = this.tileSize / (isGold ? 2.2 : 2.5);
 
           this.ctx.save();
-          this.ctx.shadowColor = ch.isGold ? '#eab308' : '#f59e0b';
-          this.ctx.shadowBlur = ch.isGold ? 16 : 10;
 
+          // Glow according to cheese variety
+          if (isGold) {
+            this.ctx.shadowColor = '#eab308';
+            this.ctx.shadowBlur = 18;
+          } else if (isPepper) {
+            this.ctx.shadowColor = '#ef4444';
+            this.ctx.shadowBlur = 14;
+          } else if (isStinky) {
+            this.ctx.shadowColor = '#84cc16';
+            this.ctx.shadowBlur = 14;
+          } else {
+            this.ctx.shadowColor = '#f59e0b';
+            this.ctx.shadowBlur = 10;
+          }
+
+          // Countdown timer ring
           const ratio = Math.max(0, ch.timer / (ch.maxTimer || 15000));
-          this.ctx.strokeStyle = ratio > 0.3 ? (ch.isGold ? '#facc15' : 'rgba(245, 158, 11, 0.6)') : 'rgba(239, 68, 68, 0.8)';
+          let ringColor = isGold ? '#facc15' : (isPepper ? '#f97316' : (isStinky ? '#a3e635' : 'rgba(245, 158, 11, 0.7)'));
+          if (ratio <= 0.3) ringColor = 'rgba(239, 68, 68, 0.9)';
+
+          this.ctx.strokeStyle = ringColor;
           this.ctx.lineWidth = 2.5;
           this.ctx.beginPath();
           this.ctx.arc(cx, cy, r + 4, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * ratio));
           this.ctx.stroke();
 
-          this.ctx.fillStyle = ch.isGold ? '#fbbf24' : '#f59e0b';
+          // Cheese wedge body
+          let bodyColor = isGold ? '#fbbf24' : (isPepper ? '#ea580c' : (isStinky ? '#bef264' : '#f59e0b'));
+          this.ctx.fillStyle = bodyColor;
           this.ctx.beginPath();
           this.ctx.arc(cx, cy, r, -0.4, Math.PI - 0.4);
           this.ctx.lineTo(cx, cy);
           this.ctx.closePath();
           this.ctx.fill();
 
-          this.ctx.fillStyle = ch.isGold ? '#f59e0b' : '#d97706';
-          this.ctx.beginPath();
-          this.ctx.arc(cx - 3, cy + 2, 2.5, 0, Math.PI * 2);
-          this.ctx.arc(cx + 4, cy - 2, 2, 0, Math.PI * 2);
-          this.ctx.arc(cx + 1, cy + 5, 1.8, 0, Math.PI * 2);
-          this.ctx.fill();
+          // Cheese holes / special flakes
+          if (isPepper) {
+            // Spicy chili flakes
+            this.ctx.fillStyle = '#dc2626';
+            this.ctx.fillRect(cx - 3, cy + 2, 2.5, 2.5);
+            this.ctx.fillRect(cx + 3, cy - 1, 2.5, 2.5);
+            this.ctx.fillStyle = '#16a34a';
+            this.ctx.fillRect(cx, cy + 5, 2.5, 2.5);
+          } else if (isStinky) {
+            // Mold / stink spots
+            this.ctx.fillStyle = '#65a30d';
+            this.ctx.beginPath();
+            this.ctx.arc(cx - 3, cy + 2, 2.2, 0, Math.PI * 2);
+            this.ctx.arc(cx + 4, cy - 2, 1.8, 0, Math.PI * 2);
+            this.ctx.fill();
+            // Rising green aroma lines
+            const now = performance.now();
+            const aromaY = (now / 35) % 10;
+            this.ctx.strokeStyle = 'rgba(132, 204, 22, 0.7)';
+            this.ctx.lineWidth = 1.2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(cx - 2, cy - r - 1 + aromaY);
+            this.ctx.quadraticCurveTo(cx - 4, cy - r - 5, cx - 1, cy - r - 9);
+            this.ctx.moveTo(cx + 3, cy - r - 2 + aromaY);
+            this.ctx.quadraticCurveTo(cx + 5, cy - r - 6, cx + 2, cy - r - 10);
+            this.ctx.stroke();
+          } else {
+            // Classic swiss holes
+            this.ctx.fillStyle = isGold ? '#f59e0b' : '#d97706';
+            this.ctx.beginPath();
+            this.ctx.arc(cx - 3, cy + 2, 2.5, 0, Math.PI * 2);
+            this.ctx.arc(cx + 4, cy - 2, 2, 0, Math.PI * 2);
+            this.ctx.arc(cx + 1, cy + 5, 1.8, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+
+          // Golden sparkle stars
+          if (isGold) {
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.beginPath();
+            this.ctx.arc(cx - 5, cy - 4, 1.2, 0, Math.PI * 2);
+            this.ctx.arc(cx + 6, cy + 4, 1.2, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
 
           this.ctx.restore();
         }
@@ -2212,10 +3761,19 @@
       renderPlayer() {
         const isRetro = this.theme === 'retro';
         const cx = this.player.renderX * this.tileSize + this.tileSize / 2;
-        const cy = this.player.renderY * this.tileSize + this.tileSize / 2;
+        let cy = this.player.renderY * this.tileSize + this.tileSize / 2;
         const size = this.tileSize;
 
+        // If stuck in sinkhole, mouse sinks down slightly
+        if (this.isStuckInSinkhole) {
+          cy += 4;
+        }
+
         if (isRetro) {
+          this.ctx.save();
+          if (this.stealthTimer > 0) {
+            this.ctx.globalAlpha = Math.floor(performance.now() / 100) % 2 === 0 ? 0.35 : 0.85;
+          }
           this.ctx.fillStyle = '#808080';
           this.ctx.fillRect(cx - size / 4, cy - size / 4, size / 2, size / 2);
           this.ctx.fillStyle = '#ffc0cb';
@@ -2223,12 +3781,34 @@
           this.ctx.fillRect(cx + size / 3 - 5, cy - size / 3, 5, 5);
           this.ctx.fillStyle = '#000000';
           this.ctx.fillRect(cx - 2, cy - 2, 4, 4);
+
+          if (this.isStuckInSinkhole) {
+            // Sweat drops in retro
+            this.ctx.fillStyle = '#38bdf8';
+            this.ctx.fillRect(cx + 6, cy - 8, 2, 3);
+          }
+          this.ctx.restore();
           return;
         }
 
         // Modern Expressive Hero Mouse
         this.ctx.save();
+
+        // Subterranean Shadow Stealth Aura
+        if (this.stealthTimer > 0) {
+          this.ctx.shadowColor = '#c084fc';
+          this.ctx.shadowBlur = 14;
+          this.ctx.globalAlpha = 0.65 + Math.sin(performance.now() / 120) * 0.25;
+        }
+
+        // Spicy Pepper Dash Aura
+        if (this.pepperSpeedTimer > 0) {
+          this.ctx.shadowColor = '#f97316';
+          this.ctx.shadowBlur = 12;
+        }
+
         const scurryOffset = this.player.isMoving ? Math.sin(this.player.walkCycle * 2) * 2 : 0;
+        const squirm = this.isStuckInSinkhole ? Math.sin(performance.now() / 60) * 2 : 0;
 
         // Tail
         this.ctx.strokeStyle = '#f472b6';
@@ -2236,21 +3816,21 @@
         this.ctx.lineCap = 'round';
         this.ctx.beginPath();
         const tailOffset = (Math.sin(performance.now() / 150) * 4);
-        this.ctx.moveTo(cx, cy + 8);
+        this.ctx.moveTo(cx + squirm, cy + 8);
         this.ctx.quadraticCurveTo(cx - 10, cy + 14 + tailOffset, cx - 14, cy + 8);
         this.ctx.stroke();
 
         // Mouse Feet
         this.ctx.fillStyle = '#f472b6';
         this.ctx.beginPath();
-        this.ctx.ellipse(cx - 5 + scurryOffset, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
-        this.ctx.ellipse(cx + 5 - scurryOffset, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(cx - 5 + scurryOffset + squirm, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(cx + 5 - scurryOffset + squirm, cy + 11, 2.5, 3.5, 0, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Body
-        this.ctx.fillStyle = '#94a3b8';
+        this.ctx.fillStyle = this.pepperSpeedTimer > 0 ? '#fca5a5' : '#94a3b8';
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, size / 3.2, 0, Math.PI * 2);
+        this.ctx.arc(cx + squirm, cy, size / 3.2, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Rotating Ears (Ears listen to the closest cat!)
@@ -2267,7 +3847,7 @@
 
         // Left Ear
         this.ctx.save();
-        this.ctx.translate(cx - 9, cy - 9);
+        this.ctx.translate(cx - 9 + squirm, cy - 9);
         this.ctx.rotate(earSway);
         this.ctx.fillStyle = '#64748b';
         this.ctx.beginPath();
@@ -2281,7 +3861,7 @@
 
         // Right Ear
         this.ctx.save();
-        this.ctx.translate(cx + 9, cy - 9);
+        this.ctx.translate(cx + 9 + squirm, cy - 9);
         this.ctx.rotate(-earSway);
         this.ctx.fillStyle = '#64748b';
         this.ctx.beginPath();
@@ -2294,38 +3874,46 @@
         this.ctx.restore();
 
         // Big alert mouse eyes
-        const eyeSize = minDist <= 2 ? 3.4 : 2.5; // Eyes bulge when cat is nearby!
+        const eyeSize = (minDist <= 2 || this.isStuckInSinkhole) ? 3.4 : 2.5; // Eyes bulge when cat is nearby or stuck!
         this.ctx.fillStyle = '#0f172a';
         this.ctx.beginPath();
-        this.ctx.arc(cx - 4, cy - 1, eyeSize, 0, Math.PI * 2);
-        this.ctx.arc(cx + 4, cy - 1, eyeSize, 0, Math.PI * 2);
+        this.ctx.arc(cx - 4 + squirm, cy - 1, eyeSize, 0, Math.PI * 2);
+        this.ctx.arc(cx + 4 + squirm, cy - 1, eyeSize, 0, Math.PI * 2);
         this.ctx.fill();
 
         this.ctx.fillStyle = '#ffffff';
         this.ctx.beginPath();
-        this.ctx.arc(cx - 4.5, cy - 1.5, 1, 0, Math.PI * 2);
-        this.ctx.arc(cx + 3.5, cy - 1.5, 1, 0, Math.PI * 2);
+        this.ctx.arc(cx - 4.5 + squirm, cy - 1.5, 1, 0, Math.PI * 2);
+        this.ctx.arc(cx + 3.5 + squirm, cy - 1.5, 1, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Snout & Pink Nose
         this.ctx.fillStyle = '#f43f5e';
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy + 5, 2.5, 0, Math.PI * 2);
+        this.ctx.arc(cx + squirm, cy + 5, 2.5, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Tiny Mouse Whiskers
         this.ctx.strokeStyle = '#e2e8f0';
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
-        this.ctx.moveTo(cx - 2, cy + 5);
-        this.ctx.lineTo(cx - 10, cy + 3);
-        this.ctx.moveTo(cx - 2, cy + 6);
-        this.ctx.lineTo(cx - 9, cy + 7);
-        this.ctx.moveTo(cx + 2, cy + 5);
-        this.ctx.lineTo(cx + 10, cy + 3);
-        this.ctx.moveTo(cx + 2, cy + 6);
-        this.ctx.lineTo(cx + 9, cy + 7);
+        this.ctx.moveTo(cx - 2 + squirm, cy + 5);
+        this.ctx.lineTo(cx - 10 + squirm, cy + 3);
+        this.ctx.moveTo(cx - 2 + squirm, cy + 6);
+        this.ctx.lineTo(cx - 9 + squirm, cy + 7);
+        this.ctx.moveTo(cx + 2 + squirm, cy + 5);
+        this.ctx.lineTo(cx + 10 + squirm, cy + 3);
+        this.ctx.moveTo(cx + 2 + squirm, cy + 6);
+        this.ctx.lineTo(cx + 9 + squirm, cy + 7);
         this.ctx.stroke();
+
+        // Sweat drops if struggling in sinkhole
+        if (this.isStuckInSinkhole) {
+          this.ctx.fillStyle = '#38bdf8';
+          this.ctx.beginPath();
+          this.ctx.arc(cx + 11 + squirm, cy - 8, 2.5, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
 
         this.ctx.restore();
       }
@@ -2364,26 +3952,92 @@
       }
 
       updateHUD() {
-        document.getElementById('hud-score').textContent = this.score.toLocaleString();
-        document.getElementById('hud-level').textContent = this.level.toString();
-        document.getElementById('hud-cats').textContent = this.cats.length.toString();
-        document.getElementById('undo-count').textContent = this.undosRemaining.toString();
-        document.getElementById('bomb-count').textContent = this.bombs.toString();
-        document.getElementById('freeze-count').textContent = this.freezes.toString();
+        const scoreEl = document.getElementById('hud-score');
+        if (scoreEl) scoreEl.textContent = this.score.toLocaleString();
+        const lvlEl = document.getElementById('hud-level');
+        if (lvlEl) lvlEl.textContent = this.level.toString();
+        const catsEl = document.getElementById('hud-cats');
+        if (catsEl) catsEl.textContent = this.cats.length.toString();
+        const undoEl = document.getElementById('undo-count');
+        if (undoEl) undoEl.textContent = this.undosRemaining.toString();
+        const bombEl = document.getElementById('bomb-count');
+        if (bombEl) bombEl.textContent = this.bombs.toString();
+        const freezeEl = document.getElementById('freeze-count');
+        if (freezeEl) freezeEl.textContent = this.freezes.toString();
+        const trapEl = document.getElementById('trap-count');
+        if (trapEl) trapEl.textContent = (this.pocketTraps || 0).toString();
+
+        // Reinforcement Clock countdown (Original Windows 1991 Clock mechanic)
+        const clockEl = document.getElementById('hud-clock');
+        if (clockEl) {
+          const secLeft = Math.max(0, Math.ceil(this.catSpawnTimer / 1000));
+          clockEl.textContent = `${secLeft}s`;
+          if (secLeft <= 10) {
+            clockEl.className = 'font-bold text-rose-400 font-mono animate-pulse';
+          } else {
+            clockEl.className = 'font-bold text-cyan-400 font-mono';
+          }
+        }
+
+        // Speed toggle icon
+        const speedIcon = document.getElementById('speed-icon');
+        if (speedIcon) {
+          speedIcon.textContent = this.speedMode === 'turbo' ? '🚀' : (this.speedMode === 'slow' ? '🐢' : '⚡');
+        }
+
+        // Sinkhole Stuck Struggle Indicator
+        const stuckEl = document.getElementById('stuck-indicator');
+        const stuckWigglesEl = document.getElementById('stuck-wiggles');
+        if (stuckEl && stuckWigglesEl) {
+          if (this.isStuckInSinkhole) {
+            stuckWigglesEl.textContent = this.stuckWigglesNeeded.toString();
+            stuckEl.classList.remove('hidden');
+          } else {
+            stuckEl.classList.add('hidden');
+          }
+        }
+
+        // Pepper Dash Indicator
+        const dashEl = document.getElementById('dash-indicator');
+        const dashTimerEl = document.getElementById('dash-timer');
+        if (dashEl && dashTimerEl) {
+          if (this.pepperSpeedTimer > 0) {
+            dashTimerEl.textContent = Math.ceil(this.pepperSpeedTimer / 1000).toString();
+            dashEl.classList.remove('hidden');
+          } else {
+            dashEl.classList.add('hidden');
+          }
+        }
+
+        // Stinky Repel Indicator
+        const stinkyEl = document.getElementById('stinky-indicator');
+        const stinkyTimerEl = document.getElementById('stinky-timer');
+        if (stinkyEl && stinkyTimerEl) {
+          if (this.stinkyRepelTimer > 0) {
+            stinkyTimerEl.textContent = Math.ceil(this.stinkyRepelTimer / 1000).toString();
+            stinkyEl.classList.remove('hidden');
+          } else {
+            stinkyEl.classList.add('hidden');
+          }
+        }
 
         const comboEl = document.getElementById('combo-badge');
         const comboVal = document.getElementById('combo-val');
-        if (this.comboCount > 1) {
-          comboVal.textContent = this.comboCount.toString();
-          comboEl.classList.remove('hidden');
-        } else {
-          comboEl.classList.add('hidden');
+        if (comboEl && comboVal) {
+          if (this.comboCount > 1) {
+            comboVal.textContent = this.comboCount.toString();
+            comboEl.classList.remove('hidden');
+          } else {
+            comboEl.classList.add('hidden');
+          }
         }
 
         const livesContainer = document.getElementById('hud-lives');
-        livesContainer.innerHTML = '';
-        for (let i = 0; i < this.lives; i++) {
-          livesContainer.innerHTML += `<span>🐭</span>`;
+        if (livesContainer) {
+          livesContainer.innerHTML = '';
+          for (let i = 0; i < this.lives; i++) {
+            livesContainer.innerHTML += `<span>🐭</span>`;
+          }
         }
       }
 
@@ -2432,6 +4086,66 @@
         });
       }
 
+      renderWarpModal() {
+        const grid = document.getElementById('warp-levels-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        NOSTALGIC_LEVELS.forEach(lvl => {
+          const isCurrent = lvl.level === this.level;
+          const card = document.createElement('div');
+          card.className = `p-3 rounded-xl border cursor-pointer transition text-left relative flex flex-col justify-between ${
+            isCurrent
+              ? 'bg-amber-950/60 border-amber-500 shadow-lg shadow-amber-500/20 ring-1 ring-amber-400'
+              : 'bg-slate-950/70 border-slate-800 hover:border-slate-600 hover:bg-slate-800/60'
+          }`;
+          
+          const badgeColor = lvl.badge === 'Boss' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+                             lvl.badge === 'Classic' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                             lvl.badge === 'Tactical' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
+                             lvl.badge === 'Burrows' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' :
+                             lvl.badge === 'Sinkholes' ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' :
+                             'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+
+          const hazardItems = [];
+          if (lvl.traps) hazardItems.push(`🪤 ${lvl.traps} Traps`);
+          if (lvl.sinkholes) hazardItems.push(`🕳️ ${lvl.sinkholes} Sinkholes`);
+          if (lvl.mouseHolePairs) hazardItems.push(`🚪 ${lvl.mouseHolePairs * 2} Holes`);
+          if (lvl.solidBlocks) hazardItems.push(`🧱 ${lvl.solidBlocks} Granite`);
+          if (lvl.yarns) hazardItems.push(`🧶 ${lvl.yarns} Yarn`);
+          const hazardText = hazardItems.length > 0 ? hazardItems.join(' • ') : 'Standard Arena';
+          const catCount = lvl.catCount || 1;
+
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <span class="font-mono font-bold text-slate-300 text-xs flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded-full ${isCurrent ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'} flex items-center justify-center text-[10px] font-black">${lvl.level}</span>
+                  <span class="${isCurrent ? 'text-amber-300 font-bold' : 'text-white font-semibold'}">${lvl.title}</span>
+                </span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider border ${badgeColor}">${lvl.badge}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed mb-2">${lvl.desc}</p>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800/80 pt-1.5 mt-auto">
+              <span class="font-mono text-rose-300 font-semibold">🐱 ${catCount} ${catCount === 1 ? 'Cat' : 'Cats'}</span>
+              <span class="text-slate-500 text-[10px]">${hazardText}</span>
+            </div>
+          `;
+
+          card.addEventListener('click', () => {
+            const warpModal = document.getElementById('modal-warp');
+            warpModal.classList.add('hidden');
+            this.isPaused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('btn-pause').textContent = '⏸️';
+            this.initLevel(lvl.level);
+            this.showToast(`Warped to Level ${lvl.level}: ${lvl.title}`, "🗺️");
+          });
+
+          grid.appendChild(card);
+        });
+      }
+
       bindEvents() {
         window.addEventListener('resize', () => this.initCanvasSize());
 
@@ -2448,6 +4162,7 @@
           else if (e.key === 'e' || e.key === 'E' || e.key === '9') this.tryMovePlayer('UP_RIGHT');
           else if (e.key === 'z' || e.key === 'Z' || e.key === '1') this.tryMovePlayer('DOWN_LEFT');
           else if (e.key === 'c' || e.key === 'C' || e.key === '3') this.tryMovePlayer('DOWN_RIGHT');
+          else if (e.key === 't' || e.key === 'T') this.deployTrap();
           else if (e.key === 'b' || e.key === 'B') this.useBomb();
           else if (e.key === 'f' || e.key === 'F') this.useFreeze();
           else if (e.key === 'u' || e.key === 'U') this.applyUndo();
@@ -2503,10 +4218,12 @@
           this.showToast("Mouse waited a beat...", "🐭");
         });
 
-        // Powerup buttons
+        // Powerup & tactical buttons
+        document.getElementById('btn-trap').addEventListener('click', () => this.deployTrap());
         document.getElementById('btn-bomb').addEventListener('click', () => this.useBomb());
         document.getElementById('btn-freeze').addEventListener('click', () => this.useFreeze());
         document.getElementById('btn-undo').addEventListener('click', () => this.applyUndo());
+        document.getElementById('btn-speed').addEventListener('click', () => this.toggleSpeed());
         document.getElementById('btn-retry').addEventListener('click', () => this.initLevel(this.level));
         document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
         document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
@@ -2543,27 +4260,25 @@
         });
         document.getElementById('btn-close-trophies').addEventListener('click', () => trophyModal.classList.add('hidden'));
 
-        // Level Warp Modal
+        // Nostalgic Level Campaign / Warp Modal
         const warpModal = document.getElementById('modal-warp');
-        document.getElementById('btn-select-level').addEventListener('click', () => {
+        const openWarp = () => {
+          this.renderWarpModal();
           document.getElementById('pause-overlay').classList.add('hidden');
           warpModal.classList.remove('hidden');
-        });
-        document.getElementById('btn-close-warp').addEventListener('click', () => {
+        };
+        const closeWarp = () => {
           warpModal.classList.add('hidden');
-          document.getElementById('pause-overlay').classList.remove('hidden');
-        });
+          if (this.isPaused) {
+            document.getElementById('pause-overlay').classList.remove('hidden');
+          }
+        };
 
-        document.querySelectorAll('.warp-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const targetLvl = parseInt(btn.dataset.level, 10);
-            warpModal.classList.add('hidden');
-            this.isPaused = false;
-            document.getElementById('pause-overlay').classList.add('hidden');
-            document.getElementById('btn-pause').textContent = '⏸️';
-            this.initLevel(targetLvl);
-          });
-        });
+        document.getElementById('btn-levels').addEventListener('click', openWarp);
+        document.getElementById('hud-level-container').addEventListener('click', openWarp);
+        document.getElementById('btn-select-level').addEventListener('click', openWarp);
+        document.getElementById('btn-close-warp').addEventListener('click', closeWarp);
+        document.getElementById('btn-close-warp-footer').addEventListener('click', closeWarp);
 
         document.getElementById('btn-next-level').addEventListener('click', () => this.nextLevel());
         document.getElementById('btn-play-again').addEventListener('click', () => this.restartGame());
