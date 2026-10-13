@@ -64,9 +64,23 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every push to `main` and on pull requests: `bun install --frozen-lockfile`, `bun run docs:check`, then `bun test`, on `macos-latest` with Bun 1.4.2.
+`.github/workflows/ci.yml` runs on every push to `main` and on pull requests: `bun install --frozen-lockfile`, `bun run typecheck`, `bun run docs:check`, then `bun test`, on `macos-latest` with Bun 1.4.2.
 
-- **Not verified on GitHub.** The same three commands passed in a fresh local clone (after the [D-020](../documentation-maintenance/discrepancies.md#d-020) fixes), but the workflow file has not run on GitHub.
+- **Not verified on GitHub.** The same four steps passed in a fresh local clone (after the [D-020](../documentation-maintenance/discrepancies.md#d-020) fixes), but the workflow file has not run on GitHub.
 - Windows and Linux are not covered.
 - The live MySQL and PostgreSQL suites skip themselves, so CI does not test them.
-- The type check (`tsc`) is not part of it ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)).
+
+## Type-check ratchet
+
+Bun runs TypeScript without checking types, and the project has 679 existing `tsc` errors in 61 files ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)). `bun run typecheck` (`scripts/typecheck_ratchet.ts`) runs `tsc --noEmit` and compares the number of errors **per file** with `scripts/typecheck_baseline.json`:
+
+| Result | Exit code |
+|---|---|
+| Every file has the same or fewer errors than recorded | 0 |
+| A file has more errors than recorded, or a file with none now has one | 1 (the files are listed) |
+| `tsc` is missing or fails without reporting type errors, or there is no baseline | 2 |
+
+- After you **fix** errors the check still passes and lists the files that improved. Run `bun run typecheck -- --update` to record the gain so it cannot be lost again.
+- Running `--update` after **adding** errors defeats the check; do it only for a deliberate reason and say so in the commit.
+- The count is per file, so fixing one error and adding another in the same file is not detected.
+- Tests for the script are in `tests/typecheck_ratchet.test.ts` (they use a throwaway project, not the baseline).

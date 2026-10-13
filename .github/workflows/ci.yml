@@ -23,6 +23,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Fails only when a file gets more type errors than recorded in scripts/typecheck_baseline.json.
+      - name: Type-check ratchet
+        run: bun run typecheck
+
       - name: Documentation links and generated pages
         run: bun run docs:check
 
