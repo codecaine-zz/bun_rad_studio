@@ -98,7 +98,7 @@ bun run build
 
 ## Things that do not work yet
 
-- **`bun start` (the visual form designer)** failed with `ReferenceError: existsSync is not defined` until [D-001](../documentation-maintenance/discrepancies.md#d-001) was fixed. It now starts, but the designer window was not inspected, so this page still uses a code example for the first project. The [designer pages](../visual-designer/index.md) say what is and is not verified.
+- **`bun start` (the visual form designer)** now opens its window and the page works (see [what was checked](../visual-designer/index.md#what-was-checked)); before 13 October 2026 it crashed ([D-001](../documentation-maintenance/discrepancies.md#d-001)) and its page did nothing ([D-016](../documentation-maintenance/discrepancies.md#d-016)). The designer cannot save a layout, so this page still uses a code example for the first project that you can save and reopen.
 - Windows and Linux were not tested.
 
 ## When something fails

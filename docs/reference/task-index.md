@@ -51,12 +51,18 @@ Find a page by what you want to do. A status in brackets says how far to trust i
 | Run the tests | [Testing](../testing/index.md) (verified) |
 | Test against MySQL/PostgreSQL safely | [Database tests](../testing/database-tests.md) |
 | Write or change documentation | [Style guide](../documentation-maintenance/style-guide.md) and [contributor checklist](../documentation-maintenance/contributor-checklist.md) |
+| Understand how the code fits together | [Architecture](../developer/architecture.md) (source only) |
+| Add an application or a designer control | [Developer handbook](../developer/handbook.md#add-an-application) |
+| Look up a word | [Glossary](../glossary.md) |
+| Find where my data and settings are stored | [Data and files](data-and-files.md) |
+| Check what is protected and what is not | [Security](../security.md) |
 | Check the documentation for broken links | `bun run docs:check` ([how it works](../documentation-maintenance/style-guide.md#checking-your-pages)) |
 
 ## When something goes wrong
 
 | Symptom | Go to |
 |---|---|
+| Anything else (start-up, ports, 403, designer, files, checks) | [Troubleshooting](../troubleshooting.md) |
 | `bun start` fails with `existsSync is not defined` | [Discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001) |
 | Install or first-launch problem | [When something fails](../getting-started/install-and-first-launch.md#when-something-fails) |
 | Database connection error | [Workbench troubleshooting](../databases/workbench.md#troubleshooting) |

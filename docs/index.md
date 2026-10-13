@@ -22,7 +22,9 @@ The counts come from the launcher's own scan (`bun run cli:launcher --list`); se
 | New to all of this | [Requirements](getting-started/requirements.md), then [Install and first launch](getting-started/install-and-first-launch.md) |
 | A user who wants to work with data | [Databases overview](databases/index.md) and the [Database Workbench guide](databases/workbench.md) |
 | A developer building windows in code | [First launch → hello window](getting-started/install-and-first-launch.md#step-6-run-your-first-program) and the [SimpleGUI API](SIMPLEGUI_API.md) |
-| A contributor | [Testing](testing/index.md), [database tests](testing/database-tests.md), [style guide](documentation-maintenance/style-guide.md) |
+| A contributor | [Developer handbook](developer/handbook.md), [Architecture](developer/architecture.md), [Testing](testing/index.md), [database tests](testing/database-tests.md), [style guide](documentation-maintenance/style-guide.md) |
+| Something is not working | [Troubleshooting](troubleshooting.md) |
+| Worried about safety | [Security](security.md) and [Data and files](reference/data-and-files.md) |
 
 ## Recommended first-use path
 
@@ -48,6 +50,9 @@ The counts come from the launcher's own scan (`bun run cli:launcher --list`); se
 - [Reference index](reference/index.md)
 - [Coverage matrix](documentation-maintenance/coverage-matrix.md) – what is documented and how well it was verified
 - [Discrepancies found while documenting](documentation-maintenance/discrepancies.md)
-- [Glossary terms to be defined](documentation-maintenance/glossary-inventory.md)
+- [Glossary](glossary.md) (and the [inventory of terms still to define](documentation-maintenance/glossary-inventory.md))
+- [Data and files](reference/data-and-files.md)
+- [Security](security.md) and [Troubleshooting](troubleshooting.md)
+- [Architecture](developer/architecture.md) and [Developer handbook](developer/handbook.md)
 
 There is no search box: use your editor's or Git host's text search over the `docs/` folder.

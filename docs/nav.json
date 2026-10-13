@@ -49,6 +49,13 @@
       ]
     },
     {
+      "title": "Security and troubleshooting",
+      "pages": [
+        { "title": "Security", "path": "security.md" },
+        { "title": "Troubleshooting", "path": "troubleshooting.md" }
+      ]
+    },
+    {
       "title": "Testing",
       "pages": [
         { "title": "Testing", "path": "testing/index.md" },

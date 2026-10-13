@@ -41,6 +41,11 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Architecture](developer/architecture.md)
 - [Developer handbook](developer/handbook.md)
 
+## Security and troubleshooting
+
+- [Security](security.md)
+- [Troubleshooting](troubleshooting.md)
+
 ## Testing
 
 - [Testing](testing/index.md)
