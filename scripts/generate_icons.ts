@@ -14,7 +14,7 @@ mkdirSync(ICONS_DIR, { recursive: true });
 function crc32(buf: Buffer): number {
   let crc = 0xffffffff;
   for (let i = 0; i < buf.length; i++) {
-    crc ^= buf[i];
+    crc ^= buf[i]!;
     for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (-(crc & 1) & 0xedb88320);
   }
   return (crc ^ 0xffffffff) >>> 0;
@@ -106,7 +106,7 @@ function renderIconPixel(x: number, y: number, spec: IconSpec, size = 512): [num
     inside = true;
   } else {
     // Check 4 corners
-    const corners = [
+    const corners: Array<[number, number]> = [
       [left + radius, top + radius],
       [right - radius, top + radius],
       [left + radius, bottom - radius],
@@ -212,7 +212,7 @@ for (const spec of specs) {
     const iconsetDir = join(ICONS_DIR, `${spec.name}.iconset`);
     mkdirSync(iconsetDir, { recursive: true });
 
-    const sizes = [
+    const sizes: Array<[number, string]> = [
       [16, "icon_16x16.png"],
       [32, "icon_16x16@2x.png"],
       [32, "icon_32x32.png"],

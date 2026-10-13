@@ -1445,9 +1445,9 @@ export function isColorBright(hex?: string): boolean {
     const clean = hex.slice(1);
     let r = 0, g = 0, b = 0;
     if (clean.length === 3) {
-        r = parseInt(clean[0] + clean[0], 16);
-        g = parseInt(clean[1] + clean[1], 16);
-        b = parseInt(clean[2] + clean[2], 16);
+        r = parseInt(clean.charAt(0) + clean.charAt(0), 16);
+        g = parseInt(clean.charAt(1) + clean.charAt(1), 16);
+        b = parseInt(clean.charAt(2) + clean.charAt(2), 16);
     } else if (clean.length >= 6) {
         r = parseInt(clean.slice(0, 2), 16);
         g = parseInt(clean.slice(2, 4), 16);
@@ -1462,9 +1462,9 @@ function hexToRgba(hex: string, alpha: number): string {
     if (!hex || typeof hex !== 'string') return `rgba(56, 189, 248, ${alpha})`;
     const clean = hex.replace('#', '').trim();
     if (clean.length === 3) {
-        const r = parseInt(clean[0] + clean[0], 16);
-        const g = parseInt(clean[1] + clean[1], 16);
-        const b = parseInt(clean[2] + clean[2], 16);
+        const r = parseInt(clean.charAt(0) + clean.charAt(0), 16);
+        const g = parseInt(clean.charAt(1) + clean.charAt(1), 16);
+        const b = parseInt(clean.charAt(2) + clean.charAt(2), 16);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     } else if (clean.length >= 6) {
         const r = parseInt(clean.slice(0, 2), 16);
@@ -2028,7 +2028,7 @@ export function generatePreviewHtml(spec: any): string {
                         const firstStr = String(cells[0] || '');
                         const leadingMatch = firstStr.match(/^(\s+)/);
                         if (leadingMatch) {
-                            itemDepth = Math.max(depth, Math.floor(leadingMatch[1].length / 2));
+                            itemDepth = Math.max(depth, Math.floor(leadingMatch[1]!.length / 2));
                             cells[0] = firstStr.trim();
                         }
                     } else if (typeof item === 'object' && item !== null) {

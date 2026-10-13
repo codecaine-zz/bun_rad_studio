@@ -19,7 +19,7 @@
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
 import { guardLocalRequest } from "../src/localGuard";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, rmdirSync, statSync, readdirSync, renameSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, statSync, readdirSync, renameSync, rmSync } from "fs";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -473,7 +473,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           if (existsSync(targetPath)) {
             const stat = statSync(targetPath);
             if (stat.isDirectory()) {
-              rmdirSync(targetPath, { recursive: true });
+              rmSync(targetPath, { recursive: true, force: true });
             } else {
               unlinkSync(targetPath);
             }

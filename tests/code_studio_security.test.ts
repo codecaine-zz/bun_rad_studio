@@ -59,11 +59,11 @@ describe("Code Studio: local-only protection", () => {
   test("the studio's own page (same origin, or no Origin header) still works", async () => {
     const res = await post("/api/exec", { command: "echo ok" });
     expect(res.status).toBe(200);
-    expect((await res.json()).stdout.trim()).toBe("ok");
+    expect(((await res.json()) as any).stdout.trim()).toBe("ok");
 
     const sameOrigin = await post("/api/fs/read", { path: "hello.txt" }, { Origin: base });
     expect(sameOrigin.status).toBe(200);
-    expect((await sameOrigin.json()).content).toBe("hi");
+    expect(((await sameOrigin.json()) as any).content).toBe("hi");
   });
 
   test("paths cannot escape the workspace, including a sibling folder sharing its name prefix", async () => {
@@ -82,6 +82,17 @@ describe("Code Studio: local-only protection", () => {
     const rename = await post("/api/fs/rename", { oldPath: "hello.txt", newPath: "../ws-evil/moved.txt" });
     expect(rename.status).toBe(403);
     expect(existsSync(join(workspace, "hello.txt"))).toBe(true);
+  });
+
+  test("deleting removes a non-empty folder inside the workspace, and never the workspace itself", async () => {
+    mkdirSync(join(workspace, "tmpdir/sub"), { recursive: true });
+    writeFileSync(join(workspace, "tmpdir/sub/f.txt"), "x");
+    const ok = await post("/api/fs/delete", { path: "tmpdir" });
+    expect(ok.status).toBe(200);
+    expect(existsSync(join(workspace, "tmpdir"))).toBe(false);
+    const root = await post("/api/fs/delete", { path: "." });
+    expect(root.status).toBe(403);
+    expect(existsSync(workspace)).toBe(true);
   });
 
   test("isInsideWorkspace", () => {

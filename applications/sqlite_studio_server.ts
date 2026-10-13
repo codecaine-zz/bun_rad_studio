@@ -494,7 +494,7 @@ export class SqliteManager {
     const t0 = performance.now();
     try {
       const cleanSql = trimmed.replace(/^EXPLAIN\s+QUERY\s+PLAN\s+/i, "");
-      const singleSql = cleanSql.split(";")[0].trim();
+      const singleSql = (cleanSql.split(";")[0] ?? "").trim();
       if (!singleSql) return { success: false, error: "SQL statement is required for explain" };
       const explainRows = (this.db.query(`EXPLAIN QUERY PLAN ${singleSql};`).all() as any[]) || [];
       const latencyMs = Number((performance.now() - t0).toFixed(2));
@@ -540,6 +540,9 @@ export class SqliteManager {
     pageSize?: number;
     totalPages?: number;
     latencyMs?: number;
+    editable?: boolean;
+    isView?: boolean;
+    pkColumns?: string[];
     error?: string;
   } {
     const page = Math.max(1, options.page || 1);
@@ -1347,7 +1350,7 @@ export class SqliteManager {
       const custCount = (this.db.query("SELECT count(*) as c FROM customers;").get() as any)?.c || 0;
       if (custCount === 0) {
         // 12 Customers
-        const customers = [
+        const customers: Array<[string, string, string, string, string, number]> = [
           ["Linus Torvalds", "linus@kernel.org", "Linux Foundation", "United States", "Enterprise", 45200.50],
           ["Brendan Eich", "brendan@brave.com", "Brave Software", "United States", "Enterprise", 31800.00],
           ["Jarred Sumner", "jarred@oven.sh", "Oven Inc / Bun", "United States", "VIP", 94500.00],
@@ -1370,7 +1373,7 @@ export class SqliteManager {
         }
 
         // 10 Products
-        const products = [
+        const products: Array<[string, string, string, number, number, number]> = [
           ["BUN-PRO-01", "Bun RAD Studio Workstation Pro", "Developer Tools", 499.00, 250, 4.9],
           ["SQL-IDE-02", "SQLite Studio Pro Dedicated License", "Developer Tools", 199.00, 500, 4.8],
           ["SRV-SYS-03", "Hardware Telemetry Probe Appliance", "Hardware", 1299.00, 45, 4.7],
@@ -1511,11 +1514,13 @@ export class SqliteManager {
            sql = excluded.sql,
            designer_state_json = excluded.designer_state_json,
            updated_at = datetime('now');`,
-        id,
-        query.name.trim(),
-        query.description || "",
-        query.sql.trim(),
-        query.designerStateJson || null
+        [
+          id,
+          query.name.trim(),
+          query.description || "",
+          query.sql.trim(),
+          query.designerStateJson || null,
+        ]
       );
 
       const saved: SavedQueryDefinition = {
@@ -1534,7 +1539,7 @@ export class SqliteManager {
   public deleteNamedQuery(idOrName: string): { success: boolean; error?: string } {
     this.ensureQueryTable();
     try {
-      this.db.run("DELETE FROM _studio_queries WHERE id = ? OR name = ?;", idOrName, idOrName);
+      this.db.run("DELETE FROM _studio_queries WHERE id = ? OR name = ?;", [idOrName, idOrName]);
       this.logAudit("QUERY_DELETE", "QUERY", `Deleted named query: ${idOrName}`);
       return { success: true };
     } catch (err: any) {
@@ -1598,7 +1603,7 @@ export class SqliteManager {
 
       if (isAutoExec) {
         try {
-          this.db.run("UPDATE _studio_macros SET is_autoexec = 0 WHERE id != ?;", id);
+          this.db.run("UPDATE _studio_macros SET is_autoexec = 0 WHERE id != ?;", [id]);
         } catch {}
       }
 
@@ -1612,12 +1617,14 @@ export class SqliteManager {
            is_autoexec = excluded.is_autoexec,
            on_error = excluded.on_error,
            updated_at = datetime('now');`,
-        id,
-        macro.name.trim(),
-        macro.description || "",
-        actionsJson,
-        isAutoExec,
-        macro.onError === "continue" ? "continue" : "stop"
+        [
+          id,
+          macro.name.trim(),
+          macro.description || "",
+          actionsJson,
+          isAutoExec,
+          macro.onError === "continue" ? "continue" : "stop",
+        ]
       );
 
       const saved: MacroDefinition = {
@@ -1635,7 +1642,7 @@ export class SqliteManager {
   public deleteMacro(idOrName: string): { success: boolean; error?: string } {
     this.ensureMacroTable();
     try {
-      this.db.run("DELETE FROM _studio_macros WHERE id = ? OR name = ?;", idOrName, idOrName);
+      this.db.run("DELETE FROM _studio_macros WHERE id = ? OR name = ?;", [idOrName, idOrName]);
       this.logAudit("MACRO_DELETE", "MACRO", `Deleted macro: ${idOrName}`);
       return { success: true };
     } catch (err: any) {
@@ -1750,7 +1757,7 @@ export class SqliteManager {
     let failedSteps = 0;
 
     for (let i = 0; i < macro.actions.length; i++) {
-      const act = macro.actions[i];
+      const act = macro.actions[i]!;
       if (act.enabled === false) {
         skippedSteps++;
         continue;
@@ -1919,7 +1926,7 @@ export class SqliteManager {
             const res = this.query(this.resolvePromptParams(p.sql, promptParams));
             if (!res.success) throw new Error(res.error || "Query failed");
             output = res;
-            message = `Executed SQL (${res.rowsAffected ?? res.rows.length} rows)`;
+            message = `Executed SQL (${res.rowsAffected ?? res.rows?.length ?? 0} rows)`;
             break;
           }
           case "VacuumDatabase": {
@@ -2457,7 +2464,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/rows/update" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string; pk?: Record<string, any>; rowId?: any; pkColumn?: string; changes?: Record<string, any>; data?: Record<string, any> };
-          const pkCol = body.pkColumn || (body.pk ? Object.keys(body.pk)[0] : "id");
+          const pkCol = body.pkColumn || (body.pk ? (Object.keys(body.pk)[0] ?? "id") : "id");
           const rowId = body.rowId !== undefined ? body.rowId : (body.pk ? body.pk[pkCol] : undefined);
           const data = body.changes || body.data || {};
           const res = manager.mutateRow(body.table, "update", { rowId, pkColumn: pkCol, data });
@@ -2470,7 +2477,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/rows/delete" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string; pk?: Record<string, any>; rowId?: any; rowIds?: any[]; pkColumn?: string };
-          const pkCol = body.pkColumn || (body.pk ? Object.keys(body.pk)[0] : "id");
+          const pkCol = body.pkColumn || (body.pk ? (Object.keys(body.pk)[0] ?? "id") : "id");
           const rowId = body.rowId !== undefined ? body.rowId : (body.pk ? body.pk[pkCol] : undefined);
           const res = manager.mutateRow(body.table, "delete", { rowId, rowIds: body.rowIds, pkColumn: pkCol });
           return Response.json(res, { headers: corsHeaders });

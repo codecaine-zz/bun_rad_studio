@@ -32,7 +32,7 @@ test("batch rename preview, conflicts and apply", () => {
   const plan = o.planBatchRename(ps, { spacesToUnderscore: true, caseMode: "lower", numbering: true });
   expect(plan.map((p) => p.newName)).toEqual(["my_file_001.TXT", "b_002.txt"]);
   const clash = o.planBatchRename([P("c.log")], { find: "c", replace: "b", suffix: "" });
-  expect(clash[0].newName).toBe("b.log");
+  expect(clash[0]!.newName).toBe("b.log");
   const res = o.applyRenamePlan(plan);
   expect(res.done.length).toBe(2);
   expect(fs.existsSync(P("b_002.txt"))).toBe(true);
@@ -43,7 +43,7 @@ test("content search, duplicates, chmod, hex, exports", () => {
   expect(o.searchContents(all, "HELLO").matches.length).toBe(2);
   const dp = o.findDuplicates(all);
   expect(dp.groups.length).toBe(1);
-  expect(dp.groups[0].paths.length).toBe(2);
+  expect(dp.groups[0]!.paths.length).toBe(2);
   expect(o.parseMode("rwxr-xr-x")).toBe(0o755);
   expect(o.chmodPath(P("c.log"), "600").after).toBe("600");
   expect(o.hexPreview(P("c.log"), 16)).toContain("6f 74 68 65 72");

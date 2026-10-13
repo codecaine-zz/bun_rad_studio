@@ -343,7 +343,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const demo25Html = demo25Win.getHtml();
         const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
         expect(themeMatch).toBeTruthy();
-        const demo25Options = [...themeMatch![1].matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
+        const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
         expect(demo25Options.length).toBe(76);
         const uniqueValues = new Set(demo25Options.map(o => o.val));
         const uniqueTexts = new Set(demo25Options.map(o => o.text));

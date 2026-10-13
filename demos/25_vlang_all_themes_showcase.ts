@@ -84,10 +84,10 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
         w.alert("Studio Launcher", "Launching System Studio Pro...");
     });
     win.button("🔔 Desktop Notification", (w: SimpleWindow) => {
-        w.showNotification("RAD Studio", "All 76 Themes and 70+ Controls Fully Operational!");
+        w.toast("RAD Studio: all 76 themes and 70+ controls fully operational!");
     });
     win.button("🎯 Center Window", (w: SimpleWindow) => {
-        w.centerOnScreen();
+        w.center();
     });
     win.row_end();
 

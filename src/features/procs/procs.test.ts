@@ -96,7 +96,7 @@ node        500 codecaine    9u  IPv4  0xcf5aabd609dea729      0t0  TCP *:3000 (
 
     const procs = parsePsOutput(samplePsOutput);
     const withPorts = attachListeningPorts(procs, portMap);
-    const p450 = withPorts.find((p) => p.pid === 450);
+    const p450 = withPorts.find((p: any) => p.pid === 450);
     expect(p450?.ports).toEqual(["49152"]);
   });
 });

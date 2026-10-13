@@ -109,8 +109,8 @@ describe("ipinfo doers", () => {
     const ifaces = getLocalInterfaces();
     expect(Array.isArray(ifaces)).toBe(true);
     expect(ifaces.length).toBeGreaterThan(0);
-    expect(ifaces[0].name).toBeDefined();
-    expect(ifaces[0].address).toBeDefined();
+    expect(ifaces[0]!.name).toBeDefined();
+    expect(ifaces[0]!.address).toBeDefined();
   });
 
   it("accurately classifies loopback, RFC 1918, link-local, and CGNAT IPs", () => {

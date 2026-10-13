@@ -223,7 +223,7 @@ describe("🔄 Data Converter Studio Pro - Elite Feature Suite", () => {
     await trigger(win, "btn_filter_grid");
     const filteredRows = win.getValue("tbl_preview") as string[][];
     expect(filteredRows.length).toBe(1);
-    expect(filteredRows[0][1]).toBe("Product Architect");
+    expect(filteredRows[0]![1]).toBe("Product Architect");
 
     // Reset grid
     await trigger(win, "btn_reset_grid");

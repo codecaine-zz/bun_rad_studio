@@ -95,12 +95,12 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
     const insp = await inspectTargets([file1, subDir], { cwd: testWorkspace, graveyardDir: testGraveyard });
 
     expect(insp.items.length).toBe(2);
-    expect(insp.items[0].type).toBe("file");
-    expect(insp.items[0].sizeBytes).toBeGreaterThan(0);
-    expect(insp.items[0].isProtected).toBe(false);
+    expect(insp.items[0]!.type).toBe("file");
+    expect(insp.items[0]!.sizeBytes).toBeGreaterThan(0);
+    expect(insp.items[0]!.isProtected).toBe(false);
 
-    expect(insp.items[1].type).toBe("directory");
-    expect(insp.items[1].isGitRepo).toBe(true);
+    expect(insp.items[1]!.type).toBe("directory");
+    expect(insp.items[1]!.isGitRepo).toBe(true);
     expect(insp.hasWarnings).toBe(true);
     expect(insp.warnings.some((w) => w.includes("Git repository"))).toBe(true);
   });
@@ -118,13 +118,13 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
     expect(fs.existsSync(docPath)).toBe(false); // Removed from original place!
 
     const buried = buryRes.buriedItems[0];
-    expect(buried.name).toBe("document.pdf");
-    expect(buried.status).toBe("buried");
-    expect(fs.existsSync(buried.graveyardPath)).toBe(true);
+    expect(buried!.name).toBe("document.pdf");
+    expect(buried!.status).toBe("buried");
+    expect(fs.existsSync(buried!.graveyardPath)).toBe(true);
 
     const manifest = loadManifest(testGraveyard);
     expect(manifest.items.length).toBe(1);
-    expect(manifest.items[0].id).toBe(buried.id);
+    expect(manifest.items[0]!.id).toBe(buried!.id);
   });
 
   it("6. Zero collision graveyard storage preserves multiple burials of identically-named files", async () => {
@@ -142,13 +142,13 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
 
     const manifest = loadManifest(testGraveyard);
     expect(manifest.items.length).toBe(2);
-    expect(manifest.items[0].name).toBe("config.json");
-    expect(manifest.items[1].name).toBe("config.json");
-    expect(manifest.items[0].id).not.toBe(manifest.items[1].id);
+    expect(manifest.items[0]!.name).toBe("config.json");
+    expect(manifest.items[1]!.name).toBe("config.json");
+    expect(manifest.items[0]!.id).not.toBe(manifest.items[1]!.id);
 
     // Both files exist independently in graveyard
-    expect(fs.existsSync(manifest.items[0].graveyardPath)).toBe(true);
-    expect(fs.existsSync(manifest.items[1].graveyardPath)).toBe(true);
+    expect(fs.existsSync(manifest.items[0]!.graveyardPath)).toBe(true);
+    expect(fs.existsSync(manifest.items[1]!.graveyardPath)).toBe(true);
   });
 
   // ---------------------------------------------------------------------------
@@ -204,7 +204,7 @@ describe("🪦 Native Bun Rip Engine & Studio Specification Suite", () => {
     // Séance in testWorkspace without --all only finds local.txt
     const seanceLocal = seanceGraveyard({ graveyardDir: testGraveyard, cwd: testWorkspace, all: false });
     expect(seanceLocal.length).toBe(1);
-    expect(seanceLocal[0].name).toBe("local.txt");
+    expect(seanceLocal[0]!.name).toBe("local.txt");
 
     // Séance with all: true finds both
     const seanceAll = seanceGraveyard({ graveyardDir: testGraveyard, cwd: testWorkspace, all: true });

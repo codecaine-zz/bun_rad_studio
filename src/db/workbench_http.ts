@@ -131,7 +131,7 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
         return json({ ok: true, profile: await service.profiles.duplicate(reqStr(b, "id", 64)) });
       case "/api/v2/test": {
         const r = await service.test({ profileId: optStr(b, "profileId", 64), profile: b.profile, password: optStr(b, "password", 1024) });
-        return json({ ok: true, ...r });
+        return json({ ...r });
       }
       case "/api/v2/connect": {
         const c = await service.connect({ profileId: optStr(b, "profileId", 64), profile: b.profile, password: optStr(b, "password", 1024) });
@@ -193,7 +193,7 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
         const source = b.sql !== undefined ? { sql: reqStr(b, "sql", 1_000_000), params: params(b.params) } : { table: reqRef(b.table), excludeColumns: Array.isArray(b.excludeColumns) ? (b.excludeColumns as unknown[]).filter((x): x is string => typeof x === "string") : [] };
         const iter = service.exportCsv(id, source);
         const first = await iter.next(); // surface errors (unknown table, ...) as a normal JSON error before streaming
-        const name = ("table" in source ? source.table.name : "query").replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 80) || "export";
+        const name = ("table" in source && source.table ? source.table.name : "query").replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 80) || "export";
         const stream = new ReadableStream<Uint8Array>({
           async start(controller) {
             const enc = new TextEncoder();

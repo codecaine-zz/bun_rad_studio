@@ -126,8 +126,8 @@ describe("⚡ SimpleGUI Declarative Module Specification Suite", () => {
         const spec = win.buildFormSpec();
         expect(spec.title).toBe("HTML Engine Test");
         expect(spec.controls.length).toBe(4);
-        expect(spec.non_visual_controls.length).toBe(1);
-        expect(spec.non_visual_controls[0].interval).toBe(1000);
+        expect(spec.non_visual_controls!.length).toBe(1);
+        expect(spec.non_visual_controls![0]!.interval).toBe(1000);
 
         const html = win.generateHtml();
         expect(html).toContain("HTML Engine Test");
@@ -1327,7 +1327,7 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
             "transfer_apps",
             ["Photoshop", "Illustrator", "Premiere", "AfterEffects"],
             ["Visual Studio Code", "Sublime Text"],
-            (_w, sel, avail) => {
+            (_w: any, sel: any, avail: any) => {
                 transferChangeFired = true;
                 lastTransSelected = sel;
             },
@@ -1441,7 +1441,7 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
                 },
                 { id: "file_pkg", cells: ["package.json", "JSON", "1.8 KB", "2 days ago", "Locked"], icon: "📄" }
             ],
-            (_w, id, state) => {
+            (_w: any, id: any, state: any) => {
                 toggleEventFired = true;
                 lastToggledId = id;
                 lastToggledState = state;
@@ -1466,7 +1466,7 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
         expect(tgAlias3.spec.control_type).toBe("tree_grid");
 
         // 3. Fluent chaining & helper methods
-        tg.onToggle((_w, id, state) => {
+        tg.onToggle((_w: any, id: any, state: any) => {
             toggleEventFired = true;
         });
         expect(win.eventHandlersMap.has("tg_files:toggle")).toBe(true);
@@ -1609,7 +1609,7 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
                 initialSplit: 0.35,
                 minLeft: 180,
                 minRight: 250,
-                onResize: (_w, ratio) => {
+                onResize: (_w: any, ratio: any) => {
                     splitResized = true;
                     lastSplitRatio = ratio;
                 }
@@ -1651,7 +1651,7 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
                 { id: "inprogress", title: "In Progress", cards: [{ id: "c2", title: "Task 2", tag: "Design" }] },
                 { id: "done", title: "Done", cards: [{ id: "c3", title: "Task 3", tag: "QA" }] }
             ],
-            (_w, cardId, colId) => {
+            (_w: any, cardId: any, colId: any) => {
                 movedCardId = cardId;
                 targetColId = colId;
             }
@@ -1667,9 +1667,9 @@ expect(html).toContain("data-context-menu=\"Cut  ⌘X|Copy  ⌘C|Paste  ⌘V\"")
             .resizable(true)
             .onCommand((_w, cmd) => { executedCommand = cmd; })
             .onTabClose((_w, t) => { closedTabTitle = t; })
-            .onCardMove((_w, c, col) => { movedCardId = c; targetColId = col; })
+            .onCardMove((_w: any, c: any, col: any) => { movedCardId = c; targetColId = col; })
             .onResize((_w, r) => { lastSplitRatio = r; })
-            .onSort((_w, col, dir) => {});
+            .onSort((_w: any, col: any, dir: any) => {});
 
         expect(chainedRef.spec.closable).toBe(true);
         expect(chainedRef.spec.sortable).toBe(true);

@@ -265,13 +265,13 @@ export class Webview {
 }`,
         );
         const mod = await import(join(dir, "index.ts"));
-        globalThis.__evals = [];
+        (globalThis as any).__evals = [];
         mod.setTimelineSteps("t1", "One, Two, Three");
         mod.setBreadcrumbs("b1", "Home, Docs, Page");
         mod.setTreeNodes("tree1", "Root, Child");
         mod.setAvatarGroup("av1", "AB, CD, +3");
-        expect(globalThis.__evals.length).toBe(4);
-        for (const code of globalThis.__evals) {
+        expect((globalThis as any).__evals.length).toBe(4);
+        for (const code of (globalThis as any).__evals) {
             expect(() => new Function(code)).not.toThrow();
         }
     });

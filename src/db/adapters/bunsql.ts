@@ -227,6 +227,6 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     };
   }
 
-  abstract capabilities(): Promise<Capabilities>;
-  abstract listObjects(): Promise<ObjectRef[]>;
+  abstract override capabilities(): Promise<Capabilities>;
+  abstract override listObjects(): Promise<ObjectRef[]>;
 }

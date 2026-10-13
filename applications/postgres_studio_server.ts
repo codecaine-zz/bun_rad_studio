@@ -621,7 +621,7 @@ export class PostgresManager {
         const vRes = await this.sql_conn.unsafe("SELECT version();");
         const rawVer = String(vRes?.[0]?.version || "");
         const m = rawVer.match(/PostgreSQL\s+([\d.]+)/i);
-        version = m ? `PostgreSQL ${m[1]}` : rawVer.split(",")[0];
+        version = m ? `PostgreSQL ${m[1]}` : (rawVer.split(",")[0] ?? rawVer);
       } catch {}
 
       let sizeBytes = 0;
@@ -1247,12 +1247,12 @@ export class PostgresManager {
       let rawPlan: any = null;
       try {
         const jsonRes = await this.sql_conn.unsafe(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${cleanSql};`);
-        const planJson = jsonRes?.[0]?.["QUERY PLAN"] || jsonRes?.[0]?.[Object.keys(jsonRes[0])[0]];
+        const planJson = jsonRes?.[0]?.["QUERY PLAN"] || jsonRes?.[0]?.[Object.keys(jsonRes[0])[0] ?? ""];
         rawPlan = typeof planJson === "string" ? JSON.parse(planJson) : planJson;
       } catch (errJson) {
         // Fallback without ANALYZE (e.g., if query fails in analyze mode or write statement)
         const jsonRes2 = await this.sql_conn.unsafe(`EXPLAIN (FORMAT JSON) ${cleanSql};`);
-        const planJson2 = jsonRes2?.[0]?.["QUERY PLAN"] || jsonRes2?.[0]?.[Object.keys(jsonRes2[0])[0]];
+        const planJson2 = jsonRes2?.[0]?.["QUERY PLAN"] || jsonRes2?.[0]?.[Object.keys(jsonRes2[0])[0] ?? ""];
         rawPlan = typeof planJson2 === "string" ? JSON.parse(planJson2) : planJson2;
       }
 
@@ -1877,7 +1877,7 @@ export class PostgresManager {
     out.push(`-- 🐘 POSTGRES STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT`);
     out.push(`-- Generated: ${new Date().toISOString()}`);
     out.push(`-- Schema: ${pgq(s)} | Mode: ${mode.toUpperCase()}`);
-    out.push(`-- Database: ${this.activeDb}`);
+    out.push(`-- Database: ${this.dbConfig?.database ?? ""}`);
     out.push(`-- =========================================================================\n`);
 
     out.push(`SET statement_timeout = 0;`);
@@ -2632,6 +2632,7 @@ export class PostgresManager {
     success: boolean;
     result: string;
     tablesChecked: number;
+    checks?: string[];
     issues: string[];
   }> {
     const s = schemaName || this.activeSchema || "public";
@@ -2982,7 +2983,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let schema: string | undefined = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { schema?: string; table?: string };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
@@ -3231,7 +3232,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { schema?: string; table?: string };
               if (body?.table) table = body.table;
               if (body?.schema) schema = body.schema;
             } catch {}
@@ -3276,7 +3277,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { schema?: string; table?: string };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
@@ -3314,7 +3315,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { schema?: string; table?: string };
               if (body?.table) table = body.table;
               if (body?.schema) schema = body.schema;
             } catch {}
@@ -3331,7 +3332,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { schema?: string; table?: string };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
@@ -3348,7 +3349,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = await req.json();
+              const body = (await req.json()) as { schema?: string; table?: string };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
@@ -3409,7 +3410,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             schema?: string;
           };
           const tbl = body.table;
-          const s = body.schema || manager.getActiveSchema();
+          const s = body.schema || manager.activeSchema;
           let result: any = { success: false, error: "Invalid action" };
 
           if (body.action === "insert") {

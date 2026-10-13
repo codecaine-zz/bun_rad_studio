@@ -321,8 +321,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       const rec: DataRecord = {};
       const fieldMatches = block.matchAll(/<([a-zA-Z0-9_\-]+)>([\s\S]*?)<\/\1>/g);
       for (const m of fieldMatches) {
-        const tag = m[1];
-        const val = m[2]
+        const tag = m[1]!;
+        const val = m[2]!
           .trim()
           .replace(/&lt;/g, "<")
           .replace(/&gt;/g, ">")
@@ -352,10 +352,10 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         .split(/(?<!\\)\|/)
         .map((c) => c.trim().replace(/\\\|/g, "|"));
 
-    const headers = parseRow(lines[0]);
+    const headers = parseRow(lines[0]!);
     const rows: string[][] = [];
     for (let i = 1; i < lines.length; i++) {
-      const cells = parseRow(lines[i]);
+      const cells = parseRow(lines[i]!);
       if (cells.every((c) => /^:?-+:?$/.test(c))) continue; // Skip header separator
       rows.push(headers.map((_, idx) => cells[idx] ?? ""));
     }
@@ -763,7 +763,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     }
     const current = undoStack.pop()!;
     redoStack.push(current);
-    const prev = undoStack[undoStack.length - 1];
+    // The length check above leaves at least one entry after the pop.
+    const prev = undoStack[undoStack.length - 1]!;
 
     w.setText("txt_input_data", prev.input);
     w.setText("dd_from", prev.fromFmt);
@@ -1016,7 +1017,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       ensureCurrentStateRecorded();
       const normalized = input
         .split(/\r?\n/)
-        .map((l) => l.trim())
+        .map((l: string) => l.trim())
         .join("\n");
       w.setText("txt_input_data", normalized);
       recordNewState("Beautify Table Whitespace");

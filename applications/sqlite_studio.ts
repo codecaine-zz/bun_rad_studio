@@ -6541,7 +6541,7 @@ export { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 if (process.argv.includes("--server")) {
   const initialDb = process.env.SQLITE_STUDIO_DB || ":memory:";
   const portIdx = process.argv.indexOf("--port");
-  const port = portIdx !== -1 && process.argv[portIdx + 1] ? parseInt(process.argv[portIdx + 1], 10) : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3456);
+  const port = portIdx !== -1 && process.argv[portIdx + 1] ? parseInt(process.argv[portIdx + 1]!, 10) : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3456);
   const srv = startSqliteStudioServer({
     port,
     host: "127.0.0.1",

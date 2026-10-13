@@ -6,6 +6,9 @@
 import { mkdir, rename, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 
+// The installed Bun type definitions omit stringify, which exists at run time.
+const toml = Bun.TOML as typeof Bun.TOML & { stringify(value: unknown): string };
+
 /** Any parsed TOML table. */
 export type TomlTable = Record<string, any>;
 
@@ -46,7 +49,7 @@ export function tryParseToml<T = TomlTable>(content: string): T | null {
  * ```
  */
 export function stringifyToml(data: unknown): string {
-  return Bun.TOML.stringify(data as any) ?? "";
+  return toml.stringify(data) ?? "";
 }
 
 /**
@@ -77,7 +80,7 @@ export async function loadToml<T = TomlTable>(filePath: string, fallback?: T): P
  * @example `await tomlutils.saveToml("./config.toml", { server: { port: 8080 } });`
  */
 export async function saveToml(filePath: string, data: unknown): Promise<number> {
-  const content = Bun.TOML.stringify(data as any) ?? "";
+  const content = toml.stringify(data) ?? "";
   await mkdir(dirname(filePath), { recursive: true });
   const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
   try {
@@ -243,7 +246,7 @@ export async function loadTomlLayers<T extends TomlTable = TomlTable>(filePaths:
 
 export const tomlutils = {
   parse: Bun.TOML.parse,
-  stringify: Bun.TOML.stringify,
+  stringify: toml.stringify,
   parseToml,
   tryParseToml,
   stringifyToml,

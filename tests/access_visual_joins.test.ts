@@ -80,7 +80,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     let sqliteMatch;
     let sqliteScriptCount = 0;
     while ((sqliteMatch = scriptRegex.exec(sqliteHtml)) !== null) {
-      const code = sqliteMatch[1].trim();
+      const code = sqliteMatch[1]!.trim();
       if (!code) continue;
       sqliteScriptCount++;
       expect(() => new Function(code)).not.toThrow();
@@ -92,7 +92,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     let mysqlScriptCount = 0;
     const mysqlScriptRegex = /<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi;
     while ((mysqlMatch = mysqlScriptRegex.exec(mysqlHtml)) !== null) {
-      const code = mysqlMatch[1].trim();
+      const code = mysqlMatch[1]!.trim();
       if (!code) continue;
       mysqlScriptCount++;
       expect(() => new Function(code)).not.toThrow();
@@ -104,7 +104,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     let pgScriptCount = 0;
     const pgScriptRegex = /<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi;
     while ((pgMatch = pgScriptRegex.exec(postgresHtml)) !== null) {
-      const code = pgMatch[1].trim();
+      const code = pgMatch[1]!.trim();
       if (!code) continue;
       pgScriptCount++;
       expect(() => new Function(code)).not.toThrow();

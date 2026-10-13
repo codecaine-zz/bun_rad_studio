@@ -354,7 +354,7 @@ describe("✨ Studio Extended Controls Suite", () => {
             const theme = SIMPLEGUI_THEMES[themeKey];
             expect(theme).toBeDefined();
 
-            const win = createWindow(`Theme Test - ${theme.name}`, 1000, 800, { theme: themeKey });
+            const win = createWindow(`Theme Test - ${theme!.name}`, 1000, 800, { theme: themeKey });
             win.addHeroDisplay("h1", "Test Hero", "Subtitle");
             win.addSidebar("sb1", "Nav", ["Item 1", "Item 2"]);
             win.addDropdownMenu("dd1", "Action", ["A", "B"]);
@@ -390,12 +390,12 @@ describe("✨ Studio Extended Controls Suite", () => {
             expect(html).not.toContain("border: undefined");
 
             // Verify card background matches theme's card_background
-            if (theme.card_background) {
-                expect(html).toContain(`--card-bg: ${theme.card_background}`);
+            if (theme!.card_background) {
+                expect(html).toContain(`--card-bg: ${theme!.card_background}`);
             }
 
             // Light vs Dark dot contrast in slideshow based on card background brightness
-            const isCardLight = !theme.is_dark || (theme.card_background && (theme.card_background === "#ffffff" || theme.card_background === "#c0c0c0"));
+            const isCardLight = !theme!.is_dark || (theme!.card_background && (theme!.card_background === "#ffffff" || theme!.card_background === "#c0c0c0"));
             if (isCardLight) {
                 expect(html).toContain("rgba(0,0,0,0.22)");
             } else {
@@ -415,12 +415,12 @@ describe("✨ Studio Extended Controls Suite", () => {
                 title: `Theme Spectrum - ${key}`,
                 width: 800,
                 height: 600,
-                background_color: theme.background_color,
-                font_color: theme.font_color,
-                accent_color: theme.accent_color,
-                secondary_accent: theme.secondary_accent,
-                card_background: theme.card_background,
-                card_border: theme.card_border,
+                background_color: theme!.background_color,
+                font_color: theme!.font_color,
+                accent_color: theme!.accent_color,
+                secondary_accent: theme!.secondary_accent,
+                card_background: theme!.card_background,
+                card_border: theme!.card_border,
                 controls: [
                     { id: "ctrl_btn_grp", control_type: "button_group", x: 10, y: 10, width: 200, height: 32, buttons: ["A", "B"] },
                     { id: "ctrl_card", control_type: "content_card", x: 10, y: 50, width: 200, height: 150, title: "Card", button_text: "Go" },
@@ -438,7 +438,7 @@ describe("✨ Studio Extended Controls Suite", () => {
             expect(html).not.toContain("border: undefined");
 
             // Buttons on bright accents (e.g. matrix, amber CRT, yellow/green neon) should use dark text (#000000)
-            const isBright = ["#0fb36a", "#30d158", "#00ff00", "#00ff41", "#ffb000", "#ffd866"].includes(theme.accent_color);
+            const isBright = ["#0fb36a", "#30d158", "#00ff00", "#00ff41", "#ffb000", "#ffd866"].includes(theme!.accent_color);
             if (isBright) {
                 // Should use black font on active elements
                 expect(html).toContain('color:#000000');

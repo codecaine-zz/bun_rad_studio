@@ -28,7 +28,7 @@ export class MysqlAdapter extends BunSqlAdapter {
    * Session-level read-only also blocks DDL. (A per-statement START TRANSACTION READ ONLY does not:
    * MySQL implicitly commits and then runs DDL.) The statement filter stops `SET` from undoing it.
    */
-  protected prepareReadOnlyConnection() {
+  protected override prepareReadOnlyConnection() {
     return ["SET SESSION transaction_read_only = 1"];
   }
   protected async enterGuard(conn: { unsafe(sql: string): Promise<unknown> }, timeoutMs: number) {
@@ -43,12 +43,12 @@ export class MysqlAdapter extends BunSqlAdapter {
     return `CAST(${expr} AS CHAR)`;
   }
   /** Select temporal columns as text so DATETIME values are not reinterpreted as UTC instants. */
-  protected selectExpr(col: ColumnInfo) {
+  protected override selectExpr(col: ColumnInfo) {
     const q = "`" + col.name.replace(/`/g, "``") + "`";
     return TEMPORAL.test(col.dataType) ? `CAST(${q} AS CHAR) AS ${q}` : q;
   }
   /** Compare text case-sensitively so that conflict detection is not fooled by a case-insensitive collation. */
-  protected eqExpr(col: ColumnInfo, ph: string) {
+  protected override eqExpr(col: ColumnInfo, ph: string) {
     const q = "`" + col.name.replace(/`/g, "``") + "`";
     return /char|text|enum|set/i.test(col.dataType) ? `BINARY ${q} = BINARY ${ph}` : `${q} = ${ph}`;
   }

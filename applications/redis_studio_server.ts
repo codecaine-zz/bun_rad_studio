@@ -16,6 +16,19 @@
 
 import { guardLocalRequest } from "../src/localGuard";
 import { redis, RedisClient } from "bun";
+
+/** Commands Bun's RedisClient provides at run time (checked on Bun 1.4.2) but its type definitions omit. */
+type StudioRedisClient = RedisClient & {
+  select(db: number): Promise<unknown>;
+  info(section?: string): Promise<string>;
+  dbsize(): Promise<number>;
+  pfcount(key: string): Promise<number>;
+  xlen(key: string): Promise<number>;
+  xrevrange(key: string, end: string, start: string, ...options: string[]): Promise<unknown>;
+  xadd(key: string, id: string, ...fieldsAndValues: string[]): Promise<string | null>;
+  client(subcommand: string, ...args: string[]): Promise<string>;
+  flushdb(): Promise<unknown>;
+};
 import { generateRedisStudioHtml } from "./redis_studio.ts";
 import { homedir } from "node:os";
 import * as nodePath from "node:path";
@@ -72,7 +85,7 @@ export interface KeySummary {
 // -------------------------------------------------------------------------------------------------
 
 export class RedisManager {
-  public client: RedisClient;
+  public client: StudioRedisClient;
   public subClient: RedisClient | null = null;
   public activeUrl: string;
   public activeDb: number;
@@ -82,7 +95,7 @@ export class RedisManager {
   constructor(url: string = "redis://127.0.0.1:6379", db: number = 0) {
     this.activeUrl = url;
     this.activeDb = db;
-    this.client = new RedisClient(url);
+    this.client = new RedisClient(url) as StudioRedisClient;
     if (db > 0) {
       this.selectDb(db).catch(() => {});
     }
@@ -91,7 +104,7 @@ export class RedisManager {
   public async connect(url: string, db: number = 0): Promise<{ success: boolean; error?: string }> {
     try {
       const normalizedUrl = url.trim() || "redis://127.0.0.1:6379";
-      const newClient = new RedisClient(normalizedUrl);
+      const newClient = new RedisClient(normalizedUrl) as StudioRedisClient;
       // Validate connection via PING
       await newClient.ping();
 
@@ -245,7 +258,7 @@ export class RedisManager {
           const ttl = await this.client.ttl(k);
           
           let length = 0;
-          let detectedType = type;
+          let detectedType: string = type;
           if (type === "string") {
             length = await this.client.strlen(k);
             if (length >= 4) {
@@ -353,7 +366,7 @@ export class RedisManager {
             if (raw) {
               const buf = Buffer.from(raw, "latin1");
               for (let byteIdx = 0; byteIdx < buf.length && bitPositions.length < 100; byteIdx++) {
-                const b = buf[byteIdx];
+                const b = buf[byteIdx] ?? 0;
                 if (b > 0) {
                   for (let bit = 0; bit < 8; bit++) {
                     if ((b & (1 << (7 - bit))) !== 0) {
@@ -527,7 +540,7 @@ export class RedisManager {
         }
         case "bitmap": {
           const offset = Number(field ?? 0);
-          const bitVal = Number(value ? 1 : 0);
+          const bitVal: 0 | 1 = value ? 1 : 0;
           await this.client.setbit(key, offset, bitVal);
           break;
         }
@@ -755,7 +768,7 @@ export class RedisManager {
         return p;
       });
 
-      const cmd = cleanParts[0].toUpperCase();
+      const cmd = (cleanParts[0] ?? "").toUpperCase();
       const args = cleanParts.slice(1);
 
       // Execute dynamically via Bun native client's send method

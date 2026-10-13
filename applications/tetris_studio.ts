@@ -1,4 +1,4 @@
-import { Webview } from "webview-bun";
+import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { guardLocalRequest } from "../src/localGuard";
@@ -61,16 +61,8 @@ export class TetrisStudio {
       process.exit(1);
     }
 
-    const webview = new Webview(true, {
-      width: 1000,
-      height: 800,
-      window: {
-        title: "🧱 Tetris Ultra Deluxe",
-        resizable: true,
-        minWidth: 800,
-        minHeight: 600,
-      },
-    });
+    const webview = new Webview(true, { width: 1000, height: 800, hint: SizeHint.NONE });
+    webview.title = "🧱 Tetris Ultra Deluxe";
 
     webview.setHTML(htmlContent);
     webview.run();

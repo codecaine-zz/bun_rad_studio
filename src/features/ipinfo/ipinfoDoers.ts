@@ -13,8 +13,8 @@ export function isIpAddress(input: string): boolean {
 export function isCidr(input: string): boolean {
   const parts = input.trim().split("/");
   if (parts.length !== 2) return false;
-  const prefix = parseInt(parts[1], 10);
-  return isIpAddress(parts[0]) && !isNaN(prefix) && prefix >= 0 && prefix <= 32;
+  const prefix = parseInt(parts[1]!, 10);
+  return isIpAddress(parts[0]!) && !isNaN(prefix) && prefix >= 0 && prefix <= 32;
 }
 
 export function cleanTarget(input: string): string {
@@ -67,7 +67,8 @@ export function classifyIp(ip: string): IpClassification {
   // IPv4 classifications
   const ipv4Parts = trimmed.split(".").map((p) => parseInt(p, 10));
   if (ipv4Parts.length === 4 && ipv4Parts.every((p) => !isNaN(p) && p >= 0 && p <= 255)) {
-    const [o1, o2] = ipv4Parts;
+    // The check above guarantees four numbers; the defaults only satisfy the type checker.
+    const [o1 = 0, o2 = 0] = ipv4Parts;
     if (o1 === 10) {
       return { isPrivateOrBogon: true, type: "Private Network (Class A)", rfc: "RFC 1918 (10.0.0.0/8)", scope: "Local Intranet / Corporate LAN" };
     }
@@ -373,10 +374,10 @@ export function intToIp(int: number): string {
 
 export function calculateSubnet(cidr: string): SubnetInfo {
   const [ipStr, prefixStr] = cidr.trim().split("/");
-  const prefix = parseInt(prefixStr, 10);
+  const prefix = parseInt(prefixStr ?? "", 10);
   const maskInt = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
   const wildcardInt = ~maskInt >>> 0;
-  const ipInt = ipToInt(ipStr);
+  const ipInt = ipToInt(ipStr ?? "");
   const networkInt = (ipInt & maskInt) >>> 0;
   const broadcastInt = (networkInt | wildcardInt) >>> 0;
   const totalHosts = prefix === 32 ? 1 : Math.pow(2, 32 - prefix);

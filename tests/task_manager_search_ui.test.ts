@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createTaskTracker, fetchProcesses, matchesQuery, ProcessItem } from "../applications/task_manager";
+import { createTaskTracker, fetchProcesses, matchesQuery, type ProcessItem } from "../applications/task_manager";
 
 describe("Task Manager UI Alignment & Search Resilience Specification", () => {
   it("verifies Limit label and Limit dropdown are on the exact same line (same top coordinate)", () => {

@@ -29,6 +29,8 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-023 Run only worked when the designer was started from the project folder (fixed)](#d-023)
 - [D-024 A layout can contain scripts, and control text is inserted as raw HTML (partly addressed)](#d-024)
 - [D-025 Generated preview files were tracked in git (fixed)](#d-025)
+- [D-026 Defects found by burning down type errors (fixed)](#d-026)
+- [D-027 The unified `src/index.ts` exports some names as undefined (open)](#d-027)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -234,3 +236,24 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Observed:** `.rad_preview/preview.html` and `.rad_preview/preview.ts` were committed. The **Run** button rewrites them (with the machine's absolute path in `preview.ts`), so using Run in a checkout made the working tree dirty and the files could be committed by accident.
 - **Fix:** the folder is untracked (`git rm --cached`) and listed in `.gitignore`. The files stay on disk.
 - **Test:** `tests/ide_html.test.ts` ("Generated output is not tracked by git").
+
+<a id="d-026"></a>
+## D-026: Defects found by burning down type errors (fixed)
+
+- **Status:** Fixed on 13 October 2026, while reducing `tsc` errors from 679 to 18. Most errors were typing noise; these were real:
+  - **PostgreSQL Studio, SQL dump header:** `applications/postgres_studio_server.ts` wrote `-- Database: ${this.activeDb}`, but `PostgresManager` has no `activeDb`, so every dump said `-- Database: undefined`. It now writes the configured database name.
+  - **PostgreSQL Studio, `POST /api/table/mutate` without `schema`:** the handler called `manager.getActiveSchema()`, which does not exist, so the request failed with an error. It now uses `manager.activeSchema`.
+  - **Snake, Frogger and Tetris windows:** they passed `window: { title, resizable, minWidth, minHeight }` inside the `Size` argument of `new Webview(...)`, which ignores it, so the title and minimum size were never applied. The title is now set with `webview.title` (size stays `NONE`; minimum size is not supported by this call and was not restored).
+  - **Demo 25 (all themes showcase):** two buttons called `w.showNotification(...)` and `w.centerOnScreen()`, which do not exist on `SimpleWindow` and would throw when clicked. They now call `w.toast(...)` and `w.center()`.
+- **Not defects (verified at run time):** `Bun.TOML.stringify`, the `RedisClient` commands (`select`, `info`, `xadd`, ...) and `db.run(sql, a, b)` with spread bindings all work on Bun 1.4.2; only the installed type definitions lack or differ. They were given precise local types instead of casts. `allowPublicKeyRetrieval` for MySQL is still sent as before; whether the driver honours it was not tested (needs a MySQL server).
+- **Tests:** the existing SQLite, Redis, rad and application tests pass after the changes. **There is no automated test for the two PostgreSQL fixes** (they need a PostgreSQL server; those suites are skipped without one), so they are guarded only by `bun run typecheck`, which fails if a call to a missing member returns.
+- **Also changed:** `applications/code_studio.ts` deletes folders with `rmSync(path, { recursive: true, force: true })` instead of the deprecated `rmdirSync(path, { recursive: true })`; behaviour is the same (checked with a non-empty folder).
+
+<a id="d-027"></a>
+## D-027: The unified `src/index.ts` exports some names as undefined (open)
+
+- **Status:** Open (found on 13 October 2026; not changed because choosing a winner changes a public interface).
+- **Observed:** `src/index.ts` does `export *` from `./simplecli/index.ts`, `./simplegui.ts` and `./features/rad/index.ts`. Three libraries define different things under the same names (`LRUCache`, `Logger`, `LogLevel` in SimpleCLI and in the `rad` modules; `TreeNode`; `writeFileAtomic`, a synchronous function in SimpleGUI and an asynchronous one in `rad`). TypeScript reports the clash and at run time `import { LRUCache, Logger, LogLevel, writeFileAtomic } from "./src/index.ts"` gives `undefined` (checked: `typeof` is `undefined` for those four).
+- **Workaround:** reach them through their namespace, for example `rad.logutils.Logger` or import from the specific module (`src/simplecli/...`, `src/features/rad/modules/...`).
+- **Needs a decision:** which definition each name should refer to, or whether to rename them. No file in the repository imports these names from the hub.
+- **Guard:** the five errors stay in the type-check baseline (`src/index.ts`: 5).

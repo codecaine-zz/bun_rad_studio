@@ -331,7 +331,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     expect(scripts.length).toBeGreaterThan(0);
 
     for (let i = 0; i < scripts.length; i++) {
-      const scriptBody = scripts[i].replace(/<script[^>]*>/i, "").replace(/<\/script>/i, "");
+      const scriptBody = scripts[i]!.replace(/<script[^>]*>/i, "").replace(/<\/script>/i, "");
       expect(() => {
         new Function(scriptBody);
       }).not.toThrow();

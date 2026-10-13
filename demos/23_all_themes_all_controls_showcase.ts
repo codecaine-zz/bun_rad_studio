@@ -351,7 +351,7 @@ export function createThemeShowcase(themeName: string = "midnight"): SimpleWindo
             { id: "progress", title: "In Progress (2)", cards: [{ id: "c3", title: "Command Palette (⌘K)", tag: "UI" }, { id: "c4", title: "Table Column Resizer", tag: "Core" }] },
             { id: "done", title: "Done (3)", cards: [{ id: "c5", title: "63 Themes", tag: "Design" }, { id: "c6", title: "TreeGrid", tag: "Components" }, { id: "c7", title: "Unit Tests", tag: "QA" }] }
         ],
-        (w, cardId, colId) => {
+        (w: SimpleWindow, cardId: any, colId: any) => {
             w.toast(`Card Moved - ${cardId} → ${colId}`);
         },
         { height: 140 }

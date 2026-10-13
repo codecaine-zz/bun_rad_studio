@@ -107,7 +107,7 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     });
 
     expect(res.matchedCount).toBe(1);
-    expect(res.items[0].name).toBe("package.json");
+    expect(res.items[0]!.name).toBe("package.json");
   });
 
   it("9. Type filtering correctly separates directories from files", async () => {
@@ -118,7 +118,7 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
       maxDepth: 1,
     });
     expect(dirRes.matchedCount).toBe(1);
-    expect(dirRes.items[0].type).toBe("directory");
+    expect(dirRes.items[0]!.type).toBe("directory");
 
     const fileRes = await executeFdSearch({
       searchRoot: ".",
@@ -127,7 +127,7 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
       maxDepth: 1,
     });
     expect(fileRes.matchedCount).toBe(1);
-    expect(fileRes.items[0].type).toBe("file");
+    expect(fileRes.items[0]!.type).toBe("file");
   });
 
   it("10. Extension filtering matches specified extensions only", async () => {
@@ -156,7 +156,7 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
       maxDepth: 1,
     });
     expect(hiddenOn.matchedCount).toBe(1);
-    expect(hiddenOn.items[0].name).toBe(".gitignore");
+    expect(hiddenOn.items[0]!.name).toBe(".gitignore");
   });
 
   it("12. Depth limit stops recursion beyond maxDepth", async () => {

@@ -11,6 +11,11 @@ import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { splitStatements } from "../src/db/splitter";
 import { SQL } from "bun";
+
+/** Passes connection options through unchanged. Bun's `SQL` type definitions omit `allowPublicKeyRetrieval`, which this file has always sent. */
+function mysqlOptions<const T extends object>(options: T): T {
+  return options;
+}
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
@@ -201,7 +206,7 @@ export class MysqlManager {
   public activePath: string;
   public isMemory: boolean = false;
   public configSource: "env" | "manual" = "env";
-  public dbConfig: {
+  public dbConfig!: {
     host: string;
     port: number;
     user: string;
@@ -330,7 +335,7 @@ export class MysqlManager {
 
   public initConnection() {
     try {
-      this.sql_conn = new SQL({
+      this.sql_conn = new SQL(mysqlOptions({
         adapter: "mysql",
         hostname: this.dbConfig.host,
         port: this.dbConfig.port,
@@ -339,7 +344,7 @@ export class MysqlManager {
         database: this.dbConfig.database,
         allowPublicKeyRetrieval: true,
         tls: this.dbConfig.tls ?? false,
-      });
+      }));
       // Enable ANSI_QUOTES in session mode to guarantee compatibility with both ANSI quotes and backticks
       this.sql_conn.unsafe("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'ANSI_QUOTES');").catch(() => {});
     } catch (e: any) {
@@ -378,7 +383,7 @@ export class MysqlManager {
 
     const start = performance.now();
     try {
-      const testConn = new SQL({
+      const testConn = new SQL(mysqlOptions({
         adapter: "mysql",
         hostname: host,
         port: port,
@@ -387,7 +392,7 @@ export class MysqlManager {
         database: database || undefined,
         allowPublicKeyRetrieval: true,
         tls: tls,
-      });
+      }));
 
       const versionRows = await testConn.unsafe("SELECT VERSION() as ver;");
       const latencyMs = Math.round((performance.now() - start) * 100) / 100;
@@ -491,7 +496,7 @@ export class MysqlManager {
   public async ensureDatabaseExists(dbName?: string | any): Promise<void> {
     try {
       const db = (typeof dbName === "string" ? dbName : this.dbConfig?.database) || "my_app_dev";
-      const rootSql = new SQL({
+      const rootSql = new SQL(mysqlOptions({
         adapter: "mysql",
         hostname: this.dbConfig.host,
         port: this.dbConfig.port,
@@ -499,7 +504,7 @@ export class MysqlManager {
         password: this.dbConfig.password,
         allowPublicKeyRetrieval: true,
         tls: this.dbConfig.tls ?? false,
-      });
+      }));
       await rootSql.unsafe(`CREATE DATABASE IF NOT EXISTS \`${db.replace(/`/g, "``")}\``);
       await rootSql.end?.().catch(() => {});
     } catch (err: any) {
@@ -898,10 +903,10 @@ export class MysqlManager {
           const cleanDetail = trimmedLine.replace(/^->\s*/, "");
           const indent = line.search(/\S/);
 
-          while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+          while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
             stack.pop();
           }
-          const parent = stack.length > 0 ? stack[stack.length - 1].id : 0;
+          const parent = stack.length > 0 ? stack[stack.length - 1]!.id : 0;
           stack.push({ id, indent });
 
           const isScan = /table\s+scan/i.test(cleanDetail) || /full\s+scan/i.test(cleanDetail);
@@ -912,8 +917,8 @@ export class MysqlManager {
           const rowsMatch = cleanDetail.match(/rows=([\d.]+)/i);
           const timeMatch = cleanDetail.match(/actual\s+time=([\d.]+)\.\.([\d.]+)/i);
 
-          const cost = costMatch ? parseFloat(costMatch[1]) : undefined;
-          const rows = rowsMatch ? parseFloat(rowsMatch[1]) : undefined;
+          const cost = costMatch ? parseFloat(costMatch[1]!) : undefined;
+          const rows = rowsMatch ? parseFloat(rowsMatch[1]!) : undefined;
           const actualTime = timeMatch ? `${timeMatch[1]}..${timeMatch[2]}ms` : undefined;
 
           queryPlan.push({
@@ -1244,7 +1249,7 @@ export class MysqlManager {
     return res;
   }
 
-  public async generateDatabaseDump(options: { mode?: "all" | "schema" | "data"; tables?: string[] } = {}): Promise<{ success: boolean; sql?: string; dump?: string; error?: string }> {
+  public async generateDatabaseDump(options: { mode?: "all" | "schema" | "data"; tables?: string[] } = {}): Promise<{ success: boolean; sql?: string; dump?: string; tablesIncluded?: string[]; error?: string }> {
     try {
       const mode = options.mode || "all";
       const schema = await this.getSchema();
@@ -1353,7 +1358,7 @@ export class MysqlManager {
       const match = curType.match(/^(\w+)\((.*)\)$/);
       if (!match) return { success: false, error: "Invalid column type definition" };
       const baseType = match[1];
-      const existingVals = match[2].split(",").map((v: string) => v.trim());
+      const existingVals = match[2]!.split(",").map((v: string) => v.trim());
       const escapedNewVal = `${ml(newValue)}`;
       if (!existingVals.includes(escapedNewVal)) {
         existingVals.push(escapedNewVal);
@@ -1971,7 +1976,7 @@ export class MysqlManager {
           rows: isRows ? rows : [],
           columns: isRows ? Object.keys(rows[0]) : [],
           rowCount: rows.length,
-          rowsAffected: isRows ? undefined : Number(rows.affectedRows ?? rows.count ?? 0),
+          rowsAffected: isRows ? undefined : Number((rows as unknown as { affectedRows?: number; count?: number }).affectedRows ?? (rows as unknown as { count?: number }).count ?? 0),
         };
       }
       return { success: true, rows: [], columns: [], rowsAffected: Number(rows?.affectedRows ?? 0) };
@@ -2456,8 +2461,8 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           let col = body.column;
           if ((!tbl || !col) && body.name && body.name.includes(".")) {
             const parts = body.name.split(".");
-            tbl = parts[0];
-            col = parts[1];
+            tbl = parts[0] ?? tbl;
+            col = parts[1] ?? col;
           }
           const res = await manager.addEnumValue(tbl, col, body.value, body.schema);
           return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
@@ -2471,7 +2476,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           const body = (await req.json()) as { name: string; values: string[] };
           // If name has dot (table.column), alter table to add enum column
           if (body.name && body.name.includes(".")) {
-            const [tbl, col] = body.name.split(".");
+            const [tbl = "", col = ""] = body.name.split(".");
             const valList = (body.values || []).map(v => `${ml(v)}`).join(", ");
             await manager.runScript(`ALTER TABLE \`${tbl.replace(/`/g, "")}\` ADD COLUMN \`${col.replace(/`/g, "")}\` ENUM(${valList});`);
           }

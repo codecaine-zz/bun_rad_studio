@@ -37,7 +37,7 @@ export class PostgresAdapter extends BunSqlAdapter {
     return `${expr}::text`;
   }
   /** `json` and `xml` have no equality operator; compare their text form. */
-  protected eqExpr(col: ColumnInfo, ph: string) {
+  protected override eqExpr(col: ColumnInfo, ph: string) {
     const q = '"' + col.name.replace(/"/g, '""') + '"';
     return /^(json|xml)$/i.test(col.dataType) ? `${q}::text = ${ph}::text` : `${q} = ${ph}`;
   }

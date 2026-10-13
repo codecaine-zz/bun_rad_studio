@@ -169,10 +169,10 @@ async function main() {
       const demosOnly = rawArgs.includes("--demos") || rawArgs.includes("-d");
       
       const catIdx = Math.max(rawArgs.indexOf("--category"), rawArgs.indexOf("-C"));
-      const catFilter = catIdx !== -1 && rawArgs[catIdx + 1] ? rawArgs[catIdx + 1].toLowerCase() : "";
+      const catFilter = catIdx !== -1 ? (rawArgs[catIdx + 1]?.toLowerCase() ?? "") : "";
 
       const searchIdx = Math.max(rawArgs.indexOf("--search"), rawArgs.indexOf("-s"));
-      const searchFilter = searchIdx !== -1 && rawArgs[searchIdx + 1] ? rawArgs[searchIdx + 1].toLowerCase() : "";
+      const searchFilter = searchIdx !== -1 ? (rawArgs[searchIdx + 1]?.toLowerCase() ?? "") : "";
 
       let filtered = apps;
       if (appsOnly) filtered = filtered.filter(a => a.source === "rad_studio");
