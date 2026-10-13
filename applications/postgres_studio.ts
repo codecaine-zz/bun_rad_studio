@@ -1096,7 +1096,7 @@ export function generatePostgresStudioHtml(): string {
     <div class="header-actions">
       <button class="btn" onclick="openConnectionModal()" title="Configure manual host/credentials or switch databases">🔌 Connection Config...</button>
       <button class="btn" onclick="openDatabaseBrowser()" title="Browse and switch server databases">📂 Databases...</button>
-      <button class="btn" onclick="seedSampleDatabase()" title="Create rich PostgreSQL sample tables with UUID, JSONB, native Arrays and Materialized Views">🌱 Seed Sample DB</button>
+      <button id="btnSeedDatabase" class="btn" onclick="seedSampleDatabase()" title="Create rich PostgreSQL sample tables with UUID, JSONB, native Arrays and Materialized Views">🌱 Seed Sample DB</button>
       <button class="btn" onclick="triggerVacuumAnalyze()" title="Run VACUUM ANALYZE to reclaim storage and update planner statistics">🧹 VACUUM ANALYZE</button>
       <button class="btn btn-primary" onclick="executeCurrentQuery()">▶ Run SQL (Cmd+Enter)</button>
     </div>
@@ -1965,13 +1965,20 @@ export function generatePostgresStudioHtml(): string {
     // Load Database Schema (Tables, Views, MatViews, Schemas)
     async function loadSchema() {
       const res = await apiRequest("/api/schema");
-      if (res.success) {
+      if (res && (res.success || Array.isArray(res.tables))) {
         currentSchema = res;
         renderSidebarTree();
         renderSchemaDropdown(res.schemas || ["public"], res.activeSchema || "public");
         loadKpis();
+        const allItems = [...(currentSchema.tables || []), ...(currentSchema.views || []), ...(currentSchema.matviews || [])];
+        if (!activeTable || !allItems.find(item => item.name === activeTable)) {
+          if (currentSchema.tables && currentSchema.tables.length > 0) {
+            const cust = currentSchema.tables.find(t => t.name === "customers") || currentSchema.tables[0];
+            selectEntity(cust.name, cust.type || "table");
+          }
+        }
       } else {
-        showToast("Error loading schema: " + (res.error || "Unknown error"));
+        showToast("Error loading schema: " + ((res && res.error) || "Unknown error"));
       }
     }
 
@@ -2013,7 +2020,7 @@ export function generatePostgresStudioHtml(): string {
           </div>
           <span class="tree-item-badge">\${t.rowCount || 0}</span>
         </div>
-      \`).join('') || '<div style="padding: 4px 8px; font-size: 11px; color: var(--text-dim);">No tables</div>';
+      \`).join('') || '<div style="padding: 10px 8px; font-size: 11px; color: var(--text-dim); text-align: center;">No tables yet.<br><button class="btn btn-sm btn-primary" onclick="seedSampleDatabase()" style="margin-top: 6px; width: 100%; font-size: 10px; padding: 4px 6px;">🌱 Seed Sample DB</button></div>';
 
       // Materialized Views (with 1-click refresh button!)
       matViewsList.innerHTML = (currentSchema.matviews || []).map(m => \`
@@ -2360,14 +2367,22 @@ export function generatePostgresStudioHtml(): string {
 
     // Seed Sample Database
     async function seedSampleDatabase() {
-      if (!confirm("Seed rich PostgreSQL sample dataset (UUIDs, JSONB, native Arrays, Products, Customers, Orders, Materialized Views)?")) return;
-      showToast("Seeding rich PostgreSQL dataset...");
-      const res = await apiRequest("/api/seed-sample", "POST");
-      if (res.success) {
-        showToast("✓ PostgreSQL sample database seeded successfully!");
-        loadSchema();
-      } else {
-        showToast("Seed error: " + res.error);
+      showToast("🌱 Seeding rich PostgreSQL dataset (UUIDs, JSONB, Arrays, Views)...");
+      try {
+        const schema = (currentSchema && currentSchema.activeSchema) || "public";
+        const res = await apiRequest("/api/seed-sample", "POST", { schema });
+        if (res && res.success) {
+          showToast("✓ PostgreSQL sample database seeded successfully!");
+          await loadSchema();
+          await loadKpis();
+          setTimeout(() => {
+            selectEntity("customers", "table");
+          }, 200);
+        } else {
+          showToast("Seed error: " + ((res && res.error) || "Failed to seed sample database"));
+        }
+      } catch (err) {
+        showToast("Seed error: " + err.message);
       }
     }
 

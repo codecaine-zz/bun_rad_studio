@@ -221,4 +221,22 @@ describe("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", ()
     const html = app.generateHtml();
     expect(html).toContain("Postgres Studio Pro");
   });
+
+  it("12. POST /api/seed-sample creates rich PostgreSQL sample dataset (customers, products, orders, views, matviews)", async () => {
+    const res = await fetch(`${baseUrl}/api/seed-sample`, { method: "POST" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.success).toBe(true);
+
+    // Verify schema reflects seeded objects
+    const schemaRes = await fetch(`${baseUrl}/api/schema`);
+    expect(schemaRes.status).toBe(200);
+    const schema = (await schemaRes.json()) as any;
+    expect(schema.success).toBe(true);
+    expect(schema.tables.some((t: any) => t.name === "customers")).toBe(true);
+    expect(schema.tables.some((t: any) => t.name === "products")).toBe(true);
+    expect(schema.tables.some((t: any) => t.name === "orders")).toBe(true);
+    expect(schema.views.some((v: any) => v.name === "v_customer_order_summary")).toBe(true);
+    expect(schema.matviews.some((m: any) => m.name === "mv_daily_sales_analytics")).toBe(true);
+  });
 });

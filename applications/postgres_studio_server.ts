@@ -92,6 +92,7 @@ export interface DatabaseKpis {
 }
 
 export interface DatabaseSchemaResponse {
+  success: boolean;
   name: string;
   tables: TableSchemaMeta[];
   views: TableSchemaMeta[];
@@ -840,6 +841,7 @@ export class PostgresManager {
       }
 
       return {
+        success: true,
         name: schema,
         tables: tablesMeta,
         views: viewsMeta,
@@ -852,6 +854,7 @@ export class PostgresManager {
     } catch (err: any) {
       console.error("Postgres getSchema failed:", err);
       return {
+        success: false,
         name: schema,
         tables: [],
         views: [],
@@ -1651,8 +1654,8 @@ export class PostgresManager {
   // Enterprise Starter Relational Dataset Seeder (Tailored for PostgreSQL)
   // -----------------------------------------------------------------------------------------------
 
-  public async seedSampleDataset(): Promise<{ success: boolean; error?: string }> {
-    const s = this.activeSchema || "public";
+  public async seedSampleDataset(targetSchema?: string): Promise<{ success: boolean; error?: string }> {
+    const s = targetSchema || this.activeSchema || "public";
     try {
       // 1. Enable UUID extension if available
       try {
@@ -2104,9 +2107,16 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       }
 
       // 9. Starter Dataset Seeding
-      if (url.pathname === "/api/seed-sample" && req.method === "POST") {
+      if ((url.pathname === "/api/seed-sample" || url.pathname === "/api/seed") && (req.method === "POST" || req.method === "GET")) {
         try {
-          const res = await manager.seedSampleDataset();
+          let schema: string | undefined = url.searchParams.get("schema") || undefined;
+          if (req.method === "POST") {
+            try {
+              const body = await req.json();
+              if (body?.schema) schema = body.schema;
+            } catch {}
+          }
+          const res = await manager.seedSampleDataset(schema);
           return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
