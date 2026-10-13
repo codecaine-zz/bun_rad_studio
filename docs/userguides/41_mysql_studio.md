@@ -129,6 +129,14 @@ await studio.run();
 
 ## 🖼️ Visual Interface Tour
 
+| Microsoft Access Relational Canvas & Multi-Table Joins (1400×1340) |
+| :---: |
+| ![MySQL Visual Table Joins Canvas](../../screenshots/apps/visual_joins_canvas_mysql.png) |
+
+| Access-Style Join Properties Modal (Venn Diagrams) | Deep Zoom & Expansive Room Mode (125%) |
+| :---: | :---: |
+| ![Join Properties Modal](../../screenshots/apps/visual_joins_properties_modal.png) | ![Deep Canvas Zooming](../../screenshots/apps/visual_joins_zoom_room.png) |
+
 | High-Resolution Desktop (1260×880) | Responsive Viewport (960×720) |
 | :---: | :---: |
 | ![MySQL Studio Desktop](../../screenshots/apps/mysql_studio_desktop.png) | ![MySQL Studio Responsive](../../screenshots/apps/mysql_studio_responsive.png) |
@@ -181,8 +189,71 @@ await studio.run();
 - **Explain Query Plan**: Click **Explain Plan** to execute MySQL's `EXPLAIN` engine and inspect scan types (`ALL`, `index`, `range`), key utilization, and estimated row scans.
 - **Export Query Results**: Export query result sets directly to CSV, JSON, or SQL INSERT statements with 1-click.
 
-#### Tab 3: 📐 Visual Query Designer (QBE)
-- Visual query matrix allowing non-technical users to build relational queries, select columns, define join relationships, specify search criteria, and preview generated SQL in real-time.
+#### Tab 3: 📐 Visual Query Designer & Microsoft Access Relational Canvas
+
+MySQL Studio Pro features an enterprise-grade visual query designer inspired directly by Microsoft Access. It transforms complex MySQL multi-table joins into a tactile, visual experience—allowing anyone to drag relationships, select join types, and generate optimized MySQL queries with zero syntax friction.
+
+```mermaid
+graph LR
+    C[customers] -- "INNER JOIN (`id` = `customer_id`)" --> O[orders]
+    O -- "INNER JOIN (`id` = `order_id`)" --> OI[order_items]
+    OI -- "INNER JOIN (`product_id` = `id`)" --> P[products]
+    style C fill:#1e293b,stroke:#00758f,stroke-width:2px,color:#f8fafc
+    style O fill:#1e293b,stroke:#f29111,stroke-width:2px,color:#f8fafc
+    style OI fill:#1e293b,stroke:#34d399,stroke-width:2px,color:#f8fafc
+    style P fill:#1e293b,stroke:#a855f7,stroke-width:2px,color:#f8fafc
+```
+
+##### 1. Graphical Relational Canvas
+- **Draggable MySQL Entity Cards**: Each table card displays its table name, column list, native MySQL types (`INT`, `VARCHAR(255)`, `DATETIME`, `DECIMAL(10,2)`), primary keys (`🔑`), and foreign key indicators (`🔗`). Header drag handles allow free positioning across the infinite workspace.
+- **Field-to-Field Drag & Drop**: Click any field in Table A and drag your cursor directly onto the target join field in Table B. The engine draws an interactive SVG Bézier curve connecting the exact column rows.
+- **Directional Line Arrows & Relational Semantics**:
+  - **INNER JOIN**: Solid balanced line between matching columns.
+  - **LEFT OUTER JOIN**: Directional arrow pointing right (`▶`) toward the secondary table, indicating complete left-table preservation with `NULL` fills for unmatched right-table rows.
+  - **RIGHT OUTER JOIN**: Directional arrow pointing left (`◀`) toward the primary table, preserving all right-table rows.
+  - **FULL OUTER JOIN**: Double-headed directional arrows (`◀▶`) for complete Cartesian set unions.
+  - **CROSS JOIN**: Distinctive Cartesian cross indicator (`⨯`).
+- **Interactive Join Badges**: Click or double-click the join pill badge (`= INNER`, `⇥ LEFT`, `⇤ RIGHT`, `↔ FULL`, `⨯ CROSS`) on the relationship line to open the **Join Properties** modal dialog.
+- **⚡ Auto-Detect Joins**: Automatically reads MySQL `information_schema.KEY_COLUMN_USAGE` constraints and naming conventions (e.g. `customer_id` ➔ `customers.id`, `order_id` ➔ `orders.id`) to construct a multi-table spanning tree in one click.
+- **Relational Topology Validation**: Real-time indicator verifies that all selected tables form a single connected graph (`● All 4 tables connected in relational graph`).
+
+##### 2. Microsoft Access Join Properties Modal Dialog
+Double-clicking any join connector line or clicking **Properties** launches the Microsoft Access Join Properties dialog:
+
+| Access Join Properties Dialog (Interactive Venn Diagram) |
+| :---: |
+| ![Join Properties Modal](../../screenshots/apps/visual_joins_properties_modal.png) |
+
+- **5 Relational Radio Directives**:
+  1. **Option 1 (INNER JOIN)**: *"Only include rows where the joined fields from both tables are equal."*
+  2. **Option 2 (LEFT OUTER JOIN)**: *"Include ALL records from '&lt;Left Table&gt;' and only those records from '&lt;Right Table&gt;' where the joined fields are equal."*
+  3. **Option 3 (RIGHT OUTER JOIN)**: *"Include ALL records from '&lt;Right Table&gt;' and only those records from '&lt;Left Table&gt;' where the joined fields are equal."*
+  4. **Option 4 (FULL OUTER JOIN)**: *"Include ALL records from both tables whether or not there are matching records."*
+  5. **Option 5 (CROSS JOIN)**: *"Produce the Cartesian product of all rows between '&lt;Left Table&gt;' and '&lt;Right Table&gt;'."*
+- **Dynamic Venn Diagram Visualizer**: High-resolution SVG preview illuminating the exact mathematical subset included (intersection, left-dominant, right-dominant, or complete union).
+- **Live Generated MySQL Syntax**: Live preview of the generated `FROM `t1` [TYPE] JOIN `t2` ON `t1`.`c1` = `t2`.`c2`` clause with proper backtick escaping.
+- **⇄ Swap Tables & 🗑️ Delete Join**: Reverse join orientation with 1-click or cleanly remove the relationship.
+
+##### 3. Deep Canvas Zooming & Navigation (40% to 250%)
+- **Zoom Toolbar**: `🔍−` (Zoom out by 15%), `🔍+` (Zoom in by 15%), `1:1` (Reset to 100%), `🎯 Fit All` (calculates bounding box and scales all tables to fit into the viewport).
+- **Scale Presets**: Quick dropdown with `50%`, `75%`, `90%`, `100%`, `125%`, `150%`, `200%`.
+- **Mouse Wheel Zoom**: Hold `Ctrl` or `Cmd` and scroll your mouse wheel to zoom smoothly in and out centered at the mouse cursor.
+- **Canvas Panning**: Drag on empty canvas background to pan around large enterprise database schemas.
+
+##### 4. Expansive Room Modes & Draggable Resizer Splitter
+- **Room Presets**:
+  - `⤢ Canvas`: Maximizes canvas vertical space (up to 750px / 70vh) for large schemas with dozens of tables.
+  - `⤡ Split`: Balanced 50/50 split between visual relationship canvas and QBE criteria matrix.
+  - `⤢ Grid`: Maximizes lower QBE grid when configuring complex criteria, sorting, and aggregate functions.
+- **Interactive Draggable Resizer Splitter (`#qbeResizerBar`)**: Drag the resizer handle between **180px and 1200px** to fine-tune your workspace height.
+
+##### 5. Section Ease of Use & Ergonomic Enhancements
+- **QBE Grid Density**: Select `Compact`, `Normal`, or `Spacious` cell density to view up to 12+ columns simultaneously.
+- **Criteria Syntax Help (`💡 Syntax Help`)**: Instant cheat sheet for comparisons (`> 100`, `<> 'cancelled'`), pattern matches (`LIKE 'A%'`), ranges (`BETWEEN 10 AND 50`), and sets (`IN ('VIP', 'Gold')`).
+- **Fullscreen Workspace Toggle (`◀▶ Sidebar`)**: 1-click collapse of the left database object tree to expand the Visual Designer, SQL IDE, or Data Grid to **100% full-screen width**.
+- **SQL IDE Font & Height Controls**: `A−` / `A+` font size scaling (10px - 22px), `↕ Resize Editor` (160px / 320px / 580px), and `▲ Minimize` / `▼ Expand`.
+- **Datasheet Tab**: Test your visual query immediately with 1-click execution and inspect the resulting data records side-by-side.
+
 
 #### Tab 4: 🛠️ Table Schema Designer
 - Visual table designer to inspect and alter column specifications:

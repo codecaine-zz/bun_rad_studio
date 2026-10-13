@@ -50,6 +50,14 @@ await studio.run();
 
 ## 🖼️ Visual Interface Tour
 
+| Microsoft Access Relational Canvas & Multi-Table Joins (1400×1340) |
+| :---: |
+| ![Visual Table Joins Canvas](../../screenshots/apps/visual_joins_canvas_sqlite.png) |
+
+| Access-Style Join Properties Modal (Venn Diagrams) | Deep Zoom & Expansive Room Mode (125%) |
+| :---: | :---: |
+| ![Join Properties Modal](../../screenshots/apps/visual_joins_properties_modal.png) | ![Deep Canvas Zooming](../../screenshots/apps/visual_joins_zoom_room.png) |
+
 | High-Resolution Desktop (1400×920) | Responsive Viewport (960×760) |
 | :---: | :---: |
 | ![Database Studio Desktop](../../screenshots/apps/database_studio_desktop.png) | ![Database Studio Responsive](../../screenshots/apps/database_studio_responsive.png) |
@@ -86,6 +94,133 @@ await studio.run();
 - **📊 Export CSV**: Converts the active result grid into standardized comma-separated values for spreadsheet analysis.
 - **📋 Export JSON**: Formats and copies the active result rows as clean JSON objects.
 - **💾 Export SQL Inserts**: Generates a reproducible sequence of `INSERT INTO ... VALUES (...);` migration statements.
+
+---
+
+---
+
+## 📐 Visual Query Designer & Microsoft Access Relational Canvas
+
+Database Studio Pro incorporates a complete, full-featured visual query design studio modeled after Microsoft Access. It enables anyone—from non-technical analysts to veteran database administrators—to construct sophisticated multi-table relational queries visually with drag-and-drop ease, full join control, and zero manual SQL required.
+
+```mermaid
+graph LR
+    C[customers] -- "INNER JOIN (id = customer_id)" --> O[orders]
+    O -- "INNER JOIN (id = order_id)" --> OI[order_items]
+    OI -- "INNER JOIN (product_id = id)" --> P[products]
+    style C fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+    style O fill:#1e293b,stroke:#818cf8,stroke-width:2px,color:#f8fafc
+    style OI fill:#1e293b,stroke:#34d399,stroke-width:2px,color:#f8fafc
+    style P fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
+```
+
+### 1. Graphical Relational Canvas
+- **Draggable Entity Cards**: Tables appear as movable cards displaying their full schema, primary keys (`🔑`), foreign keys (`🔗`), and column data types. Drag card headers to arrange your workspace freely.
+- **Visual Drag-and-Drop Joining**: Click and drag any field name from one table card directly onto a field in another table card. The system connects them with a smooth, hardware-accelerated cubic Bézier SVG line.
+- **Directional Line Arrows**:
+  - **INNER JOIN**: Solid balanced line connecting matching fields.
+  - **LEFT OUTER JOIN**: Directional arrow pointing right (`▶`) toward the right table, visually demonstrating that all records from the left table are preserved while non-matching right records fill with `NULL`.
+  - **RIGHT OUTER JOIN**: Directional arrow pointing left (`◀`) toward the left table, preserving all right-hand rows.
+  - **FULL OUTER JOIN**: Double-headed directional arrows (`◀▶`) indicating complete set union with `NULL` preservation across both tables.
+  - **CROSS JOIN**: Distinctive Cartesian cross indicator (`⨯`).
+- **Interactive Join Badges**: Click or double-click the join pill (`= INNER`, `⇥ LEFT`, `⇤ RIGHT`, `↔ FULL`, `⨯ CROSS`) embedded on any relationship line to immediately launch the **Join Properties** modal dialog.
+- **⚡ Auto-Detect Joins**: Click **Auto-Detect Joins** to have the relational engine inspect foreign key metadata and naming conventions (e.g., `customer_id` ➔ `customers.id`, `order_id` ➔ `orders.id`). It constructs a spanning tree across all active canvas tables automatically.
+- **Relational Topology Validation**: A live status indicator confirms whether your tables form a fully connected graph (`● All 4 tables connected in relational graph`) or warns if disconnected islands exist.
+
+---
+
+### 2. Microsoft Access Join Properties Modal Dialog
+Double-clicking any relationship line or clicking its **Properties** button opens the authentic **Microsoft Access Join Properties** dialog:
+
+| Join Properties Dialog (Venn Diagram & Directional Choices) |
+| :---: |
+| ![Join Properties Modal](../../screenshots/apps/visual_joins_properties_modal.png) |
+
+#### The 5 Join Directives
+The dialog offers the exact five relational options familiar from Microsoft Access and relational set theory:
+
+1. **Option 1 (INNER JOIN)**:
+   > *"Only include rows where the joined fields from both tables are equal."*
+   > Returns only records where a key match is present in both tables (intersection).
+2. **Option 2 (LEFT OUTER JOIN)**:
+   > *"Include ALL records from '&lt;Left Table&gt;' and only those records from '&lt;Right Table&gt;' where the joined fields are equal."*
+   > Preserves all rows from the primary table, filling in `NULL` for missing right-table attributes.
+3. **Option 3 (RIGHT OUTER JOIN)**:
+   > *"Include ALL records from '&lt;Right Table&gt;' and only those records from '&lt;Left Table&gt;' where the joined fields are equal."*
+   > Preserves all rows from the secondary table. In SQLite (which natively supports `RIGHT JOIN` starting in SQLite 3.39+), this executes directly or generates equivalent set unions.
+4. **Option 4 (FULL OUTER JOIN)**:
+   > *"Include ALL records from both tables whether or not there are matching records."*
+   > Produces the complete union of all records from both sources.
+5. **Option 5 (CROSS JOIN)**:
+   > *"Produce the Cartesian product of all rows between '&lt;Left Table&gt;' and '&lt;Right Table&gt;'."*
+   > Generates all possible permutations without a join predicate condition.
+
+#### Dynamic Venn Diagram Visualizer
+Below the options, an interactive mathematical Venn diagram renders dynamically:
+- Overlapping circle intersections illuminate in bright cyan when selecting **INNER JOIN**.
+- The entire left circle and intersection glow when choosing **LEFT OUTER JOIN**.
+- The entire right circle and intersection glow when selecting **RIGHT OUTER JOIN**.
+- Both complete circles glow under **FULL OUTER JOIN**.
+- A Cartesian grid matrix renders under **CROSS JOIN**.
+
+#### Additional Modal Controls
+- **⇄ Swap Tables**: Flips left and right tables with one click to reverse join orientation.
+- **Live SQL Join Preview**: Displays the exact `FROM "t1" [TYPE] JOIN "t2" ON "t1"."c1" = "t2"."c2"` syntax in real-time as you tweak options.
+- **🗑️ Delete Join**: Removes the join connection cleanly from the canvas.
+
+---
+
+### 3. Deep Canvas Zooming & Navigation (40% to 250%)
+
+| Deep Zoom (125%) & Expansive Room Mode |
+| :---: |
+| ![Deep Canvas Zooming](../../screenshots/apps/visual_joins_zoom_room.png) |
+
+Managing complex enterprise databases with dozens of related tables requires extensive visual space:
+
+| Control | Action | Keyboard / Shortcut |
+| :--- | :--- | :--- |
+| **🔍− Zoom Out** | Decreases canvas zoom level by 15% (down to 40% / 0.4x macro scale). | `Ctrl + Wheel Down` or `Cmd + Wheel Down` |
+| **🔍+ Zoom In** | Increases canvas zoom level by 15% (up to 250% / 2.5x high-magnification scale). | `Ctrl + Wheel Up` or `Cmd + Wheel Up` |
+| **Zoom Dropdown** | Instantly pick common scales: `50%`, `75%`, `90%`, `100%`, `125%`, `150%`, `200%`. | Direct dropdown select |
+| **1:1** | Resets canvas scale to 100% (1.0x native desktop scale). | Click `1:1` |
+| **🎯 Fit All** | Calculates the bounding box of all active table cards and centers & scales them into the viewport. | Click `🎯 Fit` |
+| **Canvas Panning** | Smoothly pan around expansive relational schemas. | Drag anywhere on empty canvas background |
+
+---
+
+### 4. Expansive Room Modes & Draggable Resizer Splitter
+
+To accommodate both expansive visual table mapping and detailed criteria editing, Database Studio Pro provides dynamic room modes:
+
+- **⤢ Canvas (Maximize Canvas)**: Expands the canvas viewport up to 750px (or 70vh), collapsing the lower grid into a compact strip. Ideal when mapping out large multi-table relationships.
+- **⤡ Split (Balanced 50/50)**: Standard split providing equal space for the visual canvas and the lower QBE design matrix.
+- **⤢ Grid (Maximize Grid)**: Expands the lower criteria matrix, minimizing the canvas. Perfect when fine-tuning column aliases, aggregate totals, sorting, and multi-line criteria.
+- **Interactive Draggable Resizer Splitter (`#qbeResizerBar`)**:
+  - Grab the splitter bar separating the canvas and lower grid.
+  - Drag up or down smoothly to customize the canvas height anywhere between **180px and 1200px** with instant visual feedback.
+
+---
+
+### 5. Section Ease of Use & Ergonomic Enhancements
+
+#### QBE Grid Density Toggles
+Above the Query by Example criteria matrix, select your preferred information density:
+- **Compact**: Tightly spaced cells; displays 10+ columns simultaneously without horizontal paging.
+- **Normal**: Standard balanced padding for general design work.
+- **Spacious**: Touch-friendly, high-contrast cell rows for comfortable editing on large monitors.
+
+#### Fullscreen Workspace Toggle (`◀▶ Sidebar`)
+Click the **◀▶ Sidebar** button on the toolbar (or press shortcut) to collapse the entire left-hand database tree. The Visual Query Designer, SQL IDE, or Data Grid immediately expands to fill **100% of your screen width**.
+
+#### SQL Query IDE Ergonomics
+- **Font Scaling (`A−` / `A+`)**: Dynamically adjust the SQL editor font size from **10px to 22px** for enhanced readability.
+- **Height Resizing (`↕ Resize Editor`)**: Toggles the SQL editor between **Compact (160px)**, **Medium (320px)**, and **Expansive (580px)**.
+- **Editor Collapse (`▲ Minimize` / `▼ Expand`)**: Minimize the SQL editor down to a compact single-line toolbar when working strictly in the Visual Designer or Datasheet grid.
+
+#### Tabular Data Grid & Datasheet Ergonomics
+- **Row Density Modes**: Toggle between Compact, Normal, and Spacious row heights in the data grid.
+- **Datasheet Tab**: View live query output directly beside the design canvas with 1-click execution.
 
 ---
 

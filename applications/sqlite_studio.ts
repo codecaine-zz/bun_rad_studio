@@ -846,30 +846,173 @@ export function generateSqliteStudioHtml(): string {
       padding: 10px;
     }
 
-    .qbe-tables-canvas {
+    :root {
+      --qbe-canvas-height: 480px;
+      --qbe-grid-font-size: 11px;
+      --qbe-grid-cell-padding: 4px 6px;
+      --sql-editor-height: 380px;
+      --ds-font-size: 11px;
+      --ds-cell-padding: 5px 8px;
+    }
+
+    .qbe-canvas-viewport {
+      position: relative;
+      overflow: auto;
+      min-height: 240px;
+      height: var(--qbe-canvas-height, 480px);
+      background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.25) 0%, rgba(10, 15, 29, 0.95) 100%);
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+      background-size: 20px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      transition: height 0.15s ease-out;
+    }
+
+    .qbe-canvas-viewport.panning {
+      cursor: grab !important;
+      user-select: none;
+    }
+    .qbe-canvas-viewport.panning:active {
+      cursor: grabbing !important;
+    }
+
+    .qbe-canvas-stage {
+      position: relative;
+      min-width: 3400px;
+      min-height: 2400px;
+      transform-origin: 0 0;
+      transition: transform 0.08s ease-out;
+    }
+
+    .qbe-resizer-bar {
+      height: 9px;
+      margin: 4px 0;
+      cursor: row-resize;
       display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      min-height: 160px;
-      max-height: 220px;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: background 0.15s ease;
+      user-select: none;
+      z-index: 10;
+    }
+    .qbe-resizer-bar:hover, .qbe-resizer-bar.resizing {
+      background: rgba(56, 189, 248, 0.15);
+    }
+    .qbe-resizer-handle {
+      width: 52px;
+      height: 4px;
+      background: var(--border-subtle);
+      border-radius: 2px;
+      transition: background 0.15s ease, width 0.15s ease;
+    }
+    .qbe-resizer-bar:hover .qbe-resizer-handle, .qbe-resizer-bar.resizing .qbe-resizer-handle {
+      background: var(--cyan);
+      width: 76px;
+    }
+
+    .qbe-zoom-controls, .qbe-room-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .qbe-canvas-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 2;
+    }
+
+    .qbe-svg-join-halo {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 18;
+      cursor: pointer;
+      pointer-events: stroke;
+    }
+
+    .qbe-svg-join-halo:hover + .qbe-svg-join-line {
+      stroke-width: 4px;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+    }
+
+    .qbe-svg-join-line {
+      fill: none;
+      stroke-width: 2.5;
+      cursor: pointer;
+      pointer-events: stroke;
+      transition: stroke-width 0.15s ease, filter 0.15s ease;
+    }
+
+    .qbe-svg-join-line:hover {
+      stroke-width: 4px;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+    }
+
+    .qbe-svg-join-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid var(--cyan);
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--cyan);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: auto;
+    }
+
+    .qbe-svg-join-badge:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    }
+
+    .qbe-tables-canvas {
+      position: relative;
+      display: flex;
+      gap: 24px;
+      padding: 16px;
+      min-height: 230px;
+      z-index: 3;
     }
 
     .qbe-table-card {
-      min-width: 200px;
-      max-width: 240px;
-      background: rgba(15, 23, 42, 0.9);
+      min-width: 210px;
+      max-width: 250px;
+      background: rgba(15, 23, 42, 0.92);
       border: 1px solid var(--border-subtle);
       border-radius: 6px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
       flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      user-select: none;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .qbe-table-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .qbe-table-card.dragging {
+      opacity: 0.65;
     }
 
     .qbe-table-card-header {
-      background: rgba(30, 41, 59, 0.85);
+      background: rgba(30, 41, 59, 0.9);
       border-bottom: 1px solid var(--border-subtle);
       padding: 6px 8px;
       display: flex;
@@ -887,6 +1030,7 @@ export function generateSqliteStudioHtml(): string {
       flex: 1;
       padding: 4px;
       gap: 2px;
+      max-height: 170px;
     }
 
     .qbe-field-row {
@@ -900,12 +1044,37 @@ export function generateSqliteStudioHtml(): string {
       color: var(--text-main);
       cursor: pointer;
       transition: all 0.12s ease;
+      user-select: none;
     }
 
     .qbe-field-row:hover {
       background: rgba(56, 189, 248, 0.15);
       color: var(--cyan);
       transform: translateX(2px);
+    }
+
+    .qbe-field-connector {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      margin-right: 4px;
+      flex-shrink: 0;
+      transition: all 0.12s ease;
+    }
+
+    .qbe-field-row:hover .qbe-field-connector {
+      background: var(--cyan);
+      transform: scale(1.3);
+      box-shadow: 0 0 6px var(--cyan);
+    }
+
+    .qbe-field-drop-target {
+      background: rgba(56, 189, 248, 0.28) !important;
+      outline: 2px dashed var(--cyan) !important;
+      outline-offset: -2px;
+      transform: scale(1.02);
     }
 
     .qbe-field-add-icon {
@@ -941,6 +1110,100 @@ export function generateSqliteStudioHtml(): string {
       font-size: 11px;
       font-family: var(--font-mono);
       flex-wrap: wrap;
+    }
+
+    /* Microsoft Access Join Properties Modal */
+    .access-join-table-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .access-join-table-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .access-join-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .access-join-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .access-join-radio-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .access-join-radio-card:hover {
+      background: rgba(56, 189, 248, 0.06);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .access-join-radio-card.selected {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+    }
+    .access-join-radio-card input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .access-join-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .access-join-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .access-join-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+    .access-venn-preview-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 12px;
+      align-items: center;
+      background: rgba(10, 15, 29, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .access-venn-svg {
+      width: 150px;
+      height: 90px;
+    }
+    .access-sql-box {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #38bdf8;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
     }
 
     /* QBE Matrix Grid (Lower Pane) */
@@ -980,7 +1243,7 @@ export function generateSqliteStudioHtml(): string {
     }
 
     .qbe-matrix-col-cell {
-      padding: 4px 6px;
+      padding: var(--qbe-grid-cell-padding, 4px 6px);
       min-width: 160px;
       max-width: 220px;
       border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -993,9 +1256,9 @@ export function generateSqliteStudioHtml(): string {
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 4px;
-      padding: 4px 6px;
+      padding: var(--qbe-grid-cell-padding, 4px 6px);
       color: var(--text-main);
-      font-size: 11px;
+      font-size: var(--qbe-grid-font-size, 11px);
       font-family: inherit;
       outline: none;
     }
@@ -1030,6 +1293,16 @@ export function generateSqliteStudioHtml(): string {
       overflow: hidden;
     }
 
+    .qbe-datasheet-container table.data-grid {
+      font-size: var(--ds-font-size, 11px);
+    }
+
+    .qbe-datasheet-container table.data-grid td,
+    .qbe-datasheet-container table.data-grid th {
+      padding: var(--ds-cell-padding, 5px 8px);
+      font-size: var(--ds-font-size, 11px);
+    }
+
     .qbe-datasheet-toolbar {
       padding: 8px 12px;
       background: rgba(15, 23, 42, 0.9);
@@ -1054,7 +1327,7 @@ export function generateSqliteStudioHtml(): string {
 
     .designer-sql-preview {
       width: 100%;
-      min-height: 240px;
+      min-height: var(--sql-editor-height, 240px);
       background: rgba(0, 0, 0, 0.45);
       color: #7dd3fc;
       border: 1px solid var(--border-subtle);
@@ -1711,6 +1984,110 @@ ${CRUD_STYLE}
     <div id="footerClock">00:00:00</div>
   </footer>
 
+  <!-- Microsoft Access Join Properties Modal -->
+  <div class="modal-overlay" id="accessJoinPropertiesModal" onclick="if(event.target === this) closeJoinPropertiesModal()">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📐</span>
+          <span>Join Properties (Microsoft Access Relational Editor)</span>
+        </div>
+        <button class="modal-close" onclick="closeJoinPropertiesModal()" title="Close dialog">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 14px;">
+        <div style="font-size: 11px; color: var(--text-dim);">
+          Specify the relationship between fields in both tables. Choose how matched and unmatched rows are included in the result set.
+        </div>
+
+        <!-- Table and Field Selection -->
+        <div class="access-join-table-row">
+          <div class="access-join-table-col">
+            <span class="access-join-label">Left Table Name</span>
+            <select id="jpLeftTable" class="qbe-select" onchange="onJoinPropTableChange('left')" style="font-weight: 700;"></select>
+            <span class="access-join-label" style="margin-top: 4px;">Left Column</span>
+            <select id="jpLeftField" class="qbe-select" onchange="updateJoinPropPreview()"></select>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <button class="btn btn-sm" onclick="swapJoinPropDirection()" title="Swap Left and Right Tables" style="padding: 6px 10px; font-weight: bold;">⇄ Swap</button>
+            <span style="font-size: 11px; color: var(--cyan); font-weight: bold;">=</span>
+          </div>
+          <div class="access-join-table-col">
+            <span class="access-join-label">Right Table Name</span>
+            <select id="jpRightTable" class="qbe-select" onchange="onJoinPropTableChange('right')" style="font-weight: 700;"></select>
+            <span class="access-join-label" style="margin-top: 4px;">Right Column</span>
+            <select id="jpRightField" class="qbe-select" onchange="updateJoinPropPreview()"></select>
+          </div>
+        </div>
+
+        <!-- Access 3-Option Join Types (Plus Full Outer & Cross) -->
+        <div class="access-join-options">
+          <label class="access-join-radio-card" id="cardJpInner" onclick="selectJoinPropType('INNER')">
+            <input type="radio" name="accessJoinType" id="radioJpInner" value="INNER" onchange="onJoinPropTypeChange('INNER')">
+            <div class="access-join-text">
+              <span class="access-join-title">1: Only include rows where the joined fields from both tables are equal.</span>
+              <span class="access-join-desc">INNER JOIN — Returns only records where a match is found in both '<span class="jp-left-name">Left</span>' and '<span class="jp-right-name">Right</span>'.</span>
+            </div>
+          </label>
+
+          <label class="access-join-radio-card" id="cardJpLeft" onclick="selectJoinPropType('LEFT')">
+            <input type="radio" name="accessJoinType" id="radioJpLeft" value="LEFT" onchange="onJoinPropTypeChange('LEFT')">
+            <div class="access-join-text">
+              <span class="access-join-title">2: Include ALL records from '<span class="jp-left-name">Left</span>' and only those records from '<span class="jp-right-name">Right</span>' where the joined fields are equal.</span>
+              <span class="access-join-desc">LEFT OUTER JOIN — Preserves all records from '<span class="jp-left-name">Left</span>', filling in NULLs for non-matching records from '<span class="jp-right-name">Right</span>'.</span>
+            </div>
+          </label>
+
+          <label class="access-join-radio-card" id="cardJpRight" onclick="selectJoinPropType('RIGHT')">
+            <input type="radio" name="accessJoinType" id="radioJpRight" value="RIGHT" onchange="onJoinPropTypeChange('RIGHT')">
+            <div class="access-join-text">
+              <span class="access-join-title">3: Include ALL records from '<span class="jp-right-name">Right</span>' and only those records from '<span class="jp-left-name">Left</span>' where the joined fields are equal.</span>
+              <span class="access-join-desc">RIGHT OUTER JOIN — Preserves all records from '<span class="jp-right-name">Right</span>', filling in NULLs for non-matching records from '<span class="jp-left-name">Left</span>'.</span>
+            </div>
+          </label>
+
+          <label class="access-join-radio-card" id="cardJpFull" onclick="selectJoinPropType('FULL')">
+            <input type="radio" name="accessJoinType" id="radioJpFull" value="FULL" onchange="onJoinPropTypeChange('FULL')">
+            <div class="access-join-text">
+              <span class="access-join-title">4: Include ALL records from both tables whether or not there are matching records.</span>
+              <span class="access-join-desc">FULL OUTER JOIN — Complete union of all rows from both tables with NULLs where keys do not match.</span>
+            </div>
+          </label>
+
+          <label class="access-join-radio-card" id="cardJpCross" onclick="selectJoinPropType('CROSS')">
+            <input type="radio" name="accessJoinType" id="radioJpCross" value="CROSS" onchange="onJoinPropTypeChange('CROSS')">
+            <div class="access-join-text">
+              <span class="access-join-title">5: Produce the Cartesian product of all rows between '<span class="jp-left-name">Left</span>' and '<span class="jp-right-name">Right</span>'.</span>
+              <span class="access-join-desc">CROSS JOIN — Pairs every row from '<span class="jp-left-name">Left</span>' with every row from '<span class="jp-right-name">Right</span>' without matching condition.</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Live Venn Diagram & SQL Preview -->
+        <div class="access-venn-preview-row">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <svg class="access-venn-svg" viewBox="0 0 160 90" id="jpVennSvg">
+              <!-- Rendered dynamically by updateJoinPropVennDiagram -->
+            </svg>
+            <span id="jpVennBadge" style="font-size:10px; font-weight:700; color:var(--cyan); margin-top:2px;">INNER JOIN</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+            <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Generated SQL JOIN Clause</span>
+            <div class="access-sql-box" id="jpSqlSnippet">FROM "table1" INNER JOIN "table2" ON "table1"."id" = "table2"."id"</div>
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
+          <button class="btn btn-sm btn-danger" id="btnDeleteJoinProp" onclick="deleteCurrentJoinFromProperties()">🗑️ Delete Join</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm" onclick="closeJoinPropertiesModal()">Cancel</button>
+            <button class="btn btn-sm btn-primary" onclick="saveJoinProperties()">✓ OK / Apply Join</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Database Browser & Chooser Modal -->
   <div class="modal-overlay" id="dbBrowserModal" onclick="if(event.target === this) closeDatabaseDialog()">
     <div class="modal-card">
@@ -1813,6 +2190,13 @@ ${CRUD_STYLE}
       orderBy: "",
       filters: [],
       havingFilters: [],
+      canvasZoom: 1.0,
+      canvasHeight: 480,
+      canvasViewMode: "split",
+      gridDensity: "normal",
+      sqlFontSize: 13,
+      datasheetFontSize: 11,
+      datasheetDensity: "normal",
     };
 
     // ---------------------------------------------------------------------------------------------
@@ -2446,85 +2830,87 @@ ${CRUD_STYLE}
       return (currentSchema.tables || []).find(t => t.name === name) || (currentSchema.views || []).find(v => v.name === name) || null;
     }
 
-    function suggestDesignerJoin(leftTableName, rightTableName) {
-      if (!currentSchema) return null;
+    function findAllDesignerJoins(leftTableName, rightTableName) {
+      if (!currentSchema || !leftTableName || !rightTableName || leftTableName === rightTableName) return [];
       const leftMeta = getEntityMeta(leftTableName);
       const rightMeta = getEntityMeta(rightTableName);
-      if (!leftMeta || !rightMeta) return null;
+      if (!leftMeta || !rightMeta) return [];
+
+      const results = [];
+      const seen = new Set();
+      function addCandidate(lT, lF, rT, rF, type, conf) {
+        const id = lT + "." + lF + "<->" + rT + "." + rF;
+        const revId = rT + "." + rF + "<->" + lT + "." + lF;
+        if (seen.has(id) || seen.has(revId)) return;
+        seen.add(id);
+        seen.add(revId);
+        results.push({
+          leftTable: lT,
+          leftField: lF,
+          rightTable: rT,
+          rightField: rF,
+          type: type || "INNER",
+          confidence: conf || 50,
+        });
+      }
 
       // 1. Explicit foreign key from leftMeta to rightMeta
-      const fkMatch = (leftMeta.foreignKeys || []).find(fk => fk.table === rightTableName);
-      if (fkMatch) {
-        return {
-          leftTable: leftTableName,
-          rightTable: rightTableName,
-          leftField: fkMatch.from,
-          rightField: fkMatch.to || "id",
-          type: "INNER",
-          confidence: 100,
-        };
-      }
+      (leftMeta.foreignKeys || []).forEach(fk => {
+        if (fk.table === rightTableName) {
+          addCandidate(leftTableName, fk.from, rightTableName, fk.to || "id", "INNER", 100);
+        }
+      });
 
       // 2. Reverse foreign key from rightMeta to leftMeta
-      const reverseMatch = (rightMeta.foreignKeys || []).find(fk => fk.table === leftTableName);
-      if (reverseMatch) {
-        return {
-          leftTable: leftTableName,
-          rightTable: rightTableName,
-          leftField: reverseMatch.to || "id",
-          rightField: reverseMatch.from,
-          type: "INNER",
-          confidence: 100,
-        };
-      }
+      (rightMeta.foreignKeys || []).forEach(fk => {
+        if (fk.table === leftTableName) {
+          addCandidate(leftTableName, fk.to || "id", rightTableName, fk.from, "INNER", 100);
+        }
+      });
 
-      // 3. Conventional naming: leftTable has singular(rightTable)_id column
-      const rightSingular = getSingularCandidate(rightTableName);
-      const candidateInLeft = (leftMeta.columns || []).find(c => c.name.toLowerCase() === (rightSingular + "_id") || c.name.toLowerCase() === (rightTableName.toLowerCase() + "_id"));
-      if (candidateInLeft) {
-        return {
-          leftTable: leftTableName,
-          rightTable: rightTableName,
-          leftField: candidateInLeft.name,
-          rightField: "id",
-          type: "INNER",
-          confidence: 90,
-        };
-      }
+      // 3. Conventional naming: leftTable has singular(rightTable)_id or rightTable_id column
+      const rightSingular = getSingularCandidate(rightTableName).toLowerCase();
+      const rightLower = rightTableName.toLowerCase();
+      (leftMeta.columns || []).forEach(c => {
+        const colLower = c.name.toLowerCase();
+        if (colLower === (rightSingular + "_id") || colLower === (rightLower + "_id") || colLower === (rightSingular + "id")) {
+          const targetPk = (rightMeta.columns || []).find(rc => rc.pk)?.name || "id";
+          addCandidate(leftTableName, c.name, rightTableName, targetPk, "INNER", 90);
+        }
+      });
 
-      // Conventional naming: rightTable has singular(leftTable)_id column
-      const leftSingular = getSingularCandidate(leftTableName);
-      const candidateInRight = (rightMeta.columns || []).find(c => c.name.toLowerCase() === (leftSingular + "_id") || c.name.toLowerCase() === (leftTableName.toLowerCase() + "_id"));
-      if (candidateInRight) {
-        return {
-          leftTable: leftTableName,
-          rightTable: rightTableName,
-          leftField: "id",
-          rightField: candidateInRight.name,
-          type: "INNER",
-          confidence: 90,
-        };
-      }
+      // Conventional naming: rightTable has singular(leftTable)_id or leftTable_id column
+      const leftSingular = getSingularCandidate(leftTableName).toLowerCase();
+      const leftLower = leftTableName.toLowerCase();
+      (rightMeta.columns || []).forEach(c => {
+        const colLower = c.name.toLowerCase();
+        if (colLower === (leftSingular + "_id") || colLower === (leftLower + "_id") || colLower === (leftSingular + "id")) {
+          const targetPk = (leftMeta.columns || []).find(lc => lc.pk)?.name || "id";
+          addCandidate(leftTableName, targetPk, rightTableName, c.name, "INNER", 90);
+        }
+      });
 
       // 4. Domain specific matching keys (excluding generic 'id' and standard audit fields)
       const leftFields = (leftMeta.columns || []).map(c => c.name);
       const rightFieldNames = new Set((rightMeta.columns || []).map(c => c.name));
-      const sharedDomainCol = leftFields.find(c => {
+      const ignoredCols = new Set(["id", "created_at", "updated_at", "deleted_at", "status", "active", "type", "description", "name", "notes", "data", "metadata"]);
+      leftFields.forEach(c => {
         const lower = c.toLowerCase();
-        return rightFieldNames.has(c) && !["id", "created_at", "updated_at", "status", "active", "type", "description"].includes(lower);
+        if (rightFieldNames.has(c) && !ignoredCols.has(lower) && (lower.endsWith("_id") || lower.endsWith("_code") || lower.endsWith("_no") || lower.endsWith("_num") || lower.endsWith("_key"))) {
+          addCandidate(leftTableName, c, rightTableName, c, "INNER", 80);
+        }
       });
-      if (sharedDomainCol) {
-        return {
-          leftTable: leftTableName,
-          rightTable: rightTableName,
-          leftField: sharedDomainCol,
-          rightField: sharedDomainCol,
-          type: "INNER",
-          confidence: 75,
-        };
-      }
 
-      // 5. Fallback if both have PK / first column
+      return results.sort((a, b) => b.confidence - a.confidence);
+    }
+
+    function suggestDesignerJoin(leftTableName, rightTableName) {
+      const all = findAllDesignerJoins(leftTableName, rightTableName);
+      if (all && all.length > 0) return all[0];
+      if (!currentSchema) return null;
+      const leftMeta = getEntityMeta(leftTableName);
+      const rightMeta = getEntityMeta(rightTableName);
+      if (!leftMeta || !rightMeta) return null;
       const lf = (leftMeta.columns && leftMeta.columns[0]) ? leftMeta.columns[0].name : "id";
       const rf = (rightMeta.columns && rightMeta.columns[0]) ? rightMeta.columns[0].name : "id";
       return {
@@ -2635,7 +3021,7 @@ ${CRUD_STYLE}
       }
       queryDesignerState.selectedTables = selectedTables;
 
-      if (!queryDesignerState.joins || !queryDesignerState.joins.length) {
+      if (queryDesignerState.joins === undefined || queryDesignerState.joins === null) {
         queryDesignerState.joins = buildDesignerJoinPairs();
       } else {
         queryDesignerState.joins = queryDesignerState.joins.filter(j => selectedTables.includes(j.leftTable) && selectedTables.includes(j.rightTable));
@@ -2671,6 +3057,17 @@ ${CRUD_STYLE}
       if (!queryDesignerState.savedQueries) {
         queryDesignerState.savedQueries = [];
       }
+      if (!queryDesignerState.tablePositions) {
+        queryDesignerState.tablePositions = {};
+      }
+      (selectedTables || []).forEach((t, i) => {
+        if (!queryDesignerState.tablePositions[t]) {
+          queryDesignerState.tablePositions[t] = {
+            x: 20 + i * 270,
+            y: 15,
+          };
+        }
+      });
     }
 
     function setDesignerActiveView(view) {
@@ -2715,36 +3112,44 @@ ${CRUD_STYLE}
     function addDesignerTable(tableName) {
       if (!tableName || queryDesignerState.selectedTables.includes(tableName)) return;
       queryDesignerState.selectedTables.push(tableName);
-      if (queryDesignerState.selectedTables.length > 1) {
-        let bestTarget = null;
-        let bestSugg = null;
-        let bestConf = -1;
-        const candidates = queryDesignerState.selectedTables.slice(0, -1);
+      if (!queryDesignerState.joins) queryDesignerState.joins = [];
 
-        for (const target of candidates) {
-          const s = suggestDesignerJoin(target, tableName);
-          const c = s ? (s.confidence || 50) : 0;
-          if (c > bestConf) {
-            bestConf = c;
-            bestTarget = target;
-            bestSugg = s;
+      // Auto-detect join relationships between the newly added table and ALL tables already in query
+      const existingTables = queryDesignerState.selectedTables.filter(t => t !== tableName);
+      const addedJoins = [];
+
+      for (const target of existingTables) {
+        const found = findAllDesignerJoins(target, tableName);
+        for (const rel of found) {
+          const alreadyExists = queryDesignerState.joins.some(j =>
+            (j.leftTable === rel.leftTable && j.rightTable === rel.rightTable && j.leftField === rel.leftField && j.rightField === rel.rightField) ||
+            (j.leftTable === rel.rightTable && j.rightTable === rel.leftTable && j.leftField === rel.rightField && j.rightField === rel.leftField)
+          );
+          if (!alreadyExists) {
+            const newJoin = {
+              key: rel.leftTable + "." + rel.leftField + "->" + rel.rightTable + "." + rel.rightField + "-" + Date.now() + Math.random().toString(16).slice(2, 6),
+              ...rel,
+            };
+            queryDesignerState.joins.push(newJoin);
+            addedJoins.push(newJoin);
           }
         }
-
-        const finalSugg = bestSugg || {
-          leftTable: candidates[0],
-          rightTable: tableName,
-          leftField: "id",
-          rightField: "id",
-          type: "INNER",
-        };
-
-        queryDesignerState.joins.push({
-          key: finalSugg.leftTable + "." + finalSugg.leftField + "->" + tableName + "." + finalSugg.rightField + "-" + Date.now(),
-          ...finalSugg,
-        });
       }
+
+      // Assign position on 2D visual canvas
+      if (!queryDesignerState.tablePositions) queryDesignerState.tablePositions = {};
+      const count = queryDesignerState.selectedTables.length - 1;
+      queryDesignerState.tablePositions[tableName] = {
+        x: 20 + (count % 4) * 280,
+        y: 15 + Math.floor(count / 4) * 240,
+      };
+
       renderQueryDesigner();
+      if (addedJoins.length > 0) {
+        showToast("Added table '" + tableName + "' (auto-connected " + addedJoins.length + " relationship" + (addedJoins.length > 1 ? "s" : "") + ")");
+      } else {
+        showToast("Added table '" + tableName + "' to visual canvas");
+      }
     }
 
     function removeDesignerTable(tableName) {
@@ -2755,9 +3160,776 @@ ${CRUD_STYLE}
     }
 
     function autoJoinDesignerTables() {
-      queryDesignerState.joins = buildDesignerJoinPairs();
+      if (!currentSchema || !queryDesignerState.selectedTables || queryDesignerState.selectedTables.length < 2) {
+        showToast("Add 2 or more tables to auto-detect joins");
+        return;
+      }
+      const tables = queryDesignerState.selectedTables;
+      let newCount = 0;
+      if (!queryDesignerState.joins) queryDesignerState.joins = [];
+
+      for (let i = 0; i < tables.length; i++) {
+        for (let j = i + 1; j < tables.length; j++) {
+          const t1 = tables[i];
+          const t2 = tables[j];
+          const rels = findAllDesignerJoins(t1, t2);
+          for (const rel of rels) {
+            const alreadyExists = queryDesignerState.joins.some(j =>
+              (j.leftTable === rel.leftTable && j.rightTable === rel.rightTable && j.leftField === rel.leftField && j.rightField === rel.rightField) ||
+              (j.leftTable === rel.rightTable && j.rightTable === rel.leftTable && j.leftField === rel.rightField && j.rightField === rel.leftField)
+            );
+            if (!alreadyExists) {
+              queryDesignerState.joins.push({
+                key: rel.leftTable + "." + rel.leftField + "->" + rel.rightTable + "." + rel.rightField + "-" + Date.now() + Math.random().toString(16).slice(2, 6),
+                ...rel,
+              });
+              newCount++;
+            }
+          }
+        }
+      }
+
+      // If still no joins and multiple tables, provide minimum spanning tree connection
+      if (queryDesignerState.joins.length === 0 && tables.length > 1) {
+        queryDesignerState.joins = buildDesignerJoinPairs();
+        newCount = queryDesignerState.joins.length;
+      }
+
       renderQueryDesigner();
-      showToast("Schema graph relationships auto-detected & connected (" + (queryDesignerState.joins || []).length + " links)");
+      if (newCount > 0) {
+        showToast("⚡ Auto-detected & linked " + newCount + " relationship" + (newCount > 1 ? "s" : "") + " across " + tables.length + " tables");
+      } else {
+        showToast("All schema relationships across " + tables.length + " tables are already linked (" + queryDesignerState.joins.length + " active joins)");
+      }
+    }
+
+    let currentEditingJoinKey = null;
+    let activeDraggingTable = null;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let cardStartLeft = 0;
+    let cardStartTop = 0;
+
+    function openJoinPropertiesModal(joinKey, preferredLeft, preferredRight, preferredLeftField, preferredRightField) {
+      const modal = document.getElementById("accessJoinPropertiesModal");
+      if (!modal) return;
+      ensureQueryDesignerState();
+
+      const selectedTables = queryDesignerState.selectedTables || [];
+      if (selectedTables.length < 2) {
+        showToast("Add at least 2 tables to the Query Designer first");
+        return;
+      }
+
+      currentEditingJoinKey = joinKey || null;
+      let leftTable = preferredLeft || selectedTables[0];
+      let rightTable = preferredRight || selectedTables[1] || selectedTables[0];
+      let leftField = preferredLeftField || "";
+      let rightField = preferredRightField || "";
+      let joinType = "INNER";
+
+      if (currentEditingJoinKey) {
+        const existing = (queryDesignerState.joins || []).find(j => j.key === currentEditingJoinKey);
+        if (existing) {
+          leftTable = existing.leftTable;
+          rightTable = existing.rightTable;
+          leftField = existing.leftField;
+          rightField = existing.rightField;
+          joinType = (existing.type || "INNER").toUpperCase();
+        }
+      }
+
+      const leftSelect = document.getElementById("jpLeftTable");
+      const rightSelect = document.getElementById("jpRightTable");
+      if (leftSelect && rightSelect) {
+        leftSelect.innerHTML = selectedTables.map(t => \`<option value="\${escapeHtml(t)}" \${t === leftTable ? 'selected' : ''}>\${escapeHtml(t)}</option>\`).join('');
+        rightSelect.innerHTML = selectedTables.map(t => \`<option value="\${escapeHtml(t)}" \${t === rightTable ? 'selected' : ''}>\${escapeHtml(t)}</option>\`).join('');
+      }
+
+      onJoinPropTableChange("left", leftField);
+      onJoinPropTableChange("right", rightField);
+
+      selectJoinPropType(joinType);
+
+      const delBtn = document.getElementById("btnDeleteJoinProp");
+      if (delBtn) delBtn.style.display = currentEditingJoinKey ? "inline-flex" : "none";
+
+      modal.classList.add("open");
+    }
+
+    function closeJoinPropertiesModal() {
+      const modal = document.getElementById("accessJoinPropertiesModal");
+      if (modal) modal.classList.remove("open");
+      currentEditingJoinKey = null;
+    }
+
+    function onJoinPropTableChange(side, defaultField) {
+      const tableSelect = document.getElementById(side === "left" ? "jpLeftTable" : "jpRightTable");
+      const fieldSelect = document.getElementById(side === "left" ? "jpLeftField" : "jpRightField");
+      if (!tableSelect || !fieldSelect) return;
+
+      const tableName = tableSelect.value;
+      const meta = getEntityMeta(tableName);
+      const cols = meta && meta.columns ? meta.columns.map(c => c.name) : ["id"];
+
+      let selectedCol = defaultField && cols.includes(defaultField) ? defaultField : "";
+      if (!selectedCol) {
+        const pkCol = meta && meta.columns ? meta.columns.find(c => c.pk) : null;
+        selectedCol = pkCol ? pkCol.name : cols[0];
+      }
+
+      fieldSelect.innerHTML = cols.map(c => \`<option value="\${escapeHtml(c)}" \${c === selectedCol ? 'selected' : ''}>\${escapeHtml(c)}</option>\`).join('');
+
+      updateJoinPropLabels();
+      updateJoinPropVennDiagram(getSelectedJoinPropType(), document.getElementById("jpLeftTable")?.value || "Left", document.getElementById("jpRightTable")?.value || "Right");
+      updateJoinPropPreview();
+    }
+
+    function updateJoinPropLabels() {
+      const lt = document.getElementById("jpLeftTable")?.value || "Left";
+      const rt = document.getElementById("jpRightTable")?.value || "Right";
+      document.querySelectorAll(".jp-left-name").forEach(el => el.textContent = lt);
+      document.querySelectorAll(".jp-right-name").forEach(el => el.textContent = rt);
+    }
+
+    function swapJoinPropDirection() {
+      const leftTableSel = document.getElementById("jpLeftTable");
+      const rightTableSel = document.getElementById("jpRightTable");
+      const leftFieldSel = document.getElementById("jpLeftField");
+      const rightFieldSel = document.getElementById("jpRightField");
+      if (!leftTableSel || !rightTableSel || !leftFieldSel || !rightFieldSel) return;
+
+      const oldLT = leftTableSel.value;
+      const oldRT = rightTableSel.value;
+      const oldLF = leftFieldSel.value;
+      const oldRF = rightFieldSel.value;
+
+      leftTableSel.value = oldRT;
+      rightTableSel.value = oldLT;
+
+      onJoinPropTableChange("left", oldRF);
+      onJoinPropTableChange("right", oldLF);
+
+      const curType = getSelectedJoinPropType();
+      if (curType === "LEFT") selectJoinPropType("RIGHT");
+      else if (curType === "RIGHT") selectJoinPropType("LEFT");
+      else selectJoinPropType(curType);
+    }
+
+    function getSelectedJoinPropType() {
+      const radio = document.querySelector('input[name="accessJoinType"]:checked');
+      return radio ? radio.value.toUpperCase() : "INNER";
+    }
+
+    function selectJoinPropType(type) {
+      const t = (type || "INNER").toUpperCase();
+      const radio = document.querySelector(\`input[name="accessJoinType"][value="\${t}"]\`);
+      if (radio) radio.checked = true;
+
+      document.querySelectorAll(".access-join-radio-card").forEach(c => c.classList.remove("selected"));
+      const card = document.getElementById("cardJp" + (t === "FULL" ? "Full" : (t.charAt(0) + t.slice(1).toLowerCase())));
+      if (card) card.classList.add("selected");
+
+      const lt = document.getElementById("jpLeftTable")?.value || "Left";
+      const rt = document.getElementById("jpRightTable")?.value || "Right";
+      updateJoinPropVennDiagram(t, lt, rt);
+      updateJoinPropPreview();
+    }
+
+    function onJoinPropTypeChange(type) {
+      selectJoinPropType(type);
+    }
+
+    function updateJoinPropVennDiagram(type, leftName, rightName) {
+      const svg = document.getElementById("jpVennSvg");
+      const badge = document.getElementById("jpVennBadge");
+      if (!svg) return;
+
+      const t = (type || "INNER").toUpperCase();
+      const truncL = leftName.length > 9 ? leftName.slice(0, 8) + "…" : leftName;
+      const truncR = rightName.length > 9 ? rightName.slice(0, 8) + "…" : rightName;
+
+      let leftFill = "rgba(255,255,255,0.06)";
+      let rightFill = "rgba(255,255,255,0.06)";
+      let lensFill = "rgba(255,255,255,0.06)";
+      let badgeText = "INNER JOIN (Matching records)";
+      let badgeColor = "var(--cyan)";
+
+      if (t === "INNER") {
+        lensFill = "#38bdf8";
+        badgeText = "INNER JOIN (=)";
+        badgeColor = "#38bdf8";
+      } else if (t === "LEFT") {
+        leftFill = "#10b981";
+        lensFill = "#10b981";
+        badgeText = "LEFT OUTER (All " + truncL + ")";
+        badgeColor = "#10b981";
+      } else if (t === "RIGHT") {
+        rightFill = "#f59e0b";
+        lensFill = "#f59e0b";
+        badgeText = "RIGHT OUTER (All " + truncR + ")";
+        badgeColor = "#f59e0b";
+      } else if (t === "FULL" || t === "FULL OUTER") {
+        leftFill = "#a855f7";
+        lensFill = "#a855f7";
+        rightFill = "#a855f7";
+        badgeText = "FULL OUTER (All from Both)";
+        badgeColor = "#a855f7";
+      } else if (t === "CROSS") {
+        leftFill = "#ec4899";
+        lensFill = "#ec4899";
+        rightFill = "#ec4899";
+        badgeText = "CROSS JOIN (Cartesian product)";
+        badgeColor = "#ec4899";
+      }
+
+      if (badge) {
+        badge.textContent = badgeText;
+        badge.style.color = badgeColor;
+      }
+
+      svg.innerHTML = \`
+        <rect x="0" y="0" width="160" height="90" fill="none" />
+        <!-- Left Crescent -->
+        <path d="M 80,25 A 32 32 0 0 1 80,65 A 32 32 0 1 1 80,25 Z" fill="\${leftFill}" fill-opacity="0.8" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+        <!-- Right Crescent -->
+        <path d="M 80,25 A 32 32 0 0 0 80,65 A 32 32 0 1 0 80,25 Z" fill="\${rightFill}" fill-opacity="0.8" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+        <!-- Intersection Lens -->
+        <path d="M 80,25 A 32 32 0 0 1 80,65 A 32 32 0 0 1 80,25 Z" fill="\${lensFill}" fill-opacity="0.9" stroke="\${badgeColor}" stroke-width="2" />
+        <!-- Table Labels -->
+        <text x="48" y="14" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" font-family="sans-serif">\${escapeHtml(truncL)}</text>
+        <text x="112" y="14" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" font-family="sans-serif">\${escapeHtml(truncR)}</text>
+      \`;
+    }
+
+    function updateJoinPropPreview() {
+      const box = document.getElementById("jpSqlSnippet");
+      if (!box) return;
+      const lt = document.getElementById("jpLeftTable")?.value || "left_table";
+      const rt = document.getElementById("jpRightTable")?.value || "right_table";
+      const lf = document.getElementById("jpLeftField")?.value || "id";
+      const rf = document.getElementById("jpRightField")?.value || "id";
+      const type = getSelectedJoinPropType();
+
+      let sql = "";
+      if (type === "CROSS") {
+        sql = "FROM " + quoteSqlIdentifier(lt) + " CROSS JOIN " + quoteSqlIdentifier(rt);
+      } else {
+        const effType = (type === "FULL" || type === "FULL OUTER") ? "FULL OUTER" : type;
+        sql = "FROM " + quoteSqlIdentifier(lt) + " " + effType + " JOIN " + quoteSqlIdentifier(rt) + "\\n  ON " + quoteSqlIdentifier(lt) + "." + quoteSqlIdentifier(lf) + " = " + quoteSqlIdentifier(rt) + "." + quoteSqlIdentifier(rf);
+      }
+      box.textContent = sql;
+    }
+
+    function saveJoinProperties() {
+      const lt = document.getElementById("jpLeftTable")?.value;
+      const rt = document.getElementById("jpRightTable")?.value;
+      const lf = document.getElementById("jpLeftField")?.value;
+      const rf = document.getElementById("jpRightField")?.value;
+      const type = getSelectedJoinPropType();
+
+      if (!lt || !rt || !lf || !rf) {
+        showToast("Select tables and fields for both sides");
+        return;
+      }
+      if (lt === rt && lf === rf) {
+        showToast("Cannot join a field to itself");
+        return;
+      }
+
+      if (!queryDesignerState.joins) queryDesignerState.joins = [];
+
+      if (currentEditingJoinKey) {
+        const idx = queryDesignerState.joins.findIndex(j => j.key === currentEditingJoinKey);
+        if (idx !== -1) {
+          queryDesignerState.joins[idx] = {
+            key: lt + "." + lf + "->" + rt + "." + rf + "-" + Date.now(),
+            leftTable: lt,
+            leftField: lf,
+            rightTable: rt,
+            rightField: rf,
+            type: type,
+          };
+        }
+      } else {
+        queryDesignerState.joins.push({
+          key: lt + "." + lf + "->" + rt + "." + rf + "-" + Date.now(),
+          leftTable: lt,
+          leftField: lf,
+          rightTable: rt,
+          rightField: rf,
+          type: type,
+        });
+      }
+
+      closeJoinPropertiesModal();
+      renderQueryDesigner();
+      showToast("Updated relationship: " + lt + " ↔ " + rt + " (" + type + " JOIN)");
+    }
+
+    function deleteCurrentJoinFromProperties() {
+      if (!currentEditingJoinKey) {
+        closeJoinPropertiesModal();
+        return;
+      }
+      queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.key !== currentEditingJoinKey);
+      closeJoinPropertiesModal();
+      renderQueryDesigner();
+      showToast("Deleted relationship");
+    }
+
+    function onDesignerFieldDragStart(e, table, field) {
+      if (e.dataTransfer) {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ table, field }));
+        e.dataTransfer.effectAllowed = "link";
+      }
+    }
+
+    function onDesignerFieldDragOver(e) {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "link";
+      }
+    }
+
+    function onDesignerFieldDragEnter(e, table, field) {
+      e.preventDefault();
+      const el = document.getElementById("qbeFieldRow_" + table + "_" + field);
+      if (el) el.classList.add("qbe-field-drop-target");
+    }
+
+    function onDesignerFieldDragLeave(e) {
+      const el = e.currentTarget;
+      if (el) el.classList.remove("qbe-field-drop-target");
+    }
+
+    function onDesignerFieldDrop(e, targetTable, targetField) {
+      e.preventDefault();
+      const targetEl = document.getElementById("qbeFieldRow_" + targetTable + "_" + targetField);
+      if (targetEl) targetEl.classList.remove("qbe-field-drop-target");
+
+      try {
+        const raw = e.dataTransfer.getData("text/plain");
+        if (!raw) return;
+        const source = JSON.parse(raw);
+        if (!source || !source.table || !source.field) return;
+
+        if (source.table === targetTable) {
+          showToast("Cannot create relationship within the same table");
+          return;
+        }
+
+        openJoinPropertiesModal(null, source.table, targetTable, source.field, targetField);
+      } catch (err) {
+        console.error("Drop relationship error:", err);
+      }
+    }
+
+    function onDesignerTableHeaderMouseDown(e, tableName) {
+      if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) return;
+      e.preventDefault();
+      activeDraggingTable = tableName;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+
+      if (!queryDesignerState.tablePositions) queryDesignerState.tablePositions = {};
+      const pos = queryDesignerState.tablePositions[tableName] || { x: 20, y: 15 };
+      cardStartLeft = pos.x;
+      cardStartTop = pos.y;
+
+      const card = document.getElementById("qbeTableCard_" + tableName);
+      if (card) card.classList.add("dragging");
+
+      function onMouseMove(ev) {
+        if (!activeDraggingTable) return;
+        const zoom = queryDesignerState.canvasZoom || 1.0;
+        const dx = (ev.clientX - dragStartX) / zoom;
+        const dy = (ev.clientY - dragStartY) / zoom;
+        const newX = Math.max(10, cardStartLeft + dx);
+        const newY = Math.max(10, cardStartTop + dy);
+        queryDesignerState.tablePositions[activeDraggingTable] = { x: newX, y: newY };
+        const c = document.getElementById("qbeTableCard_" + activeDraggingTable);
+        if (c) {
+          c.style.left = newX + "px";
+          c.style.top = newY + "px";
+        }
+        updateCanvasSvg();
+      }
+
+      function onMouseUp() {
+        if (activeDraggingTable) {
+          const c = document.getElementById("qbeTableCard_" + activeDraggingTable);
+          if (c) {
+            c.classList.remove("dragging");
+          }
+          activeDraggingTable = null;
+        }
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        updateCanvasSvg();
+      }
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    }
+
+    function autoArrangeDesignerTables() {
+      ensureQueryDesignerState();
+      queryDesignerState.tablePositions = {};
+      (queryDesignerState.selectedTables || []).forEach((t, i) => {
+        queryDesignerState.tablePositions[t] = {
+          x: 20 + i * 270,
+          y: 15,
+        };
+      });
+      renderQueryDesigner();
+      showToast("Arranged tables across relationship canvas");
+    }
+
+    function setDesignerCanvasZoom(newZoom) {
+      const clamped = Math.max(0.4, Math.min(2.5, Math.round(newZoom * 100) / 100));
+      queryDesignerState.canvasZoom = clamped;
+      const stage = document.getElementById("qbeCanvasStage");
+      if (stage) {
+        stage.style.transform = "scale(" + clamped + ")";
+      }
+      const select = document.getElementById("canvasZoomSelect");
+      if (select) {
+        select.value = clamped.toString();
+        if (![0.5, 0.75, 0.9, 1.0, 1.25, 1.5, 2.0].includes(clamped)) {
+          select.innerHTML = '<option value="' + clamped + '" selected>' + Math.round(clamped * 100) + '%</option>' +
+            '<option value="0.5">50%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1.0">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2.0">200%</option>';
+        }
+      }
+      updateCanvasSvg();
+    }
+
+    function zoomInDesignerCanvas() {
+      setDesignerCanvasZoom((queryDesignerState.canvasZoom || 1.0) + 0.15);
+    }
+
+    function zoomOutDesignerCanvas() {
+      setDesignerCanvasZoom((queryDesignerState.canvasZoom || 1.0) - 0.15);
+    }
+
+    function resetDesignerCanvasZoom() {
+      setDesignerCanvasZoom(1.0);
+    }
+
+    function fitDesignerCanvasZoom() {
+      const viewport = document.getElementById("qbeCanvasViewport");
+      const tables = queryDesignerState.selectedTables || [];
+      if (!viewport || tables.length === 0) return;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      tables.forEach(t => {
+        const pos = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[t]) || { x: 20, y: 15 };
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x + 240);
+        maxY = Math.max(maxY, pos.y + 260);
+      });
+
+      const spanW = Math.max(200, maxX - minX + 60);
+      const spanH = Math.max(200, maxY - minY + 60);
+      const vW = viewport.clientWidth || 800;
+      const vH = viewport.clientHeight || 400;
+
+      const scaleX = vW / spanW;
+      const scaleY = vH / spanH;
+      const fitZoom = Math.min(1.4, Math.max(0.45, Math.min(scaleX, scaleY)));
+
+      setDesignerCanvasZoom(fitZoom);
+      viewport.scrollLeft = Math.max(0, (minX - 20) * fitZoom);
+      viewport.scrollTop = Math.max(0, (minY - 20) * fitZoom);
+      showToast("Canvas fitted to all " + tables.length + " tables (" + Math.round(fitZoom * 100) + "%)");
+    }
+
+    function setDesignerRoomMode(mode) {
+      queryDesignerState.canvasViewMode = mode;
+      const viewport = document.getElementById("qbeCanvasViewport");
+      const grid = document.querySelector(".qbe-matrix-container");
+      if (!viewport) return;
+
+      let targetH = 480;
+      if (mode === "canvas-max") {
+        targetH = Math.max(550, (window.innerHeight || 800) - 320);
+        if (grid) grid.style.maxHeight = "180px";
+      } else if (mode === "grid-max") {
+        targetH = 240;
+        if (grid) grid.style.maxHeight = "none";
+      } else {
+        targetH = 480;
+        if (grid) grid.style.maxHeight = "none";
+      }
+
+      queryDesignerState.canvasHeight = targetH;
+      viewport.style.height = targetH + "px";
+      viewport.style.maxHeight = targetH + "px";
+      document.documentElement.style.setProperty("--qbe-canvas-height", targetH + "px");
+      updateCanvasSvg();
+      showToast("Room layout: " + (mode === "canvas-max" ? "Canvas Maximized" : mode === "grid-max" ? "Grid Focused" : "Balanced Split"));
+    }
+
+    function initQbeSplitter() {
+      const splitter = document.getElementById("qbeResizerBar");
+      const viewport = document.getElementById("qbeCanvasViewport");
+      if (!splitter || !viewport || splitter.dataset.splitterInitialized) return;
+      splitter.dataset.splitterInitialized = "true";
+
+      let isDragging = false;
+      let startY = 0;
+      let startH = 0;
+
+      splitter.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        startY = e.clientY;
+        startH = viewport.offsetHeight;
+        splitter.classList.add("resizing");
+        document.body.style.cursor = "row-resize";
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        const delta = e.clientY - startY;
+        const newH = Math.max(200, Math.min(1200, startH + delta));
+        queryDesignerState.canvasHeight = newH;
+        viewport.style.height = newH + "px";
+        viewport.style.maxHeight = newH + "px";
+        document.documentElement.style.setProperty("--qbe-canvas-height", newH + "px");
+        updateCanvasSvg();
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          splitter.classList.remove("resizing");
+          document.body.style.cursor = "";
+          updateCanvasSvg();
+        }
+      });
+    }
+
+    function initCanvasPanAndZoom() {
+      const viewport = document.getElementById("qbeCanvasViewport");
+      if (!viewport || viewport.dataset.zoomInitialized) return;
+      viewport.dataset.zoomInitialized = "true";
+
+      let isPanning = false;
+      let startX = 0;
+      let startY = 0;
+      let scrollStartL = 0;
+      let scrollStartT = 0;
+
+      viewport.addEventListener("mousedown", (e) => {
+        const target = e.target;
+        if (target.closest(".qbe-table-card") || target.closest(".qbe-svg-join-badge") || target.closest("button") || target.closest("select") || target.closest("input")) {
+          return;
+        }
+        isPanning = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        scrollStartL = viewport.scrollLeft;
+        scrollStartT = viewport.scrollTop;
+        viewport.classList.add("panning");
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isPanning) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        viewport.scrollLeft = scrollStartL - dx;
+        viewport.scrollTop = scrollStartT - dy;
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isPanning) {
+          isPanning = false;
+          viewport.classList.remove("panning");
+        }
+      });
+
+      viewport.addEventListener("wheel", (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          const delta = e.deltaY < 0 ? 0.12 : -0.12;
+          const cur = queryDesignerState.canvasZoom || 1.0;
+          setDesignerCanvasZoom(cur + delta);
+        }
+      }, { passive: false });
+    }
+
+    function setQbeGridDensity(density) {
+      queryDesignerState.gridDensity = density;
+      let fontSize = "11px";
+      let padding = "4px 6px";
+      if (density === "compact") {
+        fontSize = "9.5px";
+        padding = "2px 4px";
+      } else if (density === "spacious") {
+        fontSize = "13px";
+        padding = "7px 10px";
+      }
+      document.documentElement.style.setProperty("--qbe-grid-font-size", fontSize);
+      document.documentElement.style.setProperty("--qbe-grid-cell-padding", padding);
+      renderQueryDesigner();
+    }
+
+    function adjustSqlFontSize(delta) {
+      const cur = queryDesignerState.sqlFontSize || 13;
+      const next = Math.max(10, Math.min(24, cur + delta));
+      queryDesignerState.sqlFontSize = next;
+      const area = document.getElementById("designerSqlPreview") || document.getElementById("customDesignerSqlArea");
+      const badge = document.getElementById("sqlFontBadge");
+      if (area) area.style.fontSize = next + "px";
+      if (badge) badge.textContent = next + "px";
+    }
+
+    function toggleSqlEditorHeight() {
+      const area = document.getElementById("designerSqlPreview") || document.getElementById("customDesignerSqlArea");
+      if (!area) return;
+      const curH = parseInt(area.style.height || "380", 10);
+      const newH = curH > 450 ? 380 : 640;
+      area.style.height = newH + "px";
+    }
+
+    function setDatasheetDensity(density) {
+      queryDesignerState.datasheetDensity = density;
+      let padding = "5px 8px";
+      if (density === "compact") padding = "2px 6px";
+      else if (density === "spacious") padding = "9px 12px";
+      document.documentElement.style.setProperty("--ds-cell-padding", padding);
+      renderQueryDesigner();
+    }
+
+    function adjustDatasheetFontSize(delta) {
+      const cur = queryDesignerState.datasheetFontSize || 11;
+      const next = Math.max(9, Math.min(20, cur + delta));
+      queryDesignerState.datasheetFontSize = next;
+      document.documentElement.style.setProperty("--ds-font-size", next + "px");
+      const badge = document.getElementById("dsFontBadge");
+      if (badge) badge.textContent = next + "px";
+      renderQueryDesigner();
+    }
+
+    function toggleSidebarCollapse() {
+      const aside = document.getElementById("mainSidebar");
+      if (!aside) return;
+      if (aside.style.display === "none") {
+        aside.style.display = "flex";
+      } else {
+        aside.style.display = "none";
+      }
+      setTimeout(() => {
+        if (activeTab === "designer") updateCanvasSvg();
+      }, 40);
+    }
+
+    function updateCanvasSvg() {
+      const canvas = document.getElementById("qbeCanvasViewport");
+      const stage = document.getElementById("qbeCanvasStage") || canvas;
+      const svg = document.getElementById("qbeCanvasSvg");
+      if (!canvas || !svg) return;
+
+      const joins = queryDesignerState.joins || [];
+      if (!joins.length) {
+        svg.innerHTML = "";
+        return;
+      }
+
+      const zoom = queryDesignerState.canvasZoom || 1.0;
+      const stageRect = stage.getBoundingClientRect();
+
+      svg.style.width = Math.max(stage.scrollWidth, stage.offsetWidth, 3400) + "px";
+      svg.style.height = Math.max(stage.scrollHeight, stage.offsetHeight, 2400) + "px";
+
+      let svgContent = \`
+        <defs>
+          <marker id="marker-arrow-emerald" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <polygon points="0 1, 8 4, 0 7" fill="#10b981" />
+          </marker>
+          <marker id="marker-arrow-amber" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto">
+            <polygon points="8 1, 0 4, 8 7" fill="#f59e0b" />
+          </marker>
+          <marker id="marker-diamond-purple" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+            <polygon points="4 1, 7 4, 4 7, 1 4" fill="#a855f7" />
+          </marker>
+        </defs>
+      \`;
+
+      joins.forEach(j => {
+        const fieldLeft = document.getElementById("qbeFieldRow_" + j.leftTable + "_" + j.leftField);
+        const fieldRight = document.getElementById("qbeFieldRow_" + j.rightTable + "_" + j.rightField);
+        const cardLeft = document.getElementById("qbeTableCard_" + j.leftTable);
+        const cardRight = document.getElementById("qbeTableCard_" + j.rightTable);
+
+        const targetL = fieldLeft || cardLeft;
+        const targetR = fieldRight || cardRight;
+        if (!targetL || !targetR) return;
+
+        const rL = targetL.getBoundingClientRect();
+        const rR = targetR.getBoundingClientRect();
+
+        let x1, x2;
+        if (rL.right <= rR.left) {
+          x1 = (rL.right - stageRect.left) / zoom;
+          x2 = (rR.left - stageRect.left) / zoom;
+        } else if (rR.right <= rL.left) {
+          x1 = (rL.left - stageRect.left) / zoom;
+          x2 = (rR.right - stageRect.left) / zoom;
+        } else {
+          x1 = (rL.right - stageRect.left) / zoom;
+          x2 = (rR.right - stageRect.left) / zoom;
+        }
+
+        const y1 = ((rL.top + rL.height / 2) - stageRect.top) / zoom;
+        const y2 = ((rR.top + rR.height / 2) - stageRect.top) / zoom;
+
+        const dx = Math.max(35, Math.abs(x2 - x1) * 0.45);
+        const d = \`M \${x1} \${y1} C \${x1 + (x2 >= x1 ? dx : -dx)} \${y1}, \${x2 + (x2 >= x1 ? -dx : dx)} \${y2}, \${x2} \${y2}\`;
+
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+
+        const type = (j.type || "INNER").toUpperCase();
+        let stroke = "#38bdf8";
+        let dash = "";
+        let markerAttr = "";
+        let badgeIcon = "=";
+
+        if (type === "LEFT") {
+          stroke = "#10b981";
+          markerAttr = 'marker-end="url(#marker-arrow-emerald)"';
+          badgeIcon = "⟵";
+        } else if (type === "RIGHT") {
+          stroke = "#f59e0b";
+          markerAttr = 'marker-start="url(#marker-arrow-amber)"';
+          badgeIcon = "⟶";
+        } else if (type === "FULL" || type === "FULL OUTER") {
+          stroke = "#a855f7";
+          dash = 'stroke-dasharray="6,4"';
+          markerAttr = 'marker-end="url(#marker-diamond-purple)" marker-start="url(#marker-diamond-purple)"';
+          badgeIcon = "⟷";
+        } else if (type === "CROSS") {
+          stroke = "#f43f5e";
+          dash = 'stroke-dasharray="3,3"';
+          badgeIcon = "×";
+        }
+
+        svgContent += \`
+          <path d="\${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
+          <path d="\${d}" class="qbe-svg-join-line" stroke="\${stroke}" \${dash} \${markerAttr} onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
+          <foreignObject x="\${mx - 50}" y="\${my - 13}" width="100" height="26" style="overflow: visible;">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:\${stroke}; color:\${stroke};" onclick="openJoinPropertiesModal('\${j.key}')" title="Join Properties (\${type} JOIN): Click to configure">
+              <span>\${badgeIcon}</span>
+              <span>\${type}</span>
+            </div>
+          </foreignObject>
+        \`;
+      });
+
+      svg.innerHTML = svgContent;
     }
 
     function promptAddDesignerJoin(preferredLeft, preferredRight) {
@@ -2765,43 +3937,7 @@ ${CRUD_STYLE}
         showToast("Add at least 2 tables to create a join relationship");
         return;
       }
-      const tables = queryDesignerState.selectedTables;
-      let t1 = preferredLeft || tables[0];
-      let t2 = preferredRight;
-
-      if (!t2) {
-        for (let i = 0; i < tables.length; i++) {
-          if (tables[i] === t1) continue;
-          const hasDirect = (queryDesignerState.joins || []).some(j =>
-            (j.leftTable === t1 && j.rightTable === tables[i]) ||
-            (j.leftTable === tables[i] && j.rightTable === t1)
-          );
-          if (!hasDirect) {
-            t2 = tables[i];
-            break;
-          }
-        }
-      }
-      if (!t2) t2 = tables[1] || tables[0];
-
-      const sugg = suggestDesignerJoin(t1, t2) || {
-        leftTable: t1,
-        rightTable: t2,
-        leftField: "id",
-        rightField: "id",
-        type: "INNER",
-      };
-
-      queryDesignerState.joins.push({
-        key: t1 + "." + sugg.leftField + "->" + t2 + "." + sugg.rightField + "-" + Date.now(),
-        leftTable: sugg.leftTable,
-        leftField: sugg.leftField,
-        rightTable: sugg.rightTable,
-        rightField: sugg.rightField,
-        type: sugg.type || "INNER",
-      });
-      renderQueryDesigner();
-      showToast("Added relationship: " + t1 + " ↔ " + t2);
+      openJoinPropertiesModal(null, preferredLeft, preferredRight);
     }
 
     function updateDesignerJoin(key, prop, value) {
@@ -3033,6 +4169,80 @@ ${CRUD_STYLE}
           ];
           renderQueryDesigner();
           showToast("Loaded Template: Top Customers by Spend");
+          return;
+        }
+      } else if (presetKey === "join_left") {
+        if (tableNames.includes("customers") && tableNames.includes("orders")) {
+          queryDesignerState.selectedTables = ["customers", "orders"];
+          queryDesignerState.showTotals = false;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 50;
+          queryDesignerState.joins = [
+            { key: "customers.id->orders.customer_id-left", leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "LEFT" }
+          ];
+          queryDesignerState.columns = [
+            { id: "jl1", table: "customers", field: "id", alias: "cust_id", total: "None", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jl2", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jl3", table: "orders", field: "id", alias: "order_id", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jl4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Access Option 2: LEFT OUTER JOIN (All Customers)");
+          return;
+        }
+      } else if (presetKey === "join_right") {
+        if (tableNames.includes("customers") && tableNames.includes("orders")) {
+          queryDesignerState.selectedTables = ["customers", "orders"];
+          queryDesignerState.showTotals = false;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 50;
+          queryDesignerState.joins = [
+            { key: "customers.id->orders.customer_id-right", leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "RIGHT" }
+          ];
+          queryDesignerState.columns = [
+            { id: "jr1", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jr2", table: "orders", field: "id", alias: "order_id", total: "None", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jr3", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Access Option 3: RIGHT OUTER JOIN (All Orders)");
+          return;
+        }
+      } else if (presetKey === "join_full") {
+        if (tableNames.includes("customers") && tableNames.includes("orders")) {
+          queryDesignerState.selectedTables = ["customers", "orders"];
+          queryDesignerState.showTotals = false;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 50;
+          queryDesignerState.joins = [
+            { key: "customers.id->orders.customer_id-full", leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "FULL" }
+          ];
+          queryDesignerState.columns = [
+            { id: "jf1", table: "customers", field: "id", alias: "cust_id", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jf2", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jf3", table: "orders", field: "id", alias: "order_id", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jf4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Access Option 4: FULL OUTER JOIN (All Records)");
+          return;
+        }
+      } else if (presetKey === "join_cross") {
+        if (tableNames.includes("customers") && tableNames.includes("products")) {
+          queryDesignerState.selectedTables = ["customers", "products"];
+          queryDesignerState.showTotals = false;
+          queryDesignerState.distinct = false;
+          queryDesignerState.topLimit = 25;
+          queryDesignerState.joins = [
+            { key: "customers->products-cross", leftTable: "customers", leftField: "id", rightTable: "products", rightField: "id", type: "CROSS" }
+          ];
+          queryDesignerState.columns = [
+            { id: "jc1", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jc2", table: "products", field: "name", alias: "product_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
+            { id: "jc3", table: "products", field: "price", alias: "unit_price", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+          ];
+          renderQueryDesigner();
+          showToast("Loaded Access Option 5: CROSS JOIN (Cartesian Matrix)");
           return;
         }
       } else if (presetKey === "low_stock") {
@@ -3431,14 +4641,23 @@ ${CRUD_STYLE}
 
         if (matchIdx !== -1) {
           const j = pendingJoins.splice(matchIdx, 1)[0];
-          const joinType = (j.type || "INNER").toUpperCase();
+          const rawJoinType = (j.type || "INNER").toUpperCase();
 
           if (joinedTables.has(j.leftTable) && joinedTables.has(j.rightTable)) {
+            if (rawJoinType !== "CROSS") {
+              whereConditions.push(quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField) + " = " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField));
+            }
             continue;
           }
 
           if (isReversed) {
-            const effType = (joinType === "LEFT") ? "INNER" : joinType;
+            let effType = "INNER";
+            if (rawJoinType === "LEFT") effType = "RIGHT";
+            else if (rawJoinType === "RIGHT") effType = "LEFT";
+            else if (rawJoinType === "FULL" || rawJoinType === "FULL OUTER") effType = "FULL OUTER";
+            else if (rawJoinType === "CROSS") effType = "CROSS";
+            else effType = "INNER";
+
             if (effType === "CROSS") {
               sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.leftTable));
             } else {
@@ -3446,18 +4665,22 @@ ${CRUD_STYLE}
             }
             joinedTables.add(j.leftTable);
           } else {
-            if (joinType === "CROSS") {
+            let effType = rawJoinType;
+            if (rawJoinType === "FULL" || rawJoinType === "FULL OUTER") effType = "FULL OUTER";
+            else if (rawJoinType === "LEFT" || rawJoinType === "RIGHT" || rawJoinType === "CROSS") effType = rawJoinType;
+            else effType = "INNER";
+
+            if (effType === "CROSS") {
               sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.rightTable));
             } else {
-              sqlLines.push(joinType + " JOIN " + quoteSqlIdentifier(j.rightTable) + " ON " + quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField) + " = " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField));
+              sqlLines.push(effType + " JOIN " + quoteSqlIdentifier(j.rightTable) + " ON " + quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField) + " = " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField));
             }
             joinedTables.add(j.rightTable);
           }
         } else {
-          const j = pendingJoins.shift();
-          const target = !joinedTables.has(j.rightTable) ? j.rightTable : j.leftTable;
-          sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(target));
-          joinedTables.add(target);
+          const j = pendingJoins[0];
+          sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.leftTable));
+          joinedTables.add(j.leftTable);
         }
       }
 
@@ -3539,6 +4762,10 @@ ${CRUD_STYLE}
               <option value="">⚡ Presets / Templates</option>
               <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
               <option value="top_spenders">Top Spenders (Aggregated)</option>
+              <option value="join_left">Access 2: Customers (LEFT JOIN)</option>
+              <option value="join_right">Access 3: Orders (RIGHT JOIN)</option>
+              <option value="join_full">Access 4: Customers & Orders (FULL JOIN)</option>
+              <option value="join_cross">Access 5: Cross Cartesian Product</option>
               <option value="low_stock">Low Stock Restock Alerts</option>
               <option value="orders_status">Active Orders Pipeline</option>
               <option value="blank">Blank Query (Reset)</option>
@@ -3551,10 +4778,12 @@ ${CRUD_STYLE}
               \${viewsList.length ? \`<optgroup label="👁️ Views">\${viewsList.map(name => \`<option value="\${escapeHtml(name)}">\${escapeHtml(name)} (View)</option>\`).join('')}</optgroup>\` : ''}
             </select>
             <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
-            <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">🔗 Smart Auto-Join All</button>
-            <button class="btn btn-sm" onclick="promptAddDesignerJoin()" title="Create custom join relationship">+ Link</button>
+            <button class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Microsoft Access Join Properties dialog">+ Link / Join</button>
+            <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">⚡ Auto-Detect Joins</button>
+            <button class="btn btn-sm" onclick="autoArrangeDesignerTables()" title="Auto-arrange table layout on relationship canvas">📐 Auto-Arrange</button>
             <button class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
             <button class="btn btn-sm" onclick="clearDesignerQbe()" title="Clear QBE columns">Clear</button>
+            <button class="btn btn-sm" onclick="toggleSidebarCollapse()" title="Toggle sidebar to maximize screen room for visual designer">◀▶ Sidebar</button>
             <button class="btn btn-sm" onclick="saveDesignerQuery()" title="Save query in workspace memory">💾 Save</button>
             <button class="btn btn-sm" onclick="saveDesignerAsView()" title="Persist this query as a permanent SQL VIEW in the database">👁️ Create View</button>
           </div>
@@ -3573,8 +4802,17 @@ ${CRUD_STYLE}
 
         container.innerHTML = ribbonHtml + \`
           <div class="designer-sql-panel">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="card-title" style="margin-bottom:0;">Generated Microsoft Access-Compatible SQL</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="card-title" style="margin-bottom:0;">Generated Microsoft Access-Compatible SQL</div>
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                  <span style="font-size: 10px; color: var(--text-dim);">Text:</span>
+                  <button class="btn btn-sm" onclick="adjustSqlFontSize(-1)" title="Decrease font size" style="padding: 1px 5px; font-size: 10px;">A−</button>
+                  <span id="sqlFontBadge" style="font-size: 10px; color: var(--cyan); font-family: var(--font-mono);">\${queryDesignerState.sqlFontSize || 13}px</span>
+                  <button class="btn btn-sm" onclick="adjustSqlFontSize(1)" title="Increase font size" style="padding: 1px 5px; font-size: 10px;">A+</button>
+                  <button class="btn btn-sm" onclick="toggleSqlEditorHeight()" title="Expand / shrink editor height" style="padding: 1px 6px; font-size: 10px;">↕ Resize Editor</button>
+                </div>
+              </div>
               <div style="display:flex; gap:6px;">
                 <button class="btn btn-sm btn-primary" onclick="runCustomDesignerSql()" title="Execute SQL directly in Datasheet">! Run Edited SQL</button>
                 <button class="btn btn-sm" onclick="resetDesignerSqlToQbe()" title="Reset SQL back to QBE generated SQL">🔄 Reset from QBE</button>
@@ -3583,7 +4821,7 @@ ${CRUD_STYLE}
                 <button class="btn btn-sm" onclick="explainDesignerQuery()">Explain Plan</button>
               </div>
             </div>
-            <textarea class="designer-sql-preview" id="designerSqlPreview" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">\${escapeHtml(sqlPreview)}</textarea>
+            <textarea class="designer-sql-preview" id="designerSqlPreview" style="font-size: \${queryDesignerState.sqlFontSize || 13}px;" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">\${escapeHtml(sqlPreview)}</textarea>
             <div style="margin-top: 8px;">
               <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">Saved Queries:</div>
               <div style="display: flex; flex-wrap: wrap; gap: 6px;">\${savedList}</div>
@@ -3652,10 +4890,21 @@ ${CRUD_STYLE}
         container.innerHTML = ribbonHtml + \`
           <div class="qbe-datasheet-container">
             <div class="qbe-datasheet-toolbar">
-              <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span style="font-weight: 700; color: var(--cyan);">📋 Datasheet View</span>
                 \${ds ? \`<span style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">\${ds.rows.length} rows (\${ds.latencyMs}ms)</span>\` : ''}
                 <input type="text" placeholder="🔍 Filter rows..." oninput="filterDesignerDatasheet(this.value)" style="padding: 4px 8px; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 4px; color: var(--text-main); width: 130px; outline: none;">
+                <!-- Datasheet Density & Font -->
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                  <span style="font-size: 10px; color: var(--text-dim);">Density:</span>
+                  <button class="btn btn-sm \${queryDesignerState.datasheetDensity === 'compact' ? 'btn-primary' : ''}" onclick="setDatasheetDensity('compact')" style="padding: 1px 5px; font-size: 10px;">Compact</button>
+                  <button class="btn btn-sm \${!queryDesignerState.datasheetDensity || queryDesignerState.datasheetDensity === 'normal' ? 'btn-primary' : ''}" onclick="setDatasheetDensity('normal')" style="padding: 1px 5px; font-size: 10px;">Normal</button>
+                  <button class="btn btn-sm \${queryDesignerState.datasheetDensity === 'spacious' ? 'btn-primary' : ''}" onclick="setDatasheetDensity('spacious')" style="padding: 1px 5px; font-size: 10px;">Spacious</button>
+                  <span style="font-size: 10px; color: var(--text-dim); margin-left: 4px;">Text:</span>
+                  <button class="btn btn-sm" onclick="adjustDatasheetFontSize(-1)" style="padding: 1px 5px; font-size: 10px;">A−</button>
+                  <span id="dsFontBadge" style="font-size: 10px; color: var(--cyan); font-family: var(--font-mono);">\${queryDesignerState.datasheetFontSize || 11}px</span>
+                  <button class="btn btn-sm" onclick="adjustDatasheetFontSize(1)" style="padding: 1px 5px; font-size: 10px;">A+</button>
+                </div>
               </div>
               <div style="display: flex; gap: 6px;">
                 <button class="btn btn-sm" onclick="exportDesignerDatasheet('csv')" title="Download as CSV">Export CSV</button>
@@ -3678,9 +4927,14 @@ ${CRUD_STYLE}
         if (!meta) return "";
         const isView = (currentSchema.views || []).some(v => v.name === tableName);
         const icon = isView ? '👁️' : '🗄️';
+        const pos = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[tableName]) || { x: 20, y: 15 };
+        const cardStyle = \`position: absolute; left: \${pos.x}px; top: \${pos.y}px; width: 230px;\`;
         const columnsHtml = (meta.columns || []).map(c => \`
-          <div class="qbe-field-row" onclick="addDesignerQbeColumn('\${tableName}', '\${c.name}')" title="Click to add field to QBE Grid">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${c.pk ? '🔑 ' : ''}\${c.name}</span>
+          <div class="qbe-field-row" id="qbeFieldRow_\${tableName}_\${c.name}" draggable="true" ondragstart="onDesignerFieldDragStart(event, '\${tableName}', '\${c.name}')" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, '\${tableName}', '\${c.name}')" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, '\${tableName}', '\${c.name}')" onclick="addDesignerQbeColumn('\${tableName}', '\${c.name}')" title="Drag to another field to link, or click to add to QBE Grid">
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <span class="qbe-field-connector" title="Drag to link this field">●</span>
+              <span>\${c.pk ? '🔑 ' : ''}\${c.name}</span>
+            </div>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span style="font-size: 9px; color: var(--text-dim);">\${c.type || 'ANY'}</span>
               <span class="qbe-field-add-icon">+</span>
@@ -3689,9 +4943,9 @@ ${CRUD_STYLE}
         \`).join('');
 
         return \`
-          <div class="qbe-table-card">
-            <div class="qbe-table-card-header">
-              <span>\${icon} \${tableName}\${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ''}</span>
+          <div class="qbe-table-card" id="qbeTableCard_\${tableName}" style="\${cardStyle}">
+            <div class="qbe-table-card-header" onmousedown="onDesignerTableHeaderMouseDown(event, '\${tableName}')" title="Drag header to move table on canvas">
+              <span style="pointer-events: none;">\${icon} \${tableName}\${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ''}</span>
               <button class="sidebar-mini-btn" onclick="removeDesignerTable('\${tableName}')" title="Remove table">✕</button>
             </div>
             <div class="qbe-table-card-fields">\${columnsHtml}</div>
@@ -3705,6 +4959,9 @@ ${CRUD_STYLE}
           <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
             <button class="btn btn-sm" onclick="applyDesignerPreset('ecommerce_multi')" title="Load 4-table relational e-commerce query">🛒 4-Table E-Commerce</button>
             <button class="btn btn-sm" onclick="applyDesignerPreset('top_spenders')" title="Load Customer + Orders join query">🌟 Top Spenders</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('join_left')" title="Access 2: Customers (LEFT JOIN)">Access 2: Customers (LEFT)</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('join_right')" title="Access 3: Orders (RIGHT JOIN)">Access 3: Orders (RIGHT)</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('join_full')" title="Access 4: Customers & Orders (FULL JOIN)">Access 4: Customers & Orders (FULL)</button>
             <button class="btn btn-sm" onclick="applyDesignerPreset('low_stock')" title="Load Products restock alert">📦 Low Stock Alerts</button>
             <button class="btn btn-sm" onclick="applyDesignerPreset('orders_status')" title="Load Orders pipeline">📈 Orders Pipeline</button>
           </div>
@@ -3733,7 +4990,7 @@ ${CRUD_STYLE}
           topologyStatusHtml = \`
             <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--amber); background: rgba(245, 158, 11, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
               <span>⚠️ \${unconnectedTables.join(', ')} unconnected</span>
-              <button class="btn btn-sm" onclick="autoJoinDesignerTables()" style="padding: 1px 6px; font-size: 9px;">🔗 Auto-Connect</button>
+              <button class="btn btn-sm" onclick="autoJoinDesignerTables()" style="padding: 1px 6px; font-size: 9px;">⚡ Auto-Detect Joins</button>
             </div>
           \`;
         }
@@ -3746,14 +5003,16 @@ ${CRUD_STYLE}
         const leftFields = leftMeta && leftMeta.columns ? leftMeta.columns.map(c => c.name) : [];
         const rightFields = rightMeta && rightMeta.columns ? rightMeta.columns.map(c => c.name) : [];
         const joinTypes = [
-          { val: "INNER", label: "1: INNER (Matching rows)" },
-          { val: "LEFT", label: "2: LEFT (All from " + join.leftTable + ")" },
-          { val: "RIGHT", label: "3: RIGHT (All from " + join.rightTable + ")" },
-          { val: "CROSS", label: "4: CROSS (Cartesian)" },
+          { val: "INNER", label: "1: Only matching rows (INNER)" },
+          { val: "LEFT", label: "2: ALL records from " + join.leftTable + " (LEFT)" },
+          { val: "RIGHT", label: "3: ALL records from " + join.rightTable + " (RIGHT)" },
+          { val: "FULL", label: "4: ALL records from BOTH (FULL OUTER)" },
+          { val: "CROSS", label: "5: Cartesian product (CROSS)" },
         ];
 
         return \`
           <div class="qbe-join-badge">
+            <button class="btn btn-sm" onclick="openJoinPropertiesModal('\${join.key}')" title="Configure in Microsoft Access Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
             <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
               \${joinTypes.map(j => \`<option value="\${j.val}" \${join.type === j.val ? 'selected' : ''}>\${j.label}</option>\`).join('')}
             </select>
@@ -3775,7 +5034,7 @@ ${CRUD_STYLE}
             <button class="sidebar-mini-btn" onclick="removeDesignerJoin('\${join.key}')" title="Delete join">✕</button>
           </div>
         \`;
-      }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>🔗 Smart Auto-Join All</strong> or <strong>+ Link</strong>.</div>';
+      }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>⚡ Auto-Detect Joins</strong> or <strong>+ Link / Join</strong>.</div>';
 
       // Lower Pane: Classic Microsoft Access QBE Matrix
       const columns = queryDesignerState.columns || [];
@@ -3909,15 +5168,60 @@ ${CRUD_STYLE}
         </tr>
       \`;
 
+      const maxCanvasWidth = Math.max(
+        800,
+        selectedTables.reduce((max, t) => {
+          const p = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[t]) || { x: 20 };
+          return Math.max(max, p.x + 280);
+        }, 600)
+      );
+
       container.innerHTML = ribbonHtml + \`
         <!-- Upper Relationship Workbench -->
         <div class="qbe-workbench">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">RELATIONSHIP WORKBENCH (Click fields to add to QBE Grid)</span>
-            <span style="font-size: 10px; color: var(--cyan);">\${selectedTables.length} Tables Active</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Microsoft Access Relationship Canvas</span>
+              <span style="font-size: 10px; color: var(--text-dim);">(Drag headers to position, drag field to field to join, scroll or Ctrl+Wheel to zoom, drag empty space to pan)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <!-- Zoom Controls -->
+              <div class="qbe-zoom-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Zoom:</span>
+                <button class="btn btn-sm" onclick="zoomOutDesignerCanvas()" title="Zoom out canvas (Ctrl + Wheel Down)" style="padding: 1px 6px; font-size: 11px;">🔍−</button>
+                <select id="canvasZoomSelect" class="qbe-select" onchange="setDesignerCanvasZoom(parseFloat(this.value))" style="padding: 1px 4px; font-size: 10px; width: 62px; height: 22px;">
+                  <option value="0.5" \${queryDesignerState.canvasZoom === 0.5 ? 'selected' : ''}>50%</option>
+                  <option value="0.75" \${queryDesignerState.canvasZoom === 0.75 ? 'selected' : ''}>75%</option>
+                  <option value="0.9" \${queryDesignerState.canvasZoom === 0.9 ? 'selected' : ''}>90%</option>
+                  <option value="1" \${!queryDesignerState.canvasZoom || queryDesignerState.canvasZoom === 1 ? 'selected' : ''}>100%</option>
+                  <option value="1.25" \${queryDesignerState.canvasZoom === 1.25 ? 'selected' : ''}>125%</option>
+                  <option value="1.5" \${queryDesignerState.canvasZoom === 1.5 ? 'selected' : ''}>150%</option>
+                  <option value="2" \${queryDesignerState.canvasZoom === 2 ? 'selected' : ''}>200%</option>
+                </select>
+                <button class="btn btn-sm" onclick="zoomInDesignerCanvas()" title="Zoom in canvas (Ctrl + Wheel Up)" style="padding: 1px 6px; font-size: 11px;">🔍+</button>
+                <button class="btn btn-sm" onclick="resetDesignerCanvasZoom()" title="Reset zoom to 100%" style="padding: 1px 6px; font-size: 10px;">1:1</button>
+                <button class="btn btn-sm" onclick="fitDesignerCanvasZoom()" title="Fit all tables into viewport" style="padding: 1px 6px; font-size: 10px;">🎯 Fit</button>
+              </div>
+
+              <!-- Room Controls -->
+              <div class="qbe-room-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Room:</span>
+                <button class="btn btn-sm \${queryDesignerState.canvasViewMode === 'canvas-max' ? 'btn-primary' : ''}" onclick="setDesignerRoomMode('canvas-max')" title="Maximize Canvas room" style="padding: 1px 6px; font-size: 10px;">⤢ Canvas</button>
+                <button class="btn btn-sm \${!queryDesignerState.canvasViewMode || queryDesignerState.canvasViewMode === 'split' ? 'btn-primary' : ''}" onclick="setDesignerRoomMode('split')" title="Balanced Split room" style="padding: 1px 6px; font-size: 10px;">⤡ Split</button>
+                <button class="btn btn-sm \${queryDesignerState.canvasViewMode === 'grid-max' ? 'btn-primary' : ''}" onclick="setDesignerRoomMode('grid-max')" title="Maximize Grid room" style="padding: 1px 6px; font-size: 10px;">⤢ Grid</button>
+              </div>
+
+              <button class="btn btn-sm" onclick="autoArrangeDesignerTables()" style="padding: 1px 7px; font-size: 10px;" title="Reset and arrange cards neatly">📐 Reset</button>
+              <span style="font-size: 10px; color: var(--cyan); font-weight: 600;">\${selectedTables.length} Tables Active</span>
+            </div>
           </div>
-          <div class="qbe-tables-canvas">
-            \${tableCardsHtml}
+          <div class="qbe-canvas-viewport" id="qbeCanvasViewport" onscroll="updateCanvasSvg()" style="height: \${queryDesignerState.canvasHeight || 480}px; max-height: \${queryDesignerState.canvasHeight || 480}px;">
+            <div class="qbe-canvas-stage" id="qbeCanvasStage" style="transform: scale(\${queryDesignerState.canvasZoom || 1.0});">
+              <svg class="qbe-canvas-svg" id="qbeCanvasSvg"></svg>
+              <div class="qbe-tables-canvas" id="qbeTablesCanvas" style="min-width: \${maxCanvasWidth}px;">
+                \${tableCardsHtml}
+              </div>
+            </div>
           </div>
           <div class="qbe-joins-bar">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -3928,13 +5232,26 @@ ${CRUD_STYLE}
           </div>
         </div>
 
+        <!-- Draggable Resizer Splitter -->
+        <div class="qbe-resizer-bar" id="qbeResizerBar" title="Drag to resize Canvas vs Grid room (200px - 1200px)">
+          <div class="qbe-resizer-handle"></div>
+        </div>
+
         <!-- Lower QBE Design Grid -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">QUERY BY EXAMPLE (QBE) DESIGN GRID</span>
             <button class="btn btn-sm" onclick="toggleCriteriaHelp()" style="padding: 2px 8px; font-size: 10px;" title="View Microsoft Access &amp; SQLite Criteria Syntax">💡 Syntax Help</button>
           </div>
-          <span style="font-size: 10px; color: var(--text-dim);">\${columns.length} columns defined</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+              <span style="font-size: 10px; color: var(--text-dim);">Grid Density:</span>
+              <button class="btn btn-sm \${queryDesignerState.gridDensity === 'compact' ? 'btn-primary' : ''}" onclick="setQbeGridDensity('compact')" style="padding: 1px 5px; font-size: 10px;">Compact</button>
+              <button class="btn btn-sm \${!queryDesignerState.gridDensity || queryDesignerState.gridDensity === 'normal' ? 'btn-primary' : ''}" onclick="setQbeGridDensity('normal')" style="padding: 1px 5px; font-size: 10px;">Normal</button>
+              <button class="btn btn-sm \${queryDesignerState.gridDensity === 'spacious' ? 'btn-primary' : ''}" onclick="setQbeGridDensity('spacious')" style="padding: 1px 5px; font-size: 10px;">Spacious</button>
+            </div>
+            <span style="font-size: 10px; color: var(--text-dim);">\${columns.length} columns defined</span>
+          </div>
         </div>
         <div id="criteriaHelpBanner" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; margin: 4px 0 8px; font-size: 11px; color: var(--text-muted); line-height: 1.6;">
           <strong style="color: var(--cyan);">Access &amp; SQLite Criteria Cheat Sheet:</strong><br>
@@ -3960,6 +5277,11 @@ ${CRUD_STYLE}
           </table>
         </div>
       \`;
+      setTimeout(() => {
+        updateCanvasSvg();
+        initQbeSplitter();
+        initCanvasPanAndZoom();
+      }, 35);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -4222,6 +5544,12 @@ ${CRUD_STYLE}
         }
       });
 
+      window.addEventListener("resize", () => {
+        if (activeTab === "designer") {
+          updateCanvasSvg();
+        }
+      });
+
       // Drag and Drop support
       const dropZone = document.getElementById("dbDropZone");
       if (dropZone) {
@@ -4256,6 +5584,38 @@ ${CRUD_STYLE}
       if (currentSchema && currentSchema.tables.length > 0) {
         selectTable(currentSchema.tables[0].name);
       }
+
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetTab = urlParams.get("tab");
+        if (targetTab) {
+          switchTab(targetTab);
+        }
+        const targetPreset = urlParams.get("preset");
+        if (targetPreset && typeof applyDesignerPreset === "function") {
+          applyDesignerPreset(targetPreset);
+        }
+        const targetModal = urlParams.get("modal");
+        if (targetModal && typeof openJoinPropertiesModal === "function") {
+          openJoinPropertiesModal(targetModal === "new" ? null : targetModal);
+        }
+        const targetZoom = urlParams.get("zoom");
+        if (targetZoom && typeof setDesignerCanvasZoom === "function") {
+          setDesignerCanvasZoom(parseFloat(targetZoom));
+        }
+        const targetRoom = urlParams.get("room");
+        if (targetRoom && typeof setDesignerRoomMode === "function") {
+          setDesignerRoomMode(targetRoom);
+        }
+        const minEditor = urlParams.get("min_editor");
+        if (minEditor && typeof toggleEditorCollapse === "function") {
+          toggleEditorCollapse();
+        }
+        const hideSidebar = urlParams.get("sidebar");
+        if (hideSidebar === "0" && typeof toggleSidebarCollapse === "function") {
+          toggleSidebarCollapse();
+        }
+      } catch (e) {}
     });
   </script>
   <script>
