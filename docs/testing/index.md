@@ -17,7 +17,7 @@ Run all commands from the repository root.
 
 | Command | What it does | Expected result (verified) |
 |---|---|---|
-| `bun test` | Runs every test file under `tests/` and `src/` | With database servers configured (below): **1218 pass, 0 fail**, 94 files, about 85 seconds. Without them the database suites are skipped, and the run reports the skips. |
+| `bun test` | Runs every test file under `tests/` and `src/` | **Default, on the author's Mac (13 October 2026): 1156 pass, 175 skipped, 0 fail**, 1331 tests, 104 files, about 85 seconds. The 175 skips are the 152 database tests (need `TEST_MYSQL_URL` / `TEST_PG_URL`), 18 Redis tests (`TEST_REDIS_URL`) and 5 live-network tests (`TEST_NETWORK=1`). Earlier, with database servers configured, the database suites also passed (1218 pass in 94 files at that time). |
 | `bun test tests/db/splitter.test.ts` | One file | `13 pass`, `0 fail` |
 | `bun run test:db` | Only the database-related tests | With servers configured: 309 pass, 0 fail. Without: 170 pass, 152 skipped, 0 fail. |
 
@@ -78,9 +78,9 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 `.github/workflows/ci.yml` runs on every push to `main` and on pull requests, on `macos-latest` with Bun 1.4.2: `bun install --frozen-lockfile`, `bun run typecheck`, `bun audit` (informational), `bun run docs:check`, a throwaway Redis (Homebrew, port 6390, no persistence), then `bun test` with `TEST_REDIS_URL` pointing at it.
 
-- **Verified on GitHub, with one failed first run.** The first run (13 October 2026, run 38482567102) had 14 test failures that never showed locally ([D-032](../documentation-maintenance/discrepancies.md#d-032)). After the fixes, run 38483433232 **succeeded**: 1173 pass, 153 skipped, 0 fail, 1326 tests in 116 s of test time, 152 s for the whole job. One more test is skipped on the runner than on the author's Mac (153 versus 152); the reason was not traced.
+- **Verified on GitHub, after a rocky start.** The first run (13 October 2026, run 38482567102) had 14 test failures that never showed locally ([D-032](../documentation-maintenance/discrepancies.md#d-032)). A third run failed on a live-network test. After those fixes, run 38484129943 **succeeded, and succeeded again when re-run** (second attempt: 1169 pass, 158 skipped, 0 fail; about 2.5 minutes per run). Two successes on one commit is some evidence of stability, not proof.
 - Windows and Linux are not covered (the workflow runs on macOS only).
-- The live MySQL and PostgreSQL suites skip themselves, so CI does not test them. The Redis tests do run there.
+- The live MySQL and PostgreSQL suites and the live-network tests skip themselves, so CI does not run them. The Redis tests do run there.
 - The lesson of the first run: a fresh local clone is not the same as a clean machine. Anything a test needs from the machine (a running server, a desktop, enough speed) must be stated, opt-in or skipped.
 
 ## Type-check ratchet
