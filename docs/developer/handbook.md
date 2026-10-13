@@ -41,7 +41,7 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 | `bun run typecheck` | TypeScript errors per file against `scripts/typecheck_baseline.json`; fails only when a file gets worse | ~4 s |
 | `bun run typecheck -- --update` | Records the current counts (do this after **fixing** errors) | ~4 s |
 | `bun run docs:build` | Regenerates the table of contents, application and script indexes, coverage matrix | seconds |
-| `bun run docs:check` | Fails on a stale generated page, a broken link or anchor, an unlisted page, an unclosed code fence or a secret-looking string | seconds |
+| `bun run docs:check` | Fails on a stale generated page, a broken link or anchor, an unlisted page, an unclosed code fence, a secret-looking string or a `bun run` example whose script or file does not exist | seconds |
 | `bun run build` | Bundles the library into `dist/` (git-ignored) | seconds |
 | `bun run scripts/generate_brew_suite.ts` | Regenerates the `bin/codecaine-*` wrappers and `bin/manifest.json` | seconds |
 

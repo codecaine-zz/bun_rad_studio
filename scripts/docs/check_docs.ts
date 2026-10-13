@@ -13,7 +13,7 @@ import { dirname, join, relative, resolve } from "path";
 export interface Issue {
   file: string;
   line: number;
-  kind: "link" | "anchor" | "nav" | "orphan" | "fence" | "heading" | "secret" | "external";
+  kind: "link" | "anchor" | "nav" | "orphan" | "fence" | "heading" | "secret" | "external" | "command";
   message: string;
   severity: "error" | "warning";
 }
@@ -117,6 +117,31 @@ export function findSecrets(lines: string[]): { line: number; what: string }[] {
   return found;
 }
 
+/** Placeholders that are written on purpose in examples and are not real scripts or files. */
+// `build-app` is a script of the separate bun_webview repository that the README tells you to clone.
+const COMMAND_PLACEHOLDERS = new Set(["app.ts", "./path", "app:", "build-app"]);
+const BUILT_IN_BUN_COMMANDS = new Set(["start", "test", "build"]);
+
+/**
+ * Finds `bun run <name>` examples whose script is not in package.json or whose file does not exist, so a renamed
+ * script or moved file cannot leave a command in the handbook that no longer works.
+ */
+export function findCommandProblems(lines: string[], scripts: Set<string>, fileExists: (path: string) => boolean): { line: number; command: string; what: string }[] {
+  const found: { line: number; command: string; what: string }[] = [];
+  lines.forEach((text, i) => {
+    for (const m of text.matchAll(/\bbun run ([A-Za-z0-9:_\-./<>]+)/g)) {
+      const name = m[1]!.replace(/\.$/, "");
+      if (COMMAND_PLACEHOLDERS.has(name) || name.includes("<") || name.endsWith(":") || name.startsWith("-")) continue;
+      if (/\.(ts|js|tsx|mjs)$/.test(name) || name.includes("/")) {
+        if (!fileExists(name.replace(/^\.\//, ""))) found.push({ line: i + 1, command: `bun run ${name}`, what: "file does not exist" });
+      } else if (!scripts.has(name) && !BUILT_IN_BUN_COMMANDS.has(name)) {
+        found.push({ line: i + 1, command: `bun run ${name}`, what: "no such script in package.json" });
+      }
+    }
+  });
+  return found;
+}
+
 export interface NavPage {
   title: string;
   path: string;
@@ -165,6 +190,7 @@ export async function checkDocs(opts: { external?: boolean } = {}): Promise<{ is
   const parsed = new Map<string, Parsed>();
   for (const f of files) parsed.set(f, parseMarkdown(readFileSync(f, "utf8")));
   const rel = (f: string) => relative(ROOT, f);
+  const packageScripts = new Set(Object.keys(JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).scripts ?? {}));
   let linkCount = 0;
   const externals: { file: string; line: number; url: string }[] = [];
 
@@ -174,6 +200,9 @@ export async function checkDocs(opts: { external?: boolean } = {}): Promise<{ is
     if (h1s.length !== 1 && file.startsWith(DOCS)) issues.push({ file: rel(file), line: h1s[1]?.line ?? 1, kind: "heading", message: `page must have exactly one H1 (found ${h1s.length})`, severity: "error" });
     for (const s of findSecrets(p.lines.filter((_, i) => true))) {
       issues.push({ file: rel(file), line: s.line, kind: "secret", message: `possible secret: ${s.what}`, severity: "error" });
+    }
+    for (const c of findCommandProblems(p.lines, packageScripts, (path) => existsSync(join(ROOT, path)))) {
+      issues.push({ file: rel(file), line: c.line, kind: "command", message: `${c.command}: ${c.what}`, severity: "error" });
     }
     for (const l of p.links) {
       linkCount++;

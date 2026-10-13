@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { checkDocs, findSecrets, parseMarkdown, slugify } from "../scripts/docs/check_docs";
+import { checkDocs, findCommandProblems, findSecrets, parseMarkdown, slugify } from "../scripts/docs/check_docs";
 import { renderAll } from "../scripts/docs/build_docs";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -17,6 +17,20 @@ describe("documentation checker", () => {
     expect(p.links.map((l) => l.target)).toEqual(["x.md"]);
     expect(p.fenceProblems.length).toBe(1);
     expect([...p.anchors]).toEqual(["t", "next"]);
+  });
+
+  it("flags bun run commands whose script or file does not exist", () => {
+    const scripts = new Set(["docs:build", "app:calc"]);
+    const exists = (p: string) => p === "applications/pong_studio.ts";
+    const check = (line: string) => findCommandProblems([line], scripts, exists).map((c) => c.what);
+    expect(check("Run `bun run docs:build` first")).toEqual([]);
+    expect(check("`bun run app:calc`, then `bun run nosuch`")).toEqual(["no such script in package.json"]);
+    expect(check("bun run docs:biuld")).toEqual(["no such script in package.json"]);
+    expect(check("bun run applications/pong_studio.ts --server")).toEqual([]);
+    expect(check("bun run ./applications/pong_studio.ts")).toEqual([]);
+    expect(check("bun run applications/gone_studio.ts")).toEqual(["file does not exist"]);
+    // placeholders and built-ins are fine
+    expect(check("bun run <name>, bun run app:, bun run app.ts, bun run start, bun run build")).toEqual([]);
   });
 
   it("flags secrets but not placeholders, code identifiers or documented examples", () => {
