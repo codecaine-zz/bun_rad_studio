@@ -1,7 +1,7 @@
 # 🐬 MySQL Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.5.0  •  Engine: Native Bun SQL (MySQL / InnoDB)  •  Dependencies: 0  •  Offline: 100%
+Version: 2.6.0  •  Engine: Native Bun SQL (MySQL / InnoDB)  •  Dependencies: 0  •  Offline: 100%
 Launchers: [Desktop GUI: bun run app:mysql]  •  [Direct: bun run applications/mysql_studio.ts]
 ```
 
@@ -98,7 +98,7 @@ bun run applications/mysql_studio.ts
 ```
 
 ### 2. Environment Configuration (`.env`)
-MySQL Studio Pro connects directly to your MySQL server using environment variables configured in your project's `.env` file:
+By default, MySQL Studio Pro connects to your MySQL server using environment variables configured in your project's `.env` file:
 
 ```bash
 # Option A: Individual connection parameters
@@ -112,15 +112,51 @@ DB_NAME=my_app_dev
 DATABASE_URL=mysql://root:your_password@localhost:3306/my_app_dev
 ```
 
-### 3. Launch Programmatically in TypeScript
+### 3. Manual Connection Configuration (No `.env` Required)
+If you are working without environment variables, connecting to remote instances, testing ephemeral containers, or managing multiple database servers, MySQL Studio Pro provides a full **Manual Connection & Database Manager**:
+
+- **Opening Connection Config**:
+  - Click `🔌 Connection Config...` in the top header.
+  - Or click `🔌 Config...` in the sidebar.
+  - Or click the **Active Database** KPI card in the telemetry bar.
+- **Form Fields vs. Connection URL**:
+  - **📋 Form Fields Mode**: Enter `Server Host / IP`, `Port`, `Username`, `Password` (with show/hide eye toggle), `Default Database`, and check `Enable SSL / TLS Encryption`.
+  - **🔗 Connection URL Mode**: Paste or edit standard connection URLs (`mysql://user:pass@host:port/database?tls=true`).
+  - **Bidirectional Live Synchronization**: Modifying form fields immediately updates the connection URL, and editing the URL instantly parses back into individual form fields.
+- **1-Click Connection Presets**:
+  - **🏠 Localhost (3306)**: Populates `127.0.0.1:3306` with user `root` and database `my_app_dev`.
+  - **🐳 Docker (127.0.0.1:3306)**: Configures standard Docker container defaults (`root` / `rootpassword`).
+  - **🔌 Port 3307**: Configures alternate local port setups (e.g. secondary MariaDB / MySQL instance).
+  - **☁️ RDS Template**: Pre-fills Amazon RDS / Aurora cluster connection templates with SSL enabled.
+  - **↺ Reset to .env**: Re-reads your active `.env` file and restores default environment credentials.
+- **Live Connection Testing (`⚡ Test Connection`)**:
+  - Validates credentials against the target MySQL server safely before applying them.
+  - Reports exact sub-millisecond roundtrip latency (e.g. `2.4 ms`) and verified MySQL server version.
+  - Executes `SHOW DATABASES` on the server and renders clickable database chips so you can pick your database with a single click.
+- **💾 Saved Connection Profiles**:
+  - Click `💾 Save Profile` to store verified connection parameters in local workstation storage.
+  - Switch to the **💾 Saved Profiles** tab to launch saved connections with 1-click or delete obsolete profiles.
+- **🗄️ Server Database Switcher & Creator**:
+  - Switch to the **🗄️ Server Databases** tab to view all databases on the active host.
+  - Type a name into **Create New Database on Server** to execute `CREATE DATABASE` and switch active database context instantly.
+
+### 4. Launch Programmatically in TypeScript
+You can pass manual connection parameters directly to `createMysqlStudio` without setting any system environment variables:
+
 ```typescript
 import { createMysqlStudio } from "./applications/mysql_studio";
 
+// Direct manual connection parameters
 const studio = createMysqlStudio({
+  host: "127.0.0.1",
+  mysqlPort: 3306,
+  user: "root",
+  password: "your_password",
+  database: "ecommerce_db",
+  tls: false,
   fullscreen: false,
   width: 1400,
   height: 900,
-  initialDbPath: "my_app_dev"
 });
 await studio.run();
 ```
@@ -146,17 +182,21 @@ await studio.run();
 ## 🧭 Complete UI Tour & Element Guide
 
 ### 1. Window Header & Command Bar
-- **Brand Title & Connection Status**: Displays live database connection state and active database identifier.
-- **📂 Open / Browse DB**: Opens the interactive server database browser modal. Auto-discovers and lists all schemas on the MySQL server (`SHOW DATABASES`) with 1-click database switching.
+- **Brand Title & Connection Status**: Displays live database connection state, latency indicators, and active database identifier.
+- **🔌 Connection Config...**: Opens the interactive **MySQL Connection & Database Manager** modal to configure credentials manually, test connections, apply presets, or manage saved profiles.
+- **📂 Databases...**: Opens the discovered server database listing (`SHOW DATABASES`) with 1-click database switching and new database provisioning.
 - **🌱 Seed Sample DB**: Instantly provisions an enterprise relational starter dataset (5 relational tables: `customers`, `products`, `orders`, `order_items`, `audit_logs` + 7 pre-built views) with 1-click.
 - **🧹 Vacuum DB**: Runs `OPTIMIZE TABLE` across all tables in the active schema, defragmenting InnoDB tablespaces and updating index statistics.
 - **Telemetry Cards**: Live KPI summary display showing:
-  - **Active Database & Version**: Server version (e.g. MySQL 8.x) and schema name.
+  - **Active Database & Version**: Server version (e.g. MySQL 8.x) and schema name. *Clicking this card opens the Connection Config modal immediately.*
   - **Storage Size**: Total allocated table and index space in formatted megabytes/kilobytes.
   - **Tables & Views Count**: Total active base tables and relational views.
   - **Total Rows**: Aggregate row count across all tables.
 
 ### 2. Relational Object Tree (Left Sidebar)
+- **Workbench Shortcuts**: Includes quick action buttons:
+  - `🔌 Config...`: Direct shortcut to the manual connection workbench.
+  - `📂 Databases`: Direct shortcut to the server database scanner.
 - **Tables Section**: Collapsible listing of all `BASE TABLE` objects with row counts. Click any table to immediately open it in the paginated Data Grid.
 - **Views Section**: Collapsible listing of all `VIEW` objects. Click any view to inspect its live computed projection.
 - **Context Actions**: Right-click or use toolbar icons to redesign table structures, drop objects, or view table details.

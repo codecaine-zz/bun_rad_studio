@@ -18,6 +18,7 @@ export interface ServerOptions {
   port?: number;
   host?: string;
   initialDbPath?: string;
+  config?: Partial<MysqlConnectionConfig>;
 }
 
 export interface TableColumnMeta {
@@ -125,6 +126,26 @@ export function pickNativeDatabaseFile(): string | null {
   return null; // Remote MySQL uses host/database selection
 }
 
+export interface MysqlConnectionConfig {
+  host?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  database?: string;
+  tls?: boolean;
+  url?: string;
+}
+
+export interface MysqlConnectionConfigSanitized {
+  host: string;
+  port: number;
+  user: string;
+  database: string;
+  tls: boolean;
+  hasPassword: boolean;
+  source: "env" | "manual";
+}
+
 // -------------------------------------------------------------------------------------------------
 // MySQL Database Manager
 // -------------------------------------------------------------------------------------------------
@@ -133,42 +154,69 @@ export class MysqlManager {
   public sql_conn: any;
   public activePath: string;
   public isMemory: boolean = false;
+  public configSource: "env" | "manual" = "env";
   public dbConfig: {
     host: string;
     port: number;
     user: string;
     password: string;
     database: string;
+    tls?: boolean;
   };
 
-  constructor(initialDb: string = "") {
-    this.activePath = initialDb || process.env.DB_NAME || "my_app_dev";
-    this.parseConfig(initialDb);
+  constructor(initialDb: string = "", initialConfig?: Partial<MysqlConnectionConfig>) {
+    this.activePath = initialDb || initialConfig?.database || process.env.MYSQL_DATABASE || process.env.DB_NAME || "my_app_dev";
+    this.parseConfig(initialDb, initialConfig);
     this.initConnection();
   }
 
-  private parseConfig(overrideDb: string = "") {
-    let host = process.env.DB_HOST || "localhost";
-    let port = Number(process.env.DB_PORT) || 3306;
-    let user = process.env.DB_USER || "root";
-    let password = process.env.DB_PASSWORD || "";
-    let database = overrideDb || process.env.DB_NAME || "my_app_dev";
+  private parseConfig(overrideDb: string = "", customConfig?: Partial<MysqlConnectionConfig>) {
+    let host = customConfig?.host || process.env.MYSQL_HOST || process.env.DB_HOST || "localhost";
+    let port = customConfig?.port ? Number(customConfig.port) : (Number(process.env.MYSQL_PORT || process.env.DB_PORT) || 3306);
+    let user = customConfig?.user || process.env.MYSQL_USER || process.env.DB_USER || "root";
+    let password = customConfig?.password !== undefined 
+      ? customConfig.password 
+      : (process.env.MYSQL_PASSWORD !== undefined ? process.env.MYSQL_PASSWORD : (process.env.DB_PASSWORD || ""));
+    let database = customConfig?.database || overrideDb || process.env.MYSQL_DATABASE || process.env.DB_NAME || "my_app_dev";
+    let tls = customConfig?.tls !== undefined 
+      ? Boolean(customConfig.tls) 
+      : (process.env.MYSQL_TLS === "1" || process.env.MYSQL_TLS === "true");
 
-    if (process.env.DATABASE_URL) {
+    const urlCandidate = customConfig?.url || process.env.DATABASE_URL;
+    if (urlCandidate) {
       try {
-        const u = new URL(process.env.DATABASE_URL);
+        const u = new URL(urlCandidate.replace(/^mysql:\/\//i, "http://"));
         if (u.hostname) host = u.hostname;
         if (u.port) port = Number(u.port);
         if (u.username) user = decodeURIComponent(u.username);
         if (u.password) password = decodeURIComponent(u.password);
-        if (u.pathname && u.pathname.length > 1 && !overrideDb) {
+        if (u.pathname && u.pathname.length > 1 && !overrideDb && !customConfig?.database) {
           database = decodeURIComponent(u.pathname.slice(1));
+        }
+        if (u.searchParams.get("tls") === "true" || u.searchParams.get("ssl") === "true") {
+          tls = true;
         }
       } catch {}
     }
 
-    this.dbConfig = { host, port, user, password, database };
+    if (customConfig && Object.keys(customConfig).length > 0) {
+      this.configSource = "manual";
+    }
+
+    this.dbConfig = { host, port, user, password, database, tls };
     this.activePath = database;
+  }
+
+  public getConfig(): MysqlConnectionConfigSanitized {
+    return {
+      host: this.dbConfig.host,
+      port: this.dbConfig.port,
+      user: this.dbConfig.user,
+      database: this.dbConfig.database,
+      tls: Boolean(this.dbConfig.tls),
+      hasPassword: Boolean(this.dbConfig.password),
+      source: this.configSource,
+    };
   }
 
   public initConnection() {
@@ -181,10 +229,151 @@ export class MysqlManager {
         password: this.dbConfig.password,
         database: this.dbConfig.database,
         allowPublicKeyRetrieval: true,
-        tls: false,
+        tls: this.dbConfig.tls ?? false,
       });
     } catch (e: any) {
       console.error("Failed to initialize MySQL connection:", e);
+    }
+  }
+
+  public async testConnection(candidateConfig?: Partial<MysqlConnectionConfig>): Promise<{
+    success: boolean;
+    latencyMs: number;
+    version?: string;
+    databases?: string[];
+    error?: string;
+  }> {
+    let host = candidateConfig?.host || this.dbConfig.host || "localhost";
+    let port = Number(candidateConfig?.port || this.dbConfig.port || 3306);
+    let user = candidateConfig?.user || this.dbConfig.user || "root";
+    let password = candidateConfig?.password !== undefined ? candidateConfig.password : this.dbConfig.password;
+    let database = candidateConfig?.database !== undefined ? candidateConfig.database : this.dbConfig.database;
+    let tls = candidateConfig?.tls ?? this.dbConfig.tls ?? false;
+
+    if (candidateConfig?.url) {
+      try {
+        const u = new URL(candidateConfig.url);
+        if (u.hostname) host = u.hostname;
+        if (u.port) port = Number(u.port);
+        if (u.username) user = decodeURIComponent(u.username);
+        if (u.password) password = decodeURIComponent(u.password);
+        if (u.pathname && u.pathname.length > 1) {
+          database = decodeURIComponent(u.pathname.slice(1));
+        }
+      } catch (err: any) {
+        return { success: false, latencyMs: 0, error: `Invalid connection URL: ${err.message}` };
+      }
+    }
+
+    const start = performance.now();
+    try {
+      const testConn = new SQL({
+        adapter: "mysql",
+        hostname: host,
+        port: port,
+        username: user,
+        password: password,
+        database: database || undefined,
+        allowPublicKeyRetrieval: true,
+        tls: tls,
+      });
+
+      const versionRows = await testConn.unsafe("SELECT VERSION() as ver;");
+      const latencyMs = Math.round((performance.now() - start) * 100) / 100;
+      const version = String(versionRows?.[0]?.ver || versionRows?.[0]?.VER || "MySQL 8.x");
+
+      let databases: string[] = [];
+      try {
+        const dbRows = await testConn.unsafe("SHOW DATABASES;");
+        databases = (dbRows || []).map((r: any) => String(r.Database || r.database || "")).filter(Boolean);
+      } catch {}
+
+      await testConn.end?.().catch(() => {});
+      return { success: true, latencyMs, version, databases };
+    } catch (err: any) {
+      const latencyMs = Math.round((performance.now() - start) * 100) / 100;
+      return { success: false, latencyMs, error: err?.message || String(err) };
+    }
+  }
+
+  public async updateConfig(newConfig: MysqlConnectionConfig): Promise<{
+    success: boolean;
+    config: MysqlConnectionConfigSanitized;
+    error?: string;
+    version?: string;
+    databases?: string[];
+  }> {
+    let host = (newConfig.host ?? this.dbConfig.host ?? "localhost").trim();
+    let port = Number(newConfig.port ?? this.dbConfig.port ?? 3306);
+    let user = (newConfig.user ?? this.dbConfig.user ?? "root").trim();
+    let password = newConfig.password !== undefined ? newConfig.password : this.dbConfig.password;
+    let database = (newConfig.database ?? this.dbConfig.database ?? "my_app_dev").trim();
+    let tls = newConfig.tls ?? this.dbConfig.tls ?? false;
+
+    if (newConfig.url) {
+      try {
+        const u = new URL(newConfig.url);
+        if (u.hostname) host = u.hostname;
+        if (u.port) port = Number(u.port);
+        if (u.username) user = decodeURIComponent(u.username);
+        if (u.password) password = decodeURIComponent(u.password);
+        if (u.pathname && u.pathname.length > 1) {
+          database = decodeURIComponent(u.pathname.slice(1));
+        }
+      } catch (err: any) {
+        return { success: false, config: this.getConfig(), error: `Invalid connection URL: ${err.message}` };
+      }
+    }
+
+    const test = await this.testConnection({ host, port, user, password, database, tls });
+    if (!test.success) {
+      return {
+        success: false,
+        config: this.getConfig(),
+        error: test.error || "Failed to connect to MySQL server",
+      };
+    }
+
+    try { await this.sql_conn?.end?.(); } catch {}
+
+    this.dbConfig = { host, port, user, password, database, tls };
+    this.activePath = database;
+    this.configSource = "manual";
+    this.initConnection();
+
+    if (database) {
+      await this.ensureDatabaseExists(database).catch(() => {});
+    }
+
+    await this.logAudit("DB_CONFIG", "SYSTEM", `Updated manual MySQL connection: ${user}@${host}:${port}/${database}`);
+
+    return {
+      success: true,
+      config: this.getConfig(),
+      version: test.version,
+      databases: test.databases,
+    };
+  }
+
+  public resetToEnv(): { success: boolean; config: MysqlConnectionConfigSanitized } {
+    try { this.sql_conn?.end?.(); } catch {}
+    this.configSource = "env";
+    this.parseConfig();
+    this.initConnection();
+    return { success: true, config: this.getConfig() };
+  }
+
+  public async createDatabase(dbName: string): Promise<{ success: boolean; database: string; name: string; error?: string }> {
+    try {
+      const clean = (dbName || "").trim();
+      if (!clean) throw new Error("Database name cannot be empty");
+      if (!/^[a-zA-Z0-9_$-]+$/.test(clean)) {
+        throw new Error("Invalid database name: only alphanumeric characters, underscore, and dash are permitted");
+      }
+      await this.ensureDatabaseExists(clean);
+      return { success: true, database: clean, name: clean };
+    } catch (err: any) {
+      return { success: false, database: dbName, name: dbName, error: err?.message || String(err) };
     }
   }
 
@@ -197,7 +386,7 @@ export class MysqlManager {
         username: this.dbConfig.user,
         password: this.dbConfig.password,
         allowPublicKeyRetrieval: true,
-        tls: false,
+        tls: this.dbConfig.tls ?? false,
       });
       await rootSql.unsafe(`CREATE DATABASE IF NOT EXISTS \`${dbName.replace(/`/g, "``")}\``);
       await rootSql.end?.().catch(() => {});
@@ -1172,7 +1361,7 @@ export class MysqlManager {
 export function startMysqlStudioServer(options: ServerOptions = {}) {
   const port = options.port ?? 0;
   const hostname = options.host ?? "127.0.0.1";
-  const manager = new MysqlManager(options.initialDbPath || "");
+  const manager = new MysqlManager(options.initialDbPath || "", options.config);
 
   const server = Bun.serve({
     port,
@@ -1270,22 +1459,114 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // 8. Connect / Switch Database
+      // 8. Connect / Switch Database or Custom Host & Credentials
       if (url.pathname === "/api/connect" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { path: string };
-          const result = await manager.connect(body.path);
+          const body = (await req.json()) as {
+            path?: string;
+            host?: string;
+            port?: number;
+            user?: string;
+            password?: string;
+            database?: string;
+            tls?: boolean;
+            url?: string;
+          };
+          if (body.host || body.user || body.url || (body.port && body.port !== 3306)) {
+            const configResult = await manager.updateConfig({
+              host: body.host,
+              port: body.port,
+              user: body.user,
+              password: body.password,
+              database: body.database || body.path,
+              tls: body.tls,
+              url: body.url,
+            });
+            if (!configResult.success) {
+              return Response.json(configResult, { status: 400, headers: corsHeaders });
+            }
+            return Response.json(
+              {
+                success: true,
+                path: manager.activePath,
+                config: manager.getConfig(),
+                kpis: await manager.getKpis(),
+                schema: await manager.getSchema(),
+              },
+              { headers: corsHeaders }
+            );
+          }
+
+          const result = await manager.connect(body.path || body.database || "");
           if (!result.success) {
             return Response.json(result, { status: 400, headers: corsHeaders });
           }
           return Response.json(
             {
               ...result,
+              config: manager.getConfig(),
               kpis: await manager.getKpis(),
               schema: await manager.getSchema(),
             },
             { headers: corsHeaders }
           );
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 8a. Connection Config (Get active config)
+      if (url.pathname === "/api/config" && req.method === "GET") {
+        return Response.json({ success: true, config: manager.getConfig() }, { headers: corsHeaders });
+      }
+
+      // 8a-2. Update Connection Config
+      if (url.pathname === "/api/config" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as MysqlConnectionConfig & { resetToEnv?: boolean };
+          if (body.resetToEnv) {
+            const res = manager.resetToEnv();
+            return Response.json({
+              ...res,
+              kpis: await manager.getKpis(),
+              schema: await manager.getSchema(),
+            }, { headers: corsHeaders });
+          }
+          const result = await manager.updateConfig(body);
+          if (!result.success) {
+            return Response.json(result, { status: 400, headers: corsHeaders });
+          }
+          return Response.json({
+            ...result,
+            kpis: await manager.getKpis(),
+            schema: await manager.getSchema(),
+          }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 8a-3. Test Connection Config without applying
+      if (url.pathname === "/api/test-config" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as MysqlConnectionConfig;
+          const result = await manager.testConnection(body);
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 8a-4. Create Database
+      if (url.pathname === "/api/create-database" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { name?: string; database?: string };
+          const dbName = body.name || body.database || "";
+          const result = await manager.createDatabase(dbName);
+          if (!result.success) {
+            return Response.json(result, { status: 400, headers: corsHeaders });
+          }
+          return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }

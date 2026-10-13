@@ -23,7 +23,7 @@ import {
   attachWindowShortcuts,
   getWindowShortcutsScript,
 } from "../index.ts";
-import { startMysqlStudioServer } from "./mysql_studio_server.ts";
+import { startMysqlStudioServer, type MysqlConnectionConfig, type MysqlConnectionConfigSanitized } from "./mysql_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./mysql_studio_crud.ts";
 
 export interface MysqlStudioOptions {
@@ -33,8 +33,18 @@ export interface MysqlStudioOptions {
   alwaysOnTop?: boolean;
   initialDbPath?: string;
   port?: number;
+  // Manual connection configuration options
+  host?: string;
+  mysqlPort?: number;
+  user?: string;
+  password?: string;
+  database?: string;
+  tls?: boolean;
+  url?: string;
+  config?: Partial<MysqlConnectionConfig>;
 }
 export type SystemStudioOptions = MysqlStudioOptions;
+export type { MysqlConnectionConfig, MysqlConnectionConfigSanitized };
 
 export interface MysqlStudioInstance {
   title: string;
@@ -1767,7 +1777,8 @@ ${CRUD_STYLE}
           <option value="hotdog_stand">🌭 Hot Dog</option>
         </optgroup>
       </select>
-      <button class="btn btn-primary" onclick="openDatabaseDialog()" title="Browse, pick, or load MySQL database">📂 Open / Browse DB...</button>
+      <button class="btn btn-primary" onclick="openDatabaseDialog('config')" title="Configure MySQL server connection, host, user, password, and database manually">🔌 Connection Config...</button>
+      <button class="btn" onclick="openDatabaseDialog('databases')" title="Browse discovered databases on MySQL server">📂 Databases...</button>
       <button class="btn" onclick="runEditorQuery()">⚡ Run Query</button>
       <button class="btn" onclick="seedDatabase()">🌱 Seed Sample DB</button>
       <button class="btn" onclick="vacuumDatabase()">🧹 Vacuum DB</button>
@@ -1778,7 +1789,7 @@ ${CRUD_STYLE}
 
   <!-- Top Real-Time KPI Cards -->
   <section class="kpi-row">
-    <div class="kpi-card kpi-clickable" onclick="openDatabaseDialog()" title="Click to browse or switch database">
+    <div class="kpi-card kpi-clickable" onclick="openDatabaseDialog('config')" title="Click to view or edit MySQL connection configuration">
       <div class="kpi-title">Active Database <span>🗂️</span></div>
       <div class="kpi-value" id="kpiDbName">:memory:</div>
       <div class="kpi-sub" id="kpiDbPath">:memory:</div>
@@ -1821,8 +1832,8 @@ ${CRUD_STYLE}
         </div>
         <div style="font-size: 12px; font-weight: 700; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="sidebarDbName">:memory:</div>
         <div style="display: flex; gap: 4px;">
-          <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog()">📂 Browse & Load...</button>
-          <button class="sidebar-mini-btn" onclick="connectToDatabase(':memory:')" title="Switch to isolated in-memory DB">🧠 RAM</button>
+          <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog('config')">🔌 Config...</button>
+          <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog('databases')">📂 Databases</button>
         </div>
       </div>
 
@@ -2088,70 +2099,148 @@ ${CRUD_STYLE}
     </div>
   </div>
 
-  <!-- Database Browser & Chooser Modal -->
+  <!-- MySQL Connection & Database Manager Modal -->
   <div class="modal-overlay" id="dbBrowserModal" onclick="if(event.target === this) closeDatabaseDialog()">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 740px;">
       <div class="modal-header">
-        <div class="modal-title">📂 Open & Load MySQL Database</div>
+        <div class="modal-title">
+          <span>🔌</span>
+          <span>MySQL Connection &amp; Database Manager</span>
+          <span id="connSourceBadge" class="badge" style="font-size: 10px; font-weight: 600; text-transform: uppercase;">ENV</span>
+        </div>
         <button class="modal-close" onclick="closeDatabaseDialog()" title="Close dialog">✕</button>
       </div>
-      <div class="modal-body">
-        <!-- Option 1: Native OS File Dialog -->
-        <div class="db-choice-card">
-          <div class="db-choice-header">
-            <span>🖥️</span>
-            <span>Operating System File Chooser</span>
+
+      <!-- Modal Tabs -->
+      <div style="display: flex; gap: 4px; padding: 10px 20px 0; background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--border-subtle);">
+        <button class="tab-btn active" id="btnConnTabConfig" onclick="switchConnectionModalTab('config')" style="padding: 6px 14px; font-size: 12px;">🔌 Manual Connection</button>
+        <button class="tab-btn" id="btnConnTabDatabases" onclick="switchConnectionModalTab('databases')" style="padding: 6px 14px; font-size: 12px;">🗄️ Server Databases</button>
+        <button class="tab-btn" id="btnConnTabProfiles" onclick="switchConnectionModalTab('profiles')" style="padding: 6px 14px; font-size: 12px;">💾 Saved Profiles</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px; gap: 14px;">
+        <!-- TAB 1: Manual Connection Config -->
+        <div id="connPanelConfig">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 11px; color: var(--text-dim);">
+              Configure MySQL host, port, credentials, and database directly without needing <code>.env</code>.
+            </div>
+            <!-- Input Format Toggle -->
+            <div style="display: flex; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px;">
+              <button class="btn btn-sm btn-primary" id="btnModeForm" onclick="setConnectionInputMode('form')" style="padding: 2px 8px; font-size: 10px;">📋 Form Fields</button>
+              <button class="btn btn-sm" id="btnModeUrl" onclick="setConnectionInputMode('url')" style="padding: 2px 8px; font-size: 10px;">🔗 Connection URL</button>
+            </div>
           </div>
-          <div style="font-size: 11px; color: var(--text-dim);">
-            Launch your native OS file dialog to browse and select any local <code>.mysql</code>, <code>.db</code>, <code>.mysql3</code>, or custom database file.
+
+          <!-- Quick Presets Bar -->
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding: 6px 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Presets:</span>
+            <button class="sidebar-mini-btn" onclick="applyConnPreset('localhost')">🏠 Localhost (3306)</button>
+            <button class="sidebar-mini-btn" onclick="applyConnPreset('docker')">🐳 Docker (127.0.0.1:3306)</button>
+            <button class="sidebar-mini-btn" onclick="applyConnPreset('alt_port')">🔌 Port 3307</button>
+            <button class="sidebar-mini-btn" onclick="applyConnPreset('rds')">☁️ RDS Template</button>
+            <button class="sidebar-mini-btn" onclick="resetToEnvConfig()" style="color: var(--amber);" title="Restore configuration from current .env file">↺ Reset to .env</button>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-primary" onclick="browseNativeDatabase()" style="flex: 1; padding: 10px; justify-content: center;">
-              📁 Open System File Picker...
-            </button>
+
+          <!-- Form Fields Mode -->
+          <div id="connModeFormContainer">
+            <div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; margin-bottom: 10px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Server Host / IP</label>
+                <input type="text" id="cfgHost" class="qbe-input" placeholder="127.0.0.1 or localhost" oninput="syncFieldsToUrl()" style="width: 100%; padding: 7px 10px; font-size: 12px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Port</label>
+                <input type="number" id="cfgPort" class="qbe-input" placeholder="3306" value="3306" oninput="syncFieldsToUrl()" style="width: 100%; padding: 7px 10px; font-size: 12px;">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Username</label>
+                <input type="text" id="cfgUser" class="qbe-input" placeholder="root" oninput="syncFieldsToUrl()" style="width: 100%; padding: 7px 10px; font-size: 12px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Password</label>
+                <div style="position: relative;">
+                  <input type="password" id="cfgPass" class="qbe-input" placeholder="Password (blank if none)" oninput="syncFieldsToUrl()" style="width: 100%; padding: 7px 34px 7px 10px; font-size: 12px;">
+                  <button type="button" onclick="togglePasswordVisibility()" title="Show/Hide Password" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 13px; color: var(--text-dim);">👁️</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; align-items: end;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Default Database / Schema</label>
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" id="cfgDb" class="qbe-input" placeholder="e.g. my_app_dev" oninput="syncFieldsToUrl()" style="flex: 1; padding: 7px 10px; font-size: 12px;">
+                  <button class="btn btn-sm" onclick="scanHostDatabasesForDropdown()" title="Scan databases on host" style="padding: 7px 10px; font-size: 11px; white-space: nowrap;">🔍 Scan</button>
+                </div>
+              </div>
+              <div style="padding-bottom: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); cursor: pointer;">
+                  <input type="checkbox" id="cfgTls" onchange="syncFieldsToUrl()">
+                  <span>Enable SSL / TLS Encryption</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connection URL Mode -->
+          <div id="connModeUrlContainer" style="display: none; margin-bottom: 10px;">
+            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">MySQL Connection URL</label>
+            <input type="text" id="cfgUrl" class="qbe-input" style="width: 100%; padding: 8px 10px; font-family: var(--font-mono); font-size: 11px;" placeholder="mysql://root:password@127.0.0.1:3306/my_app_dev" oninput="parseUrlIntoFields(this.value)">
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Format: <code>mysql://[user[:password]@]host[:port][/database][?tls=true]</code></div>
+          </div>
+
+          <!-- Live Test Diagnostic Banner -->
+          <div id="connTestResult" style="display: none; border-radius: 6px; padding: 8px 12px; font-size: 11px; margin-bottom: 12px; line-height: 1.5;"></div>
+
+          <!-- Actions Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 4px;">
+            <div style="display: flex; gap: 6px;">
+              <button class="btn" id="btnTestConn" onclick="testManualConnection()" style="padding: 6px 12px; font-size: 11px;">⚡ Test Connection</button>
+              <button class="btn" onclick="promptSaveProfile()" style="padding: 6px 12px; font-size: 11px;">💾 Save Profile</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn" onclick="closeDatabaseDialog()" style="padding: 6px 14px; font-size: 11px;">Cancel</button>
+              <button class="btn btn-primary" id="btnApplyConn" onclick="applyManualConnection()" style="padding: 6px 16px; font-size: 11px; font-weight: 600;">🔌 Connect &amp; Apply</button>
+            </div>
           </div>
         </div>
 
-        <!-- Option 2: Workspace Discovered Databases -->
-        <div class="db-choice-card">
-          <div class="db-choice-header" style="justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span>⚡</span>
-              <span>Discovered Project Databases</span>
+        <!-- TAB 2: Discovered Server Databases -->
+        <div id="connPanelDatabases" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 11px; color: var(--text-dim);">
+              Databases available on the active MySQL server (<code>SHOW DATABASES</code>):
             </div>
-            <button class="sidebar-mini-btn" onclick="loadWorkspaceDatabases()">🔄 Re-Scan</button>
+            <button class="sidebar-mini-btn" onclick="loadWorkspaceDatabases()">🔄 Refresh List</button>
           </div>
-          <div style="font-size: 11px; color: var(--text-dim);">
-            Databases found in current project directory:
-          </div>
-          <div id="workspaceDbList" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;">
+          <div id="workspaceDbList" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; margin-bottom: 14px;">
             <!-- Populated dynamically -->
           </div>
-        </div>
 
-        <!-- Option 3: Drag & Drop / Upload Local File -->
-        <div class="db-choice-card">
-          <div class="db-choice-header">
-            <span>📥</span>
-            <span>Upload or Drag & Drop File</span>
-          </div>
-          <input type="file" id="dbFileInput" style="display: none;" accept=".mysql,.db,.mysql3,.db3,*" onchange="if(this.files[0]) handleDatabaseUpload(this.files[0])">
-          <div class="dropzone" id="dbDropZone" onclick="document.getElementById('dbFileInput').click()">
-            <span style="font-size: 26px;">📥</span>
-            <div style="font-size: 12px; font-weight: 600; color: var(--text-main);">Click to Select File or Drag & Drop Here</div>
-            <div style="font-size: 10px; color: var(--text-dim);">Uploads and switches immediately into session</div>
+          <!-- Create Database Card -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">➕ Create New Database on Server</div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="txtNewDbName" class="qbe-input" placeholder="new_database_name" style="flex: 1; padding: 6px 10px; font-size: 11px;">
+              <button class="btn btn-primary" onclick="handleCreateDatabase()" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;">Create &amp; Switch</button>
+            </div>
           </div>
         </div>
 
-        <!-- Option 4: Manual Path Input -->
-        <div class="db-choice-card">
-          <div class="db-choice-header">
-            <span>✏️</span>
-            <span>Direct Database Path</span>
+        <!-- TAB 3: Saved Profiles -->
+        <div id="connPanelProfiles" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 11px; color: var(--text-dim);">
+              Saved connection profiles stored in local workstation storage:
+            </div>
+            <button class="sidebar-mini-btn" onclick="promptSaveProfile()">➕ Save Current Config</button>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="txtCustomDbPath" placeholder="/path/to/database.db, ~/my_data.mysql, or :memory:" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; color: var(--text-main); font-size: 12px; outline: none;" onkeydown="if(event.key==='Enter') connectToDatabase(this.value)">
-            <button class="btn btn-primary" onclick="connectToDatabase(document.getElementById('txtCustomDbPath').value)">🔌 Connect</button>
+          <div id="savedProfilesList" style="display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto;">
+            <!-- Populated dynamically from localStorage -->
           </div>
         </div>
       </div>
@@ -2208,7 +2297,13 @@ ${CRUD_STYLE}
           ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
           : { method: 'GET' };
         const res = await fetch(endpoint, opts);
-        if (!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
+        if (!res.ok) {
+          try {
+            const errData = await res.json();
+            if (errData && errData.error) return { success: false, error: errData.error };
+          } catch {}
+          throw new Error("HTTP " + res.status + " " + res.statusText);
+        }
         return await res.json();
       } catch (err) {
         console.error("API Error (" + endpoint + "):", err);
@@ -2356,12 +2451,16 @@ ${CRUD_STYLE}
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Database Browser & Chooser Modal Logic
+    // MySQL Connection & Database Manager Logic (Manual Configuration & Profiles)
     // ---------------------------------------------------------------------------------------------
-    async function openDatabaseDialog() {
+    let currentConnConfig = null;
+    const PROFILES_STORAGE_KEY = "mysql_studio_saved_profiles_v1";
+
+    async function openDatabaseDialog(initialTab = 'config') {
       const modal = document.getElementById("dbBrowserModal");
       if (modal) modal.classList.add("open");
-      await loadWorkspaceDatabases();
+      switchConnectionModalTab(initialTab || 'config');
+      await fetchCurrentConfig();
     }
 
     function closeDatabaseDialog() {
@@ -2369,39 +2468,451 @@ ${CRUD_STYLE}
       if (modal) modal.classList.remove("open");
     }
 
-    let isBrowsingFile = false;
-    async function browseNativeDatabase() {
-      if (isBrowsingFile) return;
-      isBrowsingFile = true;
+    async function fetchCurrentConfig() {
       try {
-        showToast("Opening system file picker...");
-        const res = await apiRequest('/api/browse');
+        const res = await apiRequest('/api/config');
+        if (res && res.success && res.config) {
+          currentConnConfig = res.config;
+          populateConfigFields(res.config);
+          updateConnSourceBadge(res.config.source);
+        }
+      } catch (err) {
+        console.warn("Could not fetch active config:", err);
+      }
+    }
+
+    function updateConnSourceBadge(source) {
+      const badge = document.getElementById("connSourceBadge");
+      if (!badge) return;
+      const isEnv = (source || "").toLowerCase() === "env";
+      badge.textContent = isEnv ? "ENV" : "MANUAL";
+      badge.style.background = isEnv ? "rgba(56, 189, 248, 0.2)" : "rgba(168, 85, 247, 0.25)";
+      badge.style.color = isEnv ? "var(--cyan)" : "#c084fc";
+      badge.style.border = isEnv ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid rgba(168, 85, 247, 0.4)";
+    }
+
+    function populateConfigFields(cfg) {
+      if (!cfg) return;
+      const hostInput = document.getElementById("cfgHost");
+      const portInput = document.getElementById("cfgPort");
+      const userInput = document.getElementById("cfgUser");
+      const passInput = document.getElementById("cfgPass");
+      const dbInput = document.getElementById("cfgDb");
+      const tlsInput = document.getElementById("cfgTls");
+
+      if (hostInput && !hostInput.matches(':focus')) hostInput.value = cfg.host || "127.0.0.1";
+      if (portInput && !portInput.matches(':focus')) portInput.value = cfg.port || 3306;
+      if (userInput && !userInput.matches(':focus')) userInput.value = cfg.user || "root";
+      if (passInput && !passInput.matches(':focus')) {
+        passInput.value = "";
+        passInput.placeholder = cfg.hasPassword ? "•••••••• (Password configured)" : "Password (blank if none)";
+      }
+      if (dbInput && !dbInput.matches(':focus')) dbInput.value = cfg.database || "";
+      if (tlsInput) tlsInput.checked = Boolean(cfg.tls);
+
+      syncFieldsToUrl();
+    }
+
+    function switchConnectionModalTab(tabKey) {
+      const tabs = {
+        config: { btn: "btnConnTabConfig", panel: "connPanelConfig" },
+        databases: { btn: "btnConnTabDatabases", panel: "connPanelDatabases" },
+        profiles: { btn: "btnConnTabProfiles", panel: "connPanelProfiles" },
+      };
+      for (const [key, t] of Object.entries(tabs)) {
+        const b = document.getElementById(t.btn);
+        const p = document.getElementById(t.panel);
+        const isActive = (key === tabKey);
+        if (b) b.classList.toggle("active", isActive);
+        if (p) p.style.display = isActive ? "block" : "none";
+      }
+      if (tabKey === "databases") {
+        loadWorkspaceDatabases();
+      } else if (tabKey === "profiles") {
+        loadSavedProfiles();
+      }
+    }
+
+    function setConnectionInputMode(mode) {
+      const isForm = (mode === 'form');
+      const btnForm = document.getElementById("btnModeForm");
+      const btnUrl = document.getElementById("btnModeUrl");
+      const panelForm = document.getElementById("connModeFormContainer");
+      const panelUrl = document.getElementById("connModeUrlContainer");
+
+      if (btnForm) btnForm.classList.toggle("btn-primary", isForm);
+      if (btnUrl) btnUrl.classList.toggle("btn-primary", !isForm);
+      if (panelForm) panelForm.style.display = isForm ? "block" : "none";
+      if (panelUrl) panelUrl.style.display = isForm ? "none" : "block";
+
+      if (isForm) {
+        const urlVal = document.getElementById("cfgUrl")?.value;
+        if (urlVal) parseUrlIntoFields(urlVal);
+      } else {
+        syncFieldsToUrl();
+      }
+    }
+
+    function syncFieldsToUrl() {
+      const host = (document.getElementById("cfgHost")?.value || "").trim() || "127.0.0.1";
+      const port = (document.getElementById("cfgPort")?.value || "").trim() || "3306";
+      const user = (document.getElementById("cfgUser")?.value || "").trim();
+      const pass = document.getElementById("cfgPass")?.value || "";
+      const db = (document.getElementById("cfgDb")?.value || "").trim();
+      const tls = Boolean(document.getElementById("cfgTls")?.checked);
+
+      let auth = "";
+      if (user) {
+        auth = encodeURIComponent(user);
+        if (pass) {
+          auth += ":" + encodeURIComponent(pass);
+        }
+        auth += "@";
+      }
+
+      const url = "mysql://" + auth + host + ":" + port + (db ? "/" + encodeURIComponent(db) : "") + (tls ? "?tls=true" : "");
+
+      const urlInput = document.getElementById("cfgUrl");
+      if (urlInput && document.activeElement !== urlInput) {
+        urlInput.value = url;
+      }
+    }
+
+    function parseUrlIntoFields(urlStr) {
+      if (!urlStr || typeof urlStr !== "string") return;
+      try {
+        const trimmed = urlStr.trim();
+        const normalized = trimmed.toLowerCase().startsWith("mysql://")
+          ? "http://" + trimmed.slice(8)
+          : trimmed;
+        const dummyUrl = new URL(normalized);
+        const host = dummyUrl.hostname || "127.0.0.1";
+        const port = dummyUrl.port || "3306";
+        const user = decodeURIComponent(dummyUrl.username || "");
+        const pass = decodeURIComponent(dummyUrl.password || "");
+        let db = dummyUrl.pathname || "";
+        if (db.startsWith("/")) db = db.slice(1);
+        db = decodeURIComponent(db);
+        const tls = dummyUrl.searchParams.get("tls") === "true" || dummyUrl.searchParams.get("ssl") === "true";
+
+        const hostInput = document.getElementById("cfgHost");
+        const portInput = document.getElementById("cfgPort");
+        const userInput = document.getElementById("cfgUser");
+        const passInput = document.getElementById("cfgPass");
+        const dbInput = document.getElementById("cfgDb");
+        const tlsInput = document.getElementById("cfgTls");
+
+        if (hostInput) hostInput.value = host;
+        if (portInput) portInput.value = port;
+        if (userInput) userInput.value = user;
+        if (passInput && pass) passInput.value = pass;
+        if (dbInput) dbInput.value = db;
+        if (tlsInput) tlsInput.checked = tls;
+      } catch {}
+    }
+
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById("cfgPass");
+      if (!passInput) return;
+      passInput.type = passInput.type === "password" ? "text" : "password";
+    }
+
+    function applyConnPreset(presetKey) {
+      const presets = {
+        localhost: { host: "127.0.0.1", port: 3306, user: "root", password: "", database: "my_app_dev", tls: false },
+        docker: { host: "127.0.0.1", port: 3306, user: "root", password: "rootpassword", database: "my_app_dev", tls: false },
+        alt_port: { host: "127.0.0.1", port: 3307, user: "root", password: "", database: "my_app_dev", tls: false },
+        rds: { host: "database-1.cluster-xyz.us-east-1.rds.amazonaws.com", port: 3306, user: "admin", password: "", database: "production", tls: true },
+      };
+      const p = presets[presetKey];
+      if (!p) return;
+
+      const hostInput = document.getElementById("cfgHost");
+      const portInput = document.getElementById("cfgPort");
+      const userInput = document.getElementById("cfgUser");
+      const passInput = document.getElementById("cfgPass");
+      const dbInput = document.getElementById("cfgDb");
+      const tlsInput = document.getElementById("cfgTls");
+
+      if (hostInput) hostInput.value = p.host;
+      if (portInput) portInput.value = p.port;
+      if (userInput) userInput.value = p.user;
+      if (passInput) passInput.value = p.password;
+      if (dbInput) dbInput.value = p.database;
+      if (tlsInput) tlsInput.checked = p.tls;
+
+      syncFieldsToUrl();
+      hideConnTestResult();
+      showToast("Applied preset: " + presetKey);
+    }
+
+    async function resetToEnvConfig() {
+      showToast("Resetting to .env configuration...");
+      const res = await apiRequest('/api/config', { resetToEnv: true });
+      if (res && res.success && res.config) {
+        currentConnConfig = res.config;
+        populateConfigFields(res.config);
+        updateConnSourceBadge(res.config.source);
+        hideConnTestResult();
+        showToast("Configuration reset to .env file!");
+        logAudit("[CONFIG] Reset MySQL connection parameters to .env");
+        await refreshAll();
+      } else {
+        showToast("Failed to reset to .env: " + (res ? res.error : "Unknown error"));
+      }
+    }
+
+    function getEnteredConfig() {
+      const host = (document.getElementById("cfgHost")?.value || "").trim() || "127.0.0.1";
+      const port = parseInt(document.getElementById("cfgPort")?.value || "3306", 10) || 3306;
+      const user = (document.getElementById("cfgUser")?.value || "").trim() || "root";
+      const password = document.getElementById("cfgPass")?.value || "";
+      const database = (document.getElementById("cfgDb")?.value || "").trim();
+      const tls = Boolean(document.getElementById("cfgTls")?.checked);
+      const url = (document.getElementById("cfgUrl")?.value || "").trim();
+
+      return { host, port, user, password, database, tls, url };
+    }
+
+    function hideConnTestResult() {
+      const banner = document.getElementById("connTestResult");
+      if (banner) {
+        banner.style.display = "none";
+        banner.innerHTML = "";
+      }
+    }
+
+    async function testManualConnection() {
+      const btn = document.getElementById("btnTestConn");
+      const banner = document.getElementById("connTestResult");
+      if (!banner) return;
+
+      const cfg = getEnteredConfig();
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Testing...";
+      }
+
+      banner.style.display = "block";
+      banner.style.background = "rgba(56, 189, 248, 0.1)";
+      banner.style.border = "1px solid rgba(56, 189, 248, 0.3)";
+      banner.style.color = "var(--text-main)";
+      banner.innerHTML = '<span>⏳ Testing connection to MySQL server at <code>' + escapeHtml(cfg.host) + ':' + cfg.port + '</code>...</span>';
+
+      try {
+        const res = await apiRequest('/api/test-config', cfg);
         if (res && res.success) {
+          banner.style.background = "rgba(34, 197, 94, 0.12)";
+          banner.style.border = "1px solid rgba(34, 197, 94, 0.4)";
+          let html = '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">' +
+            '<strong style="color: var(--emerald);">✅ Connection Successful!</strong>' +
+            '<span style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">' + (res.latencyMs || 0) + ' ms roundtrip</span>' +
+          '</div>';
+          html += '<div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px;">Server: <code>' + escapeHtml(res.version || "MySQL") + '</code></div>';
+          if (res.databases && res.databases.length > 0) {
+            html += '<div style="margin-top: 6px; font-size: 10px; color: var(--text-dim); font-weight: 600;">DISCOVERED DATABASES ON HOST (click to select):</div>';
+            html += '<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; max-height: 80px; overflow-y: auto;">';
+            res.databases.forEach(db => {
+              html += '<button class="sidebar-mini-btn" type="button" data-db-name="' + escapeHtml(db) + '" onclick="selectDiscoveredDb(this.dataset.dbName)" style="padding: 2px 7px; font-size: 10px; font-family: var(--font-mono);">🗄️ ' + escapeHtml(db) + '</button>';
+            });
+            html += '</div>';
+          }
+          banner.innerHTML = html;
+        } else {
+          banner.style.background = "rgba(239, 68, 68, 0.12)";
+          banner.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+          banner.innerHTML = '<div><strong style="color: var(--crimson);">❌ Connection Failed:</strong></div><div style="margin-top: 4px; font-family: var(--font-mono); font-size: 10px; color: #fca5a5;">' + escapeHtml(res ? res.error : "Unknown connection failure") + '</div>';
+        }
+      } catch (err) {
+        banner.style.background = "rgba(239, 68, 68, 0.12)";
+        banner.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+        banner.innerHTML = '<div><strong style="color: var(--crimson);">❌ Test Error:</strong></div><div style="margin-top: 4px; font-family: var(--font-mono); font-size: 10px; color: #fca5a5;">' + escapeHtml(err.message) + '</div>';
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "⚡ Test Connection";
+        }
+      }
+    }
+
+    function selectDiscoveredDb(dbName) {
+      const dbInput = document.getElementById("cfgDb");
+      if (dbInput) {
+        dbInput.value = dbName;
+        syncFieldsToUrl();
+        showToast("Selected database: " + dbName);
+      }
+    }
+
+    function scanHostDatabasesForDropdown() {
+      testManualConnection();
+    }
+
+    async function applyManualConnection() {
+      const btn = document.getElementById("btnApplyConn");
+      const cfg = getEnteredConfig();
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Connecting...";
+      }
+
+      try {
+        const res = await apiRequest('/api/config', cfg);
+        if (res && res.success) {
+          currentConnConfig = res.config;
+          updateConnSourceBadge(res.config?.source);
           closeDatabaseDialog();
-          showToast("Loaded database: " + (res.name || res.path));
-          logAudit("[CONNECT] Loaded database: " + res.path);
+          showToast("Connected to MySQL: " + (res.config?.database || cfg.database || 'default'));
+          logAudit("[CONNECT] Configured MySQL connection manually -> " + cfg.host + ":" + cfg.port + "/" + (cfg.database || ''));
           await refreshAll();
           if (currentSchema && currentSchema.tables.length > 0) {
             selectTable(currentSchema.tables[0].name);
           }
-        } else if (res && res.cancelled) {
-          showToast("File selection was cancelled.");
         } else {
-          showToast("Failed to load database: " + (res ? res.error : "Unknown error"));
+          showToast("Failed to connect: " + (res ? res.error : "Unknown error"));
+          const banner = document.getElementById("connTestResult");
+          if (banner) {
+            banner.style.display = "block";
+            banner.style.background = "rgba(239, 68, 68, 0.12)";
+            banner.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+            banner.innerHTML = '<div><strong style="color: var(--crimson);">❌ Connection Failed:</strong></div><div style="margin-top: 4px; font-family: var(--font-mono); font-size: 10px; color: #fca5a5;">' + escapeHtml(res ? res.error : "Unknown error") + '</div>';
+          }
         }
       } finally {
-        isBrowsingFile = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "🔌 Connect & Apply";
+        }
       }
+    }
+
+    async function handleCreateDatabase() {
+      const input = document.getElementById("txtNewDbName");
+      const name = (input?.value || "").trim();
+      if (!name) {
+        showToast("Please enter a database name to create.");
+        return;
+      }
+      showToast("Creating database '" + name + "'...");
+      const res = await apiRequest('/api/create-database', { database: name });
+      if (res && res.success) {
+        if (input) input.value = "";
+        showToast("Database '" + res.database + "' created and activated!");
+        logAudit("[DATABASE] Created and switched to new database: " + res.database);
+        closeDatabaseDialog();
+        await refreshAll();
+      } else {
+        showToast("Create database failed: " + (res ? res.error : "Unknown error"));
+      }
+    }
+
+    // Saved Profiles in Local Workstation Storage
+    function getStoredProfiles() {
+      try {
+        const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveStoredProfiles(profiles) {
+      try {
+        localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+      } catch {}
+    }
+
+    function promptSaveProfile() {
+      const cfg = getEnteredConfig();
+      const defaultName = (cfg.user || 'root') + '@' + cfg.host + ':' + cfg.port + '/' + (cfg.database || 'default');
+      const name = prompt("Enter a profile name for this connection:", defaultName);
+      if (!name) return;
+
+      const profiles = getStoredProfiles();
+      const profile = {
+        id: "prof_" + Date.now(),
+        name: name.trim(),
+        host: cfg.host,
+        port: cfg.port,
+        user: cfg.user,
+        password: cfg.password,
+        database: cfg.database,
+        tls: cfg.tls,
+        createdAt: new Date().toISOString(),
+      };
+      profiles.unshift(profile);
+      saveStoredProfiles(profiles);
+      showToast("Saved profile: " + profile.name);
+      loadSavedProfiles();
+      switchConnectionModalTab('profiles');
+    }
+
+    function loadSavedProfiles() {
+      const container = document.getElementById("savedProfilesList");
+      if (!container) return;
+      const profiles = getStoredProfiles();
+      if (profiles.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-dim); font-size: 11px; padding: 14px; text-align: center;">No saved profiles yet. Configure a connection in <b>🔌 Manual Connection</b> and click <b>💾 Save Profile</b>.</div>';
+        return;
+      }
+
+      container.innerHTML = "";
+      profiles.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "db-item-row";
+        card.style.display = "flex";
+        card.style.alignItems = "center";
+        card.style.justifyContent = "space-between";
+        card.style.padding = "8px 10px";
+        card.style.background = "rgba(255,255,255,0.03)";
+        card.style.borderRadius = "6px";
+        card.style.border = "1px solid var(--border-subtle)";
+
+        card.innerHTML = 
+          '<div style="min-width: 0; flex: 1;">' +
+            '<div style="display: flex; align-items: center; gap: 6px;">' +
+              '<span style="font-size: 13px;">💾</span>' +
+              '<span style="font-size: 12px; font-weight: 600; color: var(--text-main);">' + escapeHtml(p.name) + '</span>' +
+              (p.tls ? '<span style="font-size: 9px; background: rgba(34, 197, 94, 0.2); color: var(--emerald); padding: 1px 4px; border-radius: 4px;">SSL</span>' : '') +
+            '</div>' +
+            '<div style="font-size: 10px; font-family: var(--font-mono); color: var(--text-dim); margin-top: 2px;">' +
+              escapeHtml(p.user || 'root') + '@' + escapeHtml(p.host) + ':' + p.port + (p.database ? '/' + escapeHtml(p.database) : '') +
+            '</div>' +
+          '</div>' +
+          '<div style="display: flex; gap: 6px;">' +
+            '<button class="btn btn-sm btn-primary" data-prof-id="' + escapeHtml(p.id) + '" onclick="loadAndApplyProfile(this.dataset.profId)" style="padding: 4px 8px; font-size: 11px;">Connect</button>' +
+            '<button class="sidebar-mini-btn" data-prof-id="' + escapeHtml(p.id) + '" onclick="deleteProfile(this.dataset.profId)" title="Delete Profile" style="padding: 4px 6px; color: var(--crimson);">🗑️</button>' +
+          '</div>';
+        container.appendChild(card);
+      });
+    }
+
+    function loadAndApplyProfile(id) {
+      const profiles = getStoredProfiles();
+      const p = profiles.find(x => x.id === id);
+      if (!p) return;
+      populateConfigFields(p);
+      switchConnectionModalTab('config');
+      applyManualConnection();
+    }
+
+    function deleteProfile(id) {
+      let profiles = getStoredProfiles();
+      profiles = profiles.filter(x => x.id !== id);
+      saveStoredProfiles(profiles);
+      loadSavedProfiles();
+      showToast("Profile removed");
     }
 
     async function loadWorkspaceDatabases() {
       const container = document.getElementById("workspaceDbList");
       if (!container) return;
-      container.innerHTML = '<div style="color: var(--text-dim); font-size: 11px; padding: 6px;">Scanning workspace for MySQL databases...</div>';
+      container.innerHTML = '<div style="color: var(--text-dim); font-size: 11px; padding: 6px;">Scanning server databases (SHOW DATABASES)...</div>';
 
       const res = await apiRequest('/api/workspace-databases');
       if (!res || !res.success || !res.databases || res.databases.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-dim); font-size: 11px; padding: 6px;">No databases found in current directory. Use System File Chooser or Upload below.</div>';
+        container.innerHTML = '<div style="color: var(--text-dim); font-size: 11px; padding: 6px;">No databases found on server. You can create a new database below.</div>';
         return;
       }
 
@@ -2409,23 +2920,22 @@ ${CRUD_STYLE}
       res.databases.forEach(db => {
         const row = document.createElement("div");
         row.className = "db-item-row";
-        const isCurrent = db.isCurrent;
-        row.innerHTML = \`
-          <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
-            <span style="font-size: 16px;">\${db.isMemory ? '🧠' : '🗄️'}</span>
-            <div style="min-width: 0; flex: 1;">
-              <div style="font-size: 12px; font-weight: 600; color: \${isCurrent ? 'var(--cyan)' : 'var(--text-main)'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                \${db.name} \${isCurrent ? '<span style="font-size: 9px; background: rgba(56, 189, 248, 0.2); color: var(--cyan); padding: 1px 5px; border-radius: 4px; margin-left: 4px;">ACTIVE</span>' : ''}
-              </div>
-              <div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                \${db.path} (\${db.sizeFormatted})
-              </div>
-            </div>
-          </div>
-          <button class="btn btn-sm \${isCurrent ? '' : 'btn-primary'}" data-path="\${escapeHtml(db.path)}" onclick="connectToDatabase(this.dataset.path)" \${isCurrent ? 'disabled' : ''}>
-            \${isCurrent ? 'Active' : 'Load DB'}
-          </button>
-        \`;
+        const isCurrent = Boolean(db.isCurrent);
+        row.innerHTML = 
+          '<div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">' +
+            '<span style="font-size: 16px;">🗄️</span>' +
+            '<div style="min-width: 0; flex: 1;">' +
+              '<div style="font-size: 12px; font-weight: 600; color: ' + (isCurrent ? 'var(--cyan)' : 'var(--text-main)') + '; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' +
+                escapeHtml(db.name) + ' ' + (isCurrent ? '<span style="font-size: 9px; background: rgba(56, 189, 248, 0.2); color: var(--cyan); padding: 1px 5px; border-radius: 4px; margin-left: 4px;">ACTIVE</span>' : '') +
+              '</div>' +
+              '<div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' +
+                escapeHtml(db.path) + ' (' + escapeHtml(db.sizeFormatted) + ')' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button class="btn btn-sm ' + (isCurrent ? '' : 'btn-primary') + '" data-path="' + escapeHtml(db.path) + '" onclick="connectToDatabase(this.dataset.path)" ' + (isCurrent ? 'disabled' : '') + '>' +
+            (isCurrent ? 'Active' : 'Load DB') +
+          '</button>';
         container.appendChild(row);
       });
     }
@@ -5678,6 +6188,27 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
       process.env.STUDIO_WORKER = "mysql_studio";
       if (activeDbPath) process.env.MYSQL_DB_PATH = activeDbPath;
 
+      const customConfig: Partial<MysqlConnectionConfig> = options.config || {
+        host: options.host,
+        port: options.mysqlPort || (options.port && options.port !== 3306 ? options.port : undefined),
+        user: options.user,
+        password: options.password,
+        database: options.database,
+        tls: options.tls,
+        url: options.url,
+      };
+
+      if (customConfig.host) process.env.MYSQL_HOST = customConfig.host;
+      if (customConfig.port) process.env.MYSQL_PORT = String(customConfig.port);
+      if (customConfig.user) process.env.MYSQL_USER = customConfig.user;
+      if (customConfig.password !== undefined) process.env.MYSQL_PASSWORD = customConfig.password;
+      if (customConfig.database) {
+        process.env.MYSQL_DATABASE = customConfig.database;
+        process.env.MYSQL_DB_PATH = customConfig.database;
+      }
+      if (customConfig.tls !== undefined) process.env.MYSQL_TLS = customConfig.tls ? "true" : "false";
+      if (customConfig.url) process.env.DATABASE_URL = customConfig.url;
+
       let info: { ready: boolean; port: number; url: string; type?: string };
 
       let serverProc: any = null;
@@ -5746,6 +6277,7 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
             port: 0,
             host: "127.0.0.1",
             initialDbPath: activeDbPath || ":memory:",
+            config: customConfig,
           });
           app.server = srv;
           const serverPort = srv.port ?? 0;
