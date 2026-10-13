@@ -7,6 +7,7 @@ The list of terms the handbook must define. **The glossary itself is not written
 - [Terms from the task brief](#terms-from-the-task-brief)
 - [Project-specific terms found in the repository](#project-specific-terms-found-in-the-repository)
 - [Easily confused pairs to explain](#easily-confused-pairs-to-explain)
+- [Not yet defined](#not-yet-defined)
 - [Definition format](#definition-format)
 
 ## Terms from the task brief
@@ -68,6 +69,10 @@ Each needs: plain definition, why it matters here, an example, related terms, li
 | Design time vs runtime | Designer placeholders vs a running form |
 | Studio vs CLI tool vs demo | The launcher's three kinds of entry |
 | Read-only profile vs read-only account | The first is enforced by the tool plus the engine; only the second is a hard guarantee |
+
+## Not yet defined
+
+Listed in the inventory above but without a [glossary](../glossary.md) entry yet: runtime, driver, column, constraint, certificate, encoding, JSON, test, fixture-related terms beyond *fixture*, statement splitter, typed parameter, exact decimal, big integer, macro and QBE (query by example), code translation, Environment Vault, App Bundler, SimpleCLI, the `rad` utility modules, Homebrew suite and Brewfile, theme, `dist/`, and the "easily confused pairs" other than the ones explained inside entries (schema, export versus backup, read-only). Add them as the related guides are verified.
 
 ## Definition format
 

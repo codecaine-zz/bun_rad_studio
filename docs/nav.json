@@ -29,6 +29,7 @@
       "title": "Reference",
       "pages": [
         { "title": "Reference index", "path": "reference/index.md" },
+        { "title": "Glossary", "path": "glossary.md" },
         { "title": "Application index (generated)", "path": "reference/application-index.md" },
         { "title": "Script index (generated)", "path": "reference/script-index.md" },
         { "title": "Designer API (API.md)", "path": "API.md" },

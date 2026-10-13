@@ -25,6 +25,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 ## Reference
 
 - [Reference index](reference/index.md)
+- [Glossary](glossary.md)
 - [Application index (generated)](reference/application-index.md)
 - [Script index (generated)](reference/script-index.md)
 - [Designer API (API.md)](API.md)
