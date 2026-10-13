@@ -8,7 +8,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](docs/API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [📚 Documentation handbook](docs/index.md) • [🛠️ Developer handbook](docs/developer/handbook.md) • [🔒 Security](docs/security.md) • [🩺 Troubleshooting](docs/troubleshooting.md) • [📖 Glossary](docs/glossary.md) • [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-39-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [📚 Documentation handbook](docs/index.md) • [🛠️ Developer handbook](docs/developer/handbook.md) • [🔒 Security](docs/security.md) • [🩺 Troubleshooting](docs/troubleshooting.md) • [📖 Glossary](docs/glossary.md) • [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (76 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-39-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 ---
 
@@ -95,7 +95,7 @@ bun run cli:launcher --search sqlite
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
   - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
   - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
-  - [🎨 Built-in Desktop Form Themes & Visual Gallery (63 Themes)](#built-in-desktop-form-themes--visual-gallery-63-themes)
+  - [🎨 Built-in Desktop Form Themes & Visual Gallery (76 Themes)](#built-in-desktop-form-themes--visual-gallery-76-themes)
   - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
 - [💻 Installation & Quick Start](#installation--quick-start)
@@ -168,15 +168,15 @@ bun run cli:launcher --search sqlite
 - **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 - **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-<a id="built-in-desktop-form-themes--visual-gallery-63-themes"></a>
+<a id="built-in-desktop-form-themes--visual-gallery-76-themes"></a>
 
-### 🎨 Built-in Desktop Form Themes & Visual Gallery (63 Themes)
+### 🎨 Built-in Desktop Form Themes & Visual Gallery (76 Themes)
 
 Bun RAD Studio and SimpleGUI feature **63 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
 
 > [!TIP]
 > ### 🖼️ Complete Visual Gallery & Theme Catalog in `docs/THEMES.md`
-> **Instead of listing all 63 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
+> **Instead of listing all 76 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
 > 👉 **[🖼️ View the Complete 63-Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
 
 Every theme automatically harmonizes:
@@ -204,7 +204,7 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 ```
 
-#### 🎨 Built-in Theme Categories Overview (63 Themes)
+#### 🎨 Built-in Theme Categories Overview (76 Themes)
 
 | Category | Count | Highlight Themes | Vibe & Aesthetic |
 | :--- | :---: | :--- | :--- |

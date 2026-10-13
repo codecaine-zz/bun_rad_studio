@@ -24,7 +24,7 @@ Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme 
 - [☀️ Clean Light & High-Contrast Themes (6 Themes)](#cat-light)
 - [🕹️ Retro & Nostalgic Computing Themes (10 Themes)](#cat-retro)
 - [🐧 Modern Linux Desktop Themes (7 Themes)](#cat-linux)
-- [⚡ Quick Reference Index Table (All 63 Themes)](#quick-reference-index)
+- [⚡ Quick Reference Index Table (All 76 Themes)](#quick-reference-index)
 - [💻 How to Use Any Theme in SimpleGUI Code](#-how-to-use-any-theme-in-simplegui-code)
 
 ---
@@ -1010,7 +1010,7 @@ Authentic Linux desktop operating system styling covering Ubuntu Yaru, GNOME Lib
 ---
 
 <a id="quick-reference-index"></a>
-## ⚡ Quick Reference Index Table (All 63 Themes)
+## ⚡ Quick Reference Index Table (All 76 Themes)
 
 | # | Theme Key | Display Name | Mode | Primary Accent | Secondary | Background | Quick Screenshot |
 |---|---|---|---|---|---|---|---|

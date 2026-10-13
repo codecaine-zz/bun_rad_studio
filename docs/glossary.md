@@ -331,7 +331,7 @@ The project's word for a windowed application, such as SQLite Studio Pro or Code
 Rows and columns of data in a database. In the designer, `table` is also a control.
 
 ### Theme
-A named set of colours (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The documents disagree on how many themes exist: 63 (README), 76 ([THEMES.md](THEMES.md)) and 51 in the designer's theme list ([D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md).
+A named set of colours (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The framework has 76 named themes (151 keys with aliases); the designer's theme list is a 51-item subset ([D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md).
 
 ### Throwaway database
 A temporary database created for one test and removed afterwards, so tests never touch real data. **See:** [Database tests](testing/database-tests.md).

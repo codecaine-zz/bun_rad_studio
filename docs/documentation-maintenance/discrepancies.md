@@ -31,7 +31,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-025 Generated preview files were tracked in git (fixed)](#d-025)
 - [D-026 Defects found by burning down type errors (fixed)](#d-026)
 - [D-027 The unified `src/index.ts` exports some names as undefined (open)](#d-027)
-- [D-028 Documents disagree on how many themes exist (open)](#d-028)
+- [D-028 Documents disagreed on how many themes exist (fixed)](#d-028)
 - [D-029 A test-only package was a runtime dependency, with known advisories (fixed)](#d-029)
 
 <a id="d-001"></a>
@@ -264,11 +264,13 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Guard:** the five errors stay in the type-check baseline (`src/index.ts`: 5).
 
 <a id="d-028"></a>
-## D-028: Documents disagree on how many themes exist (open)
+## D-028: Documents disagreed on how many themes exist (fixed)
 
-- **Status:** Open (found on 13 October 2026).
-- **Observed:** the README quick links say "Theme Gallery (63 Themes)"; `docs/THEMES.md` is titled "Complete Theme Visual Gallery (76 Themes)"; the designer's theme drop-down (`propFormTheme` in `src/ide.html`) has 51 choices; `demos/25_vlang_all_themes_showcase.ts` mentions 76. Which set is "the" list of themes (framework themes for SimpleGUI versus the designer's form themes) was not investigated.
-- **Handbook rule:** pages say "51 in the designer's list" when they mean the designer, and do not quote a single total.
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** the README and `docs/SIMPLEGUI_API.md` said 63 themes; `docs/THEMES.md` and `demos/25_vlang_all_themes_showcase.ts` said 76; the designer's theme drop-down has 51 choices.
+- **Measured** (`src/simplegui.ts`): `getThemeNames()` returns **76** named themes, `SIMPLEGUI_THEMES` has 151 keys (names plus aliases), `listShortThemes()` returns 88 short names. Every one of the 76 names appears in `docs/THEMES.md`. The designer's 51-item list is a subset used for form colours (`getThemeColors` in `src/ide.html`).
+- **Fix:** "63 themes" became "76 themes" in the README, `docs/SIMPLEGUI_API.md` and `docs/THEMES.md`, with their anchors; the link checker passes.
+- **Not checked:** that each of the 76 themes looks as THEMES.md's screenshots show.
 
 <a id="d-029"></a>
 ## D-029: A test-only package was a runtime dependency, with known advisories (fixed)

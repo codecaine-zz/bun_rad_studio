@@ -1122,7 +1122,7 @@ win.copyToClipboard("Copied from SimpleGUI!");
 ---
 
 <a id="visual-themes"></a>
-## 13. 🎨 Built-in Visual Themes (63 Themes)
+## 13. 🎨 Built-in Visual Themes (76 Themes)
 
 Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)`:
 
