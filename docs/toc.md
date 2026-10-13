@@ -90,6 +90,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 
 - [Coverage matrix (generated)](documentation-maintenance/coverage-matrix.md)
 - [Discrepancies found while documenting](documentation-maintenance/discrepancies.md)
+- [Baseline checks and risk register](documentation-maintenance/baseline-and-risks.md)
 - [Style guide](documentation-maintenance/style-guide.md)
 - [Contributor checklist](documentation-maintenance/contributor-checklist.md)
 - [Glossary term inventory](documentation-maintenance/glossary-inventory.md)

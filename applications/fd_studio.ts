@@ -2208,12 +2208,12 @@ if (import.meta.main) {
     const specifiedPort = Number(process.env.PORT);
     let serverObj: any;
     if (specifiedPort) {
-      serverObj = startFdStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+      serverObj = startFdStudioServer({ port: specifiedPort, host: "127.0.0.1" });
     } else {
       try {
-        serverObj = startFdStudioServer({ port: 4610, host: "0.0.0.0" });
+        serverObj = startFdStudioServer({ port: 4610, host: "127.0.0.1" });
       } catch {
-        serverObj = startFdStudioServer({ port: 0, host: "0.0.0.0" });
+        serverObj = startFdStudioServer({ port: 0, host: "127.0.0.1" });
       }
     }
     console.log(`READY:${serverObj.port}`);

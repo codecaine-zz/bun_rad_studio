@@ -17,7 +17,8 @@
  */
 
 import { SizeHint, Webview } from "webview-bun";
-import { resolve, join, relative, dirname } from "path";
+import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
+import { guardLocalRequest } from "../src/localGuard";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, rmdirSync, statSync, readdirSync, renameSync } from "fs";
 import {
   setAlwaysOnTopNative,
@@ -197,6 +198,12 @@ function scanWorkspace(rootDir: string, currentDir: string = rootDir, maxDepth =
   return results;
 }
 
+/** True when `target` is `root` itself or lies inside it (a plain prefix check wrongly accepts `/ws-evil` for `/ws`). */
+export function isInsideWorkspace(root: string, target: string): boolean {
+  const rel = relative(root, target);
+  return rel === "" || (rel !== ".." && !rel.startsWith(".." + sep) && !isAbsolute(rel));
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -214,6 +221,9 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
     port,
     hostname: host,
     async fetch(req) {
+      const blocked = guardLocalRequest(req);
+      if (blocked) return blocked;
+
       const url = new URL(req.url);
       const pathname = url.pathname;
 
@@ -365,7 +375,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
-          if (!targetPath.startsWith(workspaceRoot)) {
+          if (!isInsideWorkspace(workspaceRoot, targetPath)) {
             return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 
@@ -397,7 +407,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
-          if (!targetPath.startsWith(workspaceRoot)) {
+          if (!isInsideWorkspace(workspaceRoot, targetPath)) {
             return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 
@@ -429,7 +439,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
-          if (!targetPath.startsWith(workspaceRoot)) {
+          if (!isInsideWorkspace(workspaceRoot, targetPath)) {
             return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 
@@ -456,7 +466,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
-          if (!targetPath.startsWith(workspaceRoot) || targetPath === workspaceRoot) {
+          if (!isInsideWorkspace(workspaceRoot, targetPath) || targetPath === workspaceRoot) {
             return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 
@@ -486,7 +496,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           const srcPath = resolve(workspaceRoot, body.oldPath);
           const destPath = resolve(workspaceRoot, body.newPath);
 
-          if (!srcPath.startsWith(workspaceRoot) || !destPath.startsWith(workspaceRoot)) {
+          if (!isInsideWorkspace(workspaceRoot, srcPath) || !isInsideWorkspace(workspaceRoot, destPath)) {
             return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 

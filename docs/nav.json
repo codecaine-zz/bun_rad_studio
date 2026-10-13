@@ -55,6 +55,7 @@
       "pages": [
         { "title": "Coverage matrix (generated)", "path": "documentation-maintenance/coverage-matrix.md" },
         { "title": "Discrepancies found while documenting", "path": "documentation-maintenance/discrepancies.md" },
+        { "title": "Baseline checks and risk register", "path": "documentation-maintenance/baseline-and-risks.md" },
         { "title": "Style guide", "path": "documentation-maintenance/style-guide.md" },
         { "title": "Contributor checklist", "path": "documentation-maintenance/contributor-checklist.md" },
         { "title": "Glossary term inventory", "path": "documentation-maintenance/glossary-inventory.md" },

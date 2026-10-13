@@ -1108,12 +1108,12 @@ if (import.meta.main) {
     const specifiedPort = Number(process.env.PORT);
     let server: any;
     if (specifiedPort) {
-      server = startTaskManagerServer({ port: specifiedPort, host: "0.0.0.0" });
+      server = startTaskManagerServer({ port: specifiedPort, host: "127.0.0.1" });
     } else {
       try {
-        server = startTaskManagerServer({ port: 4848, host: "0.0.0.0" });
+        server = startTaskManagerServer({ port: 4848, host: "127.0.0.1" });
       } catch {
-        server = startTaskManagerServer({ port: 0, host: "0.0.0.0" });
+        server = startTaskManagerServer({ port: 0, host: "127.0.0.1" });
       }
     }
     console.log(`READY:${server.port}`);

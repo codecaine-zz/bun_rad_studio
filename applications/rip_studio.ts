@@ -1253,12 +1253,12 @@ if (import.meta.main) {
     const specifiedPort = Number(process.env.PORT);
     let serverObj: any;
     if (specifiedPort) {
-      serverObj = startRipStudioServer({ port: specifiedPort, host: "0.0.0.0" });
+      serverObj = startRipStudioServer({ port: specifiedPort, host: "127.0.0.1" });
     } else {
       try {
-        serverObj = startRipStudioServer({ port: 3899, host: "0.0.0.0" });
+        serverObj = startRipStudioServer({ port: 3899, host: "127.0.0.1" });
       } catch {
-        serverObj = startRipStudioServer({ port: 0, host: "0.0.0.0" });
+        serverObj = startRipStudioServer({ port: 0, host: "127.0.0.1" });
       }
     }
     console.log(`READY:${serverObj.port}`);

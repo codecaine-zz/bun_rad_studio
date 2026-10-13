@@ -15,6 +15,8 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-009 Legacy studios keep database passwords in a plain `.env` file](#d-009)
 - [D-010 Two identical theme documents](#d-010)
 - [D-011 Exported project did not parse (fixed)](#d-011)
+- [D-012 Code Studio accepted commands from any web page (fixed)](#d-012)
+- [D-013 Standalone servers listened on every network interface (fixed)](#d-013)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -90,3 +92,21 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Fix:** the inner backticks are now escaped. The generated helpers pass valid JavaScript to the page (checked with `new Function`).
 - **Regression tests:** `tests/ide_html.test.ts` ("Exported project").
 - **Not covered:** whether those four helpers draw correctly in a real page.
+
+<a id="d-012"></a>
+## D-012: Code Studio accepted commands from any web page (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `applications/code_studio.ts` did not call `guardLocalRequest` (`src/localGuard.ts`) and answered with `Access-Control-Allow-Origin: *`. While Code Studio was running, a request with a foreign `Origin` header to `POST /api/exec` ran the command: the old code returned status 200 and the command's output (probe run against the previous version of the file). The same server also reads, saves, renames and deletes files. A web page open in the user's browser could therefore have run commands on the user's machine.
+- **Also fixed:** the workspace boundary check was `path.startsWith(workspaceRoot)`, which accepts a sibling folder such as `/work/ws-evil` for the workspace `/work/ws`. It is now `isInsideWorkspace` (exported from the same file) and uses the relative path.
+- **Behaviour change:** requests from another origin, or with a non-loopback `Host`, now get `403`. The Code Studio page itself, `curl` and the tests send no foreign `Origin`, so they are unaffected.
+- **Regression tests:** `tests/code_studio_security.test.ts`.
+- **Not done:** the other studios that do not use the guard (see [risk R-03](baseline-and-risks.md#risks)) were not changed.
+
+<a id="d-013"></a>
+## D-013: Standalone servers listened on every network interface (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `bun run applications/<app>.ts --server` for `task_manager`, `fd_studio` and `rip_studio` started the server with `host: "0.0.0.0"`, while printing `http://127.0.0.1:<port>`. The guard only checks the `Host` header, which a client on the same network can set to `localhost`, so these servers (process control, file operations) were reachable from the local network.
+- **Fix:** they now bind to `127.0.0.1`. LAN use did not work before either, because the guard refuses a non-loopback `Host`.
+- **Regression tests:** `tests/standalone_server_binding.test.ts` (skipped on a machine with no non-loopback IPv4 address).
