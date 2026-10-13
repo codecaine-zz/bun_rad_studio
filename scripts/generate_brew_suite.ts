@@ -118,7 +118,9 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
   });
 
   // 2. Discover all tools using scanAllApplications
-  const { apps } = scanAllApplications();
+  // The launcher orders apps by the user's favourites and launch counts. Sort by path so the generated list, and the
+  // committed bin/manifest.json, are the same on every machine.
+  const apps = [...scanAllApplications().apps].sort((a, b) => a.displayPath.localeCompare(b.displayPath));
 
   // CLI tools
   for (const app of apps.filter(a => a.source === "cli_tool")) {

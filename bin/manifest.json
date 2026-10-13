@@ -1,7 +1,7 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-13T21:28:52.211Z",
+  "generatedAt": "2026-10-13T22:52:51.602Z",
   "totalWrappers": 256,
   "commands": [
     {
@@ -1269,28 +1269,28 @@
       "targetScript": "cli_apps/yt_dlp_cli.ts"
     },
     {
-      "name": "codecaine-lolo-studio",
-      "type": "gui",
-      "displayName": "Adventures of Lolo Remaster",
-      "category": "Games & Entertainment",
-      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
-      "targetScript": "applications/lolo_studio.ts"
-    },
-    {
-      "name": "codecaine-lolo",
-      "type": "gui",
-      "displayName": "Adventures of Lolo Remaster",
-      "category": "Games & Entertainment",
-      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
-      "targetScript": "applications/lolo_studio.ts"
-    },
-    {
       "name": "codecaine-app-bundler-studio",
       "type": "gui",
       "displayName": "App Bundler Studio Pro",
       "category": "Developer Tools",
       "description": "Single-executable compiler & macOS .app bundle packager with icons",
       "targetScript": "applications/app_bundler_studio.ts"
+    },
+    {
+      "name": "codecaine-balatro-studio",
+      "type": "gui",
+      "displayName": "Joker Royale (Balatro Deluxe)",
+      "category": "Games & Entertainment",
+      "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
+      "targetScript": "applications/balatro_studio.ts"
+    },
+    {
+      "name": "codecaine-balatro",
+      "type": "gui",
+      "displayName": "Joker Royale (Balatro Deluxe)",
+      "category": "Games & Entertainment",
+      "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
+      "targetScript": "applications/balatro_studio.ts"
     },
     {
       "name": "codecaine-blackjack-studio",
@@ -1309,28 +1309,52 @@
       "targetScript": "applications/blackjack_studio.ts"
     },
     {
-      "name": "codecaine-paint-studio",
+      "name": "codecaine-breakout-studio",
       "type": "gui",
-      "displayName": "Chroma Studio Pro",
-      "category": "Design & Media",
-      "description": "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
-      "targetScript": "applications/paint_studio.ts"
+      "displayName": "Cyber Breakout Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+      "targetScript": "applications/breakout_studio.ts"
     },
     {
-      "name": "codecaine-paint",
+      "name": "codecaine-breakout",
       "type": "gui",
-      "displayName": "Chroma Studio Pro",
-      "category": "Design & Media",
-      "description": "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
-      "targetScript": "applications/paint_studio.ts"
+      "displayName": "Cyber Breakout Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+      "targetScript": "applications/breakout_studio.ts"
     },
     {
-      "name": "codecaine-tokei-studio",
+      "name": "codecaine-brew-studio",
       "type": "gui",
-      "displayName": "Code Statistics Studio (Tokei)",
+      "displayName": "Homebrew Package Studio",
+      "category": "System & Hardware",
+      "description": "Package dependency manager & Bun ecosystem workstation",
+      "targetScript": "applications/brew_studio.ts"
+    },
+    {
+      "name": "codecaine-calculator-studio",
+      "type": "gui",
+      "displayName": "Universal Calculator & IntuitionLab Studio",
+      "category": "Productivity & Text",
+      "description": "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
+      "targetScript": "applications/calculator_studio.ts"
+    },
+    {
+      "name": "codecaine-code-studio",
+      "type": "gui",
+      "displayName": "NovaCode Studio Pro",
       "category": "Developer Tools",
-      "description": "Lines of code counter, comment-to-code ratio & language breakdown",
-      "targetScript": "applications/tokei_studio.ts"
+      "description": "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
+      "targetScript": "applications/code_studio.ts"
+    },
+    {
+      "name": "codecaine-code",
+      "type": "gui",
+      "displayName": "NovaCode Studio Pro",
+      "category": "Developer Tools",
+      "description": "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
+      "targetScript": "applications/code_studio.ts"
     },
     {
       "name": "codecaine-codecaine-bros-studio",
@@ -1365,46 +1389,6 @@
       "targetScript": "applications/color_studio.ts"
     },
     {
-      "name": "codecaine-crypto-studio",
-      "type": "gui",
-      "displayName": "Cryptography & Hashing Studio",
-      "category": "Security & Crypto",
-      "description": "SHA-256, HMAC, AES-GCM cipher workbench with password entropy testing",
-      "targetScript": "applications/crypto_studio.ts"
-    },
-    {
-      "name": "codecaine-breakout-studio",
-      "type": "gui",
-      "displayName": "Cyber Breakout Deluxe",
-      "category": "Games & Entertainment",
-      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
-      "targetScript": "applications/breakout_studio.ts"
-    },
-    {
-      "name": "codecaine-breakout",
-      "type": "gui",
-      "displayName": "Cyber Breakout Deluxe",
-      "category": "Games & Entertainment",
-      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
-      "targetScript": "applications/breakout_studio.ts"
-    },
-    {
-      "name": "codecaine-frogger-studio",
-      "type": "gui",
-      "displayName": "CyberFrog Deluxe",
-      "category": "Games & Entertainment",
-      "description": "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
-      "targetScript": "applications/frogger_studio.ts"
-    },
-    {
-      "name": "codecaine-frogger",
-      "type": "gui",
-      "displayName": "CyberFrog Deluxe",
-      "category": "Games & Entertainment",
-      "description": "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
-      "targetScript": "applications/frogger_studio.ts"
-    },
-    {
       "name": "codecaine-connect4-studio",
       "type": "gui",
       "displayName": "Cyberpunk Connect 4",
@@ -1421,52 +1405,20 @@
       "targetScript": "applications/connect4_studio.ts"
     },
     {
-      "name": "codecaine-maze-generator-studio",
+      "name": "codecaine-crypto-studio",
       "type": "gui",
-      "displayName": "Cyberpunk Maze Runner",
-      "category": "Games & Entertainment",
-      "description": "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
-      "targetScript": "applications/maze_generator_studio.ts"
+      "displayName": "Cryptography & Hashing Studio",
+      "category": "Security & Crypto",
+      "description": "SHA-256, HMAC, AES-GCM cipher workbench with password entropy testing",
+      "targetScript": "applications/crypto_studio.ts"
     },
     {
-      "name": "codecaine-maze-generator",
+      "name": "codecaine-database-studio",
       "type": "gui",
-      "displayName": "Cyberpunk Maze Runner",
-      "category": "Games & Entertainment",
-      "description": "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
-      "targetScript": "applications/maze_generator_studio.ts"
-    },
-    {
-      "name": "codecaine-pacman-studio",
-      "type": "gui",
-      "displayName": "Cyberpunk Pac-Man Arcade",
-      "category": "Games & Entertainment",
-      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
-      "targetScript": "applications/pacman_studio.ts"
-    },
-    {
-      "name": "codecaine-pacman",
-      "type": "gui",
-      "displayName": "Cyberpunk Pac-Man Arcade",
-      "category": "Games & Entertainment",
-      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
-      "targetScript": "applications/pacman_studio.ts"
-    },
-    {
-      "name": "codecaine-typing-studio",
-      "type": "gui",
-      "displayName": "CyberType Deluxe",
-      "category": "Games & Entertainment",
-      "description": "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
-      "targetScript": "applications/typing_studio.ts"
-    },
-    {
-      "name": "codecaine-typing",
-      "type": "gui",
-      "displayName": "CyberType Deluxe",
-      "category": "Games & Entertainment",
-      "description": "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
-      "targetScript": "applications/typing_studio.ts"
+      "displayName": "Unified Database Studio",
+      "category": "Database & Storage",
+      "description": "Universal SQL query runner and connection dispatcher for SQLite & Redis",
+      "targetScript": "applications/database_studio.ts"
     },
     {
       "name": "codecaine-dataconvert-studio",
@@ -1483,14 +1435,6 @@
       "category": "Developer Tools",
       "description": "Unified developer CLI toolkit with 6 developer engines powered natively",
       "targetScript": "applications/devtools_studio.ts"
-    },
-    {
-      "name": "codecaine-gdu-studio",
-      "type": "gui",
-      "displayName": "Disk Usage Studio (GDU)",
-      "category": "File & Directory Tools",
-      "description": "Fast disk usage analyzer with interactive directory space allocation",
-      "targetScript": "applications/gdu_studio.ts"
     },
     {
       "name": "codecaine-doggo-studio",
@@ -1533,22 +1477,6 @@
       "targetScript": "applications/dr_codecaine_studio.ts"
     },
     {
-      "name": "codecaine-rat-screw-studio",
-      "type": "gui",
-      "displayName": "Egyptian Rat Screw Royale",
-      "category": "Games & Entertainment",
-      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
-      "targetScript": "applications/rat_screw_studio.ts"
-    },
-    {
-      "name": "codecaine-rat-screw",
-      "type": "gui",
-      "displayName": "Egyptian Rat Screw Royale",
-      "category": "Games & Entertainment",
-      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
-      "targetScript": "applications/rat_screw_studio.ts"
-    },
-    {
       "name": "codecaine-env-studio",
       "type": "gui",
       "displayName": "Environment Variable Studio",
@@ -1563,14 +1491,6 @@
       "category": "File & Directory Tools",
       "description": "Ultra-fast native Bun filesystem traversal, globbing & quarantine manager",
       "targetScript": "applications/fd_studio.ts"
-    },
-    {
-      "name": "codecaine-watcher-studio",
-      "type": "gui",
-      "displayName": "Filesystem Watcher Studio",
-      "category": "Developer Tools",
-      "description": "Live filesystem trigger dispatcher and task runner on file changes",
-      "targetScript": "applications/watcher_studio.ts"
     },
     {
       "name": "codecaine-flappy-bird-studio",
@@ -1589,20 +1509,36 @@
       "targetScript": "applications/flappy_bird_studio.ts"
     },
     {
+      "name": "codecaine-frogger-studio",
+      "type": "gui",
+      "displayName": "CyberFrog Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
+      "targetScript": "applications/frogger_studio.ts"
+    },
+    {
+      "name": "codecaine-frogger",
+      "type": "gui",
+      "displayName": "CyberFrog Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
+      "targetScript": "applications/frogger_studio.ts"
+    },
+    {
+      "name": "codecaine-gdu-studio",
+      "type": "gui",
+      "displayName": "Disk Usage Studio (GDU)",
+      "category": "File & Directory Tools",
+      "description": "Fast disk usage analyzer with interactive directory space allocation",
+      "targetScript": "applications/gdu_studio.ts"
+    },
+    {
       "name": "codecaine-git-studio",
       "type": "gui",
       "displayName": "Git Version Control Studio",
       "category": "Developer Tools",
       "description": "Visual diff inspector, working tree controller & commit audit trail",
       "targetScript": "applications/git_studio.ts"
-    },
-    {
-      "name": "codecaine-brew-studio",
-      "type": "gui",
-      "displayName": "Homebrew Package Studio",
-      "category": "System & Hardware",
-      "description": "Package dependency manager & Bun ecosystem workstation",
-      "targetScript": "applications/brew_studio.ts"
     },
     {
       "name": "codecaine-interval-timer-studio",
@@ -1629,22 +1565,6 @@
       "targetScript": "applications/ipinfo_studio.ts"
     },
     {
-      "name": "codecaine-balatro-studio",
-      "type": "gui",
-      "displayName": "Joker Royale (Balatro Deluxe)",
-      "category": "Games & Entertainment",
-      "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
-      "targetScript": "applications/balatro_studio.ts"
-    },
-    {
-      "name": "codecaine-balatro",
-      "type": "gui",
-      "displayName": "Joker Royale (Balatro Deluxe)",
-      "category": "Games & Entertainment",
-      "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
-      "targetScript": "applications/balatro_studio.ts"
-    },
-    {
       "name": "codecaine-jq-studio",
       "type": "gui",
       "displayName": "JQ JSON Query Studio",
@@ -1659,6 +1579,22 @@
       "category": "Developer Tools",
       "description": "High-speed syntax validator, schema checker & minifier/beautifier",
       "targetScript": "applications/json_studio.ts"
+    },
+    {
+      "name": "codecaine-lolo-studio",
+      "type": "gui",
+      "displayName": "Adventures of Lolo Remaster",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+      "targetScript": "applications/lolo_studio.ts"
+    },
+    {
+      "name": "codecaine-lolo",
+      "type": "gui",
+      "displayName": "Adventures of Lolo Remaster",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+      "targetScript": "applications/lolo_studio.ts"
     },
     {
       "name": "codecaine-markdown-studio",
@@ -1683,6 +1619,22 @@
       "category": "Games & Entertainment",
       "description": "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
       "targetScript": "applications/math_munchers_studio.ts"
+    },
+    {
+      "name": "codecaine-maze-generator-studio",
+      "type": "gui",
+      "displayName": "Cyberpunk Maze Runner",
+      "category": "Games & Entertainment",
+      "description": "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
+      "targetScript": "applications/maze_generator_studio.ts"
+    },
+    {
+      "name": "codecaine-maze-generator",
+      "type": "gui",
+      "displayName": "Cyberpunk Maze Runner",
+      "category": "Games & Entertainment",
+      "description": "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
+      "targetScript": "applications/maze_generator_studio.ts"
     },
     {
       "name": "codecaine-minesweeper-studio",
@@ -1717,92 +1669,12 @@
       "targetScript": "applications/mysql_studio.ts"
     },
     {
-      "name": "codecaine-pong-studio",
-      "type": "gui",
-      "displayName": "Neon Cyber Pong",
-      "category": "Games & Entertainment",
-      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
-      "targetScript": "applications/pong_studio.ts"
-    },
-    {
-      "name": "codecaine-pong",
-      "type": "gui",
-      "displayName": "Neon Cyber Pong",
-      "category": "Games & Entertainment",
-      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
-      "targetScript": "applications/pong_studio.ts"
-    },
-    {
-      "name": "codecaine-snake-studio",
-      "type": "gui",
-      "displayName": "Neon Snake Deluxe",
-      "category": "Games & Entertainment",
-      "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
-      "targetScript": "applications/snake_studio.ts"
-    },
-    {
-      "name": "codecaine-snake",
-      "type": "gui",
-      "displayName": "Neon Snake Deluxe",
-      "category": "Games & Entertainment",
-      "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
-      "targetScript": "applications/snake_studio.ts"
-    },
-    {
-      "name": "codecaine-tictactoe-studio",
-      "type": "gui",
-      "displayName": "Neon Tic-Tac-Toe Arcade",
-      "category": "Games & Entertainment",
-      "description": "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
-      "targetScript": "applications/tictactoe_studio.ts"
-    },
-    {
-      "name": "codecaine-tictactoe",
-      "type": "gui",
-      "displayName": "Neon Tic-Tac-Toe Arcade",
-      "category": "Games & Entertainment",
-      "description": "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
-      "targetScript": "applications/tictactoe_studio.ts"
-    },
-    {
-      "name": "codecaine-word-search-studio",
-      "type": "gui",
-      "displayName": "Neon Word Search Labyrinth",
-      "category": "Games & Entertainment",
-      "description": "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
-      "targetScript": "applications/word_search_studio.ts"
-    },
-    {
-      "name": "codecaine-word-search",
-      "type": "gui",
-      "displayName": "Neon Word Search Labyrinth",
-      "category": "Games & Entertainment",
-      "description": "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
-      "targetScript": "applications/word_search_studio.ts"
-    },
-    {
       "name": "codecaine-network-studio",
       "type": "gui",
       "displayName": "Network Diagnostics Studio",
       "category": "Network & Cloud",
       "description": "Comprehensive socket inspector, port scanner, DNS testing & HTTP client",
       "targetScript": "applications/network_studio.ts"
-    },
-    {
-      "name": "codecaine-code-studio",
-      "type": "gui",
-      "displayName": "NovaCode Studio Pro",
-      "category": "Developer Tools",
-      "description": "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
-      "targetScript": "applications/code_studio.ts"
-    },
-    {
-      "name": "codecaine-code",
-      "type": "gui",
-      "displayName": "NovaCode Studio Pro",
-      "category": "Developer Tools",
-      "description": "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
-      "targetScript": "applications/code_studio.ts"
     },
     {
       "name": "codecaine-omnitool-studio",
@@ -1819,6 +1691,70 @@
       "category": "Developer Tools",
       "description": "Swiss-army knife for encoding, decoding, hash generation & text processing",
       "targetScript": "applications/omnitool_studio.ts"
+    },
+    {
+      "name": "codecaine-pacman-studio",
+      "type": "gui",
+      "displayName": "Cyberpunk Pac-Man Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+      "targetScript": "applications/pacman_studio.ts"
+    },
+    {
+      "name": "codecaine-pacman",
+      "type": "gui",
+      "displayName": "Cyberpunk Pac-Man Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+      "targetScript": "applications/pacman_studio.ts"
+    },
+    {
+      "name": "codecaine-paint-studio",
+      "type": "gui",
+      "displayName": "Chroma Studio Pro",
+      "category": "Design & Media",
+      "description": "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
+      "targetScript": "applications/paint_studio.ts"
+    },
+    {
+      "name": "codecaine-paint",
+      "type": "gui",
+      "displayName": "Chroma Studio Pro",
+      "category": "Design & Media",
+      "description": "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
+      "targetScript": "applications/paint_studio.ts"
+    },
+    {
+      "name": "codecaine-poker-studio",
+      "type": "gui",
+      "displayName": "Texas Hold'em & 5-Card Draw Poker Royale",
+      "category": "Games & Entertainment",
+      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+      "targetScript": "applications/poker_studio.ts"
+    },
+    {
+      "name": "codecaine-poker",
+      "type": "gui",
+      "displayName": "Texas Hold'em & 5-Card Draw Poker Royale",
+      "category": "Games & Entertainment",
+      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+      "targetScript": "applications/poker_studio.ts"
+    },
+    {
+      "name": "codecaine-pong-studio",
+      "type": "gui",
+      "displayName": "Neon Cyber Pong",
+      "category": "Games & Entertainment",
+      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+      "targetScript": "applications/pong_studio.ts"
+    },
+    {
+      "name": "codecaine-pong",
+      "type": "gui",
+      "displayName": "Neon Cyber Pong",
+      "category": "Games & Entertainment",
+      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+      "targetScript": "applications/pong_studio.ts"
     },
     {
       "name": "codecaine-postgres-studio",
@@ -1861,6 +1797,22 @@
       "targetScript": "applications/rad_studio.ts"
     },
     {
+      "name": "codecaine-rat-screw-studio",
+      "type": "gui",
+      "displayName": "Egyptian Rat Screw Royale",
+      "category": "Games & Entertainment",
+      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+      "targetScript": "applications/rat_screw_studio.ts"
+    },
+    {
+      "name": "codecaine-rat-screw",
+      "type": "gui",
+      "displayName": "Egyptian Rat Screw Royale",
+      "category": "Games & Entertainment",
+      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+      "targetScript": "applications/rat_screw_studio.ts"
+    },
+    {
       "name": "codecaine-redis-studio",
       "type": "gui",
       "displayName": "Redis Studio Pro",
@@ -1901,6 +1853,14 @@
       "targetScript": "applications/rodents_revenge_studio.ts"
     },
     {
+      "name": "codecaine-sd-studio",
+      "type": "gui",
+      "displayName": "Stream Editor Studio (SD)",
+      "category": "Developer Tools",
+      "description": "Intuitive find & replace utility with string, regex & dry-run diff preview",
+      "targetScript": "applications/sd_studio.ts"
+    },
+    {
       "name": "codecaine-skifree-studio",
       "type": "gui",
       "displayName": "SkiFree Deluxe",
@@ -1917,20 +1877,28 @@
       "targetScript": "applications/skifree_studio.ts"
     },
     {
+      "name": "codecaine-snake-studio",
+      "type": "gui",
+      "displayName": "Neon Snake Deluxe",
+      "category": "Games & Entertainment",
+      "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
+      "targetScript": "applications/snake_studio.ts"
+    },
+    {
+      "name": "codecaine-snake",
+      "type": "gui",
+      "displayName": "Neon Snake Deluxe",
+      "category": "Games & Entertainment",
+      "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
+      "targetScript": "applications/snake_studio.ts"
+    },
+    {
       "name": "codecaine-sqlite-studio",
       "type": "gui",
       "displayName": "SQLite Studio Pro",
       "category": "Database & Storage",
       "description": "Enterprise embedded database workstation & query IDE with zero-latency execution",
       "targetScript": "applications/sqlite_studio.ts"
-    },
-    {
-      "name": "codecaine-sd-studio",
-      "type": "gui",
-      "displayName": "Stream Editor Studio (SD)",
-      "category": "Developer Tools",
-      "description": "Intuitive find & replace utility with string, regex & dry-run diff preview",
-      "targetScript": "applications/sd_studio.ts"
     },
     {
       "name": "codecaine-subfinder-studio",
@@ -1981,36 +1949,52 @@
       "targetScript": "applications/tetris_studio.ts"
     },
     {
-      "name": "codecaine-poker-studio",
+      "name": "codecaine-tictactoe-studio",
       "type": "gui",
-      "displayName": "Texas Hold'em & 5-Card Draw Poker Royale",
+      "displayName": "Neon Tic-Tac-Toe Arcade",
       "category": "Games & Entertainment",
-      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
-      "targetScript": "applications/poker_studio.ts"
+      "description": "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
+      "targetScript": "applications/tictactoe_studio.ts"
     },
     {
-      "name": "codecaine-poker",
+      "name": "codecaine-tictactoe",
       "type": "gui",
-      "displayName": "Texas Hold'em & 5-Card Draw Poker Royale",
+      "displayName": "Neon Tic-Tac-Toe Arcade",
       "category": "Games & Entertainment",
-      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
-      "targetScript": "applications/poker_studio.ts"
+      "description": "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
+      "targetScript": "applications/tictactoe_studio.ts"
     },
     {
-      "name": "codecaine-database-studio",
+      "name": "codecaine-tokei-studio",
       "type": "gui",
-      "displayName": "Unified Database Studio",
-      "category": "Database & Storage",
-      "description": "Universal SQL query runner and connection dispatcher for SQLite & Redis",
-      "targetScript": "applications/database_studio.ts"
+      "displayName": "Code Statistics Studio (Tokei)",
+      "category": "Developer Tools",
+      "description": "Lines of code counter, comment-to-code ratio & language breakdown",
+      "targetScript": "applications/tokei_studio.ts"
     },
     {
-      "name": "codecaine-calculator-studio",
+      "name": "codecaine-typing-studio",
       "type": "gui",
-      "displayName": "Universal Calculator & IntuitionLab Studio",
-      "category": "Productivity & Text",
-      "description": "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
-      "targetScript": "applications/calculator_studio.ts"
+      "displayName": "CyberType Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
+      "targetScript": "applications/typing_studio.ts"
+    },
+    {
+      "name": "codecaine-typing",
+      "type": "gui",
+      "displayName": "CyberType Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
+      "targetScript": "applications/typing_studio.ts"
+    },
+    {
+      "name": "codecaine-watcher-studio",
+      "type": "gui",
+      "displayName": "Filesystem Watcher Studio",
+      "category": "Developer Tools",
+      "description": "Live filesystem trigger dispatcher and task runner on file changes",
+      "targetScript": "applications/watcher_studio.ts"
     },
     {
       "name": "codecaine-watchexec-studio",
@@ -2019,6 +2003,22 @@
       "category": "Developer Tools",
       "description": "Automated command execution engine reacting to directory updates",
       "targetScript": "applications/watchexec_studio.ts"
+    },
+    {
+      "name": "codecaine-word-search-studio",
+      "type": "gui",
+      "displayName": "Neon Word Search Labyrinth",
+      "category": "Games & Entertainment",
+      "description": "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
+      "targetScript": "applications/word_search_studio.ts"
+    },
+    {
+      "name": "codecaine-word-search",
+      "type": "gui",
+      "displayName": "Neon Word Search Labyrinth",
+      "category": "Games & Entertainment",
+      "description": "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
+      "targetScript": "applications/word_search_studio.ts"
     },
     {
       "name": "codecaine-world-time-zones-studio",
