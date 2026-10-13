@@ -98,7 +98,7 @@ describe("page (jsdom): boot and settings", () => {
       $(w, "themeSelect").value = "arctic"; $(w, "themeSelect").dispatchEvent(new w.Event("change"));
       expect(w.document.documentElement.style.getPropertyValue("--neon-cyan")).toBe("#7dd3fc");
       expect(w.eval("wordColors[placedWords[0].word]")).toBe(E.THEMES.arctic.palette[0]);
-      expect(readState().settings).toEqual({ category: "sports", size: 14, difficulty: "easy", theme: "arctic", sound: true });
+      expect(readState().settings).toEqual({ category: "sports", size: 14, difficulty: "easy", theme: "arctic", sound: true, perf: "high" });
       click(w, "categoryQuickBtn"); // cycles to the next category
       expect(puzzleOf(w).category).not.toBe("sports");
     } finally { w.close(); }

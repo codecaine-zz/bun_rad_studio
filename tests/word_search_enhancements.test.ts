@@ -129,7 +129,7 @@ describe("engine: selection, scoring, stats", () => {
   test("settings and stats sanitising, and record keeping", () => {
     expect(E.sanitizeSettings({ category: "zzz", size: 7, difficulty: 3, theme: "x", sound: "yes" })).toEqual(E.DEFAULT_SETTINGS);
     expect(E.sanitizeSettings({ category: "food", size: "14", difficulty: "easy", theme: "arctic", sound: false }))
-      .toEqual({ category: "food", size: 14, difficulty: "easy", theme: "arctic", sound: false });
+      .toEqual({ category: "food", size: 14, difficulty: "easy", theme: "arctic", sound: false, perf: "high" });
     expect(E.sanitizeStats("junk")).toEqual(E.emptyStats());
     expect(E.sanitizeStats({ played: -3, won: 2.9, best: { a: { score: "x", timeMs: 1 }, b: { score: 5, timeMs: 9 } } }))
       .toEqual({ played: 0, won: 2, words: 0, bestStreak: 0, best: { b: { score: 5, timeMs: 9 } } });
