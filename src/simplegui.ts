@@ -6,6 +6,7 @@ import * as path from "path";
 import * as os from "os";
 import { SimpleDialogs, DIALOG_CLIENT_HTML, type DialogOptions, type DialogResult, type DialogCallback, type DialogIcon, type DialogInputType, type DialogInputOptions, type FileDialogOptions } from "./simplegui_dialogs.ts";
 import { UI_CLIENT_HTML, UI_DEFAULT_SIZES, renderUIComponent, type UIComponentType } from "./simplegui_components.ts";
+import { writeClipboardSync, readClipboardSync } from "./localGuard.ts";
 
 export function forceExit(code = 0): void {
     process.exit(code);
@@ -4880,6 +4881,7 @@ export class SimpleWindow {
     }
 
     public copyToClipboard(text: string): void {
+        writeClipboardSync(text);
         if (this.isWindowRunning) {
             const safeText = JSON.stringify(text);
             this.evalJS(`
@@ -4898,10 +4900,21 @@ export class SimpleWindow {
     }
 
     public async getClipboardText(): Promise<string> {
+        // 1. Direct OS Native Clipboard Read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste)
+        const nativeText = readClipboardSync();
+        if (nativeText && nativeText.trim()) return nativeText;
+
         if (!this.isWindowRunning) return "";
         const reqId = `clip_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         return new Promise((resolve) => {
-            this.promptResolversMap.set(reqId, resolve);
+            const timer = setTimeout(() => {
+                this.promptResolversMap.delete(reqId);
+                resolve("");
+            }, 300);
+            this.promptResolversMap.set(reqId, (val: any) => {
+                clearTimeout(timer);
+                resolve(typeof val === "string" ? val : "");
+            });
             this.evalJS(`
                 const fn = window.handlePromptResultIPC || window.onSimpleguiPromptResult;
                 if (navigator.clipboard && navigator.clipboard.readText) {

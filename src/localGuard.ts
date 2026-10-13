@@ -25,22 +25,32 @@ export function guardLocalRequest(req: Request): Response | null {
 
 /** Cross-platform clipboard write (macOS pbcopy, Windows clip, Linux wl-copy/xclip). Returns false on failure. */
 export function writeClipboardSync(text: string): boolean {
-  const candidates: string[][] =
-    process.platform === "darwin"
-      ? [["pbcopy"]]
-      : process.platform === "win32"
-        ? [["clip"]]
-        : [["wl-copy"], ["xclip", "-selection", "clipboard"], ["xsel", "--clipboard", "--input"]];
-  for (const cmd of candidates) {
-    try {
-      const proc = Bun.spawn(cmd, { stdin: "pipe", stdout: "ignore", stderr: "ignore" });
-      proc.stdin.write(text);
-      proc.stdin.end();
-      return true;
-    } catch {
-      // try next candidate
+  try {
+    const inputBuf = Buffer.from(text, "utf8");
+    if (process.platform === "darwin") {
+      const proc = Bun.spawnSync(["pbcopy"], { stdin: inputBuf });
+      return proc.exitCode === 0;
+    } else if (process.platform === "win32") {
+      const ps = Bun.spawnSync(["powershell.exe", "-NoProfile", "-Command", "$input | Set-Clipboard"], {
+        stdin: inputBuf,
+      });
+      if (ps.exitCode === 0) return true;
+      const clip = Bun.spawnSync(["clip"], { stdin: inputBuf });
+      return clip.exitCode === 0;
+    } else {
+      const candidates: string[][] = [
+        ["wl-copy"],
+        ["xclip", "-selection", "clipboard"],
+        ["xsel", "--clipboard", "--input"],
+      ];
+      for (const cmd of candidates) {
+        try {
+          const proc = Bun.spawnSync(cmd, { stdin: inputBuf });
+          if (proc.exitCode === 0) return true;
+        } catch {}
+      }
     }
-  }
+  } catch {}
   return false;
 }
 

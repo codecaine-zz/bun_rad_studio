@@ -791,15 +791,24 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   // Unified Paste from Clipboard Routine (Reads directly from native desktop OS clipboard & Webview)
   const handlePasteFromClipboard = async (w: SimpleWindow) => {
     try {
-      // 1. Try window-level clipboard reader (browser/webview or test harness)
+      // 1. If explicit getClipboardText mock is attached to this instance (e.g. in test suites), honor it
       let text = "";
-      try {
-        text = await w.getClipboardText();
-      } catch {}
+      if (Object.prototype.hasOwnProperty.call(w, "getClipboardText")) {
+        try {
+          text = await (w as any).getClipboardText();
+        } catch {}
+      }
 
-      // 2. Fallback to OS native clipboard read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip)
+      // 2. Direct OS Native Clipboard Read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip)
       if (!text || !text.trim()) {
         text = readClipboardSync();
+      }
+
+      // 3. Fallback to webview clipboard getter if still empty
+      if (!text || !text.trim()) {
+        try {
+          text = await w.getClipboardText();
+        } catch {}
       }
 
       if (!text || !text.trim()) {
@@ -1108,7 +1117,11 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
           clearTimeout(inputDebounce);
           inputDebounce = setTimeout(function() {
             recordClientSnapshot("Type text");
-          }, 350);
+            const fn = window.on_txt_input_data_change || window.txt_input_data_onChange;
+            if (typeof fn === "function") {
+              try { fn(inputEl.value); } catch(e) {}
+            }
+          }, 250);
         });
       }
 
@@ -1171,7 +1184,57 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         });
       }
 
-      // 2. Client-Side Paste from Clipboard with Gesture Security Token
+      // 2. Client-Side Copy to Clipboard Handlers
+      function copyToClipboardClient(text, label) {
+        if (!text) {
+          showNotice("Text is empty");
+          return;
+        }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() {
+              showNotice("📋 Copied " + text.length + " characters of " + label + " to clipboard!");
+            }).catch(function() {
+              execCommandCopy(text, label);
+            });
+            return;
+          }
+        } catch(e) {}
+        execCommandCopy(text, label);
+      }
+
+      function execCommandCopy(text, label) {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        } catch(e) {}
+        showNotice("📋 Copied " + text.length + " characters of " + label + " to clipboard!");
+      }
+
+      const btnCopyIn = document.getElementById("btn_copy_input");
+      if (btnCopyIn) {
+        btnCopyIn.addEventListener("click", function() {
+          const text = inputEl ? inputEl.value : "";
+          if (text) copyToClipboardClient(text, "source input");
+        });
+      }
+
+      const btnCopyOut = document.getElementById("btn_copy_output");
+      if (btnCopyOut) {
+        btnCopyOut.addEventListener("click", function() {
+          const text = outputEl ? outputEl.value : "";
+          if (text) copyToClipboardClient(text, "transformed output");
+        });
+      }
+
+      // 3. Client-Side Paste from Clipboard with Gesture Security Token
       async function performClientPaste() {
         let text = "";
         try {
