@@ -1,13 +1,8 @@
 {
-  "total": 18,
+  "total": 7,
   "files": {
-    "src/features/subfinder/subfinder.test.ts": 2,
     "src/index.ts": 5,
     "tests/extended_controls.test.ts": 1,
-    "tests/fd_engine_and_studio.test.ts": 1,
-    "tests/mysql_manual_config.test.ts": 1,
-    "tests/network_studio_enhancements.test.ts": 2,
-    "tests/simplegui.test.ts": 4,
-    "tests/sqlite_studio_macros.test.ts": 2
+    "tests/simplegui.test.ts": 1
   }
 }
