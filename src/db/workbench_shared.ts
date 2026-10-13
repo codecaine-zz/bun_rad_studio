@@ -15,22 +15,3 @@ export function getSharedWorkbench(title = "Database Workbench"): Promise<Workbe
   }
   return shared;
 }
-
-/** Standalone server for the workbench (used by tests and `bun run src/db/workbench_server.ts`). */
-export async function startWorkbenchServer(options: { port?: number; hostname?: string; handler?: WorkbenchHandler } = {}) {
-  const handler = options.handler ?? (await getSharedWorkbench());
-  const server = Bun.serve({
-    port: options.port ?? 0,
-    hostname: options.hostname ?? "127.0.0.1",
-    async fetch(req) {
-      return (await handler.handle(req)) ?? new Response("Not found", { status: 404 });
-    },
-  });
-  return { server, handler, url: `http://127.0.0.1:${server.port}/workbench` };
-}
-
-if (import.meta.main) {
-  const port = Number(process.env.WORKBENCH_PORT || 0);
-  const { url } = await startWorkbenchServer({ port });
-  console.log(`Database Workbench: ${url}`);
-}

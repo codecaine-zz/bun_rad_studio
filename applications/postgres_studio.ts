@@ -6067,7 +6067,8 @@ export function generatePostgresStudioHtml(): string {
         database: document.getElementById("cfgDb").value,
         schema: document.getElementById("cfgSchema").value,
         tls: document.getElementById("cfgTls").checked,
-        url: document.getElementById("cfgUrl").value,
+        // credentials in a connection URL are never stored in the browser
+        url: String(document.getElementById("cfgUrl").value || "").replace(new RegExp("//[^@/]*@"), "//"),
       };
       const profiles = JSON.parse(localStorage.getItem("pg_studio_profiles") || "[]");
       profiles.push(config);
@@ -6197,6 +6198,7 @@ export function generatePostgresStudioHtml(): string {
   <script>
     ${buildMacroScript("postgres")}
   </script>
+<a id="openWorkbench" href="/workbench" target="_blank" rel="noopener" title="Open the shared Database Workbench: saved connections, safe row editing, read-only and production safeguards" style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:6px 12px;border-radius:999px;background:#0369a1;color:#fff;font:600 12px system-ui,sans-serif;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.4)">🧰 Workbench</a>
 </body>
 </html>`;
 }

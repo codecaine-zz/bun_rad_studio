@@ -81,7 +81,7 @@ export function normalizeError(engine: Engine, err: unknown, secrets: (string | 
   if (/unique constraint|duplicate entry|violates (unique|foreign key|not-null|check)|constraint failed|foreign key constraint|cannot be null|not null constraint/.test(msg) || [1062, 1451, 1452, 1048, 3819].includes(Number(errno)) || /^23/.test(state)) return mk("CONSTRAINT_VIOLATION");
   if (/syntax error|you have an error in your sql syntax|near ".*": syntax/.test(msg) || errno === 1064 || state === "42601") return mk("SYNTAX_ERROR");
   if (/no such (table|column)|doesn't exist|does not exist|unknown column|undefined_table|undefined_column/.test(msg) || errno === 1146 || errno === 1054 || state === "42P01" || state === "42703") return mk("OBJECT_NOT_FOUND");
-  if (/connection (closed|terminated|lost)|server closed the connection|broken pipe|econnreset|socket/.test(msg) || code === "ERR_POSTGRES_CONNECTION_CLOSED" || code === "ERR_MYSQL_CONNECTION_CLOSED") return mk("CONNECTION_LOST");
+  if (/connection (closed|terminated|lost)|connection must be a|server closed the connection|broken pipe|econnreset|socket/.test(msg) || code === "ERR_POSTGRES_CONNECTION_CLOSED" || code === "ERR_MYSQL_CONNECTION_CLOSED") return mk("CONNECTION_LOST");
   return mk("UNKNOWN");
 }
 

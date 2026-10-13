@@ -78,6 +78,27 @@ describe("SqliteAdapter connection modes", () => {
   });
 });
 
+describe("SqliteAdapter locked files", () => {
+  it("reports a locked database as LOCKED after the configured wait instead of hanging", async () => {
+    const path = join(dir, "lock.db");
+    const holder = new Database(path);
+    holder.run("PRAGMA journal_mode = DELETE");
+    holder.run("CREATE TABLE t (v INT)");
+    holder.run("BEGIN IMMEDIATE"); // another process holds the write lock
+    const a = new SqliteAdapter({ engine: "sqlite", path, statementTimeoutMs: 150 });
+    await a.connect();
+    const t0 = performance.now();
+    expect(await code(a.query("INSERT INTO t VALUES (1)"))).toBe("LOCKED");
+    expect(performance.now() - t0).toBeLessThan(3000);
+    // reads still work while the other writer holds its lock in rollback-journal mode
+    expect((await a.query("SELECT COUNT(*) AS n FROM t")).rows[0]!.n).toBe(0);
+    holder.run("ROLLBACK");
+    holder.close();
+    expect((await a.query("INSERT INTO t VALUES (1)")).affectedRows).toBe(1);
+    await a.close();
+  });
+});
+
 describe("SqliteAdapter queries and value fidelity", () => {
   it("binds quotes and SQL-looking text as data", async () => {
     const a = await mem();

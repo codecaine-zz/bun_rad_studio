@@ -55,7 +55,7 @@ export class SqliteAdapter extends BaseAdapter {
               : new Database(this.resolvedPath, { readwrite: true, safeIntegers: true });
       }
       // Per-connection (not persisted in the file): wait briefly on locks and enforce foreign keys.
-      this.db.run("PRAGMA busy_timeout = 5000");
+      this.db.run(`PRAGMA busy_timeout = ${Math.max(0, Math.trunc(this.config.statementTimeoutMs ?? 5000))}`);
       if (this.config.readOnly || mode === "readonly") {
         if (mode !== "readonly") this.db.run("PRAGMA query_only = ON");
       } else {
@@ -111,7 +111,7 @@ export class SqliteAdapter extends BaseAdapter {
       sequences: false,
       notes: {
         cancelQuery: "SQLite runs in-process; a running statement cannot be interrupted from here.",
-        statementTimeout: "SQLite has no statement timeout. Only the lock wait (busy_timeout = 5000 ms) is bounded.",
+        statementTimeout: `SQLite has no statement timeout. Only the wait for a locked database is bounded (busy_timeout = ${this.config.statementTimeoutMs ?? 5000} ms); a lock held longer fails with LOCKED.`,
         schemas: "SQLite has no schemas; attached databases are not browsed here.",
         foreignKeys: Number(fk.foreign_keys) === 1 ? "Foreign-key enforcement is ON for this connection." : "Foreign-key enforcement is OFF for this connection.",
         journalMode: `Journal mode: ${journal.journal_mode}. This tool never changes it.`,

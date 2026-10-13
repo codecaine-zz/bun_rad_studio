@@ -164,6 +164,22 @@ for (const engine of ["mysql", "postgres"] as const) {
       });
     });
 
+    describe("connection loss", () => {
+      it("reports CONNECTION_LOST when the server drops the session, and the pool recovers", async () => {
+        const s = await a.openSession();
+        const idRow = await s.query(my ? "SELECT CONNECTION_ID() AS id" : "SELECT pg_backend_pid() AS id");
+        const id = String(idRow.rows[0]!.id);
+        await a.query(my ? `KILL ${Number(id)}` : `SELECT pg_terminate_backend(${Number(id)})`);
+        await Bun.sleep(100);
+        const c = await code(s.query("SELECT 1"));
+        expect(["CONNECTION_LOST", "CANCELED", "UNKNOWN"]).toContain(c);
+        expect(c).toBe("CONNECTION_LOST");
+        await s.close();
+        // other connections are unaffected
+        expect((await a.ping()).currentDatabase).toBe(testDb!.name);
+      });
+    });
+
     describe("read-only enforcement", () => {
       it("blocks writes, DDL and attempts to undo read-only mode", async () => {
         const ro = createAdapter(cfg({ readOnly: true }));

@@ -438,6 +438,8 @@ bun run demo:simplegui
 
 ## ⚡ 39 Enterprise Production Workstations & Utilities
 
+> **Databases:** the SQLite, MySQL and Postgres studios share a **Database Workbench** (🧰 button, or `bun run src/db/workbench_server.ts`) with keychain-stored credentials, read-only/production safeguards and conflict-safe row editing. See [docs/DATABASE_WORKBENCH.md](docs/DATABASE_WORKBENCH.md); tests: [docs/DATABASE_TESTING.md](docs/DATABASE_TESTING.md).
+
 In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **39 production-grade developer desktop workstations and arcade games** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
 
 |   #    | Application                        | User Guide                                                   | Focus & Capabilities                                                                                                        | Launch Command          |

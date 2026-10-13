@@ -3220,7 +3220,13 @@ ${MACRO_STYLE}
     function getStoredProfiles() {
       try {
         const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const stored = raw ? JSON.parse(raw) : [];
+        // profiles saved by older versions may contain a password: remove it
+        if (stored.some((p) => p && "password" in p)) {
+          stored.forEach((p) => { if (p) delete p.password; });
+          localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(stored));
+        }
+        return stored;
       } catch {
         return [];
       }
@@ -3245,7 +3251,7 @@ ${MACRO_STYLE}
         host: cfg.host,
         port: cfg.port,
         user: cfg.user,
-        password: cfg.password,
+        // the password is never kept in the browser; enter it when you load the profile
         database: cfg.database,
         tls: cfg.tls,
         createdAt: new Date().toISOString(),
@@ -3303,7 +3309,8 @@ ${MACRO_STYLE}
       if (!p) return;
       populateConfigFields(p);
       switchConnectionModalTab('config');
-      applyManualConnection();
+      // Passwords are not stored in the browser: enter it, then connect.
+      showToast("Profile loaded. Enter the password and press Connect.");
     }
 
     function deleteProfile(id) {
@@ -7372,6 +7379,7 @@ ${MACRO_SCRIPT}
   <script>
 ${getWindowShortcutsScript()}
   </script>
+<a id="openWorkbench" href="/workbench" target="_blank" rel="noopener" title="Open the shared Database Workbench: saved connections, safe row editing, read-only and production safeguards" style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:6px 12px;border-radius:999px;background:#0369a1;color:#fff;font:600 12px system-ui,sans-serif;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.4)">🧰 Workbench</a>
 </body>
 </html>`;
 }
