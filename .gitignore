@@ -4,6 +4,7 @@ bun.lockb
 
 # Export Output Directories
 exported_project/
+.rad_preview/
 .build_check/
 dist/
 out/

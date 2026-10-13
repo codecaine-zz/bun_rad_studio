@@ -393,3 +393,14 @@ export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} 
         expect(r.stdout.toString() + r.stderr.toString()).toContain("RUNNING:Real start - Live Preview:420x310");
     });
 });
+
+describe("Generated output is not tracked by git", () => {
+    test("the preview and export folders are ignored, and no file in them is tracked", () => {
+        const tracked = Bun.spawnSync(["git", "ls-files", ".rad_preview", "exported_project"], { cwd: REPO_ROOT, stdout: "pipe" }).stdout.toString().trim();
+        expect(tracked).toBe("");
+        for (const path of [".rad_preview/preview.ts", "exported_project/index.ts"]) {
+            const r = Bun.spawnSync(["git", "check-ignore", "-q", path], { cwd: REPO_ROOT });
+            expect(r.exitCode, `${path} must be in .gitignore`).toBe(0);
+        }
+    });
+});

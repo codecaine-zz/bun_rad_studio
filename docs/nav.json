@@ -30,6 +30,7 @@
       "pages": [
         { "title": "Reference index", "path": "reference/index.md" },
         { "title": "Glossary", "path": "glossary.md" },
+        { "title": "Data and files", "path": "reference/data-and-files.md" },
         { "title": "Application index (generated)", "path": "reference/application-index.md" },
         { "title": "Script index (generated)", "path": "reference/script-index.md" },
         { "title": "Designer API (API.md)", "path": "API.md" },
@@ -38,6 +39,13 @@
         { "title": "Themes", "path": "THEMES.md" },
         { "title": "Themes (identical copy, see D-010)", "path": "theme.md" },
         { "title": "Homebrew suite guide (not verified)", "path": "HOMEBREW_SUITE_GUIDE.md" }
+      ]
+    },
+    {
+      "title": "Developer handbook",
+      "pages": [
+        { "title": "Architecture", "path": "developer/architecture.md" },
+        { "title": "Developer handbook", "path": "developer/handbook.md" }
       ]
     },
     {

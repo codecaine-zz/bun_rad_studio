@@ -18,7 +18,8 @@ describe("Every studio HTTP server is local-only (static rules)", () => {
   });
 
   test("every file that starts a Bun.serve server uses guardLocalRequest", () => {
-    const unguarded = withServer.filter((s) => !s.text.includes("guardLocalRequest")).map((s) => s.file);
+    // A call, not just an import: an unused import must not satisfy the rule.
+    const unguarded = withServer.filter((s) => !/guardLocalRequest\(/.test(s.text)).map((s) => s.file);
     expect(unguarded).toEqual([]);
   });
 

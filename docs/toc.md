@@ -26,6 +26,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 
 - [Reference index](reference/index.md)
 - [Glossary](glossary.md)
+- [Data and files](reference/data-and-files.md)
 - [Application index (generated)](reference/application-index.md)
 - [Script index (generated)](reference/script-index.md)
 - [Designer API (API.md)](API.md)
@@ -34,6 +35,11 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Themes](THEMES.md)
 - [Themes (identical copy, see D-010)](theme.md)
 - [Homebrew suite guide (not verified)](HOMEBREW_SUITE_GUIDE.md)
+
+## Developer handbook
+
+- [Architecture](developer/architecture.md)
+- [Developer handbook](developer/handbook.md)
 
 ## Testing
 

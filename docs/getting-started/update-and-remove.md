@@ -31,11 +31,11 @@ After updating, run `bun test tests/db/splitter.test.ts` (or `bun test`) to chec
 | Downloaded packages | `node_modules/` in the repository folder | `bun install` |
 | Build output | `dist/` | `bun run build` |
 
-Other tools may keep their own files; this table lists only what was checked.
+Other tools may keep their own files; this table lists only what was checked. The complete list, sorted by what is your work and what is safe to delete, is on [Data and files](../reference/data-and-files.md).
 
 ## Back up before removing
 
-Copy `~/.bun_rad_studio/` if you want to keep your connection profiles, macros and exports. Your databases are **not** stored by the project (except SQLite files you created yourself): back those up separately; see [Database Workbench: import/export versus backup/restore](../databases/workbench.md#importexport-versus-backuprestore).
+Copy `~/.bun_rad_studio/` if you want to keep your connection profiles, macros and exports, and look in the Rip Studio graveyard (`$GRAVEYARD`, else `~/.local/share/rip/graveyard`), which lives outside the project and holds files you "deleted" with Rip. Your databases are **not** stored by the project (except SQLite files you created yourself): back those up separately; see [Database Workbench: import/export versus backup/restore](../databases/workbench.md#importexport-versus-backuprestore).
 
 ## Remove
 

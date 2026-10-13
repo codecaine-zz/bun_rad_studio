@@ -28,6 +28,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-022 Exporting again silently overwrote the user's edits (fixed)](#d-022)
 - [D-023 Run only worked when the designer was started from the project folder (fixed)](#d-023)
 - [D-024 Preview and export insert control text as raw HTML](#d-024)
+- [D-025 Generated preview files were tracked in git (fixed)](#d-025)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -223,3 +224,11 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Observed (source):** `generatePreviewHtml` in `index.ts` puts a control's `text` into the page without escaping (for example `<button>${text}</button>`, `value="${text}"`). The raw-HTML and rich-text controls need that. A layout imported from an untrusted source can therefore run script in the preview or exported window.
 - **Limits of the damage (source):** the page can call only the window bindings (`quitApp`, `closeWindow`, `openExternalUrl` and similar). `openExternalUrl` accepts only `http`, `https` and `mailto` links and starts them without a shell on macOS. The Windows branch (`cmd /c start`) was not assessed.
 - **Safe practice:** import only layouts you trust.
+
+<a id="d-025"></a>
+## D-025: Generated preview files were tracked in git (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `.rad_preview/preview.html` and `.rad_preview/preview.ts` were committed. The **Run** button rewrites them (with the machine's absolute path in `preview.ts`), so using Run in a checkout made the working tree dirty and the files could be committed by accident.
+- **Fix:** the folder is untracked (`git rm --cached`) and listed in `.gitignore`. The files stay on disk.
+- **Test:** `tests/ide_html.test.ts` ("Generated output is not tracked by git").
