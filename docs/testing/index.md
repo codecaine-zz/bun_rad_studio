@@ -74,11 +74,12 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every push to `main` and on pull requests: `bun install --frozen-lockfile`, `bun run typecheck`, `bun run docs:check`, then `bun test`, on `macos-latest` with Bun 1.4.2.
+`.github/workflows/ci.yml` runs on every push to `main` and on pull requests, on `macos-latest` with Bun 1.4.2: `bun install --frozen-lockfile`, `bun run typecheck`, `bun audit` (informational), `bun run docs:check`, a throwaway Redis (Homebrew, port 6390, no persistence), then `bun test` with `TEST_REDIS_URL` pointing at it.
 
-- **Not verified on GitHub.** The same four steps passed in a fresh local clone (after the [D-020](../documentation-maintenance/discrepancies.md#d-020) fixes), but the workflow file has not run on GitHub.
-- Windows and Linux are not covered.
-- The live MySQL and PostgreSQL suites skip themselves, so CI does not test them.
+- **Verified on GitHub, with one failed first run.** The first run (13 October 2026, run 38482567102) had 14 test failures that never showed locally ([D-032](../documentation-maintenance/discrepancies.md#d-032)). After the fixes, run 38483433232 **succeeded**: 1173 pass, 153 skipped, 0 fail, 1326 tests in 116 s of test time, 152 s for the whole job. One more test is skipped on the runner than on the author's Mac (153 versus 152); the reason was not traced.
+- Windows and Linux are not covered (the workflow runs on macOS only).
+- The live MySQL and PostgreSQL suites skip themselves, so CI does not test them. The Redis tests do run there.
+- The lesson of the first run: a fresh local clone is not the same as a clean machine. Anything a test needs from the machine (a running server, a desktop, enough speed) must be stated, opt-in or skipped.
 
 ## Type-check ratchet
 

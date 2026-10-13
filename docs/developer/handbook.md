@@ -74,7 +74,7 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 5. If you changed behaviour, the page that describes it and its row in `docs/documentation-maintenance/features.json` say what was verified and how. See the [contributor checklist](../documentation-maintenance/contributor-checklist.md).
 6. Refactoring and behaviour changes are separate commits where practical, and a behaviour change says so in the commit message and in [discrepancies](../documentation-maintenance/discrepancies.md) when it fixes a defect.
 
-CI (`.github/workflows/ci.yml`) runs steps 1 to 3 on macOS. It has not run on GitHub yet ([Testing](../testing/index.md#continuous-integration)).
+CI (`.github/workflows/ci.yml`) runs steps 1 to 3 on macOS for every push and pull request, and it passes on GitHub ([Testing](../testing/index.md#continuous-integration)). Its first run failed 14 tests that had passed locally ([D-032](../documentation-maintenance/discrepancies.md#d-032)): check that your change does not depend on something only your machine has (a running server, a desktop, speed).
 
 ## Debugging
 

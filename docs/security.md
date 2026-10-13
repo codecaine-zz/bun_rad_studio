@@ -47,7 +47,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 | **A layout is code.** Event handlers that are not plain function names run as script in the Run preview and in exported projects, and control text is inserted as raw HTML | [D-024](documentation-maintenance/discrepancies.md#d-024). Import warns and asks; nothing else stops it. The page can call only a few window functions. Import layouts you did not write only after reading the JSON |
 | **Windows launching of external links** uses `cmd /c start`; not assessed | Source only |
 | **Dependencies** | `bun audit` on 13 October 2026 reported 11 advisories (3 high), all through `jsdom` (a test-only package that was listed as a runtime dependency) and its `undici` and `source-map-js`. `jsdom` was moved to `devDependencies` and `bun audit fix` applied; `bun audit` then reported **no vulnerabilities** in 46 packages and in the 3 runtime packages (`bun audit --prod`). New advisories appear over time: CI runs `bun audit` as an informational step. No software bill of materials exists |
-| **The CI workflow has not run on GitHub**, so none of the checks above is enforced there yet | [Testing](testing/index.md#continuous-integration) |
+| **CI covers one platform** | The workflow runs on macOS only, and its results are only as strong as the tests ([Testing](testing/index.md#continuous-integration)); the live MySQL and PostgreSQL security tests are skipped there |
 | **Real database servers**: the injection, read-only and confirmation tests that need MySQL or PostgreSQL are skipped without a disposable server | 152 tests skip by default |
 
 ## Safe practice
