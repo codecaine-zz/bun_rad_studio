@@ -14,6 +14,7 @@ import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
+import { startStaticStudioServer } from "../src/studio_server";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -113,77 +114,10 @@ ${getWindowShortcutsScript()}
  * Starts the Bun.serve server hosting Minesweeper Pro.
  */
 export function startMinesweeperServer(options: MinesweeperServerOptions = {}) {
-  const port = options.port ?? 0;
-  const host = options.host ?? "127.0.0.1";
-  const assetsDir = getMinesweeperAssetsDir();
-
-  const server = Bun.serve({
-    port,
-    hostname: host,
-    fetch(req) {
-      const blocked = guardLocalRequest(req);
-      if (blocked) return blocked;
-
-      const url = new URL(req.url);
-      const pathname = url.pathname;
-
-      const corsHeaders = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      };
-
-      if (req.method === "OPTIONS") {
-        return new Response(null, { headers: corsHeaders });
-      }
-
-      // Root / Index
-      if (pathname === "/" || pathname === "/index.html") {
-        const html = generateMinesweeperStudioHtml();
-        return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
-        });
-      }
-
-      // Favicon Icon
-      if (pathname === "/favicon.svg") {
-        const filePath = join(assetsDir, "favicon.svg");
-        if (existsSync(filePath)) {
-          return new Response(Bun.file(filePath), {
-            headers: { "Content-Type": "image/svg+xml", ...corsHeaders },
-          });
-        }
-      }
-
-      // API Health Check
-      if (pathname === "/api/health") {
-        return Response.json(
-          {
-            status: "ok",
-            app: "minesweeper_studio",
-            name: "Minesweeper Pro — Championship Deluxe Master Edition",
-            version: "1.0.0",
-            timestamp: Date.now(),
-          },
-          { headers: corsHeaders }
-        );
-      }
-
-      // Fallback: static file in assets directory
-      const sanitized = pathname.replace(/^\/+/, "");
-      const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
-        return new Response("Forbidden", { status: 403 });
-      }
-      if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
-      }
-
-      return new Response("Not Found", { status: 404, headers: corsHeaders });
-    },
-  });
-
-  return server;
+  return startStaticStudioServer(
+    { app: "minesweeper_studio", name: "Minesweeper Pro — Championship Deluxe Master Edition", version: "1.0.0", assetsDir: getMinesweeperAssetsDir(), generateHtml: generateMinesweeperStudioHtml },
+    options,
+  );
 }
 
 /**

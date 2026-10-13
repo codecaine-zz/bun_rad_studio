@@ -17,7 +17,7 @@ Run all commands from the repository root.
 
 | Command | What it does | Expected result (verified) |
 |---|---|---|
-| `bun test` | Runs every test file under `tests/` and `src/` | **Default, on the author's Mac (13 October 2026): 1156 pass, 175 skipped, 0 fail**, 1331 tests, 104 files, about 85 seconds. The 175 skips are the 152 database tests (need `TEST_MYSQL_URL` / `TEST_PG_URL`), 18 Redis tests (`TEST_REDIS_URL`) and 5 live-network tests (`TEST_NETWORK=1`). Earlier, with database servers configured, the database suites also passed (1218 pass in 94 files at that time). |
+| `bun test` | Runs every test file under `tests/` and `src/` | **Default, on the author's Mac (13 October 2026): 1164 pass, 175 skipped, 0 fail**, 1339 tests, 105 files, about 85 seconds. The 175 skips are the 152 database tests (need `TEST_MYSQL_URL` / `TEST_PG_URL`), 18 Redis tests (`TEST_REDIS_URL`) and 5 live-network tests (`TEST_NETWORK=1`). Earlier, with database servers configured, the database suites also passed (1218 pass in 94 files at that time). |
 | `bun test tests/db/splitter.test.ts` | One file | `13 pass`, `0 fail` |
 | `bun run test:db` | Only the database-related tests | With servers configured: 309 pass, 0 fail. Without: 170 pass, 152 skipped, 0 fail. |
 

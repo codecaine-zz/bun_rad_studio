@@ -37,6 +37,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-031 The designer had no visible keyboard focus and an unreachable palette (fixed)](#d-031)
 - [D-032 Tests silently depended on the author's machine; first GitHub run had 14 failures (fixed)](#d-032)
 - [D-033 A stale package-lock.json broke `npm ci` (removed)](#d-033)
+- [D-034 Fourteen game servers were copies of the same code (refactored)](#d-034)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -329,3 +330,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Also:** `actions/checkout` in the CI workflow was updated from v4 to v7 to clear GitHub's Node 20 deprecation warning; the next run confirms it works (see [Testing](../testing/index.md#continuous-integration)).
 
 - **Extra skip on CI explained:** the code-generation test "Generated programs run on native SQLite > V: compiles and runs" skips when the V compiler is not installed. The runner has none and the author's Mac does, which is the one-test difference between 152 and 153 skips (before the opt-ins).
+
+<a id="d-034"></a>
+## D-034: Fourteen game servers were copies of the same code (refactored)
+
+- **Status:** Refactored on 13 October 2026. **This is a refactor: no behaviour change is intended.**
+- **Observed:** the `start<Name>Server` function in 15 studios was 98 to 100 percent identical (73 lines each). The earlier loopback-guard fix ([D-012](#d-012), [D-013](#d-013)) had to be made in 27 files by script. Only four values differed: the app id, display name and version in `/api/health`, and which HTML generator and assets folder each used.
+- **Change:** a new `src/studio_server.ts` (`startStaticStudioServer`) holds the code once. 14 studios (`balatro`, `blackjack`, `breakout`, `codecaine_bros`, `dr_codecaine`, `flappy_bird`, `math_munchers`, `minesweeper`, `pacman`, `poker`, `rat_screw`, `rodents_revenge`, `skifree`, `yahtzee`) now call it with those four values. Each was converted **only after a script proved its old function identical to the reference** once those values were masked; 924 lines were removed (70 added).
+- **Left alone on purpose:** studios whose server differs in real ways (Pong, Connect 4, Tic-Tac-Toe, Lolo, Paint, Word Search, World Time Zones, Interval Timer, Maze Generator, Calculator, Code Studio, Fd, Rip and the database studios) still have their own server code.
+- **Unchanged on purpose:** the wildcard `Access-Control-Allow-Origin: *` header stays, because it was part of the copied behaviour; the loopback guard is what actually refuses foreign pages.
+- **Checked:** the existing per-game tests, the smoke test (all 32 headless studios still start and serve a page) and the local-only rules pass; `tests/studio_server.test.ts` tests the shared server directly (page rendered per request, health identity, favicon and nested files, 404, raw path-traversal requests, foreign Origin and Host get 403, OPTIONS, loopback bind). The local-only static rule now scans `src/studio_server.ts` too and was shown to fail when the guard is removed from it.
+- **Not checked:** the native windows of these 14 games.

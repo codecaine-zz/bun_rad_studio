@@ -8,13 +8,21 @@ import { startMazeStudioServer } from "../applications/maze_generator_studio.ts"
 const APPS_DIR = join(import.meta.dir, "..", "applications");
 
 describe("Every studio HTTP server is local-only (static rules)", () => {
-  const sources = readdirSync(APPS_DIR)
-    .filter((f) => f.endsWith(".ts"))
-    .map((f) => ({ file: f, text: readFileSync(join(APPS_DIR, f), "utf8") }));
+  const sources = [
+    ...readdirSync(APPS_DIR)
+      .filter((f) => f.endsWith(".ts"))
+      .map((f) => ({ file: f, text: readFileSync(join(APPS_DIR, f), "utf8") })),
+    // The shared server that most game studios delegate to.
+    { file: "../src/studio_server.ts", text: readFileSync(join(import.meta.dir, "..", "src", "studio_server.ts"), "utf8") },
+  ];
+  const delegating = sources.filter((s) => s.text.includes("startStaticStudioServer("));
   const withServer = sources.filter((s) => /\bBun\.serve\(\{/.test(s.text));
 
   test("the scan finds the servers", () => {
-    expect(withServer.length).toBeGreaterThan(30);
+    // Files with their own Bun.serve plus the studios that use the shared server.
+    expect(withServer.length + delegating.length - 1).toBeGreaterThan(30);
+    expect(delegating.length).toBeGreaterThan(10);
+    expect(withServer.some((s) => s.file === "../src/studio_server.ts")).toBe(true);
   });
 
   test("every file that starts a Bun.serve server uses guardLocalRequest", () => {

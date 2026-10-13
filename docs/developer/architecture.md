@@ -66,7 +66,7 @@ Three patterns exist. Which one a studio uses decides where its logic lives.
 
 | Pattern | Example | How the window gets its page | Headless mode |
 |---|---|---|---|
-| **Resource page plus small server** | Pong, Calculator, Code Studio | `generate<Name>Html()` reads `resources/<name>/index.html`, injects a storage fallback and window shortcuts; `start<Name>Server()` serves it with `Bun.serve`; `create<Name>()` opens the window | yes (`--server`) |
+| **Resource page plus small server** | Balatro, Poker, Pong, Calculator, Code Studio | `generate<Name>Html()` reads `resources/<name>/index.html`, injects a storage fallback and window shortcuts; `start<Name>Server()` serves it (for 14 studios through the shared `startStaticStudioServer` in `src/studio_server.ts`, otherwise with its own `Bun.serve`); `create<Name>()` opens the window | yes (`--server`) |
 | **Server in a worker** | SQLite, MySQL, PostgreSQL and Redis studios | The studio starts its `*_server.ts` in a worker and points the window at that server's address | yes |
 | **SimpleGUI in-process** | API Studio, Crypto Studio, RAD Studio, the demos | `new SimpleWindow(...)` and `add...` calls generate the page; the page and the program talk through [bindings](../glossary.md#binding) | no |
 
@@ -126,6 +126,6 @@ Measured on 13 October 2026 with `wc -l` and `ls`: `src/simplegui.ts` 11,612 lin
 ## Known structural problems
 
 - **Very large files.** `src/simplegui.ts`, `index.ts` (windowing, export, preview and generators together) and `src/ide.html` (markup, style and script together) are hard to review. Nothing was split: splitting changes nothing for users and risks regressions, so it needs a reason and tests first.
-- **Duplicated server scaffolding.** 34 files in `applications/` define a `generate...Html` function, and the games repeat the same `generate...Html` / `start...Server` / `create...` code. A shared helper would remove the duplication; it was left alone because each copy differs slightly and the tests only check the common behaviour.
+- **Duplicated server scaffolding (partly fixed).** 14 game studios now share one server, `src/studio_server.ts` ([D-034](../documentation-maintenance/discrepancies.md#d-034)). About 13 other studio files still carry their own server code, most of it similar but not identical (their `generate...Html` and window code are also repeated).
 - **No type errors** (`tsc --noEmit` is clean as of 13 October 2026, down from 679); `bun run typecheck` keeps it that way. Bun does not check types when running, so this only helps if the check is run ([CI runs it](../testing/index.md#type-check-ratchet)). Some types are deliberately loose in tests (`as any` on parsed JSON).
 - **Generated code lives inside template strings** in `index.ts` (the exported project) and `src/ide.html` (the code tabs), where escaping mistakes are easy; see [D-011](../documentation-maintenance/discrepancies.md#d-011) and [D-021](../documentation-maintenance/discrepancies.md#d-021).
