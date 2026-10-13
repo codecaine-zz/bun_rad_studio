@@ -1517,37 +1517,49 @@ export class MysqlManager {
   public async runPragma(pragma: string, value?: string): Promise<any> {
     try {
       const p = (pragma || "").toLowerCase();
+
       if (p === "vacuum") {
-        // Optimize all tables
         const schema = await this.getSchema();
         const outputs: string[] = [];
         for (const t of schema.tables) {
           const res = await this.sql_conn.unsafe(`OPTIMIZE TABLE ${qm(t.name)}`);
-          outputs.push(`${t.name}: ${res[0]?.Msg_text || "OK"}`);
+          const msg = res[0]?.Msg_text || "OK";
+          outputs.push(`${t.name}: ${msg}`);
         }
-        return { success: true, result: outputs.join("\n") || "Database optimized" };
+        return { success: true, result: outputs.join("\n") || "Tables optimized" };
       }
+
       if (p === "integrity_check") {
         const schema = await this.getSchema();
         const outputs: string[] = [];
         let allOk = true;
         for (const t of schema.tables) {
           const res = await this.sql_conn.unsafe(`CHECK TABLE ${qm(t.name)}`);
-          const msg = res[0]?.Msg_text || "OK";
-          if (msg !== "OK") allOk = false;
+          const msg = String(res[0]?.Msg_text || "OK");
+          if (!msg.toLowerCase().includes("ok")) allOk = false;
           outputs.push(`${t.name}: ${msg}`);
         }
-        return { success: allOk, result: outputs.join("\n") || "OK" };
+        return { success: allOk, result: outputs };
       }
 
-      // Variable query or status
+      if (p === "analyze_table" || p === "analyze") {
+        const schema = await this.getSchema();
+        const outputs: string[] = [];
+        for (const t of schema.tables) {
+          const res = await this.sql_conn.unsafe(`ANALYZE TABLE ${qm(t.name)}`);
+          const msg = res[0]?.Msg_text || "OK";
+          outputs.push(`${t.name}: ${msg}`);
+        }
+        return { success: true, result: outputs.join("\n") || "Tables analyzed" };
+      }
+
       if (value !== undefined) {
         await this.sql_conn.unsafe(`SET SESSION ${pragma} = ?`, [value]);
         return { success: true, result: `${pragma} = ${value}` };
-      } else {
-        const res = await this.sql_conn.unsafe(`SHOW VARIABLES LIKE ?`, [`%${pragma}%`]);
-        return { success: true, result: JSON.stringify(res, null, 2) };
       }
+
+      const res = await this.sql_conn.unsafe(`SHOW VARIABLES LIKE ?`, [`%${pragma}%`]);
+      return { success: true, result: Array.isArray(res) ? res : JSON.stringify(res, null, 2) };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }

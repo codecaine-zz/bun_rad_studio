@@ -1781,8 +1781,8 @@ ${CRUD_STYLE}
       <button class="btn" onclick="openDatabaseDialog('databases')" title="Browse discovered databases on MySQL server">📂 Databases...</button>
       <button class="btn" onclick="runEditorQuery()">⚡ Run Query</button>
       <button class="btn" onclick="seedDatabase()">🌱 Seed Sample DB</button>
-      <button class="btn" onclick="vacuumDatabase()">🧹 Vacuum DB</button>
-      <button class="btn" onclick="checkIntegrity()">🛡️ Integrity Check</button>
+      <button class="btn" onclick="optimizeMysqlTables()">🧹 Optimize Tables</button>
+      <button class="btn" onclick="checkMysqlTables()">🛡️ Check Tables</button>
       <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen()" title="Toggle Fullscreen (F11 / ⌃⌘F)">⛶ Fullscreen</button>
     </div>
   </header>
@@ -1898,7 +1898,7 @@ ${CRUD_STYLE}
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan Visualizer</div>
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
         <div class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">⚡ Telemetry & Audit Log</div>
-        <div class="tab-btn" id="tabBtnPragma" onclick="switchTab('pragma')">🚀 PRAGMA Performance</div>
+        <div class="tab-btn" id="tabBtnPragma" onclick="switchTab('pragma')">⚙️ MySQL Maintenance</div>
       </div>
 
       <!-- Tab Content Area -->
@@ -1959,23 +1959,23 @@ ${CRUD_STYLE}
           <div class="code-box" id="auditLogBox">[SYSTEM] MySQL Studio Pro initialized. All subsystems ready.</div>
         </div>
 
-        <!-- 6. PRAGMA Performance -->
+        <!-- 6. MySQL Maintenance & Tuning -->
         <div class="tab-pane" id="tabPragma">
           <div class="schema-layout">
             <div class="card">
-              <div class="card-title">⚙️ PRAGMA Database Configuration & Performance Tuning</div>
+              <div class="card-title">⚙️ MySQL Maintenance & Performance Tuning</div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;">
-                <button class="btn" onclick="togglePragma('journal_mode', 'WAL')">⚡ Enable WAL Journal Mode</button>
-                <button class="btn" onclick="togglePragma('foreign_keys', 'ON')">🛡️ Enforce Foreign Keys (ON)</button>
-                <button class="btn" onclick="togglePragma('cache_size', '-64000')">🧠 Set 64MB Page Cache</button>
-                <button class="btn" onclick="vacuumDatabase()">🧹 Run Full VACUUM</button>
-                <button class="btn" onclick="runPragmaCommand('PRAGMA optimize')">📈 Run ANALYZE / OPTIMIZE</button>
-                <button class="btn" onclick="checkIntegrity()">🔍 Run Full PRAGMA integrity_check</button>
+                <button class="btn" onclick="showVariable('innodb_buffer_pool_size')">🧠 Inspect innodb_buffer_pool_size</button>
+                <button class="btn" onclick="showVariable('sql_mode')">⚙️ Inspect sql_mode</button>
+                <button class="btn" onclick="showVariable('max_connections')">🔌 Inspect max_connections</button>
+                <button class="btn" onclick="optimizeMysqlTables()">🧹 Optimize all tables</button>
+                <button class="btn" onclick="runMysqlMaintenance('ANALYZE TABLE')">📈 Run ANALYZE TABLE</button>
+                <button class="btn" onclick="checkMysqlTables()">🔍 Run CHECK TABLE</button>
               </div>
             </div>
             <div class="card">
-              <div class="card-title">PRAGMA Output Telemetry</div>
-              <div class="code-box" id="pragmaOutputBox" style="height: 240px;">No PRAGMA commands executed yet.</div>
+              <div class="card-title">MySQL Maintenance Output</div>
+              <div class="code-box" id="pragmaOutputBox" style="height: 240px;">No MySQL maintenance commands executed yet.</div>
             </div>
           </div>
         </div>
@@ -5870,49 +5870,55 @@ ${CRUD_STYLE}
       }
     }
 
-    async function vacuumDatabase() {
-      showToast("Running VACUUM...");
+    async function optimizeMysqlTables() {
+      showToast("Running OPTIMIZE TABLE...");
       const res = await apiRequest('/api/pragma', { pragma: 'vacuum' });
       if (!res || res.success === false) {
-        showToast("VACUUM failed: " + (res?.error || "Unknown error"));
+        showToast("OPTIMIZE TABLE failed: " + (res?.error || "Unknown error"));
         return;
       }
-      showToast("VACUUM completed successfully!");
-      logAudit("[VACUUM] Database defragmented and vacuumed.");
+      const outBox = document.getElementById("pragmaOutputBox");
+      if (outBox) outBox.textContent = typeof res.result === "string" ? res.result : JSON.stringify(res, null, 2);
+      showToast("MySQL table optimization completed successfully!");
+      logAudit("[OPTIMIZE] MySQL tables optimized.");
       await refreshKpis();
     }
 
-    async function checkIntegrity() {
-      showToast("Running integrity_check...");
+    async function checkMysqlTables() {
+      showToast("Running CHECK TABLE...");
       const res = await apiRequest('/api/pragma', { pragma: 'integrity_check' });
       const outBox = document.getElementById("pragmaOutputBox");
       if (outBox) outBox.textContent = JSON.stringify(res, null, 2);
       const rows = Array.isArray(res?.result) ? res.result : [];
-      const healthy = !!res && res.success !== false && rows.length === 1 && String(Object.values(rows[0] || {})[0]).toLowerCase() === "ok";
-      showToast(healthy ? "Integrity check OK: Database is healthy!" : "Integrity check reported problems - see PRAGMA output");
-      logAudit(healthy ? "[INTEGRITY] PRAGMA integrity_check completed: OK" : "[INTEGRITY] PRAGMA integrity_check reported problems");
+      const healthy = !!res && res.success !== false && rows.length > 0 && rows.every((row) => {
+        const values = Object.values(row || {});
+        return values.length > 0 && String(values[0]).toLowerCase().includes("ok");
+      });
+      showToast(healthy ? "CHECK TABLE OK: MySQL tables are healthy!" : "CHECK TABLE reported problems - see maintenance output");
+      logAudit(healthy ? "[CHECK TABLE] MySQL table validation completed: OK" : "[CHECK TABLE] MySQL table validation reported problems");
       switchTab("pragma");
     }
 
-    async function togglePragma(name, val) {
-      const res = await apiRequest('/api/pragma', { pragma: name, value: val });
+    async function showVariable(name) {
+      const res = await apiRequest('/api/pragma', { pragma: name });
       const outBox = document.getElementById("pragmaOutputBox");
       if (outBox) outBox.textContent = JSON.stringify(res, null, 2);
       if (!res || res.success === false) {
-        showToast(\`PRAGMA \${name} failed: \` + (res?.error || "Unknown error"));
+        showToast("SHOW VARIABLES LIKE '%" + name + "%' failed: " + (res?.error || "Unknown error"));
         return;
       }
-      showToast(\`PRAGMA \${name}=\${val} set!\`);
-      logAudit(\`[PRAGMA] \${name}=\${val}\`);
-      await refreshKpis();
+      showToast("MySQL variable " + name + " inspected.");
+      logAudit("[VARIABLE] SHOW VARIABLES LIKE '%" + name + "%'");
+      switchTab("pragma");
     }
 
-    async function runPragmaCommand(cmd) {
+    async function runMysqlMaintenance(cmd) {
       const res = await apiRequest('/api/query', { sql: cmd });
       const outBox = document.getElementById("pragmaOutputBox");
       if (outBox) outBox.textContent = JSON.stringify(res, null, 2);
-      showToast(\`Command \${cmd} executed!\`);
-      logAudit(\`[COMMAND] \${cmd}\`);
+      showToast("Command " + cmd + " executed!");
+      logAudit("[COMMAND] " + cmd);
+      switchTab("pragma");
     }
 
     // ---------------------------------------------------------------------------------------------
