@@ -61,3 +61,12 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 - [Database tests](database-tests.md)
 - [Coverage matrix](../documentation-maintenance/coverage-matrix.md)
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and on pull requests: `bun install --frozen-lockfile`, `bun run docs:check`, then `bun test`, on `macos-latest` with Bun 1.4.2.
+
+- **Not verified on GitHub.** The same three commands passed in a fresh local clone (after the [D-020](../documentation-maintenance/discrepancies.md#d-020) fixes), but the workflow file has not run on GitHub.
+- Windows and Linux are not covered.
+- The live MySQL and PostgreSQL suites skip themselves, so CI does not test them.
+- The type check (`tsc`) is not part of it ([baseline](../documentation-maintenance/baseline-and-risks.md#baseline-checks)).

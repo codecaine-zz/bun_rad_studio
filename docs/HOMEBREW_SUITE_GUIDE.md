@@ -202,7 +202,7 @@ Sample output:
 • Homebrew Bin:     /opt/homebrew/bin
 • Bun Version:      v1.4.2
 • Suite Root:       /Users/codecaine/bun_rad_studio
-• Local Wrappers:   259 executable binaries in bin/
+• Local Wrappers:   256 executable binaries in bin/
 • PATH Check:       ✔ 'codecaine' available at /opt/homebrew/bin/codecaine
 
 Diagnostic check passed: Codecaine Utility Suite is active and ready to brew!

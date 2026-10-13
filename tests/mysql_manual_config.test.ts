@@ -224,6 +224,9 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
   });
 
   it("9. Correctly resolves MSQL_* environment variable naming convention", async () => {
+    // A placeholder, so the result does not depend on a developer's local .env file.
+    const savedPassword = process.env.MSQL_PASSWORD;
+    process.env.MSQL_PASSWORD = "placeholder-not-a-real-password";
     const srv = startMysqlStudioServer({ port: 0 });
     try {
       const res = await fetch(`http://127.0.0.1:${srv.port}/api/config`);
@@ -237,6 +240,8 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
       expect(data.config.hasPassword).toBe(true);
     } finally {
       srv.stop(true);
+      if (savedPassword === undefined) delete process.env.MSQL_PASSWORD;
+      else process.env.MSQL_PASSWORD = savedPassword;
     }
   });
 

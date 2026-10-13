@@ -23,6 +23,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-017 Import, Keys and Audit dialogs, the status bar and the context menu could never appear (fixed)](#d-017)
 - [D-018 Importing a layout could corrupt the open form or fail silently (fixed)](#d-018)
 - [D-019 Button text on a new button was hard to read; many themes are low contrast](#d-019)
+- [D-020 Two tests passed only on the author's machine (fixed)](#d-020)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -126,7 +127,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Fix:** these five files are listed in `NON_APP_MODULES` and skipped. The three broken wrappers were removed and `bin/manifest.json` regenerated (259 to 256 commands).
 - **Behaviour change:** the launcher and `codecaine list` no longer show those five entries. They did not work.
 - **Regression tests:** `tests/launcher_listing.test.ts` (also checks that every listed application contains `import.meta.main`, so a new library file added to `applications/` is caught).
-- **Not done:** the test `tests/codecaine_homebrew_suite.test.ts` still writes into the real `bin/` ([D-006](#d-006)). The sample diagnostics output in `docs/HOMEBREW_SUITE_GUIDE.md` still shows the old count of 259.
+- **Not done:** the test `tests/codecaine_homebrew_suite.test.ts` still writes into the real `bin/` ([D-006](#d-006)). The sample diagnostics output in `docs/HOMEBREW_SUITE_GUIDE.md` was updated from 259 to 256, the value `./install_homebrew_suite.sh --doctor` printed on 13 October 2026.
 
 <a id="d-015"></a>
 ## D-015: Redis server file crashes when started directly
@@ -170,3 +171,11 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Fix:** a new button now takes `btnFg` from the theme (for High Contrast this is the same `#000000` as before).
 - **Open:** computed from the theme table in `getThemeColors`, 25 of the 51 theme choices have a `btnFg` on `btnBg` contrast below 4.5 to 1 (for example Sonoma Emerald 2.5, Linux Mint 2.8, Solarized Light 3.0). Changing theme colours is a design decision, so they were left as they are.
 - **Not covered by a test:** the placement fix was checked in the browser only.
+
+<a id="d-020"></a>
+## D-020: Two tests passed only on the author's machine (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** running `bun test` in a fresh `git clone` made in a folder called `ci_clone` failed two tests that passed in the working copy: `tests/launcher.test.ts` ("scopes exclusively to project repository tools") expected every application path to contain `/bun_rad_studio/`, so it only passed if the checkout folder had that name; `tests/mysql_manual_config.test.ts` (test 9) expected `hasPassword` to be true, which was only so because the untracked `.env` in the working copy holds a MySQL password.
+- **Fix:** the launcher test checks that paths start with the current folder; the MySQL test sets and restores a placeholder `MSQL_PASSWORD`. The MySQL file also passes with `.env` moved away.
+- **Why it matters:** both would have failed on the first run of the new [CI workflow](../testing/index.md#continuous-integration) (the first would not have, as GitHub's folder has the same name, but only by luck).

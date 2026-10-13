@@ -61,7 +61,7 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     // All tools must be within the project workspace repository
     for (const app of apps) {
       expect(["rad_studio", "cli_tool", "rad_demo"]).toContain(app.source);
-      expect(app.path).toContain("/bun_rad_studio/");
+      expect(app.path.startsWith(process.cwd())).toBe(true);
       expect(app.command).toStartWith("bun run ");
     }
 

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # macOS is the platform the tests were verified on; other platforms have not been tried.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Documentation links and generated pages
+        run: bun run docs:check
+
+      # The MySQL and PostgreSQL suites skip themselves when no server is configured.
+      - name: Tests
+        run: bun test
