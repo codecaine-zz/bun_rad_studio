@@ -6,7 +6,7 @@ This page says what the project can generate today and what it cannot. It exists
 
 | Output | Where it comes from | Status |
 |---|---|---|
-| A Bun + Webview project (`index.html`, `index.ts`, `package.json`) | **Export** in the visual designer; `exportProjectHelper` in `index.ts` | Implemented but **not verified**: the designer does not start ([D-001](../documentation-maintenance/discrepancies.md#d-001)), so the export was not run and the exported project was not started. |
+| A Bun + Webview project (`index.html`, `index.ts`, `package.json`) | **Export** in the visual designer; `exportProjectHelper` in `index.ts` | Partly verified: `exportProjectHelper` writes the three files, and an exported one-button project builds and starts (automated in `tests/ide_html.test.ts`; a syntax error in the generated helpers was fixed, [D-011](../documentation-maintenance/discrepancies.md#d-011)). The designer's Export button and larger forms were not run. |
 | Code views (Bun TS, HTML, React, Vue 3, Python, JSON) | Tabs in the designer | Present in `src/ide.html`; **not verified**. |
 | Python, Bun and V code for macros and SQL | "Code" buttons in the SQLite, MySQL and PostgreSQL studios (`applications/studio_codegen.ts`) | Implemented and verified by automated tests (`tests/studio_codegen.test.ts`). The generated text is checked, **not executed**. It targets SQLite in all three studios. |
 

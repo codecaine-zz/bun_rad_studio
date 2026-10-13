@@ -1,6 +1,6 @@
 # Visual form designer (the IDE)
 
-> **Status: not usable today.** `bun start`, the command that opens the designer, fails in a fresh clone and in the working copy with `ReferenceError: existsSync is not defined` ([discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001)). Nothing on this page was observed in a running designer. It is a summary of what the **source code** (`index.ts`, `src/ide.html`) contains, so that readers know what to expect once the bug is fixed. Behaviour, defaults and shortcuts are intentionally not described beyond what the source shows.
+> **Status: starts; interface not verified.** `bun start` used to fail with `ReferenceError: existsSync is not defined` ([discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001), fixed). After the fix, `bun run index.ts` starts and keeps running on macOS (Bun 1.4.2), and an automated test checks that the designer page loads (`tests/ide_html.test.ts`). The designer window itself was **not inspected**, so nothing below was observed in the running interface. It summarizes what the **source code** (`index.ts`, `src/ide.html`) contains. Behaviour, defaults and shortcuts are intentionally not described beyond what the source shows.
 
 ## Contents
 
@@ -43,13 +43,13 @@ So: **do not expect the designer to read or edit a real database.** Real databas
 
 `index.ts` contains `exportProjectHelper(specJson, customExportDir?)`. From reading the source it writes a project folder (`exported_project` in the current folder by default) containing `index.html` (the rendered form), an `index.ts` that opens the form in a Webview and registers simple placeholder handlers for named events, and a `package.json`. [API.md](../API.md) describes the same three files.
 
-This was **not run** (D-001), so it is not known whether the exported project starts. The *Python*, *React* and *Vue 3* tabs are code views; whether they produce runnable projects has not been checked.
+Verified: calling `exportProjectHelper` with a one-button spec produced these three files, and the exported project builds and starts (automated in `tests/ide_html.test.ts`). Running it first exposed a syntax error in the generated `index.ts` helpers, now fixed ([D-011](../documentation-maintenance/discrepancies.md#d-011)). The **Export** button in the designer and larger forms were not run. The *Python*, *React* and *Vue 3* tabs are code views; whether they produce runnable projects has not been checked.
 
 ## What is missing from this guide and why
 
 | Missing | Reason |
 |---|---|
-| Interface tour, menus, dialogs, status messages | Designer cannot be launched (D-001). |
+| Interface tour, menus, dialogs, status messages | The designer window has not been inspected. |
 | Per-control reference (properties, defaults, events, examples) | Needs the designer to verify; the control list above is from the source only. |
 | Layout, alignment, saving and reopening projects | Not verified. |
 | Keyboard shortcuts | Only the tooltip hints above were seen in source; no list is given because none was tested. |

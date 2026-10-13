@@ -4,7 +4,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 
 ## Contents
 
-- [D-001 `bun start` fails](#d-001)
+- [D-001 `bun start` fails (fixed)](#d-001)
 - [D-002 Designer database controls are placeholders](#d-002)
 - [D-003 Tool counts in the README disagree with the launcher](#d-003)
 - [D-004 Older per-application guides are generated and unverified](#d-004)
@@ -14,15 +14,16 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-008 Broken links and a broken code fence in existing documents](#d-008)
 - [D-009 Legacy studios keep database passwords in a plain `.env` file](#d-009)
 - [D-010 Two identical theme documents](#d-010)
+- [D-011 Exported project did not parse (fixed)](#d-011)
 
 <a id="d-001"></a>
-## D-001: `bun start` fails
+## D-001: `bun start` fails (fixed)
 
-- **Status:** Open (application bug; not fixed because changing application behaviour is outside the documentation task).
-- **Observed:** `bun start` (and `bun run index.ts`) stops immediately with `ReferenceError: existsSync is not defined` at `index.ts:972` (function `getIdeHtml`). Reproduced on 13 October 2026 in a fresh clone and in the working tree, macOS, Bun 1.4.2.
+- **Status:** Fixed on 13 October 2026: `existsSync` is now imported in `index.ts`. `bun run index.ts` starts and stays running (macOS, Bun 1.4.2; process observed, window not inspected). Regression tests: `tests/ide_html.test.ts`.
+- **Observed before the fix:** `bun start` (and `bun run index.ts`) stops immediately with `ReferenceError: existsSync is not defined` at `index.ts:972` (function `getIdeHtml`). Reproduced on 13 October 2026 in a fresh clone and in the working tree, macOS, Bun 1.4.2.
 - **Cause:** `index.ts` calls `existsSync` but never imports it (its `fs` import lists `readFileSync, writeFileSync, mkdirSync`).
 - **Documents that claim otherwise:** `README.md` ("Visual RAD Form Designer & IDE (`bun start`)").
-- **Effect on this handbook:** the [visual designer](../visual-designer/index.md) and [generated applications](../generated-applications/index.md) pages are source-only and say so.
+- **Effect on this handbook:** the [visual designer](../visual-designer/index.md) and [generated applications](../generated-applications/index.md) pages remain source-based for the interface and say so.
 
 <a id="d-002"></a>
 ## D-002: Designer database controls are placeholders
@@ -80,3 +81,12 @@ Where the code, existing documents and reality disagree. Each item says what was
 
 - **Status:** Open.
 - **Observed:** `docs/theme.md` and `docs/THEMES.md` have identical content (1229 lines each, no `diff` output). Two files whose names differ only by case also collide on case-insensitive file systems. The handbook links to `THEMES.md`; `theme.md` is kept in the navigation only so that it is not silently lost.
+
+<a id="d-011"></a>
+## D-011: Exported project did not parse (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** a project written by `exportProjectHelper` failed to build or start (`bun build index.ts`: `Unexpected /`, `Unexpected escape sequence`). The generated `index.ts` contains helper functions `setTimelineSteps`, `setBreadcrumbs`, `setTreeNodes` and `setAvatarGroup`, whose JavaScript strings use a template literal inside a template literal; the inner backticks were not escaped in the generator (`index.ts`, the `appTs` template).
+- **Fix:** the inner backticks are now escaped. The generated helpers pass valid JavaScript to the page (checked with `new Function`).
+- **Regression tests:** `tests/ide_html.test.ts` ("Exported project").
+- **Not covered:** whether those four helpers draw correctly in a real page.

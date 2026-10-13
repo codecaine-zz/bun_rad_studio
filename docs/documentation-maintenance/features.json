@@ -7,8 +7,8 @@
       "evidence": ["index.ts", "src/ide.html"],
       "page": "visual-designer/index.md",
       "implementation": "Partially implemented",
-      "verification": "Launch FAILS in a clean clone and in the working tree: `ReferenceError: existsSync is not defined` (index.ts:972). Reproduced 2026-10-13 (macOS, Bun 1.4.2). See discrepancy D-001.",
-      "missing": "Interface tour, menus and dialogs cannot be documented from a running IDE until D-001 is fixed."
+      "verification": "Launch was fixed (D-001): `bun run index.ts` starts and stays running on macOS, Bun 1.4.2 (process observed alive; the window was not inspected). Page loading is covered by `tests/ide_html.test.ts`. Interactive behaviour of the designer page is not verified.",
+      "missing": "Interface tour, menus and dialogs not yet documented from a running designer."
     },
     {
       "name": "Designer control palette (buttons, inputs, tables, panels, …)",
@@ -16,7 +16,7 @@
       "evidence": ["src/ide.html", "docs/API.md"],
       "page": "visual-designer/index.md",
       "implementation": "Implemented but not verified",
-      "verification": "Not run (the IDE does not start, D-001). Control names come from source only.",
+      "verification": "Not run interactively. Control names come from source only.",
       "missing": "Per-control properties/defaults/events reference not written yet."
     },
     {
@@ -43,8 +43,8 @@
       "evidence": ["index.ts (exportProjectHelper, line ~983)", "src/ide.html (exportApp)"],
       "page": "generated-applications/index.md",
       "implementation": "Implemented but not verified",
-      "verification": "Not run end to end (IDE does not start, D-001). The generated files list (index.html, index.ts, package.json) comes from source and docs/API.md.",
-      "missing": "Run the exported project from a clean folder and record the result."
+      "verification": "`exportProjectHelper` was run with a one-button spec: it wrote index.html, index.ts and package.json, and that project builds and starts (D-011 fixed). Automated in `tests/ide_html.test.ts`. The Export button in the designer UI and richer specs were not run.",
+      "missing": "Export a larger form from the designer UI and record the result."
     },
     {
       "name": "Generated CRUD applications that talk to a database",

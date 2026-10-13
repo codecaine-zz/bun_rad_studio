@@ -39,7 +39,7 @@ Find a page by what you want to do. A status in brackets says how far to trust i
 | I want to… | Go to |
 |---|---|
 | Open a window from code | [First program](../getting-started/install-and-first-launch.md#step-6-run-your-first-program) (launch verified) and [SIMPLEGUI_API.md](../SIMPLEGUI_API.md) |
-| Design a form visually | [Visual designer](../visual-designer/index.md) (cannot start today, D-001) |
+| Design a form visually | [Visual designer](../visual-designer/index.md) (starts; interface not yet verified, D-001) |
 | Export an application | [Generated applications](../generated-applications/index.md) (not verified) |
 | Generate a database-backed application | Not available (planned) |
 | Build the library | [Step 8](../getting-started/install-and-first-launch.md#step-8-build-the-library-optional) (verified) |
@@ -57,7 +57,7 @@ Find a page by what you want to do. A status in brackets says how far to trust i
 
 | Symptom | Go to |
 |---|---|
-| `bun start` fails | [Discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001) |
+| `bun start` fails with `existsSync is not defined` | [Discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001) |
 | Install or first-launch problem | [When something fails](../getting-started/install-and-first-launch.md#when-something-fails) |
 | Database connection error | [Workbench troubleshooting](../databases/workbench.md#troubleshooting) |
 | A test is skipped | [Testing: what is skipped](../testing/index.md#what-is-skipped-and-why) |

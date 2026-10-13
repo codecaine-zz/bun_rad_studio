@@ -98,7 +98,7 @@ bun run build
 
 ## Things that do not work yet
 
-- **`bun start` (the visual form designer) fails.** It stops with `ReferenceError: existsSync is not defined` at `index.ts` line 972. This is a bug in the project, reproduced both in a fresh clone and in the working copy; see [discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001). Until it is fixed there is no verified way to "create and save a first project" in the designer, which is why this page uses a code example instead. The [designer pages](../visual-designer/index.md) say what the source shows.
+- **`bun start` (the visual form designer)** failed with `ReferenceError: existsSync is not defined` until [D-001](../documentation-maintenance/discrepancies.md#d-001) was fixed. It now starts, but the designer window was not inspected, so this page still uses a code example for the first project. The [designer pages](../visual-designer/index.md) say what is and is not verified.
 - Windows and Linux were not tested.
 
 ## When something fails
@@ -107,7 +107,7 @@ bun run build
 |---|---|---|
 | `bun: command not found` | Bun is not installed or the terminal was not reopened after installing it. | Install Bun (<https://bun.sh>), open a new terminal, run `bun --version`. |
 | `bun install` cannot download packages | No internet, or a network proxy. | Check your connection and run the command again; it is safe to repeat. |
-| `error: script "start" exited with code 1` with `existsSync is not defined` | Known project bug D-001. | Nothing you did wrong. Use another launch command. |
+| `error: script "start" exited with code 1` with `existsSync is not defined` | You are on a version from before the D-001 fix. | Update the project (`git pull`), then run `bun start` again. |
 | The terminal shows output but no window appears | A window system problem (on Linux, missing WebKitGTK/GTK packages). | See [Requirements](requirements.md#linux-system-packages-not-verified). |
 | A command fails with `Module not found` | You are not in the repository root. | `cd` into the `bun_rad_studio` folder and retry. |
 

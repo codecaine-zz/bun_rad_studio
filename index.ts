@@ -1,5 +1,5 @@
 import { SizeHint, Webview } from "webview-bun";
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import { join } from "path";
 import { dlopen, FFIType } from "bun:ffi";
@@ -1110,22 +1110,22 @@ export function setAccordionOpen(controlId: string, open: boolean) {
 
 export function setTimelineSteps(controlId: string, stepsCSV: string) {
     const escaped = JSON.stringify(stepsCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const steps=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=steps.map((st,i)=>\`<div style="display:flex;align-items:center;gap:10px;font-size:11px;"><div style="width:10px;height:10px;border-radius:50%;background:\\\${i<=1?'var(--accent, #38bdf8)':'rgba(255,255,255,0.2)'};"></div><span>\\\${st}</span></div>\`).join("");}\`);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const steps=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=steps.map((st,i)=>\\\`<div style="display:flex;align-items:center;gap:10px;font-size:11px;"><div style="width:10px;height:10px;border-radius:50%;background:\\\${i<=1?'var(--accent, #38bdf8)':'rgba(255,255,255,0.2)'};"></div><span>\\\${st}</span></div>\\\`).join("");}\`);
 }
 
 export function setBreadcrumbs(controlId: string, crumbsCSV: string) {
     const escaped = JSON.stringify(crumbsCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const crumbs=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=crumbs.map((cr,i)=>\`\\\${i>0?'<span style="opacity:0.4;">›</span>':''}<span style="\\\${i===crumbs.length-1?'font-weight:700;color:var(--accent,#38bdf8);':'opacity:0.7;'}">\\\${cr}</span>\`).join("");}\`);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const crumbs=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=crumbs.map((cr,i)=>\\\`\\\${i>0?'<span style="opacity:0.4;">›</span>':''}<span style="\\\${i===crumbs.length-1?'font-weight:700;color:var(--accent,#38bdf8);':'opacity:0.7;'}">\\\${cr}</span>\\\`).join("");}\`);
 }
 
 export function setTreeNodes(controlId: string, nodesCSV: string) {
     const escaped = JSON.stringify(nodesCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const nodes=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=nodes.map((n,i)=>\`<div style="padding-left:\\\${i===0?0:16}px;display:flex;align-items:center;gap:6px;"><span style="opacity:0.6;">\\\${i===0?'▼ 📁':'├─'}</span><span>\\\${n}</span></div>\`).join("");}\`);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const nodes=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=nodes.map((n,i)=>\\\`<div style="padding-left:\\\${i===0?0:16}px;display:flex;align-items:center;gap:6px;"><span style="opacity:0.6;">\\\${i===0?'▼ 📁':'├─'}</span><span>\\\${n}</span></div>\\\`).join("");}\`);
 }
 
 export function setAvatarGroup(controlId: string, avatarsCSV: string) {
     const escaped = JSON.stringify(avatarsCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const avs=\${escaped}.split(",").map(s=>s.trim());const avCols=['#0284c7','#7c3aed','#059669','#d97706','#dc2626'];c.innerHTML=avs.map((av,i)=>\`<div style="width:32px;height:32px;border-radius:50%;background:\\\${av.startsWith('+')?'rgba(255,255,255,0.2)':avCols[i%avCols.length]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid transparent;margin-left:\\\${i===0?0:-8}px;">\\\${av}</div>\`).join("");}\`);
+    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const avs=\${escaped}.split(",").map(s=>s.trim());const avCols=['#0284c7','#7c3aed','#059669','#d97706','#dc2626'];c.innerHTML=avs.map((av,i)=>\\\`<div style="width:32px;height:32px;border-radius:50%;background:\\\${av.startsWith('+')?'rgba(255,255,255,0.2)':avCols[i%avCols.length]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid transparent;margin-left:\\\${i===0?0:-8}px;">\\\${av}</div>\\\`).join("");}\`);
 }
 
 export function setRichSelectText(controlId: string, text: string) {
