@@ -113,7 +113,8 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(dryRes.success).toBe(true);
     expect(dryRes.message).toContain("[Dry Run]");
 
-    if (process.platform === "darwin") {
+    // Opening a real Terminal window needs a logged-in desktop; CI runners have none.
+    if (process.platform === "darwin" && !process.env.CI) {
       const res = launchInTerminal("echo 'Bun RAD Studio Launcher Test'");
       expect(res.success).toBe(true);
       expect(res.message).toContain("Opened CLI in macOS Terminal");
@@ -129,7 +130,7 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
   });
 
   it("launches CLI tool in terminal mode via launchApplication", async () => {
-    if (process.platform === "darwin") {
+    if (process.platform === "darwin" && !process.env.CI) {
       const res = await launchApplication("system_cli", "--version", { openTerminal: true });
       expect(res.success).toBe(true);
       expect(res.output).toContain("Launched in Terminal");

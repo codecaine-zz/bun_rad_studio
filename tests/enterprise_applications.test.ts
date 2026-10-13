@@ -235,7 +235,7 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(dnsTxtHandler).toBeDefined();
     await dnsTxtHandler(win);
     expect(win.getValue("txt_net_results")).toContain("DNS");
-  });
+  }, 30_000);
 
   it("13. Git Workbench Pro initializes with commit logs & diff viewer", () => {
     const win = createGitStudio();

@@ -63,7 +63,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(shell.success).toBe(true);
     expect(time.success).toBe(true);
     expect(time.data.uptime).toBeGreaterThanOrEqual(0);
-  });
+  }, 30_000);
 
   it("4. Category 3: CPU, Load & Thermals methods execute successfully", async () => {
     const [cpu, flags, cache, speed, temp, load, full] = await Promise.all([

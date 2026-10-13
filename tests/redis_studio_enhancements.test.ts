@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describeRedis, TEST_REDIS_URL } from "./helpers/redis";
 import { startRedisStudioServer } from "../applications/redis_studio_server.ts";
 import { generateRedisStudioHtml } from "../applications/redis_studio.ts";
 import {
@@ -39,14 +40,14 @@ describe("redis_helpers", () => {
   });
 });
 
-describe("Redis Studio productivity API (live Redis, DB 14)", () => {
+describeRedis("Redis Studio productivity API (live Redis, DB 14)", () => {
   let srv: any;
   let base: string;
   const post = (p: string, body: any): Promise<any> =>
     fetch(base + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json() as Promise<any>);
 
   beforeAll(async () => {
-    srv = startRedisStudioServer({ port: 5833, url: "redis://127.0.0.1:6379", db: 14 });
+    srv = startRedisStudioServer({ port: 5833, url: TEST_REDIS_URL, db: 14 });
     base = srv.url;
     await post("/api/cli", { command: "FLUSHDB" });
   });

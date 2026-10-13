@@ -8,8 +8,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { startRedisStudioServer, RedisManager } from "../applications/redis_studio_server.ts";
 import { generateRedisStudioHtml, createRedisStudio } from "../applications/redis_studio.ts";
+import { describeRedis, TEST_REDIS_URL } from "./helpers/redis";
 
-describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
+describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   let serverInstance: any;
   let baseUrl: string;
   const TEST_PORT = 5821;
@@ -17,7 +18,7 @@ describe("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   beforeAll(async () => {
     serverInstance = startRedisStudioServer({
       port: TEST_PORT,
-      url: "redis://127.0.0.1:6379",
+      url: TEST_REDIS_URL,
       db: 15, // Use test database 15
     });
     baseUrl = serverInstance.url;

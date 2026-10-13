@@ -35,6 +35,15 @@ jobs:
       - name: Documentation links and generated pages
         run: bun run docs:check
 
+      # A throwaway Redis for the Redis tests, which seed data and run FLUSHDB (they are opt-in locally).
+      - name: Start a disposable Redis
+        run: |
+          brew install redis
+          redis-server --port 6390 --save "" --appendonly no --daemonize yes
+          for i in 1 2 3 4 5 6 7 8 9 10; do redis-cli -p 6390 ping && break; sleep 1; done
+
       # The MySQL and PostgreSQL suites skip themselves when no server is configured.
       - name: Tests
         run: bun test
+        env:
+          TEST_REDIS_URL: redis://127.0.0.1:6390
