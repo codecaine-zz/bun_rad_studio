@@ -941,29 +941,142 @@ export class SqliteManager {
     }
   }
 
-  public dumpSql(tables?: string[]): { success: boolean; sql?: string; error?: string } {
+  public getTableAggregates(tableName: string): Record<string, { count: number; sum?: number | null; avg?: number | null; min?: any; max?: any }> {
     try {
-      const out: string[] = ["PRAGMA foreign_keys=OFF;", "BEGIN TRANSACTION;"];
+      const cols = this.db.query(`PRAGMA table_info(${qi(tableName)});`).all() as any[];
+      if (!cols || cols.length === 0) return {};
+
+      const numericCols = cols.filter((c: any) => {
+        const t = (c.type || "").toUpperCase();
+        return t.includes("INT") || t.includes("REAL") || t.includes("FLOAT") || t.includes("DOUBLE") || t.includes("NUMERIC") || t.includes("DECIMAL");
+      }).map((c: any) => c.name);
+
+      const aggSelects: string[] = ["COUNT(*) as __total_count__"];
+      for (const col of numericCols) {
+        aggSelects.push(`SUM(${qi(col)}) as ${qi(col + "_sum")}`);
+        aggSelects.push(`AVG(${qi(col)}) as ${qi(col + "_avg")}`);
+        aggSelects.push(`MIN(${qi(col)}) as ${qi(col + "_min")}`);
+        aggSelects.push(`MAX(${qi(col)}) as ${qi(col + "_max")}`);
+      }
+
+      const res = this.db.query(`SELECT ${aggSelects.join(", ")} FROM ${qi(tableName)};`).get() as any;
+      const row = res || {};
+      const totalCount = Number(row.__total_count__) || 0;
+
+      const results: Record<string, any> = { __total: { count: totalCount } };
+      for (const col of numericCols) {
+        results[col] = {
+          count: totalCount,
+          sum: row[`${col}_sum`] !== null && row[`${col}_sum`] !== undefined ? Number(row[`${col}_sum`]) : null,
+          avg: row[`${col}_avg`] !== null && row[`${col}_avg`] !== undefined ? Number(parseFloat(row[`${col}_avg`]).toFixed(2)) : null,
+          min: row[`${col}_min`],
+          max: row[`${col}_max`],
+        };
+      }
+      return results;
+    } catch {
+      return {};
+    }
+  }
+
+  public generateDatabaseDump(options: { mode?: "all" | "schema" | "data"; tables?: string[] } = {}): { success: boolean; sql?: string; dump?: string; error?: string; tablesIncluded?: string[] } {
+    try {
+      const mode = options.mode || "all";
       const items = this.db
         .query("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'view' THEN 2 ELSE 3 END, name;")
         .all() as any[];
-      const want = tables && tables.length ? new Set(tables) : null;
-      for (const it of items) {
-        if (want && !want.has(it.type === "table" ? it.name : it.tbl_name)) continue;
-        out.push(String(it.sql).replace(/;?\s*$/, ";"));
-        if (it.type === "table") {
-          const rows = this.db.query(`SELECT * FROM ${qi(it.name)};`).all() as any[];
-          for (const r of rows) {
-            const keys = Object.keys(r);
-            const vals = keys.map((k) => sqlLiteral(r[k]));
-            out.push(`INSERT INTO ${qi(it.name)} (${keys.map(qi).join(", ")}) VALUES (${vals.join(", ")});`);
+
+      const allTableNames = items.filter((it: any) => it.type === "table").map((it: any) => it.name);
+      const targetTables = options.tables && options.tables.length > 0
+        ? options.tables
+        : allTableNames;
+      const want = new Set(targetTables);
+
+      let dump = `-- ================================================================\n`;
+      dump += `-- ⚡ SQLITE STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT\n`;
+      dump += `-- Generated: ${new Date().toISOString()}\n`;
+      dump += `-- Database: ${this.activePath} | Mode: ${mode.toUpperCase()}\n`;
+      dump += `-- ================================================================\n\n`;
+      dump += `PRAGMA foreign_keys = OFF;\n`;
+      if (mode === "all" || mode === "data") {
+        dump += `BEGIN TRANSACTION;\n\n`;
+      }
+
+      // Schema DDL
+      if (mode === "all" || mode === "schema") {
+        for (const it of items) {
+          if (it.type === "table") {
+            if (!want.has(it.name)) continue;
+            dump += `-- -----------------------------------------------------\n`;
+            dump += `-- Table structure for table "${it.name}"\n`;
+            dump += `-- -----------------------------------------------------\n`;
+            dump += `DROP TABLE IF EXISTS ${qi(it.name)};\n`;
+            dump += `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`;
+          } else if (it.type === "view") {
+            dump += `-- View: "${it.name}"\n`;
+            dump += `DROP VIEW IF EXISTS ${qi(it.name)};\n`;
+            dump += `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`;
+          } else if (it.type === "index") {
+            if (it.tbl_name && !want.has(it.tbl_name)) continue;
+            dump += `${String(it.sql).replace(/;?\s*$/, ";")}\n`;
           }
         }
+        dump += `\n`;
       }
-      out.push("COMMIT;");
-      return { success: true, sql: out.join("\n") };
+
+      // Table Data
+      if (mode === "all" || mode === "data") {
+        for (const tbl of targetTables) {
+          try {
+            const rows = this.db.query(`SELECT * FROM ${qi(tbl)};`).all() as any[];
+            if (rows && rows.length > 0) {
+              dump += `-- Dumping data for table "${tbl}" (${rows.length} rows)\n`;
+              const keys = Object.keys(rows[0]);
+              const colList = keys.map(qi).join(", ");
+              for (const r of rows) {
+                const vals = keys.map((k) => sqlLiteral(r[k])).join(", ");
+                dump += `INSERT INTO ${qi(tbl)} (${colList}) VALUES (${vals});\n`;
+              }
+              dump += `\n`;
+            }
+          } catch {}
+        }
+      }
+
+      if (mode === "all" || mode === "data") {
+        dump += `COMMIT;\n`;
+      }
+      dump += `PRAGMA foreign_keys = ON;\n`;
+      dump += `-- Dump completed on ${new Date().toISOString()}\n`;
+
+      return { success: true, sql: dump, dump, tablesIncluded: targetTables };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  public dumpSql(tables?: string[]): { success: boolean; sql?: string; error?: string } {
+    const res = this.generateDatabaseDump({ mode: "all", tables });
+    return { success: res.success, sql: res.sql, error: res.error };
+  }
+
+  public getAttachedDatabases(): any[] {
+    try {
+      return this.db.query("PRAGMA database_list;").all();
+    } catch {
+      return [];
+    }
+  }
+
+  public getVirtualTables(): any[] {
+    try {
+      return this.db.query(`
+        SELECT name, sql FROM sqlite_master 
+        WHERE sql LIKE '%VIRTUAL TABLE%' OR sql LIKE '%fts%' OR sql LIKE '%rtree%'
+        ORDER BY name;
+      `).all();
+    } catch {
+      return [];
     }
   }
 
@@ -1598,6 +1711,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             case "redesign-table": result = manager.redesignTable(body.table, body.newName, body.columns); break;
             case "rename-table": result = manager.renameTable(body.table, body.newName); break;
             case "drop": result = manager.dropObject(body.kind, body.name); break;
+            case "drop-table": result = manager.dropObject("table", body.table || body.name); break;
             case "create-index": result = manager.createIndex(body); break;
             case "create-view": result = manager.createView(body.name, body.sql); break;
             case "details": result = manager.getTableDetails(body.table); break;
@@ -1638,8 +1752,123 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
 
       if (url.pathname === "/api/dump" && req.method === "POST") {
         try {
-          const body = (await req.json().catch(() => ({}))) as { tables?: string[] };
+          const body = (await req.json().catch(() => ({}))) as { tables?: string[]; mode?: "all" | "schema" | "data" };
+          if (body.mode) {
+            return Response.json(manager.generateDatabaseDump(body), { headers: corsHeaders });
+          }
           return Response.json(manager.dumpSql(body.tables), { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Full Database SQL Dump & Backup Generator API
+      if (url.pathname === "/api/database/dump" && req.method === "POST") {
+        try {
+          const body = (await req.json().catch(() => ({}))) as { mode?: "all" | "schema" | "data"; tables?: string[] };
+          const dumpRes = manager.generateDatabaseDump(body);
+          return Response.json({ success: true, sql: dumpRes.sql || dumpRes.dump, mode: body.mode || "all", timestamp: new Date().toISOString() }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // Table Aggregates for Access Totals Row
+      if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string };
+          const aggregates = manager.getTableAggregates(body.table);
+          return Response.json({ success: true, aggregates }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // SQLite Attached Databases API
+      if (url.pathname === "/api/sqlite/attached" && req.method === "GET") {
+        try {
+          const databases = manager.getAttachedDatabases();
+          return Response.json({ success: true, databases }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // SQLite Virtual Tables / FTS API
+      if (url.pathname === "/api/sqlite/virtual-tables" && req.method === "GET") {
+        try {
+          const virtualTables = manager.getVirtualTables();
+          return Response.json({ success: true, virtualTables }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // Access CRUD Route Aliases
+      if (url.pathname === "/api/rows/insert" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string; row: Record<string, any> };
+          const res = manager.mutateRow(body.table, "insert", { data: body.row });
+          return Response.json(res, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/rows/update" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string; pk?: Record<string, any>; rowId?: any; pkColumn?: string; changes?: Record<string, any>; data?: Record<string, any> };
+          const pkCol = body.pkColumn || (body.pk ? Object.keys(body.pk)[0] : "id");
+          const rowId = body.rowId !== undefined ? body.rowId : (body.pk ? body.pk[pkCol] : undefined);
+          const data = body.changes || body.data || {};
+          const res = manager.mutateRow(body.table, "update", { rowId, pkColumn: pkCol, data });
+          return Response.json(res, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/rows/delete" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string; pk?: Record<string, any>; rowId?: any; rowIds?: any[]; pkColumn?: string };
+          const pkCol = body.pkColumn || (body.pk ? Object.keys(body.pk)[0] : "id");
+          const rowId = body.rowId !== undefined ? body.rowId : (body.pk ? body.pk[pkCol] : undefined);
+          const res = manager.mutateRow(body.table, "delete", { rowId, rowIds: body.rowIds, pkColumn: pkCol });
+          return Response.json(res, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/rows/import-batch" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string; rows: Record<string, any>[] };
+          let inserted = 0;
+          for (const row of (body.rows || [])) {
+            manager.mutateRow(body.table, "insert", { data: row });
+            inserted++;
+          }
+          return Response.json({ success: true, count: inserted }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/table/truncate" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string };
+          manager.db.run(`DELETE FROM "${body.table.replace(/"/g, '""')}";`);
+          return Response.json({ success: true }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/schema/drop-table" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { table: string };
+          manager.db.run(`DROP TABLE IF EXISTS "${body.table.replace(/"/g, '""')}";`);
+          return Response.json({ success: true }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
