@@ -41,6 +41,8 @@ TEST_REDIS_URL=redis://127.0.0.1:6379 bun test tests/redis_studio_pro.test.ts te
 
 Use a throwaway Redis only. CI starts one for itself.
 
+**Live-network tests** (real DNS lookups and a port scan: test 12b in `tests/enterprise_applications.test.ts` and the "live DNS" suite in `src/features/doggo/doggo.test.ts`, 5 tests) are skipped unless `TEST_NETWORK=1`; their result depends on the network, not on the code.
+
 Two launcher tests that open a real Terminal window on macOS skip themselves when the `CI` environment variable is set.
 
 One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench page in a simulated browser (jsdom), because jsdom cannot run page scripts under Bun. It needs Node.js on your PATH.

@@ -51,7 +51,8 @@ describe("doggo doers", () => {
   });
 });
 
-describe("doggo lookup integration", () => {
+// These resolve real names through the network, so they run only on request: TEST_NETWORK=1 bun test src/features/doggo
+describe.skipIf(!process.env.TEST_NETWORK)("doggo lookup integration (live DNS, opt-in)", () => {
   it("resolves DNS records for example.com", async () => {
     const res = await lookupDomain("example.com", "A");
     expect(res.domain).toBe("example.com");
