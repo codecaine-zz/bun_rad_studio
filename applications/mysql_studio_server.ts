@@ -13,6 +13,7 @@ import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { generateMysqlStudioHtml } from "./mysql_studio.ts";
+import { MacroStore, handleMacroRoute, type MacroAdapter, type MacroQueryResult } from "./studio_macros_server.ts";
 
 export interface ServerOptions {
   port?: number;
@@ -1953,6 +1954,89 @@ export class MysqlManager {
     }
   }
 
+  // Access-style macros are persisted per connection (never inside the user's database).
+  public macroStore = new MacroStore("mysql", () => `${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.database}`);
+
+  public getMacroAdapter(): MacroAdapter {
+    const toResult = (rows: any): MacroQueryResult => {
+      if (Array.isArray(rows)) {
+        const isRows = rows.length > 0;
+        return {
+          success: true,
+          rows: isRows ? rows : [],
+          columns: isRows ? Object.keys(rows[0]) : [],
+          rowCount: rows.length,
+          rowsAffected: isRows ? undefined : Number(rows.affectedRows ?? rows.count ?? 0),
+        };
+      }
+      return { success: true, rows: [], columns: [], rowsAffected: Number(rows?.affectedRows ?? 0) };
+    };
+    const safe = async (fn: () => Promise<any>): Promise<MacroQueryResult> => {
+      try {
+        return toResult(await fn());
+      } catch (err: any) {
+        return { success: false, error: err?.message || String(err) };
+      }
+    };
+    return {
+      dialect: "mysql",
+      connectionKey: () => `${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.database}`,
+      query: async (sql) => {
+        const r = await this.query(sql);
+        return r.success
+          ? { success: true, rows: r.rows || [], columns: r.columns || [], rowCount: r.rowCount, rowsAffected: r.rowsAffected }
+          : { success: false, error: r.error };
+      },
+      beginTransaction: async () => {
+        const conn = await this.sql_conn.reserve();
+        try {
+          await conn.unsafe("START TRANSACTION");
+        } catch (err) {
+          conn.release();
+          throw err;
+        }
+        let closed = false;
+        const finish = async (verb: "COMMIT" | "ROLLBACK") => {
+          if (closed) return;
+          closed = true;
+          try {
+            await conn.unsafe(verb);
+          } finally {
+            conn.release();
+          }
+        };
+        return {
+          query: (sql) => safe(() => conn.unsafe(sql)),
+          commit: () => finish("COMMIT"),
+          rollback: () => finish("ROLLBACK"),
+        };
+      },
+      maintenance: async (analyze) => {
+        const tables = await this.listMacroTables();
+        for (const t of tables) {
+          const q = "`" + t.replace(/`/g, "``") + "`";
+          await this.sql_conn.unsafe(`OPTIMIZE TABLE ${q}`);
+          if (analyze) await this.sql_conn.unsafe(`ANALYZE TABLE ${q}`);
+        }
+        return `Optimized${analyze ? " and analyzed" : ""} ${tables.length} table(s)`;
+      },
+      backup: async (mode) => {
+        const dump = await this.generateDatabaseDump({ mode: mode === "full" ? "all" : (mode as any) });
+        if (!dump.success) throw new Error(dump.error || "Backup failed");
+        return `Generated SQL dump (${(dump.sql || dump.dump || "").length} bytes, mode ${mode})`;
+      },
+      listTables: () => this.listMacroTables(),
+    };
+  }
+
+  private async listMacroTables(): Promise<string[]> {
+    const rows = await this.sql_conn.unsafe(
+      "SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ? AND table_type = 'BASE TABLE' ORDER BY table_name",
+      [this.dbConfig.database],
+    );
+    return (rows as any[]).map((r) => String(r.name ?? r.NAME ?? r.table_name ?? r.TABLE_NAME));
+  }
+
   public async logAudit(action: string, entity: string, details: string) {
     try {
       await this.sql_conn.unsafe(
@@ -2569,6 +2653,10 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
         setTimeout(() => process.exit(0), 100);
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }
+
+      // Access-style Macro Designer & Saved Queries
+      const macroRes = await handleMacroRoute(manager.getMacroAdapter(), manager.macroStore, req, url.pathname, corsHeaders);
+      if (macroRes) return macroRes;
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
     },

@@ -240,6 +240,17 @@ MySQL Studio Pro features 11 dedicated enterprise workstation tabs:
   - `ANALYZE TABLE`: Updates key distribution statistics for query optimizer.
   - System Variables Explorer: Inspect live global and session variables.
 
+### 12. ⚡ Macro Designer (Access-style Automation)
+A visual action matrix (reorder ▲/▼, per-step conditions, Action Catalog, Single Step debugger, AutoExec, JSON import/export), shared with SQLite Studio and adapted to MySQL.
+- **Error handling**: macros stop at the first failing step. Set **On error: Continue** on the macro, or tick **On Err ⏭** on one step, to keep going. An unparsable condition fails the step instead of silently running it.
+- **🧪 Dry Run / 🔒 Atomic**: run the data steps on the server inside one transaction on a pinned connection; Dry Run always rolls back, Atomic commits only if every step succeeds. **MySQL commits implicitly before DDL** (`CREATE`/`DROP`/`ALTER`/`TRUNCATE`), so DDL steps (including `MakeTable`) and `VacuumDatabase` are *refused* in these modes rather than silently committing.
+- **Pre-flight validation**: missing arguments block the run; `UPDATE`/`DELETE` without `WHERE` asks for confirmation.
+- **Parameter prompts**: `[Enter Start Date]` in `RunSQL` / `OpenQuery` / `MakeTable` SQL prompts once per run; values are inserted as quoted literals with `'` and `\` escaped for MySQL.
+- **Sub-macros**: `RunMacro` runs another macro (recursion-guarded). **Duplicate** clones a macro.
+- **Export**: JSON, **SQL script** (`START TRANSACTION; ... COMMIT;`, backtick identifiers) and **VBA module**.
+- **Maintenance & backup actions**: `VacuumDatabase` runs `OPTIMIZE TABLE` (+ `ANALYZE TABLE` with *analyze*) on every table; `BackupDatabase` generates the SQL dump.
+- **Storage**: macros and saved queries are stored as JSON per connection under `~/.bun_rad_studio/macros/` (override with `STUDIO_MACRO_STORE_DIR`) — nothing is created inside your database. Saved queries from the Visual Query Designer appear under **👁️ Saved Queries** and can be used by `OpenQuery` / `MakeTable`.
+
 ---
 
 ## 📡 RESTful HTTP API Reference
@@ -270,6 +281,12 @@ MySQL Studio Pro exposes a high-performance, local HTTP telemetry and database A
 | `GET` | `/api/kpis` | Database KPIs (size, tables, views, rows, version) | None |
 | `POST` | `/api/pragma` | Execute maintenance operations (`vacuum`, `integrity_check`, variables) | `{ pragma: string, value?: string }` |
 | `POST` | `/api/export` | Export rows to CSV, JSON, or SQL | `{ format: "csv"\|"json"\|"sql", rows: object[], tableName?: string }` |
+| `GET`/`POST` | `/api/macros/list` | List saved macros | — |
+| `POST` | `/api/macros/save` / `/api/macros/delete` | Create/update or delete a macro | `{ macro: MacroDefinition }` / `{ id?: string, name?: string }` |
+| `POST` | `/api/macros/run` | Run a macro with step telemetry | `{ macro?, id?, variables?, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
+| `POST` | `/api/macros/validate` | Pre-flight check | `{ macro: MacroDefinition }` |
+| `POST` | `/api/macros/export` | Export as `json`, `sql` or `vba` | `{ macro?, id?, format? }` |
+| `GET`/`POST` | `/api/queries/list`, `/api/queries/save`, `/api/queries/delete` | Saved named queries | `{ query }` / `{ id }` |
 
 ---
 

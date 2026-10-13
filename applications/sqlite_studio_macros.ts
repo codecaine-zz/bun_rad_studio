@@ -99,7 +99,7 @@ export const DEFAULT_SAMPLE_QUERIES: SavedQueryDefinition[] = [
   }
 ];
 
-export function createDefaultQueries(): SavedQueryDefinition[] {
+export function createDefaultQueries(d: MacroDialect = "sqlite"): SavedQueryDefinition[] {
   return JSON.parse(JSON.stringify(DEFAULT_SAMPLE_QUERIES));
 }
 
@@ -107,7 +107,19 @@ export function createDefaultQueries(): SavedQueryDefinition[] {
 // SQL Action Query Builders (Append, Update, Delete, MakeTable, EmptyTable)
 // -------------------------------------------------------------------------------------------------
 
-export function parseRecordFieldsToInsertSql(tableName: string, fieldsInput: any): string {
+export type MacroDialect = "sqlite" | "mysql" | "postgres";
+
+export function quoteIdentFor(d: MacroDialect, name: string): string {
+  return d === "mysql" ? "`" + name.replace(/`/g, "``") + "`" : '"' + name.replace(/"/g, '""') + '"';
+}
+
+export function quoteStringFor(d: MacroDialect, value: any): string {
+  let v = String(value);
+  if (d === "mysql") v = v.replace(/\\/g, "\\\\");
+  return "'" + v.replace(/'/g, "''") + "'";
+}
+
+export function parseRecordFieldsToInsertSql(tableName: string, fieldsInput: any, d: MacroDialect = "sqlite"): string {
   let obj: Record<string, any> = {};
   if (typeof fieldsInput === "object" && fieldsInput !== null) {
     obj = fieldsInput;
@@ -144,20 +156,20 @@ export function parseRecordFieldsToInsertSql(tableName: string, fieldsInput: any
     throw new Error("No fields provided for InsertRecord");
   }
 
-  const colNames = keys.map(k => `"${k.replace(/"/g, '""')}"`).join(", ");
+  const colNames = keys.map(k => quoteIdentFor(d, k)).join(", ");
   const colVals = keys.map(k => {
     const v = obj[k];
     if (v === null || v === undefined) return "NULL";
     if (typeof v === "number") return String(v);
     if (typeof v === "boolean") return v ? "1" : "0";
-    return `'${String(v).replace(/'/g, "''")}'`;
+    return quoteStringFor(d, v);
   }).join(", ");
 
-  return `INSERT INTO "${tableName.replace(/"/g, '""')}" (${colNames}) VALUES (${colVals});`;
+  return `INSERT INTO ${quoteIdentFor(d, tableName)} (${colNames}) VALUES (${colVals});`;
 }
 
-export function buildUpdateRecordSql(tableName: string, setValues: string, whereCondition?: string): string {
-  const table = `"${tableName.replace(/"/g, '""')}"`;
+export function buildUpdateRecordSql(tableName: string, setValues: string, whereCondition?: string, d: MacroDialect = "sqlite"): string {
+  const table = quoteIdentFor(d, tableName);
   let sql = `UPDATE ${table} SET ${setValues}`;
   if (whereCondition && whereCondition.trim()) {
     sql += ` WHERE ${whereCondition.trim()}`;
@@ -165,8 +177,8 @@ export function buildUpdateRecordSql(tableName: string, setValues: string, where
   return sql + ";";
 }
 
-export function buildDeleteRecordSql(tableName: string, whereCondition?: string): string {
-  const table = `"${tableName.replace(/"/g, '""')}"`;
+export function buildDeleteRecordSql(tableName: string, whereCondition?: string, d: MacroDialect = "sqlite"): string {
+  const table = quoteIdentFor(d, tableName);
   let sql = `DELETE FROM ${table}`;
   if (whereCondition && whereCondition.trim()) {
     sql += ` WHERE ${whereCondition.trim()}`;
@@ -174,18 +186,22 @@ export function buildDeleteRecordSql(tableName: string, whereCondition?: string)
   return sql + ";";
 }
 
-export function buildMakeTableSql(newTableName: string, selectSql: string, dropExisting = true): string {
-  const table = `"${newTableName.replace(/"/g, '""')}"`;
+/** Individual statements, for drivers that cannot run several statements in one call. */
+export function buildMakeTableStatements(newTableName: string, selectSql: string, dropExisting = true, d: MacroDialect = "sqlite"): string[] {
+  const table = quoteIdentFor(d, newTableName);
   let cleanSelect = selectSql.trim();
   if (cleanSelect.endsWith(";")) cleanSelect = cleanSelect.slice(0, -1);
-  if (dropExisting) {
-    return `DROP TABLE IF EXISTS ${table}; CREATE TABLE ${table} AS ${cleanSelect};`;
-  }
-  return `CREATE TABLE ${table} AS ${cleanSelect};`;
+  const stmts = [`CREATE TABLE ${table} AS ${cleanSelect};`];
+  if (dropExisting) stmts.unshift(`DROP TABLE IF EXISTS ${table};`);
+  return stmts;
 }
 
-export function buildEmptyTableSql(tableName: string): string {
-  return `DELETE FROM "${tableName.replace(/"/g, '""')}";`;
+export function buildMakeTableSql(newTableName: string, selectSql: string, dropExisting = true, d: MacroDialect = "sqlite"): string {
+  return buildMakeTableStatements(newTableName, selectSql, dropExisting, d).join(" ");
+}
+
+export function buildEmptyTableSql(tableName: string, d: MacroDialect = "sqlite"): string {
+  return `DELETE FROM ${quoteIdentFor(d, tableName)};`;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -205,7 +221,7 @@ export function extractPromptParams(sql: string): string[] {
   return found;
 }
 
-export function applyPromptParams(sql: string, values: Record<string, any>): string {
+export function applyPromptParams(sql: string, values: Record<string, any>, escapeBackslash: boolean = false): string {
   return sql.replace(/\[(Enter [^\[\]\r\n]+)\]/gi, (whole, name) => {
     if (!values || !(name in values)) return whole;
     const v = values[name];
@@ -214,7 +230,9 @@ export function applyPromptParams(sql: string, values: Record<string, any>): str
     if (typeof v === "boolean") return v ? "1" : "0";
     const s = String(v).trim();
     if (/^-?\d+(\.\d+)?$/.test(s)) return s;
-    return "'" + String(v).replace(/'/g, "''") + "'";
+    let lit = String(v);
+    if (escapeBackslash) lit = lit.replace(/\\/g, "\\\\");
+    return "'" + lit.replace(/'/g, "''") + "'";
   });
 }
 
@@ -265,7 +283,7 @@ export function validateMacro(macro: MacroDefinition, knownMacroNames: string[] 
   return issues;
 }
 
-function stepToSql(act: MacroAction, queries: SavedQueryDefinition[]): string | null {
+function stepToSql(act: MacroAction, queries: SavedQueryDefinition[], d: MacroDialect = "sqlite"): string | null {
   const p = act.parameters || {};
   const tbl = p.table || p.tableName || p.targetTable;
   const findQuerySql = () => {
@@ -280,30 +298,31 @@ function stepToSql(act: MacroAction, queries: SavedQueryDefinition[]): string | 
       return sql ? String(sql).trim() : null;
     }
     case "InsertRecord":
-      return tbl ? parseRecordFieldsToInsertSql(tbl, p.fields || p.record || p.values) : null;
+      return tbl ? parseRecordFieldsToInsertSql(tbl, p.fields || p.record || p.values, d) : null;
     case "UpdateRecord":
-      return tbl ? buildUpdateRecordSql(tbl, p.setValues || p.set || p.updates, p.whereCondition || p.where || p.condition) : null;
+      return tbl ? buildUpdateRecordSql(tbl, p.setValues || p.set || p.updates, p.whereCondition || p.where || p.condition, d) : null;
     case "DeleteRecord":
-      return tbl ? buildDeleteRecordSql(tbl, p.whereCondition || p.where || p.condition) : null;
+      return tbl ? buildDeleteRecordSql(tbl, p.whereCondition || p.where || p.condition, d) : null;
     case "EmptyTable":
-      return tbl ? buildEmptyTableSql(tbl) : null;
+      return tbl ? buildEmptyTableSql(tbl, d) : null;
     case "MakeTable": {
       const name = p.newTable || p.newTableName || p.tableName || p.table;
       const sel = findQuerySql() || p.selectSql || p.sourceSql || p.sql;
-      return name && sel ? buildMakeTableSql(name, sel, p.dropExisting !== false) : null;
+      return name && sel ? buildMakeTableSql(name, sel, p.dropExisting !== false, d) : null;
     }
     case "VacuumDatabase":
-      return "VACUUM;";
+      return d === "mysql" ? null : "VACUUM;";
     default:
       return null;
   }
 }
 
 /** Serializes a macro into a plain SQL script (data-changing steps wrapped in one transaction). */
-export function macroToSqlScript(macro: MacroDefinition, queries: SavedQueryDefinition[] = []): string {
+export function macroToSqlScript(macro: MacroDefinition, queries: SavedQueryDefinition[] = [], d: MacroDialect = "sqlite"): string {
   const lines: string[] = [`-- Macro: ${macro.name}`];
   if (macro.description) lines.push(`-- ${String(macro.description).replace(/\r?\n/g, " ")}`);
-  lines.push("", "BEGIN TRANSACTION;", "");
+  lines.push("", d === "mysql" ? "START TRANSACTION;" : d === "postgres" ? "BEGIN;" : "BEGIN TRANSACTION;", "");
+  if (d === "mysql") lines.push("-- NOTE: MySQL commits implicitly before DDL (CREATE/DROP/ALTER/TRUNCATE), so those steps cannot be rolled back.", "");
   const trailing: string[] = [];
   (macro.actions || []).forEach((act, i) => {
     const label = `-- Step ${i + 1}: ${act.action}${act.enabled === false ? " (disabled)" : ""}${act.condition ? ` [If ${act.condition}]` : ""}`;
@@ -311,26 +330,26 @@ export function macroToSqlScript(macro: MacroDefinition, queries: SavedQueryDefi
       lines.push(`-- ${String((act.parameters || {}).comment || "").replace(/\r?\n/g, " ")}`, "");
       return;
     }
-    const sql = stepToSql(act, queries);
+    const sql = stepToSql(act, queries, d);
     if (sql === null) {
       lines.push(label, `-- (UI-only action, no SQL equivalent)`, "");
       return;
     }
     const prefix = act.enabled === false ? "-- " : "";
     const body = sql.endsWith(";") ? sql : sql + ";";
-    if (act.action === "VacuumDatabase") {
+    if (act.action === "VacuumDatabase" && d !== "mysql") {
       trailing.push(label, prefix + body, "");
       return;
     }
     lines.push(label, ...body.split("\n").map((l) => prefix + l), "");
   });
   lines.push("COMMIT;", "");
-  if (trailing.length) lines.push("-- VACUUM cannot run inside a transaction", ...trailing);
+  if (trailing.length) lines.push(`-- VACUUM cannot run inside a transaction`, ...trailing);
   return lines.join("\n");
 }
 
 /** Serializes a macro into an Access-flavoured VBA Sub that mirrors the DoCmd calls. */
-export function macroToVba(macro: MacroDefinition, queries: SavedQueryDefinition[] = []): string {
+export function macroToVba(macro: MacroDefinition, queries: SavedQueryDefinition[] = [], d: MacroDialect = "sqlite"): string {
   const vbaStr = (s: any) => '"' + String(s ?? "").replace(/"/g, '""').replace(/\r?\n/g, '" & vbCrLf & "') + '"';
   const subName = String(macro.name || "Macro").replace(/[^A-Za-z0-9_]/g, "_").replace(/^(\d)/, "_$1");
   const out: string[] = [`Option Compare Database`, `Option Explicit`, ``, `Public Sub ${subName}()`, `    On Error GoTo ErrHandler`];
@@ -368,7 +387,7 @@ export function macroToVba(macro: MacroDefinition, queries: SavedQueryDefinition
         body.push(`Call ${String(p.macroName || "").replace(/[^A-Za-z0-9_]/g, "_")}`);
         break;
       default: {
-        const sql = stepToSql(act, queries);
+        const sql = stepToSql(act, queries, d);
         if (sql !== null) body.push(`DoCmd.RunSQL ${vbaStr(sql)}`);
         else body.push(`' ${act.action}: no direct VBA equivalent`);
       }
@@ -638,8 +657,21 @@ export const DEFAULT_SAMPLE_MACROS: MacroDefinition[] = [
   }
 ];
 
-export function createDefaultMacros(): MacroDefinition[] {
-  return JSON.parse(JSON.stringify(DEFAULT_SAMPLE_MACROS));
+/** Rewrites SQLite-flavoured sample text (names, date math, JSON columns) for another engine. */
+export function adaptMacroTextForDialect(text: string, d: MacroDialect): string {
+  if (d === "sqlite") return text;
+  let out = text
+    .replace(/SQLite Studio Pro/g, d === "mysql" ? "MySQL Studio Pro" : "Postgres Studio Pro")
+    .replace(/SQLite database/g, "database")
+    .replace(/datetime\('now', '-30 days'\)/g, d === "mysql" ? "NOW() - INTERVAL 30 DAY" : "NOW() - INTERVAL '30 days'");
+  if (d === "postgres") {
+    out = out.replace(/\('MACRO_MAINTENANCE', 'SYSTEM', '([^']*)'\)/g, "('MACRO_MAINTENANCE', 'SYSTEM', to_jsonb('$1'::text))");
+  }
+  return out;
+}
+
+export function createDefaultMacros(d: MacroDialect = "sqlite"): MacroDefinition[] {
+  return JSON.parse(adaptMacroTextForDialect(JSON.stringify(DEFAULT_SAMPLE_MACROS), d));
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1389,7 +1421,7 @@ export const MACRO_HTML = `
 // Client-Side Macro Script Logic
 // -------------------------------------------------------------------------------------------------
 
-export const MACRO_SCRIPT = `
+const MACRO_SCRIPT_BASE = `
 // =================================================================================================
 // ⚡ Microsoft Access Macro Engine Client-Side Implementation
 // =================================================================================================
@@ -1656,20 +1688,20 @@ function parseRecordFieldsToInsertSql(tableName, fieldsInput) {
   const keys = Object.keys(obj);
   if (keys.length === 0) throw new Error("No fields provided for InsertRecord");
 
-  const colNames = keys.map(k => '"' + k.replace(/"/g, '""') + '"').join(", ");
+  const colNames = keys.map(k => macroQuoteId(k)).join(", ");
   const colVals = keys.map(k => {
     const v = obj[k];
     if (v === null || v === undefined) return "NULL";
     if (typeof v === "number") return String(v);
     if (typeof v === "boolean") return v ? "1" : "0";
-    return "'" + String(v).replace(/'/g, "''") + "'";
+    return macroQuoteStr(v);
   }).join(", ");
 
-  return 'INSERT INTO "' + tableName.replace(/"/g, '""') + '" (' + colNames + ') VALUES (' + colVals + ');';
+  return 'INSERT INTO ' + macroQuoteId(tableName) + ' (' + colNames + ') VALUES (' + colVals + ');';
 }
 
 function buildUpdateRecordSql(tableName, setValues, whereCondition) {
-  const table = '"' + tableName.replace(/"/g, '""') + '"';
+  const table = macroQuoteId(tableName);
   let sql = 'UPDATE ' + table + ' SET ' + setValues;
   if (whereCondition && whereCondition.trim()) {
     sql += ' WHERE ' + whereCondition.trim();
@@ -1678,7 +1710,7 @@ function buildUpdateRecordSql(tableName, setValues, whereCondition) {
 }
 
 function buildDeleteRecordSql(tableName, whereCondition) {
-  const table = '"' + tableName.replace(/"/g, '""') + '"';
+  const table = macroQuoteId(tableName);
   let sql = 'DELETE FROM ' + table;
   if (whereCondition && whereCondition.trim()) {
     sql += ' WHERE ' + whereCondition.trim();
@@ -1686,18 +1718,16 @@ function buildDeleteRecordSql(tableName, whereCondition) {
   return sql + ';';
 }
 
-function buildMakeTableSql(newTableName, selectSql, dropExisting = true) {
-  const table = '"' + newTableName.replace(/"/g, '""') + '"';
+function buildMakeTableStatements(newTableName, selectSql, dropExisting = true) {
+  const table = macroQuoteId(newTableName);
   let cleanSelect = selectSql.trim();
   if (cleanSelect.endsWith(";")) cleanSelect = cleanSelect.slice(0, -1);
-  if (dropExisting) {
-    return 'DROP TABLE IF EXISTS ' + table + '; CREATE TABLE ' + table + ' AS ' + cleanSelect + ';';
-  }
-  return 'CREATE TABLE ' + table + ' AS ' + cleanSelect + ';';
+  const create = 'CREATE TABLE ' + table + ' AS ' + cleanSelect + ';';
+  return dropExisting ? ['DROP TABLE IF EXISTS ' + table + ';', create] : [create];
 }
 
 function buildEmptyTableSql(tableName) {
-  return 'DELETE FROM "' + tableName.replace(/"/g, '""') + '";';
+  return 'DELETE FROM ' + macroQuoteId(tableName) + ';';
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1709,18 +1739,10 @@ async function loadSavedQueriesFromServer() {
     if (res && res.success && Array.isArray(res.queries)) {
       savedQueriesStore = res.queries;
     } else {
-      savedQueriesStore = [
-        { id: "q1", name: "VIP_Customers_High_Balance", description: "Access Query: Filter VIP tier customers with balance over 1000", sql: "SELECT id, name, email, balance, tier FROM customers WHERE balance > 1000 ORDER BY balance DESC;" },
-        { id: "q2", name: "Low_Stock_Restock_Alerts", description: "Access Restock Query: Products with inventory below 50 units", sql: "SELECT id, name, category, stock, price FROM products WHERE stock < 50 ORDER BY stock ASC;" },
-        { id: "q3", name: "Top_Spenders_By_Revenue", description: "Access Relational Query: Customers aggregated order revenue", sql: "SELECT c.id, c.name, COUNT(o.id) AS order_count, SUM(o.total_amount) AS total_spent FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name ORDER BY total_spent DESC LIMIT 25;" }
-      ];
+      savedQueriesStore = getDefaultSampleQueries();
     }
   } catch (e) {
-    savedQueriesStore = [
-      { id: "q1", name: "VIP_Customers_High_Balance", description: "Access Query: Filter VIP tier customers with balance over 1000", sql: "SELECT id, name, email, balance, tier FROM customers WHERE balance > 1000 ORDER BY balance DESC;" },
-      { id: "q2", name: "Low_Stock_Restock_Alerts", description: "Access Restock Query: Products with inventory below 50 units", sql: "SELECT id, name, category, stock, price FROM products WHERE stock < 50 ORDER BY stock ASC;" },
-      { id: "q3", name: "Top_Spenders_By_Revenue", description: "Access Relational Query: Customers aggregated order revenue", sql: "SELECT c.id, c.name, COUNT(o.id) AS order_count, SUM(o.total_amount) AS total_spent FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name ORDER BY total_spent DESC LIMIT 25;" }
-    ];
+    savedQueriesStore = getDefaultSampleQueries();
   }
 
   if (typeof queryDesignerState !== "undefined" && Array.isArray(savedQueriesStore)) {
@@ -3407,9 +3429,10 @@ async function executeMacroAction(action) {
       }
       if (!selSql) throw new Error("No source SELECT query or saved query provided for MakeTable");
       selSql = await resolveMacroSqlParams(selSql);
-      const sql = buildMakeTableSql(newTbl, selSql, p.dropExisting !== false);
-      const res = await apiRequest('/api/query', { sql });
-      if (!res || !res.success) throw new Error(res?.error || "MakeTable failed");
+      for (const stmt of buildMakeTableStatements(newTbl, selSql, p.dropExisting !== false)) {
+        const res = await apiRequest('/api/query', { sql: stmt });
+        if (!res || !res.success) throw new Error(res?.error || "MakeTable failed");
+      }
       await refreshSchema();
       await refreshKpis();
       return { message: "Created new table '" + newTbl + "' from query" };
@@ -3626,22 +3649,14 @@ async function executeMacroAction(action) {
     }
 
     case "VacuumDatabase": {
-      await apiRequest('/api/pragma', { command: 'VACUUM;' });
-      if (p.analyze) {
-        await apiRequest('/api/pragma', { command: 'PRAGMA optimize;' });
-      }
+      const note = await macroRunMaintenance(Boolean(p.analyze));
       await refreshKpis();
-      return { message: "Executed VACUUM and database optimization" };
+      return { message: note };
     }
 
     case "BackupDatabase": {
       const mode = p.mode || "full";
-      if (typeof downloadDatabaseDump === "function") {
-        downloadDatabaseDump(mode);
-      } else {
-        await apiRequest('/api/database/dump', { mode });
-      }
-      return { message: "Database backup / SQL dump triggered (" + mode + ")" };
+      return { message: await macroRunBackup(mode) };
     }
 
     case "SetVariable": {
@@ -4010,7 +4025,7 @@ function copyMacroJsonToClipboard() {
 }
 
 function downloadJsonFile(filename, content) {
-  const blob = new Blob([content], { type: "application/json" });
+  const blob = new Blob([content], { type: /\.json$/i.test(filename) ? "application/json" : "text/plain" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -4051,3 +4066,83 @@ window.addEventListener("DOMContentLoaded", () => {
   }, 400);
 });
 `;
+
+// -------------------------------------------------------------------------------------------------
+// Dialect-specific client script (SQLite / MySQL / PostgreSQL hosts)
+// -------------------------------------------------------------------------------------------------
+
+function macroDialectPrelude(d: MacroDialect): string {
+  const sampleQueries = d === "sqlite"
+    ? JSON.stringify(DEFAULT_SAMPLE_QUERIES)
+    : "[]";
+  const quoteId = d === "mysql"
+    ? "return '`' + String(n).replace(/`/g, '``') + '`';"
+    : "return '\"' + String(n).replace(/\"/g, '\"\"') + '\"';";
+  const maintenance = d === "postgres"
+    ? `const r = await apiRequest('/api/vacuum', { analyze: Boolean(analyze) });
+  if (!r || r.success === false) throw new Error((r && r.error) || "VACUUM failed");
+  return "Executed VACUUM" + (analyze ? " ANALYZE" : "");`
+    : d === "mysql"
+    ? `const tables = ((typeof currentSchema !== "undefined" && currentSchema && currentSchema.tables) || []).map(t => t.name);
+  for (const t of tables) {
+    const r = await apiRequest('/api/query', { sql: 'OPTIMIZE TABLE ' + macroQuoteId(t) });
+    if (!r || r.success === false) throw new Error((r && r.error) || "OPTIMIZE failed for " + t);
+    if (analyze) await apiRequest('/api/query', { sql: 'ANALYZE TABLE ' + macroQuoteId(t) });
+  }
+  return "Optimized" + (analyze ? " and analyzed " : " ") + tables.length + " table(s)";`
+    : `await apiRequest('/api/pragma', { command: 'VACUUM;' });
+  if (analyze) await apiRequest('/api/pragma', { command: 'PRAGMA optimize;' });
+  return "Executed VACUUM and database optimization";`;
+  const backup = d === "sqlite"
+    ? `if (typeof downloadDatabaseDump === "function") {
+    downloadDatabaseDump(mode);
+  } else {
+    await apiRequest('/api/database/dump', { mode });
+  }
+  return "Database backup / SQL dump triggered (" + mode + ")";`
+    : `const r = await apiRequest('/api/database/dump', { mode: mode === "full" ? "all" : mode });
+  if (!r || r.success === false) throw new Error((r && r.error) || "Backup failed");
+  const dbName = (typeof currentKpis !== "undefined" && currentKpis && currentKpis.dbName) || "database";
+  if (r.sql) downloadJsonFile(dbName + ".sql", r.sql);
+  return "SQL dump generated (" + mode + ")";`;
+  const shims = d === "postgres"
+    ? `
+// Postgres host adapters: map the shared macro engine onto this app's function names.
+if (typeof window.currentGridRows === "undefined") window.currentGridRows = [];
+if (typeof window.currentGridColumns === "undefined") window.currentGridColumns = [];
+if (typeof window.currentKpis === "undefined") window.currentKpis = null;
+if (typeof window.quoteSqlIdentifier !== "function") window.quoteSqlIdentifier = macroQuoteId;
+if (typeof window.refreshKpis !== "function") window.refreshKpis = async () => { if (typeof loadKpis === "function") await loadKpis(); };
+if (typeof window.refreshSchema !== "function") window.refreshSchema = async () => { if (typeof loadSchema === "function") await loadSchema(); };
+if (typeof window.fetchTableData !== "function") window.fetchTableData = async (page) => { if (typeof loadTableData === "function" && activeTable) await loadTableData(typeof activeTable === "string" ? activeTable : activeTable.name, page || 1); };
+if (typeof window.renderObjectTree !== "function") window.renderObjectTree = () => { if (typeof renderSidebarTree === "function") renderSidebarTree(); };
+if (typeof window.renderDataGrid !== "function") window.renderDataGrid = (cols, rows, _u, total) => { if (typeof renderGridTable === "function") renderGridTable(rows, cols, total == null ? rows.length : total, 1, rows.length); };
+`
+    : "";
+  return `
+// ---- Dialect prelude (${d}) ----
+const MACRO_DIALECT = ${JSON.stringify(d)};
+const MACRO_BACKSLASH_ESCAPES = ${d === "mysql"};
+function macroQuoteId(n) { ${quoteId} }
+function macroQuoteStr(v) {
+  let t = String(v);
+  if (MACRO_BACKSLASH_ESCAPES) t = t.replace(/\\\\/g, "\\\\\\\\");
+  return "'" + t.replace(/'/g, "''") + "'";
+}
+function getDefaultSampleQueries() { return ${sampleQueries}; }
+async function macroRunMaintenance(analyze) {
+  ${maintenance}
+}
+async function macroRunBackup(mode) {
+  ${backup}
+}
+${shims}`;
+}
+
+export function buildMacroScript(d: MacroDialect = "sqlite"): string {
+  const body = adaptMacroTextForDialect(MACRO_SCRIPT_BASE, d)
+    .replace("applyPromptParams(sql, macroParamCache)", "applyPromptParams(sql, macroParamCache, MACRO_BACKSLASH_ESCAPES)");
+  return macroDialectPrelude(d) + body;
+}
+
+export const MACRO_SCRIPT = buildMacroScript("sqlite");

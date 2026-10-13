@@ -35,6 +35,7 @@ import {
 } from "./postgres_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./postgres_studio_crud.ts";
 import { POSTGRES_DESIGNER_SCRIPT } from "./postgres_studio_designer.ts";
+import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, buildMacroScript } from "./sqlite_studio_macros.ts";
 
 export interface PostgresStudioOptions {
   fullscreen?: boolean;
@@ -2010,6 +2011,17 @@ export function generatePostgresStudioHtml(): string {
     }
 
     ${CRUD_STYLE}
+    ${MACRO_STYLE}
+
+    /* Saved Queries / Macros groups appended to the sidebar tree */
+    #sidebarMacroGroups .tree-group { margin: 6px 0; border-radius: 6px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); }
+    #sidebarMacroGroups .tree-header { padding: 6px 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+    #sidebarMacroGroups .tree-header:hover { background: rgba(255, 255, 255, 0.04); color: var(--text-main); }
+    #sidebarMacroGroups .tree-header-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+    #sidebarMacroGroups .tree-arrow { font-size: 8px; color: var(--text-dim); width: 12px; text-align: center; }
+    #sidebarMacroGroups .tree-badge { font-size: 9px; background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+    #sidebarMacroGroups .tree-items { display: flex; flex-direction: column; padding: 3px 6px; gap: 2px; }
+    #sidebarMacroGroups .tree-item-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
   </style>
 </head>
 <body>
@@ -2159,6 +2171,9 @@ export function generatePostgresStudioHtml(): string {
         </div>
         <div id="sidebarViewsList"></div>
 
+        <!-- Saved Queries & Macros (rendered by the macro designer script) -->
+        <div id="sidebarMacroGroups"></div>
+
         <!-- Extensions Summary -->
         <div class="tree-section-title" style="margin-top: 8px;">
           <span>🧩 Extensions</span>
@@ -2217,6 +2232,7 @@ export function generatePostgresStudioHtml(): string {
         <div class="tab-btn active" id="tabBtnGrid" onclick="switchTab('grid')">📊 Data Grid</div>
         <div class="tab-btn" id="tabBtnSql" onclick="switchTab('sql')">⚡ SQL Query Console</div>
         <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">📐 Visual Query Designer</div>
+        ${MACRO_TAB_BTN}
         <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer &amp; DDL</div>
         <div class="tab-btn" id="tabBtnTypes" onclick="switchTab('types')">🏷️ Custom Types &amp; Enums</div>
         <div class="tab-btn" id="tabBtnPartitions" onclick="switchTab('partitions')">📦 Partition Trees</div>
@@ -2331,6 +2347,8 @@ export function generatePostgresStudioHtml(): string {
           <div class="designer-empty">Load a schema from the sidebar to begin building a visual query.</div>
         </div>
       </div>
+
+      ${MACRO_HTML}
 
       <!-- TAB: Schema Designer & DDL -->
       <div class="tab-pane" id="tabSchema">
@@ -3117,6 +3135,17 @@ export function generatePostgresStudioHtml(): string {
     let activeTab = "grid";
     window.activeTab = "grid";
     let currentGridData = null;
+    // Macro Designer reads/writes the visible grid through these aliases
+    Object.defineProperty(window, "currentGridRows", {
+      configurable: true,
+      get: () => (currentGridData && currentGridData.rows) || [],
+      set: (v) => { currentGridData = Object.assign(currentGridData || {}, { rows: v }); }
+    });
+    Object.defineProperty(window, "currentGridColumns", {
+      configurable: true,
+      get: () => (currentGridData && currentGridData.columns) || [],
+      set: (v) => { currentGridData = Object.assign(currentGridData || {}, { columns: v }); }
+    });
     let gridCurrentPage = 1;
     let gridPageSize = 50;
     let gridSearchQuery = "";
@@ -3194,6 +3223,7 @@ export function generatePostgresStudioHtml(): string {
         grid: "tabBtnGrid",
         sql: "tabBtnSql",
         designer: "tabBtnDesigner",
+        macros: "tabBtnMacros",
         schema: "tabBtnSchema",
         types: "tabBtnTypes",
         partitions: "tabBtnPartitions",
@@ -3214,6 +3244,7 @@ export function generatePostgresStudioHtml(): string {
         grid: "tabGrid",
         sql: "tabSql",
         designer: "tabDesigner",
+        macros: "tabMacros",
         schema: "tabSchema",
         types: "tabTypes",
         partitions: "tabPartitions",
@@ -3240,6 +3271,7 @@ export function generatePostgresStudioHtml(): string {
       if (tabId === "activity") loadActivity();
       if (tabId === "replication") loadReplicationStatus();
       if (tabId === "designer") renderQueryDesigner();
+      if (tabId === "macros" && typeof renderMacroDesigner === "function") renderMacroDesigner();
       if (tabId === "sequences") loadSequences();
       if (tabId === "roles") loadRoles();
       if (tabId === "triggers") loadTriggersAndFunctions();
@@ -3253,6 +3285,7 @@ export function generatePostgresStudioHtml(): string {
       const res = await apiRequest("/api/kpis");
       const k = (res && res.kpis) || res;
       if (k && (k.tableCount !== undefined || (res && res.success))) {
+        window.currentKpis = k;
         if (document.getElementById("kpiDbName")) document.getElementById("kpiDbName").innerText = k.dbName || "mydb";
         if (document.getElementById("sidebarDbName")) document.getElementById("sidebarDbName").innerText = k.dbName || "mydb";
         if (document.getElementById("kpiDbPath")) {
@@ -3321,6 +3354,7 @@ export function generatePostgresStudioHtml(): string {
       if (res.success) {
         showToast("Active schema switched to: " + schema);
         loadSchema();
+        if (typeof loadMacrosFromServer === "function") loadMacrosFromServer();
       } else {
         showToast("Failed to switch schema: " + res.error);
       }
@@ -3369,6 +3403,15 @@ export function generatePostgresStudioHtml(): string {
           <span class="tree-item-badge">view</span>
         </div>
       \`).join('') || '<div style="padding: 4px 8px; font-size: 11px; color: var(--text-dim);">No views</div>';
+
+      // Saved Queries & Macros groups
+      const macroGroups = document.getElementById("sidebarMacroGroups");
+      if (macroGroups) {
+        macroGroups.innerHTML = "";
+        const q = (document.getElementById("searchObjects")?.value || "").toLowerCase();
+        if (typeof renderQueryTreeGroup === "function") renderQueryTreeGroup(macroGroups, q);
+        if (typeof renderMacroTreeGroup === "function") renderMacroTreeGroup(macroGroups, q);
+      }
     }
 
     // Refresh Materialized View
@@ -5609,6 +5652,7 @@ export function generatePostgresStudioHtml(): string {
         showToast("✓ Restored configuration from .env!");
         loadConnectionConfig();
         loadSchema();
+        if (typeof loadMacrosFromServer === "function") loadMacrosFromServer();
       } else {
         showToast("Error resetting to .env: " + res.error);
       }
@@ -5664,6 +5708,7 @@ export function generatePostgresStudioHtml(): string {
         showToast("✓ Connected & updated configuration!");
         closeConnectionModal();
         loadSchema();
+        if (typeof loadMacrosFromServer === "function") loadMacrosFromServer();
       } else {
         showToast("Connection failed: " + res.error);
       }
@@ -5695,6 +5740,7 @@ export function generatePostgresStudioHtml(): string {
         showToast("✓ Switched to database: " + dbName);
         closeConnectionModal();
         loadSchema();
+        if (typeof loadMacrosFromServer === "function") loadMacrosFromServer();
       } else {
         showToast("Failed to switch database: " + res.error);
       }
@@ -6136,6 +6182,7 @@ export function generatePostgresStudioHtml(): string {
 
       await loadSchema();
       await loadKpis();
+      if (typeof loadMacrosFromServer === "function") await loadMacrosFromServer();
     }
     if (document.readyState === "loading") {
       window.addEventListener("DOMContentLoaded", initPostgresStudio);
@@ -6145,6 +6192,9 @@ export function generatePostgresStudioHtml(): string {
   </script>
   <script>
     ${CRUD_SCRIPT}
+  </script>
+  <script>
+    ${buildMacroScript("postgres")}
   </script>
 </body>
 </html>`;

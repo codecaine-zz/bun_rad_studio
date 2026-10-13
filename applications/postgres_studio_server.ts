@@ -14,6 +14,7 @@ import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { generatePostgresStudioHtml } from "./postgres_studio.ts";
+import { MacroStore, handleMacroRoute, type MacroAdapter, type MacroQueryResult } from "./studio_macros_server.ts";
 
 export interface PostgresConnectionConfig {
   host?: string;
@@ -195,6 +196,11 @@ export class PostgresManager {
     schema: string;
     tls?: boolean;
   };
+
+  public macroStore = new MacroStore("postgres", () => {
+    const c = this.dbConfig;
+    return c ? `${c.host}:${c.port}/${c.database}/${this.activeSchema}` : "postgres";
+  });
 
   constructor(initialDb: string = "", initialConfig?: Partial<PostgresConnectionConfig>) {
     this.loadEnvFile();
@@ -1085,6 +1091,70 @@ export class PostgresManager {
   // -----------------------------------------------------------------------------------------------
   // Query Execution & EXPLAIN ANALYZE
   // -----------------------------------------------------------------------------------------------
+
+  // Macro Designer adapter (shared engine in studio_macros_server.ts)
+  private static async runMacroSql(conn: any, sqlText: string): Promise<MacroQueryResult> {
+    try {
+      const res = await conn.unsafe(sqlText);
+      const rows: any[] = Array.isArray(res) ? Array.from(res) : [];
+      const columns = rows.length > 0 && typeof rows[0] === "object" ? Object.keys(rows[0]) : [];
+      const isSelect = res?.command === "SELECT" || res?.command === "SHOW";
+      return {
+        success: true,
+        rows,
+        columns,
+        rowCount: rows.length,
+        rowsAffected: !isSelect && typeof res?.count === "number" ? res.count : undefined,
+      };
+    } catch (err: any) {
+      return { success: false, rows: [], columns: [], rowCount: 0, error: err?.message || String(err) };
+    }
+  }
+
+  public getMacroAdapter(): MacroAdapter {
+    return {
+      dialect: "postgres",
+      connectionKey: () => `${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.database}/${this.activeSchema}`,
+      query: (sqlText) => PostgresManager.runMacroSql(this.sql_conn, sqlText),
+      beginTransaction: async () => {
+        const c = await this.sql_conn.reserve();
+        try {
+          await c.unsafe(`SET search_path TO "${this.activeSchema}", public`);
+          await c.unsafe("BEGIN");
+        } catch (err) {
+          try { c.release(); } catch {}
+          throw err;
+        }
+        let finished = false;
+        const finish = async (verb: "COMMIT" | "ROLLBACK") => {
+          if (finished) return;
+          finished = true;
+          try { await c.unsafe(verb); } finally { try { c.release(); } catch {} }
+        };
+        return {
+          query: (sqlText: string) => PostgresManager.runMacroSql(c, sqlText),
+          commit: () => finish("COMMIT"),
+          rollback: () => finish("ROLLBACK"),
+        };
+      },
+      maintenance: async (analyze) => {
+        const res = await this.vacuum(false, analyze);
+        if (!res.success) throw new Error(res.error || "VACUUM failed");
+        return res.details || `Executed VACUUM${analyze ? " ANALYZE" : ""}`;
+      },
+      backup: async (mode) => {
+        const dump = await this.generateDatabaseDump({ mode: mode === "full" ? "all" : (mode as "all" | "schema" | "data") });
+        return `SQL dump generated (${mode}, ${dump.length} characters)`;
+      },
+      listTables: async () => {
+        const rows = await this.sql_conn.unsafe(
+          `SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' ORDER BY table_name`,
+          [this.activeSchema],
+        );
+        return Array.from(rows as any[]).map((r) => String(r.table_name));
+      },
+    };
+  }
 
   public async query(sqlText: string, params: any[] = []): Promise<{
     success: boolean;
@@ -3422,6 +3492,9 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
       }
+
+      const macroRes = await handleMacroRoute(manager.getMacroAdapter(), manager.macroStore, req, url.pathname, corsHeaders);
+      if (macroRes) return macroRes;
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
     },

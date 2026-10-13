@@ -185,6 +185,30 @@ Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
   - **Table Bloat & Tuple Analysis**: Live statistics on dead tuples vs. live tuples, vacuum timestamps, and analyze timestamps.
   - **1-Click Maintenance**: Run global cluster `VACUUM ANALYZE` or per-table vacuum directly from the dashboard.
 
+### 12. ⚡ Macro Designer (Microsoft Access-Style Macros)
+- **Visual Action Matrix**: Build ordered macros from the action catalog (`RunSQL`, `OpenQuery`, `InsertRecord`, `UpdateRecord`, `DeleteRecord`, `MakeTable`, `EmptyTable`, `RunMacro`, `SetVariable`, `VacuumDatabase`, `BackupDatabase`, ...), each with an optional `If` condition and per-step `On Err ⏭` flag.
+- **Error Handling**: A macro stops at the first failing step. Set **On error: Continue** on the macro (or tick a single step) to keep going. A condition that cannot be evaluated fails the step instead of silently running it.
+- **🧪 Dry Run & 🔒 Atomic**: Both run every step on one pinned connection inside `BEGIN ... COMMIT`. **Dry Run** always rolls back; **Atomic** commits only if every step succeeds. PostgreSQL DDL is transactional, so even `MakeTable` / `CREATE` / `DROP` steps are rolled back. `VACUUM` cannot run in a transaction and is refused in these modes.
+- **`[Enter ...]` Prompts**: SQL such as `WHERE name = [Enter Customer Name]` asks for a value at run time. Values are escaped as string literals (numbers stay numeric), so quote-injection attempts are harmless.
+- **Sub-Macros**: `RunMacro` runs another macro by name (with a recursion guard). **Validate** flags missing arguments, unbounded `UPDATE`/`DELETE`, and unknown sub-macros before running.
+- **Export**: **SQL** produces a `BEGIN; ... COMMIT;` script with `"double-quoted"` identifiers; **VBA** produces an Access `DoCmd` module; **JSON** round-trips through **Import**.
+- **AutoExec & Navigation Pane**: A macro flagged `AutoExec` runs when the page opens or the connection changes. Macros and saved queries are listed in the sidebar under `⚡ Macros` and `👁️ Saved Queries`.
+- **Storage**: Macros and saved queries are kept as JSON in `~/.bun_rad_studio/macros` (override with `STUDIO_MACRO_STORE_DIR`), one file per `host:port/database/schema`. Nothing is created inside your database.
+
+#### Macro API
+
+| Method | Endpoint | Description | Body |
+|---|---|---|---|
+| `GET`/`POST` | `/api/macros/list` | List macros for the current connection | — |
+| `POST` | `/api/macros/save` | Create or update a macro | `{ macro: MacroDefinition }` |
+| `POST` | `/api/macros/delete` | Delete a macro by ID or name | `{ id?: string, name?: string }` |
+| `POST` | `/api/macros/run` | Run a macro and return step telemetry | `{ macro?: MacroDefinition, id?: string, variables?, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
+| `POST` | `/api/macros/validate` | Pre-flight check | `{ macro: MacroDefinition }` |
+| `POST` | `/api/macros/export` | Export as `json`, `sql`, or `vba` | `{ macro?: MacroDefinition, id?: string, format?: string }` |
+| `GET`/`POST` | `/api/queries/list` | List saved queries | — |
+| `POST` | `/api/queries/save` | Save a query (incl. visual designer state) | `{ query: SavedQueryDefinition }` |
+| `POST` | `/api/queries/delete` | Delete a saved query | `{ id?: string, name?: string }` |
+
 ---
 
 ## 🏃 Launching Postgres Studio Pro
@@ -229,7 +253,7 @@ To test and explore all PostgreSQL-specific features immediately:
 
 ## 🧪 Automated Testing Suite
 
-Postgres Studio Pro is backed by two automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, Access-style features, and complete end-to-end CRUD operations:
+Postgres Studio Pro is backed by automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, Access-style features, and complete end-to-end CRUD operations:
 
 ```bash
 # 1. Run Comprehensive End-to-End Enterprise Test Suite (26 tests)
@@ -237,6 +261,9 @@ bun test tests/postgres_studio_e2e.test.ts
 
 # 2. Run Microsoft Access Visual Joins & Relational Canvas Suite (9 tests)
 bun test tests/access_visual_joins.test.ts
+
+# 3. Run the Macro Designer suite (15 tests, live database)
+bun test tests/postgres_studio_macros.test.ts
 
 # Run all 35 tests together (509 assertions)
 bun test tests/access_visual_joins.test.ts tests/postgres_studio_e2e.test.ts
@@ -256,4 +283,5 @@ All 35 automated tests pass with 100% success:
 - [x] Engine Tuning GUC Parameter Catalog (`pg_settings`)
 - [x] Schema namespace reflection, table lifecycles, and GIN/BTREE indexing
 - [x] Performance telemetry (cache hit ratio, bloat, locks) and `VACUUM ANALYZE` maintenance
+- [x] Macro Designer: stop-on-error, Dry Run / Atomic transactions, `[Enter ...]` prompts, sub-macros, SQL/VBA export
 
