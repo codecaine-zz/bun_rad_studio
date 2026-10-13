@@ -36,6 +36,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-030 The committed command manifest depended on the author's launcher favourites (fixed)](#d-030)
 - [D-031 The designer had no visible keyboard focus and an unreachable palette (fixed)](#d-031)
 - [D-032 Tests silently depended on the author's machine; first GitHub run had 14 failures (fixed)](#d-032)
+- [D-033 A stale package-lock.json broke `npm ci` (removed)](#d-033)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -282,7 +283,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Observed:** `jsdom` was listed under `dependencies` in `package.json` but is imported only by tests (`tests/word_search_*.ts`, `tests/maze_generator_*.ts`, `tests/db/workbench_ui.*`). `scripts/build.ts` copies `dependencies` into `dist/package.json`, so anyone installing the built package would also get it. `bun audit` reported 11 advisories (3 high) through it: `undici` 7.29.0 and `source-map-js` 1.2.1.
 - **Fix:** `bun remove jsdom` and `bun add -d jsdom@^29.1.1` (now in `devDependencies`), then `bun audit fix`. `bun audit` reports no vulnerabilities for the 46 packages; `bun audit --prod` none for the 3 runtime packages. The full test suite passed afterwards (1164 pass, 0 fail).
 - **Behaviour change:** installing the built `dist/` package no longer installs `jsdom`.
-- **Not done:** `package-lock.json` (an npm lockfile, apparently stale next to `bun.lock`) was not touched.
+- **Not done here:** `package-lock.json` (an npm lockfile, stale next to `bun.lock`) was handled later, see [D-033](#d-033).
 
 <a id="d-030"></a>
 ## D-030: The committed command manifest depended on the author's launcher favourites (fixed)
@@ -317,3 +318,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Behaviour change for contributors:** `bun test` no longer runs the Redis tests by default (18 skipped). To run them: `TEST_REDIS_URL=redis://127.0.0.1:6379 bun test`, against a throwaway server only.
 - **Verified:** in a fresh clone with `CI=true` and a dedicated Redis on port 6390: 1174 pass, 0 fail. The Redis helper was also checked with no variable (skipped) and with a dead port (skipped).
 - **Third run (run 38483779266), a docs-only push, failed:** test 12 (Network Forensics Studio) timed out at the new 30 s limit after passing in the previous run. Reading it showed it performs **real DNS lookups and a port scan**, so its duration depends on the network, not on the code. Giving it a longer timeout was the wrong fix. It is now split: test 12 checks the page and that the handlers exist; test 12b runs the real scan and lookups and is **opt-in** (`TEST_NETWORK=1`). The four live-DNS tests of `src/features/doggo/doggo.test.ts` (example.com, 8.8.8.8, Cloudflare DoH) had the same dependency and the same opt-in. Both pass with `TEST_NETWORK=1` on the author's machine. A search of `tests/` and `src/` found no other tests that fetch external hosts.
+
+<a id="d-033"></a>
+## D-033: A stale package-lock.json broke `npm ci` (removed)
+
+- **Status:** Fixed on 13 October 2026 (reversible with `git revert`).
+- **Observed:** the tracked `package-lock.json` was last changed long before the project moved to Bun's `bun.lock`. It listed `jsdom` as a runtime dependency and did not list `systeminformation` at all. `npm ci --dry-run` failed with "Missing: systeminformation@5.33.15 from lock file". Nothing in the repository (scripts, workflow, formulas, docs) referenced the file.
+- **Decision:** the project is installed and tested with Bun (`bun install --frozen-lockfile`, CI included), so the file was removed and added to `.gitignore` so an accidental `npm install` does not recreate a lockfile that will go stale again.
+- **Behaviour change:** installing with npm is not supported or tested; use Bun ([Requirements](../getting-started/requirements.md)). `bun.lock` is the lockfile.
+- **Also:** `actions/checkout` in the CI workflow was updated from v4 to v7 to clear GitHub's Node 20 deprecation warning; the next run confirms it works (see [Testing](../testing/index.md#continuous-integration)).
+
+- **Extra skip on CI explained:** the code-generation test "Generated programs run on native SQLite > V: compiles and runs" skips when the V compiler is not installed. The runner has none and the author's Mac does, which is the one-test difference between 152 and 153 skips (before the opt-ins).

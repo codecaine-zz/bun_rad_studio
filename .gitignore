@@ -1,6 +1,8 @@
 # Dependencies & Bun Locks
 node_modules/
 bun.lockb
+# This project uses Bun and bun.lock; an npm lockfile would only go stale (see docs D-033).
+package-lock.json
 
 # Export Output Directories
 exported_project/
