@@ -110,6 +110,7 @@ describe("🔄 Data Converter Studio Pro - Elite Feature Suite", () => {
     ]);
     (win as any).getClipboardText = async () => pastedJson;
 
+    // Test both btn_paste and btn_paste_from_clipboard buttons
     await trigger(win, "btn_paste");
 
     expect(win.getValue("txt_input_data")).toBe(pastedJson);
@@ -118,6 +119,21 @@ describe("🔄 Data Converter Studio Pro - Elite Feature Suite", () => {
     // Output should automatically be converted
     const out = win.getValue("txt_output_data") || "";
     expect(out).toContain("Antigravity Agent");
+
+    // Undo the paste
+    await trigger(win, "btn_undo");
+    expect(win.getValue("txt_input_data")).toContain("Alice Smith");
+
+    // Redo the paste
+    await trigger(win, "btn_redo");
+    expect(win.getValue("txt_input_data")).toBe(pastedJson);
+
+    // Test the secondary format toolbar paste button (btn_paste_from_clipboard)
+    const xmlData = "<user><name>Ada Lovelace</name></user>";
+    (win as any).getClipboardText = async () => xmlData;
+    await trigger(win, "btn_paste_from_clipboard");
+    expect(win.getValue("txt_input_data")).toBe(xmlData);
+    expect(win.getValue("dd_from")).toBe("XML");
   });
 
   it("simulates importing file with auto-detected extension", async () => {

@@ -2,6 +2,7 @@ import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { stdlib } from "../src/simplecli/stdlib";
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import { resolve, basename, extname } from "path";
+import { readClipboardSync, writeClipboardSync } from "../src/localGuard";
 
 export interface DataRecord {
   [key: string]: any;
@@ -128,8 +129,15 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     },
   };
 
-  // State Management for Undo/Redo & Filter
-  const undoStack: HistorySnapshot[] = [];
+  // State Management for Multi-Level Undo/Redo & Filter
+  const undoStack: HistorySnapshot[] = [
+    {
+      input: SAMPLE_CSV,
+      fromFmt: "CSV",
+      toFmt: "JSON",
+      action: "Initial Document",
+    },
+  ];
   const redoStack: HistorySnapshot[] = [];
   let currentHeaders: string[] = ["name", "role", "department", "salary"];
   let currentRows: string[][] = [
@@ -139,14 +147,31 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     ["David Miller", "DevOps Engineer", "Cloud Platform", "165000"],
   ];
 
-  const pushUndoSnapshot = (action: string) => {
+  const ensureCurrentStateRecorded = () => {
     const curInput = win.getValue("txt_input_data") || "";
     const curFrom = win.getValue("dd_from") || "CSV";
     const curTo = win.getValue("dd_to") || "JSON";
-    undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action });
-    if (undoStack.length > 50) undoStack.shift();
-    redoStack.length = 0; // Clear redo on new action
+    const last = undoStack[undoStack.length - 1];
+    if (!last || last.input !== curInput || last.fromFmt !== curFrom || last.toFmt !== curTo) {
+      undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action: "Edit" });
+      if (undoStack.length > 100) undoStack.shift();
+    }
   };
+
+  const recordNewState = (action: string) => {
+    const curInput = win.getValue("txt_input_data") || "";
+    const curFrom = win.getValue("dd_from") || "CSV";
+    const curTo = win.getValue("dd_to") || "JSON";
+    const last = undoStack[undoStack.length - 1];
+    if (last && last.input === curInput && last.fromFmt === curFrom && last.toFmt === curTo) {
+      return; // Do not record duplicate state
+    }
+    undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action });
+    if (undoStack.length > 100) undoStack.shift();
+    redoStack.length = 0; // Clear redo on fresh edit
+  };
+
+  const pushUndoSnapshot = recordNewState;
 
   // 1. Title Row
   win.beginRow();
@@ -179,7 +204,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       "URL Encoded",
     ],
     "CSV"
-  ).width(160);
+  ).width(150);
   win.addLabel("lbl_to", "Target Format:");
   win.addDropdown(
     "dd_to",
@@ -201,8 +226,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       "URL Encoded",
     ],
     "JSON"
-  ).width(190);
+  ).width(180);
   win.addButton("btn_convert", "⚡ Convert Document");
+  win.addButton("btn_paste_from_clipboard", "📋 Paste from Clipboard");
   win.addButton("btn_swap", "⇄ Swap Formats");
   win.addButton("btn_export", "💾 Save Output File");
   win.endRow();
@@ -232,12 +258,12 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   // 3. Source Document Input Box with Complete Editing Actions (Undo, Paste, Select All, Copy, Import)
   win.beginGroupBox("Source Document Input (Supports Drag & Drop, File Import, Paste & Undo)");
   win.beginRow();
-  win.addButton("btn_import", "📂 Import File");
-  win.addButton("btn_paste", "📋 Paste Clipboard");
+  win.addButton("btn_paste", "📋 Paste from Clipboard");
   win.addButton("btn_undo", "↩️ Undo");
   win.addButton("btn_redo", "↪️ Redo");
   win.addButton("btn_select_all_input", "🔍 Select All");
   win.addButton("btn_copy_input", "📋 Copy Input");
+  win.addButton("btn_import", "📂 Import File");
   win.addLabel("lbl_input_stats", "Input: 4 lines · 224 chars · 0.2 KB");
   win.endRow();
   win.addTextarea("txt_input_data", SAMPLE_CSV).height(75);
@@ -428,7 +454,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const words = input.trim() ? input.trim().split(/\s+/).length : 0;
     const chars = input.length;
     const kb = (chars / 1024).toFixed(1);
-    win.setText("lbl_input_stats", `Lines: ${lines} | Words: ${words} | Chars: ${chars} | ${kb} KB`);
+    win.setText("lbl_input_stats", `Input: ${lines} lines · ${words} words · ${chars} chars · ${kb} KB`);
   };
 
   const convertData = () => {
@@ -698,9 +724,15 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
 
   win.onClick("btn_convert", convertData);
 
+  // Watch input changes for live telemetry and undo tracking
+  win.onChange("txt_input_data", (_w, val) => {
+    const text = String(val || "");
+    updateInputTelemetry(text);
+  });
+
   // Swap Formats
   win.onClick("btn_swap", () => {
-    pushUndoSnapshot("Swap Formats");
+    ensureCurrentStateRecorded();
     const curFrom = win.getValue("dd_from") || "CSV";
     const curTo = win.getValue("dd_to") || "JSON";
     const curOut = win.getValue("txt_output_data") || "";
@@ -709,27 +741,35 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     }
     win.setText("dd_from", curTo.includes("JSON") ? "JSON" : "CSV");
     win.setText("dd_to", curFrom.includes("JSON") ? "CSV" : "JSON");
+    recordNewState("Swap Formats");
     convertData();
   });
 
   // Undo Action
   win.onClick("btn_undo", (w) => {
-    if (undoStack.length === 0) {
-      w.toast("Nothing to undo");
-      return;
-    }
+    // If the input text in the window differs from the stack top (e.g. from direct editing/setting),
+    // push current state so undo immediately reverts back to the previous snapshot.
     const curInput = w.getValue("txt_input_data") || "";
     const curFrom = w.getValue("dd_from") || "CSV";
     const curTo = w.getValue("dd_to") || "JSON";
+    const top = undoStack[undoStack.length - 1];
+    if (top && (top.input !== curInput || top.fromFmt !== curFrom || top.toFmt !== curTo)) {
+      undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action: "Current State" });
+    }
 
-    const prev = undoStack.pop()!;
-    redoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action: prev.action });
+    if (undoStack.length <= 1) {
+      w.toast("Nothing to undo");
+      return;
+    }
+    const current = undoStack.pop()!;
+    redoStack.push(current);
+    const prev = undoStack[undoStack.length - 1];
 
     w.setText("txt_input_data", prev.input);
     w.setText("dd_from", prev.fromFmt);
     w.setText("dd_to", prev.toFmt);
     convertData();
-    w.toast(`↩️ Undone: ${prev.action}`);
+    w.toast(`↩️ Undone: ${current.action}`);
   });
 
   // Redo Action
@@ -738,12 +778,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       w.toast("Nothing to redo");
       return;
     }
-    const curInput = w.getValue("txt_input_data") || "";
-    const curFrom = w.getValue("dd_from") || "CSV";
-    const curTo = w.getValue("dd_to") || "JSON";
-
     const next = redoStack.pop()!;
-    undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action: next.action });
+    undoStack.push(next);
 
     w.setText("txt_input_data", next.input);
     w.setText("dd_from", next.fromFmt);
@@ -752,37 +788,59 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     w.toast(`↪️ Redone: ${next.action}`);
   });
 
-  // Paste from Clipboard
-  win.onClick("btn_paste", async (w) => {
+  // Unified Paste from Clipboard Routine (Reads directly from native desktop OS clipboard & Webview)
+  const handlePasteFromClipboard = async (w: SimpleWindow) => {
     try {
-      const text = await w.getClipboardText();
+      // 1. Try window-level clipboard reader (browser/webview or test harness)
+      let text = "";
+      try {
+        text = await w.getClipboardText();
+      } catch {}
+
+      // 2. Fallback to OS native clipboard read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip)
+      if (!text || !text.trim()) {
+        text = readClipboardSync();
+      }
+
       if (!text || !text.trim()) {
         w.toast("Clipboard is empty or inaccessible. Press Ctrl/Cmd+V to paste.");
         return;
       }
-      pushUndoSnapshot("Paste from Clipboard");
+
+      ensureCurrentStateRecorded();
       w.setText("txt_input_data", text);
 
       // Intelligent format autodetection on paste
       const trimmed = text.trim();
+      let detectedFmt = "";
       if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        w.setText("dd_from", "JSON");
+        detectedFmt = "JSON";
       } else if (trimmed.startsWith("<") && trimmed.includes(">")) {
-        w.setText("dd_from", "XML");
+        detectedFmt = "XML";
       } else if (trimmed.startsWith("|") && trimmed.includes("\n|")) {
-        w.setText("dd_from", "Markdown Table");
+        detectedFmt = "Markdown Table";
       } else if (trimmed.includes("\t") && !trimmed.includes(",")) {
-        w.setText("dd_from", "TSV");
+        detectedFmt = "TSV";
       } else if (trimmed.includes(",") && trimmed.includes("\n")) {
-        w.setText("dd_from", "CSV");
+        detectedFmt = "CSV";
+      } else if (trimmed.startsWith("- ") && trimmed.includes(":")) {
+        detectedFmt = "YAML";
       }
 
+      if (detectedFmt) {
+        w.setText("dd_from", detectedFmt);
+      }
+
+      recordNewState("Paste from Clipboard");
       convertData();
       w.toast(`📋 Pasted ${text.length} characters from clipboard!`);
     } catch (e: any) {
       w.toast("Paste error: " + e.message);
     }
-  });
+  };
+
+  win.onClick("btn_paste", handlePasteFromClipboard);
+  win.onClick("btn_paste_from_clipboard", handlePasteFromClipboard);
 
   // Select All Input
   win.onClick("btn_select_all_input", (w) => {
@@ -809,6 +867,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       w.toast("Source input is empty");
       return;
     }
+    writeClipboardSync(input);
     w.copyToClipboard(input);
     w.toast(`📋 Copied ${input.length} characters of source input to clipboard!`);
   });
@@ -820,6 +879,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       w.toast("No transformed output to copy");
       return;
     }
+    writeClipboardSync(out);
     w.copyToClipboard(out);
     w.toast(`📋 Copied ${out.length} characters of transformed output to clipboard!`);
   };
@@ -840,7 +900,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       }
 
       const content = readFileSync(selectedPath, "utf8");
-      pushUndoSnapshot(`Import ${basename(selectedPath)}`);
+      ensureCurrentStateRecorded();
       w.setText("txt_input_data", content);
 
       // Auto-detect format based on file extension
@@ -854,6 +914,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       else if (ext === ".md") w.setText("dd_from", "Markdown Table");
       else if (ext === ".csv") w.setText("dd_from", "CSV");
 
+      recordNewState(`Import ${basename(selectedPath)}`);
       convertData();
       w.appendConsole("dc_console", `[Import] Loaded ${selectedPath} (${(content.length / 1024).toFixed(1)} KB)\n`, 2);
       w.toast(`📂 Imported ${basename(selectedPath)}`);
@@ -920,10 +981,11 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       w.toast("Please select a preset dataset from the dropdown first");
       return;
     }
-    pushUndoSnapshot(`Load Preset: ${choice}`);
+    ensureCurrentStateRecorded();
     w.setText("dd_from", preset.format);
     w.setText("dd_to", preset.target);
     w.setText("txt_input_data", preset.data);
+    recordNewState(`Load Preset: ${choice}`);
     convertData();
     w.appendConsole("dc_console", `[Preset] Loaded '${choice}' (${preset.description})\n`, 2);
     w.toast(`🎲 Loaded preset: ${choice}`);
@@ -935,18 +997,20 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     if (!input.trim()) return;
     try {
       const parsed = JSON.parse(input);
-      pushUndoSnapshot("Beautify JSON");
+      ensureCurrentStateRecorded();
       w.setText("txt_input_data", JSON.stringify(parsed, null, 2));
+      recordNewState("Beautify JSON");
       convertData();
       w.toast("✨ Beautified JSON");
     } catch {
       // If not JSON, normalize CSV/TSV spaces
-      pushUndoSnapshot("Beautify Table Whitespace");
+      ensureCurrentStateRecorded();
       const normalized = input
         .split(/\r?\n/)
         .map((l) => l.trim())
         .join("\n");
       w.setText("txt_input_data", normalized);
+      recordNewState("Beautify Table Whitespace");
       convertData();
       w.toast("✨ Normalized whitespace");
     }
@@ -957,21 +1021,23 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     if (!input.trim()) return;
     try {
       const parsed = JSON.parse(input);
-      pushUndoSnapshot("Minify JSON");
+      ensureCurrentStateRecorded();
       w.setText("txt_input_data", JSON.stringify(parsed));
+      recordNewState("Minify JSON");
       convertData();
       w.toast("⚡ Minified JSON");
     } catch {
-      pushUndoSnapshot("Minify Whitespace");
+      ensureCurrentStateRecorded();
       const minified = input.replace(/[ \t]+/g, " ");
       w.setText("txt_input_data", minified);
+      recordNewState("Minify Whitespace");
       convertData();
       w.toast("⚡ Minified whitespace");
     }
   });
 
   win.onClick("btn_clear_input", (w) => {
-    pushUndoSnapshot("Clear Input");
+    ensureCurrentStateRecorded();
     w.setText("txt_input_data", "");
     w.setText("txt_output_data", "");
     w.setTableData("tbl_preview", ["Columns"], [["(cleared)"]]);
@@ -979,6 +1045,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     w.setText("lbl_output_stats", "Output: (empty) · 0ms");
     w.setText("lbl_grid_count", "Showing 0 records");
     w.setText("lbl_status", "Status: Cleared");
+    recordNewState("Clear Input");
     w.toast("🧹 Cleared input document");
   });
 
@@ -1004,14 +1071,148 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   });
 
   // -----------------------------------------------------------------------------------------------
-  // Client-Side Script Injection for Drag & Drop, Shortcuts & Instant Selection
+  // Client-Side Script Injection for Instant DOM Undo/Redo, Direct Paste & Shortcuts
   // -----------------------------------------------------------------------------------------------
   win.addScript(`
     (function() {
-      // 1. Drag and Drop File Loader
       const inputEl = document.getElementById("txt_input_data");
-      const dropZone = inputEl ? inputEl.parentElement : document.body;
+      const outputEl = document.getElementById("txt_output_data");
+      const ddFrom = document.getElementById("dd_from");
+      const ddTo = document.getElementById("dd_to");
+      const btnConvert = document.getElementById("btn_convert");
+      const btnUndo = document.getElementById("btn_undo");
+      const btnRedo = document.getElementById("btn_redo");
 
+      // 1. Client-Side Undo / Redo Memory Stack
+      const clientUndo = [];
+      const clientRedo = [];
+
+      function recordClientSnapshot(action) {
+        if (!inputEl) return;
+        const text = inputEl.value;
+        const fromVal = ddFrom ? ddFrom.value : "CSV";
+        const toVal = ddTo ? ddTo.value : "JSON";
+        if (clientUndo.length > 0) {
+          const top = clientUndo[clientUndo.length - 1];
+          if (top.text === text && top.fromVal === fromVal && top.toVal === toVal) return;
+        }
+        clientUndo.push({ text, fromVal, toVal, action: action || "Edit" });
+        if (clientUndo.length > 100) clientUndo.shift();
+        clientRedo.length = 0;
+      }
+
+      if (inputEl) {
+        recordClientSnapshot("Initial Document");
+        let inputDebounce = null;
+        inputEl.addEventListener("input", function() {
+          clearTimeout(inputDebounce);
+          inputDebounce = setTimeout(function() {
+            recordClientSnapshot("Type text");
+          }, 350);
+        });
+      }
+
+      function performClientUndo() {
+        if (clientUndo.length > 1) {
+          const current = clientUndo.pop();
+          clientRedo.push(current);
+          const prev = clientUndo[clientUndo.length - 1];
+          if (prev && inputEl) {
+            inputEl.value = prev.text;
+            inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            if (ddFrom && prev.fromVal) {
+              ddFrom.value = prev.fromVal;
+              ddFrom.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (ddTo && prev.toVal) {
+              ddTo.value = prev.toVal;
+              ddTo.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (btnConvert) btnConvert.click();
+            showNotice("↩️ Undone: " + current.action);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function performClientRedo() {
+        if (clientRedo.length > 0) {
+          const next = clientRedo.pop();
+          clientUndo.push(next);
+          if (next && inputEl) {
+            inputEl.value = next.text;
+            inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            if (ddFrom && next.fromVal) {
+              ddFrom.value = next.fromVal;
+              ddFrom.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (ddTo && next.toVal) {
+              ddTo.value = next.toVal;
+              ddTo.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (btnConvert) btnConvert.click();
+            showNotice("↪️ Redone: " + next.action);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      if (btnUndo) {
+        btnUndo.addEventListener("click", function(e) {
+          performClientUndo();
+        });
+      }
+
+      if (btnRedo) {
+        btnRedo.addEventListener("click", function(e) {
+          performClientRedo();
+        });
+      }
+
+      // 2. Client-Side Paste from Clipboard with Gesture Security Token
+      async function performClientPaste() {
+        let text = "";
+        try {
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            text = await navigator.clipboard.readText();
+          }
+        } catch (err) {}
+
+        if (text && inputEl) {
+          recordClientSnapshot("Before Paste");
+          inputEl.value = text;
+          inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+
+          const trimmed = text.trim();
+          let detected = "";
+          if (trimmed.startsWith("{") || trimmed.startsWith("[")) detected = "JSON";
+          else if (trimmed.startsWith("<") && trimmed.includes(">")) detected = "XML";
+          else if (trimmed.startsWith("|") && trimmed.includes("\n|")) detected = "Markdown Table";
+          else if (trimmed.includes("\t") && !trimmed.includes(",")) detected = "TSV";
+          else if (trimmed.includes(",") && trimmed.includes("\n")) detected = "CSV";
+          else if (trimmed.startsWith("- ") && trimmed.includes(":")) detected = "YAML";
+
+          if (detected && ddFrom) {
+            ddFrom.value = detected;
+            ddFrom.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+
+          recordClientSnapshot("Paste from Clipboard");
+          if (btnConvert) btnConvert.click();
+          showNotice("📋 Pasted " + text.length + " characters from clipboard!");
+        }
+      }
+
+      const pasteBtns = document.querySelectorAll("#btn_paste, #btn_paste_from_clipboard");
+      pasteBtns.forEach(function(b) {
+        b.addEventListener("click", function() {
+          performClientPaste();
+        });
+      });
+
+      // 3. Drag and Drop File Loader
       window.addEventListener("dragover", function(e) {
         e.preventDefault();
         if (inputEl) inputEl.style.boxShadow = "0 0 0 2px var(--color-primary, #0ea5e9)";
@@ -1028,6 +1229,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
           reader.onload = function(evt) {
             const text = evt.target && evt.target.result;
             if (typeof text === "string" && inputEl) {
+              recordClientSnapshot("Before File Drop");
               inputEl.value = text;
               inputEl.dispatchEvent(new Event("input", { bubbles: true }));
               
@@ -1041,36 +1243,46 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
               else if (name.endsWith(".xml")) fmt = "XML";
               else if (name.endsWith(".md")) fmt = "Markdown Table";
 
-              const ddFrom = document.getElementById("dd_from");
               if (ddFrom) {
                 ddFrom.value = fmt;
                 ddFrom.dispatchEvent(new Event("change", { bubbles: true }));
               }
-              const btnConvert = document.getElementById("btn_convert");
+              recordClientSnapshot("Import " + file.name);
               if (btnConvert) btnConvert.click();
+              showNotice("📂 Loaded " + file.name);
             }
           };
           reader.readAsText(file);
         }
       });
 
-      // 2. Keyboard Shortcuts (<kbd>Ctrl+Enter</kbd> to Convert, <kbd>Ctrl+Z</kbd> to Undo, <kbd>Ctrl+Y</kbd> to Redo)
+      // 4. Keyboard Shortcuts: <kbd>Ctrl+Enter</kbd> (Convert), <kbd>Ctrl+Z</kbd> (Undo), <kbd>Ctrl+Y</kbd> (Redo)
       window.addEventListener("keydown", function(e) {
         const isCtrlOrMeta = e.ctrlKey || e.metaKey;
         if (isCtrlOrMeta && e.key === "Enter") {
           e.preventDefault();
-          const btn = document.getElementById("btn_convert");
-          if (btn) btn.click();
+          if (btnConvert) btnConvert.click();
         } else if (isCtrlOrMeta && !e.shiftKey && e.key.toLowerCase() === "z") {
-          if (document.activeElement === inputEl) {
-            const btnUndo = document.getElementById("btn_undo");
-            if (btnUndo) btnUndo.click();
-          }
+          e.preventDefault();
+          performClientUndo();
         } else if (isCtrlOrMeta && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
-          const btnRedo = document.getElementById("btn_redo");
-          if (btnRedo) btnRedo.click();
+          e.preventDefault();
+          performClientRedo();
         }
       });
+
+      function showNotice(msg) {
+        if (typeof window.showToast === "function") {
+          window.showToast(msg);
+        } else {
+          const t = document.createElement("div");
+          t.className = "rad-toast";
+          t.textContent = msg;
+          t.style.cssText = "position:fixed;bottom:24px;right:24px;background:#0284c7;color:#fff;padding:8px 16px;border-radius:6px;font-weight:600;z-index:999999;box-shadow:0 4px 12px rgba(0,0,0,0.4);";
+          document.body.appendChild(t);
+          setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 2000);
+        }
+      }
     })();
   `);
 

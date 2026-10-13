@@ -43,3 +43,29 @@ export function writeClipboardSync(text: string): boolean {
   }
   return false;
 }
+
+/** Cross-platform clipboard read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste/xclip). Returns empty string on failure. */
+export function readClipboardSync(): string {
+  try {
+    if (process.platform === "darwin") {
+      const proc = Bun.spawnSync(["pbpaste"]);
+      if (proc.exitCode === 0) return proc.stdout.toString();
+    } else if (process.platform === "win32") {
+      const proc = Bun.spawnSync(["powershell.exe", "-NoProfile", "-Command", "Get-Clipboard"]);
+      if (proc.exitCode === 0) return proc.stdout.toString().replace(/\r\n/g, "\n");
+    } else {
+      const candidates: string[][] = [
+        ["wl-paste"],
+        ["xclip", "-selection", "clipboard", "-o"],
+        ["xsel", "--clipboard", "--output"],
+      ];
+      for (const cmd of candidates) {
+        try {
+          const proc = Bun.spawnSync(cmd);
+          if (proc.exitCode === 0) return proc.stdout.toString();
+        } catch {}
+      }
+    }
+  } catch {}
+  return "";
+}
