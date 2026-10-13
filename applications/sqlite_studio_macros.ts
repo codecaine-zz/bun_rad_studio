@@ -4143,7 +4143,11 @@ async function loadCodeGen() {
     res = { success: false, error: e.message };
   }
   if (!res || res.success === false) {
-    text.value = "// Could not generate code: " + ((res && res.error) || "unknown error");
+    let why = (res && res.error) || "unknown error";
+    if (/404|not found|failed to fetch|networkerror|load failed/i.test(why)) {
+      why += " - the studio server did not answer the code-generation request. It is probably an older build or has stopped: restart this app (or reload the page) and try again.";
+    }
+    text.value = "// Could not generate code: " + why;
     return;
   }
   codeGenResult = res;
