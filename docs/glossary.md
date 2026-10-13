@@ -4,7 +4,7 @@ Plain-language definitions of the words this handbook and the project use. Each 
 
 ## Contents
 
-[A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [Q](#q) · [R](#r) · [S](#s) · [T](#t) · [U](#u) · [V](#v) · [W](#w)
+[A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [J](#j) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [Q](#q) · [R](#r) · [S](#s) · [T](#t) · [U](#u) · [V](#v) · [W](#w)
 
 ## A
 
@@ -13,6 +13,9 @@ A small module that lets the Database Workbench talk to one kind of database (SQ
 
 ### API (application programming interface)
 The set of functions or web addresses one program offers to another. **Why it matters:** the designer page talks to the desktop program through a few named functions, and every studio's local server has an `/api/...` address the page calls. **Example:** `POST /api/exec` in Code Studio. **Related:** [Binding](#binding), [Loopback](#loopback). **See:** [API.md](API.md), [SimpleGUI API](SIMPLEGUI_API.md).
+
+### App Bundler
+App Bundler Studio (and `cli:bundler`): compiles a program into a single executable and packages it as a macOS `.app` bundle with an icon. **Why it matters:** it is how a finished project becomes something you can double-click. **Related:** [Build](#build), [Bundle](#bundle), [Executable](#executable). **See:** [Application index](reference/application-index.md#studios) (the launch command only; packaging itself was not run for this handbook).
 
 ### Application
 In this project, a program you start from `applications/`: a [studio](#studio). The launcher also lists command-line tools and demos. **Related:** [CLI tool](#cli-tool-command-line-interface), [Demo](#demo), [Launcher](#launcher). **See:** [Application index](reference/application-index.md).
@@ -28,8 +31,14 @@ A copy of your data from which it can be restored. **Why it matters:** an [expor
 ### Baseline (type-check)
 The recorded number of TypeScript errors per file in `scripts/typecheck_baseline.json`. **Why it matters:** `bun run typecheck` fails only if a file gets more errors than its baseline. **Related:** [Ratchet](#ratchet), [TypeScript](#typescript). **See:** [Testing](testing/index.md#type-check-ratchet).
 
+### Big integer
+A whole number too large for JavaScript's ordinary number type to hold exactly (beyond 9,007,199,254,740,991). **Why it matters:** the Workbench sends such values to the page as text so no digit is lost; neighbouring big values stay distinguishable. **Example:** a `BIGINT` key of 9007199254740993. **Related:** [Exact decimal](#exact-decimal), [Typed parameter](#typed-parameter). **See:** `src/db/wire.ts`, [Workbench guide](databases/workbench.md).
+
 ### Binding
 A named function the desktop program registers so the page inside the window can call it. **Why it matters:** bindings are the only way page code reaches the desktop side (for example `runPreview`, `exportProject`, `quitApp`). **Example:** the Export button calls the `exportProject` binding. **Related:** [Webview](#webview), [API](#api-application-programming-interface). **See:** [API.md](API.md#4-webview-ipc--backend-bindings).
+
+### Brewfile
+A Homebrew list of packages to install with `brew bundle --file ./Brewfile`. **Why it matters:** the project keeps its optional system tools (media, audio and graphics programs) there; `Brewfile.optional` holds optional cross-compilation tools. **Related:** [Homebrew suite](#homebrew-suite). **See:** [Homebrew suite guide](HOMEBREW_SUITE_GUIDE.md).
 
 ### Build
 Turning source code into something you can run or ship, here with `bun run build`, which writes to `dist/`. **Related:** [Bundle](#bundle), [Executable](#executable). **See:** [Script index](reference/script-index.md).
@@ -45,8 +54,17 @@ Several source files combined into one output file. **Related:** [Build](#build)
 ### Capability
 A statement of what a connected database engine supports (for example transactions, or editing rows safely). **Why it matters:** the Workbench disables a feature and says why when the engine or table cannot support it. **Example:** a table with no [primary key](#primary-key) cannot be edited safely, so editing is switched off with an explanation. **Related:** [Adapter](#adapter). **See:** [Workbench guide](databases/workbench.md).
 
+### Certificate
+A signed document that proves a server is who it claims to be, checked during [TLS](#tls-transport-layer-security). **Why it matters:** the Workbench keeps certificate checking on; a custom certificate authority can be supplied in the profile. **Related:** [TLS](#tls-transport-layer-security). **See:** [Workbench guide](databases/workbench.md#connections-and-credentials).
+
 ### CLI tool (command-line interface)
 A program you run by typing a command, with no window. **Why it matters:** the project has about 78 of them in `cli_apps/`. They run when started, so they cannot be loaded as modules by tests. **Related:** [Studio](#studio). **See:** [Application index](reference/application-index.md#command-line-tools).
+
+### Code translation
+Turning a macro, saved query or SQL text into a standalone program (Python, Bun or V) that uses that language's own SQLite driver. **Why it matters:** values typed by a user are always passed as parameters, never glued into SQL; constructs that cannot be translated are reported as warnings. The generated text is checked by tests but not executed. **Related:** [Macro](#macro), [Generated code](#generated-code). **See:** `applications/studio_codegen.ts`, [Generated applications](generated-applications/index.md).
+
+### Column
+One named field of a [table](#table), for example `email`. **Related:** [Row](#row), [Primary key](#primary-key).
 
 ### Commit
 Saving the changes made in a [transaction](#transaction) permanently. **Related:** [Rollback](#rollback). **See:** [Workbench guide](databases/workbench.md#sql-editor-and-transactions).
@@ -62,6 +80,9 @@ An open channel from a program to a database. **Related:** [Connection profile](
 
 ### Connection profile
 A saved set of connection settings: name, folder, tags, environment, read-only flag, host, port, database and TLS options. **Why it matters:** profiles are stored in `~/.bun_rad_studio/connections.json`; passwords are never written to that file. **Related:** [Credential store](#credential-store), [Environment label](#environment-label). **See:** [Workbench guide](databases/workbench.md#connections-and-credentials).
+
+### Constraint
+A rule the database enforces on a table, such as "this column may not be empty" or "this value must exist in another table" ([foreign key](#foreign-key)). **Why it matters:** a failed constraint is why an insert or edit can be refused. **Related:** [Primary key](#primary-key), [Foreign key](#foreign-key).
 
 ### Control
 A visible element on a form: button, text box, table and so on. The designer palette has 95. **Related:** [Component](#component), [Control specification](#control-specification-controlspec), [Property](#property). **See:** [API.md](API.md#3-supported-component-reference), [Visual designer](visual-designer/index.md).
@@ -98,10 +119,19 @@ A package your code needs in order to run. **Why it matters:** `bun install` fet
 ### Design time / runtime
 Design time is while you arrange a form in the designer; runtime is while the finished form runs. **Why it matters:** the designer's database controls are only placeholders at design time and nothing connects to a database. **See:** [D-002](documentation-maintenance/discrepancies.md#d-002).
 
+### `dist/`
+The folder `bun run build` writes to (a bundled library, the designer page and copies of the API documents). **Why it matters:** it is regenerable and git-ignored; do not edit it. **Related:** [Build](#build). **See:** [Data and files](reference/data-and-files.md).
+
 ### DNS rebinding
 An attack where a hostile web address is made to point at your own machine so that a web page can reach a local server. **Why it matters:** the loopback guard refuses any request whose `Host` is not a loopback name. **Related:** [Loopback guard](#loopback-guard). **See:** [D-012](documentation-maintenance/discrepancies.md#d-012).
 
+### Driver
+The code that speaks one database's network protocol. **Why it matters:** the Workbench reaches MySQL and PostgreSQL through Bun's built-in `SQL` client and SQLite through `bun:sqlite`; no separate driver packages are installed. **Related:** [Adapter](#adapter).
+
 ## E
+
+### Encoding
+The rule that turns characters into bytes (usually UTF-8). **Why it matters:** wrong encoding shows up as garbled text; the project keeps [Unicode](#unicode) values exact. **Related:** [Unicode](#unicode).
 
 ### `.env` file
 A plain-text file of `NAME=value` lines in the folder where a program is started. **Why it matters:** the older MySQL and PostgreSQL studios read it, copy every value into their environment and replace values already set. It is git-ignored but not encrypted. **Related:** [Environment variable](#environment-variable), [Credential store](#credential-store). **See:** [Environment variables](reference/index.md#environment-variables), [D-009](documentation-maintenance/discrepancies.md#d-009).
@@ -112,11 +142,17 @@ A tag on a connection profile: development, test, staging or production. **Why i
 ### Environment variable
 A named setting passed to a program by the system, such as `PORT` or `MSQL_HOST`. **See:** [Environment variables](reference/index.md#environment-variables).
 
+### Environment Vault
+A studio that edits `.env`-style files of `NAME=value` settings. **Why it matters:** it writes the file you choose, and such files can hold [secrets](#secret); its built-in sample text contains made-up keys, not real ones. **Related:** [`.env` file](#env-file), [Environment variable](#environment-variable). **See:** [Application index](reference/application-index.md#studios).
+
 ### Event
 Something that happens to a control, such as a click or a change. **Related:** [Event handler](#event-handler). **See:** [API.md](API.md#supported-event-handlers--callback-signatures).
 
 ### Event handler
 The code or function name attached to an event. **Why it matters:** in an exported project the generated handlers only log a message; you add your own code in `index.ts`. **Related:** [Export](#export). **See:** [Generated applications](generated-applications/index.md).
+
+### Exact decimal
+A number with decimal places that is carried as text so that it is never rounded by binary floating point. **Why it matters:** money and measurements read from a database must come back digit for digit. **Example:** `0.10` stays `0.10`, not `0.1000000000000000055`. **Related:** [Big integer](#big-integer), [Typed parameter](#typed-parameter). **See:** `src/db/wire.ts`.
 
 ### Executable
 A single file you can run without installing the source. **Related:** [Build](#build), [Bundle](#bundle).
@@ -154,6 +190,9 @@ Short for [event handler](#event-handler).
 ### Headless mode
 Running a studio with `--server`: it starts its local web server and shows no native window, so you open the page in a browser. **Why it matters:** about 32 studios support it and the smoke test starts each one. **Related:** [Loopback](#loopback). **See:** [Testing](testing/index.md#application-smoke-test).
 
+### Homebrew suite
+The project's way of installing its programs as commands (`codecaine`, `codecaine-calc`, ...): `install_homebrew_suite.sh`, the formulas in `Formula/` and the generated [wrappers](#wrapper). **Why it matters:** the local `bin/` wrappers were checked; installing through Homebrew itself was not verified end to end. **Related:** [Brewfile](#brewfile), [Wrapper](#wrapper). **See:** [Homebrew suite guide](HOMEBREW_SUITE_GUIDE.md).
+
 ## I
 
 ### IDE (integrated development environment)
@@ -164,6 +203,12 @@ Reading data or a layout in. **Why it matters:** the designer's Import checks pa
 
 ### Index (database)
 A structure that makes lookups on a column faster. Not to be confused with `index.ts` or the handbook index pages.
+
+## J
+
+
+### JSON (JavaScript Object Notation)
+A plain-text format for structured data: objects in braces, lists in brackets. **Why it matters:** the [form spec](#form-spec-formspec), the Workbench's requests and connection profiles are all JSON. **Example:** `{"title": "Form1", "controls": []}`. **Related:** [Form spec](#form-spec-formspec).
 
 ## L
 
@@ -180,6 +225,9 @@ The address `127.0.0.1` (also `localhost`), which only the same computer can rea
 `guardLocalRequest` in `src/localGuard.ts`: it answers `403 Forbidden` to a request whose `Host` is not a loopback name or whose `Origin` is not the server's own. **Why it matters:** it stops web pages in your browser from driving local servers. Plain tools such as `curl` send no `Origin` and are unaffected. **Related:** [CORS](#cors-cross-origin-resource-sharing), [DNS rebinding](#dns-rebinding), [Origin](#origin). **See:** [D-012](documentation-maintenance/discrepancies.md#d-012).
 
 ## M
+
+### Macro
+A saved sequence of steps in the SQLite, MySQL and PostgreSQL studios (run SQL, insert a record, ask for a value, and so on), in the style of Microsoft Access macros. **Why it matters:** macros are your work: they are saved under `~/.bun_rad_studio/macros`; steps that ask the user for a value pass it as a parameter. **Related:** [Code translation](#code-translation), [QBE](#qbe-query-by-example). **See:** [Data and files](reference/data-and-files.md).
 
 ### Manifest (`bin/manifest.json`)
 The list of generated `codecaine-*` command wrappers. **Related:** [Wrapper](#wrapper).
@@ -216,6 +264,9 @@ A setting of a control, such as text, position, colour or tooltip, edited in the
 
 ## Q
 
+### QBE (query by example)
+Building a query by filling in a grid (tables, fields, criteria) instead of writing [SQL](#sql-structured-query-language), as in Microsoft Access. **Why it matters:** the studios' visual query designer produces the SQL for you. **Related:** [Query](#query), [Macro](#macro).
+
 ### Query
 A request to a database, written in [SQL](#sql-structured-query-language). **See:** [Workbench guide](databases/workbench.md#sql-editor-and-transactions).
 
@@ -223,6 +274,9 @@ A request to a database, written in [SQL](#sql-structured-query-language). **See
 
 ### RAD (rapid application development)
 Building programs quickly by arranging ready-made controls instead of coding every part. **Why it matters:** the project's name; the designer follows the Delphi and Visual Basic style. **See:** [Visual designer](visual-designer/index.md).
+
+### RAD utility modules (`rad`)
+A set of about 44 small helper modules (files, strings, arrays, crypto, time, HTTP, SQLite and more) in `src/features/rad/`. **Why it matters:** they are exported through the `rad` namespace; some names clash with SimpleCLI's, so reach them as `rad.<module>.<name>` ([D-027](documentation-maintenance/discrepancies.md#d-027)). **Related:** [SimpleCLI](#simplecli).
 
 ### Ratchet
 A check that lets existing problems stay but forbids new ones. **Example:** `bun run typecheck`. **Related:** [Baseline](#baseline-type-check). **See:** [Testing](testing/index.md#type-check-ratchet).
@@ -242,6 +296,9 @@ Undoing the changes of an open [transaction](#transaction). **Related:** [Commit
 ### Row
 One record in a table. **Related:** [Primary key](#primary-key).
 
+### Runtime
+The program that runs your code. **Why it matters:** here it is [Bun](#bun), which also installs packages and runs tests. In the designer, "runtime" can also mean "when the finished form runs" ([design time / runtime](#design-time--runtime)).
+
 ## S
 
 ### Schema
@@ -253,11 +310,17 @@ Any value that must not be shared: a password, a key, a token. **Why it matters:
 ### Session
 One continuous period of a connection, with its own transaction state. **Related:** [Connection](#connection), [Transaction](#transaction).
 
+### SimpleCLI
+The project's library for command-line tools (flags, prompts, coloured output, logging), in `src/simplecli/`. **Why it matters:** most of the `cli_apps/` use it. **Related:** [SimpleGUI](#simplegui), [CLI tool](#cli-tool-command-line-interface), [RAD utility modules](#rad-utility-modules-rad).
+
 ### SimpleGUI
 The project's code library for building windows by writing code, as an alternative to the visual designer (`SimpleWindow`, `SimpleControlRef`). **See:** [SimpleGUI API](SIMPLEGUI_API.md).
 
 ### SQL (structured query language)
 The language used to ask relational databases for data and to change it. **Related:** [Query](#query).
+
+### Statement splitter
+Code that cuts a SQL script into separate statements at the semicolons that really end them, ignoring semicolons inside quotes and comments. **Why it matters:** the Workbench runs a script one statement at a time and reports the line of a failure. **Related:** [Query](#query), [Transaction](#transaction). **See:** `src/db/splitter.ts`.
 
 ### Studio
 The project's word for a windowed application, such as SQLite Studio Pro or Code Studio. **Related:** [CLI tool](#cli-tool-command-line-interface), [Demo](#demo), [Headless mode](#headless-mode). **See:** [Application index](reference/application-index.md#studios).
@@ -267,6 +330,9 @@ The project's word for a windowed application, such as SQLite Studio Pro or Code
 ### Table
 Rows and columns of data in a database. In the designer, `table` is also a control.
 
+### Theme
+A named set of colours (form, controls, buttons) for a form or window. **Why it matters:** the designer applies one to every control, and since [D-019](documentation-maintenance/discrepancies.md#d-019) its button text always reaches the [contrast](#wcag-contrast) rule. The documents disagree on how many themes exist: 63 (README), 76 ([THEMES.md](THEMES.md)) and 51 in the designer's theme list ([D-028](documentation-maintenance/discrepancies.md#d-028)). **See:** [THEMES.md](THEMES.md).
+
 ### Throwaway database
 A temporary database created for one test and removed afterwards, so tests never touch real data. **See:** [Database tests](testing/database-tests.md).
 
@@ -275,6 +341,9 @@ Encryption of a network connection. **Why it matters:** the Workbench keeps cert
 
 ### Transaction
 A group of changes that is saved together or not at all. **Related:** [Autocommit](#autocommit), [Commit](#commit), [Rollback](#rollback). **See:** [Workbench guide](databases/workbench.md#sql-editor-and-transactions).
+
+### Typed parameter
+A value passed to a database separately from the SQL text and tagged with its type (text, number, big integer, exact decimal, binary, ...). **Why it matters:** this is what prevents SQL injection and keeps values exact; the Workbench treats SQL-looking parameters as data. **Related:** [Big integer](#big-integer), [Exact decimal](#exact-decimal), [Query](#query). **See:** `src/db/wire.ts`.
 
 ### TypeScript
 JavaScript with type annotations. **Why it matters:** Bun runs it without checking types, so `tsc` is the only type check and `bun run typecheck` guards against new errors. **Related:** [Ratchet](#ratchet).

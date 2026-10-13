@@ -72,7 +72,7 @@ Each needs: plain definition, why it matters here, an example, related terms, li
 
 ## Not yet defined
 
-Listed in the inventory above but without a [glossary](../glossary.md) entry yet: runtime, driver, column, constraint, certificate, encoding, JSON, test, fixture-related terms beyond *fixture*, statement splitter, typed parameter, exact decimal, big integer, macro and QBE (query by example), code translation, Environment Vault, App Bundler, SimpleCLI, the `rad` utility modules, Homebrew suite and Brewfile, theme, `dist/`, and the "easily confused pairs" other than the ones explained inside entries (schema, export versus backup, read-only). Add them as the related guides are verified.
+Defined on 13 October 2026: runtime, driver, column, constraint, certificate, encoding, JSON, statement splitter, typed parameter, exact decimal, big integer, macro, QBE, code translation, Environment Vault, App Bundler, SimpleCLI, the `rad` utility modules, Homebrew suite, Brewfile, theme and `dist/`. Still without an entry: the "easily confused pairs" that are not explained inside an existing entry (authentication versus authorization, build versus bundle versus package, studio versus CLI tool versus demo are explained only briefly), WAL-related terms beyond *WAL*, `VACUUM INTO`, integrity check, graveyard internals, and error codes such as `CONFLICT` or `READ_ONLY` (these are listed in the [Workbench guide](../databases/workbench.md#troubleshooting)).
 
 ## Definition format
 
