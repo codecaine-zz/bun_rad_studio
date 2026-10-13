@@ -34,6 +34,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-028 Documents disagreed on how many themes exist (fixed)](#d-028)
 - [D-029 A test-only package was a runtime dependency, with known advisories (fixed)](#d-029)
 - [D-030 The committed command manifest depended on the author's launcher favourites (fixed)](#d-030)
+- [D-031 The designer had no visible keyboard focus and an unreachable palette (fixed)](#d-031)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -292,3 +293,13 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Behaviour change:** commands in `bin/manifest.json` (and anything that lists them in manifest order) now appear in path order instead of favourites-first order.
 - **Tests:** `tests/launcher_listing.test.ts` ("does not depend on the user's launcher history"). A full `bun test` in a fresh clone leaves `git status` clean, also when the launcher tests have created `.launcher_history.json`.
 - **Not tested:** the "running apps" part of the ordering (a headless studio started by hand did not change the order in one trial, so the favourites path is the one proven).
+
+<a id="d-031"></a>
+## D-031: The designer had no visible keyboard focus and an unreachable palette (fixed)
+
+- **Status:** Fixed on 13 October 2026 (the rest of the accessibility gaps are listed on [Accessibility](../accessibility.md)).
+- **Observed (browser rendering of the designer page):** 133 clickable `div` elements, including every item of the component palette, could not be reached with the Tab key (`tabIndex` below zero, no role); three CSS rules removed the focus outline and nothing replaced it, so a focused button showed nothing.
+- **Fix:** a `:focus-visible` outline rule, and `makeClickablesKeyboardOperable` at start-up, which gives those elements `tabindex="0"`, `role="button"` and an `aria-label` from their tooltip, and activates them with Enter or Space. Existing `tabindex` and `role` values are kept; real buttons are untouched.
+- **Behaviour change:** the Tab order now includes about 133 more stops, so reaching the canvas controls by Tab takes more key presses.
+- **Verified:** live with real key presses (visible outline on Tab; Enter arms placement; Escape cancels) and by tests (`tests/ide_html.test.ts`, "Designer: keyboard access", which fail on the old page).
+- **Not fixed:** placing, moving and resizing controls still needs a mouse.

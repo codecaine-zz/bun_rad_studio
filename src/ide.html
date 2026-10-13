@@ -971,6 +971,12 @@
 			color: var(--accent);
 			font-weight: bold;
 		}
+
+		/* Keyboard focus must always be visible (several rules above remove the default outline). */
+		button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+			outline: 2px solid var(--accent) !important;
+			outline-offset: 2px;
+		}
 	</style>
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off">
@@ -2261,7 +2267,29 @@
 		let panStartX = 0, panStartY = 0;
 		let scrollLeftStart = 0, scrollTopStart = 0;
 
+		// Palette items, templates and menu entries are clickable divs. Make them reachable and operable from the
+		// keyboard: focusable, announced as buttons, and activated with Enter or Space.
+		function makeClickablesKeyboardOperable() {
+			document.querySelectorAll("[onclick]").forEach((el) => {
+				if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+				if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0");
+				if (!el.hasAttribute("role")) el.setAttribute("role", "button");
+				if (!el.hasAttribute("aria-label")) {
+					const label = (el.getAttribute("title") || el.textContent || "").trim().replace(/\s+/g, " ");
+					if (label) el.setAttribute("aria-label", label.slice(0, 120));
+				}
+				el.addEventListener("keydown", (e) => {
+					if (e.target !== el) return;
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						el.click();
+					}
+				});
+			});
+		}
+
 		function initDesignerApp() {
+			makeClickablesKeyboardOperable();
 			const propTitleEl = document.getElementById("propFormTitle");
 			if (propTitleEl) propTitleEl.value = formSpec.title || "";
 			bindLivePropertyEditors();

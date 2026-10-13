@@ -2,6 +2,7 @@ import { describe, test, expect, afterAll } from "bun:test";
 import { join } from "path";
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
+import { JSDOM } from "jsdom";
 import { getIdeHtml, exportProjectHelper, runPreviewHelper, tsStringLiteral, safeDimension } from "../index.ts";
 
 const REPO_ROOT = join(import.meta.dir, "..");
@@ -208,6 +209,75 @@ describe("Designer: importing a layout that contains scripts", () => {
         expect(fn).toContain("confirm(");
         expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeLessThan(fn.indexOf("confirm("));
         expect(fn.indexOf("confirm(")).toBeLessThan(fn.indexOf("formSpec = "));
+    });
+});
+
+describe("Designer: keyboard access", () => {
+    const html = getIdeHtml();
+
+    test("a visible focus outline is defined for keyboard focus", () => {
+        const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+        expect(css).toMatch(/button:focus-visible[\s\S]*?outline:\s*2px solid var\(--accent\) !important/);
+    });
+
+    function setup() {
+        const start = html.indexOf("function makeClickablesKeyboardOperable");
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const fn = new Function("document", `${html.slice(start, end + 1)}; return makeClickablesKeyboardOperable;`)(dom.window.document) as () => void;
+        return { dom, run: fn };
+    }
+
+    test("every clickable non-button element becomes focusable, is announced as a button and has a name", () => {
+        const { dom, run } = setup();
+        const doc = dom.window.document;
+        const targets = [...doc.querySelectorAll("[onclick]")].filter((e) => !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(e.tagName));
+        expect(targets.length).toBeGreaterThan(100);
+        run();
+        for (const el of targets) {
+            expect(el.getAttribute("tabindex")).toBe("0");
+            expect(el.getAttribute("role")).toBe("button");
+            expect((el.getAttribute("aria-label") ?? "").length).toBeGreaterThan(0);
+        }
+    });
+
+    test("real buttons are left alone, and existing tabindex or role values are kept", () => {
+        const { dom, run } = setup();
+        const doc = dom.window.document;
+        const native = doc.querySelector("button[onclick]")!;
+        const custom = doc.createElement("div");
+        custom.setAttribute("onclick", "x()");
+        custom.setAttribute("tabindex", "-1");
+        custom.setAttribute("role", "menuitem");
+        doc.body.appendChild(custom);
+        run();
+        expect(native.hasAttribute("role")).toBe(false);
+        expect(custom.getAttribute("tabindex")).toBe("-1");
+        expect(custom.getAttribute("role")).toBe("menuitem");
+    });
+
+    test("Enter and Space activate the element; other keys do not", () => {
+        const { dom, run } = setup();
+        const doc = dom.window.document;
+        const el = doc.createElement("div");
+        el.setAttribute("onclick", "x()");
+        el.textContent = "Do it";
+        doc.body.appendChild(el);
+        run();
+        let clicks = 0;
+        el.addEventListener("click", () => clicks++);
+        const press = (key: string) => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        press("Enter");
+        press(" ");
+        press("a");
+        press("Tab");
+        expect(clicks).toBe(2);
     });
 });
 
