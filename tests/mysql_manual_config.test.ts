@@ -233,4 +233,49 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
       srv.stop(true);
     }
   });
+
+  it("10. POST /api/query executes queries and returns rows, columns, and latency", async () => {
+    const srv = startMysqlStudioServer({ port: 0 });
+    try {
+      const res = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: "SELECT 1 AS col_num, 'hello' AS col_str;" }),
+      });
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as any;
+      expect(data.success).toBe(true);
+      expect(data.rows.length).toBe(1);
+      expect(data.columns).toEqual(["col_num", "col_str"]);
+      expect(data.rows[0].col_num).toBe(1);
+      expect(data.rows[0].col_str).toBe("hello");
+    } finally {
+      srv.stop(true);
+    }
+  });
+
+  it("11. POST /api/explain parses query plan tree with timing and costs", async () => {
+    const srv = startMysqlStudioServer({ port: 0 });
+    try {
+      const res = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: "SELECT c.id, c.name FROM customers c ORDER BY c.id;" }),
+      });
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as any;
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.queryPlan)).toBe(true);
+      expect(data.queryPlan.length).toBeGreaterThan(0);
+      expect(data.queryPlan[0].detail).toBeDefined();
+    } finally {
+      srv.stop(true);
+    }
+  });
+
+  it("12. createMysqlStudio resolves default database to real DB and never :memory:", () => {
+    const studio = createMysqlStudio({});
+    expect(studio.activeDbPath).toBe(process.env.MSQL_NAME || "my_app_dev");
+    expect(studio.activeDbPath).not.toBe(":memory:");
+  });
 });

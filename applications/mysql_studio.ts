@@ -1791,8 +1791,8 @@ ${CRUD_STYLE}
   <section class="kpi-row">
     <div class="kpi-card kpi-clickable" onclick="openDatabaseDialog('config')" title="Click to view or edit MySQL connection configuration">
       <div class="kpi-title">Active Database <span>🗂️</span></div>
-      <div class="kpi-value" id="kpiDbName">:memory:</div>
-      <div class="kpi-sub" id="kpiDbPath">:memory:</div>
+      <div class="kpi-value" id="kpiDbName">my_app_dev</div>
+      <div class="kpi-sub" id="kpiDbPath">localhost:3306/my_app_dev</div>
     </div>
 
     <div class="kpi-card">
@@ -1830,7 +1830,7 @@ ${CRUD_STYLE}
           <span style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Active Database</span>
           <span class="badge" id="sidebarDbBadge">RAM</span>
         </div>
-        <div style="font-size: 12px; font-weight: 700; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="sidebarDbName">:memory:</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="sidebarDbName">my_app_dev</div>
         <div style="display: flex; gap: 4px;">
           <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog('config')">🔌 Config...</button>
           <button class="sidebar-mini-btn" style="flex: 1; justify-content: center;" onclick="openDatabaseDialog('databases')">📂 Databases</button>
@@ -1875,7 +1875,7 @@ ${CRUD_STYLE}
         </div>
 
         <div class="sql-input-box">
-          <textarea class="sql-textarea" id="sqlEditor" placeholder="Enter SQL statement (e.g. SELECT * FROM customers;)..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runEditorQuery()"></textarea>
+          <textarea class="sql-textarea" id="sqlEditor" placeholder="Enter SQL statement (e.g. SELECT * FROM customers;)..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runEditorQuery()">SELECT c.id, c.name, c.email, c.tier, c.balance FROM customers c ORDER BY c.id LIMIT 25;</textarea>
           <div class="editor-controls">
             <div class="editor-controls-left">
               <button class="btn btn-primary" onclick="runEditorQuery()">🚀 Execute (Cmd+Enter)</button>
@@ -1990,7 +1990,7 @@ ${CRUD_STYLE}
       <span> • </span>
       <span>Platform: <b>macOS / Darwin</b></span>
       <span> • </span>
-      <span id="footerConnection">Connected: :memory:</span>
+      <span id="footerConnection">Connected: my_app_dev</span>
     </div>
     <div id="footerClock">00:00:00</div>
   </footer>
@@ -3158,7 +3158,12 @@ ${CRUD_STYLE}
     // SQL Query Execution
     // ---------------------------------------------------------------------------------------------
     async function runEditorQuery() {
-      const sql = document.getElementById("sqlEditor").value.trim();
+      const sqlEl = document.getElementById("sqlEditor");
+      let sql = sqlEl ? sqlEl.value.trim() : "";
+      if (!sql && typeof buildDesignerSql === "function") {
+        sql = buildDesignerSql();
+        if (sqlEl) sqlEl.value = sql;
+      }
       if (!sql) {
         showToast("Please enter a SQL query!");
         return;
@@ -3195,6 +3200,9 @@ ${CRUD_STYLE}
     }
 
     const runExplainPlan = explainCurrentQuery;
+    const executeCurrentQuery = runEditorQuery;
+    window.runExplainPlan = explainCurrentQuery;
+    window.executeCurrentQuery = runEditorQuery;
 
     async function explainCurrentQuery() {
       const sqlEl = document.getElementById("sqlEditor");
@@ -6223,7 +6231,13 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1260);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const activeDbPath = options.initialDbPath || ":memory:";
+  const defaultDb = process.env.MSQL_NAME 
+    || process.env.MYSQL_DATABASE 
+    || process.env.MSQL_DB 
+    || (process.env.MYSQL_DB_PATH && process.env.MYSQL_DB_PATH !== ":memory:" ? process.env.MYSQL_DB_PATH : "")
+    || process.env.DB_NAME 
+    || "my_app_dev";
+  const activeDbPath = (options.initialDbPath && options.initialDbPath !== ":memory:") ? options.initialDbPath : defaultDb;
   const title = "MySQL Studio Pro -- Enterprise Embedded Database Workstation";
 
   const app: MysqlStudioInstance = {
@@ -6240,7 +6254,7 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
       // This runs on a dedicated OS thread with its own independent Bun event loop,
       // guaranteeing zero deadlock and instant sub-millisecond responses while Webview runs on the main thread.
       process.env.STUDIO_WORKER = "mysql_studio";
-      if (activeDbPath) process.env.MYSQL_DB_PATH = activeDbPath;
+      if (activeDbPath && activeDbPath !== ":memory:") process.env.MYSQL_DB_PATH = activeDbPath;
 
       const customConfig: Partial<MysqlConnectionConfig> = options.config || {
         host: options.host,
@@ -6314,7 +6328,7 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
         const proc = Bun.spawn(serverArgs, {
           stdout: "pipe",
           stderr: "ignore",
-          env: { ...process.env, MYSQL_STUDIO_DB: activeDbPath || ":memory:" },
+          env: { ...process.env, MYSQL_STUDIO_DB: activeDbPath },
         });
         serverProc = proc;
 
@@ -6350,7 +6364,7 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
           const srv = startMysqlStudioServer({
             port: 0,
             host: "127.0.0.1",
-            initialDbPath: activeDbPath || ":memory:",
+            initialDbPath: activeDbPath,
             config: customConfig,
           });
           app.server = srv;
@@ -6444,7 +6458,9 @@ export { startMysqlStudioServer } from "./mysql_studio_server.ts";
 // -------------------------------------------------------------------------------------------------
 
 if (process.argv.includes("--server")) {
-  const initialDb = process.env.MYSQL_STUDIO_DB || ":memory:";
+  const initialDb = (process.env.MYSQL_STUDIO_DB && process.env.MYSQL_STUDIO_DB !== ":memory:")
+    ? process.env.MYSQL_STUDIO_DB
+    : (process.env.MSQL_NAME || process.env.MYSQL_DATABASE || process.env.MSQL_DB || process.env.DB_NAME || "my_app_dev");
   const srv = startMysqlStudioServer({
     port: 0,
     host: "127.0.0.1",
@@ -6453,7 +6469,10 @@ if (process.argv.includes("--server")) {
   console.log(`READY:${srv.port}`);
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const initialDb = process.argv[2] || ":memory:";
+  const argDb = process.argv[2];
+  const initialDb = (argDb && argDb !== ":memory:")
+    ? argDb
+    : (process.env.MSQL_NAME || process.env.MYSQL_DATABASE || process.env.MSQL_DB || process.env.DB_NAME || "my_app_dev");
   const app = createMysqlStudio({ initialDbPath: initialDb, fullscreen: true });
   await app.run();
   process.exit(0);

@@ -221,12 +221,16 @@ export class MysqlManager {
       : (process.env.MSQL_PASSWORD !== undefined 
           ? process.env.MSQL_PASSWORD 
           : (process.env.MYSQL_PASSWORD !== undefined ? process.env.MYSQL_PASSWORD : (process.env.DB_PASSWORD || "")));
+    if (overrideDb === ":memory:") overrideDb = "";
+    if (process.env.MYSQL_DB_PATH === ":memory:") delete process.env.MYSQL_DB_PATH;
+    if (process.env.MYSQL_STUDIO_DB === ":memory:") delete process.env.MYSQL_STUDIO_DB;
+
     let database = customConfig?.database 
-      || overrideDb 
+      || (overrideDb && overrideDb !== ":memory:" ? overrideDb : "")
       || process.env.MSQL_NAME 
-      || process.env.MSQL_DATABASE 
-      || process.env.MSQL_DB 
       || process.env.MYSQL_DATABASE 
+      || process.env.MSQL_DB 
+      || (process.env.MYSQL_DB_PATH && process.env.MYSQL_DB_PATH !== ":memory:" ? process.env.MYSQL_DB_PATH : "")
       || process.env.DB_NAME 
       || "my_app_dev";
     let tls = customConfig?.tls !== undefined 
@@ -721,7 +725,7 @@ export class MysqlManager {
 
     const t0 = performance.now();
     try {
-      const cleanSql = trimmed.replace(/^EXPLAIN\s+(ANALYZE\s+|FORMAT\s*=\s*\w+\s+)?/i, "");
+      const cleanSql = trimmed.replace(/^EXPLAIN\s+(ANALYZE\s+|FORMAT\s*=\s*\w+\s+)?/i, "").replace(/;+\s*$/, "").trim();
       const isSelect = /^\s*SELECT\b/i.test(cleanSql);
 
       let explainRows: any[] = [];
@@ -753,7 +757,11 @@ export class MysqlManager {
 
       // 3. Fall back to standard tabular EXPLAIN
       if (!rawText) {
-        explainRows = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql}`);
+        try {
+          explainRows = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql}`);
+        } catch (explainErr: any) {
+          return { success: false, error: explainErr?.message || "Explain execution failed" };
+        }
       }
 
       const latencyMs = Number((performance.now() - t0).toFixed(2));
@@ -1946,13 +1954,15 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
 
 if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "mysql_studio")) {
   const preferredPort = 0;
-  const initialDbPath = process.env.MYSQL_DB_PATH 
-    || process.env.MSQL_NAME 
+  const rawDb = process.env.MYSQL_DB_PATH;
+  const initialDbPath = (rawDb && rawDb !== ":memory:")
+    ? rawDb
+    : (process.env.MSQL_NAME 
     || process.env.MSQL_DATABASE 
     || process.env.MSQL_DB 
     || process.env.MYSQL_DATABASE 
     || process.env.DB_NAME 
-    || "my_app_dev";
+    || "my_app_dev");
   const server = startMysqlStudioServer({ port: preferredPort, initialDbPath });
 
   (globalThis as any).postMessage({
