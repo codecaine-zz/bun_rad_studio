@@ -24,6 +24,10 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-018 Importing a layout could corrupt the open form or fail silently (fixed)](#d-018)
 - [D-019 Button text was hard to read in many themes (fixed)](#d-019)
 - [D-020 Two tests passed only on the author's machine (fixed)](#d-020)
+- [D-021 A crafted layout could run code in an exported project (fixed)](#d-021)
+- [D-022 Exporting again silently overwrote the user's edits (fixed)](#d-022)
+- [D-023 Run only worked when the designer was started from the project folder (fixed)](#d-023)
+- [D-024 Preview and export insert control text as raw HTML](#d-024)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -184,3 +188,38 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Observed:** running `bun test` in a fresh `git clone` made in a folder called `ci_clone` failed two tests that passed in the working copy: `tests/launcher.test.ts` ("scopes exclusively to project repository tools") expected every application path to contain `/bun_rad_studio/`, so it only passed if the checkout folder had that name; `tests/mysql_manual_config.test.ts` (test 9) expected `hasPassword` to be true, which was only so because the untracked `.env` in the working copy holds a MySQL password.
 - **Fix:** the launcher test checks that paths start with the current folder; the MySQL test sets and restores a placeholder `MSQL_PASSWORD`. The MySQL file also passes with `.env` moved away.
 - **Why it matters:** both would have failed on the first run of the new [CI workflow](../testing/index.md#continuous-integration) (the first would not have, as GitHub's folder has the same name, but only by luck).
+
+<a id="d-021"></a>
+## D-021: A crafted layout could run code in an exported project (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `exportProjectHelper` and the **Run** preview in `index.ts` pasted the form's `title`, `width` and `height` (and control ids and event names, in log lines) straight into generated TypeScript. A layout with `"width": "400, hint: 0 }; globalThis.X = 1; //"` ran that code when the exported project started (reproduced on the old code). A title containing a quote, backslash or line break made the generated file fail to parse. Since [Import](#d-018) accepts pasted JSON, an untrusted layout was enough.
+- **Fix:** values go through `tsStringLiteral` (JSON string literal) and `safeDimension` (a positive whole number, else the default 800 by 600). The page title in the generated HTML is escaped.
+- **Behaviour change:** a width or height that is not a positive number now becomes 800 or 600 instead of being pasted in.
+- **Regression tests:** `tests/ide_html.test.ts` ("a crafted layout cannot inject code", seven attacks, run against the real generated app with a stand-in webview) and "Run: the live preview script".
+- **Not covered:** see [D-024](#d-024) for the generated HTML.
+
+<a id="d-022"></a>
+## D-022: Exporting again silently overwrote the user's edits (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** exporting into a folder that already held an export rewrote `index.html`, `index.ts` and `package.json`. The exported `index.ts` is meant to be edited (the generated handlers only log), so a second export destroyed that work without a word.
+- **Fix:** a file whose content would change is first renamed to `<name>.bak-<timestamp>`. An identical file is left alone. The result lists the backups and the designer's status line says how many were kept.
+- **Not changed:** the export folder is still `exported_project` in the current folder, chosen without asking.
+- **Tests:** `tests/ide_html.test.ts` ("Export keeps the user's edits").
+
+<a id="d-023"></a>
+## D-023: Run only worked when the designer was started from the project folder (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** the preview script written by **Run** imported the designer from `<current folder>/index.ts` and wrote `.rad_preview` into the current folder. Starting the designer from any other folder (for example through an installed `codecaine` command) made the preview fail to start. Found by a test that ran the preview from a temporary folder: `Cannot find module .../index.ts`.
+- **Fix:** it imports from the designer's own location (`import.meta.dir`). The preview folder `.rad_preview` is still created in the current folder.
+- **Verification:** a real preview process was started from an empty folder and stayed running (the window's contents were not inspected). Automated: `tests/ide_html.test.ts`.
+
+<a id="d-024"></a>
+## D-024: Preview and export insert control text as raw HTML
+
+- **Status:** Open (documented; not changed because some controls rely on it).
+- **Observed (source):** `generatePreviewHtml` in `index.ts` puts a control's `text` into the page without escaping (for example `<button>${text}</button>`, `value="${text}"`). The raw-HTML and rich-text controls need that. A layout imported from an untrusted source can therefore run script in the preview or exported window.
+- **Limits of the damage (source):** the page can call only the window bindings (`quitApp`, `closeWindow`, `openExternalUrl` and similar). `openExternalUrl` accepts only `http`, `https` and `mailto` links and starts them without a shell on macOS. The Windows branch (`cmd /c start`) was not assessed.
+- **Safe practice:** import only layouts you trust.

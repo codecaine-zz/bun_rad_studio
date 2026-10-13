@@ -1,6 +1,6 @@
 # Visual form designer (the IDE)
 
-> **Status: works in a browser rendering; the native window was not inspected.** Three defects made the designer unusable even after `bun start` was fixed: [D-001](../documentation-maintenance/discrepancies.md#d-001) (crash on start), [D-016](../documentation-maintenance/discrepancies.md#d-016) (the page's script was cut short, so nothing responded) and [D-017](../documentation-maintenance/discrepancies.md#d-017) (the Import, Keys and Audit dialogs and the status bar could not appear). All three are fixed. The checks below were made on **13 October 2026** by opening the exact page the designer loads (`getIdeHtml()`) in a browser on macOS and driving it. **Run** and **Export** talk to the native window and could not be used there. The Windows and Linux windows were not tested.
+> **Status: works.** Several defects made the designer unusable until 13 October 2026: [D-001](../documentation-maintenance/discrepancies.md#d-001) (crash on start), [D-016](../documentation-maintenance/discrepancies.md#d-016) (the page's script was cut short), [D-017](../documentation-maintenance/discrepancies.md#d-017) (dialogs could not appear) and [D-021](../documentation-maintenance/discrepancies.md#d-021) to [D-023](../documentation-maintenance/discrepancies.md#d-023) (export and Run). All are fixed. The checks below were made on macOS on **13 October 2026**, partly in a browser rendering of the exact page the designer loads and partly in the native window; each row says which. Windows and Linux were not tested.
 
 ## Contents
 
@@ -30,7 +30,10 @@ Checked in a browser rendering of the designer page, one item at a time (this is
 | **Audit** | Opens a dialog. With no problems it says "Perfect! No layout collisions or structural issues detected." Overlap, out-of-bounds, duplicate-id and empty-caption checks are in the source; only the "no issues" result was seen. |
 | **Import** | Accepts a JSON layout (see [Importing a layout](#importing-a-layout)). |
 | **New** | Clears the form without asking. The previous form is kept in the undo history (source); not tested. |
-| Keys dialog, right-click menu, **Run**, **Export**, **DB Wizard**, **Pin**, **Fullscreen**, drag to move and resize, theme list, alignment buttons | **Not checked.** |
+| Native window | `bun run index.ts` opens a window titled "Bun RAD Studio (Delphi/VB Style)" that shows the same interface as the browser rendering (seen once in a screenshot; no clicks were made in it). |
+| **Run** | Calls `runPreviewHelper`. Verified by running it: it writes `.rad_preview/preview.html` and `preview.ts` into the current folder and starts a separate process that stays running, also when the designer was started from another folder. The preview window's contents were **not** inspected. |
+| **Export** | Calls `exportProjectHelper` (button not clicked): writes `index.html`, `index.ts` and `package.json` into `exported_project` in the current folder; files that would change are first kept as `<name>.bak-<time>`. A one-button project builds and starts with the real webview. |
+| Keys dialog, right-click menu, **DB Wizard**, **Pin**, **Fullscreen**, drag to move and resize, theme list, alignment buttons | **Not checked.** (Button text colours in all 51 themes were checked by calculation, see [D-019](../documentation-maintenance/discrepancies.md#d-019).) |
 
 ### Importing a layout
 
@@ -69,15 +72,15 @@ So: **do not expect the designer to read or edit a real database.** Real databas
 
 `index.ts` contains `exportProjectHelper(specJson, customExportDir?)`. From reading the source it writes a project folder (`exported_project` in the current folder by default) containing `index.html` (the rendered form), an `index.ts` that opens the form in a Webview and registers simple placeholder handlers for named events, and a `package.json`. [API.md](../API.md) describes the same three files.
 
-Verified (by calling `exportProjectHelper` directly, not through the Export button): a one-button spec produced these three files, and the exported project builds and starts (automated in `tests/ide_html.test.ts`). Running it first exposed a syntax error in the generated `index.ts` helpers, now fixed ([D-011](../documentation-maintenance/discrepancies.md#d-011)). The **Export** button and larger forms were not run. The *Python*, *React* and *Vue 3* tabs are code views; whether they produce runnable projects has not been checked.
+Verified (by calling `exportProjectHelper` directly, not through the Export button): a one-button spec produced these three files, and the exported project builds and starts with the real webview (automated in `tests/ide_html.test.ts`, which also checks that a crafted layout cannot inject code, [D-021](../documentation-maintenance/discrepancies.md#d-021), and that edits are kept, [D-022](../documentation-maintenance/discrepancies.md#d-022)). Running it first exposed a syntax error in the generated `index.ts` helpers, now fixed ([D-011](../documentation-maintenance/discrepancies.md#d-011)). Larger forms were not exported. The *Python*, *React* and *Vue 3* tabs are code views; whether they produce runnable projects has not been checked.
 
 ## What is missing from this guide and why
 
 | Missing | Reason |
 |---|---|
-| Complete interface tour, menus, status messages | Only the items in [What was checked](#what-was-checked) were observed. |
+| Complete interface tour, menus, status messages | Only the items in [What was checked](#what-was-checked) were observed; no clicks were made in the native window. |
 | Per-control reference (properties, defaults, events, examples) | 95 controls; only Button, Label and Input were placed. The control list above is from the source. |
-| Run, Export, saving and reopening projects in the native window | Needs the native window; not checked. |
+| Saving and reopening a layout | The designer has no save or open command; the JSON tab and **Import** are the only ways to keep a layout (source). |
 | Keyboard shortcuts | Only Cmd+Z and Cmd+Shift+Z were tested. Tooltips mention others (F5, F11, Cmd+V, Cmd+D) that were not. |
 | Accessibility | Not assessed beyond one finding: button text contrast, fixed for all themes ([D-019](../documentation-maintenance/discrepancies.md#d-019)) |
 

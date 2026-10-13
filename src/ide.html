@@ -6469,8 +6469,10 @@ wv.bind("backendAlert", (msg: string) => {
 				}
 				if (data && data.success) {
 					const targetDir = data.dir || "exported_project";
-					if (statusMsg) statusMsg.textContent = "Project exported to: " + targetDir;
-					showCopyToast("Project successfully exported to " + targetDir);
+					const kept = Array.isArray(data.backups) ? data.backups.length : 0;
+					const note = kept ? " (" + kept + " existing file(s) that differed were kept as .bak-<time> copies)" : "";
+					if (statusMsg) statusMsg.textContent = "Project exported to: " + targetDir + note;
+					showCopyToast("Project successfully exported to " + targetDir + note);
 					switchTab("tabBunTS");
 				} else {
 					const err = (data && data.error) ? data.error : "Unknown export error";

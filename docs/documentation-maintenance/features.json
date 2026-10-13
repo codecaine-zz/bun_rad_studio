@@ -7,8 +7,8 @@
       "evidence": ["index.ts", "src/ide.html"],
       "page": "visual-designer/index.md",
       "implementation": "Partially implemented",
-      "verification": "Three defects were fixed (D-001 crash on start, D-016 script cut short, D-017 hidden dialogs). `bun run index.ts` starts and stays running (macOS, Bun 1.4.2). The designer page was driven in a browser rendering on 13 October 2026: place controls, edit properties, code tabs, undo/redo, Audit and Import. Run, Export and the native window were not checked. Automated: `tests/ide_html.test.ts`.",
-      "missing": "Run, Export, save/reopen, themes, drag and resize, Keys dialog and right-click menu not checked; full interface tour not written."
+      "verification": "Defects D-001, D-016, D-017, D-021, D-022, D-023 fixed. `bun run index.ts` opens the native window (seen once); the page was also driven in a browser rendering on 13 October 2026: place controls, edit properties, code tabs, undo/redo, Audit and Import. Run starts a separate preview process (contents not inspected); Export helper verified directly. Automated: `tests/ide_html.test.ts`.",
+      "missing": "Clicks in the native window, drag and resize, Keys dialog, right-click menu, DB Wizard not checked; full interface tour not written."
     },
     {
       "name": "Designer control palette (buttons, inputs, tables, panels, …)",
@@ -43,7 +43,7 @@
       "evidence": ["index.ts (exportProjectHelper, line ~983)", "src/ide.html (exportApp)"],
       "page": "generated-applications/index.md",
       "implementation": "Implemented but not verified",
-      "verification": "`exportProjectHelper` was run with a one-button spec: it wrote index.html, index.ts and package.json, and that project builds and starts (D-011 fixed). Automated in `tests/ide_html.test.ts`. The Export button in the designer UI and richer specs were not run.",
+      "verification": "`exportProjectHelper` and `runPreviewHelper` were run directly: files written, an exported one-button project builds and starts with the real webview, a crafted layout cannot inject code (D-021), re-export keeps edits (D-022), Run works from any folder (D-023). Automated in `tests/ide_html.test.ts`. The Export and Run buttons were not clicked.",
       "missing": "Export a larger form from the designer UI and record the result."
     },
     {

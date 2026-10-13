@@ -6,7 +6,7 @@ This page says what the project can generate today and what it cannot. It exists
 
 | Output | Where it comes from | Status |
 |---|---|---|
-| A Bun + Webview project (`index.html`, `index.ts`, `package.json`) | **Export** in the visual designer; `exportProjectHelper` in `index.ts` | Partly verified: `exportProjectHelper` writes the three files, and an exported one-button project builds and starts (automated in `tests/ide_html.test.ts`; a syntax error in the generated helpers was fixed, [D-011](../documentation-maintenance/discrepancies.md#d-011)). The designer's Export button and larger forms were not run. |
+| A Bun + Webview project (`index.html`, `index.ts`, `package.json`) | **Export** in the visual designer; `exportProjectHelper` in `index.ts` | Partly verified: `exportProjectHelper` writes the three files, an exported one-button project builds and starts with the real webview, a crafted layout cannot inject code ([D-021](../documentation-maintenance/discrepancies.md#d-021)) and re-exporting keeps your edits as `.bak-<time>` copies ([D-022](../documentation-maintenance/discrepancies.md#d-022)). Automated in `tests/ide_html.test.ts`. The designer's Export button was not clicked and larger forms were not exported. |
 | Code views (Bun TS, HTML, React, Vue 3, Python, JSON) | Tabs in the designer | Present in `src/ide.html`; **not verified**. |
 | Python, Bun and V code for macros and SQL | "Code" buttons in the SQLite, MySQL and PostgreSQL studios (`applications/studio_codegen.ts`) | Implemented and verified by automated tests (`tests/studio_codegen.test.ts`). The generated text is checked, **not executed**. It targets SQLite in all three studios. |
 

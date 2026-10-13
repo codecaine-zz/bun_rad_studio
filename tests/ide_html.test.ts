@@ -1,8 +1,8 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { join } from "path";
-import { mkdtempSync, readFileSync, rmSync } from "fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { getIdeHtml, exportProjectHelper } from "../index.ts";
+import { getIdeHtml, exportProjectHelper, runPreviewHelper, tsStringLiteral, safeDimension } from "../index.ts";
 
 const REPO_ROOT = join(import.meta.dir, "..");
 
@@ -238,5 +238,158 @@ export class Webview {
         for (const code of globalThis.__evals) {
             expect(() => new Function(code)).not.toThrow();
         }
+    });
+});
+
+describe("Exported project: a crafted layout cannot inject code", () => {
+    const dirs: string[] = [];
+    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+
+    test("tsStringLiteral and safeDimension", () => {
+        for (const text of ['plain', 'a"b', "a\\", "line\nbreak", "\u2028", "</script>", '"; evil(); //']) {
+            expect(eval(tsStringLiteral(text))).toBe(text);
+        }
+        expect(tsStringLiteral(undefined)).toBe('""');
+        expect(safeDimension(640, 800)).toBe(640);
+        expect(safeDimension("640", 800)).toBe(640);
+        for (const bad of ["400, x: 1", NaN, -5, 0, Infinity, null, undefined, {}, 1e9]) expect(safeDimension(bad, 800)).toBe(800);
+    });
+
+    const attacks: Record<string, any> = {
+        title: { title: 'x"; globalThis.PWNED_TITLE = 1; //' },
+        titleBackslash: { title: "x\\" },
+        titleNewline: { title: "a\nglobalThis.PWNED_NL = 1;\n//" },
+        width: { width: "400, hint: 0 }; globalThis.PWNED_WIDTH = 1; //" },
+        height: { height: "300 }; globalThis.PWNED_HEIGHT = 1; //" },
+        controlId: { controls: [{ id: 'a"+(globalThis.PWNED_ID=1)+"', control_type: "button", text: "b", event_handlers: { onClick: "doIt" } }] },
+        eventName: { controls: [{ id: "a", control_type: "button", text: "b", event_handlers: { 'onClick"+(globalThis.PWNED_EVT=1)+"': "doIt" } }] },
+    };
+
+    for (const [name, patch] of Object.entries(attacks)) {
+        test(`${name}: the exported app only treats it as data`, async () => {
+            const dir = mkdtempSync(join(tmpdir(), "rad-inject-"));
+            dirs.push(dir);
+            const spec = { title: "T", width: 400, height: 300, background_color: "#fff", font_color: "#000", padding: 10, spacing: 5, controls: [], ...patch };
+            expect(exportProjectHelper(JSON.stringify(spec), dir).success).toBe(true);
+            const fakeDir = join(dir, "node_modules", "webview-bun");
+            Bun.spawnSync(["mkdir", "-p", fakeDir]);
+            await Bun.write(join(fakeDir, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
+            await Bun.write(
+                join(fakeDir, "index.js"),
+                `export const SizeHint = { NONE: 0 };
+export class Webview {
+  constructor() { globalThis.__wv = this; this.binds = {}; }
+  setHTML() {} run() {} destroy() {} eval() {} navigate() {} init() {}
+  bind(name, fn) { this.binds[name] = fn; }
+}`,
+            );
+            const script = `await import(${JSON.stringify(join(dir, "index.ts"))});
+if (globalThis.__wv.binds.doIt) globalThis.__wv.binds.doIt("x");
+console.log(JSON.stringify({ title: globalThis.__wv.title, size: globalThis.__wv.size, pwned: Object.keys(globalThis).filter((k) => k.startsWith("PWNED")) }));`;
+            const r = Bun.spawnSync(["bun", "-e", script], { cwd: dir, stdout: "pipe", stderr: "pipe" });
+            const line = r.stdout.toString().split("\n").find((l) => l.startsWith("{"));
+            expect(line, r.stdout.toString() + r.stderr.toString()).toBeDefined();
+            const seen = JSON.parse(line!);
+            expect(seen.pwned).toEqual([]);
+            if ("title" in patch) expect(seen.title).toBe(patch.title);
+            if ("width" in patch) expect(seen.size.width).toBe(800);
+            if ("height" in patch) expect(seen.size.height).toBe(600);
+        });
+    }
+});
+
+describe("Export keeps the user's edits", () => {
+    const dirs: string[] = [];
+    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+    const spec = (title: string) => JSON.stringify({ title, width: 400, height: 300, background_color: "#fff", font_color: "#000", padding: 10, spacing: 5, controls: [] });
+    const fresh = () => {
+        const d = mkdtempSync(join(tmpdir(), "rad-backup-"));
+        dirs.push(d);
+        return d;
+    };
+
+    test("a first export creates no backups", () => {
+        const dir = fresh();
+        const r = exportProjectHelper(spec("A"), dir);
+        expect(r.success).toBe(true);
+        expect(r.backups).toEqual([]);
+        expect(readdirSync(dir).sort()).toEqual(["index.html", "index.ts", "package.json"]);
+    });
+
+    test("exporting the same layout again changes nothing and creates no backups", () => {
+        const dir = fresh();
+        exportProjectHelper(spec("A"), dir);
+        const r = exportProjectHelper(spec("A"), dir);
+        expect(r.backups).toEqual([]);
+        expect(readdirSync(dir).length).toBe(3);
+    });
+
+    test("a file the user edited is kept as a backup before it is replaced", () => {
+        const dir = fresh();
+        exportProjectHelper(spec("A"), dir);
+        writeFileSync(join(dir, "index.ts"), "// my own handler code\n");
+        const r = exportProjectHelper(spec("A"), dir);
+        expect(r.success).toBe(true);
+        expect(r.backups!.length).toBe(1);
+        expect(readFileSync(r.backups![0]!, "utf-8")).toBe("// my own handler code\n");
+        expect(readFileSync(join(dir, "index.ts"), "utf-8")).toContain("webview-bun");
+    });
+
+    test("a changed layout keeps the previous generated files too", () => {
+        const dir = fresh();
+        exportProjectHelper(spec("First"), dir);
+        const r = exportProjectHelper(spec("Second"), dir);
+        expect(r.backups!.length).toBeGreaterThanOrEqual(2);
+        expect(readFileSync(join(dir, "index.html"), "utf-8")).toContain("Second");
+    });
+});
+
+describe("Run: the live preview script", () => {
+    const dirs: string[] = [];
+    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+    const make = (patch: object = {}) => {
+        const cwd = mkdtempSync(join(tmpdir(), "rad-preview-"));
+        dirs.push(cwd);
+        const spec = { title: "Preview me", width: 420, height: 310, background_color: "#fff", font_color: "#000", padding: 10, spacing: 5, controls: [], ...patch };
+        const result = runPreviewHelper(JSON.stringify(spec), { cwd, start: false });
+        return { cwd, result };
+    };
+
+    test("writes preview.html and preview.ts into .rad_preview of the given folder", () => {
+        const { cwd, result } = make();
+        expect(result.success).toBe(true);
+        expect(readdirSync(join(cwd, ".rad_preview")).sort()).toEqual(["preview.html", "preview.ts"]);
+        expect(readFileSync(join(cwd, ".rad_preview", "preview.ts"), "utf-8")).toContain("Preview me - Live Preview");
+    });
+
+    test("the script is valid TypeScript, also for hostile titles and sizes", () => {
+        for (const patch of [{}, { title: 'x"; globalThis.PWNED = 1; //' }, { title: "x\\" }, { title: "a\nb" }, { width: "1, y: 2 }; evil(); //", height: "5)" }]) {
+            const { cwd, result } = make(patch);
+            expect(result.success).toBe(true);
+            const src = readFileSync(join(cwd, ".rad_preview", "preview.ts"), "utf-8");
+            expect(() => new Bun.Transpiler({ loader: "ts" }).transformSync(src)).not.toThrow();
+            expect(src).not.toContain("evil()\n");
+        }
+    });
+
+    test("invalid JSON is reported, not thrown", () => {
+        const cwd = mkdtempSync(join(tmpdir(), "rad-preview-"));
+        dirs.push(cwd);
+        const result = runPreviewHelper("{ nope", { cwd, start: false });
+        expect(result.success).toBe(false);
+        expect(result.error).toBeTruthy();
+    });
+
+    test("a real preview process starts and stays up (no window is shown by the test runner's fake)", async () => {
+        const { cwd } = make({ title: "Real start" });
+        const dir = join(cwd, ".rad_preview");
+        // Same script, but with a stand-in webview so the test needs no window system.
+        const fake = join(dir, "node_modules", "webview-bun");
+        Bun.spawnSync(["mkdir", "-p", fake]);
+        await Bun.write(join(fake, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
+        await Bun.write(join(fake, "index.js"), `export const SizeHint = { NONE: 0 };
+export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("RUNNING:" + this.title + ":" + this.size.width + "x" + this.size.height); } }`);
+        const r = Bun.spawnSync(["bun", "run", join(dir, "preview.ts")], { cwd, stdout: "pipe", stderr: "pipe" });
+        expect(r.stdout.toString() + r.stderr.toString()).toContain("RUNNING:Real start - Live Preview:420x310");
     });
 });

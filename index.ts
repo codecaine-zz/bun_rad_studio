@@ -1,5 +1,5 @@
 import { SizeHint, Webview } from "webview-bun";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import { join } from "path";
 import { dlopen, FFIType } from "bun:ffi";
@@ -979,6 +979,31 @@ export function getIdeHtml(): string {
     return `<!DOCTYPE html><html><body style="background:#0f172a;color:#e2e8f0;font-family:system-ui;padding:20px;"><h1>Bun RAD Studio IDE</h1></body></html>`;
 }
 
+/** A value as a TypeScript string literal, safe to paste into generated source (quotes, backslashes, newlines). */
+export function tsStringLiteral(value: unknown): string {
+    return JSON.stringify(String(value ?? "")).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+}
+
+/** A positive whole number for generated source, or the fallback when the value is not one. */
+export function safeDimension(value: unknown, fallback: number): number {
+    const n = Math.round(Number(value));
+    return Number.isFinite(n) && n > 0 && n <= 100000 ? n : fallback;
+}
+
+/**
+ * Writes a generated file. When the file already exists with different content (for example the user edited the
+ * exported index.ts), the old copy is kept as `<name>.bak-<timestamp>` first. Returns the backup path, if any.
+ */
+export function writeGeneratedFile(path: string, content: string): string | null {
+    let backup: string | null = null;
+    if (existsSync(path) && readFileSync(path, "utf-8") !== content) {
+        backup = `${path}.bak-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+        renameSync(path, backup);
+    }
+    writeFileSync(path, content);
+    return backup;
+}
+
 // Helper function for exporting project structure
 export function exportProjectHelper(specJson: string, customExportDir?: string) {
     try {
@@ -987,7 +1012,9 @@ export function exportProjectHelper(specJson: string, customExportDir?: string) 
         mkdirSync(exportDir, { recursive: true });
         
         const previewHtml = generatePreviewHtml(spec);
-        writeFileSync(join(exportDir, "index.html"), previewHtml);
+        const backups: string[] = [];
+        const keep = (b: string | null) => { if (b) backups.push(b); };
+        keep(writeGeneratedFile(join(exportDir, "index.html"), previewHtml));
 
         let boundMethods: string[] = [];
         let customHandlers: { name: string, ctrlId: string, type: string, evt: string }[] = [];
@@ -1012,8 +1039,8 @@ export function exportProjectHelper(specJson: string, customExportDir?: string) 
             handlersCode += '// 🔌 RAD COMPONENT EVENT HANDLERS (' + customHandlers.length + ' active binding(s))\n';
             handlersCode += '// ==========================================\n';
             customHandlers.forEach(h => {
-                handlersCode += 'wv.bind("' + h.name + '", (data?: any) => {\n';
-                handlersCode += '    console.log("⚡ RAD Event [' + h.evt + '] on #' + h.ctrlId + ' (' + h.type + '):", data || "");\n';
+                handlersCode += 'wv.bind(' + tsStringLiteral(h.name) + ', (data?: any) => {\n';
+                handlersCode += '    console.log(' + tsStringLiteral('⚡ RAD Event [' + h.evt + '] on #' + h.ctrlId + ' (' + h.type + '):') + ', data || "");\n';
                 if (h.evt === "onChange" || h.evt === "onInput") {
                     handlersCode += '    return { success: true, value: data };\n';
                 } else {
@@ -1030,8 +1057,8 @@ import { join } from "path";
 
 // Initialize Webview Window
 const wv = new Webview();
-wv.title = "${spec.title || 'Exported App'}";
-wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
+wv.title = ${tsStringLiteral(spec.title || 'Exported App')};
+wv.size = { width: ${safeDimension(spec.width, 800)}, height: ${safeDimension(spec.height, 600)}, hint: SizeHint.NONE };
 
 // Load HTML UI Spec
 const html = readFileSync(join(import.meta.dir, "index.html"), "utf-8");
@@ -1269,10 +1296,10 @@ wv.bind("centerWindow", () => {
     console.log("⚡ Window Lifecycle: Center window");
 });
 ${handlersCode}
-console.log("🚀 Starting Bun RAD Studio App: ${spec.title || 'Exported App'}...");
+console.log(${tsStringLiteral("🚀 Starting Bun RAD Studio App: " + (spec.title || 'Exported App') + "...")});
 wv.run();
         `;
-        writeFileSync(join(exportDir, "index.ts"), appTs.trim());
+        keep(writeGeneratedFile(join(exportDir, "index.ts"), appTs.trim()));
 
         const pkgJson = {
             name: "exported-rad-project",
@@ -1284,10 +1311,64 @@ wv.run();
                 "webview-bun": "^2.4.0"
             }
         };
-        writeFileSync(join(exportDir, "package.json"), JSON.stringify(pkgJson, null, 2));
+        keep(writeGeneratedFile(join(exportDir, "package.json"), JSON.stringify(pkgJson, null, 2)));
 
-        return { success: true, dir: exportDir };
+        return { success: true, dir: exportDir, backups };
     } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Writes a live-preview window script for a form spec into `<cwd>/.rad_preview` and starts it in its own process
+ * (the designer's Run button). `start: false` only writes the files, which is what the tests use.
+ */
+export function runPreviewHelper(specJson: string, options: { cwd?: string; start?: boolean } = {}) {
+    const cwd = options.cwd ?? process.cwd();
+    try {
+            const spec = JSON.parse(specJson);
+            const tempDir = join(cwd, ".rad_preview");
+            mkdirSync(tempDir, { recursive: true });
+
+            const previewHtml = generatePreviewHtml(spec);
+            writeFileSync(join(tempDir, "preview.html"), previewHtml);
+
+            const previewTitle = tsStringLiteral((spec.title || "Preview") + " - Live Preview");
+            const previewTs = `
+import { SizeHint, Webview } from "webview-bun";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { attachWindowShortcuts } from ${tsStringLiteral(join(import.meta.dir, "index.ts"))};
+
+const html = readFileSync(join(import.meta.dir, "preview.html"), "utf-8");
+const wv = new Webview();
+attachWindowShortcuts(wv);
+wv.setHTML(html);
+wv.title = ${previewTitle};
+wv.size = { width: ${safeDimension(spec.width, 800)}, height: ${safeDimension(spec.height, 600)}, hint: SizeHint.NONE };
+
+wv.bind("backendAlert", (msg: string) => {
+    console.log("Backend alert:", msg);
+});
+
+wv.run();
+            `;
+            const previewTsPath = join(tempDir, "preview.ts");
+            writeFileSync(previewTsPath, previewTs);
+
+            if (options.start !== false) {
+                const bunBin = process.execPath || "bun";
+                const proc = spawn(bunBin, ["run", previewTsPath], {
+                    cwd: cwd,
+                    stdio: "ignore",
+                    detached: true
+                });
+                proc.unref();
+            }
+
+        return { success: true, previewTsPath };
+    } catch (err: any) {
+        console.error("Preview failed:", err);
         return { success: false, error: err.message };
     }
 }
@@ -1314,52 +1395,7 @@ if (import.meta.main) {
         } catch (e) {}
     }
 
-    webview.bind("runPreview", (specJson: string) => {
-        try {
-            const spec = JSON.parse(specJson);
-            const tempDir = join(process.cwd(), ".rad_preview");
-            mkdirSync(tempDir, { recursive: true });
-
-            const previewHtml = generatePreviewHtml(spec);
-            writeFileSync(join(tempDir, "preview.html"), previewHtml);
-
-            const safeTitle = (spec.title || "Preview").replace(/"/g, '\\"');
-            const previewTs = `
-import { SizeHint, Webview } from "webview-bun";
-import { readFileSync } from "fs";
-import { join } from "path";
-import { attachWindowShortcuts } from "${join(process.cwd(), "index.ts")}";
-
-const html = readFileSync(join(import.meta.dir, "preview.html"), "utf-8");
-const wv = new Webview();
-attachWindowShortcuts(wv);
-wv.setHTML(html);
-wv.title = "${safeTitle} - Live Preview";
-wv.size = { width: ${spec.width || 800}, height: ${spec.height || 600}, hint: SizeHint.NONE };
-
-wv.bind("backendAlert", (msg: string) => {
-    console.log("Backend alert:", msg);
-});
-
-wv.run();
-            `;
-            const previewTsPath = join(tempDir, "preview.ts");
-            writeFileSync(previewTsPath, previewTs);
-
-            const bunBin = process.execPath || "bun";
-            const proc = spawn(bunBin, ["run", previewTsPath], {
-                cwd: process.cwd(),
-                stdio: "ignore",
-                detached: true
-            });
-            proc.unref();
-
-            return { success: true };
-        } catch (err: any) {
-            console.error("Preview failed:", err);
-            return { success: false, error: err.message };
-        }
-    });
+    webview.bind("runPreview", (specJson: string) => runPreviewHelper(specJson));
 
     webview.bind("exportProject", (specJson: string) => {
         return exportProjectHelper(specJson);
@@ -3258,7 +3294,7 @@ export function generatePreviewHtml(spec: any): string {
 <html>
 <head>
 <meta charset="utf-8">
-<title>${spec.title || 'Preview'}</title>
+<title>${String(spec.title || 'Preview').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   :root {
