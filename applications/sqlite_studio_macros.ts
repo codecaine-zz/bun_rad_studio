@@ -1154,6 +1154,77 @@ export const MACRO_STYLE = `
       white-space: pre-wrap;
     }
 
+    /* Shared layout for every macro dialog (independent of host modal styles) */
+    .macro-modal .modal-card {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-height: 88vh;
+      overflow: hidden;
+      animation: macroDlgIn 0.12s ease-out;
+    }
+    @keyframes macroDlgIn {
+      from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+      to { opacity: 1; transform: none; }
+    }
+    .macro-modal .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+    }
+    .macro-modal .modal-header .sidebar-mini-btn {
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .macro-modal .modal-body {
+      padding: 16px;
+      overflow: auto;
+    }
+    .macro-modal .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+      background: rgba(0, 0, 0, 0.25);
+    }
+    .macro-modal .modal-footer .btn {
+      min-width: 84px;
+      justify-content: center;
+    }
+    .macro-modal textarea { box-sizing: border-box; resize: vertical; }
+
+    #macroDialogModal .modal-card { max-width: 440px; }
+    .macro-dlg-msg {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-main);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .macro-dlg-input {
+      box-sizing: border-box;
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text-main);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
+      border-radius: 6px;
+      outline: none;
+    }
+    .macro-dlg-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25); }
+
     /* Object Tree Macro Group Styling */
     .tree-item-macro-run {
       opacity: 0;
@@ -1342,7 +1413,7 @@ export const MACRO_HTML = `
         </div>
 
   <!-- Microsoft Access Macro Single Step Debugger Modal -->
-  <div class="modal-overlay" id="macroSingleStepModal" style="display: none; z-index: 10050;">
+  <div class="modal-overlay macro-modal" id="macroSingleStepModal" style="display: none; z-index: 10050;">
     <div class="modal-card">
       <div class="modal-header" style="background: rgba(245, 158, 11, 0.12); border-bottom: 1px solid var(--amber);">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -1373,16 +1444,16 @@ export const MACRO_HTML = `
           <span class="single-step-val" style="color: var(--emerald);">Ready to execute action</span>
         </div>
       </div>
-      <div class="modal-footer" style="background: rgba(0,0,0,0.3); justify-content: flex-end; gap: 8px;">
-        <button class="btn btn-primary" id="btnSingleStepNext" onclick="onSingleStepNext()" style="background: var(--amber); border-color: var(--amber); color: #000; font-weight: 700;">Step ▶</button>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="btnSingleStepHalt" onclick="onSingleStepHalt()" title="Stop macro execution immediately (Esc)">Halt ⏹️</button>
         <button class="btn" id="btnSingleStepContinue" onclick="onSingleStepContinue()" title="Execute remaining actions without pausing">Continue ⏩</button>
-        <button class="btn btn-danger" id="btnSingleStepHalt" onclick="onSingleStepHalt()" title="Stop macro execution immediately">Halt ⏹️</button>
+        <button class="btn btn-primary" id="btnSingleStepNext" onclick="onSingleStepNext()" title="Run this action (Enter)" style="background: var(--amber); border-color: var(--amber); color: #000; font-weight: 700;">Step ▶</button>
       </div>
     </div>
   </div>
 
   <!-- Microsoft Access Message Box Modal -->
-  <div class="modal-overlay" id="macroMsgBoxModal" style="display: none; z-index: 10060;">
+  <div class="modal-overlay macro-modal" id="macroMsgBoxModal" style="display: none; z-index: 10060;">
     <div class="modal-card">
       <div class="modal-header">
         <span id="msgBoxTitle" style="font-weight: 700; color: var(--text-main);">Microsoft Access</span>
@@ -1392,14 +1463,32 @@ export const MACRO_HTML = `
         <div class="msgbox-icon" id="msgBoxIcon">ℹ️</div>
         <div class="msgbox-text" id="msgBoxText">Message text goes here...</div>
       </div>
-      <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
+      <div class="modal-footer">
         <button class="btn btn-primary" id="msgBoxBtnOk" onclick="closeMacroMsgBox(true)">OK</button>
       </div>
     </div>
   </div>
 
+  <!-- Generic macro dialog: message / input prompt / confirmation -->
+  <div class="modal-overlay macro-modal" id="macroDialogModal" style="display: none; z-index: 10070;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="macroDlgTitle" style="font-weight: 700; color: var(--text-main);">Confirm</span>
+        <button class="sidebar-mini-btn" onclick="macroDialogClose(false)" title="Close (Esc)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="macro-dlg-msg" id="macroDlgMsg"></div>
+        <input type="text" class="macro-dlg-input" id="macroDlgInput" style="display: none;" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="macroDlgCancel" onclick="macroDialogClose(false)">Cancel</button>
+        <button class="btn btn-primary" id="macroDlgOk" onclick="macroDialogClose(true)">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Macro JSON Import / Export Modal -->
-  <div class="modal-overlay" id="macroJsonModal" style="display: none; z-index: 10040;">
+  <div class="modal-overlay macro-modal" id="macroJsonModal" style="display: none; z-index: 10040;">
     <div class="modal-card" style="max-width: 640px;">
       <div class="modal-header">
         <span id="macroJsonModalTitle" style="font-weight: 700;">Macro JSON Definition</span>
@@ -1408,10 +1497,10 @@ export const MACRO_HTML = `
       <div class="modal-body" style="padding: 14px;">
         <textarea id="macroJsonTextArea" style="width: 100%; height: 260px; background: rgba(0,0,0,0.4); color: var(--cyan); font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px; outline: none;"></textarea>
       </div>
-      <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
+      <div class="modal-footer">
         <button class="btn" onclick="copyMacroJsonToClipboard()">📋 Copy</button>
-        <button class="btn btn-primary" id="btnMacroJsonAction" onclick="submitMacroJsonAction()">Save / Import</button>
         <button class="btn" onclick="closeMacroJsonModal()">Close</button>
+        <button class="btn btn-primary" id="btnMacroJsonAction" onclick="submitMacroJsonAction()">Save / Import</button>
       </div>
     </div>
   </div>
@@ -1850,7 +1939,7 @@ function openQueryInVisualDesigner(queryName) {
 }
 
 async function deleteNamedQueryById(idOrName) {
-  if (!confirm("Are you sure you want to delete query '" + idOrName + "'?")) return;
+  if (!(await macroAskConfirm("Delete query", "Delete saved query '" + idOrName + "'? This cannot be undone.", "Delete", true))) return;
   try {
     const res = await apiRequest('/api/queries/delete', { id: idOrName });
     if (res && res.success) {
@@ -1988,7 +2077,7 @@ async function saveCurrentMacro() {
 
 async function deleteCurrentMacro() {
   if (!currentMacro) return;
-  if (!confirm("Are you sure you want to delete macro '" + currentMacro.name + "'?")) return;
+  if (!(await macroAskConfirm("Delete macro", "Delete macro '" + currentMacro.name + "'? This cannot be undone.", "Delete", true))) return;
 
   try {
     await apiRequest('/api/macros/delete', { id: currentMacro.id, name: currentMacro.name });
@@ -3142,7 +3231,7 @@ async function resolveMacroSqlParams(sql) {
   const names = extractPromptParams(sql);
   for (const name of names) {
     if (!(name in macroParamCache)) {
-      const answer = window.prompt(name.replace(/^Enter\\s+/i, "Enter ") + ":", "");
+      const answer = await macroAskInput("Enter Parameter Value", name, "");
       if (answer === null) throw new Error("Parameter prompt cancelled: [" + name + "]");
       macroParamCache[name] = answer;
     }
@@ -3174,7 +3263,7 @@ async function runCurrentMacro(forceSingleStep = false) {
       showToast("Macro has " + errs.length + " validation error(s) - see the log.");
       return;
     }
-    if (warns.length && !confirm("Warnings:\\n" + warns.map(i => "- step " + i.stepIndex + ": " + i.message).join("\\n") + "\\n\\nRun anyway?")) {
+    if (warns.length && !(await macroAskConfirm("Review before running", warns.map(i => "• Step " + i.stepIndex + ": " + i.message).join("\\n") + "\\n\\nRun anyway?", "Run anyway"))) {
       return;
     }
   } catch (e) {}
@@ -3266,7 +3355,7 @@ async function runMacroSteps(macro) {
         clearStepRowHighlight(action.id);
         break;
       }
-      if (isStepping && !confirm("Step failed: " + err.message + "\\n\\nContinue executing remaining steps?")) {
+      if (isStepping && !(await macroAskConfirm("Step failed", err.message + "\\n\\nContinue executing remaining steps?", "Continue"))) {
         stats.aborted = true;
         clearStepRowHighlight(action.id);
         break;
@@ -3301,7 +3390,7 @@ async function runCurrentMacroOnServer(mode) {
     for (const sql of sqls) {
       for (const name of extractPromptParams(sql)) {
         if (name in params) continue;
-        const answer = window.prompt(name + ":", "");
+        const answer = await macroAskInput("Enter Parameter Value", name, "");
         if (answer === null) { showToast("Run cancelled."); return; }
         params[name] = answer;
       }
@@ -3756,6 +3845,7 @@ function promptSingleStepDialog(macroName, action, stepNum, totalSteps) {
     document.getElementById("stepArgumentsVal").textContent = JSON.stringify(action.parameters || {});
 
     modal.style.display = "flex";
+    setTimeout(() => { const b = document.getElementById("btnSingleStepNext"); if (b) b.focus(); }, 0);
   });
 }
 
@@ -3815,6 +3905,7 @@ function openMacroMsgBox(opts) {
     }
 
     modal.style.display = "flex";
+    setTimeout(() => { const ok = document.getElementById("msgBoxBtnOk"); if (ok) ok.focus(); }, 0);
   });
 }
 
@@ -3826,6 +3917,95 @@ function closeMacroMsgBox() {
     msgBoxResolve = null;
   }
 }
+
+// -------------------------------------------------------------------------------------------------
+// Generic dialogs (replace native prompt / confirm / alert) + keyboard handling
+// -------------------------------------------------------------------------------------------------
+let macroDlgResolve = null;
+let macroDlgWantsInput = false;
+
+// opts: { title, message, input: string | null (default value => show a text box), okLabel, cancelLabel, danger, hideCancel }
+function macroDialog(opts) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("macroDialogModal");
+    if (!modal) {
+      if (opts.input !== undefined && opts.input !== null) return resolve(window.prompt(opts.message || "", opts.input));
+      return resolve(opts.hideCancel ? true : window.confirm(opts.message || ""));
+    }
+    if (macroDlgResolve) macroDialogClose(false);
+    macroDlgResolve = resolve;
+    macroDlgWantsInput = opts.input !== undefined && opts.input !== null;
+
+    document.getElementById("macroDlgTitle").textContent = opts.title || "Confirm";
+    document.getElementById("macroDlgMsg").textContent = opts.message || "";
+    const input = document.getElementById("macroDlgInput");
+    input.style.display = macroDlgWantsInput ? "block" : "none";
+    input.value = macroDlgWantsInput ? String(opts.input) : "";
+    const ok = document.getElementById("macroDlgOk");
+    ok.textContent = opts.okLabel || "OK";
+    ok.classList.toggle("btn-danger", Boolean(opts.danger));
+    ok.classList.toggle("btn-primary", !opts.danger);
+    const cancel = document.getElementById("macroDlgCancel");
+    cancel.textContent = opts.cancelLabel || "Cancel";
+    cancel.style.display = opts.hideCancel ? "none" : "";
+
+    modal.style.display = "flex";
+    setTimeout(() => { (macroDlgWantsInput ? input : ok).focus(); if (macroDlgWantsInput) input.select(); }, 0);
+  });
+}
+
+function macroDialogClose(accepted) {
+  const modal = document.getElementById("macroDialogModal");
+  if (modal) modal.style.display = "none";
+  const resolve = macroDlgResolve;
+  macroDlgResolve = null;
+  if (!resolve) return;
+  if (macroDlgWantsInput) resolve(accepted ? document.getElementById("macroDlgInput").value : null);
+  else resolve(Boolean(accepted));
+}
+
+function macroAskInput(title, label, defaultValue) {
+  return macroDialog({ title: title, message: label, input: defaultValue || "", okLabel: "OK" });
+}
+
+function macroAskConfirm(title, message, okLabel, danger) {
+  return macroDialog({ title: title, message: message, okLabel: okLabel || "OK", danger: Boolean(danger) });
+}
+
+function macroAlert(title, message) {
+  return macroDialog({ title: title, message: message, okLabel: "OK", hideCancel: true });
+}
+
+function macroModalVisible(id) {
+  const el = document.getElementById(id);
+  return Boolean(el) && el.style.display !== "none" && el.style.display !== "";
+}
+
+// Enter = default (right-most) button, Esc = cancel, for whichever macro dialog is on top.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== "Escape") return;
+  const typingInTextarea = e.target && e.target.tagName === "TEXTAREA";
+  const swallow = () => { e.preventDefault(); e.stopPropagation(); };
+
+  if (macroModalVisible("macroDialogModal")) {
+    swallow();
+    macroDialogClose(e.key === "Enter");
+  } else if (macroModalVisible("macroMsgBoxModal")) {
+    swallow();
+    closeMacroMsgBox();
+  } else if (macroModalVisible("macroSingleStepModal")) {
+    swallow();
+    if (e.key === "Enter") onSingleStepNext(); else onSingleStepHalt();
+  } else if (macroModalVisible("macroJsonModal") && e.key === "Escape" && !typingInTextarea) {
+    swallow();
+    closeMacroJsonModal();
+  }
+}, true);
+
+document.addEventListener("mousedown", (e) => {
+  if (e.target && e.target.id === "macroJsonModal") closeMacroJsonModal();
+  if (e.target && e.target.id === "macroDialogModal") macroDialogClose(false);
+});
 
 // -------------------------------------------------------------------------------------------------
 // Macro Console Logging
@@ -3999,7 +4179,7 @@ function openMacroImportDialog() {
       closeMacroJsonModal();
       showToast("Imported macro: " + parsed.name);
     } catch (err) {
-      alert("Import error: " + err.message);
+      macroAlert("Import error", err.message);
     }
   };
 

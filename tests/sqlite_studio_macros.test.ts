@@ -706,7 +706,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
 
   it("21. Designer exposes the new controls", async () => {
     const html = await (await fetch(`${baseUrl}/`)).text();
-    for (const token of ["btnDryRun", "btnAtomicRun", "macroOnErrorSelect", "duplicateCurrentMacro", "runMacroSteps", "extractPromptParams", "resolveMacroSqlParams"]) {
+    for (const token of ["btnDryRun", "btnAtomicRun", "macroOnErrorSelect", "duplicateCurrentMacro", "runMacroSteps", "extractPromptParams", "resolveMacroSqlParams", "macroDialogModal", "macroAskConfirm", "macro-modal"]) {
       expect(html).toContain(token);
     }
   });
