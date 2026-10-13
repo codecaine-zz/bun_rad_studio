@@ -8,11 +8,32 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](docs/API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 ---
 
 ## 🚀 Quick Start: Clone, Install & Launch
+
+### 🍺 Install Codecaine Utility Suite with Homebrew (macOS & Linux)
+
+Install and expose all 170+ applications and CLI tools directly on your system `$PATH`:
+
+```bash
+# 1. 1-Click Homebrew setup (symlinks all 140+ tools into Homebrew bin):
+./install_homebrew_suite.sh
+
+# 2. Or install via Homebrew Formula:
+brew install --build-from-source ./Formula/codecaine-utility-suite.rb
+
+# 3. Test the master executable anywhere in your terminal:
+codecaine --version
+codecaine list
+codecaine run database --db :memory: --query "SELECT 'Hello from Codecaine!' as msg"
+```
+
+> 📘 *See the full [Homebrew Suite Guide (docs/HOMEBREW_SUITE_GUIDE.md)](docs/HOMEBREW_SUITE_GUIDE.md) for tap instructions, Linux WebKitGTK prerequisites, and complete binary reference.*
+
+### 🛠️ Standard Repository Quick Start
 
 First thing when cloning this repository from GitHub, run `bun install` to install all dependencies, then launch the project workstation:
 
@@ -22,7 +43,7 @@ git clone https://github.com/codecaine-zz/bun_rad_studio.git
 cd bun_rad_studio
 bun install
 
-# 2. Open the Unified Project Workstation Launcher (169+ Tools Auto-Detected)
+# 2. Open the Unified Project Workstation Launcher (170+ Tools Auto-Detected)
 bun run app:launcher
 
 # 🛠️ Or search & run from Terminal (CLI Companion)

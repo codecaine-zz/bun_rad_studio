@@ -176,6 +176,13 @@
     "screenshots": "bun run scripts/capture_app_screenshots.ts",
     "brew:install": "./install_homebrew_dependencies.sh",
     "brew:check": "brew bundle check --file ./Brewfile",
+    "brew:suite": "./install_homebrew_suite.sh",
+    "brew:link": "./install_homebrew_suite.sh --link",
+    "brew:unlink": "./install_homebrew_suite.sh --unlink",
+    "brew:doctor": "./install_homebrew_suite.sh --doctor",
+    "generate:wrappers": "bun run scripts/generate_brew_suite.ts",
+    "codecaine": "bun run cli_apps/codecaine_suite_cli.ts",
+    "cli:codecaine": "bun run cli_apps/codecaine_suite_cli.ts",
     "deps:check": "bun run scripts/install_dependencies.ts",
     "deps:install": "bun run scripts/install_dependencies.ts --install"
   },
