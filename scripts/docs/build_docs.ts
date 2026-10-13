@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import { basename, dirname, join, relative } from "path";
 import { DOCS, ROOT, loadNav } from "./check_docs";
+import { isHeadless } from "../app_status";
 
 /**
  * Generates the parts of the handbook that must never drift from the code:
@@ -91,16 +92,18 @@ export async function renderAll(): Promise<Record<string, string>> {
   // ---------------- application index ----------------
   let idx = `# Application index\n\n${NOTICE}\n\nEvery tool that the launcher detects in this repository (\`bun run cli:launcher --list\`). **${rows.length} tools**: ${counts.rad_studio} studios (windowed apps), ${counts.cli_tool} command-line tools and ${counts.rad_demo} demos.\n\n`;
   idx += "The launcher does **not** list itself (`applications/launcher_studio.ts`, [guide](../getting-started/install-and-first-launch.md#step-5-open-the-launcher)) and hides helper files whose names contain `_server.`, `_crud.`, `_engine.` or `_ops.`; so the visual designer (`index.ts`) and the launcher are not in this table either.\n\n";
-  idx += "The *Launch command* column is the command the launcher itself uses; *Short name* is a `package.json` script, when one exists. A launch command being listed does **not** mean the tool was run for this handbook: see the [coverage matrix](../documentation-maintenance/coverage-matrix.md) for what was verified. Descriptions come from the launcher's built-in list or the file's own header comment; \"(none in source)\" means the code has no description.\n\n";
+  idx += "The *Automated start check* column (studios only) is what `tests/applications_smoke.test.ts` verifies on every test run: either the studio starts headless with `--server` and answers `GET /` with an HTML page, or its module loads in a fresh process without error. **It never checks the native window or any feature inside the studio.** The *Launch command* column is the command the launcher itself uses; *Short name* is a `package.json` script, when one exists. A launch command being listed does **not** mean the tool was run for this handbook: see the [coverage matrix](../documentation-maintenance/coverage-matrix.md) for what was verified. Descriptions come from the launcher's built-in list or the file's own header comment; \"(none in source)\" means the code has no description.\n\n";
   idx += "## Contents\n\n- [Studios](#studios)\n- [Command-line tools](#command-line-tools)\n- [Demos](#demos)\n\n";
   const section = (title: string, src: string) => {
-    let s = `## ${title}\n\n| Name | Category | Short name | Launch command | Description |\n|---|---|---|---|---|\n`;
+    const withCheck = src === "rad_studio";
+    let s = `## ${title}\n\n| Name | Category | Short name | Launch command | Description |${withCheck ? " Automated start check |" : ""}\n|---|---|---|---|---|${withCheck ? "---|" : ""}\n`;
     for (const r of rows.filter((x) => x.source === src)) {
       const hdr = headerComment(r.path);
       const generic = /^(Native Bun RAD Studio application|Command-line terminal utility for|Bun RAD Studio visual showcase template)/.test(r.description);
       const desc = generic ? hdr || "(none in source)" : r.description;
       const short = (aliases.get(r.rel) ?? []).map((n) => `\`bun run ${n}\``).join(", ") || "-";
-      s += `| ${cell(r.displayName)} | ${cell(r.category)} | ${short} | \`${cell(r.command)}\` | ${cell(desc)} |\n`;
+      const check = withCheck ? ` ${isHeadless(readFileSync(r.path, "utf8")) ? "Starts with `--server` and serves its page" : "Module loads; window not opened"} |` : "";
+      s += `| ${cell(r.displayName)} | ${cell(r.category)} | ${short} | \`${cell(r.command)}\` | ${cell(desc)} |${check}\n`;
     }
     return s + "\n";
   };

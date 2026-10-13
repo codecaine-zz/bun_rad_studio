@@ -84,3 +84,12 @@ Bun runs TypeScript without checking types, and the project has 679 existing `ts
 - Running `--update` after **adding** errors defeats the check; do it only for a deliberate reason and say so in the commit.
 - The count is per file, so fixing one error and adding another in the same file is not detected.
 - Tests for the script are in `tests/typecheck_ratchet.test.ts` (they use a throwaway project, not the baseline).
+
+## Application smoke test
+
+`tests/applications_smoke.test.ts` (about 1 second):
+
+1. imports every application module in `applications/` in a fresh process and fails on an error, so a module that crashes when loaded (for example [D-015](../documentation-maintenance/discrepancies.md#d-015)) is caught;
+2. starts every application that has a headless mode (`--server`, 32 studios), waits for it to print its port and checks that `GET /` returns an HTML page.
+
+What it does **not** check: the native window, any feature inside a studio, or the command-line tools in `cli_apps/` (they run when imported, so they are not loadable as modules). The per-studio result is shown in the *Automated start check* column of the [application index](../reference/application-index.md#studios). Checked by breaking two applications on purpose: the test failed and named both.
