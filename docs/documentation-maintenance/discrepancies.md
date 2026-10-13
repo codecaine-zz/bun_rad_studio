@@ -18,7 +18,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-012 Code Studio accepted commands from any web page (fixed)](#d-012)
 - [D-013 Standalone servers listened on every network interface (fixed)](#d-013)
 - [D-014 The launcher listed library files as applications (fixed)](#d-014)
-- [D-015 Redis server file crashes when started directly](#d-015)
+- [D-015 Redis server file crashes when started directly (fixed)](#d-015)
 - [D-016 The designer's script was cut short, so the page did nothing (fixed)](#d-016)
 - [D-017 Import, Keys and Audit dialogs, the status bar and the context menu could never appear (fixed)](#d-017)
 - [D-018 Importing a layout could corrupt the open form or fail silently (fixed)](#d-018)
@@ -64,8 +64,10 @@ Where the code, existing documents and reality disagree. Each item says what was
 <a id="d-006"></a>
 ## D-006: Running the tests modifies tracked files
 
-- **Status:** Open.
-- **Observed:** after a full `bun test`, `bin/manifest.json` was modified and two new files appeared in `bin/` (`codecaine-sqlite-studio-macros`, `codecaine-studio-codegen`). Which test writes them was not investigated.
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** after a full `bun test`, `bin/manifest.json` was modified (and, before [D-014](#d-014), two extra files appeared in `bin/`). The cause is `tests/codecaine_homebrew_suite.test.ts`, which calls `generateAllWrappers()` from `scripts/generate_brew_suite.ts`; that rewrote the manifest with a new `generatedAt` timestamp every time.
+- **Fix:** the generator keeps the existing manifest when only the timestamp would change. After a full `bun test` run `git status` is clean.
+- **Not changed:** the test still regenerates the real `bin/` wrappers (it rewrites them with identical content). If a wrapper or the command list really changes, the files change, which is intended.
 
 <a id="d-007"></a>
 ## D-007: SimpleGUI quick start imports a package that is not installed
@@ -117,7 +119,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Observed:** `bun run applications/<app>.ts --server` for `task_manager`, `fd_studio` and `rip_studio` started the server with `host: "0.0.0.0"`, while printing `http://127.0.0.1:<port>`. The guard only checks the `Host` header, which a client on the same network can set to `localhost`, so these servers (process control, file operations) were reachable from the local network.
 - **Fix:** they now bind to `127.0.0.1`. LAN use did not work before either, because the guard refuses a non-loopback `Host`.
 - **Later in the same change:** the static rule in `tests/studio_servers_local_only.test.ts` found two more files with the same bind, `applications/redis_studio_server.ts` and `applications/system_studio_server.ts`; both now bind to `127.0.0.1`. Frogger, Snake and Tetris called `Bun.serve` without a `hostname`, which makes Bun listen on every interface; they now pass `127.0.0.1`.
-- **Regression tests:** `tests/standalone_server_binding.test.ts` (runs the standalone servers and tries the machine's LAN address; skipped when there is no non-loopback IPv4 address; the Redis server is not in it because of [D-015](#d-015)) and `tests/studio_servers_local_only.test.ts` (static rules over all of `applications/`).
+- **Regression tests:** `tests/standalone_server_binding.test.ts` (runs the standalone servers and tries the machine's LAN address; skipped when there is no non-loopback IPv4 address; including the two Redis files since D-015 was fixed) and `tests/studio_servers_local_only.test.ts` (static rules over all of `applications/`).
 
 <a id="d-014"></a>
 ## D-014: The launcher listed library files as applications (fixed)
@@ -130,11 +132,11 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Not done:** the test `tests/codecaine_homebrew_suite.test.ts` still writes into the real `bin/` ([D-006](#d-006)). The sample diagnostics output in `docs/HOMEBREW_SUITE_GUIDE.md` was updated from 259 to 256, the value `./install_homebrew_suite.sh --doctor` printed on 13 October 2026.
 
 <a id="d-015"></a>
-## D-015: Redis server file crashes when started directly
+## D-015: Redis server file crashes when started directly (fixed)
 
-- **Status:** Open (found on 13 October 2026, not fixed).
-- **Observed:** `PORT=23457 bun applications/redis_studio_server.ts --server` stops with `ReferenceError: Cannot access 'RedisManager' before initialization` at `applications/redis_studio_server.ts:1026`, called from `applications/redis_studio.ts:2798`. The committed version behaves the same. `redis_studio.ts` imports the server file and also starts a server whenever `--server` is on the command line, so starting the server file first loads `redis_studio.ts` in the middle of its own initialization.
-- **Not checked:** whether `bun run applications/redis_studio.ts --server` works (it needs no Redis server to start, but it was not run).
+- **Status:** Fixed on 13 October 2026: the `--server` block at the end of `applications/redis_studio.ts` now runs only when that file is the entry point (`import.meta.main`). Both `bun applications/redis_studio_server.ts --server` and `bun applications/redis_studio.ts --server` start, print `READY:<port>` and listen on 127.0.0.1 only (`tests/standalone_server_binding.test.ts`).
+- **Observed before the fix:** `PORT=23457 bun applications/redis_studio_server.ts --server` stops with `ReferenceError: Cannot access 'RedisManager' before initialization` at `applications/redis_studio_server.ts:1026`, called from `applications/redis_studio.ts:2798`. The committed version behaves the same. `redis_studio.ts` imports the server file and also starts a server whenever `--server` is on the command line, so starting the server file first loads `redis_studio.ts` in the middle of its own initialization.
+- **Not checked:** talking to a real Redis server through either file.
 
 <a id="d-016"></a>
 ## D-016: The designer's script was cut short, so the page did nothing (fixed)

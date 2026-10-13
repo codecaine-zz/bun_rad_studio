@@ -10,7 +10,7 @@
  * Works seamlessly on macOS (Homebrew /opt/homebrew/bin) and Linux (Homebrew /home/linuxbrew/.linuxbrew/bin).
  */
 
-import { readdirSync, existsSync, mkdirSync, writeFileSync, chmodSync, rmSync, unlinkSync, symlinkSync } from "fs";
+import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync, chmodSync, rmSync, unlinkSync, symlinkSync } from "fs";
 import { resolve, join, basename } from "path";
 import { scanAllApplications, type DetectedApp } from "../applications/launcher_studio.ts";
 
@@ -254,7 +254,21 @@ export function generateAllWrappers(clean = false): { count: number; wrappers: W
     })),
   };
 
-  writeFileSync(join(BIN_DIR, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+  // Keep the existing file (and its timestamp) when nothing but the timestamp would change, so re-running
+  // the generator, or the tests that call it, does not dirty the working tree.
+  const manifestPath = join(BIN_DIR, "manifest.json");
+  let unchanged = false;
+  if (existsSync(manifestPath)) {
+    try {
+      const previous = JSON.parse(readFileSync(manifestPath, "utf8"));
+      const { generatedAt: _previousStamp, ...previousRest } = previous;
+      const { generatedAt: _newStamp, ...newRest } = manifest;
+      unchanged = JSON.stringify(previousRest) === JSON.stringify(newRest);
+    } catch {
+      unchanged = false;
+    }
+  }
+  if (!unchanged) writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
   return { count: wrappers.length, wrappers };
 }

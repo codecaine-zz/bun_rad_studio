@@ -46,7 +46,7 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 ## Side effects to know about
 
-- After a full `bun test` run, `bin/manifest.json` was modified and two new files appeared in `bin/` (which test does this was not investigated). They show up in `git status` afterwards ([D-006](../documentation-maintenance/discrepancies.md#d-006)). Discard them with `git checkout bin/manifest.json` and delete the new files if you do not want to commit them.
+- A full `bun test` run leaves `git status` clean ([D-006](../documentation-maintenance/discrepancies.md#d-006), fixed). The Homebrew test re-generates the `bin/` wrappers; they only change if a wrapper or the command list really changed.
 - The macro/codegen tests write to a temporary folder (`STUDIO_MACRO_STORE_DIR`), not to your real settings.
 - The OS-keychain test writes one entry under a unique test service name and deletes it again. On a machine without a credential store it falls back to checking the in-memory store.
 

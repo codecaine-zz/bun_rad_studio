@@ -2792,7 +2792,8 @@ export { startRedisStudioServer } from "./redis_studio_server.ts";
 // Direct Standalone Execution
 // -------------------------------------------------------------------------------------------------
 
-if (process.argv.includes("--server")) {
+// Only when run directly: redis_studio_server.ts imports this file, and starting a server during that import crashes it.
+if (import.meta.main && process.argv.includes("--server")) {
   const url = process.env.REDIS_URL || "redis://127.0.0.1:6379";
   const db = process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0;
   const srv = startRedisStudioServer({
