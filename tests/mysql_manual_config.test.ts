@@ -278,4 +278,70 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     expect(studio.activeDbPath).toBe(process.env.MSQL_NAME || "my_app_dev");
     expect(studio.activeDbPath).not.toBe(":memory:");
   });
+
+  it("13. POST /api/query executes queries with both MySQL backticks and ANSI double quotes seamlessly", async () => {
+    const srv = startMysqlStudioServer({ port: 0 });
+    try {
+      // 1. Backtick identifier query
+      const resBacktick = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: "SELECT * FROM `audit_logs` LIMIT 2;" }),
+      });
+      expect(resBacktick.status).toBe(200);
+      const dataBacktick = (await resBacktick.json()) as any;
+      expect(dataBacktick.success).toBe(true);
+      expect(dataBacktick.rowCount).toBeGreaterThanOrEqual(1);
+
+      // 2. ANSI double-quote identifier query
+      const resQuotes = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: "SELECT * FROM \"audit_logs\" LIMIT 2;" }),
+      });
+      expect(resQuotes.status).toBe(200);
+      const dataQuotes = (await resQuotes.json()) as any;
+      expect(dataQuotes.success).toBe(true);
+      expect(dataQuotes.rowCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      srv.stop(true);
+    }
+  });
+
+  it("14. POST /api/explain handles both MySQL backticks and ANSI double quotes without syntax errors", async () => {
+    const srv = startMysqlStudioServer({ port: 0 });
+    try {
+      // 1. Backtick explain
+      const resBacktick = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: "SELECT * FROM `audit_logs` LIMIT 5;" }),
+      });
+      expect(resBacktick.status).toBe(200);
+      const dataBacktick = (await resBacktick.json()) as any;
+      expect(dataBacktick.success).toBe(true);
+      expect(dataBacktick.queryPlan.length).toBeGreaterThan(0);
+
+      // 2. Double-quote explain
+      const resQuotes = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: "SELECT * FROM \"audit_logs\" LIMIT 5;" }),
+      });
+      expect(resQuotes.status).toBe(200);
+      const dataQuotes = (await resQuotes.json()) as any;
+      expect(dataQuotes.success).toBe(true);
+      expect(dataQuotes.queryPlan.length).toBeGreaterThan(0);
+    } finally {
+      srv.stop(true);
+    }
+  });
+
+  it("15. Client HTML quoteSqlIdentifier generates MySQL backtick identifiers", () => {
+    const html = generateMysqlStudioHtml();
+    expect(html).toContain("function quoteSqlIdentifier(value)");
+    // Must contain backtick quoting in the generated client script
+    expect(html).toMatch(/return\s+["']`["']\s*\+\s*String\(value\)\.replace\(\/`\/g,\s*["']``["']\)\s*\+\s*["']`["']/);
+  });
 });
+

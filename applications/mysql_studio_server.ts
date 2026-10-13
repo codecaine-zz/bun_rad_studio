@@ -286,6 +286,8 @@ export class MysqlManager {
         allowPublicKeyRetrieval: true,
         tls: this.dbConfig.tls ?? false,
       });
+      // Enable ANSI_QUOTES in session mode to guarantee compatibility with both ANSI quotes and backticks
+      this.sql_conn.unsafe("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'ANSI_QUOTES');").catch(() => {});
     } catch (e: any) {
       console.error("Failed to initialize MySQL connection:", e);
     }
@@ -714,6 +716,36 @@ export class MysqlManager {
         };
       }
     } catch (err: any) {
+      if (err?.message?.includes("right syntax to use near '\"") || err?.message?.includes('right syntax to use near \'"')) {
+        try {
+          await this.sql_conn.unsafe("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'ANSI_QUOTES');");
+          const retryRows = await this.sql_conn.unsafe(trimmed, params);
+          const latencyMs = Number((performance.now() - t0).toFixed(2));
+          const isRead = /^\s*(SELECT|SHOW|EXPLAIN|DESCRIBE|WITH)/i.test(trimmed);
+          if (isRead) {
+            const rowsArr = Array.isArray(retryRows) ? retryRows : [];
+            const columns = rowsArr.length > 0 ? Object.keys(rowsArr[0]) : [];
+            await this.logAudit("SELECT", "QUERY", trimmed.slice(0, 150));
+            return {
+              success: true,
+              rows: rowsArr,
+              columns,
+              rowCount: rowsArr.length,
+              latencyMs,
+            };
+          } else {
+            await this.logAudit("MUTATION", "STATEMENT", trimmed.slice(0, 150));
+            return {
+              success: true,
+              rows: [],
+              columns: [],
+              rowsAffected: retryRows?.affectedRows ?? 0,
+              lastInsertRowid: retryRows?.lastInsertRowid ?? 0,
+              latencyMs,
+            };
+          }
+        } catch {}
+      }
       const latencyMs = Number((performance.now() - t0).toFixed(2));
       return { success: false, latencyMs, error: err?.message || String(err) };
     }
@@ -738,8 +770,20 @@ export class MysqlManager {
           if (explainRows?.[0]?.EXPLAIN) {
             rawText = String(explainRows[0].EXPLAIN).trim();
           }
-        } catch {
-          explainRows = [];
+        } catch (e: any) {
+          if (e?.message?.includes("right syntax to use near '\"") || e?.message?.includes('right syntax to use near \'"')) {
+            await this.sql_conn.unsafe("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'ANSI_QUOTES');").catch(() => {});
+            try {
+              explainRows = await this.sql_conn.unsafe(`EXPLAIN ANALYZE ${cleanSql}`);
+              if (explainRows?.[0]?.EXPLAIN) {
+                rawText = String(explainRows[0].EXPLAIN).trim();
+              }
+            } catch {
+              explainRows = [];
+            }
+          } else {
+            explainRows = [];
+          }
         }
       }
 
@@ -760,7 +804,16 @@ export class MysqlManager {
         try {
           explainRows = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql}`);
         } catch (explainErr: any) {
-          return { success: false, error: explainErr?.message || "Explain execution failed" };
+          if (explainErr?.message?.includes("right syntax to use near '\"") || explainErr?.message?.includes('right syntax to use near \'"')) {
+            try {
+              await this.sql_conn.unsafe("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'ANSI_QUOTES');");
+              explainRows = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql}`);
+            } catch (retryErr: any) {
+              return { success: false, error: retryErr?.message || "Explain execution failed" };
+            }
+          } else {
+            return { success: false, error: explainErr?.message || "Explain execution failed" };
+          }
         }
       }
 

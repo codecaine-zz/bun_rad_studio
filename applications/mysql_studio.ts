@@ -3366,7 +3366,7 @@ ${CRUD_STYLE}
     }
 
     function quoteSqlIdentifier(value) {
-      return '"' + String(value).replace(/"/g, '""') + '"';
+      return "\`" + String(value).replace(/\`/g, "\`\`") + "\`";
     }
 
     function formatAccessCriterion(qualifiedField, criterionStr) {
