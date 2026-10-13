@@ -3194,16 +3194,24 @@ ${CRUD_STYLE}
       }
     }
 
+    const runExplainPlan = explainCurrentQuery;
+
     async function explainCurrentQuery() {
-      const sql = document.getElementById("sqlEditor").value.trim();
+      const sqlEl = document.getElementById("sqlEditor");
+      let sql = sqlEl ? sqlEl.value.trim() : "";
+      if (!sql && typeof buildDesignerSql === "function") {
+        sql = buildDesignerSql();
+        if (sqlEl) sqlEl.value = sql;
+      }
       if (!sql) {
         showToast("Enter a query to explain!");
         return;
       }
 
+      showToast("Generating query execution plan...");
       const res = await apiRequest('/api/explain', { sql });
       if (res && res.success && res.queryPlan) {
-        renderExplainPlan(res.queryPlan, sql);
+        renderExplainPlan(res.queryPlan, sql, res.rawText);
         switchTab("explain");
         showToast("Query plan generated!");
       } else {
@@ -3211,7 +3219,7 @@ ${CRUD_STYLE}
       }
     }
 
-    function renderExplainPlan(planNodes, sql) {
+    function renderExplainPlan(planNodes, sql, rawText) {
       const container = document.getElementById("explainContainer");
       if (!container) return;
       container.innerHTML = "";
@@ -3219,8 +3227,11 @@ ${CRUD_STYLE}
       const card = document.createElement("div");
       card.className = "card";
       card.innerHTML = \`
-        <div class="card-title">🔍 Query Plan Analysis</div>
-        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan); margin-bottom: 8px;">\${escapeHtml(sql)}</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div class="card-title" style="margin-bottom: 0;">🔍 MySQL Query Execution Plan (EXPLAIN FORMAT=TREE / ANALYZE)</div>
+          <button class="btn btn-sm" onclick="explainCurrentQuery()">Re-run Explain</button>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan); margin-bottom: 12px; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 4px; border: 1px solid var(--border-subtle); overflow-x: auto;">\${escapeHtml(sql)}</div>
       \`;
 
       const list = document.createElement("div");
@@ -3230,23 +3241,66 @@ ${CRUD_STYLE}
 
       planNodes.forEach(node => {
         const item = document.createElement("div");
+        const indentPx = (node.depth || 0) * 18;
+        item.style.marginLeft = indentPx + "px";
         item.style.padding = "8px 12px";
         item.style.borderRadius = "6px";
-        item.style.background = node.isScan ? "rgba(244, 63, 94, 0.1)" : "rgba(56, 189, 248, 0.08)";
-        item.style.border = node.isScan ? "1px solid var(--rose)" : "1px solid var(--border-subtle)";
+        item.style.background = node.isScan 
+          ? "rgba(244, 63, 94, 0.12)" 
+          : (node.isIndex ? "rgba(16, 185, 129, 0.1)" : "rgba(56, 189, 248, 0.08)");
+        item.style.border = node.isScan 
+          ? "1px solid var(--rose)" 
+          : (node.isIndex ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid var(--border-subtle)");
         item.style.fontFamily = "var(--font-mono)";
         item.style.fontSize = "11px";
 
-        const badge = node.isScan 
-          ? '<span style="color: var(--rose); font-weight: 700;">⚠️ SCAN TABLE (FULL SCAN)</span>'
-          : '<span style="color: var(--emerald); font-weight: 700;">⚡ INDEX SEARCH</span>';
+        let badge = '<span style="color: var(--cyan); font-weight: 700;">🔗 EXECUTION NODE</span>';
+        if (node.isScan) {
+          badge = '<span style="color: var(--rose); font-weight: 700;">⚠️ SCAN TABLE (FULL SCAN)</span>';
+        } else if (node.isIndex) {
+          badge = '<span style="color: var(--emerald); font-weight: 700;">⚡ INDEX SEARCH / LOOKUP</span>';
+        }
 
-        item.innerHTML = \`<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">\${badge}<span>Node #\${node.id} (Parent: \${node.parent})</span></div><div>\${escapeHtml(node.detail)}</div>\`;
+        const metrics = [];
+        if (node.cost !== undefined) metrics.push("Cost: " + node.cost);
+        if (node.rows !== undefined) metrics.push("Est. Rows: " + node.rows);
+        if (node.actualTime) metrics.push("Actual: " + node.actualTime);
+        const metricStr = metrics.length ? " | " + metrics.join(" | ") : "";
+
+        item.innerHTML = \`
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            \${badge}
+            <span style="font-size: 10px; color: var(--text-dim);">Node #\${node.id}\${node.parent ? " (Parent: #" + node.parent + ")" : " (Root)"}</span>
+          </div>
+          <div style="color: var(--text-main); font-weight: 500;">\${escapeHtml(node.detail)}\${escapeHtml(metricStr)}</div>
+        \`;
         list.appendChild(item);
       });
 
       card.appendChild(list);
+
+      if (rawText) {
+        const rawCard = document.createElement("div");
+        rawCard.style.marginTop = "16px";
+        rawCard.innerHTML = \`
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Raw Tree Output</span>
+            <button class="btn btn-sm" onclick="copyRawExplainText()" style="padding: 2px 8px; font-size: 10px;">📋 Copy Text</button>
+          </div>
+          <pre id="rawExplainOutput" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); overflow-x: auto; white-space: pre-wrap; margin: 0;">\${escapeHtml(rawText)}</pre>
+        \`;
+        card.appendChild(rawCard);
+      }
+
       container.appendChild(card);
+    }
+
+    function copyRawExplainText() {
+      const el = document.getElementById("rawExplainOutput");
+      if (el && navigator.clipboard) {
+        navigator.clipboard.writeText(el.innerText);
+        showToast("✓ Copied raw execution plan to clipboard");
+      }
     }
 
     function renderSchemaDesigner(tableName) {
@@ -4927,7 +4981,7 @@ ${CRUD_STYLE}
       const sql = buildDesignerSql();
       const editor = document.getElementById("sqlEditor");
       if (editor) editor.value = sql;
-      runExplainPlan();
+      explainCurrentQuery();
     }
 
     function runCustomDesignerSql() {
@@ -5264,7 +5318,7 @@ ${CRUD_STYLE}
               <option value="500" \${queryDesignerState.topLimit === 500 ? 'selected' : ''}>500</option>
               <option value="1000" \${queryDesignerState.topLimit === 1000 ? 'selected' : ''}>1000</option>
             </select>
-            <select class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
+            <select id="designerPresetSelect" class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
               <option value="">⚡ Presets / Templates</option>
               <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
               <option value="top_spenders">Top Spenders (Aggregated)</option>

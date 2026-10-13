@@ -721,30 +721,127 @@ export class MysqlManager {
 
     const t0 = performance.now();
     try {
-      const cleanSql = trimmed.replace(/^EXPLAIN\s+/i, "");
-      const explainRows = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql}`);
+      const cleanSql = trimmed.replace(/^EXPLAIN\s+(ANALYZE\s+|FORMAT\s*=\s*\w+\s+)?/i, "");
+      const isSelect = /^\s*SELECT\b/i.test(cleanSql);
+
+      let explainRows: any[] = [];
+      let rawText = "";
+
+      // 1. Try modern EXPLAIN ANALYZE for SELECTs (provides actual execution timing)
+      if (isSelect) {
+        try {
+          explainRows = await this.sql_conn.unsafe(`EXPLAIN ANALYZE ${cleanSql}`);
+          if (explainRows?.[0]?.EXPLAIN) {
+            rawText = String(explainRows[0].EXPLAIN).trim();
+          }
+        } catch {
+          explainRows = [];
+        }
+      }
+
+      // 2. Fall back to EXPLAIN FORMAT=TREE (supported in MySQL 8.0.16+)
+      if (!rawText) {
+        try {
+          explainRows = await this.sql_conn.unsafe(`EXPLAIN FORMAT=TREE ${cleanSql}`);
+          if (explainRows?.[0]?.EXPLAIN) {
+            rawText = String(explainRows[0].EXPLAIN).trim();
+          }
+        } catch {
+          explainRows = [];
+        }
+      }
+
+      // 3. Fall back to standard tabular EXPLAIN
+      if (!rawText) {
+        explainRows = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql}`);
+      }
+
       const latencyMs = Number((performance.now() - t0).toFixed(2));
 
-      const queryPlan = (explainRows || []).map((row: any, i: number) => {
-        const table = row.table || "";
-        const type = row.type || "";
-        const key = row.key || "NONE";
-        const rows = row.rows || 0;
-        const extra = row.Extra || "";
-        return {
-          id: i + 1,
-          parent: 0,
-          notused: 0,
-          detail: `Table: ${table} | Type: ${type} | Key: ${key} | Estimated Rows: ${rows} ${extra ? `(${extra})` : ""}`,
-          isScan: type === "ALL",
-          isIndex: type.includes("index") || key !== "NONE",
-        };
-      });
+      // Parse structured queryPlan nodes
+      const queryPlan: Array<{
+        id: number;
+        parent: number;
+        depth: number;
+        detail: string;
+        isScan: boolean;
+        isIndex: boolean;
+        cost?: number;
+        rows?: number;
+        actualTime?: string;
+      }> = [];
+
+      if (rawText) {
+        // Parse tree text output
+        const lines = rawText.split("\n").filter(l => l.trim().length > 0);
+        const stack: Array<{ id: number; indent: number }> = [];
+
+        lines.forEach((line, idx) => {
+          const id = idx + 1;
+          const trimmedLine = line.trim();
+          const cleanDetail = trimmedLine.replace(/^->\s*/, "");
+          const indent = line.search(/\S/);
+
+          while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+            stack.pop();
+          }
+          const parent = stack.length > 0 ? stack[stack.length - 1].id : 0;
+          stack.push({ id, indent });
+
+          const isScan = /table\s+scan/i.test(cleanDetail) || /full\s+scan/i.test(cleanDetail);
+          const isIndex = /index/i.test(cleanDetail) || /key/i.test(cleanDetail);
+
+          // Extract cost & rows: (cost=X rows=Y)
+          const costMatch = cleanDetail.match(/cost=([\d.]+)/i);
+          const rowsMatch = cleanDetail.match(/rows=([\d.]+)/i);
+          const timeMatch = cleanDetail.match(/actual\s+time=([\d.]+)\.\.([\d.]+)/i);
+
+          const cost = costMatch ? parseFloat(costMatch[1]) : undefined;
+          const rows = rowsMatch ? parseFloat(rowsMatch[1]) : undefined;
+          const actualTime = timeMatch ? `${timeMatch[1]}..${timeMatch[2]}ms` : undefined;
+
+          queryPlan.push({
+            id,
+            parent,
+            depth: stack.length - 1,
+            detail: cleanDetail,
+            isScan,
+            isIndex,
+            cost,
+            rows,
+            actualTime,
+          });
+        });
+      } else {
+        // Parse legacy tabular rows
+        (explainRows || []).forEach((row: any, i: number) => {
+          const table = row.table || "";
+          const type = row.type || "";
+          const key = row.key || "NONE";
+          const rows = Number(row.rows || 0);
+          const extra = row.Extra || "";
+          const isScan = type === "ALL";
+          const isIndex = type.includes("index") || key !== "NONE";
+
+          queryPlan.push({
+            id: i + 1,
+            parent: 0,
+            depth: 0,
+            detail: `Table: ${table} | Type: ${type} | Key: ${key} | Estimated Rows: ${rows}${extra ? ` (${extra})` : ""}`,
+            isScan,
+            isIndex,
+            rows,
+          });
+        });
+
+        rawText = queryPlan.map(n => `[Node #${n.id}] ${n.detail}`).join("\n");
+      }
 
       return {
         success: true,
         queryPlan,
         rawPlan: explainRows,
+        rawText,
         latencyMs,
       };
     } catch (err: any) {

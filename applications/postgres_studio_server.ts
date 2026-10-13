@@ -1045,6 +1045,153 @@ export class PostgresManager {
     }
   }
 
+  public async explain(sqlStr: string): Promise<{
+    success: boolean;
+    queryPlan?: {
+      id: number;
+      parent: number;
+      detail: string;
+      isScan: boolean;
+      isIndex: boolean;
+      cost?: string;
+      rows?: string;
+      actualTime?: string;
+      buffers?: string;
+    }[];
+    rawPlan?: any;
+    rawText?: string;
+    latencyMs?: number;
+    error?: string;
+  }> {
+    const trimmed = (sqlStr || "").trim();
+    if (!trimmed) return { success: false, error: "SQL statement is required for explain" };
+
+    const t0 = performance.now();
+    try {
+      const cleanSql = trimmed
+        .replace(/^EXPLAIN\s*(\([^)]*\))?\s*/i, "")
+        .replace(/;+$/, "")
+        .trim();
+      if (!cleanSql) return { success: false, error: "SQL statement is required for explain" };
+
+      let rawPlan: any = null;
+      try {
+        const jsonRes = await this.sql_conn.unsafe(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${cleanSql};`);
+        const planJson = jsonRes?.[0]?.["QUERY PLAN"] || jsonRes?.[0]?.[Object.keys(jsonRes[0])[0]];
+        rawPlan = typeof planJson === "string" ? JSON.parse(planJson) : planJson;
+      } catch (errJson) {
+        // Fallback without ANALYZE (e.g., if query fails in analyze mode or write statement)
+        const jsonRes2 = await this.sql_conn.unsafe(`EXPLAIN (FORMAT JSON) ${cleanSql};`);
+        const planJson2 = jsonRes2?.[0]?.["QUERY PLAN"] || jsonRes2?.[0]?.[Object.keys(jsonRes2[0])[0]];
+        rawPlan = typeof planJson2 === "string" ? JSON.parse(planJson2) : planJson2;
+      }
+
+      let rawTextLines = "";
+      try {
+        const textRes = await this.sql_conn.unsafe(`EXPLAIN (ANALYZE, BUFFERS) ${cleanSql};`);
+        rawTextLines = (textRes || []).map((r: any) => Object.values(r)[0]).join("\n");
+      } catch {
+        const textRes2 = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql};`);
+        rawTextLines = (textRes2 || []).map((r: any) => Object.values(r)[0]).join("\n");
+      }
+
+      const latencyMs = Number((performance.now() - t0).toFixed(2));
+
+      // Build structured node tree for visual explain visualizer
+      const queryPlan: {
+        id: number;
+        parent: number;
+        detail: string;
+        isScan: boolean;
+        isIndex: boolean;
+        cost?: string;
+        rows?: string;
+        actualTime?: string;
+        buffers?: string;
+      }[] = [];
+
+      let nodeIdCounter = 1;
+      function traverseNode(node: any, parentId: number) {
+        if (!node) return;
+        const currentId = nodeIdCounter++;
+        const nodeType = node["Node Type"] || "Plan Node";
+        const relation = node["Relation Name"] || "";
+        const alias = node["Alias"] || "";
+        const indexName = node["Index Name"] || "";
+
+        const isScan = /Seq\s*Scan/i.test(nodeType);
+        const isIndex = /Index/i.test(nodeType);
+
+        let detail = nodeType;
+        if (relation) detail += ` on "${relation}"`;
+        if (alias && alias !== relation) detail += ` (as "${alias}")`;
+        if (indexName) detail += ` using "${indexName}"`;
+
+        const startupCost = node["Startup Cost"] ?? 0;
+        const totalCost = node["Total Cost"] ?? 0;
+        const planRows = node["Plan Rows"] ?? 0;
+        const actualRows = node["Actual Rows"] ?? null;
+        const actualTime = node["Actual Total Time"] ?? null;
+        const sharedHitBlocks = node["Shared Hit Blocks"] ?? null;
+
+        detail += ` | Cost: ${startupCost}..${totalCost} | Est. Rows: ${planRows}`;
+        if (actualRows !== null) detail += ` | Actual Rows: ${actualRows}`;
+        if (actualTime !== null) detail += ` (${actualTime}ms)`;
+        if (sharedHitBlocks !== null) detail += ` | Buffers: ${sharedHitBlocks} hit`;
+
+        queryPlan.push({
+          id: currentId,
+          parent: parentId,
+          detail,
+          isScan,
+          isIndex,
+          cost: `${startupCost}..${totalCost}`,
+          rows: actualRows !== null ? `${actualRows} (est: ${planRows})` : `${planRows}`,
+          actualTime: actualTime !== null ? `${actualTime}ms` : undefined,
+          buffers: sharedHitBlocks !== null ? `${sharedHitBlocks} hits` : undefined,
+        });
+
+        if (Array.isArray(node["Plans"])) {
+          node["Plans"].forEach((subNode: any) => traverseNode(subNode, currentId));
+        }
+      }
+
+      const rootPlan = Array.isArray(rawPlan) && rawPlan[0] && rawPlan[0]["Plan"] ? rawPlan[0]["Plan"] : rawPlan;
+      if (rootPlan) {
+        traverseNode(rootPlan, 0);
+      }
+
+      // If for any reason JSON plan traversal produced no nodes, build from text lines
+      if (queryPlan.length === 0 && rawTextLines) {
+        const lines = rawTextLines.split("\n").filter(l => l.trim());
+        lines.forEach((line, idx) => {
+          const isScan = /Seq\s*Scan/i.test(line);
+          const isIndex = /Index\s*Scan/i.test(line);
+          queryPlan.push({
+            id: idx + 1,
+            parent: idx === 0 ? 0 : 1,
+            detail: line.trim(),
+            isScan,
+            isIndex,
+          });
+        });
+      }
+
+      return {
+        success: true,
+        queryPlan,
+        rawPlan,
+        rawText: rawTextLines,
+        latencyMs,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || String(err),
+      };
+    }
+  }
+
   public async explainQuery(sqlText: string, analyze: boolean = true): Promise<{
     success: boolean;
     plan: any;
@@ -1052,46 +1199,14 @@ export class PostgresManager {
     executionTimeMs: number;
     error?: string;
   }> {
-    const start = performance.now();
-    try {
-      const explainSql = analyze
-        ? `EXPLAIN (ANALYZE, BUFFERS, VERBOSE, FORMAT JSON) ${sqlText};`
-        : `EXPLAIN (BUFFERS, VERBOSE, FORMAT JSON) ${sqlText};`;
-      const res = await this.sql_conn.unsafe(explainSql);
-      const executionTimeMs = Math.round((performance.now() - start) * 100) / 100;
-
-      const planJson = res?.[0]?.["QUERY PLAN"] || res?.[0]?.[Object.keys(res[0])[0]];
-      const rawPlan = typeof planJson === "string" ? JSON.parse(planJson) : planJson;
-
-      return {
-        success: true,
-        plan: rawPlan,
-        rawText: JSON.stringify(rawPlan, null, 2),
-        executionTimeMs,
-      };
-    } catch (err: any) {
-      // Fallback to text format
-      try {
-        const fallbackSql = `EXPLAIN ${sqlText};`;
-        const res2 = await this.sql_conn.unsafe(fallbackSql);
-        const executionTimeMs = Math.round((performance.now() - start) * 100) / 100;
-        const textLines = (res2 || []).map((r: any) => Object.values(r)[0]).join("\n");
-        return {
-          success: true,
-          plan: null,
-          rawText: textLines,
-          executionTimeMs,
-        };
-      } catch (err2: any) {
-        return {
-          success: false,
-          plan: null,
-          rawText: "",
-          executionTimeMs: Math.round((performance.now() - start) * 100) / 100,
-          error: err?.message || String(err),
-        };
-      }
-    }
+    const res = await this.explain(sqlText);
+    return {
+      success: res.success,
+      plan: res.rawPlan,
+      rawText: res.rawText || (res.error || ""),
+      executionTimeMs: res.latencyMs || 0,
+      error: res.error,
+    };
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -1972,7 +2087,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/kpis") {
         try {
           const kpis = await manager.getKpis();
-          return Response.json(kpis, { headers: corsHeaders });
+          return Response.json({ success: true, kpis, ...kpis }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
         }
@@ -2024,10 +2139,21 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { sql: string; params?: any[]; explain?: boolean; analyze?: boolean };
           if (body.explain) {
-            const result = await manager.explainQuery(body.sql, body.analyze !== false);
+            const result = await manager.explain(body.sql);
             return Response.json(result, { headers: corsHeaders });
           }
           const result = await manager.query(body.sql, body.params || []);
+          return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 4b. Dedicated Explain Query Plan (Structured Node Tree & Raw Output)
+      if (url.pathname === "/api/explain" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as { sql: string };
+          const result = await manager.explain(body.sql);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });

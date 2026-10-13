@@ -2684,13 +2684,21 @@ ${CRUD_STYLE}
       }
     }
 
+    const runExplainPlan = explainCurrentQuery;
+
     async function explainCurrentQuery() {
-      const sql = document.getElementById("sqlEditor").value.trim();
+      const sqlEl = document.getElementById("sqlEditor");
+      let sql = sqlEl ? sqlEl.value.trim() : "";
+      if (!sql && typeof buildDesignerSql === "function") {
+        sql = buildDesignerSql();
+        if (sqlEl) sqlEl.value = sql;
+      }
       if (!sql) {
         showToast("Enter a query to explain!");
         return;
       }
 
+      showToast("Generating query execution plan...");
       const res = await apiRequest('/api/explain', { sql });
       if (res && res.success && res.queryPlan) {
         renderExplainPlan(res.queryPlan, sql);
@@ -4417,7 +4425,7 @@ ${CRUD_STYLE}
       const sql = buildDesignerSql();
       const editor = document.getElementById("sqlEditor");
       if (editor) editor.value = sql;
-      runExplainPlan();
+      explainCurrentQuery();
     }
 
     function runCustomDesignerSql() {
@@ -4758,7 +4766,7 @@ ${CRUD_STYLE}
               <option value="500" \${queryDesignerState.topLimit === 500 ? 'selected' : ''}>500</option>
               <option value="1000" \${queryDesignerState.topLimit === 1000 ? 'selected' : ''}>1000</option>
             </select>
-            <select class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
+            <select id="designerPresetSelect" class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
               <option value="">⚡ Presets / Templates</option>
               <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
               <option value="top_spenders">Top Spenders (Aggregated)</option>

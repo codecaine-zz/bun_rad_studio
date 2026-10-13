@@ -34,6 +34,7 @@ import {
   type PostgresConnectionConfigSanitized,
 } from "./postgres_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./postgres_studio_crud.ts";
+import { POSTGRES_DESIGNER_SCRIPT } from "./postgres_studio_designer.ts";
 
 export interface PostgresStudioOptions {
   fullscreen?: boolean;
@@ -707,156 +708,677 @@ export function generatePostgresStudioHtml(): string {
       font-style: italic;
     }
 
-    /* Visual Query Designer Ribbon & Canvas */
-    .qbe-ribbon {
-      background: rgba(10, 17, 32, 0.95);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 8px 12px;
+    /* Microsoft Access Query Designer (QBE) Styling */
+    .designer-layout {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 14px 14px;
+      height: 100%;
+      overflow: auto;
+    }
+
+    .qbe-ribbon {
+      display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
       flex-shrink: 0;
     }
+
     .qbe-ribbon-group {
       display: flex;
       align-items: center;
       gap: 6px;
-    }
-    .qbe-view-switch {
-      display: flex;
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 2px;
-    }
-    .qbe-view-btn {
-      padding: 4px 10px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 500;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .qbe-view-btn.active {
-      background: var(--pg-blue);
-      color: #fff;
-      font-weight: 600;
+      flex-wrap: wrap;
     }
 
-    .qbe-viewport {
-      flex: 1;
-      overflow: auto;
-      position: relative;
-      background-color: #060b14;
-      background-image: 
-        radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 24px 24px;
+    .qbe-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border-subtle);
+      margin: 0 4px;
     }
+
+    .qbe-view-switch {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .qbe-view-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .qbe-view-btn:hover {
+      color: var(--text-main);
+    }
+
+    .qbe-view-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--cyan);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .qbe-btn-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-dim);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .qbe-btn-toggle:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .qbe-btn-toggle.active {
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+    }
+
+    .qbe-btn-run {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff !important;
+      border: none;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+    }
+
+    .qbe-btn-run:hover {
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .qbe-select, .qbe-input {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 5px 28px 5px 8px;
+      font-size: 11px;
+      outline: none;
+      color-scheme: dark;
+    }
+    .qbe-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px 12px;
+      cursor: pointer;
+    }
+
+    .qbe-select:focus, .qbe-input:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Relationship Canvas (Upper Pane) */
+    .qbe-workbench {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(10, 15, 29, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    :root {
+      --qbe-canvas-height: 480px;
+      --qbe-grid-font-size: 11px;
+      --qbe-grid-cell-padding: 4px 6px;
+      --sql-editor-height: 380px;
+      --ds-font-size: 11px;
+      --ds-cell-padding: 5px 8px;
+    }
+
+    .qbe-canvas-viewport {
+      position: relative;
+      overflow: auto;
+      min-height: 240px;
+      height: var(--qbe-canvas-height, 480px);
+      background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.25) 0%, rgba(10, 15, 29, 0.95) 100%);
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+      background-size: 20px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      transition: height 0.15s ease-out;
+    }
+
+    .qbe-canvas-viewport.panning {
+      cursor: grab !important;
+      user-select: none;
+    }
+    .qbe-canvas-viewport.panning:active {
+      cursor: grabbing !important;
+    }
+
     .qbe-canvas-stage {
       position: relative;
-      min-width: 2200px;
-      min-height: 1400px;
+      min-width: 3400px;
+      min-height: 2400px;
       transform-origin: 0 0;
+      transition: transform 0.08s ease-out;
     }
-    .qbe-svg-layer {
+
+    .qbe-resizer-bar {
+      height: 9px;
+      margin: 4px 0;
+      cursor: row-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: background 0.15s ease;
+      user-select: none;
+      z-index: 10;
+    }
+    .qbe-resizer-bar:hover, .qbe-resizer-bar.resizing {
+      background: rgba(56, 189, 248, 0.15);
+    }
+    .qbe-resizer-handle {
+      width: 52px;
+      height: 4px;
+      background: var(--border-subtle);
+      border-radius: 2px;
+      transition: background 0.15s ease, width 0.15s ease;
+    }
+    .qbe-resizer-bar:hover .qbe-resizer-handle, .qbe-resizer-bar.resizing .qbe-resizer-handle {
+      background: var(--cyan);
+      width: 76px;
+    }
+
+    .qbe-zoom-controls, .qbe-room-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .qbe-canvas-svg {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 5;
+      overflow: visible;
+      z-index: 2;
     }
 
-    /* Table Cards on Canvas */
-    .qbe-table-card {
-      position: absolute;
-      width: 230px;
-      background: rgba(13, 22, 40, 0.95);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      z-index: 10;
-      overflow: hidden;
+    .qbe-svg-join-halo {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 18;
+      cursor: pointer;
+      pointer-events: stroke;
     }
-    .qbe-table-card-header {
-      background: linear-gradient(135deg, rgba(51, 103, 145, 0.7), rgba(2, 132, 199, 0.5));
-      padding: 7px 10px;
-      font-size: 12px;
+
+    .qbe-svg-join-halo:hover + .qbe-svg-join-line {
+      stroke-width: 4px;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+    }
+
+    .qbe-svg-join-line {
+      fill: none;
+      stroke-width: 2.5;
+      cursor: pointer;
+      pointer-events: stroke;
+      transition: stroke-width 0.15s ease, filter 0.15s ease;
+    }
+
+    .qbe-svg-join-line:hover {
+      stroke-width: 4px;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+    }
+
+    .qbe-svg-join-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid var(--cyan);
+      border-radius: 12px;
+      font-size: 10px;
       font-weight: 700;
-      color: #fff;
+      color: var(--cyan);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: auto;
+    }
+
+    .qbe-svg-join-badge:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    }
+
+    .qbe-tables-canvas {
+      position: relative;
+      display: flex;
+      gap: 24px;
+      padding: 16px;
+      min-height: 230px;
+      z-index: 3;
+    }
+
+    .qbe-table-card {
+      min-width: 210px;
+      max-width: 250px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      user-select: none;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .qbe-table-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .qbe-table-card.dragging {
+      opacity: 0.65;
+    }
+
+    .qbe-table-card-header {
+      background: rgba(30, 41, 59, 0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 6px 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      cursor: move;
-      border-bottom: 1px solid var(--border-subtle);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
     }
+
     .qbe-table-card-fields {
-      max-height: 220px;
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
-      padding: 4px 0;
+      flex: 1;
+      padding: 4px;
+      gap: 2px;
+      max-height: 170px;
     }
+
     .qbe-field-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 4px 10px;
+      padding: 4px 6px;
+      border-radius: 4px;
       font-size: 11px;
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-    .qbe-field-row:hover {
-      background: rgba(56, 189, 248, 0.15);
+      font-family: var(--font-mono);
       color: var(--text-main);
-    }
-    .qbe-field-connector {
-      color: var(--cyan);
-      font-size: 9px;
-      margin-right: 4px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      user-select: none;
     }
 
-    /* Lower QBE Matrix Grid */
-    .qbe-lower-pane {
-      height: 250px;
-      background: rgba(10, 17, 32, 0.98);
-      border-top: 1px solid var(--border-subtle);
+    .qbe-field-row:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      transform: translateX(2px);
+    }
+
+    .qbe-field-connector {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      margin-right: 4px;
+      flex-shrink: 0;
+      transition: all 0.12s ease;
+    }
+
+    .qbe-field-row:hover .qbe-field-connector {
+      background: var(--cyan);
+      transform: scale(1.3);
+      box-shadow: 0 0 6px var(--cyan);
+    }
+
+    .qbe-field-drop-target {
+      background: rgba(56, 189, 248, 0.28) !important;
+      outline: 2px dashed var(--cyan) !important;
+      outline-offset: -2px;
+      transform: scale(1.02);
+    }
+
+    .qbe-field-add-icon {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      color: var(--cyan);
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .qbe-field-row:hover .qbe-field-add-icon {
+      opacity: 1;
+    }
+
+    /* Active Joins Bar */
+    .qbe-joins-bar {
       display: flex;
       flex-direction: column;
-      flex-shrink: 0;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
+
+    .qbe-join-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 5px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 5px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+    }
+
+    /* Microsoft Access Join Properties Modal */
+    .access-join-table-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .access-join-table-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .access-join-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .access-join-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .access-join-radio-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .access-join-radio-card:hover {
+      background: rgba(56, 189, 248, 0.06);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .access-join-radio-card.selected {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+    }
+    .access-join-radio-card input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .access-join-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .access-join-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .access-join-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+    .access-venn-preview-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 12px;
+      align-items: center;
+      background: rgba(10, 15, 29, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .access-venn-svg {
+      width: 150px;
+      height: 90px;
+    }
+    .access-sql-box {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #38bdf8;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* QBE Matrix Grid (Lower Pane) */
     .qbe-matrix-container {
+      background: rgba(10, 15, 29, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow-x: auto;
       flex: 1;
-      overflow: auto;
+      min-height: 240px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     }
-    table.qbe-matrix {
+
+    .qbe-matrix-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 11px;
     }
-    table.qbe-matrix td {
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 4px 6px;
+
+    .qbe-matrix-table tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
+
     .qbe-matrix-header-cell {
-      width: 90px;
-      background: rgba(13, 22, 40, 0.95);
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      background: rgba(15, 23, 42, 0.98);
       font-weight: 700;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      font-size: 10px;
+      color: var(--cyan);
+      padding: 6px 12px;
+      border-right: 2px solid var(--cyan);
       white-space: nowrap;
+      min-width: 110px;
+      max-width: 110px;
+      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
     }
-    .qbe-matrix-col-cell select, .qbe-matrix-col-cell input {
+
+    .qbe-matrix-col-cell {
+      padding: var(--qbe-grid-cell-padding, 4px 6px);
+      min-width: 160px;
+      max-width: 220px;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+
+    .qbe-matrix-col-cell select,
+    .qbe-matrix-col-cell input {
       width: 100%;
-      background: transparent;
-      border: none;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      padding: var(--qbe-grid-cell-padding, 4px 6px);
       color: var(--text-main);
-      font-size: 11px;
+      font-size: var(--qbe-grid-font-size, 11px);
+      font-family: inherit;
       outline: none;
+    }
+
+    .qbe-matrix-col-cell select:focus,
+    .qbe-matrix-col-cell input:focus {
+      border-color: var(--cyan);
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .qbe-show-checkbox {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .qbe-show-checkbox input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    /* Datasheet View Table */
+    .qbe-datasheet-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: rgba(10, 15, 29, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .qbe-datasheet-container table.data-grid {
+      font-size: var(--ds-font-size, 11px);
+    }
+
+    .qbe-datasheet-container table.data-grid td,
+    .qbe-datasheet-container table.data-grid th {
+      padding: var(--ds-cell-padding, 5px 8px);
+      font-size: var(--ds-font-size, 11px);
+    }
+
+    .qbe-datasheet-toolbar {
+      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .designer-sql-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+      flex: 1;
+    }
+
+    .designer-sql-preview {
+      width: 100%;
+      min-height: var(--sql-editor-height, 240px);
+      background: rgba(0, 0, 0, 0.45);
+      color: #7dd3fc;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      resize: vertical;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .qbe-saved-chip {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .qbe-saved-chip .btn {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .qbe-saved-chip .sidebar-mini-btn:hover {
+      background: rgba(244, 63, 94, 0.3);
+    }
+
+    .designer-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      border: 1px dashed var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-dim);
+      background: rgba(15, 23, 42, 0.5);
     }
 
     /* Extensions Manager Tab */
@@ -949,7 +1471,8 @@ export function generatePostgresStudioHtml(): string {
       justify-content: center;
       z-index: 1000;
     }
-    .modal-overlay.active {
+    .modal-overlay.active,
+    .modal-overlay.open {
       display: flex;
     }
     .modal-card {
@@ -1017,55 +1540,6 @@ export function generatePostgresStudioHtml(): string {
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Visual Query Designer Room & Zoom Controls */
-    .qbe-zoom-controls, .qbe-room-controls {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-    }
-    .qbe-resizer-bar {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      cursor: row-resize;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s ease;
-      position: relative;
-      z-index: 5;
-    }
-    .qbe-resizer-bar:hover { background: var(--cyan); }
-    .qbe-resizer-handle {
-      width: 40px;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--text-dim);
-    }
-    .access-venn-preview-row {
-      display: grid;
-      grid-template-columns: 160px 1fr;
-      gap: 12px;
-      align-items: center;
-      background: rgba(10, 15, 29, 0.8);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 10px 14px;
-    }
-    .access-venn-svg {
-      width: 150px;
-      height: 90px;
-    }
-    .access-sql-box {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: #38bdf8;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      padding: 8px 10px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
 
     ${CRUD_STYLE}
   </style>
@@ -1269,68 +1743,8 @@ export function generatePostgresStudioHtml(): string {
 
       <!-- TAB 3: Visual Query Designer (Access Style Relational Canvas) -->
       <div class="tab-pane" id="tabDesigner">
-        <div class="qbe-ribbon">
-          <div class="qbe-ribbon-group">
-            <div class="qbe-view-switch">
-              <button class="qbe-view-btn active" id="btnDesignerDesign" onclick="setDesignerActiveView('design')">📐 Design</button>
-              <button class="qbe-view-btn" id="btnDesignerSql" onclick="setDesignerActiveView('sql')">💻 SQL</button>
-              <button class="qbe-view-btn" id="btnDesignerDatasheet" onclick="setDesignerActiveView('datasheet')">📋 Datasheet</button>
-            </div>
-            <div style="width: 1px; height: 18px; background: var(--border-subtle); margin: 0 4px;"></div>
-            <button class="btn btn-sm btn-primary" onclick="runDesignerQuery()">! Run</button>
-            <button class="btn btn-sm" id="btnDesignerTotals" onclick="toggleDesignerTotals()">Σ Totals</button>
-            <button class="btn btn-sm" id="btnDesignerDistinct" onclick="toggleDesignerDistinct()">Distinct</button>
-            <select class="btn btn-sm" onchange="applyDesignerPreset(this.value); this.value='';" style="color: var(--amber);">
-              <option value="">⚡ Relational Presets</option>
-              <option value="ecommerce_4table">🛒 4-Table Full Relational (Customers + Orders + Items + Products)</option>
-              <option value="vip_customers">👑 VIP High-Spend Customers</option>
-              <option value="full_join">🌐 FULL OUTER JOIN (Postgres Native)</option>
-              <option value="reset">Clear Canvas</option>
-            </select>
-          </div>
-          <div class="qbe-ribbon-group">
-            <select id="designerTablePicker" style="max-width: 160px; font-size: 11px;">
-              <option value="">+ Add Table / View</option>
-            </select>
-            <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
-            <button class="btn btn-sm" onclick="openJoinPropertiesModal()">+ Link / Join</button>
-            <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships from Foreign Keys">⚡ Auto-Joins</button>
-            <button class="btn btn-sm" onclick="autoArrangeDesignerTables()">📐 Arrange</button>
-            <button class="btn btn-sm" onclick="addDesignerQbeColumn()">+ Column</button>
-            <button class="btn btn-sm" onclick="toggleSidebarCollapse()">◀▶ Sidebar</button>
-          </div>
-          <div class="qbe-ribbon-group">
-            <!-- Zoom Controls -->
-            <div class="qbe-zoom-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-              <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Zoom:</span>
-              <button class="btn btn-sm" onclick="zoomOutDesignerCanvas()" title="Zoom out canvas (Ctrl + Wheel Down)" style="padding: 1px 6px; font-size: 11px;">🔍−</button>
-              <select id="canvasZoomSelect" onchange="setDesignerCanvasZoom(parseFloat(this.value))" style="padding: 1px 4px; font-size: 10px; width: 62px; height: 22px;">
-                <option value="0.5">50%</option>
-                <option value="0.75">75%</option>
-                <option value="0.9">90%</option>
-                <option value="1" selected>100%</option>
-                <option value="1.25">125%</option>
-                <option value="1.5">150%</option>
-                <option value="2">200%</option>
-              </select>
-              <button class="btn btn-sm" onclick="zoomInDesignerCanvas()" title="Zoom in canvas (Ctrl + Wheel Up)" style="padding: 1px 6px; font-size: 11px;">🔍+</button>
-              <button class="btn btn-sm" onclick="resetDesignerCanvasZoom()" title="Reset zoom to 100%" style="padding: 1px 6px; font-size: 10px;">1:1</button>
-              <button class="btn btn-sm" onclick="fitDesignerCanvasZoom()" title="Fit all tables into viewport" style="padding: 1px 6px; font-size: 10px;">🎯 Fit</button>
-            </div>
-
-            <!-- Room Controls -->
-            <div class="qbe-room-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-              <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Room:</span>
-              <button class="btn btn-sm" id="btnRoomCanvas" onclick="setDesignerRoomMode('canvas-max')" title="Maximize Canvas room" style="padding: 1px 6px; font-size: 10px;">⤢ Canvas</button>
-              <button class="btn btn-sm btn-primary" id="btnRoomSplit" onclick="setDesignerRoomMode('split')" title="Balanced Split room" style="padding: 1px 6px; font-size: 10px;">⤡ Split</button>
-              <button class="btn btn-sm" id="btnRoomGrid" onclick="setDesignerRoomMode('grid-max')" title="Maximize Grid room" style="padding: 1px 6px; font-size: 10px;">⤢ Grid</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Designer Main Content Area -->
-        <div id="designerContainer" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
-          <!-- Loaded dynamically: Viewport, Canvas, and Lower QBE Matrix -->
+        <div class="designer-layout" id="designerContainer">
+          <div class="designer-empty">Load a schema from the sidebar to begin building a visual query.</div>
         </div>
       </div>
 
@@ -1391,12 +1805,23 @@ export function generatePostgresStudioHtml(): string {
       <!-- TAB 6: Query Plan Visualizer -->
       <div class="tab-pane" id="tabExplain">
         <div class="activity-toolbar">
-          <span style="font-weight: 700; color: var(--cyan);">PostgreSQL Execution Plan (EXPLAIN ANALYZE, BUFFERS)</span>
-          <button class="btn btn-sm btn-primary" onclick="explainCurrentQuery()">Re-run Explain</button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; color: var(--cyan);">PostgreSQL Execution Plan (EXPLAIN ANALYZE, BUFFERS)</span>
+            <span id="explainLatencyBadge" class="brand-badge" style="display: none;">0ms</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm btn-primary" onclick="explainCurrentQuery()">Re-run Explain</button>
+          </div>
         </div>
-        <div style="flex: 1; padding: 16px; overflow: auto;">
-          <div class="modal-card" style="max-width: 100%; border: 1px solid var(--border-subtle); padding: 14px; background: rgba(8, 14, 26, 0.8);">
-            <pre id="explainOutput" style="font-family: var(--font-mono); font-size: 12px; color: #a5f3fc; line-height: 1.6; white-space: pre-wrap;">Run "Explain" on any SQL query to visualize the execution plan tree, actual vs estimated row counts, cost metrics, and buffer cache hits.</pre>
+        <div style="flex: 1; padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 14px;">
+          <div id="explainContainer" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="card">
+              <div class="card-title">Run "Explain" on any SQL query to visualize the execution plan tree, actual vs estimated row counts, cost metrics, and buffer cache hits.</div>
+            </div>
+          </div>
+          <div class="card" style="border: 1px solid var(--border-subtle); padding: 14px; background: rgba(8, 14, 26, 0.85);">
+            <div class="card-title" style="margin-bottom: 8px; color: var(--cyan); font-size: 11px;">RAW EXPLAIN ANALYZE OUTPUT</div>
+            <pre id="explainOutput" style="font-family: var(--font-mono); font-size: 12px; color: #a5f3fc; line-height: 1.6; white-space: pre-wrap; margin: 0;">Run "Explain" on any SQL query to visualize the execution plan tree, actual vs estimated row counts, cost metrics, and buffer cache hits.</pre>
           </div>
         </div>
       </div>
@@ -1769,65 +2194,90 @@ export function generatePostgresStudioHtml(): string {
     </div>
   </div>
 
-  <!-- MODAL: Venn Diagram Join Properties Dialog -->
-  <div class="modal-overlay" id="joinPropertiesModal" onclick="if(event.target === this) closeJoinPropertiesModal()">
-    <div class="modal-card" style="max-width: 580px;">
+  <!-- MODAL: Access Join Properties Dialog with SVG Venn Preview -->
+  <div class="modal-overlay" id="accessJoinPropertiesModal" onclick="if(event.target === this) closeJoinPropertiesModal()">
+    <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
-        <div class="modal-title"><span>📐</span><span>Join Properties (Microsoft Access Style)</span></div>
-        <button class="modal-close" onclick="closeJoinPropertiesModal()">✕</button>
+        <div class="modal-title">
+          <span>📐</span>
+          <span>Join Properties (Microsoft Access Relational Editor)</span>
+        </div>
+        <button class="modal-close" onclick="closeJoinPropertiesModal()" title="Close dialog">✕</button>
       </div>
-      <div class="modal-body" style="gap: 12px; display: flex; flex-direction: column;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Left Table</label>
-            <select id="joinLeftTable" onchange="onJoinTableChange('left')" style="width: 100%; padding: 6px; font-size: 11px;"></select>
+      <div class="modal-body" style="gap: 14px;">
+        <div style="font-size: 11px; color: var(--text-dim);">
+          Specify the relationship between fields in both tables. Choose how matched and unmatched rows are included in the result set.
+        </div>
+
+        <!-- Table and Field Selection -->
+        <div class="access-join-table-row">
+          <div class="access-join-table-col">
+            <span class="access-join-label">Left Table Name</span>
+            <select id="jpLeftTable" class="qbe-select" onchange="onJoinPropTableChange('left')" style="font-weight: 700;"></select>
+            <span class="access-join-label" style="margin-top: 4px;">Left Column</span>
+            <select id="jpLeftField" class="qbe-select" onchange="updateJoinPropPreview()"></select>
           </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Right Table</label>
-            <select id="joinRightTable" onchange="onJoinTableChange('right')" style="width: 100%; padding: 6px; font-size: 11px;"></select>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <button class="btn btn-sm" onclick="swapJoinPropDirection()" title="Swap Left and Right Tables" style="padding: 6px 10px; font-weight: bold;">⇄ Swap</button>
+            <span style="font-size: 11px; color: var(--cyan); font-weight: bold;">=</span>
+          </div>
+          <div class="access-join-table-col">
+            <span class="access-join-label">Right Table Name</span>
+            <select id="jpRightTable" class="qbe-select" onchange="onJoinPropTableChange('right')" style="font-weight: 700;"></select>
+            <span class="access-join-label" style="margin-top: 4px;">Right Column</span>
+            <select id="jpRightField" class="qbe-select" onchange="updateJoinPropPreview()"></select>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Left Field</label>
-            <select id="joinLeftField" style="width: 100%; padding: 6px; font-size: 11px;"></select>
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Right Field</label>
-            <select id="joinRightField" style="width: 100%; padding: 6px; font-size: 11px;"></select>
-          </div>
-        </div>
-
-        <!-- Join Type Radio Options with Venn Diagrams -->
-        <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px;">
-          <label style="font-size: 11px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 8px;">Relational Join Mode:</label>
-
-          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.02); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="INNER" onchange="updateJoinPropVennDiagram()" checked>
-            <span style="font-size: 11px; color: var(--text-main);"><strong>1: Only include rows where the joined fields from both tables are equal (INNER JOIN)</strong></span>
+        <!-- Access 5 Join Types (INNER, LEFT, RIGHT, FULL OUTER, CROSS) -->
+        <div class="access-join-options">
+          <label class="access-join-radio-card" id="cardJpInner" onclick="selectJoinPropType('INNER')">
+            <input type="radio" name="accessJoinType" id="radioJpInner" value="INNER" onchange="onJoinPropTypeChange('INNER')">
+            <div class="access-join-text">
+              <span class="access-join-title">1: Only include rows where the joined fields from both tables are equal.</span>
+              <span class="access-join-desc">INNER JOIN — Returns only records where a match is found in both '<span class="jp-left-name">Left</span>' and '<span class="jp-right-name">Right</span>'.</span>
+            </div>
           </label>
 
-          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.02); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="LEFT" onchange="updateJoinPropVennDiagram()">
-            <span style="font-size: 11px; color: var(--text-main);"><strong>2: Include ALL records from <span id="lblLeftTableJoin">Left Table</span> and only matching records from Right Table (LEFT JOIN)</strong></span>
+          <label class="access-join-radio-card" id="cardJpLeft" onclick="selectJoinPropType('LEFT')">
+            <input type="radio" name="accessJoinType" id="radioJpLeft" value="LEFT" onchange="onJoinPropTypeChange('LEFT')">
+            <div class="access-join-text">
+              <span class="access-join-title">2: Include ALL records from '<span class="jp-left-name">Left</span>' and only those records from '<span class="jp-right-name">Right</span>' where the joined fields are equal.</span>
+              <span class="access-join-desc">LEFT OUTER JOIN — Preserves all records from '<span class="jp-left-name">Left</span>', filling in NULLs for non-matching records from '<span class="jp-right-name">Right</span>'.</span>
+            </div>
           </label>
 
-          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.02); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="RIGHT" onchange="updateJoinPropVennDiagram()">
-            <span style="font-size: 11px; color: var(--text-main);"><strong>3: Include ALL records from <span id="lblRightTableJoin">Right Table</span> and only matching records from Left Table (RIGHT JOIN)</strong></span>
+          <label class="access-join-radio-card" id="cardJpRight" onclick="selectJoinPropType('RIGHT')">
+            <input type="radio" name="accessJoinType" id="radioJpRight" value="RIGHT" onchange="onJoinPropTypeChange('RIGHT')">
+            <div class="access-join-text">
+              <span class="access-join-title">3: Include ALL records from '<span class="jp-right-name">Right</span>' and only those records from '<span class="jp-left-name">Left</span>' where the joined fields are equal.</span>
+              <span class="access-join-desc">RIGHT OUTER JOIN — Preserves all records from '<span class="jp-right-name">Right</span>', filling in NULLs for non-matching records from '<span class="jp-left-name">Left</span>'.</span>
+            </div>
           </label>
 
-          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); margin-bottom: 4px;">
-            <input type="radio" name="joinTypeRadio" value="FULL" onchange="updateJoinPropVennDiagram()">
-            <span style="font-size: 11px; color: #c084fc;"><strong>4: 🐘 FULL OUTER JOIN (Postgres Native) - Include ALL records from BOTH tables</strong></span>
+          <label class="access-join-radio-card" id="cardJpFull" onclick="selectJoinPropType('FULL')">
+            <input type="radio" name="accessJoinType" id="radioJpFull" value="FULL" onchange="onJoinPropTypeChange('FULL')">
+            <div class="access-join-text">
+              <span class="access-join-title">4: 🐘 FULL OUTER JOIN (Postgres Native) — Include ALL records from BOTH tables whether or not there are matching records.</span>
+              <span class="access-join-desc">FULL OUTER JOIN (Postgres Native) — Complete PostgreSQL symmetric join with NULLs where keys do not match.</span>
+            </div>
+          </label>
+
+          <label class="access-join-radio-card" id="cardJpCross" onclick="selectJoinPropType('CROSS')">
+            <input type="radio" name="accessJoinType" id="radioJpCross" value="CROSS" onchange="onJoinPropTypeChange('CROSS')">
+            <div class="access-join-text">
+              <span class="access-join-title">5: Produce the Cartesian product of all rows between '<span class="jp-left-name">Left</span>' and '<span class="jp-right-name">Right</span>'.</span>
+              <span class="access-join-desc">CROSS JOIN — Pairs every row from '<span class="jp-left-name">Left</span>' with every row from '<span class="jp-right-name">Right</span>' without matching condition.</span>
+            </div>
           </label>
         </div>
 
         <!-- Live Venn Diagram & SQL Preview -->
         <div class="access-venn-preview-row">
           <div style="display:flex; flex-direction:column; align-items:center;">
-            <svg class="access-venn-svg" viewBox="0 0 160 90" id="jpVennSvg"></svg>
+            <svg class="access-venn-svg" viewBox="0 0 160 90" id="jpVennSvg">
+              <!-- Rendered dynamically by updateJoinPropVennDiagram -->
+            </svg>
             <span id="jpVennBadge" style="font-size:10px; font-weight:700; color:var(--cyan); margin-top:2px;">INNER JOIN</span>
           </div>
           <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
@@ -1835,10 +2285,15 @@ export function generatePostgresStudioHtml(): string {
             <div class="access-sql-box" id="jpSqlSnippet">FROM "table1" INNER JOIN "table2" ON "table1"."id" = "table2"."id"</div>
           </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-sm" onclick="closeJoinPropertiesModal()">Cancel</button>
-        <button class="btn btn-sm btn-primary" onclick="submitJoinProperties()">Apply Join</button>
+
+        <!-- Modal Footer Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
+          <button class="btn btn-sm btn-danger" id="btnDeleteJoinProp" onclick="deleteCurrentJoinFromProperties()">🗑️ Delete Join</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm" onclick="closeJoinPropertiesModal()">Cancel</button>
+            <button class="btn btn-sm btn-primary" onclick="saveJoinProperties()">✓ OK / Apply Join</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1867,12 +2322,25 @@ export function generatePostgresStudioHtml(): string {
       tablePositions: {},
       joins: [],
       columns: [],
-      showTotals: false,
+      showTotals: true,
       distinct: false,
-      topLimit: 0,
-      canvasZoom: 1.0,
+      topLimit: 100,
+      savedQueries: [],
       datasheet: null,
       datasheetLoading: false,
+      canvasZoom: 1.0,
+      canvasHeight: 480,
+      canvasViewMode: "split",
+      gridDensity: "normal",
+      sqlFontSize: 13,
+      datasheetFontSize: 11,
+      datasheetDensity: "normal",
+      selectedFields: {},
+      aggregates: {},
+      groupBy: {},
+      orderBy: "",
+      filters: [],
+      havingFilters: [],
     };
 
     // Helper: Toast message
@@ -1884,8 +2352,17 @@ export function generatePostgresStudioHtml(): string {
       setTimeout(() => { toast.style.display = "none"; }, duration);
     }
 
-    // Helper: Safe fetch API wrapper
-    async function apiRequest(endpoint, method = "GET", body = null) {
+    // Helper: Safe fetch API wrapper (supports both (url, method, body) and (url, bodyObj))
+    async function apiRequest(endpoint, methodOrBody = "GET", maybeBody = null) {
+      let method = "GET";
+      let body = null;
+      if (typeof methodOrBody === "string") {
+        method = methodOrBody.toUpperCase();
+        body = maybeBody;
+      } else if (methodOrBody && typeof methodOrBody === "object") {
+        method = "POST";
+        body = methodOrBody;
+      }
       const opts = { method, headers: { "Content-Type": "application/json" } };
       if (body) opts.body = JSON.stringify(body);
       try {
@@ -1945,17 +2422,17 @@ export function generatePostgresStudioHtml(): string {
     // Load KPIs & Telemetry
     async function loadKpis() {
       const res = await apiRequest("/api/kpis");
-      if (res.success && res.kpis) {
-        const k = res.kpis;
-        document.getElementById("kpiDbName").innerText = k.dbName || "mydb";
-        document.getElementById("kpiLatency").innerText = k.latencyMs + "ms";
-        document.getElementById("kpiConnections").innerText = k.activeConnections || 1;
-        document.getElementById("kpiTables").innerText = k.tableCount || 0;
-        document.getElementById("kpiViews").innerText = k.viewCount || 0;
-        document.getElementById("kpiMatViews").innerText = k.matViewCount || 0;
-        document.getElementById("kpiRows").innerText = (k.totalRows || 0).toLocaleString();
-        document.getElementById("kpiBuffers").innerText = k.sharedBuffers || "128MB";
-        if (k.pgVersion) {
+      const k = (res && res.kpis) || res;
+      if (k && (k.tableCount !== undefined || (res && res.success))) {
+        if (document.getElementById("kpiDbName")) document.getElementById("kpiDbName").innerText = k.dbName || "mydb";
+        if (document.getElementById("kpiLatency")) document.getElementById("kpiLatency").innerText = (k.latencyMs || 0.4) + "ms";
+        if (document.getElementById("kpiConnections")) document.getElementById("kpiConnections").innerText = k.activeConnections || 1;
+        if (document.getElementById("kpiTables")) document.getElementById("kpiTables").innerText = k.tableCount || 0;
+        if (document.getElementById("kpiViews")) document.getElementById("kpiViews").innerText = k.viewCount || 0;
+        if (document.getElementById("kpiMatViews")) document.getElementById("kpiMatViews").innerText = k.matViewCount || 0;
+        if (document.getElementById("kpiRows")) document.getElementById("kpiRows").innerText = (k.totalRows || 0).toLocaleString();
+        if (document.getElementById("kpiBuffers")) document.getElementById("kpiBuffers").innerText = k.sharedBuffers || "128MB";
+        if (k.pgVersion && document.getElementById("pgVersionBadge")) {
           const v = k.pgVersion.split(" ")[1] || k.pgVersion.slice(0, 14);
           document.getElementById("pgVersionBadge").innerText = "PG " + v;
         }
@@ -1969,6 +2446,11 @@ export function generatePostgresStudioHtml(): string {
         currentSchema = res;
         renderSidebarTree();
         renderSchemaDropdown(res.schemas || ["public"], res.activeSchema || "public");
+        if (document.getElementById("kpiTables")) {
+          document.getElementById("kpiTables").innerText = (currentSchema.tables || []).length;
+          document.getElementById("kpiViews").innerText = (currentSchema.views || []).length;
+          document.getElementById("kpiMatViews").innerText = (currentSchema.matviews || []).length;
+        }
         loadKpis();
         const allItems = [...(currentSchema.tables || []), ...(currentSchema.views || []), ...(currentSchema.matviews || [])];
         if (!activeTable || !allItems.find(item => item.name === activeTable)) {
@@ -2155,10 +2637,23 @@ export function generatePostgresStudioHtml(): string {
       if (activeTable) loadTableData(activeTable, 1);
     }
 
+    const runExplainPlan = explainCurrentQuery;
+
     // Execute SQL in Editor
     async function executeCurrentQuery() {
-      const sql = document.getElementById("sqlEditorTextarea").value.trim();
-      if (!sql) return;
+      const sqlEl = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+      let sql = sqlEl ? sqlEl.value.trim() : "";
+      if ((!sql || activeTab === "designer") && typeof buildDesignerSql === "function") {
+        const designerSql = buildDesignerSql();
+        if (designerSql) {
+          sql = designerSql;
+          if (sqlEl) sqlEl.value = sql;
+        }
+      }
+      if (!sql) {
+        showToast("Enter a query to run!");
+        return;
+      }
       document.getElementById("sqlResultStatus").innerText = "Executing query...";
       const start = performance.now();
       const res = await apiRequest("/api/query", "POST", { sql });
@@ -2177,19 +2672,87 @@ export function generatePostgresStudioHtml(): string {
       }
     }
 
-    // Explain Current Query (EXPLAIN ANALYZE)
+    // Explain Current Query (Visual Execution Tree & Raw Output)
     async function explainCurrentQuery() {
-      const sql = document.getElementById("sqlEditorTextarea").value.trim();
-      if (!sql) return;
-      showToast("Generating query execution plan...");
-      const res = await apiRequest("/api/query", "POST", { sql: "EXPLAIN (ANALYZE, BUFFERS, VERBOSE) " + sql });
-      if (res.success && res.rows) {
-        const planText = res.rows.map(r => Object.values(r)[0]).join('\\n');
-        document.getElementById("explainOutput").innerText = planText;
-        switchTab("explain");
-      } else {
-        showToast("Explain error: " + (res.error || "Unknown"));
+      const sqlEl = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+      let sql = sqlEl ? sqlEl.value.trim() : "";
+      if ((!sql || activeTab === "designer") && typeof buildDesignerSql === "function") {
+        const designerSql = buildDesignerSql();
+        if (designerSql) {
+          sql = designerSql;
+          if (sqlEl) sqlEl.value = sql;
+        }
       }
+      if (!sql) {
+        showToast("Enter a query to explain!");
+        return;
+      }
+      showToast("Generating query execution plan...");
+      const res = await apiRequest("/api/explain", "POST", { sql });
+      if (res && res.success) {
+        if (res.queryPlan) {
+          renderExplainPlan(res.queryPlan, sql, res.rawPlan, res.rawText);
+        }
+        if (res.rawText) {
+          const rawOut = document.getElementById("explainOutput");
+          if (rawOut) rawOut.textContent = res.rawText;
+        }
+        const badge = document.getElementById("explainLatencyBadge");
+        if (badge && res.latencyMs !== undefined) {
+          badge.style.display = "inline-block";
+          badge.textContent = res.latencyMs + "ms";
+        }
+        switchTab("explain");
+        showToast("Query plan generated!");
+      } else {
+        showToast("Explain error: " + (res?.error || "Unknown"));
+      }
+    }
+
+    function renderExplainPlan(planNodes, sql, rawPlan, rawText) {
+      const container = document.getElementById("explainContainer");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = \`
+        <div class="card-title">🔍 Query Plan Analysis</div>
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan); margin-bottom: 8px;">\${escapeHtml(sql)}</div>
+      \`;
+
+      const list = document.createElement("div");
+      list.style.display = "flex";
+      list.style.flexDirection = "column";
+      list.style.gap = "6px";
+
+      planNodes.forEach(node => {
+        const item = document.createElement("div");
+        item.style.padding = "8px 12px";
+        item.style.borderRadius = "6px";
+        item.style.background = node.isScan ? "rgba(244, 63, 94, 0.1)" : (node.isIndex ? "rgba(16, 185, 129, 0.1)" : "rgba(56, 189, 248, 0.08)");
+        item.style.border = node.isScan ? "1px solid var(--rose)" : (node.isIndex ? "1px solid var(--emerald)" : "1px solid var(--border-subtle)");
+        item.style.fontFamily = "var(--font-mono)";
+        item.style.fontSize = "11px";
+
+        const badge = node.isScan 
+          ? '<span style="color: var(--rose); font-weight: 700;">⚠️ SCAN TABLE (FULL SCAN)</span>'
+          : (node.isIndex
+            ? '<span style="color: var(--emerald); font-weight: 700;">⚡ INDEX SEARCH</span>'
+            : '<span style="color: var(--cyan); font-weight: 700;">🔗 EXECUTION NODE</span>');
+
+        item.innerHTML = \`
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            \${badge}
+            <span style="color: var(--text-dim); font-size: 10px;">Node #\${node.id} \${node.parent ? '(Parent: #' + node.parent + ')' : '(Root)'}</span>
+          </div>
+          <div style="color: var(--text-main); line-height: 1.4;">\${escapeHtml(node.detail)}</div>
+        \`;
+        list.appendChild(item);
+      });
+
+      card.appendChild(list);
+      container.appendChild(card);
     }
 
     function renderSqlResults(rows, cols) {
@@ -2659,750 +3222,7 @@ export function generatePostgresStudioHtml(): string {
       }
     }
 
-    // Visual Query Designer Implementation
-    function renderQueryDesigner() {
-      const container = document.getElementById("designerContainer");
-      if (!container || !currentSchema) return;
-
-      const selectedTables = queryDesignerState.selectedTables;
-      const allTables = (currentSchema.tables || []).map(t => t.name);
-      const allViews = (currentSchema.views || []).map(v => v.name);
-
-      // Populate Table Picker Dropdown
-      const picker = document.getElementById("designerTablePicker");
-      if (picker) {
-        picker.innerHTML = "<option value=''>+ Add Table / View</option>" +
-          (allTables.length ? "<optgroup label='📋 Tables'>" + allTables.map(t => "<option value='" + t + "'>" + t + "</option>").join('') + "</optgroup>" : "") +
-          (allViews.length ? "<optgroup label='👁️ Views'>" + allViews.map(v => "<option value='" + v + "'>" + v + " (view)</option>").join('') + "</optgroup>" : "");
-      }
-
-      // If in SQL View mode
-      if (queryDesignerState.activeView === "sql") {
-        const sql = generateDesignerSql();
-        container.innerHTML = \`
-          <div style="flex: 1; padding: 16px; display: flex; flex-direction: column;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--cyan); margin-bottom: 8px;">Generated PostgreSQL SQL (Double-Quoted Identifiers):</div>
-            <pre style="flex: 1; background: rgba(8, 14, 26, 0.95); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px; font-family: var(--font-mono); font-size: 12px; color: #7dd3fc; line-height: 1.5; white-space: pre-wrap;">\${escapeHtml(sql)}</pre>
-            <div style="margin-top: 10px; display: flex; gap: 8px;">
-              <button class="btn btn-sm btn-primary" onclick="runDesignerQuery()">! Execute Query</button>
-              <button class="btn btn-sm" onclick="navigator.clipboard.writeText('\${sql.replace(/'/g, "\\\\'")}'); showToast('Copied SQL to clipboard!')">📋 Copy SQL</button>
-              <button class="btn btn-sm" onclick="setDesignerActiveView('design')">📐 Back to Design</button>
-            </div>
-          </div>
-        \`;
-        return;
-      }
-
-      // If in Datasheet View mode
-      if (queryDesignerState.activeView === "datasheet") {
-        const ds = queryDesignerState.datasheet;
-        let content = "";
-        if (queryDesignerState.datasheetLoading) {
-          content = "<div style='text-align: center; padding: 40px; color: var(--cyan); font-size: 13px;'>⚡ Executing query against PostgreSQL...</div>";
-        } else if (ds && ds.error) {
-          content = "<div style='padding: 20px; color: var(--rose); font-family: var(--font-mono);'>⚠️ Error: " + ds.error + "</div>";
-        } else if (ds && ds.rows) {
-          const cols = ds.columns || (ds.rows.length ? Object.keys(ds.rows[0]) : []);
-          content = \`
-            <div class="grid-scroll" style="flex: 1;">
-              <table class="data-grid">
-                <thead><tr>\${cols.map(c => '<th>' + c + '</th>').join('')}</tr></thead>
-                <tbody>
-                  \${ds.rows.map(r => '<tr>' + cols.map(c => '<td>' + (r[c] !== null && r[c] !== undefined ? escapeHtml(String(r[c])) : '<span class=\"cell-null\">NULL</span>') + '</td>').join('') + '</tr>').join('')}
-                </tbody>
-              </table>
-            </div>
-          \`;
-        } else {
-          content = "<div style='text-align: center; padding: 40px; color: var(--text-dim);'>Click ! Run to execute query</div>";
-        }
-
-        container.innerHTML = \`
-          <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-            <div style="padding: 8px 12px; background: rgba(10, 17, 32, 0.9); border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; color: var(--cyan);">📋 Datasheet View \${ds ? '(' + ds.rows.length + ' rows, ' + ds.latencyMs + 'ms)' : ''}</span>
-              <button class="btn btn-sm btn-primary" onclick="setDesignerActiveView('design')">📐 Design View</button>
-            </div>
-            \${content}
-          </div>
-        \`;
-        return;
-      }
-
-      // Design View Mode: Top Viewport Canvas + Lower Matrix
-      const tableCardsHtml = selectedTables.map(tName => {
-        const meta = (currentSchema.tables || []).find(t => t.name === tName) || (currentSchema.views || []).find(v => v.name === tName);
-        if (!meta) return "";
-        const pos = queryDesignerState.tablePositions[tName] || { x: 40, y: 30 };
-        return \`
-          <div class="qbe-table-card" id="qbeCard_\${tName}" style="left: \${pos.x}px; top: \${pos.y}px;">
-            <div class="qbe-table-card-header" onmousedown="startDragTableCard(event, '\${tName}')">
-              <span>📋 \${tName}</span>
-              <button class="sidebar-mini-btn" onclick="removeDesignerTable('\${tName}')" style="padding: 1px 4px;">✕</button>
-            </div>
-            <div class="qbe-table-card-fields">
-              \${(meta.columns || []).map(c => \`
-                <div class="qbe-field-row" onclick="addDesignerQbeColumn('\${tName}', '\${c.name}')" title="Click to add field to QBE Grid">
-                  <div style="display: flex; align-items: center;">
-                    <span class="qbe-field-connector">●</span>
-                    <span>\${c.pk ? '🔑 ' : ''}\${c.name}</span>
-                  </div>
-                  <span style="font-size: 9px; color: var(--text-dim);">\${c.type || 'ANY'}</span>
-                </div>
-              \`).join('')}
-            </div>
-          </div>
-        \`;
-      }).join('') || \`
-        <div style="text-align: center; padding: 40px; color: var(--text-dim); max-width: 440px; margin: 40px auto; border: 1px dashed var(--border-subtle); border-radius: 8px;">
-          <div style="font-size: 24px; margin-bottom: 8px;">🗄️</div>
-          <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Relational Canvas Ready</div>
-          <div style="font-size: 11px; margin-bottom: 12px;">Add tables using the selector above or pick a pre-configured relational template:</div>
-          <button class="btn btn-sm btn-primary" onclick="applyDesignerPreset('ecommerce_4table')">🛒 Load 4-Table E-Commerce</button>
-        </div>
-      \`;
-
-      // Matrix Columns Row
-      const qbeColumns = queryDesignerState.columns;
-      const matrixHeaders = \`
-        <tr>
-          <td class="qbe-matrix-header-cell">Field:</td>
-          \${qbeColumns.map((col, idx) => \`
-            <td class="qbe-matrix-col-cell">
-              <input type="text" value="\${col.field}" onchange="updateQbeColumn(\${idx}, 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
-            </td>
-          \`).join('')}
-          <td class="qbe-matrix-col-cell" style="width: 50px;"></td>
-        </tr>
-      \`;
-
-      const matrixTables = \`
-        <tr>
-          <td class="qbe-matrix-header-cell">Table:</td>
-          \${qbeColumns.map((col, idx) => \`
-            <td class="qbe-matrix-col-cell">
-              <input type="text" value="\${col.table}" onchange="updateQbeColumn(\${idx}, 'table', this.value)">
-            </td>
-          \`).join('')}
-          <td class="qbe-matrix-col-cell"></td>
-        </tr>
-      \`;
-
-      const matrixTotals = queryDesignerState.showTotals ? \`
-        <tr>
-          <td class="qbe-matrix-header-cell" style="color: var(--emerald);">Total:</td>
-          \${qbeColumns.map((col, idx) => \`
-            <td class="qbe-matrix-col-cell">
-              <select onchange="updateQbeColumn(\${idx}, 'total', this.value)" style="color: var(--emerald); font-weight: 600;">
-                <option value="GroupBy" \${col.total === 'GroupBy' ? 'selected' : ''}>GroupBy</option>
-                <option value="Sum" \${col.total === 'Sum' ? 'selected' : ''}>Sum</option>
-                <option value="Avg" \${col.total === 'Avg' ? 'selected' : ''}>Avg</option>
-                <option value="Count" \${col.total === 'Count' ? 'selected' : ''}>Count</option>
-                <option value="Min" \${col.total === 'Min' ? 'selected' : ''}>Min</option>
-                <option value="Max" \${col.total === 'Max' ? 'selected' : ''}>Max</option>
-              </select>
-            </td>
-          \`).join('')}
-          <td class="qbe-matrix-col-cell"></td>
-        </tr>
-      \` : "";
-
-      const matrixSort = \`
-        <tr>
-          <td class="qbe-matrix-header-cell">Sort:</td>
-          \${qbeColumns.map((col, idx) => \`
-            <td class="qbe-matrix-col-cell">
-              <select onchange="updateQbeColumn(\${idx}, 'sort', this.value)">
-                <option value="" \${!col.sort ? 'selected' : ''}>(None)</option>
-                <option value="ASC" \${col.sort === 'ASC' ? 'selected' : ''}>Ascending</option>
-                <option value="DESC" \${col.sort === 'DESC' ? 'selected' : ''}>Descending</option>
-              </select>
-            </td>
-          \`).join('')}
-          <td class="qbe-matrix-col-cell"></td>
-        </tr>
-      \`;
-
-      const matrixShow = \`
-        <tr>
-          <td class="qbe-matrix-header-cell">Show:</td>
-          \${qbeColumns.map((col, idx) => \`
-            <td class="qbe-matrix-col-cell" style="text-align: center;">
-              <input type="checkbox" \${col.show !== false ? 'checked' : ''} onchange="updateQbeColumn(\${idx}, 'show', this.checked)">
-            </td>
-          \`).join('')}
-          <td class="qbe-matrix-col-cell"></td>
-        </tr>
-      \`;
-
-      const matrixCriteria = \`
-        <tr>
-          <td class="qbe-matrix-header-cell">Criteria:</td>
-          \${qbeColumns.map((col, idx) => \`
-            <td class="qbe-matrix-col-cell">
-              <input type="text" placeholder="e.g. > 1000" value="\${col.criteria || ''}" onchange="updateQbeColumn(\${idx}, 'criteria', this.value)">
-            </td>
-          \`).join('')}
-          <td class="qbe-matrix-col-cell"></td>
-        </tr>
-      \`;
-
-      container.innerHTML = \`
-        <div class="qbe-viewport" id="qbeViewport">
-          <div class="qbe-canvas-stage" id="qbeStage" style="transform: scale(\${queryDesignerState.canvasZoom || 1.0});">
-            <svg class="qbe-svg-layer" id="qbeSvgLayer"></svg>
-            \${tableCardsHtml}
-          </div>
-        </div>
-        <div class="qbe-resizer-bar" id="qbeResizerBar" title="Drag to resize Canvas vs Grid room">
-          <div class="qbe-resizer-handle"></div>
-        </div>
-        <div class="qbe-lower-pane">
-          <div class="qbe-matrix-container">
-            <table class="qbe-matrix">
-              \${matrixHeaders}
-              \${matrixTables}
-              \${matrixTotals}
-              \${matrixSort}
-              \${matrixShow}
-              \${matrixCriteria}
-            </table>
-          </div>
-        </div>
-      \`;
-
-      drawJoinLines();
-      initResizerBar();
-      initViewportWheelZoom();
-    }
-
-    function setDesignerActiveView(view) {
-      queryDesignerState.activeView = view;
-      document.getElementById("btnDesignerDesign").className = view === "design" ? "qbe-view-btn active" : "qbe-view-btn";
-      document.getElementById("btnDesignerSql").className = view === "sql" ? "qbe-view-btn active" : "qbe-view-btn";
-      document.getElementById("btnDesignerDatasheet").className = view === "datasheet" ? "qbe-view-btn active" : "qbe-view-btn";
-      renderQueryDesigner();
-    }
-
-    function addDesignerTableFromPicker() {
-      const picker = document.getElementById("designerTablePicker");
-      const val = picker.value;
-      if (!val || queryDesignerState.selectedTables.includes(val)) return;
-      queryDesignerState.selectedTables.push(val);
-      const count = queryDesignerState.selectedTables.length;
-      queryDesignerState.tablePositions[val] = { x: 30 + ((count - 1) * 260) % 1200, y: 30 + Math.floor((count - 1) / 4) * 220 };
-      renderQueryDesigner();
-      autoJoinDesignerTables();
-    }
-
-    function removeDesignerTable(name) {
-      queryDesignerState.selectedTables = queryDesignerState.selectedTables.filter(t => t !== name);
-      queryDesignerState.joins = queryDesignerState.joins.filter(j => j.leftTable !== name && j.rightTable !== name);
-      queryDesignerState.columns = queryDesignerState.columns.filter(c => c.table !== name);
-      renderQueryDesigner();
-    }
-
-    function addDesignerQbeColumn(table = "", field = "") {
-      if (!table && queryDesignerState.selectedTables.length) {
-        table = queryDesignerState.selectedTables[0];
-      }
-      queryDesignerState.columns.push({
-        table,
-        field: field || "*",
-        total: "GroupBy",
-        sort: "",
-        show: true,
-        criteria: ""
-      });
-      renderQueryDesigner();
-    }
-
-    function updateQbeColumn(idx, prop, val) {
-      if (queryDesignerState.columns[idx]) {
-        queryDesignerState.columns[idx][prop] = val;
-      }
-    }
-
-    function toggleDesignerTotals() {
-      queryDesignerState.showTotals = !queryDesignerState.showTotals;
-      document.getElementById("btnDesignerTotals").className = queryDesignerState.showTotals ? "btn btn-sm btn-primary" : "btn btn-sm";
-      renderQueryDesigner();
-    }
-
-    function toggleDesignerDistinct() {
-      queryDesignerState.distinct = !queryDesignerState.distinct;
-      document.getElementById("btnDesignerDistinct").className = queryDesignerState.distinct ? "btn btn-sm btn-primary" : "btn btn-sm";
-    }
-
-    // Auto-Detect Joins from foreign keys
-    function autoJoinDesignerTables() {
-      if (!currentSchema || !queryDesignerState.selectedTables.length) return;
-      const tables = queryDesignerState.selectedTables;
-
-      tables.forEach(tName => {
-        const meta = (currentSchema.tables || []).find(t => t.name === tName);
-        if (!meta || !meta.foreignKeys) return;
-        meta.foreignKeys.forEach(fk => {
-          if (tables.includes(fk.table)) {
-            const exists = queryDesignerState.joins.some(j => 
-              (j.leftTable === tName && j.rightTable === fk.table && j.leftField === fk.from && j.rightField === fk.to) ||
-              (j.leftTable === fk.table && j.rightTable === tName && j.leftField === fk.to && j.rightField === fk.from)
-            );
-            if (!exists) {
-              queryDesignerState.joins.push({
-                leftTable: tName,
-                leftField: fk.from,
-                rightTable: fk.table,
-                rightField: fk.to,
-                type: "INNER"
-              });
-            }
-          }
-        });
-      });
-      renderQueryDesigner();
-    }
-
-    function autoArrangeDesignerTables() {
-      const tables = queryDesignerState.selectedTables;
-      tables.forEach((t, idx) => {
-        queryDesignerState.tablePositions[t] = {
-          x: 40 + (idx % 3) * 280,
-          y: 30 + Math.floor(idx / 3) * 240
-        };
-      });
-      renderQueryDesigner();
-    }
-
-    // Drag Table Cards on Canvas
-    let dragTableState = null;
-    function startDragTableCard(e, tableName) {
-      dragTableState = {
-        tableName,
-        startX: e.clientX,
-        startY: e.clientY,
-        initialPos: queryDesignerState.tablePositions[tableName] || { x: 40, y: 30 }
-      };
-
-      const onMouseMove = (ev) => {
-        if (!dragTableState) return;
-        const zoom = queryDesignerState.canvasZoom || 1.0;
-        const dx = (ev.clientX - dragTableState.startX) / zoom;
-        const dy = (ev.clientY - dragTableState.startY) / zoom;
-        const card = document.getElementById("qbeCard_" + dragTableState.tableName);
-        const newX = Math.max(10, Math.round(dragTableState.initialPos.x + dx));
-        const newY = Math.max(10, Math.round(dragTableState.initialPos.y + dy));
-        if (card) {
-          card.style.left = newX + "px";
-          card.style.top = newY + "px";
-        }
-        queryDesignerState.tablePositions[dragTableState.tableName] = { x: newX, y: newY };
-        drawJoinLines();
-      };
-
-      const onMouseUp = () => {
-        dragTableState = null;
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-      };
-
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
-    }
-
-    // Draw SVG Relational Join Lines
-    function drawJoinLines() {
-      const svg = document.getElementById("qbeSvgLayer");
-      if (!svg) return;
-      svg.innerHTML = "";
-
-      queryDesignerState.joins.forEach(j => {
-        const leftCard = document.getElementById("qbeCard_" + j.leftTable);
-        const rightCard = document.getElementById("qbeCard_" + j.rightTable);
-        if (!leftCard || !rightCard) return;
-
-        const leftPos = queryDesignerState.tablePositions[j.leftTable] || { x: 0, y: 0 };
-        const rightPos = queryDesignerState.tablePositions[j.rightTable] || { x: 0, y: 0 };
-
-        const x1 = leftPos.x + 230;
-        const y1 = leftPos.y + 60;
-        const x2 = rightPos.x;
-        const y2 = rightPos.y + 60;
-        const cx1 = x1 + Math.abs(x2 - x1) * 0.4;
-        const cy1 = y1;
-        const cx2 = x2 - Math.abs(x2 - x1) * 0.4;
-        const cy2 = y2;
-
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", "M " + x1 + " " + y1 + " C " + cx1 + " " + cy1 + ", " + cx2 + " " + cy2 + ", " + x2 + " " + y2);
-        path.setAttribute("stroke", j.type === "FULL" ? "#818cf8" : (j.type === "LEFT" || j.type === "RIGHT" ? "#f59e0b" : "#38bdf8"));
-        path.setAttribute("stroke-width", "2.5");
-        path.setAttribute("fill", "none");
-        svg.appendChild(path);
-      });
-    }
-
-    // Generate Double-Quoted PostgreSQL SQL from Visual Query
-    function generateDesignerSql() {
-      const tables = queryDesignerState.selectedTables;
-      if (!tables.length) return "-- Add tables to generate SQL query";
-
-      const showCols = queryDesignerState.columns.filter(c => c.show !== false);
-      let selectClause = "*";
-
-      if (showCols.length) {
-        selectClause = showCols.map(c => {
-          const colIdent = c.field === "*" ? "*" : '"' + c.field + '"';
-          const tableIdent = c.table ? '"' + c.table + '".' : "";
-          if (queryDesignerState.showTotals && c.total && c.total !== "GroupBy") {
-            return c.total.toUpperCase() + "(" + tableIdent + colIdent + ") AS " + '"' + c.total.toLowerCase() + "_" + c.field + '"';
-          }
-          return tableIdent + colIdent;
-        }).join(',\\n  ');
-      }
-
-      let fromClause = '"' + tables[0] + '"';
-      const joins = queryDesignerState.joins;
-
-      joins.forEach(j => {
-        let joinKeyword = "JOIN";
-        if (j.type === "LEFT") joinKeyword = "LEFT JOIN";
-        if (j.type === "RIGHT") joinKeyword = "RIGHT JOIN";
-        if (j.type === "FULL") joinKeyword = "FULL OUTER JOIN";
-
-        fromClause += "\\n" + joinKeyword + ' "' + j.rightTable + '" ON "' + j.leftTable + '"."' + j.leftField + '" = "' + j.rightTable + '"."' + j.rightField + '"';
-      });
-
-      let whereClause = "";
-      const criteriaCols = queryDesignerState.columns.filter(c => c.criteria && c.criteria.trim());
-      if (criteriaCols.length) {
-        whereClause = "\\nWHERE " + criteriaCols.map(c => '"' + c.table + '"."' + c.field + '" ' + c.criteria).join(' AND ');
-      }
-
-      let groupByClause = "";
-      if (queryDesignerState.showTotals) {
-        const groupCols = queryDesignerState.columns.filter(c => c.total === "GroupBy" && c.field !== "*");
-        if (groupCols.length) {
-          groupByClause = "\\nGROUP BY " + groupCols.map(c => '"' + c.table + '"."' + c.field + '"').join(', ');
-        }
-      }
-
-      let orderByClause = "";
-      const sortCols = queryDesignerState.columns.filter(c => c.sort);
-      if (sortCols.length) {
-        orderByClause = "\\nORDER BY " + sortCols.map(c => '"' + c.table + '"."' + c.field + '" ' + c.sort).join(', ');
-      }
-
-      const distinctStr = queryDesignerState.distinct ? "DISTINCT " : "";
-      return "SELECT " + distinctStr + "\\n  " + selectClause + "\\nFROM " + fromClause + whereClause + groupByClause + orderByClause + ";";
-    }
-
-    async function runDesignerQuery() {
-      const sql = generateDesignerSql();
-      setDesignerActiveView("datasheet");
-      queryDesignerState.datasheetLoading = true;
-      renderQueryDesigner();
-
-      const start = performance.now();
-      const res = await apiRequest("/api/query", "POST", { sql });
-      const elapsed = Math.round(performance.now() - start);
-
-      queryDesignerState.datasheetLoading = false;
-      if (res.success) {
-        queryDesignerState.datasheet = {
-          rows: res.rows || [],
-          columns: res.columns,
-          latencyMs: elapsed
-        };
-      } else {
-        queryDesignerState.datasheet = { error: res.error };
-      }
-      renderQueryDesigner();
-    }
-
-    function applyDesignerPreset(preset) {
-      if (preset === "ecommerce_4table") {
-        queryDesignerState.selectedTables = ["customers", "orders", "order_items", "products"];
-        queryDesignerState.tablePositions = {
-          customers: { x: 30, y: 30 },
-          orders: { x: 290, y: 30 },
-          order_items: { x: 550, y: 30 },
-          products: { x: 810, y: 30 }
-        };
-        queryDesignerState.joins = [
-          { leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "INNER" },
-          { leftTable: "orders", leftField: "id", rightTable: "order_items", rightField: "order_id", type: "INNER" },
-          { leftTable: "order_items", leftField: "product_id", rightTable: "products", rightField: "id", type: "INNER" }
-        ];
-        queryDesignerState.columns = [
-          { table: "customers", field: "name", total: "GroupBy", sort: "", show: true },
-          { table: "orders", field: "order_number", total: "GroupBy", sort: "", show: true },
-          { table: "products", field: "name", total: "GroupBy", sort: "", show: true },
-          { table: "order_items", field: "quantity", total: "Sum", sort: "", show: true },
-          { table: "order_items", field: "line_total", total: "Sum", sort: "DESC", show: true }
-        ];
-        queryDesignerState.showTotals = true;
-        renderQueryDesigner();
-        showToast("Loaded 4-Table E-Commerce relational query!");
-      } else if (preset === "full_join") {
-        queryDesignerState.selectedTables = ["customers", "orders"];
-        queryDesignerState.tablePositions = { customers: { x: 40, y: 40 }, orders: { x: 320, y: 40 } };
-        queryDesignerState.joins = [
-          { leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "FULL" }
-        ];
-        queryDesignerState.columns = [
-          { table: "customers", field: "name", show: true },
-          { table: "customers", field: "email", show: true },
-          { table: "orders", field: "order_number", show: true },
-          { table: "orders", field: "total_amount", show: true }
-        ];
-        renderQueryDesigner();
-        showToast("Loaded PostgreSQL FULL OUTER JOIN query!");
-      } else if (preset === "reset") {
-        queryDesignerState.selectedTables = [];
-        queryDesignerState.joins = [];
-        queryDesignerState.columns = [];
-        renderQueryDesigner();
-      }
-    }
-
-    // Join Properties Dialog
-    function openJoinPropertiesModal() {
-      const leftSel = document.getElementById("joinLeftTable");
-      const rightSel = document.getElementById("joinRightTable");
-      const tables = queryDesignerState.selectedTables;
-
-      if (tables.length < 2) {
-        showToast("Please add at least 2 tables to canvas first.");
-        return;
-      }
-
-      leftSel.innerHTML = tables.map(t => "<option value='" + t + "'>" + t + "</option>").join('');
-      rightSel.innerHTML = tables.map(t => "<option value='" + t + "'>" + t + "</option>").join('');
-      rightSel.selectedIndex = 1;
-
-      onJoinTableChange('left');
-      onJoinTableChange('right');
-      updateJoinPropVennDiagram();
-
-      document.getElementById("joinPropertiesModal").classList.add("active");
-    }
-
-    function closeJoinPropertiesModal() {
-      document.getElementById("joinPropertiesModal").classList.remove("active");
-    }
-
-    function onJoinTableChange(side) {
-      const tName = document.getElementById(side === 'left' ? "joinLeftTable" : "joinRightTable").value;
-      const fSel = document.getElementById(side === 'left' ? "joinLeftField" : "joinRightField");
-      const meta = (currentSchema.tables || []).find(t => t.name === tName) || (currentSchema.views || []).find(v => v.name === tName);
-      if (meta && meta.columns) {
-        fSel.innerHTML = meta.columns.map(c => "<option value='" + c.name + "'>" + c.name + "</option>").join('');
-      }
-      if (side === 'left') document.getElementById("lblLeftTableJoin").innerText = tName;
-      if (side === 'right') document.getElementById("lblRightTableJoin").innerText = tName;
-      updateJoinPropVennDiagram();
-    }
-
-    function submitJoinProperties() {
-      const leftTable = document.getElementById("joinLeftTable").value;
-      const rightTable = document.getElementById("joinRightTable").value;
-      const leftField = document.getElementById("joinLeftField").value;
-      const rightField = document.getElementById("joinRightField").value;
-      const joinType = document.querySelector("input[name='joinTypeRadio']:checked")?.value || "INNER";
-
-      if (leftTable === rightTable) {
-        showToast("Cannot join a table to itself in this mode.");
-        return;
-      }
-
-      queryDesignerState.joins.push({ leftTable, rightTable, leftField, rightField, type: joinType });
-      closeJoinPropertiesModal();
-      renderQueryDesigner();
-      showToast("✓ Joined " + leftTable + " and " + rightTable + " (" + joinType + ")");
-    }
-
-    function updateJoinPropVennDiagram() {
-      const svg = document.getElementById("jpVennSvg");
-      const badge = document.getElementById("jpVennBadge");
-      const snippet = document.getElementById("jpSqlSnippet");
-      if (!svg) return;
-
-      const lt = document.getElementById("joinLeftTable")?.value || "left_table";
-      const rt = document.getElementById("joinRightTable")?.value || "right_table";
-      const lf = document.getElementById("joinLeftField")?.value || "id";
-      const rf = document.getElementById("joinRightField")?.value || "id";
-      const type = document.querySelector("input[name='joinTypeRadio']:checked")?.value || "INNER";
-
-      const truncL = lt.length > 9 ? lt.slice(0, 8) + "…" : lt;
-      const truncR = rt.length > 9 ? rt.slice(0, 8) + "…" : rt;
-
-      let leftFill = "rgba(255,255,255,0.06)";
-      let rightFill = "rgba(255,255,255,0.06)";
-      let lensFill = "rgba(255,255,255,0.06)";
-      let badgeText = "INNER JOIN (Matching records)";
-      let badgeColor = "var(--cyan)";
-      let joinKeyword = "INNER JOIN";
-
-      if (type === "INNER") {
-        lensFill = "#38bdf8";
-        badgeText = "INNER JOIN (=)";
-        badgeColor = "#38bdf8";
-        joinKeyword = "INNER JOIN";
-      } else if (type === "LEFT") {
-        leftFill = "#10b981";
-        lensFill = "#10b981";
-        badgeText = "LEFT JOIN (All " + truncL + ")";
-        badgeColor = "#10b981";
-        joinKeyword = "LEFT OUTER JOIN";
-      } else if (type === "RIGHT") {
-        rightFill = "#f59e0b";
-        lensFill = "#f59e0b";
-        badgeText = "RIGHT JOIN (All " + truncR + ")";
-        badgeColor = "#f59e0b";
-        joinKeyword = "RIGHT OUTER JOIN";
-      } else if (type === "FULL") {
-        leftFill = "#a855f7";
-        lensFill = "#a855f7";
-        rightFill = "#a855f7";
-        badgeText = "FULL OUTER JOIN (All from Both Tables)";
-        badgeColor = "#a855f7";
-        joinKeyword = "FULL OUTER JOIN";
-      }
-
-      if (badge) {
-        badge.textContent = badgeText;
-        badge.style.color = badgeColor;
-      }
-
-      if (snippet) {
-        snippet.innerText = 'FROM "' + lt + '"\\n' + joinKeyword + ' "' + rt + '"\\n  ON "' + lt + '"."' + lf + '" = "' + rt + '"."' + rf + '"';
-      }
-
-      svg.innerHTML = \`
-        <rect x="0" y="0" width="160" height="90" fill="none" />
-        <path d="M 80,25 A 32 32 0 0 1 80,65 A 32 32 0 1 1 80,25 Z" fill="\${leftFill}" fill-opacity="0.8" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
-        <path d="M 80,25 A 32 32 0 0 0 80,65 A 32 32 0 1 0 80,25 Z" fill="\${rightFill}" fill-opacity="0.8" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
-        <path d="M 80,25 A 32 32 0 0 1 80,65 A 32 32 0 0 1 80,25 Z" fill="\${lensFill}" fill-opacity="0.9" stroke="\${badgeColor}" stroke-width="2" />
-        <text x="48" y="14" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" font-family="sans-serif">\${escapeHtml(truncL)}</text>
-        <text x="112" y="14" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" font-family="sans-serif">\${escapeHtml(truncR)}</text>
-      \`;
-    }
-
-    function initResizerBar() {
-      const resizer = document.getElementById("qbeResizerBar");
-      const vp = document.getElementById("qbeViewport");
-      const lower = document.querySelector(".qbe-lower-pane");
-      if (!resizer || !vp || !lower || resizer.dataset.initialized) return;
-      resizer.dataset.initialized = "true";
-
-      let isResizing = false;
-      let startY = 0;
-      let startHeight = 0;
-
-      resizer.addEventListener("mousedown", (e) => {
-        isResizing = true;
-        startY = e.clientY;
-        startHeight = vp.offsetHeight;
-        document.body.style.cursor = "row-resize";
-        e.preventDefault();
-      });
-
-      window.addEventListener("mousemove", (e) => {
-        if (!isResizing) return;
-        const delta = e.clientY - startY;
-        const newHeight = Math.max(140, Math.min(window.innerHeight - 200, startHeight + delta));
-        vp.style.height = newHeight + "px";
-        vp.style.flex = "none";
-        drawJoinLines();
-      });
-
-      window.addEventListener("mouseup", () => {
-        if (isResizing) {
-          isResizing = false;
-          document.body.style.cursor = "";
-          drawJoinLines();
-        }
-      });
-    }
-
-    function initViewportWheelZoom() {
-      const vp = document.getElementById("qbeViewport");
-      if (!vp || vp.dataset.zoomInitialized) return;
-      vp.dataset.zoomInitialized = "true";
-
-      vp.addEventListener("wheel", (e) => {
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          if (e.deltaY < 0) zoomInDesignerCanvas();
-          else zoomOutDesignerCanvas();
-        }
-      }, { passive: false });
-    }
-
-    function zoomInDesignerCanvas() {
-      setDesignerCanvasZoom(Math.min(2.5, Math.round(((queryDesignerState.canvasZoom || 1.0) + 0.15) * 100) / 100));
-    }
-
-    function zoomOutDesignerCanvas() {
-      setDesignerCanvasZoom(Math.max(0.4, Math.round(((queryDesignerState.canvasZoom || 1.0) - 0.15) * 100) / 100));
-    }
-
-    function resetDesignerCanvasZoom() {
-      setDesignerCanvasZoom(1.0);
-    }
-
-    function fitDesignerCanvasZoom() {
-      const viewport = document.getElementById("qbeViewport");
-      if (!viewport || !queryDesignerState.selectedTables.length) return;
-      let maxX = 400, maxY = 300;
-      queryDesignerState.selectedTables.forEach(t => {
-        const pos = queryDesignerState.tablePositions[t] || { x: 40, y: 30 };
-        maxX = Math.max(maxX, pos.x + 280);
-        maxY = Math.max(maxY, pos.y + 240);
-      });
-      const scaleX = (viewport.clientWidth - 40) / maxX;
-      const scaleY = (viewport.clientHeight - 40) / maxY;
-      const fit = Math.max(0.4, Math.min(1.2, Math.min(scaleX, scaleY)));
-      setDesignerCanvasZoom(Math.round(fit * 100) / 100);
-    }
-
-    function setDesignerCanvasZoom(zoom) {
-      queryDesignerState.canvasZoom = zoom;
-      const stage = document.getElementById("qbeStage");
-      if (stage) stage.style.transform = "scale(" + zoom + ")";
-      const sel = document.getElementById("canvasZoomSelect");
-      if (sel) sel.value = String(zoom);
-      drawJoinLines();
-    }
-
-    function setDesignerRoomMode(mode) {
-      queryDesignerState.canvasViewMode = mode;
-      document.getElementById("btnRoomCanvas")?.classList.toggle("btn-primary", mode === "canvas-max");
-      document.getElementById("btnRoomSplit")?.classList.toggle("btn-primary", mode === "split");
-      document.getElementById("btnRoomGrid")?.classList.toggle("btn-primary", mode === "grid-max");
-
-      const vp = document.getElementById("qbeViewport");
-      const lower = document.querySelector(".qbe-lower-pane");
-      if (!vp || !lower) return;
-
-      if (mode === "canvas-max") {
-        vp.style.flex = "4";
-        vp.style.height = "";
-        lower.style.flex = "1";
-        lower.style.minHeight = "120px";
-      } else if (mode === "grid-max") {
-        vp.style.flex = "1";
-        vp.style.minHeight = "160px";
-        vp.style.height = "";
-        lower.style.flex = "3";
-      } else {
-        vp.style.flex = "1.5";
-        vp.style.height = "";
-        lower.style.flex = "1";
-      }
-      setTimeout(drawJoinLines, 100);
-    }
+    ${POSTGRES_DESIGNER_SCRIPT}
 
     // Sequences Manager
     let allSequences = [];
@@ -3768,10 +3588,15 @@ export function generatePostgresStudioHtml(): string {
     });
 
     // Auto-initialize on load
-    window.addEventListener("DOMContentLoaded", () => {
+    function initPostgresStudio() {
       loadSchema();
       loadKpis();
-    });
+    }
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", initPostgresStudio);
+    } else {
+      initPostgresStudio();
+    }
   </script>
   <script>
     ${CRUD_SCRIPT}
