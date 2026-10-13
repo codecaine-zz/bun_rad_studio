@@ -9,12 +9,23 @@
  */
 
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
+import { getSharedWorkbench } from "../src/db/workbench_shared";
+import { quoteIdent } from "../src/db/quote";
 import { SQL } from "bun";
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { generatePostgresStudioHtml } from "./postgres_studio.ts";
 import { MacroStore, handleMacroRoute, type MacroAdapter, type MacroQueryResult } from "./studio_macros_server.ts";
+
+/** Quote a PostgreSQL identifier (doubles embedded quotes). Never splice names into SQL without it. */
+const pgq = (name: unknown): string => quoteIdent("postgres", String(name ?? ""));
+/** Type names and default expressions are SQL fragments by nature; refuse anything that could start another statement. */
+function assertSafeSqlFragment(what: string, text: string): void {
+  if (/;|--|\/\*/.test(String(text ?? ""))) throw new Error(`Invalid ${what}: statement separators and comments are not allowed`);
+}
+/** Quote a PostgreSQL string literal (standard_conforming_strings is on, so only quotes need doubling). */
+const pgl = (value: unknown): string => "'" + String(value ?? "").replace(/'/g, "''") + "'";
 
 export interface PostgresConnectionConfig {
   host?: string;
@@ -327,7 +338,7 @@ export class PostgresManager {
         tls: this.dbConfig.tls ?? false,
       });
       // Apply search path
-      this.sql_conn.unsafe(`SET search_path TO "${this.activeSchema}", public;`).catch(() => {});
+      this.sql_conn.unsafe(`SET search_path TO ${pgq(this.activeSchema)}, public;`).catch(() => {});
     } catch (e: any) {
       console.error("Failed to initialize Postgres connection:", e);
     }
@@ -337,7 +348,10 @@ export class PostgresManager {
     const clean = (schemaName || "").trim();
     if (!clean) return false;
     try {
-      await this.sql_conn.unsafe(`SET search_path TO "${clean}", public;`);
+      // PostgreSQL accepts a non-existent schema in search_path; only switch to schemas that really exist.
+      const found = await this.sql_conn.unsafe("SELECT 1 FROM pg_namespace WHERE nspname = $1", [clean]);
+      if (found.length === 0) return false;
+      await this.sql_conn.unsafe(`SET search_path TO ${pgq(clean)}, public;`);
       this.activeSchema = clean;
       this.dbConfig.schema = clean;
       return true;
@@ -368,7 +382,7 @@ export class PostgresManager {
       return { success: false, schema: schemaName, error: "Invalid schema name: only alphanumeric characters, underscore, and dash are permitted" };
     }
     try {
-      await this.sql_conn.unsafe(`CREATE SCHEMA IF NOT EXISTS "${clean}";`);
+      await this.sql_conn.unsafe(`CREATE SCHEMA IF NOT EXISTS ${pgq(clean)};`);
       await this.setSchema(clean);
       return { success: true, schema: clean };
     } catch (err: any) {
@@ -541,7 +555,7 @@ export class PostgresManager {
         tls: this.dbConfig.tls ?? false,
       });
       try {
-        await rootSql.unsafe(`CREATE DATABASE "${clean}";`);
+        await rootSql.unsafe(`CREATE DATABASE ${pgq(clean)};`);
       } finally {
         await rootSql.end?.().catch(() => {});
       }
@@ -627,14 +641,14 @@ export class PostgresManager {
             COUNT(CASE WHEN table_type = 'BASE TABLE' THEN 1 END) as tables,
             COUNT(CASE WHEN table_type = 'VIEW' THEN 1 END) as views
           FROM information_schema.tables 
-          WHERE table_schema = '${schema}';
+          WHERE table_schema = ${pgl(schema)};
         `);
         tableCount = Number(countsRes?.[0]?.tables || 0);
         viewCount = Number(countsRes?.[0]?.views || 0);
       } catch {}
 
       try {
-        const mvRes = await this.sql_conn.unsafe(`SELECT count(*) as c FROM pg_matviews WHERE schemaname = '${schema}';`);
+        const mvRes = await this.sql_conn.unsafe(`SELECT count(*) as c FROM pg_matviews WHERE schemaname = ${pgl(schema)};`);
         matViewCount = Number(mvRes?.[0]?.c || 0);
       } catch {}
 
@@ -644,7 +658,7 @@ export class PostgresManager {
           SELECT COALESCE(SUM(reltuples)::bigint, 0) as total_rows 
           FROM pg_class c 
           JOIN pg_namespace n ON n.oid = c.relnamespace 
-          WHERE n.nspname = '${schema}' AND c.relkind IN ('r', 'm');
+          WHERE n.nspname = ${pgl(schema)} AND c.relkind IN ('r', 'm');
         `);
         totalRows = Math.max(0, Number(rowsRes?.[0]?.total_rows || 0));
       } catch {}
@@ -730,7 +744,7 @@ export class PostgresManager {
       const items = await this.sql_conn.unsafe(`
         SELECT table_name, table_type 
         FROM information_schema.tables 
-        WHERE table_schema = '${schema}' 
+        WHERE table_schema = ${pgl(schema)} 
         ORDER BY table_name;
       `);
 
@@ -756,9 +770,9 @@ export class PostgresManager {
             FROM information_schema.table_constraints tc
             JOIN information_schema.constraint_column_usage ccu 
               ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema
-            WHERE tc.table_schema = '${schema}' AND tc.table_name = '${tname}' AND tc.constraint_type = 'PRIMARY KEY'
+            WHERE tc.table_schema = ${pgl(schema)} AND tc.table_name = ${pgl(tname)} AND tc.constraint_type = 'PRIMARY KEY'
           ) pk ON pk.column_name = c.column_name
-          WHERE c.table_schema = '${schema}' AND c.table_name = '${tname}'
+          WHERE c.table_schema = ${pgl(schema)} AND c.table_name = ${pgl(tname)}
           ORDER BY c.ordinal_position;
         `);
 
@@ -776,7 +790,7 @@ export class PostgresManager {
         const idxRes = await this.sql_conn.unsafe(`
           SELECT indexname, indexdef 
           FROM pg_indexes 
-          WHERE schemaname = '${schema}' AND tablename = '${tname}';
+          WHERE schemaname = ${pgl(schema)} AND tablename = ${pgl(tname)};
         `);
         const indices = idxRes.map((idx: any) => {
           const iname = idx.indexname;
@@ -803,7 +817,7 @@ export class PostgresManager {
             ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
           JOIN information_schema.constraint_column_usage AS ccu 
             ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
-          WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = '${schema}' AND tc.table_name = '${tname}';
+          WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = ${pgl(schema)} AND tc.table_name = ${pgl(tname)};
         `);
         const foreignKeys = fkRes.map((fk: any, i: number) => ({
           id: i,
@@ -820,14 +834,14 @@ export class PostgresManager {
             SELECT COALESCE(reltuples::bigint, 0) as rc 
             FROM pg_class c 
             JOIN pg_namespace n ON n.oid = c.relnamespace 
-            WHERE n.nspname = '${schema}' AND c.relname = '${tname}';
+            WHERE n.nspname = ${pgl(schema)} AND c.relname = ${pgl(tname)};
           `);
           rowCount = Math.max(0, Number(cntRes?.[0]?.rc || 0));
         } catch {}
 
         if (rowCount <= 0 && isTable) {
           try {
-            const exactRes = await this.sql_conn.unsafe(`SELECT count(*) as rc FROM "${schema}"."${tname}";`);
+            const exactRes = await this.sql_conn.unsafe(`SELECT count(*) as rc FROM ${pgq(schema)}.${pgq(tname)};`);
             rowCount = Number(exactRes?.[0]?.rc || 0);
           } catch {}
         }
@@ -856,7 +870,7 @@ export class PostgresManager {
       const matviews = await this.sql_conn.unsafe(`
         SELECT matviewname, definition, hasindexes 
         FROM pg_matviews 
-        WHERE schemaname = '${schema}' 
+        WHERE schemaname = ${pgl(schema)} 
         ORDER BY matviewname;
       `);
 
@@ -867,7 +881,7 @@ export class PostgresManager {
           FROM pg_attribute a
           JOIN pg_class c ON c.oid = a.attrelid
           JOIN pg_namespace n ON n.oid = c.relnamespace
-          WHERE n.nspname = '${schema}' AND c.relname = '${mvName}' AND a.attnum > 0 AND NOT a.attisdropped
+          WHERE n.nspname = ${pgl(schema)} AND c.relname = ${pgl(mvName)} AND a.attnum > 0 AND NOT a.attisdropped
           ORDER BY a.attnum;
         `);
 
@@ -949,10 +963,10 @@ export class PostgresManager {
 
     try {
       if (enable) {
-        await this.sql_conn.unsafe(`CREATE EXTENSION IF NOT EXISTS "${clean}";`);
+        await this.sql_conn.unsafe(`CREATE EXTENSION IF NOT EXISTS ${pgq(clean)};`);
         await this.logAudit("EXTENSION", clean, `Installed extension: ${clean}`);
       } else {
-        await this.sql_conn.unsafe(`DROP EXTENSION IF EXISTS "${clean}" CASCADE;`);
+        await this.sql_conn.unsafe(`DROP EXTENSION IF EXISTS ${pgq(clean)} CASCADE;`);
         await this.logAudit("EXTENSION", clean, `Dropped extension: ${clean}`);
       }
       return { success: true };
@@ -1066,8 +1080,8 @@ export class PostgresManager {
     if (!clean) return { success: false, error: "Materialized view name cannot be empty" };
     try {
       const sql = concurrently
-        ? `REFRESH MATERIALIZED VIEW CONCURRENTLY "${this.activeSchema}"."${clean}";`
-        : `REFRESH MATERIALIZED VIEW "${this.activeSchema}"."${clean}";`;
+        ? `REFRESH MATERIALIZED VIEW CONCURRENTLY ${pgq(this.activeSchema)}.${pgq(clean)};`
+        : `REFRESH MATERIALIZED VIEW ${pgq(this.activeSchema)}.${pgq(clean)};`;
       await this.sql_conn.unsafe(sql);
       await this.logAudit("MATVIEW", clean, `Refreshed materialized view: ${clean}`);
       return { success: true };
@@ -1078,7 +1092,7 @@ export class PostgresManager {
 
   public async vacuum(full: boolean = false, analyze: boolean = true, table?: string, schema?: string): Promise<{ success: boolean; details: string; error?: string }> {
     try {
-      const target = table ? `"${schema || this.activeSchema}"."${table}"` : "";
+      const target = table ? `${pgq(schema || this.activeSchema)}.${pgq(table)}` : "";
       const cmd = `VACUUM ${full ? "FULL " : ""}${analyze ? "ANALYZE " : ""}${target};`.trim();
       await this.sql_conn.unsafe(cmd);
       await this.logAudit("VACUUM", this.activePath, `Executed ${cmd}`);
@@ -1119,7 +1133,7 @@ export class PostgresManager {
       beginTransaction: async () => {
         const c = await this.sql_conn.reserve();
         try {
-          await c.unsafe(`SET search_path TO "${this.activeSchema}", public`);
+          await c.unsafe(`SET search_path TO ${pgq(this.activeSchema)}, public`);
           await c.unsafe("BEGIN");
         } catch (err) {
           try { c.release(); } catch {}
@@ -1279,9 +1293,9 @@ export class PostgresManager {
         const isIndex = /Index/i.test(nodeType);
 
         let detail = nodeType;
-        if (relation) detail += ` on "${relation}"`;
-        if (alias && alias !== relation) detail += ` (as "${alias}")`;
-        if (indexName) detail += ` using "${indexName}"`;
+        if (relation) detail += ` on ${pgq(relation)}`;
+        if (alias && alias !== relation) detail += ` (as ${pgq(alias)})`;
+        if (indexName) detail += ` using ${pgq(indexName)}`;
 
         const startupCost = node["Startup Cost"] ?? 0;
         const totalCost = node["Total Cost"] ?? 0;
@@ -1391,8 +1405,8 @@ export class PostgresManager {
     try {
       const offset = (page - 1) * pageSize;
       const safeDir = orderDir.toUpperCase() === "DESC" ? "DESC" : "ASC";
-      let countSql = `SELECT count(*) as c FROM "${schema}"."${tableName}"`;
-      let dataSql = `SELECT * FROM "${schema}"."${tableName}"`;
+      let countSql = `SELECT count(*) as c FROM ${pgq(schema)}.${pgq(tableName)}`;
+      let dataSql = `SELECT * FROM ${pgq(schema)}.${pgq(tableName)}`;
 
       const params: any[] = [];
       if (search && search.trim()) {
@@ -1400,7 +1414,7 @@ export class PostgresManager {
         const allItems = [...schemaMeta.tables, ...schemaMeta.views, ...schemaMeta.matviews];
         const tbl = allItems.find((t) => t.name === tableName);
         if (tbl && tbl.columns.length > 0) {
-          const filterClauses = tbl.columns.map((c) => `CAST("${c.name}" AS TEXT) ILIKE $1`).join(" OR ");
+          const filterClauses = tbl.columns.map((c) => `CAST(${pgq(c.name)} AS TEXT) ILIKE $1`).join(" OR ");
           countSql += ` WHERE ${filterClauses}`;
           dataSql += ` WHERE ${filterClauses}`;
           params.push(`%${search.trim()}%`);
@@ -1408,7 +1422,7 @@ export class PostgresManager {
       }
 
       if (orderBy) {
-        dataSql += ` ORDER BY "${orderBy}" ${safeDir}`;
+        dataSql += ` ORDER BY ${pgq(orderBy)} ${safeDir}`;
       }
       dataSql += ` LIMIT ${Number(pageSize)} OFFSET ${Number(offset)};`;
 
@@ -1457,7 +1471,7 @@ export class PostgresManager {
         }
       } catch {}
 
-      const cols = keys.map((k) => `"${k}"`).join(", ");
+      const cols = keys.map((k) => `${pgq(k)}`).join(", ");
       const placeholders = keys.map((k, i) => {
         const type = colTypeMap.get(k) || "";
         if (type.includes("JSON")) return `$${i + 1}::jsonb`;
@@ -1472,7 +1486,7 @@ export class PostgresManager {
         return val;
       });
 
-      const sql = `INSERT INTO "${schema}"."${tableName}" (${cols}) VALUES (${placeholders}) RETURNING *;`;
+      const sql = `INSERT INTO ${pgq(schema)}.${pgq(tableName)} (${cols}) VALUES (${placeholders}) RETURNING *;`;
       const res = await this.sql_conn.unsafe(sql, values);
 
       await this.logAudit("INSERT", tableName, JSON.stringify(rowData).slice(0, 150));
@@ -1506,8 +1520,8 @@ export class PostgresManager {
 
       const sets = keys.map((k, i) => {
         const type = colTypeMap.get(k) || "";
-        if (type.includes("JSON")) return `"${k}" = $${i + 1}::jsonb`;
-        return `"${k}" = $${i + 1}`;
+        if (type.includes("JSON")) return `${pgq(k)} = $${i + 1}::jsonb`;
+        return `${pgq(k)} = $${i + 1}`;
       }).join(", ");
 
       const values = keys.map((k) => {
@@ -1519,7 +1533,7 @@ export class PostgresManager {
       });
       values.push(pkVal);
 
-      const sql = `UPDATE "${schema}"."${tableName}" SET ${sets} WHERE "${pkCol}" = $${values.length};`;
+      const sql = `UPDATE ${pgq(schema)}.${pgq(tableName)} SET ${sets} WHERE ${pgq(pkCol)} = $${values.length};`;
       await this.sql_conn.unsafe(sql, values);
 
       await this.logAudit("UPDATE", tableName, `PK=${pkVal}`);
@@ -1532,7 +1546,7 @@ export class PostgresManager {
   public async deleteRow(tableName: string, pkCol: string, pkVal: any, schemaName?: string): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      const sql = `DELETE FROM "${schema}"."${tableName}" WHERE "${pkCol}" = $1;`;
+      const sql = `DELETE FROM ${pgq(schema)}.${pgq(tableName)} WHERE ${pgq(pkCol)} = $1;`;
       await this.sql_conn.unsafe(sql, [pkVal]);
 
       await this.logAudit("DELETE", tableName, `PK=${pkVal}`);
@@ -1552,7 +1566,9 @@ export class PostgresManager {
       if (!tableName || columns.length === 0) throw new Error("Table name and columns required");
 
       const colDefs = columns.map((c) => {
-        let def = `"${c.name}" ${c.type}`;
+        assertSafeSqlFragment("column type", c.type);
+        if (c.dflt_value !== undefined && c.dflt_value !== null) assertSafeSqlFragment("default expression", String(c.dflt_value));
+        let def = `${pgq(c.name)} ${c.type}`;
         if (c.pk) def += " PRIMARY KEY";
         if (c.notnull) def += " NOT NULL";
         if (c.dflt_value !== undefined && c.dflt_value !== null && c.dflt_value !== "") {
@@ -1561,7 +1577,7 @@ export class PostgresManager {
         return def;
       });
 
-      const sql = `CREATE TABLE "${schema}"."${tableName}" (\n  ${colDefs.join(",\n  ")}\n);`;
+      const sql = `CREATE TABLE ${pgq(schema)}.${pgq(tableName)} (\n  ${colDefs.join(",\n  ")}\n);`;
       await this.sql_conn.unsafe(sql);
 
       await this.logAudit("CREATE_TABLE", tableName, `Created table with ${columns.length} columns`);
@@ -1578,32 +1594,42 @@ export class PostgresManager {
     schemaName?: string
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
+    const tmpName = `_tmp_redesign_${Date.now()}`;
+    let tmpCreated = false;
     try {
       const targetName = newTable || oldTable;
-      const tmpName = `_tmp_redesign_${Date.now()}`;
-      await this.createTable(tmpName, columns, schema);
+      const created = await this.createTable(tmpName, columns, schema);
+      if (!created.success) return created;
+      tmpCreated = true;
 
       try {
-        const oldColsRes = await this.sql_conn.unsafe(`
-          SELECT column_name FROM information_schema.columns WHERE table_schema = '${schema}' AND table_name = '${oldTable}';
-        `);
+        const oldColsRes = await this.sql_conn.unsafe(
+          "SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2",
+          [schema, oldTable],
+        );
         const oldCols = new Set(oldColsRes.map((r: any) => r.column_name));
-        const sharedCols = columns.filter((c) => oldCols.has(c.name)).map((c) => `"${c.name}"`);
+        const sharedCols = columns.filter((c) => oldCols.has(c.name)).map((c) => `${pgq(c.name)}`);
 
         if (sharedCols.length > 0) {
           const colList = sharedCols.join(", ");
-          await this.sql_conn.unsafe(`INSERT INTO "${schema}"."${tmpName}" (${colList}) SELECT ${colList} FROM "${schema}"."${oldTable}";`);
+          await this.sql_conn.unsafe(`INSERT INTO ${pgq(schema)}.${pgq(tmpName)} (${colList}) SELECT ${colList} FROM ${pgq(schema)}.${pgq(oldTable)};`);
         }
       } catch (err: any) {
-        console.warn("Data transfer during table redesign had warnings:", err.message);
+        // Never drop the original table when its data could not be copied.
+        await this.sql_conn.unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`).catch(() => {});
+        return { success: false, error: `Data could not be copied to the new structure; the original table was left unchanged. ${err.message}` };
       }
 
-      await this.sql_conn.unsafe(`DROP TABLE "${schema}"."${oldTable}" CASCADE;`);
-      await this.sql_conn.unsafe(`ALTER TABLE "${schema}"."${tmpName}" RENAME TO "${targetName}";`);
+      // PostgreSQL DDL is transactional: swap the tables atomically.
+      await this.sql_conn.begin(async (tx: any) => {
+        await tx.unsafe(`DROP TABLE ${pgq(schema)}.${pgq(oldTable)} CASCADE;`);
+        await tx.unsafe(`ALTER TABLE ${pgq(schema)}.${pgq(tmpName)} RENAME TO ${pgq(targetName)};`);
+      });
 
       await this.logAudit("REDESIGN_TABLE", targetName, `Redesigned table structure`);
       return { success: true };
     } catch (err: any) {
+      if (tmpCreated) await this.sql_conn.unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`).catch(() => {});
       return { success: false, error: err.message };
     }
   }
@@ -1611,7 +1637,7 @@ export class PostgresManager {
   public async renameTable(oldTable: string, newTable: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      await this.sql_conn.unsafe(`ALTER TABLE "${schema}"."${oldTable}" RENAME TO "${newTable}";`);
+      await this.sql_conn.unsafe(`ALTER TABLE ${pgq(schema)}.${pgq(oldTable)} RENAME TO ${pgq(newTable)};`);
       await this.logAudit("RENAME_TABLE", newTable, `Renamed from ${oldTable}`);
       return { success: true };
     } catch (err: any) {
@@ -1624,11 +1650,11 @@ export class PostgresManager {
     try {
       let sql = "";
       if (kind === "matview") {
-        sql = `DROP MATERIALIZED VIEW IF EXISTS "${schema}"."${name}" CASCADE;`;
+        sql = `DROP MATERIALIZED VIEW IF EXISTS ${pgq(schema)}.${pgq(name)} CASCADE;`;
       } else if (kind === "view") {
-        sql = `DROP VIEW IF EXISTS "${schema}"."${name}" CASCADE;`;
+        sql = `DROP VIEW IF EXISTS ${pgq(schema)}.${pgq(name)} CASCADE;`;
       } else {
-        sql = `DROP TABLE IF EXISTS "${schema}"."${name}" CASCADE;`;
+        sql = `DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(name)} CASCADE;`;
       }
       await this.sql_conn.unsafe(sql);
       await this.logAudit("DROP", name, `Dropped ${kind}: ${name}`);
@@ -1646,14 +1672,16 @@ export class PostgresManager {
     const schema = schemaName || this.activeSchema || "public";
     try {
       if (!tableName || !column?.name) throw new Error("Table name and column name required");
-      let def = `"${column.name}" ${column.type || "text"}`;
+      assertSafeSqlFragment("column type", column.type || "");
+      if (column.dflt_value !== undefined && column.dflt_value !== null) assertSafeSqlFragment("default expression", String(column.dflt_value));
+      let def = `${pgq(column.name)} ${column.type || "text"}`;
       if (column.notnull) def += " NOT NULL";
       if (column.dflt_value !== undefined && column.dflt_value !== null && column.dflt_value !== "") {
         def += ` DEFAULT ${column.dflt_value}`;
       }
-      const sql = `ALTER TABLE "${schema}"."${tableName}" ADD COLUMN ${def};`;
+      const sql = `ALTER TABLE ${pgq(schema)}.${pgq(tableName)} ADD COLUMN ${def};`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("ADD_COLUMN", tableName, `Added column "${column.name}" (${column.type})`);
+      await this.logAudit("ADD_COLUMN", tableName, `Added column ${pgq(column.name)} (${column.type})`);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1669,9 +1697,9 @@ export class PostgresManager {
     const schema = schemaName || this.activeSchema || "public";
     try {
       if (!tableName || !columnName) throw new Error("Table name and column name required");
-      const sql = `ALTER TABLE "${schema}"."${tableName}" DROP COLUMN "${columnName}"${cascade ? " CASCADE" : ""};`;
+      const sql = `ALTER TABLE ${pgq(schema)}.${pgq(tableName)} DROP COLUMN ${pgq(columnName)}${cascade ? " CASCADE" : ""};`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("DROP_COLUMN", tableName, `Dropped column "${columnName}"`);
+      await this.logAudit("DROP_COLUMN", tableName, `Dropped column ${pgq(columnName)}`);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1712,7 +1740,7 @@ export class PostgresManager {
       if (!name) throw new Error("Enum type name required");
       if (!values || values.length === 0) throw new Error("At least one enum value required");
       const escapedVals = values.map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
-      await this.sql_conn.unsafe(`CREATE TYPE "${s}"."${name}" AS ENUM (${escapedVals});`);
+      await this.sql_conn.unsafe(`CREATE TYPE ${pgq(s)}.${pgq(name)} AS ENUM (${escapedVals});`);
       await this.logAudit("CREATE_TYPE", name, `Values: ${values.join(", ")}`);
       return { success: true };
     } catch (err: any) {
@@ -1724,7 +1752,7 @@ export class PostgresManager {
     const s = schemaName || this.activeSchema;
     try {
       if (!name || !value) throw new Error("Enum name and new value required");
-      await this.sql_conn.unsafe(`ALTER TYPE "${s}"."${name}" ADD VALUE '${value.replace(/'/g, "''")}';`);
+      await this.sql_conn.unsafe(`ALTER TYPE ${pgq(s)}.${pgq(name)} ADD VALUE '${value.replace(/'/g, "''")}';`);
       await this.logAudit("ALTER_TYPE", name, `Added value: ${value}`);
       return { success: true };
     } catch (err: any) {
@@ -1736,7 +1764,7 @@ export class PostgresManager {
     const s = schemaName || this.activeSchema;
     try {
       if (!name) throw new Error("Enum type name required");
-      await this.sql_conn.unsafe(`DROP TYPE "${s}"."${name}" CASCADE;`);
+      await this.sql_conn.unsafe(`DROP TYPE ${pgq(s)}.${pgq(name)} CASCADE;`);
       await this.logAudit("DROP_TYPE", name, `Dropped ENUM type ${name}`);
       return { success: true };
     } catch (err: any) {
@@ -1848,7 +1876,7 @@ export class PostgresManager {
     out.push(`-- =========================================================================`);
     out.push(`-- 🐘 POSTGRES STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT`);
     out.push(`-- Generated: ${new Date().toISOString()}`);
-    out.push(`-- Schema: "${s}" | Mode: ${mode.toUpperCase()}`);
+    out.push(`-- Schema: ${pgq(s)} | Mode: ${mode.toUpperCase()}`);
     out.push(`-- Database: ${this.activeDb}`);
     out.push(`-- =========================================================================\n`);
 
@@ -1871,7 +1899,7 @@ export class PostgresManager {
         out.push(`-- Custom Enum Types`);
         for (const e of enums) {
           const vals = e.values.map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
-          out.push(`DO $$ BEGIN CREATE TYPE "${s}"."${e.name}" AS ENUM (${vals}); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+          out.push(`DO $$ BEGIN CREATE TYPE ${pgq(s)}.${pgq(e.name)} AS ENUM (${vals}); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
         }
         out.push("");
       }
@@ -1883,11 +1911,11 @@ export class PostgresManager {
       const tName = tblMeta.name;
 
       if (mode === "all" || mode === "schema") {
-        out.push(`-- Table: "${s}"."${tName}"`);
-        out.push(`CREATE TABLE IF NOT EXISTS "${s}"."${tName}" (`);
+        out.push(`-- Table: ${pgq(s)}.${pgq(tName)}`);
+        out.push(`CREATE TABLE IF NOT EXISTS ${pgq(s)}.${pgq(tName)} (`);
         const colDefs: string[] = [];
         for (const col of tblMeta.columns) {
-          let line = `  "${col.name}" ${col.type}`;
+          let line = `  ${pgq(col.name)} ${col.type}`;
           if (col.notnull) line += ` NOT NULL`;
           if (col.dflt_value !== null && col.dflt_value !== undefined && col.dflt_value !== "") {
             line += ` DEFAULT ${col.dflt_value}`;
@@ -1905,7 +1933,7 @@ export class PostgresManager {
           for (const idx of tblMeta.indices) {
             if (idx.name.endsWith("_pkey")) continue;
             const unique = idx.unique ? "UNIQUE " : "";
-            out.push(`CREATE ${unique}INDEX IF NOT EXISTS "${idx.name}" ON "${s}"."${tName}" (${idx.columns.map(c => `"${c}"`).join(", ")});`);
+            out.push(`CREATE ${unique}INDEX IF NOT EXISTS ${pgq(idx.name)} ON ${pgq(s)}.${pgq(tName)} (${idx.columns.map(c => `${pgq(c)}`).join(", ")});`);
           }
           out.push("");
         }
@@ -1914,12 +1942,12 @@ export class PostgresManager {
       // 3. Table Data
       if (mode === "all" || mode === "data") {
         try {
-          const rows = await this.sql_conn.unsafe(`SELECT * FROM "${s}"."${tName}" LIMIT 5000;`);
+          const rows = await this.sql_conn.unsafe(`SELECT * FROM ${pgq(s)}.${pgq(tName)} LIMIT 5000;`);
           if (rows && rows.length > 0) {
-            out.push(`-- Data for Table: "${s}"."${tName}" (${rows.length} rows)`);
+            out.push(`-- Data for Table: ${pgq(s)}.${pgq(tName)} (${rows.length} rows)`);
             const colNames = Object.keys(rows[0]);
-            const escapedCols = colNames.map(c => `"${c}"`).join(", ");
-            out.push(`INSERT INTO "${s}"."${tName}" (${escapedCols}) VALUES`);
+            const escapedCols = colNames.map(c => `${pgq(c)}`).join(", ");
+            out.push(`INSERT INTO ${pgq(s)}.${pgq(tName)} (${escapedCols}) VALUES`);
             const rowValues: string[] = [];
             for (const r of rows) {
               const vals = colNames.map(c => {
@@ -1935,7 +1963,7 @@ export class PostgresManager {
             out.push("");
           }
         } catch (err: any) {
-          out.push(`-- Error dumping data for "${tName}": ${err.message}\n`);
+          out.push(`-- Error dumping data for ${pgq(tName)}: ${err.message}\n`);
         }
       }
     }
@@ -1949,7 +1977,7 @@ export class PostgresManager {
           for (const fk of tblMeta.foreignKeys) {
             if (!tableNames.includes(fk.table)) continue;
             const constraintName = `${tblMeta.name}_${fk.from}_fkey`;
-            out.push(`DO $$ BEGIN ALTER TABLE "${s}"."${tblMeta.name}" ADD CONSTRAINT "${constraintName}" FOREIGN KEY ("${fk.from}") REFERENCES "${s}"."${fk.table}" ("${fk.to}") ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+            out.push(`DO $$ BEGIN ALTER TABLE ${pgq(s)}.${pgq(tblMeta.name)} ADD CONSTRAINT ${pgq(constraintName)} FOREIGN KEY (${pgq(fk.from)}) REFERENCES ${pgq(s)}.${pgq(fk.table)} (${pgq(fk.to)}) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`);
           }
         }
       }
@@ -1967,7 +1995,7 @@ export class PostgresManager {
         if (views && views.length > 0) {
           out.push(`-- Views`);
           for (const v of views) {
-            out.push(`CREATE OR REPLACE VIEW "${s}"."${v.table_name}" AS\n${v.view_definition};\n`);
+            out.push(`CREATE OR REPLACE VIEW ${pgq(s)}.${pgq(v.table_name)} AS\n${v.view_definition};\n`);
           }
         }
       } catch { /* ignored */ }
@@ -1997,14 +2025,14 @@ export class PostgresManager {
         const isNum = type.includes("int") || type.includes("numeric") || type.includes("decimal") || type.includes("float") || type.includes("double") || type.includes("real");
         if (isNum) {
           numericCols.push(c.column_name);
-          aggSelects.push(`ROUND(SUM("${c.column_name}")::numeric, 2) AS "${c.column_name}__sum"`);
-          aggSelects.push(`ROUND(AVG("${c.column_name}")::numeric, 2) AS "${c.column_name}__avg"`);
-          aggSelects.push(`MIN("${c.column_name}") AS "${c.column_name}__min"`);
-          aggSelects.push(`MAX("${c.column_name}") AS "${c.column_name}__max"`);
+          aggSelects.push(`ROUND(SUM(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__sum"`);
+          aggSelects.push(`ROUND(AVG(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__avg"`);
+          aggSelects.push(`MIN(${pgq(c.column_name)}) AS "${c.column_name}__min"`);
+          aggSelects.push(`MAX(${pgq(c.column_name)}) AS "${c.column_name}__max"`);
         }
       }
 
-      const q = `SELECT ${aggSelects.join(", ")} FROM "${s}"."${tableName}";`;
+      const q = `SELECT ${aggSelects.join(", ")} FROM ${pgq(s)}.${pgq(tableName)};`;
       const res = await this.sql_conn.unsafe(q);
       const row = res?.[0] || {};
       const totalCount = Number(row._total_count || 0);
@@ -2029,7 +2057,7 @@ export class PostgresManager {
   public async truncateTable(tableName: string, cascade: boolean = false, schemaName?: string): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      const sql = `TRUNCATE TABLE "${schema}"."${tableName}" ${cascade ? "CASCADE" : "RESTRICT"};`;
+      const sql = `TRUNCATE TABLE ${pgq(schema)}.${pgq(tableName)} ${cascade ? "CASCADE" : "RESTRICT"};`;
       await this.sql_conn.unsafe(sql);
       await this.logAudit("TRUNCATE", tableName, `Truncated table`);
       return { success: true };
@@ -2062,10 +2090,10 @@ export class PostgresManager {
           indexname, 
           indexdef 
         FROM pg_indexes 
-        WHERE schemaname = '${schema}'
+        WHERE schemaname = ${pgl(schema)}
       `;
       if (tableName) {
-        sql += ` AND tablename = '${tableName}'`;
+        sql += ` AND tablename = ${pgl(tableName)}`;
       }
       sql += ` ORDER BY tablename ASC, indexname ASC;`;
       const res = await this.sql_conn.unsafe(sql);
@@ -2090,10 +2118,10 @@ export class PostgresManager {
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      const safeCols = columns.map(c => `"${c}"`).join(", ");
+      const safeCols = columns.map(c => `${pgq(c)}`).join(", ");
       const uq = unique ? "UNIQUE " : "";
       const usingClause = indexType && indexType !== "btree" ? `USING ${indexType.toLowerCase()} ` : "";
-      const sql = `CREATE ${uq}INDEX IF NOT EXISTS "${indexName}" ON "${schema}"."${tableName}" ${usingClause}(${safeCols});`;
+      const sql = `CREATE ${uq}INDEX IF NOT EXISTS ${pgq(indexName)} ON ${pgq(schema)}.${pgq(tableName)} ${usingClause}(${safeCols});`;
       await this.sql_conn.unsafe(sql);
       await this.logAudit("CREATE_INDEX", indexName, `Created ${indexType} index on ${tableName}`);
       return { success: true };
@@ -2105,7 +2133,7 @@ export class PostgresManager {
   public async dropIndex(indexName: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      await this.sql_conn.unsafe(`DROP INDEX IF EXISTS "${schema}"."${indexName}";`);
+      await this.sql_conn.unsafe(`DROP INDEX IF EXISTS ${pgq(schema)}.${pgq(indexName)};`);
       await this.logAudit("DROP_INDEX", indexName, `Dropped index`);
       return { success: true };
     } catch (err: any) {
@@ -2127,7 +2155,7 @@ export class PostgresManager {
           increment_by,
           last_value
         FROM pg_sequences 
-        WHERE schemaname = '${schema}'
+        WHERE schemaname = ${pgl(schema)}
         ORDER BY sequencename ASC;
       `);
       return res || [];
@@ -2139,7 +2167,7 @@ export class PostgresManager {
   public async restartSequence(seqName: string, restartVal: number = 1, schemaName?: string): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      await this.sql_conn.unsafe(`ALTER SEQUENCE "${schema}"."${seqName}" RESTART WITH ${Number(restartVal)};`);
+      await this.sql_conn.unsafe(`ALTER SEQUENCE ${pgq(schema)}.${pgq(seqName)} RESTART WITH ${Number(restartVal)};`);
       await this.logAudit("RESTART_SEQ", seqName, `Restarted sequence at ${restartVal}`);
       return { success: true };
     } catch (err: any) {
@@ -2178,9 +2206,9 @@ export class PostgresManager {
           action_timing as timing,
           action_statement as statement
         FROM information_schema.triggers
-        WHERE trigger_schema = '${schema}'
+        WHERE trigger_schema = ${pgl(schema)}
       `;
-      if (tableName) sql += ` AND event_object_table = '${tableName}'`;
+      if (tableName) sql += ` AND event_object_table = ${pgl(tableName)}`;
       sql += ` ORDER BY event_object_table ASC, trigger_name ASC;`;
       const res = await this.sql_conn.unsafe(sql);
       return res || [];
@@ -2201,7 +2229,7 @@ export class PostgresManager {
           external_language as language,
           is_deterministic
         FROM information_schema.routines
-        WHERE routine_schema = '${schema}'
+        WHERE routine_schema = ${pgl(schema)}
         ORDER BY routine_name ASC;
       `);
       return res || [];
@@ -2226,7 +2254,7 @@ export class PostgresManager {
           pg_size_pretty(pg_relation_size(relid)) as data_size,
           pg_size_pretty(pg_indexes_size(relid)) as index_size
         FROM pg_stat_user_tables
-        WHERE schemaname = '${schema}'
+        WHERE schemaname = ${pgl(schema)}
         ORDER BY pg_total_relation_size(relid) DESC;
       `);
       return res || [];
@@ -2323,22 +2351,22 @@ export class PostgresManager {
 
       // 2. Drop existing sample objects if they exist
       await this.sql_conn.unsafe(`
-        DROP MATERIALIZED VIEW IF EXISTS "${s}"."mv_daily_sales_analytics" CASCADE;
-        DROP VIEW IF EXISTS "${s}"."v_order_details_extended" CASCADE;
-        DROP VIEW IF EXISTS "${s}"."v_customer_order_summary" CASCADE;
-        DROP VIEW IF EXISTS "${s}"."v_product_sales_performance" CASCADE;
-        DROP VIEW IF EXISTS "${s}"."v_pending_shipments" CASCADE;
-        DROP VIEW IF EXISTS "${s}"."v_vip_customer_analytics" CASCADE;
-        DROP TABLE IF EXISTS "${s}"."order_items" CASCADE;
-        DROP TABLE IF EXISTS "${s}"."orders" CASCADE;
-        DROP TABLE IF EXISTS "${s}"."products" CASCADE;
-        DROP TABLE IF EXISTS "${s}"."customers" CASCADE;
-        DROP TABLE IF EXISTS "${s}"."audit_logs" CASCADE;
+        DROP MATERIALIZED VIEW IF EXISTS ${pgq(s)}."mv_daily_sales_analytics" CASCADE;
+        DROP VIEW IF EXISTS ${pgq(s)}."v_order_details_extended" CASCADE;
+        DROP VIEW IF EXISTS ${pgq(s)}."v_customer_order_summary" CASCADE;
+        DROP VIEW IF EXISTS ${pgq(s)}."v_product_sales_performance" CASCADE;
+        DROP VIEW IF EXISTS ${pgq(s)}."v_pending_shipments" CASCADE;
+        DROP VIEW IF EXISTS ${pgq(s)}."v_vip_customer_analytics" CASCADE;
+        DROP TABLE IF EXISTS ${pgq(s)}."order_items" CASCADE;
+        DROP TABLE IF EXISTS ${pgq(s)}."orders" CASCADE;
+        DROP TABLE IF EXISTS ${pgq(s)}."products" CASCADE;
+        DROP TABLE IF EXISTS ${pgq(s)}."customers" CASCADE;
+        DROP TABLE IF EXISTS ${pgq(s)}."audit_logs" CASCADE;
       `);
 
       // 3. Customers (with JSONB preferences)
       await this.sql_conn.unsafe(`
-        CREATE TABLE "${s}"."customers" (
+        CREATE TABLE ${pgq(s)}."customers" (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           name VARCHAR(150) NOT NULL,
           email VARCHAR(150) NOT NULL UNIQUE,
@@ -2350,7 +2378,7 @@ export class PostgresManager {
 
       // 4. Products (with JSONB specs and text[] array tags)
       await this.sql_conn.unsafe(`
-        CREATE TABLE "${s}"."products" (
+        CREATE TABLE ${pgq(s)}."products" (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           sku VARCHAR(50) NOT NULL UNIQUE,
           name VARCHAR(150) NOT NULL,
@@ -2365,10 +2393,10 @@ export class PostgresManager {
 
       // 5. Orders (with JSONB shipping address)
       await this.sql_conn.unsafe(`
-        CREATE TABLE "${s}"."orders" (
+        CREATE TABLE ${pgq(s)}."orders" (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           order_number VARCHAR(30) NOT NULL UNIQUE,
-          customer_id UUID REFERENCES "${s}"."customers"(id) ON DELETE RESTRICT,
+          customer_id UUID REFERENCES ${pgq(s)}."customers"(id) ON DELETE RESTRICT,
           total_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
           status VARCHAR(30) DEFAULT 'Pending',
           shipping_address JSONB DEFAULT '{"city": "San Francisco", "state": "CA", "country": "USA"}'::jsonb,
@@ -2378,10 +2406,10 @@ export class PostgresManager {
 
       // 6. Order Items
       await this.sql_conn.unsafe(`
-        CREATE TABLE "${s}"."order_items" (
+        CREATE TABLE ${pgq(s)}."order_items" (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          order_id UUID REFERENCES "${s}"."orders"(id) ON DELETE CASCADE,
-          product_id UUID REFERENCES "${s}"."products"(id) ON DELETE RESTRICT,
+          order_id UUID REFERENCES ${pgq(s)}."orders"(id) ON DELETE CASCADE,
+          product_id UUID REFERENCES ${pgq(s)}."products"(id) ON DELETE RESTRICT,
           quantity INT NOT NULL DEFAULT 1,
           unit_price NUMERIC(10,2) NOT NULL,
           line_total NUMERIC(10,2) NOT NULL
@@ -2390,7 +2418,7 @@ export class PostgresManager {
 
       // 7. Audit Logs
       await this.sql_conn.unsafe(`
-        CREATE TABLE "${s}"."audit_logs" (
+        CREATE TABLE ${pgq(s)}."audit_logs" (
           id BIGSERIAL PRIMARY KEY,
           action VARCHAR(50) NOT NULL,
           entity VARCHAR(100) NOT NULL,
@@ -2401,14 +2429,14 @@ export class PostgresManager {
 
       // 8. Populate Data
       await this.sql_conn.unsafe(`
-        INSERT INTO "${s}"."customers" (name, email, tier, preferences) VALUES
+        INSERT INTO ${pgq(s)}."customers" (name, email, tier, preferences) VALUES
           ('Alice Johnson', 'alice.johnson@enterprise.io', 'VIP', '{"theme": "dark", "loyalty_pts": 1450, "priority_support": true}'::jsonb),
           ('Bob Smith', 'bob.smith@cloudtech.com', 'Standard', '{"theme": "light", "loyalty_pts": 320, "priority_support": false}'::jsonb),
           ('Carol Williams', 'carol.williams@fintech.org', 'VIP', '{"theme": "system", "loyalty_pts": 2890, "priority_support": true}'::jsonb),
           ('David Miller', 'david.miller@devops.net', 'Gold', '{"theme": "dark", "loyalty_pts": 950, "priority_support": false}'::jsonb),
           ('Elena Rostova', 'elena.rostova@quantum.ai', 'VIP', '{"theme": "dark", "loyalty_pts": 4120, "priority_support": true}'::jsonb);
 
-        INSERT INTO "${s}"."products" (sku, name, category, price, stock, specs, tags) VALUES
+        INSERT INTO ${pgq(s)}."products" (sku, name, category, price, stock, specs, tags) VALUES
           ('SRV-EPYC-01', 'AMD EPYC 9654 Server Blade', 'Compute', 4299.99, 45, '{"cores": 96, "ram_gb": 384, "tdp_w": 360}'::jsonb, ARRAY['server', 'datacenter', 'high-performance']),
           ('GPU-A100-80', 'NVIDIA A100 Tensor Core 80GB', 'Accelerators', 6999.00, 18, '{"vram_gb": 80, "pcie": "Gen4", "tensor_cores": 432}'::jsonb, ARRAY['gpu', 'ai', 'deep-learning']),
           ('SSD-NVME-08', 'Enterprise NVMe U.3 7.68TB', 'Storage', 849.50, 120, '{"read_mbs": 7000, "write_mbs": 5500, "dwpd": 3}'::jsonb, ARRAY['storage', 'nvme', 'fast']),
@@ -2433,49 +2461,49 @@ export class PostgresManager {
           o3 UUID;
           o4 UUID;
         BEGIN
-          SELECT id INTO c_alice FROM "${s}"."customers" WHERE email = 'alice.johnson@enterprise.io';
-          SELECT id INTO c_carol FROM "${s}"."customers" WHERE email = 'carol.williams@fintech.org';
-          SELECT id INTO c_david FROM "${s}"."customers" WHERE email = 'david.miller@devops.net';
-          SELECT id INTO c_elena FROM "${s}"."customers" WHERE email = 'elena.rostova@quantum.ai';
+          SELECT id INTO c_alice FROM ${pgq(s)}."customers" WHERE email = 'alice.johnson@enterprise.io';
+          SELECT id INTO c_carol FROM ${pgq(s)}."customers" WHERE email = 'carol.williams@fintech.org';
+          SELECT id INTO c_david FROM ${pgq(s)}."customers" WHERE email = 'david.miller@devops.net';
+          SELECT id INTO c_elena FROM ${pgq(s)}."customers" WHERE email = 'elena.rostova@quantum.ai';
 
-          SELECT id INTO p_epyc FROM "${s}"."products" WHERE sku = 'SRV-EPYC-01';
-          SELECT id INTO p_gpu FROM "${s}"."products" WHERE sku = 'GPU-A100-80';
-          SELECT id INTO p_ssd FROM "${s}"."products" WHERE sku = 'SSD-NVME-08';
-          SELECT id INTO p_switch FROM "${s}"."products" WHERE sku = 'SW-400G-32';
+          SELECT id INTO p_epyc FROM ${pgq(s)}."products" WHERE sku = 'SRV-EPYC-01';
+          SELECT id INTO p_gpu FROM ${pgq(s)}."products" WHERE sku = 'GPU-A100-80';
+          SELECT id INTO p_ssd FROM ${pgq(s)}."products" WHERE sku = 'SSD-NVME-08';
+          SELECT id INTO p_switch FROM ${pgq(s)}."products" WHERE sku = 'SW-400G-32';
 
-          INSERT INTO "${s}"."orders" (order_number, customer_id, total_amount, status, shipping_address)
+          INSERT INTO ${pgq(s)}."orders" (order_number, customer_id, total_amount, status, shipping_address)
           VALUES ('ORD-2026-001', c_alice, 18298.98, 'Shipped', '{"city": "Austin", "state": "TX", "zip": "78701"}'::jsonb)
           RETURNING id INTO o1;
 
-          INSERT INTO "${s}"."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
+          INSERT INTO ${pgq(s)}."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
             (o1, p_epyc, 2, 4299.99, 8599.98),
             (o1, p_ssd, 4, 849.50, 3398.00),
             (o1, p_gpu, 1, 6999.00, 6999.00);
 
-          INSERT INTO "${s}"."orders" (order_number, customer_id, total_amount, status, shipping_address)
+          INSERT INTO ${pgq(s)}."orders" (order_number, customer_id, total_amount, status, shipping_address)
           VALUES ('ORD-2026-002', c_carol, 26499.00, 'Completed', '{"city": "New York", "state": "NY", "zip": "10005"}'::jsonb)
           RETURNING id INTO o2;
 
-          INSERT INTO "${s}"."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
+          INSERT INTO ${pgq(s)}."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
             (o2, p_switch, 1, 12500.00, 12500.00),
             (o2, p_gpu, 2, 6999.00, 13998.00);
 
-          INSERT INTO "${s}"."orders" (order_number, customer_id, total_amount, status, shipping_address)
+          INSERT INTO ${pgq(s)}."orders" (order_number, customer_id, total_amount, status, shipping_address)
           VALUES ('ORD-2026-003', c_elena, 20997.00, 'Processing', '{"city": "Seattle", "state": "WA", "zip": "98101"}'::jsonb)
           RETURNING id INTO o3;
 
-          INSERT INTO "${s}"."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
+          INSERT INTO ${pgq(s)}."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
             (o3, p_gpu, 3, 6999.00, 20997.00);
 
-          INSERT INTO "${s}"."orders" (order_number, customer_id, total_amount, status, shipping_address)
+          INSERT INTO ${pgq(s)}."orders" (order_number, customer_id, total_amount, status, shipping_address)
           VALUES ('ORD-2026-004', c_david, 5149.49, 'Pending', '{"city": "Denver", "state": "CO", "zip": "80202"}'::jsonb)
           RETURNING id INTO o4;
 
-          INSERT INTO "${s}"."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
+          INSERT INTO ${pgq(s)}."order_items" (order_id, product_id, quantity, unit_price, line_total) VALUES
             (o4, p_epyc, 1, 4299.99, 4299.99),
             (o4, p_ssd, 1, 849.50, 849.50);
 
-          INSERT INTO "${s}"."audit_logs" (action, entity, details) VALUES
+          INSERT INTO ${pgq(s)}."audit_logs" (action, entity, details) VALUES
             ('SEED', 'SYSTEM', '{"event": "Starter dataset initialized", "tables": 5, "views": 5}'::jsonb),
             ('ORDER_PLACED', 'ORD-2026-001', '{"amount": 18298.98, "customer": "Alice Johnson"}'::jsonb),
             ('ORDER_PLACED', 'ORD-2026-002', '{"amount": 26499.00, "customer": "Carol Williams"}'::jsonb);
@@ -2484,7 +2512,7 @@ export class PostgresManager {
 
       // 9. Create Relational Views
       await this.sql_conn.unsafe(`
-        CREATE OR REPLACE VIEW "${s}"."v_order_details_extended" AS
+        CREATE OR REPLACE VIEW ${pgq(s)}."v_order_details_extended" AS
         SELECT 
           o.order_number,
           c.name AS customer_name,
@@ -2496,12 +2524,12 @@ export class PostgresManager {
           oi.line_total,
           o.status AS order_status,
           o.created_at AS order_date
-        FROM "${s}"."order_items" oi
-        JOIN "${s}"."orders" o ON o.id = oi.order_id
-        JOIN "${s}"."customers" c ON c.id = o.customer_id
-        JOIN "${s}"."products" p ON p.id = oi.product_id;
+        FROM ${pgq(s)}."order_items" oi
+        JOIN ${pgq(s)}."orders" o ON o.id = oi.order_id
+        JOIN ${pgq(s)}."customers" c ON c.id = o.customer_id
+        JOIN ${pgq(s)}."products" p ON p.id = oi.product_id;
 
-        CREATE OR REPLACE VIEW "${s}"."v_customer_order_summary" AS
+        CREATE OR REPLACE VIEW ${pgq(s)}."v_customer_order_summary" AS
         SELECT 
           c.id AS customer_id,
           c.name,
@@ -2509,11 +2537,11 @@ export class PostgresManager {
           c.tier,
           COUNT(DISTINCT o.id) AS total_orders,
           COALESCE(SUM(o.total_amount), 0.00) AS total_spend
-        FROM "${s}"."customers" c
-        LEFT JOIN "${s}"."orders" o ON o.customer_id = c.id
+        FROM ${pgq(s)}."customers" c
+        LEFT JOIN ${pgq(s)}."orders" o ON o.customer_id = c.id
         GROUP BY c.id, c.name, c.email, c.tier;
 
-        CREATE OR REPLACE VIEW "${s}"."v_product_sales_performance" AS
+        CREATE OR REPLACE VIEW ${pgq(s)}."v_product_sales_performance" AS
         SELECT 
           p.id AS product_id,
           p.sku,
@@ -2522,11 +2550,11 @@ export class PostgresManager {
           p.stock,
           COALESCE(SUM(oi.quantity), 0) AS total_units_sold,
           COALESCE(SUM(oi.line_total), 0.00) AS gross_revenue
-        FROM "${s}"."products" p
-        LEFT JOIN "${s}"."order_items" oi ON oi.product_id = p.id
+        FROM ${pgq(s)}."products" p
+        LEFT JOIN ${pgq(s)}."order_items" oi ON oi.product_id = p.id
         GROUP BY p.id, p.sku, p.name, p.category, p.stock;
 
-        CREATE OR REPLACE VIEW "${s}"."v_pending_shipments" AS
+        CREATE OR REPLACE VIEW ${pgq(s)}."v_pending_shipments" AS
         SELECT 
           o.order_number,
           c.name AS customer_name,
@@ -2535,35 +2563,35 @@ export class PostgresManager {
           o.shipping_address->>'city' as shipping_city,
           o.shipping_address->>'state' as shipping_state,
           o.created_at
-        FROM "${s}"."orders" o
-        JOIN "${s}"."customers" c ON c.id = o.customer_id
+        FROM ${pgq(s)}."orders" o
+        JOIN ${pgq(s)}."customers" c ON c.id = o.customer_id
         WHERE o.status IN ('Pending', 'Processing');
 
-        CREATE OR REPLACE VIEW "${s}"."v_vip_customer_analytics" AS
+        CREATE OR REPLACE VIEW ${pgq(s)}."v_vip_customer_analytics" AS
         SELECT 
           c.name,
           c.email,
           c.preferences->>'loyalty_pts' as loyalty_points,
           COUNT(o.id) as completed_orders,
           SUM(o.total_amount) as total_vip_revenue
-        FROM "${s}"."customers" c
-        JOIN "${s}"."orders" o ON o.customer_id = c.id
+        FROM ${pgq(s)}."customers" c
+        JOIN ${pgq(s)}."orders" o ON o.customer_id = c.id
         WHERE c.tier = 'VIP'
         GROUP BY c.name, c.email, c.preferences;
       `);
 
       // 10. PostgreSQL Materialized View (Specialty Feature!)
       await this.sql_conn.unsafe(`
-        CREATE MATERIALIZED VIEW "${s}"."mv_daily_sales_analytics" AS
+        CREATE MATERIALIZED VIEW ${pgq(s)}."mv_daily_sales_analytics" AS
         SELECT 
           DATE_TRUNC('day', o.created_at)::date AS sales_date,
           COUNT(DISTINCT o.id) AS orders_count,
           SUM(o.total_amount) AS revenue,
           AVG(o.total_amount) AS average_order_value
-        FROM "${s}"."orders" o
+        FROM ${pgq(s)}."orders" o
         GROUP BY DATE_TRUNC('day', o.created_at)::date;
 
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_daily_sales_date ON "${s}"."mv_daily_sales_analytics" (sales_date);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_daily_sales_date ON ${pgq(s)}."mv_daily_sales_analytics" (sales_date);
       `);
 
       // 11. Run ANALYZE so statistics and row counts are immediately computed
@@ -2582,7 +2610,7 @@ export class PostgresManager {
   public async logAudit(action: string, entity: string, details: string) {
     try {
       await this.sql_conn.unsafe(
-        `INSERT INTO "${this.activeSchema}"."audit_logs" (action, entity, details) VALUES ($1, $2, $3::jsonb);`,
+        `INSERT INTO ${pgq(this.activeSchema)}."audit_logs" (action, entity, details) VALUES ($1, $2, $3::jsonb);`,
         [action, entity, JSON.stringify({ message: details })]
       );
     } catch {}
@@ -2591,7 +2619,7 @@ export class PostgresManager {
   public async getAuditLogs(limit: number = 50): Promise<any[]> {
     try {
       const rows = await this.sql_conn.unsafe(
-        `SELECT id, action, entity, details, timestamp FROM "${this.activeSchema}"."audit_logs" ORDER BY id DESC LIMIT $1;`,
+        `SELECT id, action, entity, details, timestamp FROM ${pgq(this.activeSchema)}."audit_logs" ORDER BY id DESC LIMIT $1;`,
         [Math.min(200, Math.max(1, limit))]
       );
       return Array.isArray(rows) ? rows : [];
@@ -2624,7 +2652,7 @@ export class PostgresManager {
 
         // 1. Verify table access & row counting
         try {
-          const countRes = await this.sql_conn.unsafe(`SELECT count(*) AS c FROM "${s}"."${tbl}";`);
+          const countRes = await this.sql_conn.unsafe(`SELECT count(*) AS c FROM ${pgq(s)}.${pgq(tbl)};`);
           const count = Number(countRes[0]?.c || 0);
 
           // 2. Check index validity
@@ -2641,15 +2669,15 @@ export class PostgresManager {
           let idxStatus = "All indexes valid";
           for (const idx of idxRes) {
             if (!idx.indisvalid) {
-              issues.push(`Index "${idx.index_name}" on table "${tbl}" is INVALID`);
+              issues.push(`Index ${pgq(idx.index_name)} on table ${pgq(tbl)} is INVALID`);
               idxStatus = `INVALID index: ${idx.index_name}`;
             }
           }
 
-          outputs.push(`Table "${s}"."${tbl}": ${count} rows, ${idxRes.length} index(es) OK (${idxStatus})`);
+          outputs.push(`Table ${pgq(s)}.${pgq(tbl)}: ${count} rows, ${idxRes.length} index(es) OK (${idxStatus})`);
         } catch (tableErr: any) {
-          issues.push(`Error checking table "${tbl}": ${tableErr.message}`);
-          outputs.push(`Table "${s}"."${tbl}": ERROR (${tableErr.message})`);
+          issues.push(`Error checking table ${pgq(tbl)}: ${tableErr.message}`);
+          outputs.push(`Table ${pgq(s)}.${pgq(tbl)}: ERROR (${tableErr.message})`);
         }
       }
 
@@ -2695,6 +2723,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       // CORS & Local Guard
       const __blocked = guardLocalRequest(req);
       if (__blocked) return __blocked;
+      if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
+        const __workbench = await (await getSharedWorkbench("PostgreSQL Studio · Workbench")).handle(req);
+        if (__workbench) return __workbench;
+      }
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -3440,7 +3472,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
                 if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
                 return `'${String(v).replace(/'/g, "''")}'`;
               });
-              return `INSERT INTO "${tbl}" (${escapedHeaders}) VALUES (${vals.join(", ")});`;
+              return `INSERT INTO ${pgq(tbl)} (${escapedHeaders}) VALUES (${vals.join(", ")});`;
             });
             content = lines.join("\n");
           }

@@ -68,6 +68,16 @@ export class SqliteAdapter extends BaseAdapter {
     }
   }
 
+  /** Consistent copy of the live database (includes WAL contents). Fails if `dest` exists. */
+  backupTo(dest: string): void {
+    if (existsSync(dest)) throw new DbError("INVALID_REQUEST", `${dest} already exists. Existing files are never overwritten.`);
+    try {
+      this.conn.query("VACUUM INTO ?").run(dest);
+    } catch (e) {
+      throw normalizeError("sqlite", e, [this.password]);
+    }
+  }
+
   async close(): Promise<void> {
     this.db?.close();
     this.db = null;

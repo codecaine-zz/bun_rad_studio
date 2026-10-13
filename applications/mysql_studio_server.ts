@@ -8,6 +8,8 @@
  */
 
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
+import { getSharedWorkbench } from "../src/db/workbench_shared";
+import { splitStatements } from "../src/db/splitter";
 import { SQL } from "bun";
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
@@ -85,6 +87,11 @@ export interface ColumnSpec {
   fkTable?: string;
   fkColumn?: string;
   fkOnDelete?: string;
+}
+
+/** Quote a MySQL string literal: backslashes and quotes are escaped (MySQL treats backslash as an escape character). */
+function ml(value: unknown): string {
+  return "'" + String(value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "''") + "'";
 }
 
 /** Quote a MySQL identifier with backticks. */
@@ -694,7 +701,7 @@ export class MysqlManager {
         // DDL
         let createSql = "";
         try {
-          const ddlRes = await this.sql_conn.unsafe(isTable ? `SHOW CREATE TABLE \`${tname}\`` : `SHOW CREATE VIEW \`${tname}\``);
+          const ddlRes = await this.sql_conn.unsafe(isTable ? `SHOW CREATE TABLE ${qm(tname)}` : `SHOW CREATE VIEW ${qm(tname)}`);
           createSql = ddlRes[0]?.["Create Table"] || ddlRes[0]?.["Create View"] || "";
         } catch {}
 
@@ -1106,7 +1113,7 @@ export class MysqlManager {
         if (c.autoinc) def += " AUTO_INCREMENT";
         if (c.pk) def += " PRIMARY KEY";
         if (c.default !== undefined && c.default !== null && c.default !== "") {
-          def += ` DEFAULT '${String(c.default).replace(/'/g, "''")}'`;
+          def += ` DEFAULT ${ml(String(c.default))}`;
         }
         return def;
       });
@@ -1210,10 +1217,8 @@ export class MysqlManager {
 
   public async runScript(sql: string): Promise<any> {
     try {
-      const stmts = sql
-        .split(/;\s*$/m)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+      // Tokenizer-based split: semicolons inside strings, comments and DELIMITER blocks do not end a statement.
+      const stmts = splitStatements(sql, { engine: "mysql" }).map((s) => s.sql);
       let executed = 0;
       for (const st of stmts) {
         await this.sql_conn.unsafe(st);
@@ -1259,9 +1264,9 @@ export class MysqlManager {
         const details = await this.getTableDetails(t);
         if (mode === "all" || mode === "schema") {
           dump += `-- -----------------------------------------------------\n`;
-          dump += `-- Table structure for table \`${t}\`\n`;
+          dump += `-- Table structure for table ${qm(t)}\n`;
           dump += `-- -----------------------------------------------------\n`;
-          dump += `DROP TABLE IF EXISTS \`${t}\`;\n`;
+          dump += `DROP TABLE IF EXISTS ${qm(t)};\n`;
           if (details.sql) {
             dump += `${details.sql};\n\n`;
           }
@@ -1270,9 +1275,9 @@ export class MysqlManager {
         if (mode === "all" || mode === "data") {
           const rows = await this.sql_conn.unsafe(`SELECT * FROM ${qm(t)}`);
           if (rows && rows.length > 0) {
-            dump += `-- Dumping data for table \`${t}\`\n`;
+            dump += `-- Dumping data for table ${qm(t)}\n`;
             const cols = Object.keys(rows[0]);
-            const colsStr = cols.map((c) => `\`${c}\``).join(", ");
+            const colsStr = cols.map((c) => `${qm(c)}`).join(", ");
             for (const r of rows) {
               const vals = cols
                 .map((c) => {
@@ -1282,7 +1287,7 @@ export class MysqlManager {
                   return `'${String(v).replace(/'/g, "''").replace(/\\/g, "\\\\")}'`;
                 })
                 .join(", ");
-              dump += `INSERT INTO \`${t}\` (${colsStr}) VALUES (${vals});\n`;
+              dump += `INSERT INTO ${qm(t)} (${colsStr}) VALUES (${vals});\n`;
             }
             dump += "\n";
           }
@@ -1304,7 +1309,7 @@ export class MysqlManager {
       const rows = await this.sql_conn.unsafe(`
         SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TABLE_SCHEMA
         FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+        WHERE TABLE_SCHEMA = ${ml(db)}
           AND DATA_TYPE IN ('enum', 'set')
         ORDER BY TABLE_NAME, COLUMN_NAME;
       `);
@@ -1335,21 +1340,21 @@ export class MysqlManager {
       const rows = await this.sql_conn.unsafe(`
         SELECT COLUMN_TYPE, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
         FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
-          AND TABLE_NAME = '${tableName.replace(/'/g, "''")}'
-          AND COLUMN_NAME = '${colName.replace(/'/g, "''")}'
+        WHERE TABLE_SCHEMA = ${ml(db)}
+          AND TABLE_NAME = ${ml(tableName)}
+          AND COLUMN_NAME = ${ml(colName)}
         LIMIT 1;
       `);
       if (!rows || rows.length === 0) return { success: false, error: "Column not found" };
       const curType = String(rows[0].COLUMN_TYPE);
       const isNull = rows[0].IS_NULLABLE === "YES";
-      const dflt = rows[0].COLUMN_DEFAULT !== null ? `DEFAULT '${rows[0].COLUMN_DEFAULT}'` : "";
+      const dflt = rows[0].COLUMN_DEFAULT !== null ? `DEFAULT ${ml(rows[0].COLUMN_DEFAULT)}` : "";
 
       const match = curType.match(/^(\w+)\((.*)\)$/);
       if (!match) return { success: false, error: "Invalid column type definition" };
       const baseType = match[1];
       const existingVals = match[2].split(",").map((v: string) => v.trim());
-      const escapedNewVal = `'${newValue.replace(/'/g, "''")}'`;
+      const escapedNewVal = `${ml(newValue)}`;
       if (!existingVals.includes(escapedNewVal)) {
         existingVals.push(escapedNewVal);
       }
@@ -1381,7 +1386,7 @@ export class MysqlManager {
           TABLE_ROWS,
           DATA_LENGTH
         FROM information_schema.PARTITIONS
-        WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+        WHERE TABLE_SCHEMA = ${ml(db)}
           AND PARTITION_NAME IS NOT NULL
         ORDER BY TABLE_NAME, PARTITION_ORDINAL_POSITION;
       `);
@@ -1546,10 +1551,10 @@ export class MysqlManager {
 
       const aggSelects: string[] = ["COUNT(*) as __total_count__"];
       for (const col of numericCols) {
-        aggSelects.push(`SUM(\`${col}\`) as \`${col}_sum\``);
-        aggSelects.push(`AVG(\`${col}\`) as \`${col}_avg\``);
-        aggSelects.push(`MIN(\`${col}\`) as \`${col}_min\``);
-        aggSelects.push(`MAX(\`${col}\`) as \`${col}_max\``);
+        aggSelects.push(`SUM(${qm(col)}) as ${qm(col + "_sum")}`);
+        aggSelects.push(`AVG(${qm(col)}) as ${qm(col + "_avg")}`);
+        aggSelects.push(`MIN(${qm(col)}) as ${qm(col + "_min")}`);
+        aggSelects.push(`MAX(${qm(col)}) as ${qm(col + "_max")}`);
       }
 
       const res = await this.sql_conn.unsafe(`SELECT ${aggSelects.join(", ")} FROM \`${tableName.replace(/`/g, "")}\``);
@@ -1943,7 +1948,7 @@ export class MysqlManager {
 
       const cleanPragma = pragma.replace(/[^a-zA-Z0-9_]/g, "");
       if (value !== undefined) {
-        await this.sql_conn.unsafe(`SET SESSION ${cleanPragma} = '${String(value).replace(/'/g, "''")}'`);
+        await this.sql_conn.unsafe(`SET SESSION ${cleanPragma} = ${ml(String(value))}`);
         return { success: true, result: `${cleanPragma} = ${value}` };
       }
 
@@ -2065,6 +2070,10 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       // CORS Headers
       const __blocked = guardLocalRequest(req);
       if (__blocked) return __blocked;
+      if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
+        const __workbench = await (await getSharedWorkbench("MySQL Studio · Workbench")).handle(req);
+        if (__workbench) return __workbench;
+      }
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -2203,8 +2212,8 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/table/truncate" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          await manager.runScript(`TRUNCATE TABLE \`${body.table.replace(/`/g, "")}\`;`);
-          return Response.json({ success: true }, { headers: corsHeaders });
+          const result = await manager.runScript(`TRUNCATE TABLE ${qm(body.table)}`);
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -2213,8 +2222,8 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/schema/drop-table" && req.method === "POST") {
         try {
           const body = (await req.json()) as any;
-          await manager.runScript(`DROP TABLE IF EXISTS \`${body.table.replace(/`/g, "")}\`;`);
-          return Response.json({ success: true }, { headers: corsHeaders });
+          const result = await manager.runScript(`DROP TABLE IF EXISTS ${qm(body.table)}`);
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -2463,7 +2472,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           // If name has dot (table.column), alter table to add enum column
           if (body.name && body.name.includes(".")) {
             const [tbl, col] = body.name.split(".");
-            const valList = (body.values || []).map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
+            const valList = (body.values || []).map(v => `${ml(v)}`).join(", ");
             await manager.runScript(`ALTER TABLE \`${tbl.replace(/`/g, "")}\` ADD COLUMN \`${col.replace(/`/g, "")}\` ENUM(${valList});`);
           }
           return Response.json({ success: true }, { headers: corsHeaders });
@@ -2623,9 +2632,9 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
                 const v = r[h];
                 if (v === null || v === undefined) return "NULL";
                 if (typeof v === "number") return v;
-                return `'${String(v).replace(/'/g, "''")}'`;
+                return `${ml(String(v))}`;
               });
-              return `INSERT INTO \`${tbl}\` (${escapedHeaders}) VALUES (${vals.join(", ")});`;
+              return `INSERT INTO ${qm(tbl)} (${escapedHeaders}) VALUES (${vals.join(", ")});`;
             });
             content = lines.join("\n");
           }

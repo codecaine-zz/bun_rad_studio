@@ -8,6 +8,7 @@
  */
 
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
+import { getSharedWorkbench } from "../src/db/workbench_shared";
 import { Database } from "bun:sqlite";
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, readdirSync, mkdirSync } from "fs";
@@ -2154,6 +2155,10 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       // CORS Headers
       const __blocked = guardLocalRequest(req);
       if (__blocked) return __blocked;
+      if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
+        const __workbench = await (await getSharedWorkbench("SQLite Studio · Workbench")).handle(req);
+        if (__workbench) return __workbench;
+      }
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
