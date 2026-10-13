@@ -306,6 +306,41 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
   - `∞`: Denotes the foreign key / many side of the relationship.
 - Central join pill (`= INNER`, `⇥ LEFT`, `⇤ RIGHT`, `↔ FULL`, `⨯ CROSS`) launches the interactive Venn diagram join properties modal.
 
+### 5. Microsoft Access Macro Automation (`⚡ Macro Designer`)
+- **Visual Macro Designer & Action Matrix**: Create, configure, and reorder automated action sequences with step numbers and priority toggles (▲ / ▼).
+- **Microsoft Access Action Catalog**: Right-side drawer providing 24+ categorized actions with instant `+ Add` buttons and parameter guides:
+  - **CRUD & Action Queries**:
+    - `InsertRecord` (Access Append Query): Inserts new rows into target tables via field-value definitions or JSON objects.
+    - `UpdateRecord` (Access Update Query): Performs bulk updates with custom SET expressions and WHERE filter clauses.
+    - `DeleteRecord` (Access Delete Query): Safely purges matching records from target tables.
+    - `MakeTable` (Access Make-Table Query): Creates a new table dynamically from any SQL query or saved named query (`CREATE TABLE ... AS SELECT ...`).
+    - `EmptyTable` (Access Truncate Table): Rapidly clears all records from a table without dropping schema.
+  - **Record Operations & Navigation**:
+    - `GoToRecord`: Moves active selection to `First`, `Last`, `Next`, `Previous`, `New`, or specific record offset.
+    - `FindRecord`: Searches active dataset for text or regex matches.
+    - `ShowAllRecords`: Clears temporary filters to display the full dataset.
+    - `SetValue`: Updates a specific field/variable value.
+    - `SaveRecord`: Commits pending in-memory cell edits to database storage.
+    - `SetWarnings`: Toggles confirmation prompts (useful for suppressing warnings during bulk action query executions).
+  - **Database Objects**: `OpenTable` (Datasheet/Design, Edit/ReadOnly/Add), `OpenQuery` (runs saved named queries or raw SQL), `OpenReport` (Publication report), `CloseObject`, `Requery`.
+  - **Data Operations**: `RunSQL` (transactional DDL/DML), `ApplyFilter` (dynamic WHERE clause), `ExportData` (CSV/JSON/SQL), `ImportData`.
+  - **System & Maintenance**: `MessageBox` (Access-style dialog with Information, Warning, Critical, or Success icon), `VacuumDatabase` (with optional `PRAGMA optimize`), `BackupDatabase` (full, schema, or data modes), `Beep` (synthesized chime via Web Audio API).
+  - **Flow & Logic**: `SetVariable` (TempVars session state), `RunMacro` (sub-routine macros), `StopMacro` (early termination), `Comment` (green italic remark rows).
+- **Saved Named Queries (Access Queries Integration)**:
+  - In the **Visual Query Designer**, clicking **💾 Save** prompts for a query name and description, saving the query definition and QBE visual graph state directly into the database (`_studio_queries`).
+  - Saved named queries appear in the left sidebar object tree under **👁️ Saved Queries** with 1-click **Run in Datasheet (`▶`)**, **Open in Visual Query Designer (`📐`)**, and **Delete (`✕`)** actions.
+  - Macros can execute any saved query by name via the **`OpenQuery`** action (selecting from a live dropdown of saved queries) or use it as a data source in **`MakeTable`** queries!
+- **Conditional Execution (`If [condition]`)**: Each action supports conditional evaluation before execution (e.g. `[totalRows] > 0`, `[tier] == 'VIP'`, `[balance] > 1000`). If condition evaluates to false, action is skipped and logged.
+- **Single Step Debugger (`⏯️ Single Step`)**: Classic Microsoft Access step-by-step interactive debugger. When active, execution pauses before each action to display macro name, condition, action name, and arguments, with `Step ▶`, `Continue ⏩`, and `Halt ⏹️` controls.
+- **Error Handling**: Macros stop at the first failing step (like Access). Set **On error: Continue** on the macro, or tick **On Err ⏭** on a single step, to keep going. A condition that cannot be evaluated now fails the step instead of silently running it.
+- **Safe Execution**: **🧪 Dry Run** runs the data steps on the server and rolls everything back; **🔒 Atomic** commits only if every step succeeds. A pre-flight check blocks missing arguments and warns on `UPDATE`/`DELETE` without a `WHERE`.
+- **Parameter Prompts**: Use `[Enter Start Date]`-style placeholders in `RunSQL`, `OpenQuery`, or `MakeTable` SQL; you're prompted once per run and values are inserted as safely quoted literals.
+- **Sub-Macros**: `RunMacro` now really runs the target macro (with a recursion guard) in both the designer and the server engine.
+- **Duplicate & Export**: **📑 Duplicate** clones a macro; **📤 Export** (JSON), **📜 SQL** (plain script), and **🧾 VBA** (Access module) export it.
+- **AutoExec Startup Macro**: Macros named `AutoExec` or flagged with `AutoExec` automatically trigger upon opening or switching databases.
+- **Navigation Pane Integration**: All saved macros and queries appear in the left sidebar under `👁️ Saved Queries` and `⚡ Macros` with step counts and 1-click run buttons.
+- **Database-Backed Persistence**: Both macros and saved queries are stored directly inside the SQLite database (`_studio_macros` and `_studio_queries`), ensuring they travel with the database file just like Microsoft Access `.accdb` macros and queries. Internal tables are filtered so they never pollute regular business tables or KPI counts.
+
 ---
 
 ### Workstation HTTP API (for Scripting, Automation & Embedded Workstations)
@@ -327,22 +362,36 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 | `POST` | `/api/table/truncate` | Fast atomic table truncate | `{ table: string }` |
 | `POST` | `/api/schema/drop-table` | Safe table drop | `{ table: string }` |
 | `POST` | `/api/pragma` | Read and configure runtime PRAGMAs | `{ pragma: string, value?: string }` |
+| `GET`/`POST` | `/api/macros/list` | List all saved Microsoft Access macros | — |
+| `POST` | `/api/macros/save` | Create or update a macro definition | `{ macro: MacroDefinition }` |
+| `POST` | `/api/macros/delete` | Delete a macro by ID or name | `{ id?: string, name?: string }` |
+| `POST` | `/api/macros/run` | Execute macro actions with telemetry trace | `{ macro?: MacroDefinition, id?: string, variables?: Record<string, any>, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
+| `POST` | `/api/macros/validate` | Pre-flight check for a macro | `{ macro: MacroDefinition }` |
+| `POST` | `/api/macros/export` | Export as `json`, `sql`, or `vba` | `{ macro?: MacroDefinition, id?: string, format?: "json" \| "sql" \| "vba" }` |
 
 ---
 
 ## 🧪 Comprehensive Automated Test Suites
 
-SQLite Studio Pro is rigorously tested with **100% test pass rate** across two enterprise test suites:
+SQLite Studio Pro is rigorously tested with **100% test pass rate** across enterprise test suites:
 
-1. **`tests/sqlite_studio_e2e.test.ts` (20 End-to-End Workstation Tests)**:
-   - Workstation HTML shell and 7 navigation panes.
+1. **`tests/sqlite_studio_macros.test.ts` (8 Microsoft Access Macro Tests)**:
+   - Workstation HTML shell contains Macro Designer tab, matrix, and ribbon toolbar.
+   - Zero syntax errors in client-side macro runtime scripts.
+   - Seeded default Access sample macros (`AutoExec`, `VIP_Customer_Report`, `Database_Maintenance_Routine`).
+   - Schema & KPI isolation: internal `_studio_macros` table never pollutes user tables or counts.
+   - Macro CRUD lifecycle: `/api/macros/save`, `/api/macros/delete`.
+   - Sequential execution engine (`/api/macros/run`) with conditions and step telemetry.
+   - `StopMacro` early termination and error handling.
+2. **`tests/sqlite_studio_e2e.test.ts` (20 End-to-End Workstation Tests)**:
+   - Workstation HTML shell and 8 navigation panes.
    - Microsoft Access Totals Row & Quick Filter Bar elements.
    - Access Publication Report modal and `@media print` CSS.
    - 1-Click Database Backup & SQL Dump Generator in all 3 modes (`all`, `schema`, `data`).
    - Visual Query Designer with Zoom, Presets, Venn preview, and Cardinality Badges (`1` and `∞`).
    - CRUD lifecycle (`insert`, `update`, `delete`), batch import, truncate, drop table.
    - PRAGMA configuration and integrity checks.
-2. **`tests/sqlite_studio_pro.test.ts` (19 Core Workstation Tests)**:
+3. **`tests/sqlite_studio_pro.test.ts` (19 Core Workstation Tests)**:
    - Live KPI telemetry and schema reflection.
    - Parameterized query execution, timing, and EXPLAIN query plan analysis.
    - Multi-table topological joins, spanning tree, and relational join views.
@@ -350,8 +399,8 @@ SQLite Studio Pro is rigorously tested with **100% test pass rate** across two e
    - Multi-format data export (CSV, JSON, SQL).
 
 ```bash
-bun test tests/sqlite_studio_e2e.test.ts tests/sqlite_studio_pro.test.ts
-# 39 pass, 0 fail, 375 assertions (86ms)
+bun test tests/sqlite_studio_macros.test.ts tests/sqlite_studio_e2e.test.ts tests/sqlite_studio_pro.test.ts
+# 47 pass, 0 fail, 457 assertions
 ```
 
 ---

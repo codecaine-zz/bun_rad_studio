@@ -2,8 +2,8 @@ import { writeFileSync } from "fs";
 import { join } from "path";
 
 export function generateCoreWorkstations(outDir: string) {
-  // 01_database_studio.md
-  writeFileSync(join(outDir, "01_database_studio.md"), `# 🗄️ Database Studio Pro -- Complete Production User Guide
+  // 01_sqlite_studio.md
+  writeFileSync(join(outDir, "01_sqlite_studio.md"), `# 🗄️ SQLite Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native bun:sqlite (WAL Mode)  •  Dependencies: 0  •  Offline: 100%

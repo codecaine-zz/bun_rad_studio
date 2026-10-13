@@ -25,6 +25,7 @@ import {
 } from "../index.ts";
 import { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./sqlite_studio_crud.ts";
+import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, MACRO_SCRIPT } from "./sqlite_studio_macros.ts";
 
 export interface SqliteStudioOptions {
   fullscreen?: boolean;
@@ -1876,6 +1877,7 @@ export function generateSqliteStudioHtml(): string {
       transform: scale(1.2);
     }
 ${CRUD_STYLE}
+${MACRO_STYLE}
   </style>
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
@@ -2035,6 +2037,7 @@ ${CRUD_STYLE}
       <div class="view-tabs">
         <div class="tab-btn active" id="tabBtnGrid" onclick="switchTab('grid')">📊 Tabular Data Grid</div>
         <div class="tab-btn" id="tabBtnDesigner" onclick="switchTab('designer')">🧩 Query Designer</div>
+        ${MACRO_TAB_BTN}
         <div class="tab-btn" id="tabBtnSchema" onclick="switchTab('schema')">🏛️ Schema Designer & DDL</div>
         <div class="tab-btn" id="tabBtnExplain" onclick="switchTab('explain')">🔍 Query Plan Visualizer</div>
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
@@ -2080,6 +2083,8 @@ ${CRUD_STYLE}
             <div class="designer-empty">Load a schema to begin building a visual query.</div>
           </div>
         </div>
+
+        ${MACRO_HTML}
 
         <!-- 3. Schema & DDL Designer -->
         <div class="tab-pane" id="tabSchema">
@@ -2541,6 +2546,9 @@ ${CRUD_STYLE}
       if (tabId === "designer") {
         renderQueryDesigner();
       }
+      if (tabId === "macros" && typeof renderMacroDesigner === "function") {
+        renderMacroDesigner();
+      }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -2665,6 +2673,7 @@ ${CRUD_STYLE}
         showToast("Connected: " + res.path);
         logAudit("[CONNECT] Switched active database to " + res.path);
         await refreshAll();
+        if (typeof loadMacrosFromServer === "function") await loadMacrosFromServer();
         if (currentSchema && currentSchema.tables.length > 0) {
           selectTable(currentSchema.tables[0].name);
         }
@@ -2689,6 +2698,7 @@ ${CRUD_STYLE}
           showToast("Loaded uploaded database: " + data.name);
           logAudit("[UPLOAD] Loaded database from upload: " + data.path);
           await refreshAll();
+          if (typeof loadMacrosFromServer === "function") await loadMacrosFromServer();
           if (currentSchema && currentSchema.tables.length > 0) {
             selectTable(currentSchema.tables[0].name);
           }
@@ -2721,6 +2731,16 @@ ${CRUD_STYLE}
         selectTable(v.name);
       }, query);
       container.appendChild(viewsGroup);
+
+      // Group 3: Saved Queries (Visual Designer & Macros)
+      if (typeof renderQueryTreeGroup === "function") {
+        renderQueryTreeGroup(container, query);
+      }
+
+      // Group 4: Macros (Microsoft Access Macros)
+      if (typeof renderMacroTreeGroup === "function") {
+        renderMacroTreeGroup(container, query);
+      }
     }
 
     function createTreeGroup(groupTitle, icon, items, onClickItem, query) {
@@ -5086,18 +5106,64 @@ ${CRUD_STYLE}
       }
     }
 
-    function saveDesignerQuery() {
+    async function saveDesignerQuery() {
       const preview = document.getElementById("designerSqlPreview");
       const sql = (queryDesignerState.activeView === "sql" && preview && preview.value.trim()) ? preview.value.trim() : buildDesignerSql();
-      const defaultName = "Query " + ((queryDesignerState.savedQueries || []).length + 1);
-      const name = prompt("Save this query as:", defaultName);
-      if (!name) return;
+      if (!sql || sql.startsWith("--")) {
+        showToast("Cannot save empty query");
+        return;
+      }
+
+      const defaultName = "Query_" + (((queryDesignerState.savedQueries || []).length) + 1);
+      const name = prompt("Save query in database (Access Query Name):", defaultName);
+      if (!name || !name.trim()) return;
+      const cleanName = name.trim();
+      const desc = prompt("Optional description / purpose for this query:", "") || "";
+
+      // Capture QBE visual designer state so reopening can reconstruct visual diagram
+      const designerStateJson = JSON.stringify({
+        selectedTables: queryDesignerState.selectedTables || [],
+        columns: queryDesignerState.columns || [],
+        joins: queryDesignerState.joins || [],
+        tablePositions: queryDesignerState.tablePositions || {},
+        limit: queryDesignerState.limit || 50,
+        distinct: !!queryDesignerState.distinct
+      });
+
+      const queryDef = {
+        id: "query_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        name: cleanName,
+        description: desc,
+        sql: sql,
+        designerStateJson: designerStateJson,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        const res = await apiRequest('/api/queries/save', { query: queryDef });
+        if (res && res.error) {
+          showToast("Error saving query: " + res.error);
+          return;
+        }
+      } catch (err) {
+        console.warn("Could not persist to server, falling back to local store", err);
+      }
+
       if (!queryDesignerState.savedQueries) queryDesignerState.savedQueries = [];
-      queryDesignerState.savedQueries.unshift({ name, sql, createdAt: new Date().toISOString() });
-      queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(0, 15);
+      queryDesignerState.savedQueries = queryDesignerState.savedQueries.filter(q => q.name !== cleanName);
+      queryDesignerState.savedQueries.unshift(queryDef);
+      queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(0, 30);
       persistSavedQueries();
-      showToast("Saved query: " + name);
+
+      if (typeof loadSavedQueriesFromServer === "function") {
+        try {
+          await loadSavedQueriesFromServer();
+        } catch (e) {}
+      }
+
+      showToast("Saved query: " + cleanName);
       renderQueryDesigner();
+      renderObjectTree();
     }
 
     async function saveDesignerAsView() {
@@ -6201,6 +6267,14 @@ ${CRUD_STYLE}
       });
 
       await refreshAll();
+      if (typeof loadSavedQueriesFromServer === "function") {
+        try {
+          await loadSavedQueriesFromServer();
+          if (typeof savedQueriesStore !== "undefined" && Array.isArray(savedQueriesStore) && savedQueriesStore.length) {
+            queryDesignerState.savedQueries = savedQueriesStore;
+          }
+        } catch (e) {}
+      }
       if (currentSchema && currentSchema.tables.length > 0) {
         selectTable(currentSchema.tables[0].name);
       }
@@ -6240,6 +6314,9 @@ ${CRUD_STYLE}
   </script>
   <script>
 ${CRUD_SCRIPT}
+  </script>
+  <script>
+${MACRO_SCRIPT}
   </script>
   <script>
 ${getWindowShortcutsScript()}
@@ -6461,8 +6538,10 @@ export { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 
 if (process.argv.includes("--server")) {
   const initialDb = process.env.SQLITE_STUDIO_DB || ":memory:";
+  const portIdx = process.argv.indexOf("--port");
+  const port = portIdx !== -1 && process.argv[portIdx + 1] ? parseInt(process.argv[portIdx + 1], 10) : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3456);
   const srv = startSqliteStudioServer({
-    port: 0,
+    port,
     host: "127.0.0.1",
     initialDbPath: initialDb,
   });

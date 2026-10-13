@@ -441,7 +441,7 @@ bun run demo:simplegui
 In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **39 production-grade developer desktop workstations and arcade games** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
 
 |   #    | Application                        | User Guide                                                   | Focus & Capabilities                                                                                                        | Launch Command          |
-| **01** | **SQLite Studio Pro**              | [User Guide](docs/userguides/01_database_studio.md)          | Full Microsoft Access workflow parity: live totals row, quick filter bar, report generator, backup/dump, QBE designer with cardinality badges. | `bun run app:sqlite`    |
+| **01** | **SQLite Studio Pro**              | [User Guide](docs/userguides/01_sqlite_studio.md)          | Full Microsoft Access workflow parity: live totals row, quick filter bar, report generator, backup/dump, QBE designer with cardinality badges. | `bun run app:sqlite`    |
 | **02** | **System & Package Workstation**   | [User Guide](docs/userguides/02_system_package_studio.md)    | Hardware telemetry (RAM/CPUs/Uptime), Bun global cache analysis, npm/bun registry search.                                   | `bun run app:system`    |
 | **03** | **Task Watcher Studio**            | [User Guide](docs/userguides/03_task_watcher_studio.md)      | Native `fs.watch` event pipeline, extension filters, ignore rules, continuous build console.                                | `bun run app:watcher`   |
 | **04** | **JSON Query Studio Pro**          | [User Guide](docs/userguides/04_json_query_studio.md)        | High-throughput JSON query engine, nested selectors, key projections, live query telemetry.                                 | `bun run app:json`      |
@@ -503,7 +503,7 @@ Explore live desktop and responsive viewport previews for all 28 enterprise prod
 #### 🗄️ Data, Storage & Query Engines
 
 | Workstation | Desktop Preview (1200×850) | Responsive Preview (960×720) |
-| **SQLite Studio Pro**<br>[User Guide](docs/userguides/01_database_studio.md)<br>`bun run app:sqlite` | ![SQLite Totals Row & Quick Filter Bar](screenshots/apps/sqlite_totals_filter_verified.png) | ![Visual Query Designer](screenshots/apps/sqlite_visual_designer_cardinality_verified.png) |
+| **SQLite Studio Pro**<br>[User Guide](docs/userguides/01_sqlite_studio.md)<br>`bun run app:sqlite` | ![SQLite Totals Row & Quick Filter Bar](screenshots/apps/sqlite_totals_filter_verified.png) | ![Visual Query Designer](screenshots/apps/sqlite_visual_designer_cardinality_verified.png) |
 | **MySQL Studio Pro**<br>[User Guide](docs/userguides/41_mysql_studio.md)<br>`bun run app:mysql` | ![MySQL Studio Desktop](screenshots/apps/mysql_studio_desktop.png) | ![MySQL Studio Responsive](screenshots/apps/mysql_studio_responsive.png) |
 | **JSON Query Studio Pro**<br>[User Guide](docs/userguides/04_json_query_studio.md)<br>`bun run app:json` | ![JSON Query Studio Desktop](screenshots/apps/json_studio_desktop.png) | ![JSON Query Studio Responsive](screenshots/apps/json_studio_responsive.png) |
 | **Data Converter Studio**<br>[User Guide](docs/userguides/08_data_converter_studio.md)<br>`bun run app:convert` | ![Data Converter Studio Desktop](screenshots/apps/dataconvert_studio_desktop.png) | ![Data Converter Studio Responsive](screenshots/apps/dataconvert_studio_responsive.png) |
