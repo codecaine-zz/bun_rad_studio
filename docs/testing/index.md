@@ -33,6 +33,16 @@ bun run test:db
 
 Use a development server, never one with data you care about. Full explanation, including the temporary user/role the permission test creates: [Database tests](database-tests.md).
 
+**Redis tests** (`tests/redis_studio_pro.test.ts`, `tests/redis_studio_enhancements.test.ts`, 18 tests) seed keys and run `FLUSHDB` on databases 14 and 15, so they are opt-in too and skipped unless a reachable server is named:
+
+```bash
+TEST_REDIS_URL=redis://127.0.0.1:6379 bun test tests/redis_studio_pro.test.ts tests/redis_studio_enhancements.test.ts
+```
+
+Use a throwaway Redis only. CI starts one for itself.
+
+Two launcher tests that open a real Terminal window on macOS skip themselves when the `CI` environment variable is set.
+
 One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench page in a simulated browser (jsdom), because jsdom cannot run page scripts under Bun. It needs Node.js on your PATH.
 
 ## Where tests live

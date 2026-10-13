@@ -35,6 +35,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-029 A test-only package was a runtime dependency, with known advisories (fixed)](#d-029)
 - [D-030 The committed command manifest depended on the author's launcher favourites (fixed)](#d-030)
 - [D-031 The designer had no visible keyboard focus and an unreachable palette (fixed)](#d-031)
+- [D-032 Tests silently depended on the author's machine; first GitHub run had 14 failures (fixed)](#d-032)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -303,3 +304,15 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Behaviour change:** the Tab order now includes about 133 more stops, so reaching the canvas controls by Tab takes more key presses.
 - **Verified:** live with real key presses (visible outline on Tab; Enter arms placement; Escape cancels) and by tests (`tests/ide_html.test.ts`, "Designer: keyboard access", which fail on the old page).
 - **Not fixed:** placing, moving and resizing controls still needs a mouse.
+
+<a id="d-032"></a>
+## D-032: Tests silently depended on the author's machine; the first GitHub run had 14 failures (fixed)
+
+- **Status:** Fixed on 13 October 2026 (the re-run on GitHub is recorded on the [Testing](../testing/index.md#continuous-integration) page).
+- **Observed:** the first run of `.github/workflows/ci.yml` on GitHub's macOS runner (run 38482567102) passed install, type check, dependency audit and the documentation check, and the test step ended with 1157 pass, 153 skip, **14 fail**. Everything had passed in fresh local clones, which are not the same environment. The causes:
+  1. **Ten Redis tests** need a Redis server. This machine had one running on port 6379, so they always passed here. They also seed data and run `FLUSHDB` on databases 14 and 15 of whatever Redis is on `127.0.0.1:6379`, which breaks the project's own rule that tests never touch a user's real databases (the MySQL and PostgreSQL suites already require an explicit opt-in).
+  2. **Two launcher tests** open a real macOS Terminal window; a CI runner has no desktop (5 s timeout each). On a developer's Mac they also open Terminal windows during the test run.
+  3. **Two slow tests** (system information queries, and a network scan with real sockets) took longer than Bun's 5 s default on the loaded runner.
+- **Fix:** the Redis tests run only when `TEST_REDIS_URL` names a reachable Redis (`tests/helpers/redis.ts`, same idea as `TEST_MYSQL_URL`; otherwise they are skipped). CI installs Redis with Homebrew and starts it on port 6390 with persistence off, so those tests really run there. The two real-Terminal tests skip when the `CI` variable is set; the two slow tests have a 30 s timeout with their assertions unchanged.
+- **Behaviour change for contributors:** `bun test` no longer runs the Redis tests by default (18 skipped). To run them: `TEST_REDIS_URL=redis://127.0.0.1:6379 bun test`, against a throwaway server only.
+- **Verified:** in a fresh clone with `CI=true` and a dedicated Redis on port 6390: 1174 pass, 0 fail. The Redis helper was also checked with no variable (skipped) and with a dead port (skipped).
