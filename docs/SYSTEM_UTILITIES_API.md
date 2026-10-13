@@ -2,7 +2,7 @@
 
 A high-performance suite of modern system utilities (`fd`, `sd`, `rip`, `procs`, `watchexec`, `tokei`, `gdu`, `ipinfo`, `subfinder`, `doggo`) written in TypeScript for the Bun runtime.
 
-Built for **Rapid Application Development (RAD)** using the **Single Responsibility (Doer vs. Coordinator)** pattern and **Feature-First** architecture from [AGENTS.md](../AGENTS.md).
+Built for **Rapid Application Development (RAD)** using the **Single Responsibility (Doer vs. Coordinator)** pattern and **Feature-First** architecture from the project architecture notes.
 
 ---
 

@@ -152,6 +152,7 @@ interface ControlSpec {
   status?: "active" | "inactive" | "warning" | "error";
   event_handlers?: Record<string, string>; // Map of event names to handler code/names
 }
+```
 
 ### Supported Event Handlers & Callback Signatures
 

@@ -16,6 +16,8 @@
     "win:gui": "powershell -ExecutionPolicy Bypass -File ./run.ps1 -Gui",
     "test": "bun test",
     "workbench": "bun run src/db/workbench_server.ts",
+    "docs:build": "bun run scripts/docs/build_docs.ts",
+    "docs:check": "bun run scripts/docs/build_docs.ts --check && bun run scripts/docs/check_docs.ts",
     "test:db": "bun test tests/sqlite_studio_e2e.test.ts tests/sqlite_studio_pro.test.ts tests/sqlite_studio_macros.test.ts tests/mysql_manual_config.test.ts tests/mysql_studio_e2e.test.ts tests/mysql_studio_macros.test.ts tests/postgres_studio.test.ts tests/postgres_studio_e2e.test.ts tests/postgres_studio_macros.test.ts tests/studio_codegen.test.ts tests/db",
     "demo:standard": "bun run demos/01_standard_controls.ts",
     "demo:modern": "bun run demos/02_advanced_modern_controls.ts",

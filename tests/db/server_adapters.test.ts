@@ -4,7 +4,7 @@ import { provisionTestDb, type TestDb } from "../helpers/testdb";
 
 /**
  * Integration tests for the MySQL and PostgreSQL adapters. They run against throwaway databases
- * (TEST_MYSQL_URL / TEST_PG_URL, see docs/DATABASE_TESTING.md) and are skipped otherwise.
+ * (TEST_MYSQL_URL / TEST_PG_URL, see docs/testing/database-tests.md) and are skipped otherwise.
  */
 const code = async (p: Promise<unknown>) => {
   try {

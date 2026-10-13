@@ -8,7 +8,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](docs/API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-> 📖 **Quick Links:** [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#16-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [📚 Documentation handbook](docs/index.md) • [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (63 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-39-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
 ---
 
@@ -110,10 +110,10 @@ bun run cli:launcher --search sqlite
   - [Commands](#commands)
   - [`dist/` Output Structure](#dist-output-structure)
   - [Importing from `dist/` in Another Bun Project](#importing-from-dist-in-another-bun-project)
-- [📦 Compiling Standalone macOS Binaries (.app) with Custom Icons](#compiling-standalone-macos-binaries-app-with-custom-icons)
+- [📦 Compiling Standalone macOS Binaries (.app) with Custom Icons](#-compiling-standalone-macos-binaries-app-with-custom-icons)
   - [Option 1: Native Single-File Executable via `build:binary`](#option-1-native-single-file-executable-via-buildbinary)
   - [Option 2: Full macOS `.app` Bundle with Custom Icons](#option-2-full-macos-app-bundle-with-custom-icons)
-- [🎨 Declarative SimpleGUI Module (`simplegui`)](#declarative-simplegui-module-simplegui)
+- [🎨 Declarative SimpleGUI Module (`simplegui`)](#-declarative-simplegui-module-simplegui)
   - [Key Features](#key-features)
 - [📚 Documentation Reference: API.md vs. SIMPLEGUI_API.md](#documentation-reference-apimd-vs-simplegui_apimd)
   - [📖 Summary of API Files](#summary-of-api-files)
@@ -438,7 +438,7 @@ bun run demo:simplegui
 
 ## ⚡ 39 Enterprise Production Workstations & Utilities
 
-> **Databases:** the SQLite, MySQL and Postgres studios share a **Database Workbench** (🧰 button, or `bun run src/db/workbench_server.ts`) with keychain-stored credentials, read-only/production safeguards and conflict-safe row editing. See [docs/DATABASE_WORKBENCH.md](docs/DATABASE_WORKBENCH.md); tests: [docs/DATABASE_TESTING.md](docs/DATABASE_TESTING.md).
+> **Databases:** the SQLite, MySQL and Postgres studios share a **Database Workbench** (🧰 button, or `bun run src/db/workbench_server.ts`) with keychain-stored credentials, read-only/production safeguards and conflict-safe row editing. See [docs/databases/workbench.md](docs/databases/workbench.md); tests: [docs/testing/database-tests.md](docs/testing/database-tests.md).
 
 In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehensive suite of **39 production-grade developer desktop workstations and arcade games** engineered with zero Homebrew/external binary reliance. Each application includes detailed documentation in the [User Guides Directory](docs/userguides/README.md).
 

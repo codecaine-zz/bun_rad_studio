@@ -25,7 +25,7 @@ Welcome to the **Bun RAD Studio & SimpleGUI Visual Theme Gallery**. Every theme 
 - [🕹️ Retro & Nostalgic Computing Themes (10 Themes)](#cat-retro)
 - [🐧 Modern Linux Desktop Themes (7 Themes)](#cat-linux)
 - [⚡ Quick Reference Index Table (All 63 Themes)](#quick-reference-index)
-- [💻 How to Use Any Theme in SimpleGUI Code](#how-to-use-any-theme-in-simplegui-code)
+- [💻 How to Use Any Theme in SimpleGUI Code](#-how-to-use-any-theme-in-simplegui-code)
 
 ---
 

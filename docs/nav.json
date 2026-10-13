@@ -1,0 +1,65 @@
+{
+  "$comment": "Single source of the documentation navigation. docs/toc.md is generated from this file; `bun run docs:check` fails if a page under docs/ is missing here or an entry points at a missing page. A section with \"auto\" lists every .md file in that folder.",
+  "sections": [
+    {
+      "title": "Start here",
+      "pages": [
+        { "title": "Handbook home", "path": "index.md" },
+        { "title": "Requirements", "path": "getting-started/requirements.md" },
+        { "title": "Install and first launch", "path": "getting-started/install-and-first-launch.md" },
+        { "title": "Update and remove", "path": "getting-started/update-and-remove.md" },
+        { "title": "Task index (I want to...)", "path": "reference/task-index.md" }
+      ]
+    },
+    {
+      "title": "Databases (MySQL, PostgreSQL, SQLite)",
+      "pages": [
+        { "title": "Databases overview", "path": "databases/index.md" },
+        { "title": "Database Workbench guide", "path": "databases/workbench.md" }
+      ]
+    },
+    {
+      "title": "Visual designer and generated applications",
+      "pages": [
+        { "title": "Visual form designer (status and source overview)", "path": "visual-designer/index.md" },
+        { "title": "Generated applications", "path": "generated-applications/index.md" }
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        { "title": "Reference index", "path": "reference/index.md" },
+        { "title": "Application index (generated)", "path": "reference/application-index.md" },
+        { "title": "Script index (generated)", "path": "reference/script-index.md" },
+        { "title": "Designer API (API.md)", "path": "API.md" },
+        { "title": "SimpleGUI API", "path": "SIMPLEGUI_API.md" },
+        { "title": "RAD utility modules API", "path": "SYSTEM_UTILITIES_API.md" },
+        { "title": "Themes", "path": "THEMES.md" },
+        { "title": "Themes (identical copy, see D-010)", "path": "theme.md" },
+        { "title": "Homebrew suite guide (not verified)", "path": "HOMEBREW_SUITE_GUIDE.md" }
+      ]
+    },
+    {
+      "title": "Testing",
+      "pages": [
+        { "title": "Testing", "path": "testing/index.md" },
+        { "title": "Database tests", "path": "testing/database-tests.md" }
+      ]
+    },
+    {
+      "title": "Legacy application guides (generated, not verified)",
+      "auto": "userguides"
+    },
+    {
+      "title": "Documentation maintenance",
+      "pages": [
+        { "title": "Coverage matrix (generated)", "path": "documentation-maintenance/coverage-matrix.md" },
+        { "title": "Discrepancies found while documenting", "path": "documentation-maintenance/discrepancies.md" },
+        { "title": "Style guide", "path": "documentation-maintenance/style-guide.md" },
+        { "title": "Contributor checklist", "path": "documentation-maintenance/contributor-checklist.md" },
+        { "title": "Glossary term inventory", "path": "documentation-maintenance/glossary-inventory.md" },
+        { "title": "Global table of contents (generated)", "path": "toc.md" }
+      ]
+    }
+  ]
+}

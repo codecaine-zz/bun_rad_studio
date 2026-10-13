@@ -1,0 +1,118 @@
+# Install and first launch
+
+**Goal:** get the project onto your computer, open the launcher, and run a first small program.
+**Prerequisites:** [Requirements](requirements.md) – Bun and Git installed.
+**Difficulty:** beginner. Every command below was run from a fresh clone on macOS with Bun 1.4.2 (13 October 2026) unless it says otherwise.
+
+## Contents
+
+- [Step 1: Open a terminal](#step-1-open-a-terminal)
+- [Step 2: Download the project](#step-2-download-the-project)
+- [Step 3: Install the packages](#step-3-install-the-packages)
+- [Step 4: See what is in the project (no window needed)](#step-4-see-what-is-in-the-project-no-window-needed)
+- [Step 5: Open the launcher](#step-5-open-the-launcher)
+- [Step 6: Run your first program](#step-6-run-your-first-program)
+- [Step 7: Check that everything works (optional)](#step-7-check-that-everything-works-optional)
+- [Step 8: Build the library (optional)](#step-8-build-the-library-optional)
+- [Things that do not work yet](#things-that-do-not-work-yet)
+- [When something fails](#when-something-fails)
+
+## Step 1: Open a terminal
+
+A *terminal* is a window where you type commands. On macOS open **Terminal** (Applications → Utilities). Every command in this page is typed in the terminal and finished with the Return key. Lines starting with `#` are comments; you do not type them.
+
+## Step 2: Download the project
+
+```bash
+git clone https://github.com/codecaine-zz/bun_rad_studio.git
+cd bun_rad_studio
+```
+
+*What it does:* `git clone` copies the project into a new folder named `bun_rad_studio`; `cd` moves the terminal into that folder. **Run every later command from inside this folder** (the "repository root").
+*Expected result:* no error, and `ls` shows files such as `package.json`, `index.ts`, `applications`.
+*Verification note:* verified with a clone of the local repository; the GitHub address itself was not cloned for this handbook.
+
+## Step 3: Install the packages
+
+```bash
+bun install
+```
+
+*What it does:* downloads the three libraries the project needs (`jsdom`, `systeminformation`, `webview-bun`) plus development tools, into a folder called `node_modules`. It also runs a small script (`postinstall`) that does nothing on macOS and Linux and, on Windows, copies a WebView2 helper file.
+*Expected result:* ends with a line like `46 packages installed`, including `+ webview-bun@2.4.0`.
+*Common failures:* see [When something fails](#when-something-fails).
+
+## Step 4: See what is in the project (no window needed)
+
+```bash
+bun run cli:launcher --list
+```
+
+*What it does:* the launcher's command-line companion scans the repository and prints every tool it finds.
+*Expected result:* a summary that includes `Total Detected: 175 tools` (70 studios, 78 command-line tools, 27 demos), followed by the list. Add `--search sqlite` to filter, or `--json` for machine-readable output.
+
+The same list is in the [application index](../reference/application-index.md).
+
+## Step 5: Open the launcher
+
+```bash
+bun run app:launcher
+```
+
+*What it does:* opens **Launcher Studio Pro**, a window listing every tool with search, favourites and a launch button.
+*Expected result:* a window opens and stays open. The terminal prints `Launching Project Application & CLI Workstation Launcher...` and keeps running; close the window or press Ctrl+C to stop it.
+*Verified:* the window opened and kept running for at least 7 seconds. Clicking through its features was not done by hand for this handbook (automated tests for it exist).
+
+To open a particular studio directly, use its short name from the [script index](../reference/script-index.md), for example `bun run app:database` (SQLite Studio). Whether each studio's window works was **not** checked individually; see the [coverage matrix](../documentation-maintenance/coverage-matrix.md).
+
+## Step 6: Run your first program
+
+The repository includes a tiny program for this handbook: [`examples/docs/hello_window.ts`](../../examples/docs/hello_window.ts). It opens a window with a text box and a button.
+
+```bash
+bun run examples/docs/hello_window.ts
+```
+
+*What it does:* the program uses **SimpleGUI**, the project's library for building windows in code. `createWindow(title, width, height, options)` makes a window; `addLabel`, `addTextInput` and `addButton` add controls; `win.run()` shows the window and waits for you.
+*Expected result:* a 520×300 window titled "Hello from Bun RAD Studio" with a label, a text box and a **Say hello** button. The button is set up to show a message "Hello, *name*!".
+*Verified:* the window opened and stayed running (12 seconds, then stopped by me). Typing a name and pressing the button was **not** tested by hand.
+*Next:* the library is documented in [SIMPLEGUI_API.md](../SIMPLEGUI_API.md). Its quick-start example imports from `"bun_rad_studio"`, which only works if that package is installed; inside this repository import from `index.ts` as the example above does.
+
+## Step 7: Check that everything works (optional)
+
+```bash
+bun test tests/db/splitter.test.ts
+```
+
+*Expected result:* `13 pass`, `0 fail`. To run **all** tests use `bun test`; see [Testing](../testing/index.md) for what is skipped without a database server.
+
+## Step 8: Build the library (optional)
+
+```bash
+bun run build
+```
+
+*What it does:* runs `scripts/build.ts lib`, which bundles the project into a `dist/` folder.
+*Expected result:* the last line is `Library build complete → dist/`, and `dist/` contains `index.js` and copies of the API documents.
+*Not verified:* `bun run build:binary` and `bun run build:all` (standalone executables).
+
+## Things that do not work yet
+
+- **`bun start` (the visual form designer) fails.** It stops with `ReferenceError: existsSync is not defined` at `index.ts` line 972. This is a bug in the project, reproduced both in a fresh clone and in the working copy; see [discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001). Until it is fixed there is no verified way to "create and save a first project" in the designer, which is why this page uses a code example instead. The [designer pages](../visual-designer/index.md) say what the source shows.
+- Windows and Linux were not tested.
+
+## When something fails
+
+| What you see | Likely cause | What to do |
+|---|---|---|
+| `bun: command not found` | Bun is not installed or the terminal was not reopened after installing it. | Install Bun (<https://bun.sh>), open a new terminal, run `bun --version`. |
+| `bun install` cannot download packages | No internet, or a network proxy. | Check your connection and run the command again; it is safe to repeat. |
+| `error: script "start" exited with code 1` with `existsSync is not defined` | Known project bug D-001. | Nothing you did wrong. Use another launch command. |
+| The terminal shows output but no window appears | A window system problem (on Linux, missing WebKitGTK/GTK packages). | See [Requirements](requirements.md#linux-system-packages-not-verified). |
+| A command fails with `Module not found` | You are not in the repository root. | `cd` into the `bun_rad_studio` folder and retry. |
+
+If a command in this page fails on the setup described in [Requirements](requirements.md), please report it with the exact command and output.
+
+## Next
+
+[Update and remove](update-and-remove.md) · [Databases overview](../databases/index.md)

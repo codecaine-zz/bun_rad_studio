@@ -12,7 +12,7 @@ bun run test:db
 ```
 
 Use a development server, never one holding data you care about. Credentials come from your shell environment only;
-never commit them. Helper: [`tests/helpers/testdb.ts`](../tests/helpers/testdb.ts).
+never commit them. Helper: [`tests/helpers/testdb.ts`](../../tests/helpers/testdb.ts).
 
 ## What runs where
 

@@ -1,0 +1,171 @@
+{
+  "$comment": "Hand-maintained rows for documentation coverage that are not a single launcher entry. Statuses must be one of: Implemented and verified | Implemented but not verified | Partially implemented | Planned | Unsupported | Unknown. 'verification' must say exactly what was checked and when; never claim more.",
+  "features": [
+    {
+      "name": "Visual RAD form designer & IDE (`bun start`)",
+      "audience": "Everyday users, developers",
+      "evidence": ["index.ts", "src/ide.html"],
+      "page": "visual-designer/index.md",
+      "implementation": "Partially implemented",
+      "verification": "Launch FAILS in a clean clone and in the working tree: `ReferenceError: existsSync is not defined` (index.ts:972). Reproduced 2026-10-13 (macOS, Bun 1.4.2). See discrepancy D-001.",
+      "missing": "Interface tour, menus and dialogs cannot be documented from a running IDE until D-001 is fixed."
+    },
+    {
+      "name": "Designer control palette (buttons, inputs, tables, panels, …)",
+      "audience": "Everyday users, developers",
+      "evidence": ["src/ide.html", "docs/API.md"],
+      "page": "visual-designer/index.md",
+      "implementation": "Implemented but not verified",
+      "verification": "Not run (the IDE does not start, D-001). Control names come from source only.",
+      "missing": "Per-control properties/defaults/events reference not written yet."
+    },
+    {
+      "name": "Database controls in the designer (db_grid, db_navigator, db_input, db_dropdown, db_connection)",
+      "audience": "Developers",
+      "evidence": ["src/ide.html (line ~1867)", "src/ide.html (palette ~1120-1155)"],
+      "page": "visual-designer/index.md",
+      "implementation": "Partially implemented",
+      "verification": "Source inspection: they draw fixed sample rows; there is no connection, field discovery or binding to a real database.",
+      "missing": "Must be documented as design-time placeholders, not live data controls."
+    },
+    {
+      "name": "\"DB Wizard\" CRUD form generator in the designer",
+      "audience": "Developers",
+      "evidence": ["src/ide.html (launchAccessCrudWizard, line ~6541)"],
+      "page": "visual-designer/index.md",
+      "implementation": "Partially implemented",
+      "verification": "Source inspection: builds one fixed sample \"Customer\" form; does not read a database or generate database code.",
+      "missing": "Real CRUD generation with database access is Planned."
+    },
+    {
+      "name": "Export App (Bun + Webview project)",
+      "audience": "Developers",
+      "evidence": ["index.ts (exportProjectHelper, line ~983)", "src/ide.html (exportApp)"],
+      "page": "generated-applications/index.md",
+      "implementation": "Implemented but not verified",
+      "verification": "Not run end to end (IDE does not start, D-001). The generated files list (index.html, index.ts, package.json) comes from source and docs/API.md.",
+      "missing": "Run the exported project from a clean folder and record the result."
+    },
+    {
+      "name": "Generated CRUD applications that talk to a database",
+      "audience": "Developers",
+      "evidence": [],
+      "page": "generated-applications/index.md",
+      "implementation": "Planned",
+      "verification": "Does not exist.",
+      "missing": "Nothing to document except that it is planned."
+    },
+    {
+      "name": "Launcher Studio Pro (GUI)",
+      "audience": "Everyday users",
+      "evidence": ["applications/launcher_studio.ts", "tests/launcher.test.ts", "tests/launcher_enhancements.test.ts"],
+      "page": "applications/launcher-studio.md",
+      "implementation": "Implemented and verified",
+      "verification": "From a clean clone (2026-10-13): `bun install`, then `bun run app:launcher` opened and stayed running for 7 s. Interactive features not exercised by hand; unit tests exist.",
+      "missing": "Interface tour from a screenshot of the running app."
+    },
+    {
+      "name": "Launcher CLI (`bun run cli:launcher`)",
+      "audience": "Developers",
+      "evidence": ["cli_apps/launcher_cli.ts"],
+      "page": "applications/launcher-studio.md",
+      "implementation": "Implemented and verified",
+      "verification": "`--help`, `--list --json`, `--search sqlite` run in a clean clone (2026-10-13); catalog count 175 (70 studios, 78 CLI tools, 27 demos).",
+      "missing": "-"
+    },
+    {
+      "name": "Database Workbench (shared MySQL/PostgreSQL/SQLite tool)",
+      "audience": "Everyday users, developers",
+      "evidence": ["src/db/", "tests/db/", "docs/databases/workbench.md"],
+      "page": "databases/workbench.md",
+      "implementation": "Implemented and verified",
+      "verification": "Automated: 309 tests in `bun run test:db` pass (2026-10-13, macOS) incl. the page driven in jsdom against SQLite, MySQL and PostgreSQL. Not checked in a real browser window or on Windows/Linux.",
+      "missing": "Import wizard, query history, autocomplete, schema designer, MySQL/PostgreSQL backup are Planned."
+    },
+    {
+      "name": "SQLite / MySQL / PostgreSQL studios (legacy full-screen workstations)",
+      "audience": "Everyday users, developers",
+      "evidence": ["applications/sqlite_studio*.ts", "applications/mysql_studio*.ts", "applications/postgres_studio*.ts", "tests/sqlite_studio_*.test.ts", "tests/mysql_*.test.ts", "tests/postgres_*.test.ts"],
+      "page": "databases/index.md",
+      "implementation": "Implemented but not verified",
+      "verification": "Server APIs covered by automated tests (pass). The GUI windows and their many tabs/dialogs were not exercised by hand for this documentation.",
+      "missing": "Guides must describe only what is verified; older guides in userguides/ are unverified."
+    },
+    {
+      "name": "Macro designer and code translation (Python / Bun / V)",
+      "audience": "Developers",
+      "evidence": ["applications/studio_codegen.ts", "applications/studio_macros_server.ts", "tests/studio_codegen.test.ts"],
+      "page": "databases/index.md",
+      "implementation": "Implemented and verified",
+      "verification": "Automated tests pass (2026-10-13). Generated code is text-checked, not executed in each language runtime. Target database is SQLite for all three studios.",
+      "missing": "Generated code execution in Python/V is not tested."
+    },
+    {
+      "name": "SimpleGUI library (declarative window/controls API)",
+      "audience": "Developers",
+      "evidence": ["src/simplegui.ts", "src/simplegui_components.ts", "src/simplegui_dialogs.ts", "docs/SIMPLEGUI_API.md", "tests/simplegui.test.ts"],
+      "page": "reference/index.md",
+      "implementation": "Implemented and verified",
+      "verification": "Automated tests pass (2026-10-13). docs/SIMPLEGUI_API.md was not diffed against the source.",
+      "missing": "Reference accuracy review."
+    },
+    {
+      "name": "RAD utility modules (`src/features/rad`)",
+      "audience": "Developers",
+      "evidence": ["src/features/rad/", "docs/SYSTEM_UTILITIES_API.md"],
+      "page": "reference/index.md",
+      "implementation": "Implemented and verified",
+      "verification": "Automated tests pass (2026-10-13).",
+      "missing": "Reference accuracy review."
+    },
+    {
+      "name": "Library build (`bun run build`)",
+      "audience": "Developers",
+      "evidence": ["scripts/build.ts", "package.json"],
+      "page": "getting-started/install-and-first-launch.md",
+      "implementation": "Implemented and verified",
+      "verification": "Ran in a clean clone (2026-10-13): produced dist/ (index.js and copied docs).",
+      "missing": "`build:binary` and `build:all` not run."
+    },
+    {
+      "name": "Standalone binaries / macOS .app (`build:binary`, `build:all`, App Bundler Studio)",
+      "audience": "Developers",
+      "evidence": ["scripts/build.ts", "applications/app_bundler_studio.ts"],
+      "page": "developer-guide/index.md",
+      "implementation": "Implemented but not verified",
+      "verification": "Not run.",
+      "missing": "Verify and document."
+    },
+    {
+      "name": "Homebrew suite install (`install_homebrew_suite.sh`, Formula)",
+      "audience": "Everyday users",
+      "evidence": ["install_homebrew_suite.sh", "Formula/", "docs/HOMEBREW_SUITE_GUIDE.md"],
+      "page": "getting-started/install-and-first-launch.md",
+      "implementation": "Implemented but not verified",
+      "verification": "Not run (it changes the Homebrew prefix / PATH, so it was not run on this machine).",
+      "missing": "Verification on a disposable machine."
+    },
+    {
+      "name": "Windows launcher (`run.ps1`, `run.cmd`)",
+      "audience": "Windows users",
+      "evidence": ["run.ps1", "run.cmd", "scripts/fix_windows_webview_runtime.ts"],
+      "page": "getting-started/requirements.md",
+      "implementation": "Implemented but not verified",
+      "verification": "Not run: no Windows machine available.",
+      "missing": "Any Windows support claim must be labelled unverified."
+    },
+    {
+      "name": "Full automated test suite (`bun test`)",
+      "audience": "Contributors",
+      "evidence": ["tests/", "src/**/*.test.ts"],
+      "page": "testing/index.md",
+      "implementation": "Implemented and verified",
+      "verification": "2026-10-13, macOS arm64, Bun 1.4.2, with TEST_MYSQL_URL/TEST_PG_URL set: 1218 pass, 0 fail (94 files). Without them 152 database tests are skipped.",
+      "missing": "-"
+    }
+  ],
+  "verifiedLaunches": {
+    "launcher_studio": "Window opened and stayed running 7 s from a clean clone (2026-10-13). Interactive use not verified by hand.",
+    "cli_launcher_cli": "`--help`, `--list --json`, `--search` ran from a clean clone (2026-10-13)."
+  }
+}
