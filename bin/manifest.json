@@ -1,8 +1,8 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-13T18:31:45.839Z",
-  "totalWrappers": 259,
+  "generatedAt": "2026-10-13T21:28:52.211Z",
+  "totalWrappers": 256,
   "commands": [
     {
       "name": "codecaine",
@@ -1269,22 +1269,6 @@
       "targetScript": "cli_apps/yt_dlp_cli.ts"
     },
     {
-      "name": "codecaine-postgres-studio",
-      "type": "gui",
-      "displayName": "Postgres Studio Pro",
-      "category": "Database & Storage",
-      "description": "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
-      "targetScript": "applications/postgres_studio.ts"
-    },
-    {
-      "name": "codecaine-postgres",
-      "type": "gui",
-      "displayName": "Postgres Studio Pro",
-      "category": "Database & Storage",
-      "description": "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
-      "targetScript": "applications/postgres_studio.ts"
-    },
-    {
       "name": "codecaine-lolo-studio",
       "type": "gui",
       "displayName": "Adventures of Lolo Remaster",
@@ -1837,20 +1821,20 @@
       "targetScript": "applications/omnitool_studio.ts"
     },
     {
-      "name": "codecaine-postgres-designer.js",
+      "name": "codecaine-postgres-studio",
       "type": "gui",
-      "displayName": "Postgres Designer",
-      "category": "RAD Studio",
-      "description": "Native Bun RAD Studio application (postgres_designer)",
-      "targetScript": "applications/postgres_designer.js"
+      "displayName": "Postgres Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
+      "targetScript": "applications/postgres_studio.ts"
     },
     {
-      "name": "codecaine-postgres-studio-designer",
+      "name": "codecaine-postgres",
       "type": "gui",
-      "displayName": "Postgres Studio Designer",
-      "category": "RAD Studio",
-      "description": "Native Bun RAD Studio application (postgres_studio_designer)",
-      "targetScript": "applications/postgres_studio_designer.ts"
+      "displayName": "Postgres Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
+      "targetScript": "applications/postgres_studio.ts"
     },
     {
       "name": "codecaine-process-studio",
@@ -1979,14 +1963,6 @@
       "category": "System & Hardware",
       "description": "Hardware intelligence & telemetry workstation covering all 10 domain areas",
       "targetScript": "applications/system_studio.ts"
-    },
-    {
-      "name": "codecaine-system-studio-extras",
-      "type": "gui",
-      "displayName": "System Studio Extras",
-      "category": "RAD Studio",
-      "description": "Native Bun RAD Studio application (system_studio_extras)",
-      "targetScript": "applications/system_studio_extras.ts"
     },
     {
       "name": "codecaine-tetris-studio",

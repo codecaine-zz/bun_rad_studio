@@ -17,6 +17,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-011 Exported project did not parse (fixed)](#d-011)
 - [D-012 Code Studio accepted commands from any web page (fixed)](#d-012)
 - [D-013 Standalone servers listened on every network interface (fixed)](#d-013)
+- [D-014 The launcher listed library files as applications (fixed)](#d-014)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -110,3 +111,13 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Observed:** `bun run applications/<app>.ts --server` for `task_manager`, `fd_studio` and `rip_studio` started the server with `host: "0.0.0.0"`, while printing `http://127.0.0.1:<port>`. The guard only checks the `Host` header, which a client on the same network can set to `localhost`, so these servers (process control, file operations) were reachable from the local network.
 - **Fix:** they now bind to `127.0.0.1`. LAN use did not work before either, because the guard refuses a non-loopback `Host`.
 - **Regression tests:** `tests/standalone_server_binding.test.ts` (skipped on a machine with no non-loopback IPv4 address).
+
+<a id="d-014"></a>
+## D-014: The launcher listed library files as applications (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `scanWorkspaceApps` in `applications/launcher_studio.ts` listed every `.ts` and `.js` file in `applications/` except a few name patterns. Five files are not programs: `postgres_designer.js` (a browser script), `postgres_studio_designer.ts`, `sqlite_studio_macros.ts`, `studio_codegen.ts` and `system_studio_extras.ts`. Running them directly either printed nothing or crashed (`bun run applications/postgres_designer.js` fails with `document is not defined`). The same scan feeds `scripts/generate_brew_suite.ts`, so the committed `bin/` held three broken commands (`codecaine-postgres-designer.js`, `codecaine-postgres-studio-designer`, `codecaine-system-studio-extras`). Because the wrapper for the browser script is a bash file named `.js`, `tsc` also reported 75 syntax errors for it.
+- **Fix:** these five files are listed in `NON_APP_MODULES` and skipped. The three broken wrappers were removed and `bin/manifest.json` regenerated (259 to 256 commands).
+- **Behaviour change:** the launcher and `codecaine list` no longer show those five entries. They did not work.
+- **Regression tests:** `tests/launcher_listing.test.ts` (also checks that every listed application contains `import.meta.main`, so a new library file added to `applications/` is caught).
+- **Not done:** the test `tests/codecaine_homebrew_suite.test.ts` still writes into the real `bin/` ([D-006](#d-006)). The sample diagnostics output in `docs/HOMEBREW_SUITE_GUIDE.md` still shows the old count of 259.

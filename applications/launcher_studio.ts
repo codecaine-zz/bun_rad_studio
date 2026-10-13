@@ -886,6 +886,18 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 }
 
 /**
+ * Files in applications/ that are libraries or browser assets, not programs. Running them does nothing
+ * (or fails with "document is not defined"), so the launcher and the generated `bin/` wrappers skip them.
+ */
+export const NON_APP_MODULES: ReadonlySet<string> = new Set([
+  "postgres_designer.js", // browser script embedded by postgres_studio_designer.ts
+  "postgres_studio_designer.ts",
+  "sqlite_studio_macros.ts",
+  "studio_codegen.ts",
+  "system_studio_extras.ts",
+]);
+
+/**
  * Scans all project applications, CLI tools, and demos
  */
 export function scanWorkspaceApps(): DetectedApp[] {
@@ -907,7 +919,8 @@ export function scanWorkspaceApps(): DetectedApp[] {
             !f.includes("_crud.") &&
             !f.includes("_engine.") &&
             !f.includes("_ops.") &&
-            f !== "launcher_studio.ts"
+            f !== "launcher_studio.ts" &&
+            !NON_APP_MODULES.has(f)
         )
         .sort();
 
