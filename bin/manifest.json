@@ -1,0 +1,2080 @@
+{
+  "suite": "Codecaine Utility Suite",
+  "version": "1.0.0",
+  "generatedAt": "2026-10-13T18:31:45.839Z",
+  "totalWrappers": 259,
+  "commands": [
+    {
+      "name": "codecaine",
+      "type": "suite",
+      "displayName": "Codecaine Utility Suite Master CLI",
+      "category": "Suite Hub",
+      "description": "Master CLI, tool runner, and package manager companion for macOS and Linux",
+      "targetScript": "cli_apps/codecaine_suite_cli.ts"
+    },
+    {
+      "name": "codecaine-suite",
+      "type": "suite",
+      "displayName": "Codecaine Utility Suite Master Runner",
+      "category": "Suite Hub",
+      "description": "Alias for codecaine master CLI runner",
+      "targetScript": "cli_apps/codecaine_suite_cli.ts"
+    },
+    {
+      "name": "codecaine-launcher",
+      "type": "gui",
+      "displayName": "Launcher Studio Pro (GUI)",
+      "category": "Suite Hub",
+      "description": "Unified desktop workstation launcher for all applications & tools",
+      "targetScript": "applications/launcher_studio.ts"
+    },
+    {
+      "name": "codecaine-launcher-cli",
+      "type": "cli",
+      "displayName": "Launcher Studio Pro (CLI)",
+      "category": "Suite Hub",
+      "description": "Terminal companion for unified application detection and launching",
+      "targetScript": "cli_apps/launcher_cli.ts"
+    },
+    {
+      "name": "codecaine-api",
+      "type": "cli",
+      "displayName": "Api CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Api",
+      "targetScript": "cli_apps/api_cli.ts"
+    },
+    {
+      "name": "codecaine-api-cli",
+      "type": "cli",
+      "displayName": "Api CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Api",
+      "targetScript": "cli_apps/api_cli.ts"
+    },
+    {
+      "name": "codecaine-api-stress-bench",
+      "type": "cli",
+      "displayName": "Api Stress Bench CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Api Stress Bench",
+      "targetScript": "cli_apps/api_stress_bench.ts"
+    },
+    {
+      "name": "codecaine-api-stress-bench-cli",
+      "type": "cli",
+      "displayName": "Api Stress Bench CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Api Stress Bench",
+      "targetScript": "cli_apps/api_stress_bench.ts"
+    },
+    {
+      "name": "codecaine-api-studio",
+      "type": "cli",
+      "displayName": "Api Studio CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Api Studio",
+      "targetScript": "cli_apps/api_studio_cli.ts"
+    },
+    {
+      "name": "codecaine-api-studio-cli",
+      "type": "cli",
+      "displayName": "Api Studio CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Api Studio",
+      "targetScript": "cli_apps/api_studio_cli.ts"
+    },
+    {
+      "name": "codecaine-app-bundler",
+      "type": "cli",
+      "displayName": "App Bundler CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for App Bundler",
+      "targetScript": "cli_apps/app_bundler_cli.ts"
+    },
+    {
+      "name": "codecaine-app-bundler-cli",
+      "type": "cli",
+      "displayName": "App Bundler CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for App Bundler",
+      "targetScript": "cli_apps/app_bundler_cli.ts"
+    },
+    {
+      "name": "codecaine-audiotag",
+      "type": "cli",
+      "displayName": "Audiotag CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Audiotag",
+      "targetScript": "cli_apps/audiotag_cli.ts"
+    },
+    {
+      "name": "codecaine-audiotag-cli",
+      "type": "cli",
+      "displayName": "Audiotag CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Audiotag",
+      "targetScript": "cli_apps/audiotag_cli.ts"
+    },
+    {
+      "name": "codecaine-brew",
+      "type": "cli",
+      "displayName": "Brew CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Brew",
+      "targetScript": "cli_apps/brew_cli.ts"
+    },
+    {
+      "name": "codecaine-brew-cli",
+      "type": "cli",
+      "displayName": "Brew CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Brew",
+      "targetScript": "cli_apps/brew_cli.ts"
+    },
+    {
+      "name": "codecaine-bundler",
+      "type": "cli",
+      "displayName": "Bundler CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Bundler",
+      "targetScript": "cli_apps/bundler_cli.ts"
+    },
+    {
+      "name": "codecaine-bundler-cli",
+      "type": "cli",
+      "displayName": "Bundler CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Bundler",
+      "targetScript": "cli_apps/bundler_cli.ts"
+    },
+    {
+      "name": "codecaine-calc",
+      "type": "cli",
+      "displayName": "Calc CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Calc",
+      "targetScript": "cli_apps/calc_cli.ts"
+    },
+    {
+      "name": "codecaine-calc-cli",
+      "type": "cli",
+      "displayName": "Calc CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Calc",
+      "targetScript": "cli_apps/calc_cli.ts"
+    },
+    {
+      "name": "codecaine-calculator",
+      "type": "cli",
+      "displayName": "Calculator CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Calculator",
+      "targetScript": "cli_apps/calculator_cli.ts"
+    },
+    {
+      "name": "codecaine-calculator-cli",
+      "type": "cli",
+      "displayName": "Calculator CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Calculator",
+      "targetScript": "cli_apps/calculator_cli.ts"
+    },
+    {
+      "name": "codecaine-codecaine-suite",
+      "type": "cli",
+      "displayName": "Codecaine Suite CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Codecaine Suite",
+      "targetScript": "cli_apps/codecaine_suite_cli.ts"
+    },
+    {
+      "name": "codecaine-codecaine-suite-cli",
+      "type": "cli",
+      "displayName": "Codecaine Suite CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Codecaine Suite",
+      "targetScript": "cli_apps/codecaine_suite_cli.ts"
+    },
+    {
+      "name": "codecaine-color",
+      "type": "cli",
+      "displayName": "Color CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Color",
+      "targetScript": "cli_apps/color_cli.ts"
+    },
+    {
+      "name": "codecaine-color-cli",
+      "type": "cli",
+      "displayName": "Color CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Color",
+      "targetScript": "cli_apps/color_cli.ts"
+    },
+    {
+      "name": "codecaine-convert",
+      "type": "cli",
+      "displayName": "Convert CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Convert",
+      "targetScript": "cli_apps/convert_cli.ts"
+    },
+    {
+      "name": "codecaine-convert-cli",
+      "type": "cli",
+      "displayName": "Convert CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Convert",
+      "targetScript": "cli_apps/convert_cli.ts"
+    },
+    {
+      "name": "codecaine-crypto",
+      "type": "cli",
+      "displayName": "Crypto CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Crypto",
+      "targetScript": "cli_apps/crypto_cli.ts"
+    },
+    {
+      "name": "codecaine-crypto-cli",
+      "type": "cli",
+      "displayName": "Crypto CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Crypto",
+      "targetScript": "cli_apps/crypto_cli.ts"
+    },
+    {
+      "name": "codecaine-cut",
+      "type": "cli",
+      "displayName": "Cut CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Cut",
+      "targetScript": "cli_apps/cut_cli.ts"
+    },
+    {
+      "name": "codecaine-cut-cli",
+      "type": "cli",
+      "displayName": "Cut CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Cut",
+      "targetScript": "cli_apps/cut_cli.ts"
+    },
+    {
+      "name": "codecaine-database",
+      "type": "cli",
+      "displayName": "Database CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Database",
+      "targetScript": "cli_apps/database_cli.ts"
+    },
+    {
+      "name": "codecaine-database-cli",
+      "type": "cli",
+      "displayName": "Database CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Database",
+      "targetScript": "cli_apps/database_cli.ts"
+    },
+    {
+      "name": "codecaine-dataconvert",
+      "type": "cli",
+      "displayName": "Dataconvert CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Dataconvert",
+      "targetScript": "cli_apps/dataconvert_cli.ts"
+    },
+    {
+      "name": "codecaine-dataconvert-cli",
+      "type": "cli",
+      "displayName": "Dataconvert CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Dataconvert",
+      "targetScript": "cli_apps/dataconvert_cli.ts"
+    },
+    {
+      "name": "codecaine-devops-sentinel",
+      "type": "cli",
+      "displayName": "Devops Sentinel CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Devops Sentinel",
+      "targetScript": "cli_apps/devops_sentinel.ts"
+    },
+    {
+      "name": "codecaine-devops-sentinel-cli",
+      "type": "cli",
+      "displayName": "Devops Sentinel CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Devops Sentinel",
+      "targetScript": "cli_apps/devops_sentinel.ts"
+    },
+    {
+      "name": "codecaine-devtools",
+      "type": "cli",
+      "displayName": "Devtools CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Devtools",
+      "targetScript": "cli_apps/devtools_cli.ts"
+    },
+    {
+      "name": "codecaine-devtools-cli",
+      "type": "cli",
+      "displayName": "Devtools CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Devtools",
+      "targetScript": "cli_apps/devtools_cli.ts"
+    },
+    {
+      "name": "codecaine-disk",
+      "type": "cli",
+      "displayName": "Disk CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Disk",
+      "targetScript": "cli_apps/disk_cli.ts"
+    },
+    {
+      "name": "codecaine-disk-cli",
+      "type": "cli",
+      "displayName": "Disk CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Disk",
+      "targetScript": "cli_apps/disk_cli.ts"
+    },
+    {
+      "name": "codecaine-dns",
+      "type": "cli",
+      "displayName": "Dns CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Dns",
+      "targetScript": "cli_apps/dns_cli.ts"
+    },
+    {
+      "name": "codecaine-dns-cli",
+      "type": "cli",
+      "displayName": "Dns CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Dns",
+      "targetScript": "cli_apps/dns_cli.ts"
+    },
+    {
+      "name": "codecaine-docker",
+      "type": "cli",
+      "displayName": "Docker CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Docker",
+      "targetScript": "cli_apps/docker_cli.ts"
+    },
+    {
+      "name": "codecaine-docker-cli",
+      "type": "cli",
+      "displayName": "Docker CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Docker",
+      "targetScript": "cli_apps/docker_cli.ts"
+    },
+    {
+      "name": "codecaine-doggo",
+      "type": "cli",
+      "displayName": "Doggo CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Doggo",
+      "targetScript": "cli_apps/doggo_cli.ts"
+    },
+    {
+      "name": "codecaine-doggo-cli",
+      "type": "cli",
+      "displayName": "Doggo CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Doggo",
+      "targetScript": "cli_apps/doggo_cli.ts"
+    },
+    {
+      "name": "codecaine-dot",
+      "type": "cli",
+      "displayName": "Dot CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Dot",
+      "targetScript": "cli_apps/dot_cli.ts"
+    },
+    {
+      "name": "codecaine-dot-cli",
+      "type": "cli",
+      "displayName": "Dot CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Dot",
+      "targetScript": "cli_apps/dot_cli.ts"
+    },
+    {
+      "name": "codecaine-env",
+      "type": "cli",
+      "displayName": "Env CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Env",
+      "targetScript": "cli_apps/env_cli.ts"
+    },
+    {
+      "name": "codecaine-env-cli",
+      "type": "cli",
+      "displayName": "Env CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Env",
+      "targetScript": "cli_apps/env_cli.ts"
+    },
+    {
+      "name": "codecaine-exif",
+      "type": "cli",
+      "displayName": "Exif CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Exif",
+      "targetScript": "cli_apps/exif_cli.ts"
+    },
+    {
+      "name": "codecaine-exif-cli",
+      "type": "cli",
+      "displayName": "Exif CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Exif",
+      "targetScript": "cli_apps/exif_cli.ts"
+    },
+    {
+      "name": "codecaine-fd",
+      "type": "cli",
+      "displayName": "Fd CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Fd",
+      "targetScript": "cli_apps/fd_cli.ts"
+    },
+    {
+      "name": "codecaine-fd-cli",
+      "type": "cli",
+      "displayName": "Fd CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Fd",
+      "targetScript": "cli_apps/fd_cli.ts"
+    },
+    {
+      "name": "codecaine-ffmpeg",
+      "type": "cli",
+      "displayName": "Ffmpeg CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ffmpeg",
+      "targetScript": "cli_apps/ffmpeg_cli.ts"
+    },
+    {
+      "name": "codecaine-ffmpeg-cli",
+      "type": "cli",
+      "displayName": "Ffmpeg CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ffmpeg",
+      "targetScript": "cli_apps/ffmpeg_cli.ts"
+    },
+    {
+      "name": "codecaine-find",
+      "type": "cli",
+      "displayName": "Find CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Find",
+      "targetScript": "cli_apps/find_cli.ts"
+    },
+    {
+      "name": "codecaine-find-cli",
+      "type": "cli",
+      "displayName": "Find CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Find",
+      "targetScript": "cli_apps/find_cli.ts"
+    },
+    {
+      "name": "codecaine-gawk",
+      "type": "cli",
+      "displayName": "Gawk CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Gawk",
+      "targetScript": "cli_apps/gawk_cli.ts"
+    },
+    {
+      "name": "codecaine-gawk-cli",
+      "type": "cli",
+      "displayName": "Gawk CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Gawk",
+      "targetScript": "cli_apps/gawk_cli.ts"
+    },
+    {
+      "name": "codecaine-gdu",
+      "type": "cli",
+      "displayName": "Gdu CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Gdu",
+      "targetScript": "cli_apps/gdu_cli.ts"
+    },
+    {
+      "name": "codecaine-gdu-cli",
+      "type": "cli",
+      "displayName": "Gdu CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Gdu",
+      "targetScript": "cli_apps/gdu_cli.ts"
+    },
+    {
+      "name": "codecaine-git",
+      "type": "cli",
+      "displayName": "Git CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Git",
+      "targetScript": "cli_apps/git_cli.ts"
+    },
+    {
+      "name": "codecaine-git-cli",
+      "type": "cli",
+      "displayName": "Git CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Git",
+      "targetScript": "cli_apps/git_cli.ts"
+    },
+    {
+      "name": "codecaine-graph",
+      "type": "cli",
+      "displayName": "Graph CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Graph",
+      "targetScript": "cli_apps/graph_cli.ts"
+    },
+    {
+      "name": "codecaine-graph-cli",
+      "type": "cli",
+      "displayName": "Graph CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Graph",
+      "targetScript": "cli_apps/graph_cli.ts"
+    },
+    {
+      "name": "codecaine-ifconfig",
+      "type": "cli",
+      "displayName": "Ifconfig CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ifconfig",
+      "targetScript": "cli_apps/ifconfig_cli.ts"
+    },
+    {
+      "name": "codecaine-ifconfig-cli",
+      "type": "cli",
+      "displayName": "Ifconfig CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ifconfig",
+      "targetScript": "cli_apps/ifconfig_cli.ts"
+    },
+    {
+      "name": "codecaine-imagemagick",
+      "type": "cli",
+      "displayName": "Imagemagick CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Imagemagick",
+      "targetScript": "cli_apps/imagemagick_cli.ts"
+    },
+    {
+      "name": "codecaine-imagemagick-cli",
+      "type": "cli",
+      "displayName": "Imagemagick CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Imagemagick",
+      "targetScript": "cli_apps/imagemagick_cli.ts"
+    },
+    {
+      "name": "codecaine-ipinfo",
+      "type": "cli",
+      "displayName": "Ipinfo CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ipinfo",
+      "targetScript": "cli_apps/ipinfo_cli.ts"
+    },
+    {
+      "name": "codecaine-ipinfo-cli",
+      "type": "cli",
+      "displayName": "Ipinfo CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ipinfo",
+      "targetScript": "cli_apps/ipinfo_cli.ts"
+    },
+    {
+      "name": "codecaine-jq",
+      "type": "cli",
+      "displayName": "Jq CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Jq",
+      "targetScript": "cli_apps/jq_cli.ts"
+    },
+    {
+      "name": "codecaine-jq-cli",
+      "type": "cli",
+      "displayName": "Jq CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Jq",
+      "targetScript": "cli_apps/jq_cli.ts"
+    },
+    {
+      "name": "codecaine-json",
+      "type": "cli",
+      "displayName": "Json CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Json",
+      "targetScript": "cli_apps/json_cli.ts"
+    },
+    {
+      "name": "codecaine-json-cli",
+      "type": "cli",
+      "displayName": "Json CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Json",
+      "targetScript": "cli_apps/json_cli.ts"
+    },
+    {
+      "name": "codecaine-jwt",
+      "type": "cli",
+      "displayName": "Jwt CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Jwt",
+      "targetScript": "cli_apps/jwt_cli.ts"
+    },
+    {
+      "name": "codecaine-jwt-cli",
+      "type": "cli",
+      "displayName": "Jwt CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Jwt",
+      "targetScript": "cli_apps/jwt_cli.ts"
+    },
+    {
+      "name": "codecaine-kalker",
+      "type": "cli",
+      "displayName": "Kalker CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Kalker",
+      "targetScript": "cli_apps/kalker_cli.ts"
+    },
+    {
+      "name": "codecaine-kalker-cli",
+      "type": "cli",
+      "displayName": "Kalker CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Kalker",
+      "targetScript": "cli_apps/kalker_cli.ts"
+    },
+    {
+      "name": "codecaine-launchd",
+      "type": "cli",
+      "displayName": "Launchd CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Launchd",
+      "targetScript": "cli_apps/launchd_cli.ts"
+    },
+    {
+      "name": "codecaine-launchd-cli",
+      "type": "cli",
+      "displayName": "Launchd CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Launchd",
+      "targetScript": "cli_apps/launchd_cli.ts"
+    },
+    {
+      "name": "codecaine-markdown",
+      "type": "cli",
+      "displayName": "Markdown CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Markdown",
+      "targetScript": "cli_apps/markdown_cli.ts"
+    },
+    {
+      "name": "codecaine-markdown-cli",
+      "type": "cli",
+      "displayName": "Markdown CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Markdown",
+      "targetScript": "cli_apps/markdown_cli.ts"
+    },
+    {
+      "name": "codecaine-media-studio",
+      "type": "cli",
+      "displayName": "Media Studio CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Media Studio",
+      "targetScript": "cli_apps/media_studio_cli.ts"
+    },
+    {
+      "name": "codecaine-media-studio-cli",
+      "type": "cli",
+      "displayName": "Media Studio CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Media Studio",
+      "targetScript": "cli_apps/media_studio_cli.ts"
+    },
+    {
+      "name": "codecaine-multirepo-git-pilot",
+      "type": "cli",
+      "displayName": "Multirepo Git Pilot CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Multirepo Git Pilot",
+      "targetScript": "cli_apps/multirepo_git_pilot.ts"
+    },
+    {
+      "name": "codecaine-multirepo-git-pilot-cli",
+      "type": "cli",
+      "displayName": "Multirepo Git Pilot CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Multirepo Git Pilot",
+      "targetScript": "cli_apps/multirepo_git_pilot.ts"
+    },
+    {
+      "name": "codecaine-network",
+      "type": "cli",
+      "displayName": "Network CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Network",
+      "targetScript": "cli_apps/network_cli.ts"
+    },
+    {
+      "name": "codecaine-network-cli",
+      "type": "cli",
+      "displayName": "Network CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Network",
+      "targetScript": "cli_apps/network_cli.ts"
+    },
+    {
+      "name": "codecaine-nmap",
+      "type": "cli",
+      "displayName": "Nmap CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Nmap",
+      "targetScript": "cli_apps/nmap_cli.ts"
+    },
+    {
+      "name": "codecaine-nmap-cli",
+      "type": "cli",
+      "displayName": "Nmap CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Nmap",
+      "targetScript": "cli_apps/nmap_cli.ts"
+    },
+    {
+      "name": "codecaine-numbat",
+      "type": "cli",
+      "displayName": "Numbat CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Numbat",
+      "targetScript": "cli_apps/numbat_cli.ts"
+    },
+    {
+      "name": "codecaine-numbat-cli",
+      "type": "cli",
+      "displayName": "Numbat CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Numbat",
+      "targetScript": "cli_apps/numbat_cli.ts"
+    },
+    {
+      "name": "codecaine-ocr",
+      "type": "cli",
+      "displayName": "Ocr CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ocr",
+      "targetScript": "cli_apps/ocr_cli.ts"
+    },
+    {
+      "name": "codecaine-ocr-cli",
+      "type": "cli",
+      "displayName": "Ocr CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ocr",
+      "targetScript": "cli_apps/ocr_cli.ts"
+    },
+    {
+      "name": "codecaine-ouch",
+      "type": "cli",
+      "displayName": "Ouch CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ouch",
+      "targetScript": "cli_apps/ouch_cli.ts"
+    },
+    {
+      "name": "codecaine-ouch-cli",
+      "type": "cli",
+      "displayName": "Ouch CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Ouch",
+      "targetScript": "cli_apps/ouch_cli.ts"
+    },
+    {
+      "name": "codecaine-pandoc",
+      "type": "cli",
+      "displayName": "Pandoc CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Pandoc",
+      "targetScript": "cli_apps/pandoc_cli.ts"
+    },
+    {
+      "name": "codecaine-pandoc-cli",
+      "type": "cli",
+      "displayName": "Pandoc CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Pandoc",
+      "targetScript": "cli_apps/pandoc_cli.ts"
+    },
+    {
+      "name": "codecaine-port-kill",
+      "type": "cli",
+      "displayName": "Port Kill CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Port Kill",
+      "targetScript": "cli_apps/port_kill_cli.ts"
+    },
+    {
+      "name": "codecaine-port-kill-cli",
+      "type": "cli",
+      "displayName": "Port Kill CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Port Kill",
+      "targetScript": "cli_apps/port_kill_cli.ts"
+    },
+    {
+      "name": "codecaine-process",
+      "type": "cli",
+      "displayName": "Process CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Process",
+      "targetScript": "cli_apps/process_cli.ts"
+    },
+    {
+      "name": "codecaine-process-cli",
+      "type": "cli",
+      "displayName": "Process CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Process",
+      "targetScript": "cli_apps/process_cli.ts"
+    },
+    {
+      "name": "codecaine-procs",
+      "type": "cli",
+      "displayName": "Procs CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Procs",
+      "targetScript": "cli_apps/procs_cli.ts"
+    },
+    {
+      "name": "codecaine-procs-cli",
+      "type": "cli",
+      "displayName": "Procs CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Procs",
+      "targetScript": "cli_apps/procs_cli.ts"
+    },
+    {
+      "name": "codecaine-qalc",
+      "type": "cli",
+      "displayName": "Qalc CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Qalc",
+      "targetScript": "cli_apps/qalc_cli.ts"
+    },
+    {
+      "name": "codecaine-qalc-cli",
+      "type": "cli",
+      "displayName": "Qalc CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Qalc",
+      "targetScript": "cli_apps/qalc_cli.ts"
+    },
+    {
+      "name": "codecaine-rad",
+      "type": "cli",
+      "displayName": "Rad CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Rad",
+      "targetScript": "cli_apps/rad_cli.ts"
+    },
+    {
+      "name": "codecaine-rad-cli",
+      "type": "cli",
+      "displayName": "Rad CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Rad",
+      "targetScript": "cli_apps/rad_cli.ts"
+    },
+    {
+      "name": "codecaine-recon",
+      "type": "cli",
+      "displayName": "Recon CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Recon",
+      "targetScript": "cli_apps/recon_cli.ts"
+    },
+    {
+      "name": "codecaine-recon-cli",
+      "type": "cli",
+      "displayName": "Recon CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Recon",
+      "targetScript": "cli_apps/recon_cli.ts"
+    },
+    {
+      "name": "codecaine-redis",
+      "type": "cli",
+      "displayName": "Redis CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Redis",
+      "targetScript": "cli_apps/redis_cli.ts"
+    },
+    {
+      "name": "codecaine-redis-cli",
+      "type": "cli",
+      "displayName": "Redis CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Redis",
+      "targetScript": "cli_apps/redis_cli.ts"
+    },
+    {
+      "name": "codecaine-regex",
+      "type": "cli",
+      "displayName": "Regex CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Regex",
+      "targetScript": "cli_apps/regex_cli.ts"
+    },
+    {
+      "name": "codecaine-regex-cli",
+      "type": "cli",
+      "displayName": "Regex CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Regex",
+      "targetScript": "cli_apps/regex_cli.ts"
+    },
+    {
+      "name": "codecaine-rg",
+      "type": "cli",
+      "displayName": "Rg CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Rg",
+      "targetScript": "cli_apps/rg_cli.ts"
+    },
+    {
+      "name": "codecaine-rg-cli",
+      "type": "cli",
+      "displayName": "Rg CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Rg",
+      "targetScript": "cli_apps/rg_cli.ts"
+    },
+    {
+      "name": "codecaine-rip",
+      "type": "cli",
+      "displayName": "Rip CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Rip",
+      "targetScript": "cli_apps/rip_cli.ts"
+    },
+    {
+      "name": "codecaine-rip-cli",
+      "type": "cli",
+      "displayName": "Rip CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Rip",
+      "targetScript": "cli_apps/rip_cli.ts"
+    },
+    {
+      "name": "codecaine-say",
+      "type": "cli",
+      "displayName": "Say CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Say",
+      "targetScript": "cli_apps/say_cli.ts"
+    },
+    {
+      "name": "codecaine-say-cli",
+      "type": "cli",
+      "displayName": "Say CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Say",
+      "targetScript": "cli_apps/say_cli.ts"
+    },
+    {
+      "name": "codecaine-sd",
+      "type": "cli",
+      "displayName": "Sd CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Sd",
+      "targetScript": "cli_apps/sd_cli.ts"
+    },
+    {
+      "name": "codecaine-sd-cli",
+      "type": "cli",
+      "displayName": "Sd CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Sd",
+      "targetScript": "cli_apps/sd_cli.ts"
+    },
+    {
+      "name": "codecaine-sed",
+      "type": "cli",
+      "displayName": "Sed CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Sed",
+      "targetScript": "cli_apps/sed_cli.ts"
+    },
+    {
+      "name": "codecaine-sed-cli",
+      "type": "cli",
+      "displayName": "Sed CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Sed",
+      "targetScript": "cli_apps/sed_cli.ts"
+    },
+    {
+      "name": "codecaine-speedtest",
+      "type": "cli",
+      "displayName": "Speedtest CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Speedtest",
+      "targetScript": "cli_apps/speedtest_cli.ts"
+    },
+    {
+      "name": "codecaine-speedtest-cli",
+      "type": "cli",
+      "displayName": "Speedtest CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Speedtest",
+      "targetScript": "cli_apps/speedtest_cli.ts"
+    },
+    {
+      "name": "codecaine-sqlite",
+      "type": "cli",
+      "displayName": "Sqlite CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Sqlite",
+      "targetScript": "cli_apps/sqlite_cli.ts"
+    },
+    {
+      "name": "codecaine-sqlite-cli",
+      "type": "cli",
+      "displayName": "Sqlite CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Sqlite",
+      "targetScript": "cli_apps/sqlite_cli.ts"
+    },
+    {
+      "name": "codecaine-statistics",
+      "type": "cli",
+      "displayName": "Statistics CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Statistics",
+      "targetScript": "cli_apps/statistics_cli.ts"
+    },
+    {
+      "name": "codecaine-statistics-cli",
+      "type": "cli",
+      "displayName": "Statistics CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Statistics",
+      "targetScript": "cli_apps/statistics_cli.ts"
+    },
+    {
+      "name": "codecaine-subfinder",
+      "type": "cli",
+      "displayName": "Subfinder CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Subfinder",
+      "targetScript": "cli_apps/subfinder_cli.ts"
+    },
+    {
+      "name": "codecaine-subfinder-cli",
+      "type": "cli",
+      "displayName": "Subfinder CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Subfinder",
+      "targetScript": "cli_apps/subfinder_cli.ts"
+    },
+    {
+      "name": "codecaine-system",
+      "type": "cli",
+      "displayName": "System CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for System",
+      "targetScript": "cli_apps/system_cli.ts"
+    },
+    {
+      "name": "codecaine-system-cli",
+      "type": "cli",
+      "displayName": "System CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for System",
+      "targetScript": "cli_apps/system_cli.ts"
+    },
+    {
+      "name": "codecaine-task-manager",
+      "type": "cli",
+      "displayName": "Task Manager CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Task Manager",
+      "targetScript": "cli_apps/task_manager_cli.ts"
+    },
+    {
+      "name": "codecaine-task-manager-cli",
+      "type": "cli",
+      "displayName": "Task Manager CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Task Manager",
+      "targetScript": "cli_apps/task_manager_cli.ts"
+    },
+    {
+      "name": "codecaine-terminal-recorder-studio",
+      "type": "cli",
+      "displayName": "Terminal Recorder Studio CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Terminal Recorder Studio",
+      "targetScript": "cli_apps/terminal_recorder_studio.ts"
+    },
+    {
+      "name": "codecaine-terminal-recorder-studio-cli",
+      "type": "cli",
+      "displayName": "Terminal Recorder Studio CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Terminal Recorder Studio",
+      "targetScript": "cli_apps/terminal_recorder_studio.ts"
+    },
+    {
+      "name": "codecaine-text-editor",
+      "type": "cli",
+      "displayName": "Text Editor CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Text Editor",
+      "targetScript": "cli_apps/text_editor_cli.ts"
+    },
+    {
+      "name": "codecaine-text-editor-cli",
+      "type": "cli",
+      "displayName": "Text Editor CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Text Editor",
+      "targetScript": "cli_apps/text_editor_cli.ts"
+    },
+    {
+      "name": "codecaine-tokei",
+      "type": "cli",
+      "displayName": "Tokei CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Tokei",
+      "targetScript": "cli_apps/tokei_cli.ts"
+    },
+    {
+      "name": "codecaine-tokei-cli",
+      "type": "cli",
+      "displayName": "Tokei CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Tokei",
+      "targetScript": "cli_apps/tokei_cli.ts"
+    },
+    {
+      "name": "codecaine-tr",
+      "type": "cli",
+      "displayName": "Tr CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Tr",
+      "targetScript": "cli_apps/tr_cli.ts"
+    },
+    {
+      "name": "codecaine-tr-cli",
+      "type": "cli",
+      "displayName": "Tr CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Tr",
+      "targetScript": "cli_apps/tr_cli.ts"
+    },
+    {
+      "name": "codecaine-vault-backup-manager",
+      "type": "cli",
+      "displayName": "Vault Backup Manager CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Vault Backup Manager",
+      "targetScript": "cli_apps/vault_backup_manager.ts"
+    },
+    {
+      "name": "codecaine-vault-backup-manager-cli",
+      "type": "cli",
+      "displayName": "Vault Backup Manager CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Vault Backup Manager",
+      "targetScript": "cli_apps/vault_backup_manager.ts"
+    },
+    {
+      "name": "codecaine-watcher",
+      "type": "cli",
+      "displayName": "Watcher CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Watcher",
+      "targetScript": "cli_apps/watcher_cli.ts"
+    },
+    {
+      "name": "codecaine-watcher-cli",
+      "type": "cli",
+      "displayName": "Watcher CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Watcher",
+      "targetScript": "cli_apps/watcher_cli.ts"
+    },
+    {
+      "name": "codecaine-watchexec",
+      "type": "cli",
+      "displayName": "Watchexec CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Watchexec",
+      "targetScript": "cli_apps/watchexec_cli.ts"
+    },
+    {
+      "name": "codecaine-watchexec-cli",
+      "type": "cli",
+      "displayName": "Watchexec CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Watchexec",
+      "targetScript": "cli_apps/watchexec_cli.ts"
+    },
+    {
+      "name": "codecaine-wget2",
+      "type": "cli",
+      "displayName": "Wget2 CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Wget2",
+      "targetScript": "cli_apps/wget2_cli.ts"
+    },
+    {
+      "name": "codecaine-wget2-cli",
+      "type": "cli",
+      "displayName": "Wget2 CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Wget2",
+      "targetScript": "cli_apps/wget2_cli.ts"
+    },
+    {
+      "name": "codecaine-yt-dlp",
+      "type": "cli",
+      "displayName": "Yt Dlp CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Yt Dlp",
+      "targetScript": "cli_apps/yt_dlp_cli.ts"
+    },
+    {
+      "name": "codecaine-yt-dlp-cli",
+      "type": "cli",
+      "displayName": "Yt Dlp CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Yt Dlp",
+      "targetScript": "cli_apps/yt_dlp_cli.ts"
+    },
+    {
+      "name": "codecaine-postgres-studio",
+      "type": "gui",
+      "displayName": "Postgres Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
+      "targetScript": "applications/postgres_studio.ts"
+    },
+    {
+      "name": "codecaine-postgres",
+      "type": "gui",
+      "displayName": "Postgres Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
+      "targetScript": "applications/postgres_studio.ts"
+    },
+    {
+      "name": "codecaine-lolo-studio",
+      "type": "gui",
+      "displayName": "Adventures of Lolo Remaster",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+      "targetScript": "applications/lolo_studio.ts"
+    },
+    {
+      "name": "codecaine-lolo",
+      "type": "gui",
+      "displayName": "Adventures of Lolo Remaster",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk remastered Adventures of Lolo with procedural puzzles, sound engine & visual manual",
+      "targetScript": "applications/lolo_studio.ts"
+    },
+    {
+      "name": "codecaine-app-bundler-studio",
+      "type": "gui",
+      "displayName": "App Bundler Studio Pro",
+      "category": "Developer Tools",
+      "description": "Single-executable compiler & macOS .app bundle packager with icons",
+      "targetScript": "applications/app_bundler_studio.ts"
+    },
+    {
+      "name": "codecaine-blackjack-studio",
+      "type": "gui",
+      "displayName": "Blackjack Royale VIP",
+      "category": "Games & Entertainment",
+      "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+      "targetScript": "applications/blackjack_studio.ts"
+    },
+    {
+      "name": "codecaine-blackjack",
+      "type": "gui",
+      "displayName": "Blackjack Royale VIP",
+      "category": "Games & Entertainment",
+      "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Bicycle vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+      "targetScript": "applications/blackjack_studio.ts"
+    },
+    {
+      "name": "codecaine-paint-studio",
+      "type": "gui",
+      "displayName": "Chroma Studio Pro",
+      "category": "Design & Media",
+      "description": "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
+      "targetScript": "applications/paint_studio.ts"
+    },
+    {
+      "name": "codecaine-paint",
+      "type": "gui",
+      "displayName": "Chroma Studio Pro",
+      "category": "Design & Media",
+      "description": "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
+      "targetScript": "applications/paint_studio.ts"
+    },
+    {
+      "name": "codecaine-tokei-studio",
+      "type": "gui",
+      "displayName": "Code Statistics Studio (Tokei)",
+      "category": "Developer Tools",
+      "description": "Lines of code counter, comment-to-code ratio & language breakdown",
+      "targetScript": "applications/tokei_studio.ts"
+    },
+    {
+      "name": "codecaine-codecaine-bros-studio",
+      "type": "gui",
+      "displayName": "Codecaine Bros. Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+      "targetScript": "applications/codecaine_bros_studio.ts"
+    },
+    {
+      "name": "codecaine-codecaine-bros",
+      "type": "gui",
+      "displayName": "Codecaine Bros. Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+      "targetScript": "applications/codecaine_bros_studio.ts"
+    },
+    {
+      "name": "codecaine-bros",
+      "type": "gui",
+      "displayName": "Codecaine Bros Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic 1983 Mario Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+      "targetScript": "applications/codecaine_bros_studio.ts"
+    },
+    {
+      "name": "codecaine-color-studio",
+      "type": "gui",
+      "displayName": "Color Palette Studio Pro",
+      "category": "Design & UX",
+      "description": "Color token generator, WCAG contrast analyzer & palette harmonizer",
+      "targetScript": "applications/color_studio.ts"
+    },
+    {
+      "name": "codecaine-crypto-studio",
+      "type": "gui",
+      "displayName": "Cryptography & Hashing Studio",
+      "category": "Security & Crypto",
+      "description": "SHA-256, HMAC, AES-GCM cipher workbench with password entropy testing",
+      "targetScript": "applications/crypto_studio.ts"
+    },
+    {
+      "name": "codecaine-breakout-studio",
+      "type": "gui",
+      "displayName": "Cyber Breakout Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+      "targetScript": "applications/breakout_studio.ts"
+    },
+    {
+      "name": "codecaine-breakout",
+      "type": "gui",
+      "displayName": "Cyber Breakout Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe Breakout arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+      "targetScript": "applications/breakout_studio.ts"
+    },
+    {
+      "name": "codecaine-frogger-studio",
+      "type": "gui",
+      "displayName": "CyberFrog Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
+      "targetScript": "applications/frogger_studio.ts"
+    },
+    {
+      "name": "codecaine-frogger",
+      "type": "gui",
+      "displayName": "CyberFrog Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
+      "targetScript": "applications/frogger_studio.ts"
+    },
+    {
+      "name": "codecaine-connect4-studio",
+      "type": "gui",
+      "displayName": "Cyberpunk Connect 4",
+      "category": "Games & Entertainment",
+      "description": "Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
+      "targetScript": "applications/connect4_studio.ts"
+    },
+    {
+      "name": "codecaine-connect4",
+      "type": "gui",
+      "displayName": "Cyberpunk Connect 4",
+      "category": "Games & Entertainment",
+      "description": "Neon Connect 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
+      "targetScript": "applications/connect4_studio.ts"
+    },
+    {
+      "name": "codecaine-maze-generator-studio",
+      "type": "gui",
+      "displayName": "Cyberpunk Maze Runner",
+      "category": "Games & Entertainment",
+      "description": "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
+      "targetScript": "applications/maze_generator_studio.ts"
+    },
+    {
+      "name": "codecaine-maze-generator",
+      "type": "gui",
+      "displayName": "Cyberpunk Maze Runner",
+      "category": "Games & Entertainment",
+      "description": "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
+      "targetScript": "applications/maze_generator_studio.ts"
+    },
+    {
+      "name": "codecaine-pacman-studio",
+      "type": "gui",
+      "displayName": "Cyberpunk Pac-Man Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+      "targetScript": "applications/pacman_studio.ts"
+    },
+    {
+      "name": "codecaine-pacman",
+      "type": "gui",
+      "displayName": "Cyberpunk Pac-Man Arcade",
+      "category": "Games & Entertainment",
+      "description": "Authentic Cyberpunk Pac-Man arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+      "targetScript": "applications/pacman_studio.ts"
+    },
+    {
+      "name": "codecaine-typing-studio",
+      "type": "gui",
+      "displayName": "CyberType Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
+      "targetScript": "applications/typing_studio.ts"
+    },
+    {
+      "name": "codecaine-typing",
+      "type": "gui",
+      "displayName": "CyberType Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk typing tutor with haptic WebAudio mechanics, live dynamic keyboard, and biometric telemetry.",
+      "targetScript": "applications/typing_studio.ts"
+    },
+    {
+      "name": "codecaine-dataconvert-studio",
+      "type": "gui",
+      "displayName": "Data Format Converter Studio",
+      "category": "Developer Tools",
+      "description": "Instant converter between JSON, YAML, TOML, CSV, XML & TS interfaces",
+      "targetScript": "applications/dataconvert_studio.ts"
+    },
+    {
+      "name": "codecaine-devtools-studio",
+      "type": "gui",
+      "displayName": "DevTools & OmniTool Studio",
+      "category": "Developer Tools",
+      "description": "Unified developer CLI toolkit with 6 developer engines powered natively",
+      "targetScript": "applications/devtools_studio.ts"
+    },
+    {
+      "name": "codecaine-gdu-studio",
+      "type": "gui",
+      "displayName": "Disk Usage Studio (GDU)",
+      "category": "File & Directory Tools",
+      "description": "Fast disk usage analyzer with interactive directory space allocation",
+      "targetScript": "applications/gdu_studio.ts"
+    },
+    {
+      "name": "codecaine-doggo-studio",
+      "type": "gui",
+      "displayName": "DNS Query Studio (Doggo)",
+      "category": "Network & Cloud",
+      "description": "Modern DNS lookup client with DoH, DoT, trace recursion & record browser",
+      "targetScript": "applications/doggo_studio.ts"
+    },
+    {
+      "name": "codecaine-dr-codecaine-studio",
+      "type": "gui",
+      "displayName": "Dr. Codecaine Arcade",
+      "category": "Games & Entertainment",
+      "description": "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
+      "targetScript": "applications/dr_codecaine_studio.ts"
+    },
+    {
+      "name": "codecaine-dr-codecaine",
+      "type": "gui",
+      "displayName": "Dr. Codecaine Arcade",
+      "category": "Games & Entertainment",
+      "description": "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
+      "targetScript": "applications/dr_codecaine_studio.ts"
+    },
+    {
+      "name": "dr-codecaine",
+      "type": "gui",
+      "displayName": "Dr. Codecaine Arcade",
+      "category": "Games & Entertainment",
+      "description": "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
+      "targetScript": "applications/dr_codecaine_studio.ts"
+    },
+    {
+      "name": "codecaine-arcade",
+      "type": "gui",
+      "displayName": "Dr. Codecaine Arcade",
+      "category": "Games & Entertainment",
+      "description": "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
+      "targetScript": "applications/dr_codecaine_studio.ts"
+    },
+    {
+      "name": "codecaine-rat-screw-studio",
+      "type": "gui",
+      "displayName": "Egyptian Rat Screw Royale",
+      "category": "Games & Entertainment",
+      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+      "targetScript": "applications/rat_screw_studio.ts"
+    },
+    {
+      "name": "codecaine-rat-screw",
+      "type": "gui",
+      "displayName": "Egyptian Rat Screw Royale",
+      "category": "Games & Entertainment",
+      "description": "High-speed reflex card slapper with authentic Bicycle vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+      "targetScript": "applications/rat_screw_studio.ts"
+    },
+    {
+      "name": "codecaine-env-studio",
+      "type": "gui",
+      "displayName": "Environment Variable Studio",
+      "category": "Developer Tools",
+      "description": "Secure .env configuration manager, secret vault & encryption workbench",
+      "targetScript": "applications/env_studio.ts"
+    },
+    {
+      "name": "codecaine-fd-studio",
+      "type": "gui",
+      "displayName": "Fd Studio Pro",
+      "category": "File & Directory Tools",
+      "description": "Ultra-fast native Bun filesystem traversal, globbing & quarantine manager",
+      "targetScript": "applications/fd_studio.ts"
+    },
+    {
+      "name": "codecaine-watcher-studio",
+      "type": "gui",
+      "displayName": "Filesystem Watcher Studio",
+      "category": "Developer Tools",
+      "description": "Live filesystem trigger dispatcher and task runner on file changes",
+      "targetScript": "applications/watcher_studio.ts"
+    },
+    {
+      "name": "codecaine-flappy-bird-studio",
+      "type": "gui",
+      "displayName": "Flappy Bird Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+      "targetScript": "applications/flappy_bird_studio.ts"
+    },
+    {
+      "name": "codecaine-flappy-bird",
+      "type": "gui",
+      "displayName": "Flappy Bird Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk kinetic Flappy Bird arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+      "targetScript": "applications/flappy_bird_studio.ts"
+    },
+    {
+      "name": "codecaine-git-studio",
+      "type": "gui",
+      "displayName": "Git Version Control Studio",
+      "category": "Developer Tools",
+      "description": "Visual diff inspector, working tree controller & commit audit trail",
+      "targetScript": "applications/git_studio.ts"
+    },
+    {
+      "name": "codecaine-brew-studio",
+      "type": "gui",
+      "displayName": "Homebrew Package Studio",
+      "category": "System & Hardware",
+      "description": "Package dependency manager & Bun ecosystem workstation",
+      "targetScript": "applications/brew_studio.ts"
+    },
+    {
+      "name": "codecaine-interval-timer-studio",
+      "type": "gui",
+      "displayName": "Interval Timer & Workout Suite",
+      "category": "Productivity & Text",
+      "description": "High-performance interval timer with Keith Baar isometric tendon training protocols & audio engine",
+      "targetScript": "applications/interval_timer_studio.ts"
+    },
+    {
+      "name": "codecaine-interval-timer",
+      "type": "gui",
+      "displayName": "Interval Timer & Workout Suite",
+      "category": "Productivity & Text",
+      "description": "High-performance interval timer with Keith Baar isometric tendon training protocols & audio engine",
+      "targetScript": "applications/interval_timer_studio.ts"
+    },
+    {
+      "name": "codecaine-ipinfo-studio",
+      "type": "gui",
+      "displayName": "IP Geolocation Studio",
+      "category": "Network & Cloud",
+      "description": "Public IP resolver, ASN lookup, geo-coordinates & WHOIS inspector",
+      "targetScript": "applications/ipinfo_studio.ts"
+    },
+    {
+      "name": "codecaine-balatro-studio",
+      "type": "gui",
+      "displayName": "Joker Royale (Balatro Deluxe)",
+      "category": "Games & Entertainment",
+      "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
+      "targetScript": "applications/balatro_studio.ts"
+    },
+    {
+      "name": "codecaine-balatro",
+      "type": "gui",
+      "displayName": "Joker Royale (Balatro Deluxe)",
+      "category": "Games & Entertainment",
+      "description": "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
+      "targetScript": "applications/balatro_studio.ts"
+    },
+    {
+      "name": "codecaine-jq-studio",
+      "type": "gui",
+      "displayName": "JQ JSON Query Studio",
+      "category": "Developer Tools",
+      "description": "Interactive JSON query & transformation workstation powered by native JQ filters",
+      "targetScript": "applications/jq_studio.ts"
+    },
+    {
+      "name": "codecaine-json-studio",
+      "type": "gui",
+      "displayName": "JSON Formatter & Validator",
+      "category": "Developer Tools",
+      "description": "High-speed syntax validator, schema checker & minifier/beautifier",
+      "targetScript": "applications/json_studio.ts"
+    },
+    {
+      "name": "codecaine-markdown-studio",
+      "type": "gui",
+      "displayName": "Markdown Live Editor Studio",
+      "category": "Productivity & Text",
+      "description": "Real-time dual-pane WYSIWYG Markdown editor with live HTML preview & exports",
+      "targetScript": "applications/markdown_studio.ts"
+    },
+    {
+      "name": "codecaine-math-munchers-studio",
+      "type": "gui",
+      "displayName": "Math Munchers Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
+      "targetScript": "applications/math_munchers_studio.ts"
+    },
+    {
+      "name": "codecaine-math-munchers",
+      "type": "gui",
+      "displayName": "Math Munchers Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Cyberpunk Math Munchers classic with Troggles AI, CRT shaders, pentatonic synth & multiple game modes",
+      "targetScript": "applications/math_munchers_studio.ts"
+    },
+    {
+      "name": "codecaine-minesweeper-studio",
+      "type": "gui",
+      "displayName": "Minesweeper Pro Championship",
+      "category": "Games & Entertainment",
+      "description": "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
+      "targetScript": "applications/minesweeper_studio.ts"
+    },
+    {
+      "name": "codecaine-minesweeper",
+      "type": "gui",
+      "displayName": "Minesweeper Pro Championship",
+      "category": "Games & Entertainment",
+      "description": "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
+      "targetScript": "applications/minesweeper_studio.ts"
+    },
+    {
+      "name": "codecaine-mysql-studio",
+      "type": "gui",
+      "displayName": "MySQL Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite",
+      "targetScript": "applications/mysql_studio.ts"
+    },
+    {
+      "name": "codecaine-mysql",
+      "type": "gui",
+      "displayName": "MySQL Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite",
+      "targetScript": "applications/mysql_studio.ts"
+    },
+    {
+      "name": "codecaine-pong-studio",
+      "type": "gui",
+      "displayName": "Neon Cyber Pong",
+      "category": "Games & Entertainment",
+      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+      "targetScript": "applications/pong_studio.ts"
+    },
+    {
+      "name": "codecaine-pong",
+      "type": "gui",
+      "displayName": "Neon Cyber Pong",
+      "category": "Games & Entertainment",
+      "description": "High-speed kinetic Pong with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+      "targetScript": "applications/pong_studio.ts"
+    },
+    {
+      "name": "codecaine-snake-studio",
+      "type": "gui",
+      "displayName": "Neon Snake Deluxe",
+      "category": "Games & Entertainment",
+      "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
+      "targetScript": "applications/snake_studio.ts"
+    },
+    {
+      "name": "codecaine-snake",
+      "type": "gui",
+      "displayName": "Neon Snake Deluxe",
+      "category": "Games & Entertainment",
+      "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
+      "targetScript": "applications/snake_studio.ts"
+    },
+    {
+      "name": "codecaine-tictactoe-studio",
+      "type": "gui",
+      "displayName": "Neon Tic-Tac-Toe Arcade",
+      "category": "Games & Entertainment",
+      "description": "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
+      "targetScript": "applications/tictactoe_studio.ts"
+    },
+    {
+      "name": "codecaine-tictactoe",
+      "type": "gui",
+      "displayName": "Neon Tic-Tac-Toe Arcade",
+      "category": "Games & Entertainment",
+      "description": "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
+      "targetScript": "applications/tictactoe_studio.ts"
+    },
+    {
+      "name": "codecaine-word-search-studio",
+      "type": "gui",
+      "displayName": "Neon Word Search Labyrinth",
+      "category": "Games & Entertainment",
+      "description": "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
+      "targetScript": "applications/word_search_studio.ts"
+    },
+    {
+      "name": "codecaine-word-search",
+      "type": "gui",
+      "displayName": "Neon Word Search Labyrinth",
+      "category": "Games & Entertainment",
+      "description": "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
+      "targetScript": "applications/word_search_studio.ts"
+    },
+    {
+      "name": "codecaine-network-studio",
+      "type": "gui",
+      "displayName": "Network Diagnostics Studio",
+      "category": "Network & Cloud",
+      "description": "Comprehensive socket inspector, port scanner, DNS testing & HTTP client",
+      "targetScript": "applications/network_studio.ts"
+    },
+    {
+      "name": "codecaine-code-studio",
+      "type": "gui",
+      "displayName": "NovaCode Studio Pro",
+      "category": "Developer Tools",
+      "description": "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
+      "targetScript": "applications/code_studio.ts"
+    },
+    {
+      "name": "codecaine-code",
+      "type": "gui",
+      "displayName": "NovaCode Studio Pro",
+      "category": "Developer Tools",
+      "description": "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
+      "targetScript": "applications/code_studio.ts"
+    },
+    {
+      "name": "codecaine-omnitool-studio",
+      "type": "gui",
+      "displayName": "OmniTool Studio Pro",
+      "category": "Developer Tools",
+      "description": "Swiss-army knife for encoding, decoding, hash generation & text processing",
+      "targetScript": "applications/omnitool_studio.ts"
+    },
+    {
+      "name": "codecaine-omnitool",
+      "type": "gui",
+      "displayName": "OmniTool Studio Pro",
+      "category": "Developer Tools",
+      "description": "Swiss-army knife for encoding, decoding, hash generation & text processing",
+      "targetScript": "applications/omnitool_studio.ts"
+    },
+    {
+      "name": "codecaine-postgres-designer.js",
+      "type": "gui",
+      "displayName": "Postgres Designer",
+      "category": "RAD Studio",
+      "description": "Native Bun RAD Studio application (postgres_designer)",
+      "targetScript": "applications/postgres_designer.js"
+    },
+    {
+      "name": "codecaine-postgres-studio-designer",
+      "type": "gui",
+      "displayName": "Postgres Studio Designer",
+      "category": "RAD Studio",
+      "description": "Native Bun RAD Studio application (postgres_studio_designer)",
+      "targetScript": "applications/postgres_studio_designer.ts"
+    },
+    {
+      "name": "codecaine-process-studio",
+      "type": "gui",
+      "displayName": "Process Monitor Studio",
+      "category": "System & Hardware",
+      "description": "Real-time process telemetry, signal dispatcher & TCP connection inspector",
+      "targetScript": "applications/process_studio.ts"
+    },
+    {
+      "name": "codecaine-procs-studio",
+      "type": "gui",
+      "displayName": "Procs Process Workstation",
+      "category": "System & Hardware",
+      "description": "Modern top/ps replacement with Docker container detection and tree view",
+      "targetScript": "applications/procs_studio.ts"
+    },
+    {
+      "name": "codecaine-rad-studio",
+      "type": "gui",
+      "displayName": "RAD Utilities Studio Pro",
+      "category": "Developer Tools",
+      "description": "44 high-velocity development modules for Rapid Application Development with live recipes & testing",
+      "targetScript": "applications/rad_studio.ts"
+    },
+    {
+      "name": "codecaine-redis-studio",
+      "type": "gui",
+      "displayName": "Redis Studio Pro",
+      "category": "Database & Storage",
+      "description": "Real-time Redis telemetry, live key-value inspector & memory diagnostics",
+      "targetScript": "applications/redis_studio.ts"
+    },
+    {
+      "name": "codecaine-regex-studio",
+      "type": "gui",
+      "displayName": "Regex Pattern Testing Studio",
+      "category": "Developer Tools",
+      "description": "Interactive regex validator with match highlight, group capture & cheat-sheet",
+      "targetScript": "applications/regex_studio.ts"
+    },
+    {
+      "name": "codecaine-rip-studio",
+      "type": "gui",
+      "displayName": "Rip Studio Pro",
+      "category": "File & Directory Tools",
+      "description": "Safe file quarantine, seance recovery & graveyard deletion workbench",
+      "targetScript": "applications/rip_studio.ts"
+    },
+    {
+      "name": "codecaine-rodents-revenge-studio",
+      "type": "gui",
+      "displayName": "Rodent's Revenge Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+      "targetScript": "applications/rodents_revenge_studio.ts"
+    },
+    {
+      "name": "codecaine-rodents-revenge",
+      "type": "gui",
+      "displayName": "Rodent's Revenge Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe arcade revival of Rodent's Revenge with neon retro maze, cat trapping & high scores",
+      "targetScript": "applications/rodents_revenge_studio.ts"
+    },
+    {
+      "name": "codecaine-skifree-studio",
+      "type": "gui",
+      "displayName": "SkiFree Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
+      "targetScript": "applications/skifree_studio.ts"
+    },
+    {
+      "name": "codecaine-skifree",
+      "type": "gui",
+      "displayName": "SkiFree Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
+      "targetScript": "applications/skifree_studio.ts"
+    },
+    {
+      "name": "codecaine-sqlite-studio",
+      "type": "gui",
+      "displayName": "SQLite Studio Pro",
+      "category": "Database & Storage",
+      "description": "Enterprise embedded database workstation & query IDE with zero-latency execution",
+      "targetScript": "applications/sqlite_studio.ts"
+    },
+    {
+      "name": "codecaine-sd-studio",
+      "type": "gui",
+      "displayName": "Stream Editor Studio (SD)",
+      "category": "Developer Tools",
+      "description": "Intuitive find & replace utility with string, regex & dry-run diff preview",
+      "targetScript": "applications/sd_studio.ts"
+    },
+    {
+      "name": "codecaine-subfinder-studio",
+      "type": "gui",
+      "displayName": "Subdomain Finder Studio",
+      "category": "Security & Crypto",
+      "description": "Passive DNS and Certificate Transparency subdomain discovery engine",
+      "targetScript": "applications/subfinder_studio.ts"
+    },
+    {
+      "name": "codecaine-subprocess-pipe-studio",
+      "type": "gui",
+      "displayName": "Subprocess Pipe Pro",
+      "category": "Developer Tools",
+      "description": "Multi-stage subprocess orchestrator, stream pipelining (stdout ➔ stdin), privilege elevation & shell master",
+      "targetScript": "applications/subprocess_pipe_studio.ts"
+    },
+    {
+      "name": "codecaine-subprocess-pipe",
+      "type": "gui",
+      "displayName": "Subprocess Pipe Pro",
+      "category": "Developer Tools",
+      "description": "Multi-stage subprocess orchestrator, stream pipelining (stdout ➔ stdin), privilege elevation & shell master",
+      "targetScript": "applications/subprocess_pipe_studio.ts"
+    },
+    {
+      "name": "codecaine-system-studio",
+      "type": "gui",
+      "displayName": "System Information Studio Pro",
+      "category": "System & Hardware",
+      "description": "Hardware intelligence & telemetry workstation covering all 10 domain areas",
+      "targetScript": "applications/system_studio.ts"
+    },
+    {
+      "name": "codecaine-system-studio-extras",
+      "type": "gui",
+      "displayName": "System Studio Extras",
+      "category": "RAD Studio",
+      "description": "Native Bun RAD Studio application (system_studio_extras)",
+      "targetScript": "applications/system_studio_extras.ts"
+    },
+    {
+      "name": "codecaine-tetris-studio",
+      "type": "gui",
+      "displayName": "Tetris Ultra Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme",
+      "targetScript": "applications/tetris_studio.ts"
+    },
+    {
+      "name": "codecaine-tetris",
+      "type": "gui",
+      "displayName": "Tetris Ultra Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Modern block puzzle with ghost piece, hold queue, SRS rotation, and neon synthwave theme",
+      "targetScript": "applications/tetris_studio.ts"
+    },
+    {
+      "name": "codecaine-poker-studio",
+      "type": "gui",
+      "displayName": "Texas Hold'em & 5-Card Draw Poker Royale",
+      "category": "Games & Entertainment",
+      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+      "targetScript": "applications/poker_studio.ts"
+    },
+    {
+      "name": "codecaine-poker",
+      "type": "gui",
+      "displayName": "Texas Hold'em & 5-Card Draw Poker Royale",
+      "category": "Games & Entertainment",
+      "description": "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Bicycle cards & hand evaluation",
+      "targetScript": "applications/poker_studio.ts"
+    },
+    {
+      "name": "codecaine-database-studio",
+      "type": "gui",
+      "displayName": "Unified Database Studio",
+      "category": "Database & Storage",
+      "description": "Universal SQL query runner and connection dispatcher for SQLite & Redis",
+      "targetScript": "applications/database_studio.ts"
+    },
+    {
+      "name": "codecaine-calculator-studio",
+      "type": "gui",
+      "displayName": "Universal Calculator & IntuitionLab Studio",
+      "category": "Productivity & Text",
+      "description": "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
+      "targetScript": "applications/calculator_studio.ts"
+    },
+    {
+      "name": "codecaine-watchexec-studio",
+      "type": "gui",
+      "displayName": "WatchExec Studio Pro",
+      "category": "Developer Tools",
+      "description": "Automated command execution engine reacting to directory updates",
+      "targetScript": "applications/watchexec_studio.ts"
+    },
+    {
+      "name": "codecaine-world-time-zones-studio",
+      "type": "gui",
+      "displayName": "World Time Zones Studio Pro",
+      "category": "Productivity & Text",
+      "description": "Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization",
+      "targetScript": "applications/world_time_zones_studio.ts"
+    },
+    {
+      "name": "codecaine-world-time-zones",
+      "type": "gui",
+      "displayName": "World Time Zones Studio Pro",
+      "category": "Productivity & Text",
+      "description": "Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization",
+      "targetScript": "applications/world_time_zones_studio.ts"
+    },
+    {
+      "name": "codecaine-yahtzee-studio",
+      "type": "gui",
+      "displayName": "Yahtzee Royale Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
+      "targetScript": "applications/yahtzee_studio.ts"
+    },
+    {
+      "name": "codecaine-yahtzee",
+      "type": "gui",
+      "displayName": "Yahtzee Royale Deluxe",
+      "category": "Games & Entertainment",
+      "description": "Deluxe classic Yahtzee dice board studio with 3D tactile dice, authentic Milton Bradley scorecard, +35 upper bonus, Yahtzee Jokers & AI opponent",
+      "targetScript": "applications/yahtzee_studio.ts"
+    }
+  ]
+}
