@@ -90,6 +90,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🐬",
     description: "Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite",
   },
+  postgres_studio: {
+    displayName: "Postgres Studio Pro",
+    category: "Database & Storage",
+    icon: "🐘",
+    description: "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
+  },
   redis_studio: {
     displayName: "Redis Studio Pro",
     category: "Database & Storage",
