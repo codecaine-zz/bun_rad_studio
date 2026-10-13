@@ -2137,6 +2137,8 @@
 			<div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
 				<button class="btn" onclick="hideEventEditorModal()">Cancel</button>
 				<button class="btn btn-primary" onclick="saveEventHandlerCode()">💾 Save & Bind Handler</button>
+			</div>
+		</div>
 	</div>
 
 	<!-- Custom Right-Click Context Menu -->
@@ -3307,7 +3309,7 @@
 				height: defaultH,
 				text: capitalize(type) + " " + count,
 				font_size: 13,
-				font_color: (type === "button" && activeTheme === "High Contrast") ? "#000000" : (type === "label" ? themeColors.formFg : themeColors.ctrlFg),
+				font_color: type === "button" ? themeColors.btnFg : (type === "label" ? themeColors.formFg : themeColors.ctrlFg),
 				background_color: defaultBg,
 				enabled: true,
 				visible: true,
@@ -6199,7 +6201,7 @@
 			html += "      document.querySelectorAll('.rad-dropdown-menu, .w3-dropdown-content').forEach(el => el.style.display = 'none');\n";
 			html += "    }\n";
 			html += "  });\n";
-			html += "</script>\n</body>\n</html>";
+			html += "<\/script>\n</body>\n</html>";
 			return html;
 		}
 
@@ -6517,24 +6519,76 @@ wv.bind("backendAlert", (msg: string) => {
 			if (modal) modal.style.display = "none";
 		}
 
+		// Checks an imported layout and fills in missing values. Returns { spec } or { error } without touching the open form.
+		function normalizeImportedSpec(parsed) {
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+				return { error: "The text must be one JSON object that describes a form, not a list or a single value." };
+			}
+			if (parsed.controls === undefined && parsed.title === undefined) {
+				return { error: 'This JSON does not look like a form layout: it has neither "title" nor "controls".' };
+			}
+			const rawControls = parsed.controls === undefined ? [] : parsed.controls;
+			if (!Array.isArray(rawControls)) {
+				return { error: '"controls" must be a list of controls.' };
+			}
+			const isNum = (v) => typeof v === "number" && isFinite(v);
+			const seen = {};
+			const controls = [];
+			for (let i = 0; i < rawControls.length; i++) {
+				const c = rawControls[i];
+				if (!c || typeof c !== "object" || Array.isArray(c) || typeof c.control_type !== "string" || !c.control_type) {
+					return { error: "Control #" + (i + 1) + ' is missing a "control_type".' };
+				}
+				let id = typeof c.id === "string" && c.id ? c.id : c.control_type + "_" + (i + 1);
+				while (seen[id]) id += "_" + (i + 1);
+				seen[id] = true;
+				controls.push(Object.assign({}, c, {
+					id: id,
+					x: isNum(c.x) ? c.x : 0,
+					y: isNum(c.y) ? c.y : 0,
+					width: isNum(c.width) ? c.width : 150,
+					height: isNum(c.height) ? c.height : 36,
+					text: c.text === undefined || c.text === null ? "" : String(c.text)
+				}));
+			}
+			const spec = Object.assign({
+				title: "Imported Form",
+				background_color: "#0f172a",
+				font_color: "#f8fafc",
+				padding: 20,
+				spacing: 12
+			}, parsed, {
+				title: typeof parsed.title === "string" && parsed.title ? parsed.title : "Imported Form",
+				width: isNum(parsed.width) ? parsed.width : 840,
+				height: isNum(parsed.height) ? parsed.height : 560,
+				controls: controls
+			});
+			return { spec: spec };
+		}
+
 		function processImportJSON() {
 			const text = document.getElementById("importJsonText").value;
+			let parsed;
 			try {
-				const parsed = JSON.parse(text);
-				if (parsed && (parsed.controls || parsed.title)) {
-					saveHistoryState();
-					formSpec = parsed;
-					selectedIndices = [];
-					renderCanvas();
-					renderCode();
-					renderTree();
-					populateInspector();
-					hideImportModal();
-					document.getElementById("statusMsg").textContent = "Successfully imported FormSpec JSON layout!";
-				}
+				parsed = JSON.parse(text);
 			} catch (err) {
-				alert("Invalid JSON format: " + err.message);
+				alert("That text is not valid JSON: " + err.message + "\nYour current form was not changed.");
+				return;
 			}
+			const result = normalizeImportedSpec(parsed);
+			if (result.error) {
+				alert(result.error + "\nYour current form was not changed.");
+				return;
+			}
+			saveHistoryState();
+			formSpec = result.spec;
+			selectedIndices = [];
+			renderCanvas();
+			renderCode();
+			renderTree();
+			populateInspector();
+			hideImportModal();
+			document.getElementById("statusMsg").textContent = "Imported \"" + formSpec.title + "\" with " + formSpec.controls.length + " control(s). Undo (Cmd/Ctrl+Z) restores the previous form.";
 		}
 
 		// MS Access Database CRUD Form Wizard (1-Click RAD Form Generator)

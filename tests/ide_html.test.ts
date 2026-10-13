@@ -33,6 +33,95 @@ console.log(h.includes("let formSpec =") && h.length > 100000 ? "OK" : "FALLBACK
     });
 });
 
+describe("Designer page structure (regression for broken script and hidden dialogs)", () => {
+    const html = getIdeHtml();
+
+    test("every inline script is valid JavaScript, as a browser would split the page", () => {
+        // A browser ends a script at the first closing script tag, even inside a JS string.
+        const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
+        expect(scripts.length).toBeGreaterThan(0);
+        for (const code of scripts) expect(() => new Function(code)).not.toThrow();
+    });
+
+    test("dialogs, context menu and status bar are not nested inside another dialog", () => {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const depthAt = (needle: string) => {
+            const at = body.indexOf(needle);
+            expect(at).toBeGreaterThan(-1);
+            let depth = 0;
+            for (const m of body.slice(0, at).matchAll(/<div\b|<\/div>/g)) depth += m[0] === "</div>" ? -1 : 1;
+            return depth;
+        };
+        const top = depthAt('id="eventEditorModal"');
+        for (const id of ["importModal", "hotkeysModal", "diagnosticsModal", "contextMenu"]) {
+            expect(depthAt(`id="${id}"`)).toBe(top);
+        }
+        const opens = (body.match(/<div\b/g) || []).length;
+        const closes = (body.match(/<\/div>/g) || []).length;
+        expect(opens).toBe(closes);
+    });
+});
+
+describe("Designer: importing a JSON layout", () => {
+    // Runs the real function from the page, so the test cannot drift from the shipped code.
+    const html = getIdeHtml();
+    const start = html.indexOf("function normalizeImportedSpec");
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+        if (html[end] === "{") depth++;
+        else if (html[end] === "}" && --depth === 0) break;
+    }
+    const normalize = new Function(`${html.slice(start, end + 1)}; return normalizeImportedSpec;`)() as (
+        v: unknown,
+    ) => { spec?: any; error?: string };
+
+    test("a complete layout is kept as is", () => {
+        const input = { title: "T", width: 500, height: 300, controls: [{ id: "b", control_type: "button", x: 1, y: 2, width: 3, height: 4, text: "Hi" }] };
+        const { spec, error } = normalize(input);
+        expect(error).toBeUndefined();
+        expect(spec.controls).toEqual(input.controls);
+        expect(spec.width).toBe(500);
+    });
+
+    test("missing values are filled in", () => {
+        const { spec } = normalize({ title: "Only a title" });
+        expect(spec.controls).toEqual([]);
+        expect([spec.width, spec.height]).toEqual([840, 560]);
+        const filled = normalize({ controls: [{ control_type: "button" }, { control_type: "label", x: "7", width: NaN }] }).spec;
+        expect(filled.title).toBe("Imported Form");
+        expect(filled.controls[0]).toMatchObject({ id: "button_1", x: 0, y: 0, width: 150, height: 36, text: "" });
+        expect(filled.controls[1]).toMatchObject({ x: 0, width: 150 });
+    });
+
+    test("duplicate ids are made unique", () => {
+        const ids = normalize({ controls: [{ id: "a", control_type: "label" }, { id: "a", control_type: "label" }] }).spec.controls.map((c: any) => c.id);
+        expect(new Set(ids).size).toBe(2);
+    });
+
+    test("unusable input is rejected with a specific message", () => {
+        for (const [input, message] of [
+            [null, "one JSON object"],
+            [[1, 2], "one JSON object"],
+            ["text", "one JSON object"],
+            [{ foo: 1 }, "neither"],
+            [{ title: "x", controls: "abc" }, "list of controls"],
+            [{ controls: [{ text: "no type" }] }, "Control #1"],
+            [{ controls: [null] }, "Control #1"],
+        ] as Array<[unknown, string]>) {
+            const result = normalize(input);
+            expect(result.spec).toBeUndefined();
+            expect(result.error).toContain(message);
+        }
+    });
+
+    test("the open form is only replaced after validation succeeds", () => {
+        const fn = html.slice(html.indexOf("function processImportJSON"), html.indexOf("// MS Access Database CRUD Form Wizard"));
+        expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeGreaterThan(-1);
+        expect(fn.indexOf("formSpec = ")).toBeGreaterThan(fn.indexOf("normalizeImportedSpec(parsed)"));
+    });
+});
+
 describe("Exported project (regression for nested template literals)", () => {
     const dirs: string[] = [];
     afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));

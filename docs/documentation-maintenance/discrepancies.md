@@ -19,6 +19,10 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-013 Standalone servers listened on every network interface (fixed)](#d-013)
 - [D-014 The launcher listed library files as applications (fixed)](#d-014)
 - [D-015 Redis server file crashes when started directly](#d-015)
+- [D-016 The designer's script was cut short, so the page did nothing (fixed)](#d-016)
+- [D-017 Import, Keys and Audit dialogs, the status bar and the context menu could never appear (fixed)](#d-017)
+- [D-018 Importing a layout could corrupt the open form or fail silently (fixed)](#d-018)
+- [D-019 Button text on a new button was hard to read; many themes are low contrast](#d-019)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -130,3 +134,39 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Status:** Open (found on 13 October 2026, not fixed).
 - **Observed:** `PORT=23457 bun applications/redis_studio_server.ts --server` stops with `ReferenceError: Cannot access 'RedisManager' before initialization` at `applications/redis_studio_server.ts:1026`, called from `applications/redis_studio.ts:2798`. The committed version behaves the same. `redis_studio.ts` imports the server file and also starts a server whenever `--server` is on the command line, so starting the server file first loads `redis_studio.ts` in the middle of its own initialization.
 - **Not checked:** whether `bun run applications/redis_studio.ts --server` works (it needs no Redis server to start, but it was not run).
+
+<a id="d-016"></a>
+## D-016: The designer's script was cut short, so the page did nothing (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `src/ide.html` has a line (`html += "</script>\n</body>\n</html>";`, in the code that builds the exported HTML) with a literal closing script tag inside a JavaScript string. A browser ends an inline script at the first closing script tag, even inside a string, so the designer's single large script stopped in the middle of that line and failed with `SyntaxError: Invalid or unexpected token`. The page then showed its menus and buttons but nothing worked: the form title and property fields were empty and `formSpec` was undefined. The line was added on 12 September 2026 (commit `29dbfe4`), so the designer's interface has been inert since then, independent of [D-001](#d-001).
+- **How found:** the page `getIdeHtml()` returns was opened in the integrated browser and its script was extracted and checked with `node --check`.
+- **Fix:** the tag is written as `<\/script>` inside the string.
+- **Regression test:** `tests/ide_html.test.ts` ("every inline script is valid JavaScript, as a browser would split the page").
+
+<a id="d-017"></a>
+## D-017: Import, Keys and Audit dialogs, the status bar and the context menu could never appear (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** in `src/ide.html` the *event handler editor* dialog (`eventEditorModal`) was missing two closing `</div>` tags. Everything after it was nested inside that hidden dialog: the Import, Keys (`hotkeysModal`) and Audit (`diagnosticsModal`) dialogs, the right-click context menu, the status bar and the placement toast. Clicking **Audit** set the dialog to `display:flex` but its size was 0 by 0, so nothing showed; the status bar was missing from the window.
+- **Fix:** the two closing tags were added. After the fix every dialog is a direct child of `<body>`, the status bar is 22 px tall and the Audit dialog fills the window.
+- **Regression test:** `tests/ide_html.test.ts` ("dialogs, context menu and status bar are not nested inside another dialog").
+- **Not checked:** the Keys dialog and the right-click menu were not opened; only their position in the page was checked.
+
+<a id="d-018"></a>
+## D-018: Importing a layout could corrupt the open form or fail silently (fixed)
+
+- **Status:** Fixed on 13 October 2026 (behaviour change, see below).
+- **Observed (in the browser, after D-016 and D-017 were fixed):** `processImportJSON` replaced the open form with whatever JSON it was given, then rendered it. JSON with a title but no `controls` list, or with `"controls": "abc"`, left the form without a usable controls list (the status line read `Form: undefinedxundefined`) and showed "Invalid JSON format: Cannot read properties of undefined". JSON with neither `title` nor `controls` did nothing and said nothing. The Import dialog stayed open.
+- **Fix:** `normalizeImportedSpec` checks the text first. Valid layouts are completed with defaults (title "Imported Form", 840 by 560, position 0,0, size 150 by 36, a generated `id` when missing, duplicate ids renamed). Anything else is refused with a specific message and the open form is left unchanged.
+- **Behaviour change:** a layout with only a title is now accepted as an empty form; unusable input is refused instead of half-applied. A successful import can be undone with Cmd/Ctrl+Z (checked in the browser).
+- **Regression tests:** `tests/ide_html.test.ts` ("Designer: importing a JSON layout"), which runs the real function from the page.
+
+<a id="d-019"></a>
+## D-019: Button text on a new button was hard to read; many themes are low contrast
+
+- **Status:** First part fixed on 13 October 2026; second part open.
+- **Observed:** with the default theme, a newly placed button had light text (`#cdd6f4`) on a lavender fill (`#cba6f7`), a contrast of 1.4 to 1 (WCAG AA asks for 4.5 to 1 for normal text). The theme already defines the right button text colour (`btnFg`) and the "change theme" action uses it, but placing a button did not.
+- **Fix:** a new button now takes `btnFg` from the theme (for High Contrast this is the same `#000000` as before).
+- **Open:** computed from the theme table in `getThemeColors`, 25 of the 51 theme choices have a `btnFg` on `btnBg` contrast below 4.5 to 1 (for example Sonoma Emerald 2.5, Linux Mint 2.8, Solarized Light 3.0). Changing theme colours is a design decision, so they were left as they are.
+- **Not covered by a test:** the placement fix was checked in the browser only.

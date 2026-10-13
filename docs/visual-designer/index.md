@@ -1,10 +1,11 @@
 # Visual form designer (the IDE)
 
-> **Status: starts; interface not verified.** `bun start` used to fail with `ReferenceError: existsSync is not defined` ([discrepancy D-001](../documentation-maintenance/discrepancies.md#d-001), fixed). After the fix, `bun run index.ts` starts and keeps running on macOS (Bun 1.4.2), and an automated test checks that the designer page loads (`tests/ide_html.test.ts`). The designer window itself was **not inspected**, so nothing below was observed in the running interface. It summarizes what the **source code** (`index.ts`, `src/ide.html`) contains. Behaviour, defaults and shortcuts are intentionally not described beyond what the source shows.
+> **Status: works in a browser rendering; the native window was not inspected.** Three defects made the designer unusable even after `bun start` was fixed: [D-001](../documentation-maintenance/discrepancies.md#d-001) (crash on start), [D-016](../documentation-maintenance/discrepancies.md#d-016) (the page's script was cut short, so nothing responded) and [D-017](../documentation-maintenance/discrepancies.md#d-017) (the Import, Keys and Audit dialogs and the status bar could not appear). All three are fixed. The checks below were made on **13 October 2026** by opening the exact page the designer loads (`getIdeHtml()`) in a browser on macOS and driving it. **Run** and **Export** talk to the native window and could not be used there. The Windows and Linux windows were not tested.
 
 ## Contents
 
 - [What the designer is meant to do](#what-the-designer-is-meant-to-do)
+- [What was checked](#what-was-checked)
 - [What the source contains](#what-the-source-contains)
 - [Database features: placeholders only](#database-features-placeholders-only)
 - [Exporting](#exporting)
@@ -15,9 +16,34 @@
 
 A *form designer* lets you build a window by dragging controls (buttons, text boxes, tables…) onto a canvas instead of writing code. In Bun RAD Studio the designer is a web page (`src/ide.html`) shown in a desktop window by `index.ts`. The page keeps the form as a JSON object (the "form spec"; its fields are described in [API.md](../API.md#2-control-specification-object)) and can show that form as code in several languages.
 
+## What was checked
+
+Checked in a browser rendering of the designer page, one item at a time (this is **not** a check of the native window):
+
+| What | Result |
+|---|---|
+| Page loads with no script errors | Yes. The form is called "Form1", 800 by 600, with no controls. |
+| Place a control | Click an item in the **Component palette**; the status bar says to click the canvas; click the canvas to drop it. Button, Label and Input were placed (ids `button_1`, `label_2`, `input_3`, 150 by 36 pixels, snapped to an 8 pixel grid). |
+| Property fields | Selecting a control fills the id, caption, position, size, colours and tooltip fields. |
+| Code tabs | With three controls placed, the JSON tab parses, the Python tab compiles (`python3 -m py_compile`), the Bun TS tab transpiles, and the HTML, React and Vue 3 tabs have the expected content. They were not run as projects. React and Vue place controls 30 pixels lower than Python (a title-bar offset); this was seen, not investigated. |
+| Undo and redo | Cmd+Z and Cmd+Shift+Z took the control count from 3 to 2 and back to 3. |
+| **Audit** | Opens a dialog. With no problems it says "Perfect! No layout collisions or structural issues detected." Overlap, out-of-bounds, duplicate-id and empty-caption checks are in the source; only the "no issues" result was seen. |
+| **Import** | Accepts a JSON layout (see [Importing a layout](#importing-a-layout)). |
+| **New** | Clears the form without asking. The previous form is kept in the undo history (source); not tested. |
+| Keys dialog, right-click menu, **Run**, **Export**, **DB Wizard**, **Pin**, **Fullscreen**, drag to move and resize, theme list, alignment buttons | **Not checked.** |
+
+### Importing a layout
+
+**Import** opens a box where you paste a form as JSON (the same JSON the JSON tab shows) and press **Load Layout**.
+
+- The text must be one JSON object with a `title`, a `controls` list, or both.
+- Each control needs a `control_type` (for example `"button"`). A missing `id` is generated, a duplicate `id` is renamed, and a missing position or size becomes 0,0 and 150 by 36. A missing form width and height become 840 by 560.
+- If the text is not valid, you get a message that says what is wrong and **your current form is not changed**.
+- After a successful import, Cmd/Ctrl+Z brings back the previous form.
+
 ## What the source contains
 
-These facts come from reading `src/ide.html` and `index.ts` (not from running them):
+These facts come from reading `src/ide.html` and `index.ts`. Items not listed in the table above were not observed running:
 
 - **Toolbar buttons** include *Run* (preview the form in its own window), *Export*, *Pin* (stay on top), *Fullscreen*, *New*, *DB Wizard*, *Import* (JSON layout), undo/redo, copy/paste/duplicate, lock, bring to front/send to back, grid snapping, *Test* (live hover mode), *Audit* (check for overlaps/errors) and *Keys* (a shortcuts dialog). Tooltips in the source mention F5 for Run, F11 for fullscreen and ⌘Z / ⌘⇧Z / ⌘V / ⌘D for undo, redo, paste and duplicate on macOS.
 - **A palette of 95 visual controls** (for example `button`, `input`, `checkbox`, `dropdown_menu`, `table`, `tabs`, `tree_view`, `split_pane`, `kanban_board`, `toast_card`) and **6 non-visual components** (`db_connection`, `http_client`, `notification`, `open_dialog`, `save_dialog`, `timer`).
@@ -43,17 +69,17 @@ So: **do not expect the designer to read or edit a real database.** Real databas
 
 `index.ts` contains `exportProjectHelper(specJson, customExportDir?)`. From reading the source it writes a project folder (`exported_project` in the current folder by default) containing `index.html` (the rendered form), an `index.ts` that opens the form in a Webview and registers simple placeholder handlers for named events, and a `package.json`. [API.md](../API.md) describes the same three files.
 
-Verified: calling `exportProjectHelper` with a one-button spec produced these three files, and the exported project builds and starts (automated in `tests/ide_html.test.ts`). Running it first exposed a syntax error in the generated `index.ts` helpers, now fixed ([D-011](../documentation-maintenance/discrepancies.md#d-011)). The **Export** button in the designer and larger forms were not run. The *Python*, *React* and *Vue 3* tabs are code views; whether they produce runnable projects has not been checked.
+Verified (by calling `exportProjectHelper` directly, not through the Export button): a one-button spec produced these three files, and the exported project builds and starts (automated in `tests/ide_html.test.ts`). Running it first exposed a syntax error in the generated `index.ts` helpers, now fixed ([D-011](../documentation-maintenance/discrepancies.md#d-011)). The **Export** button and larger forms were not run. The *Python*, *React* and *Vue 3* tabs are code views; whether they produce runnable projects has not been checked.
 
 ## What is missing from this guide and why
 
 | Missing | Reason |
 |---|---|
-| Interface tour, menus, dialogs, status messages | The designer window has not been inspected. |
-| Per-control reference (properties, defaults, events, examples) | Needs the designer to verify; the control list above is from the source only. |
-| Layout, alignment, saving and reopening projects | Not verified. |
-| Keyboard shortcuts | Only the tooltip hints above were seen in source; no list is given because none was tested. |
-| Accessibility | Not assessed. |
+| Complete interface tour, menus, status messages | Only the items in [What was checked](#what-was-checked) were observed. |
+| Per-control reference (properties, defaults, events, examples) | 95 controls; only Button, Label and Input were placed. The control list above is from the source. |
+| Run, Export, saving and reopening projects in the native window | Needs the native window; not checked. |
+| Keyboard shortcuts | Only Cmd+Z and Cmd+Shift+Z were tested. Tooltips mention others (F5, F11, Cmd+V, Cmd+D) that were not. |
+| Accessibility | Not assessed beyond one finding: button text contrast ([D-019](../documentation-maintenance/discrepancies.md#d-019)). |
 
 These gaps are tracked in the [coverage matrix](../documentation-maintenance/coverage-matrix.md).
 

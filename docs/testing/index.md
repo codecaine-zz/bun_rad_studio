@@ -53,7 +53,7 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 ## Not covered by automated tests
 
 - Real desktop windows: most window-based apps are tested through their servers or HTML output, not by clicking.
-- Interactive behaviour of the visual designer page (only page loading and export are tested, in `tests/ide_html.test.ts`).
+- Interactive behaviour of the visual designer page. `tests/ide_html.test.ts` checks that the page's scripts parse, that its dialogs are not nested inside each other, the JSON import rules and the exported project, but nothing clicks through the page automatically.
 - Windows and Linux.
 - TLS connections to a real database server.
 
