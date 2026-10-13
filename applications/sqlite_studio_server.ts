@@ -34,6 +34,7 @@ import {
   macroToSqlScript,
   macroToVba,
 } from "./sqlite_studio_macros.ts";
+import { handleCodegenRequest } from "./studio_codegen.ts";
 
 export type { MacroAction, MacroDefinition, MacroExecutionResult, MacroStepExecutionLog, SavedQueryDefinition };
 
@@ -2668,6 +2669,21 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             transaction: body.transaction, dryRun: body.dryRun, params: body.params,
           });
           return Response.json({ success: result.success, result }, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      if (url.pathname === "/api/codegen" && req.method === "POST") {
+        try {
+          const body = (await req.json()) as any;
+          const result = handleCodegenRequest(body, {
+            sourceDialect: "sqlite",
+            queries: manager.getSavedQueries(),
+            macros: manager.getMacros(),
+            appName: "SQLite Studio Pro",
+          });
+          return Response.json({ success: true, ...result }, { headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }

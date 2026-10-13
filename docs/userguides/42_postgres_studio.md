@@ -192,6 +192,12 @@ Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
 - **`[Enter ...]` Prompts**: SQL such as `WHERE name = [Enter Customer Name]` asks for a value at run time. Values are escaped as string literals (numbers stay numeric), so quote-injection attempts are harmless.
 - **Sub-Macros**: `RunMacro` runs another macro by name (with a recursion guard). **Validate** flags missing arguments, unbounded `UPDATE`/`DELETE`, and unknown sub-macros before running.
 - **Export**: **SQL** produces a `BEGIN; ... COMMIT;` script with `"double-quoted"` identifiers; **VBA** produces an Access `DoCmd` module; **JSON** round-trips through **Import**.
+- **🧬 Code Generation (Python · Bun · V)**: translate a macro, a saved query, or the SQL in the editor into a standalone program that uses the **native SQLite driver** of your language, then **Copy to Clipboard** (or Download) for RAD work. Open it from **🧬 Code** in the SQL editor bar or Macro ribbon, or the 🧬 button on a saved query / macro in the sidebar.
+  - **Python** → `sqlite3` (stdlib): parameterized queries, `with conn:` transaction, `argparse`, type hints.
+  - **Bun** → `bun:sqlite`: prepared statements, `db.transaction()`, WAL + `foreign_keys`, `parseArgs`.
+  - **V** → `db.sqlite`: `!` error propagation, `begin`/`commit`/`rollback`, `flag` module (V binds parameters as text, so numbers/NULLs are inlined and user text is bound).
+  - The whole macro runs in **one transaction** (rolled back on error; `continueOnError` steps are caught). `VACUUM`/backup steps run after the commit. `[Enter ...]` prompts become `?` placeholders filled from command-line flags, `RunMacro` becomes a function call, and `[var]` conditions become native `if`s. UI-only actions (dialogs, navigation, reports) are skipped and listed as warnings.
+  - Postgres SQL is translated to SQLite on a best-effort basis (`::casts`, `ILIKE`, `"public".` prefixes, `NOW() - INTERVAL 'n days'`, ...); anything with no SQLite equivalent (`JSONB`, `DISTINCT ON`, `to_jsonb`, ...) is reported in a ⚠️ review list instead of being silently changed.
 - **AutoExec & Navigation Pane**: A macro flagged `AutoExec` runs when the page opens or the connection changes. Macros and saved queries are listed in the sidebar under `⚡ Macros` and `👁️ Saved Queries`.
 - **Storage**: Macros and saved queries are kept as JSON in `~/.bun_rad_studio/macros` (override with `STUDIO_MACRO_STORE_DIR`), one file per `host:port/database/schema`. Nothing is created inside your database.
 
@@ -205,6 +211,7 @@ Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
 | `POST` | `/api/macros/run` | Run a macro and return step telemetry | `{ macro?: MacroDefinition, id?: string, variables?, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
 | `POST` | `/api/macros/validate` | Pre-flight check | `{ macro: MacroDefinition }` |
 | `POST` | `/api/macros/export` | Export as `json`, `sql`, or `vba` | `{ macro?: MacroDefinition, id?: string, format?: string }` |
+| `POST` | `/api/codegen` | Translate a macro or SQL to native-SQLite code | `{ kind: "macro"\|"sql", target: "python"\|"bun"\|"vlang", macro?, id?, sql?, name? }` |
 | `GET`/`POST` | `/api/queries/list` | List saved queries | — |
 | `POST` | `/api/queries/save` | Save a query (incl. visual designer state) | `{ query: SavedQueryDefinition }` |
 | `POST` | `/api/queries/delete` | Delete a saved query | `{ id?: string, name?: string }` |

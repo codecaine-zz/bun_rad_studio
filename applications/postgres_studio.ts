@@ -2217,6 +2217,7 @@ export function generatePostgresStudioHtml(): string {
             <div class="editor-controls-left">
               <button class="btn btn-primary" onclick="runEditorQuery()">🚀 Execute (Cmd+Enter)</button>
               <button class="btn" onclick="explainCurrentQuery()">🔍 Explain Plan</button>
+              <button class="btn" onclick="openCodeGenFromEditor()" title="Translate this SQL to Python / Bun / V using native SQLite">🧬 Code</button>
               <button class="btn" onclick="clearEditor()">🧹 Clear</button>
               <button class="btn" onclick="exportResults('csv')">📋 Export CSV</button>
               <button class="btn" onclick="exportResults('json')">💾 Export JSON</button>

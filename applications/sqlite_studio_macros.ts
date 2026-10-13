@@ -119,7 +119,7 @@ export function quoteStringFor(d: MacroDialect, value: any): string {
   return "'" + v.replace(/'/g, "''") + "'";
 }
 
-export function parseRecordFieldsToInsertSql(tableName: string, fieldsInput: any, d: MacroDialect = "sqlite"): string {
+export function parseRecordFields(fieldsInput: any): Record<string, any> {
   let obj: Record<string, any> = {};
   if (typeof fieldsInput === "object" && fieldsInput !== null) {
     obj = fieldsInput;
@@ -151,6 +151,11 @@ export function parseRecordFieldsToInsertSql(tableName: string, fieldsInput: any
     }
   }
 
+  return obj;
+}
+
+export function parseRecordFieldsToInsertSql(tableName: string, fieldsInput: any, d: MacroDialect = "sqlite"): string {
+  const obj = parseRecordFields(fieldsInput);
   const keys = Object.keys(obj);
   if (keys.length === 0) {
     throw new Error("No fields provided for InsertRecord");
@@ -1204,6 +1209,40 @@ export const MACRO_STYLE = `
     .macro-modal textarea { box-sizing: border-box; resize: vertical; }
 
     #macroDialogModal .modal-card { max-width: 440px; }
+    #macroCodeModal .modal-card { max-width: 860px; }
+    .macro-code-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .macro-code-tabs .btn { min-width: 0; }
+    .macro-code-meta { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; word-break: break-all; }
+    .macro-code-meta code { color: var(--cyan); font-family: var(--font-mono); }
+    .macro-code-warnings {
+      display: none;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 6px;
+      max-height: 110px;
+      overflow: auto;
+    }
+    .macro-code-warnings ul { margin: 4px 0 0 16px; padding: 0; }
+    #macroCodeText {
+      width: 100%;
+      height: 340px;
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
+      border-radius: 6px;
+      padding: 10px;
+      outline: none;
+      white-space: pre;
+      tab-size: 4;
+    }
     .macro-dlg-msg {
       font-size: 13px;
       line-height: 1.5;
@@ -1312,6 +1351,7 @@ export const MACRO_HTML = `
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('json')" title="Export macro as JSON">📤 Export</button>
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('sql')" title="Export macro as a plain SQL script">📜 SQL</button>
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('vba')" title="Export macro as an Access VBA module">🧾 VBA</button>
+                <button class="sidebar-mini-btn" onclick="openCodeGenForCurrentMacro()" title="Translate this macro to Python / Bun / V using native SQLite">🧬 Code</button>
                 <button class="sidebar-mini-btn" onclick="openMacroImportDialog()" title="Import macro JSON">📥 Import</button>
                 <button class="sidebar-mini-btn" id="btnToggleCatalog" onclick="toggleActionCatalog()" title="Toggle Action Catalog Drawer">📖 Catalog</button>
               </div>
@@ -1483,6 +1523,31 @@ export const MACRO_HTML = `
       <div class="modal-footer">
         <button class="btn" id="macroDlgCancel" onclick="macroDialogClose(false)">Cancel</button>
         <button class="btn btn-primary" id="macroDlgOk" onclick="macroDialogClose(true)">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code generation: macro / SQL -> Python, Bun, V (native SQLite) -->
+  <div class="modal-overlay macro-modal" id="macroCodeModal" style="display: none; z-index: 10045;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="macroCodeTitle" style="font-weight: 700; color: var(--text-main);">🧬 Generate Code</span>
+        <button class="sidebar-mini-btn" onclick="closeCodeGenModal()" title="Close (Esc)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="macro-code-tabs" id="macroCodeTabs">
+          <button class="btn" data-target="python" onclick="setCodeGenTarget('python')">🐍 Python · sqlite3</button>
+          <button class="btn" data-target="bun" onclick="setCodeGenTarget('bun')">🥟 Bun · bun:sqlite</button>
+          <button class="btn" data-target="vlang" onclick="setCodeGenTarget('vlang')">⚡ V · db.sqlite</button>
+        </div>
+        <div class="macro-code-meta" id="macroCodeMeta"></div>
+        <div class="macro-code-warnings" id="macroCodeWarnings"></div>
+        <textarea id="macroCodeText" readonly spellcheck="false"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeCodeGenModal()">Close</button>
+        <button class="btn" onclick="downloadCodeGen()">💾 Download</button>
+        <button class="btn btn-primary" id="macroCodeCopyBtn" onclick="copyCodeGen()">📋 Copy to Clipboard</button>
       </div>
     </div>
   </div>
@@ -1885,11 +1950,14 @@ function renderQueryTreeGroup(container, query) {
     row.className = "tree-item";
     row.innerHTML = '<span class="tree-item-title" title="' + escapeHtml(q.description || q.sql) + '">👁️ ' + escapeHtml(q.name) + '</span>' +
       '<button class="tree-item-macro-run btn-run-query" title="Run Query in Datasheet">▶</button>' +
+      '<button class="sidebar-mini-btn btn-code-query" style="padding: 0 3px; font-size: 9px;" title="Translate to Python / Bun / V">🧬</button>' +
       '<button class="sidebar-mini-btn btn-design-query" style="padding: 0 3px; font-size: 9px;" title="Open in Query Designer">📐</button>' +
       '<button class="sidebar-mini-btn btn-del-query" style="padding: 0 3px; font-size: 9px; color: var(--rose);" title="Delete Query">✕</button>';
 
     const runBtn = row.querySelector(".btn-run-query");
     if (runBtn) runBtn.onclick = (e) => { e.stopPropagation(); executeSpecificQueryByName(q.name); };
+    const codeBtn = row.querySelector(".btn-code-query");
+    if (codeBtn) codeBtn.onclick = (e) => { e.stopPropagation(); openCodeGenForQuery(q.id || q.name); };
     const designBtn = row.querySelector(".btn-design-query");
     if (designBtn) designBtn.onclick = (e) => { e.stopPropagation(); openQueryInVisualDesigner(q.name); };
     const delBtn = row.querySelector(".btn-del-query");
@@ -3159,6 +3227,7 @@ function renderMacroTreeGroup(container, query) {
       <span class="tree-item-title">\${m.isAutoExec ? "⚡ " : "📜 "}\${escapeHtml(m.name)}</span>
       <span class="badge" style="font-size: 9px; padding: 1px 4px;">\${m.actions.length} steps</span>
       <button class="tree-item-macro-run" onclick="event.stopPropagation(); executeSpecificMacroById('\${m.id}')" title="Execute macro now">▶</button>
+      <button class="tree-item-macro-run" onclick="event.stopPropagation(); openCodeGenForMacroId('\${m.id}')" title="Translate to Python / Bun / V">🧬</button>
     \`;
 
     row.onclick = () => {
@@ -3996,6 +4065,9 @@ document.addEventListener("keydown", (e) => {
   } else if (macroModalVisible("macroSingleStepModal")) {
     swallow();
     if (e.key === "Enter") onSingleStepNext(); else onSingleStepHalt();
+  } else if (macroModalVisible("macroCodeModal") && e.key === "Escape") {
+    swallow();
+    closeCodeGenModal();
   } else if (macroModalVisible("macroJsonModal") && e.key === "Escape" && !typingInTextarea) {
     swallow();
     closeMacroJsonModal();
@@ -4004,8 +4076,116 @@ document.addEventListener("keydown", (e) => {
 
 document.addEventListener("mousedown", (e) => {
   if (e.target && e.target.id === "macroJsonModal") closeMacroJsonModal();
+  if (e.target && e.target.id === "macroCodeModal") closeCodeGenModal();
   if (e.target && e.target.id === "macroDialogModal") macroDialogClose(false);
 });
+
+// -------------------------------------------------------------------------------------------------
+// Code generation (Python / Bun / V with native SQLite)
+// -------------------------------------------------------------------------------------------------
+let codeGenRequest = null;
+let codeGenResult = null;
+let codeGenTarget = "python";
+try { codeGenTarget = localStorage.getItem("studioCodegenTarget") || "python"; } catch (e) {}
+
+async function openCodeGenDialog(request, title) {
+  codeGenRequest = request;
+  document.getElementById("macroCodeTitle").textContent = "🧬 Generate Code — " + (title || "");
+  document.getElementById("macroCodeModal").style.display = "flex";
+  await loadCodeGen();
+}
+
+function openCodeGenForCurrentMacro() {
+  if (!currentMacro) return;
+  openCodeGenDialog({ kind: "macro", macro: currentMacro }, currentMacro.name);
+}
+
+function openCodeGenForMacroId(id) {
+  const m = macroStore.find(x => x.id === id || x.name === id);
+  if (m) openCodeGenDialog({ kind: "macro", macro: m }, m.name);
+}
+
+function openCodeGenForQuery(idOrName) {
+  const q = (savedQueriesStore || []).find(x => x.id === idOrName || x.name === idOrName);
+  if (q) openCodeGenDialog({ kind: "sql", sql: q.sql, name: q.name }, q.name);
+}
+
+function openCodeGenFromEditor() {
+  const ed = document.getElementById("sqlEditor");
+  if (!ed) return;
+  const selected = ed.value.substring(ed.selectionStart || 0, ed.selectionEnd || 0).trim();
+  const sql = selected || ed.value.trim();
+  if (!sql) { showToast("Write some SQL in the editor first."); return; }
+  openCodeGenDialog({ kind: "sql", sql: sql, name: "query" }, selected ? "selected SQL" : "SQL editor");
+}
+
+async function setCodeGenTarget(t) {
+  codeGenTarget = t;
+  try { localStorage.setItem("studioCodegenTarget", t); } catch (e) {}
+  await loadCodeGen();
+}
+
+async function loadCodeGen() {
+  const text = document.getElementById("macroCodeText");
+  const meta = document.getElementById("macroCodeMeta");
+  const warn = document.getElementById("macroCodeWarnings");
+  document.querySelectorAll("#macroCodeTabs .btn").forEach(b => {
+    b.classList.toggle("btn-primary", b.dataset.target === codeGenTarget);
+  });
+  text.value = "Generating...";
+  meta.textContent = "";
+  warn.style.display = "none";
+  codeGenResult = null;
+  let res = null;
+  try {
+    res = await apiRequest('/api/codegen', Object.assign({ target: codeGenTarget }, codeGenRequest));
+  } catch (e) {
+    res = { success: false, error: e.message };
+  }
+  if (!res || res.success === false) {
+    text.value = "// Could not generate code: " + ((res && res.error) || "unknown error");
+    return;
+  }
+  codeGenResult = res;
+  text.value = res.code;
+  text.scrollTop = 0;
+  meta.innerHTML = "File <code>" + escapeHtml(res.filename) + "</code> · run with <code>" + escapeHtml(res.runHint) + "</code>";
+  if (res.warnings && res.warnings.length) {
+    warn.innerHTML = "<b>⚠️ " + res.warnings.length + " thing(s) to review</b><ul>" + res.warnings.map(w => "<li>" + escapeHtml(w) + "</li>").join("") + "</ul>";
+    warn.style.display = "block";
+  }
+}
+
+async function copyCodeGen() {
+  const text = document.getElementById("macroCodeText").value;
+  if (!codeGenResult || !text) return;
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch (e) {
+    try {
+      const r = await apiRequest('/api/clipboard', { text: text });
+      ok = Boolean(r && r.success !== false);
+    } catch (e2) {}
+  }
+  const btn = document.getElementById("macroCodeCopyBtn");
+  if (btn) {
+    btn.textContent = ok ? "✅ Copied!" : "⚠️ Copy failed";
+    setTimeout(() => { btn.textContent = "📋 Copy to Clipboard"; }, 1600);
+  }
+  showToast(ok ? "Copied " + codeGenResult.language + " code to clipboard" : "Could not copy to clipboard");
+}
+
+function downloadCodeGen() {
+  if (!codeGenResult) return;
+  downloadJsonFile(codeGenResult.filename, codeGenResult.code);
+}
+
+function closeCodeGenModal() {
+  const m = document.getElementById("macroCodeModal");
+  if (m) m.style.display = "none";
+}
 
 // -------------------------------------------------------------------------------------------------
 // Macro Console Logging

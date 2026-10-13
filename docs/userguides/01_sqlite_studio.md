@@ -337,6 +337,11 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 - **Parameter Prompts**: Use `[Enter Start Date]`-style placeholders in `RunSQL`, `OpenQuery`, or `MakeTable` SQL; you're prompted once per run and values are inserted as safely quoted literals.
 - **Sub-Macros**: `RunMacro` now really runs the target macro (with a recursion guard) in both the designer and the server engine.
 - **Duplicate & Export**: **📑 Duplicate** clones a macro; **📤 Export** (JSON), **📜 SQL** (plain script), and **🧾 VBA** (Access module) export it.
+- **🧬 Code Generation (Python · Bun · V)**: translate a macro, a saved query, or the SQL in the editor into a standalone program that uses the **native SQLite driver** of your language, then **Copy to Clipboard** (or Download) for RAD work. Open it from **🧬 Code** in the SQL editor bar or Macro ribbon, or the 🧬 button on a saved query / macro in the sidebar.
+  - **Python** → `sqlite3` (stdlib): parameterized queries, `with conn:` transaction, `argparse`, type hints.
+  - **Bun** → `bun:sqlite`: prepared statements, `db.transaction()`, WAL + `foreign_keys`, `parseArgs`.
+  - **V** → `db.sqlite`: `!` error propagation, `begin`/`commit`/`rollback`, `flag` module (V binds parameters as text, so numbers/NULLs are inlined and user text is bound).
+  - The whole macro runs in **one transaction** (rolled back on error; `continueOnError` steps are caught). `VACUUM`/backup steps run after the commit. `[Enter ...]` prompts become `?` placeholders filled from command-line flags, `RunMacro` becomes a function call, and `[var]` conditions become native `if`s. UI-only actions (dialogs, navigation, reports) are skipped and listed as warnings.
 - **AutoExec Startup Macro**: Macros named `AutoExec` or flagged with `AutoExec` automatically trigger upon opening or switching databases.
 - **Navigation Pane Integration**: All saved macros and queries appear in the left sidebar under `👁️ Saved Queries` and `⚡ Macros` with step counts and 1-click run buttons.
 - **Database-Backed Persistence**: Both macros and saved queries are stored directly inside the SQLite database (`_studio_macros` and `_studio_queries`), ensuring they travel with the database file just like Microsoft Access `.accdb` macros and queries. Internal tables are filtered so they never pollute regular business tables or KPI counts.
@@ -368,6 +373,7 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 | `POST` | `/api/macros/run` | Execute macro actions with telemetry trace | `{ macro?: MacroDefinition, id?: string, variables?: Record<string, any>, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
 | `POST` | `/api/macros/validate` | Pre-flight check for a macro | `{ macro: MacroDefinition }` |
 | `POST` | `/api/macros/export` | Export as `json`, `sql`, or `vba` | `{ macro?: MacroDefinition, id?: string, format?: "json" \| "sql" \| "vba" }` |
+| `POST` | `/api/codegen` | Translate a macro or SQL to native-SQLite code | `{ kind: "macro"\|"sql", target: "python"\|"bun"\|"vlang", macro?, id?, sql?, name? }` |
 
 ---
 

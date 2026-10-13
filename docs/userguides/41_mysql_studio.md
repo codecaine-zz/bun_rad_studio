@@ -248,6 +248,12 @@ A visual action matrix (reorder ▲/▼, per-step conditions, Action Catalog, Si
 - **Parameter prompts**: `[Enter Start Date]` in `RunSQL` / `OpenQuery` / `MakeTable` SQL prompts once per run; values are inserted as quoted literals with `'` and `\` escaped for MySQL.
 - **Sub-macros**: `RunMacro` runs another macro (recursion-guarded). **Duplicate** clones a macro.
 - **Export**: JSON, **SQL script** (`START TRANSACTION; ... COMMIT;`, backtick identifiers) and **VBA module**.
+- **🧬 Code Generation (Python · Bun · V)**: translate a macro, a saved query, or the SQL in the editor into a standalone program that uses the **native SQLite driver** of your language, then **Copy to Clipboard** (or Download) for RAD work. Open it from **🧬 Code** in the SQL editor bar or Macro ribbon, or the 🧬 button on a saved query / macro in the sidebar.
+  - **Python** → `sqlite3` (stdlib): parameterized queries, `with conn:` transaction, `argparse`, type hints.
+  - **Bun** → `bun:sqlite`: prepared statements, `db.transaction()`, WAL + `foreign_keys`, `parseArgs`.
+  - **V** → `db.sqlite`: `!` error propagation, `begin`/`commit`/`rollback`, `flag` module (V binds parameters as text, so numbers/NULLs are inlined and user text is bound).
+  - The whole macro runs in **one transaction** (rolled back on error; `continueOnError` steps are caught). `VACUUM`/backup steps run after the commit. `[Enter ...]` prompts become `?` placeholders filled from command-line flags, `RunMacro` becomes a function call, and `[var]` conditions become native `if`s. UI-only actions (dialogs, navigation, reports) are skipped and listed as warnings.
+  - MySQL SQL is translated to SQLite on a best-effort basis (backticks, `NOW() - INTERVAL n DAY`, `LIMIT a,b`, ...); anything that has no SQLite equivalent (`CONCAT`, `ON DUPLICATE KEY`, `ENUM`, ...) is reported in a ⚠️ review list instead of being silently changed.
 - **Maintenance & backup actions**: `VacuumDatabase` runs `OPTIMIZE TABLE` (+ `ANALYZE TABLE` with *analyze*) on every table; `BackupDatabase` generates the SQL dump.
 - **Storage**: macros and saved queries are stored as JSON per connection under `~/.bun_rad_studio/macros/` (override with `STUDIO_MACRO_STORE_DIR`) — nothing is created inside your database. Saved queries from the Visual Query Designer appear under **👁️ Saved Queries** and can be used by `OpenQuery` / `MakeTable`.
 
@@ -286,6 +292,7 @@ MySQL Studio Pro exposes a high-performance, local HTTP telemetry and database A
 | `POST` | `/api/macros/run` | Run a macro with step telemetry | `{ macro?, id?, variables?, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
 | `POST` | `/api/macros/validate` | Pre-flight check | `{ macro: MacroDefinition }` |
 | `POST` | `/api/macros/export` | Export as `json`, `sql` or `vba` | `{ macro?, id?, format? }` |
+| `POST` | `/api/codegen` | Translate a macro or SQL to native-SQLite code | `{ kind: "macro"\|"sql", target: "python"\|"bun"\|"vlang", macro?, id?, sql?, name? }` |
 | `GET`/`POST` | `/api/queries/list`, `/api/queries/save`, `/api/queries/delete` | Saved named queries | `{ query }` / `{ id }` |
 
 ---

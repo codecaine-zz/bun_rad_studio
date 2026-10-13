@@ -31,6 +31,7 @@ import {
   parseRecordFieldsToInsertSql,
   validateMacro,
 } from "./sqlite_studio_macros.ts";
+import { handleCodegenRequest } from "./studio_codegen.ts";
 
 export interface MacroQueryResult {
   success: boolean;
@@ -495,7 +496,7 @@ export async function handleMacroRoute(
   pathname: string,
   headers: Record<string, string>,
 ): Promise<Response | null> {
-  if (!pathname.startsWith("/api/macros") && !pathname.startsWith("/api/queries")) return null;
+  if (!pathname.startsWith("/api/macros") && !pathname.startsWith("/api/queries") && pathname !== "/api/codegen") return null;
   const ok = (body: any, status = 200) => Response.json(body, { status, headers });
   const bad = (err: any, status = 400) => ok({ success: false, error: err?.message || String(err) }, status);
   const readBody = async () => ((await req.json().catch(() => ({}))) || {}) as any;
@@ -536,6 +537,16 @@ export async function handleMacroRoute(
         : format === "vba" ? macroToVba(macro, queries, adapter.dialect)
         : JSON.stringify(macro, null, 2);
       return ok({ success: true, format, content });
+    }
+    if (pathname === "/api/codegen" && isPost) {
+      const body = await readBody();
+      const result = handleCodegenRequest(body, {
+        sourceDialect: adapter.dialect,
+        queries: store.getSavedQueries(),
+        macros: store.getMacros(),
+        appName: adapter.dialect === "mysql" ? "MySQL Studio Pro" : "Postgres Studio Pro",
+      });
+      return ok({ success: true, ...result });
     }
     if (pathname === "/api/queries/list" && (req.method === "GET" || isPost)) {
       return ok({ success: true, queries: store.getSavedQueries() });
