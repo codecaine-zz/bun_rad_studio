@@ -32,6 +32,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-026 Defects found by burning down type errors (fixed)](#d-026)
 - [D-027 The unified `src/index.ts` exports some names as undefined (open)](#d-027)
 - [D-028 Documents disagree on how many themes exist (open)](#d-028)
+- [D-029 A test-only package was a runtime dependency, with known advisories (fixed)](#d-029)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -268,3 +269,12 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Status:** Open (found on 13 October 2026).
 - **Observed:** the README quick links say "Theme Gallery (63 Themes)"; `docs/THEMES.md` is titled "Complete Theme Visual Gallery (76 Themes)"; the designer's theme drop-down (`propFormTheme` in `src/ide.html`) has 51 choices; `demos/25_vlang_all_themes_showcase.ts` mentions 76. Which set is "the" list of themes (framework themes for SimpleGUI versus the designer's form themes) was not investigated.
 - **Handbook rule:** pages say "51 in the designer's list" when they mean the designer, and do not quote a single total.
+
+<a id="d-029"></a>
+## D-029: A test-only package was a runtime dependency, with known advisories (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `jsdom` was listed under `dependencies` in `package.json` but is imported only by tests (`tests/word_search_*.ts`, `tests/maze_generator_*.ts`, `tests/db/workbench_ui.*`). `scripts/build.ts` copies `dependencies` into `dist/package.json`, so anyone installing the built package would also get it. `bun audit` reported 11 advisories (3 high) through it: `undici` 7.29.0 and `source-map-js` 1.2.1.
+- **Fix:** `bun remove jsdom` and `bun add -d jsdom@^29.1.1` (now in `devDependencies`), then `bun audit fix`. `bun audit` reports no vulnerabilities for the 46 packages; `bun audit --prod` none for the 3 runtime packages. The full test suite passed afterwards (1164 pass, 0 fail).
+- **Behaviour change:** installing the built `dist/` package no longer installs `jsdom`.
+- **Not done:** `package-lock.json` (an npm lockfile, apparently stale next to `bun.lock`) was not touched.

@@ -27,6 +27,11 @@ jobs:
       - name: Type-check ratchet
         run: bun run typecheck
 
+      # Informational: advisories appear over time and are not caused by the change under test.
+      - name: Dependency audit
+        run: bun audit
+        continue-on-error: true
+
       - name: Documentation links and generated pages
         run: bun run docs:check
 

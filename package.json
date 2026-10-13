@@ -192,13 +192,13 @@
     "deps:install": "bun run scripts/install_dependencies.ts --install"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "jsdom": "^29.1.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "jsdom": "^29.1.1",
     "systeminformation": "^5.33.12",
     "webview-bun": "^2.4.0"
   }
