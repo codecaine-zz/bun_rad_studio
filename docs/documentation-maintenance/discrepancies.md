@@ -47,6 +47,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-041 The Audit report ran script from control ids and the form title, and missed two kinds of broken control (fixed)](#d-041)
 - [D-042 Running the suite on Linux and Windows found a clipboard stall and several portability defects (fixed in part)](#d-042)
 - [D-043 Code Studio's search read every image and database file in full (fixed)](#d-043)
+- [D-044 The designer page was one 7,285-line file (split into parts, refactor only)](#d-044)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -458,3 +459,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Behaviour change (small):** a binary-type file that happens to contain the search text as plain text (for example a `.db` file or a text file named `.png`) is no longer searched.
 - **Not changed:** the search is still a synchronous scan on the studio's only thread, so on a very large workspace the studio is unresponsive while it runs; no limit on total bytes or time was added.
 - **Verified:** `tests/code_studio_search.test.ts` (a temporary workspace: text files are found, `.png`, `.sqlite-shm` and an upper-case `.PNG` containing the word are not; the helper's cases), which fails on the old code; the timing above. **Not verified:** that this removes the CI timeout for good (one slow run is not proof either way; check the next Linux runs).
+
+<a id="d-044"></a>
+## D-044: The designer page was one 7,285-line file (split into parts, refactor only)
+
+- **Status:** Done on 13 October 2026. **Refactor only: no behaviour change**, and the served page is byte-for-byte the same.
+- **Problem:** `src/ide.html` held 980 lines of style, 1,280 lines of markup and a 5,000-line script (136 functions) in one file, which made every change to the designer hard to find, review and merge.
+- **Change:** the file is now edited as 23 numbered parts in `src/ide/` (`00_head_and_styles.html`, `05_body_markup.html`, 20 script parts from `10_state.js` to `180_run.js`, `999_end.html`) and `scripts/build_ide.ts` joins them in numeric order into `src/ide.html` (`bun run ide:build`). The script was cut **only between top-level statements** found with the TypeScript parser (165 statements, 0 parse errors), so no function was divided; the parts are grouped by topic (state, keyboard and dialogs, draft autosave, start-up and shortcuts, history and layers, window and zoom, style presets, audit, palette and placement, move, resize and align, themes and templates, selection, canvas rendering, tree and inspector, code generation and export, import, DB wizard and non-visual components, event editor, framework code, run).
+- **Why `src/ide.html` is still committed:** the dist build (`scripts/build.ts`), the app bundler, the screenshot script, `getIdeHtml` and several tests read it as a plain file. Making them assemble the parts would change more code than the refactor itself. So the built file is checked in and `bun run ide:check` (also `tests/ide_build.test.ts` and a CI step) fails when it differs from what the parts build to.
+- **Verified:** the SHA-256 of `src/ide.html` after the first build equals the one before the split, `git status` showed the file unchanged, and `getIdeHtml()` returned the identical string. All existing designer tests pass unchanged. A first build was wrong because `99_end.html` sorts numerically before `100_selection.js`; the tail part is now `999_end.html` and a test checks the order. `tests/ide_build.test.ts` also fails when a part is edited without rebuilding, and when `src/ide.html` is edited by hand (both tried).
+- **What this does not do:** the script is still **one scope in one `<script>`**, so the parts are not independent modules (any part can use any other part's functions and variables, and order matters for `let` and `const`); it is a navigation and review aid, not decoupling. The largest part is still 1,224 lines (canvas rendering). `src/simplegui.ts` (11,600 lines), `index.ts` (4,600) and the other large files were not touched.
+- **Cost:** two places hold the same text, so a developer who edits `src/ide.html` directly gets a failing check and must redo the change in the part (see [Troubleshooting](../troubleshooting.md)).

@@ -45,7 +45,7 @@ Every program is a Bun script that opens a native window (through the `webview-b
 
 | Component | Responsibility | Main files |
 |---|---|---|
-| Visual designer | Edit a form as JSON, show it as code, export a project, preview it | `index.ts` (backend: windowing, export, preview), `src/ide.html` (the whole page: HTML, CSS and about 4,700 lines of script) |
+| Visual designer | Edit a form as JSON, show it as code, export a project, preview it | `index.ts` (backend: windowing, export, preview), `src/ide.html` (the whole page: built from the parts in `src/ide/`; HTML, CSS and about 4,700 lines of script) |
 | Window helpers | Native fullscreen, always-on-top, centring and window shortcuts for every window, through `bun:ffi` | `index.ts` (`attachWindowShortcuts`, `setWindowPositionNative`, ...) |
 | SimpleGUI | Build a window by calling methods (`addButton`, `addInput`, ...); it generates the page and handles events | `src/simplegui.ts` (about 11,600 lines), `src/simplegui_components.ts`, `src/simplegui_dialogs.ts` |
 | Studios | One windowed application each | `applications/*_studio.ts` (and a few other names); 85 files in the folder including helpers |
@@ -121,11 +121,11 @@ See [Data and files](../reference/data-and-files.md) for the full list. In short
 
 ## Size and shape of the code
 
-Measured on 13 October 2026 with `wc -l` and `ls`: `src/simplegui.ts` 11,612 lines, `index.ts` about 4,600, `src/ide.html` 6,991 (the script is lines 2,244 to 6,911). 85 files in `applications/` (65 listed as studios by the launcher), 78 in `cli_apps/`, 27 demos, 101 test files and 1,285 tests.
+Measured on 13 October 2026 with `wc -l` and `ls`: `src/simplegui.ts` 11,612 lines, `index.ts` about 4,600, `src/ide.html` 7,285 (the script is lines 2,262 to 7,283; it is now edited as 20 script parts in `src/ide/`, the largest 1,224 lines). 85 files in `applications/` (65 listed as studios by the launcher), 78 in `cli_apps/`, 27 demos, 101 test files and 1,285 tests.
 
 ## Known structural problems
 
-- **Very large files.** `src/simplegui.ts`, `index.ts` (windowing, export, preview and generators together) and `src/ide.html` (markup, style and script together) are hard to review. Nothing was split: splitting changes nothing for users and risks regressions, so it needs a reason and tests first.
+- **Very large files.** `src/simplegui.ts`, `index.ts` (windowing, export, preview and generators together) and `src/ide.html` (markup, style and script together) are hard to review. **The designer page was split on 13 October 2026** into numbered parts in `src/ide/` that build to a byte-identical `src/ide.html` ([D-044](../documentation-maintenance/discrepancies.md#d-044)); it is still one script in one scope, so the parts are not independent modules. `src/simplegui.ts` and `index.ts` were not split.
 - **Duplicated server scaffolding (partly fixed).** 14 game studios now share one server, `src/studio_server.ts` ([D-034](../documentation-maintenance/discrepancies.md#d-034)). About 13 other studio files still carry their own server code, most of it similar but not identical (their `generate...Html` and window code are also repeated).
 - **No type errors** (`tsc --noEmit` is clean as of 13 October 2026, down from 679); `bun run typecheck` keeps it that way. Bun does not check types when running, so this only helps if the check is run ([CI runs it](../testing/index.md#type-check-ratchet)). Some types are deliberately loose in tests (`as any` on parsed JSON).
 - **Generated code lives inside template strings** in `index.ts` (the exported project) and `src/ide.html` (the code tabs), where escaping mistakes are easy; see [D-011](../documentation-maintenance/discrepancies.md#d-011) and [D-021](../documentation-maintenance/discrepancies.md#d-021).

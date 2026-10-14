@@ -18,6 +18,8 @@
     "test": "bun test",
     "typecheck": "bun run scripts/typecheck_ratchet.ts",
     "workbench": "bun run src/db/workbench_server.ts",
+    "ide:build": "bun run scripts/build_ide.ts",
+    "ide:check": "bun run scripts/build_ide.ts --check",
     "docs:build": "bun run scripts/docs/build_docs.ts",
     "docs:check": "bun run scripts/docs/build_docs.ts --check && bun run scripts/docs/check_docs.ts",
     "test:db": "bun test tests/sqlite_studio_e2e.test.ts tests/sqlite_studio_pro.test.ts tests/sqlite_studio_macros.test.ts tests/mysql_manual_config.test.ts tests/mysql_studio_e2e.test.ts tests/mysql_studio_macros.test.ts tests/postgres_studio.test.ts tests/postgres_studio_e2e.test.ts tests/postgres_studio_macros.test.ts tests/studio_codegen.test.ts tests/db",

@@ -15,6 +15,7 @@ Look up what you see, find the likely cause and the safe next step. Rows marked 
 
 | What you see | Likely cause | What to do |
 |---|---|---|
+| `src/ide.html does not match src/ide/` from `bun run ide:check` or a failing `tests/ide_build.test.ts`; or an edit to `src/ide.html` that vanished | `src/ide.html` is built from the parts in `src/ide/`. It was edited by hand, or a part was edited and `bun run ide:build` was not run ([D-044](documentation-maintenance/discrepancies.md#d-044)) | Make the change in the matching file under `src/ide/` (find it by function name; the [handbook](developer/handbook.md#extend-the-designer) lists the main ones), run `bun run ide:build`, commit both |
 | `ReferenceError: existsSync is not defined` when running `bun start` (**seen** before the fix) | The old designer start-up bug ([D-001](documentation-maintenance/discrepancies.md#d-001)) | `git pull`, then start again |
 | `error: Failed to start server. Is port 8997 in use?` with `code: "EADDRINUSE"` (**seen**, Blackjack; other games use ports 8995 to 9005) | The same game is already running, or another program holds that port | Close the other copy, or start with a free port: `bun run applications/blackjack_studio.ts --server --port 0` |
 | A window never appears but the terminal shows output | The window system or webview library failed (on Linux, missing packages) | [Requirements](getting-started/requirements.md#linux-system-packages-partly-verified); try `--server` and open the printed address in a browser |

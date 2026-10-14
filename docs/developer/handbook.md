@@ -40,6 +40,8 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 | `bun test tests/<file>.test.ts -t "part of a test name"` | One test | seconds |
 | `bun run typecheck` | TypeScript errors per file against `scripts/typecheck_baseline.json`; fails only when a file gets worse | ~4 s |
 | `bun run typecheck -- --update` | Records the current counts (do this after **fixing** errors) | ~4 s |
+| `bun run ide:build` | Joins `src/ide/*` into `src/ide.html`. Run it after every edit to a part | seconds |
+| `bun run ide:check` | Fails if `src/ide.html` is not exactly what the parts produce (also run by `tests/ide_build.test.ts` and CI) | seconds |
 | `bun run docs:build` | Regenerates the table of contents, application and script indexes, coverage matrix | seconds |
 | `bun run docs:check` | Fails on a stale generated page, a broken link or anchor, an unlisted page, an unclosed code fence, a secret-looking string or a `bun run` example whose script or file does not exist | seconds |
 | `bun run build` | Bundles the library into `dist/` (git-ignored) | seconds |
@@ -50,7 +52,8 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 | Path | What is in it |
 |---|---|
 | `index.ts` | The visual designer's backend and the native window helpers; exports `exportProjectHelper`, `runPreviewHelper`, `generatePreviewHtml` |
-| `src/ide.html` | The designer's page (markup, style and script in one file) |
+| `src/ide/` | The designer's page **in numbered parts**: `00_head_and_styles.html`, `05_body_markup.html`, 20 script parts (`10_state.js` … `180_run.js`) and `999_end.html`. **Edit these** |
+| `src/ide.html` | The designer's page as one file, **built from `src/ide/`** (`bun run ide:build`) and committed because other code reads it as a plain file. Do not edit it by hand |
 | `src/simplegui.ts` and friends | Build windows from code |
 | `src/db/` | The Database Workbench |
 | `src/localGuard.ts` | Loopback guard for local servers |
@@ -68,7 +71,7 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 ## Before you commit
 
 1. `bun test` passes (or you can name the failing test and say it was already failing).
-2. `bun run typecheck` passes.
+2. `bun run typecheck` passes. If you touched the designer page, you edited `src/ide/` and ran `bun run ide:build` (`bun run ide:check` passes).
 3. `bun run docs:build` has been run and its output is committed, then `bun run docs:check` passes.
 4. `git status` shows only files you meant to change. A full `bun test` run leaves the tree clean ([D-006](../documentation-maintenance/discrepancies.md#d-006)).
 5. If you changed behaviour, the page that describes it and its row in `docs/documentation-maintenance/features.json` say what was verified and how. See the [contributor checklist](../documentation-maintenance/contributor-checklist.md).
@@ -115,10 +118,10 @@ Adding a **control type** touches these places (found by following `kanban_board
 
 | Place | What to add |
 |---|---|
-| `src/ide.html`, palette | A `palette-item` with `onclick="spawnControl('<type>')"` |
-| `src/ide.html`, `placeControlAt` | Default width and height for the type, and whether its background is transparent |
-| `src/ide.html`, canvas renderer | How the control looks in the designer |
-| `src/ide.html`, code generators | Its output in the Bun TS, HTML, React, Vue and Python tabs |
+| `src/ide/05_body_markup.html`, palette | A `palette-item` with `onclick="spawnControl('<type>')"` |
+| `src/ide/80_palette_and_placement.js`, `placeControlAt` | Default width and height for the type, and whether its background is transparent |
+| `src/ide/110_canvas_render.js`, canvas renderer (`renderControlContent`, `renderCanvas`) | How the control looks in the designer |
+| `src/ide/130_code_generation_and_export.js` and `170_framework_code.js`, code generators | Its output in the Bun TS, HTML, React, Vue and Python tabs |
 | `index.ts`, `generatePreviewHtml` | How the exported and preview page renders it (escape anything that goes into an attribute or script) |
 | `docs/API.md` | A row in the supported-control table |
 | `src/simplegui.ts` | Optionally an `add<Type>` method so code can create the same control |
@@ -142,6 +145,7 @@ Generated text must be treated as untrusted-input territory:
 | Every application module imports cleanly; every headless studio serves a page | `tests/applications_smoke.test.ts` |
 | The launcher lists only real programs; no wrapper wraps a library | `tests/launcher_listing.test.ts` |
 | The designer page parses and its dialogs are siblings | `tests/ide_html.test.ts` |
+| `src/ide.html` is exactly what `src/ide/` builds to; parts are ordered by number; a hand edit is caught | `tests/ide_build.test.ts`, `bun run ide:check` |
 | Type errors per file never grow | `bun run typecheck` |
 | Documentation links, anchors, navigation and generated pages are current | `bun run docs:check` (also run by `tests/docs_check.test.ts`) |
 

@@ -35,6 +35,10 @@ jobs:
       - name: Documentation links and generated pages
         run: bun run docs:check
 
+      # src/ide.html is built from src/ide/; fails when someone edits one without the other.
+      - name: Designer page is up to date with its parts
+        run: bun run ide:check
+
       # A throwaway Redis for the Redis tests, which seed data and run FLUSHDB (they are opt-in locally).
       - name: Start a disposable Redis
         run: |

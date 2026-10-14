@@ -1,0 +1,1280 @@
+<body spellcheck="false" autocapitalize="none" autocorrect="off">
+
+	<!-- Top Navigation Bar -->
+	<header class="app-header">
+		<div class="app-title">
+			<span>⚡ Bun RAD Studio</span>
+			<span class="badge-rad">Delphi / VB Style</span>
+		</div>
+		<div class="toolbar-actions">
+			<!-- Primary actions -->
+			<button class="btn btn-success" onclick="triggerRunForm()" title="Launch live interactive window preview (F5)">▶ Run</button>
+			<button class="btn btn-primary" onclick="exportApp()" title="Export full Bun project to disk">💾 Export</button>
+			<button class="btn" id="stayOnTopBtn" onclick="toggleAlwaysOnTop()" title="Toggle window always-on-top mode (Stay On Top)">📌 Pin: OFF</button>
+			<button class="btn" onclick="toggleFullscreen()" title="Toggle fullscreen window mode (Fn+F / F11)">⛶ Fullscreen</button>
+			<select class="btn" id="winPosSelect" onchange="changeWindowPosition(this.value)" title="Move window position on screen">
+				<option value="" disabled selected>📍 Position</option>
+				<option value="center">Center Screen</option>
+				<option value="upper_left">Upper Left</option>
+				<option value="upper_right">Upper Right</option>
+				<option value="top_center">Top Center</option>
+				<option value="bottom_left">Lower Left</option>
+				<option value="bottom_right">Lower Right</option>
+				<option value="bottom_center">Lower Center</option>
+				<option value="center_left">Center Left</option>
+				<option value="center_right">Center Right</option>
+			</select>
+			<button class="btn" onclick="clearForm()" title="New blank form">📄 New</button>
+			<button class="btn btn-primary" onclick="launchAccessCrudWizard()" title="Auto-generate an MS Access style Database CRUD form layout">🗄️ DB Wizard</button>
+			<button class="btn" onclick="showImportModal()" title="Import JSON layout">📥 Import</button>
+			<span class="toolbar-divider"></span>
+			<!-- Edit actions -->
+			<button class="btn btn-icon" onclick="undo()" id="undoBtn" title="Undo (⌘Z)">↩</button>
+			<button class="btn btn-icon" onclick="redo()" id="redoBtn" title="Redo (⌘⇧Z)">↪</button>
+			<button class="btn btn-icon" onclick="copySelectedControl(this)" title="Copy (⌘C)">⎘</button>
+			<button class="btn btn-icon" onclick="pasteCopiedControl()" title="Paste (⌘V)">📋</button>
+			<button class="btn btn-icon" onclick="duplicateSelectedControl()" title="Duplicate (⌘D)">⧉</button>
+			<span class="toolbar-divider"></span>
+			<!-- Multi-Select Alignment Tools -->
+			<button class="btn btn-icon" onclick="alignSelectedControls('left')" title="Align Left Edges">⇤</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('center_h')" title="Center Horizontally">↔</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('right')" title="Align Right Edges">⇥</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('top')" title="Align Top Edges">⟰</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('center_v')" title="Center Vertically">↕</button>
+			<button class="btn btn-icon" onclick="alignSelectedControls('bottom')" title="Align Bottom Edges">⟱</button>
+			<button class="btn btn-icon" onclick="equalizeSize('width')" title="Make Same Width">⇗</button>
+			<button class="btn btn-icon" onclick="equalizeSize('height')" title="Make Same Height">⇘</button>
+			<span class="toolbar-divider"></span>
+			<!-- Layout tools -->
+			<button class="btn btn-icon" onclick="toggleLockSelected()" title="Lock / Unlock selected">🔒</button>
+			<button class="btn btn-icon" onclick="bringToFront()" title="Bring to Front">⬆</button>
+			<button class="btn btn-icon" onclick="sendToBack()" title="Send to Back">⬇</button>
+			<button class="btn" onclick="showSnapGridMenu()" id="snapBtn" title="Toggle Grid Snapping">⊞ Grid</button>
+			<span class="toolbar-divider"></span>
+			<!-- Advanced -->
+			<button class="btn" id="liveHoverTestBtn" onclick="toggleLiveHoverMode()" title="Live hover test mode on canvas">🧪 Test</button>
+			<button class="btn" onclick="showDiagnosticsModal()" title="Audit form for overlaps/errors">🔍 Audit</button>
+			<button class="btn btn-primary" onclick="copyBunTSCode(this)" title="Copy Bun GUI TypeScript code to clipboard">⚡ Bun TS</button>
+			<button class="btn" onclick="copyHTMLCode(this)" title="Copy standalone HTML/CSS code to clipboard">🌐 HTML</button>
+			<button class="btn" onclick="showHotkeysModal()" title="Keyboard shortcuts">⌨ Keys</button>
+		</div>
+	</header>
+
+	<!-- Main Studio Workspace Grid -->
+	<div class="studio-container">
+
+		<!-- Left Toolbox Categorized Palette -->
+		<aside class="palette-sidebar">
+			<span class="sidebar-heading">Form Layout Templates</span>
+			<div class="templates-row" style="flex-wrap: wrap; gap: 4px;">
+				<span class="template-chip" onclick="loadTemplate('default')" title="Load Customer Account Registration preset form layout">Customer</span>
+				<span class="template-chip" onclick="loadTemplate('login')" title="Load User Authentication Sign-In Dialog preset form layout">Auth Login</span>
+				<span class="template-chip" onclick="loadTemplate('dash')" title="Load Executive KPI Analytics Dashboard preset form layout">Dashboard</span>
+				<span class="template-chip" onclick="loadTemplate('profile')" title="Load User Profile & Account Settings preset form layout">User Profile</span>
+				<span class="template-chip" onclick="loadTemplate('crud')" title="Load Enterprise Data Grid & CRUD Manager preset form layout">Data CRUD</span>
+				<span class="template-chip" onclick="loadTemplate('ticket')" title="Load Help Desk & Bug Support Ticket Reporter preset form layout">Support Ticket</span>
+				<span class="template-chip" onclick="loadTemplate('api_tester')" title="Load REST API Client & Endpoint Tester preset form layout">API Tester</span>
+				<span class="template-chip" onclick="loadTemplate('media')" title="Load Hi-Fi Audio Media Player Controls preset form layout">Media Player</span>
+				<span class="template-chip" onclick="loadTemplate('settings')" title="Load System Settings & Preferences preset form layout">Settings</span>
+				<span class="template-chip" onclick="loadTemplate('checkout')" title="Load E-Commerce Order Checkout & Payment preset form layout">Checkout</span>
+			</div>
+
+			<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">
+
+			<span class="sidebar-heading">Component Palette</span>
+			<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" placeholder="Filter controls..." oninput="filterPalette(this.value)" title="Filter palette components by name">
+
+			<!-- Category 1: Standard Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🚀 Standard Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('button')" ondragstart="onDragStart(event, 'button')" title="Button: Clickable action button widget (win.add_button)">
+						<span class="palette-icon">🔘</span>
+						<span>Button</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('label')" ondragstart="onDragStart(event, 'label')" title="Label: Text title or caption label (win.add_label)">
+						<span class="palette-icon">🏷️</span>
+						<span>Label</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('input')" ondragstart="onDragStart(event, 'input')" title="Input: Single-line text input field (win.add_input)">
+						<span class="palette-icon">✏️</span>
+						<span>Input</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('password')" ondragstart="onDragStart(event, 'password')" title="Password: Masked password input field (win.add_password)">
+						<span class="palette-icon">🔒</span>
+						<span>Password</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('textarea')" ondragstart="onDragStart(event, 'textarea')" title="Text Area: Multi-line text input area (win.add_textarea)">
+						<span class="palette-icon">📝</span>
+						<span>Text Area</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 2: Form Inputs & Toggles -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🎛️ Toggles & Options</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('checkbox')" ondragstart="onDragStart(event, 'checkbox')" title="Checkbox: Boolean check box toggle (win.add_checkbox)">
+						<span class="palette-icon">☑️</span>
+						<span>Checkbox</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('switch')" ondragstart="onDragStart(event, 'switch')" title="Switch: Toggle switch slider (win.add_switch)">
+						<span class="palette-icon">🔀</span>
+						<span>Switch</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('radio')" ondragstart="onDragStart(event, 'radio')" title="Radio Button: Single option radio selector (win.add_checkbox)">
+						<span class="palette-icon">🔘</span>
+						<span>Radio Button</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('slider')" ondragstart="onDragStart(event, 'slider')" title="Slider: Horizontal range slider bar (win.add_slider)">
+						<span class="palette-icon">🎚️</span>
+						<span>Slider</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('mode')" ondragstart="onDragStart(event, 'mode')" title="Mode Toggle: Theme/Mode toggle button (win.add_mode_control)">
+						<span class="palette-icon">🌓</span>
+						<span>Mode Toggle</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 2.5: Database & Data-Aware Controls (MS Access / Delphi ADO Paradigm) -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🗄️ Database & Data Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_grid')" ondragstart="onDragStart(event, 'db_grid')" title="DB Grid: Access / Delphi visual data table grid bound to dataset">
+						<span class="palette-icon">📊</span>
+						<span>DB Grid</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_navigator')" ondragstart="onDragStart(event, 'db_navigator')" title="DB Navigator: Classic dataset navigation & CRUD actions bar">
+						<span class="palette-icon">🧭</span>
+						<span>DB Navigator</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_input')" ondragstart="onDragStart(event, 'db_input')" title="DB Input: Field-bound database text field">
+						<span class="palette-icon">📝</span>
+						<span>DB Field</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('db_dropdown')" ondragstart="onDragStart(event, 'db_dropdown')" title="DB Dropdown: Field-bound database lookup select dropdown">
+						<span class="palette-icon">🔽</span>
+						<span>DB Lookup</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 2.6: Non-Visual Component Tray (Delphi TTimer / TOpenDialog Paradigm) -->
+			<div class="palette-category">
+				<div class="palette-cat-header">⚙️ Non-Visual Component Tray</div>
+				<div class="palette-grid">
+					<div class="palette-item" onclick="spawnNonVisualControl('timer')" title="Timer (TTimer): Execution timer trigger with interval and onTimer tick">
+						<span class="palette-icon">⏱️</span>
+						<span>Timer</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('open_dialog')" title="Open File Dialog (TOpenDialog): Native file open picker trigger">
+						<span class="palette-icon">📂</span>
+						<span>Open Dialog</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('save_dialog')" title="Save File Dialog (TSaveDialog): Native file save picker trigger">
+						<span class="palette-icon">💾</span>
+						<span>Save Dialog</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('db_connection')" title="Database Connection (TFDConnection): SQLite / JSON store connection">
+						<span class="palette-icon">🔌</span>
+						<span>DB Connection</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('http_client')" title="REST API Client (TRESTClient): HTTP API request runner">
+						<span class="palette-icon">🌐</span>
+						<span>HTTP Client</span>
+					</div>
+					<div class="palette-item" onclick="spawnNonVisualControl('notification')" title="Toast Notification: Desktop toast alert trigger">
+						<span class="palette-icon">🔔</span>
+						<span>Notification</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 3: Pickers & Displays -->
+			<div class="palette-category">
+				<div class="palette-cat-header">📊 Pickers & Displays</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('number')" ondragstart="onDragStart(event, 'number')" title="Number: Numeric stepper input (win.add_number)">
+						<span class="palette-icon">🔢</span>
+						<span>Number</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('date')" ondragstart="onDragStart(event, 'date')" title="Date Picker: Calendar date selection picker (win.add_date_picker)">
+						<span class="palette-icon">📅</span>
+						<span>Date Picker</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('color')" ondragstart="onDragStart(event, 'color')" title="Color Well: Native color picker swatch (win.add_color_well)">
+						<span class="palette-icon">🎨</span>
+						<span>Color Well</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('progress')" ondragstart="onDragStart(event, 'progress')" title="Progress: Linear progress indicator bar (win.add_progress_indicator)">
+						<span class="palette-icon">📊</span>
+						<span>Progress</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('image')" ondragstart="onDragStart(event, 'image')" title="Image: Static image display frame (win.add_image)">
+						<span class="palette-icon">🖼️</span>
+						<span>Image</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('badge')" ondragstart="onDragStart(event, 'badge')" title="Badge: Status pill badge label (win.add_label)">
+						<span class="palette-icon">🏷️</span>
+						<span>Badge</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('search')" ondragstart="onDragStart(event, 'search')" title="Search: Search input with magnifying glass (win.add_search_field)">
+						<span class="palette-icon">🔍</span>
+						<span>Search</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 4: Labeled Form Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">📝 Labeled Form Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_field')" ondragstart="onDragStart(event, 'form_field')" title="Form Field: Integrated Labeled Input field (win.add_form_field)">
+						<span class="palette-icon">✏️</span>
+						<span>Form Field</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_textarea')" ondragstart="onDragStart(event, 'form_textarea')" title="Form Textarea: Integrated Labeled Multi-line Textarea (win.add_form_textarea)">
+						<span class="palette-icon">📝</span>
+						<span>Form Textarea</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_password')" ondragstart="onDragStart(event, 'form_password')" title="Form Password: Integrated Labeled Masked Password (win.add_form_password)">
+						<span class="palette-icon">🔒</span>
+						<span>Form Password</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_number')" ondragstart="onDragStart(event, 'form_number')" title="Form Number: Integrated Labeled Numeric Stepper (win.add_form_number)">
+						<span class="palette-icon">🔢</span>
+						<span>Form Number</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_slider')" ondragstart="onDragStart(event, 'form_slider')" title="Form Slider: Integrated Labeled Range Slider (win.add_form_slider)">
+						<span class="palette-icon">🎚️</span>
+						<span>Form Slider</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_dropdown')" ondragstart="onDragStart(event, 'form_dropdown')" title="Form Dropdown: Integrated Labeled Dropdown Select (win.add_form_dropdown)">
+						<span class="palette-icon">🔽</span>
+						<span>Form Dropdown</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_date')" ondragstart="onDragStart(event, 'form_date')" title="Form Date: Integrated Labeled Date Picker (win.add_form_date_picker)">
+						<span class="palette-icon">📅</span>
+						<span>Form Date</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_progress')" ondragstart="onDragStart(event, 'form_progress')" title="Form Progress: Integrated Labeled Progress Bar (win.add_form_progress)">
+						<span class="palette-icon">📊</span>
+						<span>Form Progress</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_switch')" ondragstart="onDragStart(event, 'form_switch')" title="Form Switch: Integrated Labeled Toggle Switch (win.add_form_switch)">
+						<span class="palette-icon">🔀</span>
+						<span>Form Switch</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_link')" ondragstart="onDragStart(event, 'form_link')" title="Form Link: Integrated Labeled Hyperlink Button (win.add_form_link)">
+						<span class="palette-icon">🔗</span>
+						<span>Form Link</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_checkbox')" ondragstart="onDragStart(event, 'form_checkbox')" title="Form Checkbox: Integrated Labeled Checkbox option toggle">
+						<span class="palette-icon">☑️</span>
+						<span>Form Checkbox</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_radio')" ondragstart="onDragStart(event, 'form_radio')" title="Form Radio: Integrated Labeled Radio selection button">
+						<span class="palette-icon">🔘</span>
+						<span>Form Radio</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_search')" ondragstart="onDragStart(event, 'form_search')" title="Form Search: Integrated Labeled Search Bar field">
+						<span class="palette-icon">🔍</span>
+						<span>Form Search</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_color')" ondragstart="onDragStart(event, 'form_color')" title="Form Color: Integrated Labeled Color Swatch Picker">
+						<span class="palette-icon">🎨</span>
+						<span>Form Color</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_time')" ondragstart="onDragStart(event, 'form_time')" title="Form Time: Integrated Labeled Time Selection Field">
+						<span class="palette-icon">🕒</span>
+						<span>Form Time</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_stepper')" ondragstart="onDragStart(event, 'form_stepper')" title="Form Stepper: Integrated Labeled Numeric Stepper">
+						<span class="palette-icon">🔢</span>
+						<span>Form Stepper</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_code')" ondragstart="onDragStart(event, 'form_code')" title="Form Code: Integrated Labeled Monospaced Code View">
+						<span class="palette-icon">💻</span>
+						<span>Form Code</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('form_drop_zone')" ondragstart="onDragStart(event, 'form_drop_zone')" title="Form Drop Zone: Integrated Labeled File Upload Area">
+						<span class="palette-icon">📥</span>
+						<span>Form Drop Zone</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 5: Gauges, Cards & Widgets -->
+			<div class="palette-category">
+				<div class="palette-cat-header">⚡ Gauges, Cards & Widgets</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('rating')" ondragstart="onDragStart(event, 'rating')" title="Star Rating: 5-Star interactive rating control (win.add_rating)">
+						<span class="palette-icon">⭐</span>
+						<span>Star Rating</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('stepper')" ondragstart="onDragStart(event, 'stepper')" title="Stepper: Compact numeric counter stepper (win.add_stepper)">
+						<span class="palette-icon">➕</span>
+						<span>Stepper</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tag')" ondragstart="onDragStart(event, 'tag')" title="Tag Field: Tokenized chip tag input field (win.add_token_field)">
+						<span class="palette-icon">🏷️</span>
+						<span>Tag Field</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('path')" ondragstart="onDragStart(event, 'path')" title="Path Bar: macOS breadcrumb file path bar (win.add_path_control)">
+						<span class="palette-icon">📁</span>
+						<span>Path Bar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('drop_zone')" ondragstart="onDragStart(event, 'drop_zone')" title="Drop Zone: Drag & drop file target area (win.add_drop_zone)">
+						<span class="palette-icon">📥</span>
+						<span>Drop Zone</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('circular_progress')" ondragstart="onDragStart(event, 'circular_progress')" title="Circular Progress: Radial percentage dial gauge (win.add_circular_progress)">
+						<span class="palette-icon">⭕</span>
+						<span>Circular Progress</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('metric_meter')" ondragstart="onDragStart(event, 'metric_meter')" title="Metric Meter: Telemetry percentage bar gauge (win.add_metric_meter)">
+						<span class="palette-icon">🎛️</span>
+						<span>Metric Meter</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('status_indicator')" ondragstart="onDragStart(event, 'status_indicator')" title="Status Light: System/Server status indicator pill (win.add_status_indicator)">
+						<span class="palette-icon">🟢</span>
+						<span>Status Light</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('metric_card')" ondragstart="onDragStart(event, 'metric_card')" title="Metric Card: KPI Stat Card with trend badge (win.add_metric_card)">
+						<span class="palette-icon">📈</span>
+						<span>Metric Card</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('alert_banner')" ondragstart="onDragStart(event, 'alert_banner')" title="Alert Banner: Callout notification alert strip (win.add_alert_banner)">
+						<span class="palette-icon">ℹ️</span>
+						<span>Alert Banner</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('code_view')" ondragstart="onDragStart(event, 'code_view')" title="Code View: Monospaced syntax highlighted code block (win.add_code_view)">
+						<span class="palette-icon">💻</span>
+						<span>Code View</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 6: Containers & Layout -->
+			<div class="palette-category">
+				<div class="palette-cat-header">📦 Containers & Layout</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('table')" ondragstart="onDragStart(event, 'table')" title="Data Grid: Multi-column data table grid (win.add_table)">
+						<span class="palette-icon">📋</span>
+						<span>Data Grid</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('panel')" ondragstart="onDragStart(event, 'panel')" title="Panel Box: Container group box panel (win.add_heading)">
+						<span class="palette-icon">📦</span>
+						<span>Panel Box</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('divider')" ondragstart="onDragStart(event, 'divider')" title="Separator: Horizontal line layout divider (win.add_vertical_spacer)">
+						<span class="palette-icon">➖</span>
+						<span>Separator</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 7: Advanced Modern Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🚀 Advanced Modern Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('segmented_control')" ondragstart="onDragStart(event, 'segmented_control')" title="Segmented Control: Modern tabbed pill segment button selector">
+						<span class="palette-icon">🎛️</span>
+						<span>Segmented</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tree_view')" ondragstart="onDragStart(event, 'tree_view')" title="Tree View: Hierarchical collapsible directory/node tree explorer">
+						<span class="palette-icon">🌿</span>
+						<span>Tree View</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('avatar_group')" ondragstart="onDragStart(event, 'avatar_group')" title="Avatar Group: Stacked user profile avatars with initials & overflow badge">
+						<span class="palette-icon">👥</span>
+						<span>Avatar Group</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('stat_chart')" ondragstart="onDragStart(event, 'stat_chart')" title="Stat Chart Card: Executive KPI metric card with integrated SVG sparkline graph">
+						<span class="palette-icon">📊</span>
+						<span>Stat Chart</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('accordion')" ondragstart="onDragStart(event, 'accordion')" title="Accordion Panel: Interactive collapsible disclosure card panel">
+						<span class="palette-icon">📂</span>
+						<span>Accordion</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('breadcrumb')" ondragstart="onDragStart(event, 'breadcrumb')" title="Breadcrumb Bar: Step-by-step path navigation breadcrumb control">
+						<span class="palette-icon">📍</span>
+						<span>Breadcrumb</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('timeline')" ondragstart="onDragStart(event, 'timeline')" title="Activity Timeline: Vertical step-by-step activity/process event status timeline">
+						<span class="palette-icon">⏱️</span>
+						<span>Timeline</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('toast_card')" ondragstart="onDragStart(event, 'toast_card')" title="Notification Toast: Floating notification toast alert card with status icon & close action">
+						<span class="palette-icon">🔔</span>
+						<span>Toast Card</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('time_picker')" ondragstart="onDragStart(event, 'time_picker')" title="Time Picker: Precision clock time selection input field">
+						<span class="palette-icon">🕒</span>
+						<span>Time Picker</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('rich_select')" ondragstart="onDragStart(event, 'rich_select')" title="Searchable Combobox: Searchable dropdown select combobox with icon & arrow">
+						<span class="palette-icon">🔍</span>
+						<span>Rich Select</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 8: Desktop App Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">🖥️ Desktop App Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('tabs')" ondragstart="onDragStart(event, 'tabs')" title="Tab Container: Multi-tab navigation bar with tab selector">
+						<span class="palette-icon">🗂️</span>
+						<span>Tab Control</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tool_bar')" ondragstart="onDragStart(event, 'tool_bar')" title="Action Toolbar: Window action toolbar with icon buttons">
+						<span class="palette-icon">🛠️</span>
+						<span>Action Toolbar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('status_bar')" ondragstart="onDragStart(event, 'status_bar')" title="Status Bar: Bottom window status strip">
+						<span class="palette-icon">📊</span>
+						<span>Status Bar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('split_pane')" ondragstart="onDragStart(event, 'split_pane')" title="Split View Panel: Dual-pane split container layout">
+						<span class="palette-icon">📐</span>
+						<span>Split Pane</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('pagination')" ondragstart="onDragStart(event, 'pagination')" title="Pagination Bar: Page navigator strip for data grids">
+						<span class="palette-icon">📄</span>
+						<span>Pagination Bar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('command_palette')" ondragstart="onDragStart(event, 'command_palette')" title="Command Palette: Desktop command launcher search bar">
+						<span class="palette-icon">⌘</span>
+						<span>Command Palette</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('toggle_button')" ondragstart="onDragStart(event, 'toggle_button')" title="Toggle Button: Desktop toolbar icon toggle button widget">
+						<span class="palette-icon">🔘</span>
+						<span>Toggle Button</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('property_grid')" ondragstart="onDragStart(event, 'property_grid')" title="Property Inspector: Two-column key-value property grid widget">
+						<span class="palette-icon">📋</span>
+						<span>Property Grid</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('popup_menu')" ondragstart="onDragStart(event, 'popup_menu')" title="Popup Menu: Desktop context/popup action menu">
+						<span class="palette-icon">📑</span>
+						<span>Popup Menu</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('calendar_view')" ondragstart="onDragStart(event, 'calendar_view')" title="Calendar View: Full month calendar grid view widget">
+						<span class="palette-icon">📅</span>
+						<span>Calendar View</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('color_swatch')" ondragstart="onDragStart(event, 'color_swatch')" title="Color Swatch: Color palette swatch selection grid">
+						<span class="palette-icon">🎨</span>
+						<span>Color Swatch</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('file_path_bar')" ondragstart="onDragStart(event, 'file_path_bar')" title="File Path Bar: Desktop location address/path selector bar">
+						<span class="palette-icon">📁</span>
+						<span>File Path Bar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('kanban_board')" ondragstart="onDragStart(event, 'kanban_board')" title="Kanban Board: Multi-column task board with cards & badges">
+						<span class="palette-icon">📋</span>
+						<span>Kanban Board</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('shortcut_recorder')" ondragstart="onDragStart(event, 'shortcut_recorder')" title="Shortcut Recorder: Hotkey shortcut recorder & key badge viewer">
+						<span class="palette-icon">⌨️</span>
+						<span>Shortcut Recorder</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('split_button')" ondragstart="onDragStart(event, 'split_button')" title="Split Button: Action button with secondary dropdown arrow">
+						<span class="palette-icon">➗</span>
+						<span>Split Button</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('sparkline_table')" ondragstart="onDragStart(event, 'sparkline_table')" title="Sparkline Table: Data grid with embedded SVG mini trendlines">
+						<span class="palette-icon">📈</span>
+						<span>Sparkline Table</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('metric_comparison')" ondragstart="onDragStart(event, 'metric_comparison')" title="Metric Comparison: Executive KPI card comparing current vs target">
+						<span class="palette-icon">📊</span>
+						<span>Metric Comparison</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('activity_feed')" ondragstart="onDragStart(event, 'activity_feed')" title="Activity Feed: Timestamped audit log with user avatars & status">
+						<span class="palette-icon">⚡</span>
+						<span>Activity Feed</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('file_tree_tabs')" ondragstart="onDragStart(event, 'file_tree_tabs')" title="Workspace Tabs: IDE tab bar with file icons & modified state dot">
+						<span class="palette-icon">📑</span>
+						<span>Workspace Tabs</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Category 9: ✨ Studio Extended Controls -->
+			<div class="palette-category">
+				<div class="palette-cat-header">✨ Extended Controls</div>
+				<div class="palette-grid">
+					<div class="palette-item" draggable="true" onclick="spawnControl('sidebar')" ondragstart="onDragStart(event, 'sidebar')" title="Sidebar Drawer: Off-canvas navigation drawer with item links and close action">
+						<span class="palette-icon">🧭</span>
+						<span>Sidebar</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('modal')" ondragstart="onDragStart(event, 'modal')" title="Modal Dialog: Floating modal dialog container with header, message, and actions">
+						<span class="palette-icon">🪟</span>
+						<span>Modal Dialog</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('dropdown_menu')" ondragstart="onDragStart(event, 'dropdown_menu')" title="Dropdown Menu: Action button with click/hover reveal menu">
+						<span class="palette-icon">🔽</span>
+						<span>Dropdown Menu</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('list_group')" ondragstart="onDragStart(event, 'list_group')" title="Badged List Group: Hoverable list container with badges, avatars, and subtitles">
+						<span class="palette-icon">📜</span>
+						<span>List Group</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('content_card')" ondragstart="onDragStart(event, 'content_card')" title="Content Card: Elevated card container with media preview, description, and footer action">
+						<span class="palette-icon">🎴</span>
+						<span>Content Card</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('callout_panel')" ondragstart="onDragStart(event, 'callout_panel')" title="Callout Panel: Note and alert panel with colored left accent border">
+						<span class="palette-icon">📌</span>
+						<span>Callout Panel</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('tooltip_box')" ondragstart="onDragStart(event, 'tooltip_box')" title="Tooltip Box: Interactive hover tooltip pop-up widget">
+						<span class="palette-icon">💬</span>
+						<span>Tooltip Box</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('animated_input')" ondragstart="onDragStart(event, 'animated_input')" title="Animated Input: Smooth expanding input that widens on focus">
+						<span class="palette-icon">🔍</span>
+						<span>Animated Input</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('hero_display')" ondragstart="onDragStart(event, 'hero_display')" title="Hero Display: Media container with pinned corner tags and centered title">
+						<span class="palette-icon">🖼️</span>
+						<span>Hero Display</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('code_snippet')" ondragstart="onDragStart(event, 'code_snippet')" title="Code Snippet: Syntax code box with copy-to-clipboard button">
+						<span class="palette-icon">💻</span>
+						<span>Code Snippet</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('count_badge')" ondragstart="onDragStart(event, 'count_badge')" title="Count Badge: Circular numeric notification count pill">
+						<span class="palette-icon">🔴</span>
+						<span>Count Badge</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('button_group')" ondragstart="onDragStart(event, 'button_group')" title="Button Group: Connected segmented button bar with shared borders">
+						<span class="palette-icon">🔲</span>
+						<span>Button Group</span>
+					</div>
+					<div class="palette-item" draggable="true" onclick="spawnControl('slideshow')" ondragstart="onDragStart(event, 'slideshow')" title="Slideshow Carousel: Interactive content carousel with arrows and dot indicators">
+						<span class="palette-icon">🎠</span>
+						<span>Slideshow</span>
+					</div>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Center Canvas Viewport with Rulers -->
+		<div class="canvas-viewport-wrapper">
+			<div class="canvas-toolbar">
+				<span id="canvasStats">Form: 840x540 | Controls: 0</span>
+				<div class="quick-align-bar">
+					<button class="btn" onclick="selectAllControls()">☑️ Select All</button>
+					<button class="btn" onclick="zoomCanvas(0.1)">🔍 In</button>
+					<button class="btn" onclick="zoomCanvas(-0.1)">🔍 Out</button>
+					<button class="btn" onclick="resetZoom()">🔍 100%</button>
+					<button class="btn" onclick="autoArrangeColumns(2)">📊 2-Cols</button>
+					<button class="btn" onclick="autoArrangeColumns(3)">📊 3-Cols</button>
+					<button class="btn" onclick="alignControls('left')">⬅️ Left</button>
+					<button class="btn" onclick="alignControls('center')">↔️ Center</button>
+					<button class="btn" onclick="alignControls('right')">➡️ Right</button>
+					<button class="btn" onclick="alignControls('top')">⬆️ Top</button>
+					<button class="btn" onclick="alignControls('middle')">↕️ Middle</button>
+					<button class="btn" onclick="alignControls('bottom')">⬇️ Bottom</button>
+					<button class="btn" onclick="distributeControls('horiz')">⬌ Dist H</button>
+					<button class="btn" onclick="distributeControls('vert')">⬍ Dist V</button>
+					<button class="btn" onclick="equalizeSize('width', 'first')">📐 Eq W</button>
+					<button class="btn" onclick="equalizeSize('height', 'first')">📐 Eq H</button>
+					<button class="btn" onclick="equalizeSize('width', 'widest')" title="Make all selected controls match the widest control (MS Access style)">↔️ Widest</button>
+					<button class="btn" onclick="equalizeSize('width', 'narrowest')" title="Make all selected controls match the narrowest control">↔️ Narrowest</button>
+					<button class="btn" onclick="equalizeSize('height', 'tallest')" title="Make all selected controls match the tallest control (MS Access style)">↕️ Tallest</button>
+					<button class="btn" onclick="equalizeSize('height', 'shortest')" title="Make all selected controls match the shortest control">↕️ Shortest</button>
+					<button class="btn" onclick="centerInForm('horiz')" title="Center selected control(s) horizontally inside form window">🎯 Center H Form</button>
+					<button class="btn" onclick="centerInForm('vert')" title="Center selected control(s) vertically inside form window">🎯 Center V Form</button>
+					<button class="btn" onclick="fitControlToContent()" title="Auto-size control to fit font size and text length">📏 Fit Text Size</button>
+				</div>
+			</div>
+
+			<div class="ruler-workspace">
+				<div class="ruler-corner"></div>
+				<div class="ruler-h" id="rulerH"><canvas id="rulerHCanvas" height="20"></canvas></div>
+				<div class="ruler-v" id="rulerV"><canvas id="rulerVCanvas" width="20"></canvas></div>
+
+				<main class="canvas-viewport" id="canvasViewport" onclick="deselectControl(event)" oncontextmenu="onCanvasContextMenu(event)">
+					<div class="window-frame" id="windowFrame">
+						<div class="window-titlebar">
+							<div class="win-dots">
+								<div class="dot dot-close"></div>
+								<div class="dot dot-min"></div>
+								<div class="dot dot-max"></div>
+							</div>
+							<span class="win-title-text" id="winTitleHeader">Delphi/VB RAD Form Studio</span>
+						</div>
+
+						<div class="form-canvas" id="formCanvas" ondragenter="event.preventDefault()" ondragover="event.preventDefault()" ondrop="onCanvasDrop(event)" onclick="onCanvasClick(event)">
+							<!-- Canvas Empty State -->
+							<div id="canvasEmptyState">
+								<div class="empty-icon">🎨</div>
+								<div class="empty-title">Your form is empty</div>
+								<div class="empty-sub">Click any component in the palette to place it here. Shift+click to place multiple.</div>
+							</div>
+							<!-- Marquee Selection Box -->
+							<div id="marqueeBox"></div>
+							<!-- Smart Snap Lines -->
+							<div id="snapLineH" class="snap-line"></div>
+							<div id="snapLineV" class="snap-line"></div>
+							<div id="gapBadge" class="gap-badge"></div>
+							<div id="colGuideLine" style="position: absolute; left: 445px; top: 0; bottom: 0; width: 1px; border-left: 1px dashed rgba(56, 189, 248, 0.35); pointer-events: none; z-index: 2;"><span style="font-size: 9px; color: rgba(56, 189, 248, 0.75); background: rgba(15, 23, 42, 0.85); padding: 2px 6px; border-radius: 3px; white-space: nowrap; margin-left: 4px; margin-top: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">Column 1 ↔ Column 2 (X: 445)</span></div>
+							<!-- Controls dynamically rendered here -->
+						</div>
+
+						<!-- Delphi/Lazarus Style Non-Visual Component Tray -->
+						<div id="nonVisualTrayContainer" style="background: rgba(15,23,42,0.95); border-top: 1px dashed var(--border-color); padding: 6px 12px; font-size: 11px;">
+							<div style="font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+								<span>⚙️ Non-Visual Component Tray (Timer, Dialogs, DB Connections)</span>
+								<span id="nonVisualCount" style="color: var(--text-muted);">0 non-visual items</span>
+							</div>
+							<div id="nonVisualTray" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 28px;">
+								<span style="color: var(--text-muted); font-size: 10px; font-style: italic;">No non-visual components added. Add Timers or DB Connections from Palette.</span>
+							</div>
+						</div>
+					</div>
+				</main>
+			</div>
+		</div>
+
+		<!-- Right Object Inspector -->
+		<aside class="inspector-sidebar">
+			<div class="control-selector-header" style="padding: 8px 10px; background: rgba(0, 0, 0, 0.25); border-bottom: 1px solid var(--border-color);">
+				<span style="font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 4px;">⚡ Component Selector</span>
+				<select class="prop-input" id="objectInspectorSelector" onchange="selectControlFromDropdown(this.value)" style="width: 100%; font-weight: 600; color: var(--text-primary); background: var(--bg-card); border-color: var(--accent);" title="Select component on form to inspect properties">
+					<option value="-1">Form: Delphi/VB RAD Form Studio</option>
+				</select>
+			</div>
+
+			<div class="tab-bar">
+				<div class="tab-item active" onclick="switchTab('tabProps', event)">Properties</div>
+				<div class="tab-item" onclick="switchTab('tabTree', event)">Tree</div>
+				<div class="tab-item" onclick="switchTab('tabEvents', event)">Events</div>
+				<div class="tab-item" onclick="switchTab('tabBunTS', event)">Bun TS</div>
+				<div class="tab-item" onclick="switchTab('tabHTML', event)">HTML</div>
+				<div class="tab-item" onclick="switchTab('tabReact', event)">React</div>
+				<div class="tab-item" onclick="switchTab('tabVue', event)">Vue 3</div>
+				<div class="tab-item" onclick="switchTab('tabPython', event)">Python</div>
+				<div class="tab-item" onclick="switchTab('tabJSON', event)">JSON</div>
+			</div>
+
+			<!-- Properties Tab -->
+			<div class="tab-content active" id="tabProps">
+				<div class="prop-row">
+					<span class="prop-label">Form Title</span>
+					<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propFormTitle" oninput="updateFormSpec()" title="Main title/caption of the form window">
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">Form Theme</span>
+					<select class="prop-input" id="propFormTheme" onchange="updateFormTheme()" title="Switch application theme palette">
+						<option value="Dark">Dark Mode (Default)</option>
+						<option value="Light">Light Mode (Classic)</option>
+						<optgroup label="⚡ Flagship & AAA Studio Themes">
+							<option value="Abyss">Abyss Bioluminescence</option>
+							<option value="Arc Velvet">Arc Velvet (Plum & Magenta)</option>
+							<option value="CodeFreelance">CodeFreelance (Emerald & Violet)</option>
+							<option value="Cyberpunk Night City">Cyberpunk Night City</option>
+							<option value="Horizon Sunset">Horizon Sunset</option>
+							<option value="JetBrains Darcula">JetBrains Darcula</option>
+							<option value="Linear Studio">Linear Studio (Electric Indigo)</option>
+							<option value="Nordic Paper Light">Nordic Paper Light</option>
+							<option value="OLED Laser Black">OLED Laser Black</option>
+							<option value="Raycast Dark">Raycast Dark (Laser Red)</option>
+							<option value="Supabase Dark">Supabase Dark</option>
+							<option value="Tailwind Slate Emerald">Tailwind Slate Emerald</option>
+							<option value="Titanium Slate Pro">Titanium Slate Pro</option>
+							<option value="Unreal Engine 5">Unreal Engine 5 (Graphite & Cyan)</option>
+							<option value="Vercel Geist">Vercel Geist (Monochrome)</option>
+						</optgroup>
+						<optgroup label=" macOS Desktop Themes">
+							<option value="Apple Dark">Apple Dark (Space Gray)</option>
+							<option value="Apple Sunset">Apple Sunset</option>
+							<option value="macOS Liquid Glass">macOS Liquid Glass</option>
+							<option value="macOS Sonoma Dark">macOS Sonoma Dark</option>
+							<option value="macOS Ventura Light">macOS Ventura Light</option>
+							<option value="Midnight">Midnight Space Gray</option>
+							<option value="Sonoma Emerald">Sonoma Emerald</option>
+						</optgroup>
+						<optgroup label="🪟 Windows 11 Desktop Themes">
+							<option value="Windows 11 Acrylic Dark">Windows 11 Acrylic Dark</option>
+							<option value="Windows 11 Fluent Slate">Windows 11 Fluent Slate</option>
+							<option value="Windows 11 Mica Light">Windows 11 Mica Light</option>
+							<option value="Windows 11 Sun Valley">Windows 11 Sun Valley (Cobalt)</option>
+						</optgroup>
+						<optgroup label="🐧 Modern Linux Desktop Themes">
+							<option value="Fedora Blue">Fedora Blue</option>
+							<option value="GNOME Adwaita Dark">GNOME Adwaita Dark</option>
+							<option value="GNOME Adwaita Light">GNOME Adwaita Light</option>
+							<option value="Linux Mint">Linux Mint Dark</option>
+							<option value="Pop!_OS">Pop!_OS Dark</option>
+							<option value="Ubuntu Yaru Dark">Ubuntu Yaru Dark</option>
+							<option value="Ubuntu Yaru Light">Ubuntu Yaru Light</option>
+						</optgroup>
+						<optgroup label="🎨 Developer & Community Themes">
+							<option value="Catppuccin">Catppuccin Mocha</option>
+							<option value="Cobalt2">Cobalt2</option>
+							<option value="Cyberpunk">Cyberpunk Neon</option>
+							<option value="Dracula">Dracula Studio</option>
+							<option value="Everforest Dark">Everforest Dark</option>
+							<option value="Gruvbox Dark">Gruvbox Dark</option>
+							<option value="Gruvbox Light">Gruvbox Light</option>
+							<option value="High Contrast">High Contrast</option>
+							<option value="Kanagawa">Kanagawa</option>
+							<option value="Monokai Pro">Monokai Pro</option>
+							<option value="Nord">Nordic Ice</option>
+							<option value="One Dark Pro">One Dark Pro</option>
+							<option value="Rosé Pine">Rosé Pine</option>
+							<option value="Solarized Dark">Solarized Dark</option>
+							<option value="Solarized Light">Solarized Light</option>
+							<option value="Tokyo Night">Tokyo Night</option>
+						</optgroup>
+					</select>
+				</div>
+
+				<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+
+				<div id="controlPropContainer">
+					<span class="prop-label" id="selectedPropHeader" style="color: var(--accent);">Selected Control Properties</span>
+					<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" id="propFilterBox" placeholder="Filter property fields..." oninput="filterControlProps(this.value)" style="margin-top: 6px; margin-bottom: 6px;" title="Filter properties by keyword (e.g., color, width, text, hover)">
+
+					<div class="prop-row" style="margin-top: 4px;">
+						<span class="prop-label">Control ID / Var Name</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propId" oninput="updateSelectedControl('id')" title="Unique variable name or ID for the control">
+					</div>
+					<div class="prop-row">
+						<span class="prop-label">Caption / Text</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propText" oninput="updateSelectedControl('text')" title="Text or caption displayed on the control">
+					</div>
+					<div class="prop-row" id="propPlaceholderRow">
+						<span class="prop-label">Placeholder Text</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propPlaceholder" placeholder="Hint text inside empty input..." oninput="updateSelectedControl('placeholder')" title="Placeholder hint text displayed inside empty inputs">
+					</div>
+					<div class="prop-row" id="propCheckedRow">
+						<span class="prop-label">Checked / Selected</span>
+						<select class="prop-input" id="propChecked" onchange="updateSelectedControl('checked')" title="Toggle checked/selected state for radio buttons, checkboxes, and switches">
+							<option value="false">Unchecked (false)</option>
+							<option value="true">Checked (true)</option>
+						</select>
+					</div>
+					<div class="prop-row" id="propEnabledRow">
+						<span class="prop-label">Enabled State</span>
+						<select class="prop-input" id="propEnabled" onchange="updateSelectedControl('enabled')" title="Enable or disable component interaction on window creation">
+							<option value="true">Enabled (true)</option>
+							<option value="false">Disabled (false)</option>
+						</select>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Read-Only</span>
+							<select class="prop-input" id="propReadOnly" onchange="updateSelectedControl('read_only')" title="Read-only mode (text is selectable/copyable but not editable)">
+								<option value="false">Editable</option>
+								<option value="true">Read-Only</option>
+							</select>
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Required Field</span>
+							<select class="prop-input" id="propRequired" onchange="updateSelectedControl('required')" title="Mark field as required for form validation">
+								<option value="false">Optional</option>
+								<option value="true">Required</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Max Length</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propMaxLength" oninput="updateSelectedControl('max_length')" placeholder="Unlimited" title="Maximum character length limit for input">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Auto Focus</span>
+							<select class="prop-input" id="propAutoFocus" onchange="updateSelectedControl('auto_focus')" title="Focus component automatically on window load">
+								<option value="false">Off</option>
+								<option value="true">On Load</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+						<div class="prop-row">
+							<span class="prop-label">Min Val</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propMinValue" oninput="updateSelectedControl('min_value')" placeholder="Min" title="Minimum numeric value bound">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Max Val</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propMaxValue" oninput="updateSelectedControl('max_value')" placeholder="Max" title="Maximum numeric value bound">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Step</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propStep" oninput="updateSelectedControl('step')" placeholder="1" title="Numeric step increment interval">
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Hover Tooltip / Hint</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propTooltip" placeholder="Tooltip text on hover..." oninput="updateSelectedControl('tooltip')" title="Tooltip hint text displayed when user hovers over control">
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">X Pos (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propX" oninput="updateSelectedControl('x')" title="Horizontal X position on canvas">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Y Pos (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propY" oninput="updateSelectedControl('y')" title="Vertical Y position on canvas">
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Width (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propWidth" oninput="updateSelectedControl('width')" title="Width of the control in pixels">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Height (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propHeight" oninput="updateSelectedControl('height')" title="Height of the control in pixels">
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Font Size</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propFontSize" oninput="updateSelectedControl('font_size')" title="Text font size in pixels">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Font Color</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propFontColor" oninput="updateSelectedControl('font_color')" title="Text foreground font color">
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Background Color</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propBgColor" oninput="updateSelectedControl('background_color')" title="Control background or fill color">
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Background Presets</span>
+						<div class="color-swatches" style="flex-wrap: wrap; gap: 4px;">
+							<div class="swatch" style="background:#0284c7;" onclick="setBgColor('#0284c7')" title="Sky Blue"></div>
+							<div class="swatch" style="background:#10b981;" onclick="setBgColor('#10b981')" title="Emerald Green"></div>
+							<div class="swatch" style="background:#8b5cf6;" onclick="setBgColor('#8b5cf6')" title="Purple"></div>
+							<div class="swatch" style="background:#f59e0b;" onclick="setBgColor('#f59e0b')" title="Amber Orange"></div>
+							<div class="swatch" style="background:#ef4444;" onclick="setBgColor('#ef4444')" title="Crimson Red"></div>
+							<div class="swatch" style="background:#1e293b;" onclick="setBgColor('#1e293b')" title="Slate Dark"></div>
+							<button class="btn" style="padding: 2px 8px; font-size: 10px; border-style: dashed;" onclick="setBgColor('transparent')" title="Set control background to 100% transparent">🏁 Transparent</button>
+						</div>
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">Border, Radius & Effects</span>
+
+					<div class="prop-grid-2" style="margin-top: 4px;">
+						<div class="prop-row">
+							<span class="prop-label">Border Radius (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propBorderRadius" oninput="updateSelectedControl('border_radius')" title="Corner rounding in pixels (0 for square, 9999 for pill shape)">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Border Width (px)</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" class="prop-input" id="propBorderWidth" oninput="updateSelectedControl('border_width')" title="Border stroke thickness in pixels">
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Border Color</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propBorderColor" oninput="updateSelectedControl('border_color')" title="Border stroke color">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Border Style</span>
+							<select class="prop-input" id="propBorderStyle" onchange="updateSelectedControl('border_style')" title="Border stroke pattern style">
+								<option value="solid">Solid</option>
+								<option value="dashed">Dashed</option>
+								<option value="dotted">Dotted</option>
+								<option value="double">Double</option>
+								<option value="none">None</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-grid-2">
+						<div class="prop-row">
+							<span class="prop-label">Box Shadow / Elevation</span>
+							<select class="prop-input" id="propBoxShadow" onchange="updateSelectedControl('box_shadow')" title="Drop shadow elevation or glow effect">
+								<option value="none">None</option>
+								<option value="subtle">Subtle Shadow</option>
+								<option value="medium">Medium Elevation</option>
+								<option value="deep">Deep Shadow</option>
+								<option value="glow">Accent Glow</option>
+							</select>
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Text Alignment</span>
+							<select class="prop-input" id="propTextAlign" onchange="updateSelectedControl('text_align')" title="Text horizontal alignment">
+								<option value="left">Left</option>
+								<option value="center">Center</option>
+								<option value="right">Right</option>
+								<option value="justify">Justify</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Opacity (%)</span>
+						<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" min="0" max="100" class="prop-input" id="propOpacity" oninput="updateSelectedControl('opacity')" title="Control transparency opacity percentage (0-100)">
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">Hover Styling & Mouse Cursor</span>
+
+					<div class="prop-grid-2" style="margin-top: 4px;">
+						<div class="prop-row">
+							<span class="prop-label">Hover Background</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propHoverBgColor" oninput="updateSelectedControl('hover_color')" title="Background color on mouse hover">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Hover Text Color</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" class="prop-input" id="propHoverFgColor" oninput="updateSelectedControl('hover_text_color')" title="Text color on mouse hover">
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Hover Presets</span>
+						<div class="color-swatches" style="flex-wrap: wrap; gap: 4px;">
+							<div class="swatch" style="background:#0284c7;" onclick="setHoverBgColor('#0284c7')" title="Sky Blue Hover"></div>
+							<div class="swatch" style="background:#10b981;" onclick="setHoverBgColor('#10b981')" title="Emerald Hover"></div>
+							<div class="swatch" style="background:#f59e0b;" onclick="setHoverBgColor('#f59e0b')" title="Amber Hover"></div>
+							<div class="swatch" style="background:#ef4444;" onclick="setHoverBgColor('#ef4444')" title="Rose Hover"></div>
+							<div class="swatch" style="background:#8b5cf6;" onclick="setHoverBgColor('#8b5cf6')" title="Violet Hover"></div>
+							<button class="btn" style="padding: 2px 6px; font-size: 9px; border-style: dashed;" onclick="setHoverBgColor('')" title="Clear custom hover background">Clear</button>
+						</div>
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">⚓ Delphi Anchors & Docking</span>
+
+					<div class="prop-row" style="margin-top: 4px;">
+						<span class="prop-label">Anchors (Top/Left/Right/Bottom)</span>
+						<div style="display:flex; gap:4px; align-items:center;">
+							<button class="btn btn-icon" id="anchorTopBtn" onclick="toggleAnchor('top')" title="Anchor Top" style="width:28px; height:24px; font-size:10px; font-weight:bold;">T</button>
+							<button class="btn btn-icon" id="anchorLeftBtn" onclick="toggleAnchor('left')" title="Anchor Left" style="width:28px; height:24px; font-size:10px; font-weight:bold;">L</button>
+							<button class="btn btn-icon" id="anchorRightBtn" onclick="toggleAnchor('right')" title="Anchor Right" style="width:28px; height:24px; font-size:10px; font-weight:bold;">R</button>
+							<button class="btn btn-icon" id="anchorBottomBtn" onclick="toggleAnchor('bottom')" title="Anchor Bottom" style="width:28px; height:24px; font-size:10px; font-weight:bold;">B</button>
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Dock Behavior</span>
+						<select class="prop-input" id="propDock" onchange="updateSelectedControlDock(this.value)" title="Dock control to parent container edge">
+							<option value="none">None (Free Position)</option>
+							<option value="top">Top Edge</option>
+							<option value="bottom">Bottom Edge</option>
+							<option value="left">Left Edge</option>
+							<option value="right">Right Edge</option>
+							<option value="fill">Fill (Client Align)</option>
+						</select>
+					</div>
+
+					<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+					<span class="prop-label" style="color: var(--accent);">🗄️ MS Access Data Binding</span>
+
+					<div class="prop-grid-2" style="margin-top: 4px;">
+						<div class="prop-row">
+							<span class="prop-label">Data Source</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propDataSource" placeholder="Dataset1" oninput="updateSelectedControl('data_source')" title="Linked dataset name for data binding">
+						</div>
+						<div class="prop-row">
+							<span class="prop-label">Data Field</span>
+							<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="prop-input" id="propDataField" placeholder="customer_name" oninput="updateSelectedControl('data_field')" title="Linked column or field for data binding">
+						</div>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Mouse Cursor Style</span>
+						<select class="prop-input" id="propCursor" onchange="updateSelectedControl('cursor')" title="Native mouse cursor displayed on hover">
+							<option value="default">Default Pointer</option>
+							<option value="pointer">Hand / Link Pointer</option>
+							<option value="crosshair">Crosshair Target</option>
+							<option value="text">Text I-Beam</option>
+							<option value="not-allowed">Not Allowed / Prohibited</option>
+							<option value="grab">Grab Open Hand</option>
+							<option value="zoom-in">Zoom In</option>
+							<option value="help">Help Question Mark</option>
+						</select>
+					</div>
+
+					<div class="prop-row">
+						<span class="prop-label">Quick Style Themes</span>
+						<div style="display:flex; gap:4px; flex-wrap:wrap;">
+							<button class="btn" style="padding:2px 6px; font-size:9px; background:#0284c7; color:#fff;" onclick="applyQuickStylePreset('primary')">Primary</button>
+							<button class="btn" style="padding:2px 6px; font-size:9px; background:#10b981; color:#fff;" onclick="applyQuickStylePreset('success')">Success</button>
+							<button class="btn" style="padding:2px 6px; font-size:9px; background:#f59e0b; color:#fff;" onclick="applyQuickStylePreset('warning')">Warning</button>
+							<button class="btn" style="padding:2px 6px; font-size:9px; background:#ef4444; color:#fff;" onclick="applyQuickStylePreset('danger')">Danger</button>
+							<button class="btn" style="padding:2px 6px; font-size:9px; background:#8b5cf6; color:#fff;" onclick="applyQuickStylePreset('violet')">Violet</button>
+							<button class="btn" style="padding:2px 6px; font-size:9px; background:#334155; color:#fff;" onclick="applyQuickStylePreset('slate')">Slate</button>
+						</div>
+					</div>
+
+					<div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:10px;">
+						<button class="btn" onclick="bringToFront()">🔝 Bring Front</button>
+						<button class="btn" onclick="sendToBack()">🔙 Send Back</button>
+						<button class="btn" onclick="toggleLockSelected()">🔒 Lock / Unlock</button>
+						<button class="btn" style="background:#ef4444; color:white;" onclick="deleteSelectedControl()">🗑️ Delete</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Component Tree Tab -->
+			<div class="tab-content" id="tabTree">
+				<span class="prop-label" style="color: var(--accent); display: block; margin-bottom: 8px;">Component Hierarchy & Order</span>
+				<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" class="search-box" id="treeFilterBox" placeholder="Filter hierarchy tree..." oninput="renderTree()" style="margin-bottom: 8px;" title="Filter controls in component tree">
+				<div id="treeContainer"></div>
+			</div>
+
+			<!-- Events Tab -->
+			<div class="tab-content" id="tabEvents">
+				<span class="prop-label" style="color: var(--accent); display: block; margin-bottom: 8px;">RAD Event JavaScript Code</span>
+
+				<div class="prop-row">
+					<span class="prop-label">onClick Handler</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnClick" placeholder="alert('Clicked!');" oninput="updateEventPlaceholder('onClick', this.value)" title="JavaScript code to execute on click"></textarea>
+				</div>
+
+				<div class="prop-row">
+					<span class="prop-label">onChange Handler</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnChange" placeholder="console.log('Changed');" oninput="updateEventPlaceholder('onChange', this.value)" title="JavaScript code to execute on value change"></textarea>
+				</div>
+
+				<div class="prop-row">
+					<span class="prop-label">onDoubleClick Handler</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnDblClick" placeholder="" oninput="updateEventPlaceholder('onDoubleClick', this.value)" title="JavaScript code to execute on double click"></textarea>
+				</div>
+
+				<div class="prop-row">
+					<span class="prop-label">onHover (Mouse Enter)</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnHover" placeholder="" oninput="updateEventPlaceholder('onHover', this.value)" title="JavaScript code to execute when mouse enters"></textarea>
+				</div>
+
+				<div class="prop-row">
+					<span class="prop-label">onHoverExit (Mouse Exit)</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnHoverExit" placeholder="" oninput="updateEventPlaceholder('onHoverExit', this.value)" title="JavaScript code to execute when mouse exits"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onFocus</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnFocus" placeholder="" oninput="updateEventPlaceholder('onFocus', this.value)" title="JavaScript code to execute on focus"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onBlur</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnBlur" placeholder="" oninput="updateEventPlaceholder('onBlur', this.value)" title="JavaScript code to execute on blur"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onKeyDown</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnKeyDown" placeholder="" oninput="updateEventPlaceholder('onKeyDown', this.value)" title="JavaScript code to execute on key down"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onKeyUp</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnKeyUp" placeholder="" oninput="updateEventPlaceholder('onKeyUp', this.value)" title="JavaScript code to execute on key up"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onMouseDown</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnMouseDown" placeholder="" oninput="updateEventPlaceholder('onMouseDown', this.value)" title="JavaScript code to execute on mouse down"></textarea>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">onMouseUp</span>
+					<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="prop-input" style="height: 100px; font-family: monospace; tab-size: 4;" id="evtOnMouseUp" placeholder="" oninput="updateEventPlaceholder('onMouseUp', this.value)" title="JavaScript code to execute on mouse up"></textarea>
+				</div>
+			</div>
+
+			<!-- Bun TS Export Tab -->
+			<div class="tab-content" id="tabBunTS">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">Bun TypeScript</span>
+					<button class="btn btn-primary" onclick="copyBunTSCode(this)">📋 Copy Bun Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="bunTsPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- HTML Export Tab -->
+			<div class="tab-content" id="tabHTML">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">Standalone HTML5</span>
+					<button class="btn btn-primary" onclick="copyHTMLCode(this)">📋 Copy HTML Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="htmlPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- React + Tailwind Export Tab -->
+			<div class="tab-content" id="tabReact">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">React + Tailwind TSX</span>
+					<button class="btn btn-primary" onclick="copyReactCode(this)">📋 Copy React Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="reactPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- Vue 3 SFC Export Tab -->
+			<div class="tab-content" id="tabVue">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">Vue 3 SFC (.vue)</span>
+					<button class="btn btn-primary" onclick="copyVueCode(this)">📋 Copy Vue Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="vuePreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- Python CustomTkinter Export Tab -->
+			<div class="tab-content" id="tabPython">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+					<span class="prop-label" style="color:var(--accent);">Python CustomTkinter</span>
+					<button class="btn btn-primary" onclick="copyPythonCode(this)">📋 Copy Python Code</button>
+				</div>
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="pythonPreviewText" readonly style="height:320px; font-family:monospace; font-size:11px;"></textarea>
+			</div>
+
+			<!-- JSON Export Tab -->
+			<div class="tab-content" id="tabJSON">
+				<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="jsonPreviewText" readonly></textarea>
+			</div>
+		</aside>
+	</div>
+
+	<!-- Event Handler Code Editor Modal (Delphi / VB Code Window Paradigm) -->
+	<div class="modal-overlay" id="eventEditorModal">
+		<div class="modal-box" style="width:680px;">
+			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+				<span style="font-weight:700; color:var(--accent); font-size:14px;" id="eventEditorTitle">✏️ RAD Event Handler Script Editor</span>
+				<span id="eventEditorSubtitle" style="font-size:11px; color:var(--text-muted);">button_1.onClick</span>
+			</div>
+			<div style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap;">
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('alert')">+ Alert Dialog</button>
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('console')">+ Console Log</button>
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('backend')">+ Backend Call</button>
+				<button class="btn" style="padding:2px 8px; font-size:10px;" onclick="insertEventCodeSnippet('setValue')">+ Set Control Value</button>
+			</div>
+			<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="eventEditorTextarea" style="height:260px; font-family:monospace; font-size:12px; line-height:1.4; background:#0f172a; color:#7dd3fc; border-color:var(--accent);"></textarea>
+			<div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+				<button class="btn" onclick="hideEventEditorModal()">Cancel</button>
+				<button class="btn btn-primary" onclick="saveEventHandlerCode()">💾 Save & Bind Handler</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Custom Right-Click Context Menu -->
+	<div class="context-menu" id="contextMenu">
+		<div class="context-menu-item" onclick="copySelectedControl()">📋 Copy <span class="context-menu-shortcut">Cmd+C</span></div>
+		<div class="context-menu-item" onclick="pasteCopiedControl()">📥 Paste <span class="context-menu-shortcut">Cmd+V</span></div>
+		<div class="context-menu-item" onclick="duplicateSelectedControl()">✨ Duplicate <span class="context-menu-shortcut">Cmd+D</span></div>
+		<div class="context-menu-item" onclick="deleteSelectedControl()">🗑️ Delete <span class="context-menu-shortcut">Del</span></div>
+		<div class="context-menu-divider"></div>
+		<div class="context-menu-item" onclick="toggleLockSelected()">🔒 Lock / Unlock</div>
+		<div class="context-menu-item" onclick="bringToFront()">🔝 Bring to Front</div>
+		<div class="context-menu-item" onclick="moveForward()">▲ Move Forward</div>
+		<div class="context-menu-item" onclick="moveBackward()">▼ Move Backward</div>
+		<div class="context-menu-item" onclick="sendToBack()">🔙 Send to Back</div>
+		<div class="context-menu-divider"></div>
+		<div class="context-menu-item" onclick="alignControls('center')">↔️ Align Center</div>
+		<div class="context-menu-item" onclick="alignControls('middle')">↕️ Align Middle</div>
+		<div class="context-menu-divider"></div>
+		<div class="context-menu-item" onclick="equalizeSize('width', 'widest')">↔️ Size to Widest</div>
+		<div class="context-menu-item" onclick="equalizeSize('width', 'narrowest')">↔️ Size to Narrowest</div>
+		<div class="context-menu-item" onclick="equalizeSize('height', 'tallest')">↕️ Size to Tallest</div>
+		<div class="context-menu-item" onclick="equalizeSize('height', 'shortest')">↕️ Size to Shortest</div>
+		<div class="context-menu-item" onclick="fitControlToContent()">📏 Size to Fit</div>
+	</div>
+
+	<!-- Status Bar -->
+	<footer class="app-statusbar">
+		<span id="statusMsg">Ready — Click any palette item to start placing controls.</span>
+		<span id="statusRight" style="display:flex;gap:12px;align-items:center;font-size:10px;color:var(--text-muted);">
+			<span id="statusCoords">X: — Y: —</span>
+			<span id="statusCount">0 controls</span>
+			<span>Grid: 8px</span>
+		</span>
+	</footer>
+
+	<!-- Placement Mode Toast -->
+	<div id="placementToast">
+		<span class="toast-icon">✛</span>
+		<span id="placementToastText">Click canvas to place control</span>
+		<span style="opacity:0.5;font-size:11px;font-weight:400;">Shift+click = keep placing</span>
+		<button class="toast-cancel" onclick="cancelPlacementMode()">Esc ✕</button>
+	</div>
+
+	<!-- Global Copy Notification Toast -->
+	<div id="copyNotificationToast" class="copy-notification-toast">
+		<span class="copy-toast-icon">✅</span>
+		<span id="copyNotificationToastText">Copied to clipboard!</span>
+	</div>
+
+	<!-- Unsaved-design restore banner (shown only when an autosaved draft exists) -->
+	<div id="draftBanner" role="alert" style="display:none; position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:1100; background:var(--bg-panel); border:1px solid var(--accent); border-radius:8px; padding:10px 14px; box-shadow:0 8px 24px rgba(0,0,0,0.5); align-items:center; gap:12px; max-width:90vw;">
+		<span id="draftBannerText" style="font-size:12px; color:var(--text-primary);"></span>
+		<button class="btn btn-primary" id="draftRestoreBtn" onclick="restoreDraft()">Restore</button>
+		<button class="btn" id="draftDiscardBtn" onclick="discardDraft()">Discard</button>
+	</div>
+
+	<!-- Import JSON Modal -->
+	<div class="modal-overlay" id="importModal">
+		<div class="modal-box">
+			<span style="font-weight:700; color:var(--accent);">📥 Import FormSpec JSON Layout</span>
+			<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' class="code-area" id="importJsonText" placeholder="Paste FormSpec JSON structure here..." style="height:200px;"></textarea>
+			<div style="display:flex; justify-content:flex-end; gap:8px;">
+				<button class="btn" onclick="hideImportModal()">Cancel</button>
+				<button class="btn btn-primary" onclick="processImportJSON()">Load Layout</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Hotkeys Modal -->
+	<div class="modal-overlay" id="hotkeysModal">
+		<div class="modal-box">
+			<span style="font-weight:700; color:var(--accent); font-size:14px;">⌨️ Keyboard Shortcuts & Power Actions</span>
+			<table class="hotkey-table">
+				<tr><td><span class="hotkey-key">Cmd + C</span> / <span class="hotkey-key">Ctrl + C</span></td><td>Copy selected control(s)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + V</span> / <span class="hotkey-key">Ctrl + V</span></td><td>Paste copied control(s)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + D</span> / <span class="hotkey-key">Ctrl + D</span></td><td>Duplicate selected control(s)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + A</span> / <span class="hotkey-key">Ctrl + A</span></td><td>Select all controls on canvas</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Z</span> / <span class="hotkey-key">Ctrl + Z</span></td><td>Undo action</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Shift + Z</span></td><td>Redo action</td></tr>
+				<tr><td><span class="hotkey-key">Delete</span> / <span class="hotkey-key">Backspace</span></td><td>Delete selected control(s)</td></tr>
+				<tr><td><span class="hotkey-key">Arrows</span></td><td>Nudge control position by 1px</td></tr>
+				<tr><td><span class="hotkey-key">Shift + Arrows</span></td><td>Nudge control position by 8px (Grid snap)</td></tr>
+				<tr><td><span class="hotkey-key">Alt + Arrows</span> / <span class="hotkey-key">Alt + Shift + Arrows</span></td><td>Resize selected control(s) by 1px / 8px</td></tr>
+				<tr><td><span class="hotkey-key">Tab</span>, then <span class="hotkey-key">Enter</span> / <span class="hotkey-key">Space</span> on a palette item</td><td>Place that control without the mouse (below the lowest control); then move or resize it with the arrow keys</td></tr>
+				<tr><td><span class="hotkey-key">Space + Drag</span> / <span class="hotkey-key">Middle Click Drag</span></td><td>Pan canvas workspace view</td></tr>
+				<tr><td><span class="hotkey-key">Ctrl / Cmd + Wheel</span></td><td>Smooth zoom canvas workspace</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Q</span> / <span class="hotkey-key">Cmd + W</span> / <span class="hotkey-key">Alt + Alt</span></td><td>Close window / Quit application</td></tr>
+				<tr><td><span class="hotkey-key">Ctrl + Q</span> / <span class="hotkey-key">Ctrl + W</span> / <span class="hotkey-key">Alt + F4</span></td><td>Close window (Windows / Linux)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + M</span> / <span class="hotkey-key">Ctrl + M</span></td><td>Minimize window</td></tr>
+				<tr><td><span class="hotkey-key">Fn + F</span> / <span class="hotkey-key">F11</span> / <span class="hotkey-key">Cmd + Ctrl + F</span></td><td>Toggle Fullscreen window mode</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Shift + T</span> / <span class="hotkey-key">Ctrl + Shift + T</span></td><td>Toggle Always on Top (Pin)</td></tr>
+				<tr><td><span class="hotkey-key">Cmd + Shift + C</span> / <span class="hotkey-key">Ctrl + Shift + C</span></td><td>Center window on screen</td></tr>
+				<tr><td><span class="hotkey-key">Cmd/Ctrl +</span> / <span class="hotkey-key">Cmd/Ctrl -</span> / <span class="hotkey-key">0</span></td><td>Zoom canvas workspace</td></tr>
+				<tr><td><span class="hotkey-key">Escape</span></td><td>Deselect all controls & close modals</td></tr>
+			</table>
+			<div style="display:flex; justify-content:flex-end;">
+				<button class="btn btn-primary" onclick="hideHotkeysModal()">Got it!</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Layout Diagnostics Audit Modal -->
+	<div class="modal-overlay" id="diagnosticsModal">
+		<div class="modal-box" style="width: 580px;">
+			<span style="font-weight:700; color:var(--accent); font-size:14px;">🔍 Form Layout Audit & Health Diagnostics</span>
+			<div id="diagnosticsSummary" style="font-size: 11px; max-height: 280px; overflow-y: auto; background: var(--bg-main); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); line-height: 1.5;"></div>
+			<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+				<button class="btn btn-success" onclick="autoFixLayoutIssues()">⚡ Auto-Fix Overlaps & Boundaries</button>
+				<button class="btn btn-primary" onclick="hideDiagnosticsModal()">Close</button>
+			</div>
+		</div>
+	</div>
+
+	<script>
