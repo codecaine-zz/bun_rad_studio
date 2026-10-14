@@ -405,6 +405,23 @@ describe("the right-click menu", () => {
     await until(() => actions.hintFor(path)?.done, "the folder to be checked");
   };
 
+  test("right-clicking empty space offers the same for the folder you are in", async () => {
+    const before = state.location;
+    state.search = null;
+    for (const [path, php] of [[site, false], [phpsite, true], [plain, false]] as const) {
+      await primed(path);
+      state.location = { kind: "folder", path };
+      contextmenu.showBackgroundMenu({ x: 5, y: 5 });
+      const labels = menuLabels();
+      expect(labels, path).toContain("Start live server here");
+      expect(labels.includes("Start PHP server here"), path).toBe(php);
+      expect(labels).toContain("New folder");
+      noStrayWords($(".menu"), "the folder menu");
+      menus.closeMenu();
+    }
+    state.location = before;
+  });
+
   test("a folder offers to start a live server, and a folder with PHP also offers PHP", async () => {
     await primed(site);
     await primed(phpsite);

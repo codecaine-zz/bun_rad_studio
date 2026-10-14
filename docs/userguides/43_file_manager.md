@@ -259,6 +259,7 @@ What it protects and what it doesn't (file names on disk, file size, timing, no 
 **Ways to start one.**
 
 - **Right-click a folder** → *Start live server here* / *Stop live server*, and, when the folder looks like a PHP project, *Start PHP server here* / *Stop PHP server*.
+- **Right-click empty space** in the file list to start or stop the same servers for the folder you are in.
 - **Right-click an `.html` or `.htm` file** → *Open with live server*: serves that file's folder (or reuses the server already running for it) and opens that page in your browser.
 - **The Serve tab** has two switches for the folder you are looking at, a list of every running server, and a *Start a new server* form: folder, kind (automatic: PHP if the folder has PHP files, otherwise live), port (Auto, or 1024–65535), reload on change, open the browser, show hidden files, allow other websites to read the files (CORS), and, under *PHP options*, a document folder inside the project (for example `public`), a router script and a particular PHP program.
 - The Home tile **Live server** opens the tab for the folder you are in.

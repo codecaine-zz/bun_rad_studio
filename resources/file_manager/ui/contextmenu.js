@@ -10,7 +10,7 @@ import { openFolderInCode, openInCode } from "./code.js";
 import { openPower } from "./power.js";
 import { looksLikeText } from "./codeLang.js";
 import { showOpenWith } from "./openwith.js";
-import { serveMenuItems } from "./serveActions.js";
+import { folderServeItems, serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
 import { extensionOf } from "./util.js";
 import { canLock, canUnlock, lockEntries, unlockEntries } from "./vault.js";
@@ -122,6 +122,7 @@ export function backgroundItems() {
     { label: "Refresh", shortcut: "F5", action: () => refresh() },
     { separator: true },
     { label: "Open this folder in Code editor", icon: "📝", action: () => openFolderInCode(here) },
+    ...folderServeItems(here),
     { separator: true },
     ...viewMenuItems(),
     { separator: true },

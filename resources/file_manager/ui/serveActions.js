@@ -113,24 +113,27 @@ export async function openWithLiveServer(entry) {
 }
 
 /** The entries the right-click menu adds for one folder or HTML file. Empty for anything else. */
+/** The start and stop entries for a folder: the folder you right-clicked, or the one you are in. */
+export function folderServeItems(path) {
+  primeHint(path);
+  const hint = hintFor(path);
+  if (hint?.blocked) return [];
+  const live = serverFor(path, "static");
+  const php = serverFor(path, "php");
+  return [
+    live
+      ? { label: "Stop live server", icon: "⏹️", action: () => stopServer(live.id) }
+      : { label: "Start live server here", icon: "🌐", action: () => startHere(path, "static") },
+    php || hint?.php
+      ? (php ? { label: "Stop PHP server", icon: "⏹️", action: () => stopServer(php.id) } : { label: "Start PHP server here", icon: "🐘", action: () => startHere(path, "php") })
+      : null,
+  ].filter(Boolean);
+}
+
 export function serveMenuItems(entries) {
   if (entries.length !== 1) return [];
   const e = entries[0];
-  if (e.isDir) {
-    primeHint(e.path);
-    const hint = hintFor(e.path);
-    if (hint?.blocked) return [];
-    const live = serverFor(e.path, "static");
-    const php = serverFor(e.path, "php");
-    return [
-      live
-        ? { label: "Stop live server", icon: "⏹️", action: () => stopServer(live.id) }
-        : { label: "Start live server here", icon: "🌐", action: () => startHere(e.path, "static") },
-      php || hint?.php
-        ? (php ? { label: "Stop PHP server", icon: "⏹️", action: () => stopServer(php.id) } : { label: "Start PHP server here", icon: "🐘", action: () => startHere(e.path, "php") })
-        : null,
-    ];
-  }
+  if (e.isDir) return folderServeItems(e.path);
   if (/\.html?$/i.test(e.name)) return [{ label: "Open with live server", icon: "🌐", action: () => openWithLiveServer(e) }];
   return [];
 }
