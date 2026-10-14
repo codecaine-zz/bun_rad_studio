@@ -5,6 +5,7 @@ import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
 import { $ } from "./dom.js";
 import { toast } from "./menus.js";
+import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 
 const MIN_HEIGHT = 120;
@@ -22,6 +23,13 @@ let height = 300;
 let ended = false;
 let startedIn = "";
 let fitQueued = false;
+
+/** The folder the buttons act on: the one folder selected in the list, otherwise the folder on screen. */
+function targetFolder() {
+  const picked = selectedEntries();
+  if (picked.length === 1 && picked[0].isDir) return picked[0].path;
+  return currentFolder();
+}
 
 export const terminalAvailable = () => state.platform !== "win32";
 
@@ -103,13 +111,13 @@ function connect(folder) {
 
 function restart() {
   if (!term) return;
-  connect(currentFolder());
+  connect(targetFolder());
   term.focus();
 }
 
-/** Moves the running shell to the folder on screen. */
+/** Moves the running shell to the selected folder (or the one on screen). Always sends the move: the shell may have been used since. */
 function goToFolder() {
-  const folder = currentFolder();
+  const folder = targetFolder();
   if (!term || ended) return restart();
   // A name with line breaks or other control characters can't be typed safely, so a new shell is started there instead.
   if (/[\x00-\x1f\x7f]/.test(folder)) return restart();
