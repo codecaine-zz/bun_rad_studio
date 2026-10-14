@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
@@ -294,9 +294,14 @@ suite("the file list can follow the shell", () => {
     const gone = join(work, "will vanish");
     mkdirSync(gone, { recursive: true });
     const c = await connect({ token: TOKEN, path: work });
-    c.ws.send(JSON.stringify({ type: "input", data: "cd 'will vanish' && rmdir \"$PWD\"\r" }));
+    // Go in first and wait for it to be seen, so the removal can't race with a look at the folder.
+    c.ws.send(JSON.stringify({ type: "input", data: "cd 'will vanish'\r" }));
+    await waitForCwd(c, realpathSync(gone));
+    const before = cwdMessages(c).length;
+    c.ws.send(JSON.stringify({ type: "input", data: "rmdir \"$PWD\"\r" }));
     await Bun.sleep(2800);
-    expect(cwdMessages(c).some((p) => p.includes("will vanish"))).toBe(false);
+    expect(cwdMessages(c).length).toBe(before);
+    expect(existsSync(gone)).toBe(false);
     c.ws.close();
   });
 });

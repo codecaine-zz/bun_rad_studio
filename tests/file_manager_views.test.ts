@@ -93,6 +93,15 @@ const key = (target: any, k: string, extra: Record<string, unknown> = {}) => {
 };
 const alt = (digit: number) => key(doc.body, String(digit), { altKey: true, code: `Digit${digit}` });
 const savedSettings = async () => JSON.parse(readFileSync(join(dataDir, "file_manager.json"), "utf8"));
+/** The page saves a moment after a change; on a slow machine that moment is longer, so wait for the value instead of a fixed time. */
+async function savedWhen(name: string, value: unknown) {
+  const end = Date.now() + 8000;
+  while (Date.now() < end) {
+    if ((await savedSettings())[name] === value) return;
+    await sleep(50);
+  }
+  expect((await savedSettings())[name]).toBe(value);
+}
 const radio = (view: string): any => doc.getElementById(`view-${view}`);
 const tiles = () => [...doc.querySelectorAll("#home-grid .home-tile")].filter((t: any) => !t.hidden);
 const tile = (id: string): any => doc.querySelector(`#home-grid .home-tile[data-tile="${id}"]`);
@@ -506,8 +515,7 @@ describe("the split", () => {
     expect(sep.getAttribute("aria-valuemax")).toBe("80");
     key(sep, "ArrowUp");
     expect(split()).toBe(20);
-    await sleep(250);
-    expect((await savedSettings()).splitSize).toBe(20);
+    await savedWhen("splitSize", 20);
     sep.dispatchEvent(new win.MouseEvent("dblclick", { bubbles: true }));
     expect(split()).toBe(50);
     await sleep(250);
@@ -528,8 +536,7 @@ describe("the split", () => {
     sep.dispatchEvent(new win.MouseEvent("pointerup", { bubbles: true }));
     expect(stage.classList.contains("resizing")).toBe(false);
     expect(split()).toBe(70);
-    await sleep(250);
-    expect((await savedSettings()).splitSize).toBe(70);
+    await savedWhen("splitSize", 70);
   });
 
   test("the orientation button switches between side by side and stacked, uses the other arrow keys, and is saved", async () => {
