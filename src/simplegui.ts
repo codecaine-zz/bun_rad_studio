@@ -1,6 +1,9 @@
 import { SizeHint, Webview } from "webview-bun";
 import { injectHelp } from "./shared/helpTips";
 import { OS_THEMES, OS_THEME_KEYS } from "./shared/osThemes";
+import { FX_THEMES, FX_THEME_KEYS, FX_THEME_ALIASES, fxCssVars as buildFxCssVars, fxRootAttrs, normalizeFxMode, syntaxPalette, type FxMode, type SyntaxPalette, type ThemeFx } from "./shared/fxThemes";
+import { fxCss } from "./shared/fxCss";
+import { FX_POINTER_SOURCE } from "./shared/fxPointer";
 import { buildSemanticPalette, overridesForTheme, semanticCssVars, type SemanticOverrides, type SemanticPalette } from "./shared/themeSemantic";
 import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, hideAppNative, closeWindowNative, attachWindowShortcuts, getScreenDimensions } from "../index.ts";
 import { Sys } from "./simplecli/sys/index.ts";
@@ -35,6 +38,8 @@ export interface SimpleWindowOptions {
     auto_save_state?: boolean;
     fullscreen?: boolean;
     responsive?: boolean;
+    /** Effects for themes that have an `fx` descriptor: "full" (default), "reduced" (looks, no motion) or "off". */
+    effects?: "full" | "reduced" | "off";
 }
 
 export interface ControlSpec {
@@ -850,6 +855,8 @@ export class SimpleWindow {
     public padding: number;
     public spacing: number;
     public theme: string;
+    /** Effects mode for fx themes: "full", "reduced" or "off". */
+    public effects: "full" | "reduced" | "off" = "full";
     public backgroundColor: string;
     public fontColor: string;
     public alwaysOnTop: boolean;
@@ -937,6 +944,7 @@ export class SimpleWindow {
         const savedGlobalTheme = getSavedTheme();
         const preferredTheme = options.theme || (savedGlobalTheme ? savedGlobalTheme : "midnight");
         this.theme = preferredTheme;
+        if (options.effects) this.effects = options.effects;
         this.alwaysOnTop = options.alwaysOnTop || false;
 
         const resolvedTheme = this.resolveThemeColors(this.theme, options.background_color, options.font_color);
@@ -1358,10 +1366,45 @@ export class SimpleWindow {
                 })();
             `);
         }
+        if (this.isWindowRunning) this.syncFx(previousThemeName);
         return this;
     }
     public set_theme(themeName: string, persist = true): this {
         return this.setTheme(themeName, persist);
+    }
+
+    /** Effects for themes that have an `fx` descriptor: "full" (default), "reduced" (looks without motion) or "off". */
+    public setEffects(mode: "full" | "reduced" | "off"): this {
+        this.effects = mode;
+        if (this.isWindowRunning) this.syncFx(this.theme);
+        return this;
+    }
+    public set_effects(mode: "full" | "reduced" | "off"): this {
+        return this.setEffects(mode);
+    }
+
+    // Moves a running page to the current theme's effects: root flags, per-theme variables, the shared CSS and the pointer helper.
+    private syncFx(previousThemeName?: string): void {
+        const theme = getTheme(this.theme);
+        const previousHadFx = previousThemeName ? !!getTheme(previousThemeName).fx : false;
+        if (!theme.fx && !previousHadFx) return;
+        const attrs = theme.fx ? fxRootAttrs(theme, normalizeFxMode(this.effects)) : {};
+        this.evalJS(`
+            (function() {
+                var root = document.documentElement;
+                Array.prototype.slice.call(root.attributes).forEach(function(a) { if (a.name.indexOf("data-fx") === 0) root.removeAttribute(a.name); });
+                var attrs = ${JSON.stringify(attrs)};
+                Object.keys(attrs).forEach(function(k) { root.setAttribute(k, attrs[k]); });
+                var vars = document.getElementById("simplegui-fx-vars");
+                if (!vars) { vars = document.createElement("style"); vars.id = "simplegui-fx-vars"; document.head.appendChild(vars); }
+                vars.textContent = ${JSON.stringify(theme.fx ? `:root { ${buildFxCssVars(theme)} }` : "")};
+                if (${theme.fx ? "true" : "false"} && !document.getElementById("simplegui-fx-css")) {
+                    var css = document.createElement("style"); css.id = "simplegui-fx-css"; css.textContent = ${JSON.stringify(theme.fx ? fxCss() : "")};
+                    document.head.appendChild(css);
+                }
+                ${theme.fx ? FX_POINTER_SOURCE : ""}
+            })();
+        `);
     }
 
     public setAlwaysOnTop(onTop: boolean): this {
@@ -5198,6 +5241,7 @@ export class SimpleWindow {
             // The theme's own answer, used only while the page still has the theme's background (a custom background is judged by its colour).
             is_dark: themeObj && this.backgroundColor === themeObj.background_color ? themeObj.is_dark : undefined,
             semantic_overrides: themeObj ? overridesForTheme(themeObj) : undefined,
+            ...(themeObj?.fx ? { fx: themeObj.fx, fx_mode: this.effects } : {}),
             padding: this.padding,
             spacing: this.spacing,
             controls: specControls,
@@ -9550,7 +9594,11 @@ export interface SimpleGUITheme {
     is_dark: boolean;
     /** Optional danger, warning, success and info base colours; the rest of each status colour is derived and contrast-checked. */
     semantic?: SemanticOverrides;
+    /** Optional effects descriptor (glow, glass, motion). A theme without it gets no effects output at all. */
+    fx?: ThemeFx;
 }
+
+export type { ThemeFx, FxMode, SyntaxPalette };
 
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     // ==========================================
@@ -11397,6 +11445,7 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
 };
 
 Object.assign(SIMPLEGUI_THEMES, OS_THEMES);
+Object.assign(SIMPLEGUI_THEMES, FX_THEMES);
 
 export function autoShortThemeName(themeNameOrKey: string): string {
     if (!themeNameOrKey || typeof themeNameOrKey !== "string") return "";
@@ -11553,7 +11602,7 @@ export const VLANG_THEME_NAMES: string[] = [
     'win11_light',
     'win11_slate',
     'win95'
-].concat(OS_THEME_KEYS).sort((a, b) => a.localeCompare(b));
+].concat(OS_THEME_KEYS, FX_THEME_KEYS).sort((a, b) => a.localeCompare(b));
 
 export function getThemeNames(): string[] {
     return [...VLANG_THEME_NAMES].sort((a, b) => a.localeCompare(b));
@@ -11571,6 +11620,7 @@ export function getTheme(themeName: string): SimpleGUITheme {
     if (SIMPLEGUI_THEMES[key]) return SIMPLEGUI_THEMES[key]!;
 
     const aliasMap: Record<string, string> = {
+        ...FX_THEME_ALIASES,
         'gruvbox': 'gruvbox_dark',
         'one_dark': 'one_dark_pro',
         'synthwave_84': 'synthwave84',
@@ -11689,6 +11739,29 @@ export function getSemanticColors(themeName: string): SemanticPalette {
 }
 export const get_semantic_colors = getSemanticColors;
 
+/** The effects descriptor of a theme (glow, glass, motion), or undefined for the themes that have none. */
+export function getThemeFx(themeName: string): ThemeFx | undefined {
+    return getTheme(themeName).fx;
+}
+export const get_theme_fx = getThemeFx;
+
+export function isFxTheme(themeName: string): boolean {
+    return !!getTheme(themeName).fx;
+}
+export const is_fx_theme = isFxTheme;
+
+/** Code colours (keyword, string, number, comment, function, type) for any theme, each readable on its canvas. */
+export function getSyntaxPalette(themeName: string): SyntaxPalette {
+    return syntaxPalette(getTheme(themeName));
+}
+export const get_syntax_palette = getSyntaxPalette;
+
+/** The `--fx-*` custom properties for a theme as CSS declarations; "" for a theme without `fx`. Accepts a theme object or a name. */
+export function fxCssVars(theme: SimpleGUITheme | string): string {
+    return buildFxCssVars(typeof theme === "string" ? getTheme(theme) : theme);
+}
+export const fx_css_vars = fxCssVars;
+
 // OS Path Utilities
 export function homeDir(): string { return process.env.HOME || "/Users"; }
 export function tempDir(): string { return process.env.TMPDIR || "/tmp"; }
@@ -11738,7 +11811,14 @@ export const simplegui = {
     getTheme,
     getSemanticColors,
     get_semantic_colors,
-    saveTheme,
+    getThemeFx,
+    get_theme_fx,
+    isFxTheme,
+    is_fx_theme,
+    fxCssVars,
+    fx_css_vars,
+    getSyntaxPalette,
+    get_syntax_palette,
     save_theme,
     getSavedTheme,
     get_saved_theme,

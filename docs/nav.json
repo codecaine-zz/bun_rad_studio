@@ -31,6 +31,7 @@
         { "title": "Reference index", "path": "reference/index.md" },
         { "title": "Glossary", "path": "glossary.md" },
         { "title": "Data and files", "path": "reference/data-and-files.md" },
+        { "title": "Encrypted file format (RADENC)", "path": "reference/vault-format.md" },
         { "title": "Performance (measured baseline)", "path": "performance.md" },
         { "title": "Accessibility (what was checked)", "path": "accessibility.md" },
         { "title": "Application index (generated)", "path": "reference/application-index.md" },
@@ -47,7 +48,9 @@
       "title": "Developer handbook",
       "pages": [
         { "title": "Architecture", "path": "developer/architecture.md" },
-        { "title": "Developer handbook", "path": "developer/handbook.md" }
+        { "title": "Developer handbook", "path": "developer/handbook.md" },
+        { "title": "Building releases", "path": "developer/releasing.md" },
+        { "title": "Futuristic themes and the motion layer", "path": "developer/fx-themes.md" }
       ]
     },
     {

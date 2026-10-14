@@ -1,17 +1,24 @@
 /**
- * Checks for, and installs, the helper programs the File Manager's "Convert & process" window uses:
- * ffmpeg (video and sound), ImageMagick (pictures) and pandoc (documents).
+ * Checks for, and installs, the helper programs the File Manager's "Convert & process" window uses.
  *
- *   bun run tools:check                    show what is installed
- *   bun run tools:install                  install what is missing (asks first)
- *   bun run tools:install ffmpeg pandoc    install only these
- *   bun run tools:install --yes            do not ask
+ *   bun run tools:check                      show what is installed
+ *   bun run tools:install                    install the three main programs if missing (asks first)
+ *   bun run tools:install --all              also the optional ones (LibreOffice and calibre are big downloads: it asks for each)
+ *   bun run tools:install ffmpeg pandoc      install only these
+ *   bun run tools:install libreoffice        an optional program, by name
+ *   bun run tools:install --yes              do not ask
+ *
+ * Many conversions need nothing installed (data files, text, zip, tar.gz, gzip, Markdown to HTML, spreadsheets).
+ * The main programs are ffmpeg (video and sound), ImageMagick (pictures) and pandoc (documents). The rest are optional:
+ * Ghostscript and qpdf (PDF), LibreOffice (Office files), calibre (e-books), Tesseract (text in pictures), fontTools
+ * and woff2 (fonts), 7-Zip, The Unarchiver and bsdtar (archives), poppler (PDF text), ExifTool (hidden details).
  *
  * It uses the same catalog and install plans as the File Manager, so both always do the same thing:
- *   macOS / Linux with Homebrew:  brew install ffmpeg-full imagemagick-full pandoc
+ *   macOS / Linux with Homebrew:  brew install ffmpeg-full imagemagick-full pandoc   (casks for LibreOffice and calibre)
  *   Windows:                      winget (or Scoop) install
  *   Linux without Homebrew:       your system's package manager (it asks for your password in this terminal)
- * Where the package manager itself is missing, it prints how to get it instead of guessing.
+ * Where the package manager itself is missing, it prints how to get it instead of guessing. Nothing is installed
+ * without your confirmation.
  */
 import { detectManagers, toolStatus } from "../src/features/filemanager/fmBatch";
 import { createContext } from "../src/features/filemanager/fmCore";
@@ -20,6 +27,7 @@ import { TOOLS, TOOL_IDS, type ToolId } from "../src/features/filemanager/fmTool
 const args = process.argv.slice(2);
 const command = args[0] === "install" || args[0] === "check" ? args[0] : "check";
 const yes = args.includes("--yes") || args.includes("-y");
+const all = args.includes("--all");
 const named = args.filter((a) => (TOOL_IDS as string[]).includes(a)) as ToolId[];
 const unknown = args.slice(args[0] === "install" || args[0] === "check" ? 1 : 0).filter((a) => !a.startsWith("-") && !(TOOL_IDS as string[]).includes(a));
 if (unknown.length) {
@@ -29,12 +37,14 @@ if (unknown.length) {
 
 const ctx = createContext({});
 const status = await toolStatus(ctx);
-const wanted = named.length ? named : TOOL_IDS;
+const mainIds = TOOL_IDS.filter((id) => !TOOLS[id].optional);
+const wanted = named.length ? named : all ? TOOL_IDS : mainIds;
 
 console.log(`\nHelper programs on ${ctx.platform}:\n`);
 for (const t of status.tools) {
   const mark = t.installed ? "✔" : "✖";
-  console.log(`  ${mark} ${t.name.padEnd(12)} ${t.installed ? `${t.version ?? ""}  ${t.path}` : "not installed"}`);
+  const note = t.optional ? " (optional)" : "";
+  console.log(`  ${mark} ${t.name.padEnd(24)} ${t.installed ? `${t.version ?? ""}  ${t.path}` : `not installed${note}`}`);
 }
 const managerNames = Object.keys(detectManagers(ctx));
 console.log(`\n  Package managers found: ${managerNames.length ? managerNames.join(", ") : "none"}\n`);
@@ -42,8 +52,10 @@ console.log(`\n  Package managers found: ${managerNames.length ? managerNames.jo
 const missing = status.tools.filter((t) => !t.installed && wanted.includes(t.id));
 if (command === "check" || !missing.length) {
   if (command === "install" && !missing.length) console.log("Nothing to install.");
-  if (command === "check" && missing.length) console.log(`To install what is missing: bun run tools:install\n`);
-  process.exit(missing.length && command === "check" ? 1 : 0);
+  if (command === "check" && status.tools.some((t) => !t.installed && !t.optional)) console.log(`To install the main programs: bun run tools:install\n`);
+  if (command === "check" && status.tools.some((t) => !t.installed && t.optional)) console.log(`The optional ones (PDF tools, Office, e-books, OCR, fonts, archives): bun run tools:install --all\n`);
+  // Only the main programs make "check" fail: the optional ones are never required.
+  process.exit(status.tools.some((t) => !t.installed && !t.optional) && command === "check" ? 1 : 0);
 }
 
 async function confirm(question: string): Promise<boolean> {
@@ -64,7 +76,13 @@ for (const t of missing) {
     failed = true;
     continue;
   }
-  if (!(await confirm(`  Run: ${plan.display} ?`))) {
+  // Big downloads are always asked about, even with --yes, unless --yes was given on purpose together with the name.
+  const big = !!plan.size && !named.includes(t.id) && yes;
+  if (big) {
+    console.log(`  Skipped (${plan.size}). Name it to install it: bun run tools:install ${t.id} --yes\n`);
+    continue;
+  }
+  if (!(await confirm(`  Run: ${plan.display} ?${plan.size ? ` (${plan.size})` : ""}`))) {
     console.log("  Skipped.\n");
     continue;
   }

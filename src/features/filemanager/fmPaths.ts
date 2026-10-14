@@ -195,12 +195,15 @@ const EXT_GROUPS: Array<[FileKind["kind"], string, string, string[]]> = [
   ["spreadsheet", "📊", "spreadsheet", ["xls", "xlsx", "ods", "csv", "tsv", "numbers"]],
   ["presentation", "📽️", "presentation", ["ppt", "pptx", "odp", "key"]],
   ["archive", "🗜️", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "cab", "iso"]],
-  ["code", "💻", "source file", ["js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rb", "go", "rs", "java", "kt", "swift", "c", "h", "cpp", "hpp", "cs", "php", "html", "htm", "css", "scss", "json", "xml", "yaml", "yml", "toml", "sql", "lua", "dart", "vue", "svelte", "ps1", "bat", "cmd", "sh", "bash", "zsh"]],
+  ["code", "💻", "source file", ["js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rb", "go", "rs", "java", "kt", "swift", "c", "h", "cpp", "hpp", "cs", "php", "html", "htm", "css", "scss", "json", "xml", "yaml", "yml", "toml", "sql", "lua", "dart", "vue", "svelte", "ps1", "bat", "cmd", "sh", "bash", "zsh", "v", "vsh", "vv", "zig", "nim", "ex", "exs", "erl", "hs", "ml", "clj", "scala", "groovy", "r", "jl", "pl", "pm", "fs", "fsx", "vb", "asm", "s", "m", "mm", "cc", "cxx", "hh", "hxx", "mts", "cts", "jsonc", "less", "sass", "graphql", "proto", "cmake", "gradle", "tf", "sol", "wat", "fish", "ksh"]],
   ["text", "📝", "text file", ["txt", "md", "markdown", "log", "ini", "cfg", "conf", "env", "gitignore", "rst", "tex", "nfo"]],
   ["program", "⚙️", "program", ["exe", "msi", "app", "command", "jar", "apk", "appimage", "scr", "com", "run", "vbs", "deb", "rpm", "pkg"]],
   ["disk-image", "💿", "disk image", ["dmg", "img", "vhd", "vmdk"]],
   ["font", "🔤", "font", ["ttf", "otf", "woff", "woff2", "eot"]],
 ];
+
+/** Plain names for source files whose extension alone says little (".v" is V, not Verilog or Coq). */
+const LANGUAGE_NAMES: Record<string, string> = { v: "V", vsh: "V", vv: "V", zig: "Zig", nim: "Nim", ex: "Elixir", exs: "Elixir", erl: "Erlang", hs: "Haskell", ml: "OCaml", clj: "Clojure", jl: "Julia", fs: "F#", fsx: "F#", sol: "Solidity", wat: "WebAssembly text", tf: "Terraform", proto: "Protocol Buffers", graphql: "GraphQL" };
 
 const BY_EXT = new Map<string, (typeof EXT_GROUPS)[number]>();
 for (const g of EXT_GROUPS) for (const e of g[3]) if (!BY_EXT.has(e)) BY_EXT.set(e, g);
@@ -227,7 +230,7 @@ export function classify(name: string, isDir: boolean, hasExecBit = false): File
     return { kind: program ? "program" : "other", icon: program ? "⚙️" : "📃", label: ext ? `${ext.toUpperCase()} file` : "File", preview: null, program };
   }
   const [kind, icon, noun] = group;
-  const label = kind === "image" || kind === "video" || kind === "code" || kind === "text" ? (ext ? `${ext.toUpperCase()} ${noun}` : noun) : noun;
+  const label = kind === "code" && LANGUAGE_NAMES[lastPart] ? `${LANGUAGE_NAMES[lastPart]} source file` : kind === "image" || kind === "video" || kind === "code" || kind === "text" ? (ext ? `${ext.toUpperCase()} ${noun}` : noun) : noun;
   const preview: FileKind["preview"] = IMAGE_PREVIEW.has(ext) ? "image" : kind === "code" || kind === "text" ? "text" : null;
   return { kind, icon, label, preview, program: program || kind === "program" };
 }
@@ -258,10 +261,13 @@ export function formatSize(bytes: number): string {
 
 export class FmError extends Error {
   code: string;
-  constructor(code: string, message: string) {
+  /** Extra facts for the page, sent along with the error (for example what a file really is). */
+  details?: unknown;
+  constructor(code: string, message: string, details?: unknown) {
     super(message);
     this.name = "FmError";
     this.code = code;
+    if (details !== undefined) this.details = details;
   }
 }
 

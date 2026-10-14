@@ -1,6 +1,7 @@
 // The sidebar: Favorites, Places, Drives (with free space), Recent items and the Recycle Bin.
 import { showMenu } from "./menus.js";
 import { attachDropTarget } from "./dnd.js";
+import { favoriteMenuItems, favoriteName, favoritesSection } from "./favorites.js";
 import { $, clear, h } from "./dom.js";
 import { goTo, showTrash } from "./nav.js";
 import * as ops from "./ops.js";
@@ -35,8 +36,8 @@ export function renderSidebar() {
   const here = state.location.kind === "folder" ? state.location.path : null;
   const same = (p) => here !== null && (state.sep === "\\" ? p.toLowerCase() === here.toLowerCase() : p === here);
   const favorites = state.settings.favorites.map((path) => sideItem({
-    icon: "⭐", label: baseName(path, state.sep) || path, title: path, active: same(path), dropPath: path, onClick: () => goTo(path),
-    onMenu: (pt) => showMenu([{ label: "Remove from Favorites", icon: "⭐", action: () => ops.toggleFavorite(path) }], { ...pt, label: "Favorite" }),
+    icon: "⭐", label: favoriteName(path), title: path, active: same(path), dropPath: path, onClick: () => goTo(path),
+    onMenu: (pt) => showMenu(favoriteMenuItems(path), { ...pt, label: "Favorite" }),
   }));
   const places = state.places.map((p) => sideItem({ icon: p.icon, label: p.name, title: p.path, active: same(p.path), dropPath: p.path, onClick: () => goTo(p.path) }));
   const activeDrive = here ? driveFor(here, state.drives, state.sep) : null;
@@ -50,7 +51,7 @@ export function renderSidebar() {
     ariaLabel: state.trashCount ? `Recycle Bin, ${plural(state.trashCount, "item")}` : "Recycle Bin, empty", onClick: () => showTrash(),
     onMenu: (pt) => showMenu([{ label: "Open Recycle Bin", action: () => showTrash() }, { label: "Empty Recycle Bin…", danger: true, disabled: !state.trashCount, action: ops.emptyBin }], { ...pt, label: "Recycle Bin" }),
   });
-  nav.append(...[section("Favorites", favorites), section("Places", places), section("Drives", drives), section("Recent", recent), section("", [bin])].filter(Boolean));
+  nav.append(...[favoritesSection(favorites), section("Places", places), section("Drives", drives), section("Recent", recent), section("", [bin])].filter(Boolean));
 }
 
 export function wireSidebar() {

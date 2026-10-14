@@ -5,6 +5,7 @@ import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
 import { $ } from "./dom.js";
 import { toast } from "./menus.js";
+import { goTo, saveSettings } from "./nav.js";
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 
@@ -69,6 +70,15 @@ function applyHeight() {
   queueFit();
 }
 
+/** The shell moved to another folder (the person typed `cd`): show that folder in the file list too, if "Follow terminal" is on. */
+function followShell(path) {
+  startedIn = path;
+  setTitle();
+  if (state.settings.terminalFollow === false) return;
+  if (state.location.kind === "folder" && state.location.path === path) return;
+  goTo(path);
+}
+
 /** Starts a shell in `folder`, ending any earlier one first. */
 function connect(folder) {
   if (socket) {
@@ -92,6 +102,7 @@ function connect(folder) {
       return;
     }
     if (m.type === "output" && typeof m.data === "string") term.write(m.data);
+    else if (m.type === "cwd" && typeof m.path === "string") followShell(m.path);
     else if (m.type === "exit") {
       ended = true;
       term.write("\r\n\x1b[2m[The shell ended. Press Enter to start a new one.]\x1b[0m\r\n");
@@ -239,6 +250,13 @@ export function wireTerminal() {
       queueFit();
     }
   });
+  const follow = $("#terminal-follow");
+  follow.checked = state.settings.terminalFollow !== false;
+  follow.addEventListener("change", () => {
+    saveSettings({ terminalFollow: follow.checked });
+    toast(follow.checked ? "The file list will follow the terminal." : "The file list stays where it is when you change folder in the terminal.", { kind: "info" });
+  });
+  on("settings", () => { follow.checked = state.settings.terminalFollow !== false; });
   $("#terminal-cd").addEventListener("click", goToFolder);
   $("#terminal-restart").addEventListener("click", restart);
   $("#terminal-close").addEventListener("click", hideTerminal);

@@ -4,6 +4,7 @@
  */
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
+import { assertOpenAllowed } from "./fmCheck";
 import { absolutePath, pathApi, type FmContext } from "./fmCore";
 import { FmError, classify, systemFileManagerName, type Platform } from "./fmPaths";
 
@@ -41,9 +42,10 @@ export function revealCommand(platform: Platform, path: string, isDir: boolean):
 
 /**
  * Opens a file or folder with its default program. A program or installer (.exe, .sh, .app, .msi ...) is only run
- * when `confirmProgram` is true, which the app sets after asking the person.
+ * when `confirmProgram` is true, which the app sets after asking the person. A file that is dangerously not what its
+ * name says (a program named like a document) likewise needs `confirmMismatch`.
  */
-export async function openItem(ctx: FmContext, pathInput: unknown, confirmProgram = false): Promise<{ opened: string; program: boolean }> {
+export async function openItem(ctx: FmContext, pathInput: unknown, confirmProgram = false, confirmMismatch = false): Promise<{ opened: string; program: boolean }> {
   const path = absolutePath(ctx, pathInput);
   let st;
   try {
@@ -52,6 +54,7 @@ export async function openItem(ctx: FmContext, pathInput: unknown, confirmProgra
     if (err?.code === "ENOENT") throw new FmError("NOT_FOUND", "That item doesn't exist any more.");
     throw err;
   }
+  await assertOpenAllowed(ctx, path, confirmMismatch);
   const kind = classify(pathApi(ctx).basename(path), st.isDirectory(), ctx.platform !== "win32" && !st.isDirectory() && (st.mode & 0o111) !== 0);
   if (kind.program && !confirmProgram) throw new FmError("NEEDS_CONFIRM", "This is a program or installer. Opening it will run it.");
   const cmd = openCommand(ctx.platform, path);

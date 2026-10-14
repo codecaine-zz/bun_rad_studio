@@ -1,0 +1,101 @@
+// Keyboard shortcuts of the Code tab: the table of keys, matching a key press against it, and showing a shortcut
+// the way the person's computer writes it (⌘⇧S on a Mac, Ctrl+Shift+S elsewhere). No page code in here.
+
+/** command id -> shortcuts ("Mod" is Command on a Mac and Control elsewhere). */
+export const KEYMAP = {
+  save: ["Mod+S"],
+  saveAs: ["Mod+Shift+S"],
+  saveAll: ["Mod+Alt+S"],
+  newFile: ["Alt+N"],
+  closeTab: ["Alt+W"],
+  quickOpen: ["Mod+P"],
+  palette: ["Mod+Shift+P"],
+  find: ["Mod+F"],
+  replace: ["Mod+H", "Mod+Alt+F"],
+  findNext: ["F3"],
+  findPrev: ["Shift+F3"],
+  goToLine: ["Mod+G"],
+  goToSymbol: ["Mod+Shift+O"],
+  complete: ["Alt+/"],
+  findInFiles: ["Mod+Shift+F"],
+  toggleComment: ["Mod+/"],
+  blockComment: ["Alt+Shift+A"],
+  indent: ["Mod+]"],
+  outdent: ["Mod+["],
+  moveUp: ["Alt+ArrowUp"],
+  moveDown: ["Alt+ArrowDown"],
+  duplicate: ["Mod+D", "Shift+Alt+ArrowDown"],
+  duplicateUp: ["Shift+Alt+ArrowUp"],
+  deleteLine: ["Mod+Shift+K"],
+  joinLines: ["Mod+J"],
+  selectLine: ["Mod+L"],
+  wrap: ["Alt+Z"],
+  zen: ["Mod+Alt+Z"],
+  explorer: ["Mod+\\"],
+  zoomIn: ["Mod+=", "Mod++"],
+  zoomOut: ["Mod+-"],
+  zoomReset: ["Mod+0"],
+  bookmarkToggle: ["Mod+F2"],
+  bookmarkNext: ["F2"],
+  bookmarkPrev: ["Shift+F2"],
+  run: ["Mod+Enter"],
+  build: ["Mod+B"],
+  preview: ["Mod+Shift+V"],
+  shortcuts: ["F1"],
+};
+
+const NAMED = new Set(["Enter", "Escape", "Tab", "Backspace", "Delete", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "Space"]);
+
+/** "Mod+Shift+S" -> { mod, shift, alt, key } (key in lower case; named keys keep their name). */
+export function parseShortcut(spec) {
+  const out = { mod: false, shift: false, alt: false, key: "" };
+  const parts = spec.endsWith("++") ? [...spec.slice(0, -2).split("+"), "+"] : spec.split("+");
+  for (const p of parts) {
+    if (p === "Mod") out.mod = true;
+    else if (p === "Shift") out.shift = true;
+    else if (p === "Alt") out.alt = true;
+    else out.key = NAMED.has(p) || /^F\d{1,2}$/.test(p) ? p : p.toLowerCase();
+  }
+  return out;
+}
+
+const parsed = new Map();
+const parse = (spec) => parsed.get(spec) ?? (parsed.set(spec, parseShortcut(spec)), parsed.get(spec));
+
+/** The physical key name for a letter or digit (used when Alt is held, because Alt changes what the key types on a Mac). */
+const codeOf = (key) => (/^[a-z]$/.test(key) ? `Key${key.toUpperCase()}` : /^\d$/.test(key) ? `Digit${key}` : "");
+
+/** Does this key press (a KeyboardEvent-like object) match `spec` on `platform` ("darwin" or other)? */
+export function matchShortcut(e, spec, platform) {
+  const s = parse(spec);
+  const mac = platform === "darwin";
+  if ((mac ? e.metaKey : e.ctrlKey) !== s.mod) return false;
+  if (mac ? e.ctrlKey : e.metaKey) return false;
+  if (e.altKey !== s.alt) return false;
+  const shiftedSymbol = s.key === "+" || s.key === "?";
+  if (!shiftedSymbol && e.shiftKey !== s.shift) return false;
+  if (s.alt && codeOf(s.key)) return e.code === codeOf(s.key);
+  const pressed = e.key === " " ? "Space" : e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  return pressed === s.key;
+}
+
+/** The command id a key press stands for, or null. */
+export function commandForEvent(e, platform, keymap = KEYMAP) {
+  for (const [id, specs] of Object.entries(keymap)) if (specs.some((spec) => matchShortcut(e, spec, platform))) return id;
+  return null;
+}
+
+const MAC_NAMES = { Mod: "⌘", Shift: "⇧", Alt: "⌥", Enter: "↩", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Escape: "⎋", Backspace: "⌫", Delete: "⌦", Tab: "⇥" };
+const WIN_NAMES = { Mod: "Ctrl", ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right", Escape: "Esc" };
+
+/** A shortcut for display: "⌘⇧S" on a Mac, "Ctrl+Shift+S" elsewhere. */
+export function formatShortcut(spec, platform) {
+  const s = parse(spec);
+  const mods = [s.mod && "Mod", s.alt && "Alt", s.shift && "Shift"].filter(Boolean);
+  const key = s.key.length === 1 ? s.key.toUpperCase() : s.key;
+  if (platform === "darwin") return [...mods.map((m) => MAC_NAMES[m]), MAC_NAMES[key] ?? key].join("");
+  return [...mods.map((m) => WIN_NAMES[m] ?? m), WIN_NAMES[key] ?? key].join("+");
+}
+
+/** The first shortcut of a command, formatted, or "". */
+export const shortcutText = (id, platform, keymap = KEYMAP) => (keymap[id]?.[0] ? formatShortcut(keymap[id][0], platform) : "");

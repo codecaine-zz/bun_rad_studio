@@ -8,6 +8,7 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 - [Fixed on 13 October 2026](#fixed-on-13-october-2026)
 - [Still missing](#still-missing)
 - [Tooltips in the other applications](#tooltips-in-the-other-applications)
+- [Futuristic themes (effects layer)](#futuristic-themes-effects-layer)
 - [Other applications](#other-applications)
 - [How to repeat the check](#how-to-repeat-the-check)
 
@@ -52,6 +53,10 @@ Built with accessibility in mind and **partly measured** ([D-045](documentation-
 ## Tooltips in the other applications
 
 Every non-game window now has the shared tooltip script ([D-049](documentation-maintenance/discrepancies.md#d-049)): a tip appears when a control gets the **keyboard focus** (and after a pause over it with a mouse), is plain text linked to the control with `aria-describedby`, and Escape hides it. This was checked in Chrome with synthetic events; **it was not checked with a screen reader**, and the native window on Linux and Windows was not opened. Controls that are plain `div`s without a role (most tab strips and list items, except the database studios' tabs) are not reached, so they remain a keyboard and screen-reader gap.
+
+## Futuristic themes (effects layer)
+
+The 12 futuristic themes add glass, glow and motion. What the tests and the browser checks cover, from [D-054](documentation-maintenance/discrepancies.md#d-054): body text on every glass surface reaches 4.5:1 over both a pure black and a pure white backdrop; text, accent, border and status colours are contrast-checked per theme; the focus ring is never removed and is moved until it reaches 3:1 on the canvas and card; scanlines and grain stay at or below 4% and never take the pointer; nothing loops faster than two cycles per second; `prefers-reduced-motion` removes all motion (fades only), `prefers-contrast: more` switches to solid, outlined surfaces with no glow, blur or overlays, and forced colours use system colours. Not assessed: screen-reader behaviour of the Designer's new **Effects** control, and any native WebView. Details: [developer/fx-themes.md](developer/fx-themes.md).
 
 ## Other applications
 

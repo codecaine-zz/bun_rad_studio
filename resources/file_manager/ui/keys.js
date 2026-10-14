@@ -1,6 +1,11 @@
 // Keyboard shortcuts. They work whenever you are not typing in a text box and no dialog or menu is open.
+import { codeHasUnsaved, openFolderInCode, openInCode } from "./code.js";
+import { looksLikeText } from "./codeLang.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
+import { confirmBox } from "./dialogs.js";
+import { showFavoritesMenu } from "./favorites.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
+import { showMoreInfo } from "./fileinfo.js";
 import { $ } from "./dom.js";
 import { openPower } from "./power.js";
 import { menuIsOpen } from "./menus.js";
@@ -61,6 +66,21 @@ function navigate(e, key) {
   return true;
 }
 
+/** Closes the window, but first asks when the Code editor has changes that aren't saved. */
+async function closeWindow() {
+  if (codeHasUnsaved() && !(await confirmBox({ title: "Close with unsaved changes?", message: "Some files in the Code editor have changes that aren't saved. Closing now loses them.", confirmLabel: "Close anyway", cancelLabel: "Go back", danger: true }))) return;
+  window.closeApp();
+}
+
+/** Ctrl/Cmd+E: opens the chosen file (or folder, or the folder on screen) in the Code editor. */
+function editInCode() {
+  const picked = selectedEntries();
+  const one = picked.length === 1 ? picked[0] : null;
+  if (one && !one.isDir) return looksLikeText(one.name) ? openInCode(one.path) : ops.openEntry(one);
+  if (one) return openFolderInCode(one.path);
+  if (state.location.kind === "folder" && state.location.path) openFolderInCode(state.location.path);
+}
+
 export function wireKeys() {
   document.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop") || isRenaming()) return;
@@ -74,13 +94,23 @@ export function wireKeys() {
     const stop = () => e.preventDefault();
 
     // Closing the window (only where the desktop app gave the page a way to do that)
-    if (mod && (lower === "w" || lower === "q") && typeof window.closeApp === "function") { stop(); return void window.closeApp(); }
+    if (mod && (lower === "w" || lower === "q") && typeof window.closeApp === "function") { stop(); return void closeWindow(); }
 
     // Help, refresh, rename, properties
     if (key === "F1" || (key === "?" && !mod)) { stop(); return showHelp(); }
     if (key === "F5" || (mod && lower === "r")) { stop(); return void refresh(); }
     if (key === "F2") { stop(); return void ops.renameSelection(); }
+    if (e.altKey && e.shiftKey && key === "Enter") { stop(); const items = selectedEntries(); return void showMoreInfo(items.length ? items.map((x) => x.path) : [state.location.path]); }
     if (e.altKey && key === "Enter") { stop(); const items = selectedEntries(); return void showProperties(items.length ? items.map((x) => x.path) : [state.location.path]); }
+
+    // A focused button, tab or radio is used with Enter and Space, so leave those keys to it.
+    if ((key === "Enter" || key === " ") && target instanceof Element && target.closest("button, [role=tab], [role=radio], a[href]")) return;
+    // The other panes (tools, Home, the Dual view's second list, the view switcher) have their own keys; the list shortcuts below are for the file list.
+    if (target instanceof Element && target.closest("#power-panel, #home, #dual-pane, #viewbar, #splitter")) {
+      if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
+      if (mod && key === ",") { stop(); return showSettings(); }
+      return;
+    }
 
     // Going places
     if ((e.altKey && key === "ArrowLeft") || (mac && mod && key === "[")) { stop(); return void goBack(); }
@@ -89,6 +119,8 @@ export function wireKeys() {
     if (mod && lower === "l") { stop(); return editAddress(); }
     if (e.altKey && lower === "d" && !mac) { stop(); return editAddress(); }
     if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
+    if (mod && e.shiftKey && lower === "b") { stop(); return showFavoritesMenu({ x: 40, y: 90 }); }
+    if (mod && !e.shiftKey && !e.altKey && lower === "e") { stop(); return editInCode(); }
     if (mod && lower === "f") { stop(); return focusSearch(); }
 
     // Choosing and opening

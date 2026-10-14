@@ -267,7 +267,7 @@ export async function createZip(ctx: FmContext, sourcesInput: unknown, nameInput
 // Read
 // ---------------------------------------------------------------------------------------------------------------
 
-interface CentralEntry {
+export interface CentralEntry {
   name: string;
   flags: number;
   method: number;
@@ -280,7 +280,7 @@ interface CentralEntry {
   isDir: boolean;
 }
 
-async function readAt(handle: fsp.FileHandle, position: number, length: number): Promise<Buffer> {
+export async function readAt(handle: fsp.FileHandle, position: number, length: number): Promise<Buffer> {
   const buf = Buffer.alloc(length);
   let done = 0;
   while (done < length) {
@@ -291,7 +291,7 @@ async function readAt(handle: fsp.FileHandle, position: number, length: number):
   return buf;
 }
 
-async function readCentralDirectory(handle: fsp.FileHandle, size: number): Promise<CentralEntry[]> {
+export async function readCentralDirectory(handle: fsp.FileHandle, size: number): Promise<CentralEntry[]> {
   const tailLength = Math.min(size, 65_557);
   const tail = await readAt(handle, size - tailLength, tailLength);
   let at = -1;
@@ -445,4 +445,25 @@ async function extractEntry(zipPath: string, e: CentralEntry, dataStart: number,
     if (err?.code === "Z_DATA_ERROR" || err?.code === "Z_BUF_ERROR") throw new FmError("BAD_ZIP", `"${e.name}" is damaged and can't be read.`);
     throw err;
   }
+}
+
+/** The whole content of one zip entry, checked against its size and checksum; refuses entries bigger than `limit` bytes. */
+export async function readZipEntry(handle: fsp.FileHandle, fileSize: number, e: CentralEntry, limit: number): Promise<Buffer> {
+  if (e.flags & FLAG_ENCRYPTED) throw new FmError("ENCRYPTED", "This zip file is password-protected, which isn't supported here.");
+  if (e.method !== 0 && e.method !== 8) throw new FmError("UNSUPPORTED", `"${e.name}" uses a compression method that isn't supported here.`);
+  if (e.usize > limit || e.csize > limit) throw new FmError("TOO_BIG", `"${e.name}" is bigger than the safety limit (${Math.round(limit / 1048576)} MB).`);
+  const header = await readAt(handle, e.localOffset, 30);
+  if (header.readUInt32LE(0) !== SIG_LOCAL) throw new FmError("BAD_ZIP", "This zip file is damaged.");
+  const dataStart = e.localOffset + 30 + header.readUInt16LE(26) + header.readUInt16LE(28);
+  if (dataStart + e.csize > fileSize) throw new FmError("BAD_ZIP", "This zip file is damaged (it ends too early).");
+  const raw = e.csize ? await readAt(handle, dataStart, e.csize) : Buffer.alloc(0);
+  let data: Buffer;
+  try {
+    data = e.method === 8 ? zlib.inflateRawSync(raw, { maxOutputLength: Math.max(1, Math.min(limit, e.usize + 1)) }) : raw;
+  } catch (err: any) {
+    if (err?.code === "ERR_BUFFER_TOO_LARGE") throw new FmError("BAD_ZIP", `"${e.name}" is larger than the zip file says. The archive is damaged or unsafe.`);
+    throw new FmError("BAD_ZIP", `"${e.name}" is damaged and can't be read.`);
+  }
+  if (data.length !== e.usize || (zlib.crc32(data) >>> 0) !== e.crc) throw new FmError("BAD_ZIP", `"${e.name}" is damaged (its checksum doesn't match).`);
+  return data;
 }

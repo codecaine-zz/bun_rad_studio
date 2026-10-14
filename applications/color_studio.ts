@@ -1,5 +1,5 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
-import { writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
 // Color Conversion Helpers
@@ -293,7 +293,10 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     win.setText("txt_tokens_output", cssTokens);
     const outPath = resolve(process.cwd(), "design_tokens.css");
     try {
-      writeFileSync(outPath, cssTokens, "utf8");
+      // The repo's design_tokens.css also carries the effects tokens and classes after its first :root block; keep them.
+      const before = existsSync(outPath) ? readFileSync(outPath, "utf8") : "";
+      const rest = before.includes("/* fx:start") ? before.slice(before.indexOf("\n}\n") + 3) : "";
+      writeFileSync(outPath, rest ? cssTokens + rest : cssTokens, "utf8");
       win.appendConsole("color_console", `[Export CSS] Tokens written to ${outPath}\n`, 2);
       win.toast(`Saved ${basename(outPath)}`);
     } catch (e: any) {

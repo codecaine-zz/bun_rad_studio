@@ -1,0 +1,91 @@
+/* Styles of the "More info" window and the Details panel's photo strip. Every class starts with .fi- to stay out of the way
+   of the rest of the page. Colours come from the page's variables (style.css), so the light and dark themes both work, and
+   nothing is shown by colour alone: flags also have an icon and words. */
+
+.dialog.wide.fi-dialog { width: min(62rem, 100%); }
+.fi { text-align: left; }
+.fi-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.6rem; }
+.fi-icon { font-size: 2rem; line-height: 1; }
+.fi-head-text { min-width: 0; }
+.fi-name { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.fi-sub { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.88rem; }
+
+/* The search and report buttons stay in view while the details scroll. */
+.fi-bar { position: sticky; top: -1.2rem; z-index: 2; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; background: var(--bg); padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+.fi-search { flex: 1 1 14rem; width: auto; min-width: 10rem; }
+.fi-format { width: auto; }
+.fi-status { margin: 0.4rem 0; min-height: 1.2em; color: var(--muted); font-size: 0.88rem; }
+.fi-gps-banner { margin: 0.4rem 0; padding: 0.45rem 0.7rem; border-radius: 0.4rem; background: var(--warn-bg); color: var(--warn-text); }
+.fi-gps-banner[hidden] { display: none; }
+
+/* Groups and their tables */
+.fi-slot { display: block; }
+.fi-group { margin: 0.7rem 0; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--panel); padding: 0.1rem 0.8rem 0.7rem; }
+.fi-group[hidden], .fi-row[hidden], .fi-none[hidden] { display: none; }
+.fi-details > summary, h3.fi-title { cursor: pointer; font-weight: 650; font-size: 0.98rem; padding: 0.55rem 0 0.3rem; margin: 0; list-style-position: inside; }
+h3.fi-title { cursor: default; }
+.fi-details > summary:focus-visible, .fi-copy:focus-visible, .fi-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fi-count { color: var(--muted); font-weight: 400; }
+.fi-note { margin: 0.3rem 0 0.5rem; color: var(--muted); font-size: 0.88rem; }
+.fi-slot-note { margin-inline: 0.2rem; }
+.fi-none { color: var(--muted); margin: 0.3rem 0; }
+.fi-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; table-layout: fixed; }
+.fi-table th, .fi-table td { padding: 0.3rem 0.4rem; text-align: left; vertical-align: top; border-top: 1px solid var(--border); }
+.fi-table tr:first-child th, .fi-table tr:first-child td { border-top: 0; }
+.fi-label { font-weight: 500; color: var(--muted); overflow-wrap: anywhere; }
+.fi-col-label { width: 30%; }
+.fi-col-act { width: 2.8rem; }
+.fi-label[title] { cursor: help; }
+.fi-help { color: var(--accent); }
+.fi-value { overflow-wrap: anywhere; white-space: pre-wrap; }
+.fi-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; }
+.fi-act { text-align: right; }
+.fi-copy { background: none; border: 1px solid transparent; border-radius: 0.35rem; color: var(--accent); cursor: pointer; padding: 0.1rem 0.4rem; font-size: 1rem; line-height: 1.2; }
+.fi-copy:hover { background: var(--hover); border-color: var(--border); }
+.fi-row:hover { background: var(--hover); }
+.fi-warn { color: var(--warn-text); }
+td.fi-warn { background: var(--warn-bg); }
+.fi-good { color: var(--text); }
+.fi-good .fi-flag { color: var(--good); }
+.fi-flag { font-weight: 700; }
+.fi-detail { color: var(--muted); }
+
+/* Fingerprints */
+.fi-hash-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.4rem 0; }
+.fi-progress { flex: 1 1 10rem; max-width: 20rem; accent-color: var(--accent); }
+.fi-hash-status { margin: 0.2rem 0; min-height: 1.2em; font-size: 0.88rem; color: var(--muted); }
+.fi-compare { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.6rem; }
+.fi-compare[hidden] { display: none; }
+.fi-compare-input { flex: 1 1 16rem; width: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.fi-compare-result { flex: 1 1 100%; margin: 0; font-weight: 600; }
+.fi-scan { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.6rem 0; }
+
+/* Privacy */
+.fi-privacy { list-style: none; margin: 0.4rem 0; padding: 0; display: grid; gap: 0.25rem; }
+.fi-privacy li { padding: 0.2rem 0.4rem; border-radius: 0.3rem; }
+.fi-privacy li.fi-warn { background: var(--warn-bg); }
+.fi-gps { margin: 0.5rem 0; padding: 0.5rem 0.7rem; border-radius: 0.5rem; background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--border); }
+.fi-gps p { margin: 0.2rem 0; }
+.fi-gps-actions, .fi-privacy-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* Palette */
+.fi-chips { list-style: none; margin: 0.4rem 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.fi-chip { display: flex; align-items: center; gap: 0.5rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.35rem 0.6rem; cursor: pointer; text-align: left; font-size: 0.82rem; }
+.fi-chip:hover { background: var(--hover); }
+.fi-swatch { width: 2.2rem; height: 2.2rem; border-radius: 0.4rem; border: 1px solid var(--border); background: var(--fi-swatch, transparent); flex: none; }
+.fi-chip-text { display: grid; line-height: 1.25; }
+.fi-exif .btn { margin: 0.4rem 0; }
+
+/* Details panel: the compact Photo strip */
+.fi-photo { margin: 0.6rem 0; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); font-size: 0.85rem; }
+.fi-photo-title { font-weight: 650; margin-bottom: 0.25rem; }
+.fi-photo-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.6rem; margin: 0; }
+.fi-photo-facts dt { color: var(--muted); }
+.fi-photo-facts dd { margin: 0; overflow-wrap: anywhere; }
+.fi-badge { display: inline-block; margin: 0.4rem 0 0; padding: 0.15rem 0.55rem; border-radius: 1rem; background: var(--warn-bg); color: var(--warn-text); font-weight: 600; }
+.fi-more { margin-top: 0.4rem; }
+
+@media (max-width: 40rem) {
+  .fi-col-label { width: 38%; }
+  .fi-bar { top: -1rem; }
+}

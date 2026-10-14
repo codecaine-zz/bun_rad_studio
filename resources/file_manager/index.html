@@ -18,12 +18,29 @@
 <link rel="stylesheet" href="/ui/crypto.css">
 <link rel="stylesheet" href="/ui/ip.css">
 <link rel="stylesheet" href="/ui/net.css">
+<link rel="stylesheet" href="/ui/sd.css">
+<link rel="stylesheet" href="/ui/code.css">
+<link rel="stylesheet" href="/ui/dev.css">
+<link rel="stylesheet" href="/ui/fileinfo.css">
+<link rel="stylesheet" href="/ui/views.css">
 </head>
 <body>
   <a class="skip-link" href="#list">Skip to the files</a>
 
-  <div id="app">
-    <header id="toolbar" role="toolbar" aria-label="Actions"></header>
+  <div id="app" data-workspace="files">
+    <div id="viewbar">
+      <button id="sidebar-toggle" type="button" class="vb-btn" aria-controls="sidebar" aria-expanded="true" title="Show or hide the list of places on the left (Alt+7)"><span aria-hidden="true">☰</span><span class="vb-label">Places</span></button>
+      <div id="view-switch" role="radiogroup" aria-label="Choose a view of the window. Use the arrow keys to move between them."></div>
+      <div id="view-extras">
+        <button id="split-orient" type="button" class="vb-btn" hidden></button>
+        <button id="focus-toggle" type="button" class="vb-btn" aria-pressed="false" title="Hide the toolbar and side panels so the list or tool has the whole window (Alt+6). Press Esc to bring them back."><span aria-hidden="true">⛶</span><span class="vb-label">Focus</span></button>
+      </div>
+    </div>
+
+    <div id="toolbar-row">
+      <header id="toolbar" role="toolbar" aria-label="Actions"></header>
+      <button id="tool-more" type="button" class="tool tool-more" aria-haspopup="menu" title="More buttons that don't fit in this narrow window" hidden><span class="ti" aria-hidden="true">⋯</span><span class="tl">More</span></button>
+    </div>
 
     <div id="addressbar">
       <div class="address-main">
@@ -37,6 +54,7 @@
       </div>
     </div>
 
+    <div id="stage">
     <div id="body">
       <nav id="sidebar" aria-label="Places"></nav>
 
@@ -60,14 +78,23 @@
       <aside id="info" aria-label="Details" hidden></aside>
     </div>
 
+    <div id="splitter" role="separator" tabindex="0" hidden></div>
+
     <section id="power-panel" aria-label="Power tools" hidden>
       <div class="power-head">
-        <span class="power-title">Power tools</span>
-        <div id="power-tabs" role="tablist" aria-label="Power tools"></div>
-        <button id="power-close" type="button" class="power-close" title="Back to your files (Esc)" aria-label="Close the power tools">✕ Close</button>
+        <button id="power-close" type="button" class="power-close" title="Go back to your files (Alt+1)" aria-label="Back to files"><span aria-hidden="true">←</span> Back to files</button>
+        <span class="power-title">Tools</span>
+        <button id="power-scroll-left" type="button" class="power-scroll" tabindex="-1" title="Show the tools on the left" aria-label="Scroll the tool tabs left" hidden>‹</button>
+        <div id="power-tabs" role="tablist" aria-label="Tools"></div>
+        <button id="power-scroll-right" type="button" class="power-scroll" tabindex="-1" title="Show more tools on the right" aria-label="Scroll the tool tabs right" hidden>›</button>
       </div>
       <div id="power-body"></div>
     </section>
+
+    <section id="dual-pane" aria-label="Second folder" hidden></section>
+
+    <section id="home" aria-label="Home" hidden></section>
+    </div>
 
     <section id="terminal-panel" aria-label="Terminal" hidden>
       <div id="terminal-resizer" role="separator" aria-orientation="horizontal" aria-label="Terminal height. Press the up or down arrow key to change it." tabindex="0"></div>
@@ -75,6 +102,7 @@
         <span id="terminal-title" class="term-title">Terminal</span>
         <span class="term-note">A real terminal: things deleted here skip the Recycle Bin and can't be undone.</span>
         <span class="term-actions">
+          <label class="term-follow" title="When you change folder in the terminal (with cd), the file list above moves to the same folder"><input id="terminal-follow" type="checkbox"> Follow terminal</label>
           <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected">Go to this folder</button>
           <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the selected folder, or the folder you are looking at">Restart</button>
           <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Ctrl+`). It keeps running." aria-label="Hide the terminal">✕</button>
@@ -85,7 +113,7 @@
 
     <footer id="status">
       <span id="status-left" aria-live="off"></span>
-      <span id="status-right"><span class="busy-indicator">Working…</span></span>
+      <span id="status-right"><span id="status-views" role="group" aria-label="How files are shown"></span><span class="busy-indicator">Working…</span></span>
     </footer>
   </div>
 

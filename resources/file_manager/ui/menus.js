@@ -88,6 +88,7 @@ export const menuIsOpen = () => current !== null;
  * @param {{ kind?: "info" | "success" | "error", action?: { label: string, run: () => void } | null, timeout?: number }} [options]
  */
 export function toast(message, { kind = "info", action = null, timeout } = {}) {
+  if (typeof document === "undefined") return; // a request that finished after the page was torn down
   const host = $("#toasts");
   while (host.children.length >= 3) host.firstElementChild?.remove();
   const el = h("div", { class: `toast ${kind}`, role: kind === "error" ? "alert" : "status" },

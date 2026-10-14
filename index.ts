@@ -1,5 +1,8 @@
 import { injectHelp } from "./src/shared/helpTips";
 import { buildSemanticPalette, normalizeKind, semanticCssVars } from "./src/shared/themeSemantic";
+import { findFxTheme, fxCssVars, fxRootAttrString, normalizeFxMode } from "./src/shared/fxThemes";
+import { fxCss } from "./src/shared/fxCss";
+import { FX_POINTER_SOURCE } from "./src/shared/fxPointer";
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync, openSync, closeSync, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
@@ -1584,6 +1587,15 @@ export function generatePreviewHtml(spec: any): string {
     const cardBorder = spec.card_border || (bg === '#050505' ? '#242424' : (bg === '#0a0600' ? '#472800' : (bg === '#040a05' ? '#123d18' : (isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'))));
     const border = spec.border_color || spec.card_border || (bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)'));
     const sem = buildSemanticPalette({ background: bg, card: cardBg, isDark: !isLight, overrides: spec.semantic_overrides });
+    // Themes with an `fx` descriptor (the futuristic set, or any theme that opts in) get the effects layer; every other page is unchanged.
+    const fxMode = normalizeFxMode(spec.fx_mode);
+    const fxSource: any = spec.fx
+        ? { name: String(spec.theme || ''), background_color: bg, font_color: fg, accent_color: accent, card_background: cardBg, is_dark: !isLight, fx: spec.fx }
+        : findFxTheme(spec.theme);
+    const fxHead = fxSource
+        ? `<style id="simplegui-fx-vars">:root { ${fxCssVars(fxSource)} }</style>\n` + (fxMode === 'off' ? '' : `<style id="simplegui-fx-css">\n${fxCss()}\n</style>\n<script>${FX_POINTER_SOURCE}</script>\n`)
+        : '';
+    const fxAttrs = fxSource ? ' ' + fxRootAttrString(fxSource, fxMode) : '';
     const w = spec.width || 800;
     const h = spec.height || 600;
     const buildEvents = (c: any) => {
@@ -3367,7 +3379,7 @@ export function generatePreviewHtml(spec: any): string {
     }
 
     return `<!DOCTYPE html>
-<html>
+<html${fxAttrs}>
 <head>
 <meta charset="utf-8">
 <title>${String(spec.title || 'Preview').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>
@@ -3653,7 +3665,7 @@ export function generatePreviewHtml(spec: any): string {
   .ctx-item:hover { background: rgba(56, 189, 248, 0.2) !important; }
   ${hoverStyles}
 </style>
-<body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
+${fxHead}<body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
 ${controls}
 <script>
   window.showOpenDialog = function(id) { const el = document.getElementById(id); if (el) el.click(); };

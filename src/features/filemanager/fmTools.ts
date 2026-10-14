@@ -15,7 +15,9 @@ import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { splitName, uniqueName } from "./fmPaths";
 
-export type ToolId = "ffmpeg" | "imagemagick" | "pandoc";
+export type ToolId =
+  | "ffmpeg" | "imagemagick" | "pandoc"
+  | "ghostscript" | "libreoffice" | "calibre" | "tesseract" | "fonttools" | "woff2" | "sevenzip" | "unar" | "bsdtar" | "qpdf" | "poppler" | "exiftool";
 export type ManagerId = "brew" | "winget" | "scoop" | "choco" | "apt" | "dnf" | "pacman";
 
 export interface ToolDef {
@@ -27,6 +29,7 @@ export interface ToolDef {
   executables: string[];
   versionArgs: string[];
   website: string;
+  /** Package names, space-separated when it takes more than one. An empty string means no package exists for that manager. */
   brew: string;
   winget: string;
   scoop: string;
@@ -34,6 +37,16 @@ export interface ToolDef {
   apt: string;
   dnf: string;
   pacman: string;
+  /** Homebrew installs this as a "cask" (a macOS application), which is a big download. */
+  brewCask?: boolean;
+  /** Plain words about the download, shown before installing. */
+  size?: string;
+  /** Needed for the main conversions (shown first), or only for some extras. */
+  optional?: boolean;
+  /** The program's version text must match this, so that a different program with the same name isn't mistaken for it. */
+  versionMatch?: RegExp;
+  /** Folders (besides the PATH) where this program is installed by its own installer, per system. `*` ends are prefix matches. */
+  dirs?: { darwin?: string[]; linux?: string[]; win32?: string[] };
 }
 
 export const TOOLS: Record<ToolId, ToolDef> = {
@@ -46,11 +59,90 @@ export const TOOLS: Record<ToolId, ToolDef> = {
     id: "imagemagick", name: "ImageMagick", what: "Converts, resizes and rotates pictures.",
     executables: ["magick", "convert"], versionArgs: ["-version"], website: "https://imagemagick.org/script/download.php",
     brew: "imagemagick-full", winget: "ImageMagick.ImageMagick", scoop: "imagemagick", choco: "imagemagick", apt: "imagemagick", dnf: "ImageMagick", pacman: "imagemagick",
+    versionMatch: /ImageMagick/i,
   },
   pandoc: {
     id: "pandoc", name: "pandoc", what: "Converts documents (Markdown, Word, HTML, EPUB, PDF and more).",
     executables: ["pandoc"], versionArgs: ["--version"], website: "https://pandoc.org/installing.html",
     brew: "pandoc", winget: "JohnMacFarlane.Pandoc", scoop: "pandoc", choco: "pandoc", apt: "pandoc", dnf: "pandoc", pacman: "pandoc-cli",
+  },
+  ghostscript: {
+    id: "ghostscript", name: "Ghostscript", what: "Works on PDF files: joins, splits, shrinks them, and turns pages into pictures or text.",
+    executables: ["gs", "gswin64c", "gswin32c"], versionArgs: ["--version"], website: "https://ghostscript.com/releases/gsdnld.html",
+    brew: "ghostscript", winget: "ArtifexSoftware.GhostScript", scoop: "ghostscript", choco: "ghostscript", apt: "ghostscript", dnf: "ghostscript", pacman: "ghostscript",
+    dirs: { win32: ["{PF}\\gs\\gs*\\bin", "{PF86}\\gs\\gs*\\bin"] },
+  },
+  libreoffice: {
+    id: "libreoffice", name: "LibreOffice", what: "Opens old Word, Excel and PowerPoint files (DOC, XLS, PPT, WPS) and turns office files into PDF.",
+    executables: ["soffice", "libreoffice"], versionArgs: ["--version"], website: "https://www.libreoffice.org/download/",
+    brew: "libreoffice", brewCask: true, winget: "TheDocumentFoundation.LibreOffice", scoop: "extras/libreoffice", choco: "libreoffice-fresh", apt: "libreoffice", dnf: "libreoffice", pacman: "libreoffice-fresh",
+    size: "a big download (about 350 MB)", optional: true, versionMatch: /LibreOffice|OpenOffice/i,
+    dirs: {
+      darwin: ["/Applications/LibreOffice.app/Contents/MacOS", "{HOME}/Applications/LibreOffice.app/Contents/MacOS"],
+      linux: ["/opt/libreoffice*/program", "/usr/lib/libreoffice/program", "/usr/lib64/libreoffice/program"],
+      win32: ["{PF}\\LibreOffice\\program", "{PF86}\\LibreOffice\\program"],
+    },
+  },
+  calibre: {
+    id: "calibre", name: "calibre", what: "Converts e-books (EPUB, MOBI, AZW3, FB2, PDF and more).",
+    executables: ["ebook-convert"], versionArgs: ["--version"], website: "https://calibre-ebook.com/download",
+    brew: "calibre", brewCask: true, winget: "calibre.calibre", scoop: "extras/calibre", choco: "calibre", apt: "calibre", dnf: "calibre", pacman: "calibre",
+    size: "a big download (about 250 MB)", optional: true, versionMatch: /calibre/i,
+    dirs: {
+      darwin: ["/Applications/calibre.app/Contents/MacOS", "{HOME}/Applications/calibre.app/Contents/MacOS"],
+      linux: ["/opt/calibre"],
+      win32: ["{PF}\\Calibre2", "{PF86}\\Calibre2"],
+    },
+  },
+  tesseract: {
+    id: "tesseract", name: "Tesseract", what: "Reads the text in pictures and scanned PDFs (OCR).",
+    executables: ["tesseract"], versionArgs: ["--version"], website: "https://tesseract-ocr.github.io/tessdoc/Installation.html",
+    brew: "tesseract tesseract-lang", winget: "UB-Mannheim.TesseractOCR", scoop: "tesseract", choco: "tesseract", apt: "tesseract-ocr", dnf: "tesseract", pacman: "tesseract tesseract-data-eng",
+    optional: true, dirs: { win32: ["{PF}\\Tesseract-OCR", "{PF86}\\Tesseract-OCR"] },
+  },
+  fonttools: {
+    id: "fonttools", name: "fontTools", what: "Converts fonts between TTF, OTF, WOFF and WOFF2.",
+    executables: ["fonttools"], versionArgs: ["ttx", "--version"], website: "https://github.com/fonttools/fonttools#installation",
+    brew: "fonttools", winget: "", scoop: "", choco: "", apt: "fonttools python3-brotli", dnf: "fonttools python3-brotli", pacman: "python-fonttools python-brotli",
+    optional: true, dirs: { win32: ["{LOCAL}\\Programs\\Python\\Python*\\Scripts", "{PF}\\Python*\\Scripts"] },
+  },
+  woff2: {
+    id: "woff2", name: "woff2", what: "Makes and opens WOFF2 fonts (used only when fontTools can't).",
+    executables: ["woff2_compress"], versionArgs: [], website: "https://github.com/google/woff2",
+    brew: "woff2", winget: "", scoop: "", choco: "", apt: "woff2", dnf: "woff2-tools", pacman: "woff2", optional: true,
+  },
+  sevenzip: {
+    id: "sevenzip", name: "7-Zip", what: "Opens and makes 7z, RAR, ISO and DMG archives.",
+    executables: ["7zz", "7z", "7za"], versionArgs: [], website: "https://www.7-zip.org/download.html",
+    brew: "sevenzip", winget: "7zip.7zip", scoop: "7zip", choco: "7zip", apt: "7zip", dnf: "7zip", pacman: "7zip",
+    optional: true, dirs: { win32: ["{PF}\\7-Zip", "{PF86}\\7-Zip"] },
+  },
+  unar: {
+    id: "unar", name: "The Unarchiver (unar)", what: "Opens many old archive types (RAR, StuffIt, DMG and more).",
+    executables: ["unar"], versionArgs: ["-v"], website: "https://theunarchiver.com/command-line",
+    brew: "unar", winget: "", scoop: "", choco: "", apt: "unar", dnf: "unar", pacman: "unarchiver", optional: true,
+  },
+  bsdtar: {
+    id: "bsdtar", name: "bsdtar", what: "Opens and makes zip, tar, 7z and ISO archives (built into macOS and Windows 10 and 11).",
+    executables: ["bsdtar", "tar"], versionArgs: ["--version"], website: "https://libarchive.org/",
+    brew: "libarchive", winget: "", scoop: "", choco: "", apt: "libarchive-tools", dnf: "bsdtar", pacman: "libarchive", optional: true, versionMatch: /bsdtar|libarchive/i,
+    dirs: { win32: ["C:\\Windows\\System32"] },
+  },
+  qpdf: {
+    id: "qpdf", name: "qpdf", what: "Picks, turns and rewrites PDF pages exactly, without changing how they look.",
+    executables: ["qpdf"], versionArgs: ["--version"], website: "https://qpdf.sourceforge.io/",
+    brew: "qpdf", winget: "QPDF.QPDF", scoop: "qpdf", choco: "qpdf", apt: "qpdf", dnf: "qpdf", pacman: "qpdf", optional: true,
+    dirs: { win32: ["{PF}\\qpdf*\\bin"] },
+  },
+  poppler: {
+    id: "poppler", name: "Poppler", what: "Gets the text out of a PDF and keeps its layout (pdftotext).",
+    executables: ["pdftotext"], versionArgs: ["-v"], website: "https://poppler.freedesktop.org/",
+    brew: "poppler", winget: "oschwartz10612.Poppler", scoop: "poppler", choco: "poppler", apt: "poppler-utils", dnf: "poppler-utils", pacman: "poppler", optional: true,
+  },
+  exiftool: {
+    id: "exiftool", name: "ExifTool", what: "Reads and edits the hidden details inside pictures, video and sound (camera, place, date).",
+    executables: ["exiftool"], versionArgs: ["-ver"], website: "https://exiftool.org/install.html",
+    brew: "exiftool", winget: "OliverBetz.ExifTool", scoop: "exiftool", choco: "exiftool", apt: "libimage-exiftool-perl", dnf: "perl-Image-ExifTool", pacman: "perl-image-exiftool", optional: true,
   },
 };
 
@@ -68,13 +160,28 @@ function listDirs(parent: string, startsWith: string): string[] {
   }
 }
 
+/** Fills in {HOME}, {PF}, {PF86}, {LOCAL} and expands one `name*` folder (the newest version last in the list is tried first). */
+function expandDir(template: string, platform: FmContext["platform"], vars: Record<string, string>): string[] {
+  const p = platform === "win32" ? nodePath.win32 : nodePath.posix;
+  const filled = template.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? "");
+  const star = filled.indexOf("*");
+  if (star < 0) return [filled];
+  const cut = Math.max(filled.lastIndexOf("/", star), filled.lastIndexOf("\\", star));
+  const parent = filled.slice(0, cut);
+  const rest = filled.slice(filled.indexOf("*") + 1).replace(/^[^/\\]*/, "");
+  const prefix = filled.slice(cut + 1, star);
+  return listDirs(parent, prefix).sort().reverse().map((d) => (rest ? p.join(d, rest) : d));
+}
+
 /** Every folder worth looking in, in order: the PATH first, then the places package managers install to. */
 export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs">, env: Record<string, string | undefined> = process.env): string[] {
   if (ctx.toolDirs) return [...ctx.toolDirs];
   const sep = ctx.platform === "win32" ? ";" : ":";
   const fromPath = (env.PATH ?? env.Path ?? "").split(sep).filter(Boolean);
   const dirs: string[] = [...fromPath];
-  const optBins = (prefix: string) => TOOL_IDS.map((id) => `${prefix}/opt/${TOOLS[id].brew}/bin`);
+  // Homebrew's "keg-only" formulas (ffmpeg-full and so on) are not linked into its bin folder. Casks have no such folder.
+  const optBins = (prefix: string) => TOOL_IDS.filter((id) => !TOOLS[id].brewCask && TOOLS[id].brew).map((id) => `${prefix}/opt/${TOOLS[id].brew.split(" ")[0]}/bin`);
+  const vars: Record<string, string> = { HOME: ctx.home };
   if (ctx.platform === "darwin") {
     dirs.push("/opt/homebrew/bin", "/usr/local/bin", ...optBins("/opt/homebrew"), ...optBins("/usr/local"), "/opt/local/bin");
   } else if (ctx.platform === "linux") {
@@ -83,6 +190,9 @@ export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs"
   } else {
     const local = env.LOCALAPPDATA ?? nodePath.win32.join(ctx.home, "AppData", "Local");
     const programFiles = env.ProgramFiles ?? "C:\\Program Files";
+    vars.LOCAL = local;
+    vars.PF = programFiles;
+    vars.PF86 = env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
     dirs.push(
       nodePath.win32.join(local, "Microsoft", "WinGet", "Links"),
       nodePath.win32.join(ctx.home, "scoop", "shims"),
@@ -93,6 +203,7 @@ export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs"
       ...listDirs(programFiles, "ImageMagick"),
     );
   }
+  for (const id of TOOL_IDS) for (const t of TOOLS[id].dirs?.[ctx.platform] ?? []) dirs.push(...expandDir(t, ctx.platform, vars));
   return [...new Set(dirs)];
 }
 
@@ -268,33 +379,62 @@ export function buildArgs(action: ActionDef, input: string | string[], output: s
 // What the installed programs can do
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Capability names found in `ffmpeg -encoders` output. */
-export function ffmpegCapabilities(encoders: string): string[] {
+/** Capability names found in `ffmpeg -encoders` output, and (for the libraries that add no encoder) in the `-version` text. */
+export function ffmpegCapabilities(encoders: string, versionText = ""): string[] {
   const caps: string[] = [];
   if (/\blibx264\b/.test(encoders)) caps.push("x264");
   if (/\blibvpx-vp9\b/.test(encoders)) caps.push("vp9");
   if (/\blibmp3lame\b/.test(encoders)) caps.push("mp3");
+  if (/\blibx265\b/.test(encoders)) caps.push("x265");
+  if (/\blibopus\b/.test(encoders)) caps.push("opus");
+  if (/\blibvorbis\b/.test(encoders)) caps.push("vorbis");
+  if (/\blibwebp(_anim)?\b/.test(encoders)) caps.push("webp");
+  if (/\bwmav2\b/.test(encoders)) caps.push("wma");
+  if (/--enable-libass\b/.test(versionText)) caps.push("libass");
+  if (/--enable-libzimg\b/.test(versionText)) caps.push("zimg");
   return caps;
 }
 
 /** Capability names (formats it can write) found in `magick -list format` output. */
 export function imageMagickCapabilities(formats: string): string[] {
-  const writable = new Set<string>();
+  const writable = imageMagickFormats(formats, 1);
+  const caps: string[] = [];
+  for (const [cap, format] of [["jpeg", "JPEG"], ["png", "PNG"], ["webp", "WEBP"], ["pdf", "PDF"], ["ico", "ICO"], ["tiff", "TIFF"], ["bmp", "BMP"], ["gif", "GIF"], ["avif", "AVIF"], ["heic", "HEIC"], ["icns", "ICNS"]] as const) if (writable.has(format)) caps.push(cap);
+  return caps;
+}
+
+/** Formats ImageMagick can read, as capability names "read-svg" and so on. */
+export function imageMagickReadable(formats: string): string[] {
+  const readable = imageMagickFormats(formats, 0);
+  const caps: string[] = [];
+  for (const [cap, format] of [["read-heic", "HEIC"], ["read-avif", "AVIF"], ["read-svg", "SVG"], ["read-webp", "WEBP"], ["read-tiff", "TIFF"], ["read-pdf", "PDF"], ["read-jxl", "JXL"]] as const) if (readable.has(format)) caps.push(cap);
+  return caps;
+}
+
+function imageMagickFormats(formats: string, mode: 0 | 1): Set<string> {
+  const found = new Set<string>();
   for (const line of formats.split(/\r?\n/)) {
     const m = /^\s*([A-Z0-9]+)\*?\s+\S+\s+([r-][w-][+-])/i.exec(line);
-    if (m && m[2]![1] === "w") writable.add(m[1]!.toUpperCase());
+    if (m && m[2]![mode] !== "-") found.add(m[1]!.toUpperCase());
   }
-  const caps: string[] = [];
-  for (const [cap, format] of [["jpeg", "JPEG"], ["png", "PNG"], ["webp", "WEBP"], ["pdf", "PDF"], ["ico", "ICO"]] as const) if (writable.has(format)) caps.push(cap);
-  return caps;
+  return found;
+}
+
+/** Capability names for the installed OCR languages, from `tesseract --list-langs`. */
+export function tesseractCapabilities(listing: string): string[] {
+  return listing.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^[A-Za-z_]{2,20}$/.test(l) && l !== "osd").map((l) => `lang-${l}`);
 }
 
 export const PDF_ENGINES = ["typst", "tectonic", "xelatex", "lualatex", "pdflatex", "wkhtmltopdf", "weasyprint"];
 
 /** Why an action can't be used with the installed program, or null if it can. */
-export function missingCapability(action: ActionDef, caps: string[], tool: ToolId): string | null {
+export function missingCapability(action: { needs?: string }, caps: string[], tool: ToolId): string | null {
   if (!action.needs || caps.includes(action.needs)) return null;
   if (action.needs === "pdfengine") return "Needs a PDF engine. Install Typst (brew install typst) or LaTeX, then reopen this window.";
+  if (action.needs.startsWith("lang-")) return `The ${action.needs.slice(5)} language pack for Tesseract isn't installed.`;
+  if (action.needs === "woff2") return "This fontTools can't make WOFF2 fonts because the Brotli add-on is missing (pip install brotli), or install the woff2 program.";
+  if (action.needs === "libass") return `This ffmpeg can't draw subtitles onto video (it was built without libass). The "ffmpeg-full" build can.`;
+  if (action.needs.startsWith("read-")) return `This ${TOOLS[tool].name} can't open ${action.needs.slice(5).toUpperCase()} files. The "${tool === "imagemagick" ? "imagemagick-full" : TOOLS[tool].name}" build can.`;
   const full = tool === "ffmpeg" ? "ffmpeg-full" : tool === "imagemagick" ? "imagemagick-full" : TOOLS[tool].name;
   return `This ${TOOLS[tool].name} was built without that format. The "${full}" build has it.`;
 }
@@ -316,6 +456,8 @@ export interface InstallPlan {
   note: string;
   /** Set when the package manager itself is missing. */
   missingManager: null | { id: "brew" | "winget"; name: string; url: string; command: string; note: string };
+  /** Plain words about how big the download is, when it is big; empty otherwise. */
+  size: string;
 }
 
 export const HOMEBREW_INSTALL_COMMAND = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
@@ -328,40 +470,54 @@ export function packageOf(tool: ToolId, manager: ManagerId): string {
 
 /** The install command to offer for one tool, from the package managers that are present. */
 export function installPlan(platform: FmContext["platform"], tool: ToolId, managers: Managers): InstallPlan {
-  const base = { tool, method: null, argv: null, display: "", auto: false, note: "", missingManager: null } as InstallPlan;
   const def = TOOLS[tool];
+  const base = { tool, method: null, argv: null, display: "", auto: false, note: "", missingManager: null, size: def.size ?? "" } as InstallPlan;
   const display = (argv: string[]) => argv.map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" ");
+  const pkgs = (manager: ManagerId) => TOOLS[tool][manager].split(" ").filter(Boolean);
+  const big = def.size ? ` It is ${def.size}.` : "";
+  const noPackage = (): InstallPlan => ({ ...base, note: `${def.name} has no one-line install for your package manager. Download it from ${def.website}` });
 
-  if (managers.brew && (platform === "darwin" || platform === "linux")) {
-    const argv = [managers.brew, "install", def.brew];
-    const shown = ["brew", "install", def.brew];
+  const brewable = managers.brew && (platform === "darwin" || (platform === "linux" && !def.brewCask)) && pkgs("brew").length > 0;
+  if (brewable) {
+    const cask = def.brewCask ? ["--cask"] : [];
+    const argv = [managers.brew!, "install", ...cask, ...pkgs("brew")];
+    const shown = ["brew", "install", ...cask, ...pkgs("brew")];
     const full = def.brew.endsWith("-full") ? ` The "full" build includes every common format.` : "";
-    return { ...base, method: "brew", argv, display: display(shown), auto: true, note: `Installs ${def.name} with Homebrew. No password is needed.${full}` };
+    return { ...base, method: "brew", argv, display: display(shown), auto: true, note: `Installs ${def.name} with Homebrew. No password is needed.${full}${big}` };
   }
   if (platform === "win32") {
-    if (managers.winget) {
+    if (managers.winget && pkgs("winget").length) {
       const argv = [managers.winget, "install", "--id", def.winget, "-e", "--accept-package-agreements", "--accept-source-agreements"];
-      return { ...base, method: "winget", argv, display: display(["winget", "install", "--id", def.winget, "-e"]), auto: true, note: `Installs ${def.name} with winget (built into Windows 10 and 11). Windows may ask you to allow it.` };
+      return { ...base, method: "winget", argv, display: display(["winget", "install", "--id", def.winget, "-e"]), auto: true, note: `Installs ${def.name} with winget (built into Windows 10 and 11). Windows may ask you to allow it.${big}` };
     }
-    if (managers.scoop) {
+    if (managers.scoop && pkgs("scoop").length) {
       const argv = [managers.scoop, "install", def.scoop];
-      return { ...base, method: "scoop", argv, display: display(["scoop", "install", def.scoop]), auto: true, note: `Installs ${def.name} with Scoop.` };
+      const bucket = def.scoop.includes("/") ? ` It comes from Scoop's "extras" list: run "scoop bucket add extras" once first.` : "";
+      return { ...base, method: "scoop", argv, display: display(["scoop", "install", def.scoop]), auto: true, note: `Installs ${def.name} with Scoop.${bucket}${big}` };
     }
-    if (managers.choco) {
+    if (managers.choco && pkgs("choco").length) {
       const argv = [managers.choco, "install", def.choco, "-y"];
-      return { ...base, method: "choco", argv, display: display(["choco", "install", def.choco, "-y"]), auto: false, note: `Chocolatey needs an administrator window: open PowerShell as administrator and run this.` };
+      return { ...base, method: "choco", argv, display: display(["choco", "install", def.choco, "-y"]), auto: false, note: `Chocolatey needs an administrator window: open PowerShell as administrator and run this.${big}` };
     }
+    if (!def.winget) return noPackage();
     return { ...base, display: `winget install --id ${def.winget} -e`, note: "Windows 10 and 11 include winget (the App Installer from the Microsoft Store). Install or update it, then try again.", missingManager: { id: "winget", name: "winget", url: "https://learn.microsoft.com/windows/package-manager/winget/", command: `winget install --id ${def.winget} -e`, note: "Or download the program from its website." } };
   }
   if (platform === "linux") {
-    const systemManagers: Array<[ManagerId, string[], string]> = [["apt", ["sudo", "apt", "install", "-y", def.apt], "apt"], ["dnf", ["sudo", "dnf", "install", "-y", def.dnf], "dnf"], ["pacman", ["sudo", "pacman", "-S", "--needed", "--noconfirm", def.pacman], "pacman"]];
+    const systemManagers: Array<[ManagerId, string[]]> = [
+      ["apt", ["sudo", "apt", "install", "-y", ...pkgs("apt")]],
+      ["dnf", ["sudo", "dnf", "install", "-y", ...pkgs("dnf")]],
+      ["pacman", ["sudo", "pacman", "-S", "--needed", "--noconfirm", ...pkgs("pacman")]],
+    ];
     for (const [id, argv] of systemManagers) {
-      if (managers[id]) return { ...base, method: id, argv, display: display(argv), auto: false, note: "Your system's package manager needs your administrator password, so run this in a terminal." };
+      if (managers[id] && pkgs(id).length) return { ...base, method: id, argv, display: display(argv), auto: false, note: `Your system's package manager needs your administrator password, so run this in a terminal.${big}` };
     }
+    if (def.brewCask && !managers.apt && !managers.dnf && !managers.pacman) return noPackage();
   }
+  if (!def.brew) return noPackage();
+  const cask = def.brewCask ? "--cask " : "";
   return {
     ...base,
-    display: `brew install ${def.brew}`,
+    display: `brew install ${cask}${def.brew}`,
     note: "Homebrew is a free tool that installs programs like this with one command.",
     missingManager: { id: "brew", name: "Homebrew", url: "https://brew.sh", command: HOMEBREW_INSTALL_COMMAND, note: platform === "darwin" ? "Paste the command in the Terminal app. It asks for your password once. Then come back and press Check again." : "Paste the command in a terminal. Then come back and press Check again." },
   };

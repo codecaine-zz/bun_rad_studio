@@ -27,6 +27,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Reference index](reference/index.md)
 - [Glossary](glossary.md)
 - [Data and files](reference/data-and-files.md)
+- [Encrypted file format (RADENC)](reference/vault-format.md)
 - [Performance (measured baseline)](performance.md)
 - [Accessibility (what was checked)](accessibility.md)
 - [Application index (generated)](reference/application-index.md)
@@ -42,6 +43,8 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 
 - [Architecture](developer/architecture.md)
 - [Developer handbook](developer/handbook.md)
+- [Building releases](developer/releasing.md)
+- [Futuristic themes and the motion layer](developer/fx-themes.md)
 
 ## Security and troubleshooting
 

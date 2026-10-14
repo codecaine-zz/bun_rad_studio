@@ -1,10 +1,15 @@
 // The Details panel on the right: a picture or text preview and the basic facts about the selection.
 import { call, rawUrl } from "./api.js";
+import { openFolderInCode, openInCode } from "./code.js";
+import { looksLikeText } from "./codeLang.js";
 import { showProperties } from "./extras.js";
+import { showMoreInfo } from "./fileinfo.js";
+import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
 import { $, clear, h, iconFor } from "./dom.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { selectedEntries } from "./selection.js";
 import { inTrash, on, state } from "./state.js";
+import { verdictBlock } from "./typecheck.js";
 import { baseName, formatDate, formatSize, plural } from "./util.js";
 
 let sequence = 0;
@@ -51,20 +56,26 @@ export async function renderInfo() {
       h("h2", { class: "info-name" }, `${items.length} items selected`),
       h("dl", { class: "info-facts" }, ...fact("Folders", String(items.length - files.length)), ...fact("Files", String(files.length)), ...fact("Size of files", formatSize(files.reduce((n, e) => n + e.size, 0)))),
       h("button", { type: "button", class: "btn", onclick: () => showProperties(items.map((e) => e.path)) }, "Properties…"),
+      h("button", { type: "button", class: "btn fi-more", title: "A summary of everything selected: total size, kinds of files and dates", onclick: () => showMoreInfo(items.map((e) => e.path)) }, "More info…"),
     );
     return;
   }
   const e = items[0];
-  box.append(
+  // Node.append turns a null into the text "null", so the parts that don't apply are left out first.
+  box.append(...[
     h("div", { class: "info-icon", "aria-hidden": "true" }, e.icon || iconFor(e.name, e.isDir)),
     h("h2", { class: "info-name" }, e.name),
     h("dl", { class: "info-facts" },
       ...fact("Type", e.label), ...fact("Size", e.isDir ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
       ...fact(inTrash() ? "Was in" : "Where", inTrash() ? e.where : state.search ? e.folder : baseName(state.location.path, state.sep))),
+    inTrash() || e.isDir ? null : verdictBlock(e.path, e.name),
     inTrash() ? null : h("button", { type: "button", class: "btn", onclick: () => showProperties([e.path]) }, "Properties…"),
-  );
-  const preview = await previewFor(e);
+    inTrash() ? null : h("button", { type: "button", class: "btn fi-more", title: "Everything about this item, including hidden details such as camera, location and checksums (Alt+Shift+Enter)", onclick: () => showMoreInfo([e.path]) }, "More info…"),
+    inTrash() || !(e.isDir || looksLikeText(e.name)) ? null : h("button", { type: "button", class: "btn", title: "Open it in the built-in code editor (Ctrl/Cmd+E)", onclick: () => (e.isDir ? openFolderInCode(e.path) : openInCode(e.path)) }, e.isDir ? "Open folder in Code editor" : "Edit in Code editor"),
+  ].filter((part) => part !== null));
+  const [preview, strip] = await Promise.all([previewFor(e), !inTrash() && mayHavePhotoDetails(e) ? photoStrip(e) : null]);
   if (mine === sequence && preview) box.insertBefore(preview, box.querySelector(".info-facts"));
+  if (mine === sequence && strip) box.querySelector(".info-facts")?.after(strip);
 }
 
 export function wireInfo() {

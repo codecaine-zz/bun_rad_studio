@@ -1,1 +1,36 @@
 /* Styles of the Crypto tool. Prefix every class with .crypto- to stay out of the way of the other tools. */
+.crypto-toolbar { justify-content: space-between; }
+.crypto-intro { flex: 1 1 320px; }
+.crypto-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); align-items: start; }
+.crypto-span { grid-column: 1 / -1; }
+.crypto-card { min-width: 0; }
+.crypto-card [hidden] { display: none !important; }
+
+.crypto-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.85em; color: var(--muted); min-width: 0; }
+.crypto-label { font-size: 0.85em; color: var(--muted); }
+.crypto-input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; min-width: 0; box-sizing: border-box; }
+.crypto-input:focus-visible, .crypto-text:focus-visible, .crypto-out:focus-visible, .crypto-log:focus-visible, .crypto-details summary:focus-visible, .crypto-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.crypto-text { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.95em; }
+.crypto-wide { width: min(560px, 100%); }
+.crypto-narrow { width: 7em; }
+.crypto-secret-row { display: flex; gap: 6px; align-items: center; }
+.crypto-secret { flex: 1 1 auto; }
+.crypto-toggle { flex: none; }
+.crypto-check { display: inline-flex; align-items: center; gap: 4px; color: var(--text); cursor: pointer; }
+
+.crypto-out { min-height: 2.4em; }
+.crypto-status { min-height: 1.2em; margin: 0; }
+.crypto-caption { text-align: left; font-size: 0.85em; color: var(--muted); padding: 4px 8px; caption-side: top; }
+.crypto-digest { overflow-wrap: anywhere; word-break: break-all; }
+.crypto-card .pw-table th[scope="row"] { position: static; }
+.crypto-digests th[scope="row"] { white-space: nowrap; font-weight: 600; }
+.crypto-filelist { display: flex; flex-direction: column; gap: 8px; }
+.crypto-group { align-items: flex-end; }
+
+.crypto-strength { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.crypto-meter { width: 220px; height: 16px; }
+.crypto-details { color: var(--text); }
+.crypto-details summary { cursor: pointer; padding: 2px 0; }
+.crypto-list { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 2px; }
+.crypto-jwt { display: flex; flex-direction: column; gap: 8px; }
+.crypto-log { max-height: 240px; overflow: auto; }

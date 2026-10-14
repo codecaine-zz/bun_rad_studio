@@ -178,7 +178,7 @@ A dictionary maps a key to a sentence. The first matching key wins: `#id`, `aria
 
 - No saved file format is versioned ([Data and files](../reference/data-and-files.md#file-formats-and-compatibility)); do not change one silently.
 - A behaviour change that users could notice is listed in [discrepancies](../documentation-maintenance/discrepancies.md) with a "Behaviour change" line, and a migration note if needed.
-- There is no release process in the repository besides `bun run build` and the Homebrew scripts; the Homebrew steps were not verified end to end. Before tagging anything, run the CI commands in a fresh clone.
+- Releases for every platform and the Mac `.app` bundles are built by `bun run release:build` and `bun run build:mac-apps`; see [Building releases](releasing.md) for what was and was not verified. The Homebrew steps were not verified end to end. Before tagging anything, run the CI commands in a fresh clone.
 
 ## See also
 

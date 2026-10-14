@@ -6,6 +6,7 @@ import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { Sys } from "../src/simplecli/sys";
 import { OS_THEME_KEYS } from "../src/shared/osThemes";
+import { FX_THEME_KEYS } from "../src/shared/fxThemes";
 
 // Canonical unique theme list across all modern, high-quality, and nostalgic themes
 export const CANONICAL_THEMES = [
@@ -89,6 +90,9 @@ export const CANONICAL_THEMES = [
 
     // 7. Linux distributions, Windows versions and macOS versions
     ...OS_THEME_KEYS,
+
+    // 8. Futuristic themes (glass, glow and motion; see docs/developer/fx-themes.md)
+    ...FX_THEME_KEYS,
 ];
 
 // `bun run scripts/capture_theme_screenshots.ts ubuntu_dark win31` captures only those; with no arguments, all.

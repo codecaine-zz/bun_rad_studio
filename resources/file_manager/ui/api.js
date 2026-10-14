@@ -5,12 +5,13 @@ const TOKEN = meta("fm-token");
 export const platform = meta("fm-platform") || "linux";
 
 export class ApiError extends Error {
-  /** @param {string} message @param {string} code @param {number} status */
-  constructor(message, code, status) {
+  /** @param {string} message @param {string} code @param {number} status @param {any} [details] extra facts the server sent with the error */
+  constructor(message, code, status, details = undefined) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -39,7 +40,7 @@ export async function call(op, body = {}) {
     // not JSON: fall through to the generic message
   }
   if (!res.ok || !data || data.ok === false) {
-    throw new ApiError(data?.error?.message ?? "Something went wrong.", data?.error?.code ?? "UNKNOWN", res.status);
+    throw new ApiError(data?.error?.message ?? "Something went wrong.", data?.error?.code ?? "UNKNOWN", res.status, data?.error?.details);
   }
   return data;
 }

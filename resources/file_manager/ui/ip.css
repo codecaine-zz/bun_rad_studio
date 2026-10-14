@@ -1,1 +1,31 @@
 /* Styles of the IP info tool. Prefix every class with .ip- to stay out of the way of the other tools. */
+.ip-grow { flex: 1 1 18rem; }
+.ip-grow > input { width: 100%; }
+.ip-token { width: 14rem; }
+.ip-prefix { width: 5rem; }
+.ip-bulk { width: 100%; box-sizing: border-box; min-height: 6rem; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+.ip-bulk-field { width: 100%; }
+.ip-toolkit .pw-row > label > input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; min-width: 0; }
+
+.ip-metrics { display: flex; flex-wrap: wrap; gap: 8px; }
+.ip-metric { display: flex; flex-direction: column; gap: 2px; min-width: 9rem; max-width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.ip-metric-label { font-size: 0.78em; color: var(--muted); }
+.ip-metric-value { overflow-wrap: anywhere; }
+.ip-privacy { max-width: 70rem; }
+
+.ip-note { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+.ip-note[hidden] { display: none; }
+.ip-note-warn { background: var(--warn-bg); color: var(--warn-text); }
+
+.ip-table td.ip-prop { font-weight: 600; white-space: nowrap; }
+.ip-table-wrap { max-height: 24rem; }
+.ip-history-wrap { max-height: 14rem; }
+.ip-empty { padding: 8px 10px; }
+.ip-link { font: inherit; color: var(--accent); background: transparent; border: 0; padding: 0 2px; border-radius: 4px; text-align: left; text-decoration: underline; cursor: pointer; overflow-wrap: anywhere; }
+.ip-link:hover { background: var(--hover); }
+
+.ip-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ip-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.ip-link-label { flex: 0 0 12rem; font-weight: 600; }
+.ip-link-url { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; font-size: 0.85em; color: var(--muted); }
+.ip-raw { max-height: 18rem; }

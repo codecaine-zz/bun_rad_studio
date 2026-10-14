@@ -136,7 +136,8 @@ describe("Designer themes: readable button text (D-019)", () => {
         }
         return html.slice(start, end + 1);
     };
-    const api = new Function(`${grab("contrastRatio")}; ${grab("getRawThemeColors")}; ${grab("getThemeColors")}; return { contrastRatio, getThemeColors, getRawThemeColors };`)() as {
+    const fxData = ["FX_THEME_DATA", "FX_THEME_LOOKUP"].map((v) => html.match(new RegExp(`var ${v} = .*;`))![0]).join("\n");
+    const api = new Function(`${fxData}; ${grab("fxThemeFor")}; ${grab("fxPaletteFor")}; ${grab("contrastRatio")}; ${grab("getRawThemeColors")}; ${grab("getThemeColors")}; return { contrastRatio, getThemeColors, getRawThemeColors };`)() as {
         contrastRatio: (a: string, b: string) => number;
         getThemeColors: (t: string) => Record<string, string>;
         getRawThemeColors: (t: string) => Record<string, string>;

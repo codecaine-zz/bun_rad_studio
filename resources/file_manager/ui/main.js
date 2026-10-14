@@ -2,6 +2,7 @@
 import { ApiError } from "./api.js";
 import { $, h } from "./dom.js";
 import { showWelcome } from "./extras.js";
+import { wireFavorites } from "./favorites.js";
 import { wireInfo } from "./info.js";
 import { wireKeys } from "./keys.js";
 import { isRenaming, renderList, wireList } from "./list.js";
@@ -10,11 +11,25 @@ import { goTo, loadPlaces, refresh } from "./nav.js";
 import { renderSidebar, wireSidebar } from "./sidebar.js";
 import { on, state } from "./state.js";
 import { wirePower } from "./power.js";
+import { wireChrome } from "./chrome.js";
+import { applyPalette } from "./themes.js";
+import { wireTypeCheck } from "./typecheck.js";
+import { wireDual } from "./dual.js";
+import { wireHome } from "./home.js";
+import { registerHomeTiles } from "./homeTiles.js";
+import { restoreWorkspace, wireWorkspace } from "./workspace.js";
 import "./find.js";
 import "./watch.js";
 import "./crypto.js";
 import "./ip.js";
 import "./net.js";
+import "./sd.js";
+import "./vault.js";
+import "./calc.js";
+import "./timer.js";
+import "./code.js";
+import "./dev.js";
+import "./themeEditor.js";
 import { wireTerminal } from "./terminal.js";
 import { wireTools } from "./tools.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
@@ -25,13 +40,20 @@ const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst"];
 function applySettings() {
   const s = state.settings;
   const root = document.documentElement;
-  if (s.theme === "auto") delete root.dataset.theme;
+  // While the theme editor shows a theme that isn't saved yet, the page keeps it.
+  if (root.dataset.palette === "preview") {
+    // nothing to change
+  } else if (s.palette) {
+    if (root.dataset.palette !== s.palette) applyPalette(s.palette);
+  } else if (root.dataset.palette) applyPalette("");
+  else if (s.theme === "auto") delete root.dataset.theme;
   else root.dataset.theme = s.theme;
   root.style.setProperty("--fm-scale", String(s.textSize / 100));
   $("#info").hidden = !s.showInfoPanel;
 }
 
 function showFatal(message) {
+  document.body.classList.add("ready");
   $("#list").replaceChildren(h("div", { class: "fatal", role: "alert" }, h("h2", {}, "The File Manager can't start"), h("p", {}, message)));
 }
 
@@ -45,11 +67,19 @@ async function start() {
   wireToolbar();
   wireList();
   wireSidebar();
+  wireFavorites();
   wireInfo();
+  // The view switcher and the Dual view listen for keys before the file list does, so Alt+digits, Esc (Focus), Tab, F5 and F6 reach them first.
+  wireWorkspace();
+  wireDual();
+  wireHome();
+  registerHomeTiles();
   wireKeys();
   wireTerminal();
   wireTools();
   wirePower();
+  wireChrome();
+  wireTypeCheck();
   renderSidebar();
 
   // Settings changes: apply them, and redo only what they affect. Saving the last folder or a favorite must not
@@ -68,6 +98,7 @@ async function start() {
   renderAddress();
   renderBanner();
   updateSearchBox();
+  restoreWorkspace();
   document.body.classList.add("ready");
   // The window has no browser menu, so keep the system's own page menu (Reload, Inspect ...) out of the way.
   document.addEventListener("contextmenu", (e) => {

@@ -8,7 +8,7 @@
  * protected folders, confirmations) applies inside it. The server therefore only opens one for a request that
  * carries the session token, and limits how many are open at once.
  */
-import { existsSync, statSync } from "fs";
+import { existsSync, promises as fsp, statSync } from "fs";
 import type { FmContext } from "./fmCore";
 
 export const MAX_TERMINALS = 4;
@@ -29,6 +29,39 @@ export function pickShell(platform: FmContext["platform"], env: Record<string, s
 export function clampSize(value: unknown, fallback: number, min: number, max: number): number {
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
+}
+
+/**
+ * The folder a shell is in right now, or null when it can't be told. Linux reads /proc; macOS asks `lsof` for the
+ * shell's working folder. Only the shell's own process is asked about (a number we got from the system), and the
+ * answer is checked to be a plain absolute path before it is used.
+ */
+export async function shellFolder(platform: FmContext["platform"], pid: number): Promise<string | null> {
+  if (!Number.isInteger(pid) || pid <= 0) return null;
+  let path: string | null = null;
+  try {
+    if (platform === "linux") {
+      path = await fsp.readlink(`/proc/${pid}/cwd`);
+    } else if (platform === "darwin") {
+      const lsof = ["/usr/sbin/lsof", "/usr/bin/lsof"].find((p) => existsSync(p));
+      if (!lsof) return null;
+      const proc = Bun.spawn([lsof, "-a", "-d", "cwd", "-Fn", "-p", String(pid)], { stdout: "pipe", stderr: "ignore", stdin: "ignore" });
+      const timer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch {} }, 1500);
+      const out = await new Response(proc.stdout).text();
+      clearTimeout(timer);
+      path = out.split("\n").find((l) => l.startsWith("n"))?.slice(1) ?? null;
+    }
+  } catch {
+    return null;
+  }
+  // The shell may have been in a folder that has since been removed; Linux then adds " (deleted)".
+  if (!path || !path.startsWith("/") || /[\x00-\x1f\x7f]/.test(path) || path.length > 4096 || / \(deleted\)$/.test(path)) return null;
+  try {
+    if (!(await fsp.stat(path)).isDirectory()) return null;
+  } catch {
+    return null; // the folder is gone (macOS still names it)
+  }
+  return path;
 }
 
 export interface TerminalSession {

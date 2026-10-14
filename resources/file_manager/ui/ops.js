@@ -4,11 +4,14 @@ import { ApiError, call } from "./api.js";
 import { chooseConflict, confirmBox, problemsBox } from "./dialogs.js";
 import { announce } from "./dom.js";
 import { toast } from "./menus.js";
+import { finishOpen } from "./openwith.js";
 import { busy, goTo, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { currentPath, emit, inTrash, state } from "./state.js";
+import { askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
 import { baseName, parentOf, plural } from "./util.js";
+import { isLocked, unlockEntries } from "./vault.js";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Helpers
@@ -85,14 +88,20 @@ async function trashPaths(paths) {
 export async function openEntry(entry) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
   if (entry.isDir) return goTo(entry.path);
+  if (isLocked(entry)) return unlockEntries([entry]);
   await openFile(entry.path, false);
 }
 
-async function openFile(path, confirmed) {
+async function openFile(path, confirmed, mismatchOk = false) {
   try {
-    await call("open", { path, confirmProgram: confirmed });
+    const res = await call("open", { path, confirmProgram: confirmed, confirmMismatch: mismatchOk || skipMismatchGuard() });
+    finishOpen(res, path);
     call("settings").then((r) => { state.settings = r.settings; emit("settings", {}); }).catch(() => {});
   } catch (err) {
+    if (err instanceof ApiError && err.code === "TYPE_MISMATCH") {
+      if (await askOpenAnyway(path, err)) await openFile(path, confirmed, true);
+      return;
+    }
     if (err instanceof ApiError && err.code === "NEEDS_CONFIRM") {
       const ok = await confirmBox({
         title: "Run this program?",
@@ -100,7 +109,7 @@ async function openFile(path, confirmed) {
         confirmLabel: "Run it",
         danger: true,
       });
-      if (ok) await openFile(path, true);
+      if (ok) await openFile(path, true, mismatchOk);
       return;
     }
     fail(err);

@@ -1,8 +1,8 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-14T11:18:50.208Z",
-  "totalWrappers": 258,
+  "generatedAt": "2026-10-14T15:40:06.924Z",
+  "totalWrappers": 260,
   "commands": [
     {
       "name": "codecaine",
@@ -1203,6 +1203,22 @@
       "category": "CLI Utilities",
       "description": "Command-line terminal utility for Vault Backup Manager",
       "targetScript": "cli_apps/vault_backup_manager.ts"
+    },
+    {
+      "name": "codecaine-vault",
+      "type": "cli",
+      "displayName": "Vault CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Vault",
+      "targetScript": "cli_apps/vault_cli.ts"
+    },
+    {
+      "name": "codecaine-vault-cli",
+      "type": "cli",
+      "displayName": "Vault CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Vault",
+      "targetScript": "cli_apps/vault_cli.ts"
     },
     {
       "name": "codecaine-watcher",

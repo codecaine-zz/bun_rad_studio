@@ -1,1 +1,36 @@
 /* Styles of the Watch tool. Prefix every class with .watch- to stay out of the way of the other tools. */
+.watch-grid { align-items: flex-end; }
+.watch-field { align-items: stretch; text-align: left; }
+.watch-grow { flex: 1 1 14rem; min-width: 10rem; }
+.watch-grow > input { width: 100%; }
+.watch-path { min-width: 12rem; }
+.watch-number { width: 7rem; }
+.watch-select { max-width: 22rem; }
+.watch-checks { gap: 6px 18px; }
+.watch-check { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.watch-check input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+.watch-advanced > summary { cursor: pointer; padding: 2px 0; color: var(--accent); }
+.watch-advanced[open] > summary { margin-bottom: 8px; }
+.watch-advanced > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.watch-message { min-height: 1.2em; }
+
+.watch-chips { gap: 6px; }
+.watch-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-chip.selected { background: var(--selected); color: var(--selected-text); border-color: var(--accent); font-weight: 600; }
+
+.watch-info { overflow-wrap: anywhere; }
+.watch-stats { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
+.watch-stat { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); padding: 6px 10px; min-width: 0; }
+.watch-stat-label { color: var(--muted); font-size: 0.8em; }
+.watch-stat-value { font-weight: 600; overflow-wrap: anywhere; }
+.watch-status { min-height: 1.2em; overflow-wrap: anywhere; }
+
+.watch-console-bar { justify-content: flex-start; }
+.watch-console { min-height: 12rem; max-height: 50vh; }
+.watch-console:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.watch-history-wrap { max-height: 16rem; }
+.watch-result { font-weight: 600; }
+.watch-result-success { color: var(--good); }
+.watch-result-failed { color: var(--danger); }
+.watch-result-running { color: var(--accent); }
+.watch-result-cancelled { color: var(--muted); }

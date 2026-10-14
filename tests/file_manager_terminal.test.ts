@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
-import { clampSize, createTerminalHub, pickShell, terminalSupported } from "../src/features/filemanager/fmTerminal";
+import { clampSize, createTerminalHub, pickShell, shellFolder, terminalSupported } from "../src/features/filemanager/fmTerminal";
 
 // A terminal needs a pseudo-terminal, which exists on macOS and Linux only.
 const posix = process.platform !== "win32";
@@ -234,5 +234,69 @@ describe("the terminal library and the page's policy", () => {
     expect(text.match(/__fmStyle\(/g)?.length).toBe(3);
     expect(text.match(/createElement\("style"\)/g)?.length).toBe(1); // only inside __fmStyle itself
     expect(text).not.toContain("sourceMappingURL");
+  });
+});
+
+suite("the file list can follow the shell", () => {
+  const cwdMessages = (c: Client) => c.messages.filter((m) => m.type === "cwd").map((m) => m.path as string);
+  async function waitForCwd(c: Client, path: string, ms = 8000) {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (cwdMessages(c).includes(path)) return;
+      await Bun.sleep(25);
+    }
+    throw new Error(`No cwd message for ${path}. Got ${JSON.stringify(cwdMessages(c))}`);
+  }
+
+  test("shellFolder reads another process's folder, and refuses what it can't use", async () => {
+    expect(await shellFolder(process.platform === "darwin" ? "darwin" : "linux", process.pid)).toBe(realpathSync(process.cwd()));
+    expect(await shellFolder("linux", 0)).toBeNull();
+    expect(await shellFolder("linux", -5)).toBeNull();
+    expect(await shellFolder("linux", 1.5)).toBeNull();
+    expect(await shellFolder("win32", process.pid)).toBeNull();
+    expect(await shellFolder("linux", 2 ** 22 + 12345)).toBeNull();
+  });
+
+  test("typing cd moves the reported folder, including names with spaces and quotes", async () => {
+    const sub = join(work, "it's a sub folder");
+    mkdirSync(sub, { recursive: true });
+    const c = await connect({ token: TOKEN, path: work });
+    c.ws.send(JSON.stringify({ type: "input", data: "cd \"it's a sub folder\"\r" }));
+    await waitForCwd(c, realpathSync(sub));
+    c.ws.send(JSON.stringify({ type: "input", data: "cd ..\r" }));
+    await waitForCwd(c, realpathSync(work));
+    c.ws.close();
+  });
+
+  test("nothing is sent while the shell stays where it started", async () => {
+    const c = await connect({ token: TOKEN, path: work });
+    c.ws.send(JSON.stringify({ type: "input", data: "echo staying\r" }));
+    await c.waitFor(/staying/);
+    await Bun.sleep(1600);
+    expect(cwdMessages(c)).toEqual([]);
+    c.ws.close();
+  });
+
+  test("only the shell's own folder counts, not a subshell's", async () => {
+    const other = join(work, "elsewhere");
+    mkdirSync(other, { recursive: true });
+    const c = await connect({ token: TOKEN, path: work });
+    c.ws.send(JSON.stringify({ type: "input", data: "( cd elsewhere && sleep 0.4 )\r" }));
+    // A subshell moves, but the shell itself does not: nothing must be reported.
+    await Bun.sleep(1500);
+    expect(cwdMessages(c)).toEqual([]);
+    c.ws.send(JSON.stringify({ type: "input", data: "cd elsewhere\r" }));
+    await waitForCwd(c, realpathSync(other));
+    c.ws.close();
+  });
+
+  test("a folder that is removed is not reported", async () => {
+    const gone = join(work, "will vanish");
+    mkdirSync(gone, { recursive: true });
+    const c = await connect({ token: TOKEN, path: work });
+    c.ws.send(JSON.stringify({ type: "input", data: "cd 'will vanish' && rmdir \"$PWD\"\r" }));
+    await Bun.sleep(2800);
+    expect(cwdMessages(c).some((p) => p.includes("will vanish"))).toBe(false);
+    c.ws.close();
   });
 });

@@ -8,7 +8,7 @@ import { createJobHub } from "../src/features/filemanager/fmJobs";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import {
   ACTIONS, ACTION_BY_ID, HOMEBREW_INSTALL_COMMAND, actionAccepts, buildArgs, childEnv, ffmpegCapabilities, findExecutable, imageMagickCapabilities,
-  installPlan, kindsFor, missingCapability, outputName, searchDirs,
+  TOOL_IDS, installPlan, kindsFor, missingCapability, outputName, searchDirs,
 } from "../src/features/filemanager/fmTools";
 
 const posix = process.platform !== "win32";
@@ -384,7 +384,8 @@ suite("batches with stand-in programs", () => {
   test("toolStatus reports each tool with its install plan", async () => {
     const empty = createContext({ platform: "darwin", home, dataDir: join(root, "d7"), toolDirs: [join(root, "nothing")] });
     const s = await toolStatus(empty);
-    expect(s.tools.map((t) => t.id)).toEqual(["ffmpeg", "imagemagick", "pandoc"]);
+    expect(s.tools.map((t) => t.id)).toEqual(TOOL_IDS);
+    expect(TOOL_IDS.slice(0, 3)).toEqual(["ffmpeg", "imagemagick", "pandoc"]);
     expect(s.tools.every((t) => !t.installed && t.plan.missingManager?.id === "brew")).toBe(true);
   });
 });

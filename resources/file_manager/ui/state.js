@@ -13,9 +13,14 @@ export const state = {
   drives: [],
   trashCount: 0,
   settings: {
-    favorites: [], recents: [], view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
-    showHidden: false, showInfoPanel: false, theme: "auto", textSize: 100, lastPath: "", seenWelcome: false,
+    favorites: [], favoriteNames: {}, recents: [], view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
+    showHidden: false, showInfoPanel: false, theme: "auto", palette: "", textSize: 100, lastPath: "", seenWelcome: false, terminalFollow: true,
+    workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
+    activeTool: "", splitTool: "", dualPath: "", typeWarnings: true,
   },
+  /** Which workspace view is showing (files, home, tools, split or dual) and whether the Power tools pane is visible. */
+  workspace: "files",
+  powerOpen: false,
 
   /** Where we are: { kind: "folder", path } or { kind: "trash" }. */
   location: { kind: "folder", path: "" },
@@ -54,7 +59,9 @@ export function on(event, fn) {
 export function emit(event, detail) {
   for (const fn of listeners.get(event) ?? []) {
     try {
-      fn(detail);
+      // A listener that is async reports its failure here too, instead of as an unhandled rejection.
+      const result = fn(detail);
+      if (result && typeof result.catch === "function") result.catch((err) => console.error(`Listener for "${event}" failed`, err));
     } catch (err) {
       console.error(`Listener for "${event}" failed`, err);
     }

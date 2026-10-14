@@ -3,8 +3,10 @@ import { ApiError, call } from "./api.js";
 import { viewMenuItems } from "./contextmenu.js";
 import { attachDropTarget } from "./dnd.js";
 import { showHelp, showSettings } from "./extras.js";
+import { showFavoritesMenu } from "./favorites.js";
 import { showToolsDialog } from "./tools.js";
 import { togglePower } from "./power.js";
+import { lockSelection } from "./vault.js";
 import { $, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { canGoUp, clearSearch, goBack, goForward, goTo, goUp, refresh, runSearch } from "./nav.js";
@@ -50,7 +52,9 @@ function buttonSpecs() {
     ],
     [
       { id: "view", icon: "▦", label: "View", tip: "Change how files are shown and sorted", run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }), enabled: () => true, menu: true },
+      { id: "favorites", icon: "⭐", label: "Favorites", tip: `Jump to your favorite folders, or add this one (${mod()}Shift+B)`, run: (btn) => showFavoritesMenu(btn), enabled: () => true, menu: true },
       { id: "info", icon: "ℹ️", label: "Details", tip: `Show or hide the details panel (${mod()}I)`, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
+      { id: "lock", icon: "🔒", label: "Lock", tip: "Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.", run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "tools", icon: "🧰", label: "Convert", tip: "Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs", run: showToolsDialog, enabled: () => !inTrash() },
       { id: "power", icon: "🔎", label: "Find & more", tip: "Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks (Ctrl+Shift+F)", run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
       { id: "terminal", icon: "⌨️", label: "Terminal", tip: state.platform === "win32" ? "The terminal needs macOS or Linux for now" : "Show or hide a terminal in this folder (Ctrl+`)", run: () => emit("toggle-terminal"), enabled: () => state.platform !== "win32", toggle: () => state.terminalOpen },

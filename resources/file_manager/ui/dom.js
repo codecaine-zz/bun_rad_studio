@@ -56,7 +56,7 @@ const ICONS = [
   ["📊", "xls xlsx ods csv tsv numbers"],
   ["📽️", "ppt pptx odp key"],
   ["🗜️", "zip rar 7z tar gz tgz bz2 xz zst cab iso"],
-  ["💻", "js mjs cjs ts tsx jsx py rb go rs java kt swift c h cpp hpp cs php html htm css scss json xml yaml yml toml sql lua dart vue svelte ps1 bat cmd sh bash zsh"],
+  ["💻", "js mjs cjs ts tsx jsx py rb go rs java kt swift c h cpp hpp cs php html htm css scss json xml yaml yml toml sql lua dart vue svelte ps1 bat cmd sh bash zsh v vsh vv zig nim ex exs erl hs ml clj scala groovy r jl pl pm fs fsx vb asm s m mm cc cxx hh hxx mts cts jsonc less sass graphql proto cmake gradle tf sol wat fish ksh"],
   ["📝", "txt md markdown log ini cfg conf env rst tex nfo"],
   ["⚙️", "exe msi app command jar apk appimage scr com run vbs deb rpm pkg"],
   ["💿", "dmg img vhd vmdk"],

@@ -7,6 +7,7 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
 [![RAD Designer](https://img.shields.io/badge/RAD%20Designer-Included-10b981?style=for-the-badge)](docs/API.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+[![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal&logoColor=white)](https://paypal.me/codecaine81)
 
 > 📖 **Quick Links:** [📚 Documentation handbook](docs/index.md) • [🛠️ Developer handbook](docs/developer/handbook.md) • [🔒 Security](docs/security.md) • [🩺 Troubleshooting](docs/troubleshooting.md) • [📖 Glossary](docs/glossary.md) • [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (76 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-39-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
 
@@ -82,6 +83,71 @@ bun run cli:launcher --search sqlite
 
 ![SimpleGUI Ergonomics & Shortcuts Demo Screenshot](screenshot_ergonomics.png)
 
+<a id="build-binaries-for-every-platform"></a>
+
+### 📦 Compile binaries for every platform (`bun run release:build`)
+
+One command builds every desktop app and every command-line tool for **macOS, Linux and Windows, on ARM and Intel**, as archives you can attach to a GitHub release. You need [Bun](https://bun.sh) and the internet the first time (Bun downloads one small runtime per platform, then caches it). Run it from a clone with `bun install` done.
+
+```bash
+bun run release:build                              # all platforms -> release/
+bun run release:build -- --targets linux-arm64,windows-x64   # only some of them
+bun run release:build -- --list                    # show every platform and what it needs
+bun run release:build -- --mac-apps                # also the Mac .app files (needs a Mac)
+bun run build:mac-apps                             # only the Mac .app files, each with its own icon
+```
+
+**What you get** in `release/` (about 130 MB per platform, 37 MB for the command-line-only ones):
+
+| File | For | Desktop apps |
+| :--- | :--- | :---: |
+| `bun-rad-studio-v1.0.0-macos-arm64.tar.gz` | Apple silicon Macs | yes |
+| `…-macos-x64.tar.gz` | Intel Macs | yes |
+| `…-linux-x64.tar.gz`, `…-linux-x64-baseline.tar.gz` | 64-bit Intel/AMD Linux (baseline = CPUs from before 2013) | yes |
+| `…-linux-arm64.tar.gz` | 64-bit ARM Linux (Raspberry Pi OS 64-bit, Graviton …) | yes |
+| `…-linux-x64-musl.tar.gz`, `…-linux-arm64-musl.tar.gz` | Alpine and other musl Linux | tools only |
+| `…-windows-x64.zip`, `…-windows-x64-baseline.zip` | 64-bit Windows 10/11 | yes |
+| `…-windows-arm64.zip` | Windows on ARM (the desktop apps run from the x64 file by emulation) | tools only |
+| `…-macos-arm64-apps-1of3.zip` … | the Mac `.app` bundles (with `--mac-apps`) | yes |
+| `SHA256SUMS.txt`, `RELEASE_NOTES.md` | checksums and a ready-made "which one do I pick" page | |
+
+Each archive holds the platform's Bun runtime, every app bundled to one file, the window library, the resources and a launcher per app (`bin/file-manager-studio`, `bin/fd-cli` …), so people can run it **without installing Bun or this project**. 32-bit processors are not offered (Bun does not support them).
+
+**Publish it:**
+
+```bash
+gh release create v1.0.0 release/*.tar.gz release/*.zip release/SHA256SUMS.txt -F release/RELEASE_NOTES.md
+```
+
+Change `version` in `package.json` first; it names every file.
+
+**Using a download** (this is also in each archive's `README.txt`):
+
+```bash
+tar -xzf bun-rad-studio-v1.0.0-linux-arm64.tar.gz && cd bun-rad-studio-v1.0.0-linux-arm64
+./bin/file-manager-studio          # a desktop app
+./bin/fd-cli --help                # a command-line tool
+sh install.sh                      # optional: put everything on your PATH and in the Linux applications menu
+```
+
+| Platform | Needs |
+| :--- | :--- |
+| macOS | Nothing. For downloaded files run `xattr -dr com.apple.quarantine .` once (the apps are signed ad hoc, not notarized) |
+| Linux (glibc) | GTK 4 and WebKitGTK 6.0 for the desktop apps: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` (Debian/Ubuntu 24.04+), `sudo dnf install gtk4 webkitgtk6.0` (Fedora) |
+| Alpine / musl | `apk add libstdc++ libgcc` (command-line tools only) |
+| Windows | The Microsoft WebView2 runtime (already part of Windows 11) |
+
+**One app as a single-file executable** (any Bun target, cross-compiled from any computer): Bun can also embed a program and its runtime into one file, for example the command-line tools:
+
+```bash
+bun build --compile --target=bun-linux-arm64 --outfile=dist/fd-cli cli_apps/fd_cli.ts
+bun build --compile --target=bun-windows-x64 --outfile=dist/fd-cli.exe cli_apps/fd_cli.ts
+```
+
+Targets: `bun-darwin-arm64`, `bun-darwin-x64`, `bun-linux-x64`, `bun-linux-x64-baseline`, `bun-linux-arm64`, `bun-linux-x64-musl`, `bun-linux-arm64-musl`, `bun-windows-x64`, `bun-windows-x64-baseline`, `bun-windows-arm64`. Desktop apps also need their window library and `resources/` folder next to them, which is why the archives above are the recommended way to ship them. The [App Bundler Studio](docs/userguides/11_app_bundler_studio.md) (`bun run app:bundler`) wraps the single-file compile in a window.
+
+What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus how it works inside: [Building releases](docs/developer/releasing.md).
+
 ### 🎨 Complete All-Controls Single-Form Theme Showcase (`bun run demo:themes`)
 
 ![Theme Showcase - Monokai Pro Single Form](screenshots/themes/monokai_pro.png)
@@ -95,9 +161,10 @@ bun run cli:launcher --search sqlite
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
   - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
   - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
-  - [🎨 Built-in Desktop Form Themes & Visual Gallery (121 Themes)](#built-in-desktop-form-themes--visual-gallery-121-themes)
+  - [🎨 Built-in Desktop Form Themes & Visual Gallery (133 Themes)](#built-in-desktop-form-themes--visual-gallery-133-themes)
   - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
+- [📦 Compile binaries for every platform](#build-binaries-for-every-platform)
 - [💻 Installation & Quick Start](#installation--quick-start)
   - [Prerequisites](#prerequisites)
   - [Linux System Dependencies (`libwebkitgtk-6.0-4`)](#linux-system-dependencies-libwebkitgtk-60-4)
@@ -120,6 +187,7 @@ bun run cli:launcher --search sqlite
 - [⌨️ Keyboard Shortcuts & Power Actions](#keyboard-shortcuts--power-actions)
 - [📂 Project Structure](#project-structure)
 - [🌟 Related RAD & GUI Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+- [💙 Support & Donations](#support--donations)
 - [📄 License](#license)
 
 ---
@@ -168,15 +236,15 @@ bun run cli:launcher --search sqlite
 - **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 - **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-<a id="built-in-desktop-form-themes--visual-gallery-121-themes"></a>
+<a id="built-in-desktop-form-themes--visual-gallery-133-themes"></a>
 
-### 🎨 Built-in Desktop Form Themes & Visual Gallery (121 Themes)
+### 🎨 Built-in Desktop Form Themes & Visual Gallery (133 Themes)
 
 Bun RAD Studio and SimpleGUI feature **63 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
 
 > [!TIP]
 > ### 🖼️ Complete Visual Gallery & Theme Catalog in `docs/THEMES.md`
-> **Instead of listing all 121 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
+> **Instead of listing all 133 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
 > 👉 **[🖼️ View the Complete 63-Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
 
 Every theme automatically harmonizes:
@@ -204,7 +272,7 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 ```
 
-#### 🎨 Built-in Theme Categories Overview (121 Themes)
+#### 🎨 Built-in Theme Categories Overview (133 Themes)
 
 | Category | Count | Highlight Themes | Vibe & Aesthetic |
 | :--- | :---: | :--- | :--- |
@@ -216,6 +284,7 @@ bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 | **🐧 Linux Distros & Desktops** | 28 | `debian_dark`, `arch_dark`, `kali_dark`, `kde_breeze_dark`, `rhel_dark`, `nixos_dark`, `arc_dark`, `elementary_light` | One theme per major distribution, desktop environment and popular GTK theme |
 | **🪟 Windows Versions** | 11 | `win31`, `win98`, `winxp_luna`, `vista_aero`, `win7_aero`, `win10_dark`, `windows_high_contrast` | Windows 3.1 to Windows 10, Terminal and High Contrast |
 | **🍎 macOS Versions** | 7 | `mac_os_9`, `snow_leopard`, `yosemite`, `big_sur`, `monterey_light`, `sequoia_dark`, `tahoe_glass` | Mac OS 9 Platinum to macOS Tahoe |
+| **🌌 Futuristic (glass, glow, motion)** | 12 | `cyberpunk_hologram`, `neon_hud`, `quantum_obsidian`, `deep_space`, `liquid_metal`, `titanium_aurora`, `liquid_metal_light`, `neo_tokyo_dark`, `synthetic_solar`, `neo_tokyo_day`, `aurora_glass`, `plasma_violet` | Translucent glass, neon and bioluminescent edges, brushed metal, and a compositor-only motion layer that respects reduced motion ([guide](docs/developer/fx-themes.md)) |
 | **🕹️ Retro & Nostalgic Computing** | 10 | `win95`, `gameboy`, `c64`, `mac_classic`, `amber_crt`, `matrix`, `synthwave`, `amiga`, `nextstep`, `mac_os_aqua`, `hotdog_stand`, `playstation` | Authentic Windows 95 3D bevels, 1989 Game Boy DMG-01, Commodore 64, Matrix digital rain, and Synthwave neon |
 | **🚀 AAA Studio & Cloud Dark** | 14 | `raycast_dark`, `linear_dark`, `vercel_dark`, `unreal_engine`, `arc_velvet`, `abyss`, `night_city`, `horizon`, `tailwind_dark`, `supabase`, `oled_black` | Sleek dark-mode surfaces for modern engineering tools and cloud consoles |
 
@@ -1005,6 +1074,20 @@ Explore sister projects and complementary GUI frameworks, templates, and RAD vis
 
 - **[pywebview](https://github.com/r0x0r/pywebview)** - Lightweight, cross-platform native GUI window wrapper around OS webviews for Python applications by Roman Sirokov (`r0x0r`) and community.
 - **[Neutralinojs](https://github.com/neutralinojs/neutralinojs)** - Portable, lightweight cross-platform desktop application development framework using web technologies and native webview by the Neutralinojs organization.
+
+---
+
+<a id="support--donations"></a>
+
+## 💙 Support & Donations
+
+Bun RAD Studio is free and MIT licensed. If it saves you time and you would like to help keep it going, you can donate with PayPal. Thank you! Starring the repository and reporting problems helps just as much.
+
+| Click | Scan with your phone | In a terminal |
+| :---: | :---: | :---: |
+| [**paypal.me/codecaine81**](https://paypal.me/codecaine81) | <a href="https://paypal.me/codecaine81"><img src="docs/images/donate-paypal-qr.png" alt="QR code for paypal.me/codecaine81" width="140"></a> | `bun run donate` |
+
+GitHub also shows a **Sponsor** button on the repository page (from `.github/FUNDING.yml`).
 
 ---
 

@@ -1,10 +1,14 @@
 // The larger dialogs: Properties, Rename several, Help, Welcome and Settings.
 import { ApiError, call } from "./api.js";
+import { showAbout } from "./about.js";
 import { openDialog } from "./dialogs.js";
 import { debounce, h } from "./dom.js";
+import { showMoreInfo } from "./fileinfo.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { state } from "./state.js";
+import { currentThemeName, showThemePicker } from "./themes.js";
+import { verdictBlock } from "./typecheck.js";
 import { formatSize, plural } from "./util.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -34,11 +38,14 @@ export async function showProperties(paths) {
   add("Permissions", p.permissions ? `${p.permissions} (owner, group, others)` : "");
   if (p.readOnly) add("Read-only", "Yes: it can't be changed");
   if (p.hidden) add("Hidden", "Yes: it is normally not shown");
-  openDialog({
+  let dialog = null;
+  const kind = !p.isDir && p.count <= 1 && paths.length === 1 ? verdictBlock(paths[0], p.name, { showDetails: true, onDone: () => dialog?.close() }) : null;
+  dialog = openDialog({
     title: p.count > 1 ? `Properties of ${p.name}` : "Properties",
-    body: h("dl", { class: "props" }, rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
-    buttons: [{ label: "Close", primary: true, value: true }],
+    body: [h("dl", { class: "props" }, rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])), kind],
+    buttons: [{ label: "More info…", value: "more" }, { label: "Close", primary: true, value: true }],
   });
+  dialog.result.then((answer) => answer === "more" && showMoreInfo(paths));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -140,6 +147,7 @@ function cleanSpec(s) {
 
 function shortcuts() {
   const m = state.platform === "darwin" ? "⌘" : "Ctrl+";
+  const alt = state.platform === "darwin" ? "⌥" : "Alt+";
   const copyKey = state.platform === "darwin" ? "⌥ (Option)" : "Ctrl";
   const del = state.platform === "darwin" ? "⌘⌫" : "Delete";
   return [
@@ -156,13 +164,20 @@ function shortcuts() {
     ["New folder", `${m}Shift+N`],
     ["New file", `${m}Alt+N`],
     ["Search this folder", `${m}F`],
+    ["Favorite folders (jump, add, manage)", `${m}Shift+B`],
     ["Type a folder location", `${m}L`],
     ["Refresh", "F5"],
     ["Show or hide hidden files", `${m}Shift+H`],
     ["Show or hide the Details panel", `${m}I`],
     ["Show or hide the terminal", "Ctrl+`"],
     ["Change the view", `${m}1  ·  ${m}2  ·  ${m}3`],
+    ["Switch window view: Files, Home, Tools, Split, Dual", `${alt}1  ·  ${alt}2  ·  ${alt}3  ·  ${alt}4  ·  ${alt}5`],
+    ["Focus (hide toolbar and side panels), Esc to leave", `${alt}6`],
+    ["Show or hide the list of places", `${alt}7`],
+    ["Open Find in the tools", `${m}Shift+F`],
+    ["Dual view: switch side, copy, move", "Tab  ·  F5  ·  F6"],
     ["Properties", "Alt+Enter"],
+    ["More info and hidden details", "Alt+Shift+Enter"],
     ["Right-click menu from the keyboard", "Shift+F10  or  the Menu key"],
     ["Copy by dragging", `Hold ${copyKey} while dropping`],
     ["Jump to an item", "Just start typing its name"],
@@ -179,6 +194,7 @@ export function showHelp() {
       h("ul", { class: "tips" },
         h("li", {}, "Click an item to select it. Double-click (or press Enter) to open it."),
         h("li", {}, "Right-click anything for the actions that make sense for it."),
+        h("li", {}, "The buttons at the very top change the view: Files, Home (everything this app can do), Tools, Split (files beside a tool) and Dual (two folders). Focus hides the toolbar and side panels."),
         h("li", {}, "Drag items onto a folder in the list or in the sidebar to move them. Hold the copy key to copy instead."),
         h("li", {}, "Deleting never destroys anything straight away: items go to the Recycle Bin, and Undo brings them back."),
         h("li", {}, `"Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}" opens the computer's own file manager at the item.`),
@@ -195,7 +211,9 @@ export function showHelp() {
         h("li", {}, "System folders (like Windows, /usr or your Documents folder itself) are protected from being moved or deleted."),
       ),
     ],
-    buttons: [{ label: "Close", primary: true, value: true }],
+    buttons: [{ label: "About and GitHub", value: "about" }, { label: "Close", primary: true, value: true }],
+  }).result.then((answer) => {
+    if (answer === "about") showAbout();
   });
 }
 
@@ -209,6 +227,7 @@ export async function showWelcome() {
         h("li", {}, h("strong", {}, "Places on the left"), " take you to your Documents, Downloads, drives and Recycle Bin."),
         h("li", {}, h("strong", {}, "The address bar"), " shows where you are. Click any part to jump there, or click the empty part to type a location."),
         h("li", {}, h("strong", {}, "Right-click"), " any file or folder to open, copy, rename, zip or delete it."),
+        h("li", {}, h("strong", {}, "The buttons at the very top"), " change the view: Files, Home (everything this app can do), Tools, Split (files beside a tool) and Dual (two folders)."),
         h("li", {}, h("strong", {}, "Mistakes are safe:"), " deleted items go to the Recycle Bin and ", h("strong", {}, "Undo"), " brings back the last thing you did."),
       ),
       h("p", { class: "hint" }, "You can read this and all the keyboard shortcuts any time: press F1 or click Help."),
@@ -226,20 +245,27 @@ export function showSettings() {
       options.map(([v, l]) => h("option", { value: v, selected: state.settings[key] === v }, l)));
     return h("label", { class: "field" }, h("span", { class: "field-label" }, label), select);
   };
-  const toggle = (label, key) => {
+  const toggle = (label, key, tip) => {
     const input = h("input", { type: "checkbox", checked: state.settings[key], onchange: () => saveSettings({ [key]: input.checked }) });
-    return h("label", { class: "check" }, input, h("span", {}, label));
+    return h("label", { class: "check", title: tip }, input, h("span", {}, label));
   };
   const size = h("input", { type: "range", min: "80", max: "160", step: "10", value: String(state.settings.textSize), "aria-label": "Text size", oninput: () => { sizeValue.textContent = `${size.value}%`; saveSettings({ textSize: Number(size.value) }); } });
   const sizeValue = h("span", { class: "range-value" }, `${state.settings.textSize}%`);
+  const themeNow = h("span", { class: "range-value" }, state.settings.palette ? "" : "Standard");
+  currentThemeName().then((name) => { if (name) themeNow.textContent = name; }).catch(() => {});
+  const themeRow = h("div", { class: "field" }, h("span", { class: "field-label" }, "Theme"),
+    h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "Pick from over a hundred colour themes: dark, light, futuristic, Linux, Windows, macOS and editor favourites.", onclick: () => showThemePicker() }, "Choose a theme…"), themeNow));
   openDialog({
     title: "Settings",
     body: [
+      themeRow,
       choice("Colours", "theme", [["auto", "Match my computer"], ["light", "Light"], ["dark", "Dark"]]),
+      choice("When the File Manager starts, show", "startWith", [["files", "My files"], ["home", "The Home page"], ["last", "The view I used last time"]]),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Text size"), h("span", { class: "range-row" }, size, sizeValue)),
       toggle("Show hidden files and folders", "showHidden"),
       toggle("Keep folders at the top of the list", "foldersFirst"),
       toggle("Show the Details panel", "showInfoPanel"),
+      toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
       h("p", { class: "hint" }, "Your choices are saved automatically."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],

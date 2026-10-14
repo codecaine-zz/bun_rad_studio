@@ -3,10 +3,16 @@ import { showMenu } from "./menus.js";
 import { clearSearch, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
 import { showProperties } from "./extras.js";
+import { showMoreInfo } from "./fileinfo.js";
 import { selectAll } from "./selection.js";
 import { inTrash, state } from "./state.js";
+import { openFolderInCode, openInCode } from "./code.js";
+import { openPower } from "./power.js";
+import { looksLikeText } from "./codeLang.js";
+import { showOpenWith } from "./openwith.js";
 import { showToolsDialog } from "./tools.js";
-import { extensionOf, kindsForName } from "./util.js";
+import { extensionOf } from "./util.js";
+import { canLock, canUnlock, lockEntries, unlockEntries } from "./vault.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 const del = () => (state.platform === "darwin" ? "⌘⌫" : "Del");
@@ -50,14 +56,20 @@ function entryItems(entries) {
   }
   const isZip = one && !e.isDir && extensionOf(e.name) === "zip";
   const clip = !!state.clipboard;
-  const convertible = entries.some((x) => !x.isDir && kindsForName(x.name).length > 0);
+  const convertible = entries.length > 0;
   return [
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
+    one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openInCode(e.path) } : null,
+    one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openFolderInCode(e.path) } : null,
+    one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
+    entries.some((x) => !x.isDir) ? { label: "Open with…", icon: "🧩", action: () => showOpenWith(entries) } : null,
     isZip ? { label: "Extract here", icon: "📦", disabled: searching, action: () => ops.unzipEntry(e) } : null,
     one ? { label: `Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}`, icon: "🔎", action: () => ops.revealEntry(e) } : null,
     one && e.isDir ? { label: ops.isFavorite(e.path) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => ops.toggleFavorite(e.path) } : null,
     convertible ? { label: "Convert or process…", icon: "🧰", action: showToolsDialog } : null,
+    canLock(entries) ? { label: "Encrypt…", icon: "🔒", action: () => lockEntries(entries) } : null,
+    canUnlock(entries) ? { label: "Decrypt…", icon: "🔓", action: () => unlockEntries(entries) } : null,
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: `${mod()}X`, action: ops.cutSelection },
     { label: "Copy", icon: "📋", shortcut: `${mod()}C`, action: ops.copySelection },
@@ -71,6 +83,7 @@ function entryItems(entries) {
     { label: "Move to Recycle Bin", icon: "🗑️", danger: true, shortcut: del(), action: ops.trashSelection },
     { label: "Delete permanently…", danger: true, shortcut: "Shift+Del", action: ops.deleteForever },
     { separator: true },
+    { label: "More info…", icon: "🔍", shortcut: "Alt+Shift+Enter", action: () => showMoreInfo(entries.map((x) => x.path)) },
     { label: "Properties", icon: "ℹ️", shortcut: "Alt+Enter", action: () => showProperties(entries.map((x) => x.path)) },
   ];
 }
@@ -106,8 +119,11 @@ export function backgroundItems() {
     { label: "Select all", shortcut: `${mod()}A`, action: selectAll },
     { label: "Refresh", shortcut: "F5", action: () => refresh() },
     { separator: true },
+    { label: "Open this folder in Code editor", icon: "📝", action: () => openFolderInCode(here) },
+    { separator: true },
     ...viewMenuItems(),
     { separator: true },
+    { label: "More info about this folder…", icon: "🔍", action: () => showMoreInfo([here]) },
     { label: "Properties of this folder", icon: "ℹ️", action: () => showProperties([here]) },
   ];
 }

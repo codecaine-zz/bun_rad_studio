@@ -1122,7 +1122,7 @@ win.copyToClipboard("Copied from SimpleGUI!");
 ---
 
 <a id="visual-themes"></a>
-## 13. 🎨 Built-in Visual Themes (121 Themes)
+## 13. 🎨 Built-in Visual Themes (133 Themes)
 
 Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)`:
 
@@ -1197,6 +1197,10 @@ Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)
 ---
 
 <a id="types-interfaces"></a>
+### Effects for futuristic themes
+
+Twelve themes (`cyberpunk_hologram`, `neon_hud`, `quantum_obsidian`, `deep_space`, `liquid_metal`, `titanium_aurora`, `liquid_metal_light`, `neo_tokyo_dark`, `synthetic_solar`, `neo_tokyo_day`, `aurora_glass`, `plasma_violet`) carry an `fx` descriptor: glass, glow, a slow backdrop and a compositor-only motion layer. `simplegui.getThemeFx(name)` returns it (or `undefined`), `isFxTheme(name)` tells you, `fxCssVars(theme)` gives the `--fx-*` variables, and `getSyntaxPalette(name)` gives readable code colours for any theme. `createWindow(title, w, h, { theme, effects: "full" | "reduced" | "off" })` and `win.setEffects(mode)` switch the layer; users who ask their system for reduced motion get no motion automatically. Full reference: [developer/fx-themes.md](developer/fx-themes.md).
+
 ### Status colours
 
 `simplegui.getSemanticColors(theme)` returns `{ danger, warning, success, info }`, each with `solid` (fill), `on` (label on the fill), `text` (readable on the canvas and cards), `soft` (translucent tint) and `border`. They are CSS variables on every page (`--danger`, `--danger-on`, `--danger-text`, `--danger-soft`, `--danger-border`, and the same for `--warning`, `--success`, `--info`) and follow a live theme switch. Buttons take `{ variant: "danger" | "warning" | "success" | "info", appearance: "solid" | "soft" | "outline" }`; an explicit `background_color` still wins. See [THEMES.md](THEMES.md#status-colours).

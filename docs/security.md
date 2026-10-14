@@ -7,6 +7,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 - [The short version](#the-short-version)
 - [What is protected](#what-is-protected)
 - [What is not protected](#what-is-not-protected)
+- [File encryption (RADENC)](#file-encryption-radenc)
 - [Safe practice](#safe-practice)
 - [Reporting a problem](#reporting-a-problem)
 - [See also](#see-also)
@@ -54,6 +55,33 @@ What the project protects, what it does not, and how to use it safely. Each prot
 | **Dependencies** | `bun audit` on 13 October 2026 reported 11 advisories (3 high), all through `jsdom` (a test-only package that was listed as a runtime dependency) and its `undici` and `source-map-js`. `jsdom` was moved to `devDependencies` and `bun audit fix` applied; `bun audit` then reported **no vulnerabilities** in 46 packages and in the 3 runtime packages (`bun audit --prod`). New advisories appear over time: CI runs `bun audit` as an informational step. No software bill of materials exists |
 | **CI blocks on one platform** | The blocking job runs on macOS; Linux and Windows run in a non-blocking experimental job ([Testing](testing/index.md#other-platforms)), where Windows fails 31 tests. CI results are only as strong as the tests; the live MySQL and PostgreSQL security tests are skipped there |
 | **Real database servers**: the injection, read-only and confirmation tests that need MySQL or PostgreSQL are skipped without a disposable server | 152 tests skip by default |
+
+## File encryption (RADENC)
+
+The File Manager's **Encrypt…** and `bun run cli:vault` lock files and folders with a password you choose, into `.radenc` files ([byte-exact format](reference/vault-format.md), [how to use it](userguides/43_file_manager.md#encrypt-and-decrypt-files-and-folders)). Design: Argon2id (256 MiB, 3 passes by default; 1 GiB, 4 passes at *Maximum*) turns the password into a key, HKDF-SHA-256 derives the file key, and AES-256-GCM seals 1 MiB chunks in a STREAM construction whose authenticated data is the whole header. No new dependencies: it uses Bun's `node:crypto`.
+
+**What it protects.** Against someone who gets the `.radenc` file but not the password:
+
+| Threat | How it is handled |
+|---|---|
+| Reading the contents, the original file name, the number of files, their sizes and times | All of that is inside the encrypted data. The disk name is your choice (`Encrypted file 1.radenc` hides it) |
+| Guessing the password offline | A slow, memory-hard key derivation (about 0.45 s and 256 MiB per guess on a fast laptop, about 2.5 s and 1 GiB at Maximum) makes each guess expensive, and the page refuses short and obvious passwords. A random 6-word passphrase (66 bits) is the recommended choice. A weak password is still weak: the format cannot fix that |
+| Changing, truncating, reordering, duplicating or extending the file | Every chunk is authenticated, the header is authenticated, and the last chunk is flagged. Any change fails with one message (*"Wrong password, or the file is damaged or has been changed."*) and nothing is written, so a wrong password and a damaged file can't be told apart |
+| A hostile file that tries to harm the computer that opens it | Key-derivation settings are checked **before** they run (memory ≤ 2 GiB, passes ≤ 10, lanes ≤ 16). Extraction validates every path (no `..`, absolute paths, drive letters, backslashes, control characters, reserved Windows names, collisions, depth, length, entry and size caps), writes into a fresh temporary folder, never follows or creates links, never overwrites, and removes the folder on any failure |
+| Losing data to the tool itself | A new file is written to a temporary name, flushed, **re-read and authenticated chunk by chunk with the same key**, and only then given its final name without replacing anything. The original is never changed; "move the original to the Recycle Bin" is off by default and happens only after that check, through the ordinary Recycle Bin |
+| The password leaking from the app | It exists only in the request body and in memory while the key is made; the key and intermediate buffers are zeroed afterwards. It is never logged, stored in settings, put in a job view, a result or an error message, or written to disk. The page empties its password boxes when the request is sent and when the window closes. There is no `--password` option in the command-line tool |
+
+**What it does not protect.**
+
+- **A lost password cannot be recovered.** There is no reset, no escrow and no back door. Write it down somewhere safe.
+- **File names on disk, and the size of the file.** `<name>.radenc` shows the name unless you hide it; the total size is visible (compression changes it but does not hide it), and so are the times the file system records for the `.radenc` file itself.
+- **The original**, until you remove it. Encrypting copies; the plain original stays in place (and a deleted original may remain recoverable from the disk) unless you move it to the Recycle Bin and empty that. Secure erasure is not offered, because SSDs and journaling file systems make it unreliable.
+- **A compromised computer.** Malware, a keylogger, a screen recorder or another program that can read this program's memory sees the password and the plain data while you use them. Memory in JavaScript cannot be wiped completely: the typed password is a string that the runtime may copy and free later; only the derived keys and byte copies are zeroed.
+- **Timing and access patterns.** Work takes longer for larger files and slower settings; nothing is done to hide that. A hostile local user who can watch the disk learns when and how much you encrypt.
+- **Metadata that is not stored:** symbolic links and special files are skipped (each skip is reported), as are extended attributes, ACLs and owners; only the permission bits and the modification time are kept.
+- **Streaming caveat.** Plain data is written to the temporary folder as each chunk authenticates and is only published after the last chunk does; an attacker with write access to the folder you choose could observe or race the temporary files. A tiny race remains between "name is free" and the final rename on disks without hard links.
+- **No signature or sender identity.** Anyone who knows the password can make a file that decrypts. Encryption proves "made by someone with the password", not "made by a particular person".
+- **Not independently audited.** The format follows standard constructions and is tested against an independent reference decryptor, but no outside review has been done.
 
 ## Safe practice
 

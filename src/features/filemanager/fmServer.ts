@@ -12,22 +12,31 @@
  * person's own computer, not a boundary between users.
  */
 import { randomBytes, timingSafeEqual } from "crypto";
-import { existsSync, promises as fsp, readFileSync } from "fs";
+import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
 import { guardLocalRequest, writeClipboardSync } from "../../localGuard";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
+import { codeOperations } from "./fmCodeOps";
+import { checkOperations } from "./fmCheckOps";
 import { cryptoOperations } from "./fmCryptoOps";
+import { aboutOperations } from "./fmAboutOps";
+import { devOperations } from "./fmDevOps";
+import { themeOperations } from "./fmThemes";
 import { findOperations } from "./fmFindOps";
+import { infoOperations } from "./fmInfoOps";
 import { ipOperations } from "./fmIpOps";
 import { netOperations } from "./fmNetOps";
+import { sdOperations } from "./fmSdOps";
+import { vaultOperations } from "./fmVaultOps";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
-import { overview, startBatch, startInstall } from "./fmBatch";
+import { overview, previewConvert, startConvert, startInstall } from "./fmBatch";
 import { openItem, revealItem } from "./fmOpen";
+import { openViaAssociation, openWithOperations } from "./fmOpenWith";
 import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
 import { addRecent, loadSettings, updateSettings } from "./fmSettings";
-import { MAX_INPUT_BYTES, clampSize, createTerminalHub, terminalSupported, type TerminalSession } from "./fmTerminal";
+import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSupported, type TerminalSession } from "./fmTerminal";
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
 import { createZip, extractZip } from "./fmZip";
 
@@ -74,14 +83,86 @@ const CSP = [
  */
 function pageCsp(host: string, nonce: string): string {
   const withNonce = CSP.replace("style-src 'self'", `style-src 'self' 'nonce-${nonce}'`);
-  return /^[\w.:[\]-]+$/.test(host) ? withNonce.replace("connect-src 'self'", `connect-src 'self' ws://${host}`) : withNonce;
+  const alt = alternateOrigin(host);
+  const framed = alt ? `${withNonce}; frame-src ${alt}` : withNonce;
+  return /^[\w.:[\]-]+$/.test(host) ? framed.replace("connect-src 'self'", `connect-src 'self' ws://${host}`) : framed;
 }
+
+/** The other spelling of this loopback address. A page there is a different origin, so it can't read this page (or its token). */
+export function alternateOrigin(host: string): string | null {
+  const m = /^(127\.0\.0\.1|localhost)(:\d+)?$/i.exec(host);
+  if (!m) return null;
+  return `http://${m[1]!.toLowerCase() === "localhost" ? "127.0.0.1" : "localhost"}${m[2] ?? ""}`;
+}
+
+/**
+ * Small self-contained web apps from resources/ that the Power tools show in a frame. Each runs on the other loopback
+ * spelling (a separate origin that can't read this page or its token), with its own policy: these pages need inline
+ * scripts, and load fonts, icons and libraries from a few named CDNs.
+ */
+export interface EmbeddedApp {
+  dir: string;
+  script: string[];
+  style: string[];
+  font: string[];
+  img: string[];
+  frame: string[];
+  connect: string[];
+  /** Hide the "back to the hub" links the standalone app has, which would load this File Manager into the frame. */
+  hideCss: string;
+  /** The graphing calculator turns the formulas you type into functions. Safe here: its own origin holds nothing to steal. */
+  evalFormulas?: boolean;
+}
+
+export const EMBEDDED_APPS: Record<string, EmbeddedApp> = {
+  calc: {
+    dir: "universal_calculator",
+    script: ["https://cdn.jsdelivr.net"], style: ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com"], font: ["https://cdn.jsdelivr.net", "https://fonts.gstatic.com"], img: [], frame: [], connect: [],
+    hideCss: ".hub-button{display:none!important}.brand{pointer-events:none}",
+    evalFormulas: true,
+  },
+  timer: {
+    dir: "interval_timer",
+    script: ["https://cdnjs.cloudflare.com", "https://www.youtube.com", "https://s.ytimg.com"],
+    style: ["https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+    font: ["https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+    img: ["https://img.youtube.com", "https://i.ytimg.com"],
+    frame: ["https://www.youtube.com", "https://www.youtube-nocookie.com"],
+    connect: ["https://cdnjs.cloudflare.com"],
+    hideCss: ".hub-return-btn{display:none!important}",
+  },
+};
+
+function embeddedCsp(app: EmbeddedApp, host: string): string {
+  const own = `http://${host}`;
+  const alt = alternateOrigin(host);
+  const list = (items: string[]) => (items.length ? ` ${items.join(" ")}` : "");
+  return [
+    "default-src 'none'",
+    `script-src 'self' 'unsafe-inline'${app.evalFormulas ? " 'unsafe-eval'" : ""}${list(app.script)}`,
+    `style-src 'self' 'unsafe-inline'${list(app.style)}`,
+    `font-src 'self' data:${list(app.font)}`,
+    `img-src 'self' data: blob:${list(app.img)}`,
+    "media-src 'self' data: blob:",
+    `connect-src 'self'${list(app.connect)}`,
+    `frame-src 'self'${list(app.frame)}`,
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "base-uri 'self'",
+    "form-action 'none'",
+    `frame-ancestors ${alt ?? "'none'"} ${own}`,
+  ].join("; ");
+}
+
+const EMBED_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", svg: "image/svg+xml", json: "application/json; charset=utf-8", png: "image/png", gif: "image/gif", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", woff2: "font/woff2", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg" };
 
 interface TerminalSocketData {
   cwd: string;
   cols: number;
   rows: number;
   session?: TerminalSession;
+  /** Watches the shell's folder and tells the page when `cd` moves it. */
+  watch?: { check: () => void; stop: () => void };
 }
 
 const MIME: Record<string, string> = {
@@ -179,7 +260,9 @@ const operations: Record<string, Handler> = {
     return { preview: await previewFile(ctx, b.path) };
   },
   async open(ctx, b) {
-    const result = await openItem(ctx, b.path, b.confirmProgram === true);
+    // A program the person chose for this kind of file comes first.
+    const confirmMismatch = b.confirmMismatch === true;
+    const result = (b.ignoreAssociation === true ? null : await openViaAssociation(ctx, b.path, confirmMismatch)) ?? (await openItem(ctx, b.path, b.confirmProgram === true, confirmMismatch));
     await addRecent(ctx, result.opened).catch(() => {});
     return result;
   },
@@ -199,7 +282,10 @@ const operations: Record<string, Handler> = {
     return await overview(ctx, b.paths);
   },
   async "tools/run"(ctx, b) {
-    return { job: await startBatch(ctx, b.action, b.paths) };
+    return { job: await startConvert(ctx, { action: b.action, paths: b.paths, options: b.options, outputDir: b.outputDir, pattern: b.pattern }) };
+  },
+  async "tools/preview"(ctx, b) {
+    return await previewConvert(ctx, { action: b.action, paths: b.paths, options: b.options, outputDir: b.outputDir, pattern: b.pattern });
   },
   async "tools/install"(ctx, b) {
     if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
@@ -231,7 +317,7 @@ const operations: Record<string, Handler> = {
 };
 
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
-Object.assign(operations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations);
+Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -240,7 +326,10 @@ function json(status: number, data: unknown): Response {
 }
 
 function failure(err: unknown): Response {
-  if (err instanceof FmError) return json(err.code === "NEEDS_CONFIRM" ? 409 : 400, { ok: false, error: { code: err.code, message: err.message } });
+  if (err instanceof FmError) {
+    const needsConfirm = err.code === "NEEDS_CONFIRM" || err.code === "TYPE_MISMATCH";
+    return json(needsConfirm ? 409 : 400, { ok: false, error: { code: err.code, message: err.message, ...(err.details !== undefined ? { details: err.details } : {}) } });
+  }
   const info = describeFsError(err);
   const unexpected = info.code === "UNKNOWN" || !/^E[A-Z]+$/.test(info.code);
   return json(unexpected ? 500 : 400, { ok: false, error: info });
@@ -252,6 +341,45 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   const assets = getFileManagerAssetsDir();
 
   const terminals = createTerminalHub();
+  const primaryHostname = (options.host ?? "127.0.0.1").toLowerCase();
+
+  async function serveEmbedded(id: string, rel: string, host: string, query: URLSearchParams): Promise<Response> {
+    const notFound = () => new Response("Not Found", { status: 404, headers: secureHeaders() });
+    const app = Object.prototype.hasOwnProperty.call(EMBEDDED_APPS, id) ? EMBEDDED_APPS[id]! : undefined;
+    if (!app) return notFound();
+    const dir = nodePath.join(assets, "..", app.dir);
+    let name: string;
+    try {
+      name = decodeURIComponent(rel);
+    } catch {
+      return notFound();
+    }
+    if (name === "" || name.endsWith("/")) name += "index.html";
+    if (!/^[\w.\-]+(\/[\w.\-]+)*$/.test(name) || name.split("/").some((part) => part === "." || part === "..")) return notFound();
+    const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? "";
+    const type = EMBED_TYPES[ext];
+    const file = nodePath.join(dir, name);
+    if (!type || !file.startsWith(dir + nodePath.sep) || !existsSync(file)) return notFound();
+    const headers = secureHeaders({ "Content-Type": type, "Content-Security-Policy": embeddedCsp(app, host) });
+    if (name === "index.html") {
+      // The timer asks its page address for its music playlist (a list of tracks kept in a file next to it).
+      if (id === "timer" && query.get("action") === "sync_codecaine_playlist") {
+        let tracks: unknown[] = [];
+        try {
+          const parsed = JSON.parse(readFileSync(nodePath.join(dir, "cache", "codecaine_playlist.json"), "utf8"));
+          if (Array.isArray(parsed)) tracks = parsed;
+        } catch {
+          // no playlist file: an empty list
+        }
+        return json(200, { success: true, count: tracks.length, tracks });
+      }
+      const html = readFileSync(file, "utf8");
+      const at = html.lastIndexOf("</head>");
+      const tweak = `<style>${app.hideCss}</style>`;
+      return new Response(at >= 0 ? html.slice(0, at) + tweak + html.slice(at) : html + tweak, { headers });
+    }
+    return new Response(Bun.file(file), { headers });
+  }
 
   const server = Bun.serve<TerminalSocketData>({
     port: options.port ?? 0,
@@ -277,6 +405,28 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             return void ws.close(1008, "Too many terminals.");
           }
           ws.data.session = session;
+          // Tell the page whenever the shell changes folder, so the file list can follow it.
+          // The shell reports real paths, so compare with the real path of where it started (a symlinked folder would otherwise look like a move).
+          let last = ws.data.cwd;
+          try { last = realpathSync(ws.data.cwd); } catch {}
+          let busy = false;
+          let alive = true;
+          const check = async () => {
+            if (busy || !alive) return;
+            busy = true;
+            try {
+              const now = await shellFolder(ctx.platform, session.pid);
+              if (alive && now && now !== last) {
+                last = now;
+                send({ type: "cwd", path: now });
+              }
+            } finally {
+              busy = false;
+            }
+          };
+          const timer = setInterval(() => void check(), 2500);
+          timer.unref?.();
+          ws.data.watch = { check: () => void check(), stop: () => { alive = false; clearInterval(timer); } };
         } catch (err) {
           send({ type: "error", message: `The terminal couldn't start: ${describeFsError(err).message}` });
           ws.close(1011, "Could not start.");
@@ -291,10 +441,15 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           return;
         }
         if (!m || typeof m !== "object") return;
-        if (m.type === "input" && typeof m.data === "string") ws.data.session?.write(m.data);
+        if (m.type === "input" && typeof m.data === "string") {
+          ws.data.session?.write(m.data);
+          // A command was run: look soon, and again once it has had time to change folder.
+          if (/[\r\n]/.test(m.data)) for (const ms of [120, 450, 1200]) setTimeout(() => ws.data.watch?.check(), ms).unref?.();
+        }
         else if (m.type === "resize") ws.data.session?.resize(clampSize(m.cols, 80, 2, 500), clampSize(m.rows, 24, 1, 200));
       },
       close(ws) {
+        ws.data.watch?.stop();
         ws.data.session?.close();
       },
     },
@@ -305,6 +460,14 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       const path = url.pathname;
 
       try {
+        // Embedded apps are served to an iframe on the other loopback spelling, which is a separate origin.
+        const embedded = /^\/app\/([a-z]+)\/(.*)$/.exec(path);
+        if (embedded) {
+          if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: secureHeaders() });
+          return await serveEmbedded(embedded[1]!, embedded[2]!, url.host, url.searchParams);
+        }
+        // Anything else is only for this window's own address, so a page on the calculator's origin can't reach the token.
+        if (url.hostname.toLowerCase() !== primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
         if (req.method === "GET" && (path === "/" || path === "/index.html")) {
           const file = nodePath.join(assets, "index.html");
           if (!existsSync(file)) return new Response("The File Manager page is missing.", { status: 500 });

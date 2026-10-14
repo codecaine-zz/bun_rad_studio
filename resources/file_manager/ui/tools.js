@@ -1,24 +1,27 @@
-// "Convert & process": batch actions for the selected files (pictures, video, sound, documents) that use helper
-// programs (ffmpeg, ImageMagick, pandoc), help installing those programs, and the tasks tray that shows progress.
+// "Convert & process": turn the selected files into something else. The window asks "What do you want to turn these
+// into?", shows only what applies, collects the options, previews the new files, and shows progress in the tasks tray.
+// It also helps install the helper programs some conversions use.
 import { call, ApiError } from "./api.js";
-import { $, announce, h } from "./dom.js";
+import { $, announce, debounce, h } from "./dom.js";
 import { openDialog } from "./dialogs.js";
 import { toast } from "./menus.js";
 import { goTo, refresh } from "./nav.js";
 import { selectKeys, selectedEntries } from "./selection.js";
-import { inTrash, state } from "./state.js";
+import { inTrash, on, state } from "./state.js";
 import { terminalAvailable, typeInTerminal } from "./terminal.js";
 import { plural } from "./util.js";
+import { renderChooser } from "./convert.js";
+import { extensionsOf } from "./convertdata.js";
+import { buildDestination, buildOptions, optionsIntro, renderPreview } from "./convertopts.js";
 
-const GROUP_ORDER = ["Pictures", "Video", "Sound", "Documents"];
 const MANAGER_NAMES = { brew: "Homebrew", winget: "winget", scoop: "Scoop", choco: "Chocolatey", apt: "apt", dnf: "dnf", pacman: "pacman" };
 
 // ---------------------------------------------------------------------------------------------------------------
 // The dialog
 // ---------------------------------------------------------------------------------------------------------------
 
-function selectedFilePaths() {
-  return selectedEntries().filter((e) => !e.isDir).map((e) => e.path);
+function selectedItems() {
+  return selectedEntries().map((e) => ({ name: e.name, isDir: !!e.isDir, path: e.path }));
 }
 
 async function copyText(text) {
@@ -75,31 +78,33 @@ function toolBlock(tool, close, startInstall) {
   return h("section", { class: "tool-block" }, head, body);
 }
 
-function actionsSection(data, run) {
-  const sections = [];
-  const total = data.selected;
-  for (const group of GROUP_ORDER) {
-    const list = data.actions.filter((a) => a.group === group);
-    if (!list.length) continue;
-    // Say why something can't be used once for the group, not on every button.
-    const reasons = [...new Set(list.filter((a) => !a.available).map((a) => a.why))];
-    const buttons = list.map((a) => h("button", {
-      type: "button", class: "act-btn", disabled: !a.available, title: a.available ? a.hint : a.why,
-      onclick: () => run(a),
-    }, h("span", { class: "act-label" }, a.label), h("span", { class: "act-hint" }, a.available && a.count < total ? `${a.count} of ${total} files` : a.hint)));
-    sections.push(h("section", { class: "act-group" },
-      h("h3", {}, `${group} (${plural(list[0].count, "file")})`),
-      reasons.map((r) => h("p", { class: "hint act-why" }, `Not available yet: ${r}`)),
-      h("div", { class: "act-list" }, buttons)));
-  }
-  return sections;
+/** The list of helper programs: the three main ones first, the rest (needed only for some conversions) after. */
+function helperPrograms(data, close, install, recheck) {
+  const main = data.tools.filter((t) => !t.optional);
+  const more = data.tools.filter((t) => t.optional);
+  const missingMain = main.filter((t) => !t.installed && t.plan.auto);
+  const parts = [
+    h("p", { class: "hint" }, "These free programs do the work. They are installed once and then used by the File Manager. Nothing is installed unless you press its button."),
+    h("h3", { class: "tools-heading" }, "The main helpers (pictures, video, sound and documents)"),
+  ];
+  if (missingMain.length > 1) parts.push(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn primary", onclick: () => install(missingMain.map((t) => t.id)) }, `Install all ${missingMain.length} missing main programs`)));
+  parts.push(...main.map((t) => toolBlock(t, close, install)));
+  parts.push(h("h3", { class: "tools-heading" }, "More helpers (only some conversions need them)"));
+  parts.push(h("p", { class: "hint" }, "Many conversions need nothing at all (data files, text, zip). These add PDF work, scanned text, Office files, e-books, fonts and more archive types."));
+  parts.push(...more.map((t) => toolBlock(t, close, install)));
+  parts.push(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn", onclick: recheck }, "Check again")));
+  return parts;
 }
 
 export async function showToolsDialog() {
   if (inTrash()) return toast("Open a folder first: files in the Recycle Bin can't be converted.", { kind: "info" });
-  const paths = selectedFilePaths();
+  const entries = selectedItems();
+  const paths = entries.map((e) => e.path);
   const box = h("div", { class: "tools-box" }, h("p", { class: "hint" }, "Looking for your helper programs…"));
-  const dlg = openDialog({ title: "Convert & process", body: box, wide: true, buttons: [{ label: "Close", primary: true, value: null }], describe: "Choose what to do with the selected files, or install the programs that do it." });
+  const dlg = openDialog({ title: "Convert & process", body: box, wide: true, buttons: [{ label: "Close", value: null }], describe: "Choose what to turn the selected files into, set the options, and start. You can also install the helper programs here." });
+  const heading = dlg.el.querySelector(".dialog-title");
+  const setTitle = (text) => { heading.textContent = text; };
+  let data = null;
 
   async function startJob(op, body, failure) {
     try {
@@ -110,34 +115,86 @@ export async function showToolsDialog() {
       dlg.setError(err instanceof ApiError ? err.message : failure);
     }
   }
-  const run = (a) => startJob("tools/run", { action: a.id, paths }, "That didn't start.");
   const install = (tools) => startJob("tools/install", { tools, confirm: true }, "The installation didn't start.");
 
-  async function render() {
+  function showHelpers() {
     dlg.setError("");
-    let data;
+    setTitle("Helper programs");
+    const back = paths.length ? h("button", { type: "button", class: "btn", title: "Go back to the list of things you can make", onclick: showChooser }, "← Back to the list") : null;
+    box.replaceChildren(...[back, ...helperPrograms(data, () => dlg.close(), install, load)].filter(Boolean));
+    (back ?? box.querySelector("button, input, select"))?.focus();
+  }
+
+  function showChooser() {
+    dlg.setError("");
+    setTitle("Convert & process");
+    if (!paths.length) {
+      box.replaceChildren(
+        h("p", {}, "Select some files or folders first, then open this window again to see what you can do with them. You can already set up the helper programs here."),
+        ...helperPrograms(data, () => dlg.close(), install, load));
+      return;
+    }
+    const view = renderChooser({ box, data, entries, pick: showOptions, install, showTools: showHelpers });
+    if (!data.actions.length) box.append(h("p", { class: "hint" }, "Nothing can be made from these items. Try other files, or choose several of the same kind."));
+    box.append(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn", title: "Install or check the programs that do the work", onclick: showHelpers }, "Helper programs…")));
+    view.focus();
+  }
+
+  function showOptions(action) {
+    dlg.setError("");
+    setTitle(action.label);
+    const exts = extensionsOf(entries);
+    let seq = 0;
+    const schedule = debounce(() => refreshPreview(), 250);
+    const options = buildOptions(action, exts, schedule);
+    const dest = buildDestination(schedule);
+    const previewBox = h("div", { class: "cv-preview", "aria-live": "polite" });
+    const label = action.mode === "all" ? "Make it" : action.count > 1 ? `Convert ${plural(action.count, "item")}` : "Convert";
+    const go = h("button", { type: "button", class: "btn primary", disabled: true, title: "Make the new files now. The originals are not changed.", onclick: () => startJob("tools/run", request(), "That didn't start.") }, label);
+    const back = h("button", { type: "button", class: "btn", title: "Go back and choose something else", onclick: showChooser }, "← Back to the list");
+    function request() {
+      const where = dest.read();
+      return { action: action.id, paths, options: options.read(), outputDir: where.outputDir, pattern: where.pattern };
+    }
+    async function refreshPreview() {
+      const mine = ++seq;
+      go.disabled = true;
+      renderPreview(previewBox, { state: "loading" });
+      try {
+        const data = await call("tools/preview", request());
+        if (mine !== seq) return;
+        renderPreview(previewBox, { state: "ready", data });
+        go.disabled = !data.items.some((i) => !i.problem);
+      } catch (err) {
+        if (mine !== seq) return;
+        renderPreview(previewBox, { state: "error", message: err instanceof ApiError ? err.message : "Couldn't check what will be made." });
+      }
+    }
+    box.replaceChildren(...[
+      back,
+      h("p", { class: "cv-intro" }, optionsIntro(action, paths.length)),
+      action.note ? h("p", { class: "hint" }, action.note) : null,
+      options.count ? h("div", {}, h("h3", {}, "Options"), options.el) : null,
+      dest.el,
+      h("h3", {}, "What will be created"),
+      previewBox,
+      h("div", { class: "cv-actions" }, go),
+    ].filter(Boolean));
+    refreshPreview();
+    (box.querySelector(".cv-options input, .cv-options select") ?? go).focus();
+  }
+
+  async function load() {
+    dlg.setError("");
+    box.replaceChildren(h("p", { class: "hint" }, "Looking for your helper programs…"));
     try {
       data = await call("tools/overview", { paths });
     } catch (err) {
       return box.replaceChildren(h("p", { role: "alert" }, err instanceof ApiError ? err.message : "Couldn't look for the helper programs."));
     }
-    const missingAuto = data.tools.filter((t) => !t.installed && t.plan.auto);
-    const parts = [];
-    if (paths.length) {
-      parts.push(h("p", {}, `${plural(data.selected, "file")} selected. Results are saved next to the originals as new files; the originals are never changed.`));
-      const sections = actionsSection(data, run);
-      parts.push(...(sections.length ? sections : [h("p", { class: "hint" }, "None of the selected files can be converted. Pictures, video, sound and documents can: for example JPG, PNG, MP4, MP3, DOCX or Markdown.")]));
-    } else {
-      parts.push(h("p", {}, "Select some pictures, videos, sound files or documents first, then open this window again to see what you can do with them. You can already set up the helper programs here."));
-    }
-    parts.push(h("h3", { class: "tools-heading" }, "Helper programs"));
-    parts.push(h("p", { class: "hint" }, "These free programs do the work. They are installed once and then used by the File Manager."));
-    if (missingAuto.length > 1) parts.push(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn primary", onclick: () => install(missingAuto.map((t) => t.id)) }, `Install all ${missingAuto.length} missing programs`)));
-    parts.push(...data.tools.map((t) => toolBlock(t, () => dlg.close(), install)));
-    parts.push(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn", onclick: () => { box.replaceChildren(h("p", { class: "hint" }, "Checking…")); render(); } }, "Check again")));
-    box.replaceChildren(...parts);
+    showChooser();
   }
-  await render();
+  await load();
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -165,6 +222,7 @@ function buildCard(job) {
     h("progress", { class: "task-progress", max: "1", value: "0" }),
     h("div", { class: "task-status" }),
     h("ul", { class: "task-problems" }),
+    h("ul", { class: "task-notes" }),
     h("pre", { class: "task-log", hidden: true }),
     h("div", { class: "task-buttons" },
       h("button", { type: "button", class: "btn task-cancel", onclick: () => call("jobs/cancel", { id: job.id }).then(poll).catch(() => {}) }, "Cancel"),
@@ -186,6 +244,9 @@ function updateCard(card, job) {
   const problems = card.querySelector(".task-problems");
   const bad = job.steps.filter((s) => s.state === "failed");
   problems.replaceChildren(...[...bad.slice(0, 4).map((s) => h("li", {}, `${s.label}: ${s.message}`)), ...(bad.length > 4 ? [h("li", {}, `…and ${bad.length - 4} more.`)] : [])]);
+  // What a converter could not keep exactly (for example nested data that was flattened) is told after a step is done.
+  const notes = [...new Set(job.steps.filter((s) => s.state === "done" && s.message).map((s) => s.message))];
+  card.querySelector(".task-notes").replaceChildren(...notes.slice(0, 3).map((n) => h("li", {}, n)));
   const log = card.querySelector(".task-log");
   const showLog = job.kind === "install" && !!job.log;
   log.hidden = !showLog;
@@ -263,4 +324,6 @@ export function trackJob(job) {
 export function wireTools() {
   // A job may already be running (the page was reloaded); this also fills the tray.
   poll();
+  // Other parts of the page (More info, for one) start a job themselves and announce it with emit("job-started", job).
+  on("job-started", trackJob);
 }

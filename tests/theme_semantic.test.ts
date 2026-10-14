@@ -147,7 +147,7 @@ describe("Linux, Windows and macOS themes", () => {
                 shorts.add(s);
             }
         }
-        expect(names.size).toBeGreaterThanOrEqual(121);
+        expect(names.size).toBeGreaterThanOrEqual(133);
     });
 
     test("friendly aliases resolve", () => {

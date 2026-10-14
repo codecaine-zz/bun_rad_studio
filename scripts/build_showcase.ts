@@ -80,9 +80,9 @@ const OVERRIDES: Record<string, { name: string; icon: string; category: string; 
   launcher_studio: { name: "Launcher Studio Pro", icon: "🚀", category: "RAD Studio", description: "The home screen of the toolbox: search, favourite and open any application with one click, with history and categories" },
 };
 
-interface Entry { file: string; name: string; icon: string; category: string; description: string; image: string; command: string | null; guide: string | null; hash: string }
+export interface Entry { file: string; name: string; icon: string; category: string; description: string; image: string; command: string | null; guide: string | null; hash: string }
 
-function collect(): Entry[] {
+export function collect(): Entry[] {
   const all: Entry[] = [];
   const files = readdirSync(join(ROOT, "applications")).filter((f) => f.endsWith("_studio.ts") || f === "task_manager.ts").map((f) => f.replace(/\.ts$/, "")).sort();
   for (const file of files) {

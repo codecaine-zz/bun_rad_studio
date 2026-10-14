@@ -17,7 +17,10 @@ export type JobState = "waiting" | "running" | "done" | "failed" | "cancelled";
 export type StepState = "waiting" | "running" | "done" | "failed" | "skipped";
 
 export interface PreparedStep {
-  argv: string[];
+  /** The program to run. Left out for a step that does its work in this process (see `work`). */
+  argv?: string[];
+  /** In-process work (the built-in converters): replaces starting a program. It must stop soon after `signal` aborts. */
+  work?: (signal: AbortSignal, log: (text: string) => void) => Promise<string | void>;
   /** Called after a successful run to move the result to its final place; throws if that is not possible. */
   publish?: () => Promise<void>;
   /** Always called when the step is over, whatever happened (removes temporary files). */
@@ -30,8 +33,9 @@ export interface JobStepSpec {
   prepare?: () => Promise<PreparedStep>;
   env?: Record<string, string>;
   cwd?: string;
-  /** The file this step creates. It must not exist yet; whatever is left of it after a failure is removed. */
+  /** The file (or folder, see `outputKind`) this step creates. It must not exist yet; whatever is left of it after a failure is removed. */
   output?: string;
+  outputKind?: "file" | "folder";
   timeoutMs?: number;
   /** Turns the program's error text into a sentence for the user. */
   explain?: (errorText: string, exitCode: number | null) => string;
@@ -106,6 +110,7 @@ interface InternalJob {
   spec: JobSpec;
   cancelled: boolean;
   proc: ReturnType<typeof Bun.spawn> | null;
+  abort: AbortController | null;
   finished: Promise<void>;
   release: () => void;
 }
@@ -138,46 +143,63 @@ export function createJobHub(maxRunning = 2): JobHub {
     // Only a file this step made may be removed. One that was already there belongs to the user.
     let mayRemoveOutput = false;
     const removeOutput = async () => {
-      if (step.output && mayRemoveOutput) await fsp.rm(step.output, { force: true }).catch(() => {});
+      if (step.output && mayRemoveOutput) await fsp.rm(step.output, { force: true, recursive: step.outputKind === "folder" }).catch(() => {});
     };
     try {
       if (step.output && (await exists(step.output))) throw new Error("A file with that name already exists.");
       mayRemoveOutput = true;
       prepared = step.prepare ? await step.prepare() : { argv: step.argv ?? [] };
-      if (!prepared.argv.length) throw new Error("Nothing to run.");
       let timedOut = false;
-      let proc: ReturnType<typeof Bun.spawn>;
-      try {
-        proc = Bun.spawn(prepared.argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: step.env, cwd: step.cwd });
-      } catch (err: any) {
-        throw new Error(err?.code === "ENOENT" ? "The program could not be found. Was it moved or uninstalled?" : `The program could not be started: ${err?.message ?? err}`);
-      }
-      job.proc = proc;
-      const timer = setTimeout(() => { timedOut = true; try { proc.kill(); } catch {} }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-      const decoder = new TextDecoder();
-      const readers: Array<{ cancel(): Promise<void> }> = [];
-      const drain = async (stream: unknown) => {
-        if (!stream || typeof (stream as ReadableStream).getReader !== "function") return;
-        const reader = (stream as ReadableStream<Uint8Array>).getReader();
-        readers.push(reader);
+      let code: number | null = 0;
+      let note = "";
+      if (prepared.work) {
+        const abort = new AbortController();
+        job.abort = abort;
+        const timer = setTimeout(() => { timedOut = true; abort.abort(); }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
         try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            addTail(decoder.decode(value, { stream: true }));
-          }
-        } catch {
-          // the stream closed because the program was stopped
+          note = (await prepared.work(abort.signal, addTail)) ?? "";
+        } catch (err) {
+          if (!job.cancelled && !timedOut) throw err;
+        } finally {
+          clearTimeout(timer);
+          job.abort = null;
         }
-      };
-      const draining = Promise.all([drain(proc.stdout), drain(proc.stderr)]);
-      const code = await proc.exited;
-      // A program that started helpers (an installer, a shell script) can leave them holding the output open after it
-      // ends or is stopped. Take what has arrived and move on instead of waiting for them.
-      await Promise.race([draining, new Promise((r) => setTimeout(r, 1000))]);
-      for (const r of readers) r.cancel().catch(() => {});
-      clearTimeout(timer);
-      job.proc = null;
+      } else {
+        const argv = prepared.argv ?? [];
+        if (!argv.length) throw new Error("Nothing to run.");
+        let proc: ReturnType<typeof Bun.spawn>;
+        try {
+          proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: step.env, cwd: step.cwd });
+        } catch (err: any) {
+          throw new Error(err?.code === "ENOENT" ? "The program could not be found. Was it moved or uninstalled?" : `The program could not be started: ${err?.message ?? err}`);
+        }
+        job.proc = proc;
+        const timer = setTimeout(() => { timedOut = true; try { proc.kill(); } catch {} }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        const decoder = new TextDecoder();
+        const readers: Array<{ cancel(): Promise<void> }> = [];
+        const drain = async (stream: unknown) => {
+          if (!stream || typeof (stream as ReadableStream).getReader !== "function") return;
+          const reader = (stream as ReadableStream<Uint8Array>).getReader();
+          readers.push(reader);
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              addTail(decoder.decode(value, { stream: true }));
+            }
+          } catch {
+            // the stream closed because the program was stopped
+          }
+        };
+        const draining = Promise.all([drain(proc.stdout), drain(proc.stderr)]);
+        code = await proc.exited;
+        // A program that started helpers (an installer, a shell script) can leave them holding the output open after it
+        // ends or is stopped. Take what has arrived and move on instead of waiting for them.
+        await Promise.race([draining, new Promise((r) => setTimeout(r, 1000))]);
+        for (const r of readers) r.cancel().catch(() => {});
+        clearTimeout(timer);
+        job.proc = null;
+      }
 
       if (job.cancelled) {
         view.state = "skipped";
@@ -192,19 +214,34 @@ export function createJobHub(maxRunning = 2): JobHub {
         await removeOutput();
         return;
       }
-      if (prepared.publish) await prepared.publish();
+      if (prepared.publish) {
+        try {
+          await prepared.publish();
+        } catch (err: any) {
+          // A file with that name appeared while we worked. It is not ours, so it must stay.
+          if (err?.code === "EEXIST" || err?.code === "ENOTEMPTY") {
+            mayRemoveOutput = false;
+            throw new Error("A file with that name appeared while this was running, so it was left alone and nothing was saved.");
+          }
+          throw err;
+        }
+      }
       if (step.output) {
         const st = await fsp.stat(step.output).catch(() => null);
-        if (!st || !st.isFile() || st.size === 0) {
+        const folder = step.outputKind === "folder";
+        const made = !!st && (folder ? st.isDirectory() && (await fsp.readdir(step.output).catch(() => [])).length > 0 : st.isFile() && st.size > 0);
+        if (!made) {
           await removeOutput();
           view.state = "failed";
-          view.message = "The program finished but did not make a file.";
+          view.message = folder ? "It finished but did not make any files." : "The program finished but did not make a file.";
           return;
         }
         view.output = step.output;
         job.view.outputs.push(step.output);
       }
       view.state = "done";
+      // What a built-in converter could not keep exactly; shown beside the finished step.
+      if (note) view.message = note.slice(0, 600);
     } catch (err: any) {
       view.state = "failed";
       view.message = String(err?.message ?? err).slice(0, 400);
@@ -262,7 +299,7 @@ export function createJobHub(maxRunning = 2): JobHub {
         startedAt: Date.now(),
         finishedAt: null,
       };
-      const job: InternalJob = { view, spec, cancelled: false, proc: null, finished, release };
+      const job: InternalJob = { view, spec, cancelled: false, proc: null, abort: null, finished, release };
       jobs.push(job);
       trim();
       if (running < maxRunning) void runJob(job);
@@ -285,6 +322,7 @@ export function createJobHub(maxRunning = 2): JobHub {
         job.release();
       } else {
         try { job.proc?.kill(); } catch {}
+        job.abort?.abort();
       }
       return true;
     },
