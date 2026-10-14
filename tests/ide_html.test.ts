@@ -295,13 +295,13 @@ describe("Designer: component tree rows are keyboard operable", () => {
     function build(controls: any[], selected: number[] = []) {
         const dom = new JSDOM('<!DOCTYPE html><body><input id="treeFilterBox"><div id="treeContainer"></div></body>');
         const doc = dom.window.document;
-        const picked: Array<{ idx: number; key?: string }> = [];
+        const picked: Array<{ idx: number; key?: string; shift?: boolean; meta?: boolean }> = [];
         const state = { formSpec: { controls }, selectedIndices: selected, picked };
         const run = new Function(
             "document",
             "state",
             `const formSpec = state.formSpec; const selectedIndices = state.selectedIndices;
-             const selectControl = (idx, e) => { state.picked.push({ idx, key: e && e.key }); };
+             const selectControl = (idx, e) => { state.picked.push({ idx, key: e && e.key, shift: !!(e && e.shiftKey), meta: !!(e && (e.metaKey || e.ctrlKey)) }); };
              const moveControlOrder = () => {};
              ${renderTreeSrc}; return renderTree;`,
         )(doc, state) as () => void;
@@ -330,6 +330,16 @@ describe("Designer: component tree rows are keyboard operable", () => {
         press(rows[0]!, "a");
         press(rows[0]!.querySelector("button")!, "Enter");
         expect(picked.map((p) => p.idx)).toEqual([0, 1]);
+    });
+
+    test("Shift and Cmd/Ctrl are passed on, so the keyboard can select a range or toggle one row like the mouse", () => {
+        const { dom, doc, picked } = build([...controls, { id: "c3", control_type: "input" }]);
+        const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
+        const press = (el: any, init: any) => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, ...init }));
+        press(rows[2]!, { shiftKey: true });
+        press(rows[1]!, { metaKey: true });
+        press(rows[0]!, { ctrlKey: true });
+        expect(picked.map((p) => [p.idx, p.shift, p.meta])).toEqual([[2, true, false], [1, false, true], [0, false, true]]);
     });
 });
 
