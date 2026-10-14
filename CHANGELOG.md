@@ -13,6 +13,8 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 - **File Manager terminal** (toolbar button or Ctrl+`): a real shell at the bottom of the window, started in the folder on screen, with **Go to this folder** and **Restart**. macOS and Linux; a button that is greyed out on Windows. Adds the vendored xterm.js (MIT) library ([D-046](docs/documentation-maintenance/discrepancies.md#d-046)).
 
+- **File Manager: Convert & process.** Right-click pictures, videos, sound or documents to convert, shrink, rotate, combine into a PDF and more, in batches, using ImageMagick, ffmpeg and pandoc (including the Homebrew `-full` builds, found even when they are not on the PATH). A tasks panel shows progress and lets you cancel. If a program is missing the window says so and offers an Install button (Homebrew, winget, Scoop) or the exact command to copy or type in the Terminal. `bun run tools:check` and `bun run tools:install` do the same from a terminal ([D-048](docs/documentation-maintenance/discrepancies.md#d-048)).
+
 ### Behaviour changes to know about
 
 - **Library server helpers listen on `127.0.0.1` by default.** `serveStatic` and `createWsHub` (RAD `serverutils`) and `Sys.serve` / `Sys.serveStatic` (SimpleCLI) used to listen on all network interfaces. Pass `hostname` (for example `"0.0.0.0"`) to expose a server on purpose ([D-037](docs/documentation-maintenance/discrepancies.md#d-037)).

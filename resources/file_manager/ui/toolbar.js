@@ -3,6 +3,7 @@ import { ApiError, call } from "./api.js";
 import { viewMenuItems } from "./contextmenu.js";
 import { attachDropTarget } from "./dnd.js";
 import { showHelp, showSettings } from "./extras.js";
+import { showToolsDialog } from "./tools.js";
 import { $, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { canGoUp, clearSearch, goBack, goForward, goTo, goUp, refresh, runSearch } from "./nav.js";
@@ -49,6 +50,7 @@ function buttonSpecs() {
     [
       { id: "view", icon: "▦", label: "View", tip: "Change how files are shown and sorted", run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }), enabled: () => true, menu: true },
       { id: "info", icon: "ℹ️", label: "Details", tip: `Show or hide the details panel (${mod()}I)`, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
+      { id: "tools", icon: "🧰", label: "Convert", tip: "Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs", run: showToolsDialog, enabled: () => !inTrash() },
       { id: "terminal", icon: "⌨️", label: "Terminal", tip: state.platform === "win32" ? "The terminal needs macOS or Linux for now" : "Show or hide a terminal in this folder (Ctrl+`)", run: () => emit("toggle-terminal"), enabled: () => state.platform !== "win32", toggle: () => state.terminalOpen },
       { id: "settings", icon: "⚙️", label: "Settings", tip: "Colours, text size and more", run: showSettings, enabled: () => true },
       { id: "help", icon: "❓", label: "Help", tip: "Help and keyboard shortcuts (F1)", run: showHelp, enabled: () => true },

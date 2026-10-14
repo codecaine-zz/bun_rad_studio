@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
   baseName, collapseCrumbs, describeSelection, driveFor, extensionOf, formatDate, formatSize, isInside, isModifier, isWindowsPath, joinPath,
-  naturalCompare, parentOf, plural, rangeIndexes, sortEntries, splitPath, summarizeCount, typeaheadFind, wantsCopy,
+  kindsForName, naturalCompare, parentOf, plural, rangeIndexes, sortEntries, splitPath, summarizeCount, typeaheadFind, wantsCopy,
 } from "../resources/file_manager/ui/util.js";
+import { ACTIONS, kindsFor } from "../src/features/filemanager/fmTools";
 
 const e = (name: string, extra: object = {}) => ({ name, isDir: false, size: 0, mtimeMs: 0, label: "File", ...extra });
 
@@ -160,5 +161,20 @@ describe("keyboard helpers", () => {
     expect(wantsCopy({ altKey: true, ctrlKey: false }, "darwin")).toBe(true);
     expect(wantsCopy({ altKey: false, ctrlKey: true }, "linux")).toBe(true);
     expect(wantsCopy({ altKey: true, ctrlKey: false }, "linux")).toBe(false);
+  });
+});
+
+describe("convert and process: the page and the server agree on which files qualify", () => {
+  test("kindsForName matches the server's kindsFor for every input type of every action, and for names that don't qualify", () => {
+    const exts = new Set<string>();
+    for (const a of ACTIONS) for (const x of a.inputs) exts.add(x);
+    for (const x of exts) {
+      expect(kindsForName(`file.${x}`), x).toEqual(kindsFor(`file.${x}`));
+      expect(kindsForName(`FILE.${x.toUpperCase()}`), x).toEqual(kindsFor(`file.${x}`));
+    }
+    for (const n of ["archive.zip", "noextension", ".hidden", "program.exe", "dir.d", "trailing."]) {
+      expect(kindsForName(n), n).toEqual([]);
+      expect(kindsFor(n), n).toEqual([]);
+    }
   });
 });

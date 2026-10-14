@@ -183,6 +183,7 @@ export function showHelp() {
         h("li", {}, "Deleting never destroys anything straight away: items go to the Recycle Bin, and Undo brings them back."),
         h("li", {}, `"Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}" opens the computer's own file manager at the item.`),
         h("li", {}, "Programs and installers always ask before they run."),
+        h("li", {}, "Right-click pictures, videos, sound files or documents and choose Convert or process to change their format, make them smaller, or combine pictures into a PDF. The new files appear next to the originals."),
       ),
       h("h3", {}, "Keyboard shortcuts"),
       h("table", { class: "keys" }, h("tbody", {}, shortcuts().map(([what, keys]) => h("tr", {}, h("td", {}, what), h("td", { class: "keycap" }, keys))))),

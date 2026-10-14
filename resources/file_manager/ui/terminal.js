@@ -142,6 +142,21 @@ function ensureTerminal() {
   new ResizeObserver(queueFit).observe($("#terminal-host"));
 }
 
+/** Shows the terminal and types `text` into it without pressing Enter, so a person can read it first. */
+export function typeInTerminal(text) {
+  if (!terminalAvailable()) return false;
+  showTerminal();
+  const send = () => sendInput(text);
+  if (socket && socket.readyState === WebSocket.CONNECTING) socket.addEventListener("open", send, { once: true });
+  else send();
+  return true;
+}
+
+function sendInput(text) {
+  send({ type: "input", data: text });
+  term?.focus();
+}
+
 export function isTerminalOpen() {
   return state.terminalOpen;
 }

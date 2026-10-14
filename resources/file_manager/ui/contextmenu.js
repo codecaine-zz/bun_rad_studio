@@ -5,7 +5,8 @@ import * as ops from "./ops.js";
 import { showProperties } from "./extras.js";
 import { selectAll } from "./selection.js";
 import { inTrash, state } from "./state.js";
-import { extensionOf } from "./util.js";
+import { showToolsDialog } from "./tools.js";
+import { extensionOf, kindsForName } from "./util.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 const del = () => (state.platform === "darwin" ? "⌘⌫" : "Del");
@@ -49,12 +50,14 @@ function entryItems(entries) {
   }
   const isZip = one && !e.isDir && extensionOf(e.name) === "zip";
   const clip = !!state.clipboard;
+  const convertible = entries.some((x) => !x.isDir && kindsForName(x.name).length > 0);
   return [
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     isZip ? { label: "Extract here", icon: "📦", disabled: searching, action: () => ops.unzipEntry(e) } : null,
     one ? { label: `Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}`, icon: "🔎", action: () => ops.revealEntry(e) } : null,
     one && e.isDir ? { label: ops.isFavorite(e.path) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => ops.toggleFavorite(e.path) } : null,
+    convertible ? { label: "Convert or process…", icon: "🧰", action: showToolsDialog } : null,
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: `${mod()}X`, action: ops.cutSelection },
     { label: "Copy", icon: "📋", shortcut: `${mod()}C`, action: ops.copySelection },

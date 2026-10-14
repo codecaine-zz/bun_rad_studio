@@ -51,6 +51,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-045 File Manager added (new application; bugs found while building and verifying it)](#d-045)
 - [D-046 File Manager terminal panel (new feature, xterm.js vendored)](#d-046)
 - [D-047 Linux: unreadable controls and stale colours after a run-time theme switch (fixed)](#d-047)
+- [D-048 File Manager: convert and process files with ffmpeg, ImageMagick and pandoc (new feature, bugs found)](#d-048)
 - [D-046 File Manager terminal panel (new feature, xterm.js vendored)](#d-046)
 
 <a id="d-001"></a>
@@ -514,4 +515,20 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **A bug in my first version, found only on WebKitGTK:** the contrast check read `getComputedStyle` right after the change, but controls animate colour changes (`transition`), so the computed colour was still the old one and the repair was skipped (hex text in the colour well stayed invisible). The check now suspends transitions while it measures.
 - **Verified:** WebKitGTK screenshots of Ubuntu dark/light, Adwaita dark/light, Linux Mint, Pop!_OS and Fedora, with and without a dark GTK theme; the real dropdown switching dark to light and back; the colour well and list box zoomed in. In Chromium, an automated audit of unreadable text (contrast below 3:1) after switching Ubuntu dark/light and Midnight/Apple Light in both directions: 0 after the switch (a freshly generated page had 0 to 4). `tests/linux_theme.test.ts` checks the generated rules and script.
 - **Not verified:** a real GNOME/KDE desktop session (Xvfb only), other GTK themes than Adwaita, Windows after this change (shared code changed; the macOS-Chromium audit passed), and the 60-plus other themes switched pairwise.
+
+<a id="d-048"></a>
+## D-048: File Manager: convert and process files with ffmpeg, ImageMagick and pandoc (new feature, bugs found)
+
+- **Status:** Done on 14 October 2026. Asked for: batch processes on selected files and wrappers for the Homebrew tools (`pandoc`, `imagemagick-full`, `ffmpeg-full`), telling the user how to install them when they are missing, and automation scripts to install them from the app, on every system.
+- **Change:** 32 actions in four groups (see the [guide](../userguides/43_file_manager.md#convert-and-process-files)); a data-driven catalog (`fmTools.ts`), a job runner (`fmJobs.ts`), detection and batches (`fmBatch.ts`), a Convert window and a tasks panel (`ui/tools.js`), and `bun run tools:check` / `tools:install` which share the same install plans as the app. "Any other Homebrew program" is possible by adding catalog entries; only these three were built and tested.
+- **Why detection searches extra folders:** `ffmpeg-full` and `imagemagick-full` are **keg-only**: Homebrew does not link them into `/opt/homebrew/bin`, so they are only on the PATH through a shell profile, which a window opened from Finder or a launcher does not have. Looking only at the PATH would have shown installed programs as missing.
+- **Bugs found by the tests and by running real tools, and fixed:**
+  - **Data loss:** when the name for a new file was already taken, the failure path "cleaned up" by deleting that **existing** file. Cleanup now only removes a file the step itself created (test: an existing output is left untouched).
+  - **A hung runner:** cancelling or timing out a program that starts helpers (an installer, a shell script) left the runner waiting forever for the helpers' output. It now waits one second after the program ends and moves on.
+  - A transient slow probe of ImageMagick's formats made it report "built without that format" for every action. Capability checks now have a longer limit, are cached per file, and an unanswered check means "assume it works" instead of "missing".
+  - ImageMagick reads `[1]`, `*`, `%` and `:` in a file name as instructions (frame selection, wildcards), so a picture called `weird [name] 100%.png` could not be converted safely. ImageMagick now only sees temporary names; the result is copied to its final name without replacing anything.
+  - A combined PDF was named `Combined pictures (combined).pdf`; the empty "problems" list of a task showed the word `null`; my first CSS reused the toolbar's `.tool-group` class (which the toolbar hides by that name), so the classes were renamed.
+- **Verified:** 33 automated tests (pure functions, install plans for macOS, Windows and Linux, the runner with stand-in programs, hostile file names, the install flow with a stand-in `brew`, the HTTP operations and their token and confirmation rules, and real conversions where the tools exist); all 32 actions run against the real Homebrew tools on macOS; the dialog, the tasks panel, a failure and the "no tools, no Homebrew" screen in a browser.
+- **Not verified:** a real install on any system; Windows (winget, Scoop, `.cmd` programs) and Linux (apt, dnf, pacman, Linuxbrew) in practice; HEIC and AVIF input; PDF from documents (no PDF engine here); the native window.
+- **Limits:** no per-file options (quality and so on); progress is per file; 500 files per batch; cancelling an installer stops its main program, but programs that installer started may finish.
 

@@ -12,10 +12,10 @@
  *   bun run app:files --server             server only; prints READY:<port>
  *
  * Options: --port N, --path DIR, --width N, --height N, --home DIR and --data-dir DIR (where the settings and the
- * Recycle Bin live; mainly for testing).
+ * Recycle Bin live) and --tool-dirs A:B (look for ffmpeg, ImageMagick and pandoc only there); the last three are mainly for testing.
  */
 import { SizeHint, Webview } from "webview-bun";
-import { resolve } from "path";
+import { delimiter, resolve } from "path";
 import { setWindowPositionNative } from "../index.ts";
 import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
 
@@ -44,6 +44,7 @@ function serverCommand(options: FileManagerServerOptions): string[] {
   if (options.startPath) args.push("--path", options.startPath);
   if (options.context?.home) args.push("--home", options.context.home);
   if (options.context?.dataDir) args.push("--data-dir", options.context.dataDir);
+  if (options.context?.toolDirs) args.push("--tool-dirs", options.context.toolDirs.join(delimiter));
   return args;
 }
 
@@ -136,7 +137,8 @@ if (import.meta.main) {
   const startPath = argValue(args, "--path");
   const home = argValue(args, "--home");
   const dataDir = argValue(args, "--data-dir");
-  const context = { ...(home ? { home: resolve(home) } : {}), ...(dataDir ? { dataDir: resolve(dataDir) } : {}) };
+  const toolDirs = argValue(args, "--tool-dirs");
+  const context = { ...(home ? { home: resolve(home) } : {}), ...(dataDir ? { dataDir: resolve(dataDir) } : {}), ...(toolDirs !== undefined ? { toolDirs: toolDirs.split(delimiter).filter(Boolean) } : {}) };
   if (args.includes("--server") || args.includes("-s")) {
     const server = startFileManagerServer({ port, startPath, context });
     console.log(`📁 File Manager server running at: http://127.0.0.1:${server.port}/`);

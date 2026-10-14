@@ -6,6 +6,7 @@ import * as fs from "fs";
 import { promises as fsp } from "fs";
 import { homedir } from "os";
 import * as nodePath from "path";
+import { createJobHub, type JobHub } from "./fmJobs";
 import { FmError, isSameOrInside, platformName, protectedReason, type Platform } from "./fmPaths";
 
 export interface FmContext {
@@ -18,6 +19,10 @@ export interface FmContext {
   trashRoot: string;
   /** Starts a program for "Open". Replaceable so tests never launch real applications. */
   launch: (command: string, args: string[], options?: { windowsVerbatimArguments?: boolean }) => Promise<void>;
+  /** When set, helper programs (ffmpeg and so on) are only looked for in these folders. For tests. */
+  toolDirs?: string[];
+  /** Background work: conversions and installs. */
+  jobs: JobHub;
 }
 
 export interface FmContextOptions {
@@ -25,6 +30,7 @@ export interface FmContextOptions {
   home?: string;
   dataDir?: string;
   launch?: FmContext["launch"];
+  toolDirs?: string[];
 }
 
 export function createContext(options: FmContextOptions = {}): FmContext {
@@ -37,6 +43,8 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     dataDir,
     trashRoot: nodePath.join(dataDir, "file_manager_trash"),
     launch: options.launch ?? defaultLaunch,
+    toolDirs: options.toolDirs,
+    jobs: createJobHub(),
   };
 }
 

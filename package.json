@@ -54,6 +54,8 @@
     "capture:themes": "bun run scripts/capture_theme_screenshots.ts",
     "app:launcher": "bun run applications/launcher_studio.ts",
     "app:files": "bun run applications/file_manager_studio.ts",
+    "tools:check": "bun run scripts/install_media_tools.ts check",
+    "tools:install": "bun run scripts/install_media_tools.ts install",
     "app:filemanager": "bun run applications/file_manager_studio.ts",
     "cli:launcher": "bun run cli_apps/launcher_cli.ts",
     "app:system": "bun run applications/system_studio.ts",

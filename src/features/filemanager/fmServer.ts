@@ -18,6 +18,7 @@ import { guardLocalRequest, writeClipboardSync } from "../../localGuard";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions } from "./fmCore";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
+import { overview, startBatch, startInstall } from "./fmBatch";
 import { openItem, revealItem } from "./fmOpen";
 import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
 import { addRecent, loadSettings, updateSettings } from "./fmSettings";
@@ -188,6 +189,25 @@ const operations: Record<string, Handler> = {
   },
   async bulkrename(ctx, b) {
     return await bulkRename(ctx, b.folder, b.names, b.spec, b.apply === true);
+  },
+  async "tools/overview"(ctx, b) {
+    return await overview(ctx, b.paths);
+  },
+  async "tools/run"(ctx, b) {
+    return { job: await startBatch(ctx, b.action, b.paths) };
+  },
+  async "tools/install"(ctx, b) {
+    if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
+    return { job: startInstall(ctx, b.tools) };
+  },
+  async "jobs/list"(ctx) {
+    return { jobs: ctx.jobs.list() };
+  },
+  async "jobs/cancel"(ctx, b) {
+    return { cancelled: ctx.jobs.cancel(String(b.id ?? "")) };
+  },
+  async "jobs/clear"(ctx) {
+    return { removed: ctx.jobs.clearFinished() };
   },
   async settings(ctx, b) {
     return { settings: b.set && typeof b.set === "object" ? await updateSettings(ctx, b.set) : await loadSettings(ctx) };
@@ -360,6 +380,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   const stopServer = server.stop.bind(server);
   server.stop = (closeActiveConnections?: boolean) => {
     terminals.closeAll();
+    ctx.jobs.cancelAll();
     return stopServer(closeActiveConnections);
   };
 

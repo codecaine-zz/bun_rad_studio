@@ -166,7 +166,7 @@ button:disabled { cursor: default; }
 .space-text { font-size: 0.72rem; color: var(--muted); }
 .side-item.active .space-text { color: var(--selected-text); }
 
-#main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#main { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0.8rem; background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--border); }
 .banner[hidden] { display: none; }
 
@@ -240,6 +240,38 @@ button:disabled { cursor: default; }
 .info-facts dd { margin: 0; word-break: break-word; }
 .preview-image { display: block; max-width: 100%; max-height: 15rem; margin: 0 auto 0.6rem; border-radius: 0.4rem; background: repeating-conic-gradient(var(--border) 0 25%, transparent 0 50%) 50% / 14px 14px; }
 .preview-text { max-height: 14rem; overflow: auto; margin: 0 0 0.6rem; padding: 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 0.4rem; font: 0.78rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+
+/* ------------------------------------------------------------- convert and tasks */
+.tools-box { min-height: 6rem; }
+.tools-heading { margin-top: 1.4rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+.act-group h3 { margin-top: 1rem; }
+.act-why { color: var(--danger); }
+.act-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.5rem; }
+.act-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; text-align: left; padding: 0.55rem 0.7rem; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 0.5rem; }
+.act-btn:hover:not(:disabled) { background: var(--hover); border-color: var(--accent); }
+.act-btn:disabled { opacity: 0.6; }
+.act-label { font-weight: 650; }
+.act-hint { color: var(--muted); font-size: 0.82rem; }
+.tool-block { border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem 0.8rem; margin: 0.6rem 0; }
+.tool-head { display: flex; gap: 0.8rem; align-items: baseline; justify-content: space-between; }
+.tool-ok { color: var(--good); font-weight: 650; }
+.tool-missing { color: var(--danger); font-weight: 650; }
+.tool-path { word-break: break-all; margin-top: 0; }
+.tool-command { display: block; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; background: var(--panel); border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.45rem 0.6rem; margin: 0.4rem 0; word-break: break-all; user-select: all; }
+.tool-row-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+
+.tasks { position: absolute; right: 0.8rem; bottom: 0.8rem; width: min(26rem, calc(100% - 1.6rem)); max-height: 70%; overflow-y: auto; z-index: 30; display: flex; flex-direction: column; gap: 0.5rem; }
+.tasks[hidden] { display: none; }
+.task { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem 0.8rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 0.35rem; }
+.task[data-state="failed"] { border-color: var(--danger); }
+.task-title { font-weight: 650; }
+.task-progress { width: 100%; height: 0.6rem; accent-color: var(--accent); }
+.task-status { color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+.task-problems { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--danger); }
+.task-problems:empty { display: none; }
+.task-log { margin: 0; max-height: 7rem; overflow: auto; font-size: 0.78rem; background: var(--panel); border-radius: 0.4rem; padding: 0.4rem 0.5rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-buttons { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.task-buttons .btn[hidden] { display: none; }
 
 /* ------------------------------------------------------------------- terminal */
 #terminal-panel { display: flex; flex-direction: column; height: var(--term-height, 300px); min-height: 0; background: var(--panel); border-top: 1px solid var(--border); }

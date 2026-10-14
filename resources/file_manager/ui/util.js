@@ -211,3 +211,17 @@ export function summarizeCount(total, shown) {
   if (total === 0) return "This folder is empty";
   return shown < total ? `Showing ${shown.toLocaleString()} of ${total.toLocaleString()} items` : plural(total, "item");
 }
+
+// Which kinds of helper work a file name allows. The server has the same lists (fmTools.ts); a test keeps them equal.
+const KIND_EXTENSIONS = {
+  Pictures: "jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg",
+  Video: "mp4 mov mkv avi webm m4v wmv flv mpg mpeg 3gp ts",
+  Sound: "mp3 wav flac aac m4a ogg opus wma aiff aif",
+  Documents: "md markdown txt html htm docx odt rtf epub tex rst org textile",
+};
+
+/** @param {string} name @returns {string[]} */
+export function kindsForName(name) {
+  const ext = extensionOf(name);
+  return Object.entries(KIND_EXTENSIONS).filter(([, list]) => list.split(" ").includes(ext)).map(([kind]) => kind);
+}
