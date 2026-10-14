@@ -87,12 +87,12 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 Since 13 October 2026 the workflow has a second job, `other-platforms`, that runs the type check and the whole test suite on `ubuntu-latest` and `windows-latest`. It is marked `continue-on-error`, so it **cannot fail the workflow**; read its log. It exists to learn what breaks, and it found real problems ([D-042](../documentation-maintenance/discrepancies.md#d-042)).
 
-| Platform | Result (run 38499526613, 1,400 tests in 109 files) | What it needed |
+| Platform | Result (run 38500213864, 1,400 tests in 109 files) | What it needed |
 |---|---|---|
 | **Linux** (`ubuntu-latest`) | **1,224 pass, 176 skip, 0 fail**, about 2.5 minutes. Within one test of the default local macOS run (1,225 pass, 175 skip) | `libwebkitgtk-6.0-4`, `libgtk-4-1`, `xvfb` (the tests run under `xvfb-run`) and `xclip`; without WebKitGTK 74 files failed to load |
-| **Windows** (`windows-latest`) | **1,191 pass, 177 skip, 32 fail**, about 3.3 minutes. Two fixes (the docs freshness test's line endings) came after this run and are not re-measured | nothing installed |
+| **Windows** (`windows-latest`) | **1,192 pass, 177 skip, 31 fail**, about 3.3 minutes | nothing installed |
 
-The 32 Windows failures are in the Task Manager (10, 8 of them against real processes), the Homebrew wrapper suite (5), the Fd and Rip studios (6), three GUI suites (5), the launcher (2), the subprocess pipeline (2), one `watchexec` test and the docs freshness test (1). The log messages mention `/bin/...` paths, `ps` and wrapper scripts that are not directly executable; that points at Unix-only assumptions, but each failure was **not** individually diagnosed. Treat Windows as **not supported**.
+The 31 Windows failures are in the Task Manager (10, 8 of them against real processes), the Homebrew wrapper suite (5), the Fd and Rip studios (6), three GUI suites (5), the launcher (2), the subprocess pipeline (2) and one `watchexec` test. The log messages mention `/bin/...` paths, `ps` and wrapper scripts that are not directly executable; that points at Unix-only assumptions, but each failure was **not** individually diagnosed. Treat Windows as **not supported**.
 
 What the experiment fixed (all checked on macOS and in this job): the type-check ratchet could not find TypeScript on Windows; the generated coverage matrix listed tests in file-system order and so differed by platform; two tests hardcoded macOS's `lo0` loopback name; one slow SQLite backup test hit the 5 s default timeout; tests spawned `bun` by name (14 places); and, a product bug, **Copy buttons stalled on Linux when `xclip` or `wl-copy` is installed**.
 
