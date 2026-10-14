@@ -4,6 +4,11 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 ## Unreleased (13 October 2026 review)
 
+### Added
+
+- **`LICENSE` (MIT, © 2026 Jerome Scott)** and `"license": "MIT"` in `package.json`. The README already declared MIT and its badge linked to a `LICENSE` file that did not exist. Licenses of bundled third-party assets were not audited.
+- `SECURITY.md` (how to report a problem and what is in scope) and this changelog.
+
 ### Behaviour changes to know about
 
 - **Library server helpers listen on `127.0.0.1` by default.** `serveStatic` and `createWsHub` (RAD `serverutils`) and `Sys.serve` / `Sys.serveStatic` (SimpleCLI) used to listen on all network interfaces. Pass `hostname` (for example `"0.0.0.0"`) to expose a server on purpose ([D-037](docs/documentation-maintenance/discrepancies.md#d-037)).

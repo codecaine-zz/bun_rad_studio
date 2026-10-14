@@ -1007,4 +1007,6 @@ Explore sister projects and complementary GUI frameworks, templates, and RAD vis
 
 ## 📄 License
 
-MIT License © Codecaine
+MIT License © Jerome Scott. See [LICENSE](LICENSE).
+
+Dependencies installed by `bun install` (for example `webview-bun`) keep their own licenses. Third-party code or media inside `resources/` was **not** audited for license terms.

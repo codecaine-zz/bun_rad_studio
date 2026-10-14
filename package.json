@@ -4,6 +4,7 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "postinstall": "bun run scripts/fix_windows_webview_runtime.ts",
     "build": "bun run scripts/build.ts lib",
