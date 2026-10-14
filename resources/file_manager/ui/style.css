@@ -562,3 +562,9 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .theme-hex[aria-invalid="true"] { outline: 2px solid var(--danger); }
 .theme-sample { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding: 0.6rem; border: 1px dashed var(--border); border-radius: 0.5rem; }
 .theme-export { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; }
+
+/* Donate window */
+.donate-box { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 0.6rem 0; }
+.donate-qr { width: 13rem; height: 13rem; background: #ffffff; padding: 0.4rem; border: 1px solid var(--border); border-radius: 0.6rem; }
+.donate-side { flex: 1 1 14rem; display: grid; gap: 0.4rem; }
+.donate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
