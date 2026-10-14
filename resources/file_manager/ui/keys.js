@@ -2,6 +2,7 @@
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
 import { $ } from "./dom.js";
+import { openPower } from "./power.js";
 import { menuIsOpen } from "./menus.js";
 import { canGoUp, clearSearch, goBack, goForward, goUp, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
@@ -87,6 +88,7 @@ export function wireKeys() {
     if ((e.altKey && key === "ArrowUp") || (mac && mod && key === "ArrowUp") || (key === "Backspace" && !mod)) { stop(); return void (canGoUp() || inTrash() ? goUp() : null); }
     if (mod && lower === "l") { stop(); return editAddress(); }
     if (e.altKey && lower === "d" && !mac) { stop(); return editAddress(); }
+    if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
     if (mod && lower === "f") { stop(); return focusSearch(); }
 
     // Choosing and opening

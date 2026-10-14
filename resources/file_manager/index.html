@@ -12,6 +12,12 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/vendor/xterm.css">
 <link rel="stylesheet" href="/ui/style.css">
+<link rel="stylesheet" href="/ui/power.css">
+<link rel="stylesheet" href="/ui/find.css">
+<link rel="stylesheet" href="/ui/watch.css">
+<link rel="stylesheet" href="/ui/crypto.css">
+<link rel="stylesheet" href="/ui/ip.css">
+<link rel="stylesheet" href="/ui/net.css">
 </head>
 <body>
   <a class="skip-link" href="#list">Skip to the files</a>
@@ -53,6 +59,15 @@
 
       <aside id="info" aria-label="Details" hidden></aside>
     </div>
+
+    <section id="power-panel" aria-label="Power tools" hidden>
+      <div class="power-head">
+        <span class="power-title">Power tools</span>
+        <div id="power-tabs" role="tablist" aria-label="Power tools"></div>
+        <button id="power-close" type="button" class="power-close" title="Back to your files (Esc)" aria-label="Close the power tools">✕ Close</button>
+      </div>
+      <div id="power-body"></div>
+    </section>
 
     <section id="terminal-panel" aria-label="Terminal" hidden>
       <div id="terminal-resizer" role="separator" aria-orientation="horizontal" aria-label="Terminal height. Press the up or down arrow key to change it." tabindex="0"></div>

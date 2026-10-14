@@ -9,6 +9,12 @@ import { menuIsOpen } from "./menus.js";
 import { goTo, loadPlaces, refresh } from "./nav.js";
 import { renderSidebar, wireSidebar } from "./sidebar.js";
 import { on, state } from "./state.js";
+import { wirePower } from "./power.js";
+import "./find.js";
+import "./watch.js";
+import "./crypto.js";
+import "./ip.js";
+import "./net.js";
 import { wireTerminal } from "./terminal.js";
 import { wireTools } from "./tools.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
@@ -43,6 +49,7 @@ async function start() {
   wireKeys();
   wireTerminal();
   wireTools();
+  wirePower();
   renderSidebar();
 
   // Settings changes: apply them, and redo only what they affect. Saving the last folder or a favorite must not

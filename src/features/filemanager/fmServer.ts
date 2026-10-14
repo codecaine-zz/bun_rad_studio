@@ -15,7 +15,12 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { existsSync, promises as fsp, readFileSync } from "fs";
 import * as nodePath from "path";
 import { guardLocalRequest, writeClipboardSync } from "../../localGuard";
-import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions } from "./fmCore";
+import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
+import { cryptoOperations } from "./fmCryptoOps";
+import { findOperations } from "./fmFindOps";
+import { ipOperations } from "./fmIpOps";
+import { netOperations } from "./fmNetOps";
+import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
 import { overview, startBatch, startInstall } from "./fmBatch";
@@ -114,7 +119,7 @@ function tokenMatches(given: string | null, token: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-type Handler = (ctx: FmContext, body: Record<string, any>) => Promise<unknown>;
+type Handler = FmHandler;
 
 /** The API: one entry per operation. Each takes the JSON body and returns the JSON answer. */
 const operations: Record<string, Handler> = {
@@ -224,6 +229,9 @@ const operations: Record<string, Handler> = {
     return { copied: writeClipboardSync(b.text) };
   },
 };
+
+// The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
+Object.assign(operations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -381,6 +389,9 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   server.stop = (closeActiveConnections?: boolean) => {
     terminals.closeAll();
     ctx.jobs.cancelAll();
+    for (const dispose of ctx.disposers.splice(0)) {
+      try { dispose(); } catch {}
+    }
     return stopServer(closeActiveConnections);
   };
 

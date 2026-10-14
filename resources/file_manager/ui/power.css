@@ -1,0 +1,47 @@
+/* The Power tools frame. Each tool styles its own content in its own .css file. */
+#power-panel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; background: var(--bg); border-top: 1px solid var(--border); }
+#power-panel[hidden] { display: none; }
+#app.power-open #body { display: none; }
+.power-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); flex: none; }
+.power-title { font-weight: 600; margin-right: 6px; }
+#power-tabs { display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+.power-tab { border: 1px solid transparent; background: transparent; color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; white-space: nowrap; }
+.power-tab:hover { background: var(--hover); }
+.power-tab.active { background: var(--accent); color: var(--accent-text); }
+.power-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.power-close { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
+.power-close:hover { background: var(--hover); }
+#power-body { flex: 1 1 auto; min-height: 0; position: relative; }
+.power-pane { position: absolute; inset: 0; overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.power-pane[hidden] { display: none; }
+.power-error { color: var(--danger); }
+
+/* Pieces every tool can use, so the five tools look like one app. */
+.pw-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--panel); display: flex; flex-direction: column; gap: 8px; }
+.pw-card > h3 { margin: 0; font-size: 0.95em; }
+.pw-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pw-row > label { display: inline-flex; align-items: center; gap: 6px; }
+.pw-field { display: inline-flex; flex-direction: column; gap: 2px; font-size: 0.85em; color: var(--muted); }
+.pw-field > input, .pw-field > select, .pw-field > textarea,
+.pw-row > input, .pw-row > select, .pw-row > textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; min-width: 0; }
+.pw-row > input:focus-visible, .pw-row > select:focus-visible, .pw-row > textarea:focus-visible,
+.pw-field > input:focus-visible, .pw-field > select:focus-visible, .pw-field > textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pw-btn { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.pw-btn:hover:not(:disabled) { background: var(--hover); }
+.pw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pw-btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.pw-btn.danger { color: var(--danger-text); background: var(--danger-bg); border-color: var(--danger); }
+.pw-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pw-hint { color: var(--muted); font-size: 0.85em; margin: 0; }
+.pw-status { color: var(--muted); font-size: 0.85em; }
+.pw-ok { color: var(--good); }
+.pw-bad { color: var(--danger); }
+.pw-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+.pw-out { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.85em; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow: auto; margin: 0; }
+.pw-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.pw-table { border-collapse: collapse; width: 100%; font-size: 0.9em; }
+.pw-table th, .pw-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.pw-table th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.pw-table tr[aria-selected="true"] td { background: var(--selected); color: var(--selected-text); }
+.pw-table td.num, .pw-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pw-split { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }

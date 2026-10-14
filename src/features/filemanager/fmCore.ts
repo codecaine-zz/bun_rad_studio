@@ -23,7 +23,12 @@ export interface FmContext {
   toolDirs?: string[];
   /** Background work: conversions and installs. */
   jobs: JobHub;
+  /** Cleanup that must run when the server stops (watchers, child processes, timers). Add with `ctx.disposers.push(fn)`. */
+  disposers: Array<() => void>;
 }
+
+/** One API operation: takes the JSON body and returns the JSON answer (or throws an FmError). */
+export type FmHandler = (ctx: FmContext, body: Record<string, any>) => Promise<unknown>;
 
 export interface FmContextOptions {
   platform?: Platform;
@@ -45,6 +50,7 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     launch: options.launch ?? defaultLaunch,
     toolDirs: options.toolDirs,
     jobs: createJobHub(),
+    disposers: [],
   };
 }
 
