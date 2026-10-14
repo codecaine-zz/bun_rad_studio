@@ -42,6 +42,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-036 Dialogs ignored focus and let shortcuts edit the form behind them (fixed)](#d-036)
 - [D-037 Library server helpers listened on every network interface (fixed, behaviour change)](#d-037)
 - [D-038 Frogger, Snake and Tetris only started from the repository root (fixed)](#d-038)
+- [D-039 The designer lost your form if it closed before you exported (autosave added)](#d-039)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -392,3 +393,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Change:** new `src/studio_resources.ts` (`findStudioResources`) looks next to the studio's own file first and then in the working directory, so the old behaviour still works. The three games use it.
 - **Verified:** `tests/studio_resources.test.ts` (5 tests, including the three real games resolving from an unrelated working directory); each of Frogger, Snake and Tetris launched from `/tmp` got past the lookup and began listening on `127.0.0.1` (ports 63000-63001; processes then killed by PID).
 - **Not checked:** that any window drew correctly or the game was playable (windows were not looked at).
+
+<a id="d-039"></a>
+## D-039: The designer lost your form if it closed before you exported (autosave added)
+
+- **Status:** Added on 13 October 2026 (new behaviour and a new file written outside the project folder).
+- **Observed (code reading):** `src/ide.html` has no `localStorage`, no save or open command and no draft file; the only "AutoSave" text in it is a sample string. A crash, an accidental close or a quit before **Export** lost the whole design. The docs already said so ([Troubleshooting](../troubleshooting.md), [Data and files](../reference/data-and-files.md)); the crash itself was not tried.
+- **Change:** `saveDraftHelper`, `loadDraftHelper`, `clearDraftHelper` in `index.ts` (bound as `saveDraft`, `loadDraft`, `clearDraft`) keep one draft at `~/.bun_rad_studio/designer_draft.json`, written atomically (temporary file, then rename) with mode 0600, refused above 10 MB or when the text is not a form with a `controls` list. The page saves 0.8 s after the last change and, on start, offers **Restore** or **Discard** in a banner. The location follows the folder the database studios already use.
+- **Safety choices:** nothing is saved until the banner is answered (a blank start-up form must not overwrite a draft); a draft is validated by the same `normalizeImportedSpec` as Import and asks for confirmation when it holds event scripts; the title is shown as text, never as HTML.
+- **Risk:** the draft can contain event scripts and any text typed into the form, stored unencrypted in your home folder (readable only by your user account). Anything that can write that file can make the designer offer a form with scripts; the confirmation above is the only guard, which matches the "layouts are code" model ([D-024](#d-024)).
+- **Verified:** 8 backend tests and 8 page tests (the page tests fail on the old page); the banner flow in a browser with a stand-in backend (hostile title shown as text, no save while the banner is open, one coalesced save after Restore, undo returns to the pre-restore form); the real app launched with a seeded draft under a temporary `HOME` ran 10 s without error and left the draft byte-identical.
+- **Not verified:** the banner and the autosave in the native window (no clicks were made there, so that `window.loadDraft` is visible to the page there is inferred from how `runPreview` and `exportProject` are bound); Windows and Linux; a form that grows near the 10 MB limit; saves lost if the app closes within 0.8 s of the last change.

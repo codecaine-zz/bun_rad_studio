@@ -24,7 +24,7 @@ Everything the project reads or writes on your computer, sorted by how much it m
 
 | What | Where | Kind | Written by | Ignored by git? |
 |---|---|---|---|---|
-| A form layout | Only in the open designer page; **nothing saves it**. Copy the **JSON** tab to keep it | Your work | Designer (`src/ide.html`) | n/a |
+| A form layout | The open designer page, plus an **autosaved draft** `~/.bun_rad_studio/designer_draft.json` (mode 0600, the one latest form, replaced about 0.8 s after each change). It can hold event scripts, so treat it as private. Copy the **JSON** tab to keep a named copy | Your work | Designer (`src/ide.html`) and `saveDraftHelper` in `index.ts` | outside the repository |
 | Exported project | `exported_project/` in the folder you started the designer from. A file that would change is first kept as `<name>.bak-<time>` | Your work once you edit it, else regenerable | `exportProjectHelper` in `index.ts` | yes |
 | Live preview files | `.rad_preview/preview.html` and `preview.ts` in the current folder | Temporary | **Run** button (`runPreviewHelper`) | yes (since [D-025](../documentation-maintenance/discrepancies.md#d-025)) |
 | Database connection profiles | `~/.bun_rad_studio/connections.json` (mode 0600), or `STUDIO_DB_PROFILE_DIR` | Your work, and sensitive (host names, user names) | Database Workbench | outside the repository |

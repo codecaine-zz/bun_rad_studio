@@ -1,7 +1,8 @@
 import { SizeHint, Webview } from "webview-bun";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync } from "fs";
 import { spawn, spawnSync } from "child_process";
-import { join } from "path";
+import { join, dirname } from "path";
+import { homedir } from "os";
 import { dlopen, FFIType } from "bun:ffi";
 
 function getLinuxDisplaySizeFallback() {
@@ -1004,6 +1005,59 @@ export function writeGeneratedFile(path: string, content: string): string | null
     return backup;
 }
 
+/**
+ * Draft autosave for the designer: the form being edited is copied to one file in the per-user folder the database
+ * studios already use (`~/.bun_rad_studio/designer_draft.json`) so a crash or an accidental close does not lose it.
+ * The file is written atomically and readable only by the user.
+ */
+const DRAFT_MAX_BYTES = 10 * 1024 * 1024;
+
+export function draftFilePath(customDir?: string): string {
+    return join(customDir ?? join(homedir(), ".bun_rad_studio"), "designer_draft.json");
+}
+
+export function saveDraftHelper(specJson: string, customDir?: string): { ok: boolean; error?: string } {
+    try {
+        if (typeof specJson !== "string" || specJson.length > DRAFT_MAX_BYTES) return { ok: false, error: "The form is too large to autosave." };
+        const spec = JSON.parse(specJson);
+        if (!spec || typeof spec !== "object" || !Array.isArray(spec.controls)) return { ok: false, error: "Not a form." };
+        const file = draftFilePath(customDir);
+        mkdirSync(dirname(file), { recursive: true });
+        const tmp = `${file}.${process.pid}.tmp`;
+        writeFileSync(tmp, JSON.stringify({ savedAt: new Date().toISOString(), spec }), { mode: 0o600 });
+        renameSync(tmp, file);
+        return { ok: true };
+    } catch (err: any) {
+        return { ok: false, error: String(err?.message ?? err) };
+    }
+}
+
+/** Returns the saved form as JSON text plus when it was saved, or null when there is no usable draft. */
+export function loadDraftHelper(customDir?: string): { savedAt: string; specJson: string } | null {
+    try {
+        const file = draftFilePath(customDir);
+        if (!existsSync(file)) return null;
+        const text = readFileSync(file, "utf-8");
+        if (text.length > DRAFT_MAX_BYTES) return null;
+        const saved = JSON.parse(text);
+        if (!saved || typeof saved !== "object" || !saved.spec || !Array.isArray(saved.spec.controls)) return null;
+        return { savedAt: String(saved.savedAt ?? ""), specJson: JSON.stringify(saved.spec) };
+    } catch {
+        return null;
+    }
+}
+
+export function clearDraftHelper(customDir?: string): boolean {
+    try {
+        const file = draftFilePath(customDir);
+        if (!existsSync(file)) return false;
+        unlinkSync(file);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 // Helper function for exporting project structure
 export function exportProjectHelper(specJson: string, customExportDir?: string) {
     try {
@@ -1400,6 +1454,10 @@ if (import.meta.main) {
     webview.bind("exportProject", (specJson: string) => {
         return exportProjectHelper(specJson);
     });
+
+    webview.bind("saveDraft", (specJson: string) => saveDraftHelper(specJson));
+    webview.bind("loadDraft", () => loadDraftHelper());
+    webview.bind("clearDraft", () => clearDraftHelper());
 
     webview.run();
 }

@@ -429,6 +429,147 @@ describe("Designer: dialogs handle focus and the keyboard", () => {
     });
 });
 
+describe("Designer: draft autosave and restore", () => {
+    const html = getIdeHtml();
+    const grab = (name: string, prefix = "") => {
+        const start = html.indexOf(`function ${name}(`);
+        expect(start).toBeGreaterThan(-1);
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        return prefix + html.slice(start, end + 1);
+    };
+
+    const twoControls = { title: "Saved form", width: 800, height: 600, controls: [{ id: "a", control_type: "button", text: "x" }, { id: "b", control_type: "label", text: "y" }] };
+
+    // Runs the real functions against the real page markup and a fake backend (or none).
+    function setup(opts: { backend?: boolean; draft?: any; confirmAnswer?: boolean } = {}) {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const w = dom.window as any;
+        const log = { saved: [] as string[], cleared: 0, history: 0, confirms: [] as string[], rendered: 0 };
+        if (opts.backend !== false) {
+            w.loadDraft = async () => opts.draft ?? null;
+            w.saveDraft = async (json: string) => { log.saved.push(json); return { ok: true }; };
+            w.clearDraft = async () => { log.cleared++; return true; };
+        }
+        const src = [
+            grab("scheduleDraftSave"), grab("parseDraft"), grab("hideDraftBanner"), grab("offerDraftRestore", "async "),
+            grab("restoreDraft"), grab("discardDraft"), grab("normalizeImportedSpec"), grab("countImportedScripts"),
+        ].join("\n");
+        const api = new Function(
+            "window", "document", "log", "answer",
+            `let draftReady = false; let draftTimer = null; let pendingDraft = null;
+             let formSpec = { title: "Blank", width: 840, height: 560, controls: [] }; let selectedIndices = [3];
+             const saveHistoryState = () => { log.history++; };
+             const renderCanvas = () => { log.rendered++; }, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {};
+             const confirm = (m) => { log.confirms.push(m); return answer; };
+             ${src}
+             return { scheduleDraftSave, offerDraftRestore, restoreDraft, discardDraft,
+                      get ready() { return draftReady; }, get spec() { return formSpec; }, get pending() { return pendingDraft; } };`,
+        )(w, w.document, log, opts.confirmAnswer ?? true);
+        const banner = () => (w.document.getElementById("draftBanner") as any).style.display;
+        const draft = (spec: any, savedAt = "2026-10-13T20:00:00.000Z") => ({ savedAt, specJson: JSON.stringify(spec) });
+        return { w, doc: w.document, api, log, banner, draft };
+    }
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    test("a usable draft shows the banner with its title and control count, and nothing is saved yet", async () => {
+        const s = setup({ draft: setup().draft({ ...twoControls, title: "<img src=x onerror=alert(1)>" }) });
+        await s.api.offerDraftRestore();
+        expect(s.banner()).toBe("flex");
+        const text = s.doc.getElementById("draftBannerText")!.textContent!;
+        expect(text).toContain("2 controls");
+        expect(text).toContain("<img src=x onerror=alert(1)>");
+        expect(s.doc.querySelectorAll("#draftBannerText img")).toHaveLength(0);
+        expect(s.api.ready).toBe(false);
+        s.api.scheduleDraftSave();
+        await sleep(900);
+        expect(s.log.saved).toHaveLength(0);
+    });
+
+    test("no draft, an empty draft or a damaged draft: no banner and autosave starts", async () => {
+        for (const draft of [null, { savedAt: "", specJson: "{broken" }, { savedAt: "", specJson: JSON.stringify({ title: "Empty", controls: [] }) }, { savedAt: "", specJson: JSON.stringify([1]) }, { savedAt: "", specJson: JSON.stringify({ controls: [{ id: "x" }] }) }]) {
+            const s = setup({ draft });
+            await s.api.offerDraftRestore();
+            expect(s.banner()).not.toBe("flex");
+            expect(s.api.ready).toBe(true);
+        }
+    });
+
+    test("Restore replaces the form, records undo history, hides the banner and starts autosave", async () => {
+        const s = setup({ draft: setup().draft(twoControls) });
+        await s.api.offerDraftRestore();
+        s.api.restoreDraft();
+        expect(s.api.spec.title).toBe("Saved form");
+        expect(s.api.spec.controls.map((c: any) => c.id)).toEqual(["a", "b"]);
+        expect(s.log.history).toBe(1);
+        expect(s.banner()).toBe("none");
+        expect(s.api.ready).toBe(true);
+        expect((s.doc.getElementById("propFormTitle") as any).value).toBe("Saved form");
+        s.api.scheduleDraftSave();
+        await sleep(900);
+        expect(s.log.saved).toHaveLength(1);
+        expect(JSON.parse(s.log.saved[0]!).controls).toHaveLength(2);
+    });
+
+    test("a draft with event scripts asks first; saying no leaves the form and the banner alone", async () => {
+        const withScript = { ...twoControls, controls: [{ id: "a", control_type: "button", event_handlers: { onClick: "alert(1)" } }] };
+        const no = setup({ draft: setup().draft(withScript), confirmAnswer: false });
+        await no.api.offerDraftRestore();
+        no.api.restoreDraft();
+        expect(no.log.confirms).toHaveLength(1);
+        expect(no.log.confirms[0]).toContain("1 event handler script");
+        expect(no.api.spec.title).toBe("Blank");
+        expect(no.banner()).toBe("flex");
+        expect(no.api.ready).toBe(false);
+
+        const yes = setup({ draft: setup().draft(withScript), confirmAnswer: true });
+        await yes.api.offerDraftRestore();
+        yes.api.restoreDraft();
+        expect(yes.api.spec.controls).toHaveLength(1);
+    });
+
+    test("Discard deletes the draft, hides the banner and starts autosave", async () => {
+        const s = setup({ draft: setup().draft(twoControls) });
+        await s.api.offerDraftRestore();
+        s.api.discardDraft();
+        expect(s.log.cleared).toBe(1);
+        expect(s.banner()).toBe("none");
+        expect(s.api.ready).toBe(true);
+        expect(s.api.spec.title).toBe("Blank");
+    });
+
+    test("changes are saved after a short pause, and a burst of changes becomes one save", async () => {
+        const s = setup({ draft: null });
+        await s.api.offerDraftRestore();
+        for (let i = 0; i < 5; i++) s.api.scheduleDraftSave();
+        expect(s.log.saved).toHaveLength(0);
+        await sleep(1000);
+        expect(s.log.saved).toHaveLength(1);
+    });
+
+    test("in a plain browser (no backend) nothing is shown, saved or broken", async () => {
+        const s = setup({ backend: false });
+        await s.api.offerDraftRestore();
+        s.api.scheduleDraftSave();
+        s.api.discardDraft();
+        expect(s.banner()).not.toBe("flex");
+        expect(s.log.saved).toHaveLength(0);
+    });
+
+    test("the page saves on every render and offers the restore right after the first render", () => {
+        const renderCode = html.slice(html.indexOf("function renderCode() {"));
+        expect(renderCode.slice(0, 120)).toContain("scheduleDraftSave();");
+        const init = html.slice(html.indexOf("function initDesignerApp()"));
+        expect(init.indexOf("renderTree();")).toBeLessThan(init.indexOf("offerDraftRestore();"));
+        expect(init.indexOf("offerDraftRestore();")).toBeLessThan(init.indexOf("inspector.addEventListener"));
+    });
+});
+
 describe("Designer: placing and resizing without a mouse", () => {
     const html = getIdeHtml();
     const grab = (name: string) => {

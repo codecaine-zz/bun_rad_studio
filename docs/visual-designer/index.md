@@ -69,6 +69,17 @@ What the source does: [discrepancy D-002](../documentation-maintenance/discrepan
 
 So: **do not expect the designer to read or edit a real database.** Real database work is done in the [Database Workbench](../databases/workbench.md). Generating database-backed applications is **Planned**.
 
+## Autosave and restore
+
+Added 13 October 2026 ([D-039](../documentation-maintenance/discrepancies.md#d-039)). In the desktop app the form is copied to `~/.bun_rad_studio/designer_draft.json` about 0.8 seconds after each change, so a crash or an accidental close no longer loses it.
+
+- **On the next start**, if that file holds a form with at least one control, a banner asks *Restore your unsaved design "…" (N controls, saved …)?* with **Restore** (focused, so Enter accepts) and **Discard**. A restored form can be undone (Cmd/Ctrl+Z returns to the blank form).
+- **Nothing is saved until you answer the banner**, so the blank form shown at start-up cannot overwrite the old draft. If you ignore the banner and edit, those edits are not autosaved.
+- A draft goes through the same checks as **Import**, and if it contains event scripts you are asked to confirm, because scripts run as code in Run and in exports.
+- Only **one** draft is kept (the latest). It is not a project file: export or copy the **JSON** tab to keep named versions. **Export** does not delete the draft, so the banner can offer a design you already exported.
+- In a plain browser (no desktop app) none of this exists.
+- **Verified:** the backend helpers and the page logic by automated tests (`tests/designer_draft.test.ts`, "Designer: draft autosave and restore" in `tests/ide_html.test.ts`), the banner flow in a browser with a stand-in backend, and the real app starting with a seeded draft (under a temporary `HOME`) without error and without touching the draft. **Not verified:** the banner in the native window (no clicks made there), and Windows and Linux.
+
 ## Exporting
 
 `index.ts` contains `exportProjectHelper(specJson, customExportDir?)`. From reading the source it writes a project folder (`exported_project` in the current folder by default) containing `index.html` (the rendered form), an `index.ts` that opens the form in a Webview and registers simple placeholder handlers for named events, and a `package.json`. [API.md](../API.md) describes the same three files.
@@ -81,7 +92,7 @@ Verified (by calling `exportProjectHelper` directly, not through the Export butt
 |---|---|
 | Complete interface tour, menus, status messages | Only the items in [What was checked](#what-was-checked) were observed; no clicks were made in the native window. |
 | Per-control reference (properties, defaults, events, examples) | 95 controls; only Button, Label and Input were placed. The control list above is from the source. |
-| Saving and reopening a layout | The designer has no save or open command; the JSON tab and **Import** are the only ways to keep a layout (source). |
+| Named save and open of a layout | There is no save-as or open command; the JSON tab and **Import** are the way to keep a named copy. The latest form is autosaved as a draft, see [Autosave and restore](#autosave-and-restore). |
 | Keyboard shortcuts | Only Cmd+Z and Cmd+Shift+Z were tested. Tooltips mention others (F5, F11, Cmd+V, Cmd+D) that were not. |
 | Accessibility | Partly assessed and improved (keyboard focus, palette reachable by keyboard, button contrast); placing (Enter on a palette item), moving (arrows) and resizing (Alt + arrows) work from the keyboard; a specific control can be selected from the Tree tab with Enter or Space. See [Accessibility](../accessibility.md) |
 
