@@ -1,7 +1,7 @@
 # 🐶 Doggo Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.4.0  •  Engine: Modern DNS Client & DNS-over-HTTPS (DoH)  •  Dependencies: 0  •  Offline: 100%
+Version: 2.4.0  •  Engine: Modern DNS Client & DNS-over-HTTPS (DoH)  •  Dependencies: 0  •  Needs network access (DNS lookups; DoH defaults to cloudflare-dns.com)
 Launchers: [Desktop GUI: bun run app:doggo]  •  [Terminal CLI: bun run cli:doggo]
 ```
 

@@ -1,7 +1,7 @@
 # 🔎 Subfinder Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.4.0  •  Engine: Passive & Active DNS Reconnaissance  •  Dependencies: 0  •  Offline: 100%
+Version: 2.4.0  •  Engine: Passive & Active DNS Reconnaissance  •  Dependencies: 0  •  Needs network access (queries online OSINT services)
 Launchers: [Desktop GUI: bun run app:subfinder]  •  [Terminal CLI: bun run cli:subfinder]
 ```
 

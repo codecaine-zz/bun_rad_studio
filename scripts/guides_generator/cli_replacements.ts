@@ -505,7 +505,7 @@ bun run cli:ipinfo --subnet "192.168.1.0/24"
   writeFileSync(join(outDir, "25_subfinder_studio.md"), `# 🔎 Subfinder Studio Pro -- Complete Production User Guide
 
 \`\`\`
-Version: 2.4.0  •  Engine: Passive & Active DNS Reconnaissance  •  Dependencies: 0  •  Offline: 100%
+Version: 2.4.0  •  Engine: Passive & Active DNS Reconnaissance  •  Dependencies: 0  •  Needs network access (queries online OSINT services)
 Launchers: [Desktop GUI: bun run app:subfinder]  •  [Terminal CLI: bun run cli:subfinder]
 \`\`\`
 
@@ -547,7 +547,7 @@ bun run cli:subfinder example.com --probe-http
   writeFileSync(join(outDir, "26_doggo_studio.md"), `# 🐶 Doggo Studio Pro -- Complete Production User Guide
 
 \`\`\`
-Version: 2.4.0  •  Engine: Modern DNS Client & DNS-over-HTTPS (DoH)  •  Dependencies: 0  •  Offline: 100%
+Version: 2.4.0  •  Engine: Modern DNS Client & DNS-over-HTTPS (DoH)  •  Dependencies: 0  •  Needs network access (DNS lookups; DoH defaults to cloudflare-dns.com)
 Launchers: [Desktop GUI: bun run app:doggo]  •  [Terminal CLI: bun run cli:doggo]
 \`\`\`
 
