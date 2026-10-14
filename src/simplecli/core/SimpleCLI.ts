@@ -1282,8 +1282,8 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Sys.measureAsync(fn);
   }
 
-  public serveStatic(directory: string, port: number = 3000): any {
-    return Sys.serveStatic(directory, port);
+  public serveStatic(directory: string, port: number = 3000, hostname: string = '127.0.0.1'): any {
+    return Sys.serveStatic(directory, port, hostname);
   }
 
   // ===========================================================================

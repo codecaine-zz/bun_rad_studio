@@ -916,14 +916,15 @@ export class Sys {
     if (typeof (Bun as any)?.serve === 'function') {
       return (Bun as any).serve({
         port: options.port ?? 3000,
-        hostname: options.hostname ?? '0.0.0.0',
+        hostname: options.hostname ?? '127.0.0.1',
         fetch: options.fetch,
       });
     }
     throw new Error('sys.serve requires Bun runtime.');
   }
 
-  public static serveStatic(directory: string, port: number = 3000): any {
+  // Listens on 127.0.0.1 unless `hostname` is given (for example "0.0.0.0" to publish the directory on the network).
+  public static serveStatic(directory: string, port: number = 3000, hostname: string = '127.0.0.1'): any {
     const fullDir = Sys.expandTilde(directory);
     if (!fs.existsSync(fullDir)) {
       throw new Error(`Directory "${fullDir}" does not exist.`);
@@ -932,6 +933,7 @@ export class Sys {
     if (typeof (Bun as any)?.serve === 'function') {
       return (Bun as any).serve({
         port,
+        hostname,
         fetch(req: Request) {
           const url = new URL(req.url);
           let reqPath = url.pathname;

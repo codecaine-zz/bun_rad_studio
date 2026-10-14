@@ -1465,8 +1465,8 @@ import { serverutils } from "./src/features/rad/index.ts";
 #### API Signatures
 - `createRouter(): HttpRouter`: Creates routing table with `.get()`, `.post()`, `.put()`, `.delete()`, and `.handle(req, server)`.
 - `serveHttp(options?: ServeOptions): ServerInstance`: Starts an HTTP server returning `{ url, port, stop() }`.
-- `serveStatic(options: StaticServerOptions): ServerInstance`: Hosts static directory with MIME mapping and SPA fallback.
-- `createWsHub(options?: WsHubOptions): WebSocketHub`: Pub/sub hub with `.broadcast(topic, data)` and lifecycle listeners.
+- `serveStatic(options: StaticServerOptions): ServerInstance`: Hosts static directory with MIME mapping and SPA fallback. Listens on `127.0.0.1` unless `options.hostname` says otherwise (for example `"0.0.0.0"` to publish the directory on the network).
+- `createWsHub(options?: WsHubOptions): WebSocketHub`: Pub/sub hub with `.broadcast(topic, data)` and lifecycle listeners. Listens on `127.0.0.1` unless `options.hostname` says otherwise.
 
 #### Example
 ```typescript

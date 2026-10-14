@@ -40,6 +40,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-034 Fourteen game servers were copies of the same code (refactored)](#d-034)
 - [D-035 Placing and resizing controls needed a mouse (fixed, behaviour change)](#d-035)
 - [D-036 Dialogs ignored focus and let shortcuts edit the form behind them (fixed)](#d-036)
+- [D-037 Library server helpers listened on every network interface (fixed, behaviour change)](#d-037)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -367,3 +368,17 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Change:** `showDialog` / `hideDialog` (used by all eight show/hide functions), a capture-phase key handler (Escape closes the open dialog, Tab is kept inside it), `role="dialog"`, `aria-modal="true"` and an `aria-label` from each dialog's title, and an early return in the global handler while a dialog is open. Window-level shortcuts handled earlier in that handler (double-Alt, F5/reload block, centre window, zoom) are unchanged.
 - **Verified:** live with real key presses (Enter on the Keys button opens it, focus lands inside, six Tabs stay inside, Delete leaves the 2 controls alone, Escape closes it and focus returns to the button; Import: typing and Backspace work in the text box, Shift+Tab/Tab wrap, Escape from the text box closes it) and by six tests that fail on the old page.
 - **Not checked:** the native window; a screen reader; the event editor dialog was covered by tests and shared code but not opened live; clicking the dark backdrop still does not close a dialog (unchanged).
+
+<a id="d-037"></a>
+## D-037: Library server helpers listened on every network interface (fixed, behaviour change)
+
+- **Status:** Fixed on 13 October 2026. Follow-up to [D-013](#d-013), which covered the studios; this covers the reusable helpers and port probes that the earlier checks did not reach.
+- **Observed (found by scanning every `Bun.serve(` call for a `hostname`, then grepping for `0.0.0.0`):**
+  - `serveStatic` and `createWsHub` in `src/features/rad/modules/serverutils.ts` passed no `hostname`, so Bun listened on **all interfaces**; `serveStatic` publishes any directory you give it.
+  - `Sys.serve` (`src/simplecli/sys/index.ts`) defaulted `hostname` to `'0.0.0.0'` explicitly, and `Sys.serveStatic` (and its `SimpleCLI.serveStatic` wrapper) passed none.
+  - The free-port probe in the Snake, Frogger and Tetris studios started a throwaway server without a `hostname` (all interfaces, for an instant, answering "ok").
+  - Nothing in this repository calls `Sys.serve`, `Sys.serveStatic` or `serveStatic`; one test calls `createWsHub()`.
+- **Change (behaviour, not a refactor):** all of the above now default to `127.0.0.1`. `serveStatic`, `createWsHub` and `Sys.serveStatic` gained an optional `hostname` (`Sys.serve` already had one) so exposing a server is a deliberate choice. **Anyone outside this repository who relied on the old network-wide default must now pass `hostname: "0.0.0.0"`.** The probes bind `127.0.0.1`, matching the servers they probe for.
+- **Why `127.0.0.1` and not `"localhost"`:** measured on this machine, Bun binds `"localhost"` to `::1` only, so a client using `127.0.0.1` could not connect; binding `127.0.0.1` answers both `127.0.0.1` and `localhost` URLs. `serveHttp` still defaults to `"localhost"` (unchanged, not investigated further).
+- **Guard against regression:** `tests/studio_servers_local_only.test.ts` now scans `applications/` and `src/` and fails when any `Bun.serve(` call has no `hostname` (shown to fail when the Snake fix was reverted). It cannot see `(Bun as any).serve(`, so `tests/library_servers_local_default.test.ts` tests the helpers' defaults and the explicit option directly (the old code fails those tests).
+- **Not checked:** the native windows of the three games; behaviour on Windows and Linux; whether `serveHttp`'s `"localhost"` default has the same IPv6-only effect elsewhere.

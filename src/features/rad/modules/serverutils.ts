@@ -121,6 +121,8 @@ export function serveHttp(options: ServeOptions = {}): ServerInstance {
 export interface StaticServerOptions {
   dir: string;
   port?: number;
+  /** Defaults to "127.0.0.1" so a directory is not published to the network by accident; pass "0.0.0.0" to do that on purpose. */
+  hostname?: string;
   spaFallback?: boolean;
 }
 
@@ -128,6 +130,7 @@ export interface StaticServerOptions {
 export function serveStatic(options: StaticServerOptions): ServerInstance {
   const server = Bun.serve({
     port: options.port ?? 0,
+    hostname: options.hostname ?? "127.0.0.1",
     async fetch(req) {
       const url = new URL(req.url);
       const relativePath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
@@ -160,6 +163,8 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
 
 export interface WsHubOptions {
   port?: number;
+  /** Defaults to "127.0.0.1"; pass "0.0.0.0" to accept connections from other machines. */
+  hostname?: string;
   onMessage?: (ws: ServerWebSocket<any>, message: string | Buffer) => void;
 }
 
@@ -175,6 +180,7 @@ export interface WebSocketHub {
 export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
   const server = Bun.serve<{ topic: string }>({
     port: options.port ?? 0,
+    hostname: options.hostname ?? "127.0.0.1",
     fetch(req, s) {
       const url = new URL(req.url);
       const topic = url.searchParams.get("topic") ?? "default";

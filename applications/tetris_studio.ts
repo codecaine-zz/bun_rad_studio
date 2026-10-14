@@ -8,6 +8,7 @@ function findAvailablePort(start: number, end: number): number {
   for (let p = start; p <= end; p++) {
     try {
       const server = Bun.serve({
+        hostname: "127.0.0.1",
         port: p,
         fetch() {
           return new Response("ok");

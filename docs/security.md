@@ -56,7 +56,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 2. Use a database account with the **least privilege** you need (read-only if you only browse). A read-only account is the one hard guarantee.
 3. Keep `.env` private (`chmod 600 .env`); prefer the Workbench's credential store.
 4. Never paste real passwords into `.env.example` (it is committed), issues, chats or layouts.
-5. Do not change a studio's host to `0.0.0.0` or put it behind a tunnel or reverse proxy; its guard assumes loopback.
+5. Do not change a studio's host to `0.0.0.0` or put it behind a tunnel or reverse proxy; its guard assumes loopback. The same applies to the library helpers `serveStatic`, `createWsHub`, `Sys.serve` and `Sys.serveStatic`: they listen on `127.0.0.1` unless you pass a `hostname` ([D-037](documentation-maintenance/discrepancies.md#d-037)); they have **no** loopback guard, so exposing one publishes it to the network.
 6. Run `bun run docs:check` before sharing documentation: it scans for secret-looking text.
 7. Treat a designer layout like a project with scripts: read the `event_handlers` in its JSON before you import or run it, and say no when the import asks.
 

@@ -6,7 +6,7 @@ import { guardLocalRequest } from "../src/localGuard";
 function findAvailablePort(start: number, end: number): number {
   for (let p = start; p <= end; p++) {
     try {
-      const server = Bun.serve({ port: p, fetch() { return new Response("ok"); } });
+      const server = Bun.serve({ hostname: "127.0.0.1", port: p, fetch() { return new Response("ok"); } });
       server.stop();
       return p;
     } catch (e) { }

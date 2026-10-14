@@ -37,6 +37,43 @@ describe("Every studio HTTP server is local-only (static rules)", () => {
   });
 });
 
+describe("Every Bun.serve call names the interface it listens on", () => {
+  // Without `hostname`, Bun listens on all network interfaces. Port probes count too.
+  function filesUnder(dir: string): string[] {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) return e.name === "node_modules" ? [] : filesUnder(full);
+      return e.name.endsWith(".ts") && !e.name.endsWith(".test.ts") ? [full] : [];
+    });
+  }
+  const root = join(import.meta.dir, "..");
+  const missing: string[] = [];
+  let calls = 0;
+  for (const file of [...filesUnder(join(root, "applications")), ...filesUnder(join(root, "src"))]) {
+    const text = readFileSync(file, "utf8");
+    for (let i = text.indexOf("Bun.serve"); i >= 0; i = text.indexOf("Bun.serve", i + 1)) {
+      const open = text.indexOf("(", i);
+      if (open < 0 || open - i > 20) continue; // a mention such as `Bun.serve<T>(` is handled below; prose is skipped
+      let depth = 0;
+      let j = open;
+      for (; j < text.length; j++) {
+        if (text[j] === "(") depth++;
+        else if (text[j] === ")" && --depth === 0) break;
+      }
+      calls++;
+      if (!/\bhostname\b|\bhost\b/.test(text.slice(open, j + 1))) missing.push(`${file.slice(root.length + 1)}:${text.slice(0, i).split("\n").length}`);
+    }
+  }
+
+  test("the scan finds the calls", () => {
+    expect(calls).toBeGreaterThan(30);
+  });
+
+  test("none is missing a hostname", () => {
+    expect(missing).toEqual([]);
+  });
+});
+
 describe("Game and tool servers refuse other web pages", () => {
   const cases: Array<[string, () => { port: number; stop: (force?: boolean) => void }]> = [
     ["balatro", () => startBalatroServer({ port: 0, host: "127.0.0.1" }) as any],
