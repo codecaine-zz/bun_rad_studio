@@ -11621,7 +11621,6 @@ export function getTheme(themeName: string): SimpleGUITheme {
         'xfce': 'xfce_dark',
         'mate': 'mate_dark',
         'deepin': 'deepin_light',
-        'arc': 'arc_dark',
         'sweet': 'sweet_dark',
         'numix': 'numix_dark',
         'windows_3_1': 'win31',

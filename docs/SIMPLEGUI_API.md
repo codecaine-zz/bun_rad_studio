@@ -1122,7 +1122,7 @@ win.copyToClipboard("Copied from SimpleGUI!");
 ---
 
 <a id="visual-themes"></a>
-## 13. 🎨 Built-in Visual Themes (76 Themes)
+## 13. 🎨 Built-in Visual Themes (121 Themes)
 
 Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)`:
 
@@ -1197,6 +1197,10 @@ Dynamically switch active visual themes at runtime using `win.setTheme(themeKey)
 ---
 
 <a id="types-interfaces"></a>
+### Status colours
+
+`simplegui.getSemanticColors(theme)` returns `{ danger, warning, success, info }`, each with `solid` (fill), `on` (label on the fill), `text` (readable on the canvas and cards), `soft` (translucent tint) and `border`. They are CSS variables on every page (`--danger`, `--danger-on`, `--danger-text`, `--danger-soft`, `--danger-border`, and the same for `--warning`, `--success`, `--info`) and follow a live theme switch. Buttons take `{ variant: "danger" | "warning" | "success" | "info", appearance: "solid" | "soft" | "outline" }`; an explicit `background_color` still wins. See [THEMES.md](THEMES.md#status-colours).
+
 ## 14. 📘 12. TypeScript Types & Interfaces Reference
 
 ```typescript

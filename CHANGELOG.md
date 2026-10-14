@@ -6,6 +6,8 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 ### Added
 
+- **45 new themes (121 in all)**: 28 Linux distributions, desktop environments and GTK themes (Debian, Arch, openSUSE, Manjaro, elementary, Kali, Zorin, RHEL, Rocky, Alma, CentOS, Fedora Light, EndeavourOS, NixOS, Gentoo, Alpine, KDE Breeze, Xfce, MATE, Deepin, Arc, Sweet, Numix), 11 Windows versions (3.1, 98, 2000, XP, Vista, 7, 8, 10, Terminal, High Contrast) and 7 macOS versions (Mac OS 9, Snow Leopard, Yosemite, Big Sur, Monterey, Sequoia, Tahoe). Gallery: `docs/THEMES.md` (generated block, `bun run scripts/build_os_theme_docs.ts`). See D-052.
+- **Status colours (danger, warning, success, info)** for every theme: `getSemanticColors(theme)`, CSS variables `--danger`, `--danger-on`, `--danger-text`, `--danger-soft`, `--danger-border` (and the same for the other three), button `variant: "danger" | "warning" | "success" | "info"` with `appearance: "soft" | "outline"`, and badges, alerts, toasts, status dots and count badges that use them. Contrast is checked for all themes by `tests/theme_semantic.test.ts`.
 - **`LICENSE` (MIT, © 2026 Jerome Scott)** and `"license": "MIT"` in `package.json`. The README already declared MIT and its badge linked to a `LICENSE` file that did not exist. Licenses of bundled third-party assets were not audited.
 - `SECURITY.md` (how to report a problem and what is in scope) and this changelog.
 

@@ -95,7 +95,7 @@ bun run cli:launcher --search sqlite
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)
   - [🗄️ MS Access & Delphi Data-Aware RAD Controls](#ms-access--delphi-data-aware-rad-controls)
   - [🎨 70+ Modern UI & RAD Controls](#70-modern-ui--rad-controls)
-  - [🎨 Built-in Desktop Form Themes & Visual Gallery (76 Themes)](#built-in-desktop-form-themes--visual-gallery-76-themes)
+  - [🎨 Built-in Desktop Form Themes & Visual Gallery (121 Themes)](#built-in-desktop-form-themes--visual-gallery-121-themes)
   - [🛠️ High-Level Backend & Client Helper Utilities](#high-level-backend--client-helper-utilities)
   - [⚡ Auto-Generated Code & Multi-Target Exporters](#auto-generated-code--multi-target-exporters)
 - [💻 Installation & Quick Start](#installation--quick-start)
@@ -168,15 +168,15 @@ bun run cli:launcher --search sqlite
 - **Containers & Layout**: Group Box Panels, Data Tables, and Horizontal Dividers.
 - **Form Presets & Templates**: Includes pre-built templates for Customer Registration, Auth Login, Executive Analytics Dashboard, User Profile, Data CRUD Manager, Help Desk Support Tickets, REST API Tester, Media Player, and E-Commerce Checkout.
 
-<a id="built-in-desktop-form-themes--visual-gallery-76-themes"></a>
+<a id="built-in-desktop-form-themes--visual-gallery-121-themes"></a>
 
-### 🎨 Built-in Desktop Form Themes & Visual Gallery (76 Themes)
+### 🎨 Built-in Desktop Form Themes & Visual Gallery (121 Themes)
 
 Bun RAD Studio and SimpleGUI feature **63 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
 
 > [!TIP]
 > ### 🖼️ Complete Visual Gallery & Theme Catalog in `docs/THEMES.md`
-> **Instead of listing all 76 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
+> **Instead of listing all 121 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
 > 👉 **[🖼️ View the Complete 63-Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
 
 Every theme automatically harmonizes:
@@ -204,7 +204,7 @@ bun run demos/23_all_themes_all_controls_showcase.ts gruvbox_dark
 bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 ```
 
-#### 🎨 Built-in Theme Categories Overview (76 Themes)
+#### 🎨 Built-in Theme Categories Overview (121 Themes)
 
 | Category | Count | Highlight Themes | Vibe & Aesthetic |
 | :--- | :---: | :--- | :--- |
@@ -213,6 +213,9 @@ bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 | **🚀 Windows 11 Fluent** | 2 | `win11_slate`, `win11_light` | Fluent Acrylic dark slate and crisp Mica light desktop styling |
 | **🐧 Modern Linux Desktops** | 7 | `ubuntu_dark`, `ubuntu_light`, `adwaita_dark`, `adwaita_light`, `linux_mint`, `pop_os`, `fedora_dark` | Canonical Yaru aubergine & orange, GNOME Libadwaita, Mint Cinnamon, Pop!\_OS COSMIC, and Fedora Workstation |
 | **💻 IDE & Syntax Favorites** | 16 | `monokai_pro`, `tokyo_night`, `one_dark_pro`, `gruvbox_dark`, `rose_pine`, `everforest`, `kanagawa`, `cobalt2`, `catppuccin`, `nord`, `dracula` | Iconic developer editor themes with tuned syntax token contrast |
+| **🐧 Linux Distros & Desktops** | 28 | `debian_dark`, `arch_dark`, `kali_dark`, `kde_breeze_dark`, `rhel_dark`, `nixos_dark`, `arc_dark`, `elementary_light` | One theme per major distribution, desktop environment and popular GTK theme |
+| **🪟 Windows Versions** | 11 | `win31`, `win98`, `winxp_luna`, `vista_aero`, `win7_aero`, `win10_dark`, `windows_high_contrast` | Windows 3.1 to Windows 10, Terminal and High Contrast |
+| **🍎 macOS Versions** | 7 | `mac_os_9`, `snow_leopard`, `yosemite`, `big_sur`, `monterey_light`, `sequoia_dark`, `tahoe_glass` | Mac OS 9 Platinum to macOS Tahoe |
 | **🕹️ Retro & Nostalgic Computing** | 10 | `win95`, `gameboy`, `c64`, `mac_classic`, `amber_crt`, `matrix`, `synthwave`, `amiga`, `nextstep`, `mac_os_aqua`, `hotdog_stand`, `playstation` | Authentic Windows 95 3D bevels, 1989 Game Boy DMG-01, Commodore 64, Matrix digital rain, and Synthwave neon |
 | **🚀 AAA Studio & Cloud Dark** | 14 | `raycast_dark`, `linear_dark`, `vercel_dark`, `unreal_engine`, `arc_velvet`, `abyss`, `night_city`, `horizon`, `tailwind_dark`, `supabase`, `oled_black` | Sleek dark-mode surfaces for modern engineering tools and cloud consoles |
 

@@ -5,6 +5,7 @@ import { getTheme, SIMPLEGUI_THEMES } from "../src/simplegui";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { Sys } from "../src/simplecli/sys";
+import { OS_THEME_KEYS } from "../src/shared/osThemes";
 
 // Canonical unique theme list across all modern, high-quality, and nostalgic themes
 export const CANONICAL_THEMES = [
@@ -84,8 +85,15 @@ export const CANONICAL_THEMES = [
     "nextstep",
     "mac_os_aqua",
     "hotdog_stand",
-    "playstation"
+    "playstation",
+
+    // 7. Linux distributions, Windows versions and macOS versions
+    ...OS_THEME_KEYS,
 ];
+
+// `bun run scripts/capture_theme_screenshots.ts ubuntu_dark win31` captures only those; with no arguments, all.
+const ONLY = process.argv.slice(2);
+const THEMES_TO_CAPTURE = ONLY.length ? CANONICAL_THEMES.filter((k) => ONLY.includes(k)) : CANONICAL_THEMES;
 
 const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const OUTPUT_DIR = join(process.cwd(), "screenshots", "themes");
@@ -99,14 +107,14 @@ console.log(`📸 Bun RAD Studio - Automated All Themes & Controls Screenshot Pi
 console.log(`========================================================================`);
 console.log(`Chrome Binary: ${CHROME_BIN}`);
 console.log(`Destination:   ${OUTPUT_DIR}`);
-console.log(`Total Themes:  ${CANONICAL_THEMES.length}\n`);
+console.log(`Total Themes:  ${THEMES_TO_CAPTURE.length}\n`);
 
 const results: { key: string; name: string; path: string; size: string; isDark: boolean; accent: string }[] = [];
 
-for (let i = 0; i < CANONICAL_THEMES.length; i++) {
-    const key = CANONICAL_THEMES[i]!;
+for (let i = 0; i < THEMES_TO_CAPTURE.length; i++) {
+    const key = THEMES_TO_CAPTURE[i]!;
     const themeObj = getTheme(key);
-    console.log(`[${i + 1}/${CANONICAL_THEMES.length}] Rendering Theme Showcase for: ${themeObj.name} (${key})...`);
+    console.log(`[${i + 1}/${THEMES_TO_CAPTURE.length}] Rendering Theme Showcase for: ${themeObj.name} (${key})...`);
 
     const app = createThemeShowcase(key);
     const html = app.generateHtml();
