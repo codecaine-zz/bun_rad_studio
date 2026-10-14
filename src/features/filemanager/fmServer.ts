@@ -27,6 +27,7 @@ import { infoOperations } from "./fmInfoOps";
 import { ipOperations } from "./fmIpOps";
 import { netOperations } from "./fmNetOps";
 import { sdOperations } from "./fmSdOps";
+import { serveOperations } from "./fmServeOps";
 import { vaultOperations } from "./fmVaultOps";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
@@ -317,7 +318,7 @@ const operations: Record<string, Handler> = {
 };
 
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
-Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations);
+Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 
