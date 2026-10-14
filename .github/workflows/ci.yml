@@ -65,11 +65,23 @@ jobs:
         with:
           bun-version: 1.4.2
 
+      # webview-bun needs the WebKitGTK runtime on Linux (its absence made 74 test files fail to load on the first try).
+      - name: System libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkitgtk-6.0-4 libgtk-4-1 xvfb
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Type-check ratchet
         run: bun run typecheck
 
-      - name: Tests
+      - name: Tests (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a bun test
+
+      - name: Tests (Windows)
+        if: runner.os == 'Windows'
         run: bun test

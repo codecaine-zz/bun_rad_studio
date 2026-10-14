@@ -76,13 +76,14 @@ export async function main(args: string[]): Promise<number> {
   const root = process.cwd();
   const project = argValue(args, "--project") ?? "tsconfig.json";
   const baselinePath = resolve(root, argValue(args, "--baseline") ?? join("scripts", "typecheck_baseline.json"));
-  const tsc = join(root, "node_modules", ".bin", "tsc");
+  // The package's own script, run with the current runtime: `node_modules/.bin/tsc` is not a plain file on Windows.
+  const tsc = join(root, "node_modules", "typescript", "bin", "tsc");
   if (!existsSync(tsc)) {
     console.error("TypeScript is not installed. Run: bun install");
     return 2;
   }
 
-  const proc = Bun.spawnSync([tsc, "--noEmit", "-p", project], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawnSync([process.execPath, tsc, "--noEmit", "-p", project], { cwd: root, stdout: "pipe", stderr: "pipe" });
   const output = proc.stdout.toString() + proc.stderr.toString();
   const current = countErrorsByFile(output, root);
 
