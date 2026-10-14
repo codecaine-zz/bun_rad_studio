@@ -111,7 +111,7 @@ Journal mode (WAL) and other database-wide PRAGMAs are never changed by the work
 ## Platform requirements
 
 Bun 1.4+. Credential storage needs the OS store (Linux: libsecret/`secret-tool` available to Bun). Tested on
-macOS (arm64) only; Windows and Linux have not been exercised.
+macOS (arm64) only by hand. The Workbench's automated tests also pass on Linux in CI; Windows was not checked for them specifically ([Testing](../testing/index.md#other-platforms)).
 
 ## Troubleshooting
 

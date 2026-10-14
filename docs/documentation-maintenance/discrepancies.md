@@ -45,6 +45,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-039 The designer lost your form if it closed before you exported (autosave added)](#d-039)
 - [D-040 Run threw away the preview's output and ignored its own errors (fixed)](#d-040)
 - [D-041 The Audit report ran script from control ids and the form title, and missed two kinds of broken control (fixed)](#d-041)
+- [D-042 Running the suite on Linux and Windows found a clipboard stall and several portability defects (fixed in part)](#d-042)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -87,7 +88,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 <a id="d-005"></a>
 ## D-005: Linux system packages differ between two documents
 
-- **Status:** Open (not verified; no Linux machine).
+- **Status:** Partly resolved on 13 October 2026 ([D-042](#d-042)): on GitHub's `ubuntu-latest`, `libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip` were enough for the whole automated suite to pass, so the `webview-bun` README's set works for the tests. Not shown: that `libgtk-3-0` or `libwebkit2gtk-4.0-37` (the other document's set) are unnecessary or wrong, or that a real window opens on a Linux desktop.
 - **Observed:** `node_modules/webview-bun/README.md` says its Linux library needs GTK 4 and WebKitGTK 6 (`libgtk-4-1`, `libwebkitgtk-6.0-4`). `docs/HOMEBREW_SUITE_GUIDE.md` lists `libwebkitgtk-6.0-4 libgtk-3-0` or `libwebkit2gtk-4.0-37` and Fedora/Arch equivalents.
 
 <a id="d-006"></a>
@@ -427,3 +428,19 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Not changed:** the canvas, the Run preview and exports still insert control text and ids as raw HTML (D-024, deliberately). A layout you do not trust must still not be imported or run. Auto-Fix cannot repair a missing size, and the empty-caption note is still shown for control types that legitimately have no text (not reviewed per type).
 - **Verified:** live (hostile id and title in an imported layout: the Audit showed them as text, no `<img>` created, counter stayed at 0; the negative position and zero width were listed; Auto-Fix moved x from -12 to 0) and by 8 tests in `tests/ide_html.test.ts` ("Designer: Audit report"), which fail on the old page.
 - **Not verified:** the native window.
+
+<a id="d-042"></a>
+## D-042: Running the suite on Linux and Windows found a clipboard stall and several portability defects (fixed in part)
+
+- **Status:** Linux fixed (0 failures). Windows improved (35 to 32 failures) and **not** fixed.
+- **How found:** an experimental, non-blocking CI job (`other-platforms`, `ubuntu-latest` and `windows-latest`) added on 13 October 2026. First results: Linux could not load the native window library (74 test files), after installing it 99 tests failed in the first complete run and 5 after the first fixes; Windows failed at the type-check step. Final measured state: see [Testing](../testing/index.md#other-platforms).
+- **A product bug (Linux): Copy stalled.** `writeClipboardSync` (`src/localGuard.ts`) ran `xclip` or `wl-copy` with its output captured. Those tools leave a background process serving the clipboard, and it keeps the captured pipes open, so the synchronous call did not return until the clipboard changed. CI showed it as a clipboard test timing out at 5 s once `xclip` was installed; it was **reproduced on macOS** with a fake `xclip` that leaves a background child (the call took 8.2 s before the fix, returns at once after). Output is now ignored, in the same way in `sysutils.copyToClipboard`, the SimpleCLI `Sys.clipboardCopy` and Fd Studio's copy. Test: `tests/clipboard_linux.test.ts`. Not verified: a real Linux desktop with a real `xclip`.
+- **Determinism bug in the docs generator:** the coverage matrix listed "the first three tests that mention a studio" in file-system order, which differs between platforms, so the committed page could not match on both (same class as [D-030](#d-030)). Directory listings are now sorted; 29 matrix rows changed (the order of the named tests only).
+- **Portability of the tooling and tests:**
+  - The type-check ratchet looked for `node_modules/.bin/tsc`, which is not a plain file on Windows, and reported TypeScript as not installed. It now runs `typescript/bin/tsc` with the current runtime (same result on macOS).
+  - Two tests hardcoded macOS's loopback name `lo0` (Linux calls it `lo`); they now ask the OS.
+  - One SQLite backup test took over the 5 s default on a CI Linux disk and now has a 30 s timeout.
+  - 14 test spawns started `bun` by name, which failed on Windows; they use `process.execPath`.
+  - The docs freshness checks compare after normalizing CRLF (a Windows checkout may convert line endings). This last change was made after the last measurement and is not yet re-measured.
+- **What Windows still fails (32 tests in the last run):** Task Manager, the Homebrew wrapper suite, the Fd, Rip and `watchexec` studios, the launcher, the subprocess pipeline and some GUI suites. The log messages mention `/bin/...` paths, `ps` and wrapper scripts that Windows cannot execute directly, which suggests Unix-only assumptions; no failure was diagnosed individually. Treat Windows as unsupported.
+- **Not verified:** that any studio window opens on Linux or Windows (the suite uses a virtual display and mostly fake windows); single runs only; the CI job's results can change as runners are updated.

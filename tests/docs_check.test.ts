@@ -53,7 +53,8 @@ describe("documentation checker", () => {
   it("generated pages (table of contents, indexes, coverage matrix) are up to date", async () => {
     const out = await renderAll();
     for (const [rel, text] of Object.entries(out)) {
-      expect(readFileSync(join(import.meta.dir, "..", rel), "utf8"), `${rel} is stale: run bun run docs:build`).toBe(text);
+      // A Windows checkout can convert LF to CRLF; that is not a stale page.
+      expect(readFileSync(join(import.meta.dir, "..", rel), "utf8").replace(/\r\n/g, "\n"), `${rel} is stale: run bun run docs:build`).toBe(text);
     }
   });
 });

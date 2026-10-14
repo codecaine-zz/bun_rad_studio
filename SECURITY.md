@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest commit on `main` is maintained. The project has no versioned releases. It has been tested on **macOS only**; Windows and Linux behaviour is unknown (see [Testing](docs/testing/index.md#continuous-integration)).
+Only the latest commit on `main` is maintained. The project has no versioned releases. It has been used by hand on **macOS only**. The automated tests also run in CI on Linux (all pass) and Windows (32 of 1,400 fail), but nothing was opened by hand on either, and the security review covered macOS behaviour (see [Testing](docs/testing/index.md#other-platforms)).
 
 ## Reporting a vulnerability
 

@@ -66,7 +66,7 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 - Real desktop windows: most window-based apps are tested through their servers or HTML output, not by clicking.
 - Interactive behaviour of the visual designer page. `tests/ide_html.test.ts` checks that the page's scripts parse, that its dialogs are not nested inside each other, the JSON import rules and the exported project, but nothing clicks through the page automatically.
-- Windows and Linux.
+- Real windows on Windows and Linux (the suite itself is run there in CI, see [Other platforms](#other-platforms)).
 - TLS connections to a real database server.
 
 ## See also
@@ -79,9 +79,24 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 `.github/workflows/ci.yml` runs on every push to `main` and on pull requests, on `macos-latest` with Bun 1.4.2: `bun install --frozen-lockfile`, `bun run typecheck`, `bun audit` (informational), `bun run docs:check`, a throwaway Redis (Homebrew, port 6390, no persistence), then `bun test` with `TEST_REDIS_URL` pointing at it.
 
 - **Verified on GitHub, after a rocky start.** The first run (13 October 2026, run 38482567102) had 14 test failures that never showed locally ([D-032](../documentation-maintenance/discrepancies.md#d-032)). A third run failed on a live-network test. After those fixes, run 38484129943 **succeeded, and succeeded again when re-run** (second attempt: 1169 pass, 158 skipped, 0 fail; about 2.5 minutes per run). Two successes on one commit is some evidence of stability, not proof. Checked again later the same day: the 9 runs on `main` from commit `96da718` (the one that made the live-network tests opt-in) to `0be3db7` all succeeded; the only two failures in the history are the first run and the live-network timeout. Still a small sample on one macOS runner type.
-- Windows and Linux are not covered (the workflow runs on macOS only).
+- Linux and Windows are covered only by an experimental, non-blocking job, see [Other platforms](#other-platforms); the blocking job runs on macOS only.
 - The live MySQL and PostgreSQL suites and the live-network tests skip themselves, so CI does not run them. The Redis tests do run there.
 - The lesson of the first run: a fresh local clone is not the same as a clean machine. Anything a test needs from the machine (a running server, a desktop, enough speed) must be stated, opt-in or skipped.
+
+## Other platforms
+
+Since 13 October 2026 the workflow has a second job, `other-platforms`, that runs the type check and the whole test suite on `ubuntu-latest` and `windows-latest`. It is marked `continue-on-error`, so it **cannot fail the workflow**; read its log. It exists to learn what breaks, and it found real problems ([D-042](../documentation-maintenance/discrepancies.md#d-042)).
+
+| Platform | Result (run 38499526613, 1,400 tests in 109 files) | What it needed |
+|---|---|---|
+| **Linux** (`ubuntu-latest`) | **1,224 pass, 176 skip, 0 fail**, about 2.5 minutes. Within one test of the default local macOS run (1,225 pass, 175 skip) | `libwebkitgtk-6.0-4`, `libgtk-4-1`, `xvfb` (the tests run under `xvfb-run`) and `xclip`; without WebKitGTK 74 files failed to load |
+| **Windows** (`windows-latest`) | **1,191 pass, 177 skip, 32 fail**, about 3.3 minutes. Two fixes (the docs freshness test's line endings) came after this run and are not re-measured | nothing installed |
+
+The 32 Windows failures are in the Task Manager (10, 8 of them against real processes), the Homebrew wrapper suite (5), the Fd and Rip studios (6), three GUI suites (5), the launcher (2), the subprocess pipeline (2), one `watchexec` test and the docs freshness test (1). The log messages mention `/bin/...` paths, `ps` and wrapper scripts that are not directly executable; that points at Unix-only assumptions, but each failure was **not** individually diagnosed. Treat Windows as **not supported**.
+
+What the experiment fixed (all checked on macOS and in this job): the type-check ratchet could not find TypeScript on Windows; the generated coverage matrix listed tests in file-system order and so differed by platform; two tests hardcoded macOS's `lo0` loopback name; one slow SQLite backup test hit the 5 s default timeout; tests spawned `bun` by name (14 places); and, a product bug, **Copy buttons stalled on Linux when `xclip` or `wl-copy` is installed**.
+
+Limits: both are single runs on GitHub's hosted runners (virtual display, no real desktop). The Linux and macOS counts differ by one test (176 against 175 skipped); the cause was not looked into, and the two runs are not like for like (CI environment variables change which tests skip).
 
 ## Type-check ratchet
 

@@ -50,9 +50,9 @@ Expected result: a version number. Alternatively download the repository as a ZI
 | A MySQL or PostgreSQL server | Using the Workbench or studios with those engines | See the [Database Workbench guide](../databases/workbench.md#getting-started). SQLite needs nothing: it is built into Bun. |
 | Node.js | Only to run one automated test (`tests/db/workbench_ui.test.ts`) | `node --version` |
 
-## Linux system packages (not verified)
+## Linux system packages (partly verified)
 
-`webview-bun`'s own README says its Linux library needs GTK 4 and WebKitGTK 6 (Debian: `libgtk-4-1`, `libwebkitgtk-6.0-4`). `docs/HOMEBREW_SUITE_GUIDE.md` lists different packages (`libwebkitgtk-6.0-4 libgtk-3-0` or `libwebkit2gtk-4.0-37`). Follow the `webview-bun` README first and report which set works.
+`webview-bun`'s own README says its Linux library needs GTK 4 and WebKitGTK 6 (Debian: `libgtk-4-1`, `libwebkitgtk-6.0-4`). `docs/HOMEBREW_SUITE_GUIDE.md` lists different packages (`libwebkitgtk-6.0-4 libgtk-3-0` or `libwebkit2gtk-4.0-37`). **Verified on 13 October 2026:** on GitHub's `ubuntu-latest` runner, installing `libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip` was enough for the whole automated suite to pass (without `libwebkitgtk-6.0-4` 74 test files failed to load the native library). Those tests use a virtual display and mostly fake windows, so **a real window on a Linux desktop has not been opened**. `xclip` is only needed for the clipboard buttons. Details: [Testing](../testing/index.md#other-platforms).
 
 ## Disk space and network
 

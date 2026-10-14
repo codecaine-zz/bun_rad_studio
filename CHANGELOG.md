@@ -33,6 +33,8 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 ### Developer and project health
 
+- **Linux:** the automated suite passes in CI on `ubuntu-latest` (1,224 pass, 0 fail) with `libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip` installed; Windows still fails 32 of 1,400 tests and is unsupported ([D-042](docs/documentation-maintenance/discrepancies.md#d-042)). On Linux, **Copy no longer stalls** when `xclip` or `wl-copy` is installed, and the type-check ratchet and docs generator are portable.
+
 - A macOS CI workflow (type-check ratchet, documentation check, tests); the type-error baseline is 0 ([D-020](docs/documentation-maintenance/discrepancies.md#d-020), [D-032](docs/documentation-maintenance/discrepancies.md#d-032), [D-033](docs/documentation-maintenance/discrepancies.md#d-033)).
 - Tests no longer depend on the author's machine: Redis, MySQL, PostgreSQL and live-network tests are opt-in ([D-032](docs/documentation-maintenance/discrepancies.md#d-032)); generated files are no longer tracked or modified by test runs ([D-006](docs/documentation-maintenance/discrepancies.md#d-006), [D-025](docs/documentation-maintenance/discrepancies.md#d-025), [D-030](docs/documentation-maintenance/discrepancies.md#d-030)).
 - 14 game servers now share `src/studio_server.ts` (−924 lines, no behaviour change) ([D-034](docs/documentation-maintenance/discrepancies.md#d-034)).

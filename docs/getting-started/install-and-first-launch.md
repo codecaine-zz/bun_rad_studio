@@ -99,7 +99,7 @@ bun run build
 ## Things that do not work yet
 
 - **`bun start` (the visual form designer)** now opens its window and the page works (see [what was checked](../visual-designer/index.md#what-was-checked)); before 13 October 2026 it crashed ([D-001](../documentation-maintenance/discrepancies.md#d-001)) and its page did nothing ([D-016](../documentation-maintenance/discrepancies.md#d-016)). The designer cannot save a layout, so this page still uses a code example for the first project that you can save and reopen.
-- Windows and Linux were not tested.
+- Windows and Linux: the automated tests were run on both in CI (see [Testing](../testing/index.md#other-platforms)); no window was opened by hand on either, so installing and launching there is **not verified**.
 
 ## When something fails
 
@@ -108,7 +108,7 @@ bun run build
 | `bun: command not found` | Bun is not installed or the terminal was not reopened after installing it. | Install Bun (<https://bun.sh>), open a new terminal, run `bun --version`. |
 | `bun install` cannot download packages | No internet, or a network proxy. | Check your connection and run the command again; it is safe to repeat. |
 | `error: script "start" exited with code 1` with `existsSync is not defined` | You are on a version from before the D-001 fix. | Update the project (`git pull`), then run `bun start` again. |
-| The terminal shows output but no window appears | A window system problem (on Linux, missing WebKitGTK/GTK packages). | See [Requirements](requirements.md#linux-system-packages-not-verified). |
+| The terminal shows output but no window appears | A window system problem (on Linux, missing WebKitGTK/GTK packages). | See [Requirements](requirements.md#linux-system-packages-partly-verified). |
 | A command fails with `Module not found` | You are not in the repository root. | `cd` into the `bun_rad_studio` folder and retry. |
 
 If a command in this page fails on the setup described in [Requirements](requirements.md), please report it with the exact command and output.
