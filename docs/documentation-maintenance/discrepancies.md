@@ -46,6 +46,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-040 Run threw away the preview's output and ignored its own errors (fixed)](#d-040)
 - [D-041 The Audit report ran script from control ids and the form title, and missed two kinds of broken control (fixed)](#d-041)
 - [D-042 Running the suite on Linux and Windows found a clipboard stall and several portability defects (fixed in part)](#d-042)
+- [D-043 Code Studio's search read every image and database file in full (fixed)](#d-043)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -444,3 +445,14 @@ Where the code, existing documents and reality disagree. Each item says what was
   - The docs freshness checks compare after normalizing CRLF (a Windows checkout may convert line endings); this removed the one docs failure on Windows.
 - **What Windows still fails (31 tests in the last run, 38500213864):** Task Manager, the Homebrew wrapper suite, the Fd, Rip and `watchexec` studios, the launcher, the subprocess pipeline and some GUI suites. Reading each failure's error line: 8 report `Executable not found in $PATH` (5 for Unix shell scripts that the Task Manager tests create and run, 3 for the extensionless `bin/codecaine*` wrapper scripts), and most of the rest are assertions about POSIX behaviour (`ps`, signals, `/bin/sh` execution, the process list); these look like by-design Unix dependencies, and the individual assertions were not each traced. Treat Windows as unsupported.
 - **Not verified:** that any studio window opens on Linux or Windows (the suite uses a virtual display and mostly fake windows); single runs only; the CI job's results can change as runners are updated.
+
+<a id="d-043"></a>
+## D-043: Code Studio's search read every image and database file in full (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **How found:** the Linux CI job failed intermittently on `NovaCode Studio Pro > searches workspace files with /api/fs/search` (9.2 s against the 5 s default; it also failed in an earlier Linux run). Reading the endpoint showed why: `/api/fs/search` lists the workspace (depth 6, ignoring `node_modules`, `.git`, `dist`, `build` and dot-folders), then reads each file under 1 MB **synchronously** and only afterwards checks for a NUL byte to skip binaries, until it has `maxResults` (300) matches.
+- **Measured (macOS, this repository, median of 5, warm cache):** 1,460 files and 67 MB would be read, of which 47.5 MB were `.png` screenshots, plus `.sqlite-shm`, `.icns` and `.gif` files. A search with no matches took about 340 ms; it now takes about 31 ms with identical results.
+- **Change:** known binary extensions (images, audio and video, fonts, archives, PDF, SQLite and other database files, executables and `.wasm`; case-insensitive) are skipped before reading (`isBinaryPath`). Unknown extensions are still read and still skipped when they contain a NUL byte. The existing test also got a 30 s timeout, because it searches the whole repository on whatever disk CI has.
+- **Behaviour change (small):** a binary-type file that happens to contain the search text as plain text (for example a `.db` file or a text file named `.png`) is no longer searched.
+- **Not changed:** the search is still a synchronous scan on the studio's only thread, so on a very large workspace the studio is unresponsive while it runs; no limit on total bytes or time was added.
+- **Verified:** `tests/code_studio_search.test.ts` (a temporary workspace: text files are found, `.png`, `.sqlite-shm` and an upper-case `.PNG` containing the word are not; the helper's cases), which fails on the old code; the timing above. **Not verified:** that this removes the CI timeout for good (one slow run is not proof either way; check the next Linux runs).

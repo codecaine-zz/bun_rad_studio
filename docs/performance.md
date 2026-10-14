@@ -43,6 +43,7 @@ Measured on 13 October 2026 on one machine: Apple M4 Pro, 14 cores, macOS 27.0.1
 - **Every edit re-renders the whole canvas** (the "one more edit" column). At 2,000 controls that is about 70 ms per edit, which will feel slow while dragging (not measured). Forms of a few hundred controls are far below that.
 - **Undo history is bounded** at 41 snapshots (`saveHistoryState` in `src/ide.html`), each a full JSON copy of the form, so memory is bounded too (memory was not measured).
 - Studio start-up is dominated by starting Bun itself; the first page is served within about 25 ms for all but one studio.
+- **Code Studio's workspace search** reads files on the server's only thread, one after the other, until it has 300 matches (so a query with few or no hits reads everything). It used to read every file under 1 MB, including images, in full. On this repository (1,460 searchable files, 67 MB, of which 47.5 MB PNG screenshots) a search with no hits took about **340 ms** and now takes about **31 ms** (median of 5 runs each, macOS, warm file cache, same results) after skipping known binary file types ([D-043](documentation-maintenance/discrepancies.md#d-043)). It is still a synchronous full scan, so a much larger workspace will block the studio for proportionally longer; that was not measured.
 
 ## Not measured
 

@@ -100,7 +100,8 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     expect(data.fileCount).toBeGreaterThan(0);
     expect(Array.isArray(data.results)).toBe(true);
     expect(data.results[0].matches.length).toBeGreaterThan(0);
-  });
+    // Searches the whole repository; it took over the 5 s default on a slow CI Linux disk.
+  }, 30_000);
 
   test("supports filesystem lifecycle: new, read, save, rename, delete", async () => {
     const testFileRel = "scratch/test_code_studio_temp.txt";

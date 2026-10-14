@@ -153,6 +153,22 @@ ${getWindowShortcutsScript()}
   return html;
 }
 
+// File types that are never searched as text. The search used to read each of them in full just to look for a
+// NUL byte: on this repository about three quarters of the bytes it read were PNG screenshots.
+const BINARY_EXTENSIONS = new Set([
+  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".icns", ".tiff",
+  ".mp3", ".wav", ".ogg", ".m4a", ".flac", ".mp4", ".mov", ".webm", ".avi",
+  ".woff", ".woff2", ".ttf", ".otf", ".eot",
+  ".zip", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".tar", ".pdf",
+  ".sqlite", ".sqlite3", ".db", ".sqlite-shm", ".sqlite-wal", ".db-shm", ".db-wal",
+  ".exe", ".dll", ".so", ".dylib", ".bin", ".wasm",
+]);
+
+export function isBinaryPath(path: string): boolean {
+  const dot = path.lastIndexOf(".");
+  return dot >= 0 && BINARY_EXTENSIONS.has(path.slice(dot).toLowerCase());
+}
+
 /**
  * Recursively scans a workspace directory and builds a safe file tree.
  */
@@ -321,6 +337,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           for (const item of scanned) {
             if (item.isDirectory) continue;
             if (item.size > 1024 * 1024) continue;
+            if (isBinaryPath(item.path)) continue;
 
             const fullPath = resolve(workspaceRoot, item.path);
             try {
