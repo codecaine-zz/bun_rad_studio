@@ -37,6 +37,35 @@ async function loadLinks() {
   }
 }
 
+const DONATE_URL = "https://paypal.me/codecaine81";
+
+/** A window with a QR code for the PayPal donation page, a button that opens it, and a button that copies the link. */
+export async function showDonate() {
+  const copy = h("button", { type: "button", class: "btn", title: `Copy the link ${DONATE_URL} so you can paste it somewhere`, onclick: async () => {
+    try {
+      await call("copytext", { text: DONATE_URL });
+      toast("The donation link was copied.", { kind: "success" });
+    } catch {
+      toast(`Couldn't copy. The link is ${DONATE_URL}`, { kind: "error" });
+    }
+  } }, "Copy link");
+  openDialog({
+    title: "Support the project",
+    wide: true,
+    body: [
+      h("p", { class: "lead" }, "Bun RAD Studio is free. If it helps you, you can say thanks with a small PayPal donation. It is entirely optional."),
+      h("div", { class: "donate-box" },
+        h("img", { class: "donate-qr", src: "/ui/donate-paypal-qr.svg", alt: "QR code for the PayPal donation page paypal.me/codecaine81", title: "Scan this with your phone's camera or the PayPal app" }),
+        h("div", { class: "donate-side" },
+          h("p", {}, "Scan the code with your phone's camera or the PayPal app, or use the buttons."),
+          h("p", { class: "about-url" }, DONATE_URL.replace(/^https:\/\//, "")),
+          h("div", { class: "donate-actions" }, h("button", { type: "button", class: "btn primary", title: "Open the PayPal donation page in your web browser", onclick: () => openAboutLink("donate") }, "Open PayPal ↗"), copy))),
+      h("p", { class: "hint" }, "Nothing is sent from this app. The page opens in your web browser."),
+    ],
+    buttons: [{ label: "Close", primary: true, value: true }],
+  });
+}
+
 export async function showAbout() {
   const links = await loadLinks();
   const rows = links.map((link) =>
@@ -45,7 +74,7 @@ export async function showAbout() {
       h("span", { class: "about-url" }, link.url.replace(/^https:\/\//, "")),
     ),
   );
-  openDialog({
+  const about = openDialog({
     title: "About File Manager",
     wide: true,
     body: [
@@ -53,6 +82,7 @@ export async function showAbout() {
       h("ul", { class: "about-links" }, rows),
       h("p", { class: "hint" }, "Links open in your web browser. Nothing is sent from this app when you open them."),
     ],
-    buttons: [{ label: "Close", primary: true, value: true }],
+    buttons: [{ label: "Donate with a QR code…", value: "donate" }, { label: "Close", primary: true, value: true }],
   });
+  about.result.then((answer) => { if (answer === "donate") showDonate(); });
 }

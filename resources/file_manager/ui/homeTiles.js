@@ -1,6 +1,6 @@
 // The built-in tiles of the Home view. Each tool in the Power panel gets a tile automatically; other parts of the
 // page can add their own with registerHomeTile() from home.js.
-import { openAboutLink, showAbout } from "./about.js";
+import { openAboutLink, showAbout, showDonate } from "./about.js";
 import { showHelp, showSettings } from "./extras.js";
 import { showThemePicker } from "./themes.js";
 import { showMoreInfo } from "./fileinfo.js";
@@ -51,6 +51,7 @@ export function registerHomeTiles() {
   registerHomeTile({ id: "bin", order: 80, icon: "🗑️", title: "Recycle Bin", text: "See what you deleted, put things back, or empty the bin.", run: () => { toFiles(); return showTrash(); } });
   registerHomeTile({ id: "themes", order: 88, icon: "🎨", title: "Themes", text: "Change how the whole window looks: over a hundred dark, light, futuristic, Linux, Windows and macOS themes.", run: showThemePicker });
   registerHomeTile({ id: "settings", order: 90, icon: "⚙️", title: "Settings", text: "Colours, text size, hidden files and what to show when this app starts.", run: showSettings });
+  registerHomeTile({ id: "donate", order: 98, icon: "💙", title: "Support the project", text: "Say thanks with an optional PayPal donation: scan the QR code or open the link.", run: showDonate });
   registerHomeTile({ id: "tutorials", order: 96, icon: "📚", title: "Markdown tutorials", text: "Learn Markdown, the plain-text format for README files and notes, with lessons and examples. Opens in your web browser.", run: () => openAboutLink("tutorials") });
   registerHomeTile({ id: "about", order: 97, icon: "🐙", title: "About and GitHub", text: "Find the project on GitHub, report a problem or suggest an idea.", run: showAbout });
   registerHomeTile({ id: "help", order: 95, icon: "❓", title: "Help and shortcuts", text: "A short guide, and every keyboard shortcut.", run: showHelp });
