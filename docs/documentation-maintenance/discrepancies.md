@@ -38,6 +38,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-032 Tests silently depended on the author's machine; first GitHub run had 14 failures (fixed)](#d-032)
 - [D-033 A stale package-lock.json broke `npm ci` (removed)](#d-033)
 - [D-034 Fourteen game servers were copies of the same code (refactored)](#d-034)
+- [D-035 Placing and resizing controls needed a mouse (fixed, behaviour change)](#d-035)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -305,7 +306,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Fix:** a `:focus-visible` outline rule, and `makeClickablesKeyboardOperable` at start-up, which gives those elements `tabindex="0"`, `role="button"` and an `aria-label` from their tooltip, and activates them with Enter or Space. Existing `tabindex` and `role` values are kept; real buttons are untouched.
 - **Behaviour change:** the Tab order now includes about 133 more stops, so reaching the canvas controls by Tab takes more key presses.
 - **Verified:** live with real key presses (visible outline on Tab; Enter arms placement; Escape cancels) and by tests (`tests/ide_html.test.ts`, "Designer: keyboard access", which fail on the old page).
-- **Not fixed:** placing, moving and resizing controls still needs a mouse.
+- **Not fixed at the time:** placing and resizing needed a mouse (moving with the arrow keys already worked; this entry originally said otherwise). See [D-035](#d-035).
 
 <a id="d-032"></a>
 ## D-032: Tests silently depended on the author's machine; the first GitHub run had 14 failures (fixed)
@@ -341,3 +342,12 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Unchanged on purpose:** the wildcard `Access-Control-Allow-Origin: *` header stays, because it was part of the copied behaviour; the loopback guard is what actually refuses foreign pages.
 - **Checked:** the existing per-game tests, the smoke test (all 32 headless studios still start and serve a page) and the local-only rules pass; `tests/studio_server.test.ts` tests the shared server directly (page rendered per request, health identity, favicon and nested files, 404, raw path-traversal requests, foreign Origin and Host get 403, OPTIONS, loopback bind). The local-only static rule now scans `src/studio_server.ts` too and was shown to fail when the guard is removed from it.
 - **Not checked:** the native windows of these 14 games.
+
+<a id="d-035"></a>
+## D-035: Placing and resizing controls needed a mouse (fixed, behaviour change)
+
+- **Status:** Fixed on 13 October 2026. Follow-up to [D-031](#d-031).
+- **Observed:** Enter on a palette item only armed placement (a canvas click was still needed) and nothing resized a control from the keyboard. Arrow keys already moved the selection.
+- **Change (behaviour, not a refactor):** `placeControlWithKeyboard` drops the armed control at x = 16 below the lowest control (kept inside the form) and selects it; Enter/Space on a palette item now calls it. `resizeSelectedControlsBy` backs **Alt + arrows** (1 px, Alt + Shift 8 px, minimum 8 px, locked controls skipped). Both appear in the Keys dialog. Mouse placement and resizing are unchanged (`spawnControl` still only arms placement).
+- **Verified:** live with real key presses in a browser (Tab to Button, Enter, Tab to Label, Enter, arrows, Alt + arrows, Cmd+Z undo) and by tests in `tests/ide_html.test.ts` ("Designer: placing and resizing without a mouse").
+- **Not checked:** the native window; screen-reader announcements; selecting an existing control by keyboard.

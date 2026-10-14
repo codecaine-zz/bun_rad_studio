@@ -2220,6 +2220,8 @@
 				<tr><td><span class="hotkey-key">Delete</span> / <span class="hotkey-key">Backspace</span></td><td>Delete selected control(s)</td></tr>
 				<tr><td><span class="hotkey-key">Arrows</span></td><td>Nudge control position by 1px</td></tr>
 				<tr><td><span class="hotkey-key">Shift + Arrows</span></td><td>Nudge control position by 8px (Grid snap)</td></tr>
+				<tr><td><span class="hotkey-key">Alt + Arrows</span> / <span class="hotkey-key">Alt + Shift + Arrows</span></td><td>Resize selected control(s) by 1px / 8px</td></tr>
+				<tr><td><span class="hotkey-key">Tab</span>, then <span class="hotkey-key">Enter</span> / <span class="hotkey-key">Space</span> on a palette item</td><td>Place that control without the mouse (below the lowest control); then move or resize it with the arrow keys</td></tr>
 				<tr><td><span class="hotkey-key">Space + Drag</span> / <span class="hotkey-key">Middle Click Drag</span></td><td>Pan canvas workspace view</td></tr>
 				<tr><td><span class="hotkey-key">Ctrl / Cmd + Wheel</span></td><td>Smooth zoom canvas workspace</td></tr>
 				<tr><td><span class="hotkey-key">Cmd + Q</span> / <span class="hotkey-key">Cmd + W</span> / <span class="hotkey-key">Alt + Alt</span></td><td>Close window / Quit application</td></tr>
@@ -2283,6 +2285,8 @@
 					if (e.key === "Enter" || e.key === " ") {
 						e.preventDefault();
 						el.click();
+						// A palette item armed from the keyboard places its control straight away.
+						if (el.classList.contains("palette-item") && placementType) placeControlWithKeyboard(placementType);
 					}
 				});
 			});
@@ -2555,6 +2559,18 @@
 					hideImportModal();
 					renderCanvas();
 					populateInspector();
+				} else if (e.altKey && e.key === "ArrowLeft") {
+					e.preventDefault();
+					resizeSelectedControlsBy(- (e.shiftKey ? 8 : 1), 0);
+				} else if (e.altKey && e.key === "ArrowRight") {
+					e.preventDefault();
+					resizeSelectedControlsBy(e.shiftKey ? 8 : 1, 0);
+				} else if (e.altKey && e.key === "ArrowUp") {
+					e.preventDefault();
+					resizeSelectedControlsBy(0, - (e.shiftKey ? 8 : 1));
+				} else if (e.altKey && e.key === "ArrowDown") {
+					e.preventDefault();
+					resizeSelectedControlsBy(0, e.shiftKey ? 8 : 1);
 				} else if (e.key === "ArrowLeft") {
 					e.preventDefault();
 					moveSelectedControlsBy(- (e.shiftKey ? 8 : 1), 0);
@@ -3390,6 +3406,39 @@
 			renderCanvas();
 			renderTree();
 			populateInspector();
+		}
+
+		// Keyboard resize (Alt + arrow keys): grow or shrink the selected controls, never below 8 px.
+		function resizeSelectedControlsBy(dw, dh) {
+			if (selectedIndices.length === 0) return;
+			saveHistoryState();
+			selectedIndices.forEach(idx => {
+				const ctrl = formSpec.controls[idx];
+				if (!ctrl.locked) {
+					ctrl.width = Math.max(8, ctrl.width + dw);
+					ctrl.height = Math.max(8, ctrl.height + dh);
+				}
+			});
+			renderCanvas();
+			renderCode();
+			renderTree();
+			populateInspector();
+			document.getElementById("statusMsg").textContent = "Resized " + selectedIndices.length + " control(s) by keyboard.";
+		}
+
+		// Keyboard placement: drop a control just below the lowest existing one (or near the top-left of an empty form)
+		// instead of waiting for a mouse click on the canvas. The new control is selected, so arrow keys move it
+		// (Shift = 8 px) and Alt + arrow keys resize it.
+		function placeControlWithKeyboard(type) {
+			const bottom = formSpec.controls.reduce((m, c) => Math.max(m, (c.y || 0) + (c.height || 0)), 0);
+			const y = formSpec.controls.length ? bottom + 8 : 16;
+			const before = formSpec.controls.length;
+			placeControlAt(type, 16, Math.min(y, Math.max(0, (formSpec.height || 560) - 44)));
+			cancelPlacementMode();
+			if (formSpec.controls.length > before) {
+				const c = formSpec.controls[formSpec.controls.length - 1];
+				document.getElementById("statusMsg").textContent = "Placed " + type + " control (" + c.id + ") at " + c.x + "," + c.y + ". Arrow keys move it (Shift = 8 px), Alt + arrow keys resize it.";
+			}
 		}
 
 		function moveSelectedControlsBy(dx, dy) {

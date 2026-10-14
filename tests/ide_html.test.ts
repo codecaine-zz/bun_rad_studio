@@ -281,6 +281,94 @@ describe("Designer: keyboard access", () => {
     });
 });
 
+describe("Designer: placing and resizing without a mouse", () => {
+    const html = getIdeHtml();
+    const grab = (name: string) => {
+        const start = html.indexOf(`function ${name}(`);
+        expect(start).toBeGreaterThan(-1);
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        return html.slice(start, end + 1);
+    };
+
+    // Runs the real functions against a small fake page state.
+    function world(controls: any[], formHeight = 560) {
+        const state: any = { formSpec: { height: formHeight, controls: [...controls] }, selectedIndices: [], status: "", cancelled: 0, snapshots: 0 };
+        const body = `${grab("resizeSelectedControlsBy")}; ${grab("placeControlWithKeyboard")}; return { resizeSelectedControlsBy, placeControlWithKeyboard };`;
+        const api = new Function(
+            "w",
+            `const document = { getElementById: () => w.statusEl };
+             let formSpec = w.formSpec; let selectedIndices = w.selectedIndices;
+             const saveHistoryState = () => { w.snapshots++; };
+             const renderCanvas = () => {}, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {};
+             const cancelPlacementMode = () => { w.cancelled++; };
+             const placeControlAt = (type, x, y) => { formSpec.controls.push({ id: type + "_" + (formSpec.controls.length + 1), control_type: type, x, y, width: 150, height: 36 }); selectedIndices = [formSpec.controls.length - 1]; w.selectedIndices = selectedIndices; };
+             Object.defineProperty(w, "sel", { get: () => selectedIndices, set: (v) => { selectedIndices = v; } });
+             ${body}`,
+        )({ ...state, get formSpec() { return state.formSpec; }, statusEl: { set textContent(v: string) { state.status = v; }, get textContent() { return state.status; } }, selectedIndices: state.selectedIndices, snapshots: 0, cancelled: 0 });
+        return { api, state };
+    }
+
+    test("keyboard placement drops the first control near the top-left and cancels placement mode", () => {
+        const { api, state } = world([]);
+        api.placeControlWithKeyboard("button");
+        expect(state.formSpec.controls).toEqual([expect.objectContaining({ control_type: "button", x: 16, y: 16 })]);
+    });
+
+    test("each following control goes below the lowest existing one", () => {
+        const { api, state } = world([{ id: "a", x: 16, y: 16, width: 150, height: 36 }, { id: "b", x: 300, y: 100, width: 80, height: 30 }]);
+        api.placeControlWithKeyboard("label");
+        const placed = state.formSpec.controls.at(-1);
+        expect(placed).toMatchObject({ x: 16, y: 138 });
+        expect(state.status).toContain("Placed label control");
+        expect(state.status).toContain("Alt + arrow keys resize");
+    });
+
+    test("a control placed near the bottom stays inside the form", () => {
+        const { api, state } = world([{ id: "a", x: 0, y: 500, width: 100, height: 40 }], 560);
+        api.placeControlWithKeyboard("button");
+        expect(state.formSpec.controls.at(-1).y).toBeLessThanOrEqual(560 - 44);
+    });
+
+    test("resizing changes the selection, never below 8px, and skips locked controls", () => {
+        const { api, state } = world([{ id: "a", x: 0, y: 0, width: 20, height: 20 }, { id: "b", x: 0, y: 0, width: 50, height: 50, locked: true }]);
+        const w = state;
+        w.selectedIndices.push(0, 1);
+        api.resizeSelectedControlsBy(5, -30);
+        expect(state.formSpec.controls[0]).toMatchObject({ width: 25, height: 8 });
+        expect(state.formSpec.controls[1]).toMatchObject({ width: 50, height: 50 });
+        expect(state.status).toBe("Resized 2 control(s) by keyboard.");
+    });
+
+    test("resizing with nothing selected does nothing", () => {
+        const { api, state } = world([{ id: "a", x: 0, y: 0, width: 20, height: 20 }]);
+        api.resizeSelectedControlsBy(5, 5);
+        expect(state.formSpec.controls[0]).toMatchObject({ width: 20, height: 20 });
+    });
+
+    test("the page's keyboard handler and Keys dialog cover Alt + arrow resizing and keyboard placement", () => {
+        for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
+            expect(html).toContain(`e.altKey && e.key === "${key}"`);
+        }
+        const keys = html.slice(html.indexOf('id="hotkeysModal"'), html.indexOf('id="hotkeysModal"') + 6000);
+        expect(keys).toContain("Alt + Arrows");
+        expect(keys).toContain("Place that control without the mouse");
+    });
+
+    test("palette items armed from the keyboard place straight away; mouse activation still waits for a canvas click", () => {
+        const handler = html.slice(html.indexOf("function makeClickablesKeyboardOperable"), html.indexOf("function initDesignerApp"));
+        expect(handler).toMatch(/el\.click\(\);[\s\S]*placeControlWithKeyboard\(placementType\)/);
+        // The mouse path (spawnControl -> enterPlacementMode) is untouched.
+        expect(html).toContain("function spawnControl(type) {");
+        expect(grab("spawnControl")).toContain("enterPlacementMode(type)");
+        expect(grab("spawnControl")).not.toContain("placeControlWithKeyboard");
+    });
+});
+
 describe("Exported project (regression for nested template literals)", () => {
     const dirs: string[] = [];
     afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));

@@ -83,7 +83,7 @@ Verified (by calling `exportProjectHelper` directly, not through the Export butt
 | Per-control reference (properties, defaults, events, examples) | 95 controls; only Button, Label and Input were placed. The control list above is from the source. |
 | Saving and reopening a layout | The designer has no save or open command; the JSON tab and **Import** are the only ways to keep a layout (source). |
 | Keyboard shortcuts | Only Cmd+Z and Cmd+Shift+Z were tested. Tooltips mention others (F5, F11, Cmd+V, Cmd+D) that were not. |
-| Accessibility | Partly assessed and improved (keyboard focus, palette reachable by keyboard, button contrast); placing and moving controls still needs a mouse. See [Accessibility](../accessibility.md) |
+| Accessibility | Partly assessed and improved (keyboard focus, palette reachable by keyboard, button contrast); placing (Enter on a palette item), moving (arrows) and resizing (Alt + arrows) work from the keyboard; selecting a specific control by keyboard was not checked. See [Accessibility](../accessibility.md) |
 
 These gaps are tracked in the [coverage matrix](../documentation-maintenance/coverage-matrix.md).
 

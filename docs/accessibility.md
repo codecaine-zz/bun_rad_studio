@@ -30,9 +30,11 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 - **Keyboard focus is visible** (`:focus-visible` rule in `src/ide.html`).
 - **The palette and other clickable divs are keyboard operable**: Tab reaches them, they are announced as buttons with a name taken from their tooltip, and **Enter** or **Space** activates them (`makeClickablesKeyboardOperable`). Checked live: Tab to *Label*, Enter arms placement ("Click canvas to place label"), Escape cancels. Automated with jsdom in `tests/ide_html.test.ts` ("Designer: keyboard access"); the tests fail on the old page.
 
+- **Placing and resizing controls works from the keyboard** (added later, see [D-035](documentation-maintenance/discrepancies.md#d-035)): Tab to a palette item and press Enter or Space to drop the control below the lowest existing one (selected, status line tells you what happened); **Alt + arrows** resize the selection by 1 px (Alt + Shift: 8 px). Moving with the arrow keys already existed (my earlier statement that it needed a mouse was wrong). Checked live with real key presses (place two controls, move, resize, undo) and by tests ("Designer: placing and resizing without a mouse").
+
 ## Still missing
 
-- **Placing, moving and resizing a control needs a mouse.** Enter on a palette item only arms placement; the control is dropped by clicking the canvas, and dragging and resizing have no keyboard equivalent that was found. So the designer is **not fully keyboard operable**.
+- **Selecting a particular control** on the canvas, drag-and-drop, and multi-select (other than what the keyboard handler already offers) were not checked for keyboard use, so the designer is **not shown to be fully keyboard operable**.
 - **Icon-only buttons rely on `title`** instead of `aria-label`; screen readers differ in how they use it.
 - **No `<label>` association** for the property fields; the `title` attribute is the only programmatic name.
 - **Dialogs** (Import, Audit, Keys, event editor): focus handling (moving focus in, trapping it, returning it) was not checked.
