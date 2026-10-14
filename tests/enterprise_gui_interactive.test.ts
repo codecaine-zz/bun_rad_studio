@@ -36,33 +36,41 @@ async function trigger(win: SimpleWindow, controlId: string, event = "click", va
 describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
   it("1. Controls API Studio Pro: dispatch, benchmark, curl copy, and presets", async () => {
     const win = createApiStudio({ fullscreen: false });
+    // A local stand-in for jsonplaceholder: the test used to call the real site, so it depended on the network
+    // and its speed (it timed out at 5 s on some runs).
+    const todo = { userId: 1, id: 1, title: "delectus aut autem", completed: false };
+    const stub = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => Response.json(todo) });
 
-    // Test cURL copy generation
-    win.setValue("txt_url", "https://jsonplaceholder.typicode.com/todos/1");
-    win.setValue("dd_method", "GET");
-    await trigger(win, "btn_copy_curl");
-    expect(win.getValue("api_console")).toContain("curl -X GET");
+    try {
+      // Test cURL copy generation
+      win.setValue("txt_url", `http://127.0.0.1:${stub.port}/todos/1`);
+      win.setValue("dd_method", "GET");
+      await trigger(win, "btn_copy_curl");
+      expect(win.getValue("api_console")).toContain("curl -X GET");
 
-    // Test asynchronous request dispatch via curl
-    await trigger(win, "btn_send");
-    const respBody = win.getValue("txt_resp_body") || "";
-    expect(respBody).toContain("userId");
-    expect(respBody).toContain("delectus");
-    expect(win.getValue("lbl_status")).toContain("200");
-    expect(win.getValue("api_console")).toContain("[HTTP Response] 200 OK");
+      // Test asynchronous request dispatch via curl
+      await trigger(win, "btn_send");
+      const respBody = win.getValue("txt_resp_body") || "";
+      expect(respBody).toContain("userId");
+      expect(respBody).toContain("delectus");
+      expect(win.getValue("lbl_status")).toContain("200");
+      expect(win.getValue("api_console")).toContain("[HTTP Response] 200 OK");
 
-    // Test clear response
-    await trigger(win, "btn_clear_resp");
-    expect(win.getValue("txt_resp_body")).toBe("");
+      // Test clear response
+      await trigger(win, "btn_clear_resp");
+      expect(win.getValue("txt_resp_body")).toBe("");
 
-    // Test Benchmark firing 10 parallel requests
-    await trigger(win, "btn_bench");
-    expect(win.getValue("api_console")).toContain("[Benchmark Completed] 10 requests completed");
+      // Test Benchmark firing 10 parallel requests
+      await trigger(win, "btn_bench");
+      expect(win.getValue("api_console")).toContain("[Benchmark Completed] 10 requests completed");
 
-    // Test preset selection
-    await trigger(win, "dd_presets", "change", "2. JSONPlaceholder Create (POST /posts)");
-    expect(win.getValue("txt_url")).toContain("/posts");
-    expect(win.getValue("dd_method")).toBe("POST");
+      // Test preset selection
+      await trigger(win, "dd_presets", "change", "2. JSONPlaceholder Create (POST /posts)");
+      expect(win.getValue("txt_url")).toContain("/posts");
+      expect(win.getValue("dd_method")).toBe("POST");
+    } finally {
+      stub.stop(true);
+    }
   });
 
   it("2. Controls System & Package Workstation: telemetry, doctor, GC, and npm search", async () => {
