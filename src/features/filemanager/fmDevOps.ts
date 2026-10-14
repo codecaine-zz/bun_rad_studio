@@ -7,6 +7,7 @@
 import { absolutePath, assertFolder, type FmContext, type FmHandler } from "./fmCore";
 import { runDisk, runDupes, HEAVY_FOLDERS } from "./fmDevDisk";
 import { detectEnvironment } from "./fmDevEnv";
+import { checkProjectVersions, checkRange, compareVersions, sortVersions } from "./fmDevSemver";
 import { EXPORT_FORMATS, parseFormat, render, saveText, type Table } from "./fmDevExport";
 import { gitSummary } from "./fmDevGit";
 import { cancelDevJob, findDevJob, pollDevJob, startDevJob, type DevJob } from "./fmDevJobs";
@@ -204,5 +205,16 @@ export const devOperations: Record<string, FmHandler> = {
 
   async "dev/env"(ctx, b) {
     return await detectEnvironment(ctx, b.refresh === true);
+  },
+
+  /** Version tools (Bun.semver): `action` is "compare", "range", "sort" or "project". */
+  async "dev/semver"(ctx, b) {
+    switch (b.action) {
+      case "compare": return { ...compareVersions(b.a, b.b) };
+      case "range": return { ...checkRange(b.version, b.range) };
+      case "sort": return { ...sortVersions(b.text, b.descending === true) };
+      case "project": return { ...(await checkProjectVersions(ctx, await folderOf(ctx, b.root))) };
+      default: throw new FmError("BAD_REQUEST", "Choose what to do: compare, check a range, sort, or check a project.");
+    }
   },
 };

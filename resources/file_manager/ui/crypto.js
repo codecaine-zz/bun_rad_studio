@@ -1,10 +1,12 @@
 // The "Crypto" tool of the Power tools panel: everything Crypto Studio Pro can do, inside the File Manager.
 // Hashes and HMAC, file hashing and checksum checks, AES lock/unlock, strength meter, random keys and passwords,
-// JWT reading/checking and encoders. Secrets live only in the boxes of this page: they are never stored.
+// password hashing, JWT reading/checking, encoders and a colour converter. Secrets live only in the boxes of this page: they are never stored.
 import { h } from "./dom.js";
 import { toast } from "./menus.js";
 import { registerPowerTab } from "./power.js";
 import { buildHashCards } from "./crypto_hash.js";
+import { buildColorCards } from "./crypto_color.js";
+import { buildPasswordCards } from "./crypto_password.js";
 import { buildSecretCards } from "./crypto_secret.js";
 import { buildTokenCards } from "./crypto_tokens.js";
 import { actionButton, card, copyText, createLog } from "./crypto_ui.js";
@@ -20,8 +22,10 @@ registerPowerTab({
 
     const hashing = buildHashCards(env);
     const secrets = buildSecretCards(env);
+    const passwords = buildPasswordCards(env);
     const tokens = buildTokenCards(env);
-    const sections = [hashing, secrets, tokens];
+    const colours = buildColorCards(env);
+    const sections = [hashing, secrets, passwords, tokens, colours];
 
     const copyOutput = actionButton("Copy output", "Copy the newest result (a digest, locked or unlocked text, a key, a password or converted text) to the clipboard.", async () => {
       if (await copyText(lastOutput, "The output")) log.add("Copy output", "");
@@ -41,7 +45,7 @@ registerPowerTab({
     const logCard = card("Activity log", "What you did on this tab: the action, a size and how long it took. It never contains passphrases, keys, passwords or your text, lives only in this page, and is forgotten when you close the File Manager.",
       log.empty, log.el, h("div", { class: "pw-row" }, clearLog));
     logCard.classList.add("crypto-span");
-    const cards = [...hashing.cards, ...secrets.cards, ...tokens.cards];
+    const cards = [...hashing.cards, ...secrets.cards, ...passwords.cards, ...tokens.cards, ...colours.cards];
     cards[2].classList.add("crypto-span"); // the results table is wide
 
     const grid = h("div", { class: "crypto-grid" }, ...cards, logCard);

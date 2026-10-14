@@ -2,6 +2,7 @@
 import { ApiError, call } from "./api.js";
 import { openDialog } from "./dialogs.js";
 import { h } from "./dom.js";
+import { copyToClipboard } from "./copyclip.js";
 import { toast } from "./menus.js";
 
 /** Used until the server answers (and if it can't); the server owns the real list and opens the links. */
@@ -30,13 +31,21 @@ async function openLink(link) {
   }
 }
 
-async function loadLinks() {
+async function loadInfo() {
   try {
-    const { links } = await call("about/info");
-    return Array.isArray(links) && links.length > 0 ? links : FALLBACK_LINKS;
+    const info = await call("about/info");
+    return { links: Array.isArray(info.links) && info.links.length > 0 ? info.links : FALLBACK_LINKS, app: info.app ?? null, runtime: info.runtime ?? null };
   } catch {
-    return FALLBACK_LINKS;
+    return { links: FALLBACK_LINKS, app: null, runtime: null };
   }
+}
+
+const loadLinks = async () => (await loadInfo()).links;
+
+/** "Codecaine File Manager 1.0.0 · Bun 1.4.2 (744846f8) · macOS arm64", or "" when the server didn't say. */
+export function versionLine({ app, runtime }) {
+  if (!app && !runtime) return "";
+  return [app ? `${app.name} ${app.version}` : "", runtime ? `Bun ${runtime.bun} (${runtime.revision})` : "", runtime ? `${runtime.system} ${runtime.arch}` : ""].filter(Boolean).join(" · ");
 }
 
 const DONATE_URL = "https://paypal.me/codecaine81";
@@ -69,7 +78,9 @@ export async function showDonate() {
 }
 
 export async function showAbout() {
-  const links = await loadLinks();
+  const info = await loadInfo();
+  const { links } = info;
+  const line = versionLine(info);
   const rows = links.map((link) =>
     h("li", { class: "about-link" },
       h("button", { type: "button", class: "btn", title: `${link.hint} (${link.url})`, onclick: () => openLink(link) }, `${link.label} ↗`),
@@ -81,6 +92,9 @@ export async function showAbout() {
     wide: true,
     body: [
       h("p", { class: "lead" }, "Codecaine File Manager is part of Bun RAD Studio: a free, open-source set of desktop apps and tools made with Bun."),
+      line ? h("div", { class: "about-version" },
+        h("p", { class: "about-versionline", title: "The app's version, the version of Bun it runs on (with its build code) and your computer's system. Useful when you report a problem." }, line),
+        h("button", { type: "button", class: "btn", title: "Copy this line so you can paste it into a bug report", onclick: () => copyToClipboard(line, { what: "The version information" }) }, "Copy")) : null,
       h("ul", { class: "about-links" }, rows),
       h("p", { class: "hint" }, "Links open in your web browser. Nothing is sent from this app when you open them."),
     ],

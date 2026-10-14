@@ -8,11 +8,12 @@ import { imageInfo, openMap, saveReport } from "./fmInfoImageOps";
 import { mediaInfo } from "./fmInfoMedia";
 import { OP_TIMEOUT_MS, regularFile, withLimit } from "./fmInfoCommon";
 import { stripFile } from "./fmInfoStrip";
-import { cancelTask, compareHash, hashFile, startTask, taskView } from "./fmInfoTasks";
+import { FAST_GROUP_TITLE } from "./fmHashes";
+import { DEFAULT_HASH_IDS, HASHES, cancelTask, compareHash, hashFile, startTask, taskView } from "./fmInfoTasks";
 import { FmError } from "./fmPaths";
 
 function hashRows(value: unknown): Array<{ id: string; value: string }> {
-  if (!Array.isArray(value) || value.length > 8) throw new FmError("BAD_REQUEST", "Calculate the fingerprints first.");
+  if (!Array.isArray(value) || value.length > 40) throw new FmError("BAD_REQUEST", "Calculate the fingerprints first.");
   return value.map((r) => {
     if (!r || typeof r.id !== "string" || typeof r.value !== "string" || r.value.length > 200) throw new FmError("BAD_REQUEST", "Those fingerprints aren't valid.");
     return { id: r.id, value: r.value };
@@ -40,6 +41,10 @@ export const infoOperations: Record<string, FmHandler> = {
   },
   async "info/many"(ctx, b) {
     return await withLimit(OP_TIMEOUT_MS + 2000, () => manyInfo(ctx, b.paths));
+  },
+  /** The kinds of fingerprint that can be chosen, with plain-words descriptions and which are ticked by default. */
+  async "info/hashkinds"() {
+    return { kinds: HASHES, defaults: DEFAULT_HASH_IDS, fastTitle: FAST_GROUP_TITLE };
   },
   /** Starts a fingerprint job (MD5, SHA-1, SHA-256, SHA-512, CRC32). Ask `info/task` how it is going. */
   async "info/hash"(ctx, b) {

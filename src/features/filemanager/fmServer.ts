@@ -19,8 +19,11 @@ import { absolutePath, createContext, pathApi, type FmContext, type FmContextOpt
 import { codeOperations } from "./fmCodeOps";
 import { checkOperations } from "./fmCheckOps";
 import { cryptoOperations } from "./fmCryptoOps";
+import { dataCompareOperations } from "./fmDataCompare";
+import { editorOperations } from "./fmEditor";
 import { aboutOperations } from "./fmAboutOps";
 import { devOperations } from "./fmDevOps";
+import { planSetup, setupOptions } from "./fmSetup";
 import { themeOperations } from "./fmThemes";
 import { findOperations } from "./fmFindOps";
 import { infoOperations } from "./fmInfoOps";
@@ -29,6 +32,7 @@ import { netOperations } from "./fmNetOps";
 import { sdOperations } from "./fmSdOps";
 import { serveOperations } from "./fmServeOps";
 import { vaultOperations } from "./fmVaultOps";
+import { secretsOperations } from "./fmSecretsOps";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
@@ -289,6 +293,13 @@ const operations: Record<string, Handler> = {
   async "tools/preview"(ctx, b) {
     return await previewConvert(ctx, { action: b.action, paths: b.paths, options: b.options, outputDir: b.outputDir, pattern: b.pattern });
   },
+  async "tools/setup/options"(ctx) {
+    return await setupOptions(ctx);
+  },
+  async "tools/setup"(ctx, b) {
+    if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
+    return await planSetup(ctx, { tools: b.tools, manager: b.manager });
+  },
   async "tools/install"(ctx, b) {
     if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
     return { job: startInstall(ctx, b.tools) };
@@ -308,7 +319,7 @@ const operations: Record<string, Handler> = {
   async typedpath(ctx, b) {
     const cwd = typeof b.cwd === "string" && b.cwd ? b.cwd : ctx.home;
     const path = parseTypedPath(typeof b.text === "string" ? b.text : "", cwd, ctx.home, ctx.platform);
-    if (!path) throw new FmError("BAD_PATH", "Type a folder location, like ~/Documents.");
+    if (!path) throw new FmError("BAD_PATH", typeof b.text === "string" && /^\s*["']?file:/i.test(b.text) ? "That file:// address doesn't point to a place on this computer. It should look like file:///Users/you/Documents." : "Type a folder location, like ~/Documents.");
     const st = await fsp.stat(path).catch(() => null);
     return { path, exists: !!st, isDir: !!st?.isDirectory() };
   },
@@ -319,7 +330,9 @@ const operations: Record<string, Handler> = {
 };
 
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
-Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations);
+Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations, dataCompareOperations, editorOperations);
+
+Object.assign(operations, secretsOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 

@@ -134,6 +134,127 @@ describe("the Crypto tab in a browser-like page", () => {
     power.openPower("crypto");
   });
 
+  test("text hashes: the extra kinds, and the fast checksums in their own clearly labelled table that the checksum check also understands", async () => {
+    field("Text to hash").value = "abc";
+    field("HMAC key (optional)").value = "";
+    await click("Calculate hashes");
+    const tables = [...pane().querySelectorAll(".crypto-digests")];
+    expect(tables.length).toBe(2);
+    const labels = (t: any) => [...t.querySelectorAll("tbody th")].map((x: any) => x.textContent);
+    expect(labels(tables[0])).toEqual(expect.arrayContaining(["SHA-256", "SHA3-512", "BLAKE2b-256", "RIPEMD-160", "MD4"]));
+    expect(labels(tables[1])).toEqual(expect.arrayContaining(["CRC32", "Adler-32", "xxHash64", "XXH3", "wyhash", "rapidhash"]));
+    expect(labels(tables[1])).not.toContain("SHA-256");
+    expect(pane().querySelector(".crypto-subtitle")!.textContent).toBe("Fast checksums (to spot accidental changes only, NOT secure)");
+    expect([...tables[0].querySelectorAll("tbody th")].find((x: any) => x.textContent === "MD4")!.getAttribute("title")).toMatch(/OBSOLETE and BROKEN/);
+    expect([...tables[1].querySelectorAll("td.crypto-digest")].map((x: any) => x.textContent)).toContain("44bc2cf5ad770999");
+    field("Published checksum").value = "44BC2CF5AD770999";
+    await click("Check the checksum");
+    expect(statuses()).toContain("✔ It matches: this is the xxHash64 digest");
+  });
+
+  test("hashing a file with the extras box ticked adds the extra kinds and the fast table", async () => {
+    const box = [...pane().querySelectorAll("input[type=checkbox]")].find((i: any) => i.parentElement.textContent.includes("Also work out the extra kinds")) as any;
+    expect(box.getAttribute("title")).toMatch(/NOT secure/);
+    expect(box.checked).toBe(false);
+    await click("Hash this file");
+    expect([...pane().querySelectorAll(".crypto-digests")].length).toBe(1);
+    box.checked = true;
+    await click("Hash this file");
+    await waitFor(() => pane().querySelectorAll(".crypto-digests").length === 2);
+    const fast = [...pane().querySelectorAll(".crypto-digests")][1]!;
+    expect([...fast.querySelectorAll("tbody tr")].find((r: any) => r.querySelector("th").textContent === "CRC32")!.querySelector("td")!.textContent).toBe("352441c2");
+    box.checked = false;
+  });
+
+  test("password card: hash, empty the box, check the right and a wrong password; bcrypt swaps the settings", async () => {
+    const PW = "ui-password-QX90";
+    expect(field("Password to hash").type).toBe("password");
+    field("Password to hash").value = PW;
+    field("Memory (KiB)").value = "1024";
+    field("Passes").value = "1";
+    await click("Hash the password");
+   
+    await waitFor(() => output("Hash to store").startsWith("$argon2id$"), 5000);
+    const hash = output("Hash to store");
+    expect(hash).toContain("m=1024,t=1,p=1");
+    expect(field("Password to hash").value).toBe("");
+    expect(statuses()).toContain("Store this hash, not the password");
+    field("Password to check").value = PW;
+    field("Stored hash").value = hash;
+    await click("Check the password");
+    await waitFor(() => statuses().includes("✔ That is the right password (argon2id"), 5000);
+    expect(field("Password to check").value).toBe("");
+    field("Password to check").value = `${PW}x`;
+    await click("Check the password");
+    await waitFor(() => statuses().includes("✖ That is not the password"), 5000);
+    field("Stored hash").value = "not a hash";
+    field("Password to check").value = PW;
+    await click("Check the password");
+    await waitFor(() => statuses().includes("doesn't look like a password hash"), 5000);
+
+    const method = field("Method");
+    method.value = "bcrypt";
+    method.dispatchEvent(new win.Event("change", { bubbles: true }));
+    expect(field("Memory (KiB)").closest(".crypto-field").hidden).toBe(true);
+    expect(field("Cost").closest(".crypto-field").hidden).toBe(false);
+    field("Password to hash").value = "x".repeat(80);
+    field("Cost").value = "4";
+    await click("Hash the password");
+    await waitFor(() => output("Hash to store").startsWith("$2b$04$"), 5000);
+    expect(pane().textContent).toContain("bcrypt only reads the first 72 bytes");
+    field("Cost").value = "99";
+    field("Password to hash").value = "y";
+    await click("Hash the password");
+    await waitFor(() => statuses().includes("bcrypt cost must be a whole number from 4 to 16"), 5000);
+    method.value = "argon2id";
+    method.dispatchEvent(new win.Event("change", { bubbles: true }));
+    // the activity log names the work but never a password
+    const log = pane().querySelector(".crypto-log")!.textContent!;
+    expect(log).toContain("Hash password");
+    expect(log).not.toContain(PW);
+    expect(pane().textContent).not.toContain(PW);
+  });
+
+  test("colour card: a swatch drawn with the style object model, every form with its own Copy, and a plain error", async () => {
+    field("Colour").value = "Tomato";
+    await click("Show all forms");
+    await waitFor(() => pane().querySelectorAll(".crypto-colors tbody tr").length > 10);
+    const swatch = pane().querySelector(".crypto-swatch-colour") as any;
+    expect(swatch.style.getPropertyValue("background-color")).toBe("tomato");
+    expect(pane().querySelector(".crypto-swatch")!.hasAttribute("hidden")).toBe(false);
+    const rows = [...pane().querySelectorAll(".crypto-colors tbody tr")];
+    const hex = rows.find((r: any) => r.querySelector("th").textContent === "Hex #rrggbb") as any;
+    expect(hex.querySelector("td").textContent).toBe("#ff6347");
+    expect(hex.querySelector("th").getAttribute("title")).toMatch(/six hex digits/i);
+    for (const r of rows) expect((r as any).querySelector("button")!.getAttribute("aria-label")).toMatch(/^Copy /);
+    field("Colour").value = "zzz not a colour";
+    await click("Show all forms");
+    await waitFor(() => statuses().includes("Couldn't read"));
+    expect(pane().querySelector(".crypto-swatch")!.hasAttribute("hidden")).toBe(true);
+    expect(pane().querySelectorAll(".crypto-colors").length).toBe(0);
+    field("Colour").value = "rgba(10 20 30 / 50%)";
+    await click("Show all forms");
+    await waitFor(() => pane().querySelector(".crypto-colors"));
+    expect(pane().textContent).toContain("partly transparent");
+  });
+
+  test("text tools: HTML escape and unescape, colour codes and text width", async () => {
+    const box = field("Text to convert");
+    box.value = `<b>"Tom" & 'Jerry'</b>`;
+    await click("HTML escape");
+    expect(output("Converted text")).toBe("&lt;b&gt;&quot;Tom&quot; &amp; &#x27;Jerry&#x27;&lt;&#x2F;b&gt;".replace("&#x2F;", "/"));
+    await click("Move result up");
+    await click("HTML unescape");
+    expect(output("Converted text")).toBe(`<b>"Tom" & 'Jerry'</b>`);
+    box.value = "\u001b[31mred\u001b[0m ok".replace(/\\u001b/g, "\u001b");
+    await click("Remove colour codes");
+    expect(output("Converted text")).toBe("red ok");
+    box.value = "日本語😀";
+    await click("Text width");
+    expect(output("Converted text")).toContain("Columns in a terminal: 8");
+    box.value = "";
+  });
+
   test("lock and unlock; a wrong passphrase gets a plain sentence", async () => {
     field("Passphrase").value = PASS;
     field("Text to lock, or locked text to unlock").value = PLAIN;
@@ -155,6 +276,11 @@ describe("the Crypto tab in a browser-like page", () => {
     expect(output("Generated value")).toMatch(/^[0-9a-f-]{36}$/);
     await click("Generate password");
     expect(output("Generated password")).toHaveLength(20);
+    await click("New UUID v7");
+    expect(output("Generated value")).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    field("UUID").value = output("Generated value");
+    await click("Look inside");
+    expect(output("What is inside")).toMatch(/Version: 7[\s\S]*Made at: \d{4}-\d\d-\d\dT/);
     field("Token (JWT)").value = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
     field("Secret (to check").value = "your-256-bit-secret";
     await click("Check signature");
@@ -232,7 +358,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
   test("every card has one Copy button after its heading, with a name and a tooltip, and every value has its own", () => {
     const cards = [...pane().querySelectorAll("section.crypto-card")];
     expect(cards.map((c: any) => c.querySelector("h3").textContent)).toEqual([
-      "Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "JWT reader and signature check", "Encoders: URL, Base64 and hex", "Activity log",
+      "Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "Hash a password for storing", "Check a password against a stored hash", "JWT reader and signature check", "Look inside a UUID", "Encoders: URL, Base64, hex and text tools", "Colour converter", "Activity log",
     ]);
     for (const c of cards) {
       const bars = c.querySelectorAll(":scope > .copy-bar-host");
@@ -249,7 +375,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
     }
     const labels = [...pane().querySelectorAll("button.copy-item")].map((b: any) => b.getAttribute("aria-label"));
     for (const want of ["Copy Lock or unlock result", "Copy Generated value", "Copy Generated password", "Copy Header", "Copy Payload (claims)", "Copy Converted text"]) expect(labels, want).toContain(want);
-    expect(pane().querySelectorAll("[style]").length).toBe(0);
+    expect(pane().querySelectorAll("[style]:not(.crypto-swatch-colour)").length).toBe(0);
   });
 
   test("empty results hide their bars, and a Copy with nothing in it says so instead of copying", async () => {
@@ -450,7 +576,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
 
   test("Copy all gives the whole tab as text without anything typed", async () => {
     const all = (await press(button("Copy all")))!;
-    for (const heading of ["Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "JWT reader and signature check", "Encoders: URL, Base64 and hex", "Activity log"]) expect(all, heading).toContain(heading);
+    for (const heading of ["Hash some text", "Hash a file", "Results", "Lock and unlock text with a passphrase (AES-256)", "Random keys and IDs", "Password generator", "JWT reader and signature check", "Hash a password for storing", "Encoders: URL, Base64, hex and text tools", "Colour converter", "Activity log"]) expect(all, heading).toContain(heading);
     expect(all).toContain("Digests of");
     expect(all).not.toContain(COPY_PASS);
     expect(all).not.toContain("hmac-key-QX82");
@@ -479,7 +605,7 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
     await settle();
     const resultsCard = card("Results");
     expect(resultsCard.querySelectorAll(":scope > .copy-bar-host").length).toBe(1);
-    expect(resultsCard.querySelectorAll(".crypto-tablehost .copy-bar").length).toBe(1);
+    expect(resultsCard.querySelectorAll(".crypto-tablehost .copy-bar").length).toBe(2); // the digests and the fast checksums
     expect(resultsCard.querySelectorAll("button.copy-item[aria-label='Copy the SHA-256 digest']").length).toBe(1);
     for (const c of pane().querySelectorAll("section.crypto-card")) expect(c.querySelectorAll(":scope > .copy-bar-host").length).toBe(1);
 
@@ -517,6 +643,6 @@ describe("Crypto tab: every section and value can be copied by itself", () => {
     extra.remove();
     section.startCopySections();
     await settle();
-    expect(pane().querySelectorAll("section.crypto-card > .copy-bar-host").length).toBe(9);
+    expect(pane().querySelectorAll("section.crypto-card > .copy-bar-host").length).toBe(13);
   });
 });

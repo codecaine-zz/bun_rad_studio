@@ -8,6 +8,7 @@ What the project protects, what it does not, and how to use it safely. Each prot
 - [What is protected](#what-is-protected)
 - [What is not protected](#what-is-not-protected)
 - [File encryption (RADENC)](#file-encryption-radenc)
+- [Secrets vault (RADSEC)](#secrets-vault-radsec)
 - [Safe practice](#safe-practice)
 - [Reporting a problem](#reporting-a-problem)
 - [See also](#see-also)
@@ -82,6 +83,42 @@ The File Manager's **Encrypt…** and `bun run cli:vault` lock files and folders
 - **Streaming caveat.** Plain data is written to the temporary folder as each chunk authenticates and is only published after the last chunk does; an attacker with write access to the folder you choose could observe or race the temporary files. A tiny race remains between "name is free" and the final rename on disks without hard links.
 - **No signature or sender identity.** Anyone who knows the password can make a file that decrypts. Encryption proves "made by someone with the password", not "made by a particular person".
 - **Not independently audited.** The format follows standard constructions and is tested against an independent reference decryptor, but no outside review has been done.
+
+## Secrets vault (RADSEC)
+
+The File Manager's **Secrets** tool is a personal password manager and secure-notes vault. Everything in it (titles, user names, addresses, passwords, notes, tags, one-time-code secrets, card numbers, attachments, settings, the activity log) is stored in ONE file, `file_manager_secrets.radsec`, in the app's data folder ([byte-exact format](reference/secrets-format.md), [how to use it](userguides/43_file_manager.md#secrets-password-manager-and-notes)). **It has not been independently audited and is not a replacement for a mature, audited password manager for high-risk use** (journalists, activists, administrators of critical systems, large sums of money).
+
+**Design.** A random 256-bit *data key* encrypts the whole database as one AES-256-GCM message with a fresh random nonce at every save; the entire header is its authenticated data and is also covered by an HMAC. The data key is stored wrapped under up to three independent keys: the master password (Argon2id, 256 MiB / 3 passes / 4 lanes by default, 512 MiB or 1 GiB at *Strong* and *Maximum*, then HKDF-SHA-256, plus an optional key file mixed in), an optional 160-bit recovery key, and an optional device key held in the operating system's credential store (*Unlock with this computer*). Nothing but Bun's `node:crypto` is used. A save writes a temporary file, flushes it, reads it back and decrypts it in memory, and only then renames it into place, after rotating three encrypted backups; a failed or empty save changes nothing.
+
+**What it protects against:**
+
+| Threat | How it is handled |
+|---|---|
+| Someone steals the vault file (or a backup, or a sync copy) | Nothing is readable without the master password (and key file, if one is set), the recovery key, or the device key from your own credential store. No plain index exists; even the number of items is hidden by padding to 4 KiB |
+| Offline guessing of the master password | Argon2id makes each guess cost 256 MiB to 1 GiB of memory and about 0.4 to 2.8 s on a fast laptop. The program demands at least 12 characters and about 60 bits, or a passphrase of 5 or more words, and refuses common passwords. A weak password is still weak: nothing here can fix that |
+| Tampering, truncating, reordering or swapping parts of the file | The header and database are authenticated and the wraps are bound to their position. Every failure gives the same message, so a wrong password and a damaged file can't be told apart |
+| A hostile file (memory bomb) | Argon2 settings are checked before any key is derived (memory ≤ 2 GiB, passes ≤ 10, lanes ≤ 16); other limits apply to size |
+| Guessing through the program | Wrong passwords add waits that double up to 15 minutes, kept in a small non-secret counter file |
+| Losing data to a crash or a bad save | Atomic write, verification, three rotating backups, conflict detection: a vault file changed behind the program's back is never overwritten without asking |
+| Secrets leaking out of the program | Passwords, notes, one-time-code secrets and card numbers are fetched one at a time and only when asked; the list never carries them; they hide again after 15 seconds, on lock, when the window loses focus or the tab changes. **Copying is done by the server**, so a copied password never passes through the page, and the clipboard is cleared after 30 seconds (10 to 120, or never) but only if it still holds that value. Nothing secret is written to settings, logs, error messages, the clipboard history of this program, the browser's storage, the address or any attribute of the page (a test scans for all of these). Decrypted data is never written to disk: there are no temporary files, and exports are explicit |
+| Walking away | The vault locks after 5 minutes idle by default (1 minute to 1 hour, or never, with a warning), optionally when you switch windows, and when the File Manager closes. Locking zeroes the key buffers and drops the database |
+| A leaked old password | Changing the master password, the recovery key or the device shortcut deletes the old backups, which would still open with the old secret |
+
+**What it does not protect against:**
+
+- **A compromised computer.** Malware or a keylogger running as you, a screen recorder, or someone looking over your shoulder sees what you see and type. Malware running as you can also read the clipboard while a password is on it and can read this program's memory.
+- **Memory forensics of a running program.** JavaScript strings cannot be wiped: the decrypted text, the typed password and revealed values are strings the runtime may copy and free later. Only the key buffers and byte copies are zeroed on lock. A memory dump of the running program (or swap/hibernation files) may contain them.
+- **A weak master password**, a master password reused elsewhere, or a recovery key stored badly. Anyone who has the recovery key can open the vault, with no password and no key file.
+- **Losing everything.** There is **no reset**. Without the master password (and key file) and without the recovery key, nobody can open the vault. Losing the key file alone leaves only the recovery key.
+- **Rollback.** Someone who can replace the file with an older copy of it can serve you old data; an offline file has no way to notice.
+- **Clipboard sniffing.** A copied password is on the system clipboard for a while, where other programs (and, on some systems, a clipboard-history feature such as Windows' Win+V) can read it. Auto-clear helps only when nothing else has already read it.
+- **The plain-text export** (CSV) and every attachment you save out are not encrypted. The export needs the password again and a loud confirmation and is written readable only by you, but it is then your job to delete it.
+- **The optional breach check** sends the first 5 characters of a SHA-1 of each password to haveibeenpwned.com (with the padding header, nothing else). It is off unless you press the button; the service learns 20 bits of each hash, which fits very many passwords.
+- **Timing and file size.** Work and file size grow with the vault; an observer of the disk learns when you change it.
+
+**"Unlock with this computer" (off by default).** When you turn it on, a random 256-bit device key goes into the operating system's credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service, through `Bun.secrets`, still marked experimental by Bun) under the name `vault-device-key:<vault id>`, and a third wrapping of the data key under a key made from it goes into the vault file. You then open the vault with just your computer login. The trade-off, plainly: **anyone who can use your logged-in operating-system session can open the vault, and so can malware running as you** (the credential store may ask permission, but it is built to serve your own programs). A stolen vault file without that credential-store entry still needs the master password. The master password is asked for at least every 14 days by default (1 to 90); this expiry is enforced by this program, not by cryptography, so it does not stop a program that reads the entry itself. Don't turn it on for shared computers, or if you want the vault shut whenever your computer is unlocked and unattended. If the credential store is missing, refuses, or has lost the entry, the program says so in plain words and the master password works as always. Turning it off removes both the entry and the wrapping.
+
+**How this was checked.** About 130 automated tests, with real cryptography and real files: a known-answer file and an independent reference decryptor written with `node:crypto` only; every header field; truncated, flipped, reordered and extended files; memory-bomb headers; nonce uniqueness across hundreds of saves; wrapping, key file, recovery and device keys; crash simulation between the temporary file and the rename; conflict detection; throttling and auto-lock with injected clocks; the clipboard clear with an injected clipboard; the breach check with an injected network that proves only a 5-character prefix is sent; RFC 6238 test vectors; importers fed hostile input; and a marker-string test that proves no secret appears in any response that is not a reveal, in any error or log line, or on disk. The page is tested in jsdom for the same. No independent person or company has reviewed it.
 
 ## Safe practice
 

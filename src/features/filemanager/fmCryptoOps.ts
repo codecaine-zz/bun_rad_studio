@@ -1,11 +1,14 @@
 import { promises as fsp } from "fs";
 import { performance } from "perf_hooks";
-import { formatDigestReport, hashFile, type HashRow } from "../../crypto_tools";
+import { formatDigestReport, type HashRow } from "../../crypto_tools";
 import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
 import {
-  MAX_RANDOM_BYTES, MAX_TEXT_BYTES, checkChecksum, decryptText, encodeText, encryptText, estimateEntropy, generateValue, hashAlgorithms,
-  hashText, hmacAlgorithms, inspectJwt, parseRows, secretField, textField,
+  MAX_RANDOM_BYTES, MAX_TEXT_BYTES, checkChecksum, decryptText, encodeText, encryptText, estimateEntropy, fastAlgorithms, fastText, generateValue, hashAlgorithms,
+  hashText, hmacAlgorithms, inspectJwt, inspectUuid, parseRows, secretField, textField,
 } from "./fmCrypto";
+import { CLASSIC_IDS, FAST_GROUP_TITLE, HASH_SPECS, digestFile as digestFileWith, hashHints, type HashSpec } from "./fmHashes";
+import { convertColor } from "./fmColor";
+import { PASSWORD_ALGORITHMS, PASSWORD_LIMITS, checkPassword, estimatePasswordMs, hashPassword, passwordParams } from "./fmPassword";
 import { FmError, describeFsError, uniqueName, validateName } from "./fmPaths";
 
 const MAX_FILES = 20;
@@ -17,12 +20,16 @@ interface FileDigest {
   ok: boolean;
   size?: number;
   rows?: HashRow[];
+  /** The fast checksums (CRC32, xxHash, ...), kept apart because they are not secure. */
+  fast?: HashRow[];
+  /** Kinds left out (and why): the ones that need the whole file at once, for a very big file. */
+  skipped?: Array<{ label: string; reason: string }>;
   ms?: number;
   error?: string;
 }
 
 /** Hashes one file by streaming it (it is never loaded into memory at once). Problems are reported per file. */
-async function digestFile(ctx: FmContext, input: unknown): Promise<FileDigest> {
+async function digestFile(ctx: FmContext, input: unknown, specs: HashSpec[]): Promise<FileDigest> {
   const path = absolutePath(ctx, input);
   const name = pathApi(ctx).basename(path);
   const t0 = performance.now();
@@ -30,11 +37,18 @@ async function digestFile(ctx: FmContext, input: unknown): Promise<FileDigest> {
     const st = await fsp.stat(path);
     if (st.isDirectory()) return { path, name, ok: false, error: "That is a folder. Only files can be hashed." };
     if (!st.isFile()) return { path, name, ok: false, error: "That isn't an ordinary file, so it can't be hashed." };
-    const { rows, size } = await hashFile(path);
-    return { path, name, ok: true, size, rows, ms: ms(t0) };
+    const { rows, size, skipped } = await digestFileWith(path, specs);
+    return { path, name, ok: true, size, rows: rows.filter((r) => r.spec.group !== "fast").map((r) => [r.spec.label, r.value] as HashRow), fast: rows.filter((r) => r.spec.group === "fast").map((r) => [r.spec.label, r.value] as HashRow), skipped: skipped.map((x) => ({ label: x.spec.label, reason: x.reason })), ms: ms(t0) };
   } catch (err) {
     return { path, name, ok: false, error: describeFsError(err, "read that file").message };
   }
+}
+
+/** The kinds worth working out for a pasted checksum: the ones whose result has that many digits (the five classic ones when unsure). */
+function specsForChecksum(expected: string): HashSpec[] {
+  const lengths = new Set((expected.match(/[0-9a-fA-F]{8,128}/g) ?? []).map((w) => w.length));
+  const fitting = HASH_SPECS.filter((s) => lengths.has(s.hex));
+  return fitting.length ? fitting : HASH_SPECS.filter((s) => CLASSIC_IDS.includes(s.id));
 }
 
 const cleanSource = (value: unknown, fallback: string) => (typeof value === "string" && value.trim() ? value.replace(/[\u0000-\u001f]+/g, " ").slice(0, 1000) : fallback);
@@ -71,7 +85,10 @@ export const cryptoOperations: Record<string, FmHandler> = {
     return {
       limits: { textBytes: MAX_TEXT_BYTES, randomBytes: MAX_RANDOM_BYTES, files: MAX_FILES },
       hashes: hashAlgorithms(),
+      fast: { title: FAST_GROUP_TITLE, algorithms: fastAlgorithms(), seed: 0, note: "Each result is the number the function returns, written in hex with the most significant digit first (8 digits for 32-bit results, 16 for 64-bit ones)." },
+      hints: hashHints(),
       hmacs: hmacAlgorithms(),
+      password: { algorithms: PASSWORD_ALGORITHMS, limits: PASSWORD_LIMITS },
       aes: { cipher: "AES-256-CBC", key: "SHA-256 of the passphrase (no salt, no stretching)", authenticated: false, format: "ivHex:base64" },
     };
   },
@@ -80,7 +97,7 @@ export const cryptoOperations: Record<string, FmHandler> = {
     const text = textField(b.text, "text");
     const key = secretField(b.key, "key");
     const t0 = performance.now();
-    return { rows: hashText(text, key), hmac: key !== "", bytes: Buffer.byteLength(text, "utf8"), ms: ms(t0) };
+    return { rows: hashText(text, key), fast: fastText(text), hmac: key !== "", bytes: Buffer.byteLength(text, "utf8"), ms: ms(t0), hints: hashHints(), fastTitle: FAST_GROUP_TITLE };
   },
 
   async "crypto/encrypt"(_ctx, b) {
@@ -99,12 +116,36 @@ export const cryptoOperations: Record<string, FmHandler> = {
     return { text, suspicious, bytes: Buffer.byteLength(cipher, "utf8"), ms: ms(t0) };
   },
 
+  async "crypto/pwhash"(_ctx, b) {
+    const password = secretField(b.password, "a password", { required: true });
+    return { ...(await hashPassword(password, passwordParams(b))) };
+  },
+
+  async "crypto/pwcheck"(_ctx, b) {
+    const password = secretField(b.password, "a password", { required: true });
+    return { ...(await checkPassword(password, secretField(b.hash, "the stored hash", { required: true }))) };
+  },
+
+  /** A rough time guess for the chosen settings (no password involved). */
+  async "crypto/pwcost"(_ctx, b) {
+    const p = passwordParams(b);
+    return { estimateMs: estimatePasswordMs(p) };
+  },
+
   async "crypto/entropy"(_ctx, b) {
     return { ...estimateEntropy(textField(b.text, "text")) };
   },
 
   async "crypto/generate"(_ctx, b) {
     return { ...generateValue(b) };
+  },
+
+  async "crypto/uuid"(_ctx, b) {
+    return { ...inspectUuid(b.text) };
+  },
+
+  async "crypto/color"(_ctx, b) {
+    return { ...convertColor(b.text) };
   },
 
   async "crypto/jwt"(_ctx, b) {
@@ -122,9 +163,11 @@ export const cryptoOperations: Record<string, FmHandler> = {
   async "crypto/filehash"(ctx, b) {
     if (!Array.isArray(b.paths) || b.paths.length === 0) throw new FmError("BAD_REQUEST", "Choose a file to hash.");
     if (b.paths.length > MAX_FILES) throw new FmError("TOO_MANY", `Hash up to ${MAX_FILES} files at a time.`);
+    // Normally the five classic digests; `extras: true` adds every other secure kind and the fast checksums (slower for big files).
+    const specs = b.extras === true ? HASH_SPECS : HASH_SPECS.filter((s) => CLASSIC_IDS.includes(s.id));
     const results: FileDigest[] = [];
-    for (const p of b.paths) results.push(await digestFile(ctx, p));
-    return { results };
+    for (const p of b.paths) results.push(await digestFile(ctx, p, specs));
+    return { results, hints: hashHints(), fastTitle: FAST_GROUP_TITLE };
   },
 
   /** Checks a pasted checksum against digests: of a file (`path`), of some text (`text`), or ones the page already has (`rows`). */
@@ -133,12 +176,13 @@ export const cryptoOperations: Record<string, FmHandler> = {
     let rows: HashRow[];
     let source: string;
     if (typeof b.path === "string") {
-      const file = await digestFile(ctx, b.path);
+      const file = await digestFile(ctx, b.path, specsForChecksum(expected));
       if (!file.ok) throw new FmError("CANNOT_HASH", file.error!);
-      rows = file.rows!;
+      rows = [...file.rows!, ...file.fast!];
       source = file.name;
     } else if (typeof b.text === "string") {
-      rows = hashText(textField(b.text, "text"));
+      const text = textField(b.text, "text");
+      rows = [...hashText(text), ...fastText(text)];
       source = "the text";
     } else {
       rows = parseRows(b.rows);

@@ -8,7 +8,7 @@ import { finishOpen } from "./openwith.js";
 import { busy, goTo, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
 import { selectKeys, selectedEntries } from "./selection.js";
-import { currentPath, emit, inTrash, state } from "./state.js";
+import { currentPath, emit, inTrash, on, state } from "./state.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
 import { baseName, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
@@ -74,6 +74,10 @@ function ensureOk(results, what) {
   const { failed } = tally(results);
   if (failed.length) throw new Error(failed[0] ?? `${what} failed`);
 }
+
+// Windows that sit below this module (the Properties window) can't import it, so they ask for Undo steps by event.
+on("undo-push", ({ label, run }) => pushUndo(label, run));
+on("undo-last", () => undo());
 
 /** Sends items to the Recycle Bin; resolves the records ({ path, id }) for those that worked. */
 async function trashPaths(paths) {

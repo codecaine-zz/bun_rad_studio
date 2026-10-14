@@ -28,6 +28,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Glossary](glossary.md)
 - [Data and files](reference/data-and-files.md)
 - [Encrypted file format (RADENC)](reference/vault-format.md)
+- [Secrets vault format (RADSEC)](reference/secrets-format.md)
 - [Performance (measured baseline)](performance.md)
 - [Accessibility (what was checked)](accessibility.md)
 - [Application index (generated)](reference/application-index.md)

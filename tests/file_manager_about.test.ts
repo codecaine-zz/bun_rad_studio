@@ -50,6 +50,17 @@ describe("About links", () => {
     }
   });
 
+  test("about/info also says which app and which Bun it is, and what system it runs on", async () => {
+    const info = (await (await post("about/info")).json()) as any;
+    expect(info.app).toEqual({ name: "Codecaine File Manager", version: expect.stringMatching(/^\d+\.\d+\.\d+/) });
+    expect(info.runtime.bun).toBe(Bun.version);
+    expect(info.runtime.revision).toBe(Bun.revision.slice(0, 8));
+    expect(info.runtime.revision).toMatch(/^[0-9a-f]{8}$/);
+    expect(info.runtime.arch).toBe(process.arch);
+    expect(info.runtime.platform).toBe(process.platform);
+    expect(info.runtime.system).toBe({ darwin: "macOS", win32: "Windows", linux: "Linux" }[process.platform as string] ?? process.platform);
+  });
+
   test("an unknown id, or an address sent instead of an id, opens nothing", async () => {
     const before = launched.length;
     expect((await post("about/open", { id: "https://evil.example" })).status).toBe(400);
@@ -120,6 +131,20 @@ describe("the Support window in the page", () => {
     await sleep(300);
     expect(doc.querySelector("#toasts").textContent).toMatch(/donation link was copied|Couldn't copy/);
     button("Close").click();
+  });
+
+  test("the About window shows the app, Bun's version and build, and the system, with a Copy button", async () => {
+    await about.showAbout();
+    const line = doc.querySelector(".modal-backdrop .about-versionline");
+    expect(line.textContent).toBe(`Codecaine File Manager 1.0.0 · Bun ${Bun.version} (${Bun.revision.slice(0, 8)}) · ${{ darwin: "macOS", win32: "Windows", linux: "Linux" }[process.platform as string]} ${process.arch}`);
+    expect(line.getAttribute("title")).toMatch(/version of Bun/);
+    expect(doc.querySelector(".modal-backdrop").textContent).not.toMatch(/\bnull\b|\bundefined\b/);
+    button("Copy").click();
+    await sleep(300);
+    expect(doc.querySelector("#toasts").textContent).toMatch(/copied|Couldn't copy/);
+    expect(about.versionLine({ app: null, runtime: null })).toBe("");
+    expect(about.versionLine({ app: { name: "App", version: "2" }, runtime: null })).toBe("App 2");
+    for (const b of doc.querySelectorAll(".modal-backdrop")) b.remove();
   });
 
   test("the About window has a Donate button that opens it", async () => {

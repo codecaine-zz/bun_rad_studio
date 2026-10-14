@@ -32,6 +32,7 @@
         { "title": "Glossary", "path": "glossary.md" },
         { "title": "Data and files", "path": "reference/data-and-files.md" },
         { "title": "Encrypted file format (RADENC)", "path": "reference/vault-format.md" },
+        { "title": "Secrets vault format (RADSEC)", "path": "reference/secrets-format.md" },
         { "title": "Performance (measured baseline)", "path": "performance.md" },
         { "title": "Accessibility (what was checked)", "path": "accessibility.md" },
         { "title": "Application index (generated)", "path": "reference/application-index.md" },

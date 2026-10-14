@@ -535,6 +535,24 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .about-links { list-style: none; margin: 0.8rem 0; padding: 0; display: grid; gap: 0.5rem; }
 .about-link { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 .about-url { color: var(--muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+.about-version { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0.4rem 0; }
+.about-versionline { margin: 0; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+
+/* Compare data files window */
+.cmp-names { margin: 0 0 0.4rem; overflow-wrap: anywhere; }
+.cmp-verdict { margin: 0.3rem 0; padding: 0.45rem 0.7rem; border-radius: 0.5rem; font-weight: 600; }
+.cmp-same { background: var(--panel); color: var(--good); border: 1px solid var(--good); }
+.cmp-diff { background: var(--warn-bg); color: var(--warn-text); }
+.cmp-notes { margin: 0.3rem 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.88rem; }
+.cmp-section { margin-top: 0.8rem; }
+.cmp-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.cmp-head .cmp-title { margin: 0; }
+.cmp-wrap { max-height: 16rem; overflow: auto; border: 1px solid var(--border); border-radius: 0.4rem; margin-top: 0.3rem; }
+.cmp-table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+.cmp-table th, .cmp-table td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.cmp-table thead th { position: sticky; top: 0; background: var(--panel); }
+.cmp-path, .cmp-value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; word-break: break-word; }
+.cmp-all { margin-top: 0.8rem; }
 
 /* Theme gallery */
 .theme-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem; }
@@ -568,3 +586,11 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .donate-qr { width: 13rem; height: 13rem; background: #ffffff; padding: 0.4rem; border: 1px solid var(--border); border-radius: 0.6rem; }
 .donate-side { flex: 1 1 14rem; display: grid; gap: 0.4rem; }
 .donate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+/* One-click helper setup */
+.tool-setup { border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem 0.8rem; margin: 0.6rem 0; background: var(--panel); }
+.setup-list { max-height: min(46vh, 22rem); overflow: auto; margin: 0.4rem 0; }
+.setup-row { align-items: flex-start; }
+.setup-off { opacity: 0.55; }
+.setup-managers { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.4rem 0; }
+.tool-setup-title { margin: 0 0 0.3rem; font-size: 1rem; }

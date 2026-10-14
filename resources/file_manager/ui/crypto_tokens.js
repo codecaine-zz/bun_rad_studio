@@ -1,8 +1,8 @@
-// Tokens and encoders: read and check JWTs, and convert text to and from URL, Base64 and hex forms.
+// Tokens and encoders: read and check JWTs, and convert text to and from URL, Base64, hex and HTML forms (plus colour codes and width).
 import { call } from "./api.js";
 import { clear, h } from "./dom.js";
 import { formatSize } from "./util.js";
-import { actionButton, attempt, card, formatMs, outBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
+import { actionButton, attempt, card, formatMs, lineBox, outBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
 
 const ENCODERS = [
   ["url-encode", "URL encode", "Make text safe to put inside a web address: spaces become %20 and so on."],
@@ -11,6 +11,10 @@ const ENCODERS = [
   ["base64-decode", "Base64 decode", "Turn Base64 text back into the original text."],
   ["hex-encode", "Hex encode", "Write each byte of the text as two hex digits (0-9, a-f). It is NOT encryption."],
   ["hex-decode", "Hex decode", "Turn hex digits back into the original text."],
+  ["html-escape", "HTML escape", "Make text safe to put inside a web page: < > & \" and ' are written as &lt; &gt; &amp; &quot; and &#x27; so they show as text instead of being read as page code."],
+  ["html-unescape", "HTML unescape", "Turn &lt; &gt; &amp; &quot; &apos; and numeric forms like &#39; back into the characters they stand for. Other names such as &nbsp; are left as they are. The result is only text."],
+  ["strip-ansi", "Remove colour codes", "Take the colour and style codes out of text copied from a terminal or a log, so only the plain words are left."],
+  ["text-width", "Text width", "Count the characters, the bytes and the columns the text takes in a terminal. Chinese, Japanese and Korean letters and emoji take two columns."],
 ];
 
 /** Builds the JWT and encoder cards. Returns { cards, clear() }. */
@@ -57,6 +61,22 @@ export function buildTokenCards(env) {
     token.el, secret.el, h("div", { class: "pw-row" }, decode, verify), status.el, details);
   jwtCard.setAttribute("data-copy-secret", "");
 
+  // ---- UUID inspector -------------------------------------------------------------------------------------------
+  const uuidText = lineBox({ label: "UUID", tip: "Paste a UUID, with or without dashes, in braces, or as urn:uuid:… It is only read here.", placeholder: "018f2d9a-7c3e-7b1a-9d4e-5f6a7b8c9d0e" });
+  const uuidStatus = statusLine();
+  const uuidOut = outBox("What is inside", "The version, kind and (for versions 1, 6 and 7) the time the UUID was made.", { secret: false, onCopy: () => env.log("Copy UUID details", "") });
+  const uuidButton = actionButton("Look inside", "Show which version this UUID is and, for time-based ones (v1, v6, v7), when it was made.", async () => {
+    const r = await attempt(uuidButton, uuidStatus, () => call("crypto/uuid", { text: uuidText.input.value }));
+    if (!r) return env.log("Inspect UUID", "failed");
+    const lines = [`UUID: ${r.canonical}`, `Version: ${r.version === null ? "none" : r.version}`, `Variant: ${r.variant}`, `Kind: ${r.kind}`];
+    if (r.iso) lines.push(`Made at: ${r.iso} (${new Date(r.timeMs).toLocaleString()} your time)`, `Milliseconds since 1970: ${r.timeMs}`);
+    uuidOut.set(lines.join("\n"));
+    uuidStatus.set(r.iso ? `A version ${r.version} UUID made at ${r.iso}.` : r.kind, "ok");
+    env.log("Inspect UUID", r.version === null ? r.variant : `v${r.version}`);
+  }, { primary: true });
+  const uuidCard = card("Look inside a UUID", "A UUID is a 128-bit identifier. Version 7 and the older versions 1 and 6 contain the time they were made; version 4 is just random. This shows which kind you have.",
+    uuidText.el, h("div", { class: "pw-row" }, uuidButton), uuidStatus.el, uuidOut.el);
+
   // ---- Encoders -------------------------------------------------------------------------------------------------
   const text = textBox({ label: "Text to convert", tip: "Type or paste the text to encode or decode.", rows: 3 });
   const result = outBox("Converted text", "The converted text. Use its Copy button to copy just this result.", { onCopy: () => env.log("Copy result", "converted text") });
@@ -77,15 +97,16 @@ export function buildTokenCards(env) {
     text.input.value = result.text();
     result.set("");
   });
-  const encoderCard = card("Encoders: URL, Base64 and hex", "These convert text between forms. They only change how text is written; they do not hide it, so none of them is a way to keep secrets.",
+  const encoderCard = card("Encoders: URL, Base64, hex and text tools", "These convert text between forms. They only change how text is written; they do not hide it, so none of them is a way to keep secrets. The last four are tidy-up helpers: HTML escape and unescape, removing terminal colour codes, and measuring text width.",
     text.el, h("div", { class: "pw-row" }, ...buttons, moveUp), encStatus.el, result.el);
   encoderCard.setAttribute("data-copy-secret", "");
 
   return {
-    cards: [jwtCard, encoderCard],
+    cards: [jwtCard, uuidCard, encoderCard],
     clear() {
-      token.input.value = secret.input.value = text.input.value = "";
-      for (const s of [status, encStatus]) s.set("");
+      token.input.value = secret.input.value = text.input.value = uuidText.input.value = "";
+      for (const s of [status, encStatus, uuidStatus]) s.set("");
+      uuidOut.set("");
       result.set("");
       details.hidden = true;
     },

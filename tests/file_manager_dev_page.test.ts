@@ -158,7 +158,7 @@ describe("the Dev tab in a browser-like page", () => {
       if (c.tagName !== "BUTTON") expect((c as any).labels?.length || c.getAttribute("aria-label"), c.outerHTML.slice(0, 120)).toBeTruthy();
     }
     expect(pane().querySelectorAll("[style]").length).toBe(0);
-    expect([...pane().querySelectorAll('[role="tab"]')].map((t: any) => t.textContent)).toEqual(["Code stats", "Project", "Git", "Disk & files", "TODO", "Tools"]);
+    expect([...pane().querySelectorAll('[role="tab"]')].map((t: any) => t.textContent)).toEqual(["Code stats", "Project", "Git", "Disk & files", "TODO", "Tools", "Versions"]);
     expect(pane().querySelector('[role="tab"][aria-selected="true"]').textContent).toBe("Code stats");
   });
 
@@ -420,6 +420,53 @@ describe("the Dev tab in a browser-like page", () => {
     for (const tr of rows(table).filter((r: any) => cell(r, 1).startsWith("✗"))) expect(cell(tr, 3).length).toBeGreaterThan(3);
   }, 60_000);
 
+  test("Versions: compare, check a range, sort, and a plain message for what isn't a version", async () => {
+    await openSection("versions");
+    const text = () => panel().textContent;
+    type(field("dev-ver-a"), "1.10.0");
+    type(field("dev-ver-b"), "1.9.0");
+    await click(button("Compare"), 250);
+    expect(status()).toContain("1.10.0 is newer than 1.9.0.");
+    type(field("dev-ver-b"), "banana");
+    await click(button("Compare"), 250);
+    expect(status()).toContain("“banana” isn't a version");
+    type(field("dev-ver-v"), "2.5.0");
+    type(field("dev-ver-r"), ">=2 <3");
+    await click(button("Check"), 250);
+    expect(status()).toContain("✔ 2.5.0 fits >=2 <3.");
+    type(field("dev-ver-r"), "not a range");
+    await click(button("Check"), 250);
+    expect(status()).toContain("isn't a range I can read");
+    type(field("dev-ver-list"), "1.10.0\n1.2.0\nnope\n1.9.3-beta.1\n1.2.0");
+    await click(button("Sort"), 250);
+    expect(panel().querySelector(".dev-sorted").textContent).toBe("1.2.0\n1.9.3-beta.1\n1.10.0");
+    expect(status()).toContain("line 3 “nope”");
+    expect(status()).toContain("1 repeated line was counted once");
+    field("dev-ver-desc").click();
+    await click(button("Sort"), 250);
+    expect(panel().querySelector(".dev-sorted").textContent).toBe("1.10.0\n1.9.3-beta.1\n1.2.0");
+    expect(text()).toContain("Compare two versions");
+    for (const c of panel().querySelectorAll("button, input, textarea")) expect(c.getAttribute("title") || c.getAttribute("aria-label"), c.outerHTML.slice(0, 100)).toBeTruthy();
+  });
+
+  test("Versions: a project's required versions against the tools installed here", async () => {
+    const pins = join(home, "pins");
+    mkdirSync(pins, { recursive: true });
+    writeFileSync(join(pins, "package.json"), JSON.stringify({ engines: { node: ">=1.0.0", bun: ">=999.0.0" } }));
+    change(field("dev-root"), pins);
+    await sleep(200);
+    await openSection("versions");
+    await click(button("Check this project"), 100);
+    await until(() => panel().querySelector("table") !== null || status().includes("✗"), "the requirements table", 30000);
+    const table = panel().querySelector("table");
+    const bun = rows(table).find((r: any) => cell(r, 0) === "bun");
+    expect(cell(bun, 1)).toBe(">=999.0.0");
+    expect(cell(bun, 3)).toBe("! Too old");
+    expect(status()).toMatch(/need attention/);
+    change(field("dev-root"), work);
+    await sleep(200);
+  }, 60_000);
+
   test("opening the tab for a folder (what the right-click “Code statistics…” does) fills the folder and runs the count", async () => {
     const sub = join(work, "src");
     power.openPower("dev", { root: sub, section: "stats" });
@@ -443,7 +490,7 @@ describe("the Dev tab in a browser-like page", () => {
     tab.dispatchEvent(new win.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     expect(pane().querySelector('[role="tab"][aria-selected="true"]').textContent).toBe("Project");
     doc.getElementById("dev-tab-project").dispatchEvent(new win.KeyboardEvent("keydown", { key: "End", bubbles: true }));
-    expect(pane().querySelector('[role="tab"][aria-selected="true"]').textContent).toBe("Tools");
+    expect(pane().querySelector('[role="tab"][aria-selected="true"]').textContent).toBe("Versions");
     expect(pane().querySelector('[role="tab"][aria-selected="false"]').tabIndex).toBe(-1);
   });
 });

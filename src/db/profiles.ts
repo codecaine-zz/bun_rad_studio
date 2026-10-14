@@ -28,6 +28,8 @@ export interface ConnectionProfile {
   /** Name of an environment variable holding the password (alternative to the OS keychain). */
   passwordEnv?: string;
   statementTimeoutMs?: number;
+  /** How long to wait for the server when connecting, in ms. */
+  connectTimeoutMs?: number;
   allowPublicKeyRetrieval?: boolean;
   createdAt: string;
   lastUsedAt?: string;
@@ -150,6 +152,11 @@ export function sanitizeProfileInput(input: unknown, existing?: ConnectionProfil
       if (!Number.isInteger(ms) || ms < 0 || ms > 3_600_000) throw bad("statementTimeoutMs must be 0-3600000");
       out.statementTimeoutMs = ms;
     }
+    if (o.connectTimeoutMs !== undefined && o.connectTimeoutMs !== "") {
+      const ms = Number(o.connectTimeoutMs);
+      if (!Number.isInteger(ms) || ms < 1000 || ms > 120_000) throw bad("connectTimeoutMs must be 1000-120000");
+      out.connectTimeoutMs = ms;
+    }
     if (o.allowPublicKeyRetrieval) out.allowPublicKeyRetrieval = true;
   }
   if (existing && existing.engine !== out.engine) throw bad("A profile's engine cannot be changed; create a new profile");
@@ -242,13 +249,14 @@ export class ProfileStore {
     this.persist();
   }
 
-  async duplicate(id: string): Promise<PublicProfile> {
+  /** `copyPassword: false` leaves the copy without a saved password. */
+  async duplicate(id: string, copyPassword = true): Promise<PublicProfile> {
     this.load();
     const src = this.get(id);
     if (!src) throw new DbError("INVALID_REQUEST", "Unknown connection profile");
     const copy: ConnectionProfile = { ...src, id: randomUUID(), name: `${src.name} (copy)`.slice(0, 80), createdAt: new Date().toISOString(), lastUsedAt: undefined, favorite: false };
     this.profiles.push(copy);
-    const pw = await this.secrets.get(id);
+    const pw = copyPassword ? await this.secrets.get(id) : null;
     if (pw !== null) await this.secrets.set(copy.id, pw);
     this.persist();
     return this.pub(copy);
@@ -292,6 +300,7 @@ export function profileToConfig(p: ConnectionProfile, password?: string): Connec
     tls: p.tls,
     readOnly: p.readOnly,
     statementTimeoutMs: p.statementTimeoutMs,
+    connectTimeoutMs: p.connectTimeoutMs,
     allowPublicKeyRetrieval: p.allowPublicKeyRetrieval,
   };
 }

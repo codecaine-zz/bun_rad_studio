@@ -2,7 +2,9 @@
 import { showMenu } from "./menus.js";
 import { clearSearch, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
+import { canCompareData, showCompareData } from "./datacompare.js";
 import { showProperties } from "./extras.js";
+import { copyFileUrls, openInEditor } from "./fileurl.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { selectAll } from "./selection.js";
 import { inTrash, state } from "./state.js";
@@ -62,6 +64,8 @@ function entryItems(entries) {
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openInCode(e.path) } : null,
+    one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,
+    canCompareData(entries) ? { label: "Compare data files…", icon: "⚖️", tip: "Compare these two JSON, YAML or TOML files by what they say, ignoring key order and formatting, and list what differs.", action: () => showCompareData(entries) } : null,
     one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openFolderInCode(e.path) } : null,
     one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
     ...serveMenuItems(entries),
@@ -72,6 +76,7 @@ function entryItems(entries) {
     convertible ? { label: "Convert or process…", icon: "🧰", action: showToolsDialog } : null,
     canLock(entries) ? { label: "Encrypt…", icon: "🔒", action: () => lockEntries(entries) } : null,
     canUnlock(entries) ? { label: "Decrypt…", icon: "🔓", action: () => unlockEntries(entries) } : null,
+    one && !e.isDir && extensionOf(e.name) === "radsec" ? { label: "Open in Secrets", icon: "🗝️", tip: "Open the Secrets tool, where this encrypted vault backup can be restored (you will be asked for its master password).", action: () => openPower("secrets", { restorePath: e.path }) } : null,
     { separator: true },
     { label: "Cut", icon: "✂️", shortcut: `${mod()}X`, action: ops.cutSelection },
     { label: "Copy", icon: "📋", shortcut: `${mod()}C`, action: ops.copySelection },
@@ -81,6 +86,7 @@ function entryItems(entries) {
     { label: one ? "Rename" : `Rename ${entries.length} items…`, icon: "✏️", shortcut: one ? "F2" : "", action: ops.renameSelection },
     { label: "Compress to zip", icon: "🗜️", disabled: searching, action: ops.zipSelection },
     { label: "Copy path", icon: "🔗", action: () => ops.copyPathOf(entries) },
+    { label: "Copy path as a file:// address", icon: "🌐", tip: "Copy the location as a file:// web address (spaces become %20), the form browsers and some programs understand.", action: () => copyFileUrls(entries) },
     { separator: true },
     { label: "Move to Recycle Bin", icon: "🗑️", danger: true, shortcut: del(), action: ops.trashSelection },
     { label: "Delete permanently…", danger: true, shortcut: "Shift+Del", action: ops.deleteForever },

@@ -29,7 +29,7 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
       if (item.header) return h("div", { class: "menu-header", role: "presentation" }, item.header);
       const btn = h("button", {
         type: "button", role: item.checked !== undefined ? "menuitemcheckbox" : "menuitem", class: `menu-item${item.danger ? " danger" : ""}`,
-        "aria-checked": item.checked === undefined ? null : String(!!item.checked), disabled: item.disabled,
+        "aria-checked": item.checked === undefined ? null : String(!!item.checked), disabled: item.disabled, title: item.tip ?? null,
         onclick: () => { closeMenu(); item.action?.(); },
       },
         h("span", { class: "menu-icon", "aria-hidden": "true" }, item.checked ? "✓" : item.icon ?? ""),

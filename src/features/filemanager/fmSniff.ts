@@ -49,6 +49,8 @@ const GZIP = def("gzip", "a gzip-compressed file", "archive", ["gz"]);
 const BZIP2 = def("bzip2", "a bzip2-compressed file", "archive", ["bz2"]);
 const XZ = def("xz", "an xz-compressed file", "archive", ["xz"]);
 const ZSTD = def("zstd", "a Zstandard-compressed file", "archive", ["zst"]);
+const RADSEC = def("radsec", "an encrypted Secrets vault (RADSEC)", "data", ["radsec"]);
+const RADENC = def("radenc", "an encrypted file (RADENC)", "data", ["radenc"]);
 const TAR = def("tar", "a TAR archive", "archive", ["tar"]);
 const CAB = def("cab", "a Windows cabinet archive", "archive", ["cab"]);
 const MP3 = def("mp3", "an MP3 audio file", "audio", ["mp3"]);
@@ -204,6 +206,8 @@ function sniffContainer(b: Uint8Array): Sniffed | null {
   if (bytesAt(b, 0, [0xfd, 0x37, 0x7a, 0x58, 0x5a, 0])) return XZ;
   if (bytesAt(b, 0, [0x28, 0xb5, 0x2f, 0xfd])) return ZSTD;
   if (ascii(b, 257, "ustar")) return TAR;
+  if (ascii(b, 0, "RADSEC")) return RADSEC;
+  if (ascii(b, 0, "RADENC")) return RADENC;
   if (ascii(b, 0, "MSCF")) return CAB;
   if (bytesAt(b, 0, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) return OLE2;
   return null;

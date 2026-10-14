@@ -96,6 +96,8 @@ const SAMPLES: Array<[string, () => Uint8Array, string, Sniffed["family"]]> = [
   ["xz", () => pad([0xfd, 0x37, 0x7a, 0x58, 0x5a, 0, 0, 4]), "xz", "archive"],
   ["zstd", () => pad([0x28, 0xb5, 0x2f, 0xfd, 0, 0]), "zstd", "archive"],
   ["tar", tar, "tar", "archive"],
+  ["radsec vault", () => pad(ascii("RADSEC01")), "radsec", "data"],
+  ["radenc file", () => pad(ascii("RADENC01")), "radenc", "data"],
   ["cab", () => pad(ascii("MSCF")), "cab", "archive"],
   ["mp3 (ID3)", () => pad([...ascii("ID3"), 3, 0, 0]), "mp3", "audio"],
   ["mp3 (frame)", () => pad([0xff, 0xfb, 0x90, 0x64, 0, 0, 0, 0]), "mp3", "audio"],

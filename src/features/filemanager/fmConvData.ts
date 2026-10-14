@@ -57,7 +57,16 @@ export function parseJson(source: string, lenient: boolean, notes: Notes): Value
         } else if (n! in ESC) { out += ESC[n!]; i += 2; }
         else if (lenient && n === "'") { out += "'"; i += 2; }
         else if (lenient && (n === "\n" || n === "\r")) { i += n === "\r" && text[i + 2] === "\n" ? 3 : 2; }
-        else if (lenient && n === "0") { out += "\0"; i += 2; }
+        else if (lenient && n === "0" && !/\d/.test(text[i + 2] ?? "")) { out += "\0"; i += 2; }
+        else if (lenient && n === "v") { out += "\v"; i += 2; }
+        else if (lenient && n === "x") {
+          const hex = text.slice(i + 2, i + 4);
+          if (!/^[0-9a-fA-F]{2}$/.test(hex)) err("a \\x escape needs 2 hex digits");
+          out += String.fromCharCode(parseInt(hex, 16));
+          i += 4;
+        } else if (lenient && (n === "\u2028" || n === "\u2029")) i += 2;
+        // JSON5: a backslash before any other letter or symbol just means that character
+        else if (lenient && !/[\d]/.test(n!)) { out += n; i += 2; }
         else err(`"\\${n}" isn't a valid escape`);
       } else if (c < " " && !(lenient && c === "\t")) {
         err("a line break or control character inside a string");
@@ -70,6 +79,7 @@ export function parseJson(source: string, lenient: boolean, notes: Notes): Value
     const lit = m[0];
     const strictOk = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(lit);
     if (!lenient && !strictOk) err("that isn't a valid number");
+    if (/^[+-]?0\d/.test(lit)) err("a number can't start with a zero (0777 is ambiguous: write 777, or 0x1FF for a hex number)");
     i += lit.length;
     if (/^[+-]?\d+$/.test(lit)) {
       const n = Number(lit);
@@ -96,7 +106,12 @@ export function parseJson(source: string, lenient: boolean, notes: Notes): Value
         skip();
         let key: string;
         if (text[i] === '"' || (lenient && text[i] === "'")) key = string(text[i]!);
-        else if (lenient && /[A-Za-z_$]/.test(text[i] ?? "")) { const m = /^[A-Za-z_$][\w$]*/.exec(text.slice(i))!; key = m[0]; i += key.length; }
+        else if (lenient && /^[\p{ID_Start}$_]|^\\u[0-9a-fA-F]{4}/u.test(text.slice(i, i + 6))) {
+          // an unquoted JSON5 key is an identifier: letters of any language, digits, $ and _, and \uXXXX escapes
+          const m = /^(?:[\p{ID_Start}$_]|\\u[0-9a-fA-F]{4})(?:[\p{ID_Continue}$\u200c\u200d]|\\u[0-9a-fA-F]{4})*/u.exec(text.slice(i))!;
+          key = m[0].replace(/\\u([0-9a-fA-F]{4})/g, (_w, h: string) => String.fromCharCode(parseInt(h, 16)));
+          i += m[0].length;
+        }
         else return err(text[i] === undefined ? "the text ends too early" : "a key in quotes was expected");
         skip();
         if (text[i] !== ":") err('a ":" was expected');

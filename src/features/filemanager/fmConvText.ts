@@ -346,7 +346,7 @@ export function safeUrl(raw: string, image = false): string | null {
   return null;
 }
 
-const PAGE_STYLE = "body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#222}pre{background:#f5f5f5;padding:.8rem;overflow:auto}code{background:#f5f5f5;padding:.1rem .25rem}pre code{padding:0}blockquote{border-left:4px solid #ccc;margin-left:0;padding-left:1rem;color:#555}table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:.3rem .6rem}img{max-width:100%}";
+export const PAGE_STYLE = "body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#222}pre{background:#f5f5f5;padding:.8rem;overflow:auto}code{background:#f5f5f5;padding:.1rem .25rem}pre code{padding:0}blockquote{border-left:4px solid #ccc;margin-left:0;padding-left:1rem;color:#555}table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:.3rem .6rem}img{max-width:100%}";
 
 function inline(src: string): string {
   const holds: string[] = [];
@@ -494,10 +494,14 @@ function blocks(lines: string[], depth: number): string {
 export function markdownToHtml(md: string, title: string): { html: string; fragment: string } {
   const lines = md.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").split("\n");
   const fragment = blocks(lines, 0);
-  const h1 = /<h1>([\s\S]*?)<\/h1>/.exec(fragment);
+  return { html: markdownPage(fragment, title), fragment };
+}
+
+/** The whole web page around a rendered Markdown fragment: UTF-8, a title (the first heading), and a policy that forbids scripts. */
+export function markdownPage(fragment: string, title: string): string {
+  const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(fragment);
   const pageTitle = h1 ? h1[1]!.replace(/<[^>]*>/g, "") : escapeHtml(title);
-  const html = `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'">\n<title>${pageTitle || escapeHtml(title)}</title>\n<style>${PAGE_STYLE}</style>\n</head>\n<body>\n${fragment}\n</body>\n</html>\n`;
-  return { html, fragment };
+  return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'">\n<title>${pageTitle || escapeHtml(title)}</title>\n<style>${PAGE_STYLE}</style>\n</head>\n<body>\n${fragment}\n</body>\n</html>\n`;
 }
 
 export function textToHtml(text: string, title: string, layout: "pre" | "paragraphs"): string {

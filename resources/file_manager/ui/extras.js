@@ -15,7 +15,7 @@ import { formatSize, plural } from "./util.js";
 // Properties
 // ---------------------------------------------------------------------------------------------------------------
 
-export async function showProperties(paths) {
+export async function showProperties(paths, options = {}) {
   let p;
   try {
     p = (await call("props", { paths })).properties;
@@ -179,6 +179,7 @@ function shortcuts() {
     ["Properties", "Alt+Enter"],
     ["More info and hidden details", "Alt+Shift+Enter"],
     ["Copy the section you are in (its Copy button does the same)", `${alt}Shift+C`],
+    ["Secrets tool: lock the vault  ·  copy the selected password  ·  search", `${m}L  ·  ${m}Shift+C  ·  /`],
     ["Right-click menu from the keyboard", "Shift+F10  or  the Menu key"],
     ["Copy by dragging", `Hold ${copyKey} while dropping`],
     ["Jump to an item", "Just start typing its name"],
@@ -263,6 +264,12 @@ export function showSettings() {
   currentThemeName().then((name) => { if (name) themeNow.textContent = name; }).catch(() => {});
   const themeRow = h("div", { class: "field" }, h("span", { class: "field-label" }, "Theme"),
     h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "Pick from over a hundred colour themes: dark, light, futuristic, Linux, Windows, macOS and editor favourites.", onclick: () => showThemePicker() }, "Choose a theme…"), themeNow));
+  // The editor list comes from the server, which also knows which editors are installed.
+  const editorSelect = h("select", { class: "select", "aria-label": "Code editor for “Open in editor”", title: "The program that “Open in editor” (right-click a file) starts. Automatic uses your EDITOR setting or the first of VS Code, Sublime Text, WebStorm or IntelliJ IDEA that is installed.", onchange: () => saveSettings({ editor: editorSelect.value }) },
+    h("option", { value: "default", selected: true }, "Automatic"));
+  call("editor/info").then(({ choices }) => {
+    editorSelect.replaceChildren(...choices.map((c) => h("option", { value: c.id, title: c.hint, selected: state.settings.editor === c.id }, c.available ? c.label : `${c.label} (not found)`)));
+  }).catch(() => {});
   openDialog({
     title: "Settings",
     body: [
@@ -274,6 +281,7 @@ export function showSettings() {
       toggle("Keep folders at the top of the list", "foldersFirst"),
       toggle("Show the Details panel", "showInfoPanel"),
       toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
+      h("label", { class: "field" }, h("span", { class: "field-label" }, "Code editor"), editorSelect),
       h("p", { class: "hint" }, "Your choices are saved automatically."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],

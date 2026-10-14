@@ -91,6 +91,8 @@ rule("xz txz tar.xz", "archive", set(["xz"]));
 rule("zst tar.zst", "archive", set(["zstd"]));
 rule("tar", "archive", set(["tar"]));
 rule("cab", "archive", set(["cab"]));
+rule("radsec", "data", set(["radsec"]));
+rule("radenc", "data", set(["radenc"]));
 
 // Databases and fonts
 rule("sqlite sqlite3 db3 s3db", "data", set(["sqlite"]));

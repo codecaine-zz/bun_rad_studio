@@ -82,10 +82,17 @@ export function buildSecretCards(env) {
     if (!r) return;
     genOut.set(r.value);
     env.setLast(r.value);
-    genStatus.set(`${label}: about ${r.bits} bits of randomness.`, "ok");
+    genStatus.set(`${label}: about ${r.bits} bits of randomness${r.kind === "uuid7" ? " (the rest is the time it was made)" : ""}.`, "ok");
     env.log(`Generate ${label}`, detail);
   };
   const uuid = actionButton("New UUID v4", "A random unique ID like 3b241101-e2bb-4255-8caf-4136c566a962. Handy as an identifier.", () => generate(uuid, "UUID v4", { kind: "uuid" }, ""));
+  const uuid7Count = lineBox({ label: "How many", tip: "How many UUIDs to make at once, from 1 to 100.", type: "number", value: "1", min: "1", max: "100", width: "crypto-narrow" });
+  const uuid7Format = h("select", { id: "crypto-uuid7-format", class: "crypto-input", title: "How to write each UUID." },
+    h("option", { value: "standard" }, "With dashes"), h("option", { value: "plain" }, "No dashes"), h("option", { value: "upper" }, "CAPITALS"), h("option", { value: "base64url" }, "Compact (22 characters)"));
+  const uuid7 = actionButton("New UUID v7", "A time-ordered unique ID: it starts with the current time in milliseconds, so newer IDs sort after older ones. Good for database keys. Made with Bun's own UUID v7 function.", () => {
+    const n = parseInt(uuid7Count.input.value, 10);
+    return generate(uuid7, "UUID v7", { kind: "uuid7", count: n, format: uuid7Format.value }, `${Number.isFinite(n) ? n : "?"} × ${uuid7Format.selectedOptions[0].textContent}`);
+  });
   const hex32 = actionButton("32-byte hex key", "32 random bytes (256 bits) written as 64 characters of 0-9 and a-f. A good secret key.", () => generate(hex32, "32-byte hex key", { kind: "hex32" }, "32 bytes"));
   const b64 = actionButton("256-bit Base64 key", "32 random bytes (256 bits) written in Base64. A good secret key.", () => generate(b64, "256-bit Base64 key", { kind: "base64-256" }, "32 bytes"));
   const count = lineBox({ label: "Number of random bytes", tip: "How many random bytes to make, from 1 to 1024.", type: "number", value: "16", min: "1", max: "1024", width: "crypto-narrow" });
@@ -95,7 +102,7 @@ export function buildSecretCards(env) {
     return generate(bytes, "random bytes", { kind: "bytes", length: n, format: format.value }, `${Number.isFinite(n) ? n : "?"} bytes`);
   });
   const randomCard = card("Random keys and IDs", "Random values come from your computer's secure random generator, so they are safe to use as keys. Generate a new one each time; never reuse a key for different things.",
-    h("div", { class: "pw-row" }, uuid, hex32, b64), h("div", { class: "pw-row" }, count.el, labelled("Write as", "crypto-bytes-format", format), bytes), genStatus.el, genOut.el);
+    h("div", { class: "pw-row" }, uuid, hex32, b64), h("div", { class: "pw-row" }, uuid7Count.el, labelled("Write UUIDs as", "crypto-uuid7-format", uuid7Format), uuid7), h("div", { class: "pw-row" }, count.el, labelled("Write as", "crypto-bytes-format", format), bytes), genStatus.el, genOut.el);
 
   // ---- Password -------------------------------------------------------------------------------------------------
   const length = lineBox({ label: "Length", tip: "How many characters (4 to 256). Longer is stronger; 16 or more is a good choice.", type: "number", value: "20", min: "4", max: "256", width: "crypto-narrow" });

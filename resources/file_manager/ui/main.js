@@ -27,6 +27,7 @@ import "./ip.js";
 import "./net.js";
 import "./sd.js";
 import "./vault.js";
+import "./secrets.js";
 import "./calc.js";
 import "./timer.js";
 import "./code.js";

@@ -37,8 +37,11 @@ class Out {
   private error: Error | null = null;
   private readonly file: fs.WriteStream;
   private readonly head: NodeJS.WritableStream;
-  constructor(private readonly path: string, transform?: zlib.Gzip | zlib.BrotliCompress) {
+  /** True once this stream really created the file (an EEXIST means it is someone else's and must not be removed). */
+  private created = false;
+  constructor(private readonly path: string, transform?: Transform) {
     this.file = fs.createWriteStream(path, { flags: "wx" });
+    this.file.on("open", () => (this.created = true));
     this.file.on("error", (e) => (this.error ??= e));
     if (transform) {
       transform.on("error", (e) => (this.error ??= e));
@@ -65,11 +68,18 @@ class Out {
     });
     if (this.error) throw this.error;
   }
-  /** Stops and removes the file (it was created here with "wx", so it is ours). */
-  abort(): void {
+  /** Stops and removes the file (it was created here with "wx", so it is ours). Resolves once the file is gone. */
+  abort(): Promise<void> {
     this.head.end();
     this.file.destroy();
-    this.file.once("close", () => { try { fs.rmSync(this.path, { force: true }); } catch {} });
+    return new Promise((resolve) => {
+      const remove = () => {
+        try { if (this.created) fs.rmSync(this.path, { force: true }); } catch {}
+        resolve();
+      };
+      if (this.file.closed) remove();
+      else this.file.once("close", remove);
+    });
   }
 }
 
@@ -96,21 +106,126 @@ async function pump(source: NodeJS.ReadableStream, out: Out): Promise<void> {
 
 function translate(err: any, what: string): never {
   if (err instanceof ConvError) throw err;
-  if (err?.code === "Z_DATA_ERROR" || err?.code === "Z_BUF_ERROR" || err?.code === "ERR_BROTLI_DECODE" || /incorrect header check|unexpected end|invalid|corrupt/i.test(String(err?.message))) throw new ConvError(`${what} is damaged or isn't the kind of file it says it is.`);
+  if (/^ZSTD_error_(?:frameParameter_windowTooLarge|memory_allocation|dictionary)/.test(String(err?.code))) throw new ConvError(`${what} needs more memory to open than is allowed (it was made with a very large window setting), so it was not opened.`);
+  if (err?.code === "Z_DATA_ERROR" || err?.code === "Z_BUF_ERROR" || err?.code === "ERR_BROTLI_DECODE" || /^ZSTD_error_/.test(String(err?.code)) || /incorrect header check|unexpected end|invalid|corrupt/i.test(String(err?.message))) throw new ConvError(`${what} is damaged or isn't the kind of file it says it is.`);
   throw err;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Zstandard: reading and writing
+// ---------------------------------------------------------------------------------------------------------------
+
+/** zstd's own "magic number" at the start of every frame; the little-endian 0xFD2FB528. */
+const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd];
+
+/**
+ * Watches the compressed bytes as they pass and fails when the file ends in the middle of a zstd frame. The decoder
+ * itself does not notice a file that was cut short (it just stops early), which would silently give an incomplete
+ * result, so the frame, block and trailer structure is followed here (it is cheap: only the small headers are read).
+ */
+function zstdCompleteness(what: string): Transform {
+  // "skip" counts bytes of a block body or trailer still to pass; "need" collects the bytes of a header being read.
+  let state: "magic" | "frame-header" | "block-header" | "skip-body" | "skip-trailer" | "skippable-size" | "skippable-body" = "magic";
+  let need: number[] = [];
+  let skip = 0;
+  let wantChecksum = false;
+  let lastBlock = false;
+  let headerLength = 0;
+  let started = false;
+  const finishFrame = () => { state = "magic"; need = []; };
+  return new Transform({
+    transform(chunk: Buffer, _enc, cb) {
+      started = true;
+      for (let i = 0; i < chunk.length; ) {
+        if (state === "skip-body" || state === "skip-trailer" || state === "skippable-body") {
+          const n = Math.min(skip, chunk.length - i);
+          skip -= n;
+          i += n;
+          if (skip > 0) continue;
+          if (state === "skip-body") { if (lastBlock) { if (wantChecksum) { state = "skip-trailer"; skip = 4; } else finishFrame(); } else { state = "block-header"; need = []; } } else finishFrame();
+          continue;
+        }
+        need.push(chunk[i++]!);
+        if (state === "magic" && need.length === 4) {
+          const m = (need[0]! | (need[1]! << 8) | (need[2]! << 16) | (need[3]! << 24)) >>> 0;
+          if (((m & 0xfffffff0) >>> 0) === 0x184d2a50) { state = "skippable-size"; need = []; }
+          else if (need.every((b, k) => b === ZSTD_MAGIC[k])) { state = "frame-header"; need = []; headerLength = 0; }
+          else { cb(new ConvError(`${what} is damaged or isn't the kind of file it says it is.`)); return; }
+        } else if (state === "skippable-size" && need.length === 4) {
+          skip = (need[0]! | (need[1]! << 8) | (need[2]! << 16) | (need[3]! << 24)) >>> 0;
+          state = "skippable-body";
+          need = [];
+          if (skip === 0) finishFrame();
+        } else if (state === "frame-header") {
+          if (headerLength === 0) {
+            const fhd = need[0]!;
+            const fcsFlag = fhd >> 6;
+            const single = (fhd & 0x20) !== 0;
+            wantChecksum = (fhd & 0x04) !== 0;
+            const dict = [0, 1, 2, 4][fhd & 3]!;
+            const fcs = fcsFlag === 0 ? (single ? 1 : 0) : [0, 2, 4, 8][fcsFlag]!;
+            headerLength = 1 + (single ? 0 : 1) + dict + fcs;
+          }
+          if (need.length === headerLength) { state = "block-header"; need = []; }
+        } else if (state === "block-header" && need.length === 3) {
+          const h = need[0]! | (need[1]! << 8) | (need[2]! << 16);
+          lastBlock = (h & 1) === 1;
+          const type = (h >> 1) & 3;
+          if (type === 3) { cb(new ConvError(`${what} is damaged or isn't the kind of file it says it is.`)); return; }
+          skip = type === 1 ? 1 : h >> 3;
+          need = [];
+          if (skip === 0) { if (lastBlock) { if (wantChecksum) { state = "skip-trailer"; skip = 4; } else finishFrame(); } } else state = "skip-body";
+        }
+      }
+      cb(null, chunk);
+    },
+    flush(cb) {
+      if (started && (state !== "magic" || need.length > 0)) cb(new ConvError(`${what} ends too early: the file was cut short (an incomplete download or a damaged copy), so it was not opened.`));
+      else cb();
+    },
+  });
+}
+
+/** Compresses one file with zstd (level 1 to 19). */
+export async function zstdFile(input: string, output: string, level = 3): Promise<void> {
+  const out = new Out(output, zlib.createZstdCompress({ params: { [zlib.constants.ZSTD_c_compressionLevel]: level, [zlib.constants.ZSTD_c_checksumFlag]: 1 } }));
+  try {
+    await pump(fs.createReadStream(input), out);
+    await out.finish();
+  } catch (err) {
+    await out.abort();
+    throw err;
+  }
+}
+
+/** The stream of the contents of a .zst file: checked for being complete, decompressed, and capped at `limit` bytes. */
+function unzstdStream(input: string, limit: number, what: string): Readable {
+  return chain(fs.createReadStream(input), zstdCompleteness(what), zlib.createZstdDecompress(), capped(limit, what));
+}
+
+export async function unzstdFile(input: string, output: string, limit = DEFAULT_ARCHIVE_LIMITS.maxBytes): Promise<void> {
+  if ((await fsp.stat(input)).size === 0) throw new ConvError("The file is empty: there is nothing to open.");
+  const out = new Out(output);
+  try {
+    await pump(unzstdStream(input, limit, "This file"), out);
+    await out.finish();
+  } catch (err) {
+    await out.abort();
+    translate(err, "This file");
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Single files: gzip and brotli
 // ---------------------------------------------------------------------------------------------------------------
 
-export async function gzipFile(input: string, output: string): Promise<void> {
-  const out = new Out(output, zlib.createGzip({ level: 6 }));
+export async function gzipFile(input: string, output: string, level = 6): Promise<void> {
+  const out = new Out(output, zlib.createGzip({ level }));
   try {
     await pump(fs.createReadStream(input), out);
     await out.finish();
   } catch (err) {
-    out.abort();
+    await out.abort();
     throw err;
   }
 }
@@ -121,7 +236,7 @@ export async function gunzipFile(input: string, output: string, limit = DEFAULT_
     await pump(chain(fs.createReadStream(input), zlib.createGunzip(), capped(limit, "This file")), out);
     await out.finish();
   } catch (err) {
-    out.abort();
+    await out.abort();
     translate(err, "This file");
   }
 }
@@ -132,7 +247,7 @@ export async function brotliFile(input: string, output: string): Promise<void> {
     await pump(fs.createReadStream(input), out);
     await out.finish();
   } catch (err) {
-    out.abort();
+    await out.abort();
     throw err;
   }
 }
@@ -143,7 +258,7 @@ export async function unbrotliFile(input: string, output: string, limit = DEFAUL
     await pump(chain(fs.createReadStream(input), zlib.createBrotliDecompress(), capped(limit, "This file")), out);
     await out.finish();
   } catch (err) {
-    out.abort();
+    await out.abort();
     translate(err, "This file");
   }
 }
@@ -321,14 +436,15 @@ export async function* tarItems(source: AsyncIterable<Buffer>, limits: ArchiveLi
   }
 }
 
-function gunzipSource(path: string, limits: ArchiveLimits): AsyncIterable<Buffer> {
+/** The bytes of a tar file: read as they are, or through gzip or zstd when the first bytes say it is compressed. */
+function tarSource(path: string, limits: ArchiveLimits): AsyncIterable<Buffer> {
   const src = fs.createReadStream(path);
-  const head = Buffer.alloc(2);
+  const head = Buffer.alloc(4);
   const fd = fs.openSync(path, "r");
-  try { fs.readSync(fd, head, 0, 2, 0); } finally { fs.closeSync(fd); }
-  if (head[0] === 0x1f && head[1] === 0x8b) {
-    return chain(src, zlib.createGunzip(), capped(limits.maxBytes + limits.maxEntries * 1024, "This archive")) as unknown as AsyncIterable<Buffer>;
-  }
+  try { fs.readSync(fd, head, 0, 4, 0); } finally { fs.closeSync(fd); }
+  const cap = limits.maxBytes + limits.maxEntries * 1024;
+  if (head[0] === 0x1f && head[1] === 0x8b) return chain(src, zlib.createGunzip(), capped(cap, "This archive")) as unknown as AsyncIterable<Buffer>;
+  if (ZSTD_MAGIC.every((b, i) => head[i] === b)) return chain(src, zstdCompleteness("This archive"), zlib.createZstdDecompress(), capped(cap, "This archive")) as unknown as AsyncIterable<Buffer>;
   return src;
 }
 
@@ -401,10 +517,18 @@ export async function createZipFrom(sources: string[], output: string, limits = 
   return { files, folders, skippedLinks };
 }
 
-export async function createTarGzFrom(sources: string[], output: string, limits = DEFAULT_ARCHIVE_LIMITS): Promise<Made> {
+export async function createTarGzFrom(sources: string[], output: string, limits = DEFAULT_ARCHIVE_LIMITS, level = 6): Promise<Made> {
+  return await createTarFrom(sources, output, limits, zlib.createGzip({ level }));
+}
+
+export async function createTarZstFrom(sources: string[], output: string, limits = DEFAULT_ARCHIVE_LIMITS, level = 3): Promise<Made> {
+  return await createTarFrom(sources, output, limits, zlib.createZstdCompress({ params: { [zlib.constants.ZSTD_c_compressionLevel]: level, [zlib.constants.ZSTD_c_checksumFlag]: 1 } }));
+}
+
+async function createTarFrom(sources: string[], output: string, limits: ArchiveLimits, compressor: Transform): Promise<Made> {
   const { items, skippedLinks } = await plan(sources, limits);
-  if (!items.length) throw new ConvError("There is nothing to put in the archive (links are skipped, and empty selections have no files).");
-  const out = new Out(output, zlib.createGzip({ level: 6 }));
+  if (!items.length) { compressor.destroy(); throw new ConvError("There is nothing to put in the archive (links are skipped, and empty selections have no files)."); }
+  const out = new Out(output, compressor);
   let files = 0;
   let folders = 0;
   let bytes = 0;
@@ -422,7 +546,7 @@ export async function createTarGzFrom(sources: string[], output: string, limits 
     await out.write(Buffer.alloc(BLOCK * 2));
     await out.finish();
   } catch (err) {
-    out.abort();
+    await out.abort();
     throw err;
   }
   return { files, folders, skippedLinks };
@@ -444,7 +568,7 @@ export async function extractTarGz(input: string, dest: string, platform: Platfo
   const result: Extracted = { files: 0, folders: 0, bytes: 0, skipped: [] };
   const skip = (name: string, why: string) => { if (result.skipped.length < 50) result.skipped.push(`"${name}" was skipped: ${why}.`); };
   try {
-    for await (const item of tarItems(gunzipSource(input, limits), limits)) {
+    for await (const item of tarItems(tarSource(input, limits), limits)) {
       if (item.type === "link") { skip(item.name, "links inside archives aren't created"); continue; }
       if (item.type === "other") { skip(item.name, "it isn't a file or folder"); continue; }
       const safe = safeEntryPath(item.name, platform);
@@ -528,7 +652,7 @@ export async function zipToTarGz(input: string, output: string, platform: Platfo
     await out.write(Buffer.alloc(BLOCK * 2));
     await out.finish();
   } catch (err) {
-    out?.abort();
+    await out?.abort();
     throw err;
   } finally {
     await handle.close();
@@ -541,7 +665,7 @@ export async function tarGzToZip(input: string, output: string, platform: Platfo
   const result: Extracted = { files: 0, folders: 0, bytes: 0, skipped: [] };
   const zip = await ZipFileWriter.create(output);
   try {
-    for await (const item of tarItems(gunzipSource(input, limits), limits)) {
+    for await (const item of tarItems(tarSource(input, limits), limits)) {
       if (item.type === "link") { result.skipped.push(`"${item.name}" was skipped: links inside archives aren't copied.`); continue; }
       if (item.type === "other") { result.skipped.push(`"${item.name}" was skipped: it isn't a file or folder.`); continue; }
       const safe = safeEntryPath(item.name, platform);

@@ -54,6 +54,12 @@ td.fi-warn { background: var(--warn-bg); }
 .fi-hash-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.4rem 0; }
 .fi-progress { flex: 1 1 10rem; max-width: 20rem; accent-color: var(--accent); }
 .fi-hash-status { margin: 0.2rem 0; min-height: 1.2em; font-size: 0.88rem; color: var(--muted); }
+.fi-kinds { margin: 0.3rem 0; font-size: 0.88rem; }
+.fi-kinds summary { cursor: pointer; }
+.fi-kinds-body { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.3rem; }
+.fi-kinds-group { border: 1px solid var(--border); border-radius: 6px; margin: 0; padding: 0.3rem 0.6rem; display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; }
+.fi-kind { display: inline-flex; align-items: center; gap: 0.2rem; cursor: pointer; }
+.fi-hash-skipped { margin: 0.3rem 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.85rem; }
 .fi-compare { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.6rem; }
 .fi-compare[hidden] { display: none; }
 .fi-compare-input { flex: 1 1 16rem; width: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }

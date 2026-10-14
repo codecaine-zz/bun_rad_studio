@@ -7,7 +7,7 @@ import { formatDigestReport } from "../src/crypto_tools";
 import { stdlib } from "../src/simplecli/stdlib";
 import { createContext } from "../src/features/filemanager/fmCore";
 import {
-  MAX_TEXT_BYTES, checkChecksum, decryptText, encodeText, encryptText, estimateEntropy, generateValue, hashAlgorithms, hashText, hmacAlgorithms, inspectJwt,
+  MAX_TEXT_BYTES, checkChecksum, decryptText, encodeText, encryptText, estimateEntropy, generateValue, hashAlgorithms, inspectUuid, uuidV7, hashText, hmacAlgorithms, inspectJwt,
 } from "../src/features/filemanager/fmCrypto";
 import { cryptoOperations } from "../src/features/filemanager/fmCryptoOps";
 import { FmError } from "../src/features/filemanager/fmPaths";
@@ -201,6 +201,81 @@ describe("strength estimate", () => {
   test("repetition is called out, and characters beyond ASCII count once each", () => {
     expect(estimateEntropy("a".repeat(30)).advice).toMatch(/repeat/);
     expect(estimateEntropy("🔐🔐").length).toBe(2);
+  });
+});
+
+describe("UUID v7", () => {
+  const V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  test("a new one is version 7, carries the current time, and a later one sorts after an earlier one", () => {
+    const before = Date.now();
+    const made = Array.from({ length: 200 }, () => uuidV7());
+    const after = Date.now();
+    for (const u of made) {
+      expect(u).toMatch(V7);
+      const t = parseInt(u.replaceAll("-", "").slice(0, 12), 16);
+      expect(t).toBeGreaterThanOrEqual(before - 1);
+      expect(t).toBeLessThanOrEqual(after + 1);
+    }
+    expect(new Set(made).size).toBe(200);
+    expect(uuidV7(1_700_000_000_000)).toMatch(/^018bcfe5-6800-7/);
+    expect(uuidV7(0).startsWith("00000000-0000-7")).toBe(true);
+    const early = uuidV7(1_000);
+    const late = uuidV7(2_000);
+    expect([late, early].sort()).toEqual([early, late]);
+  });
+
+  test("generate: count, formats, a chosen time, and limits", () => {
+    const one = generateValue({ kind: "uuid7" });
+    expect(one.value).toMatch(V7);
+    expect(one.bits).toBe(74);
+    const ten = generateValue({ kind: "uuid7", count: 10, format: "plain" }).value.split("\n");
+    expect(ten).toHaveLength(10);
+    for (const u of ten) expect(u).toMatch(/^[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}$/);
+    expect(generateValue({ kind: "uuid7", format: "upper" }).value).toMatch(/^[0-9A-F-]{36}$/);
+    const compact = generateValue({ kind: "uuid7", format: "base64url" }).value;
+    expect(compact).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(inspectUuid(compact).version).toBe(7);
+    expect(generateValue({ kind: "uuid7", timeMs: 1_700_000_000_000 }).value).toMatch(/^018bcfe5-6800-7/);
+    expect(generateValue({ kind: "uuid7", timeMs: "1700000000000" }).value).toMatch(/^018bcfe5-6800-7/);
+    for (const bad of [0, -1, 101, 1.5, "x", NaN]) expect(() => generateValue({ kind: "uuid7", count: bad }), String(bad)).toThrow(FmError);
+    for (const bad of [-1, 2 ** 48, 1.5, "soon"]) expect(() => generateValue({ kind: "uuid7", timeMs: bad }), String(bad)).toThrow(FmError);
+    expect(() => generateValue({ kind: "uuid7", format: "nope" })).toThrow(FmError);
+  });
+
+  test("inspect: version, variant and time of v1, v4, v5, v6 and v7, nil and max, and every way of writing one", () => {
+    const v7 = inspectUuid("018bcfe5-6800-75c2-9b8f-d45f5bde5010");
+    expect(v7).toMatchObject({ version: 7, variant: "Standard (RFC 9562)", timeMs: 1_700_000_000_000, iso: "2023-11-14T22:13:20.000Z" });
+    expect(inspectUuid("1ee8bd0e-1e8f-6c80-8c10-0242ac120002").version).toBe(6);
+    const v1 = inspectUuid("c232ab00-9414-11ec-b3c8-9f6bdeced846");
+    expect(v1).toMatchObject({ version: 1, iso: "2022-02-22T19:22:22.000Z" });
+    const v6 = inspectUuid("1ec9414c-232a-6b00-b3c8-9f6bdeced846");
+    expect(v6).toMatchObject({ version: 6, iso: "2022-02-22T19:22:22.000Z" });
+    expect(inspectUuid("3b241101-e2bb-4255-8caf-4136c566a962")).toMatchObject({ version: 4 });
+    expect(inspectUuid("3b241101-e2bb-4255-8caf-4136c566a962").iso).toBeUndefined();
+    expect(inspectUuid("886313e1-3b8a-5372-9b90-0c9aee199e5d").version).toBe(5);
+    expect(inspectUuid("00000000-0000-0000-0000-000000000000")).toMatchObject({ variant: "Nil", version: null });
+    expect(inspectUuid("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")).toMatchObject({ variant: "Max", version: null });
+    const canonical = "018bcfe5-6800-75c2-9b8f-d45f5bde5010";
+    for (const written of ["018BCFE5-6800-75C2-9B8F-D45F5BDE5010", "018bcfe5680075c29b8fd45f5bde5010", `{${canonical}}`, `urn:uuid:${canonical}`, `  ${canonical}  `, "AYvP5WgAdcKbj9RfW95QEA"]) {
+      expect(inspectUuid(written).canonical, written).toBe(canonical);
+    }
+    expect(inspectUuid("018bcfe5-6800-75c2-0b8f-d45f5bde5010").kind).toMatch(/Not a standard/);
+  });
+
+  test("bad input is explained in plain words", () => {
+    for (const bad of ["", "   ", "hello", "018bcfe5-6800-75c2-9b8f-d45f5bde501", "018bcfe5-6800-75c2-9b8f-d45f5bde50100", "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz", null, 5, {}]) {
+      expect(() => inspectUuid(bad), String(bad)).toThrow(FmError);
+    }
+    expect(() => inspectUuid("hello")).toThrow(/isn't a UUID/);
+  });
+
+  test("the operations answer, and need the token", async () => {
+    const made = await cryptoOperations["crypto/generate"]!(createContext({ platform: "linux", home: root, dataDir: root }), { kind: "uuid7", count: 2 }) as any;
+    expect(made.value.split("\n")).toHaveLength(2);
+    const info = await cryptoOperations["crypto/uuid"]!(createContext({ platform: "linux", home: root, dataDir: root }), { text: made.value.split("\n")[0] }) as any;
+    expect(info.version).toBe(7);
+    expect(API_OPERATIONS).toContain("crypto/uuid");
   });
 });
 
@@ -398,7 +473,8 @@ describe("checksum matching", () => {
     expect(checkChecksum(flipped, rows)).toMatchObject({ match: null });
     expect(checkChecksum(flipped, rows).hint).toMatch(/length of a SHA-256/);
     expect(checkChecksum("xyz-not-hex", rows).hint).toMatch(/doesn't look like a checksum/);
-    expect(checkChecksum("abcd1234", rows).hint).toMatch(/8 characters/);
+    expect(checkChecksum("abcd123", rows).hint).toMatch(/7 characters/);
+    expect(checkChecksum("abcd1234", rows).hint).toMatch(/length of a 32-bit fast/);
     expect(checkChecksum("d".repeat(40), rows).hint).toMatch(/SHA-1/);
     expect(checkChecksum("   ", rows).match).toBeNull();
   });

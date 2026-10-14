@@ -6,8 +6,20 @@ import * as fs from "fs";
 import { promises as fsp } from "fs";
 import { homedir } from "os";
 import * as nodePath from "path";
+import { defaultEditorHooks } from "./fmEditorHooks";
 import { createJobHub, type JobHub } from "./fmJobs";
 import { FmError, isSameOrInside, platformName, protectedReason, type Platform } from "./fmPaths";
+import type { SecretsHooks } from "./fmSecretsHooks";
+
+/** What "Open in editor" needs from the computer, replaceable so tests never start a real editor. */
+export interface EditorHooks {
+  /** Where a command is on the PATH, or null (`Bun.which`). */
+  which(name: string): string | null;
+  /** The environment variables the editor choice looks at ($VISUAL and $EDITOR). */
+  env: Record<string, string | undefined>;
+  /** Starts the editor in the background (`Bun.openInEditor`); it can't tell afterwards whether it worked. */
+  open(path: string, options: { editor?: string; line?: number; column?: number; command?: string }): void;
+}
 
 export interface FmContext {
   platform: Platform;
@@ -21,6 +33,10 @@ export interface FmContext {
   launch: (command: string, args: string[], options?: { windowsVerbatimArguments?: boolean }) => Promise<void>;
   /** When set, helper programs (ffmpeg and so on) are only looked for in these folders. For tests. */
   toolDirs?: string[];
+  /** Starting a code editor for "Open in editor". */
+  editor: EditorHooks;
+  /** Test replacements for the Secrets feature's clock, network, clipboard and key-derivation cost. */
+  secrets?: Partial<SecretsHooks>;
   /** Background work: conversions and installs. */
   jobs: JobHub;
   /** Cleanup that must run when the server stops (watchers, child processes, timers). Add with `ctx.disposers.push(fn)`. */
@@ -36,6 +52,8 @@ export interface FmContextOptions {
   dataDir?: string;
   launch?: FmContext["launch"];
   toolDirs?: string[];
+  editor?: Partial<EditorHooks>;
+  secrets?: Partial<SecretsHooks>;
 }
 
 export function createContext(options: FmContextOptions = {}): FmContext {
@@ -49,7 +67,9 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     trashRoot: nodePath.join(dataDir, "file_manager_trash"),
     launch: options.launch ?? defaultLaunch,
     toolDirs: options.toolDirs,
+    editor: { ...defaultEditorHooks({ platform, home, toolDirs: options.toolDirs }), ...options.editor },
     jobs: createJobHub(),
+    secrets: options.secrets,
     disposers: [],
   };
 }

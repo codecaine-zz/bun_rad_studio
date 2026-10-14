@@ -144,7 +144,8 @@ const ocr = (mode: "txt" | "pdf"): Engine => ({
 const EXTRACT_ENGINES = (): Engine[] => [
   { tool: "builtin", accepts: exts("zip"), builtin: { kind: "zip-extract" } },
   { tool: "builtin", accepts: exts("tar.gz tgz tar"), builtin: { kind: "targz-extract" } },
-  { tool: "bsdtar", accepts: exts("tar.bz2 tbz2 tar.xz txz tar.zst tzst tar.lz4 tar.lzma 7z rar iso cab cpio lzh lha xar ar rpm"), limitOutput: true, argv: (c) => ["-x", "-f", c.inputs[0]!, "-C", c.output] },
+  { tool: "builtin", accepts: exts("tar.zst tzst"), builtin: { kind: "tarzst-extract" } },
+  { tool: "bsdtar", accepts: exts("tar.bz2 tbz2 tar.xz txz tar.lz4 tar.lzma 7z rar iso cab cpio lzh lha xar ar rpm"), limitOutput: true, argv: (c) => ["-x", "-f", c.inputs[0]!, "-C", c.output] },
   { tool: "sevenzip", limitOutput: true, argv: (c) => ["x", "-y", "-bd", `-o${c.output}`, "--", c.inputs[0]!] },
   { tool: "unar", limitOutput: true, argv: (c) => ["-q", "-D", "-o", c.output, c.inputs[0]!] },
 ];
@@ -250,7 +251,7 @@ export const FONT_DEFS: ConvDef[] = [
 ];
 
 export const ARCHIVE_TOOL_DEFS: ConvDef[] = [
-  { id: "arc-extract", label: "Unpack into a folder", hint: "Opens a zip, tar.gz, 7z, RAR, ISO or DMG file into a new folder next to it.", group: "Archives", inputs: ARCHIVE_IN, out: "", suffix: "unpacked", mode: "each", outKind: "folder", engines: EXTRACT_ENGINES(), keywords: "extract unzip decompress open rar 7z iso dmg tar" },
+  { id: "arc-extract", label: "Unpack into a folder", hint: "Opens a zip, tar.gz, tar.zst, 7z, RAR, ISO or DMG file into a new folder next to it.", group: "Archives", inputs: ARCHIVE_IN, out: "", suffix: "unpacked", mode: "each", outKind: "folder", engines: EXTRACT_ENGINES(), keywords: "extract unzip decompress open rar 7z iso dmg tar" },
   { id: "arc-list", label: "List what is inside", hint: "A text file with the names, sizes and dates of everything in the archive.", group: "Archives", inputs: ARCHIVE_IN, out: "txt", suffix: "contents", mode: "each", engines: [
     { tool: "bsdtar", accepts: exts("zip tar.gz tgz tar tar.bz2 tbz2 tar.xz txz tar.zst tzst 7z rar iso cab cpio lzh lha xar rpm"), stdoutIsOutput: true, argv: (c) => ["-t", "-v", "-f", c.inputs[0]!] },
     { tool: "sevenzip", stdoutIsOutput: true, argv: (c) => ["l", "-bd", "--", c.inputs[0]!] },
@@ -259,8 +260,8 @@ export const ARCHIVE_TOOL_DEFS: ConvDef[] = [
   { id: "arc-7z", label: "Pack into a 7z archive", hint: "Strong compression; opens with 7-Zip.", group: "Archives", inputs: null, dirs: true, out: "7z", suffix: "archive", mode: "all", allName: "Archive", singleName: true, minFiles: 1, engines: [{
     tool: "sevenzip", cwdIsInputFolder: true, argv: (c) => ["a", "-t7z", "-y", "-bd", "-spd", "--", c.output, ...c.originals.map((p) => nodePath.basename(p))],
   }], checkFiles: (files) => (new Set(files.map((f) => nodePath.dirname(f))).size > 1 ? "Select items that are all in one folder." : null), keywords: "compress archive" },
-  { id: "arc-decompress", label: "Open a compressed file (.xz, .bz2, .zst …)", hint: "Takes a single file out of its compression.", group: "Archives", inputs: exts("xz bz2 zst lzma lz4 z"), out: "", suffix: "unpacked", mode: "each", engines: [
+  { id: "arc-decompress", label: "Open a compressed file (.xz, .bz2 …)", hint: "Takes a single file out of its compression.", group: "Archives", inputs: exts("xz bz2 lzma lz4 z"), out: "", suffix: "unpacked", mode: "each", engines: [
     { tool: "sevenzip", stage: true, stageBase: "out", outputExt: "", argv: (c) => ["e", "-y", "-bd", `-o${nodePath.dirname(c.output)}`, "--", c.inputs[0]!] },
     { tool: "unar", stage: true, stageBase: "out", outputExt: "", accepts: exts("xz bz2 lzma z"), argv: (c) => ["-q", "-D", "-o", nodePath.dirname(c.output), c.inputs[0]!] },
-  ], outName: (n) => n.replace(/\.[^.]+$/, "") || `${n} (unpacked)`, keywords: "decompress xz bzip2 zstd" },
+  ], outName: (n) => n.replace(/\.[^.]+$/, "") || `${n} (unpacked)`, keywords: "decompress xz bzip2" },
 ];

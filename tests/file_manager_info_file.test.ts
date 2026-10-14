@@ -466,7 +466,7 @@ describe("HTTP: token, loopback, path checks and limits", () => {
     const same = await api("info/compare", { expected: ` SHA256:${rows2.find((r: any) => r.id === "sha256").value.toUpperCase()} `, rows: rows2 });
     expect(same.json.matched).toBe("sha256");
     expect((await api("info/compare", { expected: "abc", rows: "bad" })).status).toBe(400);
-    expect((await api("info/compare", { expected: "abc", rows: Array.from({ length: 20 }, () => ({ id: "md5", value: "a" })) })).status).toBe(400);
+    expect((await api("info/compare", { expected: "abc", rows: Array.from({ length: 41 }, () => ({ id: "md5", value: "a" })) })).status).toBe(400); // up to 40 kinds can be compared now
     expect((await api("info/task", { id: "missing" })).json.error.code).toBe("NO_TASK");
     expect((await api("info/hash", { path: dir })).json.error.code).toBe("NOT_A_FILE");
     expect((await api("info/cancel", { id: task.id })).json.cancelled).toBe(false);

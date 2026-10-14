@@ -61,6 +61,14 @@ export function secretBox({ label, tip, placeholder = "", secrets }) {
   return { input, el: h("div", { class: "pw-field crypto-field" }, h("label", { for: id }, label), h("div", { class: "crypto-secret-row" }, input, toggle)) };
 }
 
+/** A drop-down list with a visible label. `options` are [value, text] pairs. Returns { el, input }. */
+export function selectBox({ label, tip, options, value }) {
+  const id = nextId("select");
+  const input = h("select", { id, class: "crypto-input", title: tip }, options.map(([v, text]) => h("option", { value: v }, text)));
+  input.value = value ?? options[0][0];
+  return { input, el: h("div", { class: "pw-field crypto-field" }, h("label", { for: id }, label), input) };
+}
+
 /** A checkbox with its label. Returns { el, input }. */
 export function checkBox(label, tip, checked) {
   const input = h("input", { type: "checkbox", title: tip });
@@ -123,12 +131,12 @@ export function copyText(text, what = "That") {
 export const copyCell = (label, getText, secret = false) => h("td", { class: "crypto-copycell", "data-copy-ui": "" }, copyItemButton({ label, getText, secret }));
 
 /** A table of [algorithm, digest] rows, each with a button that copies just that digest. */
-export function digestTable(rows, caption) {
+export function digestTable(rows, caption, hints = {}) {
   return h("div", { class: "pw-table-wrap" },
     h("table", { class: "pw-table crypto-digests" },
       h("caption", { class: "crypto-caption" }, caption),
       h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Algorithm"), h("th", { scope: "col" }, "Digest (hex)"), h("th", { scope: "col", "data-copy-ui": "" }, "Copy"))),
-      h("tbody", {}, rows.map(([algo, digest]) => h("tr", {}, h("th", { scope: "row" }, algo), h("td", { class: "pw-mono crypto-digest" }, digest), copyCell(`the ${algo} digest`, () => digest))))));
+      h("tbody", {}, rows.map(([algo, digest]) => h("tr", {}, h("th", { scope: "row", title: hints[algo] ?? null }, algo), h("td", { class: "pw-mono crypto-digest" }, digest), copyCell(`the ${algo} digest`, () => digest))))));
 }
 
 const MAX_LOG = 200;

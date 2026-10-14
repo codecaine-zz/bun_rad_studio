@@ -54,6 +54,8 @@ export function plain(v: unknown, depth = 0): Value {
   if (typeof v === "number") return v;
   if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString();
   if (Array.isArray(v)) return v.map((x) => plain(x, depth + 1));
+  // TOML dates and times come back from Bun as Temporal objects (Instant, PlainDate, ...): they say what they are with toJSON().
+  if (typeof v === "object" && Object.getPrototypeOf(v) !== Object.prototype && Object.getPrototypeOf(v) !== null && typeof (v as { toJSON?: unknown }).toJSON === "function") return plain((v as { toJSON(): unknown }).toJSON(), depth + 1);
   if (typeof v === "object") {
     const out = newObj();
     for (const [k, x] of Object.entries(v as Record<string, unknown>)) if (x !== undefined) setKey(out, k, plain(x, depth + 1));

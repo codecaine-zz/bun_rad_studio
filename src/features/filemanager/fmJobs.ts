@@ -42,7 +42,7 @@ export interface JobStepSpec {
 }
 
 export interface JobSpec {
-  kind: "convert" | "install";
+  kind: "convert" | "install" | "permissions";
   title: string;
   steps: JobStepSpec[];
 }

@@ -1,5 +1,5 @@
-// "More info": fingerprints of a file (MD5, SHA-1, SHA-256, SHA-512, CRC32), worked out on demand with progress,
-// a Cancel button, and a box to compare with a fingerprint you were given.
+// "More info": fingerprints of a file (MD5, SHA-1, SHA-256, SHA-512, CRC32 by default; SHA-3, BLAKE2 and the fast checksums
+// can be ticked), worked out on demand with progress, a Cancel button, and a box to compare with a fingerprint you were given.
 import { ApiError, call } from "./api.js";
 import { h } from "./dom.js";
 import { copyButton } from "./fileinfoRender.js";
@@ -10,9 +10,12 @@ import { copyButton } from "./fileinfoRender.js";
  */
 export function hashSection(path, { onChange } = {}) {
   let rows = [];
+  let skipped = [];
   let taskId = "";
   let timer = 0;
   let stopped = false;
+  let kinds = null;
+  const ticked = new Set();
 
   const status = h("p", { class: "fi-hash-status", role: "status", "aria-live": "polite" });
   const progress = h("progress", { class: "fi-progress", max: "100", value: "0", hidden: true, "aria-label": "How far the fingerprints are" });
@@ -22,7 +25,11 @@ export function hashSection(path, { onChange } = {}) {
   const compare = h("button", { type: "button", class: "btn", disabled: true, title: "Check whether the fingerprint you pasted matches this file", onclick: () => check() }, "Compare");
   const comparer = h("div", { class: "fi-compare", hidden: true }, input, compare, compareResult);
   const cancel = h("button", { type: "button", class: "btn", hidden: true, title: "Stop working out the fingerprints", onclick: () => stop() }, "Cancel");
-  const start = h("button", { type: "button", class: "btn", title: "Work out MD5, SHA-1, SHA-256, SHA-512 and CRC32 of this file. Big files take a while; you can cancel.", onclick: () => begin() }, "Calculate fingerprints");
+  const kindsBox = h("details", { class: "fi-kinds" },
+    h("summary", { title: "Choose which kinds of fingerprint to work out. The usual five are ticked. Each extra kind makes a big file take a little longer." }, "More kinds…"),
+    h("div", { class: "fi-kinds-body" }));
+  kindsBox.addEventListener("toggle", () => kindsBox.open && loadKinds());
+  const start = h("button", { type: "button", class: "btn", title: "Work out MD5, SHA-1, SHA-256, SHA-512 and CRC32 of this file (open More kinds… to choose others). Big files take a while; you can cancel.", onclick: () => begin() }, "Calculate fingerprints");
 
   input.addEventListener("input", () => (compare.disabled = !input.value.trim() || !rows.length));
   input.addEventListener("keydown", (e) => {
@@ -32,14 +39,40 @@ export function hashSection(path, { onChange } = {}) {
     }
   });
 
+  async function loadKinds() {
+    if (kinds) return;
+    try {
+      kinds = await call("info/hashkinds");
+    } catch {
+      kindsBox.lastElementChild.replaceChildren(h("p", { class: "fi-warn" }, "The list of kinds couldn't be loaded."));
+      return;
+    }
+    for (const id of kinds.defaults) ticked.add(id);
+    const groups = [["classic", "The usual kinds"], ["more", "More secure kinds"], ["legacy", "Old and broken (only for old systems)"], ["fast", kinds.fastTitle]];
+    kindsBox.lastElementChild.replaceChildren(...groups.map(([group, title]) => h("fieldset", { class: "fi-kinds-group" },
+      h("legend", { class: group === "fast" || group === "legacy" ? "fi-warn" : "" }, title),
+      kinds.kinds.filter((k) => k.group === group).map((k) => {
+        const box = h("input", { type: "checkbox", title: k.hint, onchange: () => (box.checked ? ticked.add(k.id) : ticked.delete(k.id)) });
+        box.checked = ticked.has(k.id);
+        return h("label", { class: "fi-kind", title: k.hint }, box, ` ${k.label}`);
+      }))));
+  }
+
+  function table(list, caption) {
+    return h("table", { class: "fi-table fi-hash-table" },
+      h("caption", { class: "sr-only" }, caption),
+      h("colgroup", {}, h("col", { class: "fi-col-label" }), h("col", {}), h("col", { class: "fi-col-act" })),
+      h("thead", { class: "sr-only" }, h("tr", {}, h("th", { scope: "col" }, "Kind"), h("th", { scope: "col" }, "Fingerprint"), h("th", { scope: "col" }, "Copy"))),
+      h("tbody", {}, list.map((r) => h("tr", { class: "fi-row" }, h("th", { scope: "row", class: "fi-label", title: r.hint }, r.label), h("td", { class: "fi-value fi-mono" }, r.value), h("td", { class: "fi-act" }, copyButton(r.label, () => r.value))))));
+  }
+
   function draw() {
     results.replaceChildren();
     if (!rows.length) return;
-    results.append(h("table", { class: "fi-table fi-hash-table" },
-      h("caption", { class: "sr-only" }, "Fingerprints of the file"),
-      h("colgroup", {}, h("col", { class: "fi-col-label" }), h("col", {}), h("col", { class: "fi-col-act" })),
-      h("thead", { class: "sr-only" }, h("tr", {}, h("th", { scope: "col" }, "Kind"), h("th", { scope: "col" }, "Fingerprint"), h("th", { scope: "col" }, "Copy"))),
-      h("tbody", {}, rows.map((r) => h("tr", { class: "fi-row" }, h("th", { scope: "row", class: "fi-label", title: r.hint }, r.label), h("td", { class: "fi-value fi-mono" }, r.value), h("td", { class: "fi-act" }, copyButton(r.label, () => r.value)))))));
+    const fast = rows.filter((r) => r.group === "fast");
+    results.append(table(rows.filter((r) => r.group !== "fast"), "Fingerprints of the file"));
+    if (fast.length) results.append(h("p", { class: "fi-warn" }, kinds?.fastTitle ?? "Fast checksums (to spot accidental changes only, NOT secure)"), table(fast, "Fast checksums of the file"));
+    if (skipped.length) results.append(h("ul", { class: "fi-hash-skipped" }, skipped.map((x) => h("li", {}, `${x.label}: ${x.reason}`))));
   }
 
   async function begin() {
@@ -51,7 +84,7 @@ export function hashSection(path, { onChange } = {}) {
     status.textContent = "Working it out…";
     compareResult.textContent = "";
     try {
-      taskId = (await call("info/hash", { path })).task.id;
+      taskId = (await call("info/hash", { path, algorithms: kinds && ticked.size ? [...ticked] : undefined })).task.id;
     } catch (err) {
       finish(err instanceof ApiError ? err.message : "That didn't start.");
       return;
@@ -75,6 +108,7 @@ export function hashSection(path, { onChange } = {}) {
       timer = setTimeout(poll, 250);
     } else if (task.state === "done") {
       rows = task.result.rows;
+      skipped = task.result.skipped ?? [];
       finish(`Done. ${rows.length} fingerprints of ${task.result.size.toLocaleString("en-US")} bytes.`);
       comparer.hidden = false;
       compare.disabled = !input.value.trim();
@@ -112,7 +146,7 @@ export function hashSection(path, { onChange } = {}) {
 
   const el = h("section", { class: "fi-group fi-hashes", dataset: { group: "hashes" } },
     h("h3", { class: "fi-title", title: "A fingerprint (hash) is a short code worked out from the whole file. Two files with the same fingerprint are the same file, so it proves a download wasn't damaged or changed." }, "Fingerprints (hashes)"),
-    h("div", { class: "fi-hash-actions" }, start, cancel, progress), status, results, comparer);
+    h("div", { class: "fi-hash-actions" }, start, cancel, progress), kindsBox, status, results, comparer);
 
   return {
     el,

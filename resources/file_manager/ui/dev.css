@@ -5,6 +5,11 @@
 .dev-root { width: 100%; box-sizing: border-box; }
 .dev-excludes { width: 18rem; max-width: 100%; }
 .dev-filter { min-width: 12rem; }
+.dev-input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; min-width: 9rem; box-sizing: border-box; }
+.dev-list { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
+.dev-notes { margin: 4px 0 0; padding-left: 1.2em; }
+.dev-sorted { min-height: 2.4em; }
+.dev-sorted-row { display: flex; justify-content: flex-end; margin-top: 4px; }
 .dev-check { display: inline-flex; align-items: center; gap: 4px; font-size: 0.9em; color: var(--text); }
 
 .dev-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }

@@ -8,6 +8,7 @@ import { toast } from "./menus.js";
 import { goTo, refresh } from "./nav.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { inTrash, on, state } from "./state.js";
+import { startSetup } from "./toolsetup.js";
 import { terminalAvailable, typeInTerminal } from "./terminal.js";
 import { plural } from "./util.js";
 import { renderChooser } from "./convert.js";
@@ -82,12 +83,19 @@ function toolBlock(tool, close, startInstall) {
 function helperPrograms(data, close, install, recheck) {
   const main = data.tools.filter((t) => !t.optional);
   const more = data.tools.filter((t) => t.optional);
-  const missingMain = main.filter((t) => !t.installed && t.plan.auto);
+  const missingAll = data.tools.filter((t) => !t.installed);
   const parts = [
     h("p", { class: "hint" }, "These free programs do the work. They are installed once and then used by the File Manager. Nothing is installed unless you press its button."),
-    h("h3", { class: "tools-heading" }, "The main helpers (pictures, video, sound and documents)"),
   ];
-  if (missingMain.length > 1) parts.push(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn primary", onclick: () => install(missingMain.map((t) => t.id)) }, `Install all ${missingMain.length} missing main programs`)));
+  if (missingAll.length) {
+    parts.push(h("section", { class: "tool-setup", "data-copy": "off" },
+      h("h3", { class: "tool-setup-title" }, "One-click setup"),
+      h("p", { class: "hint" }, `${plural(missingAll.length, "helper program")} ${missingAll.length === 1 ? "is" : "are"} missing. Install them all in one go, or pick the ones you want. If your computer has no installer yet, Homebrew is installed and set up for you first.`),
+      h("div", { class: "tool-row-buttons" },
+        h("button", { type: "button", class: "btn primary", title: "Install every missing helper program with one click (you are asked to confirm first)", onclick: () => startSetup({ mode: "everything", startJob: install, closeOuter: close }) }, `Install everything missing (${missingAll.length})`),
+        h("button", { type: "button", class: "btn", title: "See the list and untick anything you don't want", onclick: () => startSetup({ mode: "choose", startJob: install, closeOuter: close }) }, "Choose what to install…"))));
+  }
+  parts.push(h("h3", { class: "tools-heading" }, "The main helpers (pictures, video, sound and documents)"));
   parts.push(...main.map((t) => toolBlock(t, close, install)));
   parts.push(h("h3", { class: "tools-heading" }, "More helpers (only some conversions need them)"));
   parts.push(h("p", { class: "hint" }, "Many conversions need nothing at all (data files, text, zip). These add PDF work, scanned text, Office files, e-books, fonts and more archive types."));

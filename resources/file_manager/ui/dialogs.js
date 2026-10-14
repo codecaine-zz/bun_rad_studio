@@ -67,7 +67,7 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
         e.preventDefault();
         first.focus();
       }
-    } else if (e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type !== "checkbox") {
+    } else if (e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type !== "checkbox" && !e.target.hasAttribute("data-own-enter")) {
       const primary = buttonEls[buttons.findIndex((b) => b.primary)];
       if (primary && !primary.disabled) {
         e.preventDefault();

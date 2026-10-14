@@ -40,6 +40,8 @@ export interface Settings {
   dualPath: string;
   /** Mark files that aren't what their name says, and ask before opening the dangerous ones. */
   typeWarnings: boolean;
+  /** The code editor "Open in editor" starts: "default" uses $VISUAL / $EDITOR, or the first known editor found. */
+  editor: "default" | "vscode" | "subl" | "webstorm" | "idea";
   /** The Serve tool's remembered form choices. The network (LAN) option is never remembered. */
   serveOptions: { kind: "auto" | "static" | "php"; liveReload: boolean; openBrowser: boolean };
 }
@@ -76,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   splitTool: "",
   dualPath: "",
   typeWarnings: true,
+  editor: "default",
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
 };
 
@@ -135,6 +138,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     splitTool: typeof r.splitTool === "string" && TOOL_ID.test(r.splitTool) ? r.splitTool : "",
     dualPath: isPath(r.dualPath) ? p.resolve(r.dualPath) : "",
     typeWarnings: typeof r.typeWarnings === "boolean" ? r.typeWarnings : DEFAULT_SETTINGS.typeWarnings,
+    editor: oneOf(r.editor, ["default", "vscode", "subl", "webstorm", "idea"], DEFAULT_SETTINGS.editor),
     serveOptions: sanitizeServeOptions(r.serveOptions),
   };
 }

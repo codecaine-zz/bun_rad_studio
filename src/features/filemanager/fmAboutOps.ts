@@ -24,6 +24,22 @@ export const ABOUT_LINKS: readonly AboutLink[] = [
   { id: "donate", label: "Support the project (PayPal)", hint: "Optional. Opens the donation page.", url: "https://paypal.me/codecaine81" },
 ];
 
+const PLATFORM_NAMES: Record<string, string> = { darwin: "macOS", win32: "Windows", linux: "Linux" };
+
+export interface RuntimeInfo {
+  /** The Bun the app runs on (`Bun.version`) and the short form of its build (`Bun.revision`). */
+  bun: string;
+  revision: string;
+  platform: string;
+  system: string;
+  arch: string;
+}
+
+/** What the app runs on, for the About window and for bug reports. */
+export function runtimeInfo(ctx: FmContext): RuntimeInfo {
+  return { bun: Bun.version, revision: Bun.revision.slice(0, 8), platform: ctx.platform, system: PLATFORM_NAMES[ctx.platform] ?? ctx.platform, arch: process.arch };
+}
+
 async function openLink(ctx: FmContext, link: AboutLink): Promise<void> {
   const { command, args } = openCommand(ctx.platform, link.url);
   try {
@@ -34,8 +50,10 @@ async function openLink(ctx: FmContext, link: AboutLink): Promise<void> {
 }
 
 export const aboutOperations: Record<string, FmHandler> = {
-  async "about/info"() {
-    return { links: ABOUT_LINKS };
+  async "about/info"(ctx) {
+    // Read when asked, not when this file loads: the server module that owns the name imports this one.
+    const { APP_NAME, APP_VERSION } = await import("./fmServer");
+    return { links: ABOUT_LINKS, app: { name: APP_NAME, version: APP_VERSION }, runtime: runtimeInfo(ctx) };
   },
   async "about/open"(ctx, b) {
     const link = ABOUT_LINKS.find((l) => l.id === b.id);

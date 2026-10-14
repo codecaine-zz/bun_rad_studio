@@ -3,10 +3,10 @@
  * Each job runs in this process, reads in small pieces, checks for cancellation between pieces, and never loads a
  * whole file into memory.
  */
-import { createHash, randomBytes } from "crypto";
-import { crc32 } from "zlib";
+import { randomBytes } from "crypto";
 import type { FmContext } from "./fmCore";
-import { openForRead, regularFile, readBytes, type InfoRow } from "./fmInfoCommon";
+import { HASH_BY_ID, HASH_SPECS, digestFile } from "./fmHashes";
+import { openForRead, regularFile, type InfoRow } from "./fmInfoCommon";
 import { FmError } from "./fmPaths";
 
 export type TaskKind = "hash" | "folder";
@@ -109,59 +109,42 @@ export function cancelTask(ctx: FmContext, id: unknown): boolean {
 // Hashes
 // ---------------------------------------------------------------------------------------------------------------
 
-export const HASHES = [
-  { id: "md5", label: "MD5", hint: "A short fingerprint of the file. Fast, but no longer safe against deliberate tampering." },
-  { id: "sha1", label: "SHA-1", hint: "A fingerprint of the file. Older; still used by some download pages." },
-  { id: "sha256", label: "SHA-256", hint: "The usual modern fingerprint. If two files give the same SHA-256, they are the same file." },
-  { id: "sha512", label: "SHA-512", hint: "A longer fingerprint with the same purpose as SHA-256." },
-  { id: "crc32", label: "CRC32", hint: "A quick check number used by zip files. It catches accidents, not tampering." },
-] as const;
-
-const CHUNK = 1024 * 1024;
+/** What "Calculate fingerprints" works out by default (the other kinds are chosen on the page). */
+export const DEFAULT_HASH_IDS = ["md5", "sha1", "sha256", "sha512", "crc32"];
+export const HASHES = HASH_SPECS.map((s) => ({ id: s.id, label: s.label, hint: s.hint, group: s.group }));
 
 export interface HashRowOut extends InfoRow {
   id: string;
+  group: string;
 }
 
-/** Streams the file once through every wanted algorithm. Stops soon after `control.signal` aborts. */
-export async function hashFile(ctx: FmContext, input: unknown, control: TaskControl, wanted?: unknown): Promise<{ rows: HashRowOut[]; size: number }> {
+/** Streams the file once through every wanted kind. Stops soon after `control.signal` aborts. */
+export async function hashFile(ctx: FmContext, input: unknown, control: TaskControl, wanted?: unknown): Promise<{ rows: HashRowOut[]; size: number; skipped: Array<{ id: string; label: string; reason: string }> }> {
   const t = await regularFile(ctx, input);
-  const ids = Array.isArray(wanted) && wanted.length ? HASHES.filter((h) => wanted.includes(h.id)) : [...HASHES];
-  if (!ids.length) throw new FmError("BAD_REQUEST", "Choose at least one kind of fingerprint.");
-  const hashers = ids.filter((h) => h.id !== "crc32").map((h) => ({ h, d: createHash(h.id) }));
-  const wantCrc = ids.some((h) => h.id === "crc32");
-  let crc = 0;
-  const handle = await openForRead(t.path);
-  try {
-    const size = (await handle.stat()).size;
-    let pos = 0;
-    while (pos < size) {
-      if (control.signal.aborted) throw new FmError("CANCELLED", "Stopped.");
-      const buf = await readBytes(handle, pos, Math.min(CHUNK, size - pos));
-      if (!buf.length) break;
-      for (const x of hashers) x.d.update(buf);
-      if (wantCrc) crc = crc32(buf, crc);
-      pos += buf.length;
-      control.progress(pos, size);
-    }
-    const rows: HashRowOut[] = [];
-    for (const h of ids) rows.push({ id: h.id, label: h.label, value: h.id === "crc32" ? (crc >>> 0).toString(16).padStart(8, "0") : hashers.find((x) => x.h.id === h.id)!.d.digest("hex"), hint: h.hint });
-    control.progress(size, size);
-    return { rows, size };
-  } finally {
-    await handle.close();
-  }
+  const chosen = Array.isArray(wanted) && wanted.length ? HASH_SPECS.filter((h) => wanted.includes(h.id)) : DEFAULT_HASH_IDS.map((id) => HASH_BY_ID.get(id)!);
+  if (!chosen.length) throw new FmError("BAD_REQUEST", "Choose at least one kind of fingerprint.");
+  const done = await digestFile(t.path, chosen, { open: openForRead, signal: control.signal, progress: (d, total) => control.progress(d, total) });
+  return {
+    rows: done.rows.map((r) => ({ id: r.spec.id, label: r.spec.label, value: r.value, hint: r.spec.hint, group: r.spec.group })),
+    size: done.size,
+    skipped: done.skipped.map((x) => ({ id: x.spec.id, label: x.spec.label, reason: x.reason })),
+  };
 }
 
-const HEX_LENGTH: Record<number, string[]> = { 8: ["crc32"], 32: ["md5"], 40: ["sha1"], 64: ["sha256"], 128: ["sha512"] };
+const HEX_LENGTH: Record<number, string[]> = {};
+for (const h of HASH_SPECS) (HEX_LENGTH[h.hex] ??= []).push(h.id);
+/** Names a person may write in front of a checksum ("sha-256:", "XXH3=", "SHA-512/256("), mapped to the kind. */
+const ALIASES = new Map<string, string>();
+for (const h of HASH_SPECS) for (const name of [h.id, h.label]) ALIASES.set(name.toLowerCase().replace(/[^a-z0-9]/g, ""), h.id);
 
 /** A pasted checksum as plain lower-case hex: spaces, colons, "0x" and a "sha256:" style name in front are ignored. */
 export function normalizeHash(text: string): { hex: string; named: string | null } {
   let s = String(text ?? "").trim().slice(0, 2000);
   let named: string | null = null;
-  const prefix = /^(md5|sha-?1|sha-?256|sha-?512|crc-?32)\s*[:=(]?\s*/i.exec(s);
-  if (prefix) {
-    named = prefix[1]!.toLowerCase().replace("-", "");
+  const prefix = /^([a-z][a-z0-9\-/]*)\s*[:=(]?\s*/i.exec(s);
+  const alias = prefix ? ALIASES.get(prefix[1]!.toLowerCase().replace(/[^a-z0-9]/g, "")) : undefined;
+  if (prefix && alias) {
+    named = alias;
     s = s.slice(prefix[0].length);
   }
   // "hash  file name" lines (shasum output) and spaced groups: the whole text counts when it is only hex, else the longest checksum-like word.
@@ -177,9 +160,9 @@ export function compareHash(expected: unknown, rows: Array<{ id: string; value: 
   const { hex, named } = normalizeHash(typeof expected === "string" ? expected : "");
   if (!hex) return { matched: null, normalized: "", hint: "That doesn't look like a checksum. It should be letters a–f and digits, for example 9f86d081…" };
   const kinds = HEX_LENGTH[hex.length];
-  if (!kinds) return { matched: null, normalized: hex, hint: `That is ${hex.length} characters long. A checksum has 8 (CRC32), 32 (MD5), 40 (SHA-1), 64 (SHA-256) or 128 (SHA-512) characters. Part of it may be missing.` };
+  if (!kinds) return { matched: null, normalized: hex, hint: `That is ${hex.length} characters long. A checksum has 8 or 16 (fast checksums such as CRC32), 32 (MD5), 40 (SHA-1), 56 (SHA-224), 64 (SHA-256), 96 (SHA-384) or 128 (SHA-512) characters. Part of it may be missing.` };
   const hit = rows.find((r) => r.value.toLowerCase() === hex && (!named || r.id === named));
   if (hit) return { matched: hit.id, normalized: hex, hint: `It matches the ${HASHES.find((h) => h.id === hit.id)?.label ?? hit.id} of this file. The file is what it should be.` };
   const same = rows.find((r) => kinds.includes(r.id));
-  return { matched: null, normalized: hex, hint: same ? `It does NOT match this file's ${HASHES.find((h) => h.id === same.id)?.label}. The file differs from the original, or the checksum is for a different file.` : "That kind of checksum wasn't calculated. Calculate all of them and try again." };
+  return { matched: null, normalized: hex, hint: same ? `It does NOT match this file's ${HASHES.find((h) => h.id === same.id)?.label}. The file differs from the original, or the checksum is for a different file.` : "That kind of checksum wasn't calculated. Tick it under “More kinds”, calculate again and compare." };
 }

@@ -301,7 +301,8 @@ describe("Copy buttons on the File Manager's own windows", () => {
     await waitFor(dialog, 3000, "About");
     await settle();
     const text = (await press(mainOf(dialog())))!;
-    expect(text.startsWith("About File Manager\n")).toBe(true);
+    expect(text.startsWith("About Codecaine File Manager\n")).toBe(true);
+    expect(text).toContain(`Bun ${Bun.version} (${Bun.revision.slice(0, 8)})`); // the version line is part of the copied window
     expect(text).toContain("- github.com/codecaine-zz/bun_rad_studio\n");
     await closeAll();
   });

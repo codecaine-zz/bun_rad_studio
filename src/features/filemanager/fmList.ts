@@ -24,6 +24,8 @@ export interface Entry {
   program: boolean;
   preview: "image" | "text" | null;
   readOnly: boolean;
+  /** The twelve permission bits of the item itself; null for a link and on Windows. */
+  mode: number | null;
 }
 
 export const MAX_LIST_ENTRIES = 50_000;
@@ -65,6 +67,7 @@ async function toEntry(ctx: FmContext, dir: string, name: string, p: typeof node
     program: kind.program,
     preview: kind.preview,
     readOnly: ctx.platform === "win32" ? (target.mode & 0o200) === 0 : false,
+    mode: ctx.platform === "win32" || isSymlink ? null : st.mode & 0o7777,
   };
 }
 

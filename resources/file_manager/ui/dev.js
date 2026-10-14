@@ -10,6 +10,7 @@ import { createGit } from "./devGit.js";
 import { createProject } from "./devProject.js";
 import { createStats } from "./devStats.js";
 import { createTodo } from "./devTodo.js";
+import { createVersions } from "./devVersions.js";
 import { registerPowerTab } from "./power.js";
 import { currentPath, state } from "./state.js";
 
@@ -20,6 +21,7 @@ const SECTIONS = [
   { id: "disk", label: "Disk & files", tip: "Where the space goes, heavy folders, duplicates", make: createDisk },
   { id: "todo", label: "TODO", tip: "TODO, FIXME and other markers in your code", make: createTodo },
   { id: "tools", label: "Tools", tip: "Developer programs installed on this computer", make: createEnv },
+  { id: "versions", label: "Versions", tip: "Compare versions, check a range like ^1.2.0, sort a list, and check a project's required versions", make: createVersions },
 ];
 
 function mount(root) {

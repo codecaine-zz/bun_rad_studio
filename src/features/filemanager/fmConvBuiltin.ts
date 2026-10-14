@@ -10,12 +10,14 @@ import { DATA_EXTENSIONS, DEFAULT_DATA_OPTIONS, FORMAT_EXTENSION, parseData, wri
 import type { OptionValues } from "./fmConvOptions";
 import { readSpreadsheet, sheetValue, sheetsFromValue, writeXlsx, type Sheet } from "./fmConvSheet";
 import {
-  ENCODING_BY_ID, convertLineEndings, decodeBase64, decodeBytes, decodeHex, encodeBase64, encodeHex, encodeText, htmlToText, markdownToHtml,
+  ENCODING_BY_ID, convertLineEndings, decodeBase64, decodeBytes, decodeHex, encodeBase64, encodeHex, encodeText, htmlToText,
   spacesToTabs, stripTrailingSpaces, stripUtf8Bom, tabsToSpaces, textToHtml, type LineEnding,
 } from "./fmConvText";
 import {
-  DEFAULT_ARCHIVE_LIMITS, brotliFile, createTarGzFrom, createZipFrom, extractTarGz, gunzipFile, gzipFile, tarGzToZip, unbrotliFile, zipToTarGz, type ArchiveLimits,
+  DEFAULT_ARCHIVE_LIMITS, brotliFile, createTarGzFrom, createTarZstFrom, createZipFrom, extractTarGz, gunzipFile, gzipFile, tarGzToZip, unbrotliFile, unzstdFile, zipToTarGz, zstdFile, type ArchiveLimits,
 } from "./fmConvArchive";
+import { renderMarkdownPage } from "./fmConvMarkdown";
+import { TranspileError, transpileSource, type JsTarget, type JsxStyle } from "./fmJsTranspile";
 import { extractZip } from "./fmZip";
 import { createContext } from "./fmCore";
 import type { Platform } from "./fmPaths";
@@ -223,8 +225,30 @@ async function convert(job: BuiltinJob): Promise<string> {
     }
     case "md-html": {
       const bytes = await readInput(input);
-      await writeNew(job.output, markdownToHtml(decodeBytes(bytes, "auto", true).text, nodePath.basename(input).replace(/\.[^.]*$/, "")).html);
-      return "Raw HTML in the Markdown is shown as text, and only web, mail and relative links are kept.";
+      const page = renderMarkdownPage(decodeBytes(bytes, "auto", true).text, nodePath.basename(input).replace(/\.[^.]*$/, ""));
+      await writeNew(job.output, page.html);
+      return `Raw HTML in the Markdown is shown as text, and only web, mail and relative links are kept.${page.engine === "builtin" ? " The simpler built-in renderer was used." : ""}`;
+    }
+    case "transpile": {
+      const bytes = await readInput(input);
+      const ext = extOfName(nodePath.basename(input));
+      const jsx = str(o, "jsx", "react") as JsxStyle;
+      let code: string;
+      try {
+        code = transpileSource(decodeBytes(bytes, "auto", true).text, ext, {
+          target: str(o, "target", "browser") as JsTarget,
+          jsx,
+          minifyWhitespace: bool(o, "minifyWhitespace"),
+          minifyIdentifiers: bool(o, "minifyIdentifiers"),
+          minifySyntax: bool(o, "minifySyntax"),
+        });
+      } catch (err) {
+        if (err instanceof TranspileError) throw new ConvError(err.message);
+        throw err;
+      }
+      await writeNew(job.output, code);
+      const tags = ext === "tsx" || ext === "jsx";
+      return `Types were removed; nothing was type-checked.${tags ? ` JSX tags became ${jsx === "preact" ? "h(...)" : "React.createElement(...)"} calls, so the page must provide ${jsx === "preact" ? "h and Fragment" : "React"}.` : ""}`;
     }
     case "text-html": {
       const bytes = await readInput(input);
@@ -236,15 +260,19 @@ async function convert(job: BuiltinJob): Promise<string> {
       await writeNew(job.output, htmlToText(decodeBytes(bytes, "auto", true).text));
       return "";
     }
-    case "gzip": await gzipFile(input, job.output); return "";
+    case "gzip": await gzipFile(input, job.output, num(o, "level", 6)); return "";
+    case "zstd": await zstdFile(input, job.output, num(o, "level", 3)); return "";
+    case "unzstd": await unzstdFile(input, job.output, limitsOf(job).maxBytes); return "";
     case "gunzip": await gunzipFile(input, job.output, limitsOf(job).maxBytes); return "";
     case "brotli": await brotliFile(input, job.output); return "";
     case "unbrotli": await unbrotliFile(input, job.output, limitsOf(job).maxBytes); return "";
     case "zip-create": return archiveNote("Zipped", await createZipFrom(job.inputs, job.output, limitsOf(job)));
-    case "targz-create": return archiveNote("Packed", await createTarGzFrom(job.inputs, job.output, limitsOf(job)));
+    case "targz-create": return archiveNote("Packed", await createTarGzFrom(job.inputs, job.output, limitsOf(job), num(o, "level", 6)));
+    case "tarzst-create": return archiveNote("Packed", await createTarZstFrom(job.inputs, job.output, limitsOf(job), num(o, "level", 3)));
     case "zip-to-targz": return archiveNote("Converted", await zipToTarGz(input, job.output, job.platform, limitsOf(job)));
     case "targz-to-zip": return archiveNote("Converted", await tarGzToZip(input, job.output, job.platform, limitsOf(job)));
-    case "targz-extract": return archiveNote("Unpacked", await extractTarGz(input, job.output, job.platform, limitsOf(job)));
+    case "targz-extract":
+    case "tarzst-extract": return archiveNote("Unpacked", await extractTarGz(input, job.output, job.platform, limitsOf(job)));
     case "zip-extract": {
       // fmZip makes a folder named after the zip inside the folder it is given; that folder is then moved up.
       const ctx = createContext({ platform: job.platform, home: job.home });

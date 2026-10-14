@@ -3,6 +3,7 @@ import { absolutePath, type FmContext } from "./fmCore";
 import { elfInfo, fontInfo, machoInfo, peInfo, sqliteInfo } from "./fmInfoBinary";
 import { fileSource, HEAD_BYTES, openForRead, readBytes, regularFile, type InfoGroup } from "./fmInfoCommon";
 import { parsePdf, pdfGroups } from "./fmInfoPdf";
+import { codeGroups } from "./fmInfoCode";
 import { analyzeText, jsonRows, textGroups } from "./fmInfoText";
 import { gzipDocument, tarDocument, zipDocument } from "./fmInfoZipDoc";
 import { extensionOf, FmError } from "./fmPaths";
@@ -51,7 +52,7 @@ export async function documentInfo(ctx: FmContext, input: unknown): Promise<Docu
       const bytes = await readBytes(handle, 0, Math.min(size, HEAD_BYTES));
       const { stats, text } = analyzeText(bytes, size);
       const json = ext === "json" || /^\s*[[{]/.test(text.slice(0, 20)) ? jsonRows(text, size <= HEAD_BYTES) : null;
-      return done({ kind: sniff!.label.replace(/^an? /, "").replace(/^./, (c) => c.toUpperCase()), groups: textGroups(stats, json) });
+      return done({ kind: sniff!.label.replace(/^an? /, "").replace(/^./, (c) => c.toUpperCase()), groups: [...textGroups(stats, json), ...codeGroups(text, ext, size <= HEAD_BYTES)] });
     }
     throw new FmError("NOT_SUPPORTED", "There is no detailed reader for this kind of file. The general details still apply.");
   } finally {

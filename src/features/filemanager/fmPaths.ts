@@ -154,8 +154,41 @@ export function isSameOrInside(child: string, parent: string, platform: Platform
 }
 
 /**
+ * The path a `file://` address stands for (`file:///Users/me/My%20Docs/a.txt` gives `/Users/me/My Docs/a.txt`), or null
+ * when it can't be one on this platform (another computer's name, an encoded slash). On the platform this runs on it
+ * is `Bun.fileURLToPath`; the Windows rules for a Windows path are written out so they can be tested anywhere.
+ */
+export function fileUrlToPath(text: string, platform: Platform = platformName()): string | null {
+  try {
+    let path: string;
+    if (platform === platformName()) path = Bun.fileURLToPath(text);
+    else if (platform === "win32") {
+      const u = new URL(text);
+      const body = decodeURIComponent(u.pathname);
+      if (/%2f|%5c/i.test(u.pathname)) return null;
+      const host = u.hostname.toLowerCase();
+      path = host && host !== "localhost" ? `\\\\${u.hostname}${body.replace(/\//g, "\\")}` : body.replace(/^\/([A-Za-z]:)/, "$1").replace(/\//g, "\\");
+    } else {
+      const u = new URL(text);
+      if (u.hostname && u.hostname.toLowerCase() !== "localhost") return null;
+      if (/%2f/i.test(u.pathname)) return null;
+      path = decodeURIComponent(u.pathname);
+    }
+    return path && !path.includes("\0") ? pathFor(platform).resolve(path) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The `file://` address of an absolute path (`Bun.pathToFileURL`): spaces, # and ? are written as %20, %23 and %3F. */
+export function pathToFileUrl(path: string): string {
+  return Bun.pathToFileURL(path).href;
+}
+
+/**
  * Turns what a person typed in the address bar into an absolute path: `~` and `~/x` mean the home folder,
- * surrounding quotes are dropped, a relative path is taken from `cwd`, and on Windows `/` is accepted for `\`.
+ * a pasted `file://` address means the path it stands for, surrounding quotes are dropped, a relative path is taken
+ * from `cwd`, and on Windows `/` is accepted for `\`.
  */
 export function parseTypedPath(input: string, cwd: string, home: string, platform: Platform = platformName()): string | null {
   const p = pathFor(platform);
@@ -163,6 +196,7 @@ export function parseTypedPath(input: string, cwd: string, home: string, platfor
   if (!text || text.includes("\0")) return null;
   if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) text = text.slice(1, -1).trim();
   if (!text) return null;
+  if (/^file:\/\//i.test(text)) return text.length > 7 ? fileUrlToPath(text, platform) : null;
   if (text === "~") return p.resolve(home);
   if (/^~[\\/]/.test(text)) return p.resolve(home, text.slice(2));
   if (platform === "win32") {

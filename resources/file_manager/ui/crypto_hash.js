@@ -6,7 +6,7 @@ import { toast } from "./menus.js";
 import { selectedEntries } from "./selection.js";
 import { currentPath } from "./state.js";
 import { formatSize, plural } from "./util.js";
-import { actionButton, attempt, card, copyCell, digestTable, formatMs, lineBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
+import { actionButton, attempt, card, checkBox, copyCell, digestTable, formatMs, lineBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
 
 const MAX_FILES = 20;
 const NO_RESULTS = "Results appear here after you hash some text or a file.";
@@ -14,6 +14,7 @@ const NO_RESULTS = "Results appear here after you hash some text or a file.";
 /** Builds the three hashing cards. Returns { cards, show(opts), clear() }. */
 export function buildHashCards(env) {
   let current = { rows: [], source: "" };
+  let meta = { hints: {}, fastTitle: "" };
   let files = [];
   let pathTouched = false;
   let folderTouched = false;
@@ -22,10 +23,10 @@ export function buildHashCards(env) {
   const text = textBox({ label: "Text to hash", tip: "Type or paste the text you want a fingerprint (hash) of. Even one changed letter gives a completely different result.", placeholder: "The quick brown fox jumps over the lazy dog", rows: 3 });
   const key = secretBox({ label: "HMAC key (optional)", tip: "Only fill this in if you want an HMAC: a hash that also needs a secret key. Whoever has the same key and text gets the same result. Leave empty for plain hashes.", placeholder: "secret-signing-key", secrets: env.secrets });
   const textStatus = statusLine();
-  const hashButton = actionButton("Calculate hashes", "Work out SHA-256, SHA-512, SHA-384, SHA-1, MD5 and more for this text (and an HMAC of each when a key is given).", async () => {
+  const hashButton = actionButton("Calculate hashes", "Work out SHA-256, SHA-512, SHA-384, SHA-1, MD5, the SHA-3, BLAKE2 and RIPEMD kinds, and the fast checksums (CRC32, xxHash and more) for this text. An HMAC of each classic kind is added when a key is given.", async () => {
     const r = await attempt(hashButton, textStatus, () => call("crypto/hash", { text: text.input.value, key: key.input.value }));
     if (!r) return;
-    showDigests(r.rows, "Text input");
+    showDigests(r.rows, "Text input", r.fast, r.hints, r.fastTitle);
     textStatus.set(`Done: ${r.rows.length} results for ${formatSize(r.bytes)} of text in ${formatMs(r.ms)}. See "Results" below.`, "ok");
     env.log("Hash text", `${formatSize(r.bytes)}${r.hmac ? ", with an HMAC key" : ""}, ${formatMs(r.ms)}`);
   }, { primary: true });
@@ -35,9 +36,10 @@ export function buildHashCards(env) {
   // ---- Hash files -----------------------------------------------------------------------------------------------
   const path = lineBox({ label: "File to hash", tip: "The full location of one file, like /Users/you/Downloads/setup.zip or C:\\Users\\you\\setup.zip. It is read in small pieces, so very big files are fine.", placeholder: "Full path of a file", width: "crypto-wide" });
   path.input.addEventListener("input", () => (pathTouched = true));
+  const extras = checkBox("Also work out the extra kinds and the fast checksums", "Adds SHA-3, BLAKE2, RIPEMD, SHA-224 and old MD4, and the fast checksums (CRC32, Adler-32, xxHash, wyhash, CityHash, MurmurHash, rapidhash). Takes longer for big files. The fast checksums only spot accidental changes and are NOT secure.", false);
   const fileStatus = statusLine();
   const selectedNote = h("span", { class: "pw-hint", role: "status" });
-  const fileButton = actionButton("Hash this file", "Work out SHA-256, SHA-384, SHA-512, SHA-1 and MD5 of the file. Nothing is changed or uploaded.", () => hashFiles([path.input.value.trim()].filter(Boolean)), { primary: true });
+  const fileButton = actionButton("Hash this file", "Work out SHA-256, SHA-384, SHA-512, SHA-1 and MD5 of the file (and more kinds when the box is ticked). Nothing is changed or uploaded.", () => hashFiles([path.input.value.trim()].filter(Boolean)), { primary: true });
   const selectedButton = actionButton("Hash the selected files", `Hash the files that are selected in the file list (up to ${MAX_FILES}). Folders are skipped.`, () => {
     const paths = selectedEntries().filter((e) => !e.isDir).map((e) => e.path);
     if (paths.length === 0) return fileStatus.set("No files are selected in the file list. Close this panel, select some files, and open the Crypto tool again.", "bad");
@@ -45,7 +47,7 @@ export function buildHashCards(env) {
     return hashFiles(paths.slice(0, MAX_FILES));
   });
   const fileCard = card("Hash a file", "Use this to check that a download wasn't damaged or tampered with: hash it here, then compare with the checksum the website published. Files are only read, never changed.",
-    path.el, h("div", { class: "pw-row" }, fileButton, selectedButton, selectedNote), fileStatus.el);
+    path.el, h("div", { class: "pw-row" }, extras.el), h("div", { class: "pw-row" }, fileButton, selectedButton, selectedNote), fileStatus.el);
 
   async function hashFiles(paths) {
     if (paths.length === 0) return fileStatus.set("Type the location of a file first.", "bad");
@@ -53,9 +55,10 @@ export function buildHashCards(env) {
     const t0 = performance.now();
     selectedButton.disabled = true;
     try {
-      const r = await attempt(fileButton, fileStatus, () => call("crypto/filehash", { paths }));
+      const r = await attempt(fileButton, fileStatus, () => call("crypto/filehash", { paths, extras: extras.input.checked }));
       if (!r) return;
       files = r.results;
+      meta = { hints: r.hints ?? {}, fastTitle: r.fastTitle ?? "" };
       const good = files.filter((f) => f.ok);
       const total = good.reduce((sum, f) => sum + f.size, 0);
       renderFiles();
@@ -107,18 +110,26 @@ export function buildHashCards(env) {
     h("div", { class: "pw-row crypto-group" }, folder.el, fileName.el, useFolder, saveButton), saveStatus.el,
     h("div", { class: "pw-row crypto-group" }, expected.el, verifyButton), verifyStatus.el);
 
-  function showDigests(rows, source) {
-    current = { rows, source };
+  /** `fast` are the fast checksums: shown in their own, clearly labelled table, but used by checks and reports like the rest. */
+  function showDigests(rows, source, fast = [], hints = {}, fastTitle = "", skipped = []) {
+    current = { rows: [...rows, ...fast], source };
     sourceLine.textContent = `Digests of: ${source}`;
-    clear(tableHost).append(digestTable(rows, `Digests of ${source}`));
-    env.setLast(rows.map(([algo, digest]) => `${algo}  ${digest}`).join("\n"));
+    clear(tableHost).append(...[
+      digestTable(rows, `Digests of ${source}`, hints),
+      fast.length ? h("div", { class: "crypto-fast" },
+        h("h4", { class: "crypto-subtitle" }, fastTitle || "Fast checksums (to spot accidental changes only, NOT secure)"),
+        h("p", { class: "pw-hint" }, "These are very quick check numbers for noticing accidental damage. Anyone can make a different file with the same number, so never use them to prove a download is genuine. Each is the number the function returns (seed 0), written in hex with the most significant digit first."),
+        digestTable(fast, `Fast checksums of ${source}`, hints)) : null,
+      skipped.length ? h("ul", { class: "crypto-list pw-hint", "data-copy": "Skipped checksums" }, skipped.map((x) => h("li", {}, `${x.label}: ${x.reason}`))) : null,
+    ].filter(Boolean));
+    env.setLast(current.rows.map(([algo, digest]) => `${algo}  ${digest}`).join("\n"));
     verifyStatus.set("");
     saveStatus.set("");
   }
 
   function pick(i) {
     const f = files.filter((x) => x.ok)[i];
-    if (f) showDigests(f.rows, `${f.name} (${formatSize(f.size)})`);
+    if (f) showDigests(f.rows, `${f.name} (${formatSize(f.size)})`, f.fast, meta.hints, meta.fastTitle, f.skipped);
   }
 
   function renderFiles() {
@@ -161,6 +172,7 @@ export function buildHashCards(env) {
     },
     clear() {
       for (const box of [text, key, path, expected]) box.input.value = "";
+      extras.input.checked = false;
       fileName.input.value = "Digests.txt";
       pathTouched = folderTouched = false;
       files = [];

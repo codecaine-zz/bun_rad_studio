@@ -28,6 +28,7 @@ const TOOL_TEXT = {
   timer: "A timer for workouts, studying and cooking, with sounds and music.",
   code: "Write and edit text and code files, with find and replace, and run them.",
   vault: "Lock files with a password, and open them again later.",
+  secrets: "Your private vault for passwords and secure notes, locked with one master password. Includes a password generator, one-time codes and a health check.",
   dev: "Developer information about a folder: lines of code per language, project type, Git history, disk usage and TODO notes.",
 };
 

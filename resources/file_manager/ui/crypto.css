@@ -36,3 +36,8 @@
 .crypto-list { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 2px; }
 .crypto-jwt { display: flex; flex-direction: column; gap: 8px; }
 .crypto-log { max-height: 240px; overflow: auto; }
+.crypto-subtitle { margin: 8px 0 2px; font-size: 0.95em; color: var(--warn-text); background: var(--warn-bg); border-radius: 6px; padding: 3px 8px; }
+.crypto-fast { border-top: 1px dashed var(--border); margin-top: 8px; padding-top: 4px; }
+.crypto-swatch { width: min(100%, 320px); height: 64px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background-color: var(--panel); background-image: linear-gradient(45deg, var(--hover) 25%, transparent 25%, transparent 75%, var(--hover) 75%), linear-gradient(45deg, var(--hover) 25%, transparent 25%, transparent 75%, var(--hover) 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+.crypto-swatch-colour { width: 100%; height: 100%; }
+.crypto-colors th[scope="row"] { white-space: nowrap; font-weight: 600; }
