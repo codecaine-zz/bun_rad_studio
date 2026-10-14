@@ -333,6 +333,102 @@ describe("Designer: component tree rows are keyboard operable", () => {
     });
 });
 
+describe("Designer: dialogs handle focus and the keyboard", () => {
+    const html = getIdeHtml();
+    const grab = (name: string, kind = "function") => {
+        const start = html.indexOf(`${kind} ${name}`);
+        expect(start).toBeGreaterThan(-1);
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        return html.slice(start, end + 1);
+    };
+    const ids = ["eventEditorModal", "importModal", "hotkeysModal", "diagnosticsModal"];
+
+    function page() {
+        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
+        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+        const w = dom.window as any;
+        const src = ["getOpenDialog", "dialogFocusables", "showDialog", "hideDialog", "onDialogKeydown", "setupDialogs"].map((n) => grab(n)).join("\n");
+        new Function("window", "document", `const DIALOG_IDS = ${JSON.stringify(ids)}; const dialogOpeners = {};\n${src}\nwindow.__api = { showDialog, hideDialog, setupDialogs, getOpenDialog };`)(w, w.document);
+        w.__api.setupDialogs();
+        const key = (el: any, k: string, init: any = {}) => {
+            const ev = new w.KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...init });
+            el.dispatchEvent(ev);
+            return ev;
+        };
+        return { w, doc: w.document as any, api: w.__api, key };
+    }
+
+    test("every dialog is announced as a modal dialog with a name", () => {
+        const { doc } = page();
+        for (const id of ids) {
+            const d = doc.getElementById(id)!;
+            expect(d.getAttribute("role")).toBe("dialog");
+            expect(d.getAttribute("aria-modal")).toBe("true");
+            expect((d.getAttribute("aria-label") ?? "").length).toBeGreaterThan(3);
+        }
+    });
+
+    test("opening moves focus into the dialog and closing hands it back to the opener", () => {
+        const { doc, api } = page();
+        const opener = doc.querySelector('button[onclick="showImportModal()"]')!;
+        opener.focus();
+        api.showDialog("importModal");
+        expect(doc.activeElement!.id).toBe("importJsonText");
+        api.hideDialog("importModal");
+        expect(doc.activeElement).toBe(opener);
+    });
+
+    test("Escape closes the open dialog even while typing in its text box", () => {
+        const { doc, api, key } = page();
+        api.showDialog("importModal");
+        const ev = key(doc.getElementById("importJsonText")!, "Escape");
+        expect(doc.getElementById("importModal")!.style.display).toBe("none");
+        expect(ev.defaultPrevented).toBe(true);
+    });
+
+    test("Tab wraps inside the dialog in both directions and cannot leave it", () => {
+        const { w, doc, api, key } = page();
+        api.showDialog("importModal");
+        const modal = doc.getElementById("importModal")!;
+        const buttons = [...modal.querySelectorAll("button")] as any[];
+        const first = doc.getElementById("importJsonText")!;
+        const last = buttons[buttons.length - 1]!;
+        last.focus();
+        expect(key(last, "Tab").defaultPrevented).toBe(true);
+        expect(doc.activeElement).toBe(first);
+        expect(key(first, "Tab", { shiftKey: true }).defaultPrevented).toBe(true);
+        expect(doc.activeElement).toBe(last);
+        // Focus that somehow ended up behind the dialog is pulled back in.
+        doc.querySelector('button[onclick="showHotkeysModal()"]')!.focus();
+        key(doc.activeElement!, "Tab");
+        expect(modal.contains(doc.activeElement)).toBe(true);
+        void w;
+    });
+
+    test("with no dialog open, Escape and Tab are left alone", () => {
+        const { doc, key } = page();
+        expect(key(doc.body, "Escape").defaultPrevented).toBe(false);
+        expect(key(doc.body, "Tab").defaultPrevented).toBe(false);
+    });
+
+    test("editing shortcuts (Delete, arrows, undo) are ignored while a dialog is open", () => {
+        const guard = html.indexOf("if (getOpenDialog()) return;");
+        expect(guard).toBeGreaterThan(-1);
+        expect(guard).toBeLessThan(html.indexOf('e.key === "Delete" || e.key === "Backspace"'));
+        expect(guard).toBeLessThan(html.indexOf('e.altKey && e.key === "ArrowLeft"'));
+        // All four dialogs go through the shared helpers.
+        for (const fn of ["showImportModal", "showHotkeysModal", "showDiagnosticsModal", "showEventEditorModal"]) {
+            expect(html).toContain(`function ${fn}(`);
+        }
+        expect(html.match(/showDialog\("(importModal|hotkeysModal|diagnosticsModal|eventEditorModal)"\)/g)).toHaveLength(4);
+    });
+});
+
 describe("Designer: placing and resizing without a mouse", () => {
     const html = getIdeHtml();
     const grab = (name: string) => {

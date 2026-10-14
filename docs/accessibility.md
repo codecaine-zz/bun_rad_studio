@@ -32,13 +32,14 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 
 - **Placing and resizing controls works from the keyboard** (added later, see [D-035](documentation-maintenance/discrepancies.md#d-035)): Tab to a palette item and press Enter or Space to drop the control below the lowest existing one (selected, status line tells you what happened); **Alt + arrows** resize the selection by 1 px (Alt + Shift: 8 px). Moving with the arrow keys already existed (my earlier statement that it needed a mouse was wrong). Checked live with real key presses (place two controls, move, resize, undo) and by tests ("Designer: placing and resizing without a mouse").
 
+- **Dialogs (Import, Audit, Keys, event editor) handle focus and keys** (see [D-036](documentation-maintenance/discrepancies.md#d-036)). Before: nothing moved focus into them, Tab walked out into the page behind, Escape closed only two of the four (and not from a text box), and with the Keys dialog open **Delete, Backspace and the arrow keys still edited the form behind it**. Now: focus moves in on opening and returns to the opener on closing, Tab stays inside, Escape closes any of them (also from the text box), editing shortcuts are ignored while one is open, and each is marked `role="dialog"` with `aria-modal` and a name. Checked live with real key presses and by tests ("dialogs handle focus and the keyboard", which fail on the old page).
+
 ## Still missing
 
 - **Selecting a control from the keyboard** is possible through the **Tree tab**: its rows were not focusable (they are built after start-up, so the earlier fix missed them). They now are: Tab to a row, Enter or Space selects it, focus stays on the row, `aria-pressed` shows the selection, and the arrow keys then move it (checked live with real key presses; test "component tree rows are keyboard operable", which fails on the old page). The component dropdown above the properties is a native `select`; it was **not** verified by keyboard (on macOS Chromium a plain arrow key only opens it) and the native window was not checked.
 - **Drag-and-drop**, rubber-band and canvas clicks have no keyboard equivalent beyond the above. Selecting several controls by keyboard (Shift/Cmd with Enter on tree rows is passed through to the same code as the mouse) was not checked. So the designer is **not shown to be fully keyboard operable**.
 - **Icon-only buttons rely on `title`** instead of `aria-label`; screen readers differ in how they use it.
 - **No `<label>` association** for the property fields; the `title` attribute is the only programmatic name.
-- **Dialogs** (Import, Audit, Keys, event editor): focus handling (moving focus in, trapping it, returning it) was not checked.
 - **The canvas** (the form being designed) exposes the controls as plain elements; whether a screen reader can understand the form was not tested.
 - **Motion, zoom, text size and colour-blindness** were not assessed.
 - **Solarized** body text contrast, see above.

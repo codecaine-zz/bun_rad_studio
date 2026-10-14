@@ -39,6 +39,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-033 A stale package-lock.json broke `npm ci` (removed)](#d-033)
 - [D-034 Fourteen game servers were copies of the same code (refactored)](#d-034)
 - [D-035 Placing and resizing controls needed a mouse (fixed, behaviour change)](#d-035)
+- [D-036 Dialogs ignored focus and let shortcuts edit the form behind them (fixed)](#d-036)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -357,3 +358,12 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Verified:** live with real key presses in a browser (Tab to Button, Enter, Tab to Label, Enter, arrows, Alt + arrows, Cmd+Z undo) and by tests in `tests/ide_html.test.ts` ("Designer: placing and resizing without a mouse").
 - **Follow-up (same day): the Tree tab rows were not keyboard reachable.** They are created after start-up, so `makeClickablesKeyboardOperable` never saw them. `renderTree` now gives each row `tabindex="0"`, `role="button"`, an `aria-label`, `aria-pressed`, and Enter/Space selection that returns focus to the row after the tree is rebuilt. Verified live (Tab, Enter, Space, then an arrow key moved the selected control) and by tests ("component tree rows are keyboard operable", failing on the old page).
 - **Not checked:** the native window; screen-reader announcements; the native component dropdown by keyboard; multi-select by keyboard.
+
+<a id="d-036"></a>
+## D-036: Dialogs ignored focus and let shortcuts edit the form behind them (fixed)
+
+- **Status:** Fixed on 13 October 2026 (behaviour change in `src/ide.html`).
+- **Observed (code reading, then live):** the four dialogs (Import, Keys, Audit, event editor) were opened by setting `display: flex`. Focus was not moved in or returned; Tab could leave the dialog; Escape closed only Keys and Import, and only when the cursor was not in a text box; and the global key handler did not know a dialog was open, so **Delete, Backspace, arrow keys and Cmd+Z acted on the controls behind the dialog**. (The last point was read from the code; the old page was not driven live to lose a control.)
+- **Change:** `showDialog` / `hideDialog` (used by all eight show/hide functions), a capture-phase key handler (Escape closes the open dialog, Tab is kept inside it), `role="dialog"`, `aria-modal="true"` and an `aria-label` from each dialog's title, and an early return in the global handler while a dialog is open. Window-level shortcuts handled earlier in that handler (double-Alt, F5/reload block, centre window, zoom) are unchanged.
+- **Verified:** live with real key presses (Enter on the Keys button opens it, focus lands inside, six Tabs stay inside, Delete leaves the 2 controls alone, Escape closes it and focus returns to the button; Import: typing and Backspace work in the text box, Shift+Tab/Tab wrap, Escape from the text box closes it) and by six tests that fail on the old page.
+- **Not checked:** the native window; a screen reader; the event editor dialog was covered by tests and shared code but not opened live; clicking the dark backdrop still does not close a dialog (unchanged).
