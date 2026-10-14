@@ -677,6 +677,20 @@
 					<select class="prop-input" id="propFormTheme" onchange="updateFormTheme()" title="Switch application theme palette">
 						<option value="Dark">Dark Mode (Default)</option>
 						<option value="Light">Light Mode (Classic)</option>
+						<optgroup label="🌌 Futuristic">
+							<option value="Cyberpunk Hologram">Cyberpunk Hologram</option>
+							<option value="Neon HUD">Neon HUD</option>
+							<option value="Quantum Obsidian">Quantum Obsidian (OLED)</option>
+							<option value="Deep Space">Deep Space</option>
+							<option value="Liquid Metal">Liquid Metal</option>
+							<option value="Titanium Aurora">Titanium Aurora</option>
+							<option value="Liquid Metal Light">Liquid Metal Light</option>
+							<option value="Neo-Tokyo Dark">Neo-Tokyo Dark</option>
+							<option value="Synthetic Solar">Synthetic Solar</option>
+							<option value="Neo-Tokyo Day">Neo-Tokyo Day (Light)</option>
+							<option value="Aurora Glass">Aurora Glass</option>
+							<option value="Plasma Violet">Plasma Violet</option>
+						</optgroup>
 						<optgroup label="⚡ Flagship & AAA Studio Themes">
 							<option value="Abyss">Abyss Bioluminescence</option>
 							<option value="Arc Velvet">Arc Velvet (Plum & Magenta)</option>
@@ -736,6 +750,14 @@
 							<option value="Solarized Light">Solarized Light</option>
 							<option value="Tokyo Night">Tokyo Night</option>
 						</optgroup>
+					</select>
+				</div>
+				<div class="prop-row">
+					<span class="prop-label">Effects</span>
+					<select class="prop-input" id="propFormFx" onchange="updateFxMode()" title="Glow, glass and motion for the futuristic themes. Full follows your system's reduced-motion setting; Reduced keeps the look but removes motion; Off removes all effects.">
+						<option value="full">Full</option>
+						<option value="reduced">Reduced</option>
+						<option value="off">Off</option>
 					</select>
 				</div>
 

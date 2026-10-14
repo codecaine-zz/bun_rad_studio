@@ -6,6 +6,7 @@
 			div.style.height = ctrl.height + "px";
 			div.style.fontSize = (ctrl.font_size || 12) + "px";
 			div.title = ctrl.tooltip ? ctrl.tooltip : (ctrl.id + " (" + ctrl.control_type + ")");
+			div.dataset.ctype = ctrl.control_type || "";
 			const idx = parseInt(div.dataset.ctrlIndex, 10);
 			const isSel = !isNaN(idx) && selectedIndices.includes(idx);
 
@@ -765,6 +766,7 @@
 		}
 
 		function renderCanvas() {
+			syncThemeControls();
 			// Update empty state visibility
 			const emptyState = document.getElementById('canvasEmptyState');
 			if (emptyState) emptyState.style.display = (formSpec.controls && formSpec.controls.length > 0) ? 'none' : 'flex';

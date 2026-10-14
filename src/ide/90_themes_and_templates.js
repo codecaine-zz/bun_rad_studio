@@ -22,6 +22,8 @@
 		}
 
 		function getRawThemeColors(theme) {
+			const fxPalette = typeof fxPaletteFor === "function" ? fxPaletteFor(theme) : null;
+			if (fxPalette) return fxPalette;
 			const clean = (theme || "").toLowerCase().replace(/[\s\-_]+/g, "_");
 			if (clean === "sonoma_dark" || clean === "macos_sonoma") return { formBg: "#1e1e1e", formFg: "#ffffff", ctrlBg: "#2c2c2e", ctrlFg: "#ffffff", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#2c2c2e" };
 			if (clean === "sonoma_light") return { formBg: "#f6f6f6", formFg: "#1d1d1f", ctrlBg: "#ffffff", ctrlFg: "#1d1d1f", btnBg: "#007aff", btnFg: "#ffffff", panelBg: "#e5e5e7" };
@@ -146,6 +148,7 @@
 			const themeSelect = document.getElementById("propFormTheme");
 			const theme = themeSelect ? themeSelect.value : "Dark";
 			const colors = getThemeColors(theme);
+			formSpec.theme = theme;
 			formSpec.background_color = colors.formBg;
 			formSpec.font_color = colors.formFg;
 
