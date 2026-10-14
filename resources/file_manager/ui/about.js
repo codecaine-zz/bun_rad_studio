@@ -7,9 +7,17 @@ import { toast } from "./menus.js";
 /** Used until the server answers (and if it can't); the server owns the real list and opens the links. */
 const FALLBACK_LINKS = [
   { id: "project", label: "Project on GitHub", hint: "The source code, releases and documentation of Bun RAD Studio.", url: "https://github.com/codecaine-zz/bun_rad_studio" },
+  { id: "tutorials", label: "Markdown tutorials", hint: "Lessons and examples for learning Markdown, the plain-text writing format used for README files and notes. Opens codefreelance.net.", url: "https://codefreelance.net/apps/markdown_tutorials/" },
   { id: "issues", label: "Report a problem or suggest an idea", hint: "Opens the issue tracker on GitHub (you need a free GitHub account to post).", url: "https://github.com/codecaine-zz/bun_rad_studio/issues" },
   { id: "author", label: "codecaine-zz on GitHub", hint: "The author's GitHub profile, with the other projects.", url: "https://github.com/codecaine-zz" },
 ];
+
+/** Opens one of the About links in the web browser by its id (the addresses live on the server). */
+export async function openAboutLink(id) {
+  const links = await loadLinks();
+  const link = links.find((l) => l.id === id);
+  if (link) await openLink(link);
+}
 
 async function openLink(link) {
   try {

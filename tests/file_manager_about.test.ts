@@ -27,6 +27,7 @@ describe("About links", () => {
     const urls = ABOUT_LINKS.map((l) => l.url);
     expect(urls).toContain("https://github.com/codecaine-zz/bun_rad_studio");
     expect(urls).toContain("https://github.com/codecaine-zz");
+    expect(urls).toContain("https://codefreelance.net/apps/markdown_tutorials/");
     for (const u of urls) expect(u.startsWith("https://")).toBe(true);
     expect(new Set(ABOUT_LINKS.map((l) => l.id)).size).toBe(ABOUT_LINKS.length);
   });
@@ -37,6 +38,8 @@ describe("About links", () => {
     const res = await post("about/open", { id: "project" });
     expect(res.status).toBe(200);
     expect(launched.at(-1)!.args).toContain("https://github.com/codecaine-zz/bun_rad_studio");
+    expect((await post("about/open", { id: "tutorials" })).status).toBe(200);
+    expect(launched.at(-1)!.args).toContain("https://codefreelance.net/apps/markdown_tutorials/");
   });
 
   test("an unknown id, or an address sent instead of an id, opens nothing", async () => {
