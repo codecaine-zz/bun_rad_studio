@@ -281,6 +281,58 @@ describe("Designer: keyboard access", () => {
     });
 });
 
+describe("Designer: component tree rows are keyboard operable", () => {
+    const html = getIdeHtml();
+    const start = html.indexOf("function renderTree()");
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+        if (html[end] === "{") depth++;
+        else if (html[end] === "}" && --depth === 0) break;
+    }
+    const renderTreeSrc = html.slice(start, end + 1);
+
+    function build(controls: any[], selected: number[] = []) {
+        const dom = new JSDOM('<!DOCTYPE html><body><input id="treeFilterBox"><div id="treeContainer"></div></body>');
+        const doc = dom.window.document;
+        const picked: Array<{ idx: number; key?: string }> = [];
+        const state = { formSpec: { controls }, selectedIndices: selected, picked };
+        const run = new Function(
+            "document",
+            "state",
+            `const formSpec = state.formSpec; const selectedIndices = state.selectedIndices;
+             const selectControl = (idx, e) => { state.picked.push({ idx, key: e && e.key }); };
+             const moveControlOrder = () => {};
+             ${renderTreeSrc}; return renderTree;`,
+        )(doc, state) as () => void;
+        run();
+        return { dom, doc, picked };
+    }
+
+    const controls = [{ id: "button_1", control_type: "button" }, { id: "label_2", control_type: "label", locked: true }];
+
+    test("every row can take focus, is announced as a button with a name, and shows whether it is selected", () => {
+        const { doc } = build(controls, [1]);
+        const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
+        expect(rows).toHaveLength(2);
+        expect(rows.map((r) => r.getAttribute("tabindex"))).toEqual(["0", "0"]);
+        expect(rows.map((r) => r.getAttribute("role"))).toEqual(["button", "button"]);
+        expect(rows[0]!.getAttribute("aria-label")).toBe("Select button_1 (button)");
+        expect(rows.map((r) => r.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
+    });
+
+    test("Enter and Space select the row; other keys and keys from the row's own buttons do not", () => {
+        const { dom, doc, picked } = build(controls);
+        const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
+        const press = (el: any, key: string) => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        press(rows[0]!, "Enter");
+        press(rows[1]!, " ");
+        press(rows[0]!, "a");
+        press(rows[0]!.querySelector("button")!, "Enter");
+        expect(picked.map((p) => p.idx)).toEqual([0, 1]);
+    });
+});
+
 describe("Designer: placing and resizing without a mouse", () => {
     const html = getIdeHtml();
     const grab = (name: string) => {

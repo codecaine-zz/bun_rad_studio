@@ -34,7 +34,8 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 
 ## Still missing
 
-- **Selecting a particular control** on the canvas, drag-and-drop, and multi-select (other than what the keyboard handler already offers) were not checked for keyboard use, so the designer is **not shown to be fully keyboard operable**.
+- **Selecting a control from the keyboard** is possible through the **Tree tab**: its rows were not focusable (they are built after start-up, so the earlier fix missed them). They now are: Tab to a row, Enter or Space selects it, focus stays on the row, `aria-pressed` shows the selection, and the arrow keys then move it (checked live with real key presses; test "component tree rows are keyboard operable", which fails on the old page). The component dropdown above the properties is a native `select`; it was **not** verified by keyboard (on macOS Chromium a plain arrow key only opens it) and the native window was not checked.
+- **Drag-and-drop**, rubber-band and canvas clicks have no keyboard equivalent beyond the above. Selecting several controls by keyboard (Shift/Cmd with Enter on tree rows is passed through to the same code as the mouse) was not checked. So the designer is **not shown to be fully keyboard operable**.
 - **Icon-only buttons rely on `title`** instead of `aria-label`; screen readers differ in how they use it.
 - **No `<label>` association** for the property fields; the `title` attribute is the only programmatic name.
 - **Dialogs** (Import, Audit, Keys, event editor): focus handling (moving focus in, trapping it, returning it) was not checked.

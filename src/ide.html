@@ -5340,6 +5340,20 @@
 				const item = document.createElement("div");
 				item.className = "tree-item" + (selectedIndices.includes(idx) ? " selected" : "");
 				item.onclick = (e) => selectControl(idx, e);
+				// Tree rows are built after start-up, so they are made keyboard operable here.
+				item.tabIndex = 0;
+				item.setAttribute("role", "button");
+				item.setAttribute("aria-pressed", selectedIndices.includes(idx) ? "true" : "false");
+				item.setAttribute("aria-label", "Select " + ctrl.id + " (" + ctrl.control_type + ")");
+				item.dataset.ctrlIndex = String(idx);
+				item.addEventListener("keydown", (e) => {
+					if (e.target !== item || (e.key !== "Enter" && e.key !== " ")) return;
+					e.preventDefault();
+					selectControl(idx, e);
+					// Selecting rebuilds the tree, so put the keyboard focus back on the same row.
+					const again = document.querySelector('#treeContainer [data-ctrl-index="' + idx + '"]');
+					if (again) again.focus();
+				});
 
 				const label = document.createElement("span");
 				label.textContent = (ctrl.locked ? "🔒 " : "") + ctrl.id + " (" + ctrl.control_type + ")";
