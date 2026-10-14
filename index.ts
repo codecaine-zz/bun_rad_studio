@@ -1,4 +1,5 @@
 import { injectHelp } from "./src/shared/helpTips";
+import { buildSemanticPalette, normalizeKind, semanticCssVars } from "./src/shared/themeSemantic";
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync, openSync, closeSync, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
@@ -1582,6 +1583,7 @@ export function generatePreviewHtml(spec: any): string {
     const isCardLight = isLight || isColorBright(cardBg);
     const cardBorder = spec.card_border || (bg === '#050505' ? '#242424' : (bg === '#0a0600' ? '#472800' : (bg === '#040a05' ? '#123d18' : (isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'))));
     const border = spec.border_color || spec.card_border || (bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)'));
+    const sem = buildSemanticPalette({ background: bg, card: cardBg, isDark: !isLight, overrides: spec.semantic_overrides });
     const w = spec.width || 800;
     const h = spec.height || 600;
     const buildEvents = (c: any) => {
@@ -1762,8 +1764,18 @@ export function generatePreviewHtml(spec: any): string {
             const bBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'solid'};` : 'border:none;';
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
             const mouseOverFilter = c.hover_color || c.hover_text_color ? '' : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
+            const roleKind = hasCustomBg ? null : normalizeKind(c.variant || c.alert_type || c.color);
+            if (roleKind) {
+                // Status buttons read their colours from the theme variables, so a live theme switch restyles them.
+                const look = String(c.appearance || 'solid');
+                const roleStyle = look === 'soft' ? `background:var(--${roleKind}-soft);color:var(--${roleKind}-text);border:1px solid var(--${roleKind}-border);`
+                    : look === 'outline' ? `background:transparent;color:var(--${roleKind}-text);border:2px solid var(--${roleKind});`
+                    : `background:var(--${roleKind});color:var(--${roleKind}-on);${bBorder}`;
+                controls += `<button${id} data-custom-bg="true" data-variant="${roleKind}" class="rad-button rad-btn-${roleKind}"${titleAttr}${ev}${disabled} style="${base(c)}${roleStyle}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+            } else {
             const customAttr = hasCustomBg ? ' data-custom-bg="true"' : ' class="rad-button btn-theme-accent"';
             controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+            }
         } else if (t === 'heading') {
             controls += `<h1${id}${titleAttr}${ev} class="rad-heading" style="${base(c)}margin:0;font-size:${c.font_size || 22}px;font-weight:700;color:${color};background:${rawCbg};">${text}</h1>\n`;
         } else if (t === 'subheading') {
@@ -1845,22 +1857,11 @@ export function generatePreviewHtml(spec: any): string {
                 badgeBg = c.background_color;
                 const isBgBright = isColorBright(badgeBg);
                 badgeFg = c.font_color || (isBgBright ? '#0f172a' : '#ffffff');
-            } else if (aType === 'info') {
-                badgeBg = isLight ? '#e0f2fe' : 'rgba(14,165,233,0.2)';
-                badgeFg = isLight ? '#0369a1' : '#38bdf8';
-                badgeBorder = isLight ? 'border:1px solid #7dd3fc;' : 'border:1px solid rgba(14,165,233,0.4);';
-            } else if (aType === 'success') {
-                badgeBg = isLight ? '#dcfce7' : 'rgba(16,185,129,0.2)';
-                badgeFg = isLight ? '#15803d' : '#34d399';
-                badgeBorder = isLight ? 'border:1px solid #86efac;' : 'border:1px solid rgba(16,185,129,0.4);';
-            } else if (aType === 'warning') {
-                badgeBg = isLight ? '#fef3c7' : 'rgba(245,158,11,0.2)';
-                badgeFg = isLight ? '#92400e' : '#fbbf24';
-                badgeBorder = isLight ? 'border:1px solid #fde68a;' : 'border:1px solid rgba(245,158,11,0.4);';
-            } else if (aType === 'error') {
-                badgeBg = isLight ? '#fee2e2' : 'rgba(239,68,68,0.2)';
-                badgeFg = isLight ? '#991b1b' : '#f87171';
-                badgeBorder = isLight ? 'border:1px solid #fca5a5;' : 'border:1px solid rgba(239,68,68,0.4);';
+            } else if (normalizeKind(aType)) {
+                const sc = sem[normalizeKind(aType)!];
+                badgeBg = sc.soft;
+                badgeFg = sc.text;
+                badgeBorder = `border:1px solid ${sc.border};`;
             } else {
                 badgeBg = isLight ? '#f1f5f9' : 'rgba(255,255,255,0.1)';
                 badgeFg = isLight ? '#0f172a' : '#f8fafc';
@@ -1888,19 +1889,19 @@ export function generatePreviewHtml(spec: any): string {
             const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
             controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="${base(c)}background:${cbg};${dzBorder}${dzRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"><input type="hidden" id="${c.id}" name="${c.id}" value="${text||''}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:24px;">📥</span><span class="dz-label" style="font-size:11px;">${text||'Drop files here or click to browse'}</span></div>\n`;
         } else if (t === 'status_indicator') {
-            const statusColor = c.status === 'error' ? '#ef4444' : c.status === 'warning' ? '#f59e0b' : c.status === 'inactive' ? (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)') : '#10b981';
+            const statusColor = c.status === 'error' ? sem.danger.solid : c.status === 'warning' ? sem.warning.solid : c.status === 'inactive' ? (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)') : sem.success.solid;
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${text}</span></div>\n`;
         } else if (t === 'metric_card') {
             const mRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
             const showTrend = c.trend !== undefined && c.trend !== null && c.trend !== '' && c.trend !== false && c.show_trend !== false;
-            const trendHtml = showTrend ? `<div style="font-size:10px;color:${c.trend_color || '#10b981'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">↑ ${c.trend}</div>` : '';
+            const trendHtml = showTrend ? `<div style="font-size:10px;color:${c.trend_color || sem.success.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">↑ ${c.trend}</div>` : '';
             const pad = c.padding !== undefined ? `${c.padding}px` : (showTrend ? '10px 12px' : '6px 14px');
             const justify = showTrend ? 'space-between' : 'center';
             const valSize = c.value_font_size || (showTrend ? 22 : 19);
             const valColor = c.value_color || color;
             controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:${pad};display:flex;flex-direction:column;justify-content:${justify};gap:2px;box-sizing:border-box;"><div style="font-size:${c.font_size || 10}px;color:${color};opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${text}</div><div style="font-size:${valSize}px;font-weight:800;color:${valColor};line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value||'—'}</div>${trendHtml}</div>\n`;
         } else if (t === 'alert_banner') {
-            const alertCol = c.alert_type === 'error' ? '#ef4444' : c.alert_type === 'warning' ? '#f59e0b' : c.alert_type === 'success' ? '#10b981' : accent;
+            const alertCol = c.alert_type === 'error' ? sem.danger.solid : c.alert_type === 'warning' ? sem.warning.solid : c.alert_type === 'success' ? sem.success.solid : accent;
             const alertIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'success' ? '✅' : 'ℹ️';
             const aRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:0 6px 6px 0;';
             controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : alertCol + '22'};border-left:4px solid ${alertCol};${aRadius}display:flex;align-items:center;gap:10px;padding:0 12px;color:${color};"><span>${alertIcon}</span><span style="font-size:12px;">${text}</span></div>\n`;
@@ -2384,7 +2385,7 @@ export function generatePreviewHtml(spec: any): string {
                 return `<div style="display:flex;align-items:center;gap:10px;font-size:11px;color:${color};"><div style="width:10px;height:10px;border-radius:50%;background:${nodeCol};box-shadow:${active ? `0 0 6px ${accent}` : 'none'};flex-shrink:0;"></div><span style="font-weight:${active ? '700' : 'normal'};opacity:${active ? '1' : '0.6'};">${step}</span></div>`;
             }).join('')}</div>\n`;
         } else if (t === 'toast_card') {
-            const tCol = c.alert_type === 'error' ? '#ef4444' : c.alert_type === 'warning' ? '#f59e0b' : c.alert_type === 'info' ? accent : '#10b981';
+            const tCol = c.alert_type === 'error' ? sem.danger.solid : c.alert_type === 'warning' ? sem.warning.solid : c.alert_type === 'info' ? accent : sem.success.solid;
             const tIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'info' ? 'ℹ️' : '✅';
             const tRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
             controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};border-left:4px solid ${tCol};${defBorder}${tRadius}padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${tIcon}</span><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;color:${color};">${text||'Notification'}</span><span style="font-size:10px;color:${color};opacity:0.7;">${c.placeholder||'Action performed successfully.'}</span></div></div><button onclick="this.parentNode.style.display='none'" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:14px;">✕</button></div>\n`;
@@ -2557,7 +2558,7 @@ export function generatePreviewHtml(spec: any): string {
                 const label = parts[0] || 'Metric';
                 const val = parts[1] || '$10k';
                 const isUp = i % 3 === 0; const isFlat = i % 3 === 1;
-                const sparkColor = isUp ? '#10b981' : isFlat ? accent : '#ef4444';
+                const sparkColor = isUp ? sem.success.solid : isFlat ? accent : sem.danger.solid;
                 const points = isUp ? '0,14 10,12 20,8 30,10 40,4 50,2' : isFlat ? '0,8 10,10 20,7 30,9 40,8 50,8' : '0,2 10,5 20,8 30,6 40,12 50,14';
                 return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:${i < rows.length - 1 ? `1px solid ${border}` : 'none'};cursor:pointer;"><span style="font-weight:600;opacity:0.85;">${label}</span><div style="display:flex;align-items:center;gap:8px;"><svg width="50" height="16" style="overflow:visible;"><polyline fill="none" stroke="${sparkColor}" stroke-width="2" points="${points}" /></svg><span class="rad-mono" style="font-weight:700;color:${sparkColor};">${val}</span></div></div>`;
             }).join('')}</div>\n`;
@@ -2725,8 +2726,8 @@ export function generatePreviewHtml(spec: any): string {
                 const modBg = mod !== null && isDiff ? (isLight ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.18)') : 'transparent';
                 const origSign = isDiff && orig !== null ? '-' : ' ';
                 const modSign = isDiff && mod !== null ? '+' : ' ';
-                const origFg = isDiff && orig !== null ? '#ef4444' : color;
-                const modFg = isDiff && mod !== null ? '#10b981' : color;
+                const origFg = isDiff && orig !== null ? sem.danger.text : color;
+                const modFg = isDiff && mod !== null ? sem.success.text : color;
 
                 diffRowsHtml += `<tr style="font-family:'Fira Code','Courier New',monospace;font-size:11px;line-height:1.4;">
                     <td class="diff-line-num" style="width:30px;padding:2px 6px;text-align:right;opacity:0.4;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'};border-right:1px solid ${border};user-select:none;">${orig !== null ? i + 1 : ''}</td>
@@ -2915,13 +2916,13 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${url}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size||13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || url}</span></a></div>\n`;
         } else if (t === 'banner' || t === 'status_banner') {
             const bStyle = c.style || c.alert_type || c.banner_style || 'info';
-            const bCol = bStyle === 'error' ? '#ef4444' : (bStyle === 'warning' ? '#f59e0b' : (bStyle === 'success' ? '#10b981' : accent));
+            const bCol = bStyle === 'error' ? sem.danger.solid : (bStyle === 'warning' ? sem.warning.solid : (bStyle === 'success' ? sem.success.solid : accent));
             const bIcon = bStyle === 'error' ? '❌' : (bStyle === 'warning' ? '⚠️' : (bStyle === 'success' ? '✅' : 'ℹ️'));
             const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
             const subtitle = c.message || c.caption || '';
             controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : (bCol + '18')};border-left:4px solid ${bCol};border-top:1px solid ${border};border-right:1px solid ${border};border-bottom:1px solid ${border};${bRadius}display:flex;align-items:center;gap:12px;padding:0 14px;color:${color};"><span style="font-size:16px;">${bIcon}</span><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:12px;font-weight:700;color:${color};">${text}</span>${subtitle ? `<span style="font-size:11px;opacity:0.8;color:${color};margin-top:1px;">${subtitle}</span>` : ''}</div></div>\n`;
         } else if (t === 'info_callout') {
-            const bCol = c.alert_type === 'success' ? '#10b981' : (c.alert_type === 'warning' ? '#f59e0b' : accent);
+            const bCol = c.alert_type === 'success' ? sem.success.solid : (c.alert_type === 'warning' ? sem.warning.solid : accent);
             const btnText = c.button_text || 'Learn More';
             controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-left:4px solid ${bCol};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:20px;">💡</span><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:13px;color:${bCol};">${text || 'Callout Title'}</span><span style="font-size:11px;opacity:0.8;margin-top:2px;">${c.message || c.caption || 'Important callout details and guidance for the user.'}</span></div></div>${btnText ? `<button style="padding:6px 12px;background:${bCol};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${btnText}</button>` : ''}</div>\n`;
         } else if (t === 'hero_banner') {
@@ -2937,7 +2938,7 @@ export function generatePreviewHtml(spec: any): string {
             controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};color:${color};border:1px solid ${border};border-radius:50%;width:${c.width||26}px;height:${c.height||26}px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;cursor:pointer;opacity:0.85;" title="${c.tooltip || text || 'Help & Documentation'}" onmouseover="this.style.opacity='1';this.style.borderColor='${accent}';" onmouseout="this.style.opacity='0.85';this.style.borderColor='${border}';">?</button>\n`;
         } else if (t === 'badge_button') {
             const count = c.count !== undefined ? c.count : 3;
-            const bCol = c.badge_color || '#ef4444';
+            const bCol = c.badge_color || sem.danger.solid;
             controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}position:relative;background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:700;font-size:12px;padding:0 14px;"><span>${text}</span><span style="background:${bCol};color:#ffffff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</span></button>\n`;
         } else if (t === 'quick_action_bar') {
             const rawActs = c.items || c.actions || (text ? text.split(',') : ['⚡ Run', '💾 Save', '🔄 Sync', '⚙️ Options']);
@@ -3047,7 +3048,7 @@ export function generatePreviewHtml(spec: any): string {
             const activeBars = Math.round((val / 100) * bars);
             controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;padding:4px 6px;background:${cbg};${defBorder}${defRadius};">${Array.from({length: bars}).map((_, idx) => {
                 const isActive = idx < activeBars;
-                const col = idx >= 10 ? '#ef4444' : (idx >= 7 ? '#f59e0b' : '#10b981');
+                const col = idx >= 10 ? sem.danger.solid : (idx >= 7 ? sem.warning.solid : sem.success.solid);
                 return `<div style="flex:1;height:100%;background:${isActive ? col : (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)')};border-radius:2px;box-shadow:${isActive ? `0 0 4px ${col}` : 'none'};"></div>`;
             }).join('')}</div>\n`;
         } else if (t === 'spinner') {
@@ -3257,7 +3258,7 @@ export function generatePreviewHtml(spec: any): string {
             const pTitle = c.title || c.caption || 'Important Note';
             const pMsg = c.message || text || 'Panels highlight important messages, alerts, or notes with a thick accent border bar.';
             const pType = c.alert_type || c.variant || 'info';
-            const barCol = pType === 'error' || pType === 'danger' ? '#ef4444' : (pType === 'warning' ? '#f59e0b' : (pType === 'success' ? '#10b981' : accent));
+            const barCol = pType === 'error' || pType === 'danger' ? sem.danger.solid : (pType === 'warning' ? sem.warning.solid : (pType === 'success' ? sem.success.solid : accent));
             const icon = pType === 'error' || pType === 'danger' ? '⛔ ' : (pType === 'warning' ? '⚠️ ' : (pType === 'success' ? '✓ ' : 'ℹ️ '));
             const showIcon = !pTitle.includes('ℹ️') && !pTitle.includes('⚠️') && !pTitle.includes('✓') && !pTitle.includes('⛔') && !pTitle.includes('⚡') && !pTitle.includes('🚨');
             const pRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:0 8px 8px 0;';
@@ -3294,7 +3295,7 @@ export function generatePreviewHtml(spec: any): string {
             const isSuccess = c.alert_type === 'success' || c.color === 'success';
             const isWarning = c.alert_type === 'warning' || c.color === 'warning';
             const isInfo = c.alert_type === 'info' || c.color === 'info';
-            const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isDanger ? '#ef4444' : (isSuccess ? '#10b981' : (isWarning ? '#f59e0b' : (isInfo ? '#0284c7' : accent))));
+            const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isDanger ? sem.danger.solid : (isSuccess ? sem.success.solid : (isWarning ? sem.warning.solid : (isInfo ? sem.info.solid : accent))));
             const badgeFg = isColorBright(badgeBg) ? '#000000' : '#ffffff';
             if (label || c.width > 48) {
                 const bRadius = c.border_radius !== undefined ? `${c.border_radius}px` : '16px';
@@ -3386,6 +3387,7 @@ export function generatePreviewHtml(spec: any): string {
     --input-border: ${cardBorder};
     --editable-bg: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'};
     --editable-border: ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'};
+    ${semanticCssVars(sem)}
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: auto; }
@@ -3763,9 +3765,9 @@ ${controls}
     if (c) {
       if (title) { const tEl = c.querySelector("span:nth-child(1)"); if (tEl) tEl.textContent = title; }
       if (msg) { const mEl = c.querySelector("span:nth-child(2)"); if (mEl) mEl.textContent = msg; }
-      if (alertType) { c.style.borderLeftColor = alertType==='error'?'#ef4444':alertType==='warning'?'#f59e0b':'#10b981'; }
+      if (alertType) { c.style.borderLeftColor = alertType==='error'?'var(--danger)':alertType==='warning'?'var(--warning)':'var(--success)'; }
       c.style.transition = "box-shadow 0.3s, border-color 0.3s";
-      c.style.boxShadow = "0 0 18px " + (alertType==='error'?'#ef4444':alertType==='warning'?'#f59e0b':'#10b981');
+      c.style.boxShadow = "0 0 18px " + (alertType==='error'?'var(--danger)':alertType==='warning'?'var(--warning)':'var(--success)');
       setTimeout(function() { c.style.boxShadow = ""; }, 1400);
     }
   };

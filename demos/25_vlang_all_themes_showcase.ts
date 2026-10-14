@@ -10,7 +10,7 @@ import { simplegui, SimpleWindow, getThemeNames, getThemes, getTheme } from "../
 
 export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow {
     const win = simplegui.newWindow(
-        "Demo 25 - All 76 Themes & 70+ Controls Ultimate Mega-Showcase",
+        "Demo 25 - All 121 Themes & 70+ Controls Ultimate Mega-Showcase",
         1100,
         1200,
         {
@@ -19,17 +19,17 @@ export function createVlangShowcase(initialTheme = "monokai_pro"): SimpleWindow 
     );
 
     win.heading("👑 The Ultimate RAD Studio Mega-Showcase");
-    win.subheading("70+ Delphi/VB Style Native Controls across all 76 Desktop Themes:");
+    win.subheading("70+ Delphi/VB Style Native Controls across all 121 Desktop Themes:");
     win.divider();
 
     win.row_start();
     win.kpi_card("Visual Controls", "70+ Types", "Anchors & Docking");
-    win.kpi_card("Built-in Themes", "76 Desktop", "Pixel-perfect CSS");
+    win.kpi_card("Built-in Themes", "121 Desktop", "Pixel-perfect CSS");
     win.kpi_card("Window Placement", "9 Presets", "Cocoa, Win32, GTK");
     win.kpi_card("FFI System APIs", "60+ Tools", "Native Telemetry");
     win.row_end();
 
-    win.box_start("76 Desktop Form Themes Selector & Style Mode");
+    win.box_start("121 Desktop Form Themes Selector & Style Mode");
     win.row_start();
     win.addThemeSelector("dd_theme_selector", "", false, 240);
     win.radio("theme_mode", "Dark Engine", true, () => {});

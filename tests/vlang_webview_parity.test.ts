@@ -15,7 +15,7 @@ import {
 import { createVlangShowcase } from "../demos/25_vlang_all_themes_showcase.ts";
 
 describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
-    const EXPECTED_76_THEMES = [
+    const BASE_76_THEMES = [
         'abyss',
         'adwaita_dark',
         'adwaita_light',
@@ -94,9 +94,59 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         'win95'
     ];
 
-    it("1. getThemeNames() and getThemes() return all 76 canonical V themes sorted alphabetically", () => {
+    // Linux distributions, Windows versions and macOS versions added on top of the 76 V themes.
+    const OS_VERSION_THEMES = [
+        'debian_dark',
+        'debian_light',
+        'arch_dark',
+        'opensuse_dark',
+        'manjaro_dark',
+        'elementary_light',
+        'elementary_dark',
+        'kali_dark',
+        'zorin_dark',
+        'rhel_dark',
+        'rocky_dark',
+        'almalinux_dark',
+        'centos_dark',
+        'fedora_light',
+        'endeavouros_dark',
+        'nixos_dark',
+        'gentoo_dark',
+        'alpine_dark',
+        'kde_breeze_dark',
+        'kde_breeze_light',
+        'xfce_dark',
+        'mate_dark',
+        'deepin_light',
+        'arc_dark',
+        'arc_light',
+        'sweet_dark',
+        'numix_dark',
+        'win31',
+        'win98',
+        'win2000',
+        'winxp_luna',
+        'vista_aero',
+        'win7_aero',
+        'win8_metro',
+        'win10_dark',
+        'win10_light',
+        'windows_terminal',
+        'windows_high_contrast',
+        'mac_os_9',
+        'snow_leopard',
+        'yosemite',
+        'big_sur',
+        'monterey_light',
+        'sequoia_dark',
+        'tahoe_glass',
+    ];
+    const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES].sort((a, b) => a.localeCompare(b));
+
+    it("1. getThemeNames() and getThemes() return all 121 canonical themes sorted alphabetically", () => {
         const names = getThemeNames();
-        expect(names.length).toBe(76);
+        expect(names.length).toBe(121);
         expect(names).toEqual(EXPECTED_76_THEMES);
 
         const namesSnake = get_theme_names();
@@ -117,7 +167,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         expect(isSorted(listThemes())).toBe(true);
     });
 
-    it("2. getTheme() resolves every one of the 76 themes with valid palettes", () => {
+    it("2. getTheme() resolves every one of the 121 themes with valid palettes", () => {
         for (const name of EXPECTED_76_THEMES) {
             const theme = getTheme(name);
             expect(theme).toBeDefined();
@@ -310,7 +360,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const selRef = win.addThemeSelector("dd_theme", "Theme:");
         const items = selRef.spec.items || [];
         const labels = selRef.spec.item_labels || {};
-        expect(items.length).toBeGreaterThanOrEqual(76);
+        expect(items.length).toBeGreaterThanOrEqual(121);
 
         const displayNames = items.map((k: string) => labels[k] || k);
         const sortedDisplayNames = [...displayNames].sort((a: string, b: string) =>
@@ -338,17 +388,17 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
         expect(listThemesArr).toEqual(sortedListThemes);
 
-        // 4. Demo 25 theme dropdown has exactly 76 unique themes with zero duplicates
+        // 4. Demo 25 theme dropdown has exactly 121 unique themes with zero duplicates
         const demo25Win = createVlangShowcase();
         const demo25Html = demo25Win.getHtml();
         const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
         expect(themeMatch).toBeTruthy();
         const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
-        expect(demo25Options.length).toBe(76);
+        expect(demo25Options.length).toBe(121);
         const uniqueValues = new Set(demo25Options.map(o => o.val));
         const uniqueTexts = new Set(demo25Options.map(o => o.text));
-        expect(uniqueValues.size).toBe(76);
-        expect(uniqueTexts.size).toBe(76);
+        expect(uniqueValues.size).toBe(121);
+        expect(uniqueTexts.size).toBe(121);
     });
 });
 

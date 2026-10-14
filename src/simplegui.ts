@@ -1,5 +1,7 @@
 import { SizeHint, Webview } from "webview-bun";
 import { injectHelp } from "./shared/helpTips";
+import { OS_THEMES, OS_THEME_KEYS } from "./shared/osThemes";
+import { buildSemanticPalette, overridesForTheme, semanticCssVars, type SemanticOverrides, type SemanticPalette } from "./shared/themeSemantic";
 import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, hideAppNative, closeWindowNative, attachWindowShortcuts, getScreenDimensions } from "../index.ts";
 import { Sys } from "./simplecli/sys/index.ts";
 import * as fs from "fs";
@@ -95,6 +97,8 @@ export interface FormSpec {
     card_border?: string;
     /** The theme's own light/dark answer, when the form still has the theme's background. */
     is_dark?: boolean;
+    /** Base danger, warning, success and info colours of the theme, when it defines its own. */
+    semantic_overrides?: SemanticOverrides;
     padding: number;
     spacing: number;
     controls: ControlSpec[];
@@ -1026,6 +1030,7 @@ export class SimpleWindow {
             const inputBg = isLight ? "#ffffff" : (themeObj.is_dark ? (themeObj.background_color === "#000000" ? "#0f0f0f" : "rgba(0, 0, 0, 0.28)") : "rgba(0, 0, 0, 0.04)");
             const inputBorder = cardBorder;
             const secAccent = themeObj.secondary_accent || colors.accent;
+            const semanticVars = semanticCssVars(buildSemanticPalette({ background: colors.bg, card: cardBg, isDark: themeObj.is_dark, overrides: overridesForTheme(themeObj) }));
 
             this.evalJS(`
                 (function() {
@@ -1059,6 +1064,7 @@ export class SimpleWindow {
                             --input-border: ${inputBorder};
                             --editable-bg: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'};
                             --editable-border: ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'};
+                            ${semanticVars}
                         }
                         body { background-color: ${colors.bg} !important; color: ${colors.fg} !important; }
                         fieldset { background-color: ${fieldsetBg} !important; border-color: ${fieldsetBorder} !important; }
@@ -5191,6 +5197,7 @@ export class SimpleWindow {
             card_border: themeObj?.card_border,
             // The theme's own answer, used only while the page still has the theme's background (a custom background is judged by its colour).
             is_dark: themeObj && this.backgroundColor === themeObj.background_color ? themeObj.is_dark : undefined,
+            semantic_overrides: themeObj ? overridesForTheme(themeObj) : undefined,
             padding: this.padding,
             spacing: this.spacing,
             controls: specControls,
@@ -9541,6 +9548,8 @@ export interface SimpleGUITheme {
     card_border?: string;
     description: string;
     is_dark: boolean;
+    /** Optional danger, warning, success and info base colours; the rest of each status colour is derived and contrast-checked. */
+    semantic?: SemanticOverrides;
 }
 
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
@@ -11387,6 +11396,8 @@ export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     }
 };
 
+Object.assign(SIMPLEGUI_THEMES, OS_THEMES);
+
 export function autoShortThemeName(themeNameOrKey: string): string {
     if (!themeNameOrKey || typeof themeNameOrKey !== "string") return "";
     const trimmed = themeNameOrKey.trim();
@@ -11542,7 +11553,7 @@ export const VLANG_THEME_NAMES: string[] = [
     'win11_light',
     'win11_slate',
     'win95'
-];
+].concat(OS_THEME_KEYS).sort((a, b) => a.localeCompare(b));
 
 export function getThemeNames(): string[] {
     return [...VLANG_THEME_NAMES].sort((a, b) => a.localeCompare(b));
@@ -11583,6 +11594,65 @@ export function getTheme(themeName: string): SimpleGUITheme {
         'vscode_dark': 'one_dark_pro',
         'sublime_text': 'monokai_pro',
         'material_dark': 'one_dark_pro',
+        'debian': 'debian_dark',
+        'arch': 'arch_dark',
+        'archlinux': 'arch_dark',
+        'opensuse': 'opensuse_dark',
+        'suse': 'opensuse_dark',
+        'manjaro': 'manjaro_dark',
+        'elementary': 'elementary_light',
+        'elementary_os': 'elementary_light',
+        'kali': 'kali_dark',
+        'zorin': 'zorin_dark',
+        'rhel': 'rhel_dark',
+        'redhat': 'rhel_dark',
+        'rocky': 'rocky_dark',
+        'almalinux': 'almalinux_dark',
+        'centos': 'centos_dark',
+        'endeavouros': 'endeavouros_dark',
+        'nixos': 'nixos_dark',
+        'gentoo': 'gentoo_dark',
+        'alpine': 'alpine_dark',
+        'kde': 'kde_breeze_dark',
+        'plasma': 'kde_breeze_dark',
+        'breeze': 'kde_breeze_dark',
+        'breeze_dark': 'kde_breeze_dark',
+        'breeze_light': 'kde_breeze_light',
+        'xfce': 'xfce_dark',
+        'mate': 'mate_dark',
+        'deepin': 'deepin_light',
+        'arc': 'arc_dark',
+        'sweet': 'sweet_dark',
+        'numix': 'numix_dark',
+        'windows_3_1': 'win31',
+        'windows_31': 'win31',
+        'windows_98': 'win98',
+        'windows_2000': 'win2000',
+        'windows_xp': 'winxp_luna',
+        'xp': 'winxp_luna',
+        'luna': 'winxp_luna',
+        'windows_vista': 'vista_aero',
+        'vista': 'vista_aero',
+        'windows_7': 'win7_aero',
+        'win7': 'win7_aero',
+        'windows_8': 'win8_metro',
+        'win8': 'win8_metro',
+        'metro': 'win8_metro',
+        'windows_10': 'win10_dark',
+        'win10': 'win10_dark',
+        'windows_10_dark': 'win10_dark',
+        'windows_10_light': 'win10_light',
+        'high_contrast': 'windows_high_contrast',
+        'macos_9': 'mac_os_9',
+        'mac_os_8': 'mac_os_9',
+        'platinum': 'mac_os_9',
+        'macos_snow_leopard': 'snow_leopard',
+        'macos_yosemite': 'yosemite',
+        'macos_big_sur': 'big_sur',
+        'macos_monterey': 'monterey_light',
+        'macos_sequoia': 'sequoia_dark',
+        'macos_tahoe': 'tahoe_glass',
+        'tahoe': 'tahoe_glass',
     };
 
     if (aliasMap[key] && SIMPLEGUI_THEMES[aliasMap[key]]) {
@@ -11607,6 +11677,18 @@ export function getTheme(themeName: string): SimpleGUITheme {
 
     return SIMPLEGUI_THEMES["monokai_pro"] || SIMPLEGUI_THEMES["apple_light"]!;
 }
+
+/** Danger, warning, success and info colours for a theme: solid fill, readable text, soft tint and border, all contrast-checked. */
+export function getSemanticColors(themeName: string): SemanticPalette {
+    const t = getTheme(themeName);
+    return buildSemanticPalette({
+        background: t.background_color,
+        card: t.card_background || (t.is_dark ? "#1e293b" : "#ffffff"),
+        isDark: t.is_dark,
+        overrides: overridesForTheme(t),
+    });
+}
+export const get_semantic_colors = getSemanticColors;
 
 // OS Path Utilities
 export function homeDir(): string { return process.env.HOME || "/Users"; }
@@ -11655,6 +11737,8 @@ export const simplegui = {
     getThemeKeys,
     get_theme_keys,
     getTheme,
+    getSemanticColors,
+    get_semantic_colors,
     saveTheme,
     save_theme,
     getSavedTheme,
