@@ -109,7 +109,7 @@ export const KNOWN_STUDIO_META: Record<
     description: "Hardware intelligence & telemetry workstation covering all 10 domain areas",
   },
   file_manager_studio: {
-    displayName: "File Manager",
+    displayName: "Codecaine File Manager",
     category: "File & Directory Tools",
     icon: "📁",
     description: "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",

@@ -30,6 +30,8 @@ describe("About links", () => {
     expect(urls).toContain("https://github.com/codecaine-zz/bun_rad_studio");
     expect(urls).toContain("https://github.com/codecaine-zz");
     expect(urls).toContain("https://codefreelance.net/apps/markdown_tutorials/");
+    expect(urls).toContain("https://www.codefreelance.net");
+    expect(urls).toContain("https://www.youtube.com/@codecaine");
     for (const u of urls) expect(u.startsWith("https://")).toBe(true);
     expect(new Set(ABOUT_LINKS.map((l) => l.id)).size).toBe(ABOUT_LINKS.length);
   });
@@ -42,6 +44,10 @@ describe("About links", () => {
     expect(launched.at(-1)!.args).toContain("https://github.com/codecaine-zz/bun_rad_studio");
     expect((await post("about/open", { id: "tutorials" })).status).toBe(200);
     expect(launched.at(-1)!.args).toContain("https://codefreelance.net/apps/markdown_tutorials/");
+    for (const [id, url] of [["website", "https://www.codefreelance.net"], ["youtube", "https://www.youtube.com/@codecaine"]] as const) {
+      expect((await post("about/open", { id })).status, id).toBe(200);
+      expect(launched.at(-1)!.args).toContain(url);
+    }
   });
 
   test("an unknown id, or an address sent instead of an id, opens nothing", async () => {

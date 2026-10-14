@@ -1,7 +1,7 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-14T15:40:06.924Z",
+  "generatedAt": "2026-10-14T21:00:02.008Z",
   "totalWrappers": 260,
   "commands": [
     {
@@ -1511,7 +1511,7 @@
     {
       "name": "codecaine-file-manager-studio",
       "type": "gui",
-      "displayName": "File Manager",
+      "displayName": "Codecaine File Manager",
       "category": "File & Directory Tools",
       "description": "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
       "targetScript": "applications/file_manager_studio.ts"
@@ -1519,7 +1519,7 @@
     {
       "name": "codecaine-file-manager",
       "type": "gui",
-      "displayName": "File Manager",
+      "displayName": "Codecaine File Manager",
       "category": "File & Directory Tools",
       "description": "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
       "targetScript": "applications/file_manager_studio.ts"

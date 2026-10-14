@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Codecaine Utility Suite - File Manager
+# Codecaine Utility Suite - Codecaine File Manager
 # Type: GUI | Script: applications/file_manager_studio.ts
 # ==============================================================================
 set -e

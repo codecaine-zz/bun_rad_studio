@@ -43,11 +43,11 @@ Ultra-fast native Bun filesystem traversal, globbing & quarantine manager.
 
 `bun run app:fd`  ·  [User guide](docs/userguides/17_fd_studio.md)
 
-### 📁 File Manager
+### 📁 Codecaine File Manager
 
 Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo.
 
-![File Manager](screenshots/apps/file_manager_studio_desktop.png)
+![Codecaine File Manager](screenshots/apps/file_manager_studio_desktop.png)
 
 `bun run app:files`  ·  [User guide](docs/userguides/43_file_manager.md)
 

@@ -7,6 +7,8 @@ import { toast } from "./menus.js";
 /** Used until the server answers (and if it can't); the server owns the real list and opens the links. */
 const FALLBACK_LINKS = [
   { id: "project", label: "Project on GitHub", hint: "The source code, releases and documentation of Bun RAD Studio.", url: "https://github.com/codecaine-zz/bun_rad_studio" },
+  { id: "website", label: "Website: codefreelance.net", hint: "The author's website, with more apps, tutorials and projects.", url: "https://www.codefreelance.net" },
+  { id: "youtube", label: "YouTube channel: @codecaine", hint: "Videos by the author. Opens youtube.com in your web browser.", url: "https://www.youtube.com/@codecaine" },
   { id: "tutorials", label: "Markdown tutorials", hint: "Lessons and examples for learning Markdown, the plain-text writing format used for README files and notes. Opens codefreelance.net.", url: "https://codefreelance.net/apps/markdown_tutorials/" },
   { id: "issues", label: "Report a problem or suggest an idea", hint: "Opens the issue tracker on GitHub (you need a free GitHub account to post).", url: "https://github.com/codecaine-zz/bun_rad_studio/issues" },
   { id: "author", label: "codecaine-zz on GitHub", hint: "The author's GitHub profile, with the other projects.", url: "https://github.com/codecaine-zz" },
@@ -75,10 +77,10 @@ export async function showAbout() {
     ),
   );
   const about = openDialog({
-    title: "About File Manager",
+    title: "About Codecaine File Manager",
     wide: true,
     body: [
-      h("p", { class: "lead" }, "File Manager is part of Bun RAD Studio: a free, open-source set of desktop apps and tools made with Bun."),
+      h("p", { class: "lead" }, "Codecaine File Manager is part of Bun RAD Studio: a free, open-source set of desktop apps and tools made with Bun."),
       h("ul", { class: "about-links" }, rows),
       h("p", { class: "hint" }, "Links open in your web browser. Nothing is sent from this app when you open them."),
     ],

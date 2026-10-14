@@ -15,6 +15,8 @@ export interface AboutLink {
 
 export const ABOUT_LINKS: readonly AboutLink[] = [
   { id: "project", label: "Project on GitHub", hint: "The source code, releases and documentation of Bun RAD Studio.", url: "https://github.com/codecaine-zz/bun_rad_studio" },
+  { id: "website", label: "Website: codefreelance.net", hint: "The author's website, with more apps, tutorials and projects.", url: "https://www.codefreelance.net" },
+  { id: "youtube", label: "YouTube channel: @codecaine", hint: "Videos by the author. Opens youtube.com in your web browser.", url: "https://www.youtube.com/@codecaine" },
   { id: "tutorials", label: "Markdown tutorials", hint: "Lessons and examples for learning Markdown, the plain-text writing format used for README files and notes. Opens codefreelance.net.", url: "https://codefreelance.net/apps/markdown_tutorials/" },
   { id: "issues", label: "Report a problem or suggest an idea", hint: "Opens the issue tracker on GitHub (you need a free GitHub account to post).", url: "https://github.com/codecaine-zz/bun_rad_studio/issues" },
   { id: "releases", label: "Downloads and release notes", hint: "Ready-made apps for macOS, Windows and Linux.", url: "https://github.com/codecaine-zz/bun_rad_studio/releases" },

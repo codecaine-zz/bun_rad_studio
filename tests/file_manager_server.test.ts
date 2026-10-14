@@ -86,7 +86,7 @@ describe("page and assets", () => {
 
   test("health needs no token and reveals nothing sensitive", async () => {
     const res = (await (await fetch(`${base}/api/health`)).json()) as any;
-    expect(res).toMatchObject({ status: "ok", app: "file_manager_studio", name: "File Manager" });
+    expect(res).toMatchObject({ status: "ok", app: "file_manager_studio", name: "Codecaine File Manager" });
     expect(JSON.stringify(res)).not.toContain(TOKEN);
     expect(JSON.stringify(res)).not.toContain(home);
   });

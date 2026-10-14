@@ -227,7 +227,7 @@ export function showHelp() {
 
 export async function showWelcome() {
   const d = openDialog({
-    title: "Welcome to File Manager",
+    title: "Welcome to Codecaine File Manager",
     wide: true,
     body: [
       h("p", { class: "lead" }, "Everything is where you'd expect it. Here's a 30-second tour:"),

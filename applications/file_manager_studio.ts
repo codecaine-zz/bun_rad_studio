@@ -1,5 +1,5 @@
 /**
- * 📁 File Manager — an easy, safe file manager for Windows, macOS and Linux.
+ * 📁 Codecaine File Manager — an easy, safe file manager for Windows, macOS and Linux.
  *
  * Browse, search, copy, move, rename, delete (to a Recycle Bin with Undo), zip and unzip files, with a clear
  * sidebar, breadcrumb address bar, three views, drag and drop, a details panel and full keyboard support.
@@ -78,7 +78,7 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
     width,
     height,
     run: async () => {
-      console.log("📁 Launching File Manager...");
+      console.log(`📁 Launching ${APP_NAME}...`);
       // The window's event loop blocks this process, so the server must live in its own process (as in the
       // other studios). If that fails, the server runs here and is opened in a browser instead of a window.
       let child: ReturnType<typeof Bun.spawn> | undefined;
@@ -101,7 +101,7 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         port = app.server.port ?? 0;
       }
       app.url = `http://127.0.0.1:${port}/`;
-      console.log(`📁 File Manager server running at: ${app.url}`);
+      console.log(`📁 ${APP_NAME} server running at: ${app.url}`);
       try {
         await fetch(app.url).catch(() => {});
         if (app.server) throw new Error("the server could not be started in the background");
@@ -141,7 +141,7 @@ if (import.meta.main) {
   const context = { ...(home ? { home: resolve(home) } : {}), ...(dataDir ? { dataDir: resolve(dataDir) } : {}), ...(toolDirs !== undefined ? { toolDirs: toolDirs.split(delimiter).filter(Boolean) } : {}) };
   if (args.includes("--server") || args.includes("-s")) {
     const server = startFileManagerServer({ port, startPath, context });
-    console.log(`📁 File Manager server running at: http://127.0.0.1:${server.port}/`);
+    console.log(`📁 ${APP_NAME} server running at: http://127.0.0.1:${server.port}/`);
     console.log(`READY:${server.port}`);
     // Started by a window: stop when that window's process is gone, so no server is left running.
     const parentPid = Number(argValue(args, "--parent-pid")) || 0;
