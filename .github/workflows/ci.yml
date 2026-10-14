@@ -47,3 +47,29 @@ jobs:
         run: bun test
         env:
           TEST_REDIS_URL: redis://127.0.0.1:6390
+
+  # Experiment (13 October 2026): shows what happens on other platforms. It cannot fail the workflow;
+  # read its log to see which tests break there. The project is only verified on macOS.
+  other-platforms:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type-check ratchet
+        run: bun run typecheck
+
+      - name: Tests
+        run: bun test
