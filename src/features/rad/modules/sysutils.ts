@@ -63,7 +63,8 @@ export async function execSafe(
 export async function copyToClipboard(text: string): Promise<boolean> {
   const cmd = process.platform === "darwin" ? ["pbcopy"] : ["xclip", "-selection", "clipboard"];
   try {
-    const proc = Bun.spawn(cmd, { stdin: "pipe" });
+    // No output pipes: xclip leaves a background process serving the clipboard that would keep them open.
+    const proc = Bun.spawn(cmd, { stdin: "pipe", stdout: "ignore", stderr: "ignore" });
     proc.stdin.write(text);
     proc.stdin.end();
     const code = await proc.exited;

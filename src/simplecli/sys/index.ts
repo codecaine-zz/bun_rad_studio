@@ -549,7 +549,8 @@ export class Sys {
       } catch { return false; }
     } else if (p === 'linux') {
       try {
-        const res = spawnSync('xclip', ['-selection', 'clipboard'], { input: text, encoding: 'utf8' });
+        // stdout and stderr are ignored: xclip leaves a background process that would keep captured pipes open.
+        const res = spawnSync('xclip', ['-selection', 'clipboard'], { input: text, stdio: ['pipe', 'ignore', 'ignore'] });
         return res.status === 0;
       } catch { return false; }
     }

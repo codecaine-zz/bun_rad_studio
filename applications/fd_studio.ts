@@ -817,7 +817,7 @@ export function createFdStudio(options: { fullscreen?: boolean; theme?: string; 
         proc.stdin.write(text);
         proc.stdin.end();
       } else {
-        const proc = Bun.spawn(["xclip", "-selection", "clipboard"], { stdin: "pipe" });
+        const proc = Bun.spawn(["xclip", "-selection", "clipboard"], { stdin: "pipe", stdout: "ignore", stderr: "ignore" });
         proc.stdin.write(text);
         proc.stdin.end();
       }

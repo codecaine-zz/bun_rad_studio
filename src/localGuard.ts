@@ -45,7 +45,9 @@ export function writeClipboardSync(text: string): boolean {
       ];
       for (const cmd of candidates) {
         try {
-          const proc = Bun.spawnSync(cmd, { stdin: inputBuf });
+          // Output is not captured: xclip and wl-copy leave a background process serving the clipboard, and it
+          // keeps any pipe we gave them open, which would make this call wait until the clipboard changes.
+          const proc = Bun.spawnSync(cmd, { stdin: inputBuf, stdout: "ignore", stderr: "ignore" });
           if (proc.exitCode === 0) return true;
         } catch {}
       }
