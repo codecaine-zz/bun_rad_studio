@@ -108,6 +108,12 @@ const KNOWN_STUDIO_META: Record<
     icon: "🖥️",
     description: "Hardware intelligence & telemetry workstation covering all 10 domain areas",
   },
+  file_manager_studio: {
+    displayName: "File Manager",
+    category: "File & Directory Tools",
+    icon: "📁",
+    description: "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
+  },
   fd_studio: {
     displayName: "Fd Studio Pro",
     category: "File & Directory Tools",

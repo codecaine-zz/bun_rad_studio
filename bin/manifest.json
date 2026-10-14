@@ -1,8 +1,8 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-13T22:52:51.602Z",
-  "totalWrappers": 256,
+  "generatedAt": "2026-10-14T11:18:50.208Z",
+  "totalWrappers": 258,
   "commands": [
     {
       "name": "codecaine",
@@ -1491,6 +1491,22 @@
       "category": "File & Directory Tools",
       "description": "Ultra-fast native Bun filesystem traversal, globbing & quarantine manager",
       "targetScript": "applications/fd_studio.ts"
+    },
+    {
+      "name": "codecaine-file-manager-studio",
+      "type": "gui",
+      "displayName": "File Manager",
+      "category": "File & Directory Tools",
+      "description": "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
+      "targetScript": "applications/file_manager_studio.ts"
+    },
+    {
+      "name": "codecaine-file-manager",
+      "type": "gui",
+      "displayName": "File Manager",
+      "category": "File & Directory Tools",
+      "description": "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
+      "targetScript": "applications/file_manager_studio.ts"
     },
     {
       "name": "codecaine-flappy-bird-studio",

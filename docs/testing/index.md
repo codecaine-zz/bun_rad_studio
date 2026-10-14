@@ -66,6 +66,7 @@ One test (`tests/db/workbench_ui.test.ts`) starts `node` to drive the Workbench 
 
 - Real desktop windows: most window-based apps are tested through their servers or HTML output, not by clicking.
 - Interactive behaviour of the visual designer page. `tests/ide_html.test.ts` checks that the page's scripts parse, that its dialogs are not nested inside each other, the JSON import rules and the exported project, but nothing clicks through the page automatically.
+- The File Manager page was used in a real browser, but no automated test clicks through it; real mouse drag and drop was never exercised (only synthetic drag events), and the native window was started by hand once on macOS. `tests/file_manager_studio.test.ts` checks only that the window's server process exits when its parent is gone.
 - Real windows on Windows and Linux (the suite itself is run there in CI, see [Other platforms](#other-platforms)).
 - TLS connections to a real database server.
 

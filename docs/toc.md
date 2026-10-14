@@ -98,6 +98,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Redis Studio Pro -- Complete Production User Guide](userguides/40_redis_studio.md)
 - [MySQL Studio Pro -- Complete Production User Guide](userguides/41_mysql_studio.md)
 - [Postgres Studio Pro -- Complete Production User Guide](userguides/42_postgres_studio.md)
+- [File Manager](userguides/43_file_manager.md)
 - [Bun RAD Studio -- Enterprise Application User Guides (Master Hub)](userguides/README.md)
 
 ## Documentation maintenance

@@ -44,9 +44,13 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 - **Motion, zoom, text size and colour-blindness** were not assessed.
 - **Solarized** body text contrast, see above.
 
+## File Manager
+
+Built with accessibility in mind and **partly measured** ([D-045](documentation-maintenance/discrepancies.md#d-045)): `tests/file_manager_ui_theme.test.ts` checks the WCAG contrast of the text, link and status colours in the light and dark themes and that dark colours also apply automatically from the system setting; `tests/file_manager_ui_structure.test.ts` checks the page. In a browser: every action works from the keyboard, the list is a labelled `listbox` with `option` rows, dialogs trap focus and close with Escape, there is a "Skip to the files" link, the Recycle Bin's name includes its count, and the focused item has a visible outline. A text-size setting (80% to 160%) is available. **Not checked:** a real screen reader, reduced motion, colour-blindness, high-contrast mode, or the native window on Windows and Linux.
+
 ## Other applications
 
-Not assessed. The 65 studios were not opened in a browser for this purpose. The games draw on a canvas or with custom elements and are likely not accessible to screen readers; this is an expectation, not a finding.
+Not assessed (except the File Manager above). The 65 studios were not opened in a browser for this purpose. The games draw on a canvas or with custom elements and are likely not accessible to screen readers; this is an expectation, not a finding.
 
 ## How to repeat the check
 

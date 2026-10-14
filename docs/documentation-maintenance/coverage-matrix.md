@@ -176,6 +176,7 @@ One row per detected tool. *Verification status* lists automated test files that
 | Egyptian Rat Screw Royale (Studio) | Everyday users | `applications/rat_screw_studio.ts` | - | Implemented but not verified | Automated tests mention it: `tests/rat_screw_studio.test.ts`. Launch not verified. | No guide. |
 | Environment Variable Studio (Studio) | Everyday users, developers | `applications/env_studio.ts` | [userguides/16_environment_vault_studio.md](../userguides/16_environment_vault_studio.md) | Implemented but not verified | Automated tests mention it: `tests/enterprise_applications.test.ts`, `tests/enterprise_gui_interactive.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
 | Fd Studio Pro (Studio) | Everyday users, developers | `applications/fd_studio.ts` | [userguides/17_fd_studio.md](../userguides/17_fd_studio.md) | Implemented but not verified | Automated tests mention it: `tests/fd_engine_and_studio.test.ts`, `tests/fd_studio_enhancements.test.ts`, `tests/launcher.test.ts` (+3). Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
+| File Manager (Studio) | Everyday users, developers | `applications/file_manager_studio.ts` | [userguides/43_file_manager.md](../userguides/43_file_manager.md) | Implemented but not verified | Automated tests mention it: `tests/file_manager_studio.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
 | Filesystem Watcher Studio (Studio) | Everyday users, developers | `applications/watcher_studio.ts` | [userguides/03_task_watcher_studio.md](../userguides/03_task_watcher_studio.md) | Implemented but not verified | Automated tests mention it: `tests/enterprise_applications.test.ts`, `tests/native_system_apps.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
 | Flappy Bird Deluxe (Studio) | Everyday users | `applications/flappy_bird_studio.ts` | - | Implemented but not verified | Automated tests mention it: `tests/flappy_bird_studio.test.ts`. Launch not verified. | No guide. |
 | Git Version Control Studio (Studio) | Everyday users, developers | `applications/git_studio.ts` | [userguides/13_git_workbench_studio.md](../userguides/13_git_workbench_studio.md) | Implemented but not verified | Automated tests mention it: `tests/enterprise_applications.test.ts`, `tests/enterprise_gui_interactive.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
@@ -224,7 +225,7 @@ One row per detected tool. *Verification status* lists automated test files that
 | Implementation status | Feature rows | Application rows |
 |---|---|---|
 | Implemented and verified | 8 | 1 |
-| Implemented but not verified | 6 | 169 |
+| Implemented but not verified | 6 | 170 |
 | Partially implemented | 3 | 0 |
 | Planned | 1 | 0 |
 | Unsupported | 0 | 0 |

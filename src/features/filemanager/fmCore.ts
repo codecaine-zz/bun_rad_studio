@@ -1,0 +1,160 @@
+/**
+ * Shared plumbing for the File Manager's operations: where its data lives, how paths are checked before anything
+ * is changed, and the few low-level moves (copy a tree, move across disks) the other modules build on.
+ */
+import * as fs from "fs";
+import { promises as fsp } from "fs";
+import { homedir } from "os";
+import * as nodePath from "path";
+import { FmError, isSameOrInside, platformName, protectedReason, type Platform } from "./fmPaths";
+
+export interface FmContext {
+  platform: Platform;
+  /** The user's home folder (places, "~", protection). */
+  home: string;
+  /** Where the app keeps its own files: settings and the Recycle Bin. */
+  dataDir: string;
+  /** The Recycle Bin folder. Nothing in it may be changed except through the Recycle Bin functions. */
+  trashRoot: string;
+  /** Starts a program for "Open". Replaceable so tests never launch real applications. */
+  launch: (command: string, args: string[], options?: { windowsVerbatimArguments?: boolean }) => Promise<void>;
+}
+
+export interface FmContextOptions {
+  platform?: Platform;
+  home?: string;
+  dataDir?: string;
+  launch?: FmContext["launch"];
+}
+
+export function createContext(options: FmContextOptions = {}): FmContext {
+  const platform = options.platform ?? platformName();
+  const home = nodePath.resolve(options.home ?? homedir());
+  const dataDir = nodePath.resolve(options.dataDir ?? nodePath.join(home, ".bun_rad_studio"));
+  return {
+    platform,
+    home,
+    dataDir,
+    trashRoot: nodePath.join(dataDir, "file_manager_trash"),
+    launch: options.launch ?? defaultLaunch,
+  };
+}
+
+async function defaultLaunch(command: string, args: string[], options: { windowsVerbatimArguments?: boolean } = {}): Promise<void> {
+  const { spawn } = await import("child_process");
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, { detached: true, stdio: "ignore", windowsHide: true, windowsVerbatimArguments: options.windowsVerbatimArguments });
+    child.once("error", reject);
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+  });
+}
+
+/** A path from a client: must be a non-empty string without null characters and absolute for this platform. */
+export function absolutePath(ctx: FmContext, input: unknown): string {
+  if (typeof input !== "string" || !input.trim()) throw new FmError("BAD_PATH", "No location was given.");
+  if (input.includes("\0")) throw new FmError("BAD_PATH", "That location isn't valid.");
+  const p = ctx.platform === "win32" ? nodePath.win32 : nodePath.posix;
+  if (!p.isAbsolute(input)) throw new FmError("BAD_PATH", "That location isn't a full path.");
+  return p.resolve(input);
+}
+
+export function pathApi(ctx: FmContext) {
+  return ctx.platform === "win32" ? nodePath.win32 : nodePath.posix;
+}
+
+export function assertModifiable(ctx: FmContext, target: string): void {
+  const reason = protectedReason(target, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "modify");
+  if (reason) throw new FmError("PROTECTED", reason);
+}
+
+export function assertCreatable(ctx: FmContext, parent: string): void {
+  const reason = protectedReason(parent, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "create");
+  if (reason) throw new FmError("PROTECTED", reason);
+}
+
+export async function lstatOrNull(target: string): Promise<fs.Stats | null> {
+  try {
+    return await fsp.lstat(target);
+  } catch (err: any) {
+    if (err?.code === "ENOENT" || err?.code === "ENOTDIR") return null;
+    throw err;
+  }
+}
+
+export async function exists(target: string): Promise<boolean> {
+  return (await lstatOrNull(target)) !== null;
+}
+
+export async function assertFolder(target: string, what = "That location"): Promise<void> {
+  let st: fs.Stats;
+  try {
+    st = await fsp.stat(target);
+  } catch (err: any) {
+    if (err?.code === "ENOENT") throw new FmError("NOT_FOUND", `${what} doesn't exist.`);
+    throw err;
+  }
+  if (!st.isDirectory()) throw new FmError("NOT_A_FOLDER", `${what} isn't a folder.`);
+}
+
+/** Copies a file, folder or link. Links are copied as links (never followed), and nothing existing is overwritten. */
+export async function copyTree(source: string, destination: string): Promise<void> {
+  const st = await fsp.lstat(source);
+  if (st.isDirectory()) {
+    await fsp.cp(source, destination, { recursive: true, verbatimSymlinks: true, preserveTimestamps: true, errorOnExist: true, force: false });
+  } else if (st.isSymbolicLink()) {
+    await fsp.symlink(await fsp.readlink(source), destination);
+  } else {
+    await fsp.copyFile(source, destination, fs.constants.COPYFILE_EXCL);
+    await fsp.utimes(destination, st.atime, st.mtime).catch(() => {});
+  }
+}
+
+/** Renames, or copies then removes when the two places are on different disks. Never overwrites on the copy path. */
+export async function moveTree(source: string, destination: string): Promise<void> {
+  try {
+    await fsp.rename(source, destination);
+    return;
+  } catch (err: any) {
+    if (err?.code !== "EXDEV") throw err;
+  }
+  await copyTree(source, destination);
+  try {
+    await fsp.rm(source, { recursive: true, force: false });
+  } catch (err) {
+    // The copy exists but the original could not be removed: keep both rather than lose data.
+    throw new FmError("PARTIAL_MOVE", "The item was copied to the new place, but the original could not be removed. Both copies still exist.");
+  }
+}
+
+/** Same disk entry, used to tell a case-only rename ("a.txt" to "A.txt") from a real name clash. */
+export async function sameEntry(a: string, b: string): Promise<boolean> {
+  try {
+    const [x, y] = await Promise.all([fsp.lstat(a), fsp.lstat(b)]);
+    return x.ino !== 0 && x.ino === y.ino && x.dev === y.dev;
+  } catch {
+    return false;
+  }
+}
+
+export function assertNotIntoItself(ctx: FmContext, source: string, destDir: string): void {
+  if (isSameOrInside(destDir, source, ctx.platform)) throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
+}
+
+/** Runs `fn` for each item, collecting a result or a plain-language error per item, so one failure doesn't stop the rest. */
+export async function eachItem<T, R>(items: T[], fn: (item: T) => Promise<R>, describe: (err: unknown) => { code: string; message: string }): Promise<Array<{ ok: true; value: R } | { ok: false; code: string; message: string }>> {
+  const out: Array<{ ok: true; value: R } | { ok: false; code: string; message: string }> = [];
+  for (const item of items) {
+    try {
+      out.push({ ok: true, value: await fn(item) });
+    } catch (err) {
+      out.push({ ok: false, ...describe(err) });
+    }
+  }
+  return out;
+}
+
+/** Yields to the event loop, so long scans don't freeze the server. */
+export const tick = () => new Promise<void>((resolve) => setImmediate(resolve));

@@ -48,6 +48,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-042 Running the suite on Linux and Windows found a clipboard stall and several portability defects (fixed in part)](#d-042)
 - [D-043 Code Studio's search read every image and database file in full (fixed)](#d-043)
 - [D-044 The designer page was one 7,285-line file (split into parts, refactor only)](#d-044)
+- [D-045 File Manager added (new application; bugs found while building and verifying it)](#d-045)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -470,3 +471,20 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Verified:** the SHA-256 of `src/ide.html` after the first build equals the one before the split, `git status` showed the file unchanged, and `getIdeHtml()` returned the identical string. All existing designer tests pass unchanged. A first build was wrong because `99_end.html` sorts numerically before `100_selection.js`; the tail part is now `999_end.html` and a test checks the order. `tests/ide_build.test.ts` also fails when a part is edited without rebuilding, and when `src/ide.html` is edited by hand (both tried).
 - **What this does not do:** the script is still **one scope in one `<script>`**, so the parts are not independent modules (any part can use any other part's functions and variables, and order matters for `let` and `const`); it is a navigation and review aid, not decoupling. The largest part is still 1,224 lines (canvas rendering). `src/simplegui.ts` (11,600 lines), `index.ts` (4,600) and the other large files were not touched.
 - **Cost:** two places hold the same text, so a developer who edits `src/ide.html` directly gets a failing check and must redo the change in the part (see [Troubleshooting](../troubleshooting.md)).
+
+<a id="d-045"></a>
+## D-045: File Manager added (new application; bugs found while building and verifying it)
+
+- **Status:** Done on 14 October 2026. A new application, `applications/file_manager_studio.ts` (`bun run app:files`), on a backend in `src/features/filemanager/` and a page in `resources/file_manager/`. User guide: [File Manager](../userguides/43_file_manager.md).
+- **Design decisions:** deleting goes to the app's **own** undoable Recycle Bin (not the OS trash, which has no portable API and cannot be undone from here); permanent delete needs a confirmation; copy, move, rename, extract and restore never overwrite (a free name is chosen unless the user picks Replace, which keeps the old item in the bin); system folders, the home folder and its standard folders cannot be moved, renamed or deleted (enforced on the server); zip is written and read with `node:zlib` (no new dependency) with zip-slip, link, size, checksum, ZIP64 and encryption checks; the page is real ES modules with no inline script and no `innerHTML`, under a strict Content-Security-Policy; every action needs a per-session token. The window does not use `attachWindowShortcuts` because it closes the window on a double-tap of Alt and handles F5 and zoom keys.
+- **Bugs found by tests and by using the page, and fixed:**
+  - a failed zip write raised an unhandled stream error that would have crashed the server (found by a test; now all writer errors are collected);
+  - the window opened **blank** because the server ran in the same process as the window, whose `run()` blocks the event loop. Found by a request that hung while the window was open. The server now runs in a child process (as in the other studios) and the child exits when its parent is gone (killing the parent with `-9` left no server behind). A browser test could not have found this: it only appears with the native window;
+  - folder properties counted the folder itself; `.tar.gz` was classified as "gz"; bulk rename accepted an empty base name;
+  - two quick navigations could show the older answer (now each navigation has a sequence number and stale answers are dropped);
+  - the window-focus refresh and a settings save redrew the list and destroyed an open inline rename (both now skip while renaming);
+  - the sidebar had an empty heading and read "Recycle Bin2" to a screen reader; macOS Recovery and other system volumes were listed as drives; the focus ring was too heavy; an inline `onsubmit` broke under the Content-Security-Policy.
+- **Verified:** about 170 automated tests (paths and names, operations, zip including real `zip`/`unzip` interoperability and crafted malicious archives, the HTTP API and its guards, UI helper functions, page structure, WCAG contrast of both themes, the window's server child). The page was used in a real browser against a sandbox home folder (see the guide for the list); no console or CSP errors. The native window was started on macOS, showed the page and ended its server.
+- **Not verified:** the native window, `rundll32`/`explorer /select,` and Windows paths on **Windows**; the window and `xdg-open` on **Linux** (the backend tests do run in the experimental CI job); a real mouse drag (only synthetic drag events were tested); a screen reader.
+- **Limits:** no rubber-band selection; Cut/Copy is inside the app only and files cannot be dropped in from other programs; no zip passwords or ZIP64; a folder lists at most 50,000 items; same-user programs can still read the page and its token (the trust boundary of every studio here).
+
