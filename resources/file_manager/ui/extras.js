@@ -160,6 +160,7 @@ function shortcuts() {
     ["Refresh", "F5"],
     ["Show or hide hidden files", `${m}Shift+H`],
     ["Show or hide the Details panel", `${m}I`],
+    ["Show or hide the terminal", "Ctrl+`"],
     ["Change the view", `${m}1  ·  ${m}2  ·  ${m}3`],
     ["Properties", "Alt+Enter"],
     ["Right-click menu from the keyboard", "Shift+F10  or  the Menu key"],

@@ -40,6 +40,7 @@ export const state = {
   future: [],
   undoStack: [],
   busy: 0,
+  terminalOpen: false,
 };
 
 const listeners = new Map();

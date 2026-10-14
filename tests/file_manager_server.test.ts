@@ -80,7 +80,8 @@ describe("page and assets", () => {
     }
     // The URL parser itself turns "/ui/%2e%2e/index.html" into "/index.html": that is only the public page.
     const resolved = await fetch(`${base}/ui/%2e%2e/index.html`);
-    expect(await resolved.text()).toBe(await (await fetch(`${base}/`)).text());
+    const sameNonce = (html: string) => html.replace(/name="fm-nonce" content="[^"]*"/, 'name="fm-nonce" content=""');
+    expect(sameNonce(await resolved.text())).toBe(sameNonce(await (await fetch(`${base}/`)).text()));
   });
 
   test("health needs no token and reveals nothing sensitive", async () => {

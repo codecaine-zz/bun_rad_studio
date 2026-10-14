@@ -879,7 +879,8 @@ describe("open and reveal", () => {
     expect(launched.length).toBe(1);
   });
 
-  test("a missing 'xdg-open' is explained, and reveal selects the file where the system can", async () => {
+  // Uses a Linux and a macOS context with the sandbox's own paths, which are Windows paths when run on Windows.
+  test.skipIf(process.platform === "win32")("a missing 'xdg-open' is explained, and reveal selects the file where the system can", async () => {
     const { work } = sandbox();
     put(join(work, "doc.txt"));
     const failing = createContext({ home: work, dataDir: join(work, "d"), platform: "linux", launch: async () => { throw Object.assign(new Error("spawn xdg-open ENOENT"), { code: "ENOENT" }); } });

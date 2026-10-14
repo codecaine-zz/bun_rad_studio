@@ -21,6 +21,7 @@ import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, 
 import { openItem, revealItem } from "./fmOpen";
 import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
 import { addRecent, loadSettings, updateSettings } from "./fmSettings";
+import { MAX_INPUT_BYTES, clampSize, createTerminalHub, terminalSupported, type TerminalSession } from "./fmTerminal";
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
 import { createZip, extractZip } from "./fmZip";
 
@@ -60,6 +61,22 @@ const CSP = [
   "form-action 'none'",
   "frame-ancestors 'none'",
 ].join("; ");
+
+/**
+ * The page's policy. It may open a WebSocket to its own address only (for the terminal; `host` was checked by the
+ * loopback guard), and the terminal library may add style elements that carry this response's one-time `nonce`.
+ */
+function pageCsp(host: string, nonce: string): string {
+  const withNonce = CSP.replace("style-src 'self'", `style-src 'self' 'nonce-${nonce}'`);
+  return /^[\w.:[\]-]+$/.test(host) ? withNonce.replace("connect-src 'self'", `connect-src 'self' ws://${host}`) : withNonce;
+}
+
+interface TerminalSocketData {
+  cwd: string;
+  cols: number;
+  rows: number;
+  session?: TerminalSession;
+}
 
 const MIME: Record<string, string> = {
   js: "text/javascript; charset=utf-8",
@@ -206,11 +223,54 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   const token = options.token ?? randomBytes(24).toString("base64url");
   const assets = getFileManagerAssetsDir();
 
-  const server = Bun.serve({
+  const terminals = createTerminalHub();
+
+  const server = Bun.serve<TerminalSocketData>({
     port: options.port ?? 0,
     hostname: options.host ?? "127.0.0.1",
     maxRequestBodySize: MAX_BODY_BYTES + 1024,
-    async fetch(req) {
+    websocket: {
+      open(ws) {
+        const { cwd, cols, rows } = ws.data;
+        const send = (message: object) => { try { ws.send(JSON.stringify(message)); } catch {} };
+        try {
+          const session = terminals.open(ctx, {
+            cwd,
+            cols,
+            rows,
+            onData: (data) => send({ type: "output", data }),
+            onExit: (code) => {
+              send({ type: "exit", code });
+              try { ws.close(1000, "The shell ended."); } catch {}
+            },
+          });
+          if (!session) {
+            send({ type: "error", message: "Too many terminals are open. Close one first." });
+            return void ws.close(1008, "Too many terminals.");
+          }
+          ws.data.session = session;
+        } catch (err) {
+          send({ type: "error", message: `The terminal couldn't start: ${describeFsError(err).message}` });
+          ws.close(1011, "Could not start.");
+        }
+      },
+      message(ws, message) {
+        if (typeof message !== "string" || message.length > MAX_INPUT_BYTES) return;
+        let m: any;
+        try {
+          m = JSON.parse(message);
+        } catch {
+          return;
+        }
+        if (!m || typeof m !== "object") return;
+        if (m.type === "input" && typeof m.data === "string") ws.data.session?.write(m.data);
+        else if (m.type === "resize") ws.data.session?.resize(clampSize(m.cols, 80, 2, 500), clampSize(m.rows, 24, 1, 200));
+      },
+      close(ws) {
+        ws.data.session?.close();
+      },
+    },
+    async fetch(req, srv) {
       const blocked = guardLocalRequest(req);
       if (blocked) return blocked;
       const url = new URL(req.url);
@@ -220,8 +280,29 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         if (req.method === "GET" && (path === "/" || path === "/index.html")) {
           const file = nodePath.join(assets, "index.html");
           if (!existsSync(file)) return new Response("The File Manager page is missing.", { status: 500 });
-          const html = readFileSync(file, "utf8").replaceAll("__FM_TOKEN__", token).replaceAll("__FM_PLATFORM__", ctx.platform).replaceAll("__FM_START__", options.startPath ? encodeURIComponent(nodePath.resolve(options.startPath)) : "");
-          return new Response(html, { headers: secureHeaders({ "Content-Type": MIME.html!, "Content-Security-Policy": CSP }) });
+          const nonce = randomBytes(16).toString("base64");
+          const html = readFileSync(file, "utf8").replaceAll("__FM_TOKEN__", token).replaceAll("__FM_NONCE__", nonce).replaceAll("__FM_PLATFORM__", ctx.platform).replaceAll("__FM_START__", options.startPath ? encodeURIComponent(nodePath.resolve(options.startPath)) : "");
+          return new Response(html, { headers: secureHeaders({ "Content-Type": MIME.html!, "Content-Security-Policy": pageCsp(url.host, nonce) }) });
+        }
+
+        // The terminal: a WebSocket that needs the session token and must come from this page's own address.
+        if (req.method === "GET" && path === "/api/terminal") {
+          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
+          if (!terminalSupported(ctx.platform)) return json(501, { ok: false, error: { code: "NO_TERMINAL", message: "The terminal isn't available on this system yet." } });
+          if (req.headers.get("origin") !== `http://${url.host}`) return json(403, { ok: false, error: { code: "BAD_ORIGIN", message: "Not allowed." } });
+          const cwd = absolutePath(ctx, url.searchParams.get("path"));
+          if (!(await fsp.stat(cwd)).isDirectory()) return json(400, { ok: false, error: { code: "NOT_A_FOLDER", message: "That isn't a folder." } });
+          const data: TerminalSocketData = { cwd, cols: clampSize(url.searchParams.get("cols"), 80, 2, 500), rows: clampSize(url.searchParams.get("rows"), 24, 1, 200) };
+          if (srv.upgrade(req, { data })) return undefined;
+          return new Response("This address only accepts a WebSocket.", { status: 426, headers: secureHeaders() });
+        }
+
+        const vendor = /^\/vendor\/(xterm\.mjs|addon-fit\.mjs|xterm\.css|LICENSE-xterm\.txt)$/.exec(path);
+        if (req.method === "GET" && vendor) {
+          const file = nodePath.join(assets, "vendor", vendor[1]!);
+          if (!existsSync(file)) return new Response("Not Found", { status: 404 });
+          const type = vendor[1]!.endsWith(".css") ? MIME.css! : vendor[1]!.endsWith(".txt") ? "text/plain; charset=utf-8" : MIME.js!;
+          return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": type, "Content-Security-Policy": CSP }) });
         }
 
         const ui = /^\/ui\/([\w.-]+\.(js|css|svg|png))$/.exec(path);
@@ -274,6 +355,13 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       }
     },
   });
+
+  // Stopping the server must also end every shell it started.
+  const stopServer = server.stop.bind(server);
+  server.stop = (closeActiveConnections?: boolean) => {
+    terminals.closeAll();
+    return stopServer(closeActiveConnections);
+  };
 
   return Object.assign(server, { token, context: ctx });
 }

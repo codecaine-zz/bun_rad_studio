@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="fm-token" content="__FM_TOKEN__">
+<meta name="fm-nonce" content="__FM_NONCE__">
 <meta name="fm-platform" content="__FM_PLATFORM__">
 <meta name="fm-start" content="__FM_START__">
 <title>File Manager</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="/vendor/xterm.css">
 <link rel="stylesheet" href="/ui/style.css">
 </head>
 <body>
@@ -50,6 +52,20 @@
 
       <aside id="info" aria-label="Details" hidden></aside>
     </div>
+
+    <section id="terminal-panel" aria-label="Terminal" hidden>
+      <div id="terminal-resizer" role="separator" aria-orientation="horizontal" aria-label="Terminal height. Press the up or down arrow key to change it." tabindex="0"></div>
+      <div class="term-bar">
+        <span id="terminal-title" class="term-title">Terminal</span>
+        <span class="term-note">A real terminal: things deleted here skip the Recycle Bin and can't be undone.</span>
+        <span class="term-actions">
+          <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you are looking at">Go to this folder</button>
+          <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the folder you are looking at">Restart</button>
+          <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Ctrl+`). It keeps running." aria-label="Hide the terminal">✕</button>
+        </span>
+      </div>
+      <div id="terminal-host" class="term-host"></div>
+    </section>
 
     <footer id="status">
       <span id="status-left" aria-live="off"></span>

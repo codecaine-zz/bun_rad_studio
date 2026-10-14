@@ -14,6 +14,12 @@ export class ApiError extends Error {
   }
 }
 
+/** The address of the terminal connection: it needs the same secret token and starts the shell in `path`. */
+export function terminalUrl(path, cols, rows) {
+  const query = new URLSearchParams({ token: TOKEN, path, cols: String(cols), rows: String(rows) });
+  return `ws://${location.host}/api/terminal?${query}`;
+}
+
 /**
  * Calls one operation. Resolves with the answer, or throws an ApiError whose message is already in plain words.
  * @param {string} op

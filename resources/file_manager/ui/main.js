@@ -9,6 +9,7 @@ import { menuIsOpen } from "./menus.js";
 import { goTo, loadPlaces, refresh } from "./nav.js";
 import { renderSidebar, wireSidebar } from "./sidebar.js";
 import { on, state } from "./state.js";
+import { wireTerminal } from "./terminal.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
 
 /** The settings that change how the list looks or is ordered. */
@@ -39,6 +40,7 @@ async function start() {
   wireSidebar();
   wireInfo();
   wireKeys();
+  wireTerminal();
   renderSidebar();
 
   // Settings changes: apply them, and redo only what they affect. Saving the last folder or a favorite must not

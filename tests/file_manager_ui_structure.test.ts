@@ -5,6 +5,8 @@ import * as tsm from "typescript";
 
 const ts: any = (tsm as any).default ?? tsm;
 const UI = join(import.meta.dir, "..", "resources", "file_manager", "ui");
+/** The terminal library is the only code that does not come from this project; the server serves exactly these files. */
+const VENDOR_MODULES = new Set(["/vendor/xterm.mjs", "/vendor/addon-fit.mjs"]);
 const files = readdirSync(UI).filter((f) => f.endsWith(".js"));
 
 interface ModuleInfo {
@@ -68,8 +70,14 @@ describe("the File Manager page is wired together correctly", () => {
     const problems: string[] = [];
     for (const [file, info] of modules) {
       for (const imp of info.imports) {
+        if (VENDOR_MODULES.has(imp.from)) {
+          const vendorFile = join(UI, "..", imp.from.replace("/vendor/", "vendor/"));
+          if (!existsSync(vendorFile)) problems.push(`${file}: ${imp.from} doesn't exist`);
+          else for (const name of imp.names) if (!new RegExp(`\\b${name}\\b`).test(readFileSync(vendorFile, "utf8"))) problems.push(`${file}: ${imp.from} has no "${name}"`);
+          continue;
+        }
         if (!imp.from.startsWith("./")) {
-          problems.push(`${file}: imports "${imp.from}", but the page may only import its own modules`);
+          problems.push(`${file}: imports "${imp.from}", but the page may only import its own modules and the terminal library`);
           continue;
         }
         const target = imp.from.slice(2);
@@ -113,7 +121,7 @@ describe("the File Manager page is wired together correctly", () => {
   test("no module imports another in a circle that would run before it is ready", () => {
     // Modules may reference each other inside functions, but a cycle at load time breaks `const` exports.
     const graph = new Map<string, string[]>();
-    for (const [file, info] of modules) graph.set(file, info.imports.map((i) => i.from.slice(2)));
+    for (const [file, info] of modules) graph.set(file, info.imports.filter((i) => i.from.startsWith("./")).map((i) => i.from.slice(2)));
     const state = new Map<string, number>();
     const cycles: string[] = [];
     const visit = (node: string, trail: string[]) => {
@@ -141,7 +149,7 @@ describe("the File Manager page is wired together correctly", () => {
     expect(html).not.toMatch(/\sstyle=/i);
     expect(html).not.toMatch(/\son[a-z]+=/i);
     // Only the page's own files, in-page anchors, and the empty icon that stops the browser asking for /favicon.ico.
-    for (const m of html.matchAll(/(?:src|href)="([^"]+)"/g)) expect(m[1]!.startsWith("/ui/") || m[1]!.startsWith("#") || m[1] === "data:,", m[1]).toBe(true);
+    for (const m of html.matchAll(/(?:src|href)="([^"]+)"/g)) expect(m[1]!.startsWith("/ui/") || m[1]!.startsWith("/vendor/") || m[1]!.startsWith("#") || m[1] === "data:,", m[1]).toBe(true);
     for (const m of html.matchAll(/\/ui\/([\w.-]+)/g)) expect(existsSync(join(UI, m[1]!)), m[1]).toBe(true);
     expect(html).toContain('name="fm-token"');
   });

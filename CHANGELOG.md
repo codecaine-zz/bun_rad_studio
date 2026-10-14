@@ -11,6 +11,8 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 - **File Manager** (`bun run app:files`): an easy file manager for macOS, Windows and Linux with a sidebar, breadcrumb address bar, three views, search, drag and drop, a details panel with previews, bulk rename, zip and extract, favorites, an undoable Recycle Bin and full keyboard use. Verified on macOS only; Windows and Linux windows and open commands are **not** verified ([guide](docs/userguides/43_file_manager.md), [D-045](docs/documentation-maintenance/discrepancies.md#d-045)).
 
+- **File Manager terminal** (toolbar button or Ctrl+`): a real shell at the bottom of the window, started in the folder on screen, with **Go to this folder** and **Restart**. macOS and Linux; a button that is greyed out on Windows. Adds the vendored xterm.js (MIT) library ([D-046](docs/documentation-maintenance/discrepancies.md#d-046)).
+
 ### Behaviour changes to know about
 
 - **Library server helpers listen on `127.0.0.1` by default.** `serveStatic` and `createWsHub` (RAD `serverutils`) and `Sys.serve` / `Sys.serveStatic` (SimpleCLI) used to listen on all network interfaces. Pass `hostname` (for example `"0.0.0.0"`) to expose a server on purpose ([D-037](docs/documentation-maintenance/discrepancies.md#d-037)).
