@@ -204,7 +204,7 @@ Every script in `package.json`, run as `bun run <name>` from the repository root
 | `bun run win` | `powershell -ExecutionPolicy Bypass -File ./run.ps1` |
 | `bun run win:list` | `powershell -ExecutionPolicy Bypass -File ./run.ps1 -List` |
 | `bun run win:gui` | `powershell -ExecutionPolicy Bypass -File ./run.ps1 -Gui` |
-| `bun run test` | `bun test` |
+| `bun run test` | `bun test --timeout 30000` |
 | `bun run typecheck` | `bun run scripts/typecheck_ratchet.ts` |
 | `bun run workbench` | `bun run src/db/workbench_server.ts` |
 | `bun run ide:build` | `bun run scripts/build_ide.ts` |

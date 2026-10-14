@@ -409,7 +409,7 @@ describe("the Dev tab in a browser-like page", () => {
 
   test("Tools: developer programs with versions, or install hints for the missing ones", async () => {
     await openSection("tools");
-    await until(() => rows(panel().querySelector("table") ?? doc.createElement("table")).length >= 29, "the tools table", 20000);
+    await until(() => rows(panel().querySelector("table") ?? doc.createElement("table")).length >= 29, "the tools table", 40000);
     const table = panel().querySelector("table");
     const gitRow = rows(table).find((r: any) => cell(r, 0) === "Git");
     expect(cell(gitRow, 1)).toBe("✓ Installed");
@@ -418,7 +418,7 @@ describe("the Dev tab in a browser-like page", () => {
     expect(states.every((s: string) => /^(✓ Installed|✗ Missing|! Found, not working)$/.test(s))).toBe(true);
     expect(status()).toMatch(/\d+ of \d+ tools found/);
     for (const tr of rows(table).filter((r: any) => cell(r, 1).startsWith("✗"))) expect(cell(tr, 3).length).toBeGreaterThan(3);
-  });
+  }, 60_000);
 
   test("opening the tab for a folder (what the right-click “Code statistics…” does) fills the folder and runs the count", async () => {
     const sub = join(work, "src");

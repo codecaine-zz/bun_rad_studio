@@ -320,7 +320,9 @@ suite("batches with stand-in programs", () => {
     // ImageMagick only ever saw safe staged names, never the user's (it reads [ ] * % : as instructions).
     const seen = calls().split("\n").filter((l) => l.startsWith("ARG:") && /in\d{4}\.png$|out\.png$/.test(l));
     expect(seen.length).toBeGreaterThan(names.length);
-    expect(calls()).not.toContain("ARG:/tmp/");
+    const args = calls().split("\n").filter((l) => l.startsWith("ARG:"));
+    for (const n of names) expect(args.filter((l) => l.includes(n))).toEqual([]);
+    expect(args.filter((l) => l.startsWith(`ARG:${work}/`))).toEqual([]);
   });
 
   test("ffmpeg gets the real path with a file: prefix, as one argument", async () => {

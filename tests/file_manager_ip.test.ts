@@ -591,9 +591,10 @@ describe("ip/openurl", () => {
       [{ kind: "bgp", target: "AS13335" }, "https://bgp.he.net/AS13335"],
       [{ kind: "bgp", target: "8.8.8.8", url: "https://evil.example/", href: "javascript:alert(1)" }, "https://bgp.he.net/ip/8.8.8.8"],
     ];
+    const mac = createContext({ platform: "darwin", home, dataDir, launch: async (command, args) => void launched.push({ command, args }) });
     for (const [body, url] of cases) {
       launched.length = 0;
-      expect(await op("ip/openurl", body)).toEqual({ opened: url });
+      expect(await op("ip/openurl", body, mac)).toEqual({ opened: url });
       expect(launched).toEqual([{ command: "open", args: [url] }]);
       expect(OPEN_HOSTS.has(new URL(url).hostname)).toBe(true);
     }

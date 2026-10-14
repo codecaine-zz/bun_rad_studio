@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { createContext, type FmContext } from "../src/features/filemanager/fmCore";
 import { serveOperations } from "../src/features/filemanager/fmServeOps";
-import { explainPhpFailure, killTree, phpEnv, portInUse } from "../src/features/filemanager/fmServePhp";
+import { DEV_INI, explainPhpFailure, killTree, phpEnv, portInUse } from "../src/features/filemanager/fmServePhp";
 import { getServeRegistry } from "../src/features/filemanager/fmServeRegistry";
 
 const root = mkdtempSync(join(tmpdir(), "fm-serve-php-"));
@@ -80,7 +80,7 @@ const args = process.argv.slice(2);
 if (args[0] === "-v") { console.log("PHP 8.9.9 (cli) (built: fake)"); process.exit(0); }
 if (${JSON.stringify(mode)} === "fail") { console.error("PHP Fatal error: boom in the router"); process.exit(3); }
 process.on("SIGTERM", () => {});
-const [host, port] = args[1].split(":");
+const [host, port] = args[args.indexOf("-S") + 1].split(":");
 Bun.serve({ hostname: host, port: Number(port), fetch: () => Response.json({ argv: args, env: process.env, cwd: process.cwd(), pid: process.pid }) });
 console.error("[fake] started");
 `);
@@ -138,7 +138,7 @@ describe("PHP server: stopping for sure, and what PHP is told", () => {
       expect(server.port).toBeGreaterThanOrEqual(8000);
       const seen: any = await (await fetch(server.url)).json();
       // Started with an argument list, in the served folder.
-      expect(seen.argv).toEqual(["-S", `127.0.0.1:${server.port}`, "-t", dir]);
+      expect(seen.argv).toEqual([...DEV_INI, "-S", `127.0.0.1:${server.port}`, "-t", dir]);
       expect(await Bun.file(seen.cwd).exists() || existsSync(seen.cwd)).toBe(true);
       // Nothing from this program's environment is passed on.
       expect(Object.keys(seen.env).sort().every((k) => ["PATH", "HOME", "LANG", "TMPDIR", "PWD"].includes(k)), JSON.stringify(Object.keys(seen.env))).toBe(true);
@@ -230,9 +230,12 @@ describe("the real PHP server", () => {
     expect(server.router).toBe(join(dir, "router.php"));
     expect(await text(server.url)).toBe("public index");
     expect(await text(`${server.url}routed`)).toBe("routed!");
-    // PHP answers an unknown address with the document folder's index.php; what matters is that the file outside is never run.
+    // Depending on the PHP version an unknown address gets the document folder's index.php or a 404 page; what matters is that the file outside is never run.
     const outside = await fetch(`${server.url}secret.php`);
-    expect(await outside.text()).toBe("public index");
+    const outsideBody = await outside.text();
+    expect(outsideBody).not.toContain("OUTSIDE");
+    expect([200, 404]).toContain(outside.status);
+    if (outside.status === 200) expect(outsideBody).toBe("public index");
     await op(ctx, "serve/stop", { id: server.id });
 
     await fails(op(ctx, "serve/start", { root: dir, kind: "php", router: "missing.php" }), "NOT_FOUND", /router script doesn't exist/);
@@ -278,9 +281,9 @@ describe("the real PHP server", () => {
   real("a script with a syntax error runs the server but shows PHP's message, in the page and in the log", async () => {
     const ctx = newCtx();
     const dir = folder();
-    writeFileSync(join(dir, "index.php"), "<?php echo 1;");
-    writeFileSync(join(dir, "bad.php"), "<?php\n  if (true {\n");
-    const { server } = await op(ctx, "serve/start", { root: dir, kind: "php", router: "bad.php" });
+    // The script is a page, not the router: PHP 8.3 stays silent about a parse error in a router script, newer versions report it.
+    writeFileSync(join(dir, "index.php"), "<?php\n  if (true {\n");
+    const { server } = await op(ctx, "serve/start", { root: dir, kind: "php" });
     const body = await text(server.url);
     expect(body).toMatch(/Parse error/i);
     const logText = await until(async () => {
@@ -406,7 +409,8 @@ describe("the real PHP server", () => {
 
   real("folders that are too broad or belong to the system are refused for PHP too, and nothing is started", async () => {
     const ctx = newCtx();
-    for (const path of ["/", home, "/etc", "/usr/lib", "/System"]) await fails(op(ctx, "serve/start", { root: path, kind: "php" }), "PROTECTED", /too broad or belongs to the system/);
+    // Only places that exist on this computer: a missing folder is refused as "not found" before the system check.
+    for (const path of ["/", home, "/etc", "/usr/lib", "/System"].filter((p) => existsSync(p))) await fails(op(ctx, "serve/start", { root: path, kind: "php" }), "PROTECTED", /too broad or belongs to the system/);
     const own = join(import.meta.dir, "..", "resources", "file_manager");
     await fails(op(ctx, "serve/start", { root: own, kind: "php" }), "PROTECTED", /own files/);
     expect((await op(ctx, "serve/status")).servers).toEqual([]);

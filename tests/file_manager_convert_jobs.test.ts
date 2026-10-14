@@ -687,7 +687,7 @@ suite("conversion jobs", () => {
     expect(readdirSync(d).sort()).toEqual(["a.csv", "b.csv"]);
     await expect(startConvert(ctx, { action: "data-json", paths: [join(d, "a.csv")], outputDir: join(d, "nope") })).rejects.toMatchObject({ code: "NOT_A_FOLDER" });
     await expect(startConvert(ctx, { action: "data-json", paths: [join(d, "a.csv")], outputDir: "relative/dir" })).rejects.toMatchObject({ code: "BAD_PATH" });
-    await expect(startConvert(ctx, { action: "data-json", paths: [join(d, "a.csv")], outputDir: "/System/Library" })).rejects.toMatchObject({ code: "PROTECTED" });
+    await expect(startConvert(ctx, { action: "data-json", paths: [join(d, "a.csv")], outputDir: existsSync("/System/Library") ? "/System/Library" : "/etc" })).rejects.toMatchObject({ code: "PROTECTED" });
     await expect(startConvert(ctx, { action: "data-json", paths: [join(d, "a.csv")], pattern: "../escape" })).rejects.toMatchObject({ code: "BAD_OPTION" });
     await expect(startConvert(ctx, { action: "data-json", paths: [join(d, "a.csv")], pattern: "{name}:bad" })).resolves.toBeDefined();
   });

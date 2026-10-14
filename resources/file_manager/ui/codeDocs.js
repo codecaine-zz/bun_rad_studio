@@ -139,10 +139,11 @@ export function createDocs() {
     },
 
     /** Saves a file opened from disk. `force` writes even if the file changed on disk. Throws ApiError (code CHANGED_ON_DISK, GONE, IS_LINK ...). */
-    async save(doc, { force = false } = {}) {
+    async save(doc, { force = false, auto = false } = {}) {
       const { text, eol, encoding } = doc;
       const r = await writeText("code/save", { path: doc.path, text, encoding, eol, expected: { mtimeMs: doc.mtimeMs, size: doc.size }, force });
-      Object.assign(doc, { savedText: text, savedEol: eol, savedEncoding: encoding, mtimeMs: r.mtimeMs, size: r.size, external: "", mixedEol: false, guessed: false });
+      // An autosave is marked in the same step as the save itself, so the status line never shows "Saved" in between.
+      Object.assign(doc, { savedText: text, savedEol: eol, savedEncoding: encoding, mtimeMs: r.mtimeMs, size: r.size, external: "", mixedEol: false, guessed: false }, auto ? { autoSavedText: text } : {});
       emit("saved");
       return r;
     },

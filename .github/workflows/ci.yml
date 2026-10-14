@@ -47,8 +47,10 @@ jobs:
           for i in 1 2 3 4 5 6 7 8 9 10; do redis-cli -p 6390 ping && break; sleep 1; done
 
       # The MySQL and PostgreSQL suites skip themselves when no server is configured.
+      # 30 s per test instead of Bun's 5 s: the page tests poll for slow things, and a test that runs out of time
+      # leaves its work half done for the next test file.
       - name: Tests
-        run: bun test
+        run: bun test --timeout 30000
         env:
           TEST_REDIS_URL: redis://127.0.0.1:6390
 

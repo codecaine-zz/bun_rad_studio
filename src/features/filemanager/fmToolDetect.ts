@@ -18,14 +18,31 @@ export async function capture(argv: string[], env: Record<string, string>, timeo
   } catch {
     return { code: null, text: "" };
   }
-  const timer = setTimeout(() => { try { proc.kill(); } catch {} }, timeoutMs);
+  // A program that ignores SIGTERM, or one that left a child holding the pipes open, must not keep us waiting: after the
+  // time limit it is killed for good, and the answer is given up on shortly after.
+  let hardTimer: ReturnType<typeof setTimeout> | undefined;
+  let giveUp: (() => void) | undefined;
+  const timer = setTimeout(() => {
+    try { proc.kill(); } catch {}
+    hardTimer = setTimeout(() => {
+      try { proc.kill(9); } catch {}
+      giveUp?.();
+    }, 500);
+  }, timeoutMs);
+  const abandoned = new Promise<{ code: number | null; text: string }>((resolve) => { giveUp = () => resolve({ code: null, text: "" }); });
+  const finished = (async () => {
+    try {
+      const [out, err, code] = await Promise.all([new Response(proc.stdout as ReadableStream).text(), new Response(proc.stderr as ReadableStream).text(), proc.exited]);
+      return { code, text: out + (err ? `\n${err}` : "") };
+    } catch {
+      return { code: null, text: "" };
+    }
+  })();
   try {
-    const [out, err, code] = await Promise.all([new Response(proc.stdout as ReadableStream).text(), new Response(proc.stderr as ReadableStream).text(), proc.exited]);
-    return { code, text: out + (err ? `\n${err}` : "") };
-  } catch {
-    return { code: null, text: "" };
+    return await Promise.race([finished, abandoned]);
   } finally {
     clearTimeout(timer);
+    clearTimeout(hardTimer);
   }
 }
 

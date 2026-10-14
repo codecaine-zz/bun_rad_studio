@@ -1065,6 +1065,22 @@ describe("developer tools on this computer", () => {
     expect(parseToolVersion("nothing here")).toBeNull();
   });
 
+  test.skipIf(process.platform === "win32")("a program that never answers, and ignores the polite stop, doesn't hold up the others", async () => {
+    const slow = join(root, "slow-bin");
+    write(join(slow, "git"), "#!/bin/sh\ntrap '' TERM\nwhile :; do sleep 1; done\n");
+    chmodSync(join(slow, "git"), 0o755);
+    write(join(slow, "node"), '#!/bin/sh\necho "v22.1.0"\n');
+    chmodSync(join(slow, "node"), 0o755);
+    const started = Date.now();
+    const result = await detectEnvironment(createContext({ home, dataDir, toolDirs: [slow], platform: "linux" }), true);
+    expect(Date.now() - started).toBeLessThan(7000);
+    const by = Object.fromEntries(result.tools.map((t) => [t.id, t]));
+    expect(by.node).toMatchObject({ installed: true, version: "22.1.0" });
+    expect(by.git).toMatchObject({ installed: false });
+    expect(by.git!.path).toBeTruthy();
+    expect(by.git!.note).toContain("didn't answer");
+  }, 30_000);
+
   test("the API returns the table", async () => {
     const res = await api("dev/env", {});
     expect(res.status).toBe(200);

@@ -249,10 +249,13 @@ export function explainPhpFailure(text: string, host: string, port: number): str
   return last ? `PHP stopped as soon as it started. It said: ${last}` : `PHP stopped as soon as it started, without saying why. Try running "php -S ${host}:${port}" in a terminal to see the problem.`;
 }
 
+/** A development server shows PHP's errors in the page and the log, whatever the installed php.ini (Linux packages ship with display_errors off). */
+export const DEV_INI = ["-d", "display_errors=1", "-d", "error_reporting=E_ALL", "-d", "log_errors=1"];
+
 export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
   hookExit();
   if (await portInUse(o.host, o.port)) throw new FmError("PORT_IN_USE", explainPhpFailure("Address already in use", o.host, o.port));
-  const argv = [o.php, "-S", `${o.host}:${o.port}`, "-t", o.docroot, ...(o.router ? [o.router] : [])];
+  const argv = [o.php, ...DEV_INI, "-S", `${o.host}:${o.port}`, "-t", o.docroot, ...(o.router ? [o.router] : [])];
   o.log.add(`$ ${argv.map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a)).join(" ")}`);
   let proc: Subprocess<"ignore", "pipe", "pipe">;
   try {

@@ -65,6 +65,11 @@ export interface EnvTool {
 }
 
 const CACHE_MS = 5 * 60_000;
+/** One version request gets this long; the whole check gets TOTAL_MS, so one slow program never holds up the table. */
+const PROBE_MS = 2500;
+const TOTAL_MS = 8000;
+const PARALLEL = 12;
+const LATE_NOTE = "Found, but it didn't answer in time. Try Check again.";
 const cache = new WeakMap<FmContext, { at: number; tools: EnvTool[] }>();
 
 function hintFor(t: ToolDef, platform: FmContext["platform"]): string {
@@ -84,7 +89,7 @@ async function probe(ctx: FmContext, t: ToolDef, dirs: string[], env: Record<str
   if (!path) return base;
   // On a Mac without the command line tools, /usr/bin programs are stubs that pop up an installer window. Don't start them.
   if (ctx.platform === "darwin" && path.startsWith("/usr/bin/") && tools.xcode === false) return { ...base, path, note: "Needs the Xcode command line tools (xcode-select --install)." };
-  const out = await capture([path, ...t.args], env, 6000);
+  const out = await capture([path, ...t.args], env, PROBE_MS);
   const version = out.code === 0 || out.text.trim() ? parseToolVersion(out.text) : null;
   if (out.code === null || (out.code !== 0 && !version)) return { ...base, path, note: "Found, but it didn't answer a version request." };
   return { ...base, installed: true, path, version };
@@ -98,15 +103,26 @@ export async function detectEnvironment(ctx: FmContext, refresh = false): Promis
   const dirs = [...searchDirs(ctx), ...extra];
   const env = childEnv(ctx);
   let xcode: boolean | null = null;
-  if (ctx.platform === "darwin" && !ctx.toolDirs) xcode = (await capture(["xcode-select", "-p"], env, 3000)).code === 0;
-  const tools: EnvTool[] = [];
+  if (ctx.platform === "darwin" && !ctx.toolDirs) xcode = (await capture(["xcode-select", "-p"], env, PROBE_MS)).code === 0;
+  const done = new Map<string, EnvTool>();
   const queue = [...TOOLS];
-  await Promise.all(Array.from({ length: 6 }, async () => {
-    for (let t = queue.shift(); t; t = queue.shift()) tools.push(await probe(ctx, t, dirs, env, { xcode }));
+  let timedOut = false;
+  const workers = Promise.all(Array.from({ length: PARALLEL }, async () => {
+    for (let t = queue.shift(); t && !timedOut; t = queue.shift()) done.set(t.id, await probe(ctx, t, dirs, env, { xcode }));
   }));
-  const order = new Map(TOOLS.map((t, i) => [t.id, i]));
-  tools.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+  let limit: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([workers, new Promise<void>((resolve) => { limit = setTimeout(resolve, TOTAL_MS); })]);
+  clearTimeout(limit);
+  timedOut = true;
+  // Anything still waiting (or never started) is reported as slow instead of making the page wait for it.
+  const tools: EnvTool[] = TOOLS.map((t) => {
+    const got = done.get(t.id);
+    if (got) return got;
+    const path = findExecutable(ctx.platform, t.programs, dirs);
+    return { id: t.id, name: t.name, group: t.group, installed: false, path, version: null, hint: hintFor(t, ctx.platform), ...(path ? { note: LATE_NOTE } : {}) };
+  });
+  const slow = tools.some((t) => t.note === LATE_NOTE);
   const at = Date.now();
-  cache.set(ctx, { at, tools });
+  if (!slow) cache.set(ctx, { at, tools });
   return { tools, checkedAt: at, cached: false };
 }

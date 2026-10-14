@@ -32,7 +32,9 @@ const calibre = has("calibre");
 const fonttools = has("fonttools");
 const sevenzip = has("sevenzip");
 const unar = has("unar");
-const bsdtar = has("bsdtar");
+// Linux ships GNU tar under the name "tar", which the program list rightly refuses as bsdtar: ask the program itself.
+const bsdtarPath = resolveTool(ctx, "bsdtar");
+const bsdtar = bsdtarPath !== null && /bsdtar|libarchive/i.test(Bun.spawnSync([bsdtarPath, "--version"]).stdout.toString());
 const exiftool = has("exiftool");
 const poppler = has("poppler");
 const ffprobePath = ffmpeg ? join(dirname(resolveTool(ctx, "ffmpeg")!), "ffprobe") : "";

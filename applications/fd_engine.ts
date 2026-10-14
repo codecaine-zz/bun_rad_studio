@@ -569,9 +569,12 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
         if (!exts.includes(ext)) continue;
       }
 
-      // Size constraints
-      if (options.minSizeBytes !== undefined && sizeBytes < options.minSizeBytes) continue;
-      if (options.maxSizeBytes !== undefined && sizeBytes > options.maxSizeBytes) continue;
+      // Size constraints (like fd, they are about files: the "size" of a folder is a file system detail, 4096 on Linux)
+      if (options.minSizeBytes !== undefined || options.maxSizeBytes !== undefined) {
+        if (isDir) continue;
+        if (options.minSizeBytes !== undefined && sizeBytes < options.minSizeBytes) continue;
+        if (options.maxSizeBytes !== undefined && sizeBytes > options.maxSizeBytes) continue;
+      }
 
       // Modification time constraints
       const now = Date.now();

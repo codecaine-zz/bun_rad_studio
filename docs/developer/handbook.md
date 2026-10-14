@@ -35,7 +35,7 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 | `bun start` | Opens the visual designer | n/a |
 | `bun run app:<name>` | Opens one studio (names in the [script index](../reference/script-index.md)) | n/a |
 | `bun run applications/<file>.ts --server` | Runs a studio without a window and prints `READY:<port>` (not every studio supports it: see the [application index](../reference/application-index.md#studios)) | n/a |
-| `bun test` | All tests (1,285 at the time of writing, about 85 s) | ~85 s |
+| `bun run test` (or `bun test --timeout 30000`, what CI runs) | All tests (1,285 at the time of writing, about 85 s) | ~85 s |
 | `bun test tests/<file>.test.ts` | One test file | seconds |
 | `bun test tests/<file>.test.ts -t "part of a test name"` | One test | seconds |
 | `bun run typecheck` | TypeScript errors per file against `scripts/typecheck_baseline.json`; fails only when a file gets worse | ~4 s |

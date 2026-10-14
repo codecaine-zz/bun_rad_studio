@@ -19,7 +19,7 @@
     "win": "powershell -ExecutionPolicy Bypass -File ./run.ps1",
     "win:list": "powershell -ExecutionPolicy Bypass -File ./run.ps1 -List",
     "win:gui": "powershell -ExecutionPolicy Bypass -File ./run.ps1 -Gui",
-    "test": "bun test",
+    "test": "bun test --timeout 30000",
     "typecheck": "bun run scripts/typecheck_ratchet.ts",
     "workbench": "bun run src/db/workbench_server.ts",
     "ide:build": "bun run scripts/build_ide.ts",

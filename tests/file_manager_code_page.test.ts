@@ -24,7 +24,18 @@ let call: any;
 let logic: any;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const mod = process.platform === "darwin" ? "metaKey" : "ctrlKey";
+// Waits for something that happens in the server or the page; a loaded machine only makes it take longer.
+async function until<T>(fn: () => T | Promise<T>, label: string, ms = 20000): Promise<NonNullable<T>> {
+  const end = Date.now() + ms;
+  for (;;) {
+    const v = await Promise.resolve(fn()).catch(() => null);
+    if (v) return v as NonNullable<T>;
+    if (Date.now() > end) throw new Error(`timed out waiting for ${label}`);
+    await sleep(25);
+  }
+}
+// The page reads its platform once, when the first page test loads its modules, so ask the page what it decided.
+let mod: "metaKey" | "ctrlKey" = process.platform === "darwin" ? "metaKey" : "ctrlKey";
 const tabNames = () => [...doc.querySelectorAll(".code-tab-name")].map((e: any) => e.textContent);
 const active = (): any => doc.querySelector(".code-ed:not([hidden]) textarea");
 const options = (): string[] => [...doc.querySelectorAll(".code-ed:not([hidden]) .code-ac:not([hidden]) [role=option] .code-ac-label")].map((e: any) => e.textContent);
@@ -51,7 +62,7 @@ function type(ta: any, text: string) {
 }
 const caretToEnd = (ta: any) => ta.setSelectionRange(ta.value.length, ta.value.length);
 async function openFile(name: string) {
-  code.openInCode(join(work, name));
+  await code.openInCode(join(work, name));
   await sleep(350);
 }
 
@@ -87,6 +98,12 @@ beforeAll(async () => {
   call = (await import("../resources/file_manager/ui/api.js")).call;
   logic = await import("../resources/file_manager/ui/codeLogic.js");
   code = await import("../resources/file_manager/ui/code.js");
+  // The page's shared state outlives the page tests that ran before this one in the same process (the Recycle Bin as the
+  // current place changes what the right-click menu offers): start from an ordinary folder.
+  const shared = (await import("../resources/file_manager/ui/state.js")).state;
+  Object.assign(shared, { location: { kind: "folder", path: work }, search: null, workspace: "files", powerOpen: false });
+  shared.selection.clear();
+  mod = shared.platform === "darwin" ? "metaKey" : "ctrlKey";
   power.wirePower();
   power.openPower("code");
   await sleep(500);
@@ -94,6 +111,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sleep(2000); // let the page's own delayed work (saving the session, refreshing the outline) finish while its globals still exist
+  (await import("../resources/file_manager/ui/menus.js")).closeMenu(); // an open menu would make the next page test ignore its shortcuts
   const g = globalThis as any;
   for (const key of GLOBALS) {
     const before = saved.get(key);
@@ -139,10 +157,8 @@ describe("the Code tab in a browser-like page", () => {
     expect(status("saved")).toContain("Unsaved");
     expect(code.codeHasUnsaved()).toBe(true);
     press(ta, "s", { [mod]: true });
-    await sleep(400);
-    expect(readFileSync(join(work, "a.ts"), "utf8")).toContain("const z = 1;");
-    expect(doc.querySelector(".code-dot")).toBeNull();
-    expect(code.codeHasUnsaved()).toBe(false);
+    await until(() => readFileSync(join(work, "a.ts"), "utf8").includes("const z = 1;"), "the file to be written");
+    await until(() => !doc.querySelector(".code-dot") && !code.codeHasUnsaved(), "the tab to be marked saved");
   });
 
   test("a file changed on disk is noticed when saving, and Overwrite is a choice", async () => {
@@ -154,13 +170,12 @@ describe("the Code tab in a browser-like page", () => {
     caretToEnd(ta);
     type(ta, "// mine\n");
     press(ta, "s", { [mod]: true });
-    await sleep(400);
+    await until(() => doc.querySelector(".modal-backdrop"), "the changed-on-disk dialog");
     expect(doc.querySelector(".modal-backdrop").textContent).toContain("changed on disk");
     expect(readFileSync(path, "utf8")).toBe("// changed by someone else\n");
     dialogButton("Overwrite the file").click();
-    await sleep(400);
-    expect(readFileSync(path, "utf8")).toContain("// mine");
-    expect(code.codeHasUnsaved()).toBe(false);
+    await until(() => readFileSync(path, "utf8").includes("// mine"), "the file to be overwritten");
+    await until(() => !code.codeHasUnsaved(), "the tab to be marked saved");
   });
 
   test("a completion list opens while typing, narrows as you type, and Enter accepts", async () => {
@@ -287,7 +302,7 @@ describe("the Code tab in a browser-like page", () => {
     await openFile("hello.v");
     expect(typedInTerminal).toEqual([]);
     button("Run").click();
-    await sleep(500);
+    await until(() => typedInTerminal.length > 0, "the command to be typed");
     expect(typedInTerminal.length).toBe(1);
     expect(typedInTerminal[0]).toBe(`cd ${work} && v run ${file}\r`);
     expect(typedInTerminal[0]!.endsWith("\r")).toBe(true);
@@ -301,7 +316,7 @@ describe("the Code tab in a browser-like page", () => {
     await call("code/presets/default", { path: file, id: list.presets.find((p: any) => p.name === "Clean").id, kind: "build" });
     const before = typedInTerminal.length;
     button("Build").click();
-    await sleep(400);
+    await until(() => doc.querySelector(".modal-backdrop"), "the question about the risky command");
     expect(doc.querySelector(".modal-backdrop").textContent).toContain("rm -rf build");
     expect(typedInTerminal.length).toBe(before);
     dialogButton("Cancel").click();
@@ -324,8 +339,7 @@ describe("the Code tab in a browser-like page", () => {
   test("Open with → Code editor (built in) opens the file, and the right-click menu offers Edit in Code editor for text files only", async () => {
     const openwith = await import("../resources/file_manager/ui/openwith.js");
     expect(openwith.finishOpen({ builtin: "code", with: "Code editor (built in)" }, join(work, "notes.txt"))).toBe(true);
-    await sleep(400);
-    expect(tabNames()).toContain("notes.txt");
+    await until(() => tabNames().includes("notes.txt"), "the notes.txt tab");
     const menu = await import("../resources/file_manager/ui/contextmenu.js");
     const entry = (name: string, isDir = false) => ({ name, path: join(work, name), isDir, size: 1, mtimeMs: 0, label: "", icon: "" });
     const labels = () => [...doc.querySelectorAll("[role=menuitem]")].map((e: any) => e.textContent);
@@ -390,9 +404,8 @@ describe("the Code tab in a browser-like page", () => {
       expect(status("saved")).toContain("Unsaved");
       await sleep(900);
       expect(readFileSync(helloPath(), "utf8")).not.toContain("auto one");
-      await sleep(1100);
-      expect(readFileSync(helloPath(), "utf8")).toContain("auto one");
-      expect(status("saved")).toBe("Autosaved");
+      await until(() => readFileSync(helloPath(), "utf8").includes("auto one"), "the autosave");
+      await until(() => status("saved") === "Autosaved", "the status line to say Autosaved");
       expect(code.codeHasUnsaved()).toBe(false);
     });
 
@@ -405,11 +418,11 @@ describe("the Code tab in a browser-like page", () => {
       await sleep(1000);
       expect(readFileSync(helloPath(), "utf8")).not.toContain("auto three");
       doc.querySelector(".code-editors").dispatchEvent(new win.FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
-      await sleep(400);
+      await until(() => readFileSync(helloPath(), "utf8").includes("auto three"), "the autosave when leaving the editor");
       const saved = readFileSync(helloPath(), "utf8");
       expect(saved).toContain("auto two");
       expect(saved).toContain("auto three");
-      expect(status("saved")).toBe("Autosaved");
+      await until(() => status("saved") === "Autosaved", "the status line to say Autosaved");
     });
 
     test("the options dialog offers the delays and the switch-away choice, and returns what was chosen", async () => {
@@ -441,7 +454,7 @@ describe("the Code tab in a browser-like page", () => {
       await sleep(1900);
       expect(readFileSync(helloPath(), "utf8")).not.toContain("not saved");
       press(ta, "s", { [mod]: true });
-      await sleep(300);
+      await until(() => !code.codeHasUnsaved(), "the manual save");
     });
   });
 });

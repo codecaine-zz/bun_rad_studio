@@ -133,7 +133,13 @@ beforeAll(async () => {
   win.Element.prototype.scrollIntoView = () => {};
   Object.defineProperty(win.HTMLElement.prototype, "offsetParent", { get() { return win.document.body; }, configurable: true });
   doc = win.document;
+  // The page modules are shared by every page test in this process. Whatever an earlier file left behind (an open menu
+  // makes every shortcut stand aside; a mounted tool or a remembered view belongs to a page that is gone) must not count here.
+  (await import("../resources/file_manager/ui/menus.js")).closeMenu();
   (await import("../resources/file_manager/ui/power.js")).resetPower();
+  const shared = (await import("../resources/file_manager/ui/state.js")).state;
+  Object.assign(shared, { workspace: "files", powerOpen: false, search: null, loading: false, busy: 0, terminalOpen: false });
+  shared.selection.clear();
   chrome = await import("../resources/file_manager/ui/chrome.js");
   toolbarModule = await import("../resources/file_manager/ui/toolbar.js");
   await import("../resources/file_manager/ui/main.js");
@@ -143,6 +149,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sleep(500);
+  (await import("../resources/file_manager/ui/menus.js")).closeMenu();
   (await import("../resources/file_manager/ui/power.js")).resetPower();
   const g = globalThis as any;
   for (const k of GLOBALS) {

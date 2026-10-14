@@ -749,26 +749,42 @@ describe("run presets: saving, looking up, and remembering", () => {
     await rejects(op("code/presets/move", { from: a }), "BAD_PATH");
   });
 
+  // A presets file that is already nearly full, written the way the program writes it, so a few saves reach the limits
+  // (hundreds of saves one after another only measured how fast the disk is: over 30 s on a slow CI machine).
+  const seededEntry = (path: string, seconds: number, count: number, command: string) => ({
+    path,
+    presets: Array.from({ length: count }, (_, i) => ({ id: `p${seconds}x${i}`, name: `p${i}`, command, cwd: "file", kind: "run", ask: false, lastRun: "", runCount: 0 })),
+    defaultRun: "", defaultBuild: "", last: "", touched: new Date(Date.UTC(2026, 0, 1, 0, 0, seconds)).toISOString(),
+  });
+  const seed = (ctx: { dataDir: string }, files: Record<string, unknown>) => {
+    mkdirSync(ctx.dataDir, { recursive: true });
+    writeFileSync(join(ctx.dataDir, "file_manager_code_presets.json"), JSON.stringify({ version: 1, files, types: {} }));
+  };
+
   test("only the newest 500 files' entries are kept", async () => {
     const { work, op, ctx } = sandbox();
     const total = MAX_FILE_ENTRIES + 12;
-    for (let i = 0; i < total; i++) await op("code/presets/save", { path: join(work, `f${i}.txt`), scope: "file", preset: preset("p", "echo") });
+    seed(ctx, Object.fromEntries(Array.from({ length: MAX_FILE_ENTRIES }, (_, i) => [join(work, `f${i}.txt`), seededEntry(join(work, `f${i}.txt`), i, 1, "echo")])));
+    for (let i = MAX_FILE_ENTRIES; i < total; i++) await op("code/presets/save", { path: join(work, `f${i}.txt`), scope: "file", preset: preset("p", "echo") });
     const doc = JSON.parse(readFileSync(join(ctx.dataDir, "file_manager_code_presets.json"), "utf8"));
     expect(Object.keys(doc.files)).toHaveLength(MAX_FILE_ENTRIES);
     expect((await op("code/presets/list", { path: join(work, "f0.txt") })).presets).toEqual([]);
     expect((await op("code/presets/list", { path: join(work, "f11.txt") })).presets).toEqual([]);
     expect((await op("code/presets/list", { path: join(work, "f12.txt") })).presets).toHaveLength(1);
     expect((await op("code/presets/list", { path: join(work, `f${total - 1}.txt`) })).presets).toHaveLength(1);
-  });
+  }, 60_000);
 
   test("the file never grows past 500 KB: the oldest files' presets go first", async () => {
     const { work, op, ctx } = sandbox();
     const command = "x".repeat(MAX_COMMAND);
-    for (let f = 0; f < 18; f++) for (let i = 0; i < MAX_PRESETS_PER_ENTRY; i++) await op("code/presets/save", { path: join(work, `big${f}.txt`), scope: "file", preset: preset(`p${i}`, command) });
+    // 12 files with a full list of the longest commands is about 506 KB: under the limit, and nearly at it.
+    seed(ctx, Object.fromEntries(Array.from({ length: 12 }, (_, f) => [join(work, `big${f}.txt`), seededEntry(join(work, `big${f}.txt`), f, MAX_PRESETS_PER_ENTRY, command)])));
     expect(statSync(join(ctx.dataDir, "file_manager_code_presets.json")).size).toBeLessThanOrEqual(MAX_PRESET_BYTES);
-    expect((await op("code/presets/list", { path: join(work, "big17.txt") })).presets).toHaveLength(MAX_PRESETS_PER_ENTRY);
+    for (let i = 0; i < MAX_PRESETS_PER_ENTRY; i++) await op("code/presets/save", { path: join(work, "big12.txt"), scope: "file", preset: preset(`p${i}`, command) });
+    expect(statSync(join(ctx.dataDir, "file_manager_code_presets.json")).size).toBeLessThanOrEqual(MAX_PRESET_BYTES);
+    expect((await op("code/presets/list", { path: join(work, "big12.txt") })).presets).toHaveLength(MAX_PRESETS_PER_ENTRY);
     expect((await op("code/presets/list", { path: join(work, "big0.txt") })).presets).toEqual([]);
-  });
+  }, 60_000);
 
   test("a damaged file starts fresh, and the old one is kept aside", async () => {
     const { work, op, ctx } = sandbox();

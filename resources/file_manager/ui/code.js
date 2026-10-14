@@ -137,8 +137,7 @@ function mount(root) {
     try {
       for (const d of docs.list().filter((x) => x.kind === "file" && x.path && isDirty(x) && !x.readOnly && !x.external)) {
         try {
-          await docs.save(d);
-          d.autoSavedText = d.savedText;
+          await docs.save(d, { auto: true });
         } catch (err) {
           d.external = err.code === "CHANGED_ON_DISK" ? "changed" : d.external;
           toast(`Autosave skipped for ${d.name}: ${err.message}`, { kind: "error" });
