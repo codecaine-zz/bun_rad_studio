@@ -50,18 +50,18 @@ export function groupView(group) {
       row.value,
     );
     const label = h("th", { scope: "row", class: "fi-label", title: row.hint || null }, row.label, row.hint ? h("span", { class: "fi-help", "aria-hidden": "true" }, " ⓘ") : null);
-    const tr = h("tr", { class: "fi-row" }, label, value, h("td", { class: "fi-act" }, copyButton(row.label, () => row.value)));
+    const tr = h("tr", { class: "fi-row" }, label, value, h("td", { class: "fi-act", "data-copy-ui": "" }, copyButton(row.label, () => row.value)));
     return { row, tr };
   });
   const table = group.rows.length
-    ? h("table", { class: "fi-table" },
-      h("caption", { class: "sr-only" }, group.title),
+    ? h("table", { class: "fi-table", "data-copy": "off" },
+      h("caption", { class: "sr-only", "data-copy-skip": "" }, group.title),
       h("colgroup", {}, h("col", { class: "fi-col-label" }), h("col", {}), h("col", { class: "fi-col-act" })),
-      h("thead", { class: "sr-only" }, h("tr", {}, h("th", { scope: "col" }, "Setting"), h("th", { scope: "col" }, "Value"), h("th", { scope: "col" }, "Copy"))),
+      h("thead", { class: "sr-only", "data-copy-skip": "" }, h("tr", {}, h("th", { scope: "col" }, "Setting"), h("th", { scope: "col" }, "Value"), h("th", { scope: "col" }, "Copy"))),
       h("tbody", {}, bodyRows.map((r) => r.tr)))
     : null;
   const empty = h("p", { class: "fi-none", hidden: true }, "Nothing here matches what you typed.");
-  const summary = h("summary", { class: "fi-summary", title: group.hint || null }, h("span", { class: "fi-title" }, group.title), h("span", { class: "fi-count" }, ` (${group.rows.length})`));
+  const summary = h("summary", { class: "fi-summary", title: group.hint || null }, h("span", { class: "fi-title" }, group.title), h("span", { class: "fi-count", "data-copy-skip": "" }, ` (${group.rows.length})`));
   const details = h("details", { class: "fi-details", open: !closed.has(group.id) },
     summary,
     group.note ? h("p", { class: "fi-note" }, group.note) : null,
@@ -71,7 +71,7 @@ export function groupView(group) {
   let searching = false;
   // What the person opens or closes is remembered; what a search opens on its own is not.
   summary.addEventListener("click", () => setTimeout(() => { if (!searching) closed[details.open ? "delete" : "add"](group.id); }, 0));
-  const el = h("section", { class: "fi-group", dataset: { group: group.id } }, details);
+  const el = h("section", { class: "fi-group", dataset: { group: group.id }, "data-copy": group.title }, details);
   return {
     el,
     group,

@@ -10,6 +10,7 @@ import { openFolderInCode, openInCode } from "./code.js";
 import { openPower } from "./power.js";
 import { looksLikeText } from "./codeLang.js";
 import { showOpenWith } from "./openwith.js";
+import { serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
 import { extensionOf } from "./util.js";
 import { canLock, canUnlock, lockEntries, unlockEntries } from "./vault.js";
@@ -63,6 +64,7 @@ function entryItems(entries) {
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openInCode(e.path) } : null,
     one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openFolderInCode(e.path) } : null,
     one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
+    ...serveMenuItems(entries),
     entries.some((x) => !x.isDir) ? { label: "Open with…", icon: "🧩", action: () => showOpenWith(entries) } : null,
     isZip ? { label: "Extract here", icon: "📦", disabled: searching, action: () => ops.unzipEntry(e) } : null,
     one ? { label: `Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}`, icon: "🔎", action: () => ops.revealEntry(e) } : null,

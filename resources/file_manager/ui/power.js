@@ -8,7 +8,7 @@ import { emit, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
 const GROUPS = [["files", "Files and text"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
-const DEFAULT_GROUP = { find: "files", sd: "files", code: "files", dev: "files", watch: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy" };
+const DEFAULT_GROUP = { find: "files", sd: "files", code: "files", dev: "files", watch: "automate", serve: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy" };
 
 /** @type {Array<{ id: string, label: string, icon: string, tip: string, group?: string, mount: (root: HTMLElement) => ({ show?: (opts?: any) => void, hide?: () => void } | void) }>} */
 const tabs = [];
@@ -20,7 +20,7 @@ let host = null;
 const groupOf = (t) => (GROUPS.some(([g]) => g === t.group) ? t.group : DEFAULT_GROUP[t.id] ?? "more");
 
 /** The tools in the order the tab strip shows them within a group; a tool not listed comes after these. */
-const TOOL_ORDER = ["find", "sd", "code", "dev", "watch", "crypto", "vault", "ip", "net", "calc", "timer"];
+const TOOL_ORDER = ["find", "sd", "code", "dev", "watch", "serve", "crypto", "vault", "ip", "net", "calc", "timer"];
 
 /** The tabs in the order they are shown: grouped, then in a steady order within a group. */
 function orderedTabs() {

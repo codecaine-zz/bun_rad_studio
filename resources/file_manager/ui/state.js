@@ -16,7 +16,7 @@ export const state = {
     favorites: [], favoriteNames: {}, recents: [], view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
     showHidden: false, showInfoPanel: false, theme: "auto", palette: "", textSize: 100, lastPath: "", seenWelcome: false, terminalFollow: true,
     workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
-    activeTool: "", splitTool: "", dualPath: "", typeWarnings: true,
+    activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
   },
   /** Which workspace view is showing (files, home, tools, split or dual) and whether the Power tools pane is visible. */
   workspace: "files",

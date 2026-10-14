@@ -14,12 +14,14 @@ import { wirePower } from "./power.js";
 import { wireChrome } from "./chrome.js";
 import { applyPalette } from "./themes.js";
 import { wireTypeCheck } from "./typecheck.js";
+import { startCopySections } from "./copysection.js";
 import { wireDual } from "./dual.js";
 import { wireHome } from "./home.js";
 import { registerHomeTiles } from "./homeTiles.js";
 import { restoreWorkspace, wireWorkspace } from "./workspace.js";
 import "./find.js";
 import "./watch.js";
+import "./serve.js";
 import "./crypto.js";
 import "./ip.js";
 import "./net.js";
@@ -80,6 +82,7 @@ async function start() {
   wirePower();
   wireChrome();
   wireTypeCheck();
+  startCopySections();
   renderSidebar();
 
   // Settings changes: apply them, and redo only what they affect. Saving the last folder or a favorite must not

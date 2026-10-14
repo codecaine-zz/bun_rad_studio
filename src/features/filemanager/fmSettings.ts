@@ -40,6 +40,8 @@ export interface Settings {
   dualPath: string;
   /** Mark files that aren't what their name says, and ask before opening the dangerous ones. */
   typeWarnings: boolean;
+  /** The Serve tool's remembered form choices. The network (LAN) option is never remembered. */
+  serveOptions: { kind: "auto" | "static" | "php"; liveReload: boolean; openBrowser: boolean };
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
@@ -74,6 +76,7 @@ export const DEFAULT_SETTINGS: Settings = {
   splitTool: "",
   dualPath: "",
   typeWarnings: true,
+  serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
 };
 
 export const MAX_FAVORITES = 100;
@@ -132,6 +135,17 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     splitTool: typeof r.splitTool === "string" && TOOL_ID.test(r.splitTool) ? r.splitTool : "",
     dualPath: isPath(r.dualPath) ? p.resolve(r.dualPath) : "",
     typeWarnings: typeof r.typeWarnings === "boolean" ? r.typeWarnings : DEFAULT_SETTINGS.typeWarnings,
+    serveOptions: sanitizeServeOptions(r.serveOptions),
+  };
+}
+
+function sanitizeServeOptions(raw: unknown): Settings["serveOptions"] {
+  const d = DEFAULT_SETTINGS.serveOptions;
+  const r = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  return {
+    kind: oneOf(r.kind, ["auto", "static", "php"], d.kind),
+    liveReload: typeof r.liveReload === "boolean" ? r.liveReload : d.liveReload,
+    openBrowser: typeof r.openBrowser === "boolean" ? r.openBrowser : d.openBrowser,
   };
 }
 

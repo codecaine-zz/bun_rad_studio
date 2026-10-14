@@ -8,6 +8,7 @@ import { registerHomeTile, registerHomeTileProvider } from "./home.js";
 import { showTrash } from "./nav.js";
 import { showOpenWith } from "./openwith.js";
 import { listPowerTabs, openPower } from "./power.js";
+import { openServeTool } from "./serveActions.js";
 import { selectedEntries } from "./selection.js";
 import { emit, state } from "./state.js";
 import { showToolsDialog } from "./tools.js";
@@ -37,6 +38,8 @@ export function registerHomeTiles() {
   registerHomeTile({ id: "convert", order: 20, icon: "🔄", title: "Convert files", text: "Change the format of pictures, video, sound and documents, or make them smaller.", run: () => { toFiles(); return showToolsDialog(); } });
   registerHomeTile({ id: "lock", order: 25, icon: "🔒", title: "Lock files", text: "Protect files or folders with a password, or unlock them again. Select what to lock first.", run: () => { toFiles(); return lockSelection(); } });
   registerHomeTile({ id: "moreinfo", order: 27, icon: "🔍", title: "Details and hidden info", text: "See everything about a file or picture: camera, location, checksums and more. Select something first.", run: () => { toFiles(); const items = selectedEntries(); return showMoreInfo(items.length ? items.map((e) => e.path) : [state.location.path]); } });
+  // The Serve tool's tile has its own name, "Live server", which is what people look for.
+  registerHomeTile({ id: "tool-serve", order: 36, icon: "🌐", title: "Live server", text: "Show a folder of web pages in your browser that reloads when you save, or run PHP's built-in server. Opens the Serve tool.", run: () => openServeTool(state.location.kind === "folder" ? state.location.path : "") });
   registerHomeTileProvider(() => listPowerTabs().map((t, i) => ({
     id: `tool-${t.id}`, order: 30 + i, icon: t.icon, title: t.label, text: TOOL_TEXT[t.id] ?? t.tip, run: () => openPower(t.id),
   })));

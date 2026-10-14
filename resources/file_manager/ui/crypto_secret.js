@@ -3,7 +3,7 @@
 import { call } from "./api.js";
 import { debounce, h } from "./dom.js";
 import { formatSize } from "./util.js";
-import { actionButton, attempt, card, checkBox, copyText, formatMs, lineBox, outBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
+import { actionButton, attempt, card, checkBox, formatMs, lineBox, outBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
 
 const AES_NOTES = [
   "This uses the same lock as Crypto Studio Pro: AES-256 in CBC mode with a fresh random starting value (IV) each time. The result looks like 32 letters/digits, a colon, then Base64 text.",
@@ -20,11 +20,11 @@ export function buildSecretCards(env) {
   // ---- AES ------------------------------------------------------------------------------------------------------
   const pass = secretBox({ label: "Passphrase", tip: "The secret that locks and unlocks. Use the same one to unlock. Never share it, and don't forget it: nobody can recover locked text without it.", placeholder: "a long, hard-to-guess phrase", secrets: env.secrets });
   const input = textBox({ label: "Text to lock, or locked text to unlock", tip: "To lock: type the private text here. To unlock: paste the locked text here (the one with a colon in it).", rows: 4 });
-  const result = outBox("Lock or unlock result", "The locked or unlocked text appears here. Use the Copy output button at the top to copy it.");
+  const result = outBox("Lock or unlock result", "The locked or unlocked text appears here. Use its Copy button to copy just this result.", { onCopy: () => env.log("Copy result", "lock or unlock") });
   const status = statusLine();
   const meter = h("meter", { class: "crypto-meter", min: "0", max: "128", low: "40", high: "80", optimum: "128", value: "0", "aria-label": "Strength estimate in bits", title: "How hard this would be to guess. A fuller bar is better." });
   const strengthText = h("span", { class: "pw-status", role: "status" });
-  const strength = h("div", { class: "crypto-strength", hidden: true }, meter, strengthText);
+  const strength = h("div", { class: "crypto-strength", hidden: true, "data-copy": "Strength estimate" }, meter, strengthText);
 
   async function showStrength(source, { quiet }) {
     if (!source.value) {
@@ -75,7 +75,7 @@ export function buildSecretCards(env) {
     h("details", { class: "crypto-details" }, h("summary", { title: "How this lock works and how strong it really is" }, "How safe is this lock? (technical details)"), AES_NOTES.map((t) => h("p", { class: "pw-hint" }, t))));
 
   // ---- Random values --------------------------------------------------------------------------------------------
-  const genOut = outBox("Generated value", "The newest random value. Use the Copy output button to copy it.");
+  const genOut = outBox("Generated value", "The newest random value. Use its Copy button to copy just this value.", { onCopy: () => env.log("Copy value", "random value") });
   const genStatus = statusLine();
   const generate = async (button, label, body, detail) => {
     const r = await attempt(button, genStatus, () => call("crypto/generate", body));
@@ -104,7 +104,7 @@ export function buildSecretCards(env) {
   const digits = checkBox("0–9", "Include digits.", true);
   const symbols = checkBox("Symbols", "Include symbols like ! @ # $ %. Some websites don't allow them.", true);
   const clear = checkBox("No look-alikes", "Leave out characters that are easy to mix up, like O and 0, or l, 1 and I.", false);
-  const pwOut = outBox("Generated password", "The newest password. It is shown here only and never saved.");
+  const pwOut = outBox("Generated password", "The newest password. It is shown here only and never saved. Use its Copy button to copy it.", { onCopy: () => env.log("Copy password", "") });
   const pwStatus = statusLine();
   const pwButton = actionButton("Generate password", "Make a new random password with the choices above. At least one of every chosen kind is included.", async () => {
     const r = await attempt(pwButton, pwStatus, () => call("crypto/generate", { kind: "password", length: parseInt(length.input.value, 10), lower: lower.input.checked, upper: upper.input.checked, digits: digits.input.checked, symbols: symbols.input.checked, noAmbiguous: clear.input.checked }));
@@ -115,11 +115,9 @@ export function buildSecretCards(env) {
     pwStatus.set(`${r.strength}: about ${r.bits} bits. Put it in a password manager rather than reusing it.`, "ok");
     env.log("Generate password", `${r.value.length} characters`);
   }, { primary: true });
-  const pwCopy = actionButton("Copy password", "Copy the generated password to the clipboard.", async () => {
-    if (await copyText(pwOut.text(), "The password")) env.log("Copy password", "");
-  });
   const passwordCard = card("Password generator", "Makes a random password with your computer's secure random generator. The password is only shown here: it is not saved or logged anywhere.",
-    h("div", { class: "pw-row" }, length.el, lower.el, upper.el, digits.el, symbols.el, clear.el), h("div", { class: "pw-row" }, pwButton, pwCopy), pwStatus.el, pwOut.el);
+    h("div", { class: "pw-row" }, length.el, lower.el, upper.el, digits.el, symbols.el, clear.el), h("div", { class: "pw-row" }, pwButton), pwStatus.el, pwOut.el);
+  for (const c of [aesCard, randomCard, passwordCard]) c.setAttribute("data-copy-secret", "");
 
   return {
     cards: [aesCard, randomCard, passwordCard],

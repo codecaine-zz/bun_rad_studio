@@ -128,6 +128,7 @@ export function showMoreInfo(paths) {
   );
   const dialog = openDialog({ title: "More info", body, wide: true, initialFocus: search, buttons: [{ label: "Close", primary: true, value: true }], describe: "Details and hidden information about the selected item. Use the search box to filter them." });
   dialog.el.classList.add("fi-dialog");
+  dialog.el.setAttribute("data-copy-self", "off"); // it has its own "Copy report"; the groups inside keep their Copy buttons
   dialog.result.then(() => {
     alive = false;
     window.removeEventListener("keydown", onEscape, true);

@@ -19,6 +19,8 @@
 .crypto-check { display: inline-flex; align-items: center; gap: 4px; color: var(--text); cursor: pointer; }
 
 .crypto-out { min-height: 2.4em; }
+.crypto-labelrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 1.8em; }
+.crypto-copycell { width: 1%; white-space: nowrap; text-align: right; }
 .crypto-status { min-height: 1.2em; margin: 0; }
 .crypto-caption { text-align: left; font-size: 0.85em; color: var(--muted); padding: 4px 8px; caption-side: top; }
 .crypto-digest { overflow-wrap: anywhere; word-break: break-all; }

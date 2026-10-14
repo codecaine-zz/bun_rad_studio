@@ -5,6 +5,8 @@ import { rangeBetween, dirOf, typeLabel } from "./findCore.js";
 import { fs, onFind, setSelection, setViewOptions } from "./findStore.js";
 import { dropdown, button } from "./findUi.js";
 import { formatDate, formatSize, plural } from "./util.js";
+import { registerCopySource } from "./copysection.js";
+import { rowsToJson, rowsToMarkdown, rowsToTsv } from "./copyformat.js";
 
 const PAGE = 300;
 
@@ -32,6 +34,12 @@ export function createResults(hooks) {
     onkeydown: onKey,
   }, head, body);
   const wrap = h("div", { class: "pw-table-wrap find-table-wrap" }, table);
+  // The Copy button copies every result that matches the filter, not only the rows drawn so far.
+  registerCopySource(table, () => {
+    const rows = [["Name", "Folder", "Type", "Size", "Changed", "Permissions"], ...fs.view.map((i) => [i.name, dirOf(i.relativePath) || "·", typeLabel(i.type), i.type === "directory" ? "—" : formatSize(i.sizeBytes), formatDate(i.mtimeMs), fs.meta.posix ? i.permStr : "—"])];
+    if (rows.length === 1) return null;
+    return { text: rowsToTsv(rows), tsv: rowsToTsv(rows), markdown: rowsToMarkdown(rows), json: rowsToJson(rows) };
+  }, "Search results");
 
   const el = h("section", { class: "pw-card find-results", "aria-label": "Results" },
     h("div", { class: "pw-row find-results-head" }, h("h3", {}, "Results"), count),

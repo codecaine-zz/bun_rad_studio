@@ -1,0 +1,32 @@
+/* The "Copy this section" buttons. Colours come only from the theme variables, so every theme works. */
+.copy-bar { display: inline-flex; align-items: stretch; font-size: 0.78rem; line-height: 1.2; opacity: 0; transition: opacity 0.12s; white-space: nowrap; }
+.copy-bar[hidden] { display: none !important; }
+.copy-bar button, .copy-item { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); padding: 2px 8px; cursor: pointer; }
+.copy-main { border-radius: 6px 0 0 6px; }
+.copy-more { border-left: 0 !important; border-radius: 0 6px 6px 0; padding: 2px 6px !important; }
+.copy-bar button:hover, .copy-item:hover { background: var(--hover); }
+.copy-bar button:focus-visible, .copy-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+:where(.copy-host) { position: relative; }
+.copy-host > .copy-bar-host { position: absolute; top: 6px; right: 8px; z-index: 3; }
+.copy-host > :is(h1, h2, h3, h4, h5, h6) { padding-right: 8rem; }
+.copy-bar-bar { display: flex; justify-content: flex-end; margin: 0 0 2px; }
+
+.copy-host:hover > .copy-bar, .copy-host:focus-within > .copy-bar,
+.copy-bar:hover, .copy-bar:focus-within,
+.copy-bar:has(+ :hover), .copy-bar:has(+ :focus-within) { opacity: 1; }
+
+/* Small "Copy" buttons next to a single value (a digest, a password, a log line). */
+.copy-item { border-radius: 6px; font-size: 0.78rem; padding: 1px 8px; white-space: nowrap; flex: none; }
+.copy-toast { margin-left: 8px; }
+
+/* Sections added inside dialog bodies (Help) keep the spacing the plain headings had. */
+.dialog-body > section:first-child > h3:first-child { margin-top: 0; }
+
+@media (hover: none), (pointer: coarse) {
+  .copy-bar { opacity: 1; }
+  .copy-bar button, .copy-item { min-height: 32px; min-width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .copy-bar { transition: none; }
+}

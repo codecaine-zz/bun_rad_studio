@@ -19,12 +19,12 @@ export function buildTokenCards(env) {
   const token = textBox({ label: "Token (JWT)", tip: "Paste a JSON Web Token: three pieces joined by dots, like xxxxx.yyyyy.zzzzz. It is only read here, never sent anywhere else.", placeholder: "eyJhbGciOiJIUzI1NiIs…", rows: 4 });
   const secret = secretBox({ label: "Secret (to check the signature)", tip: "The shared secret the token was signed with. Needed only for 'Check signature', and only works for HS256, HS384 and HS512 tokens.", secrets: env.secrets });
   const status = statusLine();
-  const headerOut = outBox("Header", "The header says how the token was signed.");
-  const payloadOut = outBox("Payload (claims)", "The payload holds the facts the token states, like who it is for and when it expires.");
-  const timesList = h("ul", { class: "crypto-list" });
-  const verdict = h("p", { class: "pw-status", role: "status" });
-  const notes = h("ul", { class: "crypto-list pw-hint" });
-  const details = h("div", { class: "crypto-jwt", hidden: true }, headerOut.el, payloadOut.el, h("div", { class: "crypto-label", "aria-hidden": "true" }, "Times"), timesList, verdict, notes);
+  const headerOut = outBox("Header", "The header says how the token was signed.", { secret: false, onCopy: () => env.log("Copy header", "JWT") });
+  const payloadOut = outBox("Payload (claims)", "The payload holds the facts the token states, like who it is for and when it expires.", { onCopy: () => env.log("Copy payload", "JWT") });
+  const timesList = h("ul", { class: "crypto-list", "data-copy": "Token times" });
+  const verdict = h("p", { class: "pw-status", role: "status", "data-copy": "Signature check result" });
+  const notes = h("ul", { class: "crypto-list pw-hint", "data-copy": "Token warnings" });
+  const details = h("div", { class: "crypto-jwt", hidden: true }, headerOut.el, payloadOut.el, h("div", { class: "crypto-label", "aria-hidden": "true", "data-copy-keep": "" }, "Times"), timesList, verdict, notes);
 
   async function inspect(button, withSecret) {
     const name = withSecret ? "JWT check signature" : "JWT decode";
@@ -55,10 +55,11 @@ export function buildTokenCards(env) {
   const verify = actionButton("Check signature", "Check that the token was signed with the secret above (HS256, HS384 or HS512) and was not altered. Also decodes it.", () => inspect(verify, true));
   const jwtCard = card("JWT reader and signature check", "A JWT is a small signed note that websites use to say who you are. Anyone can read one, so reading is not trusting: only a successful signature check shows it is genuine. Never share your secret.",
     token.el, secret.el, h("div", { class: "pw-row" }, decode, verify), status.el, details);
+  jwtCard.setAttribute("data-copy-secret", "");
 
   // ---- Encoders -------------------------------------------------------------------------------------------------
   const text = textBox({ label: "Text to convert", tip: "Type or paste the text to encode or decode.", rows: 3 });
-  const result = outBox("Converted text", "The converted text. Use the Copy output button at the top to copy it.");
+  const result = outBox("Converted text", "The converted text. Use its Copy button to copy just this result.", { onCopy: () => env.log("Copy result", "converted text") });
   const encStatus = statusLine();
   const buttons = ENCODERS.map(([mode, label, tip]) => {
     const button = actionButton(label, tip, async () => {
@@ -78,6 +79,7 @@ export function buildTokenCards(env) {
   });
   const encoderCard = card("Encoders: URL, Base64 and hex", "These convert text between forms. They only change how text is written; they do not hide it, so none of them is a way to keep secrets.",
     text.el, h("div", { class: "pw-row" }, ...buttons, moveUp), encStatus.el, result.el);
+  encoderCard.setAttribute("data-copy-secret", "");
 
   return {
     cards: [jwtCard, encoderCard],

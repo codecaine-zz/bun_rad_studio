@@ -1,8 +1,9 @@
 // Building blocks shared by the Crypto tool's cards: labelled fields, secret fields with a show/hide button,
 // output boxes, the activity log and the copy helper. Nothing here stores or logs what the user types.
-import { ApiError, call } from "./api.js";
+import { ApiError } from "./api.js";
 import { clear, h } from "./dom.js";
 import { toast } from "./menus.js";
+import { copyItemButton, copyToClipboard } from "./copyclip.js";
 
 let counter = 0;
 const nextId = (prefix) => `crypto-${prefix}-${++counter}`;
@@ -15,7 +16,7 @@ export const formatMs = (ms) => (ms < 1000 ? `${Math.max(0, Math.round(ms * 10) 
 /** A card with a heading and a short plain-words explanation. */
 export function card(title, intro, ...children) {
   const id = nextId("card");
-  return h("section", { class: "pw-card crypto-card", "aria-labelledby": id },
+  return h("section", { class: "pw-card crypto-card", "aria-labelledby": id, "data-copy": title },
     h("h3", { id }, title),
     intro ? h("p", { class: "pw-hint" }, intro) : null,
     ...children);
@@ -67,9 +68,12 @@ export function checkBox(label, tip, checked) {
   return { input, el: h("label", { class: "crypto-check", title: tip }, input, ` ${label}`) };
 }
 
-/** A line that tells the person what just happened. `kind`: "ok", "bad" or "" for neutral. */
-export function statusLine() {
-  const el = h("p", { class: "pw-status crypto-status", role: "status" });
+/**
+ * A line that tells the person what just happened. `kind`: "ok", "bad" or "" for neutral.
+ * Pass `copyTitle` for lines that hold a result worth copying (a checksum check, a signature check): they get a Copy button.
+ */
+export function statusLine(copyTitle = "") {
+  const el = h("p", { class: "pw-status crypto-status", role: "status", "data-copy": copyTitle || null });
   return {
     el,
     set(text, kind = "") {
@@ -79,13 +83,17 @@ export function statusLine() {
   };
 }
 
-/** A read-only result area with a label. Returns { el, pre, set(text), text() }. */
-export function outBox(label, tip) {
+/**
+ * A read-only result area with a label and its own Copy button (copies just this value). Returns { el, pre, set(text), text() }.
+ * `secret` (default true) adds the clipboard reminder to the copy message; `onCopy` is called after a successful copy.
+ */
+export function outBox(label, tip, { secret = true, onCopy = null } = {}) {
   const id = nextId("out");
-  const pre = h("pre", { id, class: "pw-out crypto-out", tabindex: "0", title: tip, "aria-label": label });
+  const pre = h("pre", { id, class: "pw-out crypto-out", tabindex: "0", title: tip, "aria-label": label, "data-copy": "off" });
+  const button = copyItemButton({ label, getText: () => pre.textContent ?? "", secret, onCopied: onCopy });
   return {
     pre,
-    el: h("div", { class: "pw-field crypto-field" }, h("span", { class: "crypto-label", "aria-hidden": "true" }, label), pre),
+    el: h("div", { class: "pw-field crypto-field" }, h("div", { class: "crypto-labelrow" }, h("span", { class: "crypto-label", "aria-hidden": "true", "data-copy-keep": "" }, label), button), pre),
     set(text) { pre.textContent = text; },
     text: () => pre.textContent ?? "",
   };
@@ -106,29 +114,21 @@ export async function attempt(button, status, fn) {
   }
 }
 
-export async function copyText(text, what = "That") {
-  if (!text) {
-    toast("There is nothing to copy yet.", { kind: "info" });
-    return false;
-  }
-  try {
-    if (text.length <= 100000) await call("copytext", { text });
-    else await navigator.clipboard.writeText(text);
-    toast(`${what} was copied. Other programs can read the clipboard, so paste it soon.`, { kind: "success" });
-    return true;
-  } catch (err) {
-    toast(err instanceof ApiError ? err.message : "Couldn't copy that.", { kind: "error" });
-    return false;
-  }
+/** Copies text through the shared copy helper. Crypto results can be secret, so the clipboard reminder is always shown. */
+export function copyText(text, what = "That") {
+  return copyToClipboard(text, { what, secret: true });
 }
 
-/** A table of [algorithm, digest] rows. */
+/** A table cell with a small Copy button for one value of its row. It is left out of copied tables. */
+export const copyCell = (label, getText, secret = false) => h("td", { class: "crypto-copycell", "data-copy-ui": "" }, copyItemButton({ label, getText, secret }));
+
+/** A table of [algorithm, digest] rows, each with a button that copies just that digest. */
 export function digestTable(rows, caption) {
   return h("div", { class: "pw-table-wrap" },
     h("table", { class: "pw-table crypto-digests" },
       h("caption", { class: "crypto-caption" }, caption),
-      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Algorithm"), h("th", { scope: "col" }, "Digest (hex)"))),
-      h("tbody", {}, rows.map(([algo, digest]) => h("tr", {}, h("th", { scope: "row" }, algo), h("td", { class: "pw-mono crypto-digest" }, digest))))));
+      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Algorithm"), h("th", { scope: "col" }, "Digest (hex)"), h("th", { scope: "col", "data-copy-ui": "" }, "Copy"))),
+      h("tbody", {}, rows.map(([algo, digest]) => h("tr", {}, h("th", { scope: "row" }, algo), h("td", { class: "pw-mono crypto-digest" }, digest), copyCell(`the ${algo} digest`, () => digest))))));
 }
 
 const MAX_LOG = 200;
@@ -142,14 +142,15 @@ export function createLog() {
   const empty = h("p", { class: "pw-hint" }, "Nothing yet. What you do here is listed in this box (names, sizes and times only, never your secrets).");
   const table = h("table", { class: "pw-table crypto-log-table", hidden: true },
     h("caption", { class: "crypto-caption" }, "Activity, newest first"),
-    h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Time"), h("th", { scope: "col" }, "What"), h("th", { scope: "col" }, "Details"))),
+    h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Time"), h("th", { scope: "col" }, "What"), h("th", { scope: "col" }, "Details"), h("th", { scope: "col", "data-copy-ui": "" }, "Copy"))),
     body);
   const el = h("div", { class: "pw-table-wrap crypto-log", tabindex: "0", role: "region", "aria-label": "Activity log", title: "A list of what you did in this tool. It never shows passphrases, keys, passwords or your text, and it is forgotten when you close the File Manager." }, table);
   return {
     el,
     empty,
     add(operation, details = "") {
-      body.prepend(h("tr", {}, h("td", { class: "pw-mono" }, new Date().toLocaleTimeString()), h("td", {}, operation), h("td", {}, details)));
+      const time = new Date().toLocaleTimeString();
+      body.prepend(h("tr", {}, h("td", { class: "pw-mono" }, time), h("td", {}, operation), h("td", {}, details), copyCell(`the log entry ${operation}`, () => [time, operation, details].join("\t"))));
       while (body.rows.length > MAX_LOG) body.lastElementChild?.remove();
       table.hidden = false;
       empty.hidden = true;

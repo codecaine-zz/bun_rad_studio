@@ -6,7 +6,7 @@ import { toast } from "./menus.js";
 import { selectedEntries } from "./selection.js";
 import { currentPath } from "./state.js";
 import { formatSize, plural } from "./util.js";
-import { actionButton, attempt, card, copyText, digestTable, formatMs, lineBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
+import { actionButton, attempt, card, copyCell, digestTable, formatMs, lineBox, secretBox, statusLine, textBox } from "./crypto_ui.js";
 
 const MAX_FILES = 20;
 const NO_RESULTS = "Results appear here after you hash some text or a file.";
@@ -72,12 +72,7 @@ export function buildHashCards(env) {
   const sourceLine = h("p", { class: "pw-status", role: "status" }, "Nothing hashed yet.");
   const fileList = h("div", { class: "crypto-filelist" });
   const tableHost = h("div", { class: "crypto-tablehost" }, h("p", { class: "pw-hint" }, NO_RESULTS));
-  const verifyStatus = statusLine();
-  const copyButton = actionButton("Copy digests", "Copy the digests shown above to the clipboard as plain text.", async () => {
-    if (current.rows.length === 0) return verifyStatus.set("Hash some text or a file first.", "bad");
-    const r = await attempt(copyButton, verifyStatus, () => call("crypto/report", { rows: current.rows, source: current.source }));
-    if (r && (await copyText(r.text, "The digests"))) env.log("Copy digests", plural(current.rows.length, "line"));
-  });
+  const verifyStatus = statusLine("Checksum check result");
   const folder = lineBox({ label: "Save report in folder", tip: "The folder where the new report file will be made. You can type ~/Documents. Nothing already there is overwritten.", placeholder: "Folder location", width: "crypto-wide" });
   folder.input.addEventListener("input", () => (folderTouched = true));
   const fileName = lineBox({ label: "File name", tip: "Name for the new report. If a file with this name exists, a number is added (like Digests (2).txt) instead of replacing it.", value: "Digests.txt" });
@@ -107,9 +102,8 @@ export function buildHashCards(env) {
     verifyStatus.set(r.matched ? `✔ It matches: this is the ${r.match} digest of ${current.source}. It is exactly what the checksum describes.` : `✖ No match. ${r.hint}`, r.matched ? "ok" : "bad");
     env.log("Verify checksum", r.matched ? `match (${r.match})` : "no match");
   }, { primary: true });
-  const resultsCard = card("Results", "The newest digests from either card above. Digests are not secret, so you can share them. An HMAC row (when a key was given) can't be used for checksum checks.",
+  const resultsCard = card("Results", "The newest digests from either card above. Digests are not secret, so you can share them. An HMAC row (when a key was given) can't be used for checksum checks. Every row has its own Copy button; the Copy button at the top right of this card copies everything shown here.",
     sourceLine, fileList, tableHost,
-    h("div", { class: "pw-row" }, copyButton),
     h("div", { class: "pw-row crypto-group" }, folder.el, fileName.el, useFolder, saveButton), saveStatus.el,
     h("div", { class: "pw-row crypto-group" }, expected.el, verifyButton), verifyStatus.el);
 
@@ -133,11 +127,12 @@ export function buildHashCards(env) {
     if (files.length > 1) {
       fileList.append(h("div", { class: "pw-table-wrap" }, h("table", { class: "pw-table" },
         h("caption", { class: "crypto-caption" }, `${plural(files.length, "file")} hashed`),
-        h("thead", {}, h("tr", {}, ["File", "Size", "SHA-256 / problem"].map((t) => h("th", { scope: "col" }, t)))),
+        h("thead", {}, h("tr", {}, ["File", "Size", "SHA-256 / problem"].map((t) => h("th", { scope: "col" }, t)), h("th", { scope: "col", "data-copy-ui": "" }, "Copy"))),
         h("tbody", {}, files.map((f) => h("tr", {},
           h("th", { scope: "row", title: f.path }, f.name),
           h("td", { class: "num" }, f.ok ? formatSize(f.size) : ""),
-          h("td", { class: f.ok ? "pw-mono crypto-digest" : "pw-bad" }, f.ok ? f.rows[0][1] : f.error)))))));
+          h("td", { class: f.ok ? "pw-mono crypto-digest" : "pw-bad" }, f.ok ? f.rows[0][1] : f.error),
+          f.ok ? copyCell(`the SHA-256 digest of ${f.name}`, () => f.rows[0][1]) : h("td", { "data-copy-ui": "" })))))));
       if (good.length > 1) {
         const choose = h("select", { class: "crypto-input", id: "crypto-file-choice", title: "Choose which file's full set of digests to show below, copy, save or check.", onchange: () => pick(Number(choose.value)) },
           good.map((f, i) => h("option", { value: String(i) }, f.name)));

@@ -15,10 +15,12 @@ Added on 14 October 2026; the record of what was checked is [D-045](../documenta
 - [Encrypt and decrypt files and folders](#encrypt-and-decrypt-files-and-folders)
 - [The code editor](#the-code-editor)
 - [Developer information (Dev tab)](#developer-information-dev-tab)
+- [Live server and PHP server (Serve tab)](#live-server-and-php-server-serve-tab)
 - [Files that aren't what their name says](#files-that-arent-what-their-name-says)
 - [More info and metadata](#more-info-and-metadata)
 - [How it keeps your files safe](#how-it-keeps-your-files-safe)
 - [The terminal](#the-terminal)
+- [Copy any section](#copy-any-section)
 - [Where it keeps its own files](#where-it-keeps-its-own-files)
 - [What was verified, and what was not](#what-was-verified-and-what-was-not)
 - [Limits](#limits)
@@ -122,6 +124,7 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Resize the Split divider | ←/→ (↑/↓ when stacked), Shift for bigger steps, Home to reset |
 | Properties | Alt+Enter |
 | More info and hidden details | Alt+Shift+Enter (Ctrl+I stays "Details panel") |
+| Copy the section you are in | Alt+Shift+C (⌥⇧C on a Mac) |
 | Show or hide the terminal | Ctrl+` (Control on a Mac too) |
 | Context menu | Shift+F10 or the Menu key |
 | Jump to an item | Start typing its name |
@@ -246,6 +249,33 @@ What it protects and what it doesn't (file names on disk, file size, timing, no 
 
 **Safety and limits.** Every `dev/…` operation needs the session token and the loopback checks like all the others. Scans never follow symbolic links (files are opened without following links, and links are counted as skipped), read file contents only inside the chosen folder (the one exception: the `.gitignore` files of the repository around it, read only to apply their patterns and never shown), and stop at 200,000 files, 100,000 folders, 8 MB per file (1 GB in all) or 60 seconds; the page says when a limit cut a scan short. Scans run in the background with a progress line and a **Cancel** button (at most three at once). Exports and snapshots are the only writes, and an export can only be saved inside the scanned folder.
 
+## Live server and PHP server (Serve tab)
+
+**Find & more → Serve** turns a small web server on and off for a folder, so you can look at your web pages in a browser the way a visitor would, without installing anything.
+
+- **Live server** (for HTML, CSS, JavaScript and any other files). It shows the folder at an address like `http://127.0.0.1:5500/` and **reloads the page by itself when you save a file** (a change to only a `.css` file swaps the styles without reloading, so you don't lose your place). It is built into the File Manager; there is nothing to install.
+- **PHP server** (PHP's own built-in server, `php -S`). It needs **PHP installed on your computer**; the File Manager only looks for it and never installs it. If `php` is missing the tab says so and shows what to type for your system (`brew install php`, `sudo apt install php-cli`, `winget install PHP.PHP` or `scoop install php`). A folder with `index.php`, `composer.json`, `artisan`, `wp-config.php` or any `.php` file is recognised as PHP; a Laravel or Symfony project suggests its `public` folder as the document root, and WordPress says it needs a database that this server doesn't provide.
+
+**Ways to start one.**
+
+- **Right-click a folder** → *Start live server here* / *Stop live server*, and, when the folder looks like a PHP project, *Start PHP server here* / *Stop PHP server*.
+- **Right-click an `.html` or `.htm` file** → *Open with live server*: serves that file's folder (or reuses the server already running for it) and opens that page in your browser.
+- **The Serve tab** has two switches for the folder you are looking at, a list of every running server, and a *Start a new server* form: folder, kind (automatic: PHP if the folder has PHP files, otherwise live), port (Auto, or 1024–65535), reload on change, open the browser, show hidden files, allow other websites to read the files (CORS), and, under *PHP options*, a document folder inside the project (for example `public`), a router script and a particular PHP program.
+- The Home tile **Live server** opens the tab for the folder you are in.
+
+Each row of the list shows the kind (and PHP version), the folder, the address, the port, when it started, how many requests it answered and its state, with an on/off switch (it says **On** or **Off** in words, not only by colour), *Open in browser*, *Copy URL*, *Restart*, *Stop* and a **log** (the requests the live server answered, or everything PHP printed, newest at the bottom; at most 500 lines or 256 KB are kept). While any server runs, the status bar shows a pill such as **● Live :5500**; press it to come back to the tab. The page asks for news every 3 seconds, and only while the tab is open or a server is running.
+
+**Safety.**
+
+- **This computer only, by default.** Servers listen on `127.0.0.1` and refuse any request whose `Host` is not `127.0.0.1`, `localhost` or `[::1]` with its own port (so a web page on another site can't reach them through DNS tricks).
+- **The network option is off, and never remembered.** *Let other devices on my network see it (LAN)* starts the server for everyone on your Wi-Fi or network, so you are asked to confirm in plain words first; the box is cleared after every start. PHP's built-in server is for development only and is not safe on a network.
+- **Read only, and only inside the folder.** The live server answers `GET` and `HEAD` only and accepts no request body. Every address is checked: `..`, encoded slashes and backslashes, null characters, over-long addresses and Windows device names (`CON`, `NUL`…) are refused, and each file is resolved with its real path, so a symbolic link that points outside the folder is never followed. Hidden files (names starting with a dot, such as `.env`) are not shown unless you tick *Show hidden files*, and **`.git` is never shown**. The File Manager's own files and settings are never served, and your home folder, the top of a drive and system folders can't be chosen.
+- **The File Manager itself is out of reach.** The served ports have no connection to its page, token or API.
+- **PHP is started with an argument list, never through a shell**, in the document folder, with only `PATH`, `HOME`, `LANG` and `TMPDIR` (none of the File Manager's own variables), and its input closed. Folder names that start with `-` or hold spaces, quotes or `$(...)` are just names. Stopping asks PHP to end (SIGTERM) and, after 2 seconds, forces it (SIGKILL), with anything it started; closing the File Manager ends every server, and a last-resort handler ends any PHP still running if the program exits.
+- Servers never come back after the File Manager is closed, and nothing about them is saved except your choices of kind, reload and open-browser (never the network option).
+
+**Limits.** At most 8 servers at once, one per folder and kind (starting the same folder again just shows the one that is running); the live server serves at most 64 requests at the same moment and 50 open pages; live reload watches up to 5,000 folders (more than that: the server still works, the row says live reload is off), ignoring `node_modules`, `.git` and editor scratch files, and says so if the folder is deleted. HTML pages bigger than 8 MB are served without the reload script. Single-range `Range` requests are supported (video and audio can be skipped through); several ranges at once are answered with the whole file. PHP's server runs one request at a time, as PHP's does. Pages that use WebSockets or need HTTPS can't be tried here.
+
 ## Files that aren't what their name says
 
 A file's name can lie. `invoice.pdf` can really be a Windows program, `photo.jpg` can really be a PNG or a zip, and `report.pdf.exe` or a name with a hidden right-to-left character can hide what it ends in. The File Manager reads the first few hundred bytes of the files you can see and puts a small badge after the name when the contents don't match:
@@ -302,6 +332,19 @@ Turn it off in **Settings → Warn when a file isn't what its name says** (no ba
 - **macOS and Linux only for now.** Bun can open a pseudo-terminal only there; on Windows the Terminal button is greyed out with a tooltip that says so.
 - It is the open-source **xterm.js** (MIT), copied into `resources/file_manager/vendor/` with its licence; nothing is loaded from the internet. It is dark in both colour schemes.
 - Copy and paste work as in any terminal window (⌘C/⌘V on a Mac; Ctrl+Shift+C/V on Linux where your system's terminal does that). The terminal's text size follows the **Text size** setting.
+
+## Copy any section
+
+Most windows and tools show information in blocks: a group in *Properties* or *More info*, a table of results, a log, a list of facts, an error message. Every such block has a small **Copy** button, so you never need to select text by hand.
+
+- **Where it is.** Point at a block (or Tab to it) and **Copy** appears in its top right corner, next to the heading. It is a real button with a name and a tooltip, it is always visible on touch screens, and it works with every theme. Tables have their own **Copy table** button above them, lists have **Copy list**, error lines have **Copy error**, and a pop-up error message has **Copy error** beside its ✕.
+- **What it copies.** Plain text, ready to paste: the heading, paragraphs, `Name: value` lines for facts, `- ` bullets for lists, tab-separated rows for tables (header row included), and code or log text exactly as it is, with every space. Hidden parts, icons, buttons and the Copy buttons themselves are left out. Anything you typed into a box is never included, and password boxes never. Text over 100,000 characters is cut and ends with "(shortened)"; the message says so.
+- **Other formats.** The small **▾** beside the button offers **Copy as table (for spreadsheets)** (tab-separated, pastes into Excel, Numbers and Sheets), **Copy as Markdown**, **Copy as JSON** (tables and lists of facts) and **Copy text without the heading**. Only the choices that make sense for that block are listed.
+- **Keyboard.** Click or Tab into a block and press **Alt+Shift+C** (⌥⇧C on a Mac) to copy the section you are in, the same as its button.
+- **Long lists.** Where a tool holds more than it shows (for example all results of a search), the button copies everything it holds, not only the rows on screen.
+- **Crypto tab, one value at a time.** Each digest row, each log entry, each generated password, key, UUID or random value, each converted text, the header and payload of a token, the token times, the signature verdict and the checksum check result has its own **Copy**, and each card has a **Copy** for the whole card. **Copy all** in the toolbar copies the whole tab (results and log, never what you typed). The old **Copy output** button still copies the newest result.
+- **Privacy.** Copying uses the computer's clipboard, and other programs can read the clipboard. For secrets (passwords, keys, locked and unlocked text, tokens) the message after copying says so: *Other programs can read the clipboard, so paste it soon.* Copy only what you mean to paste.
+- **Not on everything.** There is no button on the file list, the terminal, the code editor, menus, or on windows that are only forms.
 
 ## Where it keeps its own files
 

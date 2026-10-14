@@ -8,6 +8,7 @@ import { buildHashCards } from "./crypto_hash.js";
 import { buildSecretCards } from "./crypto_secret.js";
 import { buildTokenCards } from "./crypto_tokens.js";
 import { actionButton, card, copyText, createLog } from "./crypto_ui.js";
+import { copySectionNow } from "./copysection.js";
 
 registerPowerTab({
   id: "crypto", label: "Crypto", icon: "🔐", tip: "Hashes, encryption, tokens, passwords and encoders",
@@ -25,6 +26,9 @@ registerPowerTab({
     const copyOutput = actionButton("Copy output", "Copy the newest result (a digest, locked or unlocked text, a key, a password or converted text) to the clipboard.", async () => {
       if (await copyText(lastOutput, "The output")) log.add("Copy output", "");
     });
+    const copyAll = actionButton("Copy all", "Copy everything shown on this tab (every heading, result and the activity log) as plain text. What you typed into the boxes is not included. Each section and each value also has its own Copy button.", async () => {
+      if (await copySectionNow(grid, { title: "the whole Crypto tab", secret: true })) log.add("Copy all", "");
+    });
     const clearAll = actionButton("Clear all", "Empty every box, result and the activity log on this tab, and hide the secret boxes. Nothing is saved anywhere, so this can't be undone.", () => {
       for (const s of sections) s.clear();
       for (const hide of env.secrets) hide();
@@ -40,11 +44,13 @@ registerPowerTab({
     const cards = [...hashing.cards, ...secrets.cards, ...tokens.cards];
     cards[2].classList.add("crypto-span"); // the results table is wide
 
+    const grid = h("div", { class: "crypto-grid" }, ...cards, logCard);
+
     root.append(
       h("div", { class: "crypto-toolbar pw-row" },
         h("p", { class: "pw-hint crypto-intro" }, "Everything here runs on your own computer. What you type is never saved, only shown in these boxes, and Clear all wipes it. Never share your passphrases, keys or secrets with anyone."),
-        copyOutput, clearAll),
-      h("div", { class: "crypto-grid" }, ...cards, logCard),
+        copyOutput, copyAll, clearAll),
+      grid,
     );
 
     return {
