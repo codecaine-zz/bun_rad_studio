@@ -41,6 +41,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-035 Placing and resizing controls needed a mouse (fixed, behaviour change)](#d-035)
 - [D-036 Dialogs ignored focus and let shortcuts edit the form behind them (fixed)](#d-036)
 - [D-037 Library server helpers listened on every network interface (fixed, behaviour change)](#d-037)
+- [D-038 Frogger, Snake and Tetris only started from the repository root (fixed)](#d-038)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -382,3 +383,12 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Why `127.0.0.1` and not `"localhost"`:** measured on this machine, Bun binds `"localhost"` to `::1` only, so a client using `127.0.0.1` could not connect; binding `127.0.0.1` answers both `127.0.0.1` and `localhost` URLs. `serveHttp` still defaults to `"localhost"` (unchanged, not investigated further).
 - **Guard against regression:** `tests/studio_servers_local_only.test.ts` now scans `applications/` and `src/` and fails when any `Bun.serve(` call has no `hostname` (shown to fail when the Snake fix was reverted). It cannot see `(Bun as any).serve(`, so `tests/library_servers_local_default.test.ts` tests the helpers' defaults and the explicit option directly (the old code fails those tests).
 - **Not checked:** the native windows of the three games; behaviour on Windows and Linux; whether `serveHttp`'s `"localhost"` default has the same IPv6-only effect elsewhere.
+
+<a id="d-038"></a>
+## D-038: Frogger, Snake and Tetris only started from the repository root (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed:** `bun /path/to/applications/frogger_studio.ts` run from another directory printed `Error: index.html not found at /private/tmp/resources/frogger_studio/index.html` and exited with code 1. Snake and Tetris build the path the same way (`process.cwd()` + `resources/...`); they were not launched from another directory, the code is identical in form. These were the only three studios doing this; the others look next to their own file (the same class of defect as [D-023](#d-023) for the designer's Run button).
+- **Change:** new `src/studio_resources.ts` (`findStudioResources`) looks next to the studio's own file first and then in the working directory, so the old behaviour still works. The three games use it.
+- **Verified:** `tests/studio_resources.test.ts` (5 tests, including the three real games resolving from an unrelated working directory); Frogger launched from `/tmp` got past the lookup and began listening on `127.0.0.1:63000`.
+- **Not checked:** that the window drew correctly or the game was playable (the window was not looked at), and the same launch for Snake and Tetris.

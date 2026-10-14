@@ -2,6 +2,7 @@ import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { guardLocalRequest } from "../src/localGuard";
+import { findStudioResources } from "../src/studio_resources";
 
 function findAvailablePort(start: number, end: number): number {
   for (let p = start; p <= end; p++) {
@@ -19,7 +20,7 @@ export class SnakeStudio {
     console.log("⚡ Launching Neon Snake Deluxe...");
 
     const port = findAvailablePort(63000, 64000);
-    const resourcesPath = join(process.cwd(), "resources", "snake_studio");
+    const resourcesPath = findStudioResources("snake_studio", import.meta.dir);
     const indexPath = join(resourcesPath, "index.html");
 
     const server = Bun.serve({

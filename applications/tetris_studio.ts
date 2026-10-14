@@ -2,6 +2,7 @@ import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { guardLocalRequest } from "../src/localGuard";
+import { findStudioResources } from "../src/studio_resources";
 
 // Find available port between 63000-64000 for local assets
 function findAvailablePort(start: number, end: number): number {
@@ -28,7 +29,7 @@ export class TetrisStudio {
     console.log("⚡ Launching Tetris Ultra Deluxe...");
 
     const port = findAvailablePort(63000, 64000);
-    const resourcesPath = join(process.cwd(), "resources", "tetris_studio");
+    const resourcesPath = findStudioResources("tetris_studio", import.meta.dir);
     const indexPath = join(resourcesPath, "index.html");
 
     // Start background file server for audio assets if needed
