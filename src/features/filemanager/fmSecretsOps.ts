@@ -6,7 +6,7 @@ import { closeSync, existsSync, fsyncSync, openSync, writeSync } from "node:fs";
 import { absolutePath, type FmHandler } from "./fmCore";
 import { FmError } from "./fmPaths";
 import { randomBytes } from "node:crypto";
-import { derivePasswordKek, masterProblem, newKeyFileBytes, passwordBits, type Strength } from "./fmSecretsCrypto";
+import { derivePasswordKek, formatRecoveryKey, masterProblem, newKeyFileBytes, parseRecoveryKey, passwordBits, type Strength } from "./fmSecretsCrypto";
 import { optionalText, credsOf, newFilePath, secretsOp } from "./fmSecretsGuard";
 import { generateSecret } from "./fmSecretsGen";
 import { itemOperations } from "./fmSecretsItemOps";
@@ -34,6 +34,41 @@ export const secretsOperations: Record<string, FmHandler> = {
     }
     return { ms: Math.round(performance.now() - started), memoryMiB: Math.round(params.memoryKiB / 1024), problem: "" };
   }), { touch: false }),
+
+  /**
+   * Copies a recovery key that was just shown to the clipboard, so nobody has to type it by hand. The key comes from
+   * the page that showed it (it is checked to really be a recovery key and is never stored here), and the clipboard is
+   * cleared again after the usual number of seconds if nothing else was copied meanwhile.
+   */
+  "secrets/copy-recovery": secretsOp((svc, _ctx, b) => {
+    const key = parseRecoveryKey(b.text);
+    if (!key) throw new FmError("BAD_REQUEST", "That isn't a recovery key.");
+    const seconds = svc.requireSession().database().settings.clipboardSeconds;
+    const written = svc.copy(formatRecoveryKey(key), seconds);
+    key.fill(0);
+    if (!written) throw new FmError("CLIPBOARD_FAILED", "Couldn't use the clipboard on this computer.");
+    return { copied: true, clearsInSeconds: seconds > 0 ? seconds : null };
+  }),
+
+  /** Saves a shown recovery key to a new text file (readable only by you, never overwriting), for people who print it or keep it on a USB stick. */
+  async "secrets/save-recovery"(ctx, b) {
+    return secretsOp((svc) => {
+      svc.requireSession();
+      const key = parseRecoveryKey(b.text);
+      if (!key) throw new FmError("BAD_REQUEST", "That isn't a recovery key.");
+      const path = newFilePath(ctx, b.path);
+      const text = `Codecaine File Manager: Secrets recovery key\n\n${formatRecoveryKey(key)}\n\nAnyone who has this key can open your Secrets vault. Keep this file somewhere safe and offline, such as a USB stick in a drawer, or print it and delete the file.\n`;
+      key.fill(0);
+      const fd = openSync(path, "wx", 0o600);
+      try {
+        writeSync(fd, text);
+        fsyncSync(fd);
+      } finally {
+        closeSync(fd);
+      }
+      return { path };
+    })(ctx, b);
+  },
 
   async "secrets/keyfile"(ctx, b) {
     return secretsOp(() => {

@@ -1,8 +1,8 @@
 // The recovery key (shown once, as 8 groups of 4) and "Unlock with this computer": the dialogs that explain them
 // honestly and ask for the master password again before changing anything.
-import { call } from "./api.js";
+import { ApiError, call } from "./api.js";
 import { h } from "./dom.js";
-import { openDialog } from "./dialogs.js";
+import { openDialog, promptBox } from "./dialogs.js";
 import { toast } from "./menus.js";
 import { errorText, fullPath, setStatus, sx } from "./secretsState.js";
 import { state } from "./state.js";
@@ -19,6 +19,29 @@ export function confirmFields(status) {
   };
 }
 
+/** Copies the shown recovery key to the clipboard (the server clears the clipboard again after a while), so nobody has to type it. */
+async function copyRecoveryKey(key) {
+  try {
+    const res = await call("secrets/copy-recovery", { text: key });
+    toast(res.clearsInSeconds ? `Recovery key copied. Paste it somewhere safe now: the clipboard is cleared in ${res.clearsInSeconds} seconds.` : "Recovery key copied. Paste it somewhere safe now.", { kind: "success" });
+  } catch (err) {
+    toast(err instanceof ApiError ? err.message : "The recovery key couldn't be copied. Write it down instead.", { kind: "error" });
+  }
+}
+
+/** Saves the shown recovery key into a new text file that only you can read. */
+async function saveRecoveryKey(key) {
+  const done = await promptBox({
+    title: "Save the recovery key to a file",
+    label: "Where to save it, for example ~/Documents/recovery-key.txt",
+    value: "~/Documents/codecaine-recovery-key.txt",
+    confirmLabel: "Save",
+    hint: "The file is a new, plain text file that only you can read. Keep it offline (a USB stick in a drawer) or print it and delete it. Anyone who has this file can open your vault.",
+    submit: (text) => call("secrets/save-recovery", { text: key, path: fullPath(text, state.home) }),
+  });
+  if (done) toast(`The recovery key was saved to ${done.path ?? "the file"}. Keep it somewhere safe.`, { kind: "success" });
+}
+
 /** Shows a new recovery key and won't go on until the person says they saved it (closing the window just shows it again). */
 export async function showRecoveryKey(key) {
   for (;;) {
@@ -30,6 +53,9 @@ export async function showRecoveryKey(key) {
       body: [
         h("p", {}, "This is the only way back into your vault if you forget the master password. It is shown once. Write it down on paper, or keep it in a different safe place. Do not store it inside this vault."),
         code,
+        h("div", { class: "sx-row" },
+          h("button", { type: "button", class: "btn primary", title: "Copy the recovery key so you can paste it into a safe place, instead of typing it by hand. The clipboard is cleared again after a short time.", onclick: () => copyRecoveryKey(key) }, "Copy to clipboard"),
+          h("button", { type: "button", class: "btn", title: "Save the recovery key into a new text file that only you can read", onclick: () => saveRecoveryKey(key) }, "Save to a file…")),
         h("p", { class: "sx-hint" }, "Anyone who has this key can open your vault, so treat it like the password itself. There is no “forgot password” button: without the password or this key, nobody can open the vault."),
         h("label", { class: "sx-check" }, check, " I have saved my recovery key"),
       ],

@@ -228,6 +228,71 @@ describe("locking", () => {
   });
 });
 
+describe("the recovery key can be copied and saved instead of typed", () => {
+  test("copy-recovery puts the key on the clipboard, clears it after the set time if unchanged, and says so", async () => {
+    const e = fresh();
+    const created = await createVault(e);
+    const key: string = created.recoveryKey;
+    expect(key).toMatch(/^([0-9A-Z]{4}-){7}[0-9A-Z]{4}$/);
+    const res = await e.call("secrets/copy-recovery", { text: key });
+    expect(res).toEqual({ copied: true, clearsInSeconds: 30 });
+    expect(e.clip.text).toBe(key);
+    e.clock.advance(29_000);
+    expect(e.clip.text).toBe(key);
+    e.clock.advance(1_000);
+    expect(e.clip.text).toBe("");
+    await e.call("secrets/copy-recovery", { text: key });
+    e.clip.text = "something I copied myself";
+    e.clock.advance(31_000);
+    expect(e.clip.text).toBe("something I copied myself");
+  });
+
+  test("the key may arrive written loosely (lower case, spaces) and is copied in the standard form; anything else is refused", async () => {
+    const e = fresh();
+    const key: string = (await createVault(e)).recoveryKey;
+    await e.call("secrets/copy-recovery", { text: key.toLowerCase().replaceAll("-", " ") });
+    expect(e.clip.text).toBe(key);
+    e.clip.text = "untouched";
+    for (const bad of ["", "hello", key.slice(0, -1), `${key}X`, 5, null, { x: 1 }, "MARK-PW-NOT-A-KEY"]) {
+      await expect(e.call("secrets/copy-recovery", { text: bad })).rejects.toThrow(/isn't a recovery key/);
+    }
+    expect(e.clip.text).toBe("untouched");
+  });
+
+  test("it needs the vault to be unlocked, and a clipboard that works", async () => {
+    const e = fresh();
+    const key: string = (await createVault(e)).recoveryKey;
+    await e.call("secrets/lock");
+    await expect(e.call("secrets/copy-recovery", { text: key })).rejects.toThrow();
+    expect(e.clip.text).not.toBe(key);
+  });
+
+  test("save-recovery writes a new file only you can read, with the key and a warning, and never overwrites", async () => {
+    const e = fresh();
+    const key: string = (await createVault(e)).recoveryKey;
+    const path = join(e.root, "recovery-key.txt");
+    const res = await e.call("secrets/save-recovery", { text: key, path });
+    expect(res.path).toBe(path);
+    const text = readFileSync(path, "utf8");
+    expect(text).toContain(key);
+    expect(text).toMatch(/Anyone who has this key can open your Secrets vault/);
+    if (process.platform !== "win32") expect(statSync(path).mode & 0o777).toBe(0o600);
+    await expect(e.call("secrets/save-recovery", { text: key, path })).rejects.toThrow();
+    expect(readFileSync(path, "utf8")).toBe(text);
+    await expect(e.call("secrets/save-recovery", { text: "not a key", path: join(e.root, "other.txt") })).rejects.toThrow(/isn't a recovery key/);
+    expect(existsSync(join(e.root, "other.txt"))).toBe(false);
+    await expect(e.call("secrets/save-recovery", { text: key, path: "relative/path.txt" })).rejects.toThrow();
+  });
+
+  test("the operations need the token", async () => {
+    const e = fresh({}, true);
+    for (const op of ["secrets/copy-recovery", "secrets/save-recovery"]) {
+      const res = await fetch(`http://127.0.0.1:${e.server!.port}/api/${op}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "x" }) });
+      expect(res.status).toBe(401);
+    }
+  });
+});
+
 describe("the clipboard", () => {
   test("copying is done by the server, clears itself after the set time, only if the clipboard is unchanged", async () => {
     const e = fresh();

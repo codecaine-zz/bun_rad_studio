@@ -240,7 +240,7 @@ What it protects and what it doesn't (file names on disk, file size, timing, no 
 1. Open **Secrets**. The first time, a short wizard (**Create your secret space**) asks you to:
    - **Choose a master password.** At least 12 characters of real variety, or a **passphrase of 5 or more random words**; *Suggest a passphrase* makes a good one. A meter and a note say plainly whether it is accepted. Use it for nothing else.
    - **Optionally add a key file.** A random file you keep somewhere safe; it is needed *as well as* the password. If you lose it, only the recovery key opens the vault.
-   - **Make a recovery key (strongly recommended).** A code shown **once**, as 8 groups of 4 characters. Write it on paper. It is the only way back in if you forget the password.
+   - **Make a recovery key (strongly recommended).** A code shown **once**, as 8 groups of 4 characters. Write it on paper. It is the only way back in if you forget the password. The window has **Copy to clipboard** (the clipboard is cleared again after the usual time, 30 seconds unless you changed it) and **Save to a file…** (a new text file only you can read, never overwriting an existing one), so you never have to type the key by hand. Put it somewhere offline, not in a note app that syncs.
    - **Pick how slow guessing should be:** Standard (256 MB), Strong (512 MB) or Maximum (1 GB). *Measure on this computer* shows how long each takes to open here.
 2. **There is no password reset.** If you forget the master password and have no recovery key, nobody can open the vault, not even the author. That is the price of real encryption.
 3. Afterwards the tab may offer **Unlock with this computer** (see below). It is off unless you turn it on.

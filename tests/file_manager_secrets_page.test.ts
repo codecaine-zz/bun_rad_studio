@@ -238,6 +238,15 @@ describe("first run", () => {
     expect(top().textContent).toContain("Your recovery key");
     key(doc, "Escape"); // closing the window without saying "saved" shows the key again
     await until(() => top()?.textContent.includes("Your recovery key"), "the key shown again");
+    const copyBtn = btn("Copy to clipboard", top());
+    expect(copyBtn.title).toContain("instead of typing");
+    expect(btn("Save to a file", top()).title).toContain("only you can read");
+    clip.text = "";
+    click(copyBtn);
+    await until(() => clip.text === recoveryKey, "the recovery key on the clipboard");
+    await until(() => doc.body.textContent.includes("Recovery key copied"), "the toast");
+    expect(doc.body.textContent.includes(recoveryKey)).toBe(true); // only the window shows it
+    expect(doc.querySelector(".toast, [role=status]")?.textContent ?? "").not.toContain(recoveryKey);
     const check = top().querySelector("#sx-rk-saved");
     check.checked = true;
     check.dispatchEvent(new win.Event("change", { bubbles: true }));
