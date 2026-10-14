@@ -90,6 +90,8 @@ export interface FormSpec {
     secondary_accent?: string;
     card_background?: string;
     card_border?: string;
+    /** The theme's own light/dark answer, when the form still has the theme's background. */
+    is_dark?: boolean;
     padding: number;
     spacing: number;
     controls: ControlSpec[];
@@ -1176,6 +1178,7 @@ export class SimpleWindow {
                             color: ${btnFg} !important;
                             font-weight: 700 !important;
                         }
+                        input::placeholder, textarea::placeholder { color: var(--theme-muted) !important; opacity: 0.85 !important; }
                         :focus-visible { outline-color: ${colors.accent} !important; }
                         button.btn-theme-accent,
                         button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]) {
@@ -5181,6 +5184,8 @@ export class SimpleWindow {
             secondary_accent: themeObj?.secondary_accent,
             card_background: themeObj?.card_background,
             card_border: themeObj?.card_border,
+            // The theme's own answer, used only while the page still has the theme's background (a custom background is judged by its colour).
+            is_dark: themeObj && this.backgroundColor === themeObj.background_color ? themeObj.is_dark : undefined,
             padding: this.padding,
             spacing: this.spacing,
             controls: specControls,

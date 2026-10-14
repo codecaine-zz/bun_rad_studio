@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createThemeShowcase } from "../demos/23_all_themes_all_controls_showcase";
+import { getTheme, getThemeKeys } from "../src/simplegui";
 
 function rethemeScript(from: string, to: string): string {
   const win: any = createThemeShowcase(from);
@@ -31,5 +32,22 @@ describe("Linux theme support (WebKitGTK paints some controls from the desktop t
 
   test("switching dark to light and back maps in both directions", () => {
     expect(rethemeScript("ubuntu_light", "ubuntu_dark")).toContain('["#ffffff","#1e293b"]');
+  });
+
+  test("every theme's page agrees with the theme about light or dark (Windows 95's teal background with silver cards is light)", () => {
+    const seen = new Set<string>();
+    for (const key of getThemeKeys()) {
+      const theme = getTheme(key);
+      if (seen.has(theme.name)) continue;
+      seen.add(theme.name);
+      const html = createThemeShowcase(key).generateHtml();
+      expect(html, `${key}`).toContain(`html.rad-linux { color-scheme: ${theme.is_dark ? "dark" : "light"}; }`);
+    }
+    expect(seen.size).toBeGreaterThan(60);
+  });
+
+  test("text boxes have a placeholder colour from the theme, so it is readable on every theme and system", () => {
+    expect(createThemeShowcase("win95").generateHtml()).toContain("input::placeholder, textarea::placeholder { color: var(--theme-muted)");
+    expect(rethemeScript("ubuntu_dark", "win95")).toContain("input::placeholder, textarea::placeholder { color: var(--theme-muted) !important");
   });
 });

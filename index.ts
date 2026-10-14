@@ -1551,7 +1551,8 @@ export function generatePreviewHtml(spec: any): string {
     const bg = spec.background_color || '#0f172a';
     const fg = spec.font_color || '#e2e8f0';
 
-    const isLight = bg === '#f8fafc' || bg === '#ffffff' || (bg.startsWith('#') && bg.length >= 7 && (parseInt(bg.slice(1,3), 16)*0.299 + parseInt(bg.slice(3,5), 16)*0.587 + parseInt(bg.slice(5,7), 16)*0.114) > 160);
+    // A theme can have a mid-tone background (Windows 95's teal) with light surfaces and black text, so its own flag wins over the background's brightness.
+    const isLight = typeof spec.is_dark === 'boolean' ? !spec.is_dark : bg === '#f8fafc' || bg === '#ffffff' || (bg.startsWith('#') && bg.length >= 7 && (parseInt(bg.slice(1,3), 16)*0.299 + parseInt(bg.slice(3,5), 16)*0.587 + parseInt(bg.slice(5,7), 16)*0.114) > 160);
 
     let accent = spec.accent_color || '#38bdf8';
     if (spec.accent_color) {
@@ -3611,6 +3612,7 @@ export function generatePreviewHtml(spec: any): string {
      page uses makes those parts match it. The class is set by the script above, so other systems are unchanged. */
   html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'}; }
   html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'}; }
+  input::placeholder, textarea::placeholder { color: var(--theme-muted); opacity: 0.85; }
   :focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }
   ::selection { background: rgba(56,189,248,0.3); }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
