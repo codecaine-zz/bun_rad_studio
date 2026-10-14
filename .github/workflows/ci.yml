@@ -65,12 +65,12 @@ jobs:
         with:
           bun-version: 1.4.2
 
-      # webview-bun needs the WebKitGTK runtime on Linux (its absence made 74 test files fail to load on the first try).
+      # webview-bun needs the WebKitGTK runtime on Linux (its absence made 74 test files fail to load on the first try); xclip is the clipboard tool the Fd Studio test expects.
       - name: System libraries (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkitgtk-6.0-4 libgtk-4-1 xvfb
+          sudo apt-get install -y libwebkitgtk-6.0-4 libgtk-4-1 xvfb xclip
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

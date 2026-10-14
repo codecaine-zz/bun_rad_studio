@@ -31,7 +31,8 @@ const posix = (p: string) => p.split("\\").join("/");
 function readTests(): { path: string; text: string }[] {
   const out: { path: string; text: string }[] = [];
   const walk = (dir: string) => {
-    for (const n of readdirSync(dir)) {
+    // Sorted: the order readdirSync returns differs between file systems, and the order ends up in generated pages.
+    for (const n of readdirSync(dir).sort()) {
       if (n === "node_modules" || n === "dist" || n.startsWith(".")) continue;
       const p = join(dir, n);
       if (statSync(p).isDirectory()) walk(p);
@@ -73,7 +74,7 @@ export async function renderAll(): Promise<Record<string, string>> {
   // legacy generated guides -> app path (via the `bun run <script>` commands they mention)
   const guideDir = join(DOCS, "userguides");
   const guideFor = new Map<string, string>();
-  for (const f of readdirSync(guideDir).filter((n) => /^\d+_.*\.md$/.test(n))) {
+  for (const f of readdirSync(guideDir).filter((n) => /^\d+_.*\.md$/.test(n)).sort()) {
     const text = readFileSync(join(guideDir, f), "utf8");
     for (const m of text.matchAll(/bun run ([a-z0-9:_-]+)/g)) {
       const cmd = pkg.scripts[m[1]!];

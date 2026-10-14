@@ -314,7 +314,8 @@ describe("SQLite backup and restore", () => {
     const r = new Database(target, { readonly: true });
     expect(r.query("SELECT v FROM k ORDER BY id").all().map((x: any) => x.v)).toEqual(["one", "two", "three", "four"]);
     r.close();
-  });
+    // Real WAL backup, integrity check and restore: it took over the 5 s default on a slow CI disk.
+  }, 30_000);
 
   it("refuses a corrupt backup", async () => {
     const bad = join(dir, "corrupt.db");

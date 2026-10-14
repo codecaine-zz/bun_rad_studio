@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { loopbackInterfaceName } from "../../../tests/helpers/net";
 import {
   calculateSubnet,
   cleanTarget,
@@ -135,8 +136,9 @@ describe("ipinfo doers", () => {
   });
 
   it("resolves local network interface name to adapter IP", () => {
-    const res = resolveTargetToIp("lo0");
+    const name = loopbackInterfaceName();
+    const res = resolveTargetToIp(name);
     expect(res.ip).toBeDefined();
-    expect(res.domain).toBe("lo0");
+    expect(res.domain).toBe(name);
   });
 });
