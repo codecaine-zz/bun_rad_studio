@@ -3368,6 +3368,7 @@ export function generatePreviewHtml(spec: any): string {
 <meta charset="utf-8">
 <title>${String(spec.title || 'Preview').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>if (/Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent)) document.documentElement.classList.add('rad-linux');</script>
 <style>
   :root {
     --accent: ${accent};
@@ -3605,6 +3606,11 @@ export function generatePreviewHtml(spec: any): string {
 
   input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${accent}; cursor: pointer; box-shadow: 0 0 6px rgba(56,189,248,0.5); }
+  /* Linux (WebKitGTK) paints list boxes, scrollbars and some controls itself, from the desktop's GTK theme. Without a
+     colour scheme it draws a selected list row with black text on a dark band in dark themes. Saying which scheme the
+     page uses makes those parts match it. The class is set by the script above, so other systems are unchanged. */
+  html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'}; }
+  html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'}; }
   :focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }
   ::selection { background: rgba(56,189,248,0.3); }
   ::-webkit-scrollbar { width: 6px; height: 6px; }

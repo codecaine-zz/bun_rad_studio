@@ -945,7 +945,32 @@ export class SimpleWindow {
         };
     }
 
+    /**
+     * Colour pairs [old theme's value, new theme's value] for the backgrounds and borders the page was generated with.
+     * Controls are drawn with inline backgrounds taken from the theme at start-up, so switching themes while the
+     * window is open has to move those values over too, or a control keeps the old surface under the new text colour
+     * (white text on a white box, or the reverse).
+     */
+    private themeColorPairs(from: string, to: string): Array<[string, string]> {
+        const a = getTheme(from);
+        const b = getTheme(to);
+        const pairs: Array<[string, string]> = [];
+        const add = (x?: string, y?: string) => {
+            if (x && y && x.toLowerCase() !== y.toLowerCase()) pairs.push([x, y]);
+        };
+        add(a.card_background, b.card_background);
+        add(a.card_border, b.card_border);
+        add(a.background_color, b.background_color);
+        if (a.is_dark !== b.is_dark) {
+            // The fixed fallbacks the page uses for light and for dark themes (see generateHtml in index.ts).
+            const light: [string, string][] = [["#ffffff", "#1e293b"], ["#f1f5f9", "#1e293b"], ["#e2e8f0", "#090d16"], ["#f8fafc", "#0f172a"], ["rgba(0, 0, 0, 0.04)", "rgba(255, 255, 255, 0.06)"], ["rgba(0, 0, 0, 0.06)", "rgba(255, 255, 255, 0.08)"], ["rgba(0, 0, 0, 0.12)", "rgba(255, 255, 255, 0.12)"], ["rgba(0, 0, 0, 0.15)", "rgba(255, 255, 255, 0.12)"]];
+            for (const [l, d] of light) pairs.push(b.is_dark ? [l, d] : [d, l]);
+        }
+        return pairs;
+    }
+
     public setTheme(themeName: string, persist = true): this {
+        const previousThemeName = this.theme;
         this.theme = themeName;
         const colors = this.resolveThemeColors(themeName);
         this.backgroundColor = colors.bg;
@@ -1097,6 +1122,10 @@ export class SimpleWindow {
                         table tr:hover:not(.selected-tr) { background: ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'} !important; }
                         .selected-tree-node { color: ${isLight ? '#0f172a' : colors.accent} !important; font-weight: 700 !important; }
 
+                        /* Linux (WebKitGTK) draws list boxes and some controls itself; tell it which scheme the theme uses (see the page CSS in index.ts). */
+                        html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'} !important; }
+                        html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'} !important; }
+
                         input:not([type="checkbox"]):not([type="radio"]), textarea, select {
                             background-color: ${inputBg} !important;
                             color: ${colors.fg} !important;
@@ -1238,6 +1267,49 @@ export class SimpleWindow {
                             }
                         });
                     });
+                    (function() {
+                        var pairs = ${JSON.stringify(this.themeColorPairs(previousThemeName, themeName))};
+                        var probe = document.createElement('span');
+                        var norm = function(c) { probe.style.color = ''; probe.style.color = c; return probe.style.color; };
+                        var map = {};
+                        pairs.forEach(function(p) { var k = norm(p[0]); if (k && !(k in map)) map[k] = p[1]; });
+                        document.querySelectorAll('[style]').forEach(function(el) {
+                            var bg = el.style.backgroundColor;
+                            if (bg && map[norm(bg)]) el.style.backgroundColor = map[norm(bg)];
+                            var bc = el.style.borderColor;
+                            if (bc && map[norm(bc)]) el.style.borderColor = map[norm(bc)];
+                        });
+                        // Text colours were also written inline for the old theme. Only text that is no longer readable on its
+                        // (new) surface is changed, so text that is meant to stay light on a dark chip or an accent button is left alone.
+                        var lin = function(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+                        var rgba = function(c) { var m = (c || '').match(/[0-9.]+/g); return m && m.length >= 3 ? { r: +m[0], g: +m[1], b: +m[2], a: m.length > 3 ? +m[3] : 1 } : null; };
+                        var lum = function(c) { return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b); };
+                        var ratio = function(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+                        var surface = function(el) {
+                            for (var e = el; e; e = e.parentElement) {
+                                var c = rgba(getComputedStyle(e).backgroundColor);
+                                if (c && c.a >= 0.5) return c;
+                            }
+                            return rgba(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+                        };
+                        // Controls animate colour changes, so computed colours lag behind; stop the animations while measuring.
+                        var noMotion = document.createElement('style');
+                        noMotion.textContent = '*, *::before, *::after { transition: none !important; }';
+                        document.head.appendChild(noMotion);
+                        void document.body.offsetHeight;
+                        var themeFg = rgba(norm('${colors.fg}'));
+                        document.querySelectorAll('[style]').forEach(function(el) {
+                            if (!el.style.color || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
+                            var isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
+                            var hasText = isField || el.textContent.trim().length > 0;
+                            if (!hasText) return;
+                            var fg = rgba(getComputedStyle(el).color);
+                            var bg = surface(el);
+                            if (!fg || !bg || ratio(fg, bg) >= 3) return;
+                            el.style.color = themeFg && ratio(themeFg, bg) >= 3 ? '${colors.fg}' : (lum(bg) > 0.4 ? '#0f172a' : '#f8fafc');
+                        });
+                        noMotion.remove();
+                    })();
                     var tTitle = document.getElementById("lbl_theme_title");
                     if (tTitle) {
                         tTitle.textContent = "🎨 ${themeObj.name}";

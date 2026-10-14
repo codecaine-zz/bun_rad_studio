@@ -30,6 +30,7 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 ### Fixed
 
+- **Linux themes:** list boxes, sliders and pickers could be unreadable in dark themes, and switching themes while a window was open left old inline surface colours (unreadable text on every OS) ([D-047](docs/documentation-maintenance/discrepancies.md#d-047)).
 - `bun start` crashed at launch ([D-001](docs/documentation-maintenance/discrepancies.md#d-001)); the designer page's script was cut short so the page did nothing, and its Import, Keys and Audit dialogs could never appear ([D-016](docs/documentation-maintenance/discrepancies.md#d-016), [D-017](docs/documentation-maintenance/discrepancies.md#d-017)).
 - Exported projects did not parse ([D-011](docs/documentation-maintenance/discrepancies.md#d-011)); Import could corrupt the open form ([D-018](docs/documentation-maintenance/discrepancies.md#d-018)).
 - Run only worked from the project folder ([D-023](docs/documentation-maintenance/discrepancies.md#d-023)); Frogger, Snake and Tetris only started from the repository root ([D-038](docs/documentation-maintenance/discrepancies.md#d-038)). Run now keeps the preview's output in `.rad_preview/preview.log` and shows failures in the status bar ([D-040](docs/documentation-maintenance/discrepancies.md#d-040)).
