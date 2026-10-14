@@ -78,10 +78,12 @@ jobs:
       - name: Type-check ratchet
         run: bun run typecheck
 
+      # 30 s per test instead of the default 5 s: many tests start a Bun subprocess, and on these shared runners
+      # a different one of them took just over 5 s in each of several runs (a Git status test, a search test).
       - name: Tests (Linux, virtual display)
         if: runner.os == 'Linux'
-        run: xvfb-run -a bun test
+        run: xvfb-run -a bun test --timeout 30000
 
       - name: Tests (Windows)
         if: runner.os == 'Windows'
-        run: bun test
+        run: bun test --timeout 30000
