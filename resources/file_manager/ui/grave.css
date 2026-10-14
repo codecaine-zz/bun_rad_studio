@@ -1,0 +1,40 @@
+/* Styles of the Graveyard tab. Every class starts with .grave-. Colours come from the theme's variables, so every theme works. */
+.grave-pane { gap: 10px; }
+.grave-cards { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.grave-card { display: flex; flex-direction: column; gap: 1px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); min-width: 0; }
+.grave-card-n { font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.grave-card-l { font-size: 0.85em; font-weight: 600; }
+.grave-card-s { font-size: 0.8em; color: var(--muted); overflow-wrap: anywhere; }
+.grave-where { gap: 6px 8px; }
+.grave-path { padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); overflow-wrap: anywhere; }
+.grave-alert { margin: 0; padding: 8px 12px; border: 1px solid var(--danger); border-radius: 6px; background: var(--danger-bg); color: var(--danger-text); font-weight: 600; }
+.grave-alert[hidden] { display: none; }
+.grave-about { border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; background: var(--panel); }
+.grave-about > summary { cursor: pointer; font-weight: 600; }
+.grave-about > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grave-about p { margin: 6px 0; }
+.grave-controls { align-items: flex-end; }
+.grave-controls .grave-search { min-width: 18rem; }
+.grave-actions { gap: 6px; }
+.grave-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.grave-wrap { max-height: 28rem; }
+.grave-table th.grave-check, .grave-table td.grave-check { width: 2.2rem; text-align: center; }
+.grave-table tr.selected td, .grave-table tr.selected th { background: var(--selected); color: var(--selected-text); }
+.grave-namecell { font-weight: 600; }
+.grave-name, .grave-link, .grave-sort { font: inherit; color: inherit; background: transparent; border: 0; padding: 0 2px; cursor: pointer; text-align: left; border-radius: 4px; }
+.grave-name { font-weight: 600; }
+.grave-link { text-decoration: underline; font-size: 0.9em; overflow-wrap: anywhere; }
+.grave-name:hover, .grave-link:hover, .grave-sort:hover { background: var(--hover); }
+.grave-name:focus-visible, .grave-link:focus-visible, .grave-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grave-sort { font-weight: 700; }
+.grave-warn { font-weight: 600; color: var(--danger); }
+.grave-empty { margin: 8px 2px; }
+.grave-empty[hidden] { display: none; }
+.grave-pager { justify-content: space-between; }
+.grave-pager[hidden] { display: none; }
+.grave-preview-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.grave-text { max-height: 18rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.grave-text:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.grave-image { max-width: 100%; max-height: 18rem; object-fit: contain; align-self: flex-start; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.grave-names { margin: 0; padding-left: 1.2em; max-height: 14rem; overflow: auto; overflow-wrap: anywhere; }
+.grave-verify { min-height: 2.5em; margin: 8px 0; }

@@ -29,7 +29,10 @@ export interface OpenWithState {
   associations: Record<string, string>;
 }
 
-export const BUILTIN_PROGRAMS = [{ id: "builtin:code", name: "Code editor (built in)", builtin: true as const }];
+export const BUILTIN_PROGRAMS = [
+  { id: "builtin:code", name: "Code editor (built in)", builtin: true as const },
+  { id: "builtin:sqlite", name: "SQLite Studio (built in)", builtin: true as const },
+];
 const BUILTIN_IDS = new Set(BUILTIN_PROGRAMS.map((b) => b.id));
 
 export const MAX_PROGRAMS = 40;

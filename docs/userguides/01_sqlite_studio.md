@@ -5,6 +5,8 @@ Version: 2.4.0  •  Engine: Native bun:sqlite (WAL Mode)  •  Dependencies: 0 
 Launchers: [Desktop GUI: bun run app:sqlite (or bun run app:database)]  •  [Terminal CLI: bun run cli:sqlite]
 ```
 
+> **Open it from the File Manager.** SQLite Studio can also be opened inside the Codecaine File Manager: a real SQLite file in the File Manager gets **Open in SQLite Studio** in its right-click menu, and the Databases tool can keep it as a connection. A saved connection replaces environment variables ([how](43_file_manager.md#databases-databases-tab), [order of precedence](../databases/index.md#connection-settings-and-environment-variables)).
+
 ---
 
 ## 🌟 Executive Overview

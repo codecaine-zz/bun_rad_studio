@@ -152,3 +152,35 @@ if (wildcardIps) {
 }
 ```
 
+---
+
+## 4. The controlled engine (used by the File Manager's Subdomains tab)
+
+`subfinderEngine.ts` is a second, stricter entry point that sits beside the functions above (the CLI, the desktop app and the examples above are unchanged). It is built for being driven from another program, and it never touches the network or the clock except through `EngineDeps`, so tests run offline:
+
+```typescript
+import { DEFAULT_OPTIONS, defaultDeps, runDiscovery } from "./subfinderEngine.ts";
+
+const abort = new AbortController(); // abort.abort() cancels every source, lookup and connection
+const summary = await runDiscovery(
+  "example.com",
+  { ...DEFAULT_OPTIONS, sources: ["crtsh", "anubis"], resolve: true, probeHttp: true },
+  defaultDeps(),                      // replace fetch / resolve / http / tcp / now / sleep for tests
+  { onSource: (s) => console.log(s.id, s.state, s.count), onRow: (row) => console.log(row.host) },
+  abort.signal,
+);
+```
+
+What it adds:
+
+- `subfinderNames.ts`: strict validation of the target (IDN → punycode, no schemes/paths/ports/IP literals, label and total length limits, public-suffix refusal), `normaliseHost` for everything a source returns (out-of-scope and malformed names are dropped, never "cleaned up"), title extraction with entity decoding and length caps, port lists (at most 20) and CSV-safe cells.
+- `subfinderSources.ts`: the four passive sources as strict parsers with size caps, a per-source time limit, no redirects, no cookies, an identifying User-Agent, and one plain-words error per failing source (a failing source never fails the run).
+- `subfinderNet.ts`: the shared concurrency limiter and per-host pacer, capped reading, the real DNS/TCP/HTTP calls, and `nonPublicReason()`. The HTTP step looks the name up again and the port step uses the addresses DNS found; both refuse loopback / link-local / private / ULA / reserved addresses and connect to the address they checked. The HTTP step also re-checks after each redirect (at most 3, only to hosts inside the target domain, never from HTTPS to HTTP).
+- `subfinderProgram.ts`: the optional real `subfinder` program as one more source, started with an argument list (no shell), a time limit and an output cap.
+
+---
+
+## 5. Safety summary
+
+Passive sources only read public records. DNS lookups, HTTP probing and port probing contact the target's own computers: use them only on domains you own or are allowed to test.
+

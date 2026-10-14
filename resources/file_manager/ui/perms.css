@@ -1,0 +1,47 @@
+/* The Permissions section of the Properties window. Colours come only from the page's theme variables. */
+
+.perm-section { margin-top: 1.1rem; padding-top: 0.2rem; border-top: 1px solid var(--border); }
+.perm-heading { margin: 0.8rem 0 0.5rem; font-size: 1rem; }
+.perm-body > * + * { margin-top: 0.7rem; }
+.perm-body p { margin: 0.25rem 0; }
+
+.perm-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.perm-preset { padding: 0.3rem 0.65rem; font-size: 0.9rem; }
+.perm-preset[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); border-color: var(--accent); font-weight: 650; }
+.perm-preset[aria-pressed="true"]::before { content: "✓ "; }
+
+.perm-grid { display: grid; grid-template-columns: max-content repeat(3, max-content); gap: 0.2rem 1.4rem; align-items: center; justify-content: start; }
+.perm-colhead { color: var(--muted); font-size: 0.88rem; text-align: center; }
+.perm-rowhead { font-weight: 500; padding: 0.15rem 0; }
+.perm-cell { display: flex; justify-content: center; padding: 0.15rem 0; }
+.perm-box { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); cursor: pointer; }
+
+.perm-numbers { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.4rem 1.4rem; }
+.perm-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.perm-octal { width: 6rem; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: 0.1em; }
+.perm-octal[aria-invalid="true"] { border-color: var(--danger); background: var(--danger-bg); color: var(--danger-text); }
+.perm-octal-note { flex-basis: 100%; color: var(--danger-text); font-size: 0.88rem; }
+.perm-octal-note:empty { display: none; }
+.perm-symbolic { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 1.05rem; letter-spacing: 0.08em; padding: 0.3rem 0; }
+
+.perm-owner { color: var(--text); }
+
+.perm-advanced { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.4rem 0.7rem; }
+.perm-advanced summary { cursor: pointer; font-weight: 600; }
+.perm-adv-row { margin: 0.5rem 0 0.6rem; }
+.perm-warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 0.88rem; }
+
+.perm-recursive { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.5rem 0.7rem; }
+.perm-recursive-options { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.2rem 1.2rem; margin: 0.3rem 0 0 1.6rem; }
+.perm-scope { width: auto; min-width: 11rem; }
+
+.perm-preview { min-height: 2.2rem; padding: 0.5rem 0.7rem; border-radius: 0.5rem; background: var(--panel); color: var(--text); }
+.perm-sentence { font-weight: 650; }
+.perm-error { background: var(--danger-bg); color: var(--danger-text); border-radius: 0.4rem; padding: 0.4rem 0.6rem; }
+.perm-problems { margin: 0.3rem 0 0; padding-left: 1.2rem; max-height: 8rem; overflow-y: auto; }
+.perm-examples summary { cursor: pointer; color: var(--accent); }
+.perm-example-list { margin: 0.3rem 0 0; padding-left: 1.2rem; font-size: 0.88rem; max-height: 10rem; overflow-y: auto; word-break: break-word; }
+
+.perm-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.perm-status { color: var(--muted); min-height: 1.2rem; }
+.perm-box:focus-visible, .perm-octal:focus-visible, .perm-preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

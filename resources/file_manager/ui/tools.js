@@ -7,7 +7,7 @@ import { openDialog } from "./dialogs.js";
 import { toast } from "./menus.js";
 import { goTo, refresh } from "./nav.js";
 import { selectKeys, selectedEntries } from "./selection.js";
-import { inTrash, on, state } from "./state.js";
+import { emit, inTrash, on, state } from "./state.js";
 import { startSetup } from "./toolsetup.js";
 import { terminalAvailable, typeInTerminal } from "./terminal.js";
 import { plural } from "./util.js";
@@ -221,6 +221,7 @@ function statusText(job) {
   if (job.state === "running") return `${job.current ? `${job.current}  ·  ` : ""}${job.done + job.failed} of ${job.total} done`;
   if (job.state === "cancelled") return `Cancelled. ${job.done} of ${job.total} were finished.`;
   if (job.state === "failed") return `${job.failed} of ${job.total} didn't work${job.done ? `; ${job.done} did` : ""}.`;
+  if (job.kind === "graveyard") return "Done.";
   return job.kind === "install" ? "Installed." : `Done: ${plural(job.outputs.length, "new file")}.`;
 }
 
@@ -256,7 +257,7 @@ function updateCard(card, job) {
   const notes = [...new Set(job.steps.filter((s) => s.state === "done" && s.message).map((s) => s.message))];
   card.querySelector(".task-notes").replaceChildren(...notes.slice(0, 3).map((n) => h("li", {}, n)));
   const log = card.querySelector(".task-log");
-  const showLog = job.kind === "install" && !!job.log;
+  const showLog = (job.kind === "install" || job.kind === "graveyard") && !!job.log;
   log.hidden = !showLog;
   if (showLog) log.textContent = job.log;
   card.querySelector(".task-cancel").hidden = !active;
@@ -277,6 +278,12 @@ function parentOfPath(path) {
 
 function finished(job) {
   announce(`${job.title}. ${statusText(job)}`);
+  if (job.kind === "graveyard") {
+    emit("grave-job-done", job);
+    const why = job.steps.find((s) => s.state === "failed")?.message;
+    toast(job.state === "done" ? `${job.title}: done.` : job.state === "cancelled" ? `${job.title}: cancelled. Nothing was lost.` : `${job.title}: ${job.failed} of ${job.total} didn't work. ${why ?? "See the task list."}`, { kind: job.state === "done" ? "success" : job.state === "cancelled" ? "info" : "error" });
+    return;
+  }
   if (job.kind === "install") {
     toast(job.state === "done" ? "Installed. Open Convert & process to use it." : job.state === "cancelled" ? "The installation was cancelled." : `The installation didn't work: ${job.steps.find((s) => s.state === "failed")?.message ?? "see the task list"}`, { kind: job.state === "done" ? "info" : "error" });
     return;

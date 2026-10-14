@@ -112,6 +112,9 @@ export function wireKeys() {
       return;
     }
 
+    // Option/Alt+Delete buries in the Rip graveyard (before "Backspace goes up", which Option+⌫ would otherwise trigger on a Mac)
+    if (e.altKey && !e.shiftKey && !mod && (key === "Delete" || (mac && key === "Backspace"))) { stop(); return void ops.burySelection(); }
+
     // Going places
     if ((e.altKey && key === "ArrowLeft") || (mac && mod && key === "[")) { stop(); return void goBack(); }
     if ((e.altKey && key === "ArrowRight") || (mac && mod && key === "]")) { stop(); return void goForward(); }

@@ -7,6 +7,7 @@ import { showMoreInfo } from "./fileinfo.js";
 import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
 import { $, clear, h, iconFor } from "./dom.js";
 import { saveSettings, visibleEntries } from "./nav.js";
+import { octalOf, symbolicOf } from "./permsModel.js";
 import { selectedEntries } from "./selection.js";
 import { inTrash, on, state } from "./state.js";
 import { verdictBlock } from "./typecheck.js";
@@ -67,6 +68,7 @@ export async function renderInfo() {
     h("h2", { class: "info-name" }, e.name),
     h("dl", { class: "info-facts" },
       ...fact("Type", e.label), ...fact("Size", e.isDir ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
+      ...fact("Permissions", !inTrash() && typeof e.mode === "number" ? `${symbolicOf(e.mode)} (${octalOf(e.mode)})` : ""),
       ...fact(inTrash() ? "Was in" : "Where", inTrash() ? e.where : state.search ? e.folder : baseName(state.location.path, state.sep))),
     inTrash() || e.isDir ? null : verdictBlock(e.path, e.name),
     inTrash() ? null : h("button", { type: "button", class: "btn", onclick: () => showProperties([e.path]) }, "Properties…"),

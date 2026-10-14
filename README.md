@@ -9,7 +9,46 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal&logoColor=white)](https://paypal.me/codecaine81)
 
-> 📖 **Quick Links:** [📚 Documentation handbook](docs/index.md) • [🛠️ Developer handbook](docs/developer/handbook.md) • [🔒 Security](docs/security.md) • [🩺 Troubleshooting](docs/troubleshooting.md) • [📖 Glossary](docs/glossary.md) • [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (76 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-39-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+> 📖 **Quick Links:** [📚 Documentation handbook](docs/index.md) • [🛠️ Developer handbook](docs/developer/handbook.md) • [🔒 Security](docs/security.md) • [🩺 Troubleshooting](docs/troubleshooting.md) • [📖 Glossary](docs/glossary.md) • [🍺 Homebrew Suite Guide](docs/HOMEBREW_SUITE_GUIDE.md) • [🗂️ File Manager](#codecaine-file-manager) • [⚡ Project Launcher](#-quick-start-clone-install--launch) • [Application User Guides](docs/userguides/README.md) • [API Specification](docs/API.md) • [SimpleGUI Manual](docs/SIMPLEGUI_API.md) • [Theme Gallery (76 Themes)](docs/THEMES.md) • [Interactive Demos](#3-run-interactive-feature-demos) • [Enterprise Applications](#-39-enterprise-production-workstations--utilities) • [Ecosystem Projects](#related-rad--gui-ecosystem-projects)
+
+---
+
+<a id="codecaine-file-manager"></a>
+
+## 🗂️ Featured: Codecaine File Manager
+
+**A friendly, safe file manager for macOS, Windows and Linux, with a whole toolbox built in.** It looks after your files first (every delete can be undone, risky actions are explained in plain words) and then gives you the tools you would otherwise install ten programs for.
+
+| Browse and preview | Convert in batches |
+| :--- | :--- |
+| ![Codecaine File Manager showing a selected picture and its preview](screenshots/apps/file_manager_studio_desktop.png) | ![The Convert and process window listing what can be done with three selected pictures](screenshots/apps/file_manager_studio_convert.png) |
+| **Terminal in the current folder** | **Fits a smaller window** |
+| ![Codecaine File Manager with its terminal open](screenshots/apps/file_manager_studio_terminal.png) | ![Codecaine File Manager in a narrow window](screenshots/apps/file_manager_studio_responsive.png) |
+
+```bash
+bun run app:files            # open the desktop app
+bun run app:files --reset-window   # forget the saved window size and position
+```
+
+Downloaded a release instead? Run `./bin/file-manager-studio`. Everything below is in [the File Manager user guide](docs/userguides/43_file_manager.md).
+
+| | What you get |
+| :--- | :--- |
+| 🗃️ **Everyday files** | Sidebar and address bar anyone can read, previews, drag and drop, dual view, favorites, workspace views, an undoable Recycle Bin, and **Permissions** (a Read/Write/Run grid with a preview and one-step Undo, plus macOS Locked/Hidden and Windows attributes). |
+| 🪟 **A window that remembers** | Opens filling the screen; once you resize or move it, it remembers, and **Reset window to default** is always one click away. |
+| 🔄 **Convert and process** | Batch conversion of pictures, video, sound, documents and archives (Zstandard built in), with **one-click setup** of the helper programs through Homebrew, apt, dnf, pacman, winget or Scoop. |
+| 🔐 **Secrets** | An encrypted password manager and secure notes: AES-256-GCM, Argon2id, optional key file and recovery key (copy it or save it to a file instead of typing it), one-time codes, importers, auto-locking clipboard. [How it works](docs/security.md#secrets-vault-radsec) |
+| 🔒 **Encrypt files and folders** | Lock any file or folder with a password. |
+| 🗄️ **Databases** | SQLite, MySQL/MariaDB, PostgreSQL and Redis studios built in, with saved connection profiles (passwords in your system keychain) that take priority over environment variables, plus auto-detect from your environment and `.env` files. |
+| 🪦 **Graveyard** | Bury files with Rip (Alt+Delete), browse, restore or delete them for good. |
+| 🔭 **Subdomains** | Passive subdomain discovery from several sources, with safe, opt-in DNS, HTTP and port checks. |
+| 🧑‍💻 **For developers** | A terminal that opens in the folder you are looking at, a Code editor, code statistics (Dev tab), a live server and PHP server, Find, Replace, Watch, Network, IP info, Crypto (UUID v7 and more) and Bun's own built-in utilities. |
+| 🎨 **135 themes** | Including futuristic themes with a motion layer, and a theme editor. |
+| ℹ️ **Know your files** | Warns when a file isn't what its name says, and shows image and file details and metadata. |
+
+> Built with care but not independently audited. Read [what was and was not verified](docs/userguides/43_file_manager.md#what-was-verified-and-what-was-not) before trusting it with anything you cannot replace.
+
+Made by [codecaine](https://www.codefreelance.net) · [YouTube](https://www.youtube.com/@codecaine) · [Markdown Tutorials app](https://codefreelance.net/apps/markdown_tutorials/) · [Donate with PayPal](https://paypal.me/codecaine81)
 
 ---
 
@@ -156,6 +195,7 @@ What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus 
 
 ## 📑 Table of Contents
 
+- [🗂️ Featured: Codecaine File Manager](#codecaine-file-manager)
 - [🌟 Highlights & Features](#highlights--features)
   - [🚀 Visual RAD Form Designer](#visual-rad-form-designer)
   - [🖼️ Native Window Management & Placement API](#native-window-management--placement-api)

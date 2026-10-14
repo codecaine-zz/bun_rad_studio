@@ -179,7 +179,17 @@ export function getGraveyardDir(customPath?: string): string {
   return path.join(os.tmpdir(), `graveyard-${uid}`);
 }
 
-function ensureGraveyardStructure(graveyardDir: string): { entriesDir: string; manifestPath: string } {
+/** True when something is at `target`, including a link whose own target is missing (`fs.existsSync` says no to those). */
+export function pathExistsNoFollow(target: string): boolean {
+  try {
+    fs.lstatSync(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function ensureGraveyardStructure(graveyardDir: string): { entriesDir: string; manifestPath: string } {
   const entriesDir = path.join(graveyardDir, "entries");
   const manifestPath = path.join(graveyardDir, "manifest.json");
 
@@ -221,6 +231,69 @@ export function loadManifest(graveyardDir?: string): GraveyardManifest {
     };
     return recovered;
   }
+}
+
+/**
+ * Like `loadManifest`, but says when the record file exists and can't be read (damaged), instead of quietly answering
+ * with an empty list that the next save would write over it. Never creates or changes anything.
+ */
+export function loadManifestChecked(graveyardDir?: string): { manifest: GraveyardManifest; exists: boolean; damaged: boolean } {
+  const dir = getGraveyardDir(graveyardDir);
+  const empty = (): GraveyardManifest => ({ version: "1.0.0", graveyardRoot: dir, lastUpdated: new Date().toISOString(), items: [] });
+  let raw: string;
+  try {
+    raw = fs.readFileSync(path.join(dir, "manifest.json"), "utf-8");
+  } catch (err: any) {
+    return { manifest: empty(), exists: false, damaged: err?.code !== "ENOENT" && err?.code !== "ENOTDIR" };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.items)) return { manifest: empty(), exists: true, damaged: true };
+    return { manifest: parsed as GraveyardManifest, exists: true, damaged: false };
+  } catch {
+    return { manifest: empty(), exists: true, damaged: true };
+  }
+}
+
+/** The record of one burial; `buryTargetsSync` and the File Manager both build their records here. */
+export function createGraveyardItem(args: {
+  id: string;
+  name: string;
+  originalPath: string;
+  cwd: string;
+  graveyardDir: string;
+  graveyardPath: string;
+  now: Date;
+  type: RipFileType;
+  mode: number;
+  sizeBytes: number;
+  fileCount: number;
+  sha256?: string;
+}): GraveyardItem {
+  return {
+    id: args.id,
+    name: args.name,
+    originalPath: args.originalPath,
+    relativePath: path.relative(args.cwd, args.originalPath) || args.name,
+    graveyardRel: path.relative(args.graveyardDir, args.graveyardPath),
+    graveyardPath: args.graveyardPath,
+    buriedAt: args.now.toISOString(),
+    buriedAtMs: args.now.getTime(),
+    sizeBytes: args.sizeBytes,
+    humanSize: formatHumanSize(args.sizeBytes),
+    fileCount: args.fileCount,
+    type: args.type,
+    mode: args.mode,
+    permStr: formatPermissions(args.mode),
+    cwd: args.cwd,
+    status: "buried",
+    sha256: args.sha256,
+  };
+}
+
+/** A fresh, collision-free id for a burial: `rip_<time>_<random>`. */
+export function newBurialId(now: Date = new Date()): string {
+  return `rip_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function saveManifest(graveyardDir: string | undefined, manifest: GraveyardManifest): void {
@@ -361,6 +434,30 @@ export function calculatePathMetrics(targetPath: string): { sizeBytes: number; f
 // Safe Atomic Move with Cross-Device EXDEV Fallback
 // -----------------------------------------------------------------------------
 
+/**
+ * What differs between a tree and its copy (names, kinds, sizes, link targets, file permissions), or null when they
+ * match. Used to check a cross-disk copy before the original is removed.
+ */
+export function compareTreesSync(source: string, copy: string): string | null {
+  const a = fs.lstatSync(source);
+  const b = fs.lstatSync(copy);
+  if (a.isSymbolicLink() !== b.isSymbolicLink() || a.isDirectory() !== b.isDirectory() || a.isFile() !== b.isFile()) return `${path.basename(source)} has a different kind of item in the copy`;
+  if (a.isSymbolicLink()) return fs.readlinkSync(source) === fs.readlinkSync(copy) ? null : `the link ${path.basename(source)} points somewhere else in the copy`;
+  if (a.isFile()) {
+    if (a.size !== b.size) return `${path.basename(source)} has a different size in the copy`;
+    return (a.mode & 0o777) === (b.mode & 0o777) ? null : `${path.basename(source)} has different permissions in the copy`;
+  }
+  if (!a.isDirectory()) return null;
+  const names = fs.readdirSync(source).sort();
+  const copied = fs.readdirSync(copy).sort();
+  if (names.length !== copied.length || names.some((n, i) => n !== copied[i])) return `${path.basename(source)} has different contents in the copy`;
+  for (const n of names) {
+    const problem = compareTreesSync(path.join(source, n), path.join(copy, n));
+    if (problem) return problem;
+  }
+  return null;
+}
+
 export function safeMove(source: string, destination: string): void {
   const destDir = path.dirname(destination);
   if (!fs.existsSync(destDir)) {
@@ -372,8 +469,19 @@ export function safeMove(source: string, destination: string): void {
     fs.renameSync(source, destination);
   } catch (err: any) {
     if (err.code === "EXDEV") {
-      // Cross-filesystem move fallback: copy recursively, preserve stats, remove source
-      fs.cpSync(source, destination, { recursive: true, preserveTimestamps: true });
+      // Cross-filesystem move fallback: copy recursively (links stay links), check the copy, then remove the source.
+      const existedBefore = pathExistsNoFollow(destination);
+      try {
+        fs.cpSync(source, destination, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true, errorOnExist: true, force: false });
+      } catch (copyErr) {
+        if (!existedBefore) fs.rmSync(destination, { recursive: true, force: true });
+        throw copyErr;
+      }
+      const problem = compareTreesSync(source, destination);
+      if (problem) {
+        fs.rmSync(destination, { recursive: true, force: true });
+        throw new Error(`The copy could not be verified (${problem}), so the original was left where it is.`);
+      }
       fs.rmSync(source, { recursive: true, force: true });
     } else {
       throw err;
@@ -409,7 +517,7 @@ export function inspectTargetsSync(
         target: t,
         resolvedPath,
         name: baseName,
-        exists: fs.existsSync(resolvedPath),
+        exists: pathExistsNoFollow(resolvedPath),
         type: "directory",
         sizeBytes: 0,
         humanSize: "0 B",
@@ -423,7 +531,7 @@ export function inspectTargetsSync(
       continue;
     }
 
-    if (!fs.existsSync(resolvedPath)) {
+    if (!pathExistsNoFollow(resolvedPath)) {
       items.push({
         target: t,
         resolvedPath,
@@ -551,7 +659,6 @@ export function buryTargetsSync(
     if (!target || target.trim() === "") continue;
 
     const resolved = path.resolve(cwd, target);
-    const rel = path.relative(cwd, resolved) || path.basename(resolved);
     const name = path.basename(resolved);
 
     // 1. Safety verification
@@ -562,7 +669,7 @@ export function buryTargetsSync(
     }
 
     // 2. Check existence
-    if (!fs.existsSync(resolved)) {
+    if (!pathExistsNoFollow(resolved)) {
       failed.push({ target, error: `No such file or directory: ${target}` });
       continue;
     }
@@ -578,7 +685,7 @@ export function buryTargetsSync(
 
       // 3. Generate collision-free graveyard isolation directory
       const now = new Date();
-      const id = `rip_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
+      const id = newBurialId(now);
       const itemGraveyardDir = path.join(entriesDir, id);
       const destGraveyardPath = path.join(itemGraveyardDir, name);
 
@@ -595,28 +702,32 @@ export function buryTargetsSync(
         }
       }
 
-      // 4. Move target into graveyard
-      safeMove(resolved, destGraveyardPath);
+      // 4. Move target into graveyard (an empty item folder is not left behind when the move fails)
+      try {
+        safeMove(resolved, destGraveyardPath);
+      } catch (moveErr) {
+        try {
+          fs.rmdirSync(itemGraveyardDir);
+        } catch {
+          // not empty or already gone
+        }
+        throw moveErr;
+      }
 
-      const graveyardItem: GraveyardItem = {
+      const graveyardItem = createGraveyardItem({
         id,
         name,
         originalPath: resolved,
-        relativePath: rel,
-        graveyardRel: path.relative(graveyardDir, destGraveyardPath),
+        cwd,
+        graveyardDir,
         graveyardPath: destGraveyardPath,
-        buriedAt: now.toISOString(),
-        buriedAtMs: now.getTime(),
-        sizeBytes: metrics.sizeBytes,
-        humanSize: formatHumanSize(metrics.sizeBytes),
-        fileCount: metrics.fileCount,
+        now,
         type,
         mode: stats.mode,
-        permStr: formatPermissions(stats.mode),
-        cwd,
-        status: "buried",
+        sizeBytes: metrics.sizeBytes,
+        fileCount: metrics.fileCount,
         sha256,
-      };
+      });
 
       buriedItems.push(graveyardItem);
       manifest.items.unshift(graveyardItem);
@@ -696,7 +807,7 @@ export function unburyTargetsSync(
     }
 
     // Check if target destination exists
-    if (fs.existsSync(item.originalPath) && !options.force) {
+    if (pathExistsNoFollow(item.originalPath) && !options.force) {
       failed.push({
         item,
         target,
@@ -714,7 +825,7 @@ export function unburyTargetsSync(
 
       // If overwriting with force, move existing aside first so a failed restore loses nothing
       let aside: string | null = null;
-      if (fs.existsSync(item.originalPath) && options.force) {
+      if (pathExistsNoFollow(item.originalPath) && options.force) {
         aside = `${item.originalPath}.rip-old-${Date.now()}`;
         fs.renameSync(item.originalPath, aside);
       }

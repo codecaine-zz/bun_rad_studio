@@ -1,0 +1,60 @@
+/* Styles of the Subdomains tool. Every class starts with .subs- to stay out of the way of the other tools. */
+.subs-root { gap: 12px; }
+.subs-card { min-width: 0; }
+.subs-grow { flex: 1 1 260px; }
+.subs-grow > input { width: 100%; box-sizing: border-box; }
+
+.subs-warning { border: 1px solid var(--warn-text); background: var(--warn-bg); color: var(--warn-text); border-radius: 8px; padding: 10px 12px; line-height: 1.45; }
+.subs-message { margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger); overflow-wrap: anywhere; }
+.subs-message[hidden], .subs-permission[hidden], .subs-source-error[hidden], .subs-source-progress[hidden], .subs-progress[hidden] { display: none; }
+.subs-shown { min-height: 1.2em; }
+
+.subs-check { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.subs-check > input { margin: 0; }
+.subs-progress { width: 160px; height: 14px; accent-color: var(--accent); }
+
+.subs-sources { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.subs-source { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 2px 12px; align-items: start; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.subs-source-state { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.subs-source-progress { width: 90px; height: 10px; accent-color: var(--accent); }
+.subs-source-error { grid-column: 1 / -1; color: var(--danger-text); overflow-wrap: anywhere; }
+.subs-count { overflow-wrap: anywhere; }
+
+.subs-badge { display: inline-block; border: 1px solid var(--border); border-radius: 4px; padding: 1px 8px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+.subs-badge-ready, .subs-badge-waiting { color: var(--muted); }
+.subs-badge-running { color: var(--accent); border-color: var(--accent); }
+.subs-badge-done { color: var(--good); border-color: var(--good); }
+.subs-badge-failed, .subs-badge-timeout { color: var(--danger-text); background: var(--danger-bg); border-color: var(--danger); }
+.subs-badge-cancelled { color: var(--warn-text); background: var(--warn-bg); border-color: var(--warn-text); }
+
+.subs-active { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.subs-active > legend { font-weight: 600; padding: 0 6px; }
+.subs-step { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.subs-step > .pw-hint { flex: 1 1 100%; margin-left: 22px; }
+.subs-permission { border: 1px solid var(--warn-text); background: var(--warn-bg); color: var(--warn-text); border-radius: 8px; padding: 8px 12px; }
+.subs-permission p { margin: 0 0 4px; }
+
+.subs-results { gap: 8px; }
+.subs-selbar { align-items: center; }
+.subs-table-wrap { max-height: 480px; }
+.subs-table th > .subs-sort { font: inherit; font-weight: 600; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.subs-table th > .subs-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.subs-table th[aria-sort="ascending"] > .subs-sort::after { content: " ▲"; }
+.subs-table th[aria-sort="descending"] > .subs-sort::after { content: " ▼"; }
+.subs-table tbody tr { cursor: pointer; }
+.subs-table tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.subs-host { overflow-wrap: anywhere; }
+.subs-title { max-width: 28em; overflow-wrap: anywhere; }
+.subs-note { font-size: 0.85em; font-family: inherit; color: var(--muted); overflow-wrap: anywhere; }
+.subs-bad { color: var(--danger-text); }
+
+.subs-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.subs-history-item { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.subs-history-actions { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+
+.subs-console { max-height: 240px; min-height: 100px; white-space: normal; }
+.subs-line { padding: 1px 0; overflow-wrap: anywhere; }
+.subs-time { color: var(--muted); }
+.subs-ok { color: var(--good); }
+.subs-warn { color: var(--warn-text); }
+.subs-error { color: var(--danger); }

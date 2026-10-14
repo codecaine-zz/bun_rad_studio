@@ -5,6 +5,8 @@ Engine: Bun native Redis client  •  Dependencies: 0  •  Requires: a reachabl
 Launch: [Desktop GUI: bun run applications/redis_studio.ts [redis-url]]
 ```
 
+> **Open it from the File Manager.** Redis Studio can also be opened inside the Codecaine File Manager: the File Manager's **Databases** tool can keep Redis connections (the password in the keychain) and open this studio for one. A saved connection replaces environment variables ([how](43_file_manager.md#databases-databases-tab), [order of precedence](../databases/index.md#connection-settings-and-environment-variables)).
+
 ---
 
 ## 🌟 Overview

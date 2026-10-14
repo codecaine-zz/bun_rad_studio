@@ -44,6 +44,8 @@ export interface Settings {
   editor: "default" | "vscode" | "subl" | "webstorm" | "idea";
   /** The Serve tool's remembered form choices. The network (LAN) option is never remembered. */
   serveOptions: { kind: "auto" | "static" | "php"; liveReload: boolean; openBrowser: boolean };
+  /** Where Delete sends things: the File Manager's own Recycle Bin, or the Rip graveyard (shared with the `rip` tools). */
+  deleteTo: "bin" | "graveyard";
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
@@ -80,6 +82,7 @@ export const DEFAULT_SETTINGS: Settings = {
   typeWarnings: true,
   editor: "default",
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
+  deleteTo: "bin",
 };
 
 export const MAX_FAVORITES = 100;
@@ -140,6 +143,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     typeWarnings: typeof r.typeWarnings === "boolean" ? r.typeWarnings : DEFAULT_SETTINGS.typeWarnings,
     editor: oneOf(r.editor, ["default", "vscode", "subl", "webstorm", "idea"], DEFAULT_SETTINGS.editor),
     serveOptions: sanitizeServeOptions(r.serveOptions),
+    deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),
   };
 }
 

@@ -23,13 +23,16 @@ const TOOL_TEXT = {
   crypto: "Make checksums, lock and unlock text, create passwords and tokens, and convert codes.",
   ip: "Look up an internet address or website, and work out network ranges.",
   net: "Check ports, website names, certificates and whether a connection works.",
+  subs: "Find the subdomains of a domain (www, mail, shop ...) from public sources, with optional checks that they are live. Only for domains you own or may test.",
   sd: "Change a word or phrase in many files at once, with a preview and Undo.",
   calc: "Everyday, scientific, graphing and programmer calculators, plus unit conversion.",
   timer: "A timer for workouts, studying and cooking, with sounds and music.",
   code: "Write and edit text and code files, with find and replace, and run them.",
   vault: "Lock files with a password, and open them again later.",
   secrets: "Your private vault for passwords and secure notes, locked with one master password. Includes a password generator, one-time codes and a health check.",
+  databases: "Saved connections for SQLite, MySQL, PostgreSQL and Redis, with each studio inside the File Manager. Passwords stay in your keychain, and a saved connection replaces environment variables.",
   dev: "Developer information about a folder: lines of code per language, project type, Git history, disk usage and TODO notes.",
+  grave: "A safe place for things you bury instead of deleting. See what is there, restore items to where they came from, or delete them for good. Shared with Rip Studio.",
 };
 
 export function registerHomeTiles() {

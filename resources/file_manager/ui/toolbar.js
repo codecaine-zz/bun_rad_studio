@@ -90,6 +90,7 @@ export function updateToolbar() {
     btn.hidden = hidden;
     btn.disabled = !spec.enabled();
     if (spec.toggle) btn.setAttribute("aria-pressed", String(!!spec.toggle()));
+    if (spec.id === "delete") btn.title = state.settings.deleteTo === "graveyard" ? "Bury in the Rip graveyard (Delete, or Alt+Delete). You can undo this, and bring it back from Find & more → Graveyard." : spec.tip;
     if (spec.id === "undo") {
       const top = state.undoStack.at(-1);
       btn.title = top ? `Undo: ${top.label} (${mod()}Z)` : `Nothing to undo (${mod()}Z)`;

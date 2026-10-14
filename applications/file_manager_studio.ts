@@ -11,17 +11,27 @@
  *   bun run app:files --path ~/Documents   open it at a folder
  *   bun run app:files --server             server only; prints READY:<port>
  *
- * Options: --port N, --path DIR, --width N, --height N, --home DIR and --data-dir DIR (where the settings and the
- * Recycle Bin live) and --tool-dirs A:B (look for ffmpeg, ImageMagick and pandoc only there); the last three are mainly for testing.
+ * The window opens filling the screen. When you change it (resize, move, maximise, full screen) the app remembers that
+ * and uses it next time; Settings → Window (or --reset-window) goes back to filling the screen.
+ *
+ * Options: --port N, --path DIR, --width N, --height N (a one-off window size: nothing is restored or remembered),
+ * --reset-window (forget the remembered window and fill the screen), --home DIR and --data-dir DIR (where the settings,
+ * the remembered window and the Recycle Bin live) and --tool-dirs A:B (look for ffmpeg, ImageMagick and pandoc only
+ * there); the last three are mainly for testing.
  */
 import { SizeHint, Webview } from "webview-bun";
 import { delimiter, resolve } from "path";
-import { setWindowPositionNative } from "../index.ts";
 import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
+import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
+import { resetWindowPrefs, windowDataDir } from "../src/features/filemanager/fmWindow";
+import { createWindowNative } from "../src/windowNative";
 
 export interface FileManagerStudioOptions extends FileManagerServerOptions {
+  /** A one-off window size (--width / --height): used as is, and not remembered. */
   width?: number;
   height?: number;
+  /** Forget the remembered window first, so the window fills the screen (--reset-window). */
+  resetWindow?: boolean;
 }
 
 export interface FileManagerStudioInstance {
@@ -105,12 +115,21 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       try {
         await fetch(app.url).catch(() => {});
         if (app.server) throw new Error("the server could not be started in the background");
-        const webview = new Webview(false, { width, height, hint: SizeHint.NONE });
+        // The window is sized, placed and shown from the remembered preference (default: it fills the screen).
+        const fixedSize = options.width || options.height ? { width, height } : undefined;
+        const managed = openManagedWindow({
+          createWindow: (size) => {
+            const w = new Webview(false, { ...size, hint: SizeHint.NONE });
+            w.title = title;
+            return w;
+          },
+          createNative: (w) => createWindowNative(w, () => title),
+          dataDir: windowDataDir(options.context),
+          reset: options.resetWindow,
+          fixedSize,
+        });
+        const webview = managed.window;
         app.webview = webview;
-        webview.title = title;
-        try {
-          setWindowPositionNative(webview, "center", width, height);
-        } catch {}
         // The window has no menu bar, so the page asks for these (Ctrl/Cmd+W and Ctrl/Cmd+Q).
         webview.bind("closeApp", stop);
         webview.navigate(app.url);
@@ -139,7 +158,12 @@ if (import.meta.main) {
   const dataDir = argValue(args, "--data-dir");
   const toolDirs = argValue(args, "--tool-dirs");
   const context = { ...(home ? { home: resolve(home) } : {}), ...(dataDir ? { dataDir: resolve(dataDir) } : {}), ...(toolDirs !== undefined ? { toolDirs: toolDirs.split(delimiter).filter(Boolean) } : {}) };
+  const resetWindow = args.includes("--reset-window");
   if (args.includes("--server") || args.includes("-s")) {
+    if (resetWindow) {
+      resetWindowPrefs(windowDataDir(context));
+      console.log("📁 The remembered window was forgotten: the File Manager fills the screen next time.");
+    }
     const server = startFileManagerServer({ port, startPath, context });
     console.log(`📁 ${APP_NAME} server running at: http://127.0.0.1:${server.port}/`);
     console.log(`READY:${server.port}`);
@@ -154,6 +178,6 @@ if (import.meta.main) {
   } else {
     const width = Number(argValue(args, "--width")) || undefined;
     const height = Number(argValue(args, "--height")) || undefined;
-    await createFileManagerStudio({ port, startPath, context, width, height }).run();
+    await createFileManagerStudio({ port, startPath, context, width, height, resetWindow }).run();
   }
 }

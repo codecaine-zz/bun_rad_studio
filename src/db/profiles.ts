@@ -212,6 +212,12 @@ export class ProfileStore {
     return Promise.all(this.profiles.map((p) => this.pub(p)));
   }
 
+  /** The profiles without checking the keychain for passwords. */
+  listPlain(): ConnectionProfile[] {
+    this.load();
+    return [...this.profiles];
+  }
+
   get(id: string): ConnectionProfile | undefined {
     this.load();
     return this.profiles.find((p) => p.id === id);

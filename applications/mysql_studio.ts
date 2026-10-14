@@ -26,6 +26,7 @@ import {
 } from "../index.ts";
 import { startMysqlStudioServer, type MysqlConnectionConfig, type MysqlConnectionConfigSanitized } from "./mysql_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./mysql_studio_crud.ts";
+import { watchParentProcess } from "../src/parentWatch";
 import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, buildMacroScript } from "./sqlite_studio_macros.ts";
 
 const MACRO_SCRIPT = buildMacroScript("mysql");
@@ -7658,6 +7659,7 @@ if (process.argv.includes("--server")) {
     initialDbPath: initialDb,
   });
   console.log(`READY:${srv.port}`);
+  watchParentProcess();
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const argDb = process.argv[2];

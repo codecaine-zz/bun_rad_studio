@@ -8,7 +8,9 @@ Launchers: [Desktop GUI: bun run app:rip]  •  [Terminal CLI: bun run cli:rip]
 ---
 
 ## 🌟 Executive Overview
-**Rip Studio Pro** is an ergonomic, safe replacement for `rm` and `rm -rf`. Instead of permanently destroying files with irreversible deletion, Rip Studio Pro moves targeted files and directories into a date-stamped, tracked local **Graveyard Quarantine** (`~/.local/share/graveyard`).
+**Rip Studio Pro** is an ergonomic, safe replacement for `rm` and `rm -rf`. Instead of permanently destroying files with irreversible deletion, Rip Studio Pro moves targeted files and directories into a date-stamped, tracked local **Graveyard Quarantine** (`~/.local/share/rip/graveyard`, or the folder in the `GRAVEYARD` environment variable).
+
+> **Also available inside the File Manager.** The [Codecaine File Manager](43_file_manager.md#graveyard-rip) has a **Graveyard** tab (Find & more → Graveyard) and a right-click **Bury (Rip)** that use this same graveyard: bury there and restore here, or the other way round. The Homebrew `rip` command keeps a different graveyard layout and does not share items with this one.
 
 Every buried file retains its original absolute path metadata, deletion timestamp, and file permissions, allowing instant, one-click **Unbury Restoration** to resurrect accidentally deleted source code, databases, or documents.
 

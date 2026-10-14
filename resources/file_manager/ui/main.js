@@ -14,6 +14,7 @@ import { wirePower } from "./power.js";
 import { wireChrome } from "./chrome.js";
 import { applyPalette } from "./themes.js";
 import { wireTypeCheck } from "./typecheck.js";
+import { wireWindowState } from "./windowState.js";
 import { startCopySections } from "./copysection.js";
 import { wireDual } from "./dual.js";
 import { wireHome } from "./home.js";
@@ -25,6 +26,7 @@ import "./serve.js";
 import "./crypto.js";
 import "./ip.js";
 import "./net.js";
+import "./subs.js";
 import "./sd.js";
 import "./vault.js";
 import "./secrets.js";
@@ -32,7 +34,10 @@ import "./calc.js";
 import "./timer.js";
 import "./code.js";
 import "./dev.js";
+import "./graveyard.js";
+import "./databases.js";
 import "./themeEditor.js";
+import { startQuietDetect } from "./dbDetect.js";
 import { wireTerminal } from "./terminal.js";
 import { wireTools } from "./tools.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
@@ -83,6 +88,7 @@ async function start() {
   wirePower();
   wireChrome();
   wireTypeCheck();
+  wireWindowState();
   startCopySections();
   renderSidebar();
 
@@ -104,6 +110,8 @@ async function start() {
   updateSearchBox();
   restoreWorkspace();
   document.body.classList.add("ready");
+  // Once, quietly: say so only if database connections turned up in the environment.
+  startQuietDetect();
   // The window has no browser menu, so keep the system's own page menu (Reload, Inspect ...) out of the way.
   document.addEventListener("contextmenu", (e) => {
     if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) e.preventDefault();

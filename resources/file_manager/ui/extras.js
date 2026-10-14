@@ -6,10 +6,13 @@ import { debounce, h } from "./dom.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
+import { permissionsSection } from "./permsPanel.js";
 import { state } from "./state.js";
 import { currentThemeName, showThemePicker } from "./themes.js";
 import { verdictBlock } from "./typecheck.js";
 import { formatSize, plural } from "./util.js";
+import { resetWindowToDefault, windowSection } from "./windowSettings.js";
+import { hasDesktopWindow } from "./windowState.js";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Properties
@@ -40,11 +43,19 @@ export async function showProperties(paths, options = {}) {
   if (p.hidden) add("Hidden", "Yes: it is normally not shown");
   let dialog = null;
   const kind = !p.isDir && p.count <= 1 && paths.length === 1 ? verdictBlock(paths[0], p.name, { showDetails: true, onDone: () => dialog?.close() }) : null;
+  const perms = state.location.kind === "trash" ? null : permissionsSection(paths);
   dialog = openDialog({
     title: p.count > 1 ? `Properties of ${p.name}` : "Properties",
-    body: [h("dl", { class: "props" }, rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])), kind],
+    wide: !!perms,
+    body: [h("dl", { class: "props" }, rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])), kind, perms?.el],
     buttons: [{ label: "More info…", value: "more" }, { label: "Close", primary: true, value: true }],
   });
+  if (perms && options.section === "permissions") {
+    perms.ready.then(() => {
+      perms.el.scrollIntoView?.({ block: "nearest" });
+      perms.focusFirst();
+    });
+  }
   dialog.result.then((answer) => answer === "more" && showMoreInfo(paths));
 }
 
@@ -159,6 +170,7 @@ function shortcuts() {
     ["Rename", "F2"],
     ["Move to the Recycle Bin", del],
     ["Delete permanently", "Shift+Delete"],
+    ["Bury in the Rip graveyard (an undoable delete you can restore later)", state.platform === "darwin" ? "⌥⌫" : "Alt+Delete"],
     ["Undo the last action", `${m}Z`],
     ["Select everything", `${m}A`],
     ["New folder", `${m}Shift+N`],
@@ -199,9 +211,10 @@ export function showHelp() {
           h("li", {}, "Right-click anything for the actions that make sense for it."),
           h("li", {}, "The buttons at the very top change the view: Files, Home (everything this app can do), Tools, Split (files beside a tool) and Dual (two folders). Focus hides the toolbar and side panels."),
           h("li", {}, "Drag items onto a folder in the list or in the sidebar to move them. Hold the copy key to copy instead."),
-          h("li", {}, "Deleting never destroys anything straight away: items go to the Recycle Bin, and Undo brings them back."),
+          h("li", {}, "Deleting never destroys anything straight away: items go to the Recycle Bin (or, if you chose it in Settings, the Rip graveyard), and Undo brings them back. Right-click → Bury (Rip) always uses the graveyard."),
           h("li", {}, `"Show in ${state.fmName === "your file manager" ? "file manager" : state.fmName}" opens the computer's own file manager at the item.`),
           h("li", {}, "Programs and installers always ask before they run."),
+          h("li", {}, "Right-click an item and choose Permissions… to see and change who may read, write or run it. You see what would change first, and every change can be undone."),
           h("li", {}, "Right-click pictures, videos, sound files or documents and choose Convert or process to change their format, make them smaller, or combine pictures into a PDF. The new files appear next to the originals."),
           h("li", {}, "Every block of information (a group of details, a table, a log, a result, an error) has a small Copy button when you point at it or tab to it. It copies just that block as plain text. The little arrow beside it offers a table for spreadsheets, Markdown or JSON."),
         ),
@@ -220,9 +233,10 @@ export function showHelp() {
         ),
       ),
     ],
-    buttons: [{ label: "About and GitHub", value: "about" }, { label: "Close", primary: true, value: true }],
+    buttons: [{ label: "About and GitHub", value: "about" }, ...(hasDesktopWindow() ? [{ label: "Reset window", value: "resetwindow" }] : []), { label: "Close", primary: true, value: true }],
   }).result.then((answer) => {
     if (answer === "about") showAbout();
+    else if (answer === "resetwindow") resetWindowToDefault();
   });
 }
 
@@ -249,8 +263,8 @@ export async function showWelcome() {
 }
 
 export function showSettings() {
-  const choice = (label, key, options, after) => {
-    const select = h("select", { class: "select", "aria-label": label, onchange: async () => { await saveSettings({ [key]: select.value }); after?.(); } },
+  const choice = (label, key, options, after, tip) => {
+    const select = h("select", { class: "select", "aria-label": label, title: tip, onchange: async () => { await saveSettings({ [key]: select.value }); after?.(); } },
       options.map(([v, l]) => h("option", { value: v, selected: state.settings[key] === v }, l)));
     return h("label", { class: "field" }, h("span", { class: "field-label" }, label), select);
   };
@@ -276,12 +290,15 @@ export function showSettings() {
       themeRow,
       choice("Colours", "theme", [["auto", "Match my computer"], ["light", "Light"], ["dark", "Dark"]]),
       choice("When the File Manager starts, show", "startWith", [["files", "My files"], ["home", "The Home page"], ["last", "The view I used last time"]]),
+      choice("When I press Delete, use", "deleteTo", [["bin", "The File Manager's Recycle Bin"], ["graveyard", "The Rip graveyard"]], undefined, "Where the Delete key and the Delete button send things. The Recycle Bin is only for this app; the Rip graveyard is shared with Rip Studio. Both can be undone."),
+      h("p", { class: "hint" }, "The Recycle Bin belongs to this app only. The Rip graveyard is shared with Rip Studio and the bun run cli:rip command, and is found in Find & more → Graveyard. Both can be undone."),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Text size"), h("span", { class: "range-row" }, size, sizeValue)),
       toggle("Show hidden files and folders", "showHidden"),
       toggle("Keep folders at the top of the list", "foldersFirst"),
       toggle("Show the Details panel", "showInfoPanel"),
       toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Code editor"), editorSelect),
+      windowSection(),
       h("p", { class: "hint" }, "Your choices are saved automatically."),
     ],
     buttons: [{ label: "Done", primary: true, value: true }],

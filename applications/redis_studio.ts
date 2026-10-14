@@ -23,6 +23,7 @@ import {
   getScreenDimensions,
 } from "../index.ts";
 import { startRedisStudioServer } from "./redis_studio_server.ts";
+import { watchParentProcess } from "../src/parentWatch";
 
 export interface RedisStudioOptions {
   fullscreen?: boolean;
@@ -2808,6 +2809,7 @@ if (import.meta.main && process.argv.includes("--server")) {
     db,
   });
   console.log(`READY:${srv.port}`);
+  watchParentProcess();
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const url = process.argv[2] || "redis://127.0.0.1:6379";

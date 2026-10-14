@@ -7,6 +7,7 @@ import { toast } from "./menus.js";
 import { finishOpen } from "./openwith.js";
 import { busy, goTo, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
+import { buryItems } from "./graveBury.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { currentPath, emit, inTrash, on, state } from "./state.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
@@ -308,12 +309,27 @@ export async function dropOnTrash(sources) {
 // Recycle Bin and deleting
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Deleting: moves to the Recycle Bin, which can always be undone. */
+/** Deleting (the Delete key and button): to the Recycle Bin, or to the Rip graveyard when Settings says so. Both can be undone. */
 export async function trashSelection() {
+  if (inTrash()) return deleteFromTrashForever();
+  if (state.settings.deleteTo === "graveyard") return burySelection();
+  return moveSelectionToBin();
+}
+
+/** Always moves to the app's Recycle Bin, whatever Delete is set to use. */
+export async function moveSelectionToBin() {
   if (inTrash()) return deleteFromTrashForever();
   const items = selectedEntries();
   if (!items.length) return;
   await trashItems(items.map((e) => e.path));
+}
+
+/** Always buries in the Rip graveyard (shared with Rip Studio and the rip tools). Undo brings it back. */
+export async function burySelection() {
+  if (inTrash()) return toast("Open a folder first: the Recycle Bin can't be buried.", { kind: "info" });
+  const items = selectedEntries();
+  if (!items.length) return;
+  await buryItems(items.map((e) => e.path));
 }
 
 async function trashItems(paths) {

@@ -36,6 +36,7 @@ import {
 } from "./postgres_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./postgres_studio_crud.ts";
 import { POSTGRES_DESIGNER_SCRIPT } from "./postgres_studio_designer.ts";
+import { watchParentProcess } from "../src/parentWatch";
 import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, buildMacroScript } from "./sqlite_studio_macros.ts";
 
 export interface PostgresStudioOptions {
@@ -6429,6 +6430,7 @@ if (process.argv.includes("--server")) {
     initialSchema: initialSchema,
   });
   console.log(`READY:${srv.port}`);
+  watchParentProcess();
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const initialDb = process.argv[2] || "mydb";

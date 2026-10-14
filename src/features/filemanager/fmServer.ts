@@ -21,6 +21,7 @@ import { checkOperations } from "./fmCheckOps";
 import { cryptoOperations } from "./fmCryptoOps";
 import { dataCompareOperations } from "./fmDataCompare";
 import { editorOperations } from "./fmEditor";
+import { permsOperations } from "./fmPermsOps";
 import { aboutOperations } from "./fmAboutOps";
 import { devOperations } from "./fmDevOps";
 import { planSetup, setupOptions } from "./fmSetup";
@@ -29,10 +30,15 @@ import { findOperations } from "./fmFindOps";
 import { infoOperations } from "./fmInfoOps";
 import { ipOperations } from "./fmIpOps";
 import { netOperations } from "./fmNetOps";
+import { subdomainOperations } from "./fmSubdomainsOps";
 import { sdOperations } from "./fmSdOps";
 import { serveOperations } from "./fmServeOps";
 import { vaultOperations } from "./fmVaultOps";
 import { secretsOperations } from "./fmSecretsOps";
+import { graveyardOperations } from "./fmGraveyardOps";
+import { databaseOperations } from "./fmDbOps";
+import { studioFrameResponse } from "./fmDbFrame";
+import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
@@ -41,6 +47,7 @@ import { openItem, revealItem } from "./fmOpen";
 import { openViaAssociation, openWithOperations } from "./fmOpenWith";
 import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
 import { addRecent, loadSettings, updateSettings } from "./fmSettings";
+import { windowOperations } from "./fmWindow";
 import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSupported, type TerminalSession } from "./fmTerminal";
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
 import { createZip, extractZip } from "./fmZip";
@@ -330,9 +337,12 @@ const operations: Record<string, Handler> = {
 };
 
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
-Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations, dataCompareOperations, editorOperations);
+Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations, dataCompareOperations, editorOperations, permsOperations);
 
-Object.assign(operations, secretsOperations);
+Object.assign(operations, secretsOperations, databaseOperations, graveyardOperations, subdomainOperations);
+
+// The window's size and position preference (window/get, window/set, window/reset).
+Object.assign(operations, windowOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -479,6 +489,11 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         const embedded = /^\/app\/([a-z]+)\/(.*)$/.exec(path);
         if (embedded) {
           if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: secureHeaders() });
+          if (embedded[1] === "dbstudio") {
+            // Only on the other loopback spelling, like the other embedded apps: the File Manager's own origin never serves a studio frame.
+            if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
+            return studioFrameResponse(dbState(ctx).studios, embedded[2]!.replace(/\/$/, ""), alternateOrigin(url.host), secureHeaders);
+          }
           return await serveEmbedded(embedded[1]!, embedded[2]!, url.host, url.searchParams);
         }
         // Anything else is only for this window's own address, so a page on the calculator's origin can't reach the token.

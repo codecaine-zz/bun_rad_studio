@@ -8,8 +8,10 @@ Added on 14 October 2026; the record of what was checked is [D-045](../documenta
 
 - [Start it](#start-it)
 - [The window](#the-window)
+- [Window size and position](#window-size-and-position)
 - [Views](#views)
 - [Everyday tasks](#everyday-tasks)
+- [Change permissions](#change-permissions)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Convert and process files](#convert-and-process-files)
 - [Encrypt and decrypt files and folders](#encrypt-and-decrypt-files-and-folders)
@@ -17,9 +19,12 @@ Added on 14 October 2026; the record of what was checked is [D-045](../documenta
 - [The code editor](#the-code-editor)
 - [Developer information (Dev tab)](#developer-information-dev-tab)
 - [Live server and PHP server (Serve tab)](#live-server-and-php-server-serve-tab)
+- [Databases (Databases tab)](#databases-databases-tab)
+- [Subdomains (Subfinder)](#subdomains-subfinder)
 - [Files that aren't what their name says](#files-that-arent-what-their-name-says)
 - [More info and metadata](#more-info-and-metadata)
 - [Tools built on Bun's own utilities](#tools-built-on-buns-own-utilities)
+- [Graveyard (Rip)](#graveyard-rip)
 - [How it keeps your files safe](#how-it-keeps-your-files-safe)
 - [The terminal](#the-terminal)
 - [Copy any section](#copy-any-section)
@@ -36,7 +41,7 @@ bun run app:files --path ~/Pictures  # open it at a folder
 bun run app:files --server           # only the server; open the printed address in a browser
 ```
 
-It is also in the **Launcher** under *File & Directory Tools*. Options: `--port N`, `--path DIR`, `--width N`, `--height N`, and (mainly for testing) `--home DIR` and `--data-dir DIR`.
+It is also in the **Launcher** under *File & Directory Tools* (type `--reset-window` in its *CLI Flags / Args* box to start with the default window). Options: `--port N`, `--path DIR`, `--width N` and `--height N` (a one-off window size: nothing is restored or remembered), `--reset-window` (forget the remembered window, see [Window size and position](#window-size-and-position)), and (mainly for testing) `--home DIR` and `--data-dir DIR`.
 
 ## The window
 
@@ -52,6 +57,35 @@ It is also in the **Launcher** under *File & Directory Tools*. Options: `--port 
 | **View switcher** (very top) | **Files, Home, Tools, Split, Dual** (see [Views](#views)), a **Places** button that folds the sidebar away, and a **Focus** button |
 
 On a narrow window the toolbar keeps to one row: the buttons that don't fit move, from the end, into a **More** menu, and the view switcher shows only its pictures (their names are still read out to screen readers and shown as tooltips).
+
+## Window size and position
+
+**The window opens filling the screen.** That means the screen's usable area: on a Mac the menu bar and the Dock stay in view (the window is "zoomed", the same as clicking the green button with the Option key held), on Windows it is maximised, on Linux it is maximised where the system lets it (see below).
+
+**When you change the window, the app remembers it.** Resize it, move it, un-maximise it, or put it in full screen, and the next time the File Manager opens exactly like that. Merely opening it never saves anything, so a window you didn't touch keeps opening full. The first time you change it, a message says *"Your window size is remembered. Settings → Window → Reset to default to go back to full screen."*
+
+If the window was saved on a monitor that is no longer connected, or is bigger than the screen it now has, it comes back fully on screen (centred, or filling the screen if that is how you left it).
+
+**Settings → Window** has three choices:
+
+| Choice | What happens at start-up |
+|---|---|
+| **Fill the screen (default)** | The window fills the screen's usable area |
+| **Remember my window** | The window opens with the size and position you last left it at. This is chosen for you the moment you change the window. Choosing it yourself, when nothing is remembered yet, remembers the window as it is now |
+| **True full screen** | The computer's full-screen mode. On a Mac the window gets its own desktop; press **Esc** or **Ctrl+⌘+F** to leave it |
+
+Picking a choice applies it to the open window straight away. Under the choices Settings shows what is saved in plain words (for example *Saved: 1280 × 820 at 120, 80*), and two buttons:
+
+- **Use this window as my preference now** saves how the window looks right now and switches to *Remember my window*.
+- **Reset window to default** forgets the saved window, switches back to *Fill the screen* and makes the open window fill the screen right away. The same **Reset window** button is in the Help dialog, and `bun run app:files --reset-window` does it before opening.
+
+Where it is stored: `~/.bun_rad_studio/file_manager_window.json` (readable only by you), a separate small file from the settings file. Delete it to get the default back. Starting the File Manager in a browser (`--server`) has no window to manage: none of this applies and the Window part of Settings is not shown.
+
+How it differs by system:
+
+- **macOS** (checked on a real window): fill = the window's *zoom*; true full screen = the system's full-screen mode; the window's real size and position are read from the system, so moving it counts as a change too.
+- **Windows** (written, not run on Windows): fill = maximised; true full screen = a borderless window over the whole monitor (leave it with *Settings → Window → Fill the screen* or *Reset*). The window's outer size and position are read and set with the system's window functions.
+- **Linux**: GTK can't be called safely from Bun, so the window's size is set and read through the page only, a window can't be moved by the app, and *fill* and *true full screen* use `wmctrl` when it is installed and the session is X11. Without it, *fill* is a window the size of the screen's usable area and *true full screen* does the same.
 
 ## Views
 
@@ -86,7 +120,7 @@ What the right pane does **not** do: rename, sort by clicking headings (it follo
 - **Copy or move**: Copy (or Cut), go to the other folder, Paste. Or drag items onto a folder in the list or the sidebar; hold Ctrl (Option on a Mac) while dropping to copy instead of move.
 - **If a name is already taken**, a window asks what to do: **Keep both** (the default; the new one becomes `name (2)`), **Replace** (the old one goes to the Recycle Bin first) or **Skip**.
 - **Rename**: F2. Choose several items and press F2 for **bulk rename**: pick a pattern (for example "Album {n}") and a **live preview** shows every new name before anything changes. If any one rename fails, all of them are put back.
-- **Delete**: Delete moves items to the **Recycle Bin**. Open the Recycle Bin from the sidebar to **Restore** an item (to where it came from), **Delete forever**, or **Empty bin**. *Delete permanently* (Shift+Delete) and emptying the bin always ask first.
+- **Delete**: Delete moves items to the **Recycle Bin**. Open the Recycle Bin from the sidebar to **Restore** an item (to where it came from), **Delete forever**, or **Empty bin**. *Delete permanently* (Shift+Delete) and emptying the bin always ask first. If you prefer, **Settings → When I press Delete, use → The Rip graveyard** makes Delete bury items instead, and right-click → **Bury (Rip)** (Alt+Delete) always does; see [Graveyard (Rip)](#graveyard-rip).
 - **Undo**: Ctrl/⌘+Z undoes the last new item, rename, copy, move, delete, restore, zip or unzip, one step at a time.
 - **Compress and extract**: right-click → *Compress to zip*, or on a `.zip` file → *Extract here* (it makes a new folder, so nothing is overwritten).
 - **Terminal**: click **Terminal** in the toolbar (or press Ctrl+`, Control on every system) to open a real terminal at the bottom, **already in the folder you are looking at**. **Go to this folder** moves the shell to the folder you have selected in the list (or, with nothing selected, wherever you are browsing); **Restart** starts a fresh shell there. **Follow terminal** (on by default, remembered) makes the file list move to the same folder whenever you change folder in the terminal with `cd`; untick it to keep the list where it is. (On macOS and Linux the server asks the system where the shell is, a moment after you press Enter and every few seconds; a symlinked folder shows up as its real path.) The ✕ only hides the panel, so a command that is running keeps running; type `exit` (or press Enter after it ends) to finish it. Drag the thin bar above it, or use its up and down arrow keys, to change the height. See [the terminal's safety notes](#the-terminal).
@@ -96,6 +130,46 @@ What the right pane does **not** do: rename, sort by clicking headings (it follo
 - **Themes**: Settings → *Choose a theme…* (or the Home view's **Themes** tile) opens a gallery of 135 colour themes in five groups: Futuristic, Editors and classics, Linux, Windows and macOS. Search by name, show only light or only dark ones, and click a theme to try it: it applies at once and is remembered. *Standard* goes back to the plain Light/Dark/automatic colours. The themes are the same ones the SimpleGUI apps use, turned into this window's colours; for every theme the text, buttons, warnings and messages are adjusted until they reach the same readability checks as the built-in colours (`tests/file_manager_themes.test.ts` runs them all). **Make your own:** in the gallery press *Create or edit a theme…*. The theme editor starts from any theme (or a plain light or dark one), lets you change the window background, panels, text, accent, lines and the red, amber, green and blue status colours with a colour picker or a hex code, and shows the result in the whole window while you edit. Text and buttons are adjusted a little when a colour choice would be hard to read, and the editor says so. *Save theme* keeps it in a **My themes** group at the top of the gallery (up to 50); when you edit one of your own, *Save* replaces it and *Save as a copy* keeps both. *Export…* gives you text you can keep or send to someone, and *Import…* turns that text back into a theme you can adjust before saving. Your themes are kept in `file_manager_themes.json` in the app's data folder. Glow, glass and animation effects of the Futuristic themes are not applied here, only their colours. The built-in terminal stays dark.
 - **Settings**: colours (match the computer, light or dark), text size, hidden files, folders first, Details panel, and the **code editor** that *Open in your editor* starts.
 - **Help** (F1) lists everything above, and a short welcome appears the first time. Its **About and GitHub** button (also a tile on the Home view) opens the project's GitHub page, the issue tracker, releases, the author's profile, the author's website and YouTube channel, and the **Markdown tutorials** (https://codefreelance.net/apps/markdown_tutorials/) in your web browser. The Home view also has a **Markdown tutorials** tile. **Donate with a QR code…** (in About, and as the **Support the project** tile on Home) shows the same PayPal QR code as the project's GitHub page, with buttons to open or copy the link; donating is optional.
+
+## Change permissions
+
+Right-click → **Permissions…** (or Properties → the **Permissions** section) shows who may do what with a file or folder, and lets you change it. Right-click on a file also offers **Make executable** and **Remove execute** as one-click shortcuts. The Details panel shows one line, for example `Permissions: rw-r--r-- (644)`.
+
+**What the boxes mean** (macOS and Linux). Three rows (**Owner** = you, **Group** = the people in the file's group, **Others** = everyone else) and three columns:
+
+| Box | For a file | For a folder |
+|---|---|---|
+| **Read** | open and read it | see what is inside |
+| **Write** | change it | add, rename and delete things inside |
+| **Run** (a folder: **Run / open folder**) | run it as a program or script | go into it |
+
+The same permissions are also shown as **digits** and **letters**, and the three stay in step when you change any of them. `644` is "owner reads and writes, everyone else only reads" (4 = read, 2 = write, 1 = run, added up for owner, group, others), the same as `rw-r--r--`. You can type digits (three, or four with a special setting such as `4755`) instead of ticking boxes. When you select several items whose permissions differ, a box that isn't the same for all shows a **dash (mixed)**; clicking it cycles *on → off → leave as it is*, and Apply changes only the boxes you changed. The owner and group are shown as names; **changing the owner needs administrator rights and isn't done here**.
+
+**Quick choices**
+
+| Choice | Files | Folders |
+|---|---|---|
+| **Private** | 600 | 700 |
+| **Normal** | 644 | 755 |
+| **Shared with my group** | 664 | 775 |
+| **Read-only** | 444 | 555 |
+| **Make executable (+x)** | adds Run for everyone | left alone |
+| **Remove execute (−x)** | takes Run away | left alone (a folder needs it to be opened) |
+| **Everyone can read** | adds Read for everyone; adds Run only if it already runs | adds Read and Run |
+
+**Advanced** (closed until you open it): *setuid* (a program runs with its owner's rights), *setgid* (a program runs with its group's rights; on a folder, new items join the folder's group) and *sticky* (on a shared folder, people can delete only their own files). Each has a plain-words warning.
+
+**Everything inside.** For a folder, tick **Apply to everything inside** and choose **Files and folders**, **Only files** or **Only folders** (the folder itself changes only if folders are included). **Add "Run" only to folders and files that already run** is on by default, so that making a tree readable doesn't turn plain documents into programs (this is chmod's capital `X`). Links are never followed or changed, and a run stays on the disk it started on.
+
+**Preview, Apply, Undo.** Before anything changes, a line tells you what would happen: *"42 items will change, 3 are already correct, 2 can't be changed"*, with the reasons and a list of examples. **Apply** then changes them. Every change is **one Undo step** (Ctrl/⌘+Z, the toolbar, or **Undo this change** in the window). Undo puts back the exact earlier permissions and leaves alone any item that was changed again, replaced or deleted since.
+
+**What needs your confirmation** (and the server asks for it itself, so the page can't skip it): giving **everyone write access** (777 and the like); removing **your own read or write** access (or open access to a folder), which could lock you out; **setuid/setgid on a file**; and changing **more than 50 items** inside a folder. **What is refused outright:** system folders, the Recycle Bin's folder and anything in them, and "everything inside" for your home folder itself (choose the folders inside it). Items you don't own are reported, not attempted. A big run can be stopped with **Stop**; it keeps what it already did, and that can be undone. It looks at most 100,000 items and works for at most 60 seconds.
+
+**Differences between systems**
+
+- **macOS:** the same boxes, plus **Locked** (can't be changed or deleted, the system's "user immutable" flag) and **Hidden** (not shown in Finder). A locked item has to be unlocked before its permissions can change; ticking **Locked** off together with a permission change does both.
+- **Windows:** files don't have these permissions. The section offers **Read-only** and **Hidden** (changed with the system's `attrib` program, started from a list of arguments, never a shell). Windows access rules (ACLs, "who may open this") aren't edited here.
+- **Linux:** the same boxes; there is no Locked or Hidden (a file is hidden when its name starts with a dot, so rename it). The immutable attribute isn't offered. If an item has extra access rules (an ACL) a note says so; they aren't shown or changed.
 
 ## Keyboard shortcuts
 
@@ -111,6 +185,7 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Rename | F2 |
 | Move to Recycle Bin | Delete (⌘⌫ on a Mac) |
 | Delete permanently | Shift+Delete |
+| Bury in the Rip graveyard | Alt+Delete (⌥⌫ on a Mac) |
 | Undo | Ctrl+Z |
 | Select all | Ctrl+A |
 | New folder, New file | Ctrl+Shift+N, Ctrl+Alt+N |
@@ -348,6 +423,72 @@ Each row of the list shows the kind (and PHP version), the folder, the address, 
 
 **Limits.** At most 8 servers at once, one per folder and kind (starting the same folder again just shows the one that is running); the live server serves at most 64 requests at the same moment and 50 open pages; live reload watches up to 5,000 folders (more than that: the server still works, the row says live reload is off), ignoring `node_modules`, `.git` and editor scratch files, and says so if the folder is deleted. HTML pages bigger than 8 MB are served without the reload script. Single-range `Range` requests are supported (video and audio can be skipped through); several ranges at once are answered with the whole file. PHP's server runs one request at a time, as PHP's does. Pages that use WebSockets or need HTTPS can't be tried here.
 
+## Databases (Databases tab)
+
+**Find & more → Databases** (🗄️, also a tile on Home) keeps your database **connections** in one place and opens the real **SQLite Studio, MySQL Studio, PostgreSQL Studio and Redis Studio** inside the window, each for the connection you choose. A connection you save here is used **instead of** environment variables.
+
+**Connections.** *Add connection* (SQLite, MySQL / MariaDB, PostgreSQL or Redis), *Paste address…* (a `mysql://`, `mariadb://`, `postgres://`, `postgresql://`, `redis://`, `rediss://` or `sqlite:/full/path` address fills the form in for you to check), *Import from environment…* and *Import .env file…*. The list is grouped by folder (favourites first) and each row says its environment in words and an icon: Development, Test, Staging or **⚠ Production**. For each connection: **Open in … Studio**, **Test connection** (an explicit click only, at most 10 seconds, plain-words answers such as "The server refused the user name or password" or "Nothing answered at host:port"; it only reads, and for a production connection it says it was only a test), **Edit**, **Duplicate** (you choose whether the copy also gets the saved password), **Favourite** and **Delete** (asks first; the saved password is deleted with it).
+
+**Passwords** are written only to your computer's keychain (macOS Keychain, Windows Credential Manager, libsecret). They are never in the connection file, a log, an error message, the page or its address. The password box is write-only: the page only ever learns *whether* one is saved, and **Remove saved password** deletes it. When the keychain isn't available the editor says so: the password then lives in memory until the File Manager closes and you are asked again next time.
+
+**Found in your environment.** When the tab opens (and once, quietly, when the File Manager starts) it looks at this program's environment variables for connection settings (`MSQL_*`, `MYSQL_*`, `MARIADB_*`, `DB_*`, `PG*`, `POSTGRES_*`, `REDIS_*` and SQLite path variables; `DATABASE_URL` goes to the engine its scheme names). Each find is a card showing host, port, user, database, TLS, whether a password exists (never the password) and **which variable or file each value came from**. *Save to the manager* creates a normal connection (the password goes to the keychain; saving the same connection twice leaves one); *Not now* hides it until the File Manager is opened again; *Never for this one* remembers that. Detection never connects to anything. *Detection settings* has two switches: **Detect my environment variables automatically** (on) and **Save detected connections automatically** (off: saving always takes one click unless you turn this on). After a save, the page lists the variables that are **no longer needed** (names only; nothing is edited for you, so remove them from your shell profile or `.env` yourself if you like) and offers **Stop using environment variables for this engine**. If the environment changes later (a different host, user, password or address), the card says **Your environment changed since this was saved** with a field-by-field list (passwords are only compared, never shown) and an **Update the saved connection** button.
+
+**`.env` files.** Bun loads `.env` files from the folder it is started in into the environment before any program runs (in this order, later wins: `.env`, `.env.production`/`.env.development`/`.env.test` by `NODE_ENV`, `.env.local`, `.env.<mode>.local`; real environment variables win over all of them). The tab reads, read-only, the `.env*` files in **the application's own folders only**: the folder it was started from and its install folder. It never runs anything in them, ignores links, binary files and files over 256 KB (and says so), and tells you where each value came from: *environment variable NAME*, *`.env.local` in the start folder (~/…)*, or, when Bun did not load a file (another start folder, or loading was turned off), *found in the file but not loaded into the environment*. Such a connection can still be saved. To import a `.env` file from anywhere else, right-click it → **Import database settings…** (preview first; nothing is written until you confirm, and the file is never changed). The tab never scans other folders by itself.
+
+**Which value wins** (the *Effective settings* panel of each connection shows every value and where it comes from):
+
+1. the **connection** you chose in the File Manager;
+2. the File Manager's **defaults for that engine** (*Defaults…*: host, port, user, database, schema, TLS);
+3. **environment variables** (and `.env` files Bun loaded);
+4. the **studio's own defaults**.
+
+A blank field in a connection falls back down this list. A password never falls back to the environment: an environment password is never sent to a connection that has its own host. When a studio is started for a connection, it gets a **rebuilt environment**: every connection variable of every engine (`MSQL_*`, `MYSQL_*`, `MARIADB_*`, `DB_*`, `DATABASE_URL`, `PG*`, `POSTGRES_*`, `REDIS_*`, `VALKEY_*`, `SQLITE*`) is removed, then the connection's values are set under the names that studio reads; the File Manager's own settings never reach it, it starts in a folder with no `.env` files and with Bun's automatic `.env` loading switched off (`--no-env-file`), so nothing stale can leak in. The panel lists the variables being **ignored** and the ones **no longer needed**, by name. The switch **"Use environment variables for this engine"** (on by default) means: with **no connection chosen** the studio is started with your environment as it always was, and a connection may fall back to it for blank fields. Turn it off and no environment variable or `.env` file is used for that engine, ever.
+
+**Studios inside the window.** *Open in … Studio* starts the studio's own server on `127.0.0.1` (a port the system picks) and shows its page in a frame. One studio per connection, at most four at once; **Stop**, **Restart** (settings are read again), **Open in a separate window** (the desktop app with the same connection; Redis Studio's window is refused when a password is involved, because its address would be on the command line) and **Open in my browser**. The status says starting, running, stopped or stopped unexpectedly, with the last log lines (secrets are hidden). Studios end when the File Manager closes, and also when it is killed. The frame can't read this window or its secret token, and may only do what it needs (scripts, its own server, forms, its question boxes, downloads, copying, full screen); it can't navigate this window elsewhere or open pop-up windows.
+
+**Production and read-only.** The studios have **no read-only mode**, so a connection marked *Production* or *Read-only* asks before a studio opens ("you could change or delete data in it. Open it anyway?") and keeps a warning banner above the studio. For a real read-only session use a database account that can only read.
+
+**SQLite files.** In the file list, a file whose first bytes really are SQLite's header (not just one named `.db`) gets **Open in SQLite Studio** and **Add as database connection** in its right-click menu, and **Open with…** offers *SQLite Studio (built in)* (you can choose it for a file type; the default way of opening a file is not changed).
+
+**Limits.** Redis Studio shows every key, ignores a key prefix and cannot be made read-only; MySQL and PostgreSQL Studio only switch TLS on or off (a CA file and "don't check the certificate" apply to *Test connection* only); MySQL Studio needs a database name (without one it opens `my_app_dev`); SQLite *read-only* mode applies to *Test connection* only. Pages in a studio that open a new browser window (printing a report, for example) are blocked by the frame. Studios are the same programs you start from the launcher: in a release folder they are looked for beside the File Manager, and in the one-app-per-download Mac packages in the other `.app` folders next to it (this lookup is tested with stand-in folder layouts, not yet with the real downloads).
+
+## Subdomains (Subfinder)
+
+**Find & more → Subdomains** (🔭, in the Network group beside the Network tab, and a tile on Home) finds the subdomains of a domain you own or are allowed to test (`www.example.com`, `mail.example.com`, `shop.example.com` …). It is the [Subfinder Studio](25_subfinder_studio.md) engine inside the File Manager, and it can hand a host to the Network tab for DNS, certificate and port checks.
+
+**Responsible use.** Asking the public sources is generally fine: it reads public records (certificate logs, passive-DNS services) and never contacts the domain. The three **active** steps — DNS lookups, HTTP/HTTPS probing and port probing — do contact the target's own computers, so only use them on domains you own or have permission to test. They are **off by default**, each has its own explanation, and the first time you tick one you must tick *I own this domain or have permission to test it*. That tick is remembered for that domain until the File Manager is closed (never saved), and the server enforces it too.
+
+**The domain box.** Type a domain such as `example.com`. It is lower-cased, international names are turned into their `xn--` form (both are shown), and a trailing dot is dropped. Refused with a plain message: web addresses (`http://…`, paths, user names), ports, IP addresses (in any spelling), wildcards, underscores, parts longer than 63 or a total longer than 253 characters, hidden or right-to-left control characters, `localhost` and other reserved endings, and shared suffixes with no site name (`com`, `co.uk`, `github.io`).
+
+**Sources.** Tick any of **crt.sh**, **HackerTarget**, **AlienVault OTX**, **Anubis** and, when installed, the **subfinder program**. Each shows its own status (asking…, answered, timed out, failed, cancelled), how many hosts it gave and, if it failed, why in plain words. One source failing never fails the run. Only hosts inside the target domain are kept: names from other domains, malformed names and hostile text are dropped (the per-source count shows how many).
+
+**Options.** Time limit per source (3–60 s, default 15), most results to keep (up to 10,000, default 2,000), then the active steps:
+
+| Step | What it does |
+| --- | --- |
+| **Resolve DNS** | Looks up each host's IP addresses (IPv4 first), up to 10 lookups at once (default 8). |
+| **Detect wildcard DNS** | Asks for three random names that cannot exist. If they answer, hosts that only match that answer are marked *wildcard*. Needs Resolve DNS. |
+| **Probe HTTP/HTTPS** | Reads each live host's status code and page title (HTTPS first, then HTTP), up to 5 at once (default 4), with a pause between requests to one host. At most 3 redirects, only to hosts inside the target domain, never from HTTPS down to HTTP. No cookies are sent; HTTPS certificates are verified unless you tick *Accept untrusted HTTPS certificates*. Needs Resolve DNS. |
+| **Probe ports** | Tries to connect to the listed ports (default `80,443`; lists and ranges like `8000-8003`; at most 20) on each live host. Needs Resolve DNS. |
+| **Allow private/internal addresses** | Off by default: a host whose DNS points to a loopback, private (10.x, 172.16–31.x, 192.168.x), link-local, shared (100.64.x), unique-local (IPv6 `fc00::/7`), multicast or reserved address is **never connected to** — not directly, not after a redirect, and not if its DNS answer changes between the check and the connection. Tick it only to test your own internal network. |
+
+Every request identifies itself as the File Manager, all lookups and connections of all runs share one cap so the window stays responsive, and a run is stopped after 20 minutes. Everything is cancellable with **Cancel**; what was found so far is kept.
+
+**Results.** The table fills while the run goes: host, found by, IP addresses, web status, page title, open ports, wildcard. Click a heading to sort. Narrow it by text, IP address (has / none), web status (2xx … none), source, or **Only live** (has an IP address or answered on the web); the counts line says how many hosts match. Titles and notes are plain text, never HTML. Only the first 300 rows are drawn (*Show more* adds 300), but copy and export always use every row that matches the filters.
+
+- **Copy.** The table gets the usual **Copy** button (see [Copy any section](#copy-any-section)). Besides it: *Copy hosts (one per line)*, *Copy as CSV / JSON / Markdown*, *Copy column*, double-click a cell to copy just that cell, and *Copy row* for the selected row.
+- **A selected host.** *Open in Network tab* fills the Network tab's host box (DNS, certificate and port checks there are still your choice). *Copy URL* copies the `https://` or `http://` address. *Open in browser* opens it in your web browser — only `http`/`https`, only for a host of the current run, only when you press it.
+
+**Export and report.** Choose a folder (*Use current folder* fills in the one you are looking at), optionally a name, and press **Export** for a `.txt` host list, a `.csv` spreadsheet (cells that start with `=`, `+`, `-` or `@` are made plain text so a spreadsheet can't run them) or `.json`. If a table filter is on, only the rows shown are exported. **Save as a report** writes a Markdown file with the date, target, sources used and how each did, counts, the hosts and a *Notes in plain words* section. Files are only ever created: if the name is taken, a number is added.
+
+**History and privacy.** The last 20 runs are listed with the target, time, steps used and counts, in a small file in the app's data folder. **No host names are stored** unless you tick *Keep these results in the history* before the run (then up to 2,000 hosts of that run are kept, and *Show kept results* displays them again). **Clear history** deletes the file.
+
+**The optional `subfinder` program.** If the real [`subfinder`](https://github.com/projectdiscovery/subfinder) is installed, it appears as one more source (tagged `subfinder`, results merged and validated like the others). It is found like the other helper programs (the PATH and the usual install places), run with an argument list — never through a shell — with `-silent -json -nc -disable-update-check -timeout … -max-time … -d <domain>`, a time limit and a 4 MB output cap. If it is missing, the page says how to get it (`brew install subfinder`); the File Manager never installs it for you. Its own config (API keys for more sources) is its business: this tool doesn't read or change it.
+
+**Limits.** One run per tab at a time and two at once; finished runs are kept in memory for 30 minutes (at most 6); a source answer larger than 4–16 MB is refused; wildcard detection only tests the target domain itself, not sub-zones such as `*.dev.example.com`; passive sources can be out of date or incomplete, and some limit anonymous use (HackerTarget has a daily quota, AlienVault OTX may answer 429, Anubis may be blocked by its Cloudflare check): such a source shows its own error and the others still deliver, so the list is a starting point, not a guarantee. This tool does not pretend to be a web browser to get around such blocks.
+
+**For developers.** Operations: `subdomains/info`, `subdomains/start`, `subdomains/status`, `subdomains/results`, `subdomains/cancel`, `subdomains/export`, `subdomains/report`, `subdomains/open`, `subdomains/history`, `subdomains/history/clear`, all behind the session token and the loopback checks. The engine lives in `src/features/subfinder/` (`subfinderEngine.ts`, `subfinderNames.ts`, `subfinderSources.ts`, `subfinderNet.ts`, `subfinderProgram.ts`); the server side is `fmSubdomains*.ts`. Tests replace fetch, DNS, HTTP, TCP and the clock through `context.subdomains` and never use the network.
+
 ## Files that aren't what their name says
 
 A file's name can lie. `invoice.pdf` can really be a Windows program, `photo.jpg` can really be a PNG or a zip, and `report.pdf.exe` or a name with a hidden right-to-left character can hide what it ends in. The File Manager reads the first few hundred bytes of the files you can see and puts a small badge after the name when the contents don't match:
@@ -414,11 +555,44 @@ Bun (the program this app runs on) has a toolbox of small built-in utilities. Th
 
 **About window.** Shows the app's name and version, the **Bun version and build** (for example `Bun 1.4.2 (744846f8)`) and your system (macOS, Windows or Linux with the processor type) with a **Copy** button for bug reports.
 
+## Graveyard (Rip)
+
+The **Graveyard** (Find & more → **Graveyard**, or its tile on the Home view) is everything [Rip Studio](18_rip_studio.md) does, inside the File Manager: a safe, undoable alternative to deleting. Buried items are *moved* into a quarantine folder, the **Rip graveyard**, with a record of where each one came from, and stay there until you restore them or delete them for good.
+
+**Recycle Bin or graveyard?** Both can be undone; they differ in who else can see them.
+
+| | Recycle Bin | Rip graveyard |
+|---|---|---|
+| Who uses it | This app only | This app, **Rip Studio** and the `bun run cli:rip` command (the same folder and the same records) |
+| Where | `~/.bun_rad_studio/file_manager_trash/` | `~/.local/share/rip/graveyard/`, or the folder named by the `GRAVEYARD` environment variable |
+| Bring back | Sidebar → Recycle Bin → Restore, or Undo | Find & more → Graveyard → Restore, or Undo; from a terminal: `bun run cli:rip -u` |
+| Delete key | The default | Choose it in **Settings → When I press Delete, use** |
+
+The Recycle Bin item in the sidebar always shows the old bin, whatever you choose.
+
+**Burying.** Right-click → **Bury (Rip)**, or press **Alt+Delete** (⌥⌫ on a Mac), or set Settings to **The Rip graveyard** and press Delete. The toast says what was buried and offers **Open Graveyard**; **Ctrl/⌘+Z** brings everything from that burial back in one step. The same folders are protected as for Delete (system folders, your home folder and its main folders, the top of a disk, the Recycle Bin), and the graveyard can't be buried into itself or into a folder that contains it. An item on another disk than the graveyard is copied, the copy is **checked** (names, kinds, sizes, link targets and permissions) and only then is the original removed; this runs as a task in the task list with **Cancel**, and if anything goes wrong the original is left exactly where it was. Items buried that way aren't part of the one-step Undo; restore them from the Graveyard tab.
+
+**The Graveyard tab.**
+
+- **Cards:** how many items are buried, their total size, the oldest and the newest, and the free space on the disk that holds the graveyard. Below them is the graveyard folder, with **Show in file manager** (your computer's own file manager) and **Open here**.
+- **The list:** name, kind, size, the folder each item *came from* and when it was buried. A **search** box (several words must all match), a **Show** choice (*All*, *From the current folder*, *Files*, *Folders*), sorting by any column heading, a page size and Previous/Next, so even tens of thousands of items show one page at a time. Tick items, or use **Select all** (every page that matches) and **Select none**. Items whose files have gone say **⚠ files missing**.
+- **Restore** puts the selected items back where they came from. If the folder is gone you can **Create the folder** or **Choose another folder…** (typed location). If something with the same name is in the way you get the usual **Replace / Keep both / Skip** question (Replace sends the old item to the Recycle Bin first); nothing is overwritten without that answer. **Restore to…** puts them in a folder you choose. Undo buries them again.
+- **Preview:** click a name to see the start of a text file, a picture, the names inside a folder or where a link points, read-only and without restoring. **Open its folder** shows the original folder in the file list.
+- **Delete for good…** deletes the selected items after telling you how many and how big. **Delete old…** deletes everything buried more than a number of days ago (it shows the count first). **Empty graveyard…** deletes everything: you must type the word **empty**, and the button unlocks after a few seconds. The server refuses if the graveyard changed since you looked, and asks for the typed word itself, so a script can't skip it either. Deleting many items runs as a task.
+- **Verify…** compares the list with the files in the graveyard (optionally checking that small files haven't changed). **Repair** only fixes the list: it removes entries whose files are gone, adds back files that have no entry (their original place is then unknown, so use *Restore to…*), clears unfinished copies, and, if the record file is damaged, keeps it aside as `manifest.json.damaged-<time>` and starts a new list. Nothing buried is ever deleted by Repair. While the record file is damaged every change is refused, so a bad read can't wipe the list.
+
+**Works with the `rip` command?** The graveyard is shared with **Rip Studio** and `bun run cli:rip`, which use the same engine and folder. The separate `rip` program (for example from Homebrew) is a *different tool* that keeps its own graveyard in a different layout (a `.record` file and a copy of the original path, in `$RIP_GRAVEYARD` or a temporary folder), so it does not show what is buried here and `rip -u` can't restore it. The two can share a folder without harming each other (tested with the real `rip` 0.9.7), but they don't share items.
+
+**Safety, in order.** Burying: check the rules, measure, move the files, then write the record. If something stops in between, the files are in the graveyard without a record, and Verify finds and re-records them. Restoring: check the destination, move the files out, then mark the record restored. Emptying: delete the files, then remove the record. The page never sends a path for an item, only its id; the server finds the files from the graveyard folder and the id (and refuses an id or name that isn't of the expected shape), never follows links, and only reads inside the graveyard for the preview.
+
+**Limits.** Cancelling a copy between disks stops between files (and between 4 MB pieces of a very large file). A link is buried as a link; devices, pipes and sockets can be buried only on the same disk. Only the first part of a file (64 KB of text, 8 MB of a picture) is previewed. The graveyard list holds up to 200,000 items. Extended attributes and macOS resource forks of a file that must be copied between disks are kept only where the operating system's copy keeps them. The Dual view's Delete button still always uses the Recycle Bin.
+
 ## How it keeps your files safe
 
 - **Nothing is deleted for good by accident.** Delete is a move to the app's Recycle Bin; permanent delete needs a confirmation in the page *and* an explicit `confirm` in the request.
 - **Nothing is overwritten silently.** Copy, move, rename, extract and restore pick a free name unless you choose *Replace*, and Replace keeps the old item in the Recycle Bin.
-- **System and personal folders are protected.** The operating system folders (for example `/usr`, `C:\Windows`), your home folder and the standard folders inside it (Documents, Downloads and so on) cannot be moved, renamed or deleted; their contents can be changed. This is enforced by the server, not just hidden buttons. The Recycle Bin's own folder is protected too.
+- **System and personal folders are protected.** The operating system folders (for example `/usr`, `C:\Windows`), your home folder and the standard folders inside it (Documents, Downloads and so on) cannot be moved, renamed or deleted; their contents can be changed. This is enforced by the server, not just hidden buttons. The Recycle Bin's own folder is protected too. Burying in the [graveyard](#graveyard-rip) obeys the same rules and also refuses the graveyard itself and any folder that contains it.
+- **Permissions are changed carefully.** Changing who may read, write or run something ([Change permissions](#change-permissions)) is previewed first, refuses system folders and the Recycle Bin, never follows or changes links, asks for confirmation for risky results (decided by the server, not the page), and every change can be undone.
 - **Helper programs never see a shell.** Every conversion is a program plus a list of arguments, so a file called `$(rm -rf ~).png` or `; touch x` is just a name. Names that ImageMagick would read as instructions (`[`, `]`, `*`, `%`, `:`) are handled by giving it a temporary safe name. Installing needs a confirmation and only runs the fixed command for that tool.
 - **Programs ask first.** Opening an application or installer (for example `.exe`, `.msi`, `.app`, `.jar`; see `fmPaths.ts` for the full list) asks "Run this program?" with *Cancel* selected.
 - **Zip files are checked.** Entries that would be written outside the new folder (`../x`, absolute paths, drive letters), links, encrypted or ZIP64 archives, wrong sizes or checksums are refused, and a failed extract removes the folder it started.
@@ -452,8 +626,13 @@ Most windows and tools show information in blocks: a group in *Properties* or *M
 |---|---|
 | Temporary copies while ImageMagick works | a `fm-magick-…` folder in the system temp folder, removed when each file is done |
 | Settings (favorites, recent folders, view, sort, theme, which window view, split direction and size, sidebar, Focus) | `~/.bun_rad_studio/file_manager.json` (readable only by you) |
+| The window's size and position, and how it opens | `~/.bun_rad_studio/file_manager_window.json` (readable only by you) |
 | The Recycle Bin | `~/.bun_rad_studio/file_manager_trash/` |
+| The Rip graveyard (shared with Rip Studio) | `~/.local/share/rip/graveyard/`, or the folder in the `GRAVEYARD` environment variable |
 | Dev tab snapshots of code statistics (up to 50) | `~/.bun_rad_studio/file_manager_dev_snapshots.json` (readable only by you) |
+| Database connections (SQLite, MySQL / MariaDB, PostgreSQL; the same file the Database Workbench uses) and Redis connections | `~/.bun_rad_studio/connections.json` and `connections_redis.json` (readable only by you; **no passwords**: those are in your computer's keychain) |
+| Databases settings: engine defaults, environment switches, detection choices, which connection came from where | `~/.bun_rad_studio/file_manager_databases.json` (readable only by you) |
+| Files a studio writes (exports, uploads) | `~/.bun_rad_studio/db_studios/files/` (the folder studios run in) |
 
 The Recycle Bin is the app's **own**, not the operating system's Trash or Recycle Bin: items deleted here do not appear in Finder, Explorer or your desktop's trash, and an item on another disk is copied into this folder (so deleting a large file on a USB drive takes time and uses space here). Emptying the bin frees that space.
 
@@ -467,6 +646,8 @@ Checked on **macOS** only, with a sandbox home folder so no real files were touc
 - The **terminal** in a real browser: opens in the current folder, runs commands and shows colours, Ctrl+` toggles it (also from inside it), the shell survives hiding and showing, **Go to this folder** with a folder named `it's a $HOME "test"`, **Restart**, `exit` then Enter, resizing by drag and by keyboard, no console or CSP errors. Real shells over the WebSocket and the limits are covered by tests.
 - The terminal in the **real native macOS window** (WebKit): Ctrl+` opens it in the folder on screen and a typed command ran. (A first attempt showed that focus set during the shortcut did not stick in the native window, so the keystrokes went to the file list; the panel now also refocuses after layout.) **Convert and process** on macOS with the real Homebrew `ffmpeg-full`, `imagemagick-full` and `pandoc`: every action (32) on real pictures, a video, a sound file and a Markdown file; a picture named `weird [name] 100%.png`; a broken video (the plain-language failure, no leftover file); the dialog, tray and "new files are selected" in a browser; and the "no tools, no Homebrew" screen. Installing was tested only with a stand-in `brew`, never against the real network.
 - The real native window opens, shows the page and shuts its server down when the window's process ends.
+- The **Graveyard** (see [Graveyard (Rip)](#graveyard-rip)): `tests/file_manager_graveyard.test.ts` (the server, real files and a private graveyard folder, including copies "between disks" forced through a test hook, an interrupted copy, a cancelled copy, a damaged record file, 6,000-item lists, and the real `rip` 0.9.7 sharing a folder when it is installed) and `tests/file_manager_graveyard_page.test.ts` (the tab, the right-click item, the shortcut, Undo and the Delete setting in a fake browser). Both also passed as root on Linux (aarch64, in a container; the `rip` tests are skipped there). In a real browser on macOS: several files, a folder and a link were buried from the right-click menu, one was restored and one deleted for good from the tab, Undo of a restore buried it again, and each step was compared with the folder on disk and with `bun run cli:rip --seance --all`, which read the same list.
+- The **Subdomains** tab (see [Subdomains (Subfinder)](#subdomains-subfinder)): `tests/file_manager_subdomains.test.ts` and `tests/file_manager_subdomains_page.test.ts` (no network: fetch, DNS, HTTP and TCP are replaced; domain-validation fuzzing, hostile source data, per-source failure isolation, cancellation, caps and rate limits on a fake clock, wildcard DNS, redirect limits, refusal of private, loopback and rebinding addresses, stand-in `subfinder` programs, CSV/Markdown safety, the history file, the HTTP operations, and the page in a fake browser). A real run against `example.com` with the page in a real browser (once, passive only) showed the page and Network-tab hand-off working; **crt.sh** answered (6 hosts) while HackerTarget (daily limit reached), AlienVault OTX (HTTP 429) and Anubis (now behind a Cloudflare check that blocks scripts) each showed their own plain error without failing the run, and the real `subfinder` 2.17.0 gave about 25,000 mostly meaningless `example.com` names in a direct trial, which the result cap handles. No active step (DNS, web or port probing) was run against a real domain; the real HTTP client was tried once each against `example.com` (status 200, title read), and against `self-signed.badssl.com` and `wrong.host.badssl.com`, two sites made for testing: with verification on both are refused as "certificate isn't trusted", with *Accept untrusted HTTPS certificates* both answer.
 
 **Not verified:** installing for real on any system (a stand-in package manager was used), anything on Windows (winget, Scoop and `.cmd` programs) and on Linux (apt, dnf, pacman, Linuxbrew), PDF output from pandoc (no PDF engine here), HEIC and AVIF input, long videos; the terminal on **Linux** (it uses the same code, but was only run on macOS), and it cannot exist on Windows yet; vim, ssh and other full-screen programs inside the terminal; the native window on **Windows and Linux** (on macOS the terminal was checked in it); the Windows commands used to open a file (`rundll32 url.dll,FileProtocolHandler`) and *Show in Explorer* (`explorer.exe /select,`); Linux `xdg-open`; Windows drive letters and long paths. The backend tests do run in the experimental Linux/Windows CI job, but the project as a whole is not supported on Windows (see [Testing](../testing/index.md#other-platforms)). A screen reader was not used.
 
@@ -480,7 +661,7 @@ Checked on **macOS** only, with a sandbox home folder so no real files were touc
 - The terminal does not exist on Windows (no pseudo-terminal there from Bun) and is not tied to the Recycle Bin or the protected folders.
 - It reads its page from `resources/file_manager/` at run time, so a single compiled executable of it (`bun build --compile`) was not tried and would need that folder beside it.
 - Conversions use the helper programs' standard settings (JPG quality 90, MP4 CRF 23 and so on); there are no per-file options yet. Video conversion can take a long time and progress is per file, not per percent. PDF from documents needs a PDF engine. Batches are limited to 500 files.
-- Setting a file's permissions, tags and "Open with" a chosen program are not included.
+- Permissions: owner and group can't be changed (that needs administrator rights); Windows access rules (ACLs) and macOS/Linux extra access rules are neither shown nor edited; the Linux immutable attribute isn't offered. Links are skipped. "Everything inside" is capped at 100,000 items and 60 seconds, and the Locked/Hidden/Read-only settings need one helper-program call per item, so a very large run with them is slow. Setting a file's tags and "Open with" a chosen program are not included.
 - Zstandard: opened files are capped at 8 GiB unpacked, like gzip; `.zz` and 7-Zip-style `.zst` with dictionaries are not provided, and *List what is inside* for `.tar.zst` still needs bsdtar, 7-Zip or The Unarchiver. Fast checksums other than CRC32 and Adler-32 need the whole file in memory and stop at 256 MB. Password hashing is one job at a time (argon2 up to 1 GiB and 10 passes, bcrypt up to cost 16). *Open in your editor* can't confirm that the editor really started. *Compare data files* reads files up to 5 MB.
 - Dev tab: tokei is optional (see above). Scans stop at 200,000 files, 100,000 folders and 60 seconds; the built-in counter does not count files over 8 MB, has no embedded languages beyond `<script>`/`<style>` in markup and fenced code in Markdown, and its numbers differ slightly from tokei's (see "Where the two engines differ").
 
@@ -495,6 +676,8 @@ Checked on **macOS** only, with a sandbox home folder so no real files were touc
 | Convert and process | `fmTools.ts` (the 15 programs, detection folders, capability probing, install plans: pure), `fmToolDetect.ts` (finding programs and asking what they can do), `fmConvert.ts` (plan, preview, jobs), `fmConvCatalog.ts` with `fmConvMedia.ts`, `fmConvDocs.ts`, `fmConvBuiltinDefs.ts` (every action and its exact command), `fmConvOptions.ts` (option checks), the built-in converters `fmConvData.ts`, `fmConvMarkup.ts`, `fmConvFormats.ts`, `fmConvText.ts`, `fmConvSheet.ts`, `fmConvArchive.ts`, `fmConvZip.ts` run by `fmConvBuiltin.ts` in a worker (`fmConvWorker.ts`, `fmConvRun.ts`), `fmConvExec.ts` (temporary folders, safe publishing, size limits), `fmBatch.ts` (installs), `fmJobs.ts` (job runner), `ui/tools.js`, `ui/convert.js`, `ui/convertopts.js`, `ui/convertdata.js`, and `scripts/install_media_tools.ts` |
 | Dev tab | Server, all `dev/…` operations: `fmDevOps.ts` (the API), `fmDevScan.ts` (engine choice, the built-in counter over a folder), `fmDevCount.ts` + `fmDevLangs.ts` (counting a text; the language table), `fmDevTokei.ts` (the real tokei), `fmDevWalk.ts` + `fmDevIgnore.ts` + `fmDevRead.ts` (the safe walk, `.gitignore` rules, no-follow reads), `fmDevJobs.ts` (jobs polled with `since`, cancel), `fmDevProject.ts` + `fmDevManifest.ts`, `fmDevGit.ts` (uses `fmCodeGit.ts`'s runner), `fmDevDisk.ts`, `fmDevTodo.ts`, `fmDevEnv.ts`, `fmDevStore.ts` (snapshots), `fmDevExport.ts`. Page: `ui/dev.js` (frame and tabs) with `devStats.js`, `devStatsFiles.js`, `devStatsSnap.js`, `devProject.js`, `devGit.js`, `devDisk.js`, `devDupes.js`, `devTodo.js`, `devEnv.js`, `devCore.js` (jobs, tables), `devChart.js` (SVG), `devActions.js`, `dev.css`; tests `tests/file_manager_dev.test.ts` and `tests/file_manager_dev_page.test.ts` |
 | More info | Server, all `info/…` operations: `fmInfoOps.ts` (the API), `fmInfoCommon.ts` (rows, safe reading, running helper programs), `fmInfoFile.ts` (general facts, macOS and Linux extras), `fmInfoImage.ts` with `fmInfoImage2.ts`, `fmInfoPng.ts`, `fmInfoJpeg.ts`, `fmInfoSvg.ts`, `fmInfoExif.ts` + `fmInfoTables.ts`, `fmInfoMeta.ts` (ICC and XMP), `fmInfoStrip.ts` (the lossless cleaner), `fmInfoImageOps.ts` (picture report, saving, map link), `fmInfoExiftool.ts`, `fmInfoMedia.ts` + `fmInfoMediaRows.ts` + `fmInfoAudio.ts` + `fmInfoVideo.ts`, `fmInfoDoc.ts` + `fmInfoPdf.ts` + `fmInfoZipDoc.ts` + `fmInfoBinary.ts` + `fmInfoText.ts`, `fmInfoFolder.ts`, `fmInfoTasks.ts` (cancellable hash and folder jobs). Page: `ui/fileinfo.js` (the window) with `fileinfoRender.js`, `fileinfoReport.js`, `fileinfoHash.js`, `fileinfoPalette.js`, `fileinfoPrivacy.js`, `fileinfoPhoto.js` (the Details panel strip) and `fileinfo.css`; tests `tests/file_manager_info_*.test.ts` (with real byte-accurate fixtures built in `file_manager_info_fixtures.ts`) |
+| Graveyard (Rip) | Server, all `grave/…` operations: `fmGraveyardOps.ts` (the API and the jobs), `fmGraveyard.ts` (bury, restore, empty), `fmGraveyardMove.ts` (rename, or copy-check-remove between disks), `fmGraveyardStore.ts` (reading and changing the records, queries, statistics), `fmGraveyardCheck.ts` (Verify, Repair, preview), `fmGraveyardHooks.ts` (test seams: `graveyardDir` and `graveyardHooks` in the context). They build on `applications/rip_engine.ts`, the engine Rip Studio uses. Page: `ui/graveyard.js` (the tab), `graveList.js`, `gravePreview.js`, `graveActions.js`, `graveVerify.js`, `graveBury.js` (right-click, shortcut, Delete setting), `grave.css` |
+| Permissions | Server, `perms/get`, `perms/plan`, `perms/apply`, `perms/undo`, `perms/progress`, `perms/cancel`: `fmPermsOps.ts` (the API; long runs go through a job hub of their own), `fmPerms.ts` (reading, the scan that both the preview and the change use, applying, Undo), `fmPermsModel.ts` (the chmod-style text parser, mode arithmetic, which changes are risky), `fmPermsSys.ts` (the replaceable file system, program runner, user id and limits; Locked, Hidden and Read-only through `chflags`/`attrib`). Page: `ui/permsPanel.js` (the section of Properties), `ui/permsModel.js`, `ui/permsQuick.js` (right-click items), `ui/perms.css` |
 | Terminal | `src/features/filemanager/fmTerminal.ts` (shells on a PTY), the `/api/terminal` WebSocket in `fmServer.ts`, `ui/terminal.js`, and the vendored library in `resources/file_manager/vendor/` (see its `README.md` for the two small changes made to it) |
 | Views | `ui/workspace.js` (the view switcher, Split divider, Focus, sidebar fold; it plugs into `power.js` through `setPowerHost`), `ui/home.js` + `ui/homeTiles.js` (the Home page; other modules add tiles with `registerHomeTile()`, and every tool registered with `registerPowerTab()` gets one automatically), `ui/dual.js` (the right-hand pane), `ui/chrome.js` (toolbar "More" menu, status-bar view buttons), `ui/views.css`; the saved keys (`workspace`, `startWith`, `splitSide`, `splitSize`, `sidebarCollapsed`, `focusMode`, `activeTool`, `splitTool`, `dualPath`) are validated in `fmSettings.ts` |
 | Tests | `tests/file_manager_*.test.ts` (`file_manager_views.test.ts` runs the whole page, views included, in a fake browser) |

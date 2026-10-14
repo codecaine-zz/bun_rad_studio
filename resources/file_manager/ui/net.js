@@ -4,8 +4,8 @@
 import { announce, clear, h } from "./dom.js";
 import { ApiError, call } from "./api.js";
 import { toast } from "./menus.js";
-import { registerPowerTab } from "./power.js";
-import { currentPath } from "./state.js";
+import { registerPowerTab, openPower } from "./power.js";
+import { currentPath, on } from "./state.js";
 import { buildLayout } from "./netform.js";
 import * as view from "./netview.js";
 
@@ -340,9 +340,15 @@ function mount(root) {
   }).catch((err) => log("warn", err instanceof ApiError ? err.message : "Couldn't load the quick targets."));
 
   return {
-    show() {
+    show(opts) {
       S.hidden = false;
       if (!S.folderTouched && !ui.folder.value) ui.folder.value = currentPath();
+      // The Subdomains tab hands a host over here; it is only put in the box, and checked like anything typed.
+      if (typeof opts?.host === "string" && opts.host) {
+        ui.host.value = opts.host.slice(0, 300);
+        ui.port.value = "";
+        log("info", `Target set to ${ui.host.value} (from the Subdomains tab).`);
+      }
       ui.host.focus();
     },
     hide() {
@@ -360,3 +366,6 @@ registerPowerTab({
   id: "net", label: "Network", icon: "📡", tip: "Ports, DNS, TLS certificates and connection checks",
   mount,
 });
+
+// Other tabs (Subdomains) ask for a host to be looked at here without importing this file.
+on("open-in-network", (detail) => openPower("net", { host: detail?.host }));

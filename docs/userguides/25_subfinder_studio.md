@@ -37,3 +37,6 @@ bun run cli:subfinder example.com --probe-http
 - **Multi-Source Subdomain Enumeration**: Extracts subdomains without sending intrusive traffic to target networks.
 - **HTTP / HTTPS Live Probing**: Checks status codes (200, 301, 403, 500) and page titles.
 - **Export Formats**: One-click CSV, TXT, or JSON export of valid targets.
+
+## 🗂️ Also inside the Codecaine File Manager
+The same engine is available in the [Codecaine File Manager](43_file_manager.md#subdomains-subfinder) as **Find & more → Subdomains** (🔭): the same four passive sources plus the real `subfinder` program when it is installed, live progress per source, a filterable results table, Copy, Export, a Markdown report, a short history, and a hand-off of any host to the File Manager's Network tab. It adds a responsible-use confirmation before any DNS, HTTP or port step, refuses to probe private or internal addresses unless you allow it, and caps results and concurrency. This desktop app, the CLI and their tests are unchanged.

@@ -9,7 +9,10 @@ import * as nodePath from "path";
 import { defaultEditorHooks } from "./fmEditorHooks";
 import { createJobHub, type JobHub } from "./fmJobs";
 import { FmError, isSameOrInside, platformName, protectedReason, type Platform } from "./fmPaths";
+import type { DatabasesHooks } from "./fmDbHooks";
 import type { SecretsHooks } from "./fmSecretsHooks";
+import type { GraveyardHooks } from "./fmGraveyardHooks";
+import type { SubdomainsHooks } from "./fmSubdomainsHooks";
 
 /** What "Open in editor" needs from the computer, replaceable so tests never start a real editor. */
 export interface EditorHooks {
@@ -37,6 +40,14 @@ export interface FmContext {
   editor: EditorHooks;
   /** Test replacements for the Secrets feature's clock, network, clipboard and key-derivation cost. */
   secrets?: Partial<SecretsHooks>;
+  /** Test replacements for the Databases feature's keychain, child programs, clock and environment. */
+  databases?: Partial<DatabasesHooks>;
+  /** The Rip graveyard folder. Unset means the Rip engine's own choice (`GRAVEYARD`, else ~/.local/share/rip/graveyard). For tests. */
+  graveyardDir?: string;
+  /** Test replacements for the graveyard's "same disk?" check and a hook inside the copy loop. */
+  graveyardHooks?: Partial<GraveyardHooks>;
+  /** Test replacements for the Subdomains tool's fetch, DNS, HTTP and TCP calls, clock and program start. */
+  subdomains?: Partial<SubdomainsHooks>;
   /** Background work: conversions and installs. */
   jobs: JobHub;
   /** Cleanup that must run when the server stops (watchers, child processes, timers). Add with `ctx.disposers.push(fn)`. */
@@ -54,6 +65,10 @@ export interface FmContextOptions {
   toolDirs?: string[];
   editor?: Partial<EditorHooks>;
   secrets?: Partial<SecretsHooks>;
+  databases?: Partial<DatabasesHooks>;
+  graveyardDir?: string;
+  graveyardHooks?: Partial<GraveyardHooks>;
+  subdomains?: Partial<SubdomainsHooks>;
 }
 
 export function createContext(options: FmContextOptions = {}): FmContext {
@@ -70,6 +85,10 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     editor: { ...defaultEditorHooks({ platform, home, toolDirs: options.toolDirs }), ...options.editor },
     jobs: createJobHub(),
     secrets: options.secrets,
+    databases: options.databases,
+    graveyardDir: options.graveyardDir ? nodePath.resolve(options.graveyardDir) : undefined,
+    graveyardHooks: options.graveyardHooks,
+    subdomains: options.subdomains,
     disposers: [],
   };
 }

@@ -84,6 +84,11 @@ export interface KeySummary {
 // Redis Manager
 // -------------------------------------------------------------------------------------------------
 
+/** The address as shown to the page: a password in it is hidden (the page only displays this, and may be framed by the File Manager). */
+export function maskUrlPassword(url: string): string {
+  return url.replace(/^([A-Za-z][A-Za-z0-9+.-]*:\/\/[^:/@?#\s]*:)[^@/?#\s]*@/, "$1••••@");
+}
+
 export class RedisManager {
   public client: StudioRedisClient;
   public subClient: RedisClient | null = null;
@@ -175,7 +180,7 @@ export class RedisManager {
 
       return {
         connected: true,
-        url: this.activeUrl,
+        url: maskUrlPassword(this.activeUrl),
         activeDb: this.activeDb,
         totalKeys: dbsize,
         usedMemoryHuman: info.used_memory_human || "0B",
@@ -198,7 +203,7 @@ export class RedisManager {
     } catch (err: any) {
       return {
         connected: false,
-        url: this.activeUrl,
+        url: maskUrlPassword(this.activeUrl),
         activeDb: this.activeDb,
         totalKeys: 0,
         usedMemoryHuman: "0B",

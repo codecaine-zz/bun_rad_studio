@@ -5,6 +5,8 @@ Version: 1.0.0  •  Engine: Native Bun SQL (PostgreSQL Subsystem)  •  Depende
 Launchers: [Desktop GUI: bun run app:postgres]  •  [Alias: bun run app:pg]  •  [Direct: bun run applications/postgres_studio.ts]
 ```
 
+> **Open it from the File Manager.** PostgreSQL Studio can also be opened inside the Codecaine File Manager: the File Manager's **Databases** tool can keep PostgreSQL connections (the password in the keychain) and open this studio for one. A saved connection replaces environment variables ([how](43_file_manager.md#databases-databases-tab), [order of precedence](../databases/index.md#connection-settings-and-environment-variables)).
+
 ---
 
 ## 🌟 Executive Overview

@@ -25,6 +25,7 @@ import {
   getWindowShortcutsScript,
 } from "../index.ts";
 import { startSqliteStudioServer } from "./sqlite_studio_server.ts";
+import { watchParentProcess } from "../src/parentWatch";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./sqlite_studio_crud.ts";
 import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, MACRO_SCRIPT } from "./sqlite_studio_macros.ts";
 
@@ -6553,6 +6554,7 @@ if (process.argv.includes("--server")) {
     initialDbPath: initialDb,
   });
   console.log(`READY:${srv.port}`);
+  watchParentProcess();
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const initialDb = process.argv[2] || ":memory:";
