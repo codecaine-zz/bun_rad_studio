@@ -117,18 +117,18 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("6. Master codecaine CLI reports version and help", async () => {
-    const verRes = await runSubprocess(["bun", suiteCli, "--version"]);
+    const verRes = await runSubprocess([process.execPath, suiteCli, "--version"]);
     expect(verRes.exitCode).toBe(0);
     expect(verRes.output).toContain("Codecaine Utility Suite v1.0.0");
 
-    const helpRes = await runSubprocess(["bun", suiteCli, "--help"]);
+    const helpRes = await runSubprocess([process.execPath, suiteCli, "--help"]);
     expect(helpRes.exitCode).toBe(0);
     expect(helpRes.output).toContain("USAGE:");
     expect(helpRes.output).toContain("codecaine run <name>");
   });
 
   it("7. Master codecaine CLI lists all tools with category and JSON options", async () => {
-    const jsonRes = await runSubprocess(["bun", suiteCli, "list", "--json"]);
+    const jsonRes = await runSubprocess([process.execPath, suiteCli, "list", "--json"]);
     expect(jsonRes.exitCode).toBe(0);
     const data = JSON.parse(jsonRes.stdout);
     expect(data.suite).toBe("Codecaine Utility Suite");
@@ -137,7 +137,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     expect(data.kpis.cliTools).toBeGreaterThanOrEqual(70);
     expect(data.tools.length).toBeGreaterThanOrEqual(160);
 
-    const listRes = await runSubprocess(["bun", suiteCli, "list", "--cli"]);
+    const listRes = await runSubprocess([process.execPath, suiteCli, "list", "--cli"]);
     expect(listRes.exitCode).toBe(0);
     expect(listRes.output).toContain("Database CLI");
   });
@@ -159,19 +159,19 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("9. Master codecaine CLI searches tools by keyword", async () => {
-    const searchRes = await runSubprocess(["bun", suiteCli, "search", "sqlite"]);
+    const searchRes = await runSubprocess([process.execPath, suiteCli, "search", "sqlite"]);
     expect(searchRes.exitCode).toBe(0);
     expect(searchRes.output).toContain("Search results for \"sqlite\"");
     expect(searchRes.output).toContain("SQLite Studio Pro");
   });
 
   it("10. Master codecaine CLI provides info and Homebrew status", async () => {
-    const infoRes = await runSubprocess(["bun", suiteCli, "info"]);
+    const infoRes = await runSubprocess([process.execPath, suiteCli, "info"]);
     expect(infoRes.exitCode).toBe(0);
     expect(infoRes.output).toContain("Codecaine Utility Suite:");
     expect(infoRes.output).toContain("System Environment:");
 
-    const brewRes = await runSubprocess(["bun", suiteCli, "brew", "status"]);
+    const brewRes = await runSubprocess([process.execPath, suiteCli, "brew", "status"]);
     expect(brewRes.exitCode).toBe(0);
     expect(brewRes.output).toContain("Homebrew Integration Status:");
   });

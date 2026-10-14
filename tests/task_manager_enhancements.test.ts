@@ -351,7 +351,7 @@ describe("Task Manager GUI against real processes", () => {
   });
 
   test("kill by port only targets the listener, never a connected client", async () => {
-    const server = Bun.spawn(["bun", "-e", "const s=Bun.serve({port:0,fetch:()=>new Response('x')});console.log(s.port);setInterval(()=>{},1000)"], { stdout: "pipe", stderr: "ignore" });
+    const server = Bun.spawn([process.execPath, "-e", "const s=Bun.serve({port:0,fetch:()=>new Response('x')});console.log(s.port);setInterval(()=>{},1000)"], { stdout: "pipe", stderr: "ignore" });
     spawned.push(server);
     const reader = server.stdout.getReader();
     const first = await reader.read();

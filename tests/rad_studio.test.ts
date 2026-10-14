@@ -61,7 +61,7 @@ describe("⚡ RAD Utilities Studio Pro & CLI Specification Suite", () => {
 
   it("4. Verifies RAD CLI runs with --list and outputs all 6 categories", async () => {
     const cliScript = resolve(process.cwd(), "cli_apps/rad_cli.ts");
-    const proc = Bun.spawn(["bun", cliScript, "--list"], {
+    const proc = Bun.spawn([process.execPath, cliScript, "--list"], {
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -84,7 +84,7 @@ describe("⚡ RAD Utilities Studio Pro & CLI Specification Suite", () => {
 
   it("5. Verifies RAD CLI runs single module demo with --module", async () => {
     const cliScript = resolve(process.cwd(), "cli_apps/rad_cli.ts");
-    const proc = Bun.spawn(["bun", cliScript, "--module", "arrutils"], {
+    const proc = Bun.spawn([process.execPath, cliScript, "--module", "arrutils"], {
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -101,7 +101,7 @@ describe("⚡ RAD Utilities Studio Pro & CLI Specification Suite", () => {
 
   it("6. Verifies RAD CLI outputs JSON catalog with --json", async () => {
     const cliScript = resolve(process.cwd(), "cli_apps/rad_cli.ts");
-    const proc = Bun.spawn(["bun", cliScript, "--json"], {
+    const proc = Bun.spawn([process.execPath, cliScript, "--json"], {
       stdout: "pipe",
       stderr: "pipe",
     });

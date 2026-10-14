@@ -190,7 +190,7 @@ describe("launcher backend in an isolated project", () => {
   });
 
   test("externally started instances are detected; look-alike processes are not", async () => {
-    const real = Bun.spawn(["bun", "run", path.join(proj, "applications/zz_ext_studio.ts")], { stdout: "ignore", stderr: "ignore" });
+    const real = Bun.spawn([process.execPath, "run", path.join(proj, "applications/zz_ext_studio.ts")], { stdout: "ignore", stderr: "ignore" });
     spawned.push(real);
     // a shell whose $0 mentions the script must NOT count as running
     const decoy = Bun.spawn(["sh", "-c", "sleep 300", "./applications/zz_beta_studio.ts"], { stdout: "ignore", stderr: "ignore" });

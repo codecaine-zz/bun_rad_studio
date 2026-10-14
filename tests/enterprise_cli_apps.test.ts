@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 describe("⚡ Enterprise 16-Application CLI Suite Specification", () => {
   const runCli = async (script: string, args: string[] = []): Promise<{ stdout: string; stderr: string; output: string; exitCode: number }> => {
     const fullScript = resolve(process.cwd(), script);
-    const proc = Bun.spawn(["bun", fullScript, ...args], {
+    const proc = Bun.spawn([process.execPath, fullScript, ...args], {
       stdout: "pipe",
       stderr: "pipe",
     });

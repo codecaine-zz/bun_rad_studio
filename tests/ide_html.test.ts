@@ -28,7 +28,7 @@ describe("Designer page loading (regression for D-001)", () => {
         const script = `import { getIdeHtml } from ${JSON.stringify(join(REPO_ROOT, "index.ts"))};
 const h = getIdeHtml();
 console.log(h.includes("let formSpec =") && h.length > 100000 ? "OK" : "FALLBACK");`;
-        const result = Bun.spawnSync(["bun", "-e", script], { cwd: "/tmp" });
+        const result = Bun.spawnSync([process.execPath, "-e", script], { cwd: tmpdir() });
         expect(result.stderr.toString()).toBe("");
         expect(result.stdout.toString().trim()).toBe("OK");
     });
@@ -854,7 +854,7 @@ export class Webview {
             const script = `await import(${JSON.stringify(join(dir, "index.ts"))});
 if (globalThis.__wv.binds.doIt) globalThis.__wv.binds.doIt("x");
 console.log(JSON.stringify({ title: globalThis.__wv.title, size: globalThis.__wv.size, pwned: Object.keys(globalThis).filter((k) => k.startsWith("PWNED")) }));`;
-            const r = Bun.spawnSync(["bun", "-e", script], { cwd: dir, stdout: "pipe", stderr: "pipe" });
+            const r = Bun.spawnSync([process.execPath, "-e", script], { cwd: dir, stdout: "pipe", stderr: "pipe" });
             const line = r.stdout.toString().split("\n").find((l) => l.startsWith("{"));
             expect(line, r.stdout.toString() + r.stderr.toString()).toBeDefined();
             const seen = JSON.parse(line!);
@@ -957,7 +957,7 @@ describe("Run: the live preview script", () => {
         await Bun.write(join(fake, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
         await Bun.write(join(fake, "index.js"), `export const SizeHint = { NONE: 0 };
 export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("RUNNING:" + this.title + ":" + this.size.width + "x" + this.size.height); } }`);
-        const r = Bun.spawnSync(["bun", "run", join(dir, "preview.ts")], { cwd, stdout: "pipe", stderr: "pipe" });
+        const r = Bun.spawnSync([process.execPath, "run", join(dir, "preview.ts")], { cwd, stdout: "pipe", stderr: "pipe" });
         expect(r.stdout.toString() + r.stderr.toString()).toContain("RUNNING:Real start - Live Preview:420x310");
     });
 });

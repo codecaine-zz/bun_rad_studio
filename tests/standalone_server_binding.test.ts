@@ -37,7 +37,7 @@ describe("Headless --server mode listens on the loopback interface only", () => 
   for (const app of APPS) {
     test.skipIf(!lan)(`${app} is reachable on 127.0.0.1 but not on the LAN address`, async () => {
       const port = 20000 + Math.floor(Math.random() * 20000);
-      const proc = Bun.spawn(["bun", join(import.meta.dir, "..", "applications", `${app}.ts`), "--server"], {
+      const proc = Bun.spawn([process.execPath, join(import.meta.dir, "..", "applications", `${app}.ts`), "--server"], {
         env: { ...process.env, PORT: String(port) },
         stdout: "pipe",
         stderr: "ignore",

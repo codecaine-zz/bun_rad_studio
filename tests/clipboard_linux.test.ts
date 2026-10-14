@@ -25,7 +25,7 @@ function fakeClipboardTools() {
 }
 
 describe("writeClipboardSync on Linux", () => {
-  test("does not wait for the clipboard-serving background process that xclip leaves behind", () => {
+  test.skipIf(process.platform === "win32")("does not wait for the clipboard-serving background process that xclip leaves behind", () => {
     const { dir, sink } = fakeClipboardTools();
     // A fresh process, started with the fakes already on PATH and pretending to be Linux.
     const script = `

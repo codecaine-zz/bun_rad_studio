@@ -184,7 +184,8 @@ if (import.meta.main) {
     const path = join(ROOT, rel);
     const current = existsSync(path) ? readFileSync(path, "utf8") : "";
     if (check) {
-      if (current !== text) {
+      // A Windows checkout can convert LF to CRLF; that is not a stale page.
+      if (current.replace(/\r\n/g, "\n") !== text) {
         console.log(`STALE ${rel} (run: bun run docs:build)`);
         stale++;
       }

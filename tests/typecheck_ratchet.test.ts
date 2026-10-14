@@ -58,7 +58,7 @@ describe("typecheck script on a disposable project", () => {
   const baseline = join(dir, "baseline.json");
   const run = (...extra: string[]) => {
     const r = Bun.spawnSync(
-      ["bun", "scripts/typecheck_ratchet.ts", "--project", join(dir, "tsconfig.json"), "--baseline", baseline, ...extra],
+      [process.execPath, "scripts/typecheck_ratchet.ts", "--project", join(dir, "tsconfig.json"), "--baseline", baseline, ...extra],
       { cwd: ROOT, stdout: "pipe", stderr: "pipe" },
     );
     return { code: r.exitCode, text: r.stdout.toString() + r.stderr.toString() };
@@ -109,7 +109,7 @@ describe("typecheck script on a disposable project", () => {
   });
 
   test("a project that cannot be found is reported as a tsc failure", () => {
-    const r = Bun.spawnSync(["bun", "scripts/typecheck_ratchet.ts", "--project", join(dir, "missing.json"), "--baseline", baseline], {
+    const r = Bun.spawnSync([process.execPath, "scripts/typecheck_ratchet.ts", "--project", join(dir, "missing.json"), "--baseline", baseline], {
       cwd: ROOT,
       stdout: "pipe",
       stderr: "pipe",

@@ -105,12 +105,12 @@ describe("Generated programs run on native SQLite", () => {
     const file = join(work, "demo.ts");
     writeFileSync(file, g.code);
     const db = join(work, "bun.db");
-    const ok = run(["bun", "run", file, "--db", db, "--enterItemName", NASTY]);
+    const ok = run([process.execPath, "run", file, "--db", db, "--enterItemName", NASTY]);
     expect(ok.err).toBe("");
     expect(ok.code).toBe(0);
     expect(readDb(db, "SELECT name FROM items ORDER BY id").map((r) => r.name)).toEqual(["O'Brien \\ $x", "b", NASTY]);
     expect(readDb(db, "SELECT COUNT(*) c FROM items_copy")[0].c).toBe(3);
-    expect(run(["bun", "run", file, "--db", db]).code).toBe(2);
+    expect(run([process.execPath, "run", file, "--db", db]).code).toBe(2);
   });
 
   it.skipIf(!have("v"))("V: compiles and runs, binds user text, commits atomically", () => {

@@ -29,7 +29,7 @@ describe("every application module loads", () => {
   test("importing each one in a fresh process neither throws nor opens a window", async () => {
     const failures: string[] = [];
     await inBatches(appFiles, 8, async (file) => {
-      const proc = Bun.spawn(["bun", "-e", `await import(${JSON.stringify(join(APPS_DIR, file))}); console.log("IMPORTED");`], {
+      const proc = Bun.spawn([process.execPath, "-e", `await import(${JSON.stringify(join(APPS_DIR, file))}); console.log("IMPORTED");`], {
         cwd: ROOT,
         stdout: "pipe",
         stderr: "pipe",
@@ -52,7 +52,7 @@ describe("headless mode (--server)", () => {
   test("each starts, announces a port and serves its page", async () => {
     const failures: string[] = [];
     await inBatches(headless, 6, async (file) => {
-      const proc = Bun.spawn(["bun", join(APPS_DIR, file), "--server", "--port", "0"], {
+      const proc = Bun.spawn([process.execPath, join(APPS_DIR, file), "--server", "--port", "0"], {
         cwd: ROOT,
         env: { ...process.env, SERVER_MODE: "1", PORT: "0" },
         stdout: "pipe",
