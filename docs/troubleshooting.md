@@ -43,7 +43,7 @@ Look up what you see, find the likely cause and the safe next step. Rows marked 
 | After **Import** you want the old form back | | Press Cmd/Ctrl+Z (**seen**) |
 | Closing the designer lost your layout | Before 13 October 2026 nothing was saved. Now the latest form is autosaved: start the designer again and use **Restore** on the banner. If no banner appears, nothing had been autosaved (no controls, or the app could not write `~/.bun_rad_studio`) | Copy the **JSON** tab to a file next time; **Import** reads it back ([Data and files](reference/data-and-files.md)) |
 | **Export** created extra files like `index.ts.bak-2026-10-13T...` | You exported into a folder that already held changed files; they were kept for you ([D-022](documentation-maintenance/discrepancies.md#d-022)) | Compare, then delete the backups you do not need |
-| **Run** does nothing | The preview process failed to start | Run `bun .rad_preview/preview.ts` from the folder you started the designer in and read the error |
+| **Run** does nothing | The preview process failed to start or crashed | Read the status bar (it shows a failure the designer itself noticed) and then **`.rad_preview/preview.log`** in the folder you started the designer in: since 13 October 2026 the preview's output and a failure to start it are written there ([D-040](documentation-maintenance/discrepancies.md#d-040)). You can also run `bun .rad_preview/preview.ts` from that folder and read the error |
 | Exported app title or size looks wrong | A width or height that is not a positive number becomes 800 by 600 ([D-021](documentation-maintenance/discrepancies.md#d-021)) | Enter whole numbers |
 
 ## Files and data

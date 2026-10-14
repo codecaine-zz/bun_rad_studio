@@ -1,6 +1,6 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { join } from "path";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { JSDOM } from "jsdom";
 import { getIdeHtml, exportProjectHelper, runPreviewHelper, tsStringLiteral, safeDimension } from "../index.ts";
@@ -874,6 +874,101 @@ describe("Run: the live preview script", () => {
 export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("RUNNING:" + this.title + ":" + this.size.width + "x" + this.size.height); } }`);
         const r = Bun.spawnSync(["bun", "run", join(dir, "preview.ts")], { cwd, stdout: "pipe", stderr: "pipe" });
         expect(r.stdout.toString() + r.stderr.toString()).toContain("RUNNING:Real start - Live Preview:420x310");
+    });
+});
+
+describe("Run: output and failures are no longer lost", () => {
+    const dirs: string[] = [];
+    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+    const spec = JSON.stringify({ title: "Logged", width: 300, height: 200, controls: [] });
+    const waitFor = async (check: () => boolean, ms = 15000) => {
+        const end = Date.now() + ms;
+        while (Date.now() < end) {
+            if (check()) return true;
+            await new Promise((r) => setTimeout(r, 100));
+        }
+        return false;
+    };
+    const fresh = () => {
+        const cwd = mkdtempSync(join(tmpdir(), "rad-preview-log-"));
+        dirs.push(cwd);
+        return cwd;
+    };
+
+    test("the preview process's output is kept in .rad_preview/preview.log", async () => {
+        const cwd = fresh();
+        // Stand-in webview, in place before the process starts, so no window system is needed.
+        const fake = join(cwd, ".rad_preview", "node_modules", "webview-bun");
+        mkdirSync(fake, { recursive: true });
+        writeFileSync(join(fake, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
+        writeFileSync(join(fake, "index.js"), `export const SizeHint = { NONE: 0 };
+export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("PREVIEW OUTPUT " + this.title); console.error("PREVIEW ERROR LINE"); } }`);
+        const result = runPreviewHelper(spec, { cwd });
+        expect(result.success).toBe(true);
+        expect(result.logPath).toBe(join(cwd, ".rad_preview", "preview.log"));
+        expect(await waitFor(() => existsSync(result.logPath!) && readFileSync(result.logPath!, "utf-8").includes("PREVIEW ERROR LINE"))).toBe(true);
+        const log = readFileSync(result.logPath!, "utf-8");
+        expect(log).toContain("PREVIEW OUTPUT Logged - Live Preview");
+    });
+
+    test("a runtime that cannot be started is reported in the log and does not crash the caller", async () => {
+        const cwd = fresh();
+        const missing = join(cwd, "no-such-runtime");
+        let result: ReturnType<typeof runPreviewHelper> | undefined;
+        expect(() => { result = runPreviewHelper(spec, { cwd, bunBin: missing }); }).not.toThrow();
+        // Either spawn refused at once (success: false) or it reported asynchronously into the log.
+        if (result!.success) {
+            expect(await waitFor(() => existsSync(result!.logPath!) && readFileSync(result!.logPath!, "utf-8").includes("Could not start the preview"))).toBe(true);
+        } else {
+            expect(result!.error).toBeTruthy();
+        }
+    });
+
+    test("with start: false no log file is created", () => {
+        const cwd = fresh();
+        const result = runPreviewHelper(spec, { cwd, start: false });
+        expect(existsSync(result.logPath!)).toBe(false);
+    });
+
+    describe("the Run button reports what happened", () => {
+        const html = getIdeHtml();
+        const start = html.indexOf("function triggerRunForm()");
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        const src = html.slice(start, end + 1);
+        function run(runPreview: any) {
+            const status = { textContent: "" };
+            const sent: string[] = [];
+            const win: any = runPreview ? { runPreview: (json: string) => { sent.push(json); return runPreview(); } } : {};
+            new Function("window", "document", "formSpec", `${src}; triggerRunForm();`)(win, { getElementById: () => status }, { title: "T", controls: [] });
+            return { status, sent };
+        }
+        const tick = () => new Promise((r) => setTimeout(r, 10));
+
+        test("in a plain browser it says Run needs the desktop app", () => {
+            expect(run(null).status.textContent).toContain("needs the desktop app");
+        });
+        test("a failure from the backend is shown", async () => {
+            const r = run(async () => ({ success: false, error: "boom" }));
+            expect(r.status.textContent).toContain("Launching");
+            await tick();
+            expect(r.status.textContent).toBe("Preview failed: boom");
+        });
+        test("an error thrown by the call is shown", async () => {
+            const r = run(() => Promise.reject(new Error("bridge down")));
+            await tick();
+            expect(r.status.textContent).toBe("Preview failed: bridge down");
+        });
+        test("success points at the log and the form is sent as JSON", async () => {
+            const r = run(async () => ({ success: true }));
+            await tick();
+            expect(r.status.textContent).toContain(".rad_preview/preview.log");
+            expect(JSON.parse(r.sent[0]!)).toEqual({ title: "T", controls: [] });
+        });
     });
 });
 

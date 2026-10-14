@@ -43,6 +43,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-037 Library server helpers listened on every network interface (fixed, behaviour change)](#d-037)
 - [D-038 Frogger, Snake and Tetris only started from the repository root (fixed)](#d-038)
 - [D-039 The designer lost your form if it closed before you exported (autosave added)](#d-039)
+- [D-040 Run threw away the preview's output and ignored its own errors (fixed)](#d-040)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -404,3 +405,13 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Risk:** the draft can contain event scripts and any text typed into the form, stored unencrypted in your home folder (readable only by your user account). Anything that can write that file can make the designer offer a form with scripts; the confirmation above is the only guard, which matches the "layouts are code" model ([D-024](#d-024)).
 - **Verified:** 8 backend tests and 8 page tests (the page tests fail on the old page); the banner flow in a browser with a stand-in backend (hostile title shown as text, no save while the banner is open, one coalesced save after Restore, undo returns to the pre-restore form); the real app launched with a seeded draft under a temporary `HOME` ran 10 s without error and left the draft byte-identical.
 - **Not verified:** the banner and the autosave in the native window (no clicks were made there, so that `window.loadDraft` is visible to the page there is inferred from how `runPreview` and `exportProject` are bound); Windows and Linux; a form that grows near the 10 MB limit; saves lost if the app closes within 0.8 s of the last change.
+
+<a id="d-040"></a>
+## D-040: Run threw away the preview's output and ignored its own errors (fixed)
+
+- **Status:** Fixed on 13 October 2026 for the three cases below; a crash of the preview process **after** it starts is still only visible in the log, not in the designer.
+- **Observed (code reading):** `runPreviewHelper` started the preview with `stdio: "ignore"`, so anything the preview printed (including its own `Backend alert:` messages and any crash message) was discarded; it attached no `error` handler to the child process, so a failure to start it (for example a missing runtime) was an unhandled event; and the page's `triggerRunForm` ignored what `runPreview` returned, so a reported failure (`{ success: false, error }`) never reached the status bar, which stayed on "Launching live Bun preview window...". I did not try to reproduce a crash of the designer from the missing handler.
+- **Change:** the preview's output now goes to `.rad_preview/preview.log` (created only when a process is started); a failure to start it is appended to that log; `runPreviewHelper` also returns `logPath`. `triggerRunForm` shows "Preview failed: <error>" for a reported failure or a thrown error, says "Run needs the desktop app" in a plain browser, and otherwise says the window started and where the log is.
+- **Why not "wait and see if it crashed":** the first idea was to wait a moment and report an early exit in the status bar. `webview.run()` is a blocking call, and a `curl` to a game studio's own local server hung while that studio's window was open (observed, cause not confirmed), which suggests Bun's event loop does not tick meanwhile; if so, a timer inside a bound callback might never fire and Run could hang. That could not be checked without clicking in the native window, so it was not built.
+- **Verified:** tests in `tests/ide_html.test.ts` ("Run: output and failures are no longer lost"): a real preview process (with a stand-in webview) writes its stdout and stderr to the log; a nonexistent runtime does not throw and the log gets "Could not start the preview: ENOENT ..." (the error arrives asynchronously, after `runPreviewHelper` has already returned `success: true`); `start: false` creates no log; the four page outcomes. They fail on the old code (6 failures).
+- **Not verified:** the Run button in the native window (no clicks were made there); that a preview crash after start reaches the log in the native app; Windows and Linux.

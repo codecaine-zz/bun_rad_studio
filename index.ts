@@ -1,5 +1,5 @@
 import { SizeHint, Webview } from "webview-bun";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync, openSync, closeSync, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import { join, dirname } from "path";
 import { homedir } from "os";
@@ -1377,7 +1377,12 @@ wv.run();
  * Writes a live-preview window script for a form spec into `<cwd>/.rad_preview` and starts it in its own process
  * (the designer's Run button). `start: false` only writes the files, which is what the tests use.
  */
-export function runPreviewHelper(specJson: string, options: { cwd?: string; start?: boolean } = {}) {
+/**
+ * Writes the live preview into `<cwd>/.rad_preview` and starts it as its own process. The process's output goes to
+ * `.rad_preview/preview.log` (it used to be thrown away), and a failure to start it is written there too instead of
+ * surfacing as an unhandled error in the designer. `bunBin` exists so tests can simulate a missing runtime.
+ */
+export function runPreviewHelper(specJson: string, options: { cwd?: string; start?: boolean; bunBin?: string } = {}) {
     const cwd = options.cwd ?? process.cwd();
     try {
             const spec = JSON.parse(specJson);
@@ -1410,17 +1415,26 @@ wv.run();
             const previewTsPath = join(tempDir, "preview.ts");
             writeFileSync(previewTsPath, previewTs);
 
+            const logPath = join(tempDir, "preview.log");
             if (options.start !== false) {
-                const bunBin = process.execPath || "bun";
-                const proc = spawn(bunBin, ["run", previewTsPath], {
-                    cwd: cwd,
-                    stdio: "ignore",
-                    detached: true
-                });
-                proc.unref();
+                const bunBin = options.bunBin ?? (process.execPath || "bun");
+                const logFd = openSync(logPath, "w");
+                try {
+                    const proc = spawn(bunBin, ["run", previewTsPath], {
+                        cwd: cwd,
+                        stdio: ["ignore", logFd, logFd],
+                        detached: true
+                    });
+                    proc.on("error", (err) => {
+                        try { appendFileSync(logPath, `Could not start the preview: ${err.message}\n`); } catch { /* the log is best effort */ }
+                    });
+                    proc.unref();
+                } finally {
+                    closeSync(logFd);
+                }
             }
 
-        return { success: true, previewTsPath };
+        return { success: true, previewTsPath, logPath };
     } catch (err: any) {
         console.error("Preview failed:", err);
         return { success: false, error: err.message };
