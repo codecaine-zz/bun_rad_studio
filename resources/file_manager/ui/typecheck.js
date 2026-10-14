@@ -98,7 +98,7 @@ function wanted() {
 }
 
 async function checkPending() {
-  if (!typeWarningsOn() || inTrash()) return;
+  if (typeof document === "undefined" || !typeWarningsOn() || inTrash()) return; // a timer left over from a torn-down page
   const mine = generation;
   const todo = wanted();
   for (let i = 0; i < todo.length && mine === generation; i += BATCH) {
@@ -240,12 +240,33 @@ const explanation = (check) => [
   h("p", {}, h("strong", {}, "What to do: "), adviceOf(check)),
 ];
 
+/** Verdicts that are about the name rather than about what the file holds. */
+const NAME_NOTICES = new Set(["EMPTY_FILE", "TWO_ENDINGS"]);
+
+/**
+ * Right after a file is created or renamed: if its new name deserves a word (an empty .png, two endings, a name that
+ * doesn't match what is inside), say so at once instead of waiting for someone to notice the badge.
+ */
+export async function announceVerdict(path) {
+  if (!typeWarningsOn() || typeof document === "undefined") return;
+  let check = null;
+  try {
+    check = (await call("check/one", { path })).check ?? null;
+  } catch {
+    return;
+  }
+  if (!check) return;
+  const name = baseName(path, state.sep);
+  const first = check.detail.split(/(?<=[.!?])\s/)[0];
+  toast(`${check.title}: ${first}`, { kind: check.severity === "danger" ? "error" : "info", timeout: 12000, action: { label: "Details", run: () => explainFile(path, name, check) } });
+}
+
 /** The dialog that explains one verdict. */
 export function explainFile(path, name, check) {
   let dialog = null;
   const actions = actionButtons(path, name, check, { onDone: () => dialog?.close("done"), onError: (message) => dialog?.setError(message) });
   dialog = openDialog({
-    title: "This file isn't what its name says",
+    title: NAME_NOTICES.has(check.code) ? "Look at this file's name" : "This file isn't what its name says",
     body: h("div", { class: "tc-dialog" }, explanation(check), actions.length ? h("div", { class: "type-actions" }, actions) : null),
     buttons: [{ label: "Close", primary: check.severity === "danger" || actions.length === 0, value: "close" }],
     describe: check.title,

@@ -10,7 +10,7 @@ import * as nodePath from "path";
 import { pathApi, type FmContext } from "./fmCore";
 import { FmError, splitName } from "./fmPaths";
 import { SNIFF_BYTES, kindInfo, sniffType, type Sniffed } from "./fmSniff";
-import { checkName, expectedFor, judge, judgedExtension, visibleName, withoutTrailing } from "./fmSniffRules";
+import { checkEndings, checkName, expectedFor, judge, judgedExtension, needsContent, visibleName, withoutTrailing } from "./fmSniffRules";
 
 export type Severity = "danger" | "warning" | "notice";
 
@@ -78,7 +78,7 @@ export function judgeContent(name: string, actual: Sniffed): FileCheck | null {
 }
 
 /** Combines the name-only traps with the content verdict: the more serious one wins. Pure. */
-export function composeCheck(name: string, actual: Sniffed | null): FileCheck | null {
+export function composeCheck(name: string, actual: Sniffed | null, empty = false): FileCheck | null {
   const content = actual ? judgeContent(name, actual) : null;
   if (content?.severity === "danger") return content;
   const trap = checkName(name);
@@ -92,7 +92,32 @@ export function composeCheck(name: string, actual: Sniffed | null): FileCheck | 
       ...(trap.visibleName ? { visibleName: trap.visibleName } : {}),
     };
   }
-  return content;
+  if (content) return content;
+  return emptyOrTwoEndings(name, empty);
+}
+
+/** Notices about the name of a file that has nothing in it yet, or that ends in two file types. */
+function emptyOrTwoEndings(name: string, empty: boolean): FileCheck | null {
+  const shown = visibleName(name);
+  const ext = judgedExtension(name);
+  const two = checkEndings(name);
+  const hollow = empty && needsContent(ext);
+  if (!two && !hollow) return null;
+  const parts: string[] = [];
+  if (two) parts.push(`"${shown}" has two file types in its name. Only the last one, .${two.last}, counts, so it is treated as a ${two.last.toUpperCase()} file and not as a .${two.first} file.`);
+  if (hollow) parts.push(`${two ? "It is also empty" : `"${shown}" is empty`}, so it is not a real .${ext} file yet. Programs will not open it as one until it holds real ${ext.toUpperCase()} data.`);
+  const check: FileCheck = {
+    severity: "notice",
+    code: two ? "TWO_ENDINGS" : "EMPTY_FILE",
+    title: two ? "Its name ends in two file types" : "An empty file with a file type in its name",
+    detail: parts.join(" "),
+    actual: hollow ? { kind: "empty", label: "an empty file" } : null,
+  };
+  if (two && expectedFor(two.first)?.textLike) {
+    check.suggestedExtension = two.first;
+    check.suggestedName = two.withoutLast;
+  }
+  return check;
 }
 
 async function readSample(path: string): Promise<Uint8Array | null> {
@@ -136,7 +161,7 @@ export async function checkFile(path: string, name?: string): Promise<FileCheck 
         if (actual && actual.family === "text" && judgedExtension(shown) === "pdf" && PDF_JUNK.test(Buffer.from(sample).toString("latin1"))) actual = kindInfo("pdf") ?? actual;
       }
     }
-    return composeCheck(shown, actual);
+    return composeCheck(shown, actual, st.isFile() && st.size === 0);
   } catch {
     return null;
   }

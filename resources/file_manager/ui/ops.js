@@ -9,7 +9,7 @@ import { busy, goTo, refresh, refreshTrashCount, saveSettings, showTrash } from 
 import { bulkRenameDialog } from "./extras.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { currentPath, emit, inTrash, state } from "./state.js";
-import { askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
+import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
 import { baseName, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
 
@@ -179,6 +179,7 @@ export async function commitRename(path, newName) {
   }
   await refresh({ keepSelection: false });
   selectKeys([r.to]);
+  announceVerdict(r.to);
   return r;
 }
 

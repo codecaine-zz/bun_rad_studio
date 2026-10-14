@@ -327,3 +327,67 @@ describe("the setting", () => {
     expect(events.state.settings.typeWarnings).toBe(true);
   });
 });
+
+describe("right after a file is created or renamed", () => {
+  const toastText = () => doc.querySelector("#toasts").textContent;
+  const clearToasts = () => doc.querySelectorAll("#toasts .toast").forEach((t: any) => t.remove());
+
+  test("naming a new empty file New file.txt.png says at once that it has two endings and is empty, and Details explains", async () => {
+    clearToasts();
+    writeFileSync(join(files, "New file.txt"), "");
+    await nav.refresh({ keepSelection: false });
+    await ops.commitRename(join(files, "New file.txt"), "New file.txt.png");
+    await settle(600);
+    expect(toastText()).toContain("Its name ends in two file types");
+    expect(toastText()).toContain('"New file.txt.png" has two file types in its name');
+    const details = [...doc.querySelectorAll("#toasts button")].find((b: any) => b.textContent.trim() === "Details");
+    details.click();
+    await sleep(100);
+    expect(dialog().querySelector(".dialog-title").textContent).toBe("Look at this file's name");
+    expect(dialog().textContent).toMatch(/Only the last one, \.png, counts/);
+    expect(dialog().textContent).toMatch(/also empty/);
+    expect(dialogButton("Rename to .txt")).toBeTruthy();
+    expect(dialog().textContent).not.toMatch(/\bnull\b|\bundefined\b/);
+    await closeDialogs();
+  });
+
+  test("the list badge shows it too, and renaming to .txt takes the warning away", async () => {
+    await nav.refresh({ keepSelection: false });
+    await settle(700);
+    expect(badgeFor("New file.txt.png")).not.toBeNull();
+    clearToasts();
+    await ops.commitRename(join(files, "New file.txt.png"), "New file.txt");
+    await settle(500);
+    expect(toastText()).not.toContain("two file types");
+    expect(badgeFor("New file.txt")).toBeNull();
+  });
+
+  test("an empty .png alone says it is not a real picture yet; with the setting off nothing is said", async () => {
+    clearToasts();
+    writeFileSync(join(files, "draft"), "");
+    await nav.refresh({ keepSelection: false });
+    await ops.commitRename(join(files, "draft"), "draft.png");
+    await settle(500);
+    expect(toastText()).toContain("An empty file with a file type in its name");
+    expect(toastText()).toContain("is empty, so it is not a real .png file yet");
+    await (await import("../resources/file_manager/ui/nav.js")).saveSettings({ typeWarnings: false });
+    clearToasts();
+    await ops.commitRename(join(files, "draft.png"), "draft2.png");
+    await settle(400);
+    expect(toastText()).not.toContain("empty");
+    await (await import("../resources/file_manager/ui/nav.js")).saveSettings({ typeWarnings: true });
+    rmSync(join(files, "draft2.png"), { force: true });
+    await nav.refresh({ keepSelection: false });
+  });
+
+  test("a plain text name and a real picture under its own name stay quiet", async () => {
+    clearToasts();
+    writeFileSync(join(files, "plain"), "words");
+    await nav.refresh({ keepSelection: false });
+    await ops.commitRename(join(files, "plain"), "plain.txt");
+    await settle(400);
+    expect(toastText()).not.toContain("file type");
+    rmSync(join(files, "plain.txt"), { force: true });
+    await nav.refresh({ keepSelection: false });
+  });
+});

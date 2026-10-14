@@ -203,6 +203,42 @@ export function checkName(name: string): NameProblem | null {
   return null;
 }
 
+/** True for names whose type needs real data inside (a picture, a sound, a PDF...), so an empty file under them is not that thing yet. */
+export function needsContent(ext: string): boolean {
+  const r = expectedFor(ext);
+  return !!r && !r.textLike && !["sqlite", "sqlite3", "db3", "s3db"].includes(ext.toLowerCase());
+}
+
+export interface EndingNotice {
+  /** The part before the last ending, as written ("txt" in "New file.txt.png"). */
+  first: string;
+  /** The last ending, which is the one that counts. */
+  last: string;
+  /** The name without the last ending. */
+  withoutLast: string;
+}
+
+/**
+ * A name with two known file types that don't belong together ("New file.txt.png"): only the last one counts, so the
+ * file is treated as the last kind. Not for launch endings (those are name traps with their own, stronger message).
+ */
+export function checkEndings(name: string): EndingNotice | null {
+  const clean = withoutTrailing(name);
+  const parts = clean.split(".");
+  if (parts.length < 3) return null;
+  const last = parts[parts.length - 1]!.toLowerCase();
+  const first = parts[parts.length - 2]!.trim().toLowerCase();
+  if (!first || LAUNCH_EXTS.has(last)) return null;
+  const lastRule = expectedFor(last);
+  if (!lastRule) return null;
+  const firstRule = expectedFor(first);
+  const firstKnown = firstRule !== null || DECOY_EXTS.has(first);
+  if (!firstKnown) return null;
+  if (firstRule && firstRule.family === lastRule.family) return null;
+  if (!firstRule && expectedFor(last)?.family === "text") return null;
+  return { first, last, withoutLast: parts.slice(0, -1).join(".") };
+}
+
 /** The extension of a name as it is judged: lower case, no dot, "" when there is none. */
 export function judgedExtension(name: string): string {
   return splitName(withoutTrailing(name))[1].replace(/^\./, "").toLowerCase();

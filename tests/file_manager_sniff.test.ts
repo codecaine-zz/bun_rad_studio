@@ -7,7 +7,7 @@ import { createContext } from "../src/features/filemanager/fmCore";
 import { assertOpenAllowed, checkFile, composeCheck, judgeContent } from "../src/features/filemanager/fmCheck";
 import { CHECK_TIME_CAP_MS, MAX_CHECK_PATHS, checkMany } from "../src/features/filemanager/fmCheckOps";
 import { SNIFF_BYTES, sniffKinds, sniffType, type Sniffed } from "../src/features/filemanager/fmSniff";
-import { checkName, expectedFor } from "../src/features/filemanager/fmSniffRules";
+import { checkEndings, checkName, expectedFor, needsContent } from "../src/features/filemanager/fmSniffRules";
 import { DEFAULT_SETTINGS, sanitizeSettings } from "../src/features/filemanager/fmSettings";
 import { openItem } from "../src/features/filemanager/fmOpen";
 import { runWith, saveOpenWith } from "../src/features/filemanager/fmOpenWith";
@@ -517,7 +517,8 @@ describe("checking files on disk", () => {
   test("a PNG named photo.jpg, a clean file, and an empty file", async () => {
     expect((await checkFile(file("photo.jpg", png())))?.suggestedName).toBe("photo.png");
     expect(await checkFile(file("clean.png", png()))).toBeNull();
-    expect(await checkFile(file("empty.pdf", new Uint8Array(0)))).toBeNull();
+    expect(await checkFile(file("empty.pdf", new Uint8Array(0)))).toMatchObject({ severity: "notice", code: "EMPTY_FILE" });
+    expect(await checkFile(file("empty.txt", new Uint8Array(0)))).toBeNull();
   });
 
   test("a PDF that carries junk before its header is still a PDF", async () => {
@@ -745,5 +746,59 @@ describe("the setting", () => {
     expect((await api("settings", { set: { typeWarnings: false } })).json.settings.typeWarnings).toBe(false);
     expect((await api("settings", { set: { typeWarnings: 5 } })).json.settings.typeWarnings).toBe(true);
     await api("settings", { set: { typeWarnings: true } });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Empty files with a file type in the name, and names with two file types
+// ---------------------------------------------------------------------------------------------------------------
+
+describe("empty files and two endings", () => {
+  const dir = mkdtempSync(join(tmpdir(), "fm-empty-"));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const onDisk = async (name: string, content: string | Uint8Array) => {
+    writeFileSync(join(dir, name), content);
+    return checkFile(join(dir, name));
+  };
+
+  test("an empty picture, sound, PDF, archive or Office file is not that thing yet", async () => {
+    for (const name of ["a.png", "a.jpg", "a.mp3", "a.mp4", "a.pdf", "a.zip", "a.docx", "a.xlsx", "a.heic"]) {
+      const c = await onDisk(name, "");
+      expect(c, name).toMatchObject({ severity: "notice", code: "EMPTY_FILE", actual: { kind: "empty" } });
+      expect(c!.detail).toContain("is empty");
+    }
+  });
+
+  test("empty text, code, unknown and database files say nothing", async () => {
+    for (const name of ["a.txt", "a.md", "a.json", "a.js", "a.ts", "a.svg", "a.sqlite", "a.db3", "a.bin", "a.dat", "noextension", "a.xyz"]) expect(await onDisk(name, ""), name).toBeNull();
+  });
+
+  test("New file.txt.png: two endings (and empty), with a rename back to .txt; with text inside the content verdict wins", async () => {
+    const empty = await onDisk("New file.txt.png", "");
+    expect(empty).toMatchObject({ severity: "notice", code: "TWO_ENDINGS", suggestedExtension: "txt", suggestedName: "New file.txt" });
+    expect(empty!.detail).toMatch(/has two file types in its name\. Only the last one, \.png, counts/);
+    expect(empty!.detail).toMatch(/also empty/);
+    const withText = await onDisk("New file.txt.png", "just words\n");
+    expect(withText).toMatchObject({ severity: "warning", code: "WRONG_KIND" });
+    const realPng = await onDisk("New file.txt.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]));
+    expect(realPng).toMatchObject({ code: "TWO_ENDINGS" });
+    expect(realPng!.detail).not.toContain("empty");
+  });
+
+  test("which names count as two endings", () => {
+    const two = (n: string) => checkEndings(n)?.last ?? null;
+    expect(two("New file.txt.png")).toBe("png");
+    expect(two("report.pdf.jpg")).toBe("jpg");
+    expect(two("song.mp3.txt")).toBe("txt");
+    for (const quiet of ["a.jpg.png", "data.json.txt", "x.md.txt", "app.min.js", "backup.tar.gz", "v1.2.png", "photo.final.png", "a.png", "noext", "a..png", ".hidden.png", "x.txt.exe", "x.pdf.bat"]) expect(two(quiet), quiet).toBeNull();
+    expect(needsContent("png")).toBe(true);
+    expect(needsContent("txt")).toBe(false);
+    expect(needsContent("sqlite")).toBe(false);
+    expect(needsContent("nope")).toBe(false);
+  });
+
+  test("the strong rules still win: a program in disguise or a launch ending is a danger, not this notice", async () => {
+    expect(composeCheck("x.txt.exe", null, true)).toMatchObject({ severity: "danger", code: "DOUBLE_EXTENSION" });
+    expect(composeCheck("holiday.txt.png", sniffType(pe()), false)).toMatchObject({ severity: "danger" });
   });
 });
