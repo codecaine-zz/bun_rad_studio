@@ -10,6 +10,7 @@
  * - Accessible in any browser or as a standalone desktop application
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { resolve } from "node:path";
 import { Webview, SizeHint } from "webview-bun";
 import {
@@ -68,6 +69,10 @@ export const REDIS_CLI_PRESETS = [
 // -------------------------------------------------------------------------------------------------
 
 export function generateRedisStudioHtml(): string {
+  return injectHelp(buildRedisHtml(), "redis_studio");
+}
+
+function buildRedisHtml(): string {
   const presetsJson = JSON.stringify(REDIS_CLI_PRESETS);
 
   return `<!DOCTYPE html>

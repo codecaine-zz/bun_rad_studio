@@ -19,6 +19,7 @@
  * - Interactive Connection Workbench: Form/URL sync, cloud presets, live test with latency & version, .env reset
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { Webview, SizeHint } from "webview-bun";
 import { resolve } from "path";
 import { dlopen, FFIType } from "bun:ffi";
@@ -164,6 +165,10 @@ function getScreenDimensions(): { width: number; height: number } {
 // -------------------------------------------------------------------------------------------------
 
 export function generatePostgresStudioHtml(): string {
+  return injectHelp(buildPostgresHtml(), "postgres_studio");
+}
+
+function buildPostgresHtml(): string {
   const presetsJson = JSON.stringify(POSTGRES_SQL_PRESETS);
 
   return `<!DOCTYPE html>

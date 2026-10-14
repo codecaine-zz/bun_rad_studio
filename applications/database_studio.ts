@@ -73,6 +73,7 @@ export function createSqliteStudio(
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow("Database Studio Pro (SQLite Studio Pro) -- Enterprise SQLite Workbench & Query IDE", 1160, 940, {
     appId: "sqlite_studio",
+    helpId: "database_studio",
     theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
     fullscreen,

@@ -1,4 +1,5 @@
 import { SizeHint, Webview } from "webview-bun";
+import { injectHelp } from "./shared/helpTips";
 import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, hideAppNative, closeWindowNative, attachWindowShortcuts, getScreenDimensions } from "../index.ts";
 import { Sys } from "./simplecli/sys/index.ts";
 import * as fs from "fs";
@@ -24,6 +25,8 @@ export interface SimpleWindowOptions {
     alwaysOnTop?: boolean;
     appId?: string;
     app_id?: string;
+    /** Which help dictionary the tooltips use (src/shared/help), when it should not be the app id. */
+    helpId?: string;
     autoSave?: boolean;
     auto_save?: boolean;
     autoSaveState?: boolean;
@@ -851,6 +854,7 @@ export class SimpleWindow {
     public stateListeners: Map<string, Array<(win: SimpleWindow, val: string) => void>> = new Map();
     public closeListeners: Array<(win: SimpleWindow) => boolean | void> = [];
     public appId = "";
+    public helpId = "";
     public autoSaveState = true;
     public fullscreen = true;
     public controlStateBindings: Map<string, string> = new Map();
@@ -921,6 +925,7 @@ export class SimpleWindow {
         this.padding = options.padding !== undefined ? options.padding : 20;
         this.spacing = options.spacing !== undefined ? options.spacing : 12;
         this.appId = options.appId || options.app_id || "";
+        this.helpId = options.helpId || "";
         this.autoSaveState = options.autoSave ?? options.auto_save ?? options.autoSaveState ?? options.auto_save_state ?? true;
         this.fullscreen = options.fullscreen ?? true;
         this.responsiveLayout = options.responsive ?? true;
@@ -5966,7 +5971,8 @@ export class SimpleWindow {
             html += fullInject;
         }
 
-        return html;
+        // Tooltips that say what each control does (see src/shared/helpTips.ts).
+        return injectHelp(html, this.helpId || this.getAppId());
     }
 
     public addScript(script: string): this {

@@ -489,6 +489,8 @@ In addition to RAD form design and UI demos, Bun RAD Studio provides a comprehen
 
 ### 📸 Application Visual Gallery & Screenshots
 
+> **Want the pictures first?** [SHOWCASE.md](SHOWCASE.md) presents every application with its screenshot, what it does and how to start it.
+
 Explore live desktop and responsive viewport previews for all 28 enterprise production workstations:
 
 #### 🔍 Filesystem, Search & Process Operations

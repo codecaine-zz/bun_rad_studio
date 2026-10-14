@@ -17,6 +17,7 @@
  * - Continuous Paper Tape Journal audit roll with exportable receipt
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import type { Server } from "bun";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
@@ -102,6 +103,10 @@ export function getCalculatorAssetsDir(): string {
  * with native window shortcuts and IPC bindings injected.
  */
 export function generateCalculatorStudioHtml(options: CalculatorStudioHtmlOptions = {}): string {
+  return injectHelp(buildCalculatorHtml(options), "calculator_studio");
+}
+
+function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string {
   const assetsDir = getCalculatorAssetsDir();
   const indexPath = join(assetsDir, "index.html");
   const stylesPath = join(assetsDir, "styles.css");

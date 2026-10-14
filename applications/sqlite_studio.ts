@@ -10,6 +10,7 @@
  * - Also accessible in any browser via local workstation URL
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { Webview, SizeHint } from "webview-bun";
 import { Database } from "bun:sqlite";
 import { resolve, join } from "path";
@@ -108,6 +109,10 @@ export const SQL_PRESETS = [
 // -------------------------------------------------------------------------------------------------
 
 export function generateSqliteStudioHtml(): string {
+  return injectHelp(buildSqliteHtml(), "sqlite_studio");
+}
+
+function buildSqliteHtml(): string {
   const presetsJson = JSON.stringify(SQL_PRESETS);
 
   return `<!DOCTYPE html>

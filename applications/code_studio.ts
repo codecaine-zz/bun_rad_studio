@@ -16,6 +16,7 @@
  * - Bun backend API for filesystem operations (/api/fs/workspace, /api/fs/read, /api/fs/save, /api/fs/new, /api/fs/delete, /api/fs/rename) and shell command execution (/api/exec)
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
 import { guardLocalRequest } from "../src/localGuard";
@@ -83,6 +84,10 @@ export function getCodeEditorAssetsDir(): string {
  * Generates the complete HTML for NovaCode Studio Pro with desktop shortcuts and storage polyfill injected.
  */
 export function generateCodeStudioHtml(): string {
+  return injectHelp(buildCodeStudioHtml(), "code_studio");
+}
+
+function buildCodeStudioHtml(): string {
   const assetsDir = getCodeEditorAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 

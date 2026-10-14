@@ -1,0 +1,51 @@
+import type { HelpTips, SkipRule } from "../helpMatch";
+
+/** Help tips for `crypto_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */
+export const cryptoStudioTips: HelpTips = {
+  "#dd_theme": "Change the colours of this window. Your choice is remembered.",
+  "#btn_save_state": "Save the window size, theme and the text in the boxes (including the passphrase and keys you typed) so they are still here next time. The saved file is plain text, so do not keep real secrets in it.",
+  "#btn_center": "Move the window to the middle of the screen.",
+  "#btn_fullscreen": "Fill the whole screen with this window. Press it again to go back.",
+  "#txt_hash_input": "The main text box. Hashing, AES encryption, Base64/Hex/URL encoding and JWT checking all work on what you type here. Some buttons replace this text with their result.",
+  "#txt_hmac_key": "The secret key for HMAC (a hash that also proves who made it). Used only by Calculate Hashes. If left empty the word secret is used.",
+  "#btn_calc_hashes": "Compute SHA-256, SHA-512, MD5 and SHA-1 fingerprints of the Input Payload, plus an HMAC-SHA256 made with the HMAC key. The results fill the table. MD5 and SHA-1 are old and not safe for security.",
+  "#txt_passphrase": "The password that locks and unlocks the AES cipher, and that Check Entropy measures. It is turned into the 256-bit key with one SHA-256 step, so pick a long one. Keep it: without it the ciphertext cannot be opened.",
+  "#btn_encrypt": "Encrypt the Input Payload with AES-256 using the passphrase. The result (a random start value, a colon, then Base64 text) appears in the ciphertext box. Needs both text and passphrase.",
+  "#btn_decrypt": "Decrypt the text in the ciphertext box with the passphrase and put the original text into the Input Payload box. Shows an error if the passphrase is wrong or the text was changed.",
+  "#btn_entropy": "Estimate how hard the passphrase would be to guess, in bits (more is stronger), from its length and the kinds of characters used. This is a rough guide: it cannot spot common words.",
+  "#txt_cipher_text": "Shared output box: holds the encrypted text from Encrypt and the result of Decode JWT. Paste ciphertext here before pressing Decrypt, or a JWT before Decode JWT. Copy Output copies it.",
+  "#btn_gen_uuid": "Make a random UUID version 4 (a unique 36-character ID such as 3b241101-e2bb-4255-8caf-4136c566a962) and show it next to Generated Token below and in the log.",
+  "#btn_gen_hex32": "Make a random 32-byte key (256 bits) written as 64 hex characters. It can be used as a secret or an AES key. It is shown next to Generated Token and in the log.",
+  "#btn_gen_b64": "Make a random 32-byte key (256 bits) written in Base64 (letters, digits, + / =). It is shown next to Generated Token and in the log.",
+  "#btn_decode_jwt": "Open a JWT (a login token made of three dot-separated parts) and show its header and claims, with the dates for iat, nbf and exp. Reads the ciphertext box, or the Input Payload if that is empty. It does not check the signature.",
+  "#btn_url_encode": "Switch the Input Payload between plain and URL form. If the text contains a % it is decoded (%20 becomes a space); otherwise special characters are encoded as %XX for use in a web address.",
+  "#txt_file_path": "The full path of a file to fingerprint. Use Browse to pick one, or paste the path.",
+  "#btn_browse_file": "Pick a file with a file dialog. Its path goes into the file box on the left.",
+  "#btn_hash_file": "Compute SHA-256, SHA-512, SHA-384, SHA-1 and MD5 of the chosen file and show them in the table. Works on large files. Stops with a message if the file is missing.",
+  "#txt_expected": "A checksum published by the file's author, to compare with. Spaces, colons and a leading 0x are ignored, and capitals do not matter.",
+  "#btn_verify_checksum": "Compare the checksum on the left with the digests in the table (from Calculate Hashes or Hash File; HMAC is skipped). Tells you which algorithm matches, or that none does.",
+  "#btn_copy_digests": "Copy the digests currently in the table, with their source, to the clipboard as plain text.",
+  "#btn_save_digests": "Save the digests currently in the table, with their source, to a text file you choose (digests.txt by default).",
+  "#txt_pw_len": "How many characters the password has: 4 to 256. The default is 20. Other numbers are corrected to that range.",
+  "#chk_pw_lower": "Include lower-case letters a to z in the generated password.",
+  "#chk_pw_upper": "Include capital letters A to Z in the generated password.",
+  "#chk_pw_digits": "Include digits 0 to 9 in the generated password.",
+  "#chk_pw_symbols": "Include symbols such as ! @ # $ % in the generated password. Turn off for sites that reject them.",
+  "#chk_pw_noamb": "Leave out characters that look alike (O and 0, l, 1 and I, quotes) so the password is easier to read aloud or retype.",
+  "#btn_gen_password": "Make a random password from the length and character types chosen, using a secure random source. It contains at least one of each chosen type. Pick at least one type.",
+  "#txt_pw_out": "The generated password appears here. You can also type or paste in it.",
+  "#btn_copy_password": "Copy the generated password to the clipboard. Does nothing if the box is empty.",
+  "#btn_b64_encode": "Replace the Input Payload with its Base64 form (text made only of letters, digits, + and /, used to carry data safely).",
+  "#btn_b64_decode": "Replace the Input Payload, which must be Base64, with the text it stands for. Shows an error if it is not valid Base64.",
+  "#btn_hex_encode": "Replace the Input Payload with its hex form: two characters 0-9 a-f for each byte.",
+  "#btn_hex_decode": "Replace the Input Payload, which must be hex digits, with the text they stand for. Shows an error if the digits are not valid.",
+  "#txt_jwt_secret": "The shared secret the JWT was signed with. Only used by Verify JWT Signature and works for HS256, HS384 and HS512 tokens.",
+  "#btn_verify_jwt": "Check that the JWT really was signed with the secret on the left, which proves it has not been changed. The token is taken from the Input Payload (or the ciphertext box if that is empty). The answer is shown in a message and the log.",
+  "#btn_copy_output": "Copy the text of the ciphertext / output box to the clipboard.",
+  "#btn_clear_all": "Empty the Input Payload, ciphertext, checksum, file, password and JWT secret boxes, the hash table and the log. The passphrase and HMAC key stay.",
+  "#crypto_console": "A log of every operation. Results such as decrypted text, keys and file hashes are written here. You cannot type here.",
+};
+
+/** Controls that need no tip, each with a reason. */
+export const cryptoStudioSkip: SkipRule[] = [
+];

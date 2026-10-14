@@ -14,6 +14,7 @@
  * - High-res PNG & SVG Artwork Exporter
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
@@ -78,6 +79,10 @@ export function getPaintAssetsDir(): string {
  * Generates the complete HTML for Chroma Studio Pro with desktop shortcuts and storage polyfill injected.
  */
 export function generatePaintStudioHtml(): string {
+  return injectHelp(buildPaintHtml(), "paint_studio");
+}
+
+function buildPaintHtml(): string {
   const assetsDir = getPaintAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 

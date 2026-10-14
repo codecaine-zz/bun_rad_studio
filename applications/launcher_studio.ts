@@ -74,7 +74,7 @@ export interface HistoryData {
 // Known Metadata Registry for Workspace Apps
 // -------------------------------------------------------------------------------------------------
 
-const KNOWN_STUDIO_META: Record<
+export const KNOWN_STUDIO_META: Record<
   string,
   { displayName: string; category: string; icon: string; description: string }
 > = {

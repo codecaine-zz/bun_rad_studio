@@ -10,6 +10,7 @@
  * - Also accessible in any browser via local workstation URL
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { Webview, SizeHint } from "webview-bun";
 
 import { resolve, join } from "path";
@@ -120,6 +121,10 @@ export const SQL_PRESETS = [
 // -------------------------------------------------------------------------------------------------
 
 export function generateMysqlStudioHtml(): string {
+  return injectHelp(buildMysqlHtml(), "mysql_studio");
+}
+
+function buildMysqlHtml(): string {
   const presetsJson = JSON.stringify(SQL_PRESETS);
 
   return `<!DOCTYPE html>

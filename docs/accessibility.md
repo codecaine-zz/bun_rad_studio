@@ -7,6 +7,7 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 - [Visual designer: measured](#visual-designer-measured)
 - [Fixed on 13 October 2026](#fixed-on-13-october-2026)
 - [Still missing](#still-missing)
+- [Tooltips in the other applications](#tooltips-in-the-other-applications)
 - [Other applications](#other-applications)
 - [How to repeat the check](#how-to-repeat-the-check)
 
@@ -47,6 +48,10 @@ What was checked about how usable the programs are with a keyboard, a screen rea
 ## File Manager
 
 Built with accessibility in mind and **partly measured** ([D-045](documentation-maintenance/discrepancies.md#d-045)): `tests/file_manager_ui_theme.test.ts` checks the WCAG contrast of the text, link and status colours in the light and dark themes and that dark colours also apply automatically from the system setting; `tests/file_manager_ui_structure.test.ts` checks the page. In a browser: every action works from the keyboard, the list is a labelled `listbox` with `option` rows, dialogs trap focus and close with Escape, there is a "Skip to the files" link, the Recycle Bin's name includes its count, and the focused item has a visible outline. A text-size setting (80% to 160%) is available. The tasks panel for conversions is a labelled region with a native `<progress>` per task, text status, keyboard-reachable Cancel, Show and Dismiss buttons, and its completion is announced through the page's live region ([D-048](documentation-maintenance/discrepancies.md#d-048)); the Convert window uses ordinary buttons and headings. A screen reader was not used on either. The terminal panel is a labelled region with a keyboard-resizable separator and visible focus; xterm.js is used with its default (non-screen-reader) mode, so **a screen reader was not tested with it and may not read the terminal output** ([D-046](documentation-maintenance/discrepancies.md#d-046)). **Not checked:** a real screen reader, reduced motion, colour-blindness, high-contrast mode, or the native window on Windows and Linux.
+
+## Tooltips in the other applications
+
+Every non-game window now has the shared tooltip script ([D-049](documentation-maintenance/discrepancies.md#d-049)): a tip appears when a control gets the **keyboard focus** (and after a pause over it with a mouse), is plain text linked to the control with `aria-describedby`, and Escape hides it. This was checked in Chrome with synthetic events; **it was not checked with a screen reader**, and the native window on Linux and Windows was not opened. Controls that are plain `div`s without a role (most tab strips and list items, except the database studios' tabs) are not reached, so they remain a keyboard and screen-reader gap.
 
 ## Other applications
 

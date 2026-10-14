@@ -8,6 +8,7 @@
  * - Tone.js audio cues, YouTube playlist integration & motivational soundtrack sync
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync, readdirSync } from "fs";
@@ -76,6 +77,10 @@ let cachedInlinedHtml: string | null = null;
  * as Base64 data URIs and desktop shortcuts + external link interceptor injected.
  */
 export function generateIntervalTimerStudioHtml(options: { apiUrl?: string } = {}): string {
+  return injectHelp(buildIntervalTimerHtml(options), "interval_timer_studio");
+}
+
+function buildIntervalTimerHtml(options: { apiUrl?: string } = {}): string {
   if (!cachedInlinedHtml) {
     const assetsDir = getIntervalTimerAssetsDir();
     const indexPath = join(assetsDir, "index.html");

@@ -1,3 +1,4 @@
+import { injectHelp } from "./src/shared/helpTips";
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync, openSync, closeSync, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
@@ -1445,7 +1446,8 @@ wv.run();
 if (import.meta.main) {
     const webview = new Webview();
     attachWindowShortcuts(webview);
-    html = getIdeHtml();
+    // The tooltip script is added here, not in getIdeHtml(), which must stay identical to the built src/ide.html.
+    html = injectHelp(getIdeHtml(), "designer");
     webview.setHTML(html);
     webview.title = "Bun RAD Studio (Delphi/VB Style)";
     webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };

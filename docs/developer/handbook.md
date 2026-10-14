@@ -100,7 +100,8 @@ This recipe was followed with a throwaway file and checked against the automated
 5. **Give the launcher a description:** without an entry in `KNOWN_STUDIO_META` (`applications/launcher_studio.ts`) the launcher shows the file name as the title, the category "RAD Studio" and a generic description. Add an entry for a proper title, category and description. The generated application index falls back to the first comment at the top of the file.
 6. **Regenerate the wrappers** with `bun run scripts/generate_brew_suite.ts` and commit `bin/` changes.
 7. **Add tests** for the behaviour (see `tests/breakout_studio.test.ts` for the style).
-8. **Run `bun run docs:build`** so the application index lists it, and add a row to `features.json` if it is a feature worth tracking.
+8. **Give it tooltips** (a non-game app) or **name it in `GAME_APPS`** (a game), see [Help tooltips](#help-tooltips-for-every-app); take its screenshot and run `bun run showcase`.
+9. **Run `bun run docs:build`** so the application index lists it, and add a row to `features.json` if it is a feature worth tracking.
 
 What the existing checks do for you (observed with the throwaway app):
 
@@ -137,6 +138,21 @@ Generated text must be treated as untrusted-input territory:
 - Test generated output by **parsing or running it**, not by checking that a string appears: `new Bun.Transpiler({ loader: "ts" }).transformSync(source)`, or run it with a stand-in `webview-bun` as `tests/ide_html.test.ts` does.
 - Write generated files with `writeGeneratedFile` so a user's edited copy is kept as a backup ([D-022](../documentation-maintenance/discrepancies.md#d-022)).
 
+## Help tooltips for every app
+
+Every window that is not a game shows a tooltip over each button, field, select and tab, saying what it does. One script (`src/shared/helpEngine.ts`, added to the page by `injectHelp` in `src/shared/helpTips.ts`) does the showing; the **words** live in one dictionary per app, `src/shared/help/<id>.ts`, registered in `src/shared/help/index.ts` (about 2,200 tips in 38 dictionaries). Hover for about half a second, or move to a control with the keyboard, and the tip appears; Escape hides it. A control that has a `title` but no dictionary entry uses its `title` as the tip (the native tooltip is turned off so there is only one). To switch hints off in a window, run `localStorage.studioHints = "off"` in its page and reload.
+
+A dictionary maps a key to a sentence. The first matching key wins: `#id`, `aria:Label`, `text:Label` (case, spacing and leading icons ignored, so write `text:Audit & Validate` for the button "⚡ Audit & Validate"), `text^:Start` (the text begins with this), `ph:Placeholder`, `name:field`, `.class`. A checkbox or radio button is named by the label around it. A dictionary may also export `xxxSkip` rules for controls that need no tip (digits on the calculator), each with a required `why`.
+
+- **Writing or checking a dictionary:** `bun run scripts/help_controls.ts <app file> --missing` lists the controls that have no tip yet (`--missing` omitted lists all with their tips). It reads the page the app would show, so it also tells you the dictionary id (some apps share a page, and `database_studio` and `task_manager` have their own ids).
+- **A new app that is not a game** gets a dictionary (copy `env_studio.ts`) and its page generator must return `injectHelp(html, "<id>")` (SimpleGUI windows do it themselves through their `appId`, or `helpId` when it must differ). **A new game** must be added to `GAME_APPS` in `src/shared/helpPages.ts`; otherwise `tests/help_tips.test.ts` fails and names it.
+- **The rules the test checks:** every control in every non-game app's page has a tip or a documented skip; each tip is 12 to 360 characters, plain text, and is not just its label repeated.
+- **What it cannot see:** controls a page's script builds later are tipped (the engine watches for new nodes) but only if their dictionary key matches; the test sees only the HTML a page starts with. Plain `div`s used as buttons are not tipped, except the database studios' `.tab-btn` tabs.
+
+## Screenshots and the showcase page
+
+`bun run showcase` builds `SHOWCASE.md` (a picture-led page for promoting the applications) from `screenshots/apps/*_desktop.png` and the launcher's descriptions; `bun run showcase:check` and `tests/showcase.test.ts` fail when it is stale or a picture is missing. `scripts/capture_app_screenshots.ts` takes the screenshots of most apps; `scripts/capture_extra_screenshots.ts` takes the rest (Code Studio, Paint, PostgreSQL, RAD Studio, Subprocess Pipe, the games that serve their own folder, and the File Manager, which it starts on a throw-away sample home folder and drives through Chrome's DevTools protocol to show a preview, the Convert window and the terminal). Both need Google Chrome (`CHROME_BIN` overrides the path).
+
 ## Rules the tests enforce
 
 | Rule | Test |
@@ -146,6 +162,8 @@ Generated text must be treated as untrusted-input territory:
 | The launcher lists only real programs; no wrapper wraps a library | `tests/launcher_listing.test.ts` |
 | The designer page parses and its dialogs are siblings | `tests/ide_html.test.ts` |
 | `src/ide.html` is exactly what `src/ide/` builds to; parts are ordered by number; a hand edit is caught | `tests/ide_build.test.ts`, `bun run ide:check` |
+| Every non-game app has help tooltips for all its controls; a new game must be named in `GAME_APPS` | `tests/help_tips.test.ts` |
+| `SHOWCASE.md` is exactly what the screenshots and descriptions build to | `tests/showcase.test.ts`, `bun run showcase:check` |
 | Type errors per file never grow | `bun run typecheck` |
 | Documentation links, anchors, navigation and generated pages are current | `bun run docs:check` (also run by `tests/docs_check.test.ts`) |
 

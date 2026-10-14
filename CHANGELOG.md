@@ -15,6 +15,9 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 - **File Manager: Convert & process.** Right-click pictures, videos, sound or documents to convert, shrink, rotate, combine into a PDF and more, in batches, using ImageMagick, ffmpeg and pandoc (including the Homebrew `-full` builds, found even when they are not on the PATH). A tasks panel shows progress and lets you cancel. If a program is missing the window says so and offers an Install button (Homebrew, winget, Scoop) or the exact command to copy or type in the Terminal. `bun run tools:check` and `bun run tools:install` do the same from a terminal ([D-048](docs/documentation-maintenance/discrepancies.md#d-048)).
 
+- **Tooltips for every non-game app:** hover over (or tab to) any button, field, select or tab to read what it does. About 2,200 hand-written tips for 38 windows, one dictionary per app, with a test that fails when a control has none ([D-049](docs/documentation-maintenance/discrepancies.md#d-049)). The authors of the tips also reported defects they found in the apps; they are listed, unfixed, in [D-050](docs/documentation-maintenance/discrepancies.md#d-050).
+- **`SHOWCASE.md`:** a picture-led page presenting all 65 applications, generated from their screenshots; 20 applications that had no screenshot now have one, including the File Manager (preview, Convert window and terminal). New start commands `bun run app:redis`, `app:pipe` and `app:subprocess`, which did not exist ([D-051](docs/documentation-maintenance/discrepancies.md#d-051)).
+
 ### Behaviour changes to know about
 
 - **Library server helpers listen on `127.0.0.1` by default.** `serveStatic` and `createWsHub` (RAD `serverutils`) and `Sys.serve` / `Sys.serveStatic` (SimpleCLI) used to listen on all network interfaces. Pass `hostname` (for example `"0.0.0.0"`) to expose a server on purpose ([D-037](docs/documentation-maintenance/discrepancies.md#d-037)).

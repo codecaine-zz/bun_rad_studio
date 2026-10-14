@@ -8,6 +8,7 @@
  * - Responsive layout, card elevations & time comparison matrix
  */
 
+import { injectHelp } from "../src/shared/helpTips";
 import { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
 import { existsSync, readFileSync } from "fs";
@@ -72,6 +73,10 @@ export function getWorldTimeZonesAssetsDir(): string {
  * Generates the complete HTML for World Time Zones with desktop shortcuts injected.
  */
 export function generateWorldTimeZonesStudioHtml(): string {
+  return injectHelp(buildWorldTimeZonesHtml(), "world_time_zones_studio");
+}
+
+function buildWorldTimeZonesHtml(): string {
   const assetsDir = getWorldTimeZonesAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
