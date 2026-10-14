@@ -44,6 +44,7 @@ Where the code, existing documents and reality disagree. Each item says what was
 - [D-038 Frogger, Snake and Tetris only started from the repository root (fixed)](#d-038)
 - [D-039 The designer lost your form if it closed before you exported (autosave added)](#d-039)
 - [D-040 Run threw away the preview's output and ignored its own errors (fixed)](#d-040)
+- [D-041 The Audit report ran script from control ids and the form title, and missed two kinds of broken control (fixed)](#d-041)
 
 <a id="d-001"></a>
 ## D-001: `bun start` fails (fixed)
@@ -415,3 +416,14 @@ Where the code, existing documents and reality disagree. Each item says what was
 - **Why not "wait and see if it crashed":** the first idea was to wait a moment and report an early exit in the status bar. `webview.run()` is a blocking call, and a `curl` to a game studio's own local server hung while that studio's window was open (observed, cause not confirmed), which suggests Bun's event loop does not tick meanwhile; if so, a timer inside a bound callback might never fire and Run could hang. That could not be checked without clicking in the native window, so it was not built.
 - **Verified:** tests in `tests/ide_html.test.ts` ("Run: output and failures are no longer lost"): a real preview process (with a stand-in webview) writes its stdout and stderr to the log; a nonexistent runtime does not throw and the log gets "Could not start the preview: ENOENT ..." (the error arrives asynchronously, after `runPreviewHelper` has already returned `success: true`); `start: false` creates no log; the four page outcomes. They fail on the old code (6 failures).
 - **Not verified:** the Run button in the native window (no clicks were made there); that a preview crash after start reaches the log in the native app; Windows and Linux.
+
+<a id="d-041"></a>
+## D-041: The Audit report ran script from control ids and the form title, and missed two kinds of broken control (fixed)
+
+- **Status:** Fixed on 13 October 2026.
+- **Observed (live, in a browser):** `showDiagnosticsModal` built its report as HTML from control ids and the form title without escaping them. Importing a layout whose control id or title was `<img src=x onerror=...>` and opening **Audit** created the `<img>` elements and ran the handler (a counter in the page went up), in both the "findings" and the "Perfect!" branch. This is an extra path for what [D-024](#d-024) describes (a layout is code, and the canvas inserts control text as raw HTML by design); the Audit had not been meant to be one, and merely opening a diagnostic should not run anything.
+- **Also missing:** a control placed at a negative x or y was not reported (only right and bottom overflow was), and a control with a zero, negative or missing width or height was not reported at all.
+- **Change:** the checks moved into `collectLayoutIssues(spec)`, which returns the findings with every value passed through a new `escapeHtml`; the form title in the report is escaped too. New findings: negative position ("starts outside the form") and **Invalid Size**. **Auto-Fix** also moves a negative x or y to 0. The existing findings (duplicate id, right and bottom overflow, empty caption, overlap, panels exempt) are unchanged.
+- **Not changed:** the canvas, the Run preview and exports still insert control text and ids as raw HTML (D-024, deliberately). A layout you do not trust must still not be imported or run. Auto-Fix cannot repair a missing size, and the empty-caption note is still shown for control types that legitimately have no text (not reviewed per type).
+- **Verified:** live (hostile id and title in an imported layout: the Audit showed them as text, no `<img>` created, counter stayed at 0; the negative position and zero width were listed; Auto-Fix moved x from -12 to 0) and by 8 tests in `tests/ide_html.test.ts` ("Designer: Audit report"), which fail on the old page.
+- **Not verified:** the native window.

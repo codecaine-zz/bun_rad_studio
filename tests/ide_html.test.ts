@@ -429,6 +429,81 @@ describe("Designer: dialogs handle focus and the keyboard", () => {
     });
 });
 
+describe("Designer: Audit report", () => {
+    const html = getIdeHtml();
+    const grab = (name: string) => {
+        const start = html.indexOf(`function ${name}(`);
+        expect(start).toBeGreaterThan(-1);
+        let depth = 0;
+        let end = html.indexOf("{", start);
+        for (; end < html.length; end++) {
+            if (html[end] === "{") depth++;
+            else if (html[end] === "}" && --depth === 0) break;
+        }
+        return html.slice(start, end + 1);
+    };
+    // Built per call so a page without these functions fails the tests instead of breaking the whole file.
+    const collect = (spec: any): string[] => (new Function(`${grab("escapeHtml")}\n${grab("collectLayoutIssues")}\nreturn collectLayoutIssues;`)() as (s: any) => string[])(spec);
+    const ctl = (patch: object) => ({ id: "c", control_type: "button", x: 10, y: 10, width: 100, height: 30, text: "ok", ...patch });
+    const form = (controls: any[], patch: object = {}) => ({ title: "T", width: 400, height: 300, controls, ...patch });
+
+    test("a tidy form has no findings", () => {
+        expect(collect(form([ctl({ id: "a" }), ctl({ id: "b", y: 100 })]))).toEqual([]);
+    });
+
+    test("duplicate ids, right and bottom overflow, empty caption and overlap are still reported", () => {
+        const issues = collect(form([ctl({ id: "a" }), ctl({ id: "a", x: 20, text: "" }), ctl({ id: "wide", x: 350, y: 250, width: 100 })]));
+        const text = issues.join("\n");
+        expect(text).toContain("Duplicate ID");
+        expect(text).toContain("exceeds form bounds (400x300)");
+        expect(text).toContain("Empty Caption");
+        expect(text).toContain("Overlap Detected");
+    });
+
+    test("a control that starts outside the form (negative position) is reported", () => {
+        const issues = collect(form([ctl({ id: "left", x: -5 }), ctl({ id: "top", y: -1, x: 200 })]));
+        expect(issues.filter((i) => i.includes("negative position"))).toHaveLength(2);
+    });
+
+    test("a control with no size is reported, including NaN and missing values", () => {
+        const issues = collect(form([ctl({ id: "zero", width: 0 }), ctl({ id: "neg", height: -4, y: 100 }), ctl({ id: "nan", width: NaN, y: 200 }), ctl({ id: "none", width: undefined, y: 240 })]));
+        expect(issues.filter((i) => i.includes("Invalid Size"))).toHaveLength(4);
+    });
+
+    test("panels may overlap what they contain", () => {
+        const issues = collect(form([ctl({ id: "p", control_type: "panel", width: 200, height: 200 }), ctl({ id: "inside", x: 20, y: 20 })]));
+        expect(issues.some((i) => i.includes("Overlap"))).toBe(false);
+    });
+
+    test("ids and numbers from the layout cannot inject markup into the report", () => {
+        const evil = '<img src=x onerror="alert(1)">';
+        const issues = collect(form([ctl({ id: evil, text: "" }), ctl({ id: evil, x: 15 }), ctl({ id: "&<>\"'", x: -3, y: 5, width: 0 })]));
+        expect(issues.length).toBeGreaterThan(3);
+        for (const issue of issues) {
+            expect(issue).not.toMatch(/<img/i);
+            expect(issue.replace(/<\/?(b|code)>/g, "")).not.toMatch(/[<>]/);
+        }
+        expect(issues.join("")).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    });
+
+    test("the report also escapes the form title", () => {
+        const show = grab("showDiagnosticsModal");
+        expect(show).toContain("escapeHtml(formSpec.title)");
+        expect(show).not.toMatch(/Form: " \+ formSpec\.title/);
+    });
+
+    test("Auto-fix pulls a negative position back inside the form and still fixes overflow and duplicates", () => {
+        const state: any = { formSpec: { width: 400, height: 300, controls: [ctl({ id: "a", x: -8, y: -2 }), ctl({ id: "a", x: 380, y: 10 }), ctl({ id: "r", x: 10, y: 290 })] } };
+        new Function("state", `let formSpec = state.formSpec; const saveHistoryState = () => {}, renderCanvas = () => {}, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {}, showDiagnosticsModal = () => {};
+            const document = { getElementById: () => ({}) }; ${grab("autoFixLayoutIssues")}; autoFixLayoutIssues();`)(state);
+        const [a, dup, r] = state.formSpec.controls;
+        expect([a.x, a.y]).toEqual([0, 0]);
+        expect(dup.id).not.toBe("a");
+        expect(dup.x + dup.width).toBeLessThanOrEqual(380);
+        expect(r.y + r.height).toBeLessThanOrEqual(280);
+    });
+});
+
 describe("Designer: draft autosave and restore", () => {
     const html = getIdeHtml();
     const grab = (name: string, prefix = "") => {
