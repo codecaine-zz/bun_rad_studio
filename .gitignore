@@ -9,7 +9,7 @@ exported_project/
 .rad_preview/
 .build_check/
 dist/
-release/
+/release/
 out/
 build/
 .temp_screens/
