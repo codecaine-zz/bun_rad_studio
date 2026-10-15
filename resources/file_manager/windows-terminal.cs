@@ -78,7 +78,7 @@ public static class FileManagerTerminal
         if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 
-    public static int Run(string shell, string directory, int columns, int rows)
+    public static int Run(string shell, string directory, int columns, int rows, string setup)
     {
         IntPtr inputRead = IntPtr.Zero, inputWrite = IntPtr.Zero;
         IntPtr outputRead = IntPtr.Zero, outputWrite = IntPtr.Zero, console = IntPtr.Zero;
@@ -108,17 +108,6 @@ public static class FileManagerTerminal
             SetStdHandle(-10, IntPtr.Zero); SetStdHandle(-11, IntPtr.Zero); SetStdHandle(-12, IntPtr.Zero);
             try
             {
-                string setup = @"
-$global:FileManagerOriginalPrompt = $function:prompt
-function global:prompt {
-    $location = Get-Location
-    if ($location.Provider.Name -eq 'FileSystem') {
-        $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($location.ProviderPath))
-        [Console]::Write(([char]27 + ']777;file-manager-cwd;' + $encoded + [char]7))
-    }
-    & $global:FileManagerOriginalPrompt
-}
-";
                 string encodedSetup = Convert.ToBase64String(Encoding.Unicode.GetBytes(setup));
                 Check(CreateProcessW(shell, new StringBuilder("\"" + shell + "\" -NoLogo -NoProfile -NoExit -EncodedCommand " + encodedSetup), IntPtr.Zero, IntPtr.Zero,
                     false, 0x00080000, IntPtr.Zero, directory, ref startup, out process));

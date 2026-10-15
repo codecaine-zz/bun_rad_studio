@@ -71,8 +71,9 @@ export async function shellFolder(platform: FmContext["platform"], pid: number):
 
 export interface TerminalSession {
   readonly pid: number;
-  /** Last filesystem folder reported by Windows PowerShell's prompt. */
+  /** Last filesystem folder reported by PowerShell or an integrated WSL prompt. */
   readonly cwd?: string;
+  readonly shell?: "powershell" | "wsl";
   write(data: string): void;
   resize(cols: number, rows: number): void;
   /** Ends the shell: hangs up first, and forces it to stop if it ignores that. */
@@ -88,7 +89,7 @@ export interface OpenTerminalOptions {
 }
 
 /** Removes our prompt metadata without losing other terminal output, even across pipe chunk boundaries. */
-export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string) => void) {
+export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string, shell: "powershell" | "wsl") => void) {
   const prefix = "\x1b]777;file-manager-cwd;";
   let pending = "";
   return {
@@ -112,12 +113,14 @@ export function windowsTerminalOutput(onData: (text: string) => void, onFolder: 
           pending = "";
           return;
         }
-        const encoded = pending.slice(prefix.length, end);
+        const payload = pending.slice(prefix.length, end);
+        const wsl = payload.endsWith(";wsl");
+        const encoded = wsl ? payload.slice(0, -4) : payload;
         pending = pending.slice(end + 1);
         if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) continue;
         const path = Buffer.from(encoded, "base64").toString("utf8");
         if (path.length > 4096 || /[\x00-\x1f\x7f]/.test(path) || !/^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)/.test(path)) continue;
-        onFolder(path);
+        onFolder(path, wsl ? "wsl" : "powershell");
       }
     },
     flush() { if (pending) onData(pending); pending = ""; },
@@ -133,7 +136,9 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): Term
   ], { cwd: options.cwd, env: childEnv(ctx), stdin: "pipe", stdout: "pipe", stderr: "pipe" });
   let closed = false;
   let cwd = realpathSync.native(options.cwd);
-  const outputParser = windowsTerminalOutput(options.onData, (path) => {
+  let activeShell: "powershell" | "wsl" = "powershell";
+  const outputParser = windowsTerminalOutput(options.onData, (path, shell) => {
+    activeShell = shell;
     try {
       if (statSync(path).isDirectory()) cwd = realpathSync.native(path);
     } catch (error) {
@@ -180,6 +185,7 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): Term
   const session: TerminalSession = {
     pid: proc.pid,
     get cwd() { return cwd; },
+    get shell() { return activeShell; },
     write: (data) => send(`I:${Buffer.from(data, "utf8").toString("base64")}`),
     resize: (cols, rows) => send(`R:${cols}:${rows}`),
     close() {
@@ -223,6 +229,7 @@ export function createTerminalHub(limit = MAX_TERMINALS): TerminalHub {
         const session: TerminalSession = {
           ...windows,
           get cwd() { return windows.cwd; },
+          get shell() { return windows.shell; },
           close() { sessions.delete(session); windows.close(); },
         };
         sessions.add(session);

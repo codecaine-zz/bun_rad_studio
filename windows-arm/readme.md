@@ -51,6 +51,20 @@ to its prompt after `cd`, `Set-Location`, `Push-Location` or `Pop-Location`, the
 list follows its filesystem folder. Untick it to keep browsing independently.
 Registry and other non-filesystem PowerShell providers do not change the file list.
 
+**WSL:** type `wsl` or `wsl.exe` to enter your distribution's Bash shell; folder
+following continues inside it and returns to PowerShell when you `exit`. Distribution,
+user and starting-folder options work too, for example `wsl -d Ubuntu --cd ~`.
+Windows-mounted folders use their Windows paths; Linux folders are browsed through
+`\\wsl.localhost\<distribution>\...`. **Go to this folder** translates the selected
+Windows path for the active WSL shell. Your existing Bash configuration is loaded
+without changing it or installing files in the distribution. Other WSL login shells
+still open, but display a notice that folder following requires Bash. Explicit
+commands such as `wsl --exec ...` and WSL management options are passed through
+unchanged; directly launching another shell that way does not enable tracking.
+For the opt-in real WSL regression test, set `$env:FM_TEST_WSL = '1'` before running
+`bun test .\tests\file_manager_terminal.test.ts` (requires an installed Bash distro;
+use Bun x64 here when the GUI dependencies require it).
+
 In **Convert > Helper programs**, **Download** opens the program's official website
 in your default browser. Windows installs use WinGet when available; manual commands
 can also be typed into the embedded terminal. **Check again** searches both PATH and

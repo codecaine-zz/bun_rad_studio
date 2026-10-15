@@ -25,6 +25,7 @@ let height = 300;
 let ended = false;
 let startedIn = "";
 let fitQueued = false;
+let activeShell = "";
 
 /** The folder the buttons act on: the one folder selected in the list, otherwise the folder on screen. */
 function targetFolder() {
@@ -88,6 +89,7 @@ function connect(folder) {
     old.close();
   }
   ended = false;
+  activeShell = "";
   startedIn = folder;
   setTitle();
   term.reset();
@@ -103,8 +105,10 @@ function connect(folder) {
       return;
     }
     if (m.type === "output" && typeof m.data === "string") term.write(m.data);
-    else if (m.type === "cwd" && typeof m.path === "string") followShell(m.path);
-    else if (m.type === "exit") {
+    else if (m.type === "cwd" && typeof m.path === "string") {
+      activeShell = m.shell ?? "";
+      followShell(m.path);
+    } else if (m.type === "exit") {
       ended = true;
       term.write("\r\n\x1b[2m[The shell ended. Press Enter to start a new one.]\x1b[0m\r\n");
     } else if (m.type === "error") {
@@ -133,12 +137,15 @@ function goToFolder() {
   if (!term || ended) return restart();
   // A name with line breaks or other control characters can't be typed safely, so a new shell is started there instead.
   if (/[\x00-\x1f\x7f]/.test(folder)) return restart();
-  const quoted = quoteArg(folder, shellFor(state.platform));
+  const wsl = state.platform === "win32" && activeShell === "wsl";
+  const quoted = quoteArg(folder, wsl ? "posix" : shellFor(state.platform));
   if (quoted.error) return restart();
   startedIn = folder;
   setTitle();
   // Escape clears PowerShell's line; Ctrl+U clears a POSIX shell's line.
-  send({ type: "input", data: state.platform === "win32"
+  send({ type: "input", data: wsl
+    ? `\x15cd -- "$(wslpath -u ${quoted.text})"\r`
+    : state.platform === "win32"
     ? `\x1bSet-Location -LiteralPath ${quoted.text}\r`
     : `\x15cd -- ${quoted.text}\r` });
   term.focus();

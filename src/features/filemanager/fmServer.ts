@@ -443,14 +443,16 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           try { last = ctx.platform === "win32" ? realpathSync.native(ws.data.cwd) : realpathSync(ws.data.cwd); } catch {}
           let busy = false;
           let alive = true;
+          let lastShell = session.shell;
           const check = async () => {
             if (busy || !alive) return;
             busy = true;
             try {
               const now = session.cwd ?? await shellFolder(ctx.platform, session.pid);
-              if (alive && now && now !== last) {
+              if (alive && now && (now !== last || session.shell !== lastShell)) {
                 last = now;
-                send({ type: "cwd", path: now });
+                lastShell = session.shell;
+                send({ type: "cwd", path: now, shell: lastShell });
               }
             } finally {
               busy = false;

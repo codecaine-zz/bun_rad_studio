@@ -96,6 +96,30 @@ describe("terminal helpers", () => {
     expect(output).toEndWith("tail\x1b]");
   });
 
+  test("WSL metadata tracks the active shell for mounted drives and Linux UNC folders", () => {
+    for (const path of ["C:\\Users\\it's a folder # % \u03bb", "\\\\wsl.localhost\\Ubuntu\\home\\codecaine"]) {
+      const marker = `\x1b]777;file-manager-cwd;${Buffer.from(path).toString("base64")};wsl\x07`;
+      for (let cut = 0; cut <= marker.length; cut++) {
+        let output = "";
+        const folders: [string, string][] = [];
+        const parser = windowsTerminalOutput((s) => output += s, (p, shell) => folders.push([p, shell]));
+        parser.write(`before${marker.slice(0, cut)}`);
+        parser.write(`${marker.slice(cut)}after`);
+        parser.write(`\x1b]777;file-manager-cwd;${Buffer.from("C:\\").toString("base64")}\x07`);
+        parser.flush();
+        expect(output).toBe("beforeafter");
+        expect(folders).toEqual([[path, "wsl"], ["C:\\", "powershell"]]);
+      }
+    }
+    const folders: string[] = [];
+    const parser = windowsTerminalOutput(() => {}, (p) => folders.push(p));
+    for (const payload of ["/home/user", "C:\\bad\nfolder"]) {
+      parser.write(`\x1b]777;file-manager-cwd;${Buffer.from(payload).toString("base64")};wsl\x07`);
+    }
+    parser.write(`\x1b]777;file-manager-cwd;${Buffer.from("C:\\").toString("base64")};unknown\x07`);
+    expect(folders).toEqual([]);
+  });
+
   test("Windows, macOS and Linux support terminals", () => {
     expect(terminalSupported("darwin")).toBe(true);
     expect(terminalSupported("linux")).toBe(true);
@@ -127,6 +151,76 @@ describe("terminal helpers", () => {
 });
 
 (posix ? describe.skip : describe)("Windows ConPTY terminal", () => {
+  (process.env.FM_TEST_WSL === "1" ? test : test.skip)("follows real WSL Bash on entry, cd, mounted paths and exit; direct commands pass through", async () => {
+    const c = await connect({ token: TOKEN, path: work, cols: "180" });
+    const quote = (path: string) => `'${path.replaceAll("'", "'\\''")}'`;
+    const waitFolder = async (path: string, shell: string) => {
+      const canonical = realpathSync.native(path);
+      const end = Date.now() + 15000;
+      while (Date.now() < end) {
+        const last = c.messages.filter((m) => m.type === "cwd").at(-1);
+        if (last?.path === canonical && last?.shell === shell) return;
+        await Bun.sleep(25);
+      }
+      throw new Error(`Missing ${shell} folder ${canonical}: ${JSON.stringify(c.messages.filter((m) => m.type === "cwd"))}. Output: ${JSON.stringify(c.text().slice(-1500))}`);
+    };
+    const send = (data: string) => c.ws.send(JSON.stringify({ type: "input", data: `${data}\r` }));
+    try {
+      await c.waitFor(/PS .*work with spaces>/, 20000);
+      send("wsl");
+      await waitFolder(work, "wsl");
+      const distro = Bun.spawnSync(["wsl.exe", "--exec", "printenv", "WSL_DISTRO_NAME"], { stdout: "pipe", stderr: "pipe" });
+      expect(distro.exitCode).toBe(0);
+      const name = distro.stdout.toString().trim();
+      expect(name).not.toBe("");
+      send("cd /tmp");
+      await waitFolder(`\\\\wsl.localhost\\${name}\\tmp`, "wsl");
+      send("cd /");
+      await waitFolder(`\\\\wsl.localhost\\${name}\\`, "wsl");
+      const sub = join(work, "it's a folder # % \u03bb");
+      mkdirSync(sub, { recursive: true });
+      send(`cd -- "$(wslpath -u ${quote(sub)})"`);
+      await waitFolder(sub, "wsl");
+      send("false");
+      await Bun.sleep(400);
+      send("printf 'PROMPT_STATUS=%s\\n' \"$?\"");
+      await c.waitFor(/PROMPT_STATUS=1/);
+      send("exit");
+      await waitFolder(work, "powershell");
+      send("wsl --exec sh -c 'exit 7'; Write-Output ('WSL' + '_CODE=' + $LASTEXITCODE)");
+      await c.waitFor(/WSL_CODE=7/);
+      send(`wsl.exe -d '${name.replaceAll("'", "''")}' -u root --cd /`);
+      await waitFolder(`\\\\wsl.localhost\\${name}\\`, "wsl");
+      send("exit");
+      await waitFolder(work, "powershell");
+      expect(c.text()).not.toContain("file-manager-cwd;");
+      expect(c.text()).not.toContain("could not translate");
+    } finally { c.ws.close(); }
+  }, 90000);
+
+  (process.env.FM_TEST_WSL === "1" ? test : test.skip)("closing the connection stops an active WSL Bash shell", async () => {
+    const c = await connect({ token: TOKEN, path: work });
+    let pid = 0;
+    try {
+      await c.waitFor(/PS .*work with spaces>/, 20000);
+      c.ws.send(JSON.stringify({ type: "input", data: "wsl\r" }));
+      const end = Date.now() + 15000;
+      while (!c.messages.some((m) => m.type === "cwd" && m.shell === "wsl") && Date.now() < end) await Bun.sleep(25);
+      expect(c.messages.some((m) => m.type === "cwd" && m.shell === "wsl")).toBe(true);
+      c.ws.send(JSON.stringify({ type: "input", data: "printf 'WSL_PID=%s\\n' \"$$\"\r" }));
+      const out = await c.waitFor(/WSL_PID=\d+/);
+      pid = Number(/WSL_PID=(\d+)/.exec(out)![1]);
+      expect(Bun.spawnSync(["wsl.exe", "--exec", "test", "-d", `/proc/${pid}`]).exitCode).toBe(0);
+    } finally { c.ws.close(); }
+    const end = Date.now() + 10000;
+    let status = 0;
+    while (status === 0 && Date.now() < end) {
+      await Bun.sleep(200);
+      status = Bun.spawnSync(["wsl.exe", "--exec", "test", "-d", `/proc/${pid}`]).exitCode;
+    }
+    expect(status).toBe(1);
+  }, 45000);
+
   test("reports cd, Push-Location and Pop-Location, but not subshells or registry providers", async () => {
     const sub = join(work, "it's a folder # % \u03bb");
     mkdirSync(sub, { recursive: true });
