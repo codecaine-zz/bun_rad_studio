@@ -205,7 +205,7 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Back, Forward | Alt+←, Alt+→ |
 | Copy, Cut, Paste | Ctrl+C, Ctrl+X, Ctrl+V |
 | Duplicate | Ctrl+D |
-| Rename | F2 |
+| Rename | F2, or Ctrl+Shift+R |
 | Move to Recycle Bin | Delete (⌘⌫ on a Mac) |
 | Delete permanently | Shift+Delete |
 | Bury in the Rip graveyard | Alt+Delete (⌥⌫ on a Mac) |
@@ -213,16 +213,17 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Select all | Ctrl+A |
 | New folder, New file | Ctrl+Shift+N, Ctrl+Alt+N (right-click empty space also offers **New SQLite database**) |
 | Search, type a location | Ctrl+F, Ctrl+L |
-| Refresh | F5 (in the Dual view F5 copies; use Ctrl+R to refresh) |
+| Refresh | F5, or Ctrl+R (in the Dual view F5 copies) |
 | Hidden files, Details panel | Ctrl+Shift+H, Ctrl+I |
 | List views | Ctrl+1, Ctrl+2, Ctrl+3 |
 | Window views: Files, Home, Tools, Split, Dual | Alt+1, Alt+2, Alt+3, Alt+4, Alt+5 (⌥ on a Mac) |
 | Focus (hide toolbar and side panels), leave with Esc | Alt+6 |
 | Fold the sidebar away | Alt+7 |
 | Open Find in the Tools view | Ctrl+Shift+F |
-| Dual view: switch side, copy, move | Tab, F5, F6 |
+| Dual view: switch side, copy, move | Tab, F5 or Ctrl+Alt+C, F6 or Ctrl+Alt+M |
 | Resize the Split divider | ←/→ (↑/↓ when stacked), Shift for bigger steps, Home to reset |
 | Properties | Alt+Enter |
+| Help | F1, Ctrl+/ or ? |
 | More info and hidden details | Alt+Shift+Enter (Ctrl+I stays "Details panel") |
 | Copy the section you are in | Alt+Shift+C (⌥⇧C on a Mac) |
 | Show or hide the terminal | Ctrl+` (Control on a Mac too), or the **⌨️ Terminal** button in the status bar |

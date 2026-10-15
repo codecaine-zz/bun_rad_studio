@@ -11,6 +11,7 @@ export { formatShortcut, matchShortcut, parseShortcut };
 /** Where a shortcut works. "global" works everywhere, even while typing, so it may not share keys with anything. */
 export const SCOPES = { files: "Files and tools", code: "Code editor", global: "Everywhere" };
 
+// Every action that has a function key (F1, F2, F5, F6) also has keys without one, because many keyboards need Fn held for F-keys.
 // "mac:" in front of a default keeps it to Macs and "other:" to Windows and Linux.
 const f = (id, group, label, keys) => ({ id, scope: "files", group, label, keys });
 const c = (id, label, group = "Code editor") => ({ id: `code.${id}`, command: id, scope: "code", group, label, keys: KEYMAP[id] ? [...KEYMAP[id]] : [] });
@@ -25,7 +26,7 @@ export const ACTIONS = [
   f("nav.findTool", "Moving around", "Find tool (search inside files)", ["Mod+Shift+F"]),
   f("nav.favorites", "Moving around", "Favorites menu", ["Mod+Shift+B"]),
   f("nav.refresh", "Moving around", "Refresh", ["F5", "Mod+R"]),
-  f("file.rename", "Working with files", "Rename", ["F2"]),
+  f("file.rename", "Working with files", "Rename", ["F2", "Mod+Shift+R"]),
   f("file.trash", "Working with files", "Move to the Recycle Bin", ["Delete", "mac:Mod+Backspace"]),
   f("file.deleteForever", "Working with files", "Delete for good", ["Shift+Delete"]),
   f("file.bury", "Working with files", "Bury in the Graveyard", ["Alt+Delete", "mac:Alt+Backspace"]),
@@ -46,7 +47,9 @@ export const ACTIONS = [
   f("view.list", "View", "List view", ["Mod+2"]),
   f("view.icons", "View", "Icons view", ["Mod+3"]),
   f("app.settings", "Window", "Settings", ["Mod+,"]),
-  f("app.help", "Window", "Help", ["F1"]),
+  f("app.help", "Window", "Help", ["F1", "Mod+/"]),
+  { id: "dual.copy", scope: "dual", group: "Dual view", label: "Copy to the other side", keys: ["F5", "Mod+Alt+C"] },
+  { id: "dual.move", scope: "dual", group: "Dual view", label: "Move to the other side", keys: ["F6", "Mod+Alt+M"] },
   f("app.themes", "Window", "Choose a theme (all themes)", []),
   { id: "terminal.toggle", scope: "global", group: "Window", label: "Show or hide the terminal", keys: ["Ctrl+`"] },
   { id: "terminal.here", scope: "global", group: "Window", label: "Open the terminal in the selected folder (or this one)", keys: ["Mod+Alt+T"] },
@@ -68,7 +71,7 @@ export const FIXED = [
   { scope: "files", group: "Fixed keys", label: "Pick or unpick the item", keys: ["Mod+Space"] },
   { scope: "files", group: "Fixed keys", label: "Move through the list", keys: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"] },
   { scope: "files", group: "Fixed keys", label: "Close a search, a menu or a window; clear the choice", keys: ["Escape"] },
-  { scope: "files", group: "Fixed keys", label: "Right-click menu", keys: ["ContextMenu", "Shift+F10"] },
+  { scope: "files", group: "Fixed keys", label: "Right-click menu", keys: ["ContextMenu", "Shift+F10", "Mod+Shift+M"] },
   { scope: "files", group: "Fixed keys", label: "Close the window", keys: ["Mod+W", "Mod+Q"] },
   { scope: "files", group: "Fixed keys", label: "Help", keys: ["?"] },
   { scope: "global", group: "Fixed keys", label: "Switch the window view (Files, Home, Tools, Split, Dual), Focus, and the list of places", keys: ["Alt+1", "Alt+2", "Alt+3", "Alt+4", "Alt+5", "Alt+6", "Alt+7"] },

@@ -5,6 +5,7 @@ import { h } from "./dom.js";
 import { confirmBox, promptBox } from "./dialogs.js";
 import { showMenu, toast } from "./menus.js";
 import { baseName, joinPath, parentOf, sortEntries } from "./util.js";
+import { matchesAction } from "./keymap.js";
 import { state } from "./state.js";
 
 const MAX_DEPTH_CLASS = 24;
@@ -171,9 +172,9 @@ export function createExplorer({ onOpen, onRenamed, onDeleted, onRootChanged }) 
       e.preventDefault();
       if (entry.isDir && expanded.has(entry.path)) activate(entry);
       else go(items.findIndex((x) => x.entry.path === parentOf(entry.path, sep())));
-    } else if (e.key === "F2" && entry) { e.preventDefault(); renameEntry(entry); }
+    } else if ((e.key === "F2" || matchesAction(e, "file.rename")) && entry) { e.preventDefault(); renameEntry(entry); }
     else if (e.key === "Delete" && entry) { e.preventDefault(); deleteEntry(entry); }
-    else if ((e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) && entry) { e.preventDefault(); const r = items[at].getBoundingClientRect(); menuFor(entry, { x: r.left + 20, y: r.bottom }); }
+    else if ((e.key === "ContextMenu" || (e.shiftKey && e.key === "F10") || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "m")) && entry) { e.preventDefault(); const r = items[at].getBoundingClientRect(); menuFor(entry, { x: r.left + 20, y: r.bottom }); }
   });
   tree.addEventListener("contextmenu", (e) => {
     if (e.target === tree && root) {

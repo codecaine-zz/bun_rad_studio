@@ -7,6 +7,7 @@
 // Not shared: the search box, Back and Forward, the Recycle Bin view and the Details panel belong to the left list.
 import { ApiError, call } from "./api.js";
 import { attachDropTarget } from "./dnd.js";
+import { actionFor } from "./keymap.js";
 import { $, clear, h } from "./dom.js";
 import { isRenaming, makeListHead, renderList, syncSelection, wirePane } from "./list.js";
 import { menuIsOpen, toast } from "./menus.js";
@@ -208,9 +209,11 @@ export function wireDual() {
     if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && onList) {
       e.preventDefault();
       $(t.id === "list" ? "#dual-list" : "#list").focus();
-    } else if ((e.key === "F5" || e.key === "F6") && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+    } else {
+      const act = actionFor(e, ["dual.copy", "dual.move"]);
+      if (!act) return;
       e.preventDefault();
-      transferBetween(sideNow(), e.key === "F5" ? "copy" : "move");
+      transferBetween(sideNow(), act === "dual.copy" ? "copy" : "move");
     }
   });
 }

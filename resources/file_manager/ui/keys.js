@@ -185,7 +185,7 @@ export function wireKeys() {
       else clearSelection();
       return;
     }
-    if (key === "ContextMenu" || (e.shiftKey && key === "F10")) { stop(); return showMenuForSelection(); }
+    if (key === "ContextMenu" || (e.shiftKey && key === "F10") || (mod && e.shiftKey && lower === "m")) { stop(); return showMenuForSelection(); }
     if (key === " " && mod && activePane().focusKey) { stop(); return toggleKey(activePane().focusKey); }
     if (key === " ") { stop(); return openQuickLook(); }
 

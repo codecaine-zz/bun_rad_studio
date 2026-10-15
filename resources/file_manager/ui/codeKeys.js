@@ -14,8 +14,8 @@ export const KEYMAP = {
   palette: ["Mod+Shift+P"],
   find: ["Mod+F"],
   replace: ["Mod+H", "Mod+Alt+F"],
-  findNext: ["F3"],
-  findPrev: ["Shift+F3"],
+  findNext: ["F3", "Mod+Alt+G"],
+  findPrev: ["Shift+F3", "Mod+Alt+Shift+G"],
   goToLine: ["Mod+G"],
   goToSymbol: ["Mod+Shift+O"],
   complete: ["Alt+/"],
@@ -37,13 +37,13 @@ export const KEYMAP = {
   zoomIn: ["Mod+=", "Mod++"],
   zoomOut: ["Mod+-"],
   zoomReset: ["Mod+0"],
-  bookmarkToggle: ["Mod+F2"],
-  bookmarkNext: ["F2"],
-  bookmarkPrev: ["Shift+F2"],
+  bookmarkToggle: ["Mod+F2", "Mod+Alt+B"],
+  bookmarkNext: ["F2", "Mod+Alt+]"],
+  bookmarkPrev: ["Shift+F2", "Mod+Alt+["],
   run: ["Mod+Enter"],
   build: ["Mod+B"],
   preview: ["Mod+Shift+V"],
-  shortcuts: ["F1"],
+  shortcuts: ["F1", "Mod+Alt+H"],
 };
 
 /** Keys that are named by where they are, not by what they type (a shifted ` or = types something else, and layouts differ). */

@@ -18,7 +18,7 @@ describe("the table of shortcuts", () => {
   test("every action has a unique id, a label and a group", () => {
     const ids = ACTIONS.map((a: any) => a.id);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const a of ACTIONS as any[]) expect(a.label && a.group && ["files", "code", "global"].includes(a.scope), a.id).toBeTruthy();
+    for (const a of ACTIONS as any[]) expect(a.label && a.group && ["files", "code", "global", "dual"].includes(a.scope), a.id).toBeTruthy();
     expect(ACTIONS.length).toBeGreaterThan(60);
   });
   test("the original shortcuts are valid and never clash with each other, on every system", () => {
@@ -29,6 +29,14 @@ describe("the table of shortcuts", () => {
         expect(checkAssign(a, spec, keys, platform), `${platform} ${a.id} ${spec}`).toBeNull();
       }
     }
+  });
+  test("every function key has a second way that needs no function key (many keyboards need Fn held for F-keys)", () => {
+    const isF = (k: string) => /(^|\+)F\d{1,2}$/.test(k);
+    for (const platform of PLATFORMS) for (const a of ACTIONS as any[]) {
+      const keys = defaultsFor(a, platform) as string[];
+      if (keys.some(isF)) expect(keys.some((k) => !isF(k)), `${platform} ${a.id}`).toBe(true);
+    }
+    for (const id of ["bookmarkNext", "bookmarkPrev", "shortcuts"]) expect((KEYMAP as any)[id].some((k: string) => !isF(k)), id).toBe(true);
   });
   test("the Code tab's own table is where its defaults come from", () => {
     expect(action("code.save").keys).toEqual(["Mod+S"]);

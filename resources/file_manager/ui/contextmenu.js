@@ -61,8 +61,8 @@ function otherPaneItems() {
   const other = activePane().side === "left" ? right : left;
   const ready = isFolderView(other) && !!currentPath(other);
   return [
-    { label: "Copy to the other pane", icon: "📋", shortcut: "F5", disabled: !ready, action: () => emit("dual-transfer", "copy") },
-    { label: "Move to the other pane", icon: "✂️", shortcut: "F6", disabled: !ready, action: () => emit("dual-transfer", "move") },
+    { label: "Copy to the other pane", icon: "📋", shortcut: labelOf("dual.copy"), disabled: !ready, action: () => emit("dual-transfer", "copy") },
+    { label: "Move to the other pane", icon: "✂️", shortcut: labelOf("dual.move"), disabled: !ready, action: () => emit("dual-transfer", "move") },
   ];
 }
 
