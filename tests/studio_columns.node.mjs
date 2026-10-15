@@ -291,7 +291,7 @@ describe(`Columns control on the ${ENGINE} studio (jsdom against the real server
 });
 
 // ----------------------------------------------------------------------------------------------------------
-// Access-style datasheet: widths, display names, order, frozen columns, filters, formatting
+// datasheet: widths, display names, order, frozen columns, filters, formatting
 // ----------------------------------------------------------------------------------------------------------
 describe(`Datasheet behaviour on the ${ENGINE} studio (jsdom against the real server)`, () => {
   const plain = (a) => JSON.parse(JSON.stringify(a));

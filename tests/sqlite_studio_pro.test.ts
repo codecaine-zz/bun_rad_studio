@@ -338,7 +338,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
     }
   });
 
-  it("15. Access QBE Designer compiler generates valid SQL with Sort, Joins, Aggregates, Criteria, and executes successfully", async () => {
+  it("15. QBE Designer compiler generates valid SQL with Sort, Joins, Aggregates, Criteria, and executes successfully", async () => {
     // 1. Fetch HTML and execute buildDesignerSql inside an emulated context
     const res = await fetch(`${baseUrl}/`);
     const html = await res.text();
@@ -386,7 +386,7 @@ describe("⚡ SQLite Studio Pro - Enterprise Database Workstation Suite", () => 
       ]
     });
 
-    // Setup an Access-grade query:
+    // Setup a multi-table query:
     // Tables: customers, orders
     // Join: customers.id = orders.customer_id (INNER JOIN)
     // Columns:

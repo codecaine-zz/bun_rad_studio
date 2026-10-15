@@ -1,14 +1,14 @@
 // @ts-nocheck
 /**
- * ⚡ Bun RAD Studio - SQLite Studio Pro Microsoft Access Macro Automation Engine
+ * ⚡ Bun RAD Studio - SQLite Studio Pro Macro Automation Engine
  * 
- * Complete Microsoft Access-style Macro subsystem for SQLite Studio Pro.
+ * Complete Macro subsystem for SQLite Studio Pro.
  * Provides:
  *   - Visual Macro Designer & Action Matrix with step reordering (▲/▼)
- *   - Microsoft Access Action Catalog (Database Objects, Data Operations, System, Flow & Logic)
+ *   - Action Catalog (Database Objects, Data Operations, System, Flow & Logic)
  *   - Conditional action execution (`If [condition]`)
- *   - Iconic Access Single Step Debugger (Step ▶, Continue ⏩, Halt ⏹️)
- *   - Access Message Box dialogs with Web Audio synthesized chimes
+ *   - Iconic Single Step Debugger (Step ▶, Continue ⏩, Halt ⏹️)
+ *   - Message Box dialogs with Web Audio synthesized chimes
  *   - AutoExec macro support on database load/connect
  *   - Object Tree integration in left navigation pane
  *   - Database-backed persistence in `_studio_macros` table
@@ -20,7 +20,7 @@ export interface MacroAction {
   action: string;
   condition?: string;
   enabled?: boolean;
-  /** Access "OnError Next": keep going if this step fails. */
+  /** "OnError Next": keep going if this step fails. */
   continueOnError?: boolean;
   parameters: Record<string, any>;
   comment?: string;
@@ -31,7 +31,7 @@ export interface MacroDefinition {
   name: string;
   description: string;
   isAutoExec?: boolean;
-  /** Default failure policy for steps (Access stops on error). */
+  /** Default failure policy for steps (stops on error). */
   onError?: "stop" | "continue";
   actions: MacroAction[];
   createdAt?: string;
@@ -82,19 +82,19 @@ export const DEFAULT_SAMPLE_QUERIES: SavedQueryDefinition[] = [
   {
     id: "query_vip_customers",
     name: "VIP_Customers_High_Balance",
-    description: "Access Query: Filter VIP tier customers with balance over 1000",
+    description: "Query: Filter VIP tier customers with balance over 1000",
     sql: 'SELECT id, name, email, balance, tier FROM customers WHERE balance > 1000 ORDER BY balance DESC;',
   },
   {
     id: "query_low_stock_alerts",
     name: "Low_Stock_Restock_Alerts",
-    description: "Access Restock Query: Products with inventory below 50 units",
+    description: "Restock Query: Products with inventory below 50 units",
     sql: 'SELECT id, name, category, stock, price FROM products WHERE stock < 50 ORDER BY stock ASC;',
   },
   {
     id: "query_top_spenders",
     name: "Top_Spenders_By_Revenue",
-    description: "Access Relational Query: Customers aggregated order revenue",
+    description: "Relational Query: Customers aggregated order revenue",
     sql: 'SELECT c.id, c.name, COUNT(o.id) AS order_count, SUM(o.total_amount) AS total_spent FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name ORDER BY total_spent DESC LIMIT 25;',
   }
 ];
@@ -210,7 +210,7 @@ export function buildEmptyTableSql(tableName: string, d: MacroDialect = "sqlite"
 }
 
 // -------------------------------------------------------------------------------------------------
-// Access-style Parameter Prompts: `[Enter Start Date]` inside SQL
+// Parameter Prompts: `[Enter Start Date]` inside SQL
 // (Only brackets beginning with "Enter " are treated as prompts, so SQLite's own [identifier]
 // quoting keeps working.) These helpers are injected verbatim into the browser script.
 // -------------------------------------------------------------------------------------------------
@@ -353,7 +353,7 @@ export function macroToSqlScript(macro: MacroDefinition, queries: SavedQueryDefi
   return lines.join("\n");
 }
 
-/** Serializes a macro into an Access-flavoured VBA Sub that mirrors the DoCmd calls. */
+/** Serializes a macro into an VBA Sub that mirrors the DoCmd calls. */
 export function macroToVba(macro: MacroDefinition, queries: SavedQueryDefinition[] = [], d: MacroDialect = "sqlite"): string {
   const vbaStr = (s: any) => '"' + String(s ?? "").replace(/"/g, '""').replace(/\r?\n/g, '" & vbCrLf & "') + '"';
   const subName = String(macro.name || "Macro").replace(/[^A-Za-z0-9_]/g, "_").replace(/^(\d)/, "_$1");
@@ -414,21 +414,21 @@ export const DEFAULT_SAMPLE_MACROS: MacroDefinition[] = [
   {
     id: "macro_autoexec",
     name: "AutoExec",
-    description: "Microsoft Access Startup Macro: Welcomes user, switches to customers table, and applies active filter",
+    description: "Startup Macro: Welcomes user, switches to customers table, and applies active filter",
     isAutoExec: true,
     actions: [
       {
         id: "step_1",
         action: "Comment",
         enabled: true,
-        parameters: { comment: "Microsoft Access Startup Routine - AutoExec" }
+        parameters: { comment: "Startup Routine - AutoExec" }
       },
       {
         id: "step_2",
         action: "MessageBox",
         enabled: true,
         parameters: {
-          message: "Welcome to SQLite Studio Pro! Microsoft Access Macro Automation is active.",
+          message: "Welcome to SQLite Studio Pro! Macro Automation is active.",
           title: "SQLite Studio Pro",
           type: "information",
           beep: true
@@ -458,7 +458,7 @@ export const DEFAULT_SAMPLE_MACROS: MacroDefinition[] = [
   {
     id: "macro_vip_report",
     name: "VIP_Customer_Report",
-    description: "Filter VIP Tier Customers and Launch Access Publication Report",
+    description: "Filter VIP Tier Customers and Launch Publication Report",
     isAutoExec: false,
     actions: [
       {
@@ -597,14 +597,14 @@ export const DEFAULT_SAMPLE_MACROS: MacroDefinition[] = [
   {
     id: "macro_crud_pipeline",
     name: "Customer_CRUD_Pipeline",
-    description: "Demonstrates Microsoft Access Action Queries: InsertRecord, UpdateRecord, MakeTable archive, GoToRecord, and OpenQuery",
+    description: "Demonstrates Action Queries: InsertRecord, UpdateRecord, MakeTable archive, GoToRecord, and OpenQuery",
     isAutoExec: false,
     actions: [
       {
         id: "step_1",
         action: "Comment",
         enabled: true,
-        parameters: { comment: "Microsoft Access Visual CRUD & Action Query Pipeline" }
+        parameters: { comment: "Visual CRUD & Action Query Pipeline" }
       },
       {
         id: "step_2",
@@ -680,11 +680,11 @@ export function createDefaultMacros(d: MacroDialect = "sqlite"): MacroDefinition
 }
 
 // -------------------------------------------------------------------------------------------------
-// CSS Styles for Microsoft Access Macro Subsystem
+// CSS Styles for Macro Subsystem
 // -------------------------------------------------------------------------------------------------
 
 export const MACRO_STYLE = `
-    /* ===== Microsoft Access Macro Subsystem ===== */
+    /* ===== Macro Subsystem ===== */
     .macro-layout {
       display: flex;
       flex-direction: column;
@@ -1133,7 +1133,7 @@ export const MACRO_STYLE = `
       word-break: break-word;
     }
 
-    /* Access Message Box Modal */
+    /* Message Box Modal */
     #macroMsgBoxModal .modal-card {
       max-width: 460px;
     }
@@ -1316,7 +1316,7 @@ export const MACRO_HTML = `
                 <button class="btn btn-sm btn-primary" id="btnRunMacro" onclick="runCurrentMacro(false)" title="Execute entire macro sequentially (Ctrl+Enter)">▶️ Run</button>
                 <button class="btn btn-sm" id="btnDryRun" onclick="runCurrentMacroOnServer('dryRun')" title="Run data steps on the server and ROLL BACK every change (safe preview)">🧪 Dry Run</button>
                 <button class="btn btn-sm" id="btnAtomicRun" onclick="runCurrentMacroOnServer('transaction')" title="Run data steps on the server in one transaction: all changes commit, or none do (UI-only steps are skipped)">🔒 Atomic</button>
-                <button class="btn btn-sm" id="btnSingleStep" onclick="toggleSingleStepMode()" title="Toggle Microsoft Access Single Step Debugging Mode">⏯️ Single Step</button>
+                <button class="btn btn-sm" id="btnSingleStep" onclick="toggleSingleStepMode()" title="Toggle Single Step Debugging Mode">⏯️ Single Step</button>
                 <button class="btn btn-sm" onclick="saveCurrentMacro()" title="Save macro to database">💾 Save</button>
                 <button class="btn btn-sm" onclick="addNewActionRow()" title="Add next action to macro">➕ Add Action</button>
               </div>
@@ -1350,7 +1350,7 @@ export const MACRO_HTML = `
                 </select>
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('json')" title="Export macro as JSON">📤 Export</button>
                 <button class="sidebar-mini-btn" onclick="openMacroExportDialog('sql')" title="Export macro as a plain SQL script">📜 SQL</button>
-                <button class="sidebar-mini-btn" onclick="openMacroExportDialog('vba')" title="Export macro as an Access VBA module">🧾 VBA</button>
+                <button class="sidebar-mini-btn" onclick="openMacroExportDialog('vba')" title="Export macro as a VBA module">🧾 VBA</button>
                 <button class="sidebar-mini-btn" onclick="openCodeGenForCurrentMacro()" title="Translate this macro to Python / Bun / V using native SQLite">🧬 Code</button>
                 <button class="sidebar-mini-btn" onclick="openMacroImportDialog()" title="Import macro JSON">📥 Import</button>
                 <button class="sidebar-mini-btn" id="btnToggleCatalog" onclick="toggleActionCatalog()" title="Toggle Action Catalog Drawer">📖 Catalog</button>
@@ -1364,7 +1364,7 @@ export const MACRO_HTML = `
                 <div class="macro-matrix-card">
                   <div class="macro-matrix-header">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <span style="font-size: 11px; font-weight: 700; color: var(--cyan);">Microsoft Access Macro Action Matrix</span>
+                      <span style="font-size: 11px; font-weight: 700; color: var(--cyan);">Macro Action Matrix</span>
                       <span class="badge" id="macroActionCountBadge">0 Actions</span>
                     </div>
                     <div style="font-size: 11px; color: var(--text-dim);" id="macroStatusText">Ready</div>
@@ -1379,7 +1379,7 @@ export const MACRO_HTML = `
                           <th style="width: 175px;">Action</th>
                           <th>Action Arguments</th>
                           <th style="width: 50px; text-align: center;">Active</th>
-                          <th style="width: 58px; text-align: center;" title="Keep running if this step fails (Access OnError Next)">On Err ⏭</th>
+                          <th style="width: 58px; text-align: center;" title="Keep running if this step fails (OnError Next)">On Err ⏭</th>
                           <th style="width: 70px; text-align: center;">Order</th>
                           <th style="width: 40px; text-align: center;">Del</th>
                         </tr>
@@ -1393,12 +1393,12 @@ export const MACRO_HTML = `
                   <div class="macro-matrix-footer">
                     <div style="display: flex; gap: 6px; align-items: center;">
                       <button class="btn btn-sm" onclick="addNewActionRow()">➕ Add Action Row</button>
-                      <button class="sidebar-mini-btn" onclick="quickAddAction('InsertRecord')" title="Access Append Query">+ Insert</button>
-                      <button class="sidebar-mini-btn" onclick="quickAddAction('UpdateRecord')" title="Access Update Query">+ Update</button>
-                      <button class="sidebar-mini-btn" onclick="quickAddAction('DeleteRecord')" title="Access Delete Query">+ Delete</button>
-                      <button class="sidebar-mini-btn" onclick="quickAddAction('MakeTable')" title="Access Make-Table Query">+ MakeTable</button>
+                      <button class="sidebar-mini-btn" onclick="quickAddAction('InsertRecord')" title="Append Query">+ Insert</button>
+                      <button class="sidebar-mini-btn" onclick="quickAddAction('UpdateRecord')" title="Update Query">+ Update</button>
+                      <button class="sidebar-mini-btn" onclick="quickAddAction('DeleteRecord')" title="Delete Query">+ Delete</button>
+                      <button class="sidebar-mini-btn" onclick="quickAddAction('MakeTable')" title="Make-Table Query">+ MakeTable</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('OpenQuery')" title="Open Named / SQL Query">+ OpenQuery</button>
-                      <button class="sidebar-mini-btn" onclick="quickAddAction('GoToRecord')" title="Access GoToRecord">+ GoToRecord</button>
+                      <button class="sidebar-mini-btn" onclick="quickAddAction('GoToRecord')" title="GoToRecord">+ GoToRecord</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('OpenTable')">+ OpenTable</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('RunSQL')">+ RunSQL</button>
                       <button class="sidebar-mini-btn" onclick="quickAddAction('ApplyFilter')">+ Filter</button>
@@ -1426,7 +1426,7 @@ export const MACRO_HTML = `
                     <div class="macro-log-line">
                       <span class="macro-log-time">[00:00:00]</span>
                       <span class="macro-log-tag info">INFO</span>
-                      <span>Microsoft Access Macro subsystem ready. Select or create a macro to execute.</span>
+                      <span>Macro subsystem ready. Select or create a macro to execute.</span>
                     </div>
                   </div>
                 </div>
@@ -1452,7 +1452,7 @@ export const MACRO_HTML = `
           </div>
         </div>
 
-  <!-- Microsoft Access Macro Single Step Debugger Modal -->
+  <!-- Macro Single Step Debugger Modal -->
   <div class="modal-overlay macro-modal" id="macroSingleStepModal" style="display: none; z-index: 10050;">
     <div class="modal-card">
       <div class="modal-header" style="background: rgba(245, 158, 11, 0.12); border-bottom: 1px solid var(--amber);">
@@ -1492,11 +1492,11 @@ export const MACRO_HTML = `
     </div>
   </div>
 
-  <!-- Microsoft Access Message Box Modal -->
+  <!-- Message Box Modal -->
   <div class="modal-overlay macro-modal" id="macroMsgBoxModal" style="display: none; z-index: 10060;">
     <div class="modal-card">
       <div class="modal-header">
-        <span id="msgBoxTitle" style="font-weight: 700; color: var(--text-main);">Microsoft Access</span>
+        <span id="msgBoxTitle" style="font-weight: 700; color: var(--text-main);">Message</span>
         <button class="sidebar-mini-btn" onclick="closeMacroMsgBox(true)">✕</button>
       </div>
       <div class="msgbox-content">
@@ -1577,11 +1577,11 @@ export const MACRO_HTML = `
 
 const MACRO_SCRIPT_BASE = `
 // =================================================================================================
-// ⚡ Microsoft Access Macro Engine Client-Side Implementation
+// ⚡ Macro Engine Client-Side Implementation
 // =================================================================================================
 
 // =================================================================================================
-// ⚡ Microsoft Access Action Catalog
+// ⚡ Action Catalog
 // =================================================================================================
 
 const ACCESS_ACTION_CATALOG = [
@@ -1597,28 +1597,28 @@ const ACCESS_ACTION_CATALOG = [
     name: "InsertRecord",
     category: "CRUD & Action Queries",
     icon: "➕",
-    desc: "Inserts a new record into target table (Microsoft Access Append Query).",
+    desc: "Inserts a new record into target table (Append Query).",
     defaultParams: { table: "customers", fields: 'name: "Apex Innovations", email: "info@apex.io", balance: 1850, tier: "Enterprise"' }
   },
   {
     name: "UpdateRecord",
     category: "CRUD & Action Queries",
     icon: "✏️",
-    desc: "Updates existing records matching criteria (Microsoft Access Update Query).",
+    desc: "Updates existing records matching criteria (Update Query).",
     defaultParams: { table: "customers", setValues: "tier = 'VIP', balance = balance + 100", whereCondition: "balance > 1000" }
   },
   {
     name: "DeleteRecord",
     category: "CRUD & Action Queries",
     icon: "🗑️",
-    desc: "Deletes records matching criteria (Microsoft Access Delete Query).",
+    desc: "Deletes records matching criteria (Delete Query).",
     defaultParams: { table: "customers", whereCondition: "tier = 'Archived'" }
   },
   {
     name: "MakeTable",
     category: "CRUD & Action Queries",
     icon: "🏗️",
-    desc: "Creates a new table dynamically from query results (Microsoft Access Make-Table Query).",
+    desc: "Creates a new table dynamically from query results (Make-Table Query).",
     defaultParams: { newTable: "customers_archive", queryName: "", selectSql: "SELECT * FROM customers WHERE balance > 1000", dropExisting: true }
   },
   {
@@ -1641,21 +1641,21 @@ const ACCESS_ACTION_CATALOG = [
     name: "FindRecord",
     category: "Record Operations",
     icon: "🔎",
-    desc: "Finds matching record across datasheet and scrolls into view (Access FindRecord).",
+    desc: "Finds matching record across datasheet and scrolls into view (FindRecord).",
     defaultParams: { findWhat: "", field: "*", matchCase: false }
   },
   {
     name: "ShowAllRecords",
     category: "Record Operations",
     icon: "👁️",
-    desc: "Removes any active filter and displays all records in datasheet (Access RemoveFilter).",
+    desc: "Removes any active filter and displays all records in datasheet (RemoveFilter).",
     defaultParams: {}
   },
   {
     name: "SetValue",
     category: "Record Operations",
     icon: "🏷️",
-    desc: "Sets field in active record or stores runtime variable (Access SetValue).",
+    desc: "Sets field in active record or stores runtime variable (SetValue).",
     defaultParams: { item: "tier", expression: "'VIP'" }
   },
   {
@@ -1669,7 +1669,7 @@ const ACCESS_ACTION_CATALOG = [
     name: "SetWarnings",
     category: "Record Operations",
     icon: "⚠️",
-    desc: "Toggles confirmation prompts before running action queries (Access SetWarnings).",
+    desc: "Toggles confirmation prompts before running action queries (SetWarnings).",
     defaultParams: { warningsOn: false }
   },
 
@@ -1692,7 +1692,7 @@ const ACCESS_ACTION_CATALOG = [
     name: "OpenReport",
     category: "Database Objects",
     icon: "🖨️",
-    desc: "Generates and opens Microsoft Access printable publication report / PDF.",
+    desc: "Generates and opens printable publication report / PDF.",
     defaultParams: { table: "", title: "Publication Report" }
   },
   {
@@ -1729,7 +1729,7 @@ const ACCESS_ACTION_CATALOG = [
     name: "ImportData",
     category: "Data Operations",
     icon: "📥",
-    desc: "Launches the Access Import Wizard or imports rows into destination table.",
+    desc: "Launches the Import Wizard or imports rows into destination table.",
     defaultParams: { table: "", format: "csv" }
   },
 
@@ -1738,7 +1738,7 @@ const ACCESS_ACTION_CATALOG = [
     name: "MessageBox",
     category: "System & Maintenance",
     icon: "💬",
-    desc: "Displays a Microsoft Access style dialog box with title, icon, and optional chime.",
+    desc: "Displays a dialog box with title, icon, and optional chime.",
     defaultParams: { message: "Operation completed successfully!", title: "SQLite Studio Pro", type: "information", beep: true }
   },
   {
@@ -1759,7 +1759,7 @@ const ACCESS_ACTION_CATALOG = [
     name: "Beep",
     category: "System & Maintenance",
     icon: "🔔",
-    desc: "Synthesizes an Access audible notification chime using Web Audio API.",
+    desc: "Synthesizes an audible notification chime using Web Audio API.",
     defaultParams: { count: 1, frequency: 800 }
   },
 
@@ -1789,7 +1789,7 @@ const ACCESS_ACTION_CATALOG = [
     name: "Comment",
     category: "Flow & Logic",
     icon: "📝",
-    desc: "Access remarks documentation row (displayed in green italic style).",
+    desc: "remarks documentation row (displayed in green italic style).",
     defaultParams: { comment: "Note or documentation here..." }
   }
 ];
@@ -1885,7 +1885,7 @@ function buildEmptyTableSql(tableName) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Saved Named Queries Subsystem (Access Parity)
+// Saved Named Queries Subsystem (Parity)
 // -------------------------------------------------------------------------------------------------
 async function loadSavedQueriesFromServer() {
   try {
@@ -2020,7 +2020,7 @@ async function deleteNamedQueryById(idOrName) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Audio Synthesizer (Access Beep / Chime)
+// Audio Synthesizer (Beep / Chime)
 // -------------------------------------------------------------------------------------------------
 function playAccessBeep(frequency = 800, count = 1) {
   try {
@@ -2086,8 +2086,8 @@ function getDefaultSampleMacros() {
       description: "Startup Routine: Welcomes user and opens default table view",
       isAutoExec: true,
       actions: [
-        { id: "step_1", action: "Comment", enabled: true, parameters: { comment: "Microsoft Access Startup Routine - AutoExec" } },
-        { id: "step_2", action: "MessageBox", enabled: true, parameters: { message: "Welcome to SQLite Studio Pro! Access Macro Automation is ready.", title: "SQLite Studio Pro", type: "information", beep: true } },
+        { id: "step_1", action: "Comment", enabled: true, parameters: { comment: "Startup Routine - AutoExec" } },
+        { id: "step_2", action: "MessageBox", enabled: true, parameters: { message: "Welcome to SQLite Studio Pro! Macro Automation is ready.", title: "SQLite Studio Pro", type: "information", beep: true } },
         { id: "step_3", action: "OpenTable", enabled: true, parameters: { table: "customers", view: "datasheet", dataMode: "edit" } },
         { id: "step_4", action: "ApplyFilter", enabled: true, condition: "[totalRows] > 0", parameters: { condition: "balance > 500" } },
         { id: "step_5", action: "Requery", enabled: true, parameters: { target: "active" } }
@@ -2096,7 +2096,7 @@ function getDefaultSampleMacros() {
     {
       id: "macro_vip_report",
       name: "VIP_Customer_Report",
-      description: "Filter VIP Tier Customers and Launch Access Publication Report",
+      description: "Filter VIP Tier Customers and Launch Publication Report",
       isAutoExec: false,
       actions: [
         { id: "step_1", action: "Comment", enabled: true, parameters: { comment: "Extract high-tier customer records and open printable report" } },
@@ -2165,7 +2165,7 @@ function createNewMacro() {
   const fresh = {
     id: newId,
     name: newName,
-    description: "New Microsoft Access style automation macro",
+    description: "New automation macro",
     isAutoExec: false,
     actions: [
       { id: "step_1", action: "Comment", enabled: true, parameters: { comment: "New Macro Workflow" } },
@@ -3288,7 +3288,7 @@ function evaluateMacroCondition(condStr, scope) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Access-style [Enter ...] parameter prompts (helpers shared with the server module)
+// [Enter ...] parameter prompts (helpers shared with the server module)
 // -------------------------------------------------------------------------------------------------
 ${extractPromptParams.toString()}
 ${applyPromptParams.toString()}
@@ -3371,7 +3371,7 @@ async function runCurrentMacro(forceSingleStep = false) {
   showToast("Macro '" + currentMacro.name + "' finished (" + totalMs + "ms)");
 }
 
-// Runs one macro's steps. Access semantics: a failing step stops the macro unless the step
+// Runs one macro's steps. semantics: a failing step stops the macro unless the step
 // (continueOnError) or the macro (onError = "continue") says otherwise.
 async function runMacroSteps(macro) {
   const stats = { executed: 0, skipped: 0, errors: 0, aborted: false };
@@ -3777,7 +3777,7 @@ async function executeMacroAction(action) {
         await selectTable(targetTable);
       }
       openAccessReportModal();
-      return { message: "Opened Microsoft Access publication report for " + targetTable };
+      return { message: "Opened publication report for " + targetTable };
     }
 
     case "ExportData": {
@@ -3801,7 +3801,7 @@ async function executeMacroAction(action) {
     case "ImportData": {
       if (typeof openImportWizard === "function") {
         openImportWizard({ targetTable: p.table || activeTable });
-        return { message: "Opened Access Import Wizard" };
+        return { message: "Opened Import Wizard" };
       }
       return { message: "Import wizard displayed" };
     }
@@ -3948,7 +3948,7 @@ function onSingleStepHalt() {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Access Message Box Controller
+// Message Box Controller
 // -------------------------------------------------------------------------------------------------
 let msgBoxResolve = null;
 function openMacroMsgBox(opts) {
@@ -3960,7 +3960,7 @@ function openMacroMsgBox(opts) {
       return;
     }
 
-    document.getElementById("msgBoxTitle").textContent = opts.title || "Microsoft Access";
+    document.getElementById("msgBoxTitle").textContent = opts.title || "Message";
     document.getElementById("msgBoxText").textContent = opts.message || "";
     
     const iconEl = document.getElementById("msgBoxIcon");

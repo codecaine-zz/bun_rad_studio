@@ -12,7 +12,7 @@ import {
   macroToVba,
 } from "../applications/sqlite_studio_macros.ts";
 
-describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () => {
+describe("⚡ SQLite Studio Pro - Macro Automation Suite", () => {
   const server = startSqliteStudioServer({ port: 0, initialDbPath: ":memory:" });
   const baseUrl = `http://127.0.0.1:${server.port}`;
 
@@ -22,7 +22,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     } catch {}
   });
 
-  it("1. Workstation HTML includes Microsoft Access Macro Designer tab, matrix, and ribbon", async () => {
+  it("1. Workstation HTML includes Macro Designer tab, matrix, and ribbon", async () => {
     const res = await fetch(`${baseUrl}/`);
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -50,7 +50,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     expect(html).toContain("macroCatalogItems");
     expect(html).toContain("catalogSearchInput");
 
-    // Access Modals
+    // Modals
     expect(html).toContain("macroSingleStepModal");
     expect(html).toContain("macroMsgBoxModal");
     expect(html).toContain("macroJsonModal");
@@ -76,7 +76,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     }
   });
 
-  it("3. /api/macros/list returns seeded Microsoft Access default sample macros", async () => {
+  it("3. /api/macros/list returns seeded default sample macros", async () => {
     const res = await fetch(`${baseUrl}/api/macros/list`);
     expect(res.status).toBe(200);
     const data = await res.json() as any;
@@ -323,7 +323,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     expect(listData.macros.some((m: any) => m.id === "macro_custom_test")).toBe(false);
   });
 
-  it("9. /api/queries/list returns seeded Access default queries and does NOT pollute user schema or KPIs", async () => {
+  it("9. /api/queries/list returns seeded default queries and does NOT pollute user schema or KPIs", async () => {
     const listRes = await fetch(`${baseUrl}/api/queries/list`);
     expect(listRes.status).toBe(200);
     const data = await listRes.json() as any;
@@ -398,20 +398,20 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
     expect(reListData.queries.some((q: any) => q.id === "query_vip_loyalty_test")).toBe(false);
   });
 
-  it("11. Access Macro CRUD actions (InsertRecord, UpdateRecord, MakeTable, DeleteRecord, EmptyTable) execute successfully", async () => {
+  it("11. Macro CRUD actions (InsertRecord, UpdateRecord, MakeTable, DeleteRecord, EmptyTable) execute successfully", async () => {
     const crudMacro: MacroDefinition = {
       id: "macro_access_crud_test",
       name: "Access_CRUD_Data_Pipeline",
-      description: "Full suite of Microsoft Access action queries executed in a macro",
+      description: "Full suite of action queries executed in a macro",
       actions: [
-        // 1. SetWarnings false (Access behavior: suppress confirmation prompts during bulk batch)
+        // 1. SetWarnings false (behavior: suppress confirmation prompts during bulk batch)
         {
           id: "step_warn",
           action: "SetWarnings",
           enabled: true,
           parameters: { warningsOn: false },
         },
-        // 2. InsertRecord (Access Append Query)
+        // 2. InsertRecord (Append Query)
         {
           id: "step_insert",
           action: "InsertRecord",
@@ -421,7 +421,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
             fields: "name='Zenith Corp', email='contact@zenith.org', balance=2500, tier='VIP'",
           },
         },
-        // 3. UpdateRecord (Access Update Query)
+        // 3. UpdateRecord (Update Query)
         {
           id: "step_update",
           action: "UpdateRecord",
@@ -432,7 +432,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
             whereCondition: "name = 'Zenith Corp'",
           },
         },
-        // 4. MakeTable (Access Make-Table Query)
+        // 4. MakeTable (Make-Table Query)
         {
           id: "step_make_table",
           action: "MakeTable",
@@ -443,7 +443,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
             dropExisting: true,
           },
         },
-        // 5. OpenQuery (Access OpenQuery action executing saved named query)
+        // 5. OpenQuery (OpenQuery action executing saved named query)
         {
           id: "step_open_query",
           action: "OpenQuery",
@@ -454,7 +454,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
             dataMode: "ReadOnly",
           },
         },
-        // 6. DeleteRecord (Access Delete Query)
+        // 6. DeleteRecord (Delete Query)
         {
           id: "step_delete",
           action: "DeleteRecord",
@@ -464,7 +464,7 @@ describe("⚡ SQLite Studio Pro - Microsoft Access Macro Automation Suite", () =
             whereCondition: "name = 'Zenith Corp'",
           },
         },
-        // 7. EmptyTable (Access Clear/Truncate Table)
+        // 7. EmptyTable (Clear/Truncate Table)
         {
           id: "step_empty",
           action: "EmptyTable",

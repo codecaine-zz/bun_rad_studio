@@ -87,11 +87,11 @@ suite("🐬 MySQL Studio Pro - Comprehensive End-to-End Enterprise Test Suite", 
     expect(html).toContain('id="jpSqlSnippet"');
     expect(html).toContain("updateJoinPropVennDiagram");
 
-    // Access Cardinality Badges (1 and ∞)
+    // Cardinality Badges (1 and ∞)
     expect(html).toContain("qbe-cardinality-badge");
   });
 
-  it("3. HTML bundles the Access-style GUI CRUD layer (inline edits, modals, table designer)", () => {
+  it("3. HTML bundles the GUI CRUD layer (inline edits, modals, table designer)", () => {
     const html = generateMysqlStudioHtml();
 
     // Embedded CRUD stylesheet
@@ -237,7 +237,7 @@ suite("🐬 MySQL Studio Pro - Comprehensive End-to-End Enterprise Test Suite", 
   // =========================================================================
   // 4. MICROSOFT ACCESS TOTALS ROW & QUICK FILTER BAR
   // =========================================================================
-  it("7. Microsoft Access Totals Row & Quick Filter Bar in Datasheet", async () => {
+  it("7. Totals Row & Quick Filter Bar in Datasheet", async () => {
     const html = generateMysqlStudioHtml();
 
     // DOM Elements
@@ -269,7 +269,7 @@ suite("🐬 MySQL Studio Pro - Comprehensive End-to-End Enterprise Test Suite", 
   // =========================================================================
   // 5. MICROSOFT ACCESS PUBLICATION REPORT GENERATOR
   // =========================================================================
-  it("8. Microsoft Access Publication Report Generator Modal & Print View", () => {
+  it("8. Publication Report Generator Modal & Print View", () => {
     const html = generateMysqlStudioHtml();
 
     expect(html).toContain('id="btnAccessReport"');

@@ -203,7 +203,7 @@ async function main() {
     2500
   );
 
-  // Screenshot 2: MS Access Join Properties Modal Dialog (with 3-circle Venn Diagrams & Directional Radio Choices)
+  // Screenshot 2: Join Properties Modal Dialog (with 3-circle Venn Diagrams & Directional Radio Choices)
   await runScreenshot(
     `http://127.0.0.1:${sqlitePort}/?tab=designer&preset=ecommerce_multi&modal=customers.id-%3Eorders.customer_id`,
     join(OUTPUT_DIR, "visual_joins_properties_modal.png"),

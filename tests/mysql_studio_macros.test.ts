@@ -19,7 +19,7 @@ const suite = testDb ? describe : describe.skip;
 
 type Action = { id: string; action: string; enabled: boolean; parameters: any; [k: string]: any };
 
-suite("🐬 MySQL Studio Pro - Access Macro Automation Suite", () => {
+suite("🐬 MySQL Studio Pro - Macro Automation Suite", () => {
   const server = testDb ? startMysqlStudioServer({ port: 0, config: testDb.config }) : (null as any);
   const baseUrl = `http://127.0.0.1:${server?.port}`;
   const suffix = Date.now();

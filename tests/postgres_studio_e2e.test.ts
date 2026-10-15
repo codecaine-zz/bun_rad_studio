@@ -85,7 +85,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(html).toContain("FULL OUTER JOIN (Postgres Native)");
   });
 
-  it("3. HTML bundles the Access-style GUI CRUD layer (inline edits, modals, table designer)", () => {
+  it("3. HTML bundles the GUI CRUD layer (inline edits, modals, table designer)", () => {
     const html = generatePostgresStudioHtml();
 
     // Embedded CRUD stylesheet
@@ -493,7 +493,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   // 14. MICROSOFT ACCESS VISUAL QUERY EXECUTION & MULTI-TABLE JOINS (PostgreSQL)
   // =========================================================================
   it("14. PostgreSQL executes INNER, LEFT, RIGHT, and FULL OUTER joins and 4-table QBE queries", async () => {
-    // 14.1 INNER JOIN (Access Option 1)
+    // 14.1 INNER JOIN (Option 1)
     const innerRes = await fetch(`${baseUrl}/api/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -511,7 +511,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(innerData.columns).toContain("customer_name");
     expect(innerData.columns).toContain("order_id");
 
-    // 14.2 LEFT OUTER JOIN (Access Option 2)
+    // 14.2 LEFT OUTER JOIN (Option 2)
     const leftRes = await fetch(`${baseUrl}/api/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -527,7 +527,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(leftData.success).toBe(true);
     expect(leftData.rows.length).toBeGreaterThanOrEqual(innerData.rows.length);
 
-    // 14.3 RIGHT OUTER JOIN (Access Option 3)
+    // 14.3 RIGHT OUTER JOIN (Option 3)
     const rightRes = await fetch(`${baseUrl}/api/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -543,7 +543,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(rightData.success).toBe(true);
     expect(rightData.rows.length).toBe(innerData.rows.length);
 
-    // 14.4 FULL OUTER JOIN (Access Option 4 - Postgres Native)
+    // 14.4 FULL OUTER JOIN (Option 4 - Postgres Native)
     const fullRes = await fetch(`${baseUrl}/api/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -643,7 +643,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   // =========================================================================
   // 16. MICROSOFT ACCESS FORM VIEW (Single-Record Inspector & Record Navigation)
   // =========================================================================
-  it("16. HTML bundles Microsoft Access Form View, record pager, and field inspector", async () => {
+  it("16. HTML bundles Form View, record pager, and field inspector", async () => {
     const html = generatePostgresStudioHtml();
 
     // Toolbar View Switcher
@@ -715,7 +715,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   // =========================================================================
   // 17. ACCESS TABLE DESIGN VIEW (Live Column Add/Drop & Index Management)
   // =========================================================================
-  it("17. Interactive Access Table Design View supports live ALTER TABLE ADD/DROP COLUMN and indexes", async () => {
+  it("17. Interactive Table Design View supports live ALTER TABLE ADD/DROP COLUMN and indexes", async () => {
     const html = generatePostgresStudioHtml();
 
     // Design View UI controls
@@ -844,7 +844,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   // =========================================================================
   // 20. ACCESS FULL SCHEMA ERD & RELATIONAL CARDINALITY BADGES
   // =========================================================================
-  it("20. Visual Query Designer features 1-click Full Schema ERD and Access Cardinality badges", () => {
+  it("20. Visual Query Designer features 1-click Full Schema ERD and Cardinality badges", () => {
     const html = generatePostgresStudioHtml();
 
     // ERD Ribbon buttons
@@ -858,7 +858,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   // =========================================================================
   // 21. MICROSOFT ACCESS TOTALS ROW & QUICK FILTER BAR
   // =========================================================================
-  it("21. Microsoft Access Totals Row & Quick Filter Bar in Datasheet", async () => {
+  it("21. Totals Row & Quick Filter Bar in Datasheet", async () => {
     const html = generatePostgresStudioHtml();
 
     // DOM Elements
@@ -890,7 +890,7 @@ suite("🐘 Postgres Studio Pro - Comprehensive End-to-End Enterprise Test Suite
   // =========================================================================
   // 22. MICROSOFT ACCESS PUBLICATION REPORT GENERATOR
   // =========================================================================
-  it("22. Microsoft Access Publication Report Generator Modal & Print View", () => {
+  it("22. Publication Report Generator Modal & Print View", () => {
     const html = generatePostgresStudioHtml();
 
     expect(html).toContain('id="btnAccessReport"');

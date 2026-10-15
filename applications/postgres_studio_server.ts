@@ -2039,7 +2039,7 @@ export class PostgresManager {
     return out.join("\n");
   }
 
-  // Access Totals Row & Aggregates Computer
+  // Totals Row & Aggregates Computer
   public async getTableAggregates(tableName: string, schemaName?: string): Promise<Record<string, any>> {
     const s = schemaName || this.activeSchema;
     try {
@@ -2962,7 +2962,7 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // 5f. Table Aggregates for Access Totals Row
+      // 5f. Table Aggregates for Totals Row
       if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string; schema?: string };

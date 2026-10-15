@@ -5,7 +5,7 @@ import { generateMysqlStudioHtml } from "../applications/mysql_studio.ts";
 import { generatePostgresStudioHtml } from "../applications/postgres_studio.ts";
 import { Database } from "bun:sqlite";
 
-describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite", () => {
+describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
   const server = startSqliteStudioServer({ port: 0, initialDbPath: ":memory:" });
   const baseUrl = `http://127.0.0.1:${server.port}`;
 
@@ -15,7 +15,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     } catch {}
   });
 
-  it("1. SQLite Studio shell renders Microsoft Access Visual Join Canvas and Properties Modal", async () => {
+  it("1. SQLite Studio shell renders Visual Join Canvas and Properties Modal", async () => {
     const html = generateSqliteStudioHtml();
     expect(html).toContain('id="accessJoinPropertiesModal"');
     expect(html).toContain('id="qbeCanvasViewport"');
@@ -33,7 +33,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     expect(html).toContain('findAllDesignerJoins');
   });
 
-  it("2. MySQL Studio shell renders Microsoft Access Visual Join Canvas and Properties Modal", () => {
+  it("2. MySQL Studio shell renders Visual Join Canvas and Properties Modal", () => {
     const html = generateMysqlStudioHtml();
     expect(html).toContain('id="accessJoinPropertiesModal"');
     expect(html).toContain('id="qbeCanvasViewport"');
@@ -51,7 +51,7 @@ describe("📐 Microsoft Access Visual Joins & Multi-Table Relationships Suite",
     expect(html).toContain('findAllDesignerJoins');
   });
 
-  it("3. Postgres Studio shell renders Microsoft Access Visual Join Canvas and Properties Modal", () => {
+  it("3. Postgres Studio shell renders Visual Join Canvas and Properties Modal", () => {
     const html = generatePostgresStudioHtml();
     expect(html).toContain('id="accessJoinPropertiesModal"');
     expect(html).toContain('id="qbeCanvasViewport"');

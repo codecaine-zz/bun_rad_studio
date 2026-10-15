@@ -1,5 +1,5 @@
 /**
- * Shared server side of the Access-style macro system for the networked studios
+ * Shared server side of the macro system for the networked studios
  * (MySQL Studio / Postgres Studio).
  *
  *  - MacroStore: macros + saved queries persisted as JSON per connection, so nothing is ever

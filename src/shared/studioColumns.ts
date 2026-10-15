@@ -90,7 +90,7 @@ export const STUDIO_COLUMNS_STYLE = `
     th.sc-th:hover .sc-th-btn, th.sc-th:focus-within .sc-th-btn, th.sc-th .sc-th-btn[aria-expanded="true"] { opacity: 1; }
     th.sc-th .sc-th-btn:hover { background: color-mix(in srgb, var(--text-main) 14%, transparent); color: var(--text-main); }
     th.sc-th:focus-visible, th.sc-th .sc-th-btn:focus-visible, .sc-btn:focus-visible, .sc-act:focus-visible, .sc-x:focus-visible, .sc-chip:focus-visible, .sc-link:focus-visible, .sc-search:focus-visible, .sc-item input:focus-visible, .sc-opt input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
-    /* ===== Datasheet (Access style): widths, display names, order, frozen columns, filters, formatting ===== */
+    /* ===== Datasheet: widths, display names, order, frozen columns, filters, formatting ===== */
     table.sc-fixed { table-layout: fixed; }
     table.sc-fixed th, table.sc-fixed td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .sc-rz { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 9; touch-action: none; }
@@ -288,7 +288,7 @@ function studioColumnsClient() {
   }
 
   // ======================================================================================================
-  // Datasheet behaviour (Microsoft Access style): widths, display names, order, frozen columns, filters,
+  // Datasheet behaviour (style): widths, display names, order, frozen columns, filters,
   // formatting. Works on the table the studio renders: it never changes how the studio draws or queries.
   // ======================================================================================================
   function installDatasheet(inst, api) {

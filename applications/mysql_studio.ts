@@ -722,7 +722,7 @@ function buildMysqlHtml(): string {
       box-shadow: inset 0 -2px 0 var(--cyan);
     }
 
-    /* Microsoft Access Query Designer (QBE) Styling */
+    /* Query Designer (QBE) Styling */
     .designer-layout {
       display: flex;
       flex-direction: column;
@@ -1134,7 +1134,7 @@ function buildMysqlHtml(): string {
       flex-wrap: wrap;
     }
 
-    /* Microsoft Access Join Properties Modal */
+    /* Join Properties Modal */
     .access-join-table-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -1746,7 +1746,7 @@ function buildMysqlHtml(): string {
       outline: none;
       color: var(--text-main);
     }
-    /* Microsoft Access Totals Row */
+    /* Totals Row */
     .access-totals-foot {
       position: sticky;
       bottom: 0;
@@ -1775,7 +1775,7 @@ function buildMysqlHtml(): string {
       font-family: var(--font-mono);
     }
 
-    /* Microsoft Access Quick Filter Bar */
+    /* Quick Filter Bar */
     .access-filter-row {
       background: rgba(15, 23, 42, 0.95);
       border-bottom: 1px solid var(--border-subtle);
@@ -1795,7 +1795,7 @@ function buildMysqlHtml(): string {
       border-color: var(--cyan);
     }
 
-    /* Microsoft Access Publication Report Styles & @media print */
+    /* Publication Report Styles & @media print */
     .access-report-sheet {
       background: #ffffff;
       color: #0f172a;
@@ -2126,9 +2126,9 @@ ${STUDIO_STAGING_STYLE}
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 11px; font-weight: 700; color: var(--cyan);" id="gridTargetTitle">Active Result Set</span>
               <div style="display: flex; gap: 4px;">
-                <button class="btn btn-sm" id="btnToggleTotals" onclick="toggleAccessTotalsRow()" title="Toggle Microsoft Access Totals Row (Sum, Avg, Count, Min, Max)">🧮 Totals</button>
-                <button class="btn btn-sm" id="btnToggleFilterBar" onclick="toggleQuickFilterBar()" title="Toggle Access Column Filter Bar">⚡ Filter Bar</button>
-                <button class="btn btn-sm" id="btnAccessReport" onclick="openAccessReportModal()" title="Generate Microsoft Access Printable Report / PDF">🖨️ Report</button>
+                <button class="btn btn-sm" id="btnToggleTotals" onclick="toggleAccessTotalsRow()" title="Toggle Totals Row (Sum, Avg, Count, Min, Max)">🧮 Totals</button>
+                <button class="btn btn-sm" id="btnToggleFilterBar" onclick="toggleQuickFilterBar()" title="Toggle Column Filter Bar">⚡ Filter Bar</button>
+                <button class="btn btn-sm" id="btnAccessReport" onclick="openAccessReportModal()" title="Generate Printable Report / PDF">🖨️ Report</button>
               </div>
               <input type="text" id="gridSearchInput" placeholder="Filter rows..." style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 3px 8px; color: #fff; font-size: 11px; outline: none; width: 140px;" oninput="onGridSearch(this.value)">
             </div>
@@ -2311,13 +2311,13 @@ ${STUDIO_STAGING_STYLE}
     <div id="footerClock">00:00:00</div>
   </footer>
 
-  <!-- Microsoft Access Join Properties Modal -->
+  <!-- Join Properties Modal -->
   <div class="modal-overlay" id="accessJoinPropertiesModal" onclick="if(event.target === this) closeJoinPropertiesModal()">
     <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
         <div class="modal-title">
           <span>📐</span>
-          <span>Join Properties (Microsoft Access Relational Editor)</span>
+          <span>Join Properties (Relational Editor)</span>
         </div>
         <button class="modal-close" onclick="closeJoinPropertiesModal()" title="Close dialog">✕</button>
       </div>
@@ -2346,7 +2346,7 @@ ${STUDIO_STAGING_STYLE}
           </div>
         </div>
 
-        <!-- Access 3-Option Join Types (Plus Full Outer & Cross) -->
+        <!-- 3-Option Join Types (Plus Full Outer & Cross) -->
         <div class="access-join-options">
           <label class="access-join-radio-card" id="cardJpInner" onclick="selectJoinPropType('INNER')">
             <input type="radio" name="accessJoinType" id="radioJpInner" value="INNER" onchange="onJoinPropTypeChange('INNER')">
@@ -2563,13 +2563,13 @@ ${STUDIO_STAGING_STYLE}
     </div>
   </div>
 
-  <!-- Microsoft Access Printable Publication Report Modal -->
+  <!-- Printable Publication Report Modal -->
   <div class="modal-overlay" id="accessReportModal" onclick="if(event.target === this) closeAccessReportModal()">
     <div class="modal-card" style="max-width: 960px; max-height: 90vh;">
       <div class="modal-header">
         <div class="modal-title">
           <span>📑</span>
-          <span>Microsoft Access Publication Report Preview</span>
+          <span>Publication Report Preview</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <button class="btn btn-sm btn-primary" onclick="printAccessReport()">🖨️ Print / Save PDF</button>
@@ -3486,7 +3486,7 @@ ${STUDIO_STAGING_STYLE}
       }, query);
       container.appendChild(viewsGroup);
 
-      // Saved Queries & Macros (Access-style)
+      // Saved Queries & Macros 
       if (typeof renderQueryTreeGroup === "function") renderQueryTreeGroup(container, query);
       if (typeof renderMacroTreeGroup === "function") renderMacroTreeGroup(container, query);
     }
@@ -3649,7 +3649,7 @@ ${STUDIO_STAGING_STYLE}
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Microsoft Access Totals Row & Quick Filter Bar
+    // Totals Row & Quick Filter Bar
     // ---------------------------------------------------------------------------------------------
     function toggleAccessTotalsRow() {
       accessTotalsRowVisible = !accessTotalsRowVisible;
@@ -3661,7 +3661,7 @@ ${STUDIO_STAGING_STYLE}
       if (currentGridRows && currentGridColumns) {
         updateAccessTotalsRow(currentGridRows, currentGridColumns, currentGridRows.length);
       }
-      showToast(accessTotalsRowVisible ? "Access Totals Row enabled" : "Access Totals Row disabled");
+      showToast(accessTotalsRowVisible ? "Totals Row enabled" : "Totals Row disabled");
     }
 
     function updateAccessTotalsRow(rows, columns, total) {
@@ -3814,7 +3814,7 @@ ${STUDIO_STAGING_STYLE}
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Microsoft Access Publication Report Preview & Print/Export
+    // Publication Report Preview & Print/Export
     // ---------------------------------------------------------------------------------------------
     async function openAccessReportModal() {
       const modal = document.getElementById("accessReportModal");
@@ -3844,7 +3844,7 @@ ${STUDIO_STAGING_STYLE}
       let html = '<div class="access-report-sheet">';
       html += '<div class="access-report-header">';
       html += '  <div>';
-      html += '    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#0284c7; letter-spacing:1px;">Microsoft Access Workstation Report</div>';
+      html += '    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#0284c7; letter-spacing:1px;">Workstation Report</div>';
       html += '    <div class="access-report-title">' + escapeHtml(tblName) + '</div>';
       html += '  </div>';
       html += '  <div class="access-report-meta">';
@@ -3876,7 +3876,7 @@ ${STUDIO_STAGING_STYLE}
 
       html += '<div class="access-report-summary">';
       html += '  <span>End of Report: ' + rows.length.toLocaleString() + ' Records Processed</span>';
-      html += '  <span>🐬 MySQL Studio Pro / Access Parity Engine</span>';
+      html += '  <span>🐬 MySQL Studio Pro</span>';
       html += '</div>';
       html += '</div>';
 
@@ -5649,7 +5649,7 @@ ${STUDIO_STAGING_STYLE}
           badgeIcon = "×";
         }
 
-        // Determine Access Cardinality Badges (1 to ∞)
+        // Determine Cardinality Badges (1 to ∞)
         const leftMeta = typeof getEntityMeta === "function" ? getEntityMeta(j.leftTable) : null;
         const rightMeta = typeof getEntityMeta === "function" ? getEntityMeta(j.rightTable) : null;
         const leftIsPk = Boolean(leftMeta && leftMeta.columns && leftMeta.columns.find(c => c.name === j.leftField)?.pk);
@@ -5670,14 +5670,14 @@ ${STUDIO_STAGING_STYLE}
           <path d="\${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
           <path d="\${d}" class="qbe-svg-join-line" stroke="\${stroke}" \${dash} \${markerAttr} onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
 
-          <!-- MS Access Style Cardinality Indicators (1 to ∞) -->
+          <!-- Cardinality Indicators (1 to ∞) -->
           <foreignObject x="\${x1 + cardOff1 - 9}" y="\${y1 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
-            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid \${stroke}; color: \${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: \${leftCard}">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid \${stroke}; color: \${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Cardinality: \${leftCard}">
               \${leftCard}
             </div>
           </foreignObject>
           <foreignObject x="\${x2 + cardOff2 - 9}" y="\${y2 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
-            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid \${stroke}; color: \${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: \${rightCard}">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid \${stroke}; color: \${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Cardinality: \${rightCard}">
               \${rightCard}
             </div>
           </foreignObject>
@@ -5949,7 +5949,7 @@ ${STUDIO_STAGING_STYLE}
             { id: "jl4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
           ];
           renderQueryDesigner();
-          showToast("Loaded Access Option 2: LEFT OUTER JOIN (All Customers)");
+          showToast("Loaded Option 2: LEFT OUTER JOIN (All Customers)");
           return;
         }
       } else if (presetKey === "join_right") {
@@ -5967,7 +5967,7 @@ ${STUDIO_STAGING_STYLE}
             { id: "jr3", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
           ];
           renderQueryDesigner();
-          showToast("Loaded Access Option 3: RIGHT OUTER JOIN (All Orders)");
+          showToast("Loaded Option 3: RIGHT OUTER JOIN (All Orders)");
           return;
         }
       } else if (presetKey === "join_full") {
@@ -5986,7 +5986,7 @@ ${STUDIO_STAGING_STYLE}
             { id: "jf4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
           ];
           renderQueryDesigner();
-          showToast("Loaded Access Option 4: FULL OUTER JOIN (All Records)");
+          showToast("Loaded Option 4: FULL OUTER JOIN (All Records)");
           return;
         }
       } else if (presetKey === "join_cross") {
@@ -6004,7 +6004,7 @@ ${STUDIO_STAGING_STYLE}
             { id: "jc3", table: "products", field: "price", alias: "unit_price", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
           ];
           renderQueryDesigner();
-          showToast("Loaded Access Option 5: CROSS JOIN (Cartesian Matrix)");
+          showToast("Loaded Option 5: CROSS JOIN (Cartesian Matrix)");
           return;
         }
       } else if (presetKey === "low_stock") {
@@ -6516,7 +6516,7 @@ ${STUDIO_STAGING_STYLE}
         .map(v => v.name)
         .filter(name => !selectedTables.includes(name));
 
-      // 1. Access Ribbon Toolbar
+      // 1. Ribbon Toolbar
       const ribbonHtml = \`
         <div class="qbe-ribbon">
           <div class="qbe-ribbon-group">
@@ -6544,10 +6544,10 @@ ${STUDIO_STAGING_STYLE}
               <option value="">⚡ Presets / Templates</option>
               <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
               <option value="top_spenders">Top Spenders (Aggregated)</option>
-              <option value="join_left">Access 2: Customers (LEFT JOIN)</option>
-              <option value="join_right">Access 3: Orders (RIGHT JOIN)</option>
-              <option value="join_full">Access 4: Customers & Orders (FULL JOIN)</option>
-              <option value="join_cross">Access 5: Cross Cartesian Product</option>
+              <option value="join_left">Join 2: Customers (LEFT JOIN)</option>
+              <option value="join_right">Join 3: Orders (RIGHT JOIN)</option>
+              <option value="join_full">Join 4: Customers & Orders (FULL JOIN)</option>
+              <option value="join_cross">Join 5: Cross Cartesian Product</option>
               <option value="low_stock">Low Stock Restock Alerts</option>
               <option value="orders_status">Active Orders Pipeline</option>
               <option value="blank">Blank Query (Reset)</option>
@@ -6560,7 +6560,7 @@ ${STUDIO_STAGING_STYLE}
               \${viewsList.length ? \`<optgroup label="👁️ Views">\${viewsList.map(name => \`<option value="\${escapeHtml(name)}">\${escapeHtml(name)} (View)</option>\`).join('')}</optgroup>\` : ''}
             </select>
             <button class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
-            <button class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Microsoft Access Join Properties dialog">+ Link / Join</button>
+            <button class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Join Properties dialog">+ Link / Join</button>
             <button class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">⚡ Auto-Detect Joins</button>
             <button class="btn btn-sm" onclick="autoArrangeDesignerTables()" title="Auto-arrange table layout on relationship canvas">📐 Auto-Arrange</button>
             <button class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
@@ -6586,7 +6586,7 @@ ${STUDIO_STAGING_STYLE}
           <div class="designer-sql-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 6px;">
               <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="card-title" style="margin-bottom:0;">Generated Microsoft Access-Compatible SQL</div>
+                <div class="card-title" style="margin-bottom:0;">Generated SQL</div>
                 <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
                   <span style="font-size: 10px; color: var(--text-dim);">Text:</span>
                   <button class="btn btn-sm" onclick="adjustSqlFontSize(-1)" title="Decrease font size" style="padding: 1px 5px; font-size: 10px;">A−</button>
@@ -6702,9 +6702,9 @@ ${STUDIO_STAGING_STYLE}
         return;
       }
 
-      // 4. View: Design View (Access Workbench + QBE Grid)
+      // 4. View: Design View (Workbench + QBE Grid)
       // Top Workbench: Table Cards
-      // 4. View: Design View (Access Workbench + QBE Grid)
+      // 4. View: Design View (Workbench + QBE Grid)
       // Top Workbench: Table Cards
       const tableCardsHtml = selectedTables.map(tableName => {
         const meta = getEntityMeta(tableName);
@@ -6743,9 +6743,9 @@ ${STUDIO_STAGING_STYLE}
           <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
             <button class="btn btn-sm" onclick="applyDesignerPreset('ecommerce_multi')" title="Load 4-table relational e-commerce query">🛒 4-Table E-Commerce</button>
             <button class="btn btn-sm" onclick="applyDesignerPreset('top_spenders')" title="Load Customer + Orders join query">🌟 Top Spenders</button>
-            <button class="btn btn-sm" onclick="applyDesignerPreset('join_left')" title="Access 2: Customers (LEFT JOIN)">Access 2: Customers (LEFT)</button>
-            <button class="btn btn-sm" onclick="applyDesignerPreset('join_right')" title="Access 3: Orders (RIGHT JOIN)">Access 3: Orders (RIGHT)</button>
-            <button class="btn btn-sm" onclick="applyDesignerPreset('join_full')" title="Access 4: Customers & Orders (FULL JOIN)">Access 4: Customers & Orders (FULL)</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('join_left')" title="Join 2: Customers (LEFT JOIN)">Join 2: Customers (LEFT)</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('join_right')" title="Join 3: Orders (RIGHT JOIN)">Join 3: Orders (RIGHT)</button>
+            <button class="btn btn-sm" onclick="applyDesignerPreset('join_full')" title="Join 4: Customers & Orders (FULL JOIN)">Join 4: Customers & Orders (FULL)</button>
             <button class="btn btn-sm" onclick="applyDesignerPreset('low_stock')" title="Load Products restock alert">📦 Low Stock Alerts</button>
             <button class="btn btn-sm" onclick="applyDesignerPreset('orders_status')" title="Load Orders pipeline">📈 Orders Pipeline</button>
           </div>
@@ -6796,7 +6796,7 @@ ${STUDIO_STAGING_STYLE}
 
         return \`
           <div class="qbe-join-badge">
-            <button class="btn btn-sm" onclick="openJoinPropertiesModal('\${join.key}')" title="Configure in Microsoft Access Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
+            <button class="btn btn-sm" onclick="openJoinPropertiesModal('\${join.key}')" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
             <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
               \${joinTypes.map(j => \`<option value="\${j.val}" \${join.type === j.val ? 'selected' : ''}>\${j.label}</option>\`).join('')}
             </select>
@@ -6820,7 +6820,7 @@ ${STUDIO_STAGING_STYLE}
         \`;
       }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>⚡ Auto-Detect Joins</strong> or <strong>+ Link / Join</strong>.</div>';
 
-      // Lower Pane: Classic Microsoft Access QBE Matrix
+      // Lower Pane: Classic QBE Matrix
       const columns = queryDesignerState.columns || [];
       const totalsList = ["GroupBy", "Sum", "Avg", "Min", "Max", "Count", "Where", "Expression"];
 
@@ -6965,7 +6965,7 @@ ${STUDIO_STAGING_STYLE}
         <div class="qbe-workbench">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Microsoft Access Relationship Canvas</span>
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Relationship Canvas</span>
               <span style="font-size: 10px; color: var(--text-dim);">(Drag headers to position, drag field to field to join, scroll or Ctrl+Wheel to zoom, drag empty space to pan)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -7025,7 +7025,7 @@ ${STUDIO_STAGING_STYLE}
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">QUERY BY EXAMPLE (QBE) DESIGN GRID</span>
-            <button class="btn btn-sm" onclick="toggleCriteriaHelp()" style="padding: 2px 8px; font-size: 10px;" title="View Microsoft Access &amp; MySQL Criteria Syntax">💡 Syntax Help</button>
+            <button class="btn btn-sm" onclick="toggleCriteriaHelp()" style="padding: 2px 8px; font-size: 10px;" title="View &amp; MySQL Criteria Syntax">💡 Syntax Help</button>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
@@ -7038,7 +7038,7 @@ ${STUDIO_STAGING_STYLE}
           </div>
         </div>
         <div id="criteriaHelpBanner" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; margin: 4px 0 8px; font-size: 11px; color: var(--text-muted); line-height: 1.6;">
-          <strong style="color: var(--cyan);">Access &amp; MySQL Criteria Cheat Sheet:</strong><br>
+          <strong style="color: var(--cyan);">MySQL Criteria Cheat Sheet:</strong><br>
           • <strong>Comparison:</strong> <code>&gt; 100</code>, <code>&lt;= 50</code>, <code>&lt;&gt; 'cancelled'</code>, <code>!= 'inactive'</code><br>
           • <strong>Ranges:</strong> <code>BETWEEN 10 AND 50</code><br>
           • <strong>Pattern Matches:</strong> <code>LIKE 'A%'</code> (starts with A), <code>LIKE '%corp%'</code> (contains corp)<br>

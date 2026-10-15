@@ -66,11 +66,11 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(html).toContain('id="jpSqlSnippet"');
     expect(html).toContain("updateJoinPropVennDiagram");
 
-    // Access Cardinality Badges (1 and ∞)
+    // Cardinality Badges (1 and ∞)
     expect(html).toContain("qbe-cardinality-badge");
   });
 
-  it("3. HTML bundles the Access-style GUI CRUD layer (inline edits, modals, table designer)", () => {
+  it("3. HTML bundles the GUI CRUD layer (inline edits, modals, table designer)", () => {
     const html = generateSqliteStudioHtml();
 
     // Embedded CRUD stylesheet
@@ -85,7 +85,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(html).toContain("openImportWizard");
   });
 
-  it("4. HTML includes Microsoft Access Totals Row & Quick Filter Bar elements", () => {
+  it("4. HTML includes Totals Row & Quick Filter Bar elements", () => {
     const html = generateSqliteStudioHtml();
 
     // Toolbar buttons
@@ -106,7 +106,7 @@ describe("⚡ SQLite Studio Pro - Comprehensive End-to-End Enterprise Test Suite
     expect(html).toContain("filterByColumnValue");
   });
 
-  it("5. HTML includes Microsoft Access Publication Report modal and @media print styles", () => {
+  it("5. HTML includes Publication Report modal and @media print styles", () => {
     const html = generateSqliteStudioHtml();
 
     // Report modal

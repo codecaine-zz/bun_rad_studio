@@ -14,28 +14,28 @@ Launchers: [Desktop GUI: bun run app:mysql]  •  [Direct: bun run applications/
 
 It delivers sub-millisecond execution latency, pure macOS WebKit desktop integration, and native support for all modern MySQL features (including MySQL 8+ `caching_sha2_password` authentication, declarative range/list/hash partitioning, custom ENUM/SET types, binary logs, and InnoDB transaction lock tracking)—with **zero external software dependencies**, zero npm packages, and a robust dual-mode connection manager supporting both `.env` environment variables (`MSQL_*` / `MYSQL_*`) and on-the-fly manual credentials.
 
-Following our commitment to **Microsoft Access workflow parity**, MySQL Studio Pro brings iconic desktop database workflows to MySQL:
-- **🧮 Microsoft Access Totals Row**: Live pinned footer row calculating instant sums, averages, counts, min, and max across table records.
-- **⚡ Access Quick Filter Bar**: Instant keystroke column filtering and cell right-click *"Filter by Selection"*.
-- **🖨️ Access Publication Report Generator**: Publication-ready printable report preview modal with `@media print` print styling, `Print / Save PDF`, and `Export HTML`.
+Following our commitment to **workflow parity**, MySQL Studio Pro brings iconic desktop database workflows to MySQL:
+- **🧮 Totals Row**: Live pinned footer row calculating instant sums, averages, counts, min, and max across table records.
+- **⚡ Quick Filter Bar**: Instant keystroke column filtering and cell right-click *"Filter by Selection"*.
+- **🖨️ Publication Report Generator**: Publication-ready printable report preview modal with `@media print` print styling, `Print / Save PDF`, and `Export HTML`.
 - **💾 1-Click Database Backup & SQL Dump**: Instant schema DDL and table data dump generator with copy, download, and SQL editor integration.
 - **🏷️ Custom Types & ENUMs Manager**: Real-time reflection and alteration of MySQL `ENUM` and `SET` column definitions.
 - **📦 Declarative Partition Trees Explorer**: Visual inspection of partitioned tables, bound expressions, and row estimates.
 - **📡 Streaming Replication & Binary Log Diagnostics**: Live binary log status, coordinates, and replica thread telemetry.
 - **⚡ Live Activity & Lock Contention Monitor**: Real-time processlist monitoring with 1-click `KILL <PID>` process termination.
-- **📐 Visual Query Designer with Cardinality Badges**: Drag-and-drop relationship canvas with Access cardinality badges (`1` and `∞`) and interactive Venn diagram join properties.
+- **📐 Visual Query Designer with Cardinality Badges**: Drag-and-drop relationship canvas with cardinality badges (`1` and `∞`) and interactive Venn diagram join properties.
 
 ---
 
 ## 🖼️ Verified Visual Interface Tour
 
-| Microsoft Access Totals Row & Quick Filter Bar Active |
+| Totals Row & Quick Filter Bar Active |
 | :---: |
 | ![MySQL Totals Row & Filter Bar](../../screenshots/apps/mysql_totals_filter_verified.png) |
 
-| Access Publication Report Generator Modal | 1-Click Database Backup & SQL Dump Generator |
+| Publication Report Generator Modal | 1-Click Database Backup & SQL Dump Generator |
 | :---: | :---: |
-| ![Access Report Modal](../../screenshots/apps/mysql_access_report_modal_verified.png) | ![Database Backup & Dump Modal](../../screenshots/apps/mysql_backup_dump_modal_verified.png) |
+| ![Report Modal](../../screenshots/apps/mysql_access_report_modal_verified.png) | ![Database Backup & Dump Modal](../../screenshots/apps/mysql_backup_dump_modal_verified.png) |
 
 | Custom ENUM & SET Types Manager | Add MySQL ENUM Column Modal |
 | :---: | :---: |
@@ -152,18 +152,18 @@ If you do not have or do not want to use `.env` variables, click **`🔌 Connect
 
 MySQL Studio Pro features 11 dedicated enterprise workstation tabs:
 
-### 1. 📊 Tabular Data Grid & Access-Style GUI CRUD Layer
-- **Microsoft Access Workflow Parity**:
+### 1. 📊 Tabular Data Grid & GUI CRUD Layer
+- **Workflow Parity**:
   - **Pinned Totals Row (`[ 🧮 Totals ]`)**: Pinned footer row calculating live aggregations across visible table records (`Total: N`, `Count: N`, and numeric aggregations `Σ sum`, `x̄ avg`, `min`, `max`).
   - **Inline Quick Filter Bar (`[ ⚡ Filter Bar ]`)**: Persistent inline filter inputs positioned directly under each column header for instant keystroke filtering, plus cell right-click **"Filter by Selection"** shortcut.
   - **Publication Report Generator (`🖨️ Report`)**: Opens a publication-ready printable report preview modal with report header, formatted table, summary counts, `@media print` print styles, **`🖨️ Print / Save PDF`**, and **`📥 Export HTML`**.
-  - **Access Form View & Table Designer**: Switch between Datasheet View and single-record Form View with record stepper/navigator, or open the interactive Table Design View supporting live `ALTER TABLE` operations.
-- **Access-Style CRUD Operations**:
+  - **Form View & Table Designer**: Switch between Datasheet View and single-record Form View with record stepper/navigator, or open the interactive Table Design View supporting live `ALTER TABLE` operations.
+- **CRUD Operations**:
   - `+ Add Record`: Visual dialog with input fields auto-configured for MySQL types (`INT`, `VARCHAR`, `DECIMAL`, `DATETIME`, `ENUM`).
   - `✎ Edit Row` & **Inline Double-Click Cell Editing**: Direct in-place editing on any cell with automatic type casting.
   - `⧉ Duplicate Row`: Clones selected record for rapid prototyping and mock data population.
   - `🗑 Delete Row`: Safe deletion with confirmation prompt and primary key resolution.
-  - `📐 Design Table`: Access-style Table Designer modal to add/remove columns, change types, toggle PK and NOT NULL.
+  - `📐 Design Table`: Table Designer modal to add/remove columns, change types, toggle PK and NOT NULL.
   - `⚡ Indexes Manager`: View all table indexes with 1-click index creation supporting **BTREE, FULLTEXT, and SPATIAL** algorithms.
   - `📥 Import Wizard`: Import rows from CSV or JSON format with preview and batch insertion.
   - `📤 Export Wizard`: Export table data or query results to CSV, JSON, or SQL INSERT scripts.
@@ -174,9 +174,9 @@ The **＋ Create view** button on the sidebar **Views** header, **🧱 Create vi
 
 Every prompt and confirmation of the studio (save connection profile, add enum value, terminate process, save designer query …) now uses an in-page dialog: the browser's native `prompt()`/`confirm()` do nothing in the desktop window. Enter confirms, Esc closes only the dialog.
 
-#### The datasheet works like Microsoft Access
+#### The datasheet works like a desktop database
 
-Every data grid (a table opened from the sidebar, and query results) behaves like an Access datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
+Every data grid (a table opened from the sidebar, and query results) works like a classic datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
 
 | What | How |
 | :--- | :--- |
@@ -189,7 +189,7 @@ Every data grid (a table opened from the sidebar, and query results) behaves lik
 | **Sort** | **Sort A → Z / Z → A / Clear sort** in the header menu (as before, a plain click on a header sorts; SQLite and MySQL sort on the server, the PostgreSQL grid has no header sort). |
 | **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row colour**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
 
-Not like Access: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (Access selects the column) so Ctrl/Cmd+click and Shift+click select columns.
+Not included: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (selects the column) so Ctrl/Cmd+click and Shift+click select columns.
 
 #### Focus mode: use the whole window for one section
 
@@ -218,12 +218,12 @@ Every data grid (a table opened from the sidebar, and the result of a query) has
 - 11 Curated MySQL-specific SQL presets covering Multi-table joins, Customer lifetime spend, Sales by category, Inventory alerts, and Audit trails.
 - Tabular output with execution latency and row counts; export results to CSV, JSON, and SQL.
 
-### 3. 📐 Visual Query Designer & Microsoft Access Relational Canvas
-- **Microsoft Access Relational Canvas**:
+### 3. 📐 Visual Query Designer & Relational Canvas
+- **Relational Canvas**:
   - Add tables and views as movable cards with draggable headers.
   - Interactive column lists showing primary keys (🔑) and data types.
   - Automatic relationship discovery via foreign key introspection (`⚡ Auto-Detect Joins`).
-  - **Access Cardinality Badges (`1` and `∞`)** displayed on relationship endpoints.
+  - **Cardinality Badges (`1` and `∞`)** displayed on relationship endpoints.
   - Automatic clean grid alignment (`📐 Auto-Arrange`).
 - **Deep Zoom & Room Expansion Controls**:
   - Zoom range from 50% to 200% (`🔍+`, `🔍−`, `1:1`, `🎯 Fit`).
@@ -282,7 +282,7 @@ Every data grid (a table opened from the sidebar, and the result of a query) has
   - `ANALYZE TABLE`: Updates key distribution statistics for query optimizer.
   - System Variables Explorer: Inspect live global and session variables.
 
-### 12. ⚡ Macro Designer (Access-style Automation)
+### 12. ⚡ Macro Designer (Automation)
 A visual action matrix (reorder ▲/▼, per-step conditions, Action Catalog, Single Step debugger, AutoExec, JSON import/export), shared with SQLite Studio and adapted to MySQL.
 - **Error handling**: macros stop at the first failing step. Set **On error: Continue** on the macro, or tick **On Err ⏭** on one step, to keep going. An unparsable condition fails the step instead of silently running it.
 - **🧪 Dry Run / 🔒 Atomic**: run the data steps on the server inside one transaction on a pinned connection; Dry Run always rolls back, Atomic commits only if every step succeeds. **MySQL commits implicitly before DDL** (`CREATE`/`DROP`/`ALTER`/`TRUNCATE`), so DDL steps (including `MakeTable`) and `VacuumDatabase` are *refused* in these modes rather than silently committing.
@@ -370,12 +370,12 @@ bun test tests/mysql_studio_e2e.test.ts tests/mysql_manual_config.test.ts
 - `tests/mysql_studio_e2e.test.ts`:
   1. `✓ 1. HTML contains all 11 enterprise workstation navigation tabs and corresponding panes`
   2. `✓ 2. HTML includes Visual Query Designer with deep zoom, room presets, resizer bar, and Venn preview`
-  3. `✓ 3. HTML bundles the Access-style GUI CRUD layer (inline edits, modals, table designer)`
+  3. `✓ 3. HTML bundles the GUI CRUD layer (inline edits, modals, table designer)`
   4. `✓ 4. GET /api/schema returns tables, columns, indexes, and exact row counts`
   5. `✓ 5. POST /api/table/data returns paginated rows with column data`
   6. `✓ 6. Complete Table Lifecycle: Create, Insert, Update, Import Batch, Truncate, Drop`
-  7. `✓ 7. Microsoft Access Totals Row & Quick Filter Bar in Datasheet`
-  8. `✓ 8. Microsoft Access Publication Report Generator Modal & Print View`
+  7. `✓ 7. Totals Row & Quick Filter Bar in Datasheet`
+  8. `✓ 8. Publication Report Generator Modal & Print View`
   9. `✓ 9. MySQL Custom ENUM/SET Types Management via information_schema.COLUMNS`
   10. `✓ 10. Declarative Partition Trees Explorer (information_schema.PARTITIONS)`
   11. `✓ 11. Streaming Replication & Binary Log Diagnostics (SHOW BINARY LOGS & REPLICA STATUS)`

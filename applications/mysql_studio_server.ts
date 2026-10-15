@@ -1991,7 +1991,7 @@ export class MysqlManager {
     }
   }
 
-  // Access-style macros are persisted per connection (never inside the user's database).
+  // macros are persisted per connection (never inside the user's database).
   public macroStore = new MacroStore("mysql", () => `${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.database}`);
 
   public getMacroAdapter(): MacroAdapter {
@@ -2550,7 +2550,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // Table Aggregates for Access Totals Row
+      // Table Aggregates for Totals Row
       if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string };
@@ -2716,7 +2716,7 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }
 
-      // Access-style Macro Designer & Saved Queries
+      // Macro Designer & Saved Queries
       const macroRes = await handleMacroRoute(manager.getMacroAdapter(), manager.macroStore, req, url.pathname, corsHeaders);
       if (macroRes) return macroRes;
 

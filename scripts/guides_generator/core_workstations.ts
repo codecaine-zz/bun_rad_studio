@@ -96,7 +96,7 @@ await studio.run();
 
 ## 🖱️ Visual Data Management (Full GUI CRUD — No SQL Required)
 
-SQLite Studio Pro works like Microsoft Access: you can create tables, add/edit/delete rows, import and export data entirely with buttons and dialogs. SQL is optional.
+SQLite Studio Pro works like a desktop database: you can create tables, add/edit/delete rows, import and export data entirely with buttons and dialogs. SQL is optional.
 
 ### Editing Rows (toolbar above the data grid)
 | Button | What it does |

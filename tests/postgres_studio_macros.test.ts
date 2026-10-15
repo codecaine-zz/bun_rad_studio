@@ -18,7 +18,7 @@ import { provisionTestDb } from "./helpers/testdb.ts";
 const testDb = await provisionTestDb("postgres");
 const suite = testDb ? describe : describe.skip;
 
-suite("⚡ Postgres Studio Pro - Access-style Macro Designer", () => {
+suite("⚡ Postgres Studio Pro - Macro Designer", () => {
   const server = testDb ? startPostgresStudioServer({ port: 0, config: testDb.config }) : (null as any);
   const baseUrl = `http://127.0.0.1:${server?.port}`;
   const stamp = Date.now();

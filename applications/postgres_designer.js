@@ -1,4 +1,4 @@
-// Microsoft Access Visual Query Designer & QBE Engine (PostgreSQL Pro)
+// Visual Query Designer & QBE Engine (PostgreSQL Pro)
 
 function quoteSqlIdentifier(value) {
   return '"' + String(value).replace(/"/g, '""') + '"';
@@ -1138,7 +1138,7 @@ function updateCanvasSvg() {
       badgeIcon = "×";
     }
 
-    // Determine Access Cardinality Badges (1 to ∞)
+    // Determine Cardinality Badges (1 to ∞)
     const leftMeta = getEntityMeta(j.leftTable);
     const rightMeta = getEntityMeta(j.rightTable);
     const leftIsPk = Boolean(leftMeta && leftMeta.columns && leftMeta.columns.find(c => c.name === j.leftField)?.pk);
@@ -1159,14 +1159,14 @@ function updateCanvasSvg() {
       <path d="${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
       <path d="${d}" class="qbe-svg-join-line" stroke="${stroke}" ${dash} ${markerAttr} onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
       
-      <!-- MS Access Style Cardinality Indicators (1 to ∞) -->
+      <!-- Cardinality Indicators (1 to ∞) -->
       <foreignObject x="${x1 + cardOff1 - 9}" y="${y1 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid ${stroke}; color: ${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: ${leftCard}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid ${stroke}; color: ${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Cardinality: ${leftCard}">
           ${leftCard}
         </div>
       </foreignObject>
       <foreignObject x="${x2 + cardOff2 - 9}" y="${y2 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid ${stroke}; color: ${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Access Cardinality: ${rightCard}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-cardinality-badge" style="background: rgba(15,23,42,0.92); border: 1px solid ${stroke}; color: ${stroke}; font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.6);" title="Cardinality: ${rightCard}">
           ${rightCard}
         </div>
       </foreignObject>
@@ -1482,7 +1482,7 @@ function applyDesignerPreset(presetKey) {
         { id: "jl4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
       ];
       renderQueryDesigner();
-      showToast("Loaded Access Option 2: LEFT OUTER JOIN (All Customers)");
+      showToast("Loaded Option 2: LEFT OUTER JOIN (All Customers)");
       return;
     }
   } else if (presetKey === "join_right") {
@@ -1500,7 +1500,7 @@ function applyDesignerPreset(presetKey) {
         { id: "jr3", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
       ];
       renderQueryDesigner();
-      showToast("Loaded Access Option 3: RIGHT OUTER JOIN (All Orders)");
+      showToast("Loaded Option 3: RIGHT OUTER JOIN (All Orders)");
       return;
     }
   } else if (presetKey === "join_full") {
@@ -1519,7 +1519,7 @@ function applyDesignerPreset(presetKey) {
         { id: "jf4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
       ];
       renderQueryDesigner();
-      showToast("Loaded Access Option 4: FULL OUTER JOIN (Native PostgreSQL)");
+      showToast("Loaded Option 4: FULL OUTER JOIN (Native PostgreSQL)");
       return;
     }
   } else if (presetKey === "join_cross") {
@@ -1537,7 +1537,7 @@ function applyDesignerPreset(presetKey) {
         { id: "jc3", table: "products", field: "price", alias: "unit_price", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
       ];
       renderQueryDesigner();
-      showToast("Loaded Access Option 5: CROSS JOIN (Cartesian Matrix)");
+      showToast("Loaded Option 5: CROSS JOIN (Cartesian Matrix)");
       return;
     }
   } else if (presetKey === "low_stock") {
@@ -2004,7 +2004,7 @@ function renderQueryDesigner() {
     .map(v => v.name)
     .filter(name => !selectedTables.includes(name));
 
-  // 1. Access Ribbon Toolbar
+  // 1. Ribbon Toolbar
   const ribbonHtml = `
     <div class="qbe-ribbon">
       <div class="qbe-ribbon-group">
@@ -2033,10 +2033,10 @@ function renderQueryDesigner() {
           <option value="all_tables_erd">🌐 Full Schema ERD (All Tables &amp; Joins)</option>
           <option value="ecommerce_multi">🛒 4-Table E-Commerce (Full Relational)</option>
           <option value="top_spenders">Top Spenders (Aggregated)</option>
-          <option value="join_left">Access 2: Customers (LEFT JOIN)</option>
-          <option value="join_right">Access 3: Orders (RIGHT JOIN)</option>
-          <option value="join_full">Access 4: Customers & Orders (FULL OUTER)</option>
-          <option value="join_cross">Access 5: Cross Cartesian Product</option>
+          <option value="join_left">Join 2: Customers (LEFT JOIN)</option>
+          <option value="join_right">Join 3: Orders (RIGHT JOIN)</option>
+          <option value="join_full">Join 4: Customers & Orders (FULL OUTER)</option>
+          <option value="join_cross">Join 5: Cross Cartesian Product</option>
           <option value="low_stock">Low Stock Restock Alerts</option>
           <option value="orders_status">Active Orders Pipeline</option>
           <option value="blank">Blank Query (Reset)</option>
@@ -2050,7 +2050,7 @@ function renderQueryDesigner() {
         </select>
         <button id="btnDesignerAddTable" class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
         <button id="btnDesignerFullErd" class="btn btn-sm" onclick="loadFullSchemaErd()" title="Load full database ERD with all tables and relationships">🌐 Full Schema ERD</button>
-        <button id="btnDesignerLinkJoin" class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Microsoft Access Join Properties dialog">+ Link / Join</button>
+        <button id="btnDesignerLinkJoin" class="btn btn-sm" onclick="openJoinPropertiesModal()" title="Open Join Properties dialog">+ Link / Join</button>
         <button id="btnDesignerAutoDetect" class="btn btn-sm" onclick="autoJoinDesignerTables()" title="Auto-detect relationships between tables across full schema graph">⚡ Auto-Detect Joins</button>
         <button id="btnDesignerAutoArrange" class="btn btn-sm" onclick="autoArrangeDesignerTables()" title="Auto-arrange table layout on relationship canvas">📐 Auto-Arrange</button>
         <button id="btnDesignerAddColumn" class="btn btn-sm" onclick="addDesignerQbeColumn()" title="Add custom column to QBE grid">+ Column</button>
@@ -2077,7 +2077,7 @@ function renderQueryDesigner() {
       <div class="designer-sql-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <div class="card-title" style="margin-bottom:0;">Generated Microsoft Access-Compatible SQL (PostgreSQL Pro)</div>
+            <div class="card-title" style="margin-bottom:0;">Generated SQL (PostgreSQL Pro)</div>
             <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
               <span style="font-size: 10px; color: var(--text-dim);">Text:</span>
               <button class="btn btn-sm" onclick="adjustSqlFontSize(-1)" title="Decrease font size" style="padding: 1px 5px; font-size: 10px;">A−</button>
@@ -2193,7 +2193,7 @@ function renderQueryDesigner() {
     return;
   }
 
-  // 4. View: Design View (Access Workbench + QBE Grid)
+  // 4. View: Design View (Workbench + QBE Grid)
   const tableCardsHtml = selectedTables.map(tableName => {
     const meta = getEntityMeta(tableName);
     if (!meta) return "";
@@ -2234,9 +2234,9 @@ function renderQueryDesigner() {
       <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
         <button class="btn btn-sm" onclick="applyDesignerPreset('ecommerce_multi')" title="Load 4-table relational e-commerce query">🛒 4-Table E-Commerce</button>
         <button class="btn btn-sm" onclick="applyDesignerPreset('top_spenders')" title="Load Customer + Orders join query">🌟 Top Spenders</button>
-        <button class="btn btn-sm" onclick="applyDesignerPreset('join_left')" title="Access 2: Customers (LEFT JOIN)">Access 2: Customers (LEFT)</button>
-        <button class="btn btn-sm" onclick="applyDesignerPreset('join_right')" title="Access 3: Orders (RIGHT JOIN)">Access 3: Orders (RIGHT)</button>
-        <button class="btn btn-sm" onclick="applyDesignerPreset('join_full')" title="Access 4: Customers & Orders (FULL JOIN)">Access 4: Customers & Orders (FULL)</button>
+        <button class="btn btn-sm" onclick="applyDesignerPreset('join_left')" title="Join 2: Customers (LEFT JOIN)">Join 2: Customers (LEFT)</button>
+        <button class="btn btn-sm" onclick="applyDesignerPreset('join_right')" title="Join 3: Orders (RIGHT JOIN)">Join 3: Orders (RIGHT)</button>
+        <button class="btn btn-sm" onclick="applyDesignerPreset('join_full')" title="Join 4: Customers & Orders (FULL JOIN)">Join 4: Customers & Orders (FULL)</button>
         <button class="btn btn-sm" onclick="applyDesignerPreset('low_stock')" title="Load Products restock alert">📦 Low Stock Alerts</button>
         <button class="btn btn-sm" onclick="applyDesignerPreset('orders_status')" title="Load Orders pipeline">📈 Orders Pipeline</button>
       </div>
@@ -2287,7 +2287,7 @@ function renderQueryDesigner() {
 
     return `
       <div class="qbe-join-badge">
-        <button class="btn btn-sm" onclick="openJoinPropertiesModal('${join.key}')" title="Configure in Microsoft Access Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
+        <button class="btn btn-sm" onclick="openJoinPropertiesModal('${join.key}')" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
         <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
           ${joinTypes.map(j => `<option value="${j.val}" ${join.type === j.val ? 'selected' : ''}>${j.label}</option>`).join('')}
         </select>
@@ -2311,7 +2311,7 @@ function renderQueryDesigner() {
     `;
   }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>⚡ Auto-Detect Joins</strong> or <strong>+ Link / Join</strong>.</div>';
 
-  // Lower Pane: Classic Microsoft Access QBE Matrix
+  // Lower Pane: Classic QBE Matrix
   const columns = queryDesignerState.columns || [];
   const totalsList = ["GroupBy", "Sum", "Avg", "Min", "Max", "Count", "Where", "Expression"];
 
@@ -2456,7 +2456,7 @@ function renderQueryDesigner() {
     <div class="qbe-workbench">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Microsoft Access Relationship Canvas</span>
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Relationship Canvas</span>
           <span style="font-size: 10px; color: var(--text-dim);">(Drag headers to position, drag field to field to join, scroll or Ctrl+Wheel to zoom, drag empty space to pan)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -2516,7 +2516,7 @@ function renderQueryDesigner() {
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-wrap: wrap; gap: 6px;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 11px; font-weight: 700; color: var(--text-dim);">QUERY BY EXAMPLE (QBE) DESIGN GRID</span>
-        <button class="btn btn-sm" onclick="toggleCriteriaHelp()" style="padding: 2px 8px; font-size: 10px;" title="View Microsoft Access &amp; PostgreSQL Criteria Syntax">💡 Syntax Help</button>
+        <button class="btn btn-sm" onclick="toggleCriteriaHelp()" style="padding: 2px 8px; font-size: 10px;" title="View &amp; PostgreSQL Criteria Syntax">💡 Syntax Help</button>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
@@ -2529,7 +2529,7 @@ function renderQueryDesigner() {
       </div>
     </div>
     <div id="criteriaHelpBanner" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; margin: 4px 0 8px; font-size: 11px; color: var(--text-muted); line-height: 1.6;">
-      <strong style="color: var(--cyan);">Access &amp; PostgreSQL Criteria Cheat Sheet:</strong><br>
+      <strong style="color: var(--cyan);">PostgreSQL Criteria Cheat Sheet:</strong><br>
       • <strong>Comparison:</strong> <code>&gt; 100</code>, <code>&lt;= 50</code>, <code>&lt;&gt; 'cancelled'</code>, <code>!= 'inactive'</code><br>
       • <strong>Ranges:</strong> <code>BETWEEN 10 AND 50</code><br>
       • <strong>Pattern Matches:</strong> <code>LIKE 'A%'</code> (starts with A), <code>ILIKE '%corp%'</code> (case-insensitive contains corp)<br>

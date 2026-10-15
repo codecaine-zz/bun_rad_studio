@@ -120,7 +120,7 @@ async function main() {
   await sleep(1000);
   await capture("mysql_totals_filter_verified");
 
-  // 2. Microsoft Access Publication Report Modal
+  // 2. Publication Report Modal
   console.log("2. Opening Access Publication Report Modal...");
   await send("Runtime.evaluate", {
     expression: `openAccessReportModal()`,

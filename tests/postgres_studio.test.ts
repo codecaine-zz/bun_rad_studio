@@ -42,7 +42,7 @@ suite("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", () =>
     expect(html).toContain("Materialized Views");
     expect(html).toContain("refreshMatView");
 
-    // Verify Access-style Visual Designer & FULL OUTER JOIN support
+    // Verify Visual Designer & FULL OUTER JOIN support
     expect(html).toContain("FULL OUTER JOIN (Postgres Native)");
     expect(html).toContain("qbe-viewport");
     expect(html).toContain("qbe-canvas-stage");

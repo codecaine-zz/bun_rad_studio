@@ -53,19 +53,19 @@ await studio.run();
 
 ## 🖼️ Verified Visual Interface Tour
 
-| Microsoft Access Totals Row & Quick Filter Bar Active |
+| Totals Row & Quick Filter Bar Active |
 | :---: |
 | ![SQLite Totals Row & Quick Filter Bar](../../screenshots/apps/sqlite_totals_filter_verified.png) |
 
-| Access Publication Report Generator Modal | 1-Click Database Backup & SQL Dump Generator |
+| Publication Report Generator Modal | 1-Click Database Backup & SQL Dump Generator |
 | :---: | :---: |
-| ![Access Report Modal](../../screenshots/apps/sqlite_access_report_modal_verified.png) | ![Database Backup & Dump Modal](../../screenshots/apps/sqlite_backup_dump_modal_verified.png) |
+| ![Report Modal](../../screenshots/apps/sqlite_access_report_modal_verified.png) | ![Database Backup & Dump Modal](../../screenshots/apps/sqlite_backup_dump_modal_verified.png) |
 
 | Visual Query Designer (4-Table Relational with Cardinality Badges) | PRAGMA Performance & WAL Workstation Tab |
 | :---: | :---: |
 | ![Visual Query Designer](../../screenshots/apps/sqlite_visual_designer_cardinality_verified.png) | ![PRAGMA Performance Tab](../../screenshots/apps/sqlite_pragma_performance_verified.png) |
 
-| Microsoft Access Relational Canvas & Multi-Table Joins | Access-Style Join Properties Modal (Venn Diagrams) |
+| Relational Canvas & Multi-Table Joins | Join Properties Modal (Venn Diagrams) |
 | :---: | :---: |
 | ![Visual Table Joins Canvas](../../screenshots/apps/visual_joins_canvas_sqlite.png) | ![Join Properties Modal](../../screenshots/apps/visual_joins_properties_modal.png) |
 
@@ -96,9 +96,9 @@ await studio.run();
 - **Dynamic Table Grid**: Interactive data grid displaying column headers, numeric alignment, null indicator badges, and scrollable rows.
 - **Error Diagnostic Banner**: Displays descriptive SQLite error codes, line numbers, and constraint explanations if a query fails.
 
-#### The datasheet works like Microsoft Access
+#### The datasheet works like a desktop database
 
-Every data grid (a table opened from the sidebar, and query results) behaves like an Access datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
+Every data grid (a table opened from the sidebar, and query results) works like a classic datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
 
 | What | How |
 | :--- | :--- |
@@ -111,7 +111,7 @@ Every data grid (a table opened from the sidebar, and query results) behaves lik
 | **Sort** | **Sort A → Z / Z → A / Clear sort** in the header menu (as before, a plain click on a header sorts; SQLite and MySQL sort on the server, the PostgreSQL grid has no header sort). |
 | **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row colour**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
 
-Not like Access: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (Access selects the column) so Ctrl/Cmd+click and Shift+click select columns.
+Not included: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (selects the column) so Ctrl/Cmd+click and Shift+click select columns.
 
 #### Focus mode: use the whole window for one section
 
@@ -140,9 +140,9 @@ Every data grid (a table opened from the sidebar, and the result of a query) has
 
 ---
 
-## 📐 Visual Query Designer & Microsoft Access Relational Canvas
+## 📐 Visual Query Designer & Relational Canvas
 
-SQLite Studio Pro incorporates a complete, full-featured visual query design studio modeled after Microsoft Access. It enables anyone—from non-technical analysts to veteran database administrators—to construct sophisticated multi-table relational queries visually with drag-and-drop ease, full join control, and zero manual SQL required.
+SQLite Studio Pro incorporates a complete, full-featured visual query design studio. It enables anyone—from non-technical analysts to veteran database administrators—to construct sophisticated multi-table relational queries visually with drag-and-drop ease, full join control, and zero manual SQL required.
 
 ```mermaid
 graph LR
@@ -170,15 +170,15 @@ graph LR
 
 ---
 
-### 2. Microsoft Access Join Properties Modal Dialog
-Double-clicking any relationship line or clicking its **Properties** button opens the authentic **Microsoft Access Join Properties** dialog:
+### 2. Join Properties Modal Dialog
+Double-clicking any relationship line or clicking its **Properties** button opens the authentic **Join Properties** dialog:
 
 | Join Properties Dialog (Venn Diagram & Directional Choices) |
 | :---: |
 | ![Join Properties Modal](../../screenshots/apps/visual_joins_properties_modal.png) |
 
 #### The 5 Join Directives
-The dialog offers the exact five relational options familiar from Microsoft Access and relational set theory:
+The dialog offers the exact five relational options familiar from and relational set theory:
 
 1. **Option 1 (INNER JOIN)**:
    > *"Only include rows where the joined fields from both tables are equal."*
@@ -267,7 +267,7 @@ Click the **◀▶ Sidebar** button on the toolbar (or press shortcut) to collap
 
 ## 🖱️ Visual Data Management (Full GUI CRUD — No SQL Required)
 
-SQLite Studio Pro works like Microsoft Access: you can create tables, add/edit/delete rows, import and export data entirely with buttons and dialogs. SQL is optional.
+SQLite Studio Pro works like a desktop database: you can create tables, add/edit/delete rows, import and export data entirely with buttons and dialogs. SQL is optional.
 
 ### Editing Rows (toolbar above the data grid)
 | Button | What it does |
@@ -329,9 +329,9 @@ Full guide, naming convention, safety notes and limitations: [Import with stagin
 
 ---
 
-## 🧮 Microsoft Access Workstation Workflow Parity
+## 🧮 Workstation Workflow Parity
 
-SQLite Studio Pro delivers 100% workflow parity with classic desktop databases like Microsoft Access, eliminating the need for ad-hoc SQL for daily operations:
+SQLite Studio Pro delivers a complete point-and-click workflow, eliminating the need for ad-hoc SQL for daily operations:
 
 ### 1. Pinned Totals Row (`[ 🧮 Totals ]`)
 - Click **[ 🧮 Totals ]** on the data grid toolbar to activate a pinned table footer row.
@@ -341,7 +341,7 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
   - Text and metadata columns compute non-null record count (`Count: <n>`).
 - Powered by high-speed SQLite server aggregation (`/api/table/aggregates`) and reactive in-memory calculation.
 
-### 2. Access Quick Filter Bar (`[ ⚡ Filter Bar ]`)
+### 2. Quick Filter Bar (`[ ⚡ Filter Bar ]`)
 - Click **[ ⚡ Filter Bar ]** to toggle an instantaneous filter row directly beneath the table column headers.
 - Type into any column filter input to filter records reactively on keystroke.
 - Supports multi-column compound filtering (e.g., filtering `country = United States` and `tier = Enterprise` simultaneously).
@@ -355,20 +355,20 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 - **Export HTML**: Downloads a standalone, self-contained HTML publication report.
 
 ### 4. Visual Query Designer Cardinality Badges (`1` and `∞`)
-- When designing multi-table queries on the Visual Query Designer canvas, relationship lines automatically render classic Microsoft Access cardinality badges at line endpoints:
+- When designing multi-table queries on the Visual Query Designer canvas, relationship lines automatically render cardinality badges at line endpoints:
   - `1`: Denotes the unique / primary key side of the relationship.
   - `∞`: Denotes the foreign key / many side of the relationship.
 - Central join pill (`= INNER`, `⇥ LEFT`, `⇤ RIGHT`, `↔ FULL`, `⨯ CROSS`) launches the interactive Venn diagram join properties modal.
 
-### 5. Microsoft Access Macro Automation (`⚡ Macro Designer`)
+### 5. Macro Automation (`⚡ Macro Designer`)
 - **Visual Macro Designer & Action Matrix**: Create, configure, and reorder automated action sequences with step numbers and priority toggles (▲ / ▼).
-- **Microsoft Access Action Catalog**: Right-side drawer providing 24+ categorized actions with instant `+ Add` buttons and parameter guides:
+- **Action Catalog**: Right-side drawer providing 24+ categorized actions with instant `+ Add` buttons and parameter guides:
   - **CRUD & Action Queries**:
-    - `InsertRecord` (Access Append Query): Inserts new rows into target tables via field-value definitions or JSON objects.
-    - `UpdateRecord` (Access Update Query): Performs bulk updates with custom SET expressions and WHERE filter clauses.
-    - `DeleteRecord` (Access Delete Query): Safely purges matching records from target tables.
-    - `MakeTable` (Access Make-Table Query): Creates a new table dynamically from any SQL query or saved named query (`CREATE TABLE ... AS SELECT ...`).
-    - `EmptyTable` (Access Truncate Table): Rapidly clears all records from a table without dropping schema.
+    - `InsertRecord` (Append Query): Inserts new rows into target tables via field-value definitions or JSON objects.
+    - `UpdateRecord` (Update Query): Performs bulk updates with custom SET expressions and WHERE filter clauses.
+    - `DeleteRecord` (Delete Query): Safely purges matching records from target tables.
+    - `MakeTable` (Make-Table Query): Creates a new table dynamically from any SQL query or saved named query (`CREATE TABLE ... AS SELECT ...`).
+    - `EmptyTable` (Truncate Table): Rapidly clears all records from a table without dropping schema.
   - **Record Operations & Navigation**:
     - `GoToRecord`: Moves active selection to `First`, `Last`, `Next`, `Previous`, `New`, or specific record offset.
     - `FindRecord`: Searches active dataset for text or regex matches.
@@ -378,19 +378,19 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
     - `SetWarnings`: Toggles confirmation prompts (useful for suppressing warnings during bulk action query executions).
   - **Database Objects**: `OpenTable` (Datasheet/Design, Edit/ReadOnly/Add), `OpenQuery` (runs saved named queries or raw SQL), `OpenReport` (Publication report), `CloseObject`, `Requery`.
   - **Data Operations**: `RunSQL` (transactional DDL/DML), `ApplyFilter` (dynamic WHERE clause), `ExportData` (CSV/JSON/SQL), `ImportData`.
-  - **System & Maintenance**: `MessageBox` (Access-style dialog with Information, Warning, Critical, or Success icon), `VacuumDatabase` (with optional `PRAGMA optimize`), `BackupDatabase` (full, schema, or data modes), `Beep` (synthesized chime via Web Audio API).
+  - **System & Maintenance**: `MessageBox` (dialog with Information, Warning, Critical, or Success icon), `VacuumDatabase` (with optional `PRAGMA optimize`), `BackupDatabase` (full, schema, or data modes), `Beep` (synthesized chime via Web Audio API).
   - **Flow & Logic**: `SetVariable` (TempVars session state), `RunMacro` (sub-routine macros), `StopMacro` (early termination), `Comment` (green italic remark rows).
-- **Saved Named Queries (Access Queries Integration)**:
+- **Saved Named Queries (Queries Integration)**:
   - In the **Visual Query Designer**, clicking **💾 Save** prompts for a query name and description, saving the query definition and QBE visual graph state directly into the database (`_studio_queries`).
   - Saved named queries appear in the left sidebar object tree under **👁️ Saved Queries** with 1-click **Run in Datasheet (`▶`)**, **Open in Visual Query Designer (`📐`)**, and **Delete (`✕`)** actions.
   - Macros can execute any saved query by name via the **`OpenQuery`** action (selecting from a live dropdown of saved queries) or use it as a data source in **`MakeTable`** queries!
 - **Conditional Execution (`If [condition]`)**: Each action supports conditional evaluation before execution (e.g. `[totalRows] > 0`, `[tier] == 'VIP'`, `[balance] > 1000`). If condition evaluates to false, action is skipped and logged.
-- **Single Step Debugger (`⏯️ Single Step`)**: Classic Microsoft Access step-by-step interactive debugger. When active, execution pauses before each action to display macro name, condition, action name, and arguments, with `Step ▶`, `Continue ⏩`, and `Halt ⏹️` controls.
-- **Error Handling**: Macros stop at the first failing step (like Access). Set **On error: Continue** on the macro, or tick **On Err ⏭** on a single step, to keep going. A condition that cannot be evaluated now fails the step instead of silently running it.
+- **Single Step Debugger (`⏯️ Single Step`)**: Step-by-step interactive debugger. When active, execution pauses before each action to display macro name, condition, action name, and arguments, with `Step ▶`, `Continue ⏩`, and `Halt ⏹️` controls.
+- **Error Handling**: Macros stop at the first failing step. Set **On error: Continue** on the macro, or tick **On Err ⏭** on a single step, to keep going. A condition that cannot be evaluated now fails the step instead of silently running it.
 - **Safe Execution**: **🧪 Dry Run** runs the data steps on the server and rolls everything back; **🔒 Atomic** commits only if every step succeeds. A pre-flight check blocks missing arguments and warns on `UPDATE`/`DELETE` without a `WHERE`.
 - **Parameter Prompts**: Use `[Enter Start Date]`-style placeholders in `RunSQL`, `OpenQuery`, or `MakeTable` SQL; you're prompted once per run and values are inserted as safely quoted literals.
 - **Sub-Macros**: `RunMacro` now really runs the target macro (with a recursion guard) in both the designer and the server engine.
-- **Duplicate & Export**: **📑 Duplicate** clones a macro; **📤 Export** (JSON), **📜 SQL** (plain script), and **🧾 VBA** (Access module) export it.
+- **Duplicate & Export**: **📑 Duplicate** clones a macro; **📤 Export** (JSON), **📜 SQL** (plain script), and **🧾 VBA** (VBA module) export it.
 - **🧬 Code Generation (Python · Bun · V)**: translate a macro, a saved query, or the SQL in the editor into a standalone program that uses the **native SQLite driver** of your language, then **Copy to Clipboard** (or Download) for RAD work. Open it from **🧬 Code** in the SQL editor bar or Macro ribbon, or the 🧬 button on a saved query / macro in the sidebar.
   - **Python** → `sqlite3` (stdlib): parameterized queries, `with conn:` transaction, `argparse`, type hints.
   - **Bun** → `bun:sqlite`: prepared statements, `db.transaction()`, WAL + `foreign_keys`, `parseArgs`.
@@ -398,7 +398,7 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
   - The whole macro runs in **one transaction** (rolled back on error; `continueOnError` steps are caught). `VACUUM`/backup steps run after the commit. `[Enter ...]` prompts become `?` placeholders filled from command-line flags, `RunMacro` becomes a function call, and `[var]` conditions become native `if`s. UI-only actions (dialogs, navigation, reports) are skipped and listed as warnings.
 - **AutoExec Startup Macro**: Macros named `AutoExec` or flagged with `AutoExec` automatically trigger upon opening or switching databases.
 - **Navigation Pane Integration**: All saved macros and queries appear in the left sidebar under `👁️ Saved Queries` and `⚡ Macros` with step counts and 1-click run buttons.
-- **Database-Backed Persistence**: Both macros and saved queries are stored directly inside the SQLite database (`_studio_macros` and `_studio_queries`), ensuring they travel with the database file just like Microsoft Access `.accdb` macros and queries. Internal tables are filtered so they never pollute regular business tables or KPI counts.
+- **Database-Backed Persistence**: Both macros and saved queries are stored directly inside the SQLite database (`_studio_macros` and `_studio_queries`), ensuring they travel with the database file. Internal tables are filtered so they never pollute regular business tables or KPI counts.
 
 ---
 
@@ -408,7 +408,7 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 | `GET` | `/api/kpis` | Real-time database telemetry, storage size, and table counts | — |
 | `GET` | `/api/schema` | Complete schema reflection (tables, views, indexes, foreign keys) | — |
 | `POST` | `/api/table/data` | Paginated, filtered, sorted records with editability metadata | `{ table, page, pageSize, sortCol, sortDir, filter }` |
-| `POST` | `/api/table/aggregates` | Microsoft Access Totals Row aggregations (Sum, Avg, Count, Min, Max) | `{ table: string }` |
+| `POST` | `/api/table/aggregates` | Totals Row aggregations (Sum, Avg, Count, Min, Max) | `{ table: string }` |
 | `POST` | `/api/table/mutate` | Insert, update, or delete records (`useRowid` supported) | `{ table, action, rowId, rowIds, data }` |
 | `POST` | `/api/database/dump` | 1-Click Database Dump & Backup (all, schema, or data modes) | `{ mode: 'all'\|'schema'\|'data', tables?: string[] }` |
 | `POST` | `/api/dump` | Database SQL dump generation (mode-aware) | `{ mode?, tables? }` |
@@ -421,7 +421,7 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 | `POST` | `/api/table/truncate` | Fast atomic table truncate | `{ table: string }` |
 | `POST` | `/api/schema/drop-table` | Safe table drop | `{ table: string }` |
 | `POST` | `/api/pragma` | Read and configure runtime PRAGMAs | `{ pragma: string, value?: string }` |
-| `GET`/`POST` | `/api/macros/list` | List all saved Microsoft Access macros | — |
+| `GET`/`POST` | `/api/macros/list` | List all saved macros | — |
 | `POST` | `/api/macros/save` | Create or update a macro definition | `{ macro: MacroDefinition }` |
 | `POST` | `/api/macros/delete` | Delete a macro by ID or name | `{ id?: string, name?: string }` |
 | `POST` | `/api/macros/run` | Execute macro actions with telemetry trace | `{ macro?: MacroDefinition, id?: string, variables?: Record<string, any>, transaction?: boolean, dryRun?: boolean, params?: Record<string, any> }` |
@@ -435,18 +435,18 @@ SQLite Studio Pro delivers 100% workflow parity with classic desktop databases l
 
 SQLite Studio Pro is rigorously tested with **100% test pass rate** across enterprise test suites:
 
-1. **`tests/sqlite_studio_macros.test.ts` (8 Microsoft Access Macro Tests)**:
+1. **`tests/sqlite_studio_macros.test.ts` (8 Macro Tests)**:
    - Workstation HTML shell contains Macro Designer tab, matrix, and ribbon toolbar.
    - Zero syntax errors in client-side macro runtime scripts.
-   - Seeded default Access sample macros (`AutoExec`, `VIP_Customer_Report`, `Database_Maintenance_Routine`).
+   - Seeded default sample macros (`AutoExec`, `VIP_Customer_Report`, `Database_Maintenance_Routine`).
    - Schema & KPI isolation: internal `_studio_macros` table never pollutes user tables or counts.
    - Macro CRUD lifecycle: `/api/macros/save`, `/api/macros/delete`.
    - Sequential execution engine (`/api/macros/run`) with conditions and step telemetry.
    - `StopMacro` early termination and error handling.
 2. **`tests/sqlite_studio_e2e.test.ts` (20 End-to-End Workstation Tests)**:
    - Workstation HTML shell and 8 navigation panes.
-   - Microsoft Access Totals Row & Quick Filter Bar elements.
-   - Access Publication Report modal and `@media print` CSS.
+   - Totals Row & Quick Filter Bar elements.
+   - Publication Report modal and `@media print` CSS.
    - 1-Click Database Backup & SQL Dump Generator in all 3 modes (`all`, `schema`, `data`).
    - Visual Query Designer with Zoom, Presets, Venn preview, and Cardinality Badges (`1` and `∞`).
    - CRUD lifecycle (`insert`, `update`, `delete`), batch import, truncate, drop table.

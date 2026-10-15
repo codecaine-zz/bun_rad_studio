@@ -726,7 +726,7 @@ export class SqliteManager {
   }
 
   // -----------------------------------------------------------------------------------------------
-  // Schema Designer operations (Access-style table design, no SQL needed)
+  // Schema Designer operations (table design, no SQL needed)
   // -----------------------------------------------------------------------------------------------
 
   private buildColumnDef(c: ColumnSpec, inlinePk: boolean): string {
@@ -1685,7 +1685,7 @@ export class SqliteManager {
   /**
    * Runs a macro. With `transaction` (or `dryRun`) every data change is wrapped in one SQLite
    * transaction that is rolled back if any step fails; `dryRun` always rolls back.
-   * `params` answers Access-style `[Enter ...]` prompts used in SQL.
+   * `params` answers `[Enter ...]` prompts used in SQL.
    */
   public runMacro(
     macroOrId: MacroDefinition | string,
@@ -2462,7 +2462,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // Table Aggregates for Access Totals Row
+      // Table Aggregates for Totals Row
       if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string };
@@ -2493,7 +2493,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // Access CRUD Route Aliases
+      // CRUD Route Aliases
       if (url.pathname === "/api/rows/insert" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string; row: Record<string, any> };
@@ -2692,7 +2692,7 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         }
       }
 
-      // 13. Microsoft Access Macro Automation APIs
+      // 13. Macro Automation APIs
       if ((url.pathname === "/api/macros/list" || url.pathname === "/api/macros") && (req.method === "GET" || req.method === "POST")) {
         return Response.json({ success: true, macros: manager.getMacros() }, { headers: corsHeaders });
       }

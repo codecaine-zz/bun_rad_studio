@@ -15,7 +15,7 @@
  * - Extensions Manager: Browse available extensions (pg_available_extensions), 1-click install/remove
  * - Live Activity & Diagnostics: Real-time pg_stat_activity monitor with 1-click terminate & cancel
  * - Rich Native Types: UUID (gen_random_uuid), JSONB with deep inspection, native ARRAY types, TIMESTAMPTZ
- * - Visual Relational Canvas: Access-style joins, deep zoom (50%-250%), room presets & FULL OUTER JOIN Venn diagram
+ * - Visual Relational Canvas: joins, deep zoom (50%-250%), room presets & FULL OUTER JOIN Venn diagram
  * - Interactive Connection Workbench: Form/URL sync, cloud presets, live test with latency & version, .env reset
  */
 
@@ -937,7 +937,7 @@ function buildPostgresHtml(): string {
       font-style: italic;
     }
 
-    /* Microsoft Access Form View & Record Navigator Styling */
+    /* Form View & Record Navigator Styling */
     .access-form-layout {
       display: flex;
       flex-direction: column;
@@ -1013,7 +1013,7 @@ function buildPostgresHtml(): string {
       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
     }
 
-    /* Microsoft Access Query Designer (QBE) Styling */
+    /* Query Designer (QBE) Styling */
     .designer-layout {
       display: flex;
       flex-direction: column;
@@ -1425,7 +1425,7 @@ function buildPostgresHtml(): string {
       flex-wrap: wrap;
     }
 
-    /* Microsoft Access Join Properties Modal */
+    /* Join Properties Modal */
     .access-join-table-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -1846,7 +1846,7 @@ function buildPostgresHtml(): string {
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 
-    /* Microsoft Access Totals Row */
+    /* Totals Row */
     .access-totals-foot {
       position: sticky;
       bottom: 0;
@@ -1875,7 +1875,7 @@ function buildPostgresHtml(): string {
       font-family: var(--font-mono);
     }
 
-    /* Microsoft Access Quick Filter Bar */
+    /* Quick Filter Bar */
     .access-filter-row {
       background: rgba(15, 23, 42, 0.95);
       border-bottom: 1px solid var(--border-subtle);
@@ -1895,7 +1895,7 @@ function buildPostgresHtml(): string {
       border-color: var(--accent);
     }
 
-    /* Microsoft Access Publication Report Styles & @media print */
+    /* Publication Report Styles & @media print */
     .access-report-sheet {
       background: #ffffff;
       color: #0f172a;
@@ -2263,7 +2263,7 @@ function buildPostgresHtml(): string {
         <div class="tab-btn" id="tabBtnJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
       </div>
 
-      <!-- TAB 1: Tabular Data Grid & Access Form View -->
+      <!-- TAB 1: Tabular Data Grid & Form View -->
       <div class="tab-pane active" id="tabGrid">
         <div class="grid-toolbar">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -2273,9 +2273,9 @@ function buildPostgresHtml(): string {
               <button class="btn btn-sm" id="btnViewForm" onclick="switchGridMode('form')">📑 Form View</button>
             </div>
             <div style="display: flex; gap: 4px;">
-              <button class="btn btn-sm" id="btnToggleTotals" onclick="toggleAccessTotalsRow()" title="Toggle Microsoft Access Totals Row (Sum, Avg, Count, Min, Max)">🧮 Totals</button>
-              <button class="btn btn-sm" id="btnToggleFilterBar" onclick="toggleQuickFilterBar()" title="Toggle Access Column Filter Bar">⚡ Filter Bar</button>
-              <button class="btn btn-sm" id="btnAccessReport" onclick="openAccessReportModal()" title="Generate Microsoft Access Printable Report / PDF">🖨️ Report</button>
+              <button class="btn btn-sm" id="btnToggleTotals" onclick="toggleAccessTotalsRow()" title="Toggle Totals Row (Sum, Avg, Count, Min, Max)">🧮 Totals</button>
+              <button class="btn btn-sm" id="btnToggleFilterBar" onclick="toggleQuickFilterBar()" title="Toggle Column Filter Bar">⚡ Filter Bar</button>
+              <button class="btn btn-sm" id="btnAccessReport" onclick="openAccessReportModal()" title="Generate Printable Report / PDF">🖨️ Report</button>
             </div>
             <input type="text" id="gridSearchInput" placeholder="Search rows..." oninput="onGridSearch(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 3px 8px; color: #fff; font-size: 11px; outline: none; width: 140px;">
           </div>
@@ -2356,7 +2356,7 @@ function buildPostgresHtml(): string {
         </div>
       </div>
 
-      <!-- TAB 3: Visual Query Designer (Access Style Relational Canvas) -->
+      <!-- TAB 3: Visual Query Designer (Relational Canvas) -->
       <div class="tab-pane" id="tabDesigner">
         <div class="designer-layout" id="designerContainer">
           <div class="designer-empty">Load a schema from the sidebar to begin building a visual query.</div>
@@ -2947,13 +2947,13 @@ function buildPostgresHtml(): string {
     </div>
   </div>
 
-  <!-- MODAL: Access Join Properties Dialog with SVG Venn Preview -->
+  <!-- MODAL: Join Properties Dialog with SVG Venn Preview -->
   <div class="modal-overlay" id="accessJoinPropertiesModal" onclick="if(event.target === this) closeJoinPropertiesModal()">
     <div class="modal-card" style="max-width: 680px;">
       <div class="modal-header">
         <div class="modal-title">
           <span>📐</span>
-          <span>Join Properties (Microsoft Access Relational Editor)</span>
+          <span>Join Properties (Relational Editor)</span>
         </div>
         <button class="modal-close" onclick="closeJoinPropertiesModal()" title="Close dialog">✕</button>
       </div>
@@ -2982,7 +2982,7 @@ function buildPostgresHtml(): string {
           </div>
         </div>
 
-        <!-- Access 5 Join Types (INNER, LEFT, RIGHT, FULL OUTER, CROSS) -->
+        <!-- 5 Join Types (INNER, LEFT, RIGHT, FULL OUTER, CROSS) -->
         <div class="access-join-options">
           <label class="access-join-radio-card" id="cardJpInner" onclick="selectJoinPropType('INNER')">
             <input type="radio" name="accessJoinType" id="radioJpInner" value="INNER" onchange="onJoinPropTypeChange('INNER')">
@@ -3051,13 +3051,13 @@ function buildPostgresHtml(): string {
     </div>
   </div>
 
-  <!-- Microsoft Access Printable Publication Report Modal -->
+  <!-- Printable Publication Report Modal -->
   <div class="modal-overlay" id="accessReportModal" onclick="if(event.target === this) closeAccessReportModal()">
     <div class="modal-card" style="max-width: 960px; max-height: 90vh;">
       <div class="modal-header">
         <div class="modal-title">
           <span>📑</span>
-          <span>Microsoft Access Publication Report Preview</span>
+          <span>Publication Report Preview</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <button class="btn btn-sm btn-primary" onclick="printAccessReport()">🖨️ Print / Save PDF</button>
@@ -3650,7 +3650,7 @@ function buildPostgresHtml(): string {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Microsoft Access Form View Implementation
+    // Form View Implementation
     // ---------------------------------------------------------------------------------------------
     let gridDisplayMode = "datasheet";
     let currentFormRecordIndex = 0;
@@ -3724,7 +3724,7 @@ function buildPostgresHtml(): string {
 
       let formHtml = '<div style="font-weight: 700; color: var(--cyan); font-size: 13px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">' +
         '<span>📑 Form Record: ' + escapeHtml(activeTable || '') + '</span>' +
-        '<span style="font-size: 11px; color: var(--text-dim); font-weight: 400;">Access-Style Single Record Inspector</span>' +
+        '<span style="font-size: 11px; color: var(--text-dim); font-weight: 400;">Single Record Inspector</span>' +
         '</div>' +
         '<div class="access-form-grid">';
 
@@ -4168,7 +4168,7 @@ function buildPostgresHtml(): string {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Microsoft Access Table Design View & DDL Visualizer
+    // Table Design View & DDL Visualizer
     // ---------------------------------------------------------------------------------------------
     function renderSchemaDesigner(tableName) {
       const container = document.getElementById("schemaContainer");
@@ -4213,7 +4213,7 @@ function buildPostgresHtml(): string {
         '</div></div>';
       container.appendChild(headerCard);
 
-      // 2. Access-Style Fields Grid Card
+      // 2. Fields Grid Card
       const fieldsCard = document.createElement("div");
       fieldsCard.className = "card";
       fieldsCard.style.background = "var(--bg-card)";
@@ -4628,7 +4628,7 @@ function buildPostgresHtml(): string {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Microsoft Access Totals Row & Quick Filter Bar
+    // Totals Row & Quick Filter Bar
     // ---------------------------------------------------------------------------------------------
     let accessTotalsRowVisible = false;
     let accessFilterBarVisible = false;
@@ -4644,7 +4644,7 @@ function buildPostgresHtml(): string {
       if (currentGridData && currentGridData.rows && currentGridData.columns) {
         updateAccessTotalsRow(currentGridData.rows, currentGridData.columns, currentGridData.total);
       }
-      showToast(accessTotalsRowVisible ? "Access Totals Row enabled" : "Access Totals Row disabled");
+      showToast(accessTotalsRowVisible ? "Totals Row enabled" : "Totals Row disabled");
     }
 
     async function updateAccessTotalsRow(rows, columns, total) {
@@ -4801,7 +4801,7 @@ function buildPostgresHtml(): string {
       let html = '<div class="access-report-sheet">';
       html += '<div class="access-report-header">';
       html += '  <div>';
-      html += '    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#0284c7; letter-spacing:1px;">Microsoft Access Workstation Report</div>';
+      html += '    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#0284c7; letter-spacing:1px;">Workstation Report</div>';
       html += '    <div class="access-report-title">' + escapeHtml(tblName) + '</div>';
       html += '  </div>';
       html += '  <div class="access-report-meta">';
@@ -4833,7 +4833,7 @@ function buildPostgresHtml(): string {
 
       html += '<div class="access-report-summary">';
       html += '  <span>End of Report: ' + rows.length.toLocaleString() + ' Records Processed</span>';
-      html += '  <span>🐘 Postgres Studio Pro / Access Parity Engine</span>';
+      html += '  <span>🐘 Postgres Studio Pro</span>';
       html += '</div>';
       html += '</div>';
 

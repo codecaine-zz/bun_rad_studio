@@ -27,7 +27,7 @@ Postgres Studio Pro is purpose-built to harness the architectural advantages and
 | **Extensions Ecosystem** | Dynamically loadable extensions (`uuid-ossp`, `pg_trgm`, `vector`, `citext`, `hstore`, `postgis`). | Fixed plugin architecture requiring root system compiles. | **Extensions Manager**: Visual catalog of all `pg_available_extensions` with installed status badges and 1-click install/remove. |
 | **Live Diagnostics** | Fine-grained real-time engine telemetry via `pg_stat_activity`. | `SHOW PROCESSLIST` with coarse thread statuses. | **Live Activity Monitor**: Real-time process table, query duration color-coding, and 1-click `pg_cancel_backend` and `pg_terminate_backend`. |
 | **Rich Native Types** | Native `UUID` (`gen_random_uuid()`), native `JSONB` with binary indexing (`@>`, `->>`), native `ARRAY` types (`text[]`, `integer[]`, `unnest`), `TIMESTAMPTZ`, and `NUMERIC`. | Emulated UUIDs (char36), basic JSON without GIN indexing, no native array types. | **Rich Data Grid Badges**: Monospace copyable UUIDs, interactive JSONB modal with syntax highlighting, and array chip formatters. |
-| **Relational Joins** | Native `FULL OUTER JOIN`, `LATERAL JOIN`, recursive CTEs. | Emulates `FULL OUTER JOIN` via `UNION` of `LEFT` and `RIGHT` joins. | **Visual Query Designer**: Access-style relational canvas with Venn diagrams featuring native `FULL OUTER JOIN` option. |
+| **Relational Joins** | Native `FULL OUTER JOIN`, `LATERAL JOIN`, recursive CTEs. | Emulates `FULL OUTER JOIN` via `UNION` of `LEFT` and `RIGHT` joins. | **Visual Query Designer**: relational canvas with Venn diagrams featuring native `FULL OUTER JOIN` option. |
 | **Execution Plans** | `EXPLAIN (ANALYZE, BUFFERS, VERBOSE, SETTINGS)` showing buffer cache hit ratios and precise node costs. | `EXPLAIN FORMAT=TREE` / basic tabular output. | **Query Plan Visualizer**: Execution tree breakdown with planning vs. execution times and cache hits. |
 | **Storage Maintenance** | `VACUUM`, `VACUUM ANALYZE`, `VACUUM FULL` to reclaim bloat and update statistics. | `OPTIMIZE TABLE` (locks table and rebuilds file). | **1-Click Maintenance**: Dedicated `🧹 VACUUM ANALYZE` trigger in top navigation. |
 
@@ -89,18 +89,18 @@ If you do not have or do not want to use `.env` variables, click **`🔌 Connect
 
 Postgres Studio Pro features 11 dedicated enterprise workstation tabs:
 
-### 1. 📊 Tabular Data Grid & Access-Style GUI CRUD Layer
-- **Microsoft Access Workflow Parity**:
+### 1. 📊 Tabular Data Grid & GUI CRUD Layer
+- **Workflow Parity**:
   - **Pinned Totals Row (`[ 🧮 Totals ]`)**: Pinned footer row calculating live aggregations across all visible records (`Total: N`, `Count: N`, and numeric aggregations `Σ sum`, `x̄ avg`, `min`, `max`).
   - **Inline Quick Filter Bar (`[ ⚡ Filter Bar ]`)**: Persistent inline filter inputs positioned directly under each column header for instant keystroke filtering, plus cell right-click **"Filter by Selection"** shortcut.
   - **Publication Report Generator (`🖨️ Report`)**: Opens a publication-ready printable report preview modal with report header, formatted table, summary counts, `@media print` print styles, **`🖨️ Print / Save PDF`**, and **`📥 Export HTML`**.
-  - **Access Form View & Design View**: Switch between Datasheet View and single-record Form View with record stepper/navigator, or open the interactive Table Design View supporting live `ALTER TABLE ADD/DROP COLUMN`, data type modifications, and index toggles.
-- **Access-Style CRUD Operations**:
+  - **Form View & Design View**: Switch between Datasheet View and single-record Form View with record stepper/navigator, or open the interactive Table Design View supporting live `ALTER TABLE ADD/DROP COLUMN`, data type modifications, and index toggles.
+- **CRUD Operations**:
   - `+ Add Record`: Visual dialog with input fields auto-configured for PostgreSQL types (UUID generation, JSONB validator, array tags).
   - `✎ Edit Row` & **Inline Double-Click Cell Editing**: Direct in-place editing on any cell with automatic type casting.
   - `⧉ Duplicate Row`: Clones selected record for rapid prototyping and mock data population.
   - `🗑 Delete Row`: Safe deletion with confirmation prompt and primary key resolution.
-  - `📐 Design Table`: Access-style Table Designer modal to add/remove columns, change types (`VARCHAR`, `UUID`, `JSONB`, `NUMERIC`, etc.), toggle PK and NOT NULL.
+  - `📐 Design Table`: Table Designer modal to add/remove columns, change types (`VARCHAR`, `UUID`, `JSONB`, `NUMERIC`, etc.), toggle PK and NOT NULL.
   - `⚡ Indexes Manager`: View all table indexes with 1-click index creation supporting **BTREE, GIN, GIST, BRIN, and HASH** algorithms.
   - `📥 Import Wizard`: Import rows from CSV or JSON format with preview and batch insertion.
   - `📤 Export Wizard`: Export table data or query results to CSV, JSON, or SQL INSERT scripts.
@@ -118,9 +118,9 @@ The **＋ Create view** button on the sidebar **Standard Views** header and **�
 
 Every prompt and confirmation of the studio (delete record, drop column or index, enum values, restart sequence, GUC setting, save connection profile, designer query names …) now uses an in-page dialog: the browser's native `prompt()`/`confirm()` do nothing in the desktop window. Enter confirms, Esc closes only the dialog.
 
-#### The datasheet works like Microsoft Access
+#### The datasheet works like a desktop database
 
-Every data grid (a table opened from the sidebar, and query results) behaves like an Access datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
+Every data grid (a table opened from the sidebar, and query results) works like a classic datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
 
 | What | How |
 | :--- | :--- |
@@ -133,7 +133,7 @@ Every data grid (a table opened from the sidebar, and query results) behaves lik
 | **Sort** | **Sort A → Z / Z → A / Clear sort** in the header menu (the PostgreSQL grid has no header sort; the menu then shows no sort entries). |
 | **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row colour**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
 
-Not like Access: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (Access selects the column) so Ctrl/Cmd+click and Shift+click select columns.
+Not included: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (selects the column) so Ctrl/Cmd+click and Shift+click select columns.
 
 #### Focus mode: use the whole window for one section
 
@@ -162,12 +162,12 @@ The Datasheet grid and the **SQL Query Console** results each have a **Columns**
 - 12 Curated PostgreSQL-specific SQL presets covering Materialized view refreshes, JSONB operators (`->>`, `@>`), array containment, CTEs, window functions, and `EXPLAIN (ANALYZE, BUFFERS)`.
 - Tabular output with execution latency and row counts; export results to CSV and Markdown.
 
-### 3. 📐 Visual Query Designer & Access Relational Canvas
-- Microsoft Access-style relational canvas:
+### 3. 📐 Visual Query Designer & Relational Canvas
+- Relational canvas:
   - Add tables and views as movable cards with draggable headers.
   - Interactive column lists showing primary keys (🔑) and data types.
   - Automatic relationship discovery via foreign key introspection (`⚡ Auto-Joins`).
-  - Access cardinality badges (`1` and `∞`) displayed on relationship endpoints.
+  - cardinality badges (`1` and `∞`) displayed on relationship endpoints.
   - Automatic clean grid alignment (`📐 Arrange`).
 - **Deep Zoom & Room Expansion Controls**:
   - Zoom range from 40% to 250% (`🔍+`, `🔍−`, `1:1`, `Fit to View`).
@@ -227,13 +227,13 @@ The Datasheet grid and the **SQL Query Console** results each have a **Columns**
   - **Table Bloat & Tuple Analysis**: Live statistics on dead tuples vs. live tuples, vacuum timestamps, and analyze timestamps.
   - **1-Click Maintenance**: Run global cluster `VACUUM ANALYZE` or per-table vacuum directly from the dashboard.
 
-### 12. ⚡ Macro Designer (Microsoft Access-Style Macros)
+### 12. ⚡ Macro Designer
 - **Visual Action Matrix**: Build ordered macros from the action catalog (`RunSQL`, `OpenQuery`, `InsertRecord`, `UpdateRecord`, `DeleteRecord`, `MakeTable`, `EmptyTable`, `RunMacro`, `SetVariable`, `VacuumDatabase`, `BackupDatabase`, ...), each with an optional `If` condition and per-step `On Err ⏭` flag.
 - **Error Handling**: A macro stops at the first failing step. Set **On error: Continue** on the macro (or tick a single step) to keep going. A condition that cannot be evaluated fails the step instead of silently running it.
 - **🧪 Dry Run & 🔒 Atomic**: Both run every step on one pinned connection inside `BEGIN ... COMMIT`. **Dry Run** always rolls back; **Atomic** commits only if every step succeeds. PostgreSQL DDL is transactional, so even `MakeTable` / `CREATE` / `DROP` steps are rolled back. `VACUUM` cannot run in a transaction and is refused in these modes.
 - **`[Enter ...]` Prompts**: SQL such as `WHERE name = [Enter Customer Name]` asks for a value at run time. Values are escaped as string literals (numbers stay numeric), so quote-injection attempts are harmless.
 - **Sub-Macros**: `RunMacro` runs another macro by name (with a recursion guard). **Validate** flags missing arguments, unbounded `UPDATE`/`DELETE`, and unknown sub-macros before running.
-- **Export**: **SQL** produces a `BEGIN; ... COMMIT;` script with `"double-quoted"` identifiers; **VBA** produces an Access `DoCmd` module; **JSON** round-trips through **Import**.
+- **Export**: **SQL** produces a `BEGIN; ... COMMIT;` script with `"double-quoted"` identifiers; **VBA** produces a VBA `DoCmd` module; **JSON** round-trips through **Import**.
 - **🧬 Code Generation (Python · Bun · V)**: translate a macro, a saved query, or the SQL in the editor into a standalone program that uses the **native SQLite driver** of your language, then **Copy to Clipboard** (or Download) for RAD work. Open it from **🧬 Code** in the SQL editor bar or Macro ribbon, or the 🧬 button on a saved query / macro in the sidebar.
   - **Python** → `sqlite3` (stdlib): parameterized queries, `with conn:` transaction, `argparse`, type hints.
   - **Bun** → `bun:sqlite`: prepared statements, `db.transaction()`, WAL + `foreign_keys`, `parseArgs`.
@@ -310,28 +310,28 @@ Details, the catalog and the safety rules: [Sample databases](../databases/sampl
 
 ## 🧪 Automated Testing Suite
 
-Postgres Studio Pro is backed by automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, Access-style features, and complete end-to-end CRUD operations:
+Postgres Studio Pro is backed by automated test suites verifying server APIs, security sanitization, schema reflection, extensions management, datasheet features, and complete end-to-end CRUD operations:
 
 ```bash
 # 1. Run Comprehensive End-to-End Enterprise Test Suite (26 tests)
 bun test tests/postgres_studio_e2e.test.ts
 
-# 2. Run Microsoft Access Visual Joins & Relational Canvas Suite (9 tests)
-bun test tests/access_visual_joins.test.ts
+# 2. Run Visual Joins & Relational Canvas Suite (9 tests)
+bun test tests/studio_visual_joins.test.ts
 
 # 3. Run the Macro Designer suite (15 tests, live database)
 bun test tests/postgres_studio_macros.test.ts
 
 # Run all 35 tests together (509 assertions)
-bun test tests/access_visual_joins.test.ts tests/postgres_studio_e2e.test.ts
+bun test tests/studio_visual_joins.test.ts tests/postgres_studio_e2e.test.ts
 ```
 
 All 35 automated tests pass with 100% success:
 - [x] HTML compilation and all 11 workstation navigation tabs & panes
-- [x] Access-style GUI CRUD layer (inline edits, row modals, table designer, import/export)
+- [x] GUI CRUD layer (inline edits, row modals, table designer, import/export)
 - [x] Visual Query Designer with deep zoom (40%-250%), room presets, cardinality badges (`1` and `∞`), and interactive Venn diagrams
-- [x] Microsoft Access Totals Row & Quick Filter Bar in Datasheet view
-- [x] Microsoft Access Publication Report Generator Modal & Print View
+- [x] Totals Row & Quick Filter Bar in Datasheet view
+- [x] Publication Report Generator Modal & Print View
 - [x] PostgreSQL 1-Click Database Backup & SQL Dump Generator (`All`, `Schema`, `Data`)
 - [x] PostgreSQL Custom ENUM Types Management (`pg_type` & `pg_enum`)
 - [x] Declarative Partition Trees Explorer (`pg_partitioned_table` & `pg_inherits`)

@@ -80,7 +80,7 @@ async function main() {
   console.log("Waiting for Postgres Studio to initialize and load data...");
   await sleep(2500);
 
-  // 1. Capture Microsoft Access Publication Report Modal
+  // 1. Capture Publication Report Modal
   console.log("Opening Access Report Modal...");
   const evalRes = await send("Runtime.evaluate", {
     expression: `(() => {
