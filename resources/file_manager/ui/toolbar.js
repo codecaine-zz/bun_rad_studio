@@ -14,6 +14,8 @@ import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSe
 import * as ops from "./ops.js";
 import { activePane, isFolderView } from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
+import { hintOf } from "./keymap.js";
+import { themeMenuItems } from "./themeMenu.js";
 import { baseName, collapseCrumbs, parentOf, plural, splitPath } from "./util.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
@@ -30,22 +32,22 @@ function buttonSpecs() {
   const onLeft = () => activePane().side === "left";
   return [
     [
-      { id: "back", icon: "←", label: "Back", tip: "Go back (Alt+←)", run: goBack, enabled: () => onLeft() && state.history.length > 0 },
-      { id: "forward", icon: "→", label: "Forward", tip: "Go forward (Alt+→)", run: goForward, enabled: () => onLeft() && state.future.length > 0 },
-      { id: "up", icon: "↑", label: "Up", tip: "Go up one folder (Backspace)", run: () => goUpIn(activePane()), enabled: () => canGoUpIn(activePane()) },
-      { id: "refresh", icon: "⟳", label: "Refresh", tip: "Reload this folder (F5)", run: () => refresh(), enabled: () => true },
+      { id: "back", icon: "←", label: "Back", get tip() { return `Go back${hintOf("nav.back")}`; }, run: goBack, enabled: () => onLeft() && state.history.length > 0 },
+      { id: "forward", icon: "→", label: "Forward", get tip() { return `Go forward${hintOf("nav.forward")}`; }, run: goForward, enabled: () => onLeft() && state.future.length > 0 },
+      { id: "up", icon: "↑", label: "Up", get tip() { return `Go up one folder${hintOf("nav.up")}`; }, run: () => goUpIn(activePane()), enabled: () => canGoUpIn(activePane()) },
+      { id: "refresh", icon: "⟳", label: "Refresh", get tip() { return `Reload this folder${hintOf("nav.refresh")}`; }, run: () => refresh(), enabled: () => true },
     ],
     [
-      { id: "newFolder", icon: "📁", label: "New folder", tip: `Make a new folder (${mod()}Shift+N)`, run: ops.newFolder, enabled: folderView, hide: inTrash },
-      { id: "newFile", icon: "📄", label: "New file", tip: `Make a new empty file (${mod()}Alt+N)`, run: ops.newFile, enabled: folderView, hide: inTrash },
+      { id: "newFolder", icon: "📁", label: "New folder", get tip() { return `Make a new folder${hintOf("file.newFolder")}`; }, run: ops.newFolder, enabled: folderView, hide: inTrash },
+      { id: "newFile", icon: "📄", label: "New file", get tip() { return `Make a new empty file${hintOf("file.newFile")}`; }, run: ops.newFile, enabled: folderView, hide: inTrash },
     ],
     [
-      { id: "cut", icon: "✂️", label: "Cut", tip: `Cut (${mod()}X)`, run: ops.cutSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "copy", icon: "📋", label: "Copy", tip: `Copy (${mod()}C)`, run: ops.copySelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "paste", icon: "📥", label: "Paste", tip: `Paste (${mod()}V)`, run: ops.paste, enabled: () => !!state.clipboard && folderView(), hide: inTrash },
+      { id: "cut", icon: "✂️", label: "Cut", get tip() { return `Cut${hintOf("file.cut")}`; }, run: ops.cutSelection, enabled: () => sel() > 0, hide: inTrash },
+      { id: "copy", icon: "📋", label: "Copy", get tip() { return `Copy${hintOf("file.copy")}`; }, run: ops.copySelection, enabled: () => sel() > 0, hide: inTrash },
+      { id: "paste", icon: "📥", label: "Paste", get tip() { return `Paste${hintOf("file.paste")}`; }, run: ops.paste, enabled: () => !!state.clipboard && folderView(), hide: inTrash },
     ],
     [
-      { id: "rename", icon: "✏️", label: "Rename", tip: "Rename (F2)", run: ops.renameSelection, enabled: () => sel() > 0, hide: inTrash },
+      { id: "rename", icon: "✏️", label: "Rename", get tip() { return `Rename${hintOf("file.rename")}`; }, run: ops.renameSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "delete", icon: "🗑️", label: "Delete", tip: "Move to the Recycle Bin (Delete). You can undo this.", run: ops.trashSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "restore", icon: "↩️", label: "Restore", tip: "Put the selected items back where they were", run: ops.restoreFromBin, enabled: () => sel() > 0, show: inTrash, primary: true },
       { id: "deleteForever", icon: "❌", label: "Delete forever", tip: "Delete the selected items permanently", run: ops.trashSelection, enabled: () => sel() > 0, show: inTrash },
@@ -57,14 +59,15 @@ function buttonSpecs() {
     ],
     [
       { id: "view", icon: "▦", label: "View", tip: "Change how files are shown and sorted", run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }), enabled: () => true, menu: true },
-      { id: "favorites", icon: "⭐", label: "Favorites", tip: `Jump to your favorite folders, or add this one (${mod()}Shift+B)`, run: (btn) => showFavoritesMenu(btn), enabled: () => true, menu: true },
-      { id: "info", icon: "ℹ️", label: "Details", tip: `Show or hide the details panel (${mod()}I)`, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
+      { id: "favorites", icon: "⭐", label: "Favorites", get tip() { return `Jump to your favorite folders, or add this one${hintOf("nav.favorites")}`; }, run: (btn) => showFavoritesMenu(btn), enabled: () => true, menu: true },
+      { id: "info", icon: "ℹ️", label: "Details", get tip() { return `Show or hide the details panel${hintOf("view.info")}`; }, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
       { id: "lock", icon: "🔒", label: "Lock", tip: "Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.", run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "tools", icon: "🧰", label: "Convert", tip: "Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs", run: showToolsDialog, enabled: () => !inTrash() },
-      { id: "power", icon: "🔎", label: "Find & more", tip: "Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks (Ctrl+Shift+F)", run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
-      { id: "terminal", icon: "⌨️", label: "Terminal", tip: "Show or hide a terminal in this folder (Ctrl+`)", run: () => emit("toggle-terminal"), enabled: () => true, toggle: () => state.terminalOpen },
+      { id: "power", icon: "🔎", label: "Find & more", get tip() { return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`; }, run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
+      { id: "terminal", icon: "⌨️", label: "Terminal", get tip() { return `Show or hide a terminal in this folder${hintOf("terminal.toggle")}`; }, run: () => emit("toggle-terminal"), enabled: () => true, toggle: () => state.terminalOpen },
+      { id: "themes", icon: "🎨", label: "Themes", get tip() { return `Change the colours: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`; }, run: async (btn) => showMenu(await themeMenuItems(), { anchor: btn, label: "Themes" }), enabled: () => true, menu: true },
       { id: "settings", icon: "⚙️", label: "Settings", tip: "Colours, text size and more", run: showSettings, enabled: () => true },
-      { id: "help", icon: "❓", label: "Help", tip: "Help and keyboard shortcuts (F1)", run: showHelp, enabled: () => true },
+      { id: "help", icon: "❓", label: "Help", get tip() { return `Help and keyboard shortcuts${hintOf("app.help")}`; }, run: showHelp, enabled: () => true },
     ],
   ];
 }
@@ -95,6 +98,7 @@ export function updateToolbar() {
     btn.hidden = hidden;
     btn.disabled = !spec.enabled();
     if (spec.toggle) btn.setAttribute("aria-pressed", String(!!spec.toggle()));
+    btn.title = spec.tip;
     if (spec.id === "delete") btn.title = state.settings.deleteTo === "graveyard" ? "Bury in the Rip graveyard (Delete, or Alt+Delete). You can undo this, and bring it back from Find & more → Graveyard." : spec.tip;
     if (spec.id === "undo") {
       const top = state.undoStack.at(-1);

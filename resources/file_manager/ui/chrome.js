@@ -3,12 +3,13 @@
 import { $, debounce } from "./dom.js";
 import { showMenu } from "./menus.js";
 import { saveSettings } from "./nav.js";
+import { hintOf } from "./keymap.js";
 import { on, state } from "./state.js";
 
 const VIEWS = [
-  ["details", "☰", "Details", "Show a table with size and date, which you can sort by clicking a heading (Ctrl+1)"],
-  ["list", "▤", "List", "Show a compact list of names (Ctrl+2)"],
-  ["icons", "▦", "Icons", "Show big icons (Ctrl+3)"],
+  ["details", "☰", "Details", "Show a table with size and date, which you can sort by clicking a heading"],
+  ["list", "▤", "List", "Show a compact list of names"],
+  ["icons", "▦", "Icons", "Show big icons"],
 ];
 
 /**
@@ -91,12 +92,18 @@ function updateStatusViews() {
 function buildStatusViews() {
   const box = $("#status-views");
   if (!box) return;
+  on("settings", () => {
+    for (const [id, , , tip] of VIEWS) {
+      const b = box.querySelector(`[data-view="${id}"]`);
+      if (b) b.title = `${tip}${hintOf(`view.${id}`)}`;
+    }
+  });
   for (const [id, icon, label, tip] of VIEWS) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "status-view";
     btn.dataset.view = id;
-    btn.title = tip;
+    btn.title = `${tip}${hintOf(`view.${id}`)}`;
     btn.setAttribute("aria-pressed", "false");
     const i = document.createElement("span");
     i.setAttribute("aria-hidden", "true");

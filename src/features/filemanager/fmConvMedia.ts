@@ -4,7 +4,7 @@
  * (times, text) has been checked by `fmConvOptions.ts` and is passed as a single argument.
  */
 import { optNum, optStr, parseTime, type OptionValues } from "./fmConvOptions";
-import { choiceOpt, exts, numberOpt, textOpt, timeOpt, type BuildContext, type ConvDef, type Engine, type Need } from "./fmConvTypes";
+import { choiceOpt, exts, numberOpt, textOpt, timeOpt, toggleOpt, type BuildContext, type ConvDef, type Engine, type Need } from "./fmConvTypes";
 
 const IMG_IN = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg");
 const IMG_RASTER = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico");
@@ -205,7 +205,57 @@ const mp4Move = (c: BuildContext, vf: string, crf: string, audio: string[], pres
 
 const ORDER_OPTION = choiceOpt("order", "Order", "Which one comes first.", [["name", "By name"], ["selected", "As selected"], ["modified", "By date"]], "name");
 
+/** Pictures that ffmpeg can read for the GIF maker (it can't open HEIC, AVIF or SVG). */
+const GIF_PICTURES = exts("jpg jpeg png webp bmp tif tiff");
+const GIF_SHAPES: Record<string, [number, number]> = { "16:9": [16, 9], "1:1": [1, 1], "4:3": [4, 3], "3:4": [3, 4], "9:16": [9, 16], "3:2": [3, 2] };
+const MAX_GIF_SECONDS = 300;
+
+/** The ffmpeg arguments that turn pictures and video clips, in order, into one animated GIF. */
+export function gifFromMixed(c: BuildContext): string[] {
+  const width = Math.round(optNum(c.opts, "width"));
+  const [sw, sh] = GIF_SHAPES[optStr(c.opts, "shape")] ?? GIF_SHAPES["16:9"]!;
+  const height = Math.max(2, Math.round((width * sh) / sw));
+  const fps = Math.round(optNum(c.opts, "fps"));
+  const still = optNum(c.opts, "still");
+  const clip = optNum(c.opts, "clip");
+  const isPicture = (p: string) => GIF_PICTURES.has(extOfPath(p));
+  const seconds = c.inputs.reduce((sum, p) => sum + (isPicture(p) ? still : clip), 0) * (c.opts.boomerang === true ? 2 : 1);
+  if (seconds > MAX_GIF_SECONDS) throw new Error(`That would be up to ${Math.round(seconds)} seconds long, and a GIF that long would be enormous. Choose fewer files, a shorter time for each, or turn off the back-and-forth.`);
+  const bg = { black: "black", white: "white", gray: "gray" }[optStr(c.opts, "background")] ?? "black";
+  const fill = optStr(c.opts, "fit") === "fill"
+    ? `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`
+    : `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=${bg}`;
+  const inputs = c.inputs.flatMap((p) => (isPicture(p) ? ["-loop", "1", "-framerate", String(fps), "-t", String(still), "-i", `file:${p}`] : ["-t", String(clip), "-i", `file:${p}`]));
+  const chains = c.inputs.map((_p, i) => `[${i}:v]fps=${fps},${fill},setsar=1,format=rgb24[v${i}]`);
+  const joined = `${c.inputs.map((_p, i) => `[v${i}]`).join("")}concat=n=${c.inputs.length}:v=1:a=0[cat]`;
+  const boomerang = c.opts.boomerang === true ? ";[cat]split[f][b];[b]reverse[r];[f][r]concat=n=2:v=1:a=0[all]" : "";
+  const last = c.opts.boomerang === true ? "[all]" : "[cat]";
+  const dither = { none: "none", bayer: "bayer:bayer_scale=3", smooth: "sierra2_4a" }[optStr(c.opts, "dither")] ?? "sierra2_4a";
+  const palette = `;${last}split[a][b];[a]palettegen=max_colors=${Math.round(optNum(c.opts, "colors"))}[p];[b][p]paletteuse=dither=${dither}[out]`;
+  const repeat = optStr(c.opts, "repeat") === "once" ? "-1" : "0";
+  return [...BASE, ...inputs, "-filter_complex", `${chains.join(";")};${joined}${boomerang}${palette}`, "-map", "[out]", "-loop", repeat, "-f", "gif", `file:${c.output}`];
+}
+
 export const VIDEO_DEFS: ConvDef[] = [
+  vid("gif-mixed", "Make an animated GIF from pictures and videos", "Select two or more pictures and video clips: they go, in the order you choose, into one looping GIF. (For one video, use “Make an animated GIF”.)", "gif", "animation", [ffEngine(gifFromMixed)], {
+    mode: "all", allName: "Animation", minFiles: 2, inputs: new Set([...GIF_PICTURES, ...VID_IN, "gif"]),
+    checkFiles: (files) => (files.length > 100 ? "Select at most 100 files for one GIF." : null),
+    options: [
+      numberOpt("width", "Width", "The GIF is this wide in pixels. Smaller is a much smaller file.", 100, 1280, 480, "pixels", 10),
+      choiceOpt("shape", "Shape", "Every picture and clip is fitted into the same shape.", [["16:9", "Wide (16:9)"], ["3:2", "Photo (3:2)"], ["4:3", "Classic (4:3)"], ["1:1", "Square"], ["3:4", "Tall (3:4)"], ["9:16", "Phone (9:16)"]], "16:9"),
+      choiceOpt("fit", "How to fit", "Show the whole picture with bars around it, or fill the shape and trim the edges.", [["whole", "Show the whole picture (bars if needed)"], ["fill", "Fill the shape (trim the edges)"]], "whole"),
+      choiceOpt("background", "Bars are", "", [["black", "Black"], ["white", "White"], ["gray", "Gray"]], "black"),
+      numberOpt("still", "Time for each picture", "How long every picture stays on screen.", 0.1, 10, 1.5, "seconds", 0.1),
+      numberOpt("clip", "Most from each video", "A longer video is cut off after this many seconds (from its start).", 1, 60, 5, "seconds"),
+      choiceOpt("fps", "Smoothness", "More pictures per second looks smoother and makes a bigger file.", [["8", "8 per second"], ["10", "10 per second"], ["12", "12 per second"], ["15", "15 per second"], ["20", "20 per second"], ["25", "25 per second"]], "12"),
+      choiceOpt("colors", "Colours", "A GIF has at most 256 colours. Fewer makes a smaller file.", [["256", "256 (best look)"], ["128", "128"], ["64", "64 (smaller)"], ["32", "32 (smallest)"]], "256"),
+      choiceOpt("dither", "Shading", "Smooth looks best; Pattern gives smaller files.", [["smooth", "Smooth"], ["bayer", "Pattern (smaller)"], ["none", "None (flat colours)"]], "smooth"),
+      choiceOpt("repeat", "Repeat", "", [["forever", "Forever"], ["once", "Play once"]], "forever"),
+      toggleOpt("boomerang", "Play it forwards, then backwards", "Makes a back-and-forth loop. It doubles the length and needs more memory.", false),
+      ORDER_OPTION,
+    ],
+    keywords: "gif animation slideshow loop meme pictures photos clips combine add images videos",
+  }),
   vid("vid-mp4", "Convert to MP4", "Plays almost everywhere.", "mp4", "converted", [ffEngine((c) => ff(c, [], ["-c:v", "libx264", "-crf", "23", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"]), "x264")]),
   vid("vid-mkv", "Convert to MKV (no quality loss)", "Moves the picture and sound into an MKV file without re-encoding: very fast.", "mkv", "converted", [ffEngine((c) => ff(c, [], ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", "-c:s", "srt"]))], { rejectSame: true, keywords: "matroska remux" }),
   vid("vid-mov", "Convert to MOV", "For Apple video programs.", "mov", "converted", [ffEngine((c) => ff(c, [], [...H264, "-crf", "20", "-preset", "medium", ...AAC("192k")]), "x264")], { rejectSame: true, keywords: "quicktime" }),

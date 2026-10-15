@@ -3,6 +3,7 @@
 import { KEYMAP, changeCase, changeDiacritics, convertIndent, deleteLines, duplicateLines, ensureFinalNewline, formatCode, formatShortcut, indentLines, joinLines, minifyCode, moveLines, outdentLines, removeDuplicateLines, reverseLines, selectLine, shortcutText, sortLines, toggleBlockComment, toggleLineComment, trimTrailingWhitespace, urlDecode, urlEncode, wordAt } from "./codeLogic.js";
 import { askAutosave } from "./codeDialogs.js";
 import { TRANSFORMS, convertText } from "./textConvert.js";
+import { keysOf } from "./keymap.js";
 import { state } from "./state.js";
 import { formatWithV } from "./codeVFormat.js";
 
@@ -142,7 +143,8 @@ export function createCommands(app) {
   add("Run", "build", "Build (Build preset)", () => app.runDefault("build"), { tip: "Send this file's Build command to the Terminal and press Enter." });
   add("Run", "presets", "Run presets…", () => app.openPresets(), { tip: "Add, edit and choose the commands saved for this file." });
 
-  for (const c of cmds) c.shortcut = shortcutText(c.id, state.platform, KEYMAP);
+  // The label is worked out each time it is read, so a shortcut changed in Settings shows up at once.
+  for (const c of cmds) Object.defineProperty(c, "shortcut", { configurable: true, enumerable: true, get() { keysOf("code.save"); return shortcutText(c.id, state.platform, KEYMAP); }, set(v) { Object.defineProperty(c, "shortcut", { value: v, writable: true, configurable: true, enumerable: true }); } });
   // typing keys that the browser itself handles are listed too, for the shortcuts help
   cmds.find((c) => c.id === "undo").shortcut = formatShortcut("Mod+Z", state.platform);
   cmds.find((c) => c.id === "redo").shortcut = formatShortcut(state.platform === "darwin" ? "Mod+Shift+Z" : "Mod+Y", state.platform);

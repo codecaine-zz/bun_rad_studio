@@ -14,6 +14,7 @@ import { createActions } from "./codeActions.js";
 import { createAssist } from "./codeAssist.js";
 import { THEME_CHOICES, createCommands } from "./codeCommands.js";
 import { openPalette, openRegexSandbox, openShortcutsHelp } from "./codeDialogs.js";
+import { keysOf } from "./keymap.js";
 import { TRANSFORMS } from "./textConvert.js";
 import { createDocs, isDirty } from "./codeDocs.js";
 import { createEditor } from "./codeEditor.js";
@@ -362,6 +363,7 @@ function mount(root) {
     if (e.defaultPrevented || e.isComposing) return;
     // Esc leaves zen mode when nothing else (a menu, the completion list, the find bar) used it first.
     if (zen && e.key === "Escape" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); commands.run("zen"); return; }
+    keysOf("code.save"); // brings the key table up to date with Settings
     const id = commandForEvent(e, state.platform);
     if (id && commands.run(id)) e.preventDefault();
   });

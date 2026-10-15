@@ -87,9 +87,45 @@ function swatch(theme) {
   return bar;
 }
 
-async function choose(key) {
+const RECENT_KEY = "fm_recent_themes";
+const MAX_RECENT = 6;
+
+/** The keys of the themes used lately, newest first (kept in this window's own storage, never sent anywhere). */
+function recentKeys() {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(list) ? list.filter((k) => typeof k === "string" && /^[a-z0-9_]{1,60}$/.test(k)).slice(0, MAX_RECENT) : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberTheme(key) {
+  if (!key) return;
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify([key, ...recentKeys().filter((k) => k !== key)].slice(0, MAX_RECENT)));
+  } catch { /* storage is off: the menu just has no recent themes */ }
+}
+
+/** The themes used lately that still exist: [{ key, name, dark }], newest first. */
+export async function recentThemes() {
+  const keys = recentKeys();
+  if (!keys.length) return [];
+  try {
+    const all = await themeList();
+    return keys.map((k) => all.find((t) => t.key === k)).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** Chooses a theme by its key (an empty key goes back to the standard colours) and remembers it as a recent one. */
+export async function chooseTheme(key) {
+  rememberTheme(key);
   await saveSettings({ palette: key });
 }
+
+const choose = chooseTheme;
 
 /** The theme gallery: search, filter by light or dark, and click a theme to try it. */
 export async function showThemePicker() {

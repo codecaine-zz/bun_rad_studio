@@ -685,3 +685,78 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .mp-btn:focus-visible, .mp-select:focus-visible, .mp-qitem:focus-visible, .mp input:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 .mp-stage:fullscreen { background: #000; }
 @media (max-width: 760px) { .mp.has-panel { grid-template-columns: 1fr; } .mp-panel { grid-column: 1; grid-row: auto; max-height: 40%; } }
+
+/* Keyboard shortcuts dialog and the terminal button in the status bar */
+.shortcut-list { max-height: 55vh; overflow: auto; padding-right: 0.3rem; }
+.shortcut-list h4 { margin: 0.8rem 0 0.2rem; font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.shortcut-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
+.shortcut-label { flex: 1 1 auto; min-width: 0; }
+.shortcut-keys { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; justify-content: flex-end; }
+.shortcut-slot { display: inline-flex; align-items: center; }
+.shortcut-chip, .shortcut-add, .shortcut-reset, .shortcut-x { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); padding: 0.15rem 0.55rem; cursor: pointer; }
+.shortcut-chip { border-radius: 6px 0 0 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88em; min-width: 3.2rem; }
+.shortcut-x { border-radius: 0 6px 6px 0; border-left: 0; padding: 0.15rem 0.4rem; color: var(--muted); }
+.shortcut-add, .shortcut-reset { border-radius: 6px; }
+.shortcut-chip:hover, .shortcut-add:hover, .shortcut-reset:hover, .shortcut-x:hover { background: var(--hover); }
+.shortcut-chip:focus-visible, .shortcut-add:focus-visible, .shortcut-reset:focus-visible, .shortcut-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.shortcut-chip.recording, .shortcut-add.recording { border-color: var(--accent); background: var(--hover); }
+.shortcut-none { color: var(--muted); font-size: 0.88em; }
+.shortcut-fixed .shortcut-label { color: var(--muted); }
+.shortcut-kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; padding: 0.1rem 0.45rem; border: 1px solid var(--border); border-radius: 5px; background: var(--panel); }
+.shortcut-status { margin: 0.4rem 0; min-height: 1.4em; color: var(--muted); }
+.shortcut-status.shortcut-bad { color: var(--danger, #c62828); font-weight: 600; }
+.status-terminal { font: inherit; font-size: 0.9em; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0.1rem 0.5rem; margin-right: 0.5rem; cursor: pointer; }
+.status-terminal:hover { background: var(--hover); }
+.status-terminal[aria-pressed="true"] { background: var(--hover); border-color: var(--border); }
+.status-terminal:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.status-terminal-key { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; color: var(--muted); }
+.status-terminal-key:empty { display: none; }
+
+/* Animated GIF viewer (Quick Look) */
+.gv-root { display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; max-height: 100%; }
+.gv-stage { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; border-radius: 8px; background-color: var(--panel); background-image: conic-gradient(rgba(128,128,128,0.18) 25%, transparent 0 50%, rgba(128,128,128,0.18) 0 75%, transparent 0); background-size: 16px 16px; }
+.gv-canvas { max-width: 100%; max-height: 60vh; object-fit: contain; image-rendering: auto; }
+.gv-actual .gv-canvas { max-width: none; max-height: none; }
+.gv-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; }
+.gv-btn { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.55rem; cursor: pointer; min-width: 2.1rem; }
+.gv-btn:hover { background: var(--hover); }
+.gv-btn[aria-pressed="true"] { border-color: var(--accent); }
+.gv-btn:focus-visible, .gv-select:focus-visible, .gv-scrub:focus-visible, .gv-opt input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.gv-scrub { flex: 1 1 10rem; min-width: 8rem; }
+.gv-label { color: var(--muted); font-size: 0.88em; white-space: nowrap; }
+.gv-opt { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9em; }
+.gv-select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 0.1rem 0.3rem; }
+.gv-plain { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+
+/* QR tool */
+.qr-root { overflow: auto; }
+.qr-tabs { display: flex; gap: 0.3rem; margin: 0.4rem 0 0.8rem; border-bottom: 1px solid var(--border); }
+.qr-tab { font: inherit; color: var(--text); background: transparent; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; padding: 0.35rem 0.9rem; cursor: pointer; }
+.qr-tab[aria-selected="true"] { background: var(--panel); border-color: var(--border); font-weight: 600; }
+.qr-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.qr-grid, .qr-readgrid { display: grid; grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 1fr); gap: 1.2rem; align-items: start; }
+.qr-grid[hidden], .qr-readgrid[hidden] { display: none; }
+@media (max-width: 760px) { .qr-grid, .qr-readgrid { grid-template-columns: 1fr; } }
+.qr-input { width: 100%; box-sizing: border-box; }
+.qr-check-field { display: flex; align-items: center; gap: 0.3rem; margin: 0.4rem 0; }
+.qr-more { margin: 0.8rem 0; }
+.qr-more summary { cursor: pointer; }
+.qr-more summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qr-colours { display: flex; gap: 1.2rem; margin: 0.5rem 0; }
+.qr-colour { display: inline-flex; align-items: center; gap: 0.4rem; }
+.qr-message { min-height: 1.3em; color: var(--muted); }
+.qr-canvas, .qr-preview { max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--border); border-radius: 6px; background: #fff; display: block; margin: 0.4rem 0; }
+.qr-preview { image-rendering: auto; }
+.qr-canvas[hidden], .qr-preview[hidden] { display: none; }
+.qr-facts, .qr-check { font-size: 0.88em; color: var(--muted); margin: 0.2rem 0; }
+.qr-warn { font-size: 0.9em; color: var(--warning, #b26a00); font-weight: 600; margin: 0.3rem 0; }
+.qr-warn:empty, .qr-check:empty, .qr-facts:empty { display: none; }
+.qr-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+.qr-drop { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 1.4rem 1rem; border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; text-align: center; color: var(--muted); }
+.qr-drop:hover, .qr-drop.over { border-color: var(--accent); background: var(--hover); }
+.qr-drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qr-fields { display: grid; gap: 0.3rem; margin: 0.5rem 0; }
+.qr-field { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.qr-field-label { min-width: 7rem; color: var(--muted); font-size: 0.9em; }
+.qr-value { overflow-wrap: anywhere; }
+.qr-raw { width: 100%; box-sizing: border-box; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88em; }

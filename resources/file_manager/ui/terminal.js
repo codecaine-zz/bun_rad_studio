@@ -5,6 +5,7 @@ import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
 import { quoteArg, shellFor } from "./codeRun.js";
 import { $ } from "./dom.js";
+import { hintOf, labelOf, matchesAction } from "./keymap.js";
 import { toast } from "./menus.js";
 import { goTo, saveSettings } from "./nav.js";
 import { selectedEntries } from "./selection.js";
@@ -125,21 +126,20 @@ function connect(folder) {
   };
 }
 
-function restart() {
+function restart(folder = targetFolder()) {
   if (!term) return;
-  connect(targetFolder());
+  connect(folder);
   term.focus();
 }
 
 /** Moves the running shell to the selected folder (or the one on screen). Always sends the move: the shell may have been used since. */
-function goToFolder() {
-  const folder = targetFolder();
-  if (!term || ended) return restart();
+function goToFolder(folder = targetFolder()) {
+  if (!term || ended) return restart(folder);
   // A name with line breaks or other control characters can't be typed safely, so a new shell is started there instead.
-  if (/[\x00-\x1f\x7f]/.test(folder)) return restart();
+  if (/[\x00-\x1f\x7f]/.test(folder)) return restart(folder);
   const wsl = state.platform === "win32" && activeShell === "wsl";
   const quoted = quoteArg(folder, wsl ? "posix" : shellFor(state.platform));
-  if (quoted.error) return restart();
+  if (quoted.error) return restart(folder);
   startedIn = folder;
   setTitle();
   // Escape clears PowerShell's line; Ctrl+U clears a POSIX shell's line.
@@ -191,14 +191,14 @@ export function isTerminalOpen() {
   return state.terminalOpen;
 }
 
-export function showTerminal() {
+export function showTerminal(folder) {
   if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
   state.terminalOpen = true;
   $("#terminal-panel").hidden = false;
   ensureTerminal();
   applyHeight();
   fit.fit();
-  if (!socket) connect(currentFolder());
+  if (!socket) connect(folder ?? currentFolder());
   term.focus();
   // Some web views ignore focus that is set while the key press that opened the panel is still being handled.
   requestAnimationFrame(() => state.terminalOpen && term.focus());
@@ -251,8 +251,39 @@ function wireResizer() {
   });
 }
 
+/** Opens the terminal in a folder (the selected one, or the one on screen): starts a shell there, or moves the running one. */
+function openHere(path) {
+  if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
+  const folder = path || targetFolder();
+  if (!state.terminalOpen) {
+    showTerminal(folder);
+    // A shell that is already running keeps its place unless it is somewhere else.
+    if (startedIn !== folder) goToFolder(folder);
+    return;
+  }
+  goToFolder(folder);
+}
+
+/** The button in the status bar: visible whenever the window is, pressed while the terminal is open. */
+function wireStatusButton() {
+  const button = $("#status-terminal");
+  if (!button) return;
+  const paint = () => {
+    const open = state.terminalOpen;
+    button.setAttribute("aria-pressed", String(open));
+    button.title = `${open ? "Hide" : "Show"} the terminal${hintOf("terminal.toggle")}`;
+    button.querySelector(".status-terminal-key").textContent = labelOf("terminal.toggle");
+  };
+  button.addEventListener("click", toggleTerminal);
+  on("terminal", paint);
+  on("settings", paint);
+  paint();
+}
+
 export function wireTerminal() {
   on("toggle-terminal", toggleTerminal);
+  on("terminal-here", openHere);
+  wireStatusButton();
   on("settings", () => {
     if (!term) return;
     const size = fontSize();
@@ -268,18 +299,20 @@ export function wireTerminal() {
     toast(follow.checked ? "The file list will follow the terminal." : "The file list stays where it is when you change folder in the terminal.", { kind: "info" });
   });
   on("settings", () => { follow.checked = state.settings.terminalFollow !== false; });
-  $("#terminal-cd").addEventListener("click", goToFolder);
+  $("#terminal-cd").addEventListener("click", () => goToFolder());
   $("#terminal-restart").addEventListener("click", restart);
   $("#terminal-close").addEventListener("click", hideTerminal);
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
-  // Ctrl+` (Control on every system) shows or hides the terminal, also while typing in it.
+  // The terminal keys (Ctrl+` and Cmd/Ctrl+Alt+T unless changed in Settings) work everywhere, also while typing in the terminal.
   document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && (e.key === "`" || e.code === "Backquote")) {
-      if (document.querySelector(".modal-backdrop")) return;
-      e.preventDefault();
-      e.stopPropagation();
-      toggleTerminal();
-    }
+    const toggle = matchesAction(e, "terminal.toggle");
+    const here = !toggle && matchesAction(e, "terminal.here");
+    if (!toggle && !here) return;
+    if (document.querySelector(".modal-backdrop")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (toggle) toggleTerminal();
+    else openHere();
   }, true);
 }

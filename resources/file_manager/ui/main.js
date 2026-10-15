@@ -31,6 +31,7 @@ import "./sd.js";
 import "./vault.js";
 import "./secrets.js";
 import "./calc.js";
+import "./qr.js";
 import "./timer.js";
 import "./code.js";
 import "./dev.js";

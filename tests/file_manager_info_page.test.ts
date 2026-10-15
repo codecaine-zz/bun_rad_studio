@@ -157,7 +157,7 @@ describe("opening the window", () => {
     contextmenu.showEntryMenu(selection.selectedEntries(), { x: 10, y: 10 });
     const item = qa(".menu .menu-item").find((b) => b.textContent.includes("More info"));
     expect(item).toBeDefined();
-    expect(item.textContent).toContain("Alt+Shift+Enter");
+    expect(item.textContent).toMatch(/Alt\+Shift\+Enter|⌥⇧↩/); // written the way this computer writes it
     item.click();
     await waitFor(dialogEl);
     expect(q(".fi-name").textContent).toBe("holiday.jpg");

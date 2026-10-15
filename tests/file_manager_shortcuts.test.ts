@@ -1,0 +1,200 @@
+import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
+import { createContext } from "../src/features/filemanager/fmCore";
+import { DEFAULT_SETTINGS, loadSettings, sanitizeSettings, updateSettings } from "../src/features/filemanager/fmSettings";
+import * as ui7 from "../resources/file_manager/ui/codeKeys.js";
+const { KEYMAP, matchShortcut }: any = ui7;
+import * as ui8 from "../resources/file_manager/ui/shortcuts.js";
+const { ACTIONS, FIXED, canonical, checkAssign, defaultsFor, effectiveKeys, formatShortcut, isValidSpec, sanitizeOverrides, specFromEvent }: any = ui8;
+
+const PLATFORMS = ["darwin", "linux", "win32"];
+const action = (id: string) => ACTIONS.find((a: any) => a.id === id)!;
+const defaults = (platform: string) => new Map(ACTIONS.map((a: any) => [a.id, defaultsFor(a, platform)]));
+const ev = (o: Record<string, unknown>) => ({ key: "", code: "", ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...o });
+
+describe("the table of shortcuts", () => {
+  test("every action has a unique id, a label and a group", () => {
+    const ids = ACTIONS.map((a: any) => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const a of ACTIONS as any[]) expect(a.label && a.group && ["files", "code", "global"].includes(a.scope), a.id).toBeTruthy();
+    expect(ACTIONS.length).toBeGreaterThan(60);
+  });
+  test("the original shortcuts are valid and never clash with each other, on every system", () => {
+    for (const platform of PLATFORMS) {
+      const keys = defaults(platform);
+      for (const a of ACTIONS as any[]) for (const spec of keys.get(a.id) as string[]) {
+        expect(isValidSpec(spec), `${a.id} ${spec}`).toBe(true);
+        expect(checkAssign(a, spec, keys, platform), `${platform} ${a.id} ${spec}`).toBeNull();
+      }
+    }
+  });
+  test("the Code tab's own table is where its defaults come from", () => {
+    expect(action("code.save").keys).toEqual(["Mod+S"]);
+    expect(action("code.replace").keys).toEqual(["Mod+H", "Mod+Alt+F"]);
+    expect(KEYMAP.save).toEqual(["Mod+S"]);
+  });
+  test("platform-only defaults", () => {
+    expect(defaultsFor(action("nav.back"), "darwin")).toEqual(["Alt+ArrowLeft", "Mod+["]);
+    expect(defaultsFor(action("nav.back"), "linux")).toEqual(["Alt+ArrowLeft"]);
+    expect(defaultsFor(action("nav.address"), "linux")).toEqual(["Mod+L", "Alt+D"]);
+    expect(defaultsFor(action("nav.address"), "darwin")).toEqual(["Mod+L"]);
+  });
+  test("the terminal has two shortcuts and neither is a key people can't type", () => {
+    expect(defaultsFor(action("terminal.toggle"), "darwin")).toEqual(["Ctrl+`"]);
+    expect(defaultsFor(action("terminal.here"), "linux")).toEqual(["Mod+Alt+T"]);
+    expect(formatShortcut("Mod+Alt+T", "darwin")).toBe("⌘⌥T");
+    expect(formatShortcut("Mod+Alt+T", "linux")).toBe("Ctrl+Alt+T");
+    expect(formatShortcut("Ctrl+`", "darwin")).toBe("⌃`");
+  });
+});
+
+describe("matching key presses", () => {
+  test("Ctrl is the Control key on a Mac too, and Mod is Command there", () => {
+    expect(matchShortcut(ev({ key: "`", code: "Backquote", ctrlKey: true }), "Ctrl+`", "darwin")).toBe(true);
+    expect(matchShortcut(ev({ key: "`", code: "Backquote", metaKey: true }), "Ctrl+`", "darwin")).toBe(false);
+    expect(matchShortcut(ev({ key: "t", code: "KeyT", metaKey: true, altKey: true }), "Mod+Alt+T", "darwin")).toBe(true);
+    expect(matchShortcut(ev({ key: "t", code: "KeyT", ctrlKey: true, altKey: true }), "Mod+Alt+T", "linux")).toBe(true);
+    expect(matchShortcut(ev({ key: "t", code: "KeyT", metaKey: true, altKey: true }), "Mod+Alt+T", "linux")).toBe(false);
+  });
+  test("a punctuation key is matched by where it is, so other keyboard layouts work", () => {
+    // On a German keyboard the key left of 1 types "^"
+    expect(matchShortcut(ev({ key: "^", code: "Backquote", ctrlKey: true }), "Ctrl+`", "linux")).toBe(true);
+    expect(matchShortcut(ev({ key: "=", code: "Equal", metaKey: true }), "Mod+=", "darwin")).toBe(true);
+  });
+  test("extra modifiers don't match", () => {
+    expect(matchShortcut(ev({ key: "s", code: "KeyS", ctrlKey: true, shiftKey: true }), "Mod+S", "linux")).toBe(false);
+  });
+});
+
+describe("conflicts", () => {
+  test("two actions in the same place can't share a key", () => {
+    const keys = defaults("linux");
+    const problem = checkAssign(action("view.details"), "Mod+2", keys, "linux");
+    expect(problem?.reason).toContain("already used");
+    expect(problem?.reason).toContain("List view");
+    expect(problem?.other?.id).toBe("view.list");
+  });
+  test("Ctrl and Mod are the same key on Windows and Linux, but different keys on a Mac", () => {
+    expect(canonical("Ctrl+K", "linux")).toBe(canonical("Mod+K", "linux"));
+    expect(canonical("Ctrl+K", "darwin")).not.toBe(canonical("Mod+K", "darwin"));
+    expect(checkAssign(action("view.details"), "Ctrl+2", defaults("linux"), "linux")?.other?.id).toBe("view.list");
+    expect(checkAssign(action("view.details"), "Ctrl+2", defaults("darwin"), "darwin")).toBeNull();
+  });
+  test("the file list and the Code editor are separate places, so they may share a key", () => {
+    expect(checkAssign(action("file.copy"), "Mod+S", defaults("linux"), "linux")).toBeNull();
+    expect(checkAssign(action("code.save"), "Mod+Shift+H", defaults("linux"), "linux")).toBeNull();
+  });
+  test("keys that work everywhere clash with every place", () => {
+    const keys = defaults("linux");
+    expect(checkAssign(action("terminal.here"), "Mod+S", keys, "linux")?.other?.id).toBe("code.save");
+    expect(checkAssign(action("file.copy"), "Ctrl+`", keys, "linux")?.other?.id).toBe("terminal.toggle");
+    expect(checkAssign(action("code.zen"), "Mod+Alt+T", keys, "linux")?.other?.id).toBe("terminal.here");
+  });
+  test("fixed keys can't be taken", () => {
+    const keys = defaults("linux");
+    expect(checkAssign(action("file.copy"), "Alt+3", keys, "linux")?.reason).toContain("fixed");
+    expect(checkAssign(action("code.save"), "Alt+3", keys, "linux")?.reason).toContain("fixed");
+    expect(checkAssign(action("code.find"), "Mod+Shift+Z", keys, "linux")?.reason).toContain("fixed");
+    expect(FIXED.length).toBeGreaterThan(5);
+  });
+  test("keys needed for typing and moving, and keys the computer keeps, are refused with a reason", () => {
+    const keys = defaults("linux");
+    for (const bad of ["Q", "5", "Space", "Enter", "ArrowDown", "Tab", "Escape", "Shift+Q", "Shift+ArrowUp"]) expect(checkAssign(action("file.copy"), bad, keys, "linux"), bad).not.toBeNull();
+    expect(checkAssign(action("code.save"), "Delete", keys, "linux")?.reason).toContain("edits the text");
+    expect(checkAssign(action("file.copy"), "Alt+F4", keys, "linux")?.reason).toContain("computer");
+    expect(checkAssign(action("file.copy"), "Mod+Tab", keys, "darwin")?.reason).toContain("computer");
+    expect(checkAssign(action("file.copy"), "F9", keys, "linux")).toBeNull();
+    expect(checkAssign(action("file.copy"), "Shift+Delete", keys, "linux")?.other?.id).toBe("file.deleteForever");
+    expect(checkAssign(action("file.copy"), "nonsense+++", keys, "linux")?.reason).toContain("isn't a key combination");
+  });
+});
+
+describe("a person's changes", () => {
+  test("a change replaces the original and a free key is accepted", () => {
+    const { keys, rejected } = effectiveKeys({ "terminal.here": ["Mod+Alt+J"], "file.rename": ["F9", "Mod+Alt+R"] }, "linux");
+    expect(keys.get("terminal.here")).toEqual(["Mod+Alt+J"]);
+    expect(keys.get("file.rename")).toEqual(["F9", "Mod+Alt+R"]);
+    expect(rejected).toEqual([]);
+  });
+  test("two actions can swap keys", () => {
+    const { keys, rejected } = effectiveKeys({ "view.details": ["Mod+2"], "view.list": ["Mod+1"] }, "linux");
+    expect(keys.get("view.details")).toEqual(["Mod+2"]);
+    expect(keys.get("view.list")).toEqual(["Mod+1"]);
+    expect(rejected).toEqual([]);
+  });
+  test("a change that clashes is never applied and the action keeps its original keys", () => {
+    const { keys, rejected } = effectiveKeys({ "view.details": ["Mod+2"] }, "linux");
+    expect(keys.get("view.details")).toEqual(["Mod+1"]);
+    expect(keys.get("view.list")).toEqual(["Mod+2"]);
+    expect(rejected.length).toBe(1);
+    expect(rejected[0].reason).toContain("already used");
+  });
+  test("when two changes want the same key the first one wins", () => {
+    const { keys, rejected } = effectiveKeys({ "file.copy": ["Mod+Shift+K"], "file.cut": ["Mod+Shift+K"] }, "linux");
+    expect(keys.get("file.copy")).toEqual(["Mod+Shift+K"]);
+    expect(keys.get("file.cut")).toEqual(["Mod+X"]);
+    expect(rejected.length).toBe(1);
+  });
+  test("an action can be switched off, and the key it had becomes free", () => {
+    const { keys } = effectiveKeys({ "view.list": [], "view.details": ["Mod+2"] }, "linux");
+    expect(keys.get("view.list")).toEqual([]);
+    expect(keys.get("view.details")).toEqual(["Mod+2"]);
+  });
+  test("saved changes are cleaned: unknown actions, bad text, repeats, clashes and changes that equal the original", () => {
+    const clean = sanitizeOverrides({
+      "nope": ["Mod+K"], "file.copy": ["Mod+Shift+K", "mod+shift+k", "not a key", 5], "file.cut": ["Mod+Shift+K"], "view.list": ["Mod+2"], "terminal.here": [], "app.help": "F1", "file.paste": ["Mod+V"],
+    }, "linux");
+    expect(clean).toEqual({ "file.copy": ["Mod+Shift+K"], "terminal.here": [] });
+    expect(sanitizeOverrides(null, "linux")).toEqual({});
+    expect(sanitizeOverrides([], "linux")).toEqual({});
+    expect(sanitizeOverrides({ "file.copy": Array(20).fill("Mod+Shift+K") }, "linux")).toEqual({ "file.copy": ["Mod+Shift+K"] });
+  });
+  test("cleaning is stable: cleaning twice gives the same", () => {
+    const once = sanitizeOverrides({ "file.copy": ["Mod+Shift+K"], "view.details": ["Mod+2"], "view.list": ["Mod+1"] }, "darwin");
+    expect(sanitizeOverrides(once, "darwin")).toEqual(once);
+  });
+});
+
+describe("recording a key press", () => {
+  test("modifiers on their own are not a shortcut", () => {
+    for (const key of ["Control", "Shift", "Alt", "Meta"]) expect(specFromEvent(ev({ key }), "linux")).toBeNull();
+  });
+  test("Control is Mod on Windows and Linux; Command is Mod and Control is Ctrl on a Mac", () => {
+    expect(specFromEvent(ev({ key: "t", code: "KeyT", ctrlKey: true, altKey: true }), "linux")).toEqual({ spec: "Mod+Alt+T" });
+    expect(specFromEvent(ev({ key: "†", code: "KeyT", metaKey: true, altKey: true }), "darwin")).toEqual({ spec: "Mod+Alt+T" });
+    expect(specFromEvent(ev({ key: "`", code: "Backquote", ctrlKey: true }), "darwin")).toEqual({ spec: "Ctrl+`" });
+    expect(specFromEvent(ev({ key: "2", code: "Digit2", ctrlKey: true, shiftKey: true }), "linux")).toEqual({ spec: "Mod+Shift+2" });
+    expect(specFromEvent(ev({ key: "F9", code: "F9" }), "linux")).toEqual({ spec: "F9" });
+    expect(specFromEvent(ev({ key: " ", code: "Space", ctrlKey: true }), "linux")).toEqual({ spec: "Mod+Space" });
+  });
+  test("the Windows key can't be used, and dead keys are refused", () => {
+    expect(specFromEvent(ev({ key: "t", code: "KeyT", metaKey: true }), "linux")).toMatchObject({ error: expect.stringContaining("Windows") });
+    expect(specFromEvent(ev({ key: "Dead", code: "Quote" }), "linux")).toMatchObject({ error: expect.any(String) });
+  });
+  test("what is recorded is a valid shortcut that matches the same key press", () => {
+    const press = ev({ key: "k", code: "KeyK", ctrlKey: true, altKey: true });
+    const got = specFromEvent(press, "linux") as { spec: string };
+    expect(isValidSpec(got.spec)).toBe(true);
+    expect(matchShortcut(press, got.spec, "linux")).toBe(true);
+  });
+});
+
+describe("the saved settings", () => {
+  const dir = mkdtempSync(join(tmpdir(), "fm-shortcuts-"));
+  const ctx = createContext({ home: dir, dataDir: join(dir, "data"), platform: "linux" } as any);
+  test("start with none, and a clash is dropped when saving", async () => {
+    expect(DEFAULT_SETTINGS.shortcuts).toEqual({});
+    const saved = await updateSettings(ctx, { shortcuts: { "file.copy": ["Mod+Shift+K"], "file.cut": ["Mod+Shift+K"], "view.list": ["Mod+1"], "bogus": ["F9"] } });
+    expect(saved.shortcuts).toEqual({ "file.copy": ["Mod+Shift+K"] });
+    expect((await loadSettings(ctx)).shortcuts).toEqual({ "file.copy": ["Mod+Shift+K"] });
+    rmSync(dir, { recursive: true, force: true });
+  });
+  test("a hand-edited file can't make two actions share a key, and odd values are ignored", () => {
+    const ctx2 = createContext({ home: "/tmp", dataDir: "/tmp/fm-shortcuts-none", platform: "linux" } as any);
+    expect(sanitizeSettings({ shortcuts: { "view.details": ["Mod+2"] } }, ctx2).shortcuts).toEqual({});
+    expect(sanitizeSettings({ shortcuts: "x" }, ctx2).shortcuts).toEqual({});
+    expect(sanitizeSettings({ shortcuts: { "file.copy": [1, null, {}] } }, ctx2).shortcuts).toEqual({});
+  });
+});

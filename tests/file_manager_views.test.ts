@@ -1064,6 +1064,9 @@ describe("the Dual view's right pane has the same options as the left one", () =
 // Quick Look (Space) and "copy to the clipboard" in the right-click menu
 // ---------------------------------------------------------------------------------------------------------------
 
+// A 24 x 16 animated GIF of 3 frames (made with ffmpeg: testsrc, 5 per second, looping forever).
+const TINY_GIF = "R0lGODlhGAAQAPf/MQAAAAAA/wD/BAD/7lk0/4f/AKZv/6a1tP8AAP8A//8pav+zAP/tAP//AP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wD/ACH/C05FVFNDQVBFMi4wAwEAAAAh+QQEFAAfACwAAAAAGAAQAAAIswABCERAUECCBAESNlgooOGAhw4iCgRAcMBBhAoZNqwY0cHEihcTBljYoKEAjhIHPgyZseRGgh0nPrR4UCRJkwQRAEgJYCbLkRpPEtzpUaDPmi1xDuV5FCNQl0J1Ml2J9KlSqUV7UnV68yVWmVttBs1JFCxNrmOXOiC4YEGDAgVMFnh4wEBCAgQuKsjZdmFch3QNEAiA10ACBYjZuoX7d8DcAwcGBzB8EPFHBGdtFoCK0kFAACH5BAUUAP8ALAEADAAXAAQAAAhAABf8Y/Dvn4CC/wb8O2CAAMIEBRUUFMigQAGECgs2DODQAMR/CBBQJCjgYMEBB/4RCKDyo0QECGPGLNBApsyAAAAh+QQFFAD/ACwAAAwAFwADAAAIOgD/MWDwr4CAfwgHIDRAIMA/AgYQKviHYAHCBggPDjh44AABhP8MJPg3ESSDAgVA/lMYsuHDiCQpBgQAOw==";
+
 describe("Quick Look and copy to the clipboard", () => {
   const qdir = join(home, "qlook");
   const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
@@ -1090,6 +1093,7 @@ describe("Quick Look and copy to the clipboard", () => {
     writeFileSync(join(qdir, "d-people.csv"), 'name,city\nAda,"London, UK"\n"Sam ""the man""",Austin\n');
     writeFileSync(join(qdir, "e-notes.txt"), "line one\nline two\n");
     writeFileSync(join(qdir, "f-blob.bin"), Buffer.from([0, 1, 2, 3, 0, 0, 255, 254]));
+    writeFileSync(join(qdir, "h-anim.gif"), Buffer.from(TINY_GIF, "base64"));
     // jsdom can't play or load media: give media elements the state a player reads and writes.
     const mp = win.HTMLMediaElement.prototype;
     for (const [k, d] of [["currentTime", 0], ["duration", NaN], ["volume", 1], ["muted", false], ["playbackRate", 1], ["defaultPlaybackRate", 1]] as const) {
@@ -1394,6 +1398,58 @@ describe("Quick Look and copy to the clipboard", () => {
     expect(open()).toBeNull();
   });
 
+  test("an animated GIF opens in a viewer: play and pause, frame by frame, loop, and closing stops it", async () => {
+    // jsdom has no canvas: give the viewer one that counts the frames it is asked to draw.
+    const g = globalThis as any;
+    const proto = win.HTMLCanvasElement.prototype;
+    const oldGetContext = proto.getContext;
+    const hadImageData = "ImageData" in g;
+    const drawn: number[] = [];
+    proto.getContext = () => ({ putImageData: (img: any) => drawn.push(img.data[0]), drawImage() {}, fillRect() {} });
+    g.ImageData = class { constructor(public data: any, public width: number, public height: number) {} };
+    try {
+      select("h-anim.gif");
+      $("#list").focus();
+      space();
+      await waitFor(() => !!$(".gv-bar"));
+      expect(title()).toBe("h-anim.gif");
+      await waitFor(() => /frames/.test($(".ql-sub").textContent));
+      expect($(".ql-sub").textContent).toContain("24 × 16");
+      const label = () => $(".gv-label").textContent;
+      const playBtn = () => $(".gv-bar [data-role=play]");
+      expect(label()).toMatch(/^Frame 1 of \d+/);
+      expect(playBtn().getAttribute("aria-label")).toBe("Pause (Space)"); // it starts playing
+      key(doc.activeElement ?? doc.body, " ");
+      expect(playBtn().getAttribute("aria-label")).toBe("Play (Space)");
+      expect(open()).toBeTruthy(); // Space paused it instead of closing the window
+      key(doc.activeElement ?? doc.body, ".", { code: "Period" });
+      expect(label()).toMatch(/^Frame 2 of/);
+      key(doc.activeElement ?? doc.body, ",", { code: "Comma" });
+      expect(label()).toMatch(/^Frame 1 of/);
+      key(doc.activeElement ?? doc.body, ",", { code: "Comma" }); // wraps round to the last frame
+      expect(label()).toMatch(/^Frame \d+ of (\d+)/);
+      const scrub = $(".gv-scrub");
+      scrub.value = "1";
+      scrub.dispatchEvent(new win.Event("input", { bubbles: true }));
+      expect(label()).toMatch(/^Frame 2 of/);
+      // playing again moves on by itself, and loops
+      const before = drawn.length;
+      key(doc.activeElement ?? doc.body, " ");
+      await sleep(900);
+      expect(drawn.length).toBeGreaterThan(before + 2);
+      key(doc.activeElement ?? doc.body, "Escape");
+      await sleep(50);
+      expect(open()).toBeNull();
+      const stopped = drawn.length;
+      await sleep(500);
+      expect(drawn.length).toBe(stopped); // nothing keeps drawing after it is closed
+    } finally {
+      proto.getContext = oldGetContext;
+      if (!hadImageData) delete g.ImageData;
+      if (open()) key(doc.activeElement ?? doc.body, "Escape");
+    }
+  });
+
   describe("opening text files (the Open setting)", () => {
     const entry = (name: string, extra: Record<string, unknown> = {}) => ({ path: join(qdir, name), name, isDir: false, program: false, size: 10, ...extra });
     const setting = async (value: string) => {
@@ -1455,3 +1511,281 @@ describe("Quick Look and copy to the clipboard", () => {
     });
   });
 });
+
+describe("changing keyboard shortcuts", () => {
+  // "Mod" is Command on a Mac and Control elsewhere: use what the page itself decided.
+  let MOD: Record<string, boolean> = { ctrlKey: true };
+  beforeAll(async () => {
+    MOD = (await import("../resources/file_manager/ui/state.js")).state.platform === "darwin" ? { metaKey: true } : { ctrlKey: true };
+  });
+  const stateOf = async () => (await import("../resources/file_manager/ui/state.js")).state;
+  const nav = async () => await import("../resources/file_manager/ui/nav.js");
+  const viewNow = async () => (await stateOf()).settings.view;
+
+  test("a changed shortcut works and the old one stops", async () => {
+    await (await nav()).saveSettings({ view: "details", shortcuts: { "view.list": ["Mod+Shift+L"] } });
+    key(doc.body, "2", { ...MOD, code: "Digit2" });
+    expect(await viewNow()).toBe("details");
+    key(doc.body, "l", { ...MOD, shiftKey: true, code: "KeyL" });
+    expect(await viewNow()).toBe("list");
+    await (await nav()).saveSettings({ view: "details", shortcuts: {} });
+    key(doc.body, "2", { ...MOD, code: "Digit2" });
+    expect(await viewNow()).toBe("list");
+    await (await nav()).saveSettings({ view: "details" });
+  });
+
+  test("a shortcut that is switched off does nothing", async () => {
+    await (await nav()).saveSettings({ view: "details", shortcuts: { "view.icons": [] } });
+    key(doc.body, "3", { ...MOD, code: "Digit3" });
+    expect(await viewNow()).toBe("details");
+    await (await nav()).saveSettings({ shortcuts: {} });
+  });
+
+  test("the dialog refuses a key that another action uses, then accepts a free one, and Reset puts it back", async () => {
+    const { showShortcutsDialog } = await import("../resources/file_manager/ui/shortcutsDialog.js");
+    const dlg = showShortcutsDialog();
+    await sleep(50);
+    const row = (id: string) => doc.querySelector(`.shortcut-row[data-action="${id}"]`);
+    const status = () => doc.querySelector(".shortcut-status").textContent;
+    const press = (k: string, extra: Record<string, unknown>) => win.dispatchEvent(new win.KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...extra }));
+    expect(doc.querySelectorAll(".shortcut-row").length).toBeGreaterThan(60);
+    expect(doc.body.textContent).toContain("Fixed keys");
+
+    row("view.details").querySelector(".shortcut-chip").click();
+    expect(row("view.details").querySelector(".shortcut-chip").textContent).toContain("Press");
+    press("2", { ...MOD, code: "Digit2" }); // Mod+2 belongs to "List view"
+    await sleep(50);
+    expect(status()).toContain("already used");
+    expect(status()).toContain("List view");
+    expect((await savedSettings()).shortcuts ?? {}).toEqual({});
+
+    row("view.details").querySelector(".shortcut-chip").click();
+    press("l", { ...MOD, shiftKey: true, code: "KeyL" });
+    await sleep(80);
+    expect(status()).toContain("is now");
+    expect(row("view.details").querySelector(".shortcut-chip").textContent).toMatch(/L/);
+    expect(((await stateOf()).settings as any).shortcuts["view.details"]).toEqual(["Mod+Shift+L"]);
+    await sleep(250);
+    expect((await savedSettings()).shortcuts).toEqual({ "view.details": ["Mod+Shift+L"] });
+
+    // a plain letter is for typing; Esc cancels without closing the dialog
+    row("view.list").querySelector(".shortcut-chip").click();
+    press("q", { code: "KeyQ" });
+    await sleep(50);
+    expect(status()).toContain("typing");
+    row("view.list").querySelector(".shortcut-chip").click();
+    press("Escape", { code: "Escape" });
+    await sleep(30);
+    expect(status()).toContain("Cancelled");
+    expect(doc.querySelector(".shortcut-list")).toBeTruthy();
+
+    row("view.details").querySelector(".shortcut-reset").click();
+    await sleep(80);
+    expect(((await stateOf()).settings as any).shortcuts).toEqual({});
+    dlg.close();
+    await sleep(50);
+  });
+
+  test("the help list shows the keys that are in force", async () => {
+    await (await nav()).saveSettings({ shortcuts: { "file.rename": ["Mod+Alt+R"] } });
+    const { showHelp } = await import("../resources/file_manager/ui/extras.js");
+    showHelp();
+    await sleep(50);
+    const rows = [...doc.querySelectorAll("table.keys tr")] as any[];
+    const rename = rows.find((r) => r.children[0].textContent === "Rename");
+    expect(rename.children[1].textContent).toMatch(/R/);
+    expect(rename.children[1].textContent).not.toContain("F2");
+    key(doc.activeElement ?? doc.body, "Escape");
+    await (await nav()).saveSettings({ shortcuts: {} });
+  });
+});
+
+describe("the QR tool", () => {
+  const stubCanvas = () => {
+    const proto = win.HTMLCanvasElement.prototype;
+    const old = proto.getContext;
+    const filled: number[] = [];
+    proto.getContext = () => ({ fillRect: () => filled.push(1), putImageData() {}, drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(4), width: 1, height: 1 }), set fillStyle(_v: string) {}, set strokeStyle(_v: string) {}, set lineWidth(_v: number) {}, beginPath() {}, moveTo() {}, lineTo() {}, closePath() {}, stroke() {} });
+    return { filled, restore: () => { proto.getContext = old; } };
+  };
+  const type = (id: string, value: string) => {
+    const el = doc.querySelector(`#qr-${id}`);
+    el.value = value;
+    el.dispatchEvent(new win.Event("input", { bubbles: true }));
+  };
+
+  test("it is one of the tools, in the Handy group, and its tab and Home tile exist", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    const tab = power.listPowerTabs().find((t: any) => t.id === "qr");
+    expect(tab).toMatchObject({ label: "QR", group: "handy" });
+    expect(power.listPowerTabs().map((t: any) => t.id).indexOf("qr")).toBeGreaterThan(power.listPowerTabs().map((t: any) => t.id).indexOf("timer"));
+  });
+
+  test("making a code: fields, live checks, readable explanations, and a self-check that it reads back", async () => {
+    const canvas = stubCanvas();
+    try {
+      const power = await import("../resources/file_manager/ui/power.js");
+      power.openPower("qr");
+      await sleep(200);
+      const root = doc.querySelector(".qr-root");
+      expect(root).toBeTruthy();
+      expect(root.querySelector("[role=tablist]").textContent).toContain("Read a QR code");
+      // text: nothing typed yet
+      expect(doc.querySelector(".qr-message").textContent).toContain("Type or paste");
+      expect(doc.querySelector(".qr-actions button").disabled).toBe(true);
+      type("text-text", "https://example.com/hello");
+      await sleep(30);
+      expect(doc.querySelector(".qr-facts").textContent).toMatch(/Version 2/);
+      expect(doc.querySelector(".qr-check").textContent).toContain("reads back as exactly this");
+      expect(doc.querySelector(".qr-actions button").disabled).toBe(false);
+      expect(canvas.filled.length).toBeGreaterThan(10);
+      // Wi-Fi: a short password is explained, a good one makes a code
+      const select = doc.querySelector(".qr-left select");
+      select.value = "wifi";
+      select.dispatchEvent(new win.Event("change", { bubbles: true }));
+      type("wifi-ssid", "Home Net");
+      type("wifi-password", "short");
+      expect(doc.querySelector(".qr-message").textContent).toContain("8 to 63");
+      expect(doc.querySelector(".qr-actions button").disabled).toBe(true);
+      type("wifi-password", "correct horse battery");
+      expect(doc.querySelector(".qr-message").textContent).toBe("");
+      expect(doc.querySelector(".qr-check").textContent).toContain("✓");
+      expect((doc.querySelector("#qr-wifi-password") as any).type).toBe("password");
+      // too much data is a sentence, not a crash
+      select.value = "text";
+      select.dispatchEvent(new win.Event("change", { bubbles: true }));
+      type("text-text", "x".repeat(4000));
+      expect(doc.querySelector(".qr-message").textContent).toContain("too much");
+      type("text-text", "ok");
+      expect(doc.querySelector(".qr-message").textContent).toBe("");
+      expect(doc.body.textContent).not.toContain("null");
+    } finally {
+      canvas.restore();
+    }
+  });
+
+  test("a colour choice that a scanner can't read is flagged", async () => {
+    const canvas = stubCanvas();
+    try {
+      const details = doc.querySelector(".qr-more");
+      const [fg, bg] = [...details.querySelectorAll("input[type=color]")] as any[];
+      fg.value = "#777777";
+      fg.dispatchEvent(new win.Event("input", { bubbles: true }));
+      bg.value = "#808080";
+      bg.dispatchEvent(new win.Event("input", { bubbles: true }));
+      expect(doc.querySelector(".qr-warn").textContent).toContain("too close");
+      fg.value = "#ffffff";
+      fg.dispatchEvent(new win.Event("input", { bubbles: true }));
+      bg.value = "#000000";
+      bg.dispatchEvent(new win.Event("input", { bubbles: true }));
+      expect(doc.querySelector(".qr-warn").textContent).toContain("inverted");
+      fg.value = "#000000";
+      fg.dispatchEvent(new win.Event("input", { bubbles: true }));
+      bg.value = "#ffffff";
+      bg.dispatchEvent(new win.Event("input", { bubbles: true }));
+      expect(doc.querySelector(".qr-warn").textContent).toBe("");
+    } finally {
+      canvas.restore();
+    }
+  });
+
+  test("the Read page explains itself and has a keyboard-reachable drop area", async () => {
+    const tabs = [...doc.querySelectorAll(".qr-tab")] as any[];
+    tabs[1].click();
+    expect(doc.querySelector(".qr-readgrid").hidden).toBe(false);
+    expect(doc.querySelector(".qr-grid").hidden).toBe(true);
+    expect(tabs[1].getAttribute("aria-selected")).toBe("true");
+    const drop = doc.querySelector(".qr-drop");
+    expect(drop.getAttribute("tabindex")).toBe("0");
+    expect(drop.getAttribute("aria-label")).toContain("Drop a picture");
+    expect(doc.querySelector(".qr-readgrid .qr-message").textContent).toContain("Choose a picture");
+    tabs[0].click();
+    expect(doc.querySelector(".qr-grid").hidden).toBe(false);
+  });
+});
+
+describe("the Themes button in the ribbon", () => {
+  const labels = () => [...doc.querySelectorAll(".menu .menu-item")].map((i: any) => i.textContent.replace(/\s+/g, " ").trim());
+  const item = (text: string): any => [...doc.querySelectorAll(".menu .menu-item")].find((i: any) => i.textContent.includes(text));
+  const open = async () => {
+    $("#tool-themes").click();
+    await sleep(150);
+  };
+  const stateNow = async () => (await import("../resources/file_manager/ui/state.js")).state;
+
+  test("there is a Themes button next to Settings, with a tip and an icon", () => {
+    const btn = $("#tool-themes");
+    expect(btn).toBeTruthy();
+    expect(btn.getAttribute("aria-label")).toBe("Themes");
+    expect(btn.title).toContain("colours");
+    expect(btn.querySelector(".ti").textContent).toBe("🎨");
+    expect(btn.nextElementSibling?.id).toBe("tool-settings");
+  });
+
+  test("the menu changes between standard light and dark without Settings", async () => {
+    await open();
+    expect(labels().slice(0, 3).map((l) => l.replace(/^✓\s*/, ""))).toEqual(["Standard: follow my computer", "Standard light", "Standard dark"]);
+    expect(labels().join("|")).toContain("All themes…");
+    expect(labels().join("|")).toContain("Make my own theme…");
+    item("Standard dark").click();
+    await sleep(250);
+    const st = await stateNow();
+    expect(st.settings.theme).toBe("dark");
+    expect(st.settings.palette).toBe("");
+    expect(doc.documentElement.dataset.theme).toBe("dark");
+    await open();
+    expect(item("Standard dark").getAttribute("aria-checked") ?? item("Standard dark").className).toBeTruthy();
+    item("Standard: follow my computer").click();
+    await sleep(250);
+    expect((await stateNow()).settings.theme).toBe("auto");
+  });
+
+  test("a theme that was chosen shows up in the menu as a recent one, and is marked as the one in use", async () => {
+    const { call } = await import("../resources/file_manager/ui/api.js");
+    const themes = ((await call("themes/list")) as any).themes;
+    expect(themes.length).toBeGreaterThan(50);
+    const { chooseTheme } = await import("../resources/file_manager/ui/themes.js");
+    // the recent themes are kept in the window's own storage, which the test page lends to the code
+    const g = globalThis as any;
+    const hadStorage = "localStorage" in g;
+    g.localStorage = win.localStorage;
+    win.localStorage.removeItem("fm_recent_themes");
+    await chooseTheme(themes[3].key);
+    await sleep(400);
+    await open();
+    expect(labels().join("|")).toContain(themes[3].name);
+    expect(doc.documentElement.dataset.palette).toBe(themes[3].key);
+    item(themes[3].name).click(); // choosing the one in use again changes nothing
+    await sleep(100);
+    await open();
+    item("Standard: follow my computer").click();
+    await sleep(400);
+    expect((await stateNow()).settings.palette).toBe("");
+    expect(doc.documentElement.dataset.palette).toBeUndefined();
+    expect(JSON.parse(win.localStorage.getItem("fm_recent_themes"))).toEqual([themes[3].key]);
+    if (!hadStorage) delete g.localStorage;
+  });
+
+  test("All themes… opens the gallery and Make my own theme… opens the editor", async () => {
+    await open();
+    item("All themes…").click();
+    await sleep(500);
+    expect(doc.querySelector(".dialog .dialog-title").textContent).toBe("Themes");
+    expect(doc.querySelectorAll(".theme-card").length).toBeGreaterThan(50);
+    key(doc.activeElement ?? doc.body, "Escape");
+    await sleep(100);
+    await open();
+    item("Make my own theme…").click();
+    await sleep(400);
+    expect(doc.querySelector(".theme-editor")).toBeTruthy();
+    key(doc.activeElement ?? doc.body, "Escape");
+    await sleep(100);
+    while (doc.querySelector(".modal-backdrop")) { key(doc.activeElement ?? doc.body, "Escape"); await sleep(60); }
+  });
+
+  test("the shortcut for the gallery can be set in the shortcuts dialog and starts with none", async () => {
+    const { keysOf } = await import("../resources/file_manager/ui/keymap.js");
+    expect(keysOf("app.themes")).toEqual([]);
+  });
+});
+

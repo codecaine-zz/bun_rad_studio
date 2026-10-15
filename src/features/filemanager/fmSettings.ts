@@ -7,6 +7,7 @@ import { promises as fsp } from "fs";
 import { randomBytes } from "crypto";
 import * as nodePath from "path";
 import { pathApi, type FmContext } from "./fmCore";
+import { sanitizeOverrides } from "../../../resources/file_manager/ui/shortcuts.js";
 
 export interface Settings {
   favorites: string[];
@@ -54,6 +55,12 @@ export interface Settings {
    * uses for them ("system"). Programs, pictures, documents and everything else always use the computer's own program.
    */
   textOpensIn: "builtin" | "editor" | "system";
+  /**
+   * Keyboard shortcuts the person changed: action id -> shortcuts ("Mod+Alt+T"; an empty list switches the action off).
+   * Actions that aren't listed keep their defaults. Changes that are invalid or would clash with another action are
+   * dropped here, so the file can never hold two actions on one key (see ui/shortcuts.js for the rules).
+   */
+  shortcuts: Record<string, string[]>;
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
@@ -93,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   deleteTo: "bin",
   dbShortcut: "window",
   textOpensIn: "builtin",
+  shortcuts: {},
 };
 
 export const MAX_FAVORITES = 100;
@@ -156,6 +164,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),
     dbShortcut: oneOf(r.dbShortcut, ["window", "browser"], DEFAULT_SETTINGS.dbShortcut),
     textOpensIn: oneOf(r.textOpensIn, ["builtin", "editor", "system"], DEFAULT_SETTINGS.textOpensIn),
+    shortcuts: sanitizeOverrides(r.shortcuts, ctx.platform) as Record<string, string[]>,
   };
 }
 

@@ -6,7 +6,10 @@ import { debounce, h } from "./dom.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
+import { keysOf } from "./keymap.js";
 import { permissionsSection } from "./permsPanel.js";
+import { formatShortcut } from "./shortcuts.js";
+import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { state } from "./state.js";
 import { currentThemeName, showThemePicker } from "./themes.js";
 import { verdictBlock } from "./typecheck.js";
@@ -160,43 +163,45 @@ function shortcuts() {
   const m = state.platform === "darwin" ? "⌘" : "Ctrl+";
   const alt = state.platform === "darwin" ? "⌥" : "Alt+";
   const copyKey = state.platform === "darwin" ? "⌥ (Option)" : "Ctrl";
-  const del = state.platform === "darwin" ? "⌘⌫" : "Delete";
+  // Shortcuts that can be changed in Settings are read from the live table, so this list is always right.
+  const K = (...ids) => ids.map((id) => keysOf(id).map((spec) => formatShortcut(spec, state.platform)).join("  or ") || "(none)").join("  /  ");
   return [
     ["Open the selected item", "Enter  or  double-click"],
     ["Quick Look: see a picture, play a sound or video, read a text file or document without opening it (arrows move to the next one)", "Space"],
-    ["Go up one folder", "Backspace  or  Alt+↑"],
-    ["Back / Forward", "Alt+←  /  Alt+→"],
-    ["Copy / Cut / Paste", `${m}C  /  ${m}X  /  ${m}V`],
-    ["Duplicate", `${m}D`],
-    ["Rename", "F2"],
-    ["Move to the Recycle Bin", del],
-    ["Delete permanently", "Shift+Delete"],
-    ["Bury in the Rip graveyard (an undoable delete you can restore later)", state.platform === "darwin" ? "⌥⌫" : "Alt+Delete"],
-    ["Undo the last action", `${m}Z`],
-    ["Select everything", `${m}A`],
-    ["New folder", `${m}Shift+N`],
-    ["New file", `${m}Alt+N`],
-    ["Search this folder", `${m}F`],
-    ["Favorite folders (jump, add, manage)", `${m}Shift+B`],
-    ["Type a folder location", `${m}L`],
-    ["Refresh", "F5"],
-    ["Show or hide hidden files", `${m}Shift+H`],
-    ["Show or hide the Details panel", `${m}I`],
-    ["Show or hide the terminal", "Ctrl+`"],
-    ["Change the view", `${m}1  ·  ${m}2  ·  ${m}3`],
+    ["Go up one folder", K("nav.up")],
+    ["Back / Forward", K("nav.back", "nav.forward")],
+    ["Copy / Cut / Paste", K("file.copy", "file.cut", "file.paste")],
+    ["Duplicate", K("file.duplicate")],
+    ["Rename", K("file.rename")],
+    ["Move to the Recycle Bin", K("file.trash")],
+    ["Delete permanently", K("file.deleteForever")],
+    ["Bury in the Rip graveyard (an undoable delete you can restore later)", K("file.bury")],
+    ["Undo the last action", K("file.undo")],
+    ["Select everything", K("file.selectAll")],
+    ["New folder", K("file.newFolder")],
+    ["New file", K("file.newFile")],
+    ["Search this folder", K("nav.search")],
+    ["Favorite folders (jump, add, manage)", K("nav.favorites")],
+    ["Type a folder location", K("nav.address")],
+    ["Refresh", K("nav.refresh")],
+    ["Show or hide hidden files", K("view.hidden")],
+    ["Show or hide the Details panel", K("view.info")],
+    ["Show or hide the terminal", K("terminal.toggle")],
+    ["Open the terminal in the selected folder (or this one)", K("terminal.here")],
+    ["Change the view", `${K("view.details")}  ·  ${K("view.list")}  ·  ${K("view.icons")}`],
     ["Switch window view: Files, Home, Tools, Split, Dual", `${alt}1  ·  ${alt}2  ·  ${alt}3  ·  ${alt}4  ·  ${alt}5`],
     ["Focus (hide toolbar and side panels), Esc to leave", `${alt}6`],
     ["Show or hide the list of places", `${alt}7`],
-    ["Open Find in the tools", `${m}Shift+F`],
+    ["Open Find in the tools", K("nav.findTool")],
     ["Dual view: switch side, copy, move", "Tab  ·  F5  ·  F6"],
-    ["Properties", "Alt+Enter"],
-    ["More info and hidden details", "Alt+Shift+Enter"],
+    ["Properties", K("file.properties")],
+    ["More info and hidden details", K("file.moreInfo")],
     ["Copy the section you are in (its Copy button does the same)", `${alt}Shift+C`],
     ["Secrets tool: lock the vault  ·  copy the selected password  ·  search", `${m}L  ·  ${m}Shift+C  ·  /`],
     ["Right-click menu from the keyboard", "Shift+F10  or  the Menu key"],
     ["Copy by dragging", `Hold ${copyKey} while dropping`],
     ["Jump to an item", "Just start typing its name"],
-    ["This help", "F1  or  ?"],
+    ["This help", `${K("app.help")}  or  ?`],
   ];
 }
 
@@ -222,6 +227,7 @@ export function showHelp() {
       ),
       h("section", {},
         h("h3", {}, "Keyboard shortcuts"),
+        h("p", {}, h("button", { type: "button", class: "btn", onclick: () => showShortcutsDialog() }, "Change keyboard shortcuts…")),
         h("table", { class: "keys", "data-copy": "off" }, h("tbody", {}, shortcuts().map(([what, keys]) => h("tr", {}, h("td", {}, what), h("td", { class: "keycap" }, keys))))),
       ),
       h("section", {},
@@ -303,6 +309,7 @@ export function showSettings() {
       toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Open text files with"), textOpenSelect),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Code editor"), editorSelect),
+      h("div", { class: "field" }, h("span", { class: "field-label" }, "Keyboard shortcuts"), h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "See every shortcut and change the keys. A key that another action already uses is refused.", onclick: () => showShortcutsDialog() }, "Change keyboard shortcuts…"))),
       windowSection(),
       h("p", { class: "hint" }, "Your choices are saved automatically."),
     ],

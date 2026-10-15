@@ -16,6 +16,7 @@ import { editAddress, focusSearch } from "./toolbar.js";
 import { iconsPerLine, isRenaming } from "./list.js";
 import { activePane, currentPath } from "./pane.js";
 import { emit, state } from "./state.js";
+import { actionFor } from "./keymap.js";
 import { isModifier, typeaheadFind } from "./util.js";
 import { visibleEntries } from "./nav.js";
 
@@ -87,6 +88,49 @@ function editInCode() {
   if (currentPath()) openFolderInCode(currentPath());
 }
 
+const PROPERTIES = () => { const items = selectedEntries(); return void showProperties(items.length ? items.map((x) => x.path) : [currentPath()]); };
+const MORE_INFO = () => { const items = selectedEntries(); return void showMoreInfo(items.length ? items.map((x) => x.path) : [currentPath()]); };
+
+/** What each changeable shortcut does. The keys come from the table in shortcuts.js (and the person's changes), not from here. */
+const FILE_ACTIONS = {
+  "app.help": () => showHelp(),
+  "nav.refresh": () => void refresh(),
+  "file.rename": () => void ops.renameSelection(),
+  "file.properties": PROPERTIES,
+  "file.moreInfo": MORE_INFO,
+  "app.settings": () => showSettings(),
+  "app.themes": () => emit("theme-picker"),
+  "nav.findTool": () => openPower("find"),
+  "file.bury": () => void ops.burySelection(),
+  "nav.back": () => void (activePane().side === "left" ? goBack() : null),
+  "nav.forward": () => void (activePane().side === "left" ? goForward() : null),
+  "nav.up": () => void (canGoUpIn(activePane()) ? goUpIn(activePane()) : null),
+  "nav.address": () => editAddress(),
+  "nav.favorites": () => showFavoritesMenu({ x: 40, y: 90 }),
+  "file.editInCode": () => editInCode(),
+  "nav.search": () => focusSearch(),
+  "file.selectAll": () => selectAll(),
+  "file.copy": () => ops.copySelection(),
+  "file.cut": () => ops.cutSelection(),
+  "file.paste": () => void ops.paste(),
+  "file.duplicate": () => void ops.duplicateSelection(),
+  "file.undo": () => void ops.undo(),
+  "file.newFolder": () => void ops.newFolder(),
+  "file.newFile": () => void ops.newFile(),
+  "file.deleteForever": () => void ops.deleteForever(),
+  "file.trash": () => void ops.trashSelection(),
+  "view.hidden": () => void saveSettings({ showHidden: !state.settings.showHidden }),
+  "view.info": () => emit("toggle-info"),
+  "view.details": () => void saveSettings({ view: "details" }),
+  "view.list": () => void saveSettings({ view: "list" }),
+  "view.icons": () => void saveSettings({ view: "icons" }),
+};
+/** Work wherever you are, even with a button focused. */
+const EVERYWHERE = ["app.help", "nav.refresh", "file.rename", "file.properties", "file.moreInfo"];
+/** Also work inside the tools panel, the Home page and the other panes. */
+const IN_PANES = ["nav.findTool", "app.settings", "app.themes"];
+const IN_LISTS = Object.keys(FILE_ACTIONS).filter((id) => !EVERYWHERE.includes(id));
+
 export function wireKeys() {
   document.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop") || quickLookIsOpen() || isRenaming()) return;
@@ -94,7 +138,6 @@ export function wireKeys() {
     const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
     if (typing) return;
     const mod = isModifier(e, state.platform);
-    const mac = state.platform === "darwin";
     const key = e.key;
     const lower = key.length === 1 ? key.toLowerCase() : key;
     const stop = () => e.preventDefault();
@@ -102,38 +145,26 @@ export function wireKeys() {
     // Closing the window (only where the desktop app gave the page a way to do that)
     if (mod && (lower === "w" || lower === "q") && typeof window.closeApp === "function") { stop(); return void closeWindow(); }
 
-    // Help, refresh, rename, properties
-    if (key === "F1" || (key === "?" && !mod)) { stop(); return showHelp(); }
-    if (key === "F5" || (mod && lower === "r")) { stop(); return void refresh(); }
-    if (key === "F2") { stop(); return void ops.renameSelection(); }
-    if (e.altKey && e.shiftKey && key === "Enter") { stop(); const items = selectedEntries(); return void showMoreInfo(items.length ? items.map((x) => x.path) : [currentPath()]); }
-    if (e.altKey && key === "Enter") { stop(); const items = selectedEntries(); return void showProperties(items.length ? items.map((x) => x.path) : [currentPath()]); }
+    // Help, refresh, rename, properties (their keys can be changed in Settings)
+    if (key === "?" && !mod) { stop(); return showHelp(); }
+    const early = actionFor(e, EVERYWHERE);
+    if (early) { stop(); return void FILE_ACTIONS[early](); }
 
     // A focused button, tab or radio is used with Enter and Space, so leave those keys to it.
     if ((key === "Enter" || key === " ") && target instanceof Element && target.closest("button, [role=tab], [role=radio], a[href]")) return;
     // The other panes (tools, Home, the Dual view's buttons, the view switcher) have their own keys; the list shortcuts below are for the file lists.
     if (target instanceof Element && target.closest("#power-panel, #home, #dual-pane, #viewbar, #splitter") && !target.closest("#dual-list")) {
-      if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
-      if (mod && key === ",") { stop(); return showSettings(); }
+      const inPane = actionFor(e, IN_PANES);
+      if (inPane) { stop(); return void FILE_ACTIONS[inPane](); }
       return;
     }
 
-    // Option/Alt+Delete buries in the Rip graveyard (before "Backspace goes up", which Option+⌫ would otherwise trigger on a Mac)
-    if (e.altKey && !e.shiftKey && !mod && (key === "Delete" || (mac && key === "Backspace"))) { stop(); return void ops.burySelection(); }
-
-    // Going places
-    if ((e.altKey && key === "ArrowLeft") || (mac && mod && key === "[")) { stop(); return void (activePane().side === "left" ? goBack() : null); }
-    if ((e.altKey && key === "ArrowRight") || (mac && mod && key === "]")) { stop(); return void (activePane().side === "left" ? goForward() : null); }
-    if ((e.altKey && key === "ArrowUp") || (mac && mod && key === "ArrowUp") || (key === "Backspace" && !mod)) { stop(); return void (canGoUpIn(activePane()) ? goUpIn(activePane()) : null); }
-    if (mod && lower === "l") { stop(); return editAddress(); }
-    if (e.altKey && lower === "d" && !mac) { stop(); return editAddress(); }
-    if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
-    if (mod && e.shiftKey && lower === "b") { stop(); return showFavoritesMenu({ x: 40, y: 90 }); }
-    if (mod && !e.shiftKey && !e.altKey && lower === "e") { stop(); return editInCode(); }
-    if (mod && lower === "f") { stop(); return focusSearch(); }
+    // Everything that can be given other keys in Settings (going places, changing things, the view). The order of the
+    // table in shortcuts.js doesn't matter: no two actions may share a key, so at most one matches.
+    const listAction = actionFor(e, IN_LISTS);
+    if (listAction) { stop(); return void FILE_ACTIONS[listAction](); }
 
     // Choosing and opening
-    if (mod && lower === "a") { stop(); return selectAll(); }
     if (key === "Enter") { stop(); return openFocused(); }
     if (key === "Escape") {
       if (activePane().search) clearSearch();
@@ -143,25 +174,6 @@ export function wireKeys() {
     if (key === "ContextMenu" || (e.shiftKey && key === "F10")) { stop(); return showMenuForSelection(); }
     if (key === " " && mod && activePane().focusKey) { stop(); return toggleKey(activePane().focusKey); }
     if (key === " ") { stop(); return openQuickLook(); }
-
-    // Changing things
-    if (mod && !e.shiftKey && !e.altKey && lower === "c") { stop(); return ops.copySelection(); }
-    if (mod && !e.shiftKey && !e.altKey && lower === "x") { stop(); return ops.cutSelection(); }
-    if (mod && !e.shiftKey && !e.altKey && lower === "v") { stop(); return void ops.paste(); }
-    if (mod && !e.shiftKey && lower === "d") { stop(); return void ops.duplicateSelection(); }
-    if (mod && !e.shiftKey && lower === "z") { stop(); return void ops.undo(); }
-    if (mod && e.shiftKey && lower === "n") { stop(); return void ops.newFolder(); }
-    if (mod && e.altKey && lower === "n") { stop(); return void ops.newFile(); }
-    if (key === "Delete" && e.shiftKey) { stop(); return void ops.deleteForever(); }
-    if (key === "Delete" || (mac && mod && key === "Backspace")) { stop(); return void ops.trashSelection(); }
-
-    // View
-    if (mod && e.shiftKey && lower === "h") { stop(); return void saveSettings({ showHidden: !state.settings.showHidden }); }
-    if (mod && !e.shiftKey && lower === "i") { stop(); return emit("toggle-info"); }
-    if (mod && lower === "1") { stop(); return void saveSettings({ view: "details" }); }
-    if (mod && lower === "2") { stop(); return void saveSettings({ view: "list" }); }
-    if (mod && lower === "3") { stop(); return void saveSettings({ view: "icons" }); }
-    if (mod && key === ",") { stop(); return showSettings(); }
 
     // Moving through the list
     if (["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "PageDown", "PageUp"].includes(key)) {

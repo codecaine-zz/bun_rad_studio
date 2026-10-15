@@ -1,7 +1,7 @@
 // Quick Look: press Space on a file (or choose Quick Look in its menu) to look at it without opening another program.
 // Pictures, text and, on a Mac, documents (PDF, Word, Excel, Keynote, HEIC ...) show right here, and sound and video open
 // a full player (mediaplayer.js). The arrow keys move to the next and previous item of the list, Enter opens the item in
-// its own program, Space or Esc closes it. For sound and video Space plays and pauses, and Esc closes.
+// its own program, Space or Esc closes it. For sound, video and animated GIFs Space plays and pauses, and Esc closes.
 import { ApiError, call, rawUrl } from "./api.js";
 import { $, announce, h, iconFor } from "./dom.js";
 import { menuIsOpen, showMenu, toast } from "./menus.js";
@@ -12,6 +12,7 @@ import { openInCode } from "./code.js";
 import { isKnownTextName } from "./codeLang.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { showProperties } from "./extras.js";
+import { createGifViewer } from "./gifviewer.js";
 import { createPlayer } from "./mediaplayer.js";
 import { mediaKindOfName } from "./mediacore.js";
 import { showOpenWith } from "./openwith.js";
@@ -36,6 +37,12 @@ function destroyPlayer() {
   if (!ql?.player) return;
   ql.player.destroy();
   ql.player = null;
+}
+
+function destroyGif() {
+  if (!ql?.gif) return;
+  ql.gif.destroy();
+  ql.gif = null;
 }
 
 function factsList(entry, extra = []) {
@@ -104,6 +111,7 @@ async function renderBody(entry, mine) {
   if (!ql || mine !== ql.seq) return;
   switch (preview.type) {
     case "image": {
+      if (extensionOf(entry.name) === "gif") return mountGif(entry, mine, open);
       setCopy({ label: "Copy picture", tip: "Put the picture on the clipboard, to paste into a document or chat", run: () => copyImageFile(entry) });
       const img = h("img", { class: "ql-image", src: rawUrl(entry.path), alt: `Preview of ${entry.name}`, onload: () => ql && mine === ql.seq && setSub(`${baseSub(entry)}  ·  ${img.naturalWidth} × ${img.naturalHeight}`), onerror: () => open(failed(entry, "This picture can't be shown here.")) });
       return open(img);
@@ -129,6 +137,27 @@ async function renderBody(entry, mine) {
     default:
       return open(infoCard(entry, "There is no preview for this kind of file. Press Enter to open it in the program your computer uses for it."));
   }
+}
+
+const GIF_FOOT = "Space plays or pauses  ·  , and . step a frame  ·  [ and ] speed  ·  L loops  ·  F fits  ·  ← → show the next or previous item  ·  Esc closes";
+
+/** An animated GIF: a viewer with play, pause, frame stepping, speed and loop (a plain picture when it can't be read frame by frame). */
+function mountGif(entry, mine, open) {
+  setCopy({ label: "Copy picture", tip: "Put the picture on the clipboard, to paste into a document or chat", run: () => copyImageFile(entry) });
+  destroyGif();
+  const viewer = createGifViewer(entry);
+  ql.gif = viewer;
+  open(viewer.root);
+  viewer.ready.then((r) => {
+    if (!ql || mine !== ql.seq) return;
+    if (r.fallback) {
+      destroyGif();
+      open(r.fallback);
+      return;
+    }
+    setSub(`${baseSub(entry)}  ·  ${r.facts}`);
+    ql.foot.textContent = GIF_FOOT;
+  });
 }
 
 /** Sound and video: one player for the whole queue (the other sound and video files of the folder). */
@@ -164,6 +193,7 @@ async function show(index) {
   if (!entry) return;
   const mine = ++ql.seq;
   ql.index = index;
+  destroyGif();
   if (!mediaKindOfName(entry.name)) {
     destroyPlayer();
     ql.foot.textContent = DEFAULT_FOOT;
@@ -183,6 +213,7 @@ async function show(index) {
 export function closeQuickLook() {
   if (!ql) return;
   destroyPlayer();
+  destroyGif();
   document.removeEventListener("keydown", onKey, true);
   ql.backdrop.remove();
   const { opener } = ql;
@@ -227,6 +258,7 @@ function onKey(e) {
   if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); return openCurrent(); }
   // The player owns the rest of the keys while a sound or video is in view.
   if (ql.player && ql.player.handleKey(e)) { e.stopPropagation(); e.preventDefault(); return; }
+  if (ql.gif && ql.gif.handleKey(e)) { e.stopPropagation(); e.preventDefault(); return; }
   const mine = e.key === " " || isArrow || e.key === "Home" || e.key === "End";
   if (!mine) { e.stopPropagation(); return; }
   e.stopPropagation();

@@ -17,7 +17,8 @@ import { importFileMenuItems } from "./dbStaging.js";
 import { showOpenWith } from "./openwith.js";
 import { folderServeItems, serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
-import { extensionOf } from "./util.js";
+import { extensionOf, parentOf } from "./util.js";
+import { labelOf } from "./keymap.js";
 import { openQuickLook } from "./quicklook.js";
 import { canCopyImage, canCopyText, copyImageFile, copyTextFile } from "./clipfile.js";
 import { canLock, canUnlock, lockEntries, unlockEntries } from "./vault.js";
@@ -31,7 +32,7 @@ const toGraveyard = () => state.settings.deleteTo === "graveyard";
 
 export function viewMenuItems() {
   const s = state.settings;
-  const view = (v, label, key) => ({ label, checked: s.view === v, shortcut: `${mod()}${key}`, action: () => saveSettings({ view: v }) });
+  const view = (v, label, key) => ({ label, checked: s.view === v, shortcut: labelOf(`view.${v}`), action: () => saveSettings({ view: v }) });
   const sort = (by, label) => ({ label, checked: s.sortBy === by, action: () => saveSettings({ sortBy: by }) });
   return [
     { header: "View as" },
@@ -49,8 +50,8 @@ export function viewMenuItems() {
     { label: "Descending order", checked: s.sortDir === "desc", action: () => saveSettings({ sortDir: "desc" }) },
     { label: "Folders first", checked: s.foldersFirst, action: () => saveSettings({ foldersFirst: !s.foldersFirst }) },
     { separator: true },
-    { label: "Show hidden files", checked: s.showHidden, shortcut: `${mod()}Shift+H`, action: () => saveSettings({ showHidden: !s.showHidden }) },
-    { label: "Show details panel", checked: s.showInfoPanel, shortcut: `${mod()}I`, action: () => saveSettings({ showInfoPanel: !s.showInfoPanel }) },
+    { label: "Show hidden files", checked: s.showHidden, shortcut: labelOf("view.hidden"), action: () => saveSettings({ showHidden: !s.showHidden }) },
+    { label: "Show details panel", checked: s.showInfoPanel, shortcut: labelOf("view.info"), action: () => saveSettings({ showInfoPanel: !s.showInfoPanel }) },
   ];
 }
 
@@ -72,7 +73,7 @@ function entryItems(entries) {
   if (inTrash()) {
     return [
       { label: "Restore", icon: "↩️", action: ops.restoreFromBin },
-      { label: "Delete forever…", icon: "🗑️", danger: true, shortcut: "Del", action: ops.trashSelection },
+      { label: "Delete forever…", icon: "🗑️", danger: true, shortcut: labelOf("file.trash"), action: ops.trashSelection },
       { separator: true },
       { label: "Empty Recycle Bin…", danger: true, action: ops.emptyBin },
     ];
@@ -84,10 +85,13 @@ function entryItems(entries) {
     one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
     one ? { label: "Quick Look", icon: "👁️", shortcut: "Space", tip: "Look at a picture, play a sound or video, read a text file or see a document here, without opening another program.", action: () => openQuickLook(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
-    one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openInCode(e.path) } : null,
+    one && !e.isDir && e.kind === "image" ? { label: "Read QR code", icon: "🔳", tip: "Look for a QR code in this picture and show what it says.", action: () => openPower("qr", { read: e.path, name: e.name }) } : null,
+    one && !e.isDir && looksLikeText(e.name) && e.size <= 20000 ? { label: "Make a QR code from this text", icon: "🔳", tip: "Put the text of this file in a QR code (up to a few thousand characters).", action: () => openPower("qr", { makeFromFile: e.path }) } : null,
+    one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openInCode(e.path) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,
     canCompareData(entries) ? { label: "Compare data files…", icon: "⚖️", tip: "Compare these two JSON, YAML or TOML files by what they say, ignoring key order and formatting, and list what differs.", action: () => showCompareData(entries) } : null,
-    one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: `${mod()}E`, action: () => openFolderInCode(e.path) } : null,
+    one ? { label: e.isDir ? "Open terminal here" : "Open terminal in this folder", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", e.isDir ? e.path : parentOf(e.path, state.sep)) } : null,
+    one && e.isDir ? { label: "Open folder in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openFolderInCode(e.path) } : null,
     one && e.isDir ? { label: "Code statistics…", icon: "📊", action: () => openPower("dev", { root: e.path, section: "stats" }) } : null,
     ...serveMenuItems(entries),
     entries.some((x) => !x.isDir) ? { label: "Open with…", icon: "🧩", action: () => showOpenWith(entries) } : null,
@@ -102,28 +106,28 @@ function entryItems(entries) {
     canUnlock(entries) ? { label: "Decrypt…", icon: "🔓", action: () => unlockEntries(entries) } : null,
     one && !e.isDir && extensionOf(e.name) === "radsec" ? { label: "Open in Secrets", icon: "🗝️", tip: "Open the Secrets tool, where this encrypted vault backup can be restored (you will be asked for its master password).", action: () => openPower("secrets", { restorePath: e.path }) } : null,
     { separator: true },
-    { label: "Cut", icon: "✂️", shortcut: `${mod()}X`, action: ops.cutSelection },
-    { label: "Copy", icon: "📋", shortcut: `${mod()}C`, action: ops.copySelection },
+    { label: "Cut", icon: "✂️", shortcut: labelOf("file.cut"), action: ops.cutSelection },
+    { label: "Copy", icon: "📋", shortcut: labelOf("file.copy"), action: ops.copySelection },
     one && canCopyImage(e) ? { label: "Copy image to clipboard", icon: "🖼️", tip: "Put the picture itself on the clipboard, to paste into a document, a chat or an image editor. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyImageFile(e) } : null,
     one && canCopyText(e) ? { label: "Copy text to clipboard", icon: "📝", tip: "Put what is written in this file on the clipboard, to paste into a document or chat. (Copy, above, copies the file so you can paste it into a folder.)", action: () => copyTextFile(e) } : null,
     one && e.isDir ? { label: "Paste into this folder", icon: "📥", disabled: !clip, shortcut: "", action: () => ops.pasteInto(e.path) } : null,
-    { label: "Duplicate", icon: "➕", shortcut: `${mod()}D`, disabled: searching, action: ops.duplicateSelection },
+    { label: "Duplicate", icon: "➕", shortcut: labelOf("file.duplicate"), disabled: searching, action: ops.duplicateSelection },
     ...otherPaneItems(),
     { separator: true },
-    { label: one ? "Rename" : `Rename ${entries.length} items…`, icon: "✏️", shortcut: one ? "F2" : "", action: ops.renameSelection },
+    { label: one ? "Rename" : `Rename ${entries.length} items…`, icon: "✏️", shortcut: one ? labelOf("file.rename") : "", action: ops.renameSelection },
     { label: "Compress to zip", icon: "🗜️", disabled: searching, action: ops.zipSelection },
     { label: "Copy path", icon: "🔗", action: () => ops.copyPathOf(entries) },
     { label: "Copy path as a file:// address", icon: "🌐", tip: "Copy the location as a file:// web address (spaces become %20), the form browsers and some programs understand.", action: () => copyFileUrls(entries) },
     { separator: true },
-    { label: "Move to Recycle Bin", icon: "🗑️", danger: true, shortcut: toGraveyard() ? "" : del(), action: ops.moveSelectionToBin },
+    { label: "Move to Recycle Bin", icon: "🗑️", danger: true, shortcut: toGraveyard() ? "" : labelOf("file.trash"), action: ops.moveSelectionToBin },
     { label: "Bury (Rip)", icon: "🪦", danger: true, tip: "Move to the Rip graveyard instead of deleting. You can undo it, and bring it back later from Find & more → Graveyard. Rip Studio shares this graveyard.", shortcut: toGraveyard() ? `${del()}  or  ${buryKey()}` : buryKey(), action: ops.burySelection },
     { label: "Open Graveyard", icon: "🪦", tip: "Go to the Graveyard tool: see what you buried, restore it to where it came from, or delete it for good.", action: () => openPower("grave") },
     moreToolsItem(),
-    { label: "Delete permanently…", danger: true, shortcut: "Shift+Del", action: ops.deleteForever },
+    { label: "Delete permanently…", danger: true, shortcut: labelOf("file.deleteForever"), action: ops.deleteForever },
     { separator: true },
     ...permissionItems(entries),
-    { label: "More info…", icon: "🔍", shortcut: "Alt+Shift+Enter", action: () => showMoreInfo(entries.map((x) => x.path)) },
-    { label: "Properties", icon: "ℹ️", shortcut: "Alt+Enter", action: () => showProperties(entries.map((x) => x.path)) },
+    { label: "More info…", icon: "🔍", shortcut: labelOf("file.moreInfo"), action: () => showMoreInfo(entries.map((x) => x.path)) },
+    { label: "Properties", icon: "ℹ️", shortcut: labelOf("file.properties"), action: () => showProperties(entries.map((x) => x.path)) },
   ];
 }
 
@@ -138,28 +142,29 @@ export function backgroundItems() {
       { label: "Empty Recycle Bin…", danger: true, disabled: state.trashCount === 0, action: ops.emptyBin },
       { label: "Open Graveyard", icon: "🪦", tip: "Go to the Graveyard tool: see what you buried, restore it to where it came from, or delete it for good.", action: () => openPower("grave") },
       { separator: true },
-      { label: "Select all", shortcut: `${mod()}A`, action: selectAll },
-      { label: "Refresh", shortcut: "F5", action: () => refresh() },
+      { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
+      { label: "Refresh", shortcut: labelOf("nav.refresh"), action: () => refresh() },
     ];
   }
   if (activePane().search) {
     return [
       { label: "Clear search", icon: "✕", action: clearSearch },
-      { label: "Select all", shortcut: `${mod()}A`, action: selectAll },
+      { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
       { separator: true },
       ...viewMenuItems(),
     ];
   }
   const here = currentPath();
   return [
-    { label: "New folder", icon: "📁", shortcut: `${mod()}Shift+N`, action: ops.newFolder },
-    { label: "New file", icon: "📄", shortcut: `${mod()}Alt+N`, action: ops.newFile },
+    { label: "New folder", icon: "📁", shortcut: labelOf("file.newFolder"), action: ops.newFolder },
+    { label: "New file", icon: "📄", shortcut: labelOf("file.newFile"), action: ops.newFile },
     { label: "New SQLite database", icon: "🗄️", tip: "Make a new, empty SQLite database file here. Open it in SQLite Studio, add it as a connection, or fill it with a sample database.", action: ops.newSqlite },
     { separator: true },
-    { label: "Paste", icon: "📥", shortcut: `${mod()}V`, disabled: !state.clipboard, action: ops.paste },
-    { label: "Select all", shortcut: `${mod()}A`, action: selectAll },
-    { label: "Refresh", shortcut: "F5", action: () => refresh() },
+    { label: "Paste", icon: "📥", shortcut: labelOf("file.paste"), disabled: !state.clipboard, action: ops.paste },
+    { label: "Select all", shortcut: labelOf("file.selectAll"), action: selectAll },
+    { label: "Refresh", shortcut: labelOf("nav.refresh"), action: () => refresh() },
     { separator: true },
+    { label: "Open terminal here", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", here) },
     { label: "Open this folder in Code editor", icon: "📝", action: () => openFolderInCode(here) },
     ...folderServeItems(here),
     { label: "Open Graveyard", icon: "🪦", tip: "Go to the Graveyard tool: see what you buried, restore it to where it came from, or delete it for good.", action: () => openPower("grave") },

@@ -44,14 +44,18 @@ export const KEYMAP = {
   shortcuts: ["F1"],
 };
 
+/** Keys that are named by where they are, not by what they type (a shifted ` or = types something else, and layouts differ). */
+export const PUNCT_CODES = { "`": "Backquote", "-": "Minus", "=": "Equal", "[": "BracketLeft", "]": "BracketRight", "\\": "Backslash", ";": "Semicolon", "'": "Quote", ",": "Comma", ".": "Period", "/": "Slash" };
+
 const NAMED = new Set(["Enter", "Escape", "Tab", "Backspace", "Delete", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "Space"]);
 
-/** "Mod+Shift+S" -> { mod, shift, alt, key } (key in lower case; named keys keep their name). */
+/** "Mod+Shift+S" -> { mod, ctrl, shift, alt, key } (key in lower case; named keys keep their name). `Ctrl` is the Control key on every system. */
 export function parseShortcut(spec) {
-  const out = { mod: false, shift: false, alt: false, key: "" };
+  const out = { mod: false, ctrl: false, shift: false, alt: false, key: "" };
   const parts = spec.endsWith("++") ? [...spec.slice(0, -2).split("+"), "+"] : spec.split("+");
   for (const p of parts) {
     if (p === "Mod") out.mod = true;
+    else if (p === "Ctrl") out.ctrl = true;
     else if (p === "Shift") out.shift = true;
     else if (p === "Alt") out.alt = true;
     else out.key = NAMED.has(p) || /^F\d{1,2}$/.test(p) ? p : p.toLowerCase();
@@ -69,12 +73,15 @@ const codeOf = (key) => (/^[a-z]$/.test(key) ? `Key${key.toUpperCase()}` : /^\d$
 export function matchShortcut(e, spec, platform) {
   const s = parse(spec);
   const mac = platform === "darwin";
-  if ((mac ? e.metaKey : e.ctrlKey) !== s.mod) return false;
-  if (mac ? e.ctrlKey : e.metaKey) return false;
+  // Mod is Command on a Mac and Control elsewhere; Ctrl is Control everywhere. The Windows/Super key is never used.
+  const wantCtrl = mac ? s.ctrl : s.ctrl || s.mod;
+  const wantMeta = mac ? s.mod : false;
+  if (!!e.ctrlKey !== wantCtrl || !!e.metaKey !== wantMeta) return false;
   if (e.altKey !== s.alt) return false;
   const shiftedSymbol = s.key === "+" || s.key === "?";
   if (!shiftedSymbol && e.shiftKey !== s.shift) return false;
   if (s.alt && codeOf(s.key)) return e.code === codeOf(s.key);
+  if (PUNCT_CODES[s.key] && e.code === PUNCT_CODES[s.key]) return true;
   const pressed = e.key === " " ? "Space" : e.key.length === 1 ? e.key.toLowerCase() : e.key;
   return pressed === s.key;
 }
@@ -85,13 +92,13 @@ export function commandForEvent(e, platform, keymap = KEYMAP) {
   return null;
 }
 
-const MAC_NAMES = { Mod: "⌘", Shift: "⇧", Alt: "⌥", Enter: "↩", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Escape: "⎋", Backspace: "⌫", Delete: "⌦", Tab: "⇥" };
+const MAC_NAMES = { Mod: "⌘", Ctrl: "⌃", Shift: "⇧", Alt: "⌥", Enter: "↩", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Escape: "⎋", Backspace: "⌫", Delete: "⌦", Tab: "⇥" };
 const WIN_NAMES = { Mod: "Ctrl", ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right", Escape: "Esc" };
 
 /** A shortcut for display: "⌘⇧S" on a Mac, "Ctrl+Shift+S" elsewhere. */
 export function formatShortcut(spec, platform) {
   const s = parse(spec);
-  const mods = [s.mod && "Mod", s.alt && "Alt", s.shift && "Shift"].filter(Boolean);
+  const mods = [s.ctrl && "Ctrl", s.mod && "Mod", s.alt && "Alt", s.shift && "Shift"].filter(Boolean);
   const key = s.key.length === 1 ? s.key.toUpperCase() : s.key;
   if (platform === "darwin") return [...mods.map((m) => MAC_NAMES[m]), MAC_NAMES[key] ?? key].join("");
   return [...mods.map((m) => WIN_NAMES[m] ?? m), WIN_NAMES[key] ?? key].join("+");
