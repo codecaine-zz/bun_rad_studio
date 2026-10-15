@@ -175,12 +175,12 @@ export function nameFromUrl(url: string): string {
 }
 
 /** A path in `folder` that nothing uses yet (also not as a `.part` file): `name.ext`, `name (1).ext`, `name (2).ext` ... */
-export function uniquePath(folder: string, name: string): string {
+export function uniquePath(folder: string, name: string, taken: (path: string) => boolean = () => false): string {
   const ext = nodePath.extname(name);
   const stem = ext ? name.slice(0, -ext.length) : name;
   for (let i = 0; i < 10000; i++) {
     const candidate = nodePath.join(folder, i === 0 ? name : `${stem} (${i})${ext}`);
-    if (!fs.existsSync(candidate) && !fs.existsSync(`${candidate}.part`) && !fs.existsSync(`${candidate}.dlstate`)) return candidate;
+    if (!fs.existsSync(candidate) && !fs.existsSync(`${candidate}.part`) && !fs.existsSync(`${candidate}.dlstate`) && !taken(candidate)) return candidate;
   }
   throw new DlError("Couldn't find a free file name.");
 }
@@ -241,8 +241,19 @@ export interface ProbeResult {
   mime?: string;
 }
 
-function requestHeaders(item: { headers?: Record<string, string> }, extra: Record<string, string> = {}): Record<string, string> {
-  return { "User-Agent": "Mozilla/5.0 (compatible; CodecaineFileManager/1.0)", "Accept": "*/*", "Accept-Encoding": "identity", ...(item.headers ?? {}), ...extra };
+const SENSITIVE_HEADERS = /^(authorization|cookie|proxy-authorization)$/i;
+
+/** The request headers for `url`. Logins and cookies were meant for the address that was asked for, so they are not sent to a different site (a CDN or storage host a redirect leads to). */
+function requestHeaders(item: { headers?: Record<string, string>; url?: string }, extra: Record<string, string> = {}, url?: string): Record<string, string> {
+  let headers = item.headers ?? {};
+  if (url && item.url) {
+    try {
+      if (new URL(url).origin !== new URL(item.url).origin) headers = Object.fromEntries(Object.entries(headers).filter(([k]) => !SENSITIVE_HEADERS.test(k)));
+    } catch {
+      /* keep the headers when an address can't be read: the request would fail anyway */
+    }
+  }
+  return { "User-Agent": "Mozilla/5.0 (compatible; CodecaineFileManager/1.0)", "Accept": "*/*", "Accept-Encoding": "identity", ...headers, ...extra };
 }
 
 function httpProblem(status: number, retryAfter: string | null): DlError {
@@ -254,18 +265,38 @@ function httpProblem(status: number, retryAfter: string | null): DlError {
   return new DlError(`The server answered HTTP ${status}.`);
 }
 
-/** Asks the server about a file with one tiny ranged request. Follows redirects. */
+const MAX_REDIRECTS = 10;
+
+/** Asks the server about a file with one tiny ranged request. Follows redirects itself, so logins never go to another site. */
 export async function probeUrl(url: string, headers: Record<string, string> | undefined, fetchFn: typeof fetch, signal?: AbortSignal): Promise<ProbeResult> {
   const { url: clean, auth } = splitCredentials(parseWebUrl(url).toString());
-  const merged = { ...(headers ?? {}), ...(auth && !headers?.Authorization ? { Authorization: auth } : {}) };
-  let res: Response;
-  try {
-    res = await fetchFn(clean, { headers: requestHeaders({ headers: merged }, { Range: "bytes=0-0" }), redirect: "follow", signal });
-  } catch (err: any) {
-    if (isAbort(err)) throw err;
-    throw new DlError(`Couldn't reach the server: ${String(err?.message ?? err).split("\n")[0]}`, false);
+  const original = { url: clean, headers: { ...(headers ?? {}), ...(auth && !headers?.Authorization ? { Authorization: auth } : {}) } };
+  let current = clean;
+  let res: Response | null = null;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    try {
+      res = await fetchFn(current, { headers: requestHeaders(original, { Range: "bytes=0-0" }, current), redirect: "manual", signal });
+    } catch (err: any) {
+      if (isAbort(err)) throw err;
+      throw new DlError(`Couldn't reach the server: ${String(err?.message ?? err).split("\n")[0]}`, false);
+    }
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+      res.body?.cancel().catch(() => {});
+      let next: URL;
+      try {
+        next = new URL(res.headers.get("location")!, current);
+      } catch {
+        throw new DlError("The server sent a redirect that can't be followed.");
+      }
+      if (next.protocol !== "http:" && next.protocol !== "https:") throw new DlError("The server redirected to an address that isn't a web address.");
+      current = next.toString();
+      res = null;
+      continue;
+    }
+    break;
   }
-  const finalUrl = res.url || clean;
+  if (!res) throw new DlError("The address redirects too many times.");
+  const finalUrl = current;
   const cd = res.headers.get("content-disposition");
   const name = safeFileName(nameFromDisposition(cd) ?? nameFromUrl(finalUrl));
   const common = { finalUrl, etag: res.headers.get("etag") ?? undefined, lastModified: res.headers.get("last-modified") ?? undefined, name, mime: res.headers.get("content-type")?.split(";")[0]?.trim() || undefined };
@@ -287,6 +318,13 @@ export async function probeUrl(url: string, headers: Record<string, string> | un
     // Only the first byte was wanted; don't read a whole body the server may have sent anyway.
     res.body?.cancel().catch(() => {});
   }
+}
+
+/** `If-Range` makes the server send the whole file instead of a part when the file is not the one that was probed. */
+function ifRange(probe: ProbeResult): Record<string, string> {
+  if (probe.etag && !probe.etag.startsWith("W/")) return { "If-Range": probe.etag };
+  if (probe.lastModified) return { "If-Range": probe.lastModified };
+  return {};
 }
 
 /* ------------------------------------------------------------------------------------------------ saved progress */
@@ -363,6 +401,8 @@ export class DownloadManager {
   private settings: DlSettings;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private closed = false;
+  /** Paths (final names) that a download has chosen and is writing `.part` / `.dlstate` files for, so two downloads never share one. */
+  private readonly claimed = new Map<string, string>();
 
   constructor(private readonly options: ManagerOptions) {
     this.fetchFn = options.fetchFn ?? fetch;
@@ -385,6 +425,7 @@ export class DownloadManager {
           item.message = "Stopped when the File Manager closed. Resume to continue.";
         }
         this.items.set(item.id, item);
+        if (item.state !== "done" && (item.received > 0 || fs.existsSync(`${item.path}.part`))) this.claimed.set(item.path, item.id);
       }
     } catch {
       /* no saved list yet */
@@ -450,14 +491,18 @@ export class DownloadManager {
 
   /** Adds downloads. They start at once (up to the number allowed together) unless `start` is false. */
   add(requests: DlRequest[]): DlView[] {
+    // Everything is checked before anything is added, so one bad address doesn't leave the others half-added.
     const added: DlItem[] = [];
     for (const req of requests) {
-      const u = parseWebUrl(req.url);
+      const { url: clean, auth } = splitCredentials(parseWebUrl(req.url).toString());
       const folder = req.folder?.trim() || this.settings.folder;
-      const name = safeFileName(req.name || nameFromUrl(u.toString()));
-      const item: DlItem = {
+      const name = safeFileName(req.name || nameFromUrl(clean));
+      const headers = cleanHeaders(req.headers);
+      // A login typed into the address (https://user:password@host/…) travels as a header, and is not kept in the address.
+      if (auth && !Object.keys(headers).some((k) => k.toLowerCase() === "authorization")) headers.Authorization = auth;
+      added.push({
         id: randomBytes(6).toString("hex"),
-        url: u.toString(),
+        url: clean,
         folder,
         name,
         path: nodePath.join(folder, name),
@@ -472,12 +517,11 @@ export class DownloadManager {
         addedAt: Date.now(),
         checksum: parseChecksum(req.checksum),
         verified: null,
-        headers: cleanHeaders(req.headers),
+        headers,
         message: req.start === false ? "Added. Press Resume to start." : undefined,
-      };
-      this.items.set(item.id, item);
-      added.push(item);
+      });
     }
+    for (const item of added) this.items.set(item.id, item);
     this.persist();
     this.schedule();
     return added.map((i) => this.list().find((v) => v.id === i.id)!);
@@ -518,10 +562,15 @@ export class DownloadManager {
     }
     this.items.delete(id);
     const remove = async (p: string) => fsp.rm(p, { force: true }).catch(() => {});
+    // Only the files this download itself made: another one waiting for the same name must not lose its partial file.
+    const owns = this.claimed.get(item.path) === item.id;
     if (item.state !== "done") {
-      await remove(`${item.path}.part`);
-      await remove(`${item.path}.dlstate`);
+      if (owns) {
+        await remove(`${item.path}.part`);
+        await remove(`${item.path}.dlstate`);
+      }
     } else if (deleteFile) await remove(item.path);
+    if (owns) this.claimed.delete(item.path);
     this.persist();
     this.schedule();
   }
@@ -607,6 +656,12 @@ export class DownloadManager {
       throw new DlError(`The folder ${item.folder} isn't available.`);
     }
 
+    // The file is complete but its checksum check was cut short (a pause, or the program closing): check it again, nothing to download.
+    if (item.checksum && item.verified === null && item.size !== null && item.received === item.size && fs.existsSync(item.path) && !fs.existsSync(`${item.path}.part`)) {
+      await this.verify(item, job);
+      return;
+    }
+
     const probe = await this.probeWithRetries(item, signal);
     item.finalUrl = probe.finalUrl;
     item.mime = probe.mime;
@@ -627,7 +682,10 @@ export class DownloadManager {
     const hasPart = fs.existsSync(`${item.path}.part`);
     if (!(item.received > 0 && hasPart)) {
       if (item.name === nameFromUrl(item.url) || !item.name) item.name = probe.name;
-      item.path = uniquePath(item.folder, safeFileName(item.name === nameFromUrl(item.url) ? probe.name : item.name));
+      // Choosing and claiming the name happen in the same step (no await between), so two downloads can't both pick it.
+      if (this.claimed.get(item.path) === item.id) this.claimed.delete(item.path);
+      item.path = uniquePath(item.folder, safeFileName(item.name === nameFromUrl(item.url) ? probe.name : item.name), (c) => this.claimed.has(c));
+      this.claimed.set(item.path, item.id);
       item.name = nodePath.basename(item.path);
       saved = null;
       item.received = 0;
@@ -735,7 +793,7 @@ export class DownloadManager {
         if (from > end) return;
         const before = done[idx]!;
         try {
-          const res = await this.fetchFn(probe.finalUrl, { headers: requestHeaders(item, { Range: `bytes=${from}-${end}`, ...(probe.etag && !probe.etag.startsWith("W/") ? { "If-Range": probe.etag } : {}) }), redirect: "follow", signal });
+          const res = await this.fetchFn(probe.finalUrl, { headers: requestHeaders(item, { Range: `bytes=${from}-${end}`, ...ifRange(probe) }, probe.finalUrl), redirect: "follow", signal });
           if (res.status !== 206) {
             res.body?.cancel().catch(() => {});
             if (res.status === 200 || res.status === 416) throw new DlError("The file changed on the server, or it stopped accepting ranges. Remove it and add it again.");
@@ -743,6 +801,7 @@ export class DownloadManager {
           }
           const cr = /bytes\s+(\d+)-(\d+)\/(\d+|\*)/i.exec(res.headers.get("content-range") ?? "");
           if (!cr || Number(cr[1]) !== from) throw new DlError("The server sent the wrong part of the file.");
+          if (cr[3] !== "*" && Number(cr[3]) !== size) throw new DlError("The file changed on the server while it was downloading. Remove it and add it again.");
           const reader = res.body!.getReader();
           let pos = from;
           try {
@@ -826,7 +885,7 @@ export class DownloadManager {
     for (;;) {
       const before = item.received;
       try {
-        const res = await this.fetchFn(probe.finalUrl, { headers: requestHeaders(item, from > 0 ? { Range: `bytes=${from}-`, ...(probe.etag && !probe.etag.startsWith("W/") ? { "If-Range": probe.etag } : {}) } : {}), redirect: "follow", signal });
+        const res = await this.fetchFn(probe.finalUrl, { headers: requestHeaders(item, from > 0 ? { Range: `bytes=${from}-`, ...ifRange(probe) } : {}, probe.finalUrl), redirect: "follow", signal });
         if (from > 0 && res.status === 200) {
           // The server ignored the range: start from the top.
           from = 0;
@@ -887,21 +946,27 @@ export class DownloadManager {
     item.size = actual;
     item.received = actual;
     let finalPath = item.path;
-    if (fs.existsSync(finalPath)) finalPath = uniquePath(item.folder, nodePath.basename(item.path));
+    if (fs.existsSync(finalPath)) finalPath = uniquePath(item.folder, nodePath.basename(item.path), (c) => this.claimed.has(c));
     fs.renameSync(part, finalPath);
     fs.rmSync(`${item.path}.dlstate`, { force: true });
+    if (this.claimed.get(item.path) === item.id) this.claimed.delete(item.path);
     item.path = finalPath;
     item.name = nodePath.basename(finalPath);
+    await this.verify(item, job);
+  }
 
+  /** Checks the finished file against the checksum that was asked for (if any) and marks the download done. */
+  private async verify(item: DlItem, job: Job) {
     if (item.checksum) {
       item.state = "verifying";
       item.message = "Checking the checksum…";
       const hash = createHash(item.checksum.algo);
-      const stream = fs.createReadStream(finalPath);
+      const stream = fs.createReadStream(item.path);
       try {
         for await (const chunk of stream) {
           hash.update(chunk);
-          if (job.ac.signal.aborted) break;
+          // A pause or the program closing stops the check; it is not a verdict, so the file is checked again on Resume.
+          if (job.ac.signal.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
         }
       } finally {
         stream.destroy();

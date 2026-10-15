@@ -14,6 +14,7 @@
     "build:mac-apps": "bun run scripts/release/build_mac_apps.ts",
     "release:build": "bun run scripts/build_release.ts",
     "release:file-manager": "bun run scripts/release/build_file_manager.ts",
+    "release:publish": "bun run scripts/release_publish.ts",
     "donate": "bun run scripts/donate.ts",
     "clean": "rm -rf dist",
     "start": "bun run index.ts",

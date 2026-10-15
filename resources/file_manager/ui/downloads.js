@@ -231,7 +231,11 @@ function mount(root) {
     r.buttons.replaceChildren(...b);
   }
 
-  async function removeEntry(item) {
+  /** The download as it is right now (the buttons outlive the snapshot they were drawn from). */
+  const current = (id) => data.items.find((i) => i.id === id);
+
+  async function removeEntry(was) {
+    const item = current(was.id) ?? was;
     if (item.state !== "done" && item.received > 0) {
       const ok = await confirmBox({ title: "Remove this download?", message: `${item.name} is ${Math.floor(item.size ? (item.received / item.size) * 100 : 0)}% done. Removing it deletes what was downloaded so far.`, confirmLabel: "Remove", danger: true });
       if (!ok) return;
@@ -239,7 +243,8 @@ function mount(root) {
     await post("dl/remove", { id: item.id });
   }
 
-  async function removeWithFile(item) {
+  async function removeWithFile(was) {
+    const item = current(was.id) ?? was;
     const ok = await confirmBox({ title: "Delete this file?", message: `${item.name} will be deleted from your computer.`, details: [item.path], confirmLabel: "Delete file", danger: true });
     if (ok) await post("dl/remove", { id: item.id, deleteFile: true });
   }
