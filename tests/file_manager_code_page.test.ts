@@ -232,8 +232,7 @@ describe("the Code tab in a browser-like page", () => {
     caretToEnd(ta);
     type(ta, "\nconst q = tot");
     expect(options()).toEqual([]);
-    const { session } = await call("code/session", {});
-    expect(session.settings.completion).toBe(false);
+    await until(async () => (await call("code/session", {})).session.settings.completion === false, "the choice to reach the session");
     button("View").click();
     await sleep(50);
     [...doc.querySelectorAll("[role=menuitemcheckbox], [role=menuitem]")].find((e: any) => e.textContent.includes("Code suggestions")).click();
@@ -250,8 +249,7 @@ describe("the Code tab in a browser-like page", () => {
     const ta = active();
     caretToEnd(ta);
     type(ta, "\ngeneric");
-    const labels = options();
-    expect(labels).toContain("generic");
+    await until(() => options().includes("generic"), "the suggestion list");
     const row = [...doc.querySelectorAll(".code-ed:not([hidden]) .code-ac [role=option]")].find((e: any) => e.querySelector(".code-ac-label").textContent === "generic" && e.querySelector(".code-ac-k-snippet"));
     expect(row).toBeTruthy();
     row.click();

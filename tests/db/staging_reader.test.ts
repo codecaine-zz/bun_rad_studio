@@ -141,12 +141,14 @@ describe("format detection and reading", () => {
     await new Promise((r) => ws.end(r));
     const src = fileSource(file);
     const a = await analyzeSource(src);
-    const startRss = process.memoryUsage().rss;
+    // Live JS heap after a forced collection: the process's RSS also counts memory the allocator hasn't handed back yet, which varies by machine
+    const live = () => (Bun.gc(true), process.memoryUsage().heapUsed);
+    const startRss = live();
     let peak = startRss;
     let n = 0;
     for await (const r of readRows(src, a.settings, a.columns.map((c) => c.name))) {
       n++;
-      if (n % 100000 === 0) peak = Math.max(peak, process.memoryUsage().rss);
+      if (n % 100000 === 0) peak = Math.max(peak, live());
       if (r.cells[0] !== "12345") throw new Error("bad row");
     }
     expect(n).toBeGreaterThan(500000);

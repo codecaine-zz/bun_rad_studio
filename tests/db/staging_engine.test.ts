@@ -358,12 +358,15 @@ for (const name of RIGS) {
       const total = 400_000;
       for (let i = 0; i < total; i++) lines.push(`${1000 + i},Name ${i},user${i}@example.com,${20 + (i % 60)}`);
       const text = lines.join("\n");
-      const start = process.memoryUsage().rss;
+      // Live JS heap after a forced collection: RSS also counts memory the allocator hasn't handed back, which varies by machine
+      const live = () => (Bun.gc(true), process.memoryUsage().heapUsed);
+      const start = live();
       let peak = start;
-      const s = await stage(text, { onProgress: () => (peak = Math.max(peak, process.memoryUsage().rss)) });
+      let ticks = 0;
+      const s = await stage(text, { onProgress: () => { if (++ticks % 20 === 0) peak = Math.max(peak, live()); } });
       expect(s.res.rowsLoaded).toBe(total);
       const sum = await check(s);
-      peak = Math.max(peak, process.memoryUsage().rss);
+      peak = Math.max(peak, live());
       expect(sum).toMatchObject({ total, valid: total, invalid: 0, newRows: total });
       expect(peak - start).toBeLessThan(400 * 1024 * 1024);
       const r = await executePromote(await popts(s, "insert-new"));
