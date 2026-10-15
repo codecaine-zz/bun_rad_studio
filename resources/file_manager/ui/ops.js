@@ -170,6 +170,7 @@ async function createItem(op, label) {
 
 export const newFolder = () => createItem("mkdir", "folder");
 export const newFile = () => createItem("newfile", "file");
+export const newSqlite = () => createItem("newsqlite", "SQLite database");
 
 /** Renames one item; throws an ApiError when the name isn't accepted (the caller shows it next to the name). */
 export async function commitRename(path, newName) {

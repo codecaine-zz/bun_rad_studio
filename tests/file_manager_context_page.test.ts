@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 // @ts-ignore (jsdom has no type declarations in every setup)
@@ -105,6 +105,22 @@ afterAll(() => {
   }
   server.stop(true);
   rmSync(root, { recursive: true, force: true });
+});
+
+describe("right-click on empty space", () => {
+  test("offers a new SQLite database, which makes a real database file in the folder and selects it for renaming", async () => {
+    const { state } = await import("../resources/file_manager/ui/state.js");
+    const { goTo } = await import("../resources/file_manager/ui/nav.js");
+    await goTo(work);
+    contextmenu.showBackgroundMenu({ x: 5, y: 5 });
+    expect(menuLabels()).toContain("New SQLite database");
+    expect(menuLabels().indexOf("New SQLite database")).toBe(menuLabels().indexOf("New file") + 1);
+    expect(menuItem("New SQLite database").getAttribute("title").length).toBeGreaterThan(30);
+    menuItem("New SQLite database").click();
+    await waitFor(() => existsSync(join(work, "New database.sqlite")), 4000, "the database file");
+    expect(readFileSync(join(work, "New database.sqlite")).subarray(0, 15).toString()).toBe("SQLite format 3");
+    expect(state.location.path).toBe(work);
+  });
 });
 
 describe("right-click actions that use Bun's utilities", () => {

@@ -130,6 +130,7 @@ export function backgroundItems() {
   return [
     { label: "New folder", icon: "📁", shortcut: `${mod()}Shift+N`, action: ops.newFolder },
     { label: "New file", icon: "📄", shortcut: `${mod()}Alt+N`, action: ops.newFile },
+    { label: "New SQLite database", icon: "🗄️", tip: "Make a new, empty SQLite database file here. Open it in SQLite Studio, add it as a connection, or fill it with a sample database.", action: ops.newSqlite },
     { separator: true },
     { label: "Paste", icon: "📥", shortcut: `${mod()}V`, disabled: !state.clipboard, action: ops.paste },
     { label: "Select all", shortcut: `${mod()}A`, action: selectAll },

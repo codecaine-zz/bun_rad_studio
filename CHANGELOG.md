@@ -6,6 +6,8 @@ All notable changes. The project has no versioned releases yet, so everything is
 
 ### Added
 
+- **File Manager: New SQLite database** in the right-click menu of empty space: makes an empty, valid database file with a free name (never overwrites) and offers to rename it. New operation `newsqlite`.
+
 - **File Manager: database shortcuts.** Saved connections have **Open in a window** and **Open in my browser** buttons, a tile on Home each (favourites and recently used first), and Shift+Enter in the Databases list; SQLite files get **Open in SQLite Studio in its own window / in my browser** in the right-click menu. *Settings → Database shortcuts open in* picks window or browser for the tiles and Shift+Enter. New operation `db/shortcuts` (no keychain read, no password in the answer).
 - **File Manager: Esc never leaves full screen.** The database studios shown inside the File Manager no longer ask the browser for full screen (which Esc would leave), so Esc keeps working inside them; the Window setting and guide now say true full screen is left with Ctrl+⌘+F or Settings.
 

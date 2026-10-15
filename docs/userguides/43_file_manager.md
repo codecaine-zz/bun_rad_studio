@@ -188,7 +188,7 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Bury in the Rip graveyard | Alt+Delete (⌥⌫ on a Mac) |
 | Undo | Ctrl+Z |
 | Select all | Ctrl+A |
-| New folder, New file | Ctrl+Shift+N, Ctrl+Alt+N |
+| New folder, New file | Ctrl+Shift+N, Ctrl+Alt+N (right-click empty space also offers **New SQLite database**) |
 | Search, type a location | Ctrl+F, Ctrl+L |
 | Refresh | F5 (in the Dual view F5 copies; use Ctrl+R to refresh) |
 | Hidden files, Details panel | Ctrl+Shift+H, Ctrl+I |
@@ -449,6 +449,8 @@ A blank field in a connection falls back down this list. A password never falls 
 **Production and read-only.** The studios have **no read-only mode**, so a connection marked *Production* or *Read-only* asks before a studio opens ("you could change or delete data in it. Open it anyway?") and keeps a warning banner above the studio. For a real read-only session use a database account that can only read.
 
 **Shortcuts.** Every saved connection also has two quick buttons in its details, **Open in a window** (its own desktop window, nothing inside the File Manager) and **Open in my browser** (the studio runs in the background and your browser is pointed at it; it stops when the File Manager closes). The Home page shows a tile for your favourite and most recently used connections that opens it with one click, and **Shift+Enter** on a connection in the list does the same. Which of the two the tiles and Shift+Enter use is **Settings → Database shortcuts open in** (their own window, the default, or my web browser). Production and read-only connections still ask first. Showing the tiles never reads your keychain, and a Redis connection with a password can only be opened in the browser (its window takes the address on the command line).
+
+**New SQLite database.** Right-click empty space → **New SQLite database** makes a real, empty database file (`New database.sqlite`, then `New database (2).sqlite` and so on, never replacing anything) in the folder you are looking at and lets you name it straight away. Then right-click it to open it in SQLite Studio (in the tab, its own window or your browser) or add it as a connection.
 
 **SQLite files.** In the file list, a file whose first bytes really are SQLite's header (not just one named `.db`) gets **Open in SQLite Studio** (in the tab), **Open in SQLite Studio in its own window**, **Open in SQLite Studio in my browser** and **Add as database connection** in its right-click menu, and **Open with…** offers *SQLite Studio (built in)* (you can choose it for a file type; the default way of opening a file is not changed).
 

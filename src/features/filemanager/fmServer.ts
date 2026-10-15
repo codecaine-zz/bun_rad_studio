@@ -42,6 +42,7 @@ import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
+import { makeSqliteFile } from "./fmNewSqlite";
 import { overview, previewConvert, startConvert, startInstall } from "./fmBatch";
 import { openItem, revealItem } from "./fmOpen";
 import { openViaAssociation, openWithOperations } from "./fmOpenWith";
@@ -233,6 +234,9 @@ const operations: Record<string, Handler> = {
   },
   async newfile(ctx, b) {
     return await makeFile(ctx, b.parent, b.name);
+  },
+  async newsqlite(ctx, b) {
+    return await makeSqliteFile(ctx, b.parent, b.name);
   },
   async rename(ctx, b) {
     return await renameItem(ctx, b.path, b.name);
