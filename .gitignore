@@ -63,3 +63,11 @@ bun-debug.log*
 test_db_*.sqlite
 .word_search_state.json
 .maze_generator_state.json
+
+# Video production: generated media is rebuilt by scripts/build_full_youtube_video.ts and scripts/record_live_demo.ts
+youtube_production/audio/
+youtube_production/segments/
+youtube_production/live/
+youtube_production/assets/
+youtube_production/voice_samples/
+youtube_production/*.mp4

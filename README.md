@@ -134,7 +134,10 @@ bun run release:build -- --targets linux-arm64,windows-x64   # only some of them
 bun run release:build -- --list                    # show every platform and what it needs
 bun run release:build -- --mac-apps                # also the Mac .app files (needs a Mac)
 bun run build:mac-apps                             # only the Mac .app files, each with its own icon
+bun run release:file-manager                       # File Manager only: one zip per OS/CPU + a download page -> release/file-manager/
 ```
+
+`release:file-manager` makes the downloads for a website: a macOS `.app` (with its icon, Apple silicon and Intel), Windows (x64, ARM64, older x64) and Linux (x86-64, ARM64, older x86-64), each in its own zip, plus `index.html` (one button per zip, highlights the right one for the visitor) and `SHA256SUMS.txt`. Upload the whole `release/file-manager/` folder. Build it on a Mac: the `.app` needs macOS tools.
 
 **What you get** in `release/` (about 130 MB per platform, 37 MB for the command-line-only ones):
 
