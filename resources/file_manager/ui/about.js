@@ -50,6 +50,35 @@ export function versionLine({ app, runtime }) {
 
 const DONATE_URL = "https://paypal.me/codecaine81";
 
+async function checkForUpdates() {
+  try {
+    return await call("about/check-update");
+  } catch (err) {
+    return {
+      currentVersion: null,
+      latestVersion: null,
+      hasUpdate: false,
+      releaseUrl: null,
+      assetUrl: null,
+      assetName: null,
+      canAutoUpdate: false,
+      checkedAt: new Date().toISOString(),
+      error: err instanceof ApiError ? err.message : "Couldn't check for updates.",
+    };
+  }
+}
+
+async function downloadUpdate() {
+  try {
+    const result = await call("about/update-install");
+    toast(`The latest update was downloaded to ${result.file}.`, { kind: "success" });
+    return result;
+  } catch (err) {
+    toast(err instanceof ApiError ? err.message : "Couldn't download the update.", { kind: "error" });
+    return null;
+  }
+}
+
 /** A window with a QR code for the PayPal donation page, a button that opens it, and a button that copies the link. */
 export async function showDonate() {
   const copy = h("button", { type: "button", class: "btn", title: `Copy the link ${DONATE_URL} so you can paste it somewhere`, onclick: async () => {
@@ -81,12 +110,32 @@ export async function showAbout() {
   const info = await loadInfo();
   const { links } = info;
   const line = versionLine(info);
+  const update = await checkForUpdates();
   const rows = links.map((link) =>
     h("li", { class: "about-link" },
       h("button", { type: "button", class: "btn", title: `${link.hint} (${link.url})`, onclick: () => openLink(link) }, `${link.label} ↗`),
       h("span", { class: "about-url" }, link.url.replace(/^https:\/\//, "")),
     ),
   );
+  const updateNotice = update.hasUpdate ? h("div", { class: "about-update" },
+    h("p", { class: "lead" }, `A newer version is available: ${update.currentVersion} → ${update.latestVersion}.`),
+    h("div", { class: "about-update-actions" },
+      update.canAutoUpdate ? h("button", { type: "button", class: "btn primary", onclick: async () => {
+        const result = await downloadUpdate();
+        if (result) {
+          const data = await call("about/check-update");
+          if (data && data.hasUpdate) {
+            toast(`Update downloaded. Open the release page to install it manually: ${data.releaseUrl}`, { kind: "success" });
+          }
+        }
+      } }, "Update now") : null,
+      h("button", { type: "button", class: "btn", onclick: async () => {
+        if (update.releaseUrl) await openLink({ id: "releases", label: "Downloads and release notes", hint: "Ready-made apps for macOS, Windows and Linux.", url: update.releaseUrl });
+        else await openAboutLink("releases");
+      } }, "Open release page"),
+      h("button", { type: "button", class: "btn", onclick: () => "" }, "Later"),
+    ),
+  ) : null;
   const about = openDialog({
     title: "About Codecaine File Manager",
     wide: true,
@@ -95,6 +144,7 @@ export async function showAbout() {
       line ? h("div", { class: "about-version" },
         h("p", { class: "about-versionline", title: "The app's version, the version of Bun it runs on (with its build code) and your computer's system. Useful when you report a problem." }, line),
         h("button", { type: "button", class: "btn", title: "Copy this line so you can paste it into a bug report", onclick: () => copyToClipboard(line, { what: "The version information" }) }, "Copy")) : null,
+      updateNotice,
       h("ul", { class: "about-links" }, rows),
       h("p", { class: "hint" }, "Links open in your web browser. Nothing is sent from this app when you open them."),
     ],
