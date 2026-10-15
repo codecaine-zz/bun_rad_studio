@@ -618,7 +618,7 @@ describe("active steps: results and hostile data", () => {
     btn("Open in browser").click();
     await until(() => launched.length === 1, "the browser launch");
     expect(launched[0]!.args).toEqual(["https://www.act.example.net/"]);
-    expect(toasts()).toContain("Opened https://www.act.example.net/");
+    await until(() => toasts().includes("Opened https://www.act.example.net/"), "the confirmation");
   });
 });
 
