@@ -41,8 +41,8 @@ export function createRunUi({ getWorkspace }) {
     if (seq.error) return void (await messageBox("This preset can't run", seq.error));
     if (!terminalAvailable()) {
       const dlg = openDialog({
-        title: "The Terminal isn't available on Windows yet",
-        body: [h("p", {}, "Presets run in the File Manager's built-in Terminal, which needs macOS or Linux for now. You can copy the command and run it in PowerShell yourself:"), h("pre", { class: "code-preview" }, seq.line)],
+        title: "The Terminal isn't available on this system",
+        body: [h("p", {}, "You can copy the command and run it in your system's terminal:"), h("pre", { class: "code-preview" }, seq.line)],
         buttons: [{ label: "Close", value: null }, { label: "Copy command", value: "copy", primary: true }],
       });
       if ((await dlg.result) === "copy") copyCommand(seq.line);

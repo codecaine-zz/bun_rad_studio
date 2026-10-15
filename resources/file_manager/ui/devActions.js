@@ -38,7 +38,7 @@ export async function runInTerminal(folder, commandText, display = commandText) 
   const dir = quoteArg(folder, shell);
   if (dir.error || /[\r\n\0]/.test(commandText)) return void (await messageBox("This command can't be sent", dir.error ?? "It has a line break in it."));
   const line = shell === "powershell" ? `Set-Location -LiteralPath ${dir.text}; if ($?) { ${commandText} }` : `cd ${dir.text} && ${commandText}`;
-  if (!terminalAvailable()) return void (await messageBox("The Terminal isn't available on Windows yet", `Run this in PowerShell yourself: ${line}`));
+  if (!terminalAvailable()) return void (await messageBox("The Terminal isn't available on this system", `Run this in your system's terminal: ${line}`));
   const ok = await confirmBox({ title: "Run this in the Terminal?", message: `The project's own script will run on your computer: "${display}".`, details: [line], confirmLabel: "Run it" });
   if (!ok) return;
   if (!typeInTerminal(`${line}\r`)) return void toast("The Terminal couldn't be opened.", { kind: "error" });

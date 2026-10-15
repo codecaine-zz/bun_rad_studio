@@ -6,7 +6,7 @@ import { createContext } from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { clampSize, createTerminalHub, pickShell, shellFolder, terminalSupported } from "../src/features/filemanager/fmTerminal";
 
-// A terminal needs a pseudo-terminal, which exists on macOS and Linux only.
+// POSIX shell commands stay separate from the Windows ConPTY tests below.
 const posix = process.platform !== "win32";
 const suite = posix ? describe : describe.skip;
 
@@ -23,9 +23,10 @@ beforeAll(() => {
   server = startFileManagerServer({ port: 0, host: "127.0.0.1", token: TOKEN, context: { home, dataDir: join(root, "data"), launch: async () => {} } });
   base = `http://127.0.0.1:${server.port}`;
 });
-afterAll(() => {
+afterAll(async () => {
   server.stop(true);
-  rmSync(root, { recursive: true, force: true });
+  if (!posix) await Bun.sleep(1000);
+  rmSync(root, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
 });
 
 interface Client {
@@ -62,17 +63,21 @@ function connect(query: Record<string, string>, origin = base): Promise<Client> 
 }
 
 describe("terminal helpers", () => {
-  test("only Windows lacks terminals", () => {
+  test("Windows, macOS and Linux support terminals", () => {
     expect(terminalSupported("darwin")).toBe(true);
     expect(terminalSupported("linux")).toBe(true);
-    expect(terminalSupported("win32")).toBe(false);
+    expect(terminalSupported("win32")).toBe(true);
   });
 
-  test("pickShell uses the user's shell when it exists, otherwise one every system has", () => {
+  (posix ? test : test.skip)("pickShell uses the user's shell when it exists, otherwise one every system has", () => {
     expect(pickShell("linux", { SHELL: "/bin/sh" })).toBe("/bin/sh");
     expect(["/bin/zsh", "/bin/bash", "/bin/sh"]).toContain(pickShell("darwin", { SHELL: "relative/zsh" }));
     expect(["/bin/bash", "/bin/sh"]).toContain(pickShell("linux", { SHELL: "/no/such/shell" }));
     expect(["/bin/bash", "/bin/sh"]).toContain(pickShell("linux", {}));
+  });
+
+  test("Windows uses system PowerShell, not SHELL or a PATH executable", () => {
+    expect(pickShell("win32", { SystemRoot: "D:\\Windows", SHELL: "/bin/sh" })).toBe("D:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe");
   });
 
   test("clampSize keeps sizes sane and ignores junk", () => {
@@ -83,7 +88,51 @@ describe("terminal helpers", () => {
     expect(clampSize("abc", 24, 1, 200)).toBe(24);
     expect(clampSize(NaN, 24, 1, 200)).toBe(24);
     expect(clampSize(undefined, 24, 1, 200)).toBe(24);
+    expect(clampSize(null, 24, 1, 200)).toBe(24);
+    expect(clampSize("", 24, 1, 200)).toBe(24);
   });
+});
+
+(posix ? describe.skip : describe)("Windows ConPTY terminal", () => {
+  test("runs PowerShell in a folder with spaces, accepts Unicode, resizes and reports exit status", async () => {
+    const c = await connect({ token: TOKEN, path: work, cols: "100", rows: "30" });
+    try {
+      await c.waitFor(/PS .*work with spaces>/, 20000);
+      c.ws.send(JSON.stringify({ type: "input", data: "Write-Output ('WORK=' + (Get-Location).Path)\r" }));
+      await c.waitFor(/WORK=.*work with spaces/, 20000);
+      c.ws.send(JSON.stringify({ type: "input", data: "Write-Output ('UNICODE=' + [char]0x03bb)\r" }));
+      await c.waitFor(/UNICODE=\u03bb/);
+      c.ws.send(JSON.stringify({ type: "resize", cols: 90, rows: 20 }));
+      c.ws.send(JSON.stringify({ type: "input", data: "Write-Output ('SIZE=' + $Host.UI.RawUI.WindowSize.Width + 'x' + $Host.UI.RawUI.WindowSize.Height)\r" }));
+      await c.waitFor(/SIZE=90x20/);
+      c.ws.send(JSON.stringify({ type: "input", data: "Write-Output ('SLEEP' + '_READY'); Start-Sleep -Seconds 60\r" }));
+      await c.waitFor(/SLEEP_READY/);
+      c.ws.send(JSON.stringify({ type: "input", data: "\x03" }));
+      await c.waitFor(/SLEEP_READY[\s\S]*PS .*work with spaces>/);
+      c.ws.send(JSON.stringify({ type: "input", data: "Write-Output ('AFTER' + '_CANCEL')\r" }));
+      await c.waitFor(/AFTER_CANCEL/);
+      c.ws.send(JSON.stringify({ type: "input", data: "exit 3\r" }));
+      await Promise.race([c.closed, Bun.sleep(10000).then(() => { throw new Error("Shell did not exit"); })]);
+      expect(c.messages.some((m) => m.type === "exit" && m.code === 3)).toBe(true);
+    } finally { c.ws.close(); }
+  }, 40000);
+
+  test("closing the connection terminates the actual shell", async () => {
+    const c = await connect({ token: TOKEN, path: work });
+    let pid = 0;
+    try {
+      await c.waitFor(/PS .*work with spaces>/, 20000);
+      c.ws.send(JSON.stringify({ type: "input", data: "Write-Output ('SHELLPID=' + $PID)\r" }));
+      const out = await c.waitFor(/SHELLPID=\d+/, 20000);
+      pid = Number(/SHELLPID=(\d+)/.exec(out)![1]);
+    } finally { c.ws.close(); }
+    const end = Date.now() + 10000;
+    let alive = true;
+    while (alive && Date.now() < end) {
+      try { process.kill(pid, 0); await Bun.sleep(50); } catch { alive = false; }
+    }
+    expect(alive).toBe(false);
+  }, 35000);
 });
 
 suite("terminal hub", () => {
@@ -159,19 +208,6 @@ suite("terminal over WebSocket", () => {
     c.ws.close();
   });
 
-  test("refuses a missing or wrong token, a foreign origin, a missing origin, a non-folder, and a plain request", async () => {
-    await expect(connect({ path: work })).rejects.toThrow();
-    await expect(connect({ token: "wrong", path: work })).rejects.toThrow();
-    await expect(connect({ token: TOKEN, path: work }, "https://evil.example")).rejects.toThrow();
-    await expect(connect({ token: TOKEN, path: join(root, "nothing-here") })).rejects.toThrow();
-    const plain = await fetch(`${base}/api/terminal?token=${TOKEN}&path=${encodeURIComponent(work)}`);
-    expect(plain.status).toBe(403);
-    const noToken = await fetch(`${base}/api/terminal?path=${encodeURIComponent(work)}`);
-    expect(noToken.status).toBe(401);
-    const noOrigin = await fetch(`${base}/api/terminal?token=${TOKEN}&path=${encodeURIComponent(work)}`, { headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==", "Sec-WebSocket-Version": "13" } });
-    expect(noOrigin.status).toBe(403);
-  });
-
   test("the fifth terminal is refused with a clear message", async () => {
     const open: Client[] = [];
     for (let i = 0; i < 4; i++) open.push(await connect({ token: TOKEN, path: work }));
@@ -193,6 +229,21 @@ suite("terminal over WebSocket", () => {
       try { process.kill(pid, 0); await Bun.sleep(50); } catch { alive = false; }
     }
     expect(alive).toBe(false);
+  });
+});
+
+describe("terminal connection checks", () => {
+  test("refuses a missing or wrong token, a foreign origin, a missing origin, a non-folder, and a plain request", async () => {
+    await expect(connect({ path: work })).rejects.toThrow();
+    await expect(connect({ token: "wrong", path: work })).rejects.toThrow();
+    await expect(connect({ token: TOKEN, path: work }, "https://evil.example")).rejects.toThrow();
+    await expect(connect({ token: TOKEN, path: join(root, "nothing-here") })).rejects.toThrow();
+    const plain = await fetch(`${base}/api/terminal?token=${TOKEN}&path=${encodeURIComponent(work)}`);
+    expect(plain.status).toBe(403);
+    const noToken = await fetch(`${base}/api/terminal?path=${encodeURIComponent(work)}`);
+    expect(noToken.status).toBe(401);
+    const noOrigin = await fetch(`${base}/api/terminal?token=${TOKEN}&path=${encodeURIComponent(work)}`, { headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==", "Sec-WebSocket-Version": "13" } });
+    expect(noOrigin.status).toBe(403);
   });
 });
 

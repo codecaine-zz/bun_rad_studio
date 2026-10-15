@@ -41,12 +41,21 @@ function commandBlock(command) {
 
 /** Buttons that help someone run a command themselves. */
 function commandButtons(command, close) {
+  if (!command) return null;
   return h("div", { class: "tool-row-buttons" },
     h("button", { type: "button", class: "btn", onclick: () => copyText(command) }, "Copy the command"),
     terminalAvailable() ? h("button", { type: "button", class: "btn", onclick: () => {
       close();
       if (typeInTerminal(command)) toast("The command is typed in the Terminal. Press Enter there to run it.", { kind: "info" });
     } }, "Type it in the Terminal") : null);
+}
+
+function downloadButton(tool, manager = false) {
+  const url = manager ? tool.plan.missingManager.url : tool.website;
+  return h("button", { type: "button", class: "btn", title: url, onclick: async () => {
+    try { await call("tools/website", { tool: tool.id, manager }); }
+    catch (err) { toast(err instanceof ApiError ? err.message : "Couldn't open your browser.", { kind: "error" }); }
+  } }, manager ? `Open ${tool.plan.missingManager.name} download page` : `Download ${tool.name}`);
 }
 
 function toolBlock(tool, close, startInstall) {
@@ -69,6 +78,7 @@ function toolBlock(tool, close, startInstall) {
     body.push(
       h("p", {}, `${m.name} isn't installed on this computer. ${m.name === "Homebrew" ? "It is a free tool that installs programs like this with one command." : ""}`),
       h("p", { class: "hint" }, `Step 1: install ${m.name} (${m.url}). Paste this:`),
+      downloadButton(tool, true),
       commandBlock(m.command),
       commandButtons(m.command, close),
       h("p", { class: "hint" }, `${m.note} Step 2: come back here and press "Check again", then install ${tool.name}${plan.display ? ` (it runs: ${plan.display})` : ""}.`),
@@ -76,7 +86,7 @@ function toolBlock(tool, close, startInstall) {
   } else {
     body.push(h("p", { class: "hint" }, plan.note), commandBlock(plan.display), commandButtons(plan.display, close));
   }
-  if (!tool.installed) body.push(h("p", { class: "hint" }, `Or download it from ${tool.website}`));
+  if (!tool.installed) body.push(downloadButton(tool), h("p", { class: "hint" }, tool.website));
   return h("section", { class: "tool-block" }, head, body);
 }
 
@@ -91,7 +101,7 @@ function helperPrograms(data, close, install, recheck) {
   if (missingAll.length) {
     parts.push(h("section", { class: "tool-setup", "data-copy": "off" },
       h("h3", { class: "tool-setup-title" }, "One-click setup"),
-      h("p", { class: "hint" }, `${plural(missingAll.length, "helper program")} ${missingAll.length === 1 ? "is" : "are"} missing. Install them all in one go, or pick the ones you want. If your computer has no installer yet, Homebrew is installed and set up for you first.`),
+      h("p", { class: "hint" }, `${plural(missingAll.length, "helper program")} ${missingAll.length === 1 ? "is" : "are"} missing. Install them all in one go, or pick the ones you want. ${data.platform === "win32" ? "Windows uses winget when available; download buttons are also provided." : "If your computer has no installer yet, Homebrew is installed and set up for you first."}`),
       h("div", { class: "tool-row-buttons" },
         h("button", { type: "button", class: "btn primary", title: "Install every missing helper program with one click (you are asked to confirm first)", onclick: () => startSetup({ mode: "everything", startJob: install, closeOuter: close }) }, `Install everything missing (${missingAll.length})`),
         h("button", { type: "button", class: "btn", title: "See the list and untick anything you don't want", onclick: () => startSetup({ mode: "choose", startJob: install, closeOuter: close }) }, "Choose what to install…"))));

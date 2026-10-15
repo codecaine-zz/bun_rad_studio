@@ -49,7 +49,6 @@ export function registerHomeTiles() {
   })));
   registerHomeTile({
     id: "terminal", order: 60, icon: "⌨️", title: "Terminal", text: "Type commands in a real terminal that starts in the folder you are looking at.", run: () => emit("toggle-terminal"),
-    enabled: () => state.platform !== "win32", why: "The terminal needs macOS or Linux for now.",
   });
   registerHomeTile({ id: "openwith", order: 70, icon: "🧩", title: "Open with…", text: "Choose which program opens a kind of file, and add your own programs. Select a file first.", run: () => { toFiles(); return showOpenWith(); } });
   registerHomeTile({ id: "bin", order: 80, icon: "🗑️", title: "Recycle Bin", text: "See what you deleted, put things back, or empty the bin.", run: () => { toFiles(); return showTrash(); } });

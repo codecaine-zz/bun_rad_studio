@@ -60,7 +60,7 @@ function buttonSpecs() {
       { id: "lock", icon: "🔒", label: "Lock", tip: "Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.", run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "tools", icon: "🧰", label: "Convert", tip: "Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs", run: showToolsDialog, enabled: () => !inTrash() },
       { id: "power", icon: "🔎", label: "Find & more", tip: "Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks (Ctrl+Shift+F)", run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
-      { id: "terminal", icon: "⌨️", label: "Terminal", tip: state.platform === "win32" ? "The terminal needs macOS or Linux for now" : "Show or hide a terminal in this folder (Ctrl+`)", run: () => emit("toggle-terminal"), enabled: () => state.platform !== "win32", toggle: () => state.terminalOpen },
+      { id: "terminal", icon: "⌨️", label: "Terminal", tip: "Show or hide a terminal in this folder (Ctrl+`)", run: () => emit("toggle-terminal"), enabled: () => true, toggle: () => state.terminalOpen },
       { id: "settings", icon: "⚙️", label: "Settings", tip: "Colours, text size and more", run: showSettings, enabled: () => true },
       { id: "help", icon: "❓", label: "Help", tip: "Help and keyboard shortcuts (F1)", run: showHelp, enabled: () => true },
     ],

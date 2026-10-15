@@ -43,7 +43,7 @@ import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
 import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
 import { makeSqliteFile } from "./fmNewSqlite";
-import { overview, previewConvert, startConvert, startInstall } from "./fmBatch";
+import { overview, previewConvert, startConvert, startInstall, openToolWebsite } from "./fmBatch";
 import { openItem, revealItem } from "./fmOpen";
 import { openViaAssociation, openWithOperations } from "./fmOpenWith";
 import { FmError, classify, describeFsError, parseTypedPath, extensionOf } from "./fmPaths";
@@ -297,6 +297,9 @@ const operations: Record<string, Handler> = {
   },
   async "tools/overview"(ctx, b) {
     return await overview(ctx, b.paths);
+  },
+  async "tools/website"(ctx, b) {
+    return await openToolWebsite(ctx, b.tool, b.manager === true);
   },
   async "tools/run"(ctx, b) {
     return { job: await startConvert(ctx, { action: b.action, paths: b.paths, options: b.options, outputDir: b.outputDir, pattern: b.pattern }) };

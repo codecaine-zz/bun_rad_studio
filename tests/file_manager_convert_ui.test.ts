@@ -17,6 +17,7 @@ let server: ReturnType<typeof startFileManagerServer>;
 let doc: any;
 let tools: any;
 let stateMod: any;
+const launched: Array<{ command: string; args: string[] }> = [];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const dialog = () => doc.querySelector(".modal-backdrop .dialog");
@@ -47,7 +48,7 @@ beforeAll(async () => {
   mkdirSync(join(work, "pics"), { recursive: true });
   writeFileSync(join(work, "data.csv"), "name,qty\nbolt,3\nnut,5\n");
   writeFileSync(join(work, "photo.png"), "png");
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), toolDirs: [join(root, "no-tools")] } });
+  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), toolDirs: [join(root, "no-tools")], launch: async (command, args) => { launched.push({ command, args }); } } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform);
   const dom = new JSDOM(html, { url: `${base}/` });
@@ -226,6 +227,17 @@ describe("the Convert & process window in a browser-like page", () => {
     await tools.showToolsDialog();
     expect(box().textContent).toContain("Select some files or folders first");
     expect(box().querySelectorAll(".tool-block").length).toBe(15);
+    await closeDialog();
+  });
+
+  test("helper downloads are clickable and use the authenticated native browser opener", async () => {
+    select([]);
+    await tools.showToolsDialog();
+    const before = launched.length;
+    button("Download ffmpeg").click();
+    for (let i = 0; i < 100 && launched.length === before; i++) await sleep(20);
+    expect(launched.length).toBe(before + 1);
+    expect(launched.at(-1)!.args).toContain("https://ffmpeg.org/download.html");
     await closeDialog();
   });
 

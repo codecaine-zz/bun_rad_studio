@@ -3,6 +3,7 @@
 import { FitAddon } from "/vendor/addon-fit.mjs";
 import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
+import { quoteArg, shellFor } from "./codeRun.js";
 import { $ } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, saveSettings } from "./nav.js";
@@ -32,7 +33,7 @@ function targetFolder() {
   return currentFolder();
 }
 
-export const terminalAvailable = () => state.platform !== "win32";
+export const terminalAvailable = () => ["darwin", "linux", "win32"].includes(state.platform);
 
 /** The folder to start in: the one on screen, or the home folder when looking at the Recycle Bin. */
 function currentFolder() {
@@ -132,11 +133,14 @@ function goToFolder() {
   if (!term || ended) return restart();
   // A name with line breaks or other control characters can't be typed safely, so a new shell is started there instead.
   if (/[\x00-\x1f\x7f]/.test(folder)) return restart();
-  const quoted = `'${folder.replaceAll("'", "'\\''")}'`;
+  const quoted = quoteArg(folder, shellFor(state.platform));
+  if (quoted.error) return restart();
   startedIn = folder;
   setTitle();
-  // Ctrl+U first clears anything half-typed on the line.
-  send({ type: "input", data: `\x15cd -- ${quoted}\r` });
+  // Escape clears PowerShell's line; Ctrl+U clears a POSIX shell's line.
+  send({ type: "input", data: state.platform === "win32"
+    ? `\x1bSet-Location -LiteralPath ${quoted.text}\r`
+    : `\x15cd -- ${quoted.text}\r` });
   term.focus();
 }
 
@@ -181,7 +185,7 @@ export function isTerminalOpen() {
 }
 
 export function showTerminal() {
-  if (!terminalAvailable()) return toast("The terminal needs macOS or Linux for now.", { kind: "info" });
+  if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
   state.terminalOpen = true;
   $("#terminal-panel").hidden = false;
   ensureTerminal();
@@ -251,6 +255,10 @@ export function wireTerminal() {
     }
   });
   const follow = $("#terminal-follow");
+  if (state.platform === "win32") {
+    follow.disabled = true;
+    follow.parentElement.title = "Following shell folder changes is currently supported on macOS and Linux only.";
+  }
   follow.checked = state.settings.terminalFollow !== false;
   follow.addEventListener("change", () => {
     saveSettings({ terminalFollow: follow.checked });

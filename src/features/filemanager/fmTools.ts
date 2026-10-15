@@ -10,7 +10,7 @@
  * launcher does not get the PATH a terminal profile sets up. Without the extra folders the tools would show as
  * "not installed" while working fine in a terminal.
  */
-import { readdirSync, statSync } from "fs";
+import { lstatSync, readdirSync, statSync } from "fs";
 import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { splitName, uniqueName } from "./fmPaths";
@@ -54,17 +54,19 @@ export const TOOLS: Record<ToolId, ToolDef> = {
     id: "ffmpeg", name: "ffmpeg", what: "Converts video and sound files (MP4, MP3, GIF and many more).",
     executables: ["ffmpeg"], versionArgs: ["-version"], website: "https://ffmpeg.org/download.html",
     brew: "ffmpeg-full", winget: "Gyan.FFmpeg", scoop: "ffmpeg", choco: "ffmpeg", apt: "ffmpeg", dnf: "ffmpeg-free", pacman: "ffmpeg",
+    dirs: { win32: ["{PF}\\ffmpeg\\bin", "{PF}\\ffmpeg*\\bin", "{LOCAL}\\Programs\\ffmpeg\\bin", "{HOME}\\scoop\\apps\\ffmpeg\\current\\bin"] },
   },
   imagemagick: {
     id: "imagemagick", name: "ImageMagick", what: "Converts, resizes and rotates pictures.",
     executables: ["magick", "convert"], versionArgs: ["-version"], website: "https://imagemagick.org/script/download.php",
     brew: "imagemagick-full", winget: "ImageMagick.ImageMagick", scoop: "imagemagick", choco: "imagemagick", apt: "imagemagick", dnf: "ImageMagick", pacman: "imagemagick",
-    versionMatch: /ImageMagick/i,
+    versionMatch: /ImageMagick/i, dirs: { win32: ["{LOCAL}\\Programs\\ImageMagick*"] },
   },
   pandoc: {
     id: "pandoc", name: "pandoc", what: "Converts documents (Markdown, Word, HTML, EPUB, PDF and more).",
     executables: ["pandoc"], versionArgs: ["--version"], website: "https://pandoc.org/installing.html",
     brew: "pandoc", winget: "JohnMacFarlane.Pandoc", scoop: "pandoc", choco: "pandoc", apt: "pandoc", dnf: "pandoc", pacman: "pandoc-cli",
+    dirs: { win32: ["{LOCAL}\\Programs\\Pandoc"] },
   },
   ghostscript: {
     id: "ghostscript", name: "Ghostscript", what: "Works on PDF files: joins, splits, shrinks them, and turns pages into pictures or text.",
@@ -143,6 +145,7 @@ export const TOOLS: Record<ToolId, ToolDef> = {
     id: "exiftool", name: "ExifTool", what: "Reads and edits the hidden details inside pictures, video and sound (camera, place, date).",
     executables: ["exiftool"], versionArgs: ["-ver"], website: "https://exiftool.org/install.html",
     brew: "exiftool", winget: "OliverBetz.ExifTool", scoop: "exiftool", choco: "exiftool", apt: "libimage-exiftool-perl", dnf: "perl-Image-ExifTool", pacman: "perl-image-exiftool", optional: true,
+    dirs: { win32: ["{LOCAL}\\Programs\\ExifTool", "{PF}\\ExifTool", "{PF86}\\ExifTool"] },
   },
 };
 
@@ -154,7 +157,10 @@ export const TOOL_IDS = Object.keys(TOOLS) as ToolId[];
 
 function listDirs(parent: string, startsWith: string): string[] {
   try {
-    return readdirSync(parent).filter((n) => n.toLowerCase().startsWith(startsWith.toLowerCase())).map((n) => nodePath.join(parent, n));
+    return readdirSync(parent).filter((name) => name.toLowerCase().startsWith(startsWith.toLowerCase()))
+      .map((name) => nodePath.join(parent, name)).filter((dir) => {
+        try { return statSync(dir).isDirectory(); } catch { return false; }
+      });
   } catch {
     return [];
   }
@@ -173,11 +179,26 @@ function expandDir(template: string, platform: FmContext["platform"], vars: Reco
   return listDirs(parent, prefix).sort().reverse().map((d) => (rest ? p.join(d, rest) : d));
 }
 
+/** Portable WinGet packages may have no Links entry, especially in an already-running app. */
+function wingetDirs(root: string): string[] {
+  const dirs: string[] = [];
+  const visit = (dir: string, depth: number) => {
+    dirs.push(dir);
+    if (depth > 0) for (const child of listDirs(dir, "")) visit(child, depth - 1);
+  };
+  for (const id of TOOL_IDS) {
+    const pkg = TOOLS[id].winget;
+    if (!pkg) continue;
+    for (const dir of listDirs(root, `${pkg}_`)) visit(dir, 3);
+  }
+  return dirs;
+}
+
 /** Every folder worth looking in, in order: the PATH first, then the places package managers install to. */
 export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs">, env: Record<string, string | undefined> = process.env): string[] {
   if (ctx.toolDirs) return [...ctx.toolDirs];
   const sep = ctx.platform === "win32" ? ";" : ":";
-  const fromPath = (env.PATH ?? env.Path ?? "").split(sep).filter(Boolean);
+  const fromPath = (env.PATH ?? env.Path ?? "").split(sep).map((dir) => dir.replace(/^"(.*)"$/, "$1")).filter(Boolean);
   const dirs: string[] = [...fromPath];
   // Homebrew's "keg-only" formulas (ffmpeg-full and so on) are not linked into its bin folder. Casks have no such folder.
   const optBins = (prefix: string) => TOOL_IDS.filter((id) => !TOOLS[id].brewCask && TOOLS[id].brew).map((id) => `${prefix}/opt/${TOOLS[id].brew.split(" ")[0]}/bin`);
@@ -194,6 +215,7 @@ export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs"
     vars.PF = programFiles;
     vars.PF86 = env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
     dirs.push(
+      nodePath.win32.join(local, "Microsoft", "WindowsApps"),
       nodePath.win32.join(local, "Microsoft", "WinGet", "Links"),
       nodePath.win32.join(ctx.home, "scoop", "shims"),
       "C:\\ProgramData\\chocolatey\\bin",
@@ -201,6 +223,8 @@ export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs"
       nodePath.win32.join(programFiles, "Pandoc"),
       "C:\\ffmpeg\\bin",
       ...listDirs(programFiles, "ImageMagick"),
+      ...wingetDirs(nodePath.win32.join(local, "Microsoft", "WinGet", "Packages")),
+      ...wingetDirs(nodePath.win32.join(programFiles, "WinGet", "Packages")),
     );
   }
   for (const id of TOOL_IDS) for (const t of TOOLS[id].dirs?.[ctx.platform] ?? []) dirs.push(...expandDir(t, ctx.platform, vars));
@@ -211,7 +235,11 @@ function isRunnable(file: string, platform: FmContext["platform"]): boolean {
   try {
     const st = statSync(file);
     return st.isFile() && (platform === "win32" || (st.mode & 0o111) !== 0);
-  } catch {
+  } catch (error) {
+    // App Execution Aliases (winget.exe) are launchable reparse points, but stat may return EACCES.
+    if (platform === "win32" && (error as NodeJS.ErrnoException).code === "EACCES") {
+      try { return lstatSync(file).isSymbolicLink(); } catch { return false; }
+    }
     return false;
   }
 }

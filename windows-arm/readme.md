@@ -37,6 +37,26 @@ Parallels runs a real Windows guest, so test inside Windows rather than treating
 
 ## Quick Start: Running Apps & Demos
 
+### File Manager: Windows terminal and conversion helpers
+
+Launch with `.\run.cmd filemanager`. The **Terminal** toolbar button (or **Ctrl+`**)
+opens an embedded Windows PowerShell session in the current folder. It uses Windows
+ConPTY, supports interactive commands, Ctrl+C and resizing, and needs no additional
+terminal package. The first terminal takes a moment to compile its small local
+bridge using Windows PowerShell's built-in C# compiler. Hiding the panel keeps the
+shell running; Restart replaces it, and closing the app ends its terminal sessions.
+Commands run with your user permissions and bypass the File Manager's Recycle Bin
+and confirmations. Automatic **Follow terminal** folder tracking remains macOS/Linux-only.
+
+In **Convert > Helper programs**, **Download** opens the program's official website
+in your default browser. Windows installs use WinGet when available; manual commands
+can also be typed into the embedded terminal. **Check again** searches both PATH and
+known install locations, including nested user/machine WinGet package directories
+(FFmpeg and Poppler), WindowsApps, Scoop shims, and common program folders. New
+portable WinGet installs can be detected without restarting the File Manager.
+Custom portable locations outside these folders still need to be added to PATH
+before launching the app, or supplied with `--tool-dirs` (semicolon-separated on Windows).
+
 You can select demos and applications using `run.ps1` or `run.cmd` from the repository root, or `.\run-demo-arm.ps1` from this folder. Actual functionality depends on the app's Windows compatibility.
 
 ### 1. Interactive Menu (Pick from any app/demo)
