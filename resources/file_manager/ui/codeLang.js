@@ -78,11 +78,30 @@ export function commentSyntax(langId) {
  */
 export function isKnownTextName(name = "") {
   const base = String(name).split(/[\\/]/).pop().toLowerCase();
-  if (BY_FILE.has(base) || base.startsWith("dockerfile.")) return true;
+  if (BY_FILE.has(base) || base.startsWith("dockerfile.") || PLAIN_NAMES.has(base) || PLAIN_NAME_PREFIX.test(base)) return true;
   const dot = base.lastIndexOf(".");
   // A dotfile such as ".env" or ".gitignore" is text when what follows the dot is a known text kind; ".DS_Store" is not.
-  if (dot === 0) return BY_EXT.has(base.slice(1).split(".").pop());
+  if (dot === 0) return BY_EXT.has(base.slice(1).split(".").pop()) || DOTFILES.has(base);
   return dot > 0 && BY_EXT.has(base.slice(dot + 1));
+}
+
+/** Well-known files with no extension that hold plain text (a license, a changelog, a build file, a shell setup file). */
+const PLAIN_NAMES = new Set([
+  "license", "licence", "licenses", "copying", "copyright", "notice", "authors", "contributors", "contributing", "maintainers", "codeowners",
+  "changelog", "changes", "history", "news", "readme", "todo", "install", "thanks", "credits", "patents", "version", "manifest", "owners",
+  "acknowledgements", "acknowledgments", "unlicense", "security", "support", "funding", "roadmap",
+  "makefile", "gnumakefile", "procfile", "gemfile", "rakefile", "vagrantfile", "brewfile", "jenkinsfile", "justfile", "caddyfile", "podfile", "fastfile", "cmakelists",
+]);
+/** "LICENSE-MIT", "README_dev", "NOTICE.third-party" and similar. */
+const PLAIN_NAME_PREFIX = /^(license|licence|copying|notice|readme|changelog|authors|contributors|contributing)[-_.]/;
+/** Dotfiles that are settings in plain text. */
+const DOTFILES = new Set([".gitattributes", ".gitmodules", ".gitconfig", ".editorconfig", ".npmrc", ".nvmrc", ".yarnrc", ".prettierrc", ".eslintrc", ".babelrc", ".browserslistrc", ".bashrc", ".zshrc", ".profile", ".bash_profile", ".zprofile", ".zshenv", ".vimrc", ".htaccess", ".dockerenv", ".mailmap", ".tool-versions", ".ruby-version", ".node-version", ".python-version"]);
+
+/** A name with no extension at all (a bare name, or a dotfile): its kind can only be told by looking inside. */
+export function hasNoExtension(name = "") {
+  const base = String(name).split(/[\\/]/).pop();
+  const dot = base.lastIndexOf(".");
+  return dot <= 0;
 }
 
 /** Does this file name look like something worth editing as text? (Known languages and plain text, or no extension at all.) */

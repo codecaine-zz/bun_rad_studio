@@ -1460,7 +1460,7 @@ describe("Quick Look and copy to the clipboard", () => {
 
     test("what counts as a text file: known endings, source and dotfiles; not pictures, programs or unknown binaries", async () => {
       const ops = await import("../resources/file_manager/ui/ops.js");
-      const yes = ["notes.txt", "a.ts", "main.py", "README.md", "data.json", "style.css", "index.html", "Makefile", "Dockerfile", ".env", ".gitignore", "UPPER.TXT"];
+      const yes = ["notes.txt", "a.ts", "main.py", "README.md", "data.json", "style.css", "index.html", "Makefile", "Dockerfile", ".env", ".gitignore", "UPPER.TXT", "LICENSE", "License", "LICENSE-MIT", "NOTICE", "CHANGELOG", "COPYING", "AUTHORS", "Brewfile", ".editorconfig", ".npmrc", "README"];
       const no = ["pic.png", "song.mp3", "doc.pdf", "archive.zip", "blob.bin", "noextension", ".DS_Store", "setup.exe", "run.sh"];
       for (const n of yes) expect(ops.textOpensInEditor(entry(n)), n).toBe(true);
       for (const n of no) expect(ops.textOpensInEditor(entry(n, n.endsWith(".sh") || n.endsWith(".exe") ? { program: true } : {})), n).toBe(false);

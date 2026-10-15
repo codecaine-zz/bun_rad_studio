@@ -483,6 +483,20 @@ describe("the Code tab in a browser-like page", () => {
 });
 
 describe("opening a text file from the file list", () => {
+  test("a plain text file with no extension (LICENSE, NOTICE, an unknown name) opens in the built-in editor too", async () => {
+    const ops = await import("../resources/file_manager/ui/ops.js");
+    writeFileSync(join(work, "LICENSE"), "MIT License\n\nCopyright (c) 2026 Someone\n");
+    writeFileSync(join(work, "mystery-notes"), "just some words\nin a file with no ending\n");
+    for (const name of ["LICENSE", "mystery-notes"]) {
+      await ops.openEntry({ path: join(work, name), name, isDir: false, program: false, size: 40, kind: "other" });
+      await sleep(500);
+      expect(tabNames(), name).toContain(name);
+    }
+    expect(ops.textOpensInEditor({ name: "LICENSE", isDir: false, program: false })).toBe(true);
+    expect(ops.textOpensInEditor({ name: "mystery-notes", isDir: false, program: false })).toBe(false); // only a look inside tells
+    expect(ops.textOpensInEditor({ name: "LICENSE", isDir: false, program: true })).toBe(false); // a program still asks first
+  });
+
   test("by default it opens in the built-in Code editor, not in the computer's program", async () => {
     const ops = await import("../resources/file_manager/ui/ops.js");
     const power = await import("../resources/file_manager/ui/power.js");

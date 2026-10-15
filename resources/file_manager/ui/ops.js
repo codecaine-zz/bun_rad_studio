@@ -5,7 +5,7 @@ import { chooseConflict, confirmBox, problemsBox } from "./dialogs.js";
 import { announce } from "./dom.js";
 import { toast } from "./menus.js";
 import { openInCode } from "./code.js";
-import { isKnownTextName } from "./codeLang.js";
+import { hasNoExtension, isKnownTextName } from "./codeLang.js";
 import { openInEditor } from "./fileurl.js";
 import { finishOpen } from "./openwith.js";
 import { busy, goTo, goToIn, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
@@ -103,11 +103,29 @@ export function textOpensInEditor(entry) {
   return !entry.isDir && !entry.program && state.settings.textOpensIn !== "system" && isKnownTextName(entry.name);
 }
 
+const LOOK_INSIDE_MAX = 2 * 1024 * 1024;
+
+/**
+ * A file with no extension that isn't a well-known text name (NOTICE.third-party, a script without .sh, a data file) could be
+ * anything: the server looks inside it, and it opens in the editor only when it really is text.
+ */
+async function isPlainTextInside(entry) {
+  if (entry.isDir || entry.program || state.settings.textOpensIn === "system" || !hasNoExtension(entry.name)) return false;
+  if (entry.kind && entry.kind !== "file" && entry.kind !== "other" && entry.kind !== "text") return false;
+  if (!(entry.size > 0) || entry.size > LOOK_INSIDE_MAX) return false;
+  try {
+    const { preview } = await call("preview", { path: entry.path });
+    return preview?.type === "text";
+  } catch {
+    return false;
+  }
+}
+
 export async function openEntry(entry) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
-  if (textOpensInEditor(entry)) {
+  if (textOpensInEditor(entry) || (await isPlainTextInside(entry))) {
     if (state.settings.textOpensIn === "editor") return openInEditor(entry);
     return openInCode(entry.path);
   }
