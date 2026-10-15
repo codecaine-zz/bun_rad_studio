@@ -70,4 +70,5 @@ youtube_production/segments/
 youtube_production/live/
 youtube_production/assets/
 youtube_production/voice_samples/
+youtube_production/tutorial/
 youtube_production/*.mp4

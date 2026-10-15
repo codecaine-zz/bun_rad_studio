@@ -125,10 +125,11 @@ export class Cdp {
     return r.result.value;
   }
 
-  async goto(url: string) {
+  /** Opens an address. `ready` is an element to wait for (the File Manager's own page waits for its toolbar). */
+  async goto(url: string, ready: string | null = "#view-tools") {
     await this.send("Page.navigate", { url });
     await sleep(1500);
-    await this.waitFor("#view-tools", 15000);
+    if (ready) await this.waitFor(ready, 15000);
     await this.eval(CURSOR_SCRIPT);
   }
 
