@@ -24,6 +24,11 @@ Added on 14 October 2026; the record of what was checked is [D-045](../documenta
 - [Downloads (fast, resumable)](#downloads-fast-resumable)
 - [API Studio, App Bundler and Env Studio](#api-studio-app-bundler-and-env-studio)
 - [QR codes (QR tab)](#qr-codes-qr-tab)
+- [Review before anything changes](#review-before-anything-changes)
+- [Compare folders (Compare tab)](#compare-folders-compare-tab)
+- [Projects (Projects tab)](#projects-projects-tab)
+- [Actions: saved recipes (Actions tab)](#actions-saved-recipes-actions-tab)
+- [Which tool should I use?](#which-tool-should-i-use)
 - [Files that aren't what their name says](#files-that-arent-what-their-name-says)
 - [More info and metadata](#more-info-and-metadata)
 - [Tools built on Bun's own utilities](#tools-built-on-buns-own-utilities)
@@ -555,6 +560,74 @@ They are the same programs that open their own window when you run them alone (`
 
 **Notes and limits.** Codes up to version 40 (177 × 177 squares, about 2,900 characters or 7,000 digits) in numeric, alphanumeric and byte modes; text is sent as UTF-8. The reader also understands Kanji, ECI and structured-append headers, but not Micro QR, rMQR or other barcodes. The encoder was compared module by module with an independent implementation (645 codes over all 40 versions, four levels and three modes) and every version and level at full capacity was read back by Chrome's own detector; the reader was tried on rotated, perspective-warped, blurred, noisy, shaded, JPEG and inverted pictures. Reading from the camera is not offered. Saving needs the folder you are looking at to be a real folder (in the Recycle Bin or search results your home folder is used).
 
+## Review before anything changes
+
+Bulk and destructive changes show a **Review before anything changes** window first. It appears when you rename several items, delete for good (Shift+Delete), clean up duplicates, use *Copy*, *Move*, *Recycle Bin* or *Rename* in the Find tool, and copy differences in Compare. Nothing is touched until you approve.
+
+- **A summary** of what would happen, with counts, for example *Move: 128 items, Rename: 42, Replace existing: 3, Skip (left alone): 7, Delete for good: 0*.
+- **Every change, one by one.** Each row shows the source, the destination and anything that is wrong or worth knowing: a name already taken, a file that is gone, no permission, a folder into itself. Use **Show** to look only at what will change, what is skipped, or what has a warning. Untick any row to leave it out.
+- **An item with a problem is skipped, not hidden.** It stays in the list with its reason, and the rest can still go ahead.
+- **If you change your mind.** The window lists four ways back and says which of them apply to *this* operation: **Undo** (moves and renames are reversed, copies go to the Recycle Bin; it lasts until you close the File Manager and skips anything you changed afterwards), the **Recycle Bin** (replaced and deleted items), **Backup restore** (only the Replace tool makes backups, so it says "no backup copies are made" here) and the **Graveyard** (nothing is sent there unless you bury items yourself). Deleting for good says plainly that nothing can bring it back.
+- **Approval.** Replacing or deleting needs the box *I have looked at these changes and I approve them*, and deleting for good needs a second box. Plain copies, moves and renames need only **Apply**.
+- **Checked again when it runs.** The disk may have changed since you looked. Before each item, the File Manager checks that the source is still the same (same kind, size and date) and that the destination is still as it was shown. A file that changed is **not touched** and says so. A name that was free in the preview but is taken now is **left alone**, never overwritten.
+- **It runs in the task list**, so you can keep browsing, watch progress by items and bytes, cancel, and retry only what failed. Cancelling keeps what finished, and the message says which items were done and which were not. Renames that swap names (a to b, b to a) are done together through temporary names and put back if one fails.
+
+**Limits.** Undo is for this session only. At most 5,000 items per operation. Cross-disk moves copy first and remove the original afterwards, so cancelling can leave a partial copy that is removed for you.
+
+## Compare folders (Compare tab)
+
+Compare two folders and copy the differences you choose, one way. Open **Tools → Compare**, pick a left and a right folder (or use the open folder), and press **Compare**.
+
+- **Five groups:** *Only on the left*, *Only on the right*, *Different*, *Identical*, *Cannot compare*. Each row shows the relative path, the size and the modified time on each side, and a plain sentence about what was found. Click a group's button to show only that group; type in the filter box to find a name.
+- **Quick or verified.** *Quick* compares size and date. Files with the same size and date are listed as identical but marked **not verified**, because their contents were not read; same size with a different date is "Different (not read)". *Verified* reads every pair of same-size files and compares them byte by byte, and is the only way to be sure. **Verify them now** upgrades a quick result. The comparison runs in the background with a progress bar; **Cancel** stops it, and anything not reached is listed under *Cannot compare*, never as identical.
+- **Ignore rules** use `.gitignore` style, one per line (`node_modules/`, `*.log`, `/build`). Ignored items are left out of everything, including copying.
+- **Symbolic links** are never followed. A link is compared by where it points and copied as a link, so a link loop cannot make the search endless. A search is also stopped at 64 levels of folders and 200,000 items per side, and says so. The two folders you choose may themselves be links.
+- **Unreadable things are reported**, not treated as missing: a folder you can't open is *Cannot compare*, and so is everything below it on the other side.
+- **A file on one side and a folder on the other** is *Different* and is never copied over.
+- **Copy the selected…** copies in the direction you choose (to the right or to the left). Empty folders are made, missing parent folders are created, and *Replace files that differ* is off unless you tick it (the old file then goes to the Recycle Bin). The copy goes through [Review before anything changes](#review-before-anything-changes). **Nothing is ever deleted** from either folder, and there is no automatic two-way sync, background sync or mirror mode.
+
+## Projects (Projects tab)
+
+A project is a saved set-up: a name, its folders, the folders to open, the view and tool, the search settings (what to look for, filters), ignore rules, favorite commands, the tools it uses and the database connections it uses.
+
+- **Save the current layout as a project…** starts from where you are; **Open** takes you back (folder in the file list, the second folder in Dual, the view and tool, the saved Find settings). **Edit…** renames and changes everything; **Delete…** forgets the project and touches no files.
+- **Missing things don't break it.** A folder that moved, a connection that was deleted or a tool this version doesn't have is listed as missing (in the message and in **Details**), and everything else still opens.
+- **No secrets, ever.** A password, token, key or an address with a password in it (in a name, a command, an ignore rule or a filter) is refused with a message, and nothing is saved. Database connections are saved as a reference to the connection (its name), and the password stays in the system keychain where the Databases tool already keeps it.
+- **Commands are never run by themselves.** **Put in the terminal** types the command into the terminal and you press Enter. A command must be one line. Commands from an imported file arrive **untrusted**: you read each one in a window and choose *Type it, don't trust it* or *Trust it and type it*. Editing a trusted command makes it untrusted again.
+- **Share…** shows a file (copy it or save it into a folder) with the folders, settings and commands, never a password; **Import a project file…** reads one. A hand-edited or damaged project file is skipped with a message, and a file written by a newer version is read-only and never overwritten.
+- **History.** **Details** shows the copies, moves and renames that touched the project's folders.
+
+## Actions: saved recipes (Actions tab)
+
+An action runs the same steps on any files you choose. The built-in **Prepare images for a website** makes copies no wider than the size you choose (1600 pixels by default), turns them into WebP, puts them in `./optimized` next to your pictures, and shows that folder. Your originals are never changed.
+
+- **Every action says** which files it accepts, its steps, which settings you can change, where the results go, what happens when a name is taken (*keep both with a number* or *leave it alone*; nothing is overwritten) and that originals are unchanged.
+- **Choose files and run…** lists your selected files and **checks everything first**: the files, the settings, and the helper programs for every step (for example ImageMagick for the pictures recipe). A problem names the step and the files, and **Run the action** stays off until it is fixed. Install missing programs from **Convert & process**.
+- **Runs in the task list.** Each step is one of the Convert & process conversions, so it uses the same programs and checks. Results of each step go to a private working folder, and only when every step has worked are they copied to the output folder, with Undo. If a step fails or you cancel, the message names the step and the files, and **nothing is written to the output folder**.
+- **Make your own.** **New action…** or **Edit a copy…** of a built-in one: name it, say which file types it takes, add steps from the list of conversions, change their settings, and tick **Ask me each time** for any setting you want to be asked at run time.
+- **Share and import.** An imported action may contain a *custom command* step; it is kept but shown **disabled** and never runs (actions can't start arbitrary programs at all).
+- **From a terminal:** `bun run files:actions list`, `bun run files:actions check <action> <files…>` and `bun run files:actions run <action> <files…> --set name=value` use the same definitions, checks and queue.
+
+**Not built yet:** custom command steps, steps that change originals in place, running actions automatically when files appear, and a visual editor for chains.
+
+## Which tool should I use?
+
+Several tools can touch the same files. This is what each is for.
+
+| You want to… | Use | Why not the others |
+|---|---|---|
+| Rename a few files | **Rename** (F2) | The Rename dialog shows the new names, then the [review window](#review-before-anything-changes). |
+| Rename every file a search found | **Find → Rename all the matches** | Same review window; Find picks the files. |
+| Change text *inside* many files | **Replace** | It edits contents (with its own backups and undo); Find and Rename only touch names. |
+| Free up space | **Dev → Disk & files → Duplicate files** (tick the extra copies) | It sends only the copies you tick to the Recycle Bin, never the last copy. |
+| Remove something safely but keep it findable later | **Graveyard** | It keeps a verified record and can restore to the exact place; the Recycle Bin is the everyday "undo delete". |
+| Remove something for good | **Shift+Delete** | Shows a review with a second confirmation and says it can't be undone. |
+| Make two folders match | **Compare** | One-way copy of what you choose; it never deletes. Not a sync. |
+| Run a conversion once | **Convert & process** | Fine-grained options for one job. |
+| Run the same conversions again and again | **Actions** | Saved steps, checked first, results to one folder. |
+| Get back to a set of folders and settings | **Projects** | Remembers folders, view, search and commands; no file is copied. |
+| Run a shell command | **Terminal** (or a project's saved command, typed for you) | Nothing here runs a command by itself. |
+
 ## Files that aren't what their name says
 
 A file's name can lie. `invoice.pdf` can really be a Windows program, `photo.jpg` can really be a PNG or a zip, and `report.pdf.exe` or a name with a hidden right-to-left character can hide what it ends in. The File Manager reads the first few hundred bytes of the files you can see and puts a small badge after the name when the contents don't match:
@@ -698,6 +771,8 @@ Most windows and tools show information in blocks: a group in *Properties* or *M
 | The window's size and position, and how it opens | `~/.bun_rad_studio/file_manager_window.json` (readable only by you) |
 | The Recycle Bin | `~/.bun_rad_studio/file_manager_trash/` |
 | Copy, move and rename history (paths and outcomes only, newest 200, readable only by you) | `~/.bun_rad_studio/file_operations.json` |
+| Saved projects (versioned, no passwords) | `~/.bun_rad_studio/file_manager_workspaces.json` (readable only by you); a damaged file is kept as `…json.damaged` |
+| Saved actions (versioned) | `~/.bun_rad_studio/file_manager_actions.json` (readable only by you); while an action runs, a private working folder `file_manager_actions_work/` that is removed when it ends |
 | The Rip graveyard (shared with Rip Studio) | `~/.local/share/rip/graveyard/`, or the folder in the `GRAVEYARD` environment variable |
 | Dev tab snapshots of code statistics (up to 50) | `~/.bun_rad_studio/file_manager_dev_snapshots.json` (readable only by you) |
 | Database connections (SQLite, MySQL / MariaDB, PostgreSQL; the same file the Database Workbench uses) and Redis connections | `~/.bun_rad_studio/connections.json` and `connections_redis.json` (readable only by you; **no passwords**: those are in your computer's keychain) |
@@ -720,6 +795,8 @@ Checked on **macOS** only, with a sandbox home folder so no real files were touc
 - The **Graveyard** (see [Graveyard (Rip)](#graveyard-rip)): `tests/file_manager_graveyard.test.ts` (the server, real files and a private graveyard folder, including copies "between disks" forced through a test hook, an interrupted copy, a cancelled copy, a damaged record file, 6,000-item lists, and the real `rip` 0.9.7 sharing a folder when it is installed) and `tests/file_manager_graveyard_page.test.ts` (the tab, the right-click item, the shortcut, Undo and the Delete setting in a fake browser). Both also passed as root on Linux (aarch64, in a container; the `rip` tests are skipped there). In a real browser on macOS: several files, a folder and a link were buried from the right-click menu, one was restored and one deleted for good from the tab, Undo of a restore buried it again, and each step was compared with the folder on disk and with `bun run cli:rip --seance --all`, which read the same list.
 - The **Subdomains** tab (see [Subdomains (Subfinder)](#subdomains-subfinder)): `tests/file_manager_subdomains.test.ts` and `tests/file_manager_subdomains_page.test.ts` (no network: fetch, DNS, HTTP and TCP are replaced; domain-validation fuzzing, hostile source data, per-source failure isolation, cancellation, caps and rate limits on a fake clock, wildcard DNS, redirect limits, refusal of private, loopback and rebinding addresses, stand-in `subfinder` programs, CSV/Markdown safety, the history file, the HTTP operations, and the page in a fake browser). A real run against `example.com` with the page in a real browser (once, passive only) showed the page and Network-tab hand-off working; **crt.sh** answered (6 hosts) while HackerTarget (daily limit reached), AlienVault OTX (HTTP 429) and Anubis (now behind a Cloudflare check that blocks scripts) each showed their own plain error without failing the run, and the real `subfinder` 2.17.0 gave about 25,000 mostly meaningless `example.com` names in a direct trial, which the result cap handles. No active step (DNS, web or port probing) was run against a real domain; the real HTTP client was tried once each against `example.com` (status 200, title read), and against `self-signed.badssl.com` and `wrong.host.badssl.com`, two sites made for testing: with verification on both are refused as "certificate isn't trusted", with *Accept untrusted HTTPS certificates* both answer.
 
+- **Review, Compare, Projects and Actions** (see the four sections above): `tests/file_manager_plan.test.ts` (overwrite conflicts, changed and missing files, permission errors, partial failures, cancelling part-way, Undo, names with quotes, spaces and shell characters, symbolic links, a folder into itself, 1,500 items), `tests/file_manager_compare.test.ts` (nested and empty folders, same-name conflicts, quick versus verified, links and a link loop, unreadable folders, ignore rules, cancelling, 3,000 files), `tests/file_manager_workspaces.test.ts` (secrets refused, untrusted imported commands, missing folders, damaged and newer files, database references with a fake keychain) and `tests/file_manager_actions.test.ts` (a real two-step run with the built-in converters, a failing step, cancelling, never overwriting, and a real ImageMagick run where it is installed). The pages are covered in `tests/file_manager_views.test.ts`, and the new windows were also looked at in a real browser. All of it on macOS, in temporary folders only.
+
 **Not verified:** installing for real on any system (a stand-in package manager was used), anything on Windows (winget, Scoop and `.cmd` programs) and on Linux (apt, dnf, pacman, Linuxbrew), PDF output from pandoc (no PDF engine here), HEIC and AVIF input, long videos; the terminal on **Linux** (it uses the same code, but was only run on macOS), and it cannot exist on Windows yet; vim, ssh and other full-screen programs inside the terminal; the native window on **Windows and Linux** (on macOS the terminal was checked in it); the Windows commands used to open a file (`rundll32 url.dll,FileProtocolHandler`) and *Show in Explorer* (`explorer.exe /select,`); Linux `xdg-open`; Windows drive letters and long paths. The backend tests do run in the experimental Linux/Windows CI job, but the project as a whole is not supported on Windows (see [Testing](../testing/index.md#other-platforms)). A screen reader was not used.
 
 ## Limits
@@ -729,6 +806,10 @@ Checked on **macOS** only, with a sandbox home folder so no real files were touc
 - Zip: no passwords, no ZIP64 (over 4 GB or 65,535 entries); at most 8 GB and 100,000 entries.
 - A folder shows at most 50,000 items (500 are drawn at a time with a "show more" button); search and size counts have limits and say when they stop early.
 - Symbolic links are copied as links and never followed when counting or searching.
+- Review windows keep Undo for the current session only (nothing is saved to undo after you close the app), at most 5,000 items per operation, and a *cross-disk* move copies first, so cancelling can leave a partial copy that is removed for you.
+- Compare is one-way and previewed: no two-way sync, no background sync and no mirror mode (which would delete). It compares up to 200,000 items per side and 64 folder levels, and reads whole files in *Verified* mode, which is slow for big folders.
+- Projects restore folders, the view, the tool and the Find settings; they do not reopen individual files in the Code tab. Commands are typed into the terminal, never run for you.
+- Actions have no custom-command steps, never modify originals, and need the helper programs of their steps (the pictures recipe needs ImageMagick with WebP). Their results are copied to the output folder only after every step has worked.
 - The terminal is not tied to the Recycle Bin or protected folders. Windows uses ConPTY rather than Bun's POSIX-only terminal option.
 - It reads its page from `resources/file_manager/` at run time, so a single compiled executable of it (`bun build --compile`) was not tried and would need that folder beside it.
 - Conversions use the helper programs' standard settings (JPG quality 90, MP4 CRF 23 and so on); there are no per-file options yet. Video conversion can take a long time and progress is per file, not per percent. PDF from documents needs a PDF engine. Batches are limited to 500 files.

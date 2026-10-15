@@ -18,6 +18,8 @@ export const state = {
     workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
     activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window",
   },
+  /** Ids of queued jobs that came from a reviewed plan (planDialog.js reports on those itself). */
+  planJobs: new Set(),
   /** Which workspace view is showing (files, home, tools, split or dual) and whether the Power tools pane is visible. */
   workspace: "files",
   powerOpen: false,

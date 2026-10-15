@@ -109,6 +109,23 @@ export function createForm(hooks) {
       if (maxDepth.value !== "") body.maxDepth = Number(maxDepth.value);
       return body;
     },
+    /** The search settings a saved project keeps (never the folder, which is the project's own). */
+    readSaved() {
+      const b = this.read();
+      return { pattern: b.pattern, mode: b.mode, caseMode: b.caseMode, type: b.type, extensions: b.extensions, exclude: b.exclude, size: b.size, modified: b.modified, hidden: b.hidden, noIgnore: b.noIgnore };
+    },
+    applySaved(v) {
+      if (typeof v.pattern === "string") pattern.value = v.pattern;
+      if (typeof v.mode === "string") mode.value = v.mode;
+      if (typeof v.caseMode === "string") caseMode.value = v.caseMode;
+      if (typeof v.type === "string") show.value = v.type;
+      if (Array.isArray(v.extensions)) exts.value = v.extensions.join(", ");
+      if (Array.isArray(v.exclude)) exclude.value = v.exclude.join(", ");
+      if (typeof v.size === "string") size.value = v.size;
+      if (typeof v.modified === "string") modified.value = v.modified;
+      if (typeof v.hidden === "boolean") hidden.input.checked = v.hidden;
+      if (typeof v.noIgnore === "boolean") noIgnore.input.checked = v.noIgnore;
+    },
     setValues(v) {
       if (v.pattern !== undefined) pattern.value = v.pattern;
       if (v.root !== undefined) root.value = v.root;

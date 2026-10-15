@@ -90,7 +90,7 @@ export interface JobStepSpec {
 }
 
 export interface JobSpec {
-  kind: "convert" | "install" | "permissions" | "graveyard" | "copy" | "move" | "rename";
+  kind: "convert" | "install" | "permissions" | "graveyard" | "copy" | "move" | "rename" | "delete" | "mixed";
   title: string;
   steps: JobStepSpec[];
   /** Steps that did not finish can be run again with `retry`. */

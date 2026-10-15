@@ -115,13 +115,14 @@ export async function copyWithProgress(source: string, destination: string, sign
   }
 }
 
-async function undoReplace(ctx: FmContext, replacedTrashId: string | undefined): Promise<string> {
+export async function undoReplace(ctx: FmContext, replacedTrashId: string | undefined): Promise<string> {
   if (!replacedTrashId) return "";
   const [back] = await restoreFromTrash(ctx, [replacedTrashId]).catch(() => [undefined]);
   return back && back.ok ? " The item that was in the way has been put back." : " The item that was in the way is in the Recycle Bin: open it there to restore it.";
 }
 
-function transferStep(ctx: FmContext, mode: TransferMode, source: string, destDir: string, policy: Policy): JobStepSpec {
+/** One copy or move. `name` gives the item a different name in `destDir` (the plans use it for exact destinations). */
+export function transferStep(ctx: FmContext, mode: TransferMode, source: string, destDir: string, policy: Policy, name?: string): JobStepSpec {
   const p = pathApi(ctx);
   let size: ItemSize | null = null;
   return {
@@ -143,7 +144,7 @@ function transferStep(ctx: FmContext, mode: TransferMode, source: string, destDi
           if (!st) throw new FmError("NOT_FOUND", `"${p.basename(source)}" no longer exists. It may have been moved or deleted by another program.`);
           if (st.isDirectory()) assertNotIntoItself(ctx, source, destDir);
           signal.throwIfAborted();
-          const resolved = await resolveTarget(ctx, source, destDir, policy, mode === "copy");
+          const resolved = await resolveTarget(ctx, source, destDir, policy, mode === "copy", name);
           if (!resolved.target) {
             throw new StepSkip(mode === "move" && p.dirname(source) === destDir ? "Already in that folder." : "Left alone: something with that name is already there.");
           }

@@ -18,6 +18,9 @@ export const fs = {
   scope: "all",
   /** The last search's numbers, for the status line. */
   stats: null,
+  /** Set by the Find tab once it is open: lets a saved project read and restore the search settings. */
+  readForm: null,
+  applyForm: null,
 };
 
 const listeners = new Map();

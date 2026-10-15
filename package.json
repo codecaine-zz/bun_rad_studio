@@ -193,6 +193,7 @@
     "cli:fd": "bun run cli_apps/fd_cli.ts",
     "cli:sd": "bun run cli_apps/sd_cli.ts",
     "cli:rip": "bun run cli_apps/rip_cli.ts",
+    "files:actions": "bun run scripts/file_actions.ts",
     "cli:tokei": "bun run cli_apps/tokei_cli.ts",
     "cli:gdu": "bun run cli_apps/gdu_cli.ts",
     "cli:ipinfo": "bun run cli_apps/ipinfo_cli.ts",

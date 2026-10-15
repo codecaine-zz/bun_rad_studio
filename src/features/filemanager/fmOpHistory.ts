@@ -18,7 +18,7 @@ import type { JobHooks, JobView, StepState } from "./fmJobs";
 export const HISTORY_VERSION = 1;
 export const MAX_ENTRIES = 200;
 export const MAX_ITEMS = 200;
-const FILE_KINDS = ["copy", "move", "rename"] as const;
+const FILE_KINDS = ["copy", "move", "rename", "delete", "mixed"] as const;
 type FileOpKind = (typeof FILE_KINDS)[number];
 const STATES = ["waiting", "running", "done", "failed", "cancelled", "interrupted"] as const;
 type HistoryState = (typeof STATES)[number];

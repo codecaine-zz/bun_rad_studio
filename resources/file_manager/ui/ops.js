@@ -7,6 +7,7 @@ import { toast } from "./menus.js";
 import { openInCode } from "./code.js";
 import { hasNoExtension, isKnownTextName } from "./codeLang.js";
 import { openInEditor } from "./fileurl.js";
+import { reviewPlan } from "./planDialog.js";
 import { finishOpen } from "./openwith.js";
 import { busy, goTo, goToIn, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
@@ -234,16 +235,8 @@ export async function renameSelection() {
   const folders = new Set(items.map((e) => parentOf(e.path, state.sep)));
   if (folders.size !== 1) return toast("To rename several items at once, they need to be in the same folder.");
   const folder = [...folders][0];
-  const rows = await bulkRenameDialog(folder, items.map((e) => e.name));
-  if (!rows || !rows.length) return;
-  const sep = state.sep;
-  pushUndo(`rename of ${plural(rows.length, "item")}`, async () => {
-    const pairs = rows.map((r) => ({ from: `${folder}${folder.endsWith(sep) ? "" : sep}${r.to}`, to: `${folder}${folder.endsWith(sep) ? "" : sep}${r.from}` }));
-    ensureOk((await call("relocate", { pairs })).results, "rename");
-  });
-  toast(`Renamed ${plural(rows.length, "item")}.`, { kind: "success", action: { label: "Undo", run: undo } });
-  await refresh({ keepSelection: false, pane });
-  selectKeys(rows.map((r) => `${folder}${folder.endsWith(sep) ? "" : sep}${r.to}`), pane);
+  // The plan dialog runs the renames in the task queue and reports (with Undo) when they are done.
+  await bulkRenameDialog(folder, items.map((e) => e.name));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -319,6 +312,7 @@ export async function transferInto(dest, sources, mode, pane = activePane()) {
 
 /** A copy or move from the queue ended (finished, partly failed or cancelled): refresh, offer Undo for what was done, say what was not. */
 async function onFileOpDone(job) {
+  if (state.planJobs.has(job.id)) return;
   if (job.kind === "rename") return refresh({ keepSelection: false });
   const mine = pendingTransfers.get(job.id);
   pendingTransfers.delete(job.id);
@@ -405,28 +399,12 @@ async function trashItems(paths) {
   }
 }
 
-/** Shift+Delete: deletes for good, after asking. */
+/** Shift+Delete: shows exactly what would be deleted for good, and deletes only after approval. */
 export async function deleteForever() {
   if (inTrash()) return deleteFromTrashForever();
   const items = selectedEntries();
   if (!items.length) return;
-  const ok = await confirmBox({
-    title: "Delete permanently?",
-    message: `${items.length === 1 ? `"${items[0].name}"` : plural(items.length, "item")} will be deleted for good. This can't be undone, and it won't go to the Recycle Bin.`,
-    confirmLabel: "Delete permanently",
-    danger: true,
-    details: items.length > 1 ? items.slice(0, 6).map((e) => e.name) : [],
-  });
-  if (!ok) return;
-  try {
-    const res = await busy(() => call("delete", { paths: items.map((e) => e.path), confirm: true }));
-    const { done, failed } = tally(res.results);
-    if (done.length) toast(`Deleted ${plural(done.length, "item")} permanently.`, { kind: "success" });
-    await refresh({ keepSelection: false });
-    await reportFailures(failed, "deleted");
-  } catch (err) {
-    fail(err);
-  }
+  await reviewPlan({ type: "delete", paths: items.map((e) => e.path), permanent: true }, { applyLabel: "Delete for good" });
 }
 
 export async function restoreFromBin() {

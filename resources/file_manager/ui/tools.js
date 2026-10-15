@@ -227,7 +227,7 @@ let timer = 0;
 
 const isActive = (job) => job.state === "running" || job.state === "waiting";
 
-const FILE_OPS = ["copy", "move", "rename"];
+const FILE_OPS = ["copy", "move", "rename", "delete", "mixed"];
 export const isFileOp = (job) => FILE_OPS.includes(job.kind);
 
 /** Items that did not run because of Cancel, and items that were stopped part-way. */
@@ -243,7 +243,7 @@ function fileOpProgress(job) {
 }
 
 function fileOpStatus(job) {
-  const verb = job.kind === "copy" ? "copied" : job.kind === "move" ? "moved" : "renamed";
+  const verb = { copy: "copied", move: "moved", rename: "renamed", delete: "deleted" }[job.kind] ?? "done";
   const parts = [];
   if (job.done) parts.push(`${job.done} ${verb}`);
   if (job.skipped - unfinished(job) > 0) parts.push(`${job.skipped - unfinished(job)} left alone`);

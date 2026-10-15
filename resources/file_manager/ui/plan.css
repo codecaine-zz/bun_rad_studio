@@ -1,0 +1,76 @@
+/* The shared "Review before anything changes" dialog, the Compare tool and the Projects tool. */
+
+/* Review dialog */
+.plan-title { font-weight: 600; margin: 0 0 0.5rem; }
+.plan-h { margin: 0.9rem 0 0.3rem; font-size: 0.9rem; }
+.plan-warnings { list-style: none; margin: 0 0 0.6rem; padding: 0.5rem 0.7rem; background: var(--warn-bg); color: var(--warn-text); border-radius: 0.4rem; }
+.plan-summary { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 0.8rem; margin: 0.4rem 0; }
+.plan-summary dt { color: var(--muted); }
+.plan-summary dd { margin: 0; font-weight: 600; }
+.plan-recovery { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.plan-recovery li.no { color: var(--muted); }
+.plan-recovery li.yes strong { color: var(--good); }
+.plan-listhead { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.plan-filter { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+.plan-items { list-style: none; margin: 0.3rem 0 0.6rem; padding: 0; max-height: 14rem; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.4rem; }
+.plan-item { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
+.plan-item:last-child { border-bottom: 0; }
+.plan-line { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.plan-check-space { width: 1rem; flex: none; }
+.plan-badge { flex: none; min-width: 5.5rem; padding: 0 0.4rem; border-radius: 0.8rem; background: var(--hover); font-size: 0.75rem; text-align: center; }
+.plan-replace .plan-badge, .plan-delete .plan-badge { background: var(--warn-bg); color: var(--warn-text); }
+.plan-blocked .plan-badge { background: var(--danger-bg); color: var(--danger-text); }
+.plan-path { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.82rem; }
+.plan-size { flex: none; color: var(--muted); font-size: 0.8rem; }
+.plan-why { margin: 0.15rem 0 0 1.5rem; font-size: 0.8rem; color: var(--muted); }
+.plan-why.plan-block { color: var(--danger-text); }
+.plan-why.plan-warn { color: var(--warn-text); }
+.plan-skip .plan-path { color: var(--muted); }
+.plan-approve { margin-top: 0.4rem; font-weight: 600; }
+
+/* Compare */
+.compare-pane { display: flex; flex-direction: column; gap: 0.6rem; }
+.compare-folders { display: grid; gap: 0.5rem; }
+.compare-path { flex: 1; min-width: 12rem; }
+.compare-ignore { width: 100%; min-height: 4.5rem; font-family: ui-monospace, monospace; }
+.compare-progress { width: 100%; }
+.compare-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.compare-chip { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 1rem; padding: 0.15rem 0.7rem; cursor: pointer; }
+.compare-chip.on { background: var(--selected); color: var(--selected-text); border-color: var(--accent); }
+.compare-table td, .compare-table th { vertical-align: top; }
+.compare-table tr.g-different td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.compare-table tr.g-cannot td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.compare-actions { display: grid; gap: 0.4rem; }
+.compare-note { margin: 0; }
+.compare-help ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+
+/* Projects */
+.proj-list, .act-cards { display: grid; gap: 0.6rem; }
+.proj-card h3, .act-card h3 { display: flex; align-items: center; gap: 0.5rem; }
+.proj-roots { margin: 0; overflow-wrap: anywhere; }
+.proj-badge { font-size: 0.7rem; padding: 0 0.45rem; border-radius: 0.8rem; background: var(--hover); font-weight: 400; }
+.proj-badge.warn { background: var(--warn-bg); color: var(--warn-text); margin-left: 0.4rem; }
+.proj-text { width: 100%; font-family: ui-monospace, monospace; }
+.proj-cmd { display: flex; gap: 0.4rem; margin-bottom: 0.3rem; }
+.proj-cmd-line { flex: 1; font-family: ui-monospace, monospace; }
+.proj-cmd-view { margin: 0.2rem 0; padding: 0.4rem 0.6rem; background: var(--panel); border: 1px solid var(--border); border-radius: 0.4rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.proj-cmds { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.proj-tools, .proj-dbs { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+.proj-detail h4 { margin: 0.6rem 0 0.2rem; font-size: 0.85rem; }
+.proj-detail ul { margin: 0; padding-left: 1.2rem; }
+
+/* Fields inside the project dialogs stack, one under the other. */
+.dialog .pw-field { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.4rem 0; }
+.dialog .pw-field .find-input, .dialog .proj-text { width: 100%; box-sizing: border-box; }
+.dialog .pw-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+.dialog .pw-row .pw-field { flex: 1; min-width: 10rem; }
+
+/* Actions */
+.act-list { margin: 0.2rem 0; padding-left: 1.3rem; }
+.act-step { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.5rem 0.7rem; margin: 0.4rem 0; }
+.act-step.disabled { opacity: 0.75; border-style: dashed; }
+.act-opt { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.8rem; }
+.act-opt .pw-field { flex: 1; }
+.act-panel { margin-top: 0.6rem; }
+.act-inputs ul { margin: 0.2rem 0; padding-left: 1.2rem; }
+.act-check, .act-run { display: grid; gap: 0.3rem; }

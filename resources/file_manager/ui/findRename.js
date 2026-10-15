@@ -1,7 +1,7 @@
 // Changing things from the Find tool: make a new file or folder, rename, duplicate or set permissions on the selected
 // results (all with Undo), and rename all the matches at once with a preview first.
 import { call } from "./api.js";
-import { confirmBox, problemsBox } from "./dialogs.js";
+import { problemsBox } from "./dialogs.js";
 import { h } from "./dom.js";
 import { fs, onFind, scopeItems, selectedItems, targetBody } from "./findStore.js";
 import { sampleNames } from "./findCore.js";
@@ -9,6 +9,7 @@ import { attempt, button, card, checkbox, dropdown, field, row, textInput } from
 import { toast } from "./menus.js";
 import { refresh, refreshTrashCount } from "./nav.js";
 import { pushUndo, undo } from "./ops.js";
+import { reviewPlan } from "./planDialog.js";
 import { on, state } from "./state.js";
 import { baseName, parentOf, plural } from "./util.js";
 
@@ -34,6 +35,8 @@ export function createRename(hooks) {
     if (bad.length) throw new Error(bad[0]);
     hooks.rerun();
   };
+
+  on("fileop-done", (job) => { if (state.planJobs.has(job.id)) hooks.rerun(); });
 
   // --- one item ---------------------------------------------------------------------------------------------
   const name = textInput({ label: "Name", placeholder: "A name", tip: "The name for a new file or folder, or the new name for the selected result. Leave it empty for a new file or folder to get a standard name.", width: "m" });
@@ -174,25 +177,11 @@ export function createRename(hooks) {
     const plan = await attempt(() => call("find/renameplan", { ...target, rules: rules() }));
     if (!plan) return;
     showPlan(plan);
-    const ok = plan.changed - plan.conflicts > 0 && await confirmBox({
-      title: `Rename ${plural(plan.changed - plan.conflicts, "item")}?`,
-      message: plan.conflicts ? `${plural(plan.conflicts, "item")} can't be renamed and will be skipped. You can undo the rest.` : "You can undo this with Undo.",
-      confirmLabel: "Rename them",
-      details: plan.rows.filter((r) => !r.error).slice(0, 5).map((r) => `${r.oldName} → ${r.newName}`),
-    });
-    if (!ok) {
-      if (plan.changed - plan.conflicts <= 0) toast("No valid renames to do. Check the preview to see why.", { kind: "info" });
-      return;
-    }
-    const res = await attempt(() => call("find/renameplan", { ...target, rules: rules(), apply: true }));
-    if (!res) return;
-    toast(`Renamed ${plural(res.renamed.length, "item")}${res.failed.length ? `, ${res.failedCount} couldn't be renamed` : ""}.`, { kind: res.failed.length ? "error" : "success" });
-    if (res.failed.length) await problemsBox("Some items couldn't be renamed", "Here is why:", [...new Set(res.failed.map((f) => `${baseName(f.path, state.sep)}: ${f.message}`))]);
-    if (res.renamed.length) {
-      pushUndo(`rename of ${plural(res.renamed.length, "item")}`, async () => ensure(await call("relocate", { pairs: res.renamed.map((r) => ({ from: r.to, to: r.from })) })));
-    }
-    preview.hidden = true;
-    refreshAll();
+    const items = plan.rows.filter((r) => !r.error && r.newName !== r.oldName).map((r) => ({ path: r.from, name: r.newName }));
+    if (!items.length) return toast("No valid renames to do. Check the preview to see why.", { kind: "info" });
+    // The plan checks the disk again, shows what happens to each item, and runs in the task queue with Undo.
+    const outcome = await reviewPlan({ type: "rename", items });
+    if (outcome.applied) preview.hidden = true;
   }
 
   const batch = card("Rename all the matches", "Change many names at once. Press Preview to see the new names before anything is renamed.",

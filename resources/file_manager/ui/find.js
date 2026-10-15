@@ -39,6 +39,9 @@ registerPowerTab({
     };
 
     const form = createForm({ onSearch: () => search(), onClear, onLive, onPreset, onRecent });
+    // Saved projects read and restore the search settings through these two functions.
+    fs.readForm = () => form.readSaved();
+    fs.applyForm = (v, folder) => { form.applySaved(v); if (folder) form.setValues({ root: folder }); };
     const results = createResults({ onActivate: openItem });
     const inspector = createInspector();
     const hooks = { rerun: () => search({ quiet: true }), getRoot: () => form.getRoot() };

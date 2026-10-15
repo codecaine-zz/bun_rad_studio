@@ -8,6 +8,7 @@ import { toast } from "./menus.js";
 import { saveSettings } from "./nav.js";
 import { keysOf } from "./keymap.js";
 import { permissionsSection } from "./permsPanel.js";
+import { reviewPlan } from "./planDialog.js";
 import { formatShortcut } from "./shortcuts.js";
 import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { state } from "./state.js";
@@ -136,9 +137,12 @@ export function bulkRenameDialog(folder, names) {
       e.stopImmediatePropagation();
       ok.disabled = true;
       try {
-        const res = await call("bulkrename", { folder, names, spec: cleanSpec(spec), apply: true });
-        dlg.close("done");
-        resolve(res.rows.filter((r) => r.changed));
+        // The preview here only shows the new names; the plan checks the disk again, shows recovery, and runs in the task queue.
+        const outcome = await reviewPlan({ type: "bulk-rename", folder, names, spec: cleanSpec(spec) });
+        if (outcome.applied) {
+          dlg.close("done");
+          resolve(outcome);
+        } else ok.disabled = false;
       } catch (err) {
         dlg.setError(err instanceof ApiError ? err.message : "Renaming failed. Nothing was changed.");
         ok.disabled = false;

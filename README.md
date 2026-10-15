@@ -54,6 +54,10 @@ Downloaded a release instead? Run `./bin/file-manager-studio`. Everything below 
 | :--- | :--- |
 | 🗃️ **Everyday files** | Sidebar and address bar anyone can read, previews, drag and drop, a **dual view** whose right pane has every option of the left, favorites, workspace views, an undoable Recycle Bin, **New SQLite database** from the right-click menu, one-click shortcuts to every tool, and **Permissions** (a Read/Write/Run grid with a preview and one-step Undo, plus macOS Locked/Hidden and Windows attributes). |
 | 🪟 **A window that remembers** | Opens filling the screen; once you resize or move it, it remembers, and **Reset window to default** is always one click away. |
+| 🛡️ **Review before anything changes** | Renaming many items, deleting for good, cleaning up duplicates and Find's copy, move and delete show every change first (create, copy, move, rename, replace, delete, skip), what could go wrong, and **which ways back really exist** (Undo, Recycle Bin, backup, Graveyard). They are checked again when they run, never overwrite silently, and go through one task list with progress, Cancel and Retry. |
+| 🆚 **Compare folders** | Two folders in five groups (only left, only right, different, identical, cannot compare), a quick check that never calls a file identical without saying it was not read, a verified byte-by-byte check, ignore rules, and a one-way copy of the differences you pick. It never deletes. |
+| 📌 **Projects** | Save folders, view, search settings, ignore rules, favorite commands and database references, and reopen them in one click. No secrets are stored, and commands are typed into the terminal for you, never run. |
+| ⚙️ **Actions** | Saved recipes (for example *resize, make WebP, put in ./optimized*) that are checked first, run in the task list on copies of your files, and never overwrite. |
 | 🔄 **Convert and process** | Batch conversion of pictures, video, sound, documents and archives (Zstandard built in), with **one-click setup** of the helper programs through Homebrew, apt, dnf, pacman, winget or Scoop. |
 | 🔐 **Secrets** | An encrypted password manager and secure notes: AES-256-GCM, Argon2id, optional key file and recovery key (copy it or save it to a file instead of typing it), one-time codes, importers, auto-locking clipboard. [How it works](docs/security.md#secrets-vault-radsec) |
 | 🔒 **Encrypt files and folders** | Lock any file or folder with a password. |
@@ -61,7 +65,7 @@ Downloaded a release instead? Run `./bin/file-manager-studio`. Everything below 
 | 🪦 **Graveyard** | Bury files with Rip (Alt+Delete), browse, restore or delete them for good. |
 | 🔭 **Subdomains** | Passive subdomain discovery from several sources, with safe, opt-in DNS, HTTP and port checks. |
 | 🧑‍💻 **For developers** | A terminal that opens in the folder you are looking at, a Code editor, code statistics (Dev tab), a live server and PHP server, Find, Replace, Watch, Network, IP info, Crypto (UUID v7 and more) and Bun's own built-in utilities. |
-| 🎨 **135 themes** | Including futuristic themes with a motion layer, and a theme editor. |
+| 🎨 **135 themes** | The 133 named themes of the SimpleGUI apps plus *Default Dark* and *Default Light*, including futuristic themes with a motion layer, a theme editor, and a **Themes** button in the ribbon. |
 | ℹ️ **Know your files** | Warns when a file isn't what its name says, and shows image and file details and metadata. |
 
 > Built with care but not independently audited. Read [what was and was not verified](docs/userguides/43_file_manager.md#what-was-verified-and-what-was-not) before trusting it with anything you cannot replace.
@@ -112,7 +116,7 @@ bun run cli:launcher --search sqlite
 > [!TIP]
 > ### ⚡ Instant Unified Project Workstation Launcher (`bun run app:launcher`)
 > **Quickly test and launch every single tool in this repository with 1-click:**
-> *Auto-detects and launches all **65 Studio Applications**, **77 CLI Utilities**, and **27 Showcase Demos** (169+ tools total) with real-time process monitoring, 1-click quick execution, category filtering, and native Terminal client spawning!*
+> *Auto-detects and launches all **66 Studio Applications**, **79 CLI Utilities**, and **27 Showcase Demos** (172 tools total; the launcher counts them itself, so this is what you will see) with real-time process monitoring, 1-click quick execution, category filtering, and native Terminal client spawning!*
 
 ### ⚡ Launcher Studio Pro (`bun run app:launcher`)
 
@@ -161,7 +165,7 @@ bun run release:file-manager                       # File Manager only: one zip 
 
 | File | For | Desktop apps |
 | :--- | :--- | :---: |
-| `bun-rad-studio-v1.0.0-macos-arm64.tar.gz` | Apple silicon Macs | yes |
+| `bun-rad-studio-v<version>-macos-arm64.tar.gz` | Apple silicon Macs | yes |
 | `…-macos-x64.tar.gz` | Intel Macs | yes |
 | `…-linux-x64.tar.gz`, `…-linux-x64-baseline.tar.gz` | 64-bit Intel/AMD Linux (baseline = CPUs from before 2013) | yes |
 | `…-linux-arm64.tar.gz` | 64-bit ARM Linux (Raspberry Pi OS 64-bit, Graviton …) | yes |
@@ -176,7 +180,7 @@ Each archive holds the platform's Bun runtime, every app bundled to one file, th
 **Publish it:**
 
 ```bash
-gh release create v1.0.0 release/*.tar.gz release/*.zip release/SHA256SUMS.txt -F release/RELEASE_NOTES.md
+gh release create "v$(bun -p 'require("./package.json").version')" release/*.tar.gz release/*.zip release/SHA256SUMS.txt -F release/RELEASE_NOTES.md
 ```
 
 Change `version` in `package.json` first; it names every file.
@@ -184,7 +188,7 @@ Change `version` in `package.json` first; it names every file.
 **Using a download** (this is also in each archive's `README.txt`):
 
 ```bash
-tar -xzf bun-rad-studio-v1.0.0-linux-arm64.tar.gz && cd bun-rad-studio-v1.0.0-linux-arm64
+tar -xzf bun-rad-studio-v<version>-linux-arm64.tar.gz && cd bun-rad-studio-v<version>-linux-arm64
 ./bin/file-manager-studio          # a desktop app
 ./bin/fd-cli --help                # a command-line tool
 sh install.sh                      # optional: put everything on your PATH and in the Linux applications menu
@@ -301,12 +305,12 @@ What was verified (macOS and Linux ARM) and what was not (Intel, Windows), plus 
 
 ### 🎨 Built-in Desktop Form Themes & Visual Gallery (133 Themes)
 
-Bun RAD Studio and SimpleGUI feature **63 built-in, pixel-perfect desktop UI themes** covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
+Bun RAD Studio and SimpleGUI feature **133 named built-in desktop UI themes** (the File Manager and the theme pickers list 135: these 133 plus *Default Dark* and *Default Light*) covering signature developer aesthetics, modern operating system environments (macOS Sonoma, Windows 11 Fluent Acrylic & Mica, Ubuntu Yaru, GNOME Libadwaita, Linux Mint Cinnamon, System76 Pop!\_OS, Fedora Workstation), popular syntax themes (Monokai Pro, Tokyo Night, One Dark Pro, Gruvbox, Rosé Pine, Everforest, Kanagawa, Dracula, Nord, Catppuccin), and authentic nostalgic retro platforms (Windows 95, Commodore 64, Amiga, Macintosh System 7, Game Boy, Matrix Phosphor, Amber CRT, Synthwave '84, NeXTSTEP, Mac OS X Aqua, Hot Dog Stand, PlayStation 1994).
 
 > [!TIP]
 > ### 🖼️ Complete Visual Gallery & Theme Catalog in `docs/THEMES.md`
 > **Instead of listing all 133 themes and screenshots here, the complete visual catalog, side-by-side screenshots, color hex codes, and quick launch commands are thoroughly documented in:**
-> 👉 **[🖼️ View the Complete 63-Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
+> 👉 **[🖼️ View the Complete Theme Visual Gallery in docs/THEMES.md](docs/THEMES.md)**
 
 Every theme automatically harmonizes:
 
@@ -335,6 +339,8 @@ bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 
 #### 🎨 Built-in Theme Categories Overview (133 Themes)
 
+> The categories below add up to 117 of the 133 themes. The complete list is in [docs/THEMES.md](docs/THEMES.md).
+
 | Category | Count | Highlight Themes | Vibe & Aesthetic |
 | :--- | :---: | :--- | :--- |
 | **🌟 Signature Brand** | 1 | `codefreelance` | Official obsidian canvas (`#050505`), neon emerald & purple accents |
@@ -349,7 +355,7 @@ bun run demos/23_all_themes_all_controls_showcase.ts ubuntu_dark
 | **🕹️ Retro & Nostalgic Computing** | 10 | `win95`, `gameboy`, `c64`, `mac_classic`, `amber_crt`, `matrix`, `synthwave`, `amiga`, `nextstep`, `mac_os_aqua`, `hotdog_stand`, `playstation` | Authentic Windows 95 3D bevels, 1989 Game Boy DMG-01, Commodore 64, Matrix digital rain, and Synthwave neon |
 | **🚀 AAA Studio & Cloud Dark** | 14 | `raycast_dark`, `linear_dark`, `vercel_dark`, `unreal_engine`, `arc_velvet`, `abyss`, `night_city`, `horizon`, `tailwind_dark`, `supabase`, `oled_black` | Sleek dark-mode surfaces for modern engineering tools and cloud consoles |
 
-👉 **[🖼️ View All 63 Theme Screenshots, Hex Palettes & Details in docs/THEMES.md →](docs/THEMES.md)**
+👉 **[🖼️ View the Theme Screenshots, Hex Palettes & Details in docs/THEMES.md →](docs/THEMES.md)**
 
 #### 💻 How to Use Themes in SimpleGUI
 
@@ -405,8 +411,35 @@ Programmatically interact with and control form state from Bun TypeScript or cli
 
 ### Prerequisites
 
-- [Bun Runtime](https://bun.sh) (v1.0.0 or higher)
-- macOS, Windows, or Linux with WebKit/Webview support
+**To run from source (development)**
+
+| You need | Notes |
+| :--- | :--- |
+| [Bun](https://bun.sh) | The tests and builds in this repository were run with Bun 1.4.2. Older versions were not tried, so the minimum version is not claimed. |
+| `bun install` | Installs the dependencies in `package.json`, including the native window library (`webview-bun`). |
+| macOS | Nothing else. |
+| Windows | The Microsoft WebView2 runtime (part of Windows 11). See the Windows runtime note below. |
+| Linux | GTK 4 and WebKitGTK 6.0 (`libgtk-4-1` and `libwebkitgtk-6.0-4` on Debian and Ubuntu 24.04+). Older distributions that only have WebKitGTK 4.x were not tried. |
+
+**To run a download (packaged runtime)**: Bun is already inside the download, so you do not install it. The desktop apps need what the table under *Using a download* (above) lists (nothing on macOS; GTK 4 + WebKitGTK 6.0 on Linux; WebView2 on Windows); the command-line tools need nothing but, on Alpine, `libstdc++` and `libgcc`. The File Manager's *Convert and process* tool uses helper programs (ffmpeg, ImageMagick, pandoc and so on) that it offers to install the first time you need them; they are not part of a download.
+
+#### Which platforms have been tested
+
+Labels mean: **Tested** = started and checked by hand or by the automated tests; **Partially tested** = some programs were started, not all; **Untested** = built or written, but no program from it was started. Nothing here is a promise for platforms marked untested. Details and dates are in [Building releases](docs/developer/releasing.md#what-was-verified) and the [File Manager guide](docs/userguides/43_file_manager.md#what-was-verified-and-what-was-not).
+
+| Platform | Status | Evidence |
+| :--- | :--- | :--- |
+| macOS Apple Silicon (arm64) | **Tested** | The automated test suite (thousands of tests) runs here on every change; all 65 Mac apps were built, signed and started; the File Manager was used by hand. |
+| macOS Intel (x64) | **Untested** | Cross-built; no program from it was started. |
+| Linux arm64 (glibc) | **Partially tested** | Unpacked in an Ubuntu 24.04 arm64 container: the command-line tools ran, and the File Manager and Calculator opened a real WebKitGTK window under Xvfb. The other apps were not started. |
+| Linux x64 (glibc and baseline) | **Untested** for the downloads | Earlier notes say running from source worked on Ubuntu and Kali under Parallels; the CPU type was not recorded and it was not repeated for this release. |
+| Alpine / musl | **Partially tested** | arm64 command-line tools ran in an Alpine 3.20 container. x64 musl is untested. Desktop apps are not provided. |
+| Windows 10/11 x64, x64 baseline and ARM64 | **Untested** for the downloads; **partially tested** from source | The downloads were never started. Running from source with `run.cmd` has been used by people on Windows, and a launcher bug found that way (`run.cmd -Gui` opening the designer) was fixed in 1.1.0 and covered only by text checks, not by running Windows. |
+| File Manager on Windows and Linux | **Untested** by hand | Their clipboard, Quick Look, terminal and "open with" code paths have unit tests that simulate the platform, but were not run on those systems. |
+
+#### Implemented, and not yet
+
+Everything described in this README and the user guides is implemented unless it is listed here as not built: two-way or background folder synchronization and *mirror* (deleting) modes, a visual editor for automation chains, custom shell-command steps in Actions, reopening individual Code-tab files from a Project, Undo that survives closing the app, and running the desktop apps' downloads on Windows and Intel Macs with evidence. If a feature seems missing, check the [File Manager guide's Limits](docs/userguides/43_file_manager.md#limits).
 
 #### 🪟 Windows Runtime Note (ARM64 / x64 compatibility)
 
@@ -497,9 +530,9 @@ sudo apt install libwebkitgtk-6.0-4
 ```
 
 > [!NOTE]
-> **Tested & Verified**: Tested on **Ubuntu** and **Kali Linux** in Parallels Desktop.
+> **Tested**: earlier notes say running from source worked on **Ubuntu** and **Kali Linux** in Parallels Desktop (not repeated for this release; see the platform table above).
 >
-> **Pre-compiled Binaries**: If the code is already compiled into a standalone binary (e.g. via `bun run build:binary` or `bun build --compile`), the binary will run out of the box without needing the WebKit library (`libwebkitgtk-6.0-4`) to be installed!
+> **Compiled programs**: a compiled *command-line* tool does not need the WebKit library. A compiled *desktop* app still opens its window through the native window library, so on Linux it needs GTK 4 and WebKitGTK 6.0 as well; the release table above says so, and the Linux arm64 check that opened a window had those libraries installed. An older note here claimed otherwise and was not backed by a test, so it was removed.
 
 <a id="1-clone--install-dependencies"></a>
 
@@ -919,7 +952,7 @@ bun build --compile index.ts
 ```
 
 > [!TIP]
-> **Linux Standalone Portability**: Once compiled into a standalone binary, the executable will work on Linux without needing `libwebkitgtk-6.0-4` to be installed on the host machine.
+> **Linux standalone programs**: compiled command-line tools run without WebKit. Compiled desktop apps still need GTK 4 and WebKitGTK 6.0 on the host (see the platform table in [Prerequisites](#prerequisites)); a compiled desktop app without them was not tested.
 
 ### Option 2: Full macOS `.app` Bundle with Custom Icons
 

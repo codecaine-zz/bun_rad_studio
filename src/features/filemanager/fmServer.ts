@@ -36,6 +36,10 @@ import { serveOperations } from "./fmServeOps";
 import { vaultOperations } from "./fmVaultOps";
 import { secretsOperations } from "./fmSecretsOps";
 import { graveyardOperations } from "./fmGraveyardOps";
+import { planOperations } from "./fmPlanOps";
+import { compareOperations } from "./fmCompare";
+import { workspaceOperations } from "./fmWorkspaces";
+import { actionOperations } from "./fmActions";
 import { databaseOperations } from "./fmDbOps";
 import { studioFrameResponse } from "./fmDbFrame";
 import { hostedPageResponse, hostedSessionFor, hostedStudioOperations } from "./fmHostedStudios";
@@ -378,7 +382,7 @@ const operations: Record<string, Handler> = {
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
 Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations, dataCompareOperations, editorOperations, permsOperations);
 
-Object.assign(operations, secretsOperations, databaseOperations, graveyardOperations, subdomainOperations, clipboardOperations, qrOperations);
+Object.assign(operations, secretsOperations, databaseOperations, graveyardOperations, subdomainOperations, clipboardOperations, qrOperations, planOperations, compareOperations, workspaceOperations, actionOperations);
 
 // The window's size and position preference (window/get, window/set, window/reset).
 Object.assign(operations, windowOperations);

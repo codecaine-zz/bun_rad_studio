@@ -2,16 +2,17 @@
 // the Recycle Bin, delete them for good, or save the list of results as a file. Each action works on the results
 // that are shown (or only the selected ones) and offers Undo where that is possible.
 import { call } from "./api.js";
-import { confirmBox, problemsBox } from "./dialogs.js";
+import { problemsBox } from "./dialogs.js";
 import { h } from "./dom.js";
 import { fs, onFind, scopeItems, setScope, targetBody } from "./findStore.js";
-import { pathsText, sampleNames, summarizeBatch } from "./findCore.js";
+import { pathsText, summarizeBatch } from "./findCore.js";
 import { copyText } from "./findInspector.js";
 import { pickFolder } from "./findPicker.js";
 import { attempt, button, card, dropdown, field, row } from "./findUi.js";
 import { toast } from "./menus.js";
 import { refresh, refreshTrashCount } from "./nav.js";
 import { pushUndo } from "./ops.js";
+import { reviewPlan } from "./planDialog.js";
 import { baseName, formatSize, plural } from "./util.js";
 import { state } from "./state.js";
 
@@ -73,20 +74,9 @@ export function createActions(hooks) {
     if (!list) return;
     const dest = await pickFolder({ title: `${copying ? "Copy" : "Move"} ${plural(list.length, "item")} to which folder?`, start: fs.root, confirmLabel: copying ? "Copy here" : "Move here" });
     if (!dest) return;
-    const res = await attempt(() => call(copying ? "find/copy" : "find/move", { ...targetBody(), dest, policy: policy.value }));
-    if (!res) return;
-    await reportBatch(copying ? "Copied" : "Moved", res, copying ? "copied" : "moved");
-    if (res.pairs.length) {
-      pushUndo(`${copying ? "copy" : "move"} of ${plural(res.pairs.length, "item")}`, async () => {
-        const back = copying
-          ? await call("trash", { paths: res.pairs.map((p) => p.to) })
-          : await call("relocate", { pairs: res.pairs.map((p) => ({ from: p.to, to: p.from })) });
-        const bad = failedOf(back.results);
-        if (bad.length) throw new Error(bad[0]);
-        hooks.rerun();
-      });
-    }
-    refreshAround();
+    // The plan shows every item with its final name and what a same-name policy does, then runs in the task queue.
+    const outcome = await reviewPlan({ type: "transfer", mode: copying ? "copy" : "move", sources: list.map((i) => i.path), destination: dest, policy: policy.value });
+    if (outcome.applied) refreshAround();
   }
 
   async function archive() {
@@ -109,40 +99,13 @@ export function createActions(hooks) {
   async function bury() {
     const list = items("move them to the Recycle Bin");
     if (!list) return;
-    if (list.length >= 10) {
-      const ok = await confirmBox({ title: `Move ${plural(list.length, "item")} to the Recycle Bin?`, message: "They are not deleted for good: you can bring them back with Undo or from the Recycle Bin.", confirmLabel: "Move to the Recycle Bin", details: [sampleNames(list)] });
-      if (!ok) return;
-    }
-    const res = await attempt(() => call("find/trash", targetBody()));
-    if (!res) return;
-    await reportBatch("Moved to the Recycle Bin:", res, "moved to the Recycle Bin");
-    const ids = res.trashed.map((t) => t.id);
-    if (ids.length) {
-      pushUndo(`delete of ${plural(ids.length, "item")}`, async () => {
-        const back = await call("trash/restore", { ids });
-        const bad = failedOf(back.results);
-        if (bad.length) throw new Error(bad[0]);
-        hooks.rerun();
-      });
-    }
-    refreshAround();
+    await reviewPlan({ type: "delete", paths: list.map((i) => i.path), permanent: false }, { applyLabel: "Move to the Recycle Bin" });
   }
 
   async function destroy() {
     const list = items("delete them");
     if (!list) return;
-    const ok = await confirmBox({
-      title: `Delete ${plural(list.length, "item")} for good?`,
-      message: "This can't be undone, and nothing goes to the Recycle Bin. Folders are deleted together with everything inside them. Use \"Move to the Recycle Bin\" if you might want them back.",
-      confirmLabel: `Delete ${plural(list.length, "item")} for good`,
-      danger: true,
-      details: [sampleNames(list)],
-    });
-    if (!ok) return;
-    const res = await attempt(() => call("find/delete", { ...targetBody(), confirm: true }));
-    if (!res) return;
-    await reportBatch("Deleted", res, "deleted");
-    refreshAround();
+    await reviewPlan({ type: "delete", paths: list.map((i) => i.path), permanent: true }, { applyLabel: "Delete for good" });
   }
 
   async function saveList() {

@@ -144,10 +144,10 @@ export async function findConflicts(ctx: FmContext, sourcesInput: unknown, destI
 }
 
 /** Where an item goes in `destDir` under the chosen policy; null when it is to be left alone. Replace sends the old item to the Recycle Bin first. */
-export async function resolveTarget(ctx: FmContext, source: string, destDir: string, policy: Policy, copying: boolean): Promise<{ target: string | null; replaced?: { path: string; trashId: string } }> {
+export async function resolveTarget(ctx: FmContext, source: string, destDir: string, policy: Policy, copying: boolean, name?: string): Promise<{ target: string | null; replaced?: { path: string; trashId: string } }> {
   const p = pathApi(ctx);
-  const base = p.basename(source);
-  const sameFolder = p.dirname(source) === destDir;
+  const base = name ?? p.basename(source);
+  const sameFolder = p.dirname(source) === destDir && base === p.basename(source);
   const target = p.join(destDir, base);
   if (sameFolder) {
     if (!copying) return { target: null }; // moving into the folder it is already in

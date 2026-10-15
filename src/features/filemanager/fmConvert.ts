@@ -108,7 +108,7 @@ interface Picked {
 }
 
 /** The first engine that works for every one of these file types. */
-function pickEngine(ctx: FmContext, st: Status, def: ConvDef, exts: string[], opts: OptionValues): Picked {
+export function pickEngine(ctx: FmContext, st: Status, def: ConvDef, exts: string[], opts: OptionValues): Picked {
   let first: Usable | null = null;
   for (const engine of def.engines) {
     let verdict: Usable | null = null;
@@ -180,7 +180,7 @@ function choiceAvailable(def: ConvDef, st: Status, need: string | undefined): { 
 }
 
 /** The values each choice option may have right now: narrowed by what the installed programs can do. */
-function dynamicChoices(def: ConvDef, st: Status): Record<string, string[]> {
+export function dynamicChoices(def: ConvDef, st: Status): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const opt of def.options ?? []) {
     if (opt.kind !== "choice") continue;

@@ -8,7 +8,7 @@ import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 import type { Cancellable } from "./fmDevWalk";
 
-export type DevJobKind = "stats" | "disk" | "todo" | "dupes";
+export type DevJobKind = "stats" | "disk" | "todo" | "dupes" | "compare";
 export type DevJobState = "running" | "done" | "failed" | "cancelled";
 
 export interface DevJob extends Cancellable {

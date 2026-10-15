@@ -25,15 +25,15 @@ function entryView(entry) {
 export async function showOperationHistory() {
   const list = h("div", { class: "oph-list", "aria-live": "polite" }, h("p", { class: "oph-meta" }, "Loading…"));
   const dlg = openDialog({
-    title: "Copy, move and rename activity",
+    title: "File activity: copy, move, rename and delete",
     wide: true,
-    describe: "What was copied, moved or renamed, and what did not finish.",
+    describe: "What was copied, moved, renamed or deleted, and what did not finish.",
     body: [list, h("p", { class: "oph-meta" }, "This list keeps paths and outcomes only, never file contents. Clearing it does not touch any file. A finished operation can only be retried while the app stays open.")],
     buttons: [{ label: "Clear the list", value: "clear" }, { label: "Close", primary: true, value: null }],
   });
   try {
     const { entries } = await call("fileops/history");
-    list.replaceChildren(...(entries.length ? entries.map(entryView) : [h("p", { class: "oph-meta" }, "Nothing yet. Copies, moves and renames you run will be listed here.")]));
+    list.replaceChildren(...(entries.length ? entries.map(entryView) : [h("p", { class: "oph-meta" }, "Nothing yet. Copies, moves, renames and deletes you run through the task list will be listed here.")]));
   } catch (err) {
     list.replaceChildren(h("p", { class: "dialog-error", role: "alert" }, err instanceof ApiError ? err.message : "The history could not be read."));
   }

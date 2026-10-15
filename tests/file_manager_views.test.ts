@@ -1789,3 +1789,317 @@ describe("the Themes button in the ribbon", () => {
   });
 });
 
+
+describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
+  const lab = join(root, "plan-lab");
+  const put = (path: string, content = "x") => { mkdirSync(join(path, ".."), { recursive: true }); writeFileSync(path, content); return path; };
+  const closeDialogs = async () => { while (doc.querySelector(".modal-backdrop")) { key(doc.activeElement ?? doc.body, "Escape"); await sleep(60); } };
+  const dialogText = () => doc.querySelector(".modal-backdrop:last-child .dialog")?.textContent ?? "";
+  const primary = (): any => [...doc.querySelectorAll(".modal-backdrop:last-child .dialog .btn")].find((b: any) => b.classList.contains("primary"));
+  const buttonNamed = (name: string): any => [...doc.querySelectorAll("button")].find((b: any) => b.textContent.trim().startsWith(name) && !b.closest("[hidden]"));
+  const waitFor = async (check: () => boolean, ms = 4000) => { for (let i = 0; i < ms / 40 && !check(); i++) await sleep(40); };
+  const toasts = () => [...doc.querySelectorAll("#toasts .toast")].map((t: any) => t.textContent).join(" | ");
+  const setValue = (el: any, v: string) => { el.value = v; el.dispatchEvent(new win.Event("input", { bubbles: true })); el.dispatchEvent(new win.Event("change", { bubbles: true })); };
+
+  test("Compare and Projects are tools in the Files group", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    const ids = power.listPowerTabs().map((t: any) => t.id);
+    expect(power.listPowerTabs().find((t: any) => t.id === "compare")).toMatchObject({ label: "Compare", group: "files" });
+    expect(power.listPowerTabs().find((t: any) => t.id === "projects")).toMatchObject({ label: "Projects", group: "files" });
+    expect(ids.indexOf("compare")).toBeGreaterThan(ids.indexOf("find"));
+  });
+
+  test("a permanent delete shows the summary, the recovery limits and two confirmations; cancelling changes nothing", async () => {
+    const f = put(join(lab, "gone.txt"));
+    const { reviewPlan } = await import("../resources/file_manager/ui/planDialog.js");
+    const pending = reviewPlan({ type: "delete", paths: [f], permanent: true }, { applyLabel: "Delete for good" });
+    await waitFor(() => !!doc.querySelector(".plan-summary"));
+    const text = dialogText();
+    expect(text).toContain("Review before anything changes");
+    expect(text).toContain("Delete for good:");
+    expect(text).toContain("✗ Undo");
+    expect(text).toContain("everything here is deleted for good");
+    expect(text).toContain("gone.txt");
+    expect(primary().disabled).toBe(true);
+    const approve: any = doc.querySelector("#plan-approve");
+    const permanent: any = doc.querySelector("#plan-permanent");
+    approve.checked = true; approve.dispatchEvent(new win.Event("change", { bubbles: true }));
+    expect(primary().disabled).toBe(true);
+    permanent.checked = true; permanent.dispatchEvent(new win.Event("change", { bubbles: true }));
+    expect(primary().disabled).toBe(false);
+    permanent.checked = false; permanent.dispatchEvent(new win.Event("change", { bubbles: true }));
+    expect(primary().disabled).toBe(true);
+    key(doc.activeElement ?? doc.body, "Escape");
+    expect(await pending).toEqual({ applied: false });
+    expect(existsSync(f)).toBe(true);
+  });
+
+  test("approving runs the plan in the task queue and the result says it can't be undone", async () => {
+    const f = put(join(lab, "bye.txt"));
+    const { reviewPlan } = await import("../resources/file_manager/ui/planDialog.js");
+    const pending = reviewPlan({ type: "delete", paths: [f], permanent: true });
+    await waitFor(() => !!doc.querySelector("#plan-approve"));
+    for (const id of ["#plan-approve", "#plan-permanent"]) { const c: any = doc.querySelector(id); c.checked = true; c.dispatchEvent(new win.Event("change", { bubbles: true })); }
+    primary().click();
+    const outcome: any = await pending;
+    expect(outcome.applied).toBe(true);
+    await waitFor(() => !existsSync(f) && /Deleted 1 item/.test(toasts()));
+    expect(existsSync(f)).toBe(false);
+    expect(toasts()).toMatch(/Deleted 1 item.*can't be undone/);
+  });
+
+  test("a Recycle Bin delete offers Undo that really brings the file back", async () => {
+    const f = put(join(lab, "undo-me.txt"), "back again");
+    const { reviewPlan } = await import("../resources/file_manager/ui/planDialog.js");
+    const pending = reviewPlan({ type: "delete", paths: [f], permanent: false });
+    await waitFor(() => !!doc.querySelector("#plan-approve"));
+    expect(dialogText()).toContain("✓ Recycle Bin");
+    const c: any = doc.querySelector("#plan-approve"); c.checked = true; c.dispatchEvent(new win.Event("change", { bubbles: true }));
+    primary().click();
+    await pending;
+    const undoToast = (): any => [...doc.querySelectorAll("#toasts .toast")].find((t: any) => /Deleted 1 item/.test(t.textContent) && t.querySelector(".toast-action"));
+    await waitFor(() => !existsSync(f) && !!undoToast());
+    expect(existsSync(f)).toBe(false);
+    undoToast().querySelector(".toast-action").click();
+    await waitFor(() => existsSync(f));
+    expect(readFileSync(f, "utf8")).toBe("back again");
+  });
+
+  test("items can be left out of a plan with their checkbox, and skipped items say why", async () => {
+    const a = put(join(lab, "keep-a.txt"));
+    const b = put(join(lab, "drop-b.txt"));
+    const { reviewPlan } = await import("../resources/file_manager/ui/planDialog.js");
+    const pending = reviewPlan({ type: "delete", paths: [a, b, join(lab, "missing.txt")], permanent: false });
+    await waitFor(() => !!doc.querySelector(".plan-items"));
+    expect(dialogText()).toContain("no longer exists");
+    const boxes = [...doc.querySelectorAll(".plan-items input[type=checkbox]")] as any[];
+    expect(boxes.length).toBe(2);
+    boxes[0].checked = false; boxes[0].dispatchEvent(new win.Event("change", { bubbles: true }));
+    const c: any = doc.querySelector("#plan-approve"); c.checked = true; c.dispatchEvent(new win.Event("change", { bubbles: true }));
+    expect(primary().textContent).toContain("1 item");
+    primary().click();
+    await pending;
+    await waitFor(() => !existsSync(b));
+    expect(existsSync(a)).toBe(true);
+    expect(existsSync(b)).toBe(false);
+  });
+
+  test("Compare: two folders are listed in the five groups and a chosen difference is copied after a preview", async () => {
+    const left = join(lab, "cmp-left");
+    const right = join(lab, "cmp-right");
+    put(join(left, "same.txt"), "same");
+    put(join(right, "same.txt"), "same");
+    put(join(left, "only-left.txt"), "L");
+    put(join(right, "only-right.txt"), "R");
+    put(join(left, "diff.txt"), "left version");
+    put(join(right, "diff.txt"), "right version, longer");
+    const power = await import("../resources/file_manager/ui/power.js");
+    power.openPower("compare");
+    await sleep(200);
+    setValue(doc.querySelector("#compare-left"), left);
+    setValue(doc.querySelector("#compare-right"), right);
+    buttonNamed("Compare").click();
+    await waitFor(() => doc.querySelectorAll(".compare-table tbody tr").length === 4);
+    const chips = doc.querySelector(".compare-chips")!.textContent;
+    expect(chips).toContain("Only on the left: 1");
+    expect(chips).toContain("Only on the right: 1");
+    expect(chips).toContain("Different: 1");
+    expect(chips).toContain("Identical: 1");
+    expect(chips).toContain("Cannot compare: 0");
+    expect(doc.querySelector(".compare-note")!.textContent).toMatch(/not read/);
+    expect(doc.querySelector(".compare-note")!.hasAttribute("hidden")).toBe(false);
+    const rowOf = (rel: string): any => [...doc.querySelectorAll(".compare-table tbody tr")].find((r: any) => r.children[1].textContent === rel);
+    expect(rowOf("only-right.txt").querySelector("input").disabled).toBe(true);
+    expect(rowOf("same.txt").querySelector("input").disabled).toBe(true);
+    expect(rowOf("same.txt").textContent).toContain("not verified");
+    const copyBox = rowOf("only-left.txt").querySelector("input");
+    copyBox.checked = true; copyBox.dispatchEvent(new win.Event("change", { bubbles: true }));
+    buttonNamed("Copy the selected").click();
+    await waitFor(() => !!doc.querySelector(".plan-summary"));
+    expect(dialogText()).toContain("Copy:");
+    expect(dialogText()).toContain("only-left.txt");
+    expect(existsSync(join(right, "only-left.txt"))).toBe(false);
+    primary().click();
+    await waitFor(() => existsSync(join(right, "only-left.txt")));
+    expect(readFileSync(join(right, "only-left.txt"), "utf8")).toBe("L");
+    expect(existsSync(join(left, "only-left.txt"))).toBe(true);
+    expect(existsSync(join(right, "only-right.txt"))).toBe(true);
+    await closeDialogs();
+  });
+
+  test("Compare: the 'verify' button runs the careful check, and the chips filter the list", async () => {
+    buttonNamed("Verify them now").click();
+    await waitFor(() => /identical/.test(doc.querySelector(".compare-chips")!.textContent ?? "") && doc.querySelector(".compare-note")!.hasAttribute("hidden"));
+    expect(doc.querySelector(".compare-note")!.hasAttribute("hidden")).toBe(true);
+    const chip: any = [...doc.querySelectorAll(".compare-chip")].find((c: any) => c.textContent.startsWith("Different"));
+    chip.click();
+    await waitFor(() => doc.querySelectorAll(".compare-table tbody tr").length === 1);
+    expect(doc.querySelector(".compare-table tbody tr")!.children[1].textContent).toBe("diff.txt");
+    expect((doc.querySelector(".compare-chip.g-different") as any).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("Projects: save the layout, the secret check refuses a password in a command, open and delete", async () => {
+    const power = await import("../resources/file_manager/ui/power.js");
+    power.openPower("projects");
+    await sleep(250);
+    buttonNamed("Save the current layout").click();
+    await waitFor(() => !!doc.querySelector(".text-input"));
+    setValue(doc.querySelector(".modal-backdrop:last-child .text-input"), "Lab project");
+    primary().click();
+    await waitFor(() => dialogText().includes("Favorite commands"));
+    expect(dialogText()).toContain("Database connections");
+    expect(dialogText()).toContain("never stores passwords");
+    // a command with a password in it is refused with a sentence, and the dialog stays open
+    buttonNamed("Add a command").click();
+    const inputs = [...doc.querySelectorAll(".proj-cmd input")] as any[];
+    setValue(inputs[0], "Deploy");
+    setValue(inputs[1], "deploy --password=hunter2");
+    primary().click();
+    await waitFor(() => /never store passwords/.test(doc.querySelector(".modal-backdrop:last-child .dialog-error")?.textContent ?? ""));
+    expect(doc.querySelector(".modal-backdrop:last-child")).toBeTruthy();
+    setValue(inputs[1], "bun test");
+    const roots: any = doc.querySelector("textarea[aria-label='Project folders']");
+    setValue(roots, `${lab}\n${join(lab, "not-there")}`);
+    primary().click();
+    await waitFor(() => !doc.querySelector(".modal-backdrop"));
+    await waitFor(() => !!doc.querySelector(".proj-card"));
+    expect(doc.querySelector(".proj-card h3")!.textContent).toContain("Lab project");
+    expect(doc.querySelector(".proj-detail")!.textContent).toContain("missing");
+    expect(readFileSync(join(dataDir, "file_manager_workspaces.json"), "utf8")).not.toContain("hunter2");
+    // opening reports the missing folder instead of failing
+    buttonNamed("Open").click();
+    await waitFor(() => /with 1 problem/.test(toasts()));
+    expect(toasts()).toContain("not-there");
+    // the command goes to the terminal only when asked, and is never pressed Enter on
+    power.openPower("projects");
+    buttonNamed("Details").click();
+    await waitFor(() => !!doc.querySelector(".proj-cmds"));
+    expect(doc.querySelector(".proj-cmds")!.textContent).toContain("bun test");
+    expect(doc.querySelector(".proj-cmds")!.textContent).not.toContain("untrusted");
+    buttonNamed("Delete").click();
+    await waitFor(() => !!doc.querySelector(".modal-backdrop"));
+    primary().click();
+    await waitFor(() => !doc.querySelector(".proj-card"));
+    await closeDialogs();
+  });
+
+  test("Projects: an imported command is marked untrusted and asks before it is typed", async () => {
+    const file = JSON.stringify({ format: "bun-rad-file-manager-workspace", version: 1, workspace: { name: "From a friend", roots: [lab], commands: [{ label: "Hello", command: "echo hello" }] } });
+    const power = await import("../resources/file_manager/ui/power.js");
+    power.openPower("projects");
+    await sleep(200);
+    buttonNamed("Import a project file").click();
+    await waitFor(() => !!doc.querySelector("textarea[aria-label=\"The workspace file's text\"]"));
+    setValue(doc.querySelector("textarea[aria-label=\"The workspace file's text\"]"), file);
+    primary().click();
+    await waitFor(() => /Details of "From a friend"/.test(doc.querySelector(".proj-detail")?.textContent ?? ""));
+    expect(doc.querySelector(".proj-badge.warn")!.textContent).toBe("untrusted");
+    expect(doc.querySelector(".proj-card .proj-badge")!.textContent).toBe("imported");
+    buttonNamed("Put in the terminal").click();
+    await waitFor(() => dialogText().includes("not trusted yet"));
+    expect(dialogText()).toContain("echo hello");
+    expect(dialogText()).toContain("Nothing runs until you press Enter");
+    key(doc.activeElement ?? doc.body, "Escape");
+    await sleep(60);
+    buttonNamed("Delete").click();
+    await waitFor(() => !!doc.querySelector(".modal-backdrop"));
+    primary().click();
+    await waitFor(() => !doc.querySelector(".proj-card"));
+  });
+
+  test("Duplicate cleanup: one copy of each file always stays, and the rest go through the review dialog", async () => {
+    const dupes = join(lab, "dupes");
+    put(join(dupes, "a", "photo.jpg"), "same bytes here");
+    put(join(dupes, "b", "photo-copy.jpg"), "same bytes here");
+    put(join(dupes, "c", "photo-copy2.jpg"), "same bytes here");
+    const { createDupes } = await import("../resources/file_manager/ui/devDupes.js");
+    const d = createDupes({ getRoot: () => dupes });
+    doc.body.append(d.el);
+    const minSelect: any = d.el.querySelector("#dev-dupes-min");
+    minSelect.value = "1";
+    await d.start();
+    await waitFor(() => d.el.querySelectorAll("input[data-path]").length === 3);
+    const boxes = [...d.el.querySelectorAll("input[data-path]")] as any[];
+    const tick = (b: any, on: boolean) => { b.checked = on; b.dispatchEvent(new win.Event("change", { bubbles: true })); };
+    tick(boxes[0], true); tick(boxes[1], true); tick(boxes[2], true);
+    expect(boxes.filter((b) => b.checked).length).toBe(2);
+    expect(d.el.textContent).toContain("Keep at least one copy");
+    const clean: any = [...d.el.querySelectorAll("button")].find((b: any) => b.textContent.startsWith("Move the selected copies"));
+    expect(clean.disabled).toBe(false);
+    clean.click();
+    await waitFor(() => !!doc.querySelector(".plan-items"));
+    expect(dialogText()).toContain("Move to the Recycle Bin:");
+    expect(dialogText()).toContain("2 items");
+    key(doc.activeElement ?? doc.body, "Escape");
+    await sleep(60);
+    for (const f of ["a/photo.jpg", "b/photo-copy.jpg", "c/photo-copy2.jpg"]) expect(existsSync(join(dupes, f))).toBe(true);
+    d.el.remove();
+    await closeDialogs();
+  });
+
+  test("Actions: built-in recipes are listed, a run is checked first, runs in the queue, and the result lands in the output folder", async () => {
+    const act = join(lab, "act");
+    const csv = put(join(act, "people.csv"), "name,age\nAda,36\n");
+    put(join(act, "notes.txt"), "not a csv");
+    const nav = await import("../resources/file_manager/ui/nav.js");
+    const { activePane } = await import("../resources/file_manager/ui/pane.js");
+    await nav.goTo(act);
+    await sleep(300);
+    const power = await import("../resources/file_manager/ui/power.js");
+    expect(power.listPowerTabs().find((t: any) => t.id === "actions")).toMatchObject({ label: "Actions", group: "automate" });
+    power.openPower("actions");
+    await waitFor(() => doc.querySelectorAll(".act-card").length >= 3);
+    const cardText = doc.querySelector(".act-cards")!.textContent ?? "";
+    expect(cardText).toContain("Prepare images for a website");
+    expect(cardText).toContain("your original files are never changed");
+    expect(cardText).toContain("Make copies no wider than the size");
+    const card: any = [...doc.querySelectorAll(".act-card")].find((c: any) => c.textContent.includes("Turn data files into YAML"));
+    [...card.querySelectorAll("button")].find((b: any) => b.textContent.startsWith("Choose files and run")).click();
+    await waitFor(() => !!doc.querySelector(".act-panel .act-inputs"));
+    expect(doc.querySelector(".act-inputs")!.textContent).toContain("No files yet");
+    (activePane() as any).selection.clear();
+    (activePane() as any).selection.add(csv);
+    (activePane() as any).selection.add(join(act, "notes.txt"));
+    ([...doc.querySelectorAll(".act-panel button")].find((b: any) => b.textContent === "Use the selected files") as any).click();
+    await waitFor(() => /Ready:/.test(doc.querySelector(".act-check")?.textContent ?? ""));
+    expect(doc.querySelector(".act-inputs")!.textContent).toContain("2 files");
+    expect(doc.querySelector(".act-check")!.textContent).toMatch(/Ready: 1 file will be used/);
+    expect(doc.querySelector(".act-check")!.textContent).toMatch(/notes\.txt: This action takes \.json.*files/);
+    expect(doc.querySelector(".act-check")!.textContent).toContain("never changed");
+    const run: any = [...doc.querySelectorAll(".act-panel button")].find((b: any) => b.textContent === "Run the action");
+    expect(run.disabled).toBe(false);
+    run.click();
+    await waitFor(() => /added to "yaml"/.test(doc.querySelector(".act-run")?.textContent ?? ""), 8000);
+    expect(doc.querySelector(".act-run")!.textContent).toContain("✓ Convert to YAML");
+    expect(readFileSync(join(act, "yaml", "people.yaml"), "utf8")).toContain("Ada");
+    expect(readFileSync(csv, "utf8")).toBe("name,age\nAda,36\n");
+    expect([...doc.querySelectorAll(".act-run button")].some((b: any) => b.textContent === "Show the output folder")).toBe(true);
+  }, 20000);
+
+  test("Actions: a check that fails explains the problem and keeps Run switched off", async () => {
+    const act = join(lab, "act");
+    const { activePane } = await import("../resources/file_manager/ui/pane.js");
+    (activePane() as any).selection.clear();
+    (activePane() as any).selection.add(join(act, "notes.txt"));
+    ([...doc.querySelectorAll(".act-panel button")].find((b: any) => b.textContent === "Use the selected files") as any).click();
+    await waitFor(() => /can't run yet/.test(doc.querySelector(".act-check")?.textContent ?? ""));
+    expect(doc.querySelector(".act-check")!.textContent).toMatch(/can't be used|at least 1 usable file/);
+    expect(([...doc.querySelectorAll(".act-panel button")].find((b: any) => b.textContent === "Run the action") as any).disabled).toBe(true);
+  });
+
+  test("Actions: a custom command in an imported action is kept but shown disabled", async () => {
+    const file = JSON.stringify({ format: "bun-rad-file-manager-action", version: 1, action: { name: "Friend's recipe", steps: [{ type: "convert", action: "data-yaml" }, { type: "command", label: "Upload", command: "scp x y:" }] } });
+    ([...doc.querySelectorAll("button")].find((b: any) => b.textContent.startsWith("Import an action file")) as any).click();
+    await waitFor(() => !!doc.querySelector(".modal-backdrop textarea"));
+    setValue(doc.querySelector(".modal-backdrop:last-child textarea"), file);
+    primary().click();
+    await waitFor(() => [...doc.querySelectorAll(".act-card")].some((c: any) => c.textContent.includes("Friend's recipe")));
+    const card: any = [...doc.querySelectorAll(".act-card")].find((c: any) => c.textContent.includes("Friend's recipe"));
+    expect(card.textContent).toContain("imported");
+    expect(card.querySelector(".proj-badge.warn")!.textContent).toBe("disabled");
+    [...card.querySelectorAll("button")].find((b: any) => b.textContent.startsWith("Delete")).click();
+    await waitFor(() => !!doc.querySelector(".modal-backdrop"));
+    primary().click();
+    await waitFor(() => ![...doc.querySelectorAll(".act-card")].some((c: any) => c.textContent.includes("Friend's recipe")));
+  });
+});
