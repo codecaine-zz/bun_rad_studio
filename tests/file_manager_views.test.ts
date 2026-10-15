@@ -78,6 +78,9 @@ const saved = new Map<string, PropertyDescriptor | undefined>();
 let server: ReturnType<typeof startFileManagerServer>;
 /** What the page asked the (recording) clipboard to hold: no test ever touches the real one. */
 const clip: { text?: string; image?: { file: string; mime: string } } = {};
+/** Programs the page asked the computer to start, and files it sent to an external code editor: nothing real is ever launched. */
+const launched: Array<{ command: string; args: string[] }> = [];
+const editorStarts: Array<{ path: string; options: any }> = [];
 let doc: any;
 let win: any;
 let toolbarModule: any;
@@ -125,7 +128,7 @@ beforeAll(async () => {
   mock.module("../resources/file_manager/ui/terminal.js", () => ({
     terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
   }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, platform: "linux", clipboard: { writeText: (t) => { clip.text = t; return true; }, writeImage: async (file, mime) => { clip.image = { file, mime }; return true; } } } });
+  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir, platform: "linux", launch: async (command, args) => void launched.push({ command, args }), editor: { which: (n: string) => (n === "code" ? "/usr/bin/code" : null), open: (path: string, options: any) => void editorStarts.push({ path, options }) }, clipboard: { writeText: (t) => { clip.text = t; return true; }, writeImage: async (file, mime) => { clip.image = { file, mime }; return true; } } } });
   const base = `http://127.0.0.1:${server.port}`;
   const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, "linux").replace(/__FM_START__/g, "").replace(/__FM_NONCE__/g, "n");
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
@@ -1087,10 +1090,15 @@ describe("Quick Look and copy to the clipboard", () => {
     writeFileSync(join(qdir, "d-people.csv"), 'name,city\nAda,"London, UK"\n"Sam ""the man""",Austin\n');
     writeFileSync(join(qdir, "e-notes.txt"), "line one\nline two\n");
     writeFileSync(join(qdir, "f-blob.bin"), Buffer.from([0, 1, 2, 3, 0, 0, 255, 254]));
-    // jsdom can't play or load media; Quick Look only needs the element and its attributes.
-    win.HTMLMediaElement.prototype.pause = () => {};
-    win.HTMLMediaElement.prototype.load = () => {};
-    win.HTMLMediaElement.prototype.play = () => Promise.resolve();
+    // jsdom can't play or load media: give media elements the state a player reads and writes.
+    const mp = win.HTMLMediaElement.prototype;
+    for (const [k, d] of [["currentTime", 0], ["duration", NaN], ["volume", 1], ["muted", false], ["playbackRate", 1], ["defaultPlaybackRate", 1]] as const) {
+      Object.defineProperty(mp, k, { get() { return (this.__m ??= {})[k] ?? d; }, set(v) { (this.__m ??= {})[k] = v; }, configurable: true });
+    }
+    Object.defineProperty(mp, "paused", { get() { return (this.__m ??= {}).paused !== false; }, configurable: true });
+    mp.play = function () { (this.__m ??= {}).paused = false; this.dispatchEvent(new win.Event("play")); return Promise.resolve(); };
+    mp.pause = function () { (this.__m ??= {}).paused = true; this.dispatchEvent(new win.Event("pause")); };
+    mp.load = function () {};
     alt(1);
     await sleep(300);
     const nav = await import("../resources/file_manager/ui/nav.js");
@@ -1127,15 +1135,15 @@ describe("Quick Look and copy to the clipboard", () => {
       space();
       await waitFor(() => !!$(`.ql ${selector}`));
       if (name === "b-song.mp3") {
-        expect($(".ql audio").getAttribute("src")).toContain("/api/raw?path=");
-        expect($(".ql audio").hasAttribute("autoplay")).toBe(true);
+        expect($(".ql .mp-media").getAttribute("src")).toContain("/api/raw?path=");
+        await waitFor(() => !$(".ql .mp-media").paused);
       }
       key(doc.activeElement, "Escape");
       expect(open()).toBeNull();
     };
     await shows("a-picture.png", "img.ql-image");
-    await shows("b-song.mp3", "audio[controls]");
-    await shows("c-movie.mp4", "video[controls]");
+    await shows("b-song.mp3", ".mp");
+    await shows("c-movie.mp4", ".mp.is-video");
     await shows("d-people.csv", "table.ql-table");
     await shows("f-blob.bin", ".ql-card");
     await shows("g-folder", ".ql-card");
@@ -1153,21 +1161,22 @@ describe("Quick Look and copy to the clipboard", () => {
 
   test("arrow keys move through the list and its selection, stop at the ends; Home and End jump", async () => {
     const all = names();
-    const mid = all.indexOf("b-song.mp3");
-    expect(mid).toBeGreaterThan(0);
-    select("b-song.mp3");
+    const at = all.indexOf("d-people.csv");
+    expect(at).toBeGreaterThan(0);
+    expect(all[at + 1]).toBe("e-notes.txt");
+    select("d-people.csv");
     $("#list").focus();
     space();
     await waitFor(() => !!open());
-    expect($(".ql-count").textContent).toBe(`${mid + 1} of ${all.length}`);
+    expect($(".ql-count").textContent).toBe(`${at + 1} of ${all.length}`);
     const k = (name: string) => key(doc.activeElement, name);
     k("ArrowRight");
-    expect(title()).toBe(all[mid + 1]);
-    expect(rowOf("#list", all[mid + 1]!).getAttribute("aria-selected")).toBe("true");
+    expect(title()).toBe("e-notes.txt");
+    expect(rowOf("#list", "e-notes.txt").getAttribute("aria-selected")).toBe("true");
     k("ArrowLeft");
     k("ArrowDown");
     k("ArrowUp");
-    expect(title()).toBe(all[mid]);
+    expect(title()).toBe("d-people.csv");
     k("End");
     expect(title()).toBe(all.at(-1));
     k("ArrowRight");
@@ -1259,6 +1268,122 @@ describe("Quick Look and copy to the clipboard", () => {
     key(doc.activeElement, "Escape");
   });
 
+  test("a sound opens the player: Space plays and pauses, N moves to the next sound or video and Quick Look follows, Esc closes and stops it", async () => {
+    select("b-song.mp3");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql .mp") && !$(".ql .mp-media").paused);
+    const media = () => $(".ql .mp-media");
+    expect($(".mp-queue").children.length).toBe(2); // the sound and the video of this folder
+    key(doc.activeElement, " ");
+    expect(media().paused).toBe(true);
+    key(doc.activeElement, " ");
+    expect(media().paused).toBe(false);
+    key(doc.activeElement, "n");
+    await waitFor(() => title() === "c-movie.mp4");
+    expect(rowOf("#list", "c-movie.mp4").getAttribute("aria-selected")).toBe("true");
+    expect($(".ql .mp.is-video")).not.toBeNull();
+    key(doc.activeElement, "b");
+    await waitFor(() => title() === "b-song.mp3");
+    const el = media();
+    key(doc.activeElement, "Escape");
+    expect(open()).toBeNull();
+    expect(el.getAttribute("src")).toBeNull();
+    expect(el.paused).toBe(true);
+  });
+
+  test("the player's keys: seek, volume, speed, mute, shuffle and repeat, and its buttons say what they do", async () => {
+    select("b-song.mp3");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql .mp"));
+    const media = $(".ql .mp-media");
+    Object.defineProperty(media, "duration", { value: 100, configurable: true });
+    const k = (name: string, extra: Record<string, unknown> = {}) => key(doc.activeElement, name, extra);
+    k("ArrowRight");
+    expect(media.currentTime).toBe(5);
+    k("ArrowRight", { shiftKey: true });
+    expect(media.currentTime).toBe(35);
+    k("ArrowLeft");
+    expect(media.currentTime).toBe(30);
+    k("5");
+    expect(media.currentTime).toBe(50);
+    const before = media.volume;
+    k("ArrowDown");
+    expect(media.volume).toBeCloseTo(before - 0.05, 2);
+    k("ArrowUp");
+    expect(media.volume).toBeCloseTo(before, 2);
+    k("]");
+    expect(media.playbackRate).toBe(1.25);
+    k("[");
+    k("[");
+    expect(media.playbackRate).toBe(0.75);
+    k("m");
+    expect(media.muted).toBe(true);
+    k("s");
+    expect($(".mp-btn[aria-label=Shuffle]").getAttribute("aria-pressed")).toBe("true");
+    k("r");
+    expect($(".mp-btn[aria-label^=Repeat]").getAttribute("aria-label")).toBe("Repeat: all");
+    k("r");
+    expect($(".mp-btn[aria-label^=Repeat]").getAttribute("aria-label")).toBe("Repeat: this one");
+    for (const b of doc.querySelectorAll(".mp button")) expect(b.getAttribute("aria-label") || b.textContent.trim(), b.outerHTML.slice(0, 80)).toBeTruthy();
+    expect(doc.querySelector(".mp-seek").getAttribute("aria-label")).toBe("Position");
+    k("s");
+    k("r");
+    k("Escape");
+    expect(open()).toBeNull();
+  });
+
+  test("the equaliser and queue panels open from the keyboard and the equaliser has ten labelled bands", async () => {
+    select("b-song.mp3");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql .mp"));
+    key(doc.activeElement, "e");
+    expect($(".mp-panel:not([hidden])")).not.toBeNull();
+    expect(doc.querySelectorAll(".mp-band").length).toBe(10);
+    for (const band of doc.querySelectorAll(".mp-band")) expect(band.getAttribute("aria-label")).toMatch(/gain$/);
+    key(doc.activeElement, "q");
+    expect(doc.querySelector(".mp-queue").closest(".mp-panel").hidden).toBe(false);
+    key(doc.activeElement, "q");
+    expect($(".mp-panel:not([hidden])")).toBeNull();
+    key(doc.activeElement, "Escape");
+  });
+
+  test("a text file gets Copy text, Convert…, Edit, Open and More; Convert and Edit step aside for what they open", async () => {
+    select("e-notes.txt");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql-text"));
+    const shown = () => [...doc.querySelectorAll(".ql-head button")].filter((b: any) => !b.hidden).map((b: any) => b.textContent.trim());
+    expect(shown()).toEqual(["Copy text", "Convert…", "Edit", "Open", "More ▾", "Close"]);
+    [...doc.querySelectorAll(".ql-head button")].find((b: any) => b.textContent.trim() === "More ▾").click();
+    await sleep(100);
+    const items = [...doc.querySelectorAll(".menu [role=menuitem]")].map((i: any) => i.textContent.replace(/\s+/g, " ").trim());
+    for (const wanted of ["Copy path", "Open with…", "Show in", "Properties…", "More info…"]) expect(items.some((l: string) => l.includes(wanted)), wanted).toBe(true);
+    key(doc.activeElement, "Escape");
+    await sleep(50);
+    expect(open()).not.toBeNull();
+    [...doc.querySelectorAll(".ql-head button")].find((b: any) => b.textContent.trim() === "Convert…").click();
+    expect(open()).toBeNull();
+    await waitFor(() => !!doc.querySelector(".modal-backdrop"));
+    key(doc.activeElement, "Escape");
+    await waitFor(() => !doc.querySelector(".modal-backdrop"));
+    // A picture has no Edit; a folder has no Convert.
+    select("a-picture.png");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql-image"));
+    expect(shown()).toEqual(["Copy picture", "Convert…", "Open", "More ▾", "Close"]);
+    key(doc.activeElement, "Escape");
+    select("g-folder");
+    $("#list").focus();
+    space();
+    await waitFor(() => !!$(".ql-card"));
+    expect(shown()).toEqual(["Open", "More ▾", "Close"]);
+    key(doc.activeElement, "Escape");
+  });
+
   test("with nothing selected and nothing focused, Space doesn't open an empty window", async () => {
     const state = (await import("../resources/file_manager/ui/state.js")).state;
     state.selection.clear();
@@ -1267,5 +1392,66 @@ describe("Quick Look and copy to the clipboard", () => {
     space();
     await sleep(150);
     expect(open()).toBeNull();
+  });
+
+  describe("opening text files (the Open setting)", () => {
+    const entry = (name: string, extra: Record<string, unknown> = {}) => ({ path: join(qdir, name), name, isDir: false, program: false, size: 10, ...extra });
+    const setting = async (value: string) => {
+      const nav = await import("../resources/file_manager/ui/nav.js");
+      await nav.saveSettings({ textOpensIn: value });
+      await savedWhen("textOpensIn", value);
+    };
+
+    test("what counts as a text file: known endings, source and dotfiles; not pictures, programs or unknown binaries", async () => {
+      const ops = await import("../resources/file_manager/ui/ops.js");
+      const yes = ["notes.txt", "a.ts", "main.py", "README.md", "data.json", "style.css", "index.html", "Makefile", "Dockerfile", ".env", ".gitignore", "UPPER.TXT"];
+      const no = ["pic.png", "song.mp3", "doc.pdf", "archive.zip", "blob.bin", "noextension", ".DS_Store", "setup.exe", "run.sh"];
+      for (const n of yes) expect(ops.textOpensInEditor(entry(n)), n).toBe(true);
+      for (const n of no) expect(ops.textOpensInEditor(entry(n, n.endsWith(".sh") || n.endsWith(".exe") ? { program: true } : {})), n).toBe(false);
+      expect(ops.textOpensInEditor({ ...entry("folder.txt"), isDir: true })).toBe(false);
+    });
+
+    test("with 'My code editor' chosen, the text file goes to that editor and nothing else starts", async () => {
+      const ops = await import("../resources/file_manager/ui/ops.js");
+      await setting("editor");
+      launched.length = 0;
+      editorStarts.length = 0;
+      await ops.openEntry(entry("e-notes.txt"));
+      await waitFor(() => editorStarts.length === 1);
+      expect(editorStarts[0]!.path).toBe(join(qdir, "e-notes.txt"));
+      expect(launched).toEqual([]);
+    });
+
+    test("with 'The program my computer uses' chosen, it is handed to the computer; pictures always are", async () => {
+      const ops = await import("../resources/file_manager/ui/ops.js");
+      await setting("system");
+      launched.length = 0;
+      editorStarts.length = 0;
+      await ops.openEntry(entry("e-notes.txt"));
+      await waitFor(() => launched.length === 1);
+      expect(launched[0]!.args).toContain(join(qdir, "e-notes.txt"));
+      expect(editorStarts).toEqual([]);
+      await setting("builtin");
+      launched.length = 0;
+      await ops.openEntry(entry("a-picture.png"));
+      await waitFor(() => launched.length === 1);
+      expect(launched[0]!.args).toContain(join(qdir, "a-picture.png"));
+    });
+
+    test("Settings has the choice, saved as soon as it changes", async () => {
+      const extras = await import("../resources/file_manager/ui/extras.js");
+      extras.showSettings();
+      await waitFor(() => !!doc.querySelector(".modal-backdrop select[aria-label='Open text files with']"));
+      const select = doc.querySelector("select[aria-label='Open text files with']");
+      expect([...select.options].map((o: any) => o.value)).toEqual(["builtin", "editor", "system"]);
+      expect(select.value).toBe("builtin");
+      select.value = "system";
+      select.dispatchEvent(new win.Event("change", { bubbles: true }));
+      await savedWhen("textOpensIn", "system");
+      select.value = "builtin";
+      select.dispatchEvent(new win.Event("change", { bubbles: true }));
+      await savedWhen("textOpensIn", "builtin");
+      key(doc.activeElement ?? doc.body, "Escape");
+    });
   });
 });

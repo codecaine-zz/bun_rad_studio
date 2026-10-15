@@ -1,6 +1,7 @@
 // What every release script shares: the platforms we build for, which files are applications, and small helpers.
 import { createHash } from "crypto";
-import { existsSync, readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "fs";
+import { availableParallelism } from "os";
 import { join, resolve } from "path";
 
 export const ROOT = resolve(import.meta.dir, "..", "..");
@@ -112,4 +113,41 @@ export async function run(cmd: string[], options: { cwd?: string; env?: Record<s
   const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
   if (code !== 0) throw new Error(`${cmd.slice(0, 3).join(" ")} failed (${code}): ${(err || out).trim().split("\n").slice(-6).join("\n")}`);
   return out;
+}
+
+/** How many things to build at once when --jobs isn't given: every core but one (so the computer stays usable), at most 8. */
+export function defaultJobs(): number {
+  return Math.max(1, Math.min(8, availableParallelism() - 1));
+}
+
+/** The value of --jobs: a whole number of at least 1. */
+export function parseJobs(value: string | undefined): number {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1 || n > 64) throw new Error(`--jobs must be a whole number from 1 to 64, not "${value ?? ""}"`);
+  return n;
+}
+
+/**
+ * Runs `fn` on every item with at most `jobs` running at the same time. The results come back in the order of `items`,
+ * whatever order the work finished in. `fn` should handle its own failures (an error that escapes stops the whole run).
+ */
+export async function mapPool<T, R>(items: readonly T[], jobs: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i]!, i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(Math.floor(jobs), items.length)) }, worker));
+  return results;
+}
+
+/** Writes a file so that a program reading it at the same moment never sees half of it (several builds share a stub file). */
+export function writeFileAtomic(path: string, content: string): void {
+  const tmp = `${path}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  writeFileSync(tmp, content);
+  renameSync(tmp, path);
 }

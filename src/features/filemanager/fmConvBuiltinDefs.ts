@@ -85,6 +85,15 @@ export const TEXT_DEFS: ConvDef[] = [
   textTool("text-tabs-spaces", "Change tabs into spaces", "Each tab becomes the right number of spaces.", "tabs-to-spaces", {}, "spaces", [numberOpt("width", "Spaces for a tab", "", 1, 16, 4)]),
   textTool("text-spaces-tabs", "Change leading spaces into tabs", "Indentation made of spaces becomes tabs.", "spaces-to-tabs", {}, "tabs", [numberOpt("width", "Spaces for a tab", "", 1, 16, 4)]),
   textTool("text-trim", "Remove spaces at the end of lines", "Cleans trailing spaces and tabs.", "trim-trailing", {}, "trimmed"),
+  textTool("text-diacritics", "Remove or change accents (diacritics)", "Turns é into e, or fixes accents stored as a letter plus a separate mark.", "diacritics", {}, "no accents", [
+    choiceOpt("mode", "What to do", "Only Latin and Greek letters lose their marks; Cyrillic, Japanese, Korean and Indian scripts are left as they are.", [
+      ["remove", "Remove the accents (é becomes e)"],
+      ["compose", "Join letter and accent into one character (fixes text from older Macs)"],
+      ["decompose", "Split into a letter and a separate accent (UTF-8 and UTF-16 only)"],
+    ], "remove"),
+    choiceOpt("from", "Read it as", "Automatic works for UTF-8 and UTF-16 files. For an older encoding choose it here.", [["auto", "UTF-8 or UTF-16 (found automatically)"], ...ENCODING_CHOICES, ["gb18030", "GB18030 (Chinese)"]], "auto"),
+    toggleOpt("letters", "Also spell out ß, æ, ø, đ, ł and similar as plain letters", "Only when removing: ß becomes ss, æ becomes ae, ø becomes o.", true),
+  ], { keywords: "accent accents diacritic diacritics umlaut cedilla tilde ascii normalize unicode nfc nfd latin strip" }),
   textTool("text-strip-bom", "Remove the byte-order mark (BOM)", "Some programs show strange characters at the start of a UTF-8 file with a mark.", "strip-bom", {}, "no BOM", [], { keywords: "utf-8 bom" }),
   { id: "text-html", label: "Make a web page from plain text", hint: "Keeps the text exactly as typed.", group: "Data & text", inputs: exts("txt log"), out: "html", suffix: "page", mode: "each", engines: [builtin("text-html")], options: [choiceOpt("layout", "Layout", "", [["pre", "Keep the line breaks and spacing"], ["paragraphs", "Paragraphs (a blank line starts a new one)"]], "pre")] },
   { id: "code-ts-js", label: "Make JavaScript from TypeScript or JSX", hint: "Removes the types (and turns JSX into plain calls) so any browser or Node can run the file. It does not check types or bundle other files.", group: "Data & text", inputs: exts("ts tsx jsx mts cts"), out: "js", suffix: "js", mode: "each",

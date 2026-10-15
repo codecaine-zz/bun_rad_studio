@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync, copyFileSync } from "fs";
 import { join } from "path";
 import { DESIGNS } from "./iconDesigns";
 import { ICON_RENDERER } from "./iconRenderer";
-import { ROOT, run } from "./common";
+import { ROOT, mapPool, run } from "./common";
 
 export interface IconSpec {
   /** File name without extension. */
@@ -107,15 +107,21 @@ export function iconSpecFor(app: { id: string; category: string }): IconSpec {
 export const ICONS_OUT = join(ROOT, "release", ".cache", "icons");
 
 /** Draws a 1024-pixel PNG for each spec into `outDir`. Returns the names that were drawn. */
-export async function renderPngs(specs: IconSpec[], outDir = join(ICONS_OUT, "png")): Promise<string[]> {
+export async function renderPngs(specs: IconSpec[], outDir = join(ICONS_OUT, "png"), jobs = 1): Promise<string[]> {
   mkdirSync(outDir, { recursive: true });
   const dir = join(ICONS_OUT, "tmp");
   mkdirSync(dir, { recursive: true });
-  const json = join(dir, "specs.json");
   const script = join(dir, "render.js");
-  writeFileSync(json, JSON.stringify(specs));
   writeFileSync(script, ICON_RENDERER);
-  await run(["osascript", "-l", "JavaScript", script, json, outDir]);
+  // The drawing script handles a list of icons one by one, so a long list is cut into pieces that are drawn at the same time.
+  const pieces = Math.max(1, Math.min(Math.floor(jobs), Math.ceil(specs.length / 6)));
+  const size = Math.ceil(specs.length / pieces);
+  const chunks = Array.from({ length: pieces }, (_, i) => specs.slice(i * size, (i + 1) * size)).filter((c) => c.length);
+  await mapPool(chunks, pieces, async (chunk, i) => {
+    const json = join(dir, `specs-${i}.json`);
+    writeFileSync(json, JSON.stringify(chunk));
+    await run(["osascript", "-l", "JavaScript", script, json, outDir]);
+  });
   return specs.map((s) => s.name).filter((n) => existsSync(join(outDir, `${n}.png`)));
 }
 

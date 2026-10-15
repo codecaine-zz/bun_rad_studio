@@ -421,26 +421,26 @@ bun run cli:env types .env
 
 ## 🧭 Complete UI Tour & Element Guide
 
-### 1. File Path & Security Bar
-- **Environment File Input**: Path to target file (e.g. \`./.env\`, \`./.env.local\`, \`./.env.production\`).
-- **Template File Input**: Path to example file (e.g. \`./.env.example\`).
-- **👁️ Mask Secrets Toggle**: Toggles asterisks (\`••••••••\`) over secret values for safe screen sharing and presentations.
+### The four steps
+1. **Open or paste** your settings: press **📂 Open .env…** and choose a file, or paste into the *Your settings* box. (The window starts with sample settings; **🧹 Clear** empties the box.)
+2. **Check** them with **⚡ Audit & Validate**. *Errors* (a line without \`=\`, an invalid name, an unclosed quote) and *notes* (an empty value, a secret that still looks like a placeholder, a name that is not UPPER_CASE, a value with spaces that is not in quotes, a name that appears twice) are listed in the log at the bottom, and the three labels at the top count them.
+3. **Make an example** with **✨ Generate .env.example**. Every name is kept once and every value is blanked; only plain settings (a name with the word PORT, HOST or NODE_ENV in it, and a simple value) keep theirs, and never a secret. Comments are left out because they can hold secrets.
+4. **Copy or save** it: **📋 Copy example** puts it on the clipboard; **💾 Save example…** asks where to save it (suggesting \`.env.example\`).
 
-### 2. Environment Variables Grid
-- **Key**: Name of the environment variable (checks uppercase conventions).
-- **Value**: Current value with inline editing.
-- **Status Badge**: Flags \`MISSING IN EXAMPLE\`, \`DUPLICATE\`, or \`EMPTY\`.
-- **Delete / Add Key**: One-click row management.
+### Buttons
+| Where | Button | What it does |
+|---|---|---|
+| Your settings | 📂 Open .env… | Loads a file (up to 1 MB, text only). The file is not changed until you save. |
+| | 🔒 Mask Secrets / 👁️ Unmask Secrets | Shows secret values (names with SECRET, PASSWORD, TOKEN, KEY, AUTH ...) as dots, for screen sharing. **Copy and Save always use the real values**, and a line you edit while masked keeps your edit. |
+| | 📋 Copy .env | Copies the real text to the clipboard. |
+| | 💾 Save .env… | Asks where to save. The file is written so only you can read it. Your computer asks before replacing a file. |
+| Example file | 📂 Open example… | Loads an existing \`.env.example\` to compare with. |
+| | ⚖️ Compare with .env.example | Fills the *Comparison report* box: names missing from your settings, names only you have, and names that are empty. The example box is not changed. |
 
-### 3. Schema & Type Generator
-- Generates strongly-typed TypeScript interfaces:
-  \`\`\`typescript
-  export interface ProcessEnv {
-    PORT: string;
-    DATABASE_URL: string;
-    JWT_SECRET: string;
-  }
-  \`\`\`
+### Good to know
+- Nothing is sent anywhere; the file is read and written on your computer only.
+- Opening, comparing and generating never change a file. Only the two **Save** buttons write, and only where you choose.
+- The command-line version (\`bun run cli:env check .env --template .env.example\`) does the same checks without a window.
 `);
 
   console.log("✔ Engineering Systems (11 to 16) generated with AAA quality.");

@@ -4,6 +4,9 @@ import { ApiError, call } from "./api.js";
 import { chooseConflict, confirmBox, problemsBox } from "./dialogs.js";
 import { announce } from "./dom.js";
 import { toast } from "./menus.js";
+import { openInCode } from "./code.js";
+import { isKnownTextName } from "./codeLang.js";
+import { openInEditor } from "./fileurl.js";
 import { finishOpen } from "./openwith.js";
 import { busy, goTo, goToIn, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
@@ -91,10 +94,23 @@ async function trashPaths(paths) {
 // Open
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Whether opening this file should use the Code editor (or the editor chosen in Settings) instead of the computer's own
+ * program: plain text and source files, unless Settings says "the program my computer uses". Programs and scripts that
+ * would run still ask first, as before.
+ */
+export function textOpensInEditor(entry) {
+  return !entry.isDir && !entry.program && state.settings.textOpensIn !== "system" && isKnownTextName(entry.name);
+}
+
 export async function openEntry(entry) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
+  if (textOpensInEditor(entry)) {
+    if (state.settings.textOpensIn === "editor") return openInEditor(entry);
+    return openInCode(entry.path);
+  }
   await openFile(entry.path, false);
 }
 

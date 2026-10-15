@@ -92,17 +92,17 @@ async function gemini(text: string, out: string): Promise<boolean> {
   return false;
 }
 
-function edge(text: string, out: string, dir: string): void {
+function edge(text: string, out: string, dir: string, rate: string, gapSeconds: number): void {
   const parts = (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? []).map((x) => x.trim()).filter(Boolean);
   const gap = join(dir, "gap.wav");
-  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono", "-t", "0.42", gap], { quiet: true });
+  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono", "-t", String(gapSeconds), gap], { quiet: true });
   const lines: string[] = [];
   parts.forEach((p, i) => {
     const mp3 = join(dir, `${i}.mp3`);
     const wav = join(dir, `${i}.wav`);
     let ok = false;
     for (let a = 0; a < 4 && !ok; a++) {
-      const r = Bun.spawnSync([UVX, "edge-tts", "--voice", EDGE_VOICE, "--rate=-4%", "--text", p, "--write-media", mp3], { stdout: "ignore", stderr: "ignore" });
+      const r = Bun.spawnSync([UVX, "edge-tts", "--voice", EDGE_VOICE, `--rate=${rate}`, "--text", p, "--write-media", mp3], { stdout: "ignore", stderr: "ignore" });
       ok = r.exitCode === 0 && existsSync(mp3) && Bun.file(mp3).size > 1000;
     }
     if (!ok) throw new Error(`edge-tts failed: ${p}`);
@@ -118,19 +118,21 @@ function edge(text: string, out: string, dir: string): void {
  * The narration for one scene, post-processed (EQ, level) with a little lead-in and tail. Cached by a hash of the
  * text and the voice: unchanged scenes are never synthesized (and never billed) again.
  */
-export async function narrate(id: string, narration: string, audioDir: string): Promise<string> {
+export async function narrate(id: string, narration: string, audioDir: string, opts: { rate?: string; gap?: number } = {}): Promise<string> {
+  const rate = opts.rate ?? "-4%";
+  const gap = opts.gap ?? 0.42;
   mkdirSync(audioDir, { recursive: true });
   const raw = join(audioDir, `raw_${id}.mp3`);
   const final = join(audioDir, `narration_${id}.mp3`);
   const keyFile = `${raw}.key`;
   const text = spokenText(narration);
-  const key = createHash("sha1").update(`${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}` : `edge:${EDGE_VOICE}`}|${text}`).digest("hex");
+  const key = createHash("sha1").update(`${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}` : `edge:${EDGE_VOICE}${rate === "-4%" && gap === 0.42 ? "" : `:${rate}:${gap}`}`}|${text}`).digest("hex");
   const cached = existsSync(raw) && existsSync(final) && existsSync(keyFile) && readFileSync(keyFile, "utf8") === key;
   if (!cached) {
     if (!(await gemini(text, raw))) {
       const work = join(audioDir, `_edge_${id}`);
       mkdirSync(work, { recursive: true });
-      edge(text, raw, work);
+      edge(text, raw, work, rate, gap);
     }
     sh([FFMPEG, "-y", "-i", raw, "-af", "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,adelay=350|350,apad=pad_dur=0.75", "-ar", "48000", final]);
     writeFileSync(keyFile, key);

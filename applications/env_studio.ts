@@ -1,6 +1,7 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
-import { writeFileSync, existsSync } from "fs";
-import { resolve, basename } from "path";
+import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
+import { basename } from "path";
+import { auditEnv, diffEnv, formatDiff, makeExample, maskEnv, unmaskEnv } from "../src/shared/env_vault";
 
 const DEFAULT_ENV = `# Bun RAD Studio - Environment Configuration
 PORT=3000
@@ -27,51 +28,21 @@ CACHE_TTL_SECONDS=3600
 STRIPE_WEBHOOK_SECRET=""
 `;
 
-interface EnvVar {
-  key: string;
-  value: string;
-  comment?: string;
-}
+const MAX_FILE_BYTES = 1024 * 1024;
 
-function parseEnv(text: string): { vars: EnvVar[]; duplicates: string[]; syntaxErrors: string[] } {
-  const lines = text.split("\n");
-  const vars: EnvVar[] = [];
-  const seen = new Set<string>();
-  const duplicates: string[] = [];
-  const syntaxErrors: string[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]?.trim();
-    if (!line || line.startsWith("#")) continue;
-
-    const eqIdx = line.indexOf("=");
-    if (eqIdx === -1) {
-      syntaxErrors.push(`Line ${i + 1}: Missing '=' delimiter in "${line}"`);
-      continue;
-    }
-
-    const key = line.slice(0, eqIdx).trim();
-    let val = line.slice(eqIdx + 1).trim();
-
-    // Strip quotes
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-
-    if (seen.has(key)) {
-      duplicates.push(key);
-    } else {
-      seen.add(key);
-    }
-
-    vars.push({ key, value: val });
-  }
-
-  return { vars, duplicates, syntaxErrors };
+/** Reads a settings file for the editor, with a sentence (naming the file) when it can't be used. */
+function readSettingsFile(path: string): string {
+  if (!existsSync(path)) throw new Error(`${path} does not exist.`);
+  const st = statSync(path);
+  if (!st.isFile()) throw new Error(`${path} is not a file.`);
+  if (st.size > MAX_FILE_BYTES) throw new Error(`${basename(path)} is ${(st.size / 1024 / 1024).toFixed(1)} MB. Settings files are small; this does not look like one (the limit is 1 MB).`);
+  const buf = readFileSync(path);
+  if (buf.includes(0)) throw new Error(`${basename(path)} is a binary file, not a text settings file.`);
+  return buf.toString("utf8");
 }
 
 export function createEnvStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Environment & Secret Vault Studio Pro", 1140, 880, {
+  const win = newSimpleWindow("Environment & Secret Vault Studio Pro", 1140, 960, {
     appId: "env_studio",
     theme: options.theme || getSavedTheme() || "midnight",
     autoSaveState: true,
@@ -86,7 +57,8 @@ export function createEnvStudio(options: { fullscreen?: boolean; theme?: string 
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
   win.endRow();
-  win.addCaption("Enterprise .env Configuration Validator, Secret Masking & Template Generator");
+  win.addCaption("Check a .env file, hide its secrets, and make a safe example file to share.");
+  win.addCaption("How it works:  1 Open your .env (or paste it)  →  2 Check it  →  3 Make an example  →  4 Copy or save the example.  Your real values are never changed or sent anywhere.");
 
   // Summary Metrics Card
   win.beginCard("Environment Telemetry & Health Audit");
@@ -95,27 +67,37 @@ export function createEnvStudio(options: { fullscreen?: boolean; theme?: string 
   win.addLabel("lbl_duplicates", "Duplicates: 0 (Clean)");
   win.addLabel("lbl_syntax", "Syntax Status: 🟢 Valid");
   win.endRow();
+  win.addLabel("lbl_file", "File: sample settings (not saved anywhere yet)");
   win.endCard();
 
-  // Action Toolbar
-  win.beginGroupBox("Configuration Operations & Vault Actions");
+  // Your settings
+  win.beginGroupBox("Your settings (.env)");
   win.beginRow();
+  win.addButton("btn_open_env", "📂 Open .env…");
   win.addButton("btn_validate", "⚡ Audit & Validate");
   win.addButton("btn_mask", "🔒 Mask Secrets");
   win.addButton("btn_unmask", "👁️ Unmask Secrets");
-  win.addButton("btn_diff", "⚖️ Compare with .env.example");
-  win.addButton("btn_gen_example", "📋 Generate .env.example");
-  win.addButton("btn_export_env", "💾 Save to .env");
+  win.addButton("btn_copy_env", "📋 Copy .env");
+  win.addButton("btn_export_env", "💾 Save .env…");
+  win.addButton("btn_clear_env", "🧹 Clear");
   win.endRow();
+  win.addTextarea("txt_env_active", DEFAULT_ENV, "NAME=value, one per line. Paste your settings here or press Open .env.");
   win.endGroupBox();
 
-  // Split View: Active .env vs Comparison .env.example
-  win.beginGroupBox("Active Environment Configuration (.env)");
-  win.addTextarea("txt_env_active", DEFAULT_ENV);
+  // The shareable example
+  win.beginGroupBox("Example file (.env.example): safe to share");
+  win.beginRow();
+  win.addButton("btn_gen_example", "✨ Generate .env.example");
+  win.addButton("btn_copy_example", "📋 Copy example");
+  win.addButton("btn_save_example", "💾 Save example…");
+  win.addButton("btn_open_template", "📂 Open example…");
+  win.addButton("btn_diff", "⚖️ Compare with .env.example");
+  win.endRow();
+  win.addTextarea("txt_env_compare", DEFAULT_ENV_EXAMPLE, "The example file: names without secret values. Generate it from your settings, or open one.");
   win.endGroupBox();
 
-  win.beginGroupBox("Comparison Template / Audit Output");
-  win.addTextarea("txt_env_compare", DEFAULT_ENV_EXAMPLE);
+  win.beginGroupBox("Comparison report");
+  win.addTextarea("txt_env_report", "", "Press Compare to see which names are missing, extra or empty.");
   win.endGroupBox();
 
   // Telemetry Console
@@ -130,6 +112,15 @@ export function createEnvStudio(options: { fullscreen?: boolean; theme?: string 
 
   let isMasked = false;
   let rawUnmaskedText = DEFAULT_ENV;
+  let currentPath = "";
+
+  /** What is really in the settings, even while the secrets are shown as dots. */
+  const realText = (): string => {
+    const shown = win.getValue("txt_env_active") || "";
+    return isMasked ? unmaskEnv(shown, rawUnmaskedText) : shown;
+  };
+  const say = (msg: string, level = 2) => win.appendConsole("env_console", `${msg}\n`, level);
+  const showFile = () => win.setText("lbl_file", currentPath ? `File: ${currentPath}` : "File: not saved anywhere yet");
 
   // Handlers
   win.onClick("btn_center", () => win.center());
@@ -139,33 +130,49 @@ export function createEnvStudio(options: { fullscreen?: boolean; theme?: string 
   });
 
   const validateEnv = () => {
-    const text = win.getValue("txt_env_active") || "";
-    const parsed = parseEnv(text);
+    const audit = auditEnv(realText());
+    win.setText("lbl_total_vars", `Total Variables: ${audit.total}`);
+    win.setText("lbl_duplicates", `Duplicates: ${audit.duplicates.length > 0 ? `🔴 ${audit.duplicates.join(", ")}` : "0 (Clean)"}`);
+    win.setText("lbl_syntax", `Syntax Status: ${audit.errors.length > 0 ? `🔴 ${audit.errors.length} Error(s)` : "🟢 Valid"}`);
 
-    win.setText("lbl_total_vars", `Total Variables: ${parsed.vars.length}`);
-    win.setText(
-      "lbl_duplicates",
-      `Duplicates: ${parsed.duplicates.length > 0 ? `🔴 ${parsed.duplicates.join(", ")}` : "0 (Clean)"}`
-    );
-    win.setText(
-      "lbl_syntax",
-      `Syntax Status: ${parsed.syntaxErrors.length > 0 ? `🔴 ${parsed.syntaxErrors.length} Error(s)` : "🟢 Valid"}`
-    );
+    if (audit.errors.length > 0) say(`[Audit Errors]\n${audit.errors.join("\n")}`, 3);
+    else say(`[Audit Passed] ${audit.total} variables verified.${audit.duplicates.length ? "" : " No duplicates."}`, 2);
+    if (audit.warnings.length > 0) say(`[Audit Notes] ${audit.warnings.length} thing(s) to look at:\n${audit.warnings.join("\n")}`, 4);
 
-    if (parsed.syntaxErrors.length > 0) {
-      win.appendConsole("env_console", `[Audit Warnings]\n${parsed.syntaxErrors.join("\n")}\n`, 3);
-    } else {
-      win.appendConsole("env_console", `[Audit Passed] ${parsed.vars.length} variables verified. No duplicates.\n`, 2);
-    }
-
-    win.setText(
-      "lbl_status",
-      `Total: ${parsed.vars.length} vars  |  Syntax: ${parsed.syntaxErrors.length === 0 ? "Valid" : "Errors"}`
-    );
-    win.setStatus(`Validated ${parsed.vars.length} variables`);
+    win.setText("lbl_status", `Total: ${audit.total} vars  |  Syntax: ${audit.errors.length === 0 ? "Valid" : "Errors"}  |  Notes: ${audit.warnings.length}`);
+    win.setStatus(`Validated ${audit.total} variables`);
   };
-
   win.onClick("btn_validate", validateEnv);
+
+  win.onClick("btn_open_env", async () => {
+    const path = await win.openFileDialog("Open a .env file");
+    if (!path) return;
+    try {
+      const text = readSettingsFile(path);
+      isMasked = false;
+      rawUnmaskedText = text;
+      win.setText("txt_env_active", text);
+      currentPath = path;
+      showFile();
+      say(`[Open] Loaded ${path}`);
+      validateEnv();
+    } catch (e: any) {
+      say(`[Open Error] ${e.message}`, 3);
+      win.toast(`Could not open ${basename(path)}`);
+    }
+  });
+
+  win.onClick("btn_open_template", async () => {
+    const path = await win.openFileDialog("Open an example file (.env.example)");
+    if (!path) return;
+    try {
+      win.setText("txt_env_compare", readSettingsFile(path));
+      say(`[Open] Example loaded from ${path}`);
+    } catch (e: any) {
+      say(`[Open Error] ${e.message}`, 3);
+      win.toast(`Could not open ${basename(path)}`);
+    }
+  });
 
   win.onClick("btn_mask", () => {
     if (isMasked) {
@@ -173,97 +180,94 @@ export function createEnvStudio(options: { fullscreen?: boolean; theme?: string 
       return;
     }
     rawUnmaskedText = win.getValue("txt_env_active") || "";
-    const lines = rawUnmaskedText.split("\n");
-    const masked = lines.map((l) => {
-      const trimmed = l.trim();
-      if (!trimmed || trimmed.startsWith("#")) return l;
-      const eqIdx = l.indexOf("=");
-      if (eqIdx === -1) return l;
-      const key = l.slice(0, eqIdx);
-      const val = l.slice(eqIdx + 1);
-      if (/SECRET|KEY|PASSWORD|TOKEN|AUTH/i.test(key)) {
-        return `${key}="••••••••••••••••"`;
-      }
-      return l;
-    });
     isMasked = true;
-    win.setText("txt_env_active", masked.join("\n"));
-    win.appendConsole("env_console", "[Vault] Sensitive keys masked for display\n", 2);
+    win.setText("txt_env_active", maskEnv(rawUnmaskedText));
+    say("[Vault] Sensitive keys masked for display. Copy and Save still use the real values.");
     win.toast("Sensitive keys masked");
   });
 
   win.onClick("btn_unmask", () => {
-    if (isMasked && rawUnmaskedText) {
-      win.setText("txt_env_active", rawUnmaskedText);
-      isMasked = false;
-      win.appendConsole("env_console", "[Vault] Sensitive keys unmasked\n", 4);
-      win.toast("Keys unmasked");
+    if (!isMasked) {
+      win.toast("Nothing is masked");
+      return;
     }
+    win.setText("txt_env_active", realText());
+    isMasked = false;
+    say("[Vault] Sensitive keys unmasked", 4);
+    win.toast("Keys unmasked");
+  });
+
+  win.onClick("btn_copy_env", () => {
+    const text = realText();
+    if (!text.trim()) return win.toast("There is nothing to copy");
+    win.copyToClipboard(text);
+    say(`[Copy] .env copied (${text.split("\n").length} lines, real values: paste it only where it is safe).`, 4);
+    win.toast("Copied .env to the clipboard");
+  });
+
+  win.onClick("btn_export_env", async () => {
+    const text = realText();
+    if (!text.trim()) return win.toast("There is nothing to save");
+    const path = await win.saveFileDialog("Save .env", currentPath ? basename(currentPath) : ".env");
+    if (!path) return;
+    try {
+      // Owner-only permissions: this file holds secrets.
+      writeFileSync(path, text, { encoding: "utf8", mode: 0o600 });
+      currentPath = path;
+      showFile();
+      say(`[Export] Environment written to ${path}`);
+      win.toast(`Saved ${basename(path)}`);
+    } catch (e: any) {
+      say(`[Export Error] Could not write ${path}: ${e.message}`, 3);
+      win.toast("Could not save the file");
+    }
+  });
+
+  win.onClick("btn_clear_env", async () => {
+    if (!realText().trim()) return;
+    if (!(await win.showConfirm("Clear the settings box? (A file you opened is not changed.)", "Clear"))) return;
+    isMasked = false;
+    rawUnmaskedText = "";
+    currentPath = "";
+    win.setText("txt_env_active", "");
+    showFile();
+    say("[Vault] Settings box cleared", 4);
   });
 
   win.onClick("btn_diff", () => {
-    const activeText = win.getValue("txt_env_active") || "";
-    const exampleText = win.getValue("txt_env_compare") || "";
-
-    const parsedActive = parseEnv(activeText);
-    const parsedExample = parseEnv(exampleText);
-
-    const activeKeys = new Set(parsedActive.vars.map((v) => v.key));
-    const exampleKeys = new Set(parsedExample.vars.map((v) => v.key));
-
-    const missingInActive = Array.from(exampleKeys).filter((k) => !activeKeys.has(k));
-    const extraInActive = Array.from(activeKeys).filter((k) => !exampleKeys.has(k));
-
-    const report = [
-      `========================================================================`,
-      `ENVIRONMENT AUDIT & DIFF REPORT`,
-      `========================================================================`,
-      `Active Vars:      ${activeKeys.size}`,
-      `Template Vars:    ${exampleKeys.size}`,
-      ``,
-      `🔴 Missing in Active Environment (Present in template):`,
-      missingInActive.length > 0 ? missingInActive.map((k) => `  - ${k}`).join("\n") : `  (None - All template variables satisfied)`,
-      ``,
-      `🟡 Extra in Active Environment (Not documented in template):`,
-      extraInActive.length > 0 ? extraInActive.map((k) => `  + ${k}`).join("\n") : `  (None)`,
-    ].join("\n");
-
-    win.setText("txt_env_compare", report);
-    win.appendConsole("env_console", `[Audit Diff] Missing: ${missingInActive.length} | Extra: ${extraInActive.length}\n`, 2);
-    win.toast(`Diff: ${missingInActive.length} missing, ${extraInActive.length} extra`);
+    const d = diffEnv(realText(), win.getValue("txt_env_compare") || "");
+    win.setText("txt_env_report", formatDiff(d));
+    say(`[Audit Diff] Missing: ${d.missing.length} | Extra: ${d.extra.length} | Empty: ${d.empty.length}`);
+    win.toast(`Diff: ${d.missing.length} missing, ${d.extra.length} extra`);
   });
 
   win.onClick("btn_gen_example", () => {
-    const text = win.getValue("txt_env_active") || "";
-    const parsed = parseEnv(text);
-    const exampleLines = [
-      `# Generated .env.example Template`,
-      `# Auto-generated by Bun RAD Studio Environment & Secret Vault`,
-      ``,
-    ];
-
-    for (const v of parsed.vars) {
-      if (/PORT|NODE_ENV|HOST/i.test(v.key)) {
-        exampleLines.push(`${v.key}=${v.value}`);
-      } else {
-        exampleLines.push(`${v.key}=""`);
-      }
-    }
-
-    win.setText("txt_env_compare", exampleLines.join("\n"));
-    win.appendConsole("env_console", `[Template Generator] Generated clean .env.example with ${parsed.vars.length} variables\n`, 2);
-    win.toast("Generated .env.example");
+    const ex = makeExample(realText());
+    win.setText("txt_env_compare", ex.text);
+    say(`[Template Generator] Generated clean .env.example with ${ex.count} variables (${ex.kept} plain settings such as ports kept, every secret blanked)`);
+    win.toast("Generated .env.example. Use Copy or Save example below it.");
   });
 
-  win.onClick("btn_export_env", () => {
-    const text = isMasked ? rawUnmaskedText : win.getValue("txt_env_active") || "";
-    const outPath = resolve(process.cwd(), ".env.local");
+  win.onClick("btn_copy_example", () => {
+    const text = win.getValue("txt_env_compare") || "";
+    if (!text.trim()) return win.toast("The example is empty: press Generate first");
+    win.copyToClipboard(text);
+    say("[Copy] Example file copied to the clipboard.");
+    win.toast("Copied the example to the clipboard");
+  });
+
+  win.onClick("btn_save_example", async () => {
+    const text = win.getValue("txt_env_compare") || "";
+    if (!text.trim()) return win.toast("The example is empty: press Generate first");
+    const path = await win.saveFileDialog("Save .env.example", ".env.example");
+    if (!path) return;
     try {
-      writeFileSync(outPath, text, "utf8");
-      win.appendConsole("env_console", `[Export] Environment successfully written to ${outPath}\n`, 2);
-      win.toast(`Saved to ${basename(outPath)}`);
+      writeFileSync(path, text.endsWith("\n") ? text : `${text}\n`, "utf8");
+      say(`[Export] Example written to ${path}`);
+      win.toast(`Saved ${basename(path)}`);
     } catch (e: any) {
-      win.appendConsole("env_console", `[Export Error] ${e.message}\n`, 3);
+      say(`[Export Error] Could not write ${path}: ${e.message}`, 3);
+      win.toast("Could not save the file");
     }
   });
 

@@ -3,7 +3,7 @@
 export { LANGS, commentSyntax, detectLanguage, languageInfo } from "./codeLang.js";
 export { MAX_COLOURED_LINE, TOKEN_TYPES, createHighlighter, tokenizeLine, tokenizeText } from "./codeTokens.js";
 export {
-  CASES, buildLineStarts, changeCase, convertIndent, deleteLines, duplicateLines, ensureFinalNewline, indentLines, joinLines, lineAt, lineCol, lineEnd, lineStart, moveLines, offsetOf,
+  CASES, buildLineStarts, changeCase, changeDiacritics, convertIndent, deleteLines, duplicateLines, ensureFinalNewline, indentLines, joinLines, lineAt, lineCol, lineEnd, lineStart, moveLines, offsetOf,
   outdentLines, removeDuplicateLines, reverseLines, selectLine, sortLines, tabAtCaret, toggleBlockComment, toggleLineComment, touchedLines, trimTrailingWhitespace, urlDecode, urlEncode, wordAt,
 } from "./codeLines.js";
 export {

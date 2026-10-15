@@ -1,7 +1,8 @@
 // Every command of the Code tab in one table: its name, shortcut and what it does. The menus, the command
 // palette, the shortcuts list and the keyboard all read this table. `app` is the Code tab's services (code.js).
-import { KEYMAP, changeCase, convertIndent, deleteLines, duplicateLines, ensureFinalNewline, formatCode, formatShortcut, indentLines, joinLines, minifyCode, moveLines, outdentLines, removeDuplicateLines, reverseLines, selectLine, shortcutText, sortLines, toggleBlockComment, toggleLineComment, trimTrailingWhitespace, urlDecode, urlEncode, wordAt } from "./codeLogic.js";
+import { KEYMAP, changeCase, changeDiacritics, convertIndent, deleteLines, duplicateLines, ensureFinalNewline, formatCode, formatShortcut, indentLines, joinLines, minifyCode, moveLines, outdentLines, removeDuplicateLines, reverseLines, selectLine, shortcutText, sortLines, toggleBlockComment, toggleLineComment, trimTrailingWhitespace, urlDecode, urlEncode, wordAt } from "./codeLogic.js";
 import { askAutosave } from "./codeDialogs.js";
+import { TRANSFORMS, convertText } from "./textConvert.js";
 import { state } from "./state.js";
 import { formatWithV } from "./codeVFormat.js";
 
@@ -95,6 +96,11 @@ export function createCommands(app) {
   add("Text tools", "camel", "camelCase", text((t, s, e) => changeCase(t, s, e, "camel")), { tip: "Join words like someVariableName." });
   add("Text tools", "snake", "snake_case", text((t, s, e) => changeCase(t, s, e, "snake")), { tip: "Join words like some_variable_name." });
   add("Text tools", "kebab", "kebab-case", text((t, s, e) => changeCase(t, s, e, "kebab")), { tip: "Join words like some-variable-name." });
+  add("Text tools", "removeAccents", "Remove accents (é → e)", text((t, s, e) => changeDiacritics(t, s, e, "remove")), { tip: "Take the accents off Latin and Greek letters in the selection, or in the whole file when nothing is selected. ß becomes ss, æ becomes ae. Other scripts are left alone." });
+  add("Text tools", "composeAccents", "Join letters and accents (fix split accents)", text((t, s, e) => changeDiacritics(t, s, e, "compose")), { tip: "Fix text where an accent is stored apart from its letter (common in names copied from an older Mac), so that é is one character again." });
+  add("Text tools", "decomposeAccents", "Split letters and accents", text((t, s, e) => changeDiacritics(t, s, e, "decompose")), { tip: "Store each accent as a separate mark after its letter. The text looks the same; it is for programs that want it this way." });
+  add("Text tools", "convertText", "Convert text…", () => app.convertText(), { tip: "Pick from about seventy conversions (case, clean-up, lines, Base64, escapes, extract links ...) and apply it to the selection, or to the whole file when nothing is selected." });
+  for (const t of TRANSFORMS) add("Convert", `tx:${t.id}`, `${t.group}: ${t.label}`, text((tx, s, e) => convertText(tx, s, e, t.id)), { tip: t.tip, hidden: true });
   add("Text tools", "urlEncode", "URL-encode the selection", text((t, s, e) => urlEncode(t, s, e)), { tip: "Turn spaces and symbols into %20 style codes." });
   add("Text tools", "urlDecode", "URL-decode the selection", text((t, s, e) => urlDecode(t, s, e)), { tip: "Turn %20 style codes back into text." });
   const formatLocal = formatNow(false);

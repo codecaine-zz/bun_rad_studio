@@ -279,6 +279,8 @@ export function showSettings() {
   currentThemeName().then((name) => { if (name) themeNow.textContent = name; }).catch(() => {});
   const themeRow = h("div", { class: "field" }, h("span", { class: "field-label" }, "Theme"),
     h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "Pick from over a hundred colour themes: dark, light, futuristic, Linux, Windows, macOS and editor favourites.", onclick: () => showThemePicker() }, "Choose a theme…"), themeNow));
+  const textOpenSelect = h("select", { class: "select", "aria-label": "Open text files with", title: "What double-click, Enter and Open do with text and source files. Pictures, documents, programs and other files always open in the program your computer uses for them.", onchange: () => saveSettings({ textOpensIn: textOpenSelect.value }) },
+    ...[["builtin", "The built-in Code editor"], ["editor", "My code editor (the one chosen below)"], ["system", "The program my computer uses"]].map(([value, label]) => h("option", { value, selected: (state.settings.textOpensIn ?? "builtin") === value }, label)));
   // The editor list comes from the server, which also knows which editors are installed.
   const editorSelect = h("select", { class: "select", "aria-label": "Code editor for “Open in editor”", title: "The program that “Open in editor” (right-click a file) starts. Automatic uses your EDITOR setting or the first of VS Code, Sublime Text, WebStorm or IntelliJ IDEA that is installed.", onchange: () => saveSettings({ editor: editorSelect.value }) },
     h("option", { value: "default", selected: true }, "Automatic"));
@@ -299,6 +301,7 @@ export function showSettings() {
       toggle("Keep folders at the top of the list", "foldersFirst"),
       toggle("Show the Details panel", "showInfoPanel"),
       toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
+      h("label", { class: "field" }, h("span", { class: "field-label" }, "Open text files with"), textOpenSelect),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Code editor"), editorSelect),
       windowSection(),
       h("p", { class: "hint" }, "Your choices are saved automatically."),

@@ -48,6 +48,12 @@ export interface Settings {
   deleteTo: "bin" | "graveyard";
   /** Where the quick-open buttons for saved database connections show the studio: its own desktop window, or the web browser. */
   dbShortcut: "window" | "browser";
+  /**
+   * Where plain text and source files open when you double-click them, press Enter or choose Open: the File Manager's own
+   * Code editor ("builtin", the default), the editor chosen in `editor` ("editor"), or the program the computer normally
+   * uses for them ("system"). Programs, pictures, documents and everything else always use the computer's own program.
+   */
+  textOpensIn: "builtin" | "editor" | "system";
 }
 
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
@@ -86,6 +92,7 @@ export const DEFAULT_SETTINGS: Settings = {
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
   deleteTo: "bin",
   dbShortcut: "window",
+  textOpensIn: "builtin",
 };
 
 export const MAX_FAVORITES = 100;
@@ -148,6 +155,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     serveOptions: sanitizeServeOptions(r.serveOptions),
     deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),
     dbShortcut: oneOf(r.dbShortcut, ["window", "browser"], DEFAULT_SETTINGS.dbShortcut),
+    textOpensIn: oneOf(r.textOpensIn, ["builtin", "editor", "system"], DEFAULT_SETTINGS.textOpensIn),
   };
 }
 

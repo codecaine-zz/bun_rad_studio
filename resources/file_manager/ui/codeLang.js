@@ -6,7 +6,7 @@
  * and how "Run" starts a file (`run`: a command prefix, or null when the terminal can't run it).
  */
 export const LANGS = [
-  { id: "plain", name: "Plain text", exts: ["txt", "text", "log", "nfo", "csv", "tsv"], files: [], she: [], line: "", block: null, run: null },
+  { id: "plain", name: "Plain text", exts: ["txt", "text", "log", "nfo", "csv", "tsv"], files: [".gitignore", ".dockerignore", ".npmignore", ".prettierignore", ".eslintignore", ".hgignore"], she: [], line: "", block: null, run: null },
   { id: "javascript", name: "JavaScript", exts: ["js", "mjs", "cjs", "jsx"], files: [], she: ["node", "bun", "deno"], line: "//", block: ["/*", "*/"], run: "node" },
   { id: "typescript", name: "TypeScript", exts: ["ts", "mts", "cts", "tsx"], files: [], she: ["ts-node", "tsx"], line: "//", block: ["/*", "*/"], run: "bun" },
   { id: "json", name: "JSON", exts: ["json", "jsonc", "json5", "webmanifest", "geojson", "ipynb"], files: [".babelrc", ".eslintrc", "tsconfig.json"], she: [], line: "", block: null, run: null },
@@ -69,6 +69,20 @@ export function detectLanguage(name = "", firstLine = "") {
 export function commentSyntax(langId) {
   const lang = languageInfo(langId);
   return { line: lang.line, block: lang.block };
+}
+
+/**
+ * A name that is certainly text: a known file name (Makefile, Dockerfile ...), a dotfile (.env, .gitignore), or an
+ * extension a language here knows. Unlike `looksLikeText`, a name with no extension at all is not enough (it could be
+ * any program or data file), so this is what decides "open it in the code editor" without asking.
+ */
+export function isKnownTextName(name = "") {
+  const base = String(name).split(/[\\/]/).pop().toLowerCase();
+  if (BY_FILE.has(base) || base.startsWith("dockerfile.")) return true;
+  const dot = base.lastIndexOf(".");
+  // A dotfile such as ".env" or ".gitignore" is text when what follows the dot is a known text kind; ".DS_Store" is not.
+  if (dot === 0) return BY_EXT.has(base.slice(1).split(".").pop());
+  return dot > 0 && BY_EXT.has(base.slice(dot + 1));
 }
 
 /** Does this file name look like something worth editing as text? (Known languages and plain text, or no extension at all.) */

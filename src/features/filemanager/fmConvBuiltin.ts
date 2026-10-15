@@ -10,9 +10,10 @@ import { DATA_EXTENSIONS, DEFAULT_DATA_OPTIONS, FORMAT_EXTENSION, parseData, wri
 import type { OptionValues } from "./fmConvOptions";
 import { readSpreadsheet, sheetValue, sheetsFromValue, writeXlsx, type Sheet } from "./fmConvSheet";
 import {
-  ENCODING_BY_ID, convertLineEndings, decodeBase64, decodeBytes, decodeHex, encodeBase64, encodeHex, encodeText, htmlToText,
+  ENCODING_BY_ID, convertLineEndings, detectEncoding, decodeBase64, decodeBytes, decodeHex, encodeBase64, encodeHex, encodeText, htmlToText,
   spacesToTabs, stripTrailingSpaces, stripUtf8Bom, tabsToSpaces, textToHtml, type LineEnding,
 } from "./fmConvText";
+import { changeDiacritics, countDiacritics, type DiacriticMode } from "./fmConvDiacritics";
 import {
   DEFAULT_ARCHIVE_LIMITS, brotliFile, createTarGzFrom, createTarZstFrom, createZipFrom, extractTarGz, gunzipFile, gzipFile, tarGzToZip, unbrotliFile, unzstdFile, zipToTarGz, zstdFile, type ArchiveLimits,
 } from "./fmConvArchive";
@@ -194,6 +195,28 @@ async function convert(job: BuiltinJob): Promise<string> {
     case "eol":
       await writeNew(job.output, convertLineEndings(await readInput(input), String(params.to) as LineEnding));
       return "";
+    case "diacritics": {
+      const mode = str(o, "mode", "remove") as DiacriticMode;
+      const letters = bool(o, "letters", true);
+      const bytes = await readInput(input);
+      const from = str(o, "from", "auto");
+      // Without a mark or valid UTF-8 the encoding is a guess (Windows-1252 and Windows-1251 look alike), and a wrong guess would damage the text.
+      if (from === "auto" && ENCODING_BY_ID.get(detectEncoding(bytes).id)?.kind !== "unicode") throw new ConvError('This file is not UTF-8 or UTF-16, so its encoding can\'t be told safely (a wrong guess would damage the text). Choose the right one under "Read it as", for example Windows-1252 for Western European text.');
+      const d = decodeBytes(bytes, from, false);
+      if (d.bad) throw new ConvError(`The file has ${d.bad} unreadable place${d.bad === 1 ? "" : "s"}, so its accents can't be changed safely. Use "Change the text encoding" first and choose the right one.`);
+      const kind = ENCODING_BY_ID.get(d.encoding)!;
+      if (mode === "decompose" && kind.kind !== "unicode") throw new ConvError(`This file is ${kind.label.split(" (")[0]}, which can't store an accent apart from its letter. Use "Change the text encoding" to make it UTF-8 first.`);
+      const found = mode === "remove" ? countDiacritics(d.text, letters) : 0;
+      const text = changeDiacritics(d.text, mode, letters);
+      if (text === d.text) {
+        await writeNew(job.output, bytes);
+        return mode === "remove" ? "There was nothing to change (no accents), so this is an exact copy." : "The accents were already stored that way, so this is an exact copy.";
+      }
+      const enc = encodeText(text, d.encoding, false);
+      if (enc.unmappable) throw new ConvError(`${enc.unmappable} character${enc.unmappable === 1 ? "" : "s"} can't be saved in ${kind.label.split(" (")[0]} after the change. Nothing was written.`);
+      await writeNew(job.output, enc.bytes);
+      return mode === "remove" ? `Removed the accents from ${found} place${found === 1 ? "" : "s"} (file kept as ${kind.label.split(" (")[0]}).` : `Stored the accents as ${mode === "compose" ? "single characters" : "a letter plus a separate mark"}.`;
+    }
     case "tabs-to-spaces":
       await writeNew(job.output, tabsToSpaces(await readInput(input), num(o, "width", 4)));
       return "";

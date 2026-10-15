@@ -10,7 +10,7 @@
 // One shared runtime instead of a 60 MB executable per app keeps the whole suite near 30 MB per platform.
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
-import { ROOT, SIDECAR_FILES, VERSION, log, run, shQuote, webviewLibSource, type SourceApp, type Target } from "./common";
+import { ROOT, SIDECAR_FILES, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, type SourceApp, type Target } from "./common";
 
 export const RELEASE_DIR = join(ROOT, "release");
 export const CACHE_DIR = join(RELEASE_DIR, ".cache");
@@ -58,12 +58,12 @@ export function webviewPlugin(kind: SourceApp["kind"]): import("bun").BunPlugin 
 }
 
 /** Bundles every app to `bundles/apps/<name>.js` or `bundles/cli/<name>.js`. Failures are reported, not fatal. */
-export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR): Promise<BundleResult> {
+export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR, jobs = defaultJobs()): Promise<BundleResult> {
   rmSync(outRoot, { recursive: true, force: true });
-  const result: BundleResult = { built: [], failed: [] };
-  for (const app of apps) {
+  for (const kind of ["apps", "cli"]) mkdirSync(join(outRoot, kind), { recursive: true });
+  // Several bundles are made at once; each writes only its own file, and the shared _assets folders are cleared at the end.
+  const outcomes = await mapPool(apps, jobs, async (app): Promise<string | null> => {
     const dir = join(outRoot, app.kind === "gui" ? "apps" : "cli");
-    mkdirSync(dir, { recursive: true });
     try {
       const out = await Bun.build({
         entrypoints: [join(ROOT, app.entry)],
@@ -74,13 +74,15 @@ export async function bundleApps(apps: SourceApp[], outRoot = BUNDLE_DIR): Promi
         naming: { entry: `${app.name}.js`, asset: "_assets/[name]-[hash].[ext]" },
       });
       if (!out.success) throw new Error(out.logs.map((l) => l.message).join("; ").slice(0, 300) || "the bundler failed");
-      result.built.push(app);
+      return null;
     } catch (err: any) {
-      result.failed.push({ app, reason: String(err?.message ?? err).slice(0, 300) });
+      return String(err?.message ?? err).slice(0, 300);
     }
-    // The native library is loaded from lib/ (WEBVIEW_PATH), so the copies the bundler made are not needed.
-    rmSync(join(dir, "_assets"), { recursive: true, force: true });
-  }
+  });
+  const result: BundleResult = { built: [], failed: [] };
+  apps.forEach((app, i) => (outcomes[i] === null ? result.built.push(app) : result.failed.push({ app, reason: outcomes[i]! })));
+  // The native library is loaded from lib/ (WEBVIEW_PATH), so the copies the bundler made are not needed.
+  for (const kind of ["apps", "cli"]) rmSync(join(outRoot, kind, "_assets"), { recursive: true, force: true });
   return result;
 }
 
@@ -93,7 +95,7 @@ export async function buildRuntime(target: Target): Promise<string> {
   const out = join(CACHE_DIR, `runtime-${target.id}${exe}`);
   if (existsSync(out)) return out;
   const stub = join(CACHE_DIR, "runtime-stub.ts");
-  writeFileSync(stub, STUB);
+  writeFileAtomic(stub, STUB);
   await run(["bun", "build", "--compile", "--minify", `--target=${target.bunTarget}`, `--outfile=${out}`, stub]);
   return out;
 }

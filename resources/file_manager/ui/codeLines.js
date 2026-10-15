@@ -1,6 +1,7 @@
 // Line-based editing operations. Each takes the whole text and the selection (selStart, selEnd) and answers with an
 // edit { from, to, insert, selStart, selEnd, message? } to apply (the new selection is in the new text), or null when
 // there is nothing to do. `{ message }` alone means "can't do this, and here is why". Nothing here touches the page.
+import { changeDiacritics as changeDiacriticsText } from "./diacritics.js";
 import { commentSyntax } from "./codeLang.js";
 
 export const lineStart = (text, pos) => text.lastIndexOf("\n", pos - 1) + 1;
@@ -350,6 +351,17 @@ function transformSelection(text, s, e, fn) {
 }
 
 export const changeCase = (text, s, e, kind) => transformSelection(text, s, e, CASES[kind] ?? ((t) => t));
+/** Accents off (or stored another way) for the selection, or for the whole file when nothing is selected. */
+export function changeDiacritics(text, s, e, mode, spellOut = true) {
+  const whole = s === e;
+  const from = whole ? 0 : s;
+  const to = whole ? text.length : e;
+  const before = text.slice(from, to);
+  const after = changeDiacriticsText(before, mode, spellOut);
+  if (after === before) return { message: mode === "remove" ? "There are no accents to change here." : "The accents are already stored that way." };
+  return { from, to, insert: after, selStart: whole ? Math.min(s, after.length) : from, selEnd: whole ? Math.min(e, after.length) : from + after.length };
+}
+
 export const urlEncode = (text, s, e) => transformSelection(text, s, e, (t) => encodeURIComponent(t));
 export function urlDecode(text, s, e) {
   const r = transformSelection(text, s, e, (t) => decodeURIComponent(t.replace(/\+/g, " ")));

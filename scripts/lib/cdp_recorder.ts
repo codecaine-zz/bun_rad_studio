@@ -59,9 +59,12 @@ export class Cdp {
   private frames: { t: number; data: string }[] = [];
   private recording = false;
   private frameSessions: { id: string; targetId: string; url: string }[] = [];
+  /** The height of the recorded picture (the window height it was launched with). */
+  private height = 1080;
 
   static async launch(port: number, userDir: string, width = 1920, height = 1080): Promise<Cdp> {
     const c = new Cdp();
+    c.height = height;
     // A stale browser on the same debugging port would silently answer instead of ours.
     try { await fetch(`http://127.0.0.1:${port}/json/version`); throw new Error(`port ${port} is already in use by another browser`); } catch (e) { if ((e as Error).message.includes("already in use")) throw e; }
     rmSync(userDir, { recursive: true, force: true });
@@ -314,7 +317,7 @@ export class Cdp {
   async startRecording() {
     this.frames = [];
     this.recording = true;
-    await this.send("Page.startScreencast", { format: "jpeg", quality: 88, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1 });
+    await this.send("Page.startScreencast", { format: "jpeg", quality: 88, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
     // The first frame only arrives after something repaints.
     await this.eval(`window.__cc.move(window.__cc.state.x + 1, window.__cc.state.y, 50)`);
   }
@@ -341,7 +344,7 @@ export class Cdp {
     const recordedSec = (frames[frames.length - 1]!.t - frames[0]!.t) / 1000;
     const speed = recordedSec > seconds + 0.2 ? Math.min(1.35, recordedSec / seconds) : 1;
     const retime = speed > 1 ? `setpts=PTS/${speed.toFixed(4)},` : "";
-    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,${retime}tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:1080,format=yuv420p`,
+    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,${retime}tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height},format=yuv420p`,
       "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", outPath], { stdout: "ignore", stderr: "pipe" });
     if (p.exitCode !== 0) throw new Error(`clip encode failed: ${p.stderr.toString().slice(-400)}`);
     rmSync(workDir, { recursive: true, force: true });

@@ -6,6 +6,7 @@
  *   bun run release:build                         every platform (needs the internet the first time, to fetch each Bun runtime)
  *   bun run release:build -- --targets linux-x64,windows-x64
  *   bun run release:build -- --mac-apps           also build the .app bundles for this Mac (zipped, with icons)
+ *   bun run release:build -- --jobs 4             build four things at once (default: CPU cores minus one, at most 8; -j 1 = one by one)
  *   bun run release:build -- --list               show the platforms and exit
  *
  * Output, in release/:
@@ -19,7 +20,7 @@ import { join } from "path";
 import { ICONS_OUT, iconSpecFor, renderPngs } from "./release/icons";
 import { listMacApps } from "./release/build_mac_apps";
 import { RELEASE_DIR, archiveSuite, bundleApps, logBundleFailures, stageSuite } from "./release/suite";
-import { TARGETS, VERSION, findTargets, hostTargetId, listSourceApps, log, run, sha256File, type Target } from "./release/common";
+import { TARGETS, VERSION, defaultJobs, findTargets, hostTargetId, listSourceApps, log, mapPool, parseJobs, run, sha256File, type Target } from "./release/common";
 
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
@@ -27,18 +28,20 @@ export interface Options {
   targets: Target[];
   macApps: boolean;
   keepStage: boolean;
+  jobs: number;
 }
 
 export function parseArgs(argv: string[]): Options & { list: boolean } {
   let ids: string[] | null = null;
-  const o = { macApps: false, keepStage: false, list: false };
+  const o = { macApps: false, keepStage: false, list: false, jobs: defaultJobs() };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--targets") ids = (argv[++i] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     else if (a === "--mac-apps") o.macApps = true;
     else if (a === "--keep-stage") o.keepStage = true;
     else if (a === "--list") o.list = true;
-    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --mac-apps  --keep-stage  --list`);
+    else if (a === "--jobs" || a === "-j") o.jobs = parseJobs(argv[++i]);
+    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --mac-apps  --keep-stage  --jobs N  --list`);
   }
   return { ...o, targets: findTargets(ids) };
 }
@@ -64,7 +67,7 @@ async function main() {
   const sources = listSourceApps();
   log("📦", `${sources.filter((s) => s.kind === "gui").length} desktop apps and ${sources.filter((s) => s.kind === "cli").length} command-line tools, ${opts.targets.length} platforms`);
 
-  const bundles = await bundleApps(sources);
+  const bundles = await bundleApps(sources, undefined, opts.jobs);
   logBundleFailures(bundles);
   log("🧩", `Bundled ${bundles.built.length} of ${sources.length}`);
 
@@ -73,7 +76,7 @@ async function main() {
   if (process.platform === "darwin") {
     try {
       const apps = listMacApps();
-      await renderPngs(apps.map((a) => iconSpecFor({ id: a.id, category: a.category })), join(ICONS_OUT, "png"));
+      await renderPngs(apps.map((a) => iconSpecFor({ id: a.id, category: a.category })), join(ICONS_OUT, "png"), opts.jobs);
       iconsDir = join(ICONS_OUT, "png");
     } catch (err: any) {
       log("⚠️", `No icons for the Linux menus (${String(err?.message ?? err).split("\n")[0]})`);
@@ -83,23 +86,23 @@ async function main() {
   mkdirSync(RELEASE_DIR, { recursive: true });
   for (const f of readdirSync(RELEASE_DIR)) if (/^bun-rad-studio-v.*\.(tar\.gz|zip)$/.test(f) || f === "SHA256SUMS.txt") rmSync(join(RELEASE_DIR, f), { force: true });
 
-  const rows: Parameters<typeof releaseNotes>[0] = [];
-  for (const target of opts.targets) {
+  // Platforms are packed at the same time (each has its own staging folder); the table keeps the order of the list.
+  const rows = await mapPool(opts.targets, Math.min(opts.jobs, 4), async (target) => {
     log("🔨", `${target.id}`);
     const dir = await stageSuite(target, { bundles, iconsDir });
     const file = await archiveSuite(dir, target);
     if (!opts.keepStage) rmSync(dir, { recursive: true, force: true });
     const gui = target.gui ? bundles.built.filter((a) => a.kind === "gui").length : 0;
-    rows.push({ target, file: file.split("/").pop()!, bytes: statSync(file).size, guiCount: gui, cliCount: bundles.built.filter((a) => a.kind === "cli").length });
     log("✅", `${file.split("/").pop()}  ${mb(statSync(file).size)}`);
-  }
+    return { target, file: file.split("/").pop()!, bytes: statSync(file).size, guiCount: gui, cliCount: bundles.built.filter((a) => a.kind === "cli").length };
+  });
 
   const macZips: string[] = [];
   if (opts.macApps) {
     if (process.platform !== "darwin") log("⚠️", "--mac-apps needs a Mac; skipped");
     else {
       const arch = hostTargetId().endsWith("arm64") ? "arm64" : "x64";
-      await run(["bun", "run", "scripts/release/build_mac_apps.ts", "--zip", "--arch", arch], { cwd: join(import.meta.dir, "..") });
+      await run(["bun", "run", "scripts/release/build_mac_apps.ts", "--zip", "--arch", arch, "--jobs", String(opts.jobs)], { cwd: join(import.meta.dir, "..") });
       const dir = join(RELEASE_DIR, "mac-apps");
       for (const f of readdirSync(dir).filter((x) => /-apps(-\d+of\d+)?\.zip$/.test(x))) {
         await run(["mv", join(dir, f), join(RELEASE_DIR, f)]);

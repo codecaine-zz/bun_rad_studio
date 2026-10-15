@@ -25,7 +25,7 @@ import { join } from "path";
 import { ICONS_OUT, iconSpecFor, renderPngs } from "./icons";
 import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
 import { buildApp, type MacApp } from "./build_mac_apps";
-import { ROOT, SIDECAR_FILES, TARGETS, VERSION, listSourceApps, log, run, sha256File, webviewLibSource, type SourceApp, type Target } from "./common";
+import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, type SourceApp, type Target } from "./common";
 
 export const APP_TITLE = "Codecaine File Manager";
 export const OUT_DIR = join(RELEASE_DIR, "file-manager");
@@ -105,7 +105,7 @@ async function compileLauncher(d: Download, outFile: string, icoFile: string | n
   const t = targetOf(d);
   mkdirSync(CACHE_DIR, { recursive: true });
   const stub = join(CACHE_DIR, "fm-launcher.ts");
-  writeFileSync(stub, LAUNCHER_STUB);
+  writeFileAtomic(stub, LAUNCHER_STUB);
   const args = ["bun", "build", "--compile", "--minify", `--target=${t.bunTarget}`, `--outfile=${outFile}`];
   // Bun only embeds a custom .exe icon and title when it runs on Windows; building from a Mac or Linux keeps Bun's own. Hiding the console works everywhere.
   if (d.os === "windows") {
@@ -212,7 +212,7 @@ async function buildMac(d: Download, assets: Assets, sources: SourceApp[]): Prom
   const main = sources.find((s) => s.name === MAIN)!;
   const app: MacApp = { id: MAIN, title: APP_TITLE, emoji: "📁", category: "File & Directory Tools", source: main };
   const runtime = await buildRuntime(target);
-  const opts = { outDir: stage, arch: d.arch, only: null, install: false, zip: false, verify: false, sign: false } as const;
+  const opts = { outDir: stage, arch: d.arch, only: null, install: false, zip: false, verify: false, sign: false, jobs: 1 } as const;
   const bundle = await buildApp(app, runtime, { ...opts }, assets.icnsPng);
   const appDir = join(bundle, "Contents", "Resources", "app");
   for (const s of STUDIOS) if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`))) cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(appDir, `${s}.js`));
@@ -338,24 +338,26 @@ const FILES = ${JSON.stringify(data)};
 `;
 }
 
-export function parseArgs(argv: string[]): { ids: string[] | null; list: boolean; baseUrl: string; pageOnly: boolean } {
+export function parseArgs(argv: string[]): { ids: string[] | null; list: boolean; baseUrl: string; pageOnly: boolean; jobs: number } {
   let ids: string[] | null = null;
   let list = false;
   let baseUrl = "";
   let pageOnly = false;
+  let jobs = defaultJobs();
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--targets") ids = (argv[++i] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     else if (a === "--list") list = true;
     else if (a === "--base-url") baseUrl = argv[++i] ?? "";
     else if (a === "--page-only") pageOnly = true;
-    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --list  --base-url <url the zips are hosted at>  --page-only`);
+    else if (a === "--jobs" || a === "-j") jobs = parseJobs(argv[++i]);
+    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --list  --base-url <url the zips are hosted at>  --page-only  --jobs N`);
   }
-  return { ids, list, baseUrl, pageOnly };
+  return { ids, list, baseUrl, pageOnly, jobs };
 }
 
 async function main() {
-  const { ids, list, baseUrl, pageOnly } = parseArgs(process.argv.slice(2));
+  const { ids, list, baseUrl, pageOnly, jobs } = parseArgs(process.argv.slice(2));
   if (list) {
     for (const d of DOWNLOADS) console.log(`${d.id.padEnd(22)} ${d.label.padEnd(22)} ${d.hint}`);
     return;
@@ -380,24 +382,26 @@ async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
   log("🧩", `Bundling ${sources.length} programs (the File Manager and its ${sources.length - 1} database studios)`);
-  const bundles = await bundleApps(sources);
+  const bundles = await bundleApps(sources, undefined, jobs);
   logBundleFailures(bundles);
   if (!bundles.built.some((s) => s.name === MAIN)) throw new Error("The File Manager did not bundle");
 
   const assets = await makeAssets();
   const rows: Array<{ d: Download; file: string; bytes: number }> = [];
   const failures: string[] = [];
-  for (const d of chosen) {
+  const built = await mapPool(chosen, jobs, async (d) => {
     try {
       log("🔨", `${d.id}`);
       const out = d.os === "macos" ? await buildMac(d, assets, sources) : await buildFolder(d, assets);
-      rows.push({ d, file: out.split("/").pop()!, bytes: statSync(out).size });
       log("✅", `${out.split("/").pop()}  ${mb(statSync(out).size)}`);
+      return { d, file: out.split("/").pop()!, bytes: statSync(out).size };
     } catch (err: any) {
       failures.push(`${d.id}: ${String(err?.message ?? err).split("\n").slice(0, 3).join(" ")}`);
       log("❌", failures[failures.length - 1]!);
+      return null;
     }
-  }
+  });
+  for (const r of built) if (r) rows.push(r);
   rmSync(STAGE, { recursive: true, force: true });
 
   // The page and checksums always describe every zip that is present, not only the ones built this time.

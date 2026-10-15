@@ -8,6 +8,8 @@
  *   bun run build:mac-apps -- --install         also copy them into ~/Applications
  *   bun run build:mac-apps -- --zip             also write one zip per architecture for a GitHub release
  *   bun run build:mac-apps -- --verify          start each app and check that its page answers (opens windows)
+ *   bun run build:mac-apps -- --jobs 4          build four apps at the same time (default: your CPU cores minus one, at most 8; -j 1 builds one by one)
+ *                                               (--verify always starts the apps one by one: each opens a window)
  *
  * Each .app holds a small Bun runtime, the app bundled to one file, the window library and the app's resources, so it
  * runs without Bun or this project installed. They are signed ad hoc, which is what a Mac needs to run them locally.
@@ -18,7 +20,7 @@ import { join } from "path";
 import { collect } from "../build_showcase";
 import { GENERIC_ICNS, appStoreCategory, copyGeneric, iconSpecFor, makeIcns, renderPngs, ICONS_OUT } from "./icons";
 import { BUNDLE_DIR, RELEASE_DIR, bundleApps, buildRuntime, logBundleFailures } from "./suite";
-import { ROOT, SIDECAR_FILES, TARGETS, VERSION, listSourceApps, log, run, webviewLibSource, xmlEscape, type SourceApp } from "./common";
+import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, webviewLibSource, xmlEscape, type SourceApp } from "./common";
 
 export interface MacApp {
   /** Launcher name, like `calculator-studio`. */
@@ -118,10 +120,12 @@ export interface BuildOptions {
   zip: boolean;
   verify: boolean;
   sign: boolean;
+  /** How many apps are built, installed and zipped at the same time. */
+  jobs: number;
 }
 
 export function parseArgs(argv: string[]): BuildOptions {
-  const opts: BuildOptions = { outDir: join(RELEASE_DIR, "mac-apps"), arch: process.arch === "arm64" ? "arm64" : "x64", only: null, install: false, zip: false, verify: false, sign: true };
+  const opts: BuildOptions = { outDir: join(RELEASE_DIR, "mac-apps"), arch: process.arch === "arm64" ? "arm64" : "x64", only: null, install: false, zip: false, verify: false, sign: true, jobs: defaultJobs() };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     const value = () => argv[++i] ?? "";
@@ -135,6 +139,7 @@ export function parseArgs(argv: string[]): BuildOptions {
     else if (a === "--zip") opts.zip = true;
     else if (a === "--verify") opts.verify = true;
     else if (a === "--no-sign") opts.sign = false;
+    else if (a === "--jobs" || a === "-j") opts.jobs = parseJobs(value());
     else if (a === "--help" || a === "-h") {
       console.log(readFileSync(import.meta.path, "utf8").split("*/")[0]!.replace(/^[#/* ]+/gm, "").trim());
       process.exit(0);
@@ -224,7 +229,7 @@ async function main() {
   }
   log("📦", `Building ${apps.length} apps for macOS ${opts.arch}`);
 
-  const bundles = await bundleApps(apps.map((a) => a.source));
+  const bundles = await bundleApps(apps.map((a) => a.source), undefined, opts.jobs);
   logBundleFailures(bundles);
   const built = new Set(bundles.built.map((a) => a.name));
   apps = apps.filter((a) => built.has(a.id));
@@ -235,7 +240,7 @@ async function main() {
   let pngs = new Set<string>();
   try {
     log("🎨", "Drawing icons");
-    pngs = new Set(await renderPngs(apps.map((a) => iconSpecFor({ id: a.id, category: a.category }))));
+    pngs = new Set(await renderPngs(apps.map((a) => iconSpecFor({ id: a.id, category: a.category })), undefined, opts.jobs));
   } catch (err: any) {
     log("⚠️", `Couldn't draw the icons (${String(err?.message ?? err).split("\n")[0]}); using the generic icon.`);
   }
@@ -243,17 +248,20 @@ async function main() {
 
   mkdirSync(opts.outDir, { recursive: true });
   const failures: string[] = [];
-  const bundlesBuilt: Array<{ app: MacApp; path: string }> = [];
-  for (const app of apps) {
+  log("⚙️", `Building ${apps.length} apps, ${Math.min(opts.jobs, apps.length)} at a time`);
+  let finished = 0;
+  const outcomes = await mapPool(apps, opts.jobs, async (app) => {
     try {
       const path = await buildApp(app, runtime, opts, pngs.has(app.id) ? join(ICONS_OUT, "png", `${app.id}.png`) : null);
-      bundlesBuilt.push({ app, path });
-      log("✅", `${app.title}.app`);
+      log("✅", `[${++finished}/${apps.length}] ${app.title}.app`);
+      return { app, path };
     } catch (err: any) {
       failures.push(`${app.title}: ${String(err?.message ?? err).split("\n")[0]}`);
-      log("❌", `${app.title}: ${String(err?.message ?? err).split("\n")[0]}`);
+      log("❌", `[${++finished}/${apps.length}] ${app.title}: ${String(err?.message ?? err).split("\n")[0]}`);
+      return null;
     }
-  }
+  });
+  const bundlesBuilt = outcomes.filter((o): o is { app: MacApp; path: string } => o !== null);
 
   if (opts.verify) {
     log("🔎", "Starting each app (windows will open and close)");
@@ -266,21 +274,21 @@ async function main() {
   if (opts.install) {
     const dest = join(homedir(), "Applications");
     mkdirSync(dest, { recursive: true });
-    for (const b of bundlesBuilt) {
+    await mapPool(bundlesBuilt, opts.jobs, async (b) => {
       const to = join(dest, `${b.app.title}.app`);
       rmSync(to, { recursive: true, force: true });
       await run(["cp", "-cR", b.path, to]).catch(() => run(["cp", "-R", b.path, to]));
-    }
+    });
     log("📲", `Copied ${bundlesBuilt.length} apps to ${dest}`);
   }
   if (opts.zip) {
     // GitHub accepts files up to 2 GiB, so a full set goes into several zips of about 30 apps (~1 GB each).
     const names = readdirSync(opts.outDir).filter((f) => f.endsWith(".app")).sort();
     for (const f of readdirSync(opts.outDir)) if (/-apps(-\d+of\d+)?\.zip$/.test(f)) rmSync(join(opts.outDir, f), { force: true });
-    for (const [file, group] of zipPlan(names, opts.arch)) {
+    await mapPool(zipPlan(names, opts.arch), Math.min(opts.jobs, 3), async ([file, group]) => {
       await run(["zip", "-qry", join(opts.outDir, file), ...group], { cwd: opts.outDir });
       log("🗜️", join(opts.outDir, file));
-    }
+    });
   }
   log("🎉", `${bundlesBuilt.length} of ${apps.length} apps built in ${opts.outDir}`);
   if (failures.length) {

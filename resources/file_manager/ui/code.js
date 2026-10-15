@@ -9,10 +9,12 @@ import { registerOpener } from "./openwith.js";
 import { activePowerTab, openPower, powerIsOpen, registerPowerTab } from "./power.js";
 import { state } from "./state.js";
 import { commandForEvent, shiftBookmarks } from "./codeLogic.js";
+import { shortcutText } from "./codeKeys.js";
 import { createActions } from "./codeActions.js";
 import { createAssist } from "./codeAssist.js";
 import { THEME_CHOICES, createCommands } from "./codeCommands.js";
 import { openPalette, openRegexSandbox, openShortcutsHelp } from "./codeDialogs.js";
+import { TRANSFORMS } from "./textConvert.js";
 import { createDocs, isDirty } from "./codeDocs.js";
 import { createEditor } from "./codeEditor.js";
 import { createExplorer } from "./codeExplorer.js";
@@ -44,7 +46,7 @@ const MENUS = {
   File: ["newFile", "quickOpen", "openPath", "recent", "-", "save", "saveAs", "saveAll", "revert", "-", "rename", "deleteFile", "copyPath", "-", "closeTab", "closeOthers", "closeAll"],
   Edit: ["undo", "redo", "-", "find", "replace", "findNext", "findPrev", "findInFiles", "-", "goToLine", "goToSymbol", "-", "complete", "selectAll", "clipboard"],
   Selection: ["toggleComment", "blockComment", "-", "indent", "outdent", "-", "selectLine", "selectWord", "-", "deleteLine", "duplicate", "duplicateUp", "moveUp", "moveDown", "joinLines"],
-  Tools: ["sortAsc", "sortDesc", "sortNumeric", "reverseLines", "dedupe", "-", "trim", "finalNewline", "tabsToSpaces", "spacesToTabs", "-", "upper", "lower", "title", "camel", "snake", "kebab", "-", "urlEncode", "urlDecode", "-", "format", "minify", "-", "regexSandbox"],
+  Tools: ["sortAsc", "sortDesc", "sortNumeric", "reverseLines", "dedupe", "-", "trim", "finalNewline", "tabsToSpaces", "spacesToTabs", "-", "upper", "lower", "title", "camel", "snake", "kebab", "-", "convertText", "removeAccents", "composeAccents", "decomposeAccents", "-", "urlEncode", "urlDecode", "-", "format", "minify", "-", "regexSandbox"],
   Go: ["bookmarkToggle", "bookmarkNext", "bookmarkPrev", "bookmarkClear", "-", "goToLine", "goToSymbol", "quickOpen"],
   View: ["wrap", "lineNumbers", "-", "zoomIn", "zoomOut", "zoomReset", "-", "zen", "explorer", "preview", "-", "panelFiles", "panelGit", "panelOutline", "panelBookmarks", "-", "completion", "autoOpen", "autosave", "autosaveOptions", "-", "shortcuts", "palette"],
 };
@@ -309,14 +311,22 @@ function mount(root) {
     undo(redo) { ed()?.focus(); document.execCommand(redo ? "redo" : "undo"); },
     find: (replace) => ed() && findBar.open({ replace }),
     showPanel,
-    toggleZen() { zen = !zen; root.classList.toggle("code-zen", zen); applySettings(); ed()?.layout(); },
+    toggleZen() {
+      zen = !zen;
+      root.classList.toggle("code-zen", zen);
+      applySettings();
+      ed()?.layout();
+      if (zen) toast(`Zen mode: press Esc, ${shortcutText("zen", state.platform)} or the “Leave zen mode” button to come back.`, { timeout: 5000 });
+      else ed()?.focus();
+    },
     isZen: () => zen,
     toggleSide() { setSetting("explorer", !settings().explorer); },
     togglePreview() { previewOn = !previewOn; updatePreview(); },
     isPreview: () => previewOn,
     regexSandbox: () => openRegexSandbox(ed() ? ed().getText().slice(0, 5000) : ""),
-    shortcuts: () => openShortcutsHelp(commands.list.map((c) => ({ group: c.group, label: c.label, shortcut: c.shortcut }))),
-    palette: () => openPalette({ title: "Command palette", placeholder: "Type a command", empty: "No command matches.", items: commands.list.map((c) => ({ label: c.label, detail: c.group, hint: c.shortcut, value: c.id })), onPick: (id) => commands.run(id) }),
+    convertText: () => openPalette({ title: "Convert text", placeholder: "Type what you want, for example base64, snake, accents, links", empty: "No conversion matches.", items: TRANSFORMS.map((t) => ({ label: t.label, detail: `${t.group} · ${t.tip}`, value: t.id })), onPick: (id) => commands.run(`tx:${id}`) }),
+    shortcuts: () => openShortcutsHelp(commands.list.filter((c) => !c.hidden).map((c) => ({ group: c.group, label: c.label, shortcut: c.shortcut }))),
+    palette: () => openPalette({ title: "Command palette", placeholder: "Type a command", empty: "No command matches.", items: commands.list.filter((c) => !c.hidden).map((c) => ({ label: c.label, detail: c.group, hint: c.shortcut, value: c.id })), onPick: (id) => commands.run(id) }),
     suggest: () => assist.suggest(doc()),
     runDefault: (kind) => runUi.runDefault(doc(), kind),
     openPresets: () => runUi.openPresets(doc()),
@@ -336,18 +346,22 @@ function mount(root) {
   const toolbar = h("div", { class: "code-toolbar", role: "toolbar", "aria-label": "Editor commands" },
     ...Object.entries(MENUS).map(([name, ids]) => menuButton(name, ids)), themeMenu,
     h("span", { class: "code-sep" }),
-    quick("💾 Save", "Save this file (Ctrl/Cmd+S)", () => commands.run("save")), quick("🔎 Find", "Find in this file (Ctrl/Cmd+F)", () => commands.run("find")),
+    quick("💾 Save", "Save this file (Ctrl/Cmd+S)", () => commands.run("save")), quick("🔎 Find", "Find in this file (Ctrl/Cmd+F)", () => commands.run("find")), quick("🔤 Convert", "Change the case, clean up, encode or extract: about seventy text conversions for the selection or the whole file", () => commands.run("convertText")),
     runButtons,
     h("span", { class: "code-grow" }),
     quick("👁 Preview", "Show a preview next to the text (Markdown and HTML)", () => commands.run("preview")), quick("⛶ Zen", "Hide everything except the text (press again to come back)", () => commands.run("zen")));
 
   const centre = h("div", { class: "code-centre" }, tabStrip, banner, findBar.el, h("div", { class: "code-work" }, editors, welcome, preview), status.el);
-  root.append(toolbar, h("div", { class: "code-main" }, side, centre));
+  // Zen mode hides the toolbar (and its Zen button), so it needs a way out that stays in sight.
+  const zenExit = h("button", { type: "button", class: "code-zen-exit", title: `Leave zen mode (Esc or ${shortcutText("zen", state.platform)})`, "aria-label": "Leave zen mode", onclick: () => commands.run("zen") }, "✕ Leave zen mode");
+  root.append(toolbar, h("div", { class: "code-main" }, side, centre), zenExit);
   wireTabKeys(tabStrip, (id) => { saveScroll(); docs.activate(id); });
 
   root.addEventListener("keydown", (e) => {
     e.stopPropagation(); // typing here must never reach the File Manager's own shortcuts (Delete, Ctrl+D ...)
     if (e.defaultPrevented || e.isComposing) return;
+    // Esc leaves zen mode when nothing else (a menu, the completion list, the find bar) used it first.
+    if (zen && e.key === "Escape" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); commands.run("zen"); return; }
     const id = commandForEvent(e, state.platform);
     if (id && commands.run(id)) e.preventDefault();
   });

@@ -91,7 +91,7 @@ const CSP = [
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self' data:",
-  "media-src 'self'",
+  "media-src 'self' blob:",
   "font-src 'self'",
   "connect-src 'self'",
   "base-uri 'none'",
@@ -617,8 +617,10 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const thumb = url.searchParams.get("thumb") === "1";
           const media = MEDIA_MIME[ext];
           const picture = RAW_MIME[ext] && classify(name, false).preview === "image" ? RAW_MIME[ext] : undefined;
+          // Subtitle files next to a video (the player turns .srt into WebVTT itself).
+          const subtitle = ext === "vtt" || ext === "srt" ? "text/plain; charset=utf-8" : undefined;
           // Only what a preview can show is served, and that is decided by the name before the disk is touched.
-          if (!thumb && !media && !picture) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
+          if (!thumb && !media && !picture && !subtitle) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
           const st = await fsp.stat(file);
           if (!st.isFile()) return json(400, { ok: false, error: { code: "NOT_A_FILE", message: "That isn't a file." } });
           // A picture of a document that only the system's Quick Look can draw (macOS).
@@ -629,6 +631,10 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           }
           // Sound and video: streamed in pieces, so playing starts at once and seeking works.
           if (media) return fileResponse(req, file, st.size, secureHeaders({ "Content-Type": media, ...preview }));
+          if (subtitle) {
+            if (st.size > 2 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That subtitle file is too big." } });
+            return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": subtitle, ...preview }) });
+          }
           if (st.size > MAX_RAW_BYTES) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That picture is too big to preview." } });
           return new Response(Bun.file(file), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
         }

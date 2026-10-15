@@ -83,4 +83,15 @@ describe("accessibility basics in the stylesheet", () => {
   test("text size scales with the user's setting", () => {
     expect(css).toContain("--fm-scale");
   });
+
+  test("zen mode keeps the editor on screen: the Code pane stays absolutely positioned and no rule makes it 'relative'", () => {
+    const ui = join(import.meta.dir, "..", "resources", "file_manager", "ui");
+    expect(readFileSync(join(ui, "power.css"), "utf8")).toMatch(/\.power-pane \{[^}]*position: absolute; inset: 0/);
+    const code = readFileSync(join(ui, "code.css"), "utf8");
+    // Setting position on the pane itself would shrink it to nothing (it is laid out by inset: 0), so only its children may.
+    for (const m of code.matchAll(/(^|\n)([^{}\n]+)\{([^}]*)\}/g)) {
+      const selectors = m[2]!.split(",").map((x) => x.trim());
+      if (selectors.some((x) => x === ".code-zen" || x === ".code-root" || x === ".power-pane.code-root")) expect(m[3], m[2]).not.toMatch(/\bposition:/);
+    }
+  });
 });

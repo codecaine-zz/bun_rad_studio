@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { TARGETS, findTargets, hostTargetId, listSourceApps, shQuote, webviewLibSource, xmlEscape, ROOT } from "../scripts/release/common";
+import { TARGETS, defaultJobs, findTargets, mapPool, parseJobs, hostTargetId, listSourceApps, shQuote, webviewLibSource, xmlEscape, ROOT } from "../scripts/release/common";
 import { colorsFor, appStoreCategory, iconSpecFor } from "../scripts/release/icons";
 import { DESIGNS, SYMBOL_NAMES } from "../scripts/release/iconDesigns";
 import { ICON_RENDERER } from "../scripts/release/iconRenderer";
@@ -244,4 +244,44 @@ describe("macOS apps", () => {
     expect(statSync(join(c, "MacOS", "calculator-studio")).mode & 0o111).not.toBe(0);
     expect(Bun.spawnSync(["file", join(c, "Resources", "AppIcon.icns")]).stdout.toString()).toContain("icon");
   }, 180_000);
+});
+
+describe("parallel builds", () => {
+  test("mapPool returns results in input order and never exceeds the limit", async () => {
+    let running = 0;
+    let peak = 0;
+    const out = await mapPool([30, 5, 20, 1, 10, 2], 3, async (ms, i) => {
+      running++;
+      peak = Math.max(peak, running);
+      await Bun.sleep(ms);
+      running--;
+      return `${i}:${ms}`;
+    });
+    expect(out).toEqual(["0:30", "1:5", "2:20", "3:1", "4:10", "5:2"]);
+    expect(peak).toBe(3);
+  });
+  test("mapPool with one job is strictly sequential, and handles an empty list", async () => {
+    const order: number[] = [];
+    await mapPool([1, 2, 3], 1, async (n) => {
+      order.push(n);
+      await Bun.sleep(3);
+      order.push(-n);
+    });
+    expect(order).toEqual([1, -1, 2, -2, 3, -3]);
+    expect(await mapPool([], 4, async () => 1)).toEqual([]);
+  });
+  test("an error that escapes a job rejects the run", async () => {
+    await expect(mapPool([1, 2], 2, async (n) => { if (n === 2) throw new Error("boom"); return n; })).rejects.toThrow("boom");
+  });
+  test("--jobs is validated and has a sensible default", () => {
+    expect(defaultJobs()).toBeGreaterThanOrEqual(1);
+    expect(defaultJobs()).toBeLessThanOrEqual(8);
+    expect(parseJobs("4")).toBe(4);
+    for (const bad of ["0", "-1", "2.5", "abc", "", undefined, "65"]) expect(() => parseJobs(bad)).toThrow("--jobs");
+    expect(parseMacArgs(["--jobs", "3"]).jobs).toBe(3);
+    expect(parseMacArgs(["-j", "1"]).jobs).toBe(1);
+    expect(parseMacArgs([]).jobs).toBe(defaultJobs());
+    expect(parseReleaseArgs(["--jobs", "2"]).jobs).toBe(2);
+    expect(() => parseMacArgs(["--jobs", "0"])).toThrow();
+  });
 });

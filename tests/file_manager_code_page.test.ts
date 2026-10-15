@@ -354,6 +354,31 @@ describe("the Code tab in a browser-like page", () => {
     doc.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   });
 
+  test("zen mode always shows a way out: a visible button, Esc, and a hint when it starts", async () => {
+    await openFile("notes.txt");
+    const root = doc.querySelector(".code-root");
+    const exit = doc.querySelector(".code-zen-exit");
+    expect(exit).toBeTruthy();
+    expect(exit.getAttribute("aria-label")).toBe("Leave zen mode");
+    expect(root.classList.contains("code-zen")).toBe(false);
+    button("⛶ Zen")?.click();
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(true);
+    expect(doc.querySelector("#toasts").textContent).toContain("Leave zen mode");
+    // The button is the only one left in the toolbar's place, and it works.
+    exit.click();
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(false);
+    // Esc leaves it too, from inside the text.
+    button("⛶ Zen")?.click();
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(true);
+    const esc = new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    active().dispatchEvent(esc);
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(false);
+  });
+
   test("closing a tab with unsaved changes asks first", async () => {
     await openFile("notes.txt");
     const ta = active();
@@ -454,5 +479,32 @@ describe("the Code tab in a browser-like page", () => {
       press(ta, "s", { [mod]: true });
       await until(() => !code.codeHasUnsaved(), "the manual save");
     });
+  });
+});
+
+describe("opening a text file from the file list", () => {
+  test("by default it opens in the built-in Code editor, not in the computer's program", async () => {
+    const ops = await import("../resources/file_manager/ui/ops.js");
+    const power = await import("../resources/file_manager/ui/power.js");
+    await ops.openEntry({ path: join(work, "notes.txt"), name: "notes.txt", isDir: false, program: false, size: 8 });
+    await sleep(500);
+    expect(power.powerIsOpen() && power.activePowerTab() === "code").toBe(true);
+    expect(tabNames()).toContain("notes.txt");
+  });
+
+  test("the Convert button opens a searchable list of text conversions and applies the pick to the whole file", async () => {
+    await openFile("notes.txt");
+    button("Convert")?.click();
+    await sleep(100);
+    const input: any = doc.querySelector(".code-pal-in");
+    expect(input).toBeTruthy();
+    expect(doc.querySelectorAll(".code-pal-item").length).toBeGreaterThan(20);
+    input.value = "base64 enc";
+    input.dispatchEvent(new win.Event("input", { bubbles: true }));
+    await sleep(50);
+    expect(doc.querySelector(".code-pal-sel .code-pal-label").textContent).toBe("Base64 encode");
+    input.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    await sleep(150);
+    expect(Buffer.from(active().value.trim(), "base64").toString("utf8")).toMatch(/one\ntwo/);
   });
 });
