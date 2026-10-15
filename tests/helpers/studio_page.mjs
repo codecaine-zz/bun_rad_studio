@@ -36,7 +36,7 @@ export async function openStudio(base, { table, storage, quiet = true } = {}) {
       };
       for (const n of ["prompt", "confirm", "alert"]) win[n] = (...a) => { native.push(n + ":" + a[0]); return n === "confirm" ? true : null; };
       win.HTMLElement.prototype.scrollIntoView = () => {};
-      win.Element.prototype.requestFullscreen = function () { fullscreen.push("requestFullscreen"); return Promise.resolve(); };
+      win.Element.prototype.requestFullscreen = function () { fullscreen.push(String(new Error("requestFullscreen").stack).split("\n").slice(1, 6).join(" <- ")); return Promise.resolve(); };
       win.HTMLElement.prototype.requestFullscreen = win.Element.prototype.requestFullscreen;
       for (const [k, v] of Object.entries(storage || {})) win.localStorage.setItem(k, v);
     },

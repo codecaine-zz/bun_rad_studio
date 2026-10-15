@@ -63,23 +63,31 @@ describe(`Focus mode on the ${ENGINE} studio (jsdom against the real server)`, (
 
   test("Alt+Enter toggles focus, never Esc; double-click on a header toggles; the shortcut is listed", async () => {
     const s = await openStudio(BASE, { table: "wide" });
-    // The studio's own one-time "go full screen on the first key or click" (outside the File Manager) is not focus mode: let it fire first
+    // The studio's own one-time "go full screen on the first key or click" (outside the File Manager) is not focus mode: let it fire first,
+    // and then count Fullscreen API calls only inside the synchronous steps that toggle focus.
     s.key("Shift", {}, s.w);
-    await sleep(50);
-    const fs0 = s.fullscreen.length;
-    let ev = s.key("Enter", { altKey: true }, s.w);
+    s.w.dispatchEvent(new s.w.MouseEvent("click", { bubbles: true }));
+    await sleep(100);
+    let ownCalls = 0;
+    const step = (fn) => {
+      const n = s.fullscreen.length;
+      const r = fn();
+      ownCalls += s.fullscreen.length - n;
+      return r;
+    };
+    let ev = step(() => s.key("Enter", { altKey: true }, s.w));
     assert.ok(ev.defaultPrevented);
     assert.ok(body(s).contains("sf-on"));
     // Esc must not leave focus mode (it belongs to menus and dialogs)
-    s.key("Escape", {}, s.d.activeElement);
+    step(() => s.key("Escape", {}, s.d.activeElement));
     assert.ok(body(s).contains("sf-on"), "Esc does not exit focus mode");
-    s.key("Enter", { altKey: true }, s.w);
+    step(() => s.key("Enter", { altKey: true }, s.w));
     assert.equal(body(s).contains("sf-on"), false);
     // double-click on the tab header
     const tabBtn = s.q(".view-tabs .tab-btn.active");
-    tabBtn.dispatchEvent(new s.w.MouseEvent("dblclick", { bubbles: true }));
+    step(() => tabBtn.dispatchEvent(new s.w.MouseEvent("dblclick", { bubbles: true })));
     assert.ok(body(s).contains("sf-on"), "double-click on the active tab focuses it");
-    s.q(".sf-bar .sf-title").dispatchEvent(new s.w.MouseEvent("dblclick", { bubbles: true }));
+    step(() => s.q(".sf-bar .sf-title").dispatchEvent(new s.w.MouseEvent("dblclick", { bubbles: true })));
     assert.equal(body(s).contains("sf-on"), false, "double-click on the bar title leaves");
     // a dialog open: the shortcut does nothing
     s.w.studioConfirm("x?");
@@ -93,7 +101,7 @@ describe(`Focus mode on the ${ENGINE} studio (jsdom against the real server)`, (
     const dlg = await wait(() => s.q('[data-ss-dialog="shortcuts"]'), "the list");
     assert.match(dlg.textContent, /Focus mode/);
     assert.match(dlg.textContent, /Alt/);
-    assert.equal(s.fullscreen.length, fs0, "the Fullscreen API was not used by focus mode");
+    assert.equal(ownCalls, 0, "the Fullscreen API was not used by focus mode: " + s.fullscreen.join(" | "));
     s.close();
   });
 
