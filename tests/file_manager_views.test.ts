@@ -2071,6 +2071,7 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     run.click();
     await waitFor(() => /added to "yaml"/.test(doc.querySelector(".act-run")?.textContent ?? ""), 8000);
     expect(doc.querySelector(".act-run")!.textContent).toContain("✓ Convert to YAML");
+    expect(doc.querySelector(".act-panel")!.textContent).not.toContain("null");
     expect(readFileSync(join(act, "yaml", "people.yaml"), "utf8")).toContain("Ada");
     expect(readFileSync(csv, "utf8")).toBe("name,age\nAda,36\n");
     expect([...doc.querySelectorAll(".act-run button")].some((b: any) => b.textContent === "Show the output folder")).toBe(true);
@@ -2101,5 +2102,36 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     await waitFor(() => !!doc.querySelector(".modal-backdrop"));
     primary().click();
     await waitFor(() => ![...doc.querySelectorAll(".act-card")].some((c: any) => c.textContent.includes("Friend's recipe")));
+  });
+
+  test("Backspace goes up a folder by default (with a one-time hint); with the Mac-keyboard setting it deletes instead", async () => {
+    const dir = join(lab, "bs", "inner");
+    const f = put(join(dir, "victim.txt"), "bye");
+    put(join(dir, "keeper.txt"), "stay");
+    const nav = await import("../resources/file_manager/ui/nav.js");
+    const { activePane } = await import("../resources/file_manager/ui/pane.js");
+    const shared = (await import("../resources/file_manager/ui/state.js")).state;
+    const here = () => shared.location.path;
+    win.localStorage.removeItem("fm_backspace_hint");
+    await nav.goTo(dir);
+    await sleep(300);
+    // default: Backspace = up one folder, and the hint appears once
+    key($("#list"), "Backspace");
+    await waitFor(() => here() === join(lab, "bs"));
+    expect(here()).toBe(join(lab, "bs"));
+    expect(toasts()).toContain("Delete key is Backspace");
+    expect(existsSync(f)).toBe(true);
+    // the setting: Backspace moves the selected file to the Recycle Bin and stays in the folder
+    await nav.saveSettings({ backspaceDeletes: true });
+    await nav.goTo(dir);
+    await sleep(300);
+    (activePane() as any).selection.clear();
+    (activePane() as any).selection.add(f);
+    key($("#list"), "Backspace");
+    await waitFor(() => !existsSync(f));
+    expect(existsSync(f)).toBe(false);
+    expect(existsSync(join(dir, "keeper.txt"))).toBe(true);
+    expect(here()).toBe(dir);
+    await nav.saveSettings({ backspaceDeletes: false });
   });
 });

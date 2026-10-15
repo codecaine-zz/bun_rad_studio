@@ -41,6 +41,8 @@ export interface Settings {
   dualPath: string;
   /** Mark files that aren't what their name says, and ask before opening the dangerous ones. */
   typeWarnings: boolean;
+  /** Windows and Linux only: the key a Mac keyboard calls Delete sends Backspace, so Backspace deletes instead of going up a folder. */
+  backspaceDeletes: boolean;
   /** The code editor "Open in editor" starts: "default" uses $VISUAL / $EDITOR, or the first known editor found. */
   editor: "default" | "vscode" | "subl" | "webstorm" | "idea";
   /** The Serve tool's remembered form choices. The network (LAN) option is never remembered. */
@@ -95,6 +97,7 @@ export const DEFAULT_SETTINGS: Settings = {
   splitTool: "",
   dualPath: "",
   typeWarnings: true,
+  backspaceDeletes: false,
   editor: "default",
   serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
   deleteTo: "bin",
@@ -159,6 +162,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     splitTool: typeof r.splitTool === "string" && TOOL_ID.test(r.splitTool) ? r.splitTool : "",
     dualPath: isPath(r.dualPath) ? p.resolve(r.dualPath) : "",
     typeWarnings: typeof r.typeWarnings === "boolean" ? r.typeWarnings : DEFAULT_SETTINGS.typeWarnings,
+    backspaceDeletes: typeof r.backspaceDeletes === "boolean" ? r.backspaceDeletes : DEFAULT_SETTINGS.backspaceDeletes,
     editor: oneOf(r.editor, ["default", "vscode", "subl", "webstorm", "idea"], DEFAULT_SETTINGS.editor),
     serveOptions: sanitizeServeOptions(r.serveOptions),
     deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),

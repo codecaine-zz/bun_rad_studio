@@ -1,7 +1,7 @@
 // The shortcuts in force on this page: the defaults with the person's changes (Settings → Keyboard shortcuts) on top.
 // The key handlers ask here; the Code tab's own table (codeKeys.js) is kept in step.
 import { KEYMAP } from "./codeKeys.js";
-import { ACTIONS, effectiveKeys, formatShortcut, matchShortcut } from "./shortcuts.js";
+import { ACTIONS, effectiveKeys, formatShortcut, matchShortcut, setBackspaceDeletes } from "./shortcuts.js";
 import { state } from "./state.js";
 
 let signature = "";
@@ -10,9 +10,11 @@ const byId = new Map(ACTIONS.map((a) => [a.id, a]));
 
 function refresh() {
   const overrides = state.settings?.shortcuts ?? {};
-  const next = `${state.platform}|${JSON.stringify(overrides)}`;
+  const backspace = state.settings?.backspaceDeletes === true;
+  const next = `${state.platform}|${backspace}|${JSON.stringify(overrides)}`;
   if (next === signature) return;
   signature = next;
+  setBackspaceDeletes(backspace);
   current = effectiveKeys(overrides, state.platform);
   // The Code tab reads its keys from this table (its menus, palette, help list and key handler).
   for (const a of ACTIONS) if (a.command) KEYMAP[a.command] = [...(current.keys.get(a.id) ?? [])];

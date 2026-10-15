@@ -247,12 +247,12 @@ registerPowerTab({
         try {
           const { check: c } = await call("actions/preflight", { action: a.id, inputs, params: values });
           if (mine !== checkSeq) return;
-          check.replaceChildren(
+          check.replaceChildren(...[
             h("p", { class: c.ok ? "pw-ok" : "pw-bad", role: "status" }, c.ok ? `Ready: ${plural(c.accepted.length, "file")} will be used. Your original files are never changed.` : "This can't run yet. Fix the problems below."),
             h("ol", { class: "act-list" }, c.steps.map((s) => h("li", { class: s.available ? "pw-ok" : "pw-bad" }, `${s.available ? "✓" : "✗"} ${s.label}`, h("span", { class: "pw-hint" }, ` — ${s.note}`)))),
             ...c.problems.map((p) => h("p", { class: p.level === "block" ? "pw-bad" : "pw-hint" }, `${p.level === "block" ? "⛔" : "⚠️"} ${p.message}`)),
             c.rejected.length ? h("ul", { class: "act-rejected" }, c.rejected.slice(0, 8).map((r) => h("li", {}, `${base(r.path)}: ${r.reason}`)), c.rejected.length > 8 ? h("li", { class: "pw-hint" }, `…and ${c.rejected.length - 8} more`) : null) : null,
-            c.outputFolder ? h("p", { class: "pw-hint" }, `Results go to ${c.outputFolder}${c.outputFolderExists ? "" : " (it will be made)"}. ${c.recovery}`) : null);
+            c.outputFolder ? h("p", { class: "pw-hint" }, `Results go to ${c.outputFolder}${c.outputFolderExists ? "" : " (it will be made)"}. ${c.recovery}`) : null].filter(Boolean));
           run.disabled = !c.ok;
         } catch (err) { if (mine === checkSeq) check.replaceChildren(h("p", { class: "pw-bad" }, explain(err, "The check didn't work."))); }
       }
@@ -278,12 +278,12 @@ registerPowerTab({
         let r;
         try { r = (await call("actions/run/get", { id })).run; } catch (err) { progress.replaceChildren(h("p", { class: "pw-bad" }, explain(err, "The progress couldn't be read."))); return; }
         const over = !!r.finishedAt;
-        progress.replaceChildren(
+        progress.replaceChildren(...[
           h("ol", { class: "act-list" }, r.steps.map((s) => h("li", { class: s.state === "failed" ? "pw-bad" : s.state === "done" ? "pw-ok" : "" }, `${STEP_ICON[s.state]} ${s.label}`, s.message ? h("span", { class: "pw-hint" }, ` — ${s.message}`) : null,
             s.failedFiles.length ? h("ul", {}, s.failedFiles.slice(0, 5).map((f) => h("li", {}, `${f.path}: ${f.message}`))) : null))),
           over ? h("p", { class: r.state === "done" ? "pw-ok" : "pw-bad", role: r.state === "done" ? "status" : "alert" }, r.message) : h("div", { class: "pw-row" }, h("span", { class: "pw-hint" }, "Working…"), h("button", { type: "button", class: "pw-btn", onclick: () => call("actions/run/cancel", { id }).catch(() => {}) }, "Cancel")),
           over && r.state === "done" && r.reveal && r.published.length ? h("button", { type: "button", class: "pw-btn", onclick: () => goTo(r.outputFolder) }, "Show the output folder") : null,
-          over && r.notPublished.length ? h("p", { class: "pw-hint" }, `Not copied: ${r.notPublished.slice(0, 5).map(base).join(", ")}`) : null);
+          over && r.notPublished.length ? h("p", { class: "pw-hint" }, `Not copied: ${r.notPublished.slice(0, 5).map(base).join(", ")}`) : null].filter(Boolean));
         if (over) { run.disabled = false; announce(r.message); if (r.state === "done") toast(r.message, { kind: "success" }); return; }
         timer = setTimeout(tick, POLL_MS);
       };

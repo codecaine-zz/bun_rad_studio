@@ -88,10 +88,26 @@ const specIsMac = (spec) => spec.startsWith("mac:");
 const specIsOther = (spec) => spec.startsWith("other:");
 export const specWithoutPlatform = (spec) => spec.replace(/^(mac|other):/, "");
 
+let backspaceDeletes = false;
+
+/**
+ * For a Mac keyboard on Windows or Linux (a virtual machine, say): its Delete key sends Backspace. With this on, Backspace
+ * moves to the Recycle Bin (Shift+Backspace deletes for good) and no longer goes up a folder. Macs are not affected.
+ */
+export function setBackspaceDeletes(on) {
+  backspaceDeletes = on === true;
+}
+
 /** The default shortcuts of an action on a platform. */
 export function defaultsFor(action, platform) {
   const mac = platform === "darwin";
-  return action.keys.filter((k) => (specIsMac(k) ? mac : specIsOther(k) ? !mac : true)).map(specWithoutPlatform);
+  let keys = action.keys.filter((k) => (specIsMac(k) ? mac : specIsOther(k) ? !mac : true)).map(specWithoutPlatform);
+  if (backspaceDeletes && !mac) {
+    if (action.id === "nav.up") keys = keys.filter((k) => k !== "Backspace");
+    else if (action.id === "file.trash") keys = [...keys, "Backspace"];
+    else if (action.id === "file.deleteForever") keys = [...keys, "Shift+Backspace"];
+  }
+  return keys;
 }
 
 /** A shortcut as plain text for comparing: Mod and Ctrl are the same key on Windows and Linux; ? and + count as shifted keys. */

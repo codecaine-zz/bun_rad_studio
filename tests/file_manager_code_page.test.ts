@@ -401,6 +401,16 @@ describe("the Code tab in a browser-like page", () => {
     active().dispatchEvent(esc);
     await sleep(100);
     expect(root.classList.contains("code-zen")).toBe(false);
+    // And from outside the text (focus on the page itself): leaves zen mode without also leaving the Tools view.
+    const workspaceBefore = doc.getElementById("app").dataset.workspace;
+    button("⛶ Zen")?.click();
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(true);
+    (doc.activeElement as any)?.blur?.();
+    doc.body.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await sleep(100);
+    expect(root.classList.contains("code-zen")).toBe(false);
+    expect(doc.getElementById("app").dataset.workspace).toBe(workspaceBefore);
   });
 
   test("closing a tab with unsaved changes asks first", async () => {

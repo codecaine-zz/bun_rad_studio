@@ -7,7 +7,7 @@ import { showFavoritesMenu } from "./favorites.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
 import { openPower } from "./power.js";
-import { menuIsOpen } from "./menus.js";
+import { menuIsOpen, toast } from "./menus.js";
 import { openQuickLook, quickLookIsOpen } from "./quicklook.js";
 import { canGoUpIn, clearSearch, goBack, goForward, goUpIn, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
@@ -19,6 +19,16 @@ import { emit, state } from "./state.js";
 import { actionFor } from "./keymap.js";
 import { isModifier, typeaheadFind } from "./util.js";
 import { visibleEntries } from "./nav.js";
+
+/** On Windows and Linux, Backspace goes up a folder. Someone on a Mac keyboard pressed their Delete key: say once how to change it. */
+function hintBackspace(action, key) {
+  if (action !== "nav.up" || key !== "Backspace" || state.platform === "darwin" || state.settings.backspaceDeletes) return;
+  try {
+    if (localStorage.getItem("fm_backspace_hint")) return;
+    localStorage.setItem("fm_backspace_hint", "1");
+  } catch { /* no storage: the hint just shows every time */ }
+  toast("Backspace goes up one folder. On a Mac keyboard, the Delete key is Backspace: turn on “My keyboard's Delete key is Backspace” in Settings to delete with it.", { kind: "info", timeout: 9000 });
+}
 
 let typed = "";
 let typedTimer = 0;
@@ -162,7 +172,11 @@ export function wireKeys() {
     // Everything that can be given other keys in Settings (going places, changing things, the view). The order of the
     // table in shortcuts.js doesn't matter: no two actions may share a key, so at most one matches.
     const listAction = actionFor(e, IN_LISTS);
-    if (listAction) { stop(); return void FILE_ACTIONS[listAction](); }
+    if (listAction) {
+      stop();
+      hintBackspace(listAction, key);
+      return void FILE_ACTIONS[listAction]();
+    }
 
     // Choosing and opening
     if (key === "Enter") { stop(); return openFocused(); }

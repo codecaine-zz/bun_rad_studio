@@ -370,6 +370,15 @@ function mount(root) {
   window.addEventListener("beforeunload", (e) => { if (docs.anyDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
   const visible = () => powerIsOpen() && activePowerTab() === "code";
+  // Esc also leaves zen mode when the keyboard focus is outside the editor (after clicking a button, say). Without this the
+  // key would reach the File Manager and close the whole Tools view while the editor stayed in zen mode.
+  document.addEventListener("keydown", (e) => {
+    if (!zen || e.key !== "Escape" || e.defaultPrevented || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (root.contains(e.target) || !visible() || document.querySelector(".modal-backdrop, .menu")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    commands.run("zen");
+  }, true);
   async function checkDisk() {
     if (!visible() || !docs.list().length) return;
     const r = await docs.checkExternal();

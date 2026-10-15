@@ -15,6 +15,8 @@ All notable changes. Version 1.1.0 is the second release (1.0.0 was the first); 
 
 ### Fixed
 
+- **Windows and Linux with a Mac keyboard (a virtual machine such as Parallels): the Delete key went up a folder instead of deleting.** A Mac keyboard's Delete key sends Backspace, which means "up one folder" on Windows and Linux (you had to hold Fn to get a real Delete). New setting **My keyboard's Delete key is Backspace** (Settings, shown only on Windows and Linux): Backspace then moves the selection to the Recycle Bin, Shift+Backspace deletes for good (with the review window), and Backspace no longer goes up (Alt+Up still does). Without the setting, the first Backspace that goes up shows a one-time hint pointing to it. Macs are unchanged.
+- **Fixed: Esc in the Code tab's zen mode closed the whole Tools view when the keyboard focus was not in the text** (after clicking the Zen button, for example), leaving the editor stuck in zen mode. Esc now leaves zen mode from anywhere on the page.
 - **Fixed: `run.cmd -Gui` (Windows) opened the SimpleGUI designer instead of the app launcher.** `run.ps1` stored the launcher entry in a variable that is really the typed `[string]$Target` parameter, so the entry turned into text, lost its path and `bun run` started the project folder's `index.ts`. `-Gui` and `-Cli` now use their own variables, and the runner says so if there is nothing to launch.
 
 ## 1.1.0 (15 October 2026)

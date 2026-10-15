@@ -34,6 +34,7 @@
 .compare-path { flex: 1; min-width: 12rem; }
 .compare-ignore { width: 100%; min-height: 4.5rem; font-family: ui-monospace, monospace; }
 .compare-progress { width: 100%; }
+.compare-progress[hidden] { display: none; }
 .compare-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .compare-chip { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 1rem; padding: 0.15rem 0.7rem; cursor: pointer; }
 .compare-chip.on { background: var(--selected); color: var(--selected-text); border-color: var(--accent); }
@@ -66,7 +67,9 @@
 .dialog .pw-row .pw-field { flex: 1; min-width: 10rem; }
 
 /* Actions */
-.act-list { margin: 0.2rem 0; padding-left: 1.3rem; }
+.act-list { display: block; margin: 0.2rem 0; padding-left: 1.3rem; }
+.act-list > li { display: list-item; }
+.act-run .pw-btn, .act-check .pw-btn { justify-self: start; }
 .act-step { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.5rem 0.7rem; margin: 0.4rem 0; }
 .act-step.disabled { opacity: 0.75; border-style: dashed; }
 .act-opt { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.8rem; }

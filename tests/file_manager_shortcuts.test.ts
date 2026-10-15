@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, loadSettings, sanitizeSettings, updateSettings } from
 import * as ui7 from "../resources/file_manager/ui/codeKeys.js";
 const { KEYMAP, matchShortcut }: any = ui7;
 import * as ui8 from "../resources/file_manager/ui/shortcuts.js";
-const { ACTIONS, FIXED, canonical, checkAssign, defaultsFor, effectiveKeys, formatShortcut, isValidSpec, sanitizeOverrides, specFromEvent }: any = ui8;
+const { ACTIONS, FIXED, canonical, checkAssign, defaultsFor, effectiveKeys, formatShortcut, isValidSpec, sanitizeOverrides, setBackspaceDeletes, specFromEvent }: any = ui8;
 
 const PLATFORMS = ["darwin", "linux", "win32"];
 const action = (id: string) => ACTIONS.find((a: any) => a.id === id)!;
@@ -196,5 +196,51 @@ describe("the saved settings", () => {
     expect(sanitizeSettings({ shortcuts: { "view.details": ["Mod+2"] } }, ctx2).shortcuts).toEqual({});
     expect(sanitizeSettings({ shortcuts: "x" }, ctx2).shortcuts).toEqual({});
     expect(sanitizeSettings({ shortcuts: { "file.copy": [1, null, {}] } }, ctx2).shortcuts).toEqual({});
+  });
+});
+
+describe("a Mac keyboard on Windows or Linux (its Delete key sends Backspace)", () => {
+  test("by default Backspace goes up a folder and Delete deletes, as in Explorer", () => {
+    for (const platform of ["win32", "linux"]) {
+      expect(defaultsFor(action("nav.up"), platform)).toContain("Backspace");
+      expect(defaultsFor(action("file.trash"), platform)).toEqual(["Delete"]);
+      expect(defaultsFor(action("file.deleteForever"), platform)).toEqual(["Shift+Delete"]);
+    }
+  });
+
+  test("with the setting on, Backspace deletes, Shift+Backspace deletes for good, and Backspace no longer goes up", () => {
+    setBackspaceDeletes(true);
+    try {
+      for (const platform of ["win32", "linux"]) {
+        expect(defaultsFor(action("file.trash"), platform)).toEqual(["Delete", "Backspace"]);
+        expect(defaultsFor(action("file.deleteForever"), platform)).toEqual(["Shift+Delete", "Shift+Backspace"]);
+        expect(defaultsFor(action("nav.up"), platform)).toEqual(["Alt+ArrowUp"]);
+        // still a clean table: nothing is bound twice, and every spec is valid
+        const keys = defaults(platform);
+        for (const a of ACTIONS as any[]) for (const spec of keys.get(a.id) as string[]) {
+          expect(isValidSpec(spec), `${a.id} ${spec}`).toBe(true);
+          expect(checkAssign(a, spec, keys, platform), `${platform} ${a.id} ${spec}`).toBeNull();
+        }
+      }
+      // the Mac is untouched: its Delete key already is Backspace, and Cmd+Backspace deletes there
+      expect(defaultsFor(action("file.trash"), "darwin")).toEqual(["Delete", "Mod+Backspace"]);
+      expect(defaultsFor(action("nav.up"), "darwin")).toEqual(["Alt+ArrowUp", "Mod+ArrowUp", "Backspace"]);
+    } finally {
+      setBackspaceDeletes(false);
+    }
+    expect(defaultsFor(action("nav.up"), "win32")).toContain("Backspace");
+  });
+
+  test("the setting is saved, validated and off by default", async () => {
+    expect(DEFAULT_SETTINGS.backspaceDeletes).toBe(false);
+    const root = mkdtempSync(join(tmpdir(), "fm-bs-"));
+    try {
+      const ctx = createContext({ home: join(root, "home"), dataDir: join(root, "data"), platform: "win32" });
+      expect((await updateSettings(ctx, { backspaceDeletes: true })).backspaceDeletes).toBe(true);
+      expect((await loadSettings(ctx)).backspaceDeletes).toBe(true);
+      expect((await updateSettings(ctx, { backspaceDeletes: "yes" })).backspaceDeletes).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

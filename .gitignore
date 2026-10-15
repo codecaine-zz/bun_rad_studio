@@ -72,3 +72,6 @@ youtube_production/assets/
 youtube_production/voice_samples/
 youtube_production/tutorial/
 youtube_production/*.mp4
+
+youtube_production/file_manager_tutorial/
+youtube_production/designer_tutorial/

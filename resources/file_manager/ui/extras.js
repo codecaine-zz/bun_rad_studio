@@ -311,6 +311,7 @@ export function showSettings() {
       toggle("Keep folders at the top of the list", "foldersFirst"),
       toggle("Show the Details panel", "showInfoPanel"),
       toggle("Warn when a file isn't what its name says", "typeWarnings", "Shows a badge on files like a program named invoice.pdf, and asks before opening the dangerous ones. Turn it off if you don't want these checks."),
+      state.platform !== "darwin" ? toggle("My keyboard's Delete key is Backspace (a Mac keyboard on Windows or Linux)", "backspaceDeletes", "A Mac keyboard's Delete key sends Backspace. Turn this on and Backspace moves the selected items to the Recycle Bin (Shift+Backspace deletes for good) instead of going up a folder. Alt+Up still goes up.") : null,
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Open text files with"), textOpenSelect),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Code editor"), editorSelect),
       h("div", { class: "field" }, h("span", { class: "field-label" }, "Keyboard shortcuts"), h("span", { class: "range-row" }, h("button", { type: "button", class: "btn", title: "See every shortcut and change the keys. A key that another action already uses is refused.", onclick: () => showShortcutsDialog() }, "Change keyboard shortcuts…"))),
