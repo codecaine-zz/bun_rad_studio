@@ -13,6 +13,24 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ---
 
+<a id="download"></a>
+
+## ⬇️ Download (no coding, no compiling)
+
+**[→ Latest release](https://github.com/codecaine-zz/bun_rad_studio/releases/latest)**: pick the file for your computer, unzip it, open it.
+
+| You have | Download |
+|---|---|
+| 🍎 **Mac** (M1 or newer / Intel) | `Codecaine-File-Manager-…-macos-arm64.zip` / `…-macos-x64.zip`: a double-click `.app` with its own icon |
+| 🪟 **Windows** (most PCs / ARM / pre-2013 CPUs) | `Codecaine-File-Manager-…-windows-x64.zip` / `…-windows-arm64.zip` / `…-windows-x64-baseline.zip` |
+| 🐧 **Linux** (Intel/AMD / ARM / pre-2013 CPUs) | `Codecaine-File-Manager-…-linux-x64.zip` / `…-linux-arm64.zip` / `…-linux-x64-baseline.zip` |
+
+The same release also has **every desktop app as a Mac `.app`** (65 apps, in three zips per Mac type) and **the whole suite** (every desktop app and command-line tool) for each platform. Each file's checksum is in `SHA256SUMS.txt`. The apps are not signed with an Apple or Microsoft certificate, so the first launch shows a security prompt (Mac: right-click → **Open**; Windows: **More info → Run anyway**).
+
+Maintainers: `bun run release:file-manager`, `bun run release:build -- --mac-apps` (and `bun run build:mac-apps -- --arch x64 --zip --out release/mac-apps-x64`), then `bun run release:publish` creates the GitHub Release and points the website page (`release/file-manager/index.html`) at it. Add `-- --dry-run` to preview.
+
+---
+
 <a id="codecaine-file-manager"></a>
 
 ## 🗂️ Featured: Codecaine File Manager
@@ -137,7 +155,7 @@ bun run build:mac-apps                             # only the Mac .app files, ea
 bun run release:file-manager                       # File Manager only: one zip per OS/CPU + a download page -> release/file-manager/
 ```
 
-`release:file-manager` makes the downloads for a website: a macOS `.app` (with its icon, Apple silicon and Intel), Windows (x64, ARM64, older x64) and Linux (x86-64, ARM64, older x86-64), each in its own zip, plus `index.html` (one button per zip, highlights the right one for the visitor) and `SHA256SUMS.txt`. Upload the whole `release/file-manager/` folder. Build it on a Mac: the `.app` needs macOS tools.
+`release:file-manager` makes the downloads for a website (`bun run release:publish` then uploads everything to a GitHub Release and rewrites `index.html` so its buttons download from there): a macOS `.app` (with its icon, Apple silicon and Intel), Windows (x64, ARM64, older x64) and Linux (x86-64, ARM64, older x86-64), each in its own zip, plus `index.html` (one button per zip, highlights the right one for the visitor) and `SHA256SUMS.txt`. Upload the whole `release/file-manager/` folder. Build it on a Mac: the `.app` needs macOS tools.
 
 **What you get** in `release/` (about 130 MB per platform, 37 MB for the command-line-only ones):
 
