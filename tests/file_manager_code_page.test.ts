@@ -354,6 +354,30 @@ describe("the Code tab in a browser-like page", () => {
     doc.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   });
 
+  test("Ctrl/Cmd+Z undoes and Ctrl/Cmd+Shift+Z (or Ctrl+Y) redoes, the same way the Undo button does", async () => {
+    await openFile("notes.txt");
+    const calls: string[] = [];
+    const real = (doc as any).execCommand;
+    (doc as any).execCommand = (name: string) => (calls.push(name), true);
+    try {
+      const ta = active();
+      ta.focus();
+      const press = (k: string, extra: Record<string, unknown> = {}) => {
+        const ev = new win.KeyboardEvent("keydown", { key: k, code: `Key${k.toUpperCase()}`, bubbles: true, cancelable: true, [mod]: true, ...extra });
+        ta.dispatchEvent(ev);
+        return ev;
+      };
+      expect(press("z").defaultPrevented).toBe(true);
+      expect(calls).toEqual(["undo"]);
+      expect(press("z", { shiftKey: true }).defaultPrevented).toBe(true);
+      expect(calls).toEqual(["undo", "redo"]);
+      expect(press("y").defaultPrevented).toBe(true);
+      expect(calls).toEqual(["undo", "redo", "redo"]);
+    } finally {
+      (doc as any).execCommand = real;
+    }
+  });
+
   test("zen mode always shows a way out: a visible button, Esc, and a hint when it starts", async () => {
     await openFile("notes.txt");
     const root = doc.querySelector(".code-root");

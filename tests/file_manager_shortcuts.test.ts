@@ -96,7 +96,7 @@ describe("conflicts", () => {
     const keys = defaults("linux");
     expect(checkAssign(action("file.copy"), "Alt+3", keys, "linux")?.reason).toContain("fixed");
     expect(checkAssign(action("code.save"), "Alt+3", keys, "linux")?.reason).toContain("fixed");
-    expect(checkAssign(action("code.find"), "Mod+Shift+Z", keys, "linux")?.reason).toContain("fixed");
+    expect(checkAssign(action("code.find"), "Mod+A", keys, "linux")?.reason).toContain("fixed");
     expect(FIXED.length).toBeGreaterThan(5);
   });
   test("keys needed for typing and moving, and keys the computer keeps, are refused with a reason", () => {

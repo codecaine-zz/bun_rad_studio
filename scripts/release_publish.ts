@@ -49,13 +49,26 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
 const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") ? "fm" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
 const platformOf = (n: string) => /-(macos|windows|linux)-(arm64|x64)(-baseline|-musl)?/.exec(n)?.[0].slice(1) ?? n;
 
-export function notes(files: Array<{ name: string; bytes: number }>, repo: string): string {
+/** The headline of each entry in the newest section of the changelog (the bold words that start the line), for the release notes. */
+export function changelogHighlights(changelog: string, limit = 25): string[] {
+  const section = changelog.split(/^## /m)[1] ?? "";
+  const out: string[] = [];
+  for (const line of section.split("\n")) {
+    const m = /^- \*\*(.+?)\*\*/.exec(line);
+    if (m) out.push(m[1]!.replace(/[.:]$/, ""));
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+export function notes(files: Array<{ name: string; bytes: number }>, repo: string, whatsNew: string[] = []): string {
   const url = (n: string) => `https://github.com/${repo}/releases/download/v${VERSION}/${n}`;
   const row = (label: string, pred: (n: string) => boolean) => {
     const f = files.filter((x) => KIND(x.name) === "fm" && pred(x.name));
     return f.length ? `| ${label} | ${f.map((x) => `[${platformOf(x.name).split("-").slice(1).join(" ")} (${mb(x.bytes)})](${url(x.name)})`).join(" · ")} |` : null;
   };
   const L: string[] = [`# Bun RAD Studio v${VERSION}`, "", "**No programming needed.** Download, unzip, open. Nothing to install or compile.", ""];
+  if (whatsNew.length) L.push(`## ✨ What's new in v${VERSION}`, "", ...whatsNew.map((w) => `- ${w}`), "", "The full list is in the [changelog](https://github.com/" + repo + "/blob/main/CHANGELOG.md).", "");
   L.push("## ⭐ Codecaine File Manager", "", "A fast, private file manager for developers: two folders side by side, a code editor, database studios (SQLite, MySQL, PostgreSQL, Redis), an encrypted password vault, a live web server, **a download manager that splits files over several connections and resumes them**, an API client, a project bundler, an `.env` editor, and more.", "");
   L.push("| Your computer | Download |", "|---|---|");
   for (const r of [row("🍎 **Mac**", (n) => n.includes("-macos-")), row("🪟 **Windows**", (n) => n.includes("-windows-")), row("🐧 **Linux**", (n) => n.includes("-linux-"))]) if (r) L.push(r);
@@ -97,7 +110,7 @@ async function main() {
   for (const f of files) sums.push(`${await sha256File(f.path)}  ${f.name}`);
   const sumsPath = join(RELEASE, "SHA256SUMS.txt");
   writeFileSync(sumsPath, sums.join("\n") + "\n");
-  const body = notes(files, repo);
+  const body = notes(files, repo, changelogHighlights(existsSync(join(ROOT, "CHANGELOG.md")) ? readFileSync(join(ROOT, "CHANGELOG.md"), "utf8") : ""));
   const notesPath = join(RELEASE, "RELEASE_NOTES.md");
   writeFileSync(notesPath, body);
   await run(["bun", "run", "scripts/release/build_file_manager.ts", "--page-only", "--base-url", `https://github.com/${repo}/releases/download/${tag}/`], { cwd: ROOT });

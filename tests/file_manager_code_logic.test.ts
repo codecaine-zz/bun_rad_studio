@@ -857,7 +857,11 @@ describe("keyboard shortcuts", () => {
     expect(cmd({ key: "F3" })).toBe("findNext");
     expect(cmd({ key: "F3", shiftKey: true })).toBe("findPrev");
     expect(cmd({ key: "d", ctrlKey: true })).toBe("duplicate");
-    expect(cmd({ key: "z", ctrlKey: true })).toBeNull();
+    // undo and redo are bound here: a native window without an Edit menu doesn't pass Ctrl/Cmd+Z to the text box
+    expect(cmd({ key: "z", ctrlKey: true })).toBe("undo");
+    expect(cmd({ key: "z", metaKey: true }, "darwin")).toBe("undo");
+    expect(cmd({ key: "z", ctrlKey: true, shiftKey: true })).toBe("redo");
+    expect(cmd({ key: "y", ctrlKey: true })).toBe("redo");
     expect(cmd({ key: "a", ctrlKey: true })).toBeNull();
     expect(cmd({ key: "x" })).toBeNull();
     const seen = new Map<string, string>();

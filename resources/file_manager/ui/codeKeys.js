@@ -3,6 +3,8 @@
 
 /** command id -> shortcuts ("Mod" is Command on a Mac and Control elsewhere). */
 export const KEYMAP = {
+  undo: ["Mod+Z"],
+  redo: ["Mod+Shift+Z", "Mod+Y"],
   save: ["Mod+S"],
   saveAs: ["Mod+Shift+S"],
   saveAll: ["Mod+Alt+S"],

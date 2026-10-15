@@ -146,8 +146,6 @@ export function createCommands(app) {
   // The label is worked out each time it is read, so a shortcut changed in Settings shows up at once.
   for (const c of cmds) Object.defineProperty(c, "shortcut", { configurable: true, enumerable: true, get() { keysOf("code.save"); return shortcutText(c.id, state.platform, KEYMAP); }, set(v) { Object.defineProperty(c, "shortcut", { value: v, writable: true, configurable: true, enumerable: true }); } });
   // typing keys that the browser itself handles are listed too, for the shortcuts help
-  cmds.find((c) => c.id === "undo").shortcut = formatShortcut("Mod+Z", state.platform);
-  cmds.find((c) => c.id === "redo").shortcut = formatShortcut(state.platform === "darwin" ? "Mod+Shift+Z" : "Mod+Y", state.platform);
   cmds.find((c) => c.id === "selectAll").shortcut = formatShortcut("Mod+A", state.platform);
   const byId = new Map(cmds.map((c) => [c.id, c]));
   const needs = new Set(["complete", "find", "replace", "findNext", "findPrev", "goToLine", "goToSymbol", "selectAll", "toggleComment", "blockComment", "indent", "outdent", "selectLine", "selectWord", "deleteLine", "duplicate", "duplicateUp", "moveUp", "moveDown", "joinLines", "sortAsc", "sortDesc", "sortNumeric", "reverseLines", "dedupe", "trim", "finalNewline", "upper", "lower", "title", "camel", "snake", "kebab", "urlEncode", "urlDecode", "format", "minify", "tabsToSpaces", "spacesToTabs", "undo", "redo", "bookmarkToggle", "bookmarkNext", "bookmarkPrev", "bookmarkClear"]);

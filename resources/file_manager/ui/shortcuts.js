@@ -50,7 +50,7 @@ export const ACTIONS = [
   f("app.themes", "Window", "Choose a theme (all themes)", []),
   { id: "terminal.toggle", scope: "global", group: "Window", label: "Show or hide the terminal", keys: ["Ctrl+`"] },
   { id: "terminal.here", scope: "global", group: "Window", label: "Open the terminal in the selected folder (or this one)", keys: ["Mod+Alt+T"] },
-  c("save", "Save"), c("saveAs", "Save as…"), c("saveAll", "Save all"), c("newFile", "New file"), c("closeTab", "Close the tab"),
+  c("undo", "Undo"), c("redo", "Redo"), c("save", "Save"), c("saveAs", "Save as…"), c("saveAll", "Save all"), c("newFile", "New file"), c("closeTab", "Close the tab"),
   c("quickOpen", "Go to file…"), c("palette", "Command palette"), c("find", "Find"), c("replace", "Replace"), c("findNext", "Find next"), c("findPrev", "Find previous"),
   c("goToLine", "Go to line…"), c("goToSymbol", "Go to symbol…"), c("complete", "Show suggestions"), c("findInFiles", "Find in files"),
   c("toggleComment", "Comment or uncomment lines"), c("blockComment", "Block comment"), c("indent", "Indent"), c("outdent", "Outdent"),
@@ -74,7 +74,7 @@ export const FIXED = [
   { scope: "global", group: "Fixed keys", label: "Switch the window view (Files, Home, Tools, Split, Dual), Focus, and the list of places", keys: ["Alt+1", "Alt+2", "Alt+3", "Alt+4", "Alt+5", "Alt+6", "Alt+7"] },
   { scope: "global", group: "Fixed keys", label: "Copy the section you are in", keys: ["Alt+Shift+C"] },
   { scope: "code", group: "Fixed keys", label: "Leave zen mode, close the suggestion list or the find bar", keys: ["Escape"] },
-  { scope: "code", group: "Fixed keys", label: "Cut, copy, paste, undo and select all in the text", keys: ["Mod+C", "Mod+X", "Mod+V", "Mod+Z", "Mod+Shift+Z", "Mod+A"] },
+  { scope: "code", group: "Fixed keys", label: "Cut, copy, paste and select all in the text", keys: ["Mod+C", "Mod+X", "Mod+V", "Mod+A"] },
   { scope: "code", group: "Fixed keys", label: "Indent and move between controls", keys: ["Tab", "Shift+Tab"] },
 ];
 
