@@ -8,9 +8,11 @@ import { lstat, readFile } from "fs/promises";
 import { sanitizeProfileInput, type ConnectionProfile } from "../../db/profiles";
 import type { FmHandler } from "./fmCore";
 import { detectOperations } from "./fmDbDetectOps";
+import { sampleOperations } from "./fmDbSampleOps";
 import { ENGINES, DB_ENGINES, isEngine, parseConnectionUrl, type DbEngine } from "./fmDbModel";
 import { buildLaunch, describeEffective } from "./fmDbResolve";
 import { checkSqlitePath, dbState, envView, guarded, looksLikeSqlite, secretKind, stashPassword, takeStashed } from "./fmDbState";
+import { importOperations } from "./fmDbImport";
 import { studioOperations } from "./fmDbStudioOps";
 import { effectiveFor, isObject, profileFor, testInputFor } from "./fmDbCommon";
 import { sanitizeRedisProfile, type DbProfile, type RedisProfile } from "./fmDbStore";
@@ -208,4 +210,4 @@ export const databaseOperations: Record<string, FmHandler> = {
 
 };
 
-Object.assign(databaseOperations, detectOperations, studioOperations);
+Object.assign(databaseOperations, detectOperations, studioOperations, sampleOperations, importOperations);

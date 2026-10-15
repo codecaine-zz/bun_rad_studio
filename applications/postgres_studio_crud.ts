@@ -275,8 +275,8 @@ export function crudClientMain() {
   function openTableContextMenu(tableName, x, y) {
     closeMenu();
     const meta = tableMeta(tableName);
-    const isView = meta && meta.type === "view";
-    const isMatView = meta && meta.type === "materialized_view";
+    const isMatView = !!((meta && meta.type === "materialized_view") || ((currentSchema && currentSchema.matviews) || []).some((m) => m.name === tableName));
+    const isView = !isMatView && !!(meta && meta.type === "view");
 
     const m = h("div", { class: "crud-menu", style: `left:${x}px;top:${y}px` });
 
@@ -298,7 +298,12 @@ export function crudClientMain() {
       m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); renameCurrentTable(tableName); } }, "✏️ Rename Table..."));
     }
 
-    m.appendChild(h("div", { class: "crud-mi danger", onclick: () => { closeMenu(); dropCurrentObject(tableName, isMatView ? "matview" : (isView ? "view" : "table")); } }, "🗑 Drop Object"));
+    if (isView || isMatView) {
+      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); StudioViews.openEdit(tableName, { materialized: isMatView }); } }, "✏️ Edit view definition..."));
+      m.appendChild(h("div", { class: "crud-msep" }));
+    }
+
+    m.appendChild(h("div", { class: "crud-mi danger", onclick: () => { closeMenu(); if (isView || isMatView) StudioViews.drop(tableName, { materialized: isMatView }); else dropCurrentObject(tableName, "table"); } }, isView || isMatView ? "🗑 Drop view..." : "🗑 Drop Object"));
 
     document.body.appendChild(m);
     menuEl = m;
@@ -951,9 +956,8 @@ export function crudClientMain() {
       const tr = td.closest("tr");
       if (!tr || !activeTable) return;
 
-      const colIdx = td.cellIndex - 1; // offset rownum
-      if (colIdx < 0 || !currentGridData || !currentGridData.columns) return;
-      const colName = currentGridData.columns[colIdx];
+      const colName = td.dataset.col;
+      if (!colName || !currentGridData || !currentGridData.columns) return;
       const oldVal = td.innerText;
 
       const input = h("input", { class: "crud-inline", value: oldVal === "NULL" ? "" : oldVal });
@@ -974,7 +978,7 @@ export function crudClientMain() {
         const pkCol = meta && meta.columns ? (meta.columns.find(c => c.pk) || meta.columns[0]) : null;
         if (!pkCol) return;
 
-        const rowIdx = tr.rowIndex - 1;
+        const rowIdx = Number(tr.dataset.row);
         const targetRow = currentGridData.rows[rowIdx];
         if (!targetRow) return;
 

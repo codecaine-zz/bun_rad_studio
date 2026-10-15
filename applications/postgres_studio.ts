@@ -35,9 +35,12 @@ import {
   type PostgresConnectionConfigSanitized,
 } from "./postgres_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./postgres_studio_crud.ts";
+import { SAMPLES_STYLE, SAMPLES_SCRIPT_POSTGRES } from "../src/db/samples/ui.ts";
 import { POSTGRES_DESIGNER_SCRIPT } from "./postgres_studio_designer.ts";
 import { watchParentProcess } from "../src/parentWatch";
 import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, buildMacroScript } from "./sqlite_studio_macros.ts";
+import { STUDIO_SHARED_STYLE, STUDIO_SHARED_SCRIPT } from "../src/shared/studioShared.ts";
+import { STUDIO_STAGING_STYLE, studioStagingScript } from "../src/shared/studioStaging.ts";
 
 export interface PostgresStudioOptions {
   fullscreen?: boolean;
@@ -2017,7 +2020,10 @@ function buildPostgresHtml(): string {
     }
 
     ${CRUD_STYLE}
+    ${SAMPLES_STYLE}
     ${MACRO_STYLE}
+    ${STUDIO_SHARED_STYLE}
+    ${STUDIO_STAGING_STYLE}
 
     /* Saved Queries / Macros groups appended to the sidebar tree */
     #sidebarMacroGroups .tree-group { margin: 6px 0; border-radius: 6px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); }
@@ -2084,7 +2090,7 @@ function buildPostgresHtml(): string {
 
       <button class="btn btn-primary" onclick="openConnectionModal()" title="Configure manual host/credentials or switch databases">🔌 Connection Config...</button>
       <button class="btn" onclick="openDatabaseBrowser()" title="Browse and switch server databases">📂 Databases...</button>
-      <button id="btnSeedDatabase" class="btn" onclick="seedSampleDatabase()" title="Create rich PostgreSQL sample tables with UUID, JSONB, native Arrays and Materialized Views">🌱 Seed Sample DB</button>
+      <button id="btnSeedDatabase" class="btn" onclick="openSampleDatabases()" title="Choose from production-style sample databases: UUID, JSONB, arrays, comments and materialized views (synthetic data)">🌱 Seed Sample DB</button>
       <button class="btn" onclick="triggerVacuumAnalyze()" title="Run VACUUM ANALYZE to reclaim storage and update planner statistics">🧹 VACUUM ANALYZE</button>
       <button class="btn" onclick="checkIntegrity()" title="Run schema-wide foreign key, table, and index integrity verification">🛡️ Integrity Check</button>
       <button class="btn" id="btnDbBackupDump" onclick="openDatabaseDumpModal()" title="1-Click PostgreSQL Database Backup &amp; SQL Dump Generator (Schema &amp; Data)">💾 DB Backup / Dump</button>
@@ -2225,9 +2231,10 @@ function buildPostgresHtml(): string {
               <button class="btn" onclick="explainCurrentQuery()">🔍 Explain Plan</button>
               <button class="btn" onclick="openCodeGenFromEditor()" title="Translate this SQL to Python / Bun / V using native SQLite">🧬 Code</button>
               <button class="btn" onclick="clearEditor()">🧹 Clear</button>
-              <button class="btn" onclick="exportResults('csv')">📋 Export CSV</button>
-              <button class="btn" onclick="exportResults('json')">💾 Export JSON</button>
-              <button class="btn" onclick="exportResults('sql')">📝 Export SQL</button>
+              <button class="btn" id="btnCreateViewFromQuery" onclick="StudioViews.openFromEditor('sqlEditor')" title="Create a view from this query (or from the selected text)">🧱 Create view</button>
+              <button class="btn" id="btnExportCsv" onclick="exportResults('csv')">📋 Export CSV</button>
+              <button class="btn" id="btnExportJson" onclick="exportResults('json')">💾 Export JSON</button>
+              <button class="btn" id="btnExportSql" onclick="exportResults('sql')">📝 Export SQL</button>
             </div>
             <div style="font-size: 11px; color: var(--text-dim);" id="resultSummary">0 rows returned</div>
           </div>
@@ -2276,8 +2283,8 @@ function buildPostgresHtml(): string {
             <span id="gridPageInfo" style="font-size: 11px; color: var(--text-dim);">Page 1 of 1</span>
             <button class="btn btn-sm" onclick="gridChangePage(-1)">◀ Prev</button>
             <button class="btn btn-sm" onclick="gridChangePage(1)">Next ▶</button>
-            <button class="btn btn-sm" onclick="exportGridData('csv')">CSV</button>
-            <button class="btn btn-sm" onclick="exportGridData('json')">JSON</button>
+            <button class="btn btn-sm" id="btnGridExportCsv" onclick="exportGridData('csv')">CSV</button>
+            <button class="btn btn-sm" id="btnGridExportJson" onclick="exportGridData('json')">JSON</button>
           </div>
         </div>
         <div class="grid-scroll" id="gridTableContainer">
@@ -2325,6 +2332,7 @@ function buildPostgresHtml(): string {
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <button class="btn btn-sm" onclick="clearSqlEditor()">Clear</button>
+              <button class="btn btn-sm" id="btnCreateViewFromConsole" onclick="StudioViews.openFromEditor('sqlEditorTextarea')" title="Create a view from this query (or from the selected text)">🧱 Create view</button>
               <button class="btn btn-sm" onclick="explainCurrentQuery()">Explain</button>
               <button class="btn btn-sm btn-primary" onclick="executeCurrentQuery()">▶ Execute</button>
             </div>
@@ -2334,12 +2342,12 @@ function buildPostgresHtml(): string {
         <div class="grid-container">
           <div class="grid-toolbar">
             <span style="font-size: 11px; color: var(--text-muted);" id="sqlResultStatus">Ready.</span>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn btn-sm" onclick="copySqlResultsMarkdown()">📋 Markdown</button>
-              <button class="btn btn-sm" onclick="exportSqlResultsCsv()">Export CSV</button>
+            <div style="display: flex; gap: 6px;" id="sqlResultsActions">
+              <button class="btn btn-sm" id="btnSqlCopyMd" onclick="copySqlResultsMarkdown()">📋 Markdown</button>
+              <button class="btn btn-sm" id="btnSqlExportCsv" onclick="exportSqlResultsCsv()">Export CSV</button>
             </div>
           </div>
-          <div class="grid-scroll">
+          <div class="grid-scroll" id="sqlResultsContainer">
             <table class="data-grid" id="sqlResultsGrid">
               <thead><tr id="sqlResultsHeaderRow"><th>Results</th></tr></thead>
               <tbody id="sqlResultsBody"><tr><td style="color: var(--text-dim);">No query executed yet.</td></tr></tbody>
@@ -3156,6 +3164,67 @@ function buildPostgresHtml(): string {
     let gridCurrentPage = 1;
     let gridPageSize = 50;
     let gridSearchQuery = "";
+
+    // Show / hide columns of the data grid and of the SQL console results (shared Columns control, see src/shared/studioColumns.ts)
+    window.__gridIsQuery = false;
+    function gridColumnMeta() {
+      const objs = currentSchema ? [...(currentSchema.tables || []), ...(currentSchema.views || [])] : [];
+      return StudioCols.metaFromTable(objs.find(t => t.name === activeTable));
+    }
+    function gridShownOnly(columns) { const have = columns || []; return studioGridCols.state().visible.filter(c => have.includes(c)); }
+    function gridLeadCols() { return document.querySelectorAll("#gridHeaderRow th:not([data-col])").length; }
+    function gridVisibleColumns(columns) {
+      const isQuery = window.__gridIsQuery || !activeTable;
+      return studioGridCols.visible(columns, { kind: isQuery ? "query" : "table", meta: isQuery ? {} : gridColumnMeta() });
+    }
+    function pgColsDb() {
+      return currentSchema ? (currentSchema.dbName || "") + "." + (currentSchema.activeSchema || "public") : "";
+    }
+    window.studioColsInit = function () {
+    window.studioGridCols = StudioCols.create({
+      studio: "postgres",
+      id: "grid",
+      getDb: pgColsDb,
+      getTable: () => activeTable || "",
+      buttonHost: () => { const b = document.getElementById("btnToggleTotals"); return b && b.parentNode; },
+      stripBefore: "gridTableContainer",
+      rerender: () => { if (window.__lastGridArgs) renderGridTable(...window.__lastGridArgs); },
+      activeFilters: () => Object.keys(activeColumnFilters),
+      exportButtons: ["btnAccessReport", "btnGridExportCsv", "btnGridExportJson", "btnExportCsv", "btnExportJson", "btnExportSql"],
+    });
+    window.studioSqlCols = StudioCols.create({
+      studio: "postgres",
+      id: "sql",
+      getDb: pgColsDb,
+      getTable: () => "",
+      buttonHost: "sqlResultsActions",
+      buttonPosition: "prepend",
+      stripBefore: "sqlResultsContainer",
+      rerender: () => { if (window.__lastSqlResults) renderSqlResults(window.__lastSqlResults.rows, window.__lastSqlResults.cols); },
+      exportButtons: ["btnSqlCopyMd", "btnSqlExportCsv"],
+    });
+    };
+    window.studioViewsInit = function () {
+      StudioViews.configure({
+        dialect: "postgres",
+        editorId: "sqlEditorTextarea",
+        getViewNames: () => [...((currentSchema && currentSchema.views) || []), ...((currentSchema && currentSchema.matviews) || [])].map(v => v.name),
+        getSchemas: () => (currentSchema && currentSchema.schemas && currentSchema.schemas.length ? currentSchema.schemas : ["public"]),
+        getActiveSchema: () => (currentSchema && currentSchema.activeSchema) || "public",
+        afterChange: async (e) => {
+          await refreshAll();
+          if (e.kind === "drop") {
+            if (activeTable === e.name) { activeTable = null; const first = ((currentSchema && currentSchema.tables) || [])[0]; if (first) selectEntity(first.name, "table"); }
+            showToast("Dropped " + (e.materialized ? "materialized view " : "view ") + e.name);
+            logAudit("[DDL] Dropped VIEW: " + e.name);
+          } else {
+            showToast((e.kind === "edit" ? "Updated " : "Created ") + (e.materialized ? "materialized view " : "view ") + e.name);
+            logAudit("[DDL] " + (e.kind === "edit" ? "Replaced" : "Created") + (e.materialized ? " MATERIALIZED VIEW: " : " VIEW: ") + e.name);
+            selectEntity(e.name, e.materialized ? "materialized_view" : "view");
+          }
+        },
+      });
+    };
     let activeExtensionsFilter = "installed";
     let allExtensions = [];
     let activityTimer = null;
@@ -3387,7 +3456,7 @@ function buildPostgresHtml(): string {
           </div>
           <span class="tree-item-badge">\${t.rowCount || 0}</span>
         </div>
-      \`).join('') || '<div style="padding: 10px 8px; font-size: 11px; color: var(--text-dim); text-align: center;">No tables yet.<br><button class="btn btn-sm btn-primary" onclick="seedSampleDatabase()" style="margin-top: 6px; width: 100%; font-size: 10px; padding: 4px 6px;">🌱 Seed Sample DB</button></div>';
+      \`).join('') || '<div style="padding: 10px 8px; font-size: 11px; color: var(--text-dim); text-align: center;">No tables yet.<br><button class="btn btn-sm btn-primary" onclick="openSampleDatabases()" style="margin-top: 6px; width: 100%; font-size: 10px; padding: 4px 6px;">🌱 Seed Sample DB</button></div>';
 
       // Materialized Views (with 1-click refresh button!)
       matViewsList.innerHTML = (currentSchema.matviews || []).map(m => \`
@@ -3491,6 +3560,7 @@ function buildPostgresHtml(): string {
 
       if (res.success) {
         currentGridData = res;
+        window.__gridIsQuery = false;
         currentGridData.rawRows = [...(res.rows || [])];
         renderGridTable(res.rows, res.columns, res.total, res.page, res.pageSize);
         if (typeof gridDisplayMode !== "undefined" && gridDisplayMode === "form") {
@@ -3506,6 +3576,8 @@ function buildPostgresHtml(): string {
     function renderGridTable(rows, columns, total, page, pageSize) {
       const thead = document.getElementById("gridHeaderRow");
       const tbody = document.getElementById("gridBody");
+      window.__lastGridArgs = [rows, columns, total, page, pageSize];
+      columns = gridVisibleColumns(columns || []);
 
       if (!columns || columns.length === 0) {
         thead.innerHTML = "<th>Status</th>";
@@ -3513,15 +3585,18 @@ function buildPostgresHtml(): string {
         return;
       }
 
-      thead.innerHTML = "<th style='width: 36px; text-align: center;'>#</th>" + columns.map(c => "<th>" + c + "</th>").join('');
+      thead.innerHTML = "<th class='crud-rownum' style='width: 36px; text-align: center;'>#</th>" + columns.map(c => "<th data-col='" + escapeHtml(c) + "'>" + escapeHtml(c) + "</th>").join('');
+      studioGridCols.decorateAll(thead);
 
       const filterRow = document.getElementById("gridFilterBarRow");
       if (filterRow) {
         filterRow.style.display = accessFilterBarVisible ? "table-row" : "none";
-        filterRow.innerHTML = "<th style='text-align: center; color: var(--accent);'>⚡</th>" + columns.map(c => {
-          const curVal = activeColumnFilters[c] || "";
-          return "<th><input type='text' class='access-filter-input' placeholder='Filter " + escapeHtml(c) + "...' value='" + escapeHtml(curVal) + "' oninput='onColumnFilterInput(&quot;" + escapeHtml(c) + "&quot;, this.value)'></th>";
-        }).join('');
+        if (!window.__keepFilterRow) {
+          filterRow.innerHTML = "<th style='text-align: center; color: var(--accent);'>⚡</th>" + columns.map(c => {
+            const curVal = activeColumnFilters[c] || "";
+            return "<th><input type='text' class='access-filter-input' placeholder='Filter " + escapeHtml(c) + "...' value='" + escapeHtml(curVal) + "' oninput='onColumnFilterInput(&quot;" + escapeHtml(c) + "&quot;, this.value)'></th>";
+          }).join('');
+        }
       }
 
       if (!rows || rows.length === 0) {
@@ -3533,25 +3608,26 @@ function buildPostgresHtml(): string {
         const rowNum = ((page - 1) * pageSize) + idx + 1;
         const cells = columns.map(c => {
           const val = r[c];
+          const dc = " data-col='" + escapeHtml(c) + "'";
           if (val === null || val === undefined) {
-            return "<td class='cell-null'>NULL</td>";
+            return "<td" + dc + " class='cell-null'>NULL</td>";
           }
           if (typeof val === "object") {
             const jsonStr = JSON.stringify(val);
             if (Array.isArray(val)) {
-              return "<td><span class='cell-array'>" + escapeHtml(jsonStr) + "</span></td>";
+              return "<td" + dc + "><span class='cell-array'>" + escapeHtml(jsonStr) + "</span></td>";
             }
-            return "<td><span class='cell-jsonb' onclick='openJsonbInspector(\\"" + c + "\\", " + escapeHtml(JSON.stringify(jsonStr)) + ")'>{JSON}</span></td>";
+            return "<td" + dc + "><span class='cell-jsonb' onclick='openJsonbInspector(\\"" + c + "\\", " + escapeHtml(JSON.stringify(jsonStr)) + ")'>{JSON}</span></td>";
           }
           const str = String(val);
           // Check for UUID format
           if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)) {
-            return "<td><span class='cell-uuid' title='Click to copy UUID' onclick='navigator.clipboard.writeText(\\"" + str + "\\"); showToast(\\"Copied UUID!\\")'>" + str + "</span></td>";
+            return "<td" + dc + "><span class='cell-uuid' title='Click to copy UUID' onclick='navigator.clipboard.writeText(\\"" + str + "\\"); showToast(\\"Copied UUID!\\")'>" + str + "</span></td>";
           }
-          return "<td>" + escapeHtml(str) + "</td>";
+          return "<td" + dc + ">" + escapeHtml(str) + "</td>";
         }).join('');
 
-        return "<tr><td style='color: var(--text-dim); text-align: center;'>" + rowNum + "</td>" + cells + "</tr>";
+        return "<tr data-row='" + idx + "'><td class='crud-rownum' style='color: var(--text-dim); text-align: center;'>" + rowNum + "</td>" + cells + "</tr>";
       }).join('');
 
       const totalPages = Math.ceil(total / pageSize) || 1;
@@ -3805,7 +3881,7 @@ function buildPostgresHtml(): string {
       const pkVal = currentRow ? currentRow[pkColObj.name] : null;
       if (pkVal === null || pkVal === undefined) return;
 
-      if (!confirm("Are you sure you want to delete this record (PK: " + pkVal + ")?")) return;
+      if (!(await studioConfirm("Are you sure you want to delete this record (PK: " + pkVal + ")?", { title: "Delete record", okLabel: "Delete", danger: true }))) return;
       showToast("Deleting record " + pkVal + "...");
       const res = await apiRequest("/api/rows/delete", "POST", { table: activeTable, pkCol: pkColObj.name, pkVal: pkVal });
       if (res && res.success) {
@@ -4016,6 +4092,7 @@ function buildPostgresHtml(): string {
 
         if (res.rowsAffected === undefined && res.rows) {
           currentGridData = res;
+          window.__gridIsQuery = true;
           renderGridTable(rows, cols, rows.length, 1, 100);
           renderSqlResults(rows, cols);
 
@@ -4062,9 +4139,15 @@ function buildPostgresHtml(): string {
     // ---------------------------------------------------------------------------------------------
     async function exportResults(format) {
       let rows = [];
+      let cols = [];
       if (currentGridData && Array.isArray(currentGridData.rows) && currentGridData.rows.length > 0) {
         rows = currentGridData.rows;
+        cols = currentGridData.columns || Object.keys(rows[0] || {});
       }
+      await exportRowsAs(format, studioGridCols.exportRows(rows, cols), activeTable || "query_results");
+    }
+
+    async function exportRowsAs(format, rows, tableName) {
       if (!rows || rows.length === 0) {
         showToast("No records available to export!");
         return;
@@ -4072,7 +4155,7 @@ function buildPostgresHtml(): string {
 
       const res = await apiRequest("/api/export", "POST", {
         format,
-        tableName: activeTable || "query_results",
+        tableName,
         rows,
       });
 
@@ -4327,7 +4410,7 @@ function buildPostgresHtml(): string {
     }
 
     async function executeDropColumn(tableName, columnName) {
-      if (!confirm("Are you sure you want to drop column \\"" + columnName + "\\" from table \\"" + tableName + "\\"?\\nThis action cannot be undone.")) {
+      if (!(await studioConfirm("Are you sure you want to drop column \\"" + columnName + "\\" from table \\"" + tableName + "\\"?\\nThis action cannot be undone.", { title: "Drop column", okLabel: "Drop column", danger: true }))) {
         return;
       }
       showToast("Dropping column " + columnName + "...");
@@ -4373,7 +4456,7 @@ function buildPostgresHtml(): string {
     }
 
     async function executeDropIndex(tableName, indexName) {
-      if (!confirm("Drop index \\"" + indexName + "\\"?")) return;
+      if (!(await studioConfirm("Drop index \\"" + indexName + "\\"?", { title: "Drop index", okLabel: "Drop index", danger: true }))) return;
       showToast("Dropping index " + indexName + "...");
       const res = await apiRequest("/api/indexes/drop", "POST", { name: indexName });
       if (res && res.success) {
@@ -4532,7 +4615,7 @@ function buildPostgresHtml(): string {
 
     async function editGucSetting(paramName, currentVal, unit) {
       const promptMsg = "Enter new value for PostgreSQL parameter \\"" + paramName + "\\"" + (unit ? " (" + unit + ")" : "") + ":";
-      const newVal = prompt(promptMsg, currentVal);
+      const newVal = await studioPrompt(promptMsg, currentVal, { title: "Edit parameter" });
       if (newVal === null || newVal.trim() === "") return;
       showToast("Updating parameter " + paramName + " -> " + newVal + "...");
       const res = await apiRequest("/api/pragma", "POST", { pragma: paramName, value: newVal.trim() });
@@ -4578,6 +4661,7 @@ function buildPostgresHtml(): string {
         foot.innerHTML = "";
         return;
       }
+      columns = gridShownOnly(columns);
 
       const stats = {};
       columns.forEach(c => {
@@ -4681,7 +4765,12 @@ function buildPostgresHtml(): string {
           });
         });
       }
-      renderGridTable(currentGridData.rows, currentGridData.columns, currentGridData.rows.length, 1, gridPageSize);
+      window.__keepFilterRow = true;
+      try {
+        renderGridTable(currentGridData.rows, currentGridData.columns, currentGridData.rows.length, 1, gridPageSize);
+      } finally {
+        window.__keepFilterRow = false;
+      }
     }
 
     async function openAccessReportModal() {
@@ -4704,6 +4793,7 @@ function buildPostgresHtml(): string {
         const tbl = currentSchema.tables.find(t => t.name === activeTable);
         if (tbl && tbl.columns) columns = tbl.columns.map(c => c.name);
       }
+      columns = studioGridCols.exportColumns(columns);
 
       const dateStr = new Date().toLocaleString();
       const dbName = document.getElementById("kpiDbName")?.innerText || "mydb";
@@ -4941,7 +5031,7 @@ function buildPostgresHtml(): string {
     }
 
     async function promptAddEnumValue(enumName) {
-      const val = prompt("Enter new value to append to ENUM " + enumName + ":");
+      const val = await studioPrompt("Enter new value to append to ENUM " + enumName + ":", "", { title: "Add ENUM value" });
       if (!val || val.trim() === "") return;
       showToast("Adding value to " + enumName + "...");
       const res = await apiRequest("/api/types/enums/add-value", "POST", { name: enumName, value: val.trim() });
@@ -4954,7 +5044,7 @@ function buildPostgresHtml(): string {
     }
 
     async function dropEnumType(enumName) {
-      if (!confirm("Are you sure you want to drop ENUM type " + enumName + " (CASCADE)?")) return;
+      if (!(await studioConfirm("Are you sure you want to drop ENUM type " + enumName + " (CASCADE)?", { title: "Drop ENUM type", okLabel: "Drop", danger: true }))) return;
       showToast("Dropping ENUM type " + enumName + "...");
       const res = await apiRequest("/api/types/enums/drop", "POST", { name: enumName });
       if (res && res.success) {
@@ -5247,6 +5337,9 @@ function buildPostgresHtml(): string {
     function renderSqlResults(rows, cols) {
       const thead = document.getElementById("sqlResultsHeaderRow");
       const tbody = document.getElementById("sqlResultsBody");
+      window.__lastSqlResults = { rows, cols };
+      const allCols = cols;
+      cols = studioSqlCols.visible(allCols, { kind: "query" });
 
       if (!cols.length) {
         thead.innerHTML = "<th>Result</th>";
@@ -5254,7 +5347,8 @@ function buildPostgresHtml(): string {
         return;
       }
 
-      thead.innerHTML = "<th style='width: 36px; text-align: center;'>#</th>" + cols.map(c => "<th>" + c + "</th>").join('');
+      thead.innerHTML = "<th style='width: 36px; text-align: center;'>#</th>" + cols.map(c => "<th data-col='" + escapeHtml(c) + "'>" + escapeHtml(c) + "</th>").join('');
+      studioSqlCols.decorateAll(thead);
       tbody.innerHTML = rows.map((r, idx) => {
         const cells = cols.map(c => {
           const val = r[c];
@@ -5265,6 +5359,39 @@ function buildPostgresHtml(): string {
         return "<tr><td style='color: var(--text-dim); text-align: center;'>" + (idx + 1) + "</td>" + cells + "</tr>";
       }).join('');
     }
+
+    function sqlCellText(v) {
+      if (v === null || v === undefined) return "";
+      return typeof v === "object" ? JSON.stringify(v) : String(v);
+    }
+
+    // Copy / export of the SQL console result: follows the columns shown in the grid (see the Columns picker)
+    function copySqlResultsMarkdown() {
+      const res = window.__lastSqlResults;
+      if (!res || !res.cols.length || !res.rows.length) { showToast("Run a query first - there is nothing to copy."); return; }
+      const cols = studioSqlCols.exportColumns(res.cols);
+      const esc = (v) => sqlCellText(v).replace(/\\|/g, "\\\\|").replace(/\\r?\\n/g, " ");
+      const md = "| " + cols.join(" | ") + " |\\n| " + cols.map(() => "---").join(" | ") + " |\\n" + res.rows.map(r => "| " + cols.map(c => esc(r[c])).join(" | ") + " |").join("\\n");
+      const done = () => showToast("Copied " + res.rows.length + " rows as Markdown (" + cols.length + " of " + res.cols.length + " columns)");
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(md).then(done, () => showToast("Clipboard unavailable"));
+      else showToast("Clipboard unavailable");
+    }
+    window.copySqlResultsMarkdown = copySqlResultsMarkdown;
+
+    function exportSqlResultsCsv() {
+      const res = window.__lastSqlResults;
+      if (!res || !res.cols.length || !res.rows.length) { showToast("Run a query first - there is nothing to export."); return; }
+      exportRowsAs("csv", studioSqlCols.exportRows(res.rows, res.cols), "query_results");
+    }
+    window.exportSqlResultsCsv = exportSqlResultsCsv;
+
+    function exportGridData(format) {
+      const rows = (currentGridData && currentGridData.rows) || [];
+      const cols = (currentGridData && currentGridData.columns) || [];
+      if (!rows.length) { showToast("No records available to export!"); return; }
+      exportRowsAs(format, studioGridCols.exportRows(rows, cols), activeTable && !window.__gridIsQuery ? activeTable : "query_results");
+    }
+    window.exportGridData = exportGridData;
 
     function applySqlPreset(idx) {
       if (idx === "" || !SQL_PRESETS[idx]) return;
@@ -5818,7 +5945,7 @@ function buildPostgresHtml(): string {
     }
 
     async function restartSequenceModal(name, currentVal) {
-      const newVal = prompt("Restart sequence \\"" + name + "\\" at value:", "1");
+      const newVal = await studioPrompt("Restart sequence \\"" + name + "\\" at value:", "1", { title: "Restart sequence" });
       if (newVal === null) return;
       const num = parseInt(newVal, 10);
       if (isNaN(num)) {
@@ -6065,8 +6192,8 @@ function buildPostgresHtml(): string {
     }
 
     // Saved Profiles in localStorage
-    function promptSaveProfile() {
-      const name = prompt("Enter profile name for this PostgreSQL connection:", "Postgres Cluster " + (document.getElementById("cfgDb").value || "mydb"));
+    async function promptSaveProfile() {
+      const name = await studioPrompt("Enter profile name for this PostgreSQL connection:", "Postgres Cluster " + (document.getElementById("cfgDb").value || "mydb"), { title: "Save connection profile" });
       if (!name) return;
       const config = {
         name,
@@ -6202,7 +6329,14 @@ function buildPostgresHtml(): string {
     }
   </script>
   <script>
+    ${STUDIO_SHARED_SCRIPT}
+    ${studioStagingScript("postgres")}
+  </script>
+  <script>
     ${CRUD_SCRIPT}
+  </script>
+  <script>
+    ${SAMPLES_SCRIPT_POSTGRES}
   </script>
   <script>
     ${buildMacroScript("postgres")}

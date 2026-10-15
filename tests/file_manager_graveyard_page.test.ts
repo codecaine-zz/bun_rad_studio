@@ -717,6 +717,25 @@ describe("Bury (Rip) in the file list", () => {
     expect(state.undoStack.length).toBe(0);
   });
 
+  test("the right-click menus of items and of empty space both have Open Graveyard, which opens the tool", async () => {
+    const dir = folder();
+    const f = write(join(dir, "menu-item.txt"));
+    await nav.goTo(dir, { push: false });
+    await selectPath(f);
+    for (const open of [
+      () => contextmenu.showEntryMenu(state.entries.filter((e: any) => e.path === f), { x: 10, y: 10 }),
+      () => contextmenu.showBackgroundMenu({ x: 10, y: 10 }),
+    ]) {
+      power.closePower();
+      open();
+      const item = qa(".menu .menu-item").find((b) => b.querySelector(".menu-label").textContent === "Open Graveyard");
+      expect(item).toBeTruthy();
+      expect(item.title.length).toBeGreaterThan(30);
+      item.click();
+      await until(() => power.activePowerTab() === "grave" && power.powerIsOpen(), "the Graveyard tool to open");
+    }
+  });
+
   test("the toast's Open Graveyard button opens the tab, which shows what was buried", async () => {
     const dir = folder();
     const f = write(join(dir, "show-me.txt"));

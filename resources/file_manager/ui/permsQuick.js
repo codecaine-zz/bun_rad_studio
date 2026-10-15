@@ -6,7 +6,8 @@ import { confirmBox } from "./dialogs.js";
 import { showProperties } from "./extras.js";
 import { toast } from "./menus.js";
 import { busy, refresh } from "./nav.js";
-import { emit, inTrash, state } from "./state.js";
+import { inTrash } from "./pane.js";
+import { emit, state } from "./state.js";
 import { plural } from "./util.js";
 
 const isPlainFile = (e) => !e.isDir && !e.isSymlink;

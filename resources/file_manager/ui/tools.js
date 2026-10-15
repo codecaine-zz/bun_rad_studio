@@ -6,8 +6,9 @@ import { $, announce, debounce, h } from "./dom.js";
 import { openDialog } from "./dialogs.js";
 import { toast } from "./menus.js";
 import { goTo, refresh } from "./nav.js";
+import { currentPath, inTrash, isFolderView } from "./pane.js";
 import { selectKeys, selectedEntries } from "./selection.js";
-import { emit, inTrash, on, state } from "./state.js";
+import { emit, on } from "./state.js";
 import { startSetup } from "./toolsetup.js";
 import { terminalAvailable, typeInTerminal } from "./terminal.js";
 import { plural } from "./util.js";
@@ -288,7 +289,7 @@ function finished(job) {
     toast(job.state === "done" ? "Installed. Open Convert & process to use it." : job.state === "cancelled" ? "The installation was cancelled." : `The installation didn't work: ${job.steps.find((s) => s.state === "failed")?.message ?? "see the task list"}`, { kind: job.state === "done" ? "info" : "error" });
     return;
   }
-  const here = state.location.kind === "folder" && !state.search ? state.location.path : null;
+  const here = isFolderView() ? currentPath() : null;
   const mine = here ? job.outputs.filter((o) => parentOfPath(o) === here) : [];
   if (mine.length) refresh().then(() => selectKeys(mine));
   if (job.state === "done") toast(`Done: ${plural(job.outputs.length, "new file")}.`, { kind: "info" });

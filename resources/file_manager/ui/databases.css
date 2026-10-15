@@ -102,3 +102,12 @@
 .db-ca { min-height: 3.5em; }
 .db-tls-more { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; padding-left: 12px; border-left: 3px solid var(--border); }
 .db-tls-more[hidden] { display: none; }
+
+.db-sample-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
+.db-sample-item { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; padding: 3px 4px; border-radius: 4px; cursor: pointer; }
+.db-sample-item:focus-within { outline: 2px solid var(--focus, currentColor); }
+.db-sample-title { font-weight: 600; }
+.db-sample-about, .db-sample-facts { margin: 6px 0; }
+.db-sample-scales { display: flex; flex-wrap: wrap; gap: 8px; }
+.db-sample-scale { border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+.db-sample-save { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; }

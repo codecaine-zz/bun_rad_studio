@@ -1763,11 +1763,11 @@ function resetDesignerSqlToQbe() {
   }
 }
 
-function saveDesignerQuery() {
+async function saveDesignerQuery() {
   const preview = document.getElementById("designerSqlPreview");
   const sql = (queryDesignerState.activeView === "sql" && preview && preview.value.trim()) ? preview.value.trim() : buildDesignerSql();
   const defaultName = "Query " + ((queryDesignerState.savedQueries || []).length + 1);
-  const name = prompt("Save this query as:", defaultName);
+  const name = await studioPrompt("Save this query as:", defaultName, { title: "Save query" });
   if (!name) return;
   if (!queryDesignerState.savedQueries) queryDesignerState.savedQueries = [];
   queryDesignerState.savedQueries.unshift({ name, sql, createdAt: new Date().toISOString() });
@@ -1787,37 +1787,7 @@ async function saveDesignerAsView() {
   }
 
   const defaultViewName = "v_" + (queryDesignerState.selectedTables && queryDesignerState.selectedTables[0] ? queryDesignerState.selectedTables[0] : "custom") + "_view";
-  const viewName = prompt("Save query as a permanent PostgreSQL VIEW (enter view name):", defaultViewName);
-  if (!viewName) return;
-
-  const sanitized = viewName.trim().replace(/[^a-zA-Z0-9_]/g, "");
-  if (!sanitized) {
-    showToast("Invalid view name. Use letters, numbers, and underscores.");
-    return;
-  }
-
-  const ddl = "CREATE OR REPLACE VIEW " + quoteSqlIdentifier(sanitized) + " AS " + querySql + ";";
-  try {
-    const res = await apiRequest('/api/query', 'POST', { sql: ddl });
-    if (res && res.error) {
-      showToast("Error creating view: " + res.error);
-    } else {
-      showToast("View " + sanitized + " created successfully!");
-      if (typeof logAudit === "function") logAudit("[DDL] Created VIEW: " + sanitized);
-      if (typeof refreshAll === "function") {
-        await refreshAll();
-      } else if (typeof loadSchema === "function") {
-        await loadSchema();
-      }
-      if (typeof selectTable === "function") {
-        selectTable(sanitized);
-      } else if (typeof selectEntity === "function") {
-        selectEntity(sanitized, "view");
-      }
-    }
-  } catch (err) {
-    showToast("Failed to create view: " + (err.message || String(err)));
-  }
+  StudioViews.openNew({ select: querySql, name: defaultViewName });
 }
 
 function loadSavedDesignerQuery(index) {
@@ -2044,7 +2014,7 @@ function renderQueryDesigner() {
           <button id="btnDesignerViewDatasheet" class="qbe-view-btn ${queryDesignerState.activeView === 'datasheet' ? 'active' : ''}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
         </div>
         <div class="qbe-divider"></div>
-        <button id="btnDesignerRun" class="btn btn-sm qbe-btn-run" onclick="runDesignerQuery()" title="Run query and view Datasheet">! Run</button>
+        <button id="btnDesignerRun" class="btn btn-sm qbe-btn-run" onclick="runDesignerActive()" aria-keyshortcuts="Control+Enter F5" title="Run query and view Datasheet (Ctrl/⌘+Enter or F5)">! Run${window.StudioShortcuts ? StudioShortcuts.runHint() : ''}</button>
         <button id="btnDesignerTotals" class="qbe-btn-toggle ${queryDesignerState.showTotals ? 'active' : ''}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
         <button id="btnDesignerDistinct" class="qbe-btn-toggle ${queryDesignerState.distinct ? 'active' : ''}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
         <span style="font-size: 11px; color: var(--text-dim); margin-left: 2px;">Top:</span>

@@ -9,8 +9,9 @@ import { togglePower } from "./power.js";
 import { lockSelection } from "./vault.js";
 import { $, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
-import { canGoUp, clearSearch, goBack, goForward, goTo, goUp, refresh, runSearch } from "./nav.js";
+import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSearch } from "./nav.js";
 import * as ops from "./ops.js";
+import { activePane, isFolderView } from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { baseName, collapseCrumbs, parentOf, plural, splitPath } from "./util.js";
 
@@ -22,13 +23,15 @@ const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 
 /** Each button: id, icon, label, tooltip, what it does, and when it is enabled / shown. */
 function buttonSpecs() {
-  const sel = () => state.selection.size;
-  const folderView = () => state.location.kind === "folder" && !state.search;
+  // In the Dual view these follow the active pane (the one last clicked), so the same buttons work on either folder.
+  const sel = () => activePane().selection.size;
+  const folderView = () => isFolderView(activePane());
+  const onLeft = () => activePane().side === "left";
   return [
     [
-      { id: "back", icon: "←", label: "Back", tip: "Go back (Alt+←)", run: goBack, enabled: () => state.history.length > 0 },
-      { id: "forward", icon: "→", label: "Forward", tip: "Go forward (Alt+→)", run: goForward, enabled: () => state.future.length > 0 },
-      { id: "up", icon: "↑", label: "Up", tip: "Go up one folder (Backspace)", run: goUp, enabled: () => canGoUp() || inTrash() },
+      { id: "back", icon: "←", label: "Back", tip: "Go back (Alt+←)", run: goBack, enabled: () => onLeft() && state.history.length > 0 },
+      { id: "forward", icon: "→", label: "Forward", tip: "Go forward (Alt+→)", run: goForward, enabled: () => onLeft() && state.future.length > 0 },
+      { id: "up", icon: "↑", label: "Up", tip: "Go up one folder (Backspace)", run: () => goUpIn(activePane()), enabled: () => canGoUpIn(activePane()) },
       { id: "refresh", icon: "⟳", label: "Refresh", tip: "Reload this folder (F5)", run: () => refresh(), enabled: () => true },
     ],
     [
@@ -248,6 +251,8 @@ export function wireToolbar() {
     updateToolbar();
   };
   on("selection", refreshAll);
+  on("pane", refreshAll);
+  on("right-view", refreshAll);
   on("clipboard", refreshAll);
   on("undo", refreshAll);
   on("settings", refreshAll);

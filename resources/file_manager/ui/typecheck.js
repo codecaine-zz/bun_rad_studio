@@ -7,7 +7,8 @@ import { $, debounce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { refresh, saveSettings, visibleEntries } from "./nav.js";
 import { selectKeys, selectOnly } from "./selection.js";
-import { inTrash, on, state } from "./state.js";
+import { inTrash, left, right } from "./pane.js";
+import { on, state } from "./state.js";
 import { baseName } from "./util.js";
 
 const MAX_CACHE = 5000;
@@ -73,7 +74,7 @@ function adviceOf(check) {
 /** What is known about one file: a verdict or null. Asks the server when the list hasn't done so already. */
 export async function verdictFor(path, entry = null) {
   if (!typeWarningsOn()) return null;
-  const known = entry ?? visibleEntries().find((e) => e.path === path) ?? null;
+  const known = entry ?? [...visibleEntries(left), ...visibleEntries(right)].find((e) => e.path === path) ?? null;
   const hit = known ? cached(known) : null;
   if (hit) return hit.check;
   try {
@@ -85,20 +86,36 @@ export async function verdictFor(path, entry = null) {
   }
 }
 
+const PANES = [left, right];
+
+/** Each file list that is on screen: its pane, its drawn rows and the entries behind them (the Recycle Bin is never checked). */
+function drawn() {
+  return PANES.filter((pane) => !inTrash(pane)).map((pane) => ({
+    pane,
+    rows: [...document.querySelectorAll(`#${pane.ids.list} .row`)],
+    byPath: new Map(visibleEntries(pane).map((e) => [e.path, e])),
+  }));
+}
+
 /** The files on screen that still need a look. */
 function wanted() {
-  const limit = state.shown > PAGE ? state.shown : FIRST_ROWS;
-  const byPath = new Map(visibleEntries().map((e) => [e.path, e]));
   const out = [];
-  for (const row of [...document.querySelectorAll("#list .row")].slice(0, limit)) {
-    const entry = byPath.get(row.dataset.key);
-    if (entry && !entry.isDir && !cached(entry) && !inflight.has(entry.path)) out.push(entry);
+  const seen = new Set();
+  for (const { pane, rows, byPath } of drawn()) {
+    const limit = pane.shown > PAGE ? pane.shown : FIRST_ROWS;
+    for (const row of rows.slice(0, limit)) {
+      const entry = byPath.get(row.dataset.key);
+      if (entry && !entry.isDir && !cached(entry) && !inflight.has(entry.path) && !seen.has(entry.path)) {
+        seen.add(entry.path);
+        out.push(entry);
+      }
+    }
   }
   return out;
 }
 
 async function checkPending() {
-  if (typeof document === "undefined" || !typeWarningsOn() || inTrash()) return; // a timer left over from a torn-down page
+  if (typeof document === "undefined" || !typeWarningsOn()) return; // a timer left over from a torn-down page
   const mine = generation;
   const todo = wanted();
   for (let i = 0; i < todo.length && mine === generation; i += BATCH) {
@@ -123,7 +140,7 @@ async function checkPending() {
 const schedule = debounce(checkPending, 250);
 
 function noteScope() {
-  const now = `${state.location.kind}:${state.location.path ?? ""}:${state.search?.query ?? ""}`;
+  const now = `${left.location.kind}:${left.location.path ?? ""}:${left.search?.query ?? ""}|${right.location.path}`;
   if (now !== scope) {
     scope = now;
     generation++;
@@ -149,29 +166,31 @@ function makeBadge(entry, check) {
   return badge;
 }
 
-/** Puts a badge on every listed file that has a verdict, and removes the ones that no longer apply. */
+/** Puts a badge on every listed file (in either list) that has a verdict, and removes the ones that no longer apply. */
 function decorate() {
-  const active = typeWarningsOn() && !inTrash();
-  const byPath = active ? new Map(visibleEntries().map((e) => [e.path, e])) : null;
-  for (const row of document.querySelectorAll("#list .row")) {
-    const entry = byPath?.get(row.dataset.key);
-    const check = entry && !entry.isDir ? (cached(entry)?.check ?? null) : null;
-    const old = row.querySelector(".type-badge");
-    if (!check) {
-      if (old) {
-        old.remove();
-        row.classList.remove("has-verdict");
+  const enabled = typeWarningsOn();
+  for (const pane of PANES) {
+    const byPath = enabled && !inTrash(pane) ? new Map(visibleEntries(pane).map((e) => [e.path, e])) : null;
+    for (const row of document.querySelectorAll(`#${pane.ids.list} .row`)) {
+      const entry = byPath?.get(row.dataset.key);
+      const check = entry && !entry.isDir ? (cached(entry)?.check ?? null) : null;
+      const old = row.querySelector(".type-badge");
+      if (!check) {
+        if (old) {
+          old.remove();
+          row.classList.remove("has-verdict");
+        }
+        continue;
       }
-      continue;
+      if (old && old.dataset.code === check.code && old.classList.contains(check.severity)) continue;
+      old?.remove();
+      row.classList.add("has-verdict");
+      (row.querySelector(".c-name") ?? row).append(makeBadge(entry, check));
     }
-    if (old && old.dataset.code === check.code && old.classList.contains(check.severity)) continue;
-    old?.remove();
-    row.classList.add("has-verdict");
-    (row.querySelector(".c-name") ?? row).append(makeBadge(entry, check));
   }
 }
 
-/** Starts watching the file list: badges appear after every draw of it. */
+/** Starts watching the file lists: badges appear after every draw of them (the right one tells us with "right-view"). */
 export function wireTypeCheck() {
   const list = $("#list");
   if (!list) return;
@@ -181,6 +200,7 @@ export function wireTypeCheck() {
     schedule();
   };
   new MutationObserver(changed).observe(list, { childList: true });
+  on("right-view", changed);
   on("settings", (change) => {
     if (!change || Object.keys(change).length === 0 || "typeWarnings" in change) changed();
   });

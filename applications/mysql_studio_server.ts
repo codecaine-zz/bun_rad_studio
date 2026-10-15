@@ -9,6 +9,8 @@
 
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
+import { mysqlStaging } from "../src/db/staging/mount";
+import { viewApi } from "../src/shared/studioViews";
 import { splitStatements } from "../src/db/splitter";
 import { SQL } from "bun";
 
@@ -21,6 +23,7 @@ import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs
 import { homedir } from "os";
 import { generateMysqlStudioHtml } from "./mysql_studio.ts";
 import { MacroStore, handleMacroRoute, type MacroAdapter, type MacroQueryResult } from "./studio_macros_server.ts";
+import { mysqlSampleApi } from "../src/db/samples/wiring";
 
 export interface ServerOptions {
   port?: number;
@@ -710,7 +713,15 @@ export class MysqlManager {
           createSql = ddlRes[0]?.["Create Table"] || ddlRes[0]?.["Create View"] || "";
         } catch {}
 
-        const rowCount = Number(item.TABLE_ROWS ?? item.table_rows ?? 0);
+        // information_schema's TABLE_ROWS is only an estimate (and MySQL caches it for a day), so a table that was just filled
+        // can show 0 and one that was emptied can still show rows. Count the small and medium tables for real.
+        let rowCount = Number(item.TABLE_ROWS ?? item.table_rows ?? 0);
+        if (isTable && rowCount <= 100000) {
+          try {
+            const exact = await this.sql_conn.unsafe(`SELECT COUNT(*) AS c FROM (SELECT 1 FROM ${qm(tname)} LIMIT 100001) AS t`);
+            rowCount = Number(exact?.[0]?.c ?? exact?.[0]?.C ?? rowCount);
+          } catch {}
+        }
         totalRows += rowCount;
 
         const meta: TableSchemaMeta = {
@@ -741,6 +752,22 @@ export class MysqlManager {
       totalIndices,
       totalRows,
     };
+  }
+
+  /** Create / check / edit / drop a view (see src/shared/studioViews.ts). MySQL DDL commits by itself, so there is no transaction. */
+  public async viewOp(op: "check" | "create" | "definition" | "drop", body: any) {
+    const run = async (s: string) => {
+      const r = await this.sql_conn.unsafe(s);
+      return (Array.isArray(r) ? r : []) as any[];
+    };
+    const res = await viewApi(op, body, {
+      dialect: "mysql",
+      run,
+      tx: async (fn: (r: typeof run) => Promise<void>) => { await fn(run); },
+      rollbackProbe: async () => {},
+    });
+    if (res.success && (op === "create" || op === "drop")) await this.logAudit(op === "drop" ? "DROP_VIEW" : "CREATE_VIEW", String(body.name), String(res.ddl || "").replace(/\s+/g, " ").slice(0, 150));
+    return res;
   }
 
   public async query(sqlStr: string, params: any[] = []): Promise<any> {
@@ -2065,6 +2092,8 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
   const port = options.port ?? 0;
   const hostname = options.host ?? "127.0.0.1";
   const manager = new MysqlManager(options.initialDbPath || "", options.config);
+  const staging = mysqlStaging(manager);
+  const samples = mysqlSampleApi(manager);
 
   const server = Bun.serve({
     port,
@@ -2078,6 +2107,10 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
         const __workbench = await (await getSharedWorkbench("MySQL Studio · Workbench")).handle(req);
         if (__workbench) return __workbench;
+      }
+      if (url.pathname.startsWith("/api/staging/")) {
+        const __staging = await staging.handle(req);
+        if (__staging) return __staging;
       }
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
@@ -2117,6 +2150,17 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           const body = (await req.json()) as { sql: string; params?: any[] };
           const result = await manager.query(body.sql, body.params || []);
           return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 4b. Views: check / create / definition / drop (src/shared/studioViews.ts)
+      const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(url.pathname);
+      if (viewMatch && req.method === "POST") {
+        try {
+          const result = await manager.viewOp(viewMatch[1] as any, await req.json());
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -2570,6 +2614,10 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }
       }
+
+      // Sample databases catalog (src/db/samples)
+      const __samples = await samples.handle(req, url, corsHeaders);
+      if (__samples) return __samples;
 
       // 9. Seed Dataset
       if (url.pathname === "/api/seed" && req.method === "POST") {

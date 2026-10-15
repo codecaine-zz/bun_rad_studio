@@ -686,7 +686,7 @@ describe("the Dual view", () => {
     expect(rowNames("#list")).toContain("dest");
     clickRow("#dual-list", "c.txt");
     expect(rowOf("#dual-list", "c.txt").getAttribute("aria-selected")).toBe("true");
-    expect($("#dual-status").textContent).toContain("1 selected");
+    expect($("#dual-status").textContent).toContain("1 file selected");
     expect((await savedSettings()).dualPath).toBe(dest);
   });
 
@@ -766,5 +766,291 @@ describe("the Dual view", () => {
     const views = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "ui", "views.css"), "utf8");
     expect(views).toMatch(/\[data-workspace="dual"\] #info \{ display: none; \}/);
     expect(views).toMatch(/--side-w: 11rem/);
+  });
+});
+
+// The right pane is the same kind of list as the left one: same columns and dates, same View and sort settings, same
+// right-click menu, keys, inline rename and file operations, working on its own folder.
+describe("the Dual view's right pane has the same options as the left one", () => {
+  const parity = join(home, "parity");
+  const work = join(parity, "work");
+  const other = join(parity, "other");
+  const sqliteHeader = Buffer.concat([Buffer.from("SQLite format 3\0", "latin1"), Buffer.alloc(100)]);
+  let menus: any;
+  let nav: any;
+  let pane: any;
+
+  const until = async (check: () => boolean, what: string, ms = 6000) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (check()) return;
+      await sleep(40);
+    }
+    throw new Error(`Timed out waiting for ${what}`);
+  };
+  const $$ = (sel: string): any[] => [...doc.querySelectorAll(sel)];
+  const byName = (list: string, name: string): any => $$(`${list} .row`).find((r: any) => r.dataset.key.endsWith(`/${name}`));
+  const click = (list: string, name: string, extra: Record<string, unknown> = {}) => byName(list, name).dispatchEvent(new win.MouseEvent("click", { bubbles: true, ...extra }));
+  const rightClick = (target: any) => target.dispatchEvent(new win.MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 6, clientY: 6 }));
+  const menuLabels = () => $$(".menu .menu-label").map((e: any) => e.textContent);
+  const focusList = (id: string) => {
+    $(`#${id}`).focus();
+    $(`#${id}`).dispatchEvent(new win.Event("focusin", { bubbles: true }));
+  };
+  const cell = (list: string, name: string, cls: string) => byName(list, name).querySelector(cls).textContent;
+  const openOnRight = async (path: string) => {
+    await nav.goToIn(pane.right, path);
+    await until(() => $$("#dual-crumbs .crumb.current")[0]?.title === path, `the right pane to show ${path}`);
+  };
+  const openOnLeft = async (path: string) => {
+    await nav.goTo(path);
+    await until(() => $$("#crumbs .crumb.current")[0]?.title === path, `the left pane to show ${path}`);
+  };
+
+  beforeAll(async () => {
+    for (const dir of [work, other]) {
+      mkdirSync(join(dir, "sub"), { recursive: true });
+      writeFileSync(join(dir, "one.txt"), "1");
+      writeFileSync(join(dir, "two.txt"), "22222");
+      writeFileSync(join(dir, "three.md"), "333");
+      writeFileSync(join(dir, "data.db"), sqliteHeader);
+    }
+    writeFileSync(join(other, "only-right.txt"), "right");
+    menus = await import("../resources/file_manager/ui/menus.js");
+    nav = await import("../resources/file_manager/ui/nav.js");
+    pane = await import("../resources/file_manager/ui/pane.js");
+    const shared = (await import("../resources/file_manager/ui/state.js")).state;
+    shared.clipboard = null;
+    await nav.saveSettings({ view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true, showHidden: false, deleteTo: "bin" });
+    await openOnLeft(work);
+    await openOnRight(other);
+    await until(() => rowNames("#list").length === 5 && rowNames("#dual-list").length === 6, "both lists to be filled");
+  }, 30_000);
+
+  test("it has its own folder and the same column headings as the left list, and every control has a name and a tooltip", () => {
+    expect($("#dual-crumbs .crumb.current").textContent).toBe("other");
+    expect(rowNames("#list")).toEqual(["sub", "data.db", "one.txt", "three.md", "two.txt"]);
+    expect(rowNames("#dual-list")).toEqual(["sub", "data.db", "one.txt", "only-right.txt", "three.md", "two.txt"]);
+    const heads = (id: string) => $$(`#${id} > *`).filter((e: any) => !e.hidden).map((e: any) => e.textContent);
+    expect(heads("dual-list-head")).toEqual(heads("list-head"));
+    expect(heads("dual-list-head")).toEqual(["", "Name", "Date modified", "Type", "Size"]);
+    for (const b of $$("#dual-pane button")) expect(b.title || b.getAttribute("aria-label"), b.outerHTML.slice(0, 80)).toBeTruthy();
+    for (const b of $$("#dual-list-head button")) expect(b.textContent.trim() && b.title).toBeTruthy();
+  });
+
+  test("a file shows the same date, type, size and icon in both lists, and the status line says the same", async () => {
+    await openOnRight(work);
+    await until(() => rowNames("#dual-list").length === 5, "the right pane to list the work folder");
+    for (const name of ["one.txt", "two.txt", "three.md", "sub", "data.db"]) {
+      for (const cls of [".c-date", ".c-type", ".c-size", ".c-icon"]) expect(cell("#dual-list", name, cls), `${name} ${cls}`).toBe(cell("#list", name, cls));
+    }
+    expect(cell("#dual-list", "one.txt", ".c-date")).toMatch(/Today, /);
+    focusList("dual-list");
+    click("#dual-list", "two.txt");
+    click("#list", "two.txt");
+    expect($("#dual-status").textContent).toBe($("#status-left").textContent);
+    expect($("#dual-status").textContent).toContain("1 file selected");
+  });
+
+  test("the View setting changes both lists, and the column headings go away with Details", async () => {
+    await nav.saveSettings({ view: "icons" });
+    expect($("#list").className).toBe("view-icons");
+    expect($("#dual-list").className).toBe("view-icons");
+    expect($("#list-head").hidden && $("#dual-list-head").hidden).toBe(true);
+    await nav.saveSettings({ view: "list" });
+    expect($("#dual-list").className).toBe("view-list");
+    await nav.saveSettings({ view: "details" });
+    expect($("#dual-list").className).toBe("view-details");
+    expect($("#dual-list-head").hidden).toBe(false);
+  });
+
+  test("clicking a heading above the right list sorts both lists, and clicking it again reverses them", async () => {
+    $("#dual-list-head [data-sort=size]").click();
+    await until(() => $("#list-head [data-sort=size]").getAttribute("aria-sort") === "ascending", "the sort to be applied");
+    expect($("#dual-list-head [data-sort=size]").getAttribute("aria-sort")).toBe("ascending");
+    expect(rowNames("#dual-list")).toEqual(rowNames("#list"));
+    expect(rowNames("#dual-list").slice(0, 3)).toEqual(["sub", "one.txt", "three.md"]);
+    $("#dual-list-head [data-sort=size]").click();
+    await until(() => $("#list-head [data-sort=size]").getAttribute("aria-sort") === "descending", "the sort to reverse");
+    expect(rowNames("#dual-list")).toEqual(rowNames("#list"));
+    expect(rowNames("#dual-list").at(-1)).toBe("one.txt");
+    $("#list-head [data-sort=name]").click();
+    await until(() => $("#dual-list-head [data-sort=name]").getAttribute("aria-sort") === "ascending", "the left heading to sort the right list too");
+    expect(rowNames("#dual-list")).toEqual(["sub", "data.db", "one.txt", "three.md", "two.txt"]);
+  });
+
+  test("hidden files and folders-first follow the one setting too", async () => {
+    writeFileSync(join(work, ".secret"), "s");
+    await nav.saveSettings({ showHidden: true });
+    await until(() => rowNames("#dual-list").includes(".secret") && rowNames("#list").includes(".secret"), "hidden files to show in both lists");
+    expect(byName("#dual-list", ".secret").classList.contains("hidden-item")).toBe(true);
+    await nav.saveSettings({ showHidden: false, foldersFirst: false });
+    await until(() => !rowNames("#dual-list").includes(".secret") && rowNames("#dual-list")[0] === "data.db", "the lists to follow the setting");
+    expect(rowNames("#dual-list")).toEqual(rowNames("#list"));
+    await nav.saveSettings({ foldersFirst: true });
+    expect(rowNames("#dual-list")[0]).toBe("sub");
+    rmSync(join(work, ".secret"));
+  });
+
+  const sameMenu = async (left: () => void, right: () => void, what: string) => {
+    focusList("list");
+    left();
+    await until(() => menuLabels().length > 0, `the left menu for ${what}`);
+    const leftLabels = menuLabels();
+    menus.closeMenu();
+    focusList("dual-list");
+    right();
+    await until(() => menuLabels().length > 0, `the right menu for ${what}`);
+    const rightLabels = menuLabels();
+    menus.closeMenu();
+    return { leftLabels, rightLabels };
+  };
+
+  test("right-click on one file shows the left list's menu, including SQLite Studio for a database", async () => {
+    // the database check runs in the background; the menu offers SQLite Studio once it has answered
+    click("#list", "data.db");
+    click("#dual-list", "data.db");
+    await sleep(600);
+    const db = await sameMenu(() => rightClick(byName("#list", "data.db")), () => rightClick(byName("#dual-list", "data.db")), "a database file");
+    expect(db.rightLabels).toEqual(db.leftLabels);
+    for (const label of ["Open", "Open with…", "Open in SQLite Studio", "Open in SQLite Studio in its own window", "Open in SQLite Studio in my browser", "Rename", "Cut", "Copy", "Bury (Rip)", "Move to Recycle Bin", "Convert or process…", "More info…", "Properties", "Copy path"]) expect(db.rightLabels, label).toContain(label);
+    const text = await sameMenu(() => rightClick(byName("#list", "one.txt")), () => rightClick(byName("#dual-list", "one.txt")), "a text file");
+    expect(text.rightLabels).toEqual(text.leftLabels);
+    expect(text.rightLabels).toContain("Edit in Code editor");
+    expect(text.rightLabels).not.toContain("Open in SQLite Studio");
+  });
+
+  test("right-click on a folder, on several items and on empty space shows the left list's menu", async () => {
+    const folder = await sameMenu(() => rightClick(byName("#list", "sub")), () => rightClick(byName("#dual-list", "sub")), "a folder");
+    expect(folder.rightLabels).toEqual(folder.leftLabels);
+    expect(folder.rightLabels).toContain("Paste into this folder");
+    const many = await sameMenu(
+      () => { click("#list", "one.txt"); click("#list", "two.txt", { ctrlKey: true }); rightClick(byName("#list", "two.txt")); },
+      () => { click("#dual-list", "one.txt"); click("#dual-list", "two.txt", { ctrlKey: true }); rightClick(byName("#dual-list", "two.txt")); },
+      "two files",
+    );
+    expect(many.rightLabels).toEqual(many.leftLabels);
+    expect(many.rightLabels).toContain("Rename 2 items…");
+    const empty = await sameMenu(() => rightClick($("#list-wrap")), () => rightClick($("#dual-wrap")), "empty space");
+    expect(empty.rightLabels).toEqual(empty.leftLabels);
+    for (const label of ["New folder", "New file", "Paste", "Select all", "Refresh", "Open this folder in Code editor", "Details", "Date modified", "Folders first", "Properties of this folder"]) expect(empty.rightLabels, label).toContain(label);
+  });
+
+  test("Select all, Escape, type-to-jump and Backspace work in the right list and leave the left one alone", async () => {
+    focusList("list");
+    click("#list", "one.txt");
+    focusList("dual-list");
+    key($("#dual-list"), "a", { ctrlKey: true });
+    expect($$("#dual-list .row.selected").length).toBe(rowNames("#dual-list").length);
+    expect($$("#list .row.selected").map((r: any) => r.dataset.key)).toEqual([join(work, "one.txt")]);
+    key($("#dual-list"), "Escape");
+    expect($$("#dual-list .row.selected").length).toBe(0);
+    key($("#dual-list"), "t");
+    key($("#dual-list"), "h");
+    expect($("#dual-list .row.focused .name-text").textContent).toBe("three.md");
+    expect($("#dual-list .row.selected .name-text").textContent).toBe("three.md");
+    key($("#dual-list"), "Backspace");
+    await until(() => $("#dual-crumbs .crumb.current").textContent === "parity", "the right pane to go up");
+    expect(rowNames("#list")).toContain("one.txt");
+    await openOnRight(other);
+  });
+
+  test("F2 renames in place in the right list, and Undo brings the name back", async () => {
+    await until(() => rowNames("#dual-list").includes("only-right.txt"), "the right folder");
+    focusList("dual-list");
+    click("#dual-list", "only-right.txt");
+    const ev = key($("#dual-list"), "F2");
+    expect(ev.defaultPrevented).toBe(true);
+    await until(() => !!$("#dual-list .rename-input"), "the name box");
+    expect($("#dual-list .rename-input").value).toBe("only-right.txt");
+    expect($("#list .rename-input")).toBeNull();
+    $("#dual-list .rename-input").value = "renamed.txt";
+    key($("#dual-list .rename-input"), "Enter");
+    await until(() => rowNames("#dual-list").includes("renamed.txt"), "the new name");
+    expect(existsSync(join(other, "renamed.txt"))).toBe(true);
+    expect(existsSync(join(other, "only-right.txt"))).toBe(false);
+    expect(byName("#dual-list", "renamed.txt").classList.contains("selected")).toBe(true);
+    key($("#dual-list"), "z", { ctrlKey: true });
+    await until(() => existsSync(join(other, "only-right.txt")), "undo of the rename");
+  });
+
+  test("New folder from the right pane's menu makes the folder in the right folder and asks for its name there", async () => {
+    focusList("dual-list");
+    rightClick($("#dual-wrap"));
+    await until(() => menuLabels().includes("New folder"), "the folder menu");
+    $$(".menu .menu-item").find((b: any) => b.textContent.includes("New folder"))!.click();
+    await until(() => !!$("#dual-list .rename-input"), "the name box on the right");
+    expect(existsSync(join(other, "New folder"))).toBe(true);
+    expect(existsSync(join(work, "New folder"))).toBe(false);
+    $("#dual-list .rename-input").value = "made-here";
+    key($("#dual-list .rename-input"), "Enter");
+    await until(() => rowNames("#dual-list").includes("made-here"), "the new folder to show");
+    expect(existsSync(join(other, "made-here"))).toBe(true);
+    expect(rowNames("#list")).not.toContain("made-here");
+  });
+
+  test("Copy in the left list and Paste in the right pane puts the file in the right folder", async () => {
+    writeFileSync(join(work, "left-only.txt"), "L");
+    await nav.refresh({ pane: pane.left });
+    await until(() => rowNames("#list").includes("left-only.txt"), "the new file in the left list");
+    focusList("list");
+    click("#list", "left-only.txt");
+    key($("#list"), "c", { ctrlKey: true });
+    focusList("dual-list");
+    key($("#dual-list"), "v", { ctrlKey: true });
+    await until(() => rowNames("#dual-list").includes("left-only.txt"), "the pasted file");
+    expect(existsSync(join(other, "left-only.txt"))).toBe(true);
+    expect(existsSync(join(work, "left-only.txt"))).toBe(true);
+  });
+
+  test("Delete in the right pane moves the right selection to the Recycle Bin and leaves the left folder alone", async () => {
+    focusList("dual-list");
+    click("#dual-list", "left-only.txt");
+    const ev = key($("#dual-list"), "Delete");
+    expect(ev.defaultPrevented).toBe(true);
+    await until(() => !rowNames("#dual-list").includes("left-only.txt"), "the file to leave the right list");
+    expect(existsSync(join(other, "left-only.txt"))).toBe(false);
+    expect(existsSync(join(work, "left-only.txt"))).toBe(true);
+    expect(rowNames("#list")).toContain("left-only.txt");
+  });
+
+  test("the toolbar's buttons act on the active pane, and Up goes up in the right pane", async () => {
+    const del = () => $("#toolbar button[title^='Move to the Recycle Bin']");
+    focusList("list");
+    key($("#list"), "Escape");
+    focusList("dual-list");
+    click("#dual-list", "two.txt");
+    expect(del().disabled).toBe(false);
+    focusList("list");
+    expect(del().disabled).toBe(true);
+    focusList("dual-list");
+    expect(del().disabled).toBe(false);
+    $("#toolbar button[title^='Go up one folder']").click();
+    await until(() => $("#dual-crumbs .crumb.current").textContent === "parity", "the right pane to go up");
+    expect($("#crumbs .crumb.current").textContent).toBe("work");
+    await openOnRight(other);
+  });
+
+  test("dropping on a folder row of the right list moves things there", async () => {
+    const dnd = await import("../resources/file_manager/ui/dnd.js");
+    writeFileSync(join(other, "drag-me.txt"), "d");
+    await nav.refresh({ pane: pane.right });
+    await until(() => rowNames("#dual-list").includes("drag-me.txt"), "the new file");
+    dnd.drag.paths = [join(other, "drag-me.txt")];
+    const drop = new win.Event("drop", { bubbles: true, cancelable: true }) as any;
+    drop.dataTransfer = { dropEffect: "move" };
+    byName("#dual-list", "sub").dispatchEvent(drop);
+    await until(() => existsSync(join(other, "sub", "drag-me.txt")), "the file to move into the folder");
+    dnd.endDrag();
+  });
+
+  test("the right list marks a file that isn't what its name says, like the left one does", async () => {
+    const badges = join(work, "badges");
+    mkdirSync(badges, { recursive: true });
+    writeFileSync(join(badges, "photo.jpg"), Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]));
+    await openOnRight(badges);
+    await until(() => !!$("#dual-list .row .type-badge"), "the warning mark in the right list", 8000);
+    expect($("#dual-list .row.has-verdict .type-badge").getAttribute("aria-label")).toBeTruthy();
+    await openOnRight(other);
   });
 });

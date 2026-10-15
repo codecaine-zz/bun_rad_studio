@@ -8,7 +8,8 @@ import { openTarget } from "./dbShortcuts.js";
 import { toast } from "./menus.js";
 import { registerOpener } from "./openwith.js";
 import { openPower } from "./power.js";
-import { inTrash, on, state } from "./state.js";
+import { inTrash, left, right } from "./pane.js";
+import { on, state } from "./state.js";
 import { baseName, extensionOf } from "./util.js";
 
 const SQLITE_EXTENSIONS = new Set(["sqlite", "sqlite3", "db", "db3", "s3db"]);
@@ -32,8 +33,9 @@ export function resetDatabaseFiles() {
 
 /** Looks at the files in view that are named like databases and remembers which really are. */
 export async function probeSqliteFiles() {
-  if (typeof document === "undefined" || inTrash()) return;
-  const entries = [...(state.search?.entries ?? state.entries ?? [])].filter((e) => !e.isDir && SQLITE_EXTENSIONS.has(extensionOf(e.name)) && known.get(e.path)?.sig !== sig(e)).slice(0, MAX_PROBE);
+  if (typeof document === "undefined") return;
+  const listed = [...(inTrash(left) ? [] : (left.search?.entries ?? left.entries ?? [])), ...right.entries];
+  const entries = listed.filter((e) => !e.isDir && SQLITE_EXTENSIONS.has(extensionOf(e.name)) && known.get(e.path)?.sig !== sig(e)).slice(0, MAX_PROBE);
   if (!entries.length) return;
   try {
     const r = await call("db/sqlite/check", { paths: entries.map((e) => e.path) });
@@ -80,3 +82,4 @@ export function envFileMenuItems(entries) {
 
 registerOpener("sqlite", (path) => openInSqliteStudio(path));
 on("view", probeSqliteFiles);
+on("right-view", probeSqliteFiles);

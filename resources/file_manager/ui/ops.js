@@ -5,11 +5,12 @@ import { chooseConflict, confirmBox, problemsBox } from "./dialogs.js";
 import { announce } from "./dom.js";
 import { toast } from "./menus.js";
 import { finishOpen } from "./openwith.js";
-import { busy, goTo, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
+import { busy, goTo, goToIn, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
 import { buryItems } from "./graveBury.js";
+import { activePane, currentPath, inTrash, isFolderView } from "./pane.js";
 import { selectKeys, selectedEntries } from "./selection.js";
-import { currentPath, emit, inTrash, on, state } from "./state.js";
+import { emit, on, state } from "./state.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
 import { baseName, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
@@ -37,7 +38,7 @@ function fail(err) {
 }
 
 const names = (paths) => paths.map((p) => baseName(p, state.sep));
-const canChangeHere = () => state.location.kind === "folder" && !state.search;
+const canChangeHere = () => isFolderView();
 
 function needFolder(what) {
   if (!canChangeHere()) {
@@ -92,7 +93,7 @@ async function trashPaths(paths) {
 
 export async function openEntry(entry) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
-  if (entry.isDir) return goTo(entry.path);
+  if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
   await openFile(entry.path, false);
 }
@@ -155,14 +156,15 @@ let lastCreated = null;
 
 async function createItem(op, label) {
   if (!needFolder(`creating a ${label}`)) return;
+  const pane = activePane();
   try {
-    const r = await busy(() => call(op, { parent: currentPath() }));
+    const r = await busy(() => call(op, { parent: currentPath(pane) }));
     lastCreated = { path: r.path };
     const tracker = lastCreated;
     pushUndo(`new ${label}`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
-    await refresh({ keepSelection: false });
-    selectKeys([r.path]);
-    emit("rename-request", r.path);
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.path], pane);
+    emit("rename-request", { key: r.path, pane });
   } catch (err) {
     fail(err);
   }
@@ -173,7 +175,7 @@ export const newFile = () => createItem("newfile", "file");
 export const newSqlite = () => createItem("newsqlite", "SQLite database");
 
 /** Renames one item; throws an ApiError when the name isn't accepted (the caller shows it next to the name). */
-export async function commitRename(path, newName) {
+export async function commitRename(path, newName, pane = activePane()) {
   const r = await call("rename", { path, name: newName });
   if (r.from === r.to) return r;
   if (lastCreated && lastCreated.path === r.from) {
@@ -183,17 +185,18 @@ export async function commitRename(path, newName) {
   } else {
     pushUndo(`rename "${baseName(r.from, state.sep)}"`, async () => ensureOk((await call("relocate", { pairs: [{ from: r.to, to: r.from }] })).results, "rename"));
   }
-  await refresh({ keepSelection: false });
-  selectKeys([r.to]);
+  await refresh({ keepSelection: false, pane });
+  selectKeys([r.to], pane);
   announceVerdict(r.to);
   return r;
 }
 
 /** Rename: in place for one item, a dialog with a preview for several. */
 export async function renameSelection() {
-  const items = selectedEntries();
-  if (!items.length || inTrash()) return;
-  if (items.length === 1) return emit("rename-request", items[0].path);
+  const pane = activePane();
+  const items = selectedEntries(pane);
+  if (!items.length || inTrash(pane)) return;
+  if (items.length === 1) return emit("rename-request", { key: items[0].path, pane });
   const folders = new Set(items.map((e) => parentOf(e.path, state.sep)));
   if (folders.size !== 1) return toast("To rename several items at once, they need to be in the same folder.");
   const folder = [...folders][0];
@@ -205,8 +208,8 @@ export async function renameSelection() {
     ensureOk((await call("relocate", { pairs })).results, "rename");
   });
   toast(`Renamed ${plural(rows.length, "item")}.`, { kind: "success", action: { label: "Undo", run: undo } });
-  await refresh({ keepSelection: false });
-  selectKeys(rows.map((r) => `${folder}${folder.endsWith(sep) ? "" : sep}${r.to}`));
+  await refresh({ keepSelection: false, pane });
+  selectKeys(rows.map((r) => `${folder}${folder.endsWith(sep) ? "" : sep}${r.to}`), pane);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -252,8 +255,11 @@ export async function duplicateSelection() {
   await transferInto(currentPath(), items.map((e) => e.path), "copy");
 }
 
-/** Copies or moves `sources` into `dest`, asking what to do about name clashes. Resolves true when something was done. */
-export async function transferInto(dest, sources, mode) {
+/**
+ * Copies or moves `sources` into `dest`, asking what to do about name clashes. Resolves true when something was done.
+ * `pane` is the list the person is working in (it loses its selection and shows the new items when they land in it).
+ */
+export async function transferInto(dest, sources, mode, pane = activePane()) {
   const verb = mode === "copy" ? "Copy" : "Move";
   try {
     const { conflicts } = await call("conflicts", { sources, dest });
@@ -274,8 +280,8 @@ export async function transferInto(dest, sources, mode) {
     } else if (!failed.length) {
       toast(mode === "move" ? "Those items are already in this folder." : "Nothing was copied.");
     }
-    await refresh({ keepSelection: false });
-    if (worked.length && currentPath() === dest) selectKeys(worked.map((w) => w.destination));
+    await refresh({ keepSelection: false, pane });
+    if (worked.length && currentPath(pane) === dest) selectKeys(worked.map((w) => w.destination), pane);
     await reportFailures(failed, mode === "copy" ? "copied" : "moved");
     return worked.length > 0;
   } catch (err) {
@@ -442,7 +448,8 @@ export async function emptyBin() {
 // ---------------------------------------------------------------------------------------------------------------
 
 export async function zipSelection() {
-  const items = selectedEntries();
+  const pane = activePane();
+  const items = selectedEntries(pane);
   if (!items.length || !needFolder("making a zip file")) return;
   try {
     const r = await busy(() => call("zip", { paths: items.map((e) => e.path) }));
@@ -452,8 +459,8 @@ export async function zipSelection() {
     });
     const extra = r.skippedLinks ? ` ${plural(r.skippedLinks, "shortcut")} (links) were left out.` : "";
     toast(`Created "${baseName(r.zipPath, state.sep)}" with ${plural(r.files, "file")}.${extra}`, { kind: "success", action: { label: "Undo", run: undo } });
-    await refresh({ keepSelection: false });
-    selectKeys([r.zipPath]);
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.zipPath], pane);
   } catch (err) {
     fail(err);
   }
@@ -461,6 +468,7 @@ export async function zipSelection() {
 
 export async function unzipEntry(entry) {
   if (!needFolder("extracting")) return;
+  const pane = activePane();
   try {
     const r = await busy(() => call("unzip", { path: entry.path }));
     pushUndo(`extract "${entry.name}"`, async () => {
@@ -468,8 +476,8 @@ export async function unzipEntry(entry) {
       if (failed.length) throw new Error(failed[0]);
     });
     toast(`Extracted ${plural(r.files, "file")} into "${baseName(r.folder, state.sep)}".`, { kind: "success", action: { label: "Undo", run: undo } });
-    await refresh({ keepSelection: false });
-    selectKeys([r.folder]);
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.folder], pane);
     if (r.skipped.length) await problemsBox("Some items were skipped", "These items were not extracted, to keep your computer safe:", r.skipped.slice(0, 20));
   } catch (err) {
     fail(err);

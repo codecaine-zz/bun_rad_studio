@@ -102,7 +102,7 @@ button { cursor: pointer; }
 button:disabled { cursor: default; }
 
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
-#list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+#list:focus-visible, #dual-list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .skip-link { position: absolute; left: -999px; top: 0.5rem; z-index: 3000; background: var(--accent); color: var(--accent-text); padding: 0.5rem 0.9rem; border-radius: 0.4rem; }
@@ -185,7 +185,7 @@ button:disabled { cursor: default; }
 .list-head .h-size { text-align: right; }
 
 #list-wrap { position: relative; flex: 1; min-height: 0; overflow: auto; }
-#list { min-height: 100%; padding-bottom: 2rem; }
+#list, #dual-list { min-height: 100%; padding-bottom: 2rem; }
 
 .row { position: relative; border-radius: 0.4rem; cursor: default; user-select: none; -webkit-user-select: none; }
 .row .c-icon { font-size: 1.25rem; text-align: center; }
@@ -199,7 +199,7 @@ button:disabled { cursor: default; }
 .row.selected { background: var(--selected); color: var(--selected-text); }
 .row.selected .c-where, .row.selected .c-date, .row.selected .c-type, .row.selected .c-size { color: var(--selected-text); }
 .row.focused { outline: 2px solid var(--accent); outline-offset: -2px; }
-#list:not(:focus) .row.focused { outline-color: var(--border); }
+#list:not(:focus) .row.focused, #dual-list:not(:focus) .row.focused { outline-color: var(--border); }
 .row.cut { opacity: 0.5; }
 .row.hidden-item { opacity: 0.7; }
 .row.broken .name-text { text-decoration: line-through; }
@@ -209,12 +209,12 @@ button:disabled { cursor: default; }
 .rename-input { width: 100%; min-width: 6rem; background: var(--bg); color: var(--text); border: 2px solid var(--accent); border-radius: 0.3rem; padding: 0.1rem 0.3rem; }
 
 /* list view: compact, flows in columns */
-#list.view-list { column-width: 16rem; column-gap: 0.4rem; padding: 0.4rem 0.8rem; }
+#list.view-list, #dual-list.view-list { column-width: 16rem; column-gap: 0.4rem; padding: 0.4rem 0.8rem; }
 .view-list .row { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.4rem; break-inside: avoid; }
 .view-list .c-where, .view-list .c-date, .view-list .c-type, .view-list .c-size { display: none; }
 
 /* icons view */
-#list.view-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.8rem, 1fr)); gap: 0.4rem; padding: 0.6rem 0.8rem; align-content: start; }
+#list.view-icons, #dual-list.view-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.8rem, 1fr)); gap: 0.4rem; padding: 0.6rem 0.8rem; align-content: start; }
 .view-icons .row { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.6rem 0.3rem; text-align: center; }
 .view-icons .c-icon { font-size: 2.8rem; line-height: 1.1; }
 .view-icons .c-name { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%; }

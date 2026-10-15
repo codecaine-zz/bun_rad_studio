@@ -16,6 +16,8 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 
 - [Databases overview](databases/index.md)
 - [Database Workbench guide](databases/workbench.md)
+- [Sample databases](databases/sample-datasets.md)
+- [Import with staging](databases/staging-import.md)
 
 ## Visual designer and generated applications
 

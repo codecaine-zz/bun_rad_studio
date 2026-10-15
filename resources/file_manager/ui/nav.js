@@ -2,6 +2,7 @@
 import { ApiError, call } from "./api.js";
 import { debounce } from "./dom.js";
 import { toast } from "./menus.js";
+import { activePane, hooks, isFolderView, left, right } from "./pane.js";
 import { emit, inTrash, state } from "./state.js";
 import { parentOf, sortEntries } from "./util.js";
 
@@ -56,11 +57,11 @@ export async function refreshTrashCount() {
   }
 }
 
-/** What the list shows, sorted by the person's choice. Search results replace the folder while searching. */
-export function visibleEntries() {
+/** What a list shows (the left one unless a pane is given), sorted by the person's choice. Search results replace the folder while searching. */
+export function visibleEntries(pane = left) {
   const { sortBy, sortDir, foldersFirst } = state.settings;
-  if (inTrash()) return sortEntries(state.trashItems, { by: sortBy === "type" ? "name" : sortBy, dir: sortDir, foldersFirst });
-  return sortEntries(state.search ? state.search.entries : state.entries, { by: sortBy, dir: sortDir, foldersFirst });
+  if (pane.location.kind === "trash") return sortEntries(pane.trashItems, { by: sortBy === "type" ? "name" : sortBy, dir: sortDir, foldersFirst });
+  return sortEntries(pane.search ? pane.search.entries : pane.entries, { by: sortBy, dir: sortDir, foldersFirst });
 }
 
 function keyOf(entry) {
@@ -154,8 +155,20 @@ export async function showTrash({ push = true } = {}) {
   });
 }
 
-/** Reloads what is shown, keeping the selection where the items still exist. */
-export async function refresh({ keepSelection = true } = {}) {
+/**
+ * Reloads what is shown, keeping the selection where the items still exist. It reloads the active pane; in the Dual
+ * view the other pane is reloaded too, because what was done in one folder often shows in the other.
+ */
+export async function refresh({ keepSelection = true, pane = activePane() } = {}) {
+  if (pane.side === "right") {
+    await hooks.loadRight?.(right.location.path, { keep: keepSelection });
+    if (isFolderView(left)) await refreshLeft(true);
+    return;
+  }
+  await refreshLeft(keepSelection);
+}
+
+async function refreshLeft(keepSelection) {
   const keep = keepSelection ? [...state.selection] : [];
   if (inTrash()) {
     await showTrash({ push: false });
@@ -174,6 +187,20 @@ export async function refresh({ keepSelection = true } = {}) {
     emit("selection");
   }
 }
+
+/** Opens a folder in a pane: the left list goes through the normal navigation (with Back and Forward), the right one loads it. */
+export function goToIn(pane, path, options = {}) {
+  return pane.side === "right" ? (hooks.loadRight ? hooks.loadRight(path, options) : false) : goTo(path, options);
+}
+
+/** Up one level in the given pane. */
+export async function goUpIn(pane) {
+  if (pane.side === "left") return goUp();
+  const parent = parentOf(right.location.path, state.sep);
+  if (parent) await goToIn(right, parent, { select: right.location.path });
+}
+
+export const canGoUpIn = (pane) => (pane.side === "left" ? canGoUp() || inTrash() : !!parentOf(pane.location.path ?? "", state.sep));
 
 export async function goBack() {
   const target = state.history.pop();

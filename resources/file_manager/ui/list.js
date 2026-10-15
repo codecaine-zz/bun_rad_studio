@@ -1,128 +1,155 @@
-// The list of files and folders: three views (details, list, icons), selection, inline rename, drag and drop.
+// The lists of files and folders: three views (details, list, icons), selection, inline rename, drag and drop.
+// Everything here works on a pane: the left list (the page's own) or the Dual view's right one.
 import { ApiError } from "./api.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { attachDropTarget, drag, endDrag, startDrag } from "./dnd.js";
-import { $, clear, h, iconFor } from "./dom.js";
+import { clear, h, iconFor } from "./dom.js";
 import { toast } from "./menus.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { commitRename, dropOnto, openEntry } from "./ops.js";
+import { inTrash, isFolderView, left, setActivePane } from "./pane.js";
 import { clearSelection, selectOnly, selectRangeTo, selectedEntries, toggleKey } from "./selection.js";
-import { inTrash, on, state } from "./state.js";
+import { on, state } from "./state.js";
 import { describeSelection, formatDate, formatSize, isModifier, summarizeCount } from "./util.js";
 
 const PAGE = 500;
-/** key -> row element, for quick selection updates. */
-const rows = new Map();
-let renaming = null;
+/** pane -> { rows: key -> row element (for quick selection updates), renaming: { key, input } or null }. */
+const views = new Map();
 
-const list = () => $("#list");
+function viewOf(pane) {
+  if (!views.has(pane)) views.set(pane, { rows: new Map(), renaming: null });
+  return views.get(pane);
+}
+
+const part = (pane, name) => document.getElementById(pane.ids[name]);
+const list = (pane = left) => part(pane, "list");
 
 /** The text shown when there is nothing to list. */
-function emptyMessage() {
-  if (state.search) return ["No matches", `Nothing here has a name containing "${state.search.query}". Try fewer letters, or use * as a wildcard (for example *.jpg).`];
-  if (inTrash()) return ["The Recycle Bin is empty", "Items you delete show up here, and you can restore them."];
+function emptyMessage(pane) {
+  if (pane.search) return ["No matches", `Nothing here has a name containing "${pane.search.query}". Try fewer letters, or use * as a wildcard (for example *.jpg).`];
+  if (inTrash(pane)) return ["The Recycle Bin is empty", "Items you delete show up here, and you can restore them."];
   return ["This folder is empty", "Drag files here, or use New folder / New file in the toolbar."];
 }
 
-function whereText(entry) {
-  if (state.search) return entry.folder ?? "";
-  if (inTrash()) return entry.where ?? "";
+function whereText(pane, entry) {
+  if (pane.search) return entry.folder ?? "";
+  if (inTrash(pane)) return entry.where ?? "";
   return "";
 }
 
-function makeRow(entry, index) {
+/** The column headings of a list: the left one is in index.html, the right one is built with this. */
+export function makeListHead(id) {
+  const sort = (cls, by, text, tip) => h("button", { type: "button", class: cls, dataset: { sort: by }, title: tip }, text);
+  return h("div", { id, class: "list-head", hidden: true },
+    h("span", { class: "h-icon" }),
+    sort("h-name", "name", "Name", "Sort by name. Click again to reverse the order."),
+    h("span", { class: "h-where", hidden: true }, "Folder"),
+    sort("h-date", "modified", "Date modified", "Sort by when each item was last changed. Click again to reverse the order."),
+    sort("h-type", "type", "Type", "Sort by kind of item. Click again to reverse the order."),
+    sort("h-size", "size", "Size", "Sort by size. Click again to reverse the order."));
+}
+
+function makeRow(pane, entry, index) {
   const cut = state.clipboard?.mode === "cut" && state.clipboard.paths.includes(entry.path);
+  const trash = inTrash(pane);
   const row = h("div", {
     class: `row${entry.isDir ? " is-folder" : ""}${entry.hidden ? " hidden-item" : ""}${cut ? " cut" : ""}${entry.broken ? " broken" : ""}`,
-    role: "option", id: `row-${index}`, "aria-selected": String(state.selection.has(entry.path)),
-    draggable: inTrash() ? null : "true", dataset: { key: entry.path, index: String(index) }, title: entry.path && !inTrash() ? entry.path : entry.name,
+    role: "option", id: `${pane.ids.row}-${index}`, "aria-selected": String(pane.selection.has(entry.path)),
+    draggable: trash ? null : "true", dataset: { key: entry.path, index: String(index) }, title: entry.path && !trash ? entry.path : entry.name,
   },
     h("span", { class: "c-icon", "aria-hidden": "true" }, entry.icon || iconFor(entry.name, entry.isDir)),
     h("span", { class: "c-name" }, h("span", { class: "name-text" }, entry.name)),
-    h("span", { class: "c-where" }, whereText(entry)),
+    h("span", { class: "c-where" }, whereText(pane, entry)),
     h("span", { class: "c-date" }, formatDate(entry.mtimeMs)),
     h("span", { class: "c-type" }, entry.label),
     h("span", { class: "c-size" }, entry.isDir ? "" : formatSize(entry.size)),
   );
-  rows.set(entry.path, row);
+  viewOf(pane).rows.set(entry.path, row);
   return row;
 }
 
-export function renderList() {
-  const container = list();
-  const entries = visibleEntries();
-  rows.clear();
-  renaming = null;
-  container.className = `view-${state.settings.view}${state.search ? " searching" : ""}${inTrash() ? " in-trash" : ""}`;
-  container.setAttribute("aria-label", inTrash() ? "Recycle Bin" : state.search ? "Search results" : "Files and folders");
-  const limit = state.shown || PAGE;
-  state.shown = Math.min(Math.max(limit, PAGE), entries.length);
+export function renderList(pane = left) {
+  const container = list(pane);
+  if (!container) return;
+  const view = viewOf(pane);
+  const entries = visibleEntries(pane);
+  const trash = inTrash(pane);
+  view.rows.clear();
+  view.renaming = null;
+  container.className = `view-${state.settings.view}${pane.search ? " searching" : ""}${trash ? " in-trash" : ""}`;
+  container.setAttribute("aria-label", pane.side === "right" ? "Files and folders in the right pane" : trash ? "Recycle Bin" : pane.search ? "Search results" : "Files and folders");
+  const limit = pane.shown || PAGE;
+  pane.shown = Math.min(Math.max(limit, PAGE), entries.length);
   const frag = document.createDocumentFragment();
-  entries.slice(0, state.shown).forEach((e, i) => frag.append(makeRow(e, i)));
-  if (entries.length > state.shown) {
+  entries.slice(0, pane.shown).forEach((e, i) => frag.append(makeRow(pane, e, i)));
+  if (entries.length > pane.shown) {
     frag.append(h("div", { class: "more" },
-      h("span", {}, summarizeCount(entries.length, state.shown)),
-      h("button", { type: "button", class: "btn", onclick: () => { state.shown += PAGE; renderList(); } }, `Show ${Math.min(PAGE, entries.length - state.shown)} more`),
-      h("button", { type: "button", class: "btn", onclick: () => { state.shown = entries.length; renderList(); } }, "Show all"),
+      h("span", {}, summarizeCount(entries.length, pane.shown)),
+      h("button", { type: "button", class: "btn", onclick: () => { pane.shown += PAGE; renderList(pane); } }, `Show ${Math.min(PAGE, entries.length - pane.shown)} more`),
+      h("button", { type: "button", class: "btn", onclick: () => { pane.shown = entries.length; renderList(pane); } }, "Show all"),
     ));
   }
   clear(container).append(frag);
 
-  const empty = $("#empty");
-  const [title, text] = emptyMessage();
-  empty.hidden = entries.length > 0 || state.loading;
-  empty.replaceChildren(h("div", { class: "empty-icon", "aria-hidden": "true" }, state.search ? "🔍" : inTrash() ? "🗑️" : "📂"), h("h2", {}, title), h("p", {}, text));
-  $("#list-head").hidden = state.settings.view !== "details" || entries.length === 0;
-  updateHeaderSort();
-  syncSelection();
+  const empty = part(pane, "empty");
+  const [title, text] = emptyMessage(pane);
+  empty.hidden = entries.length > 0 || (pane.side === "left" && state.loading);
+  empty.replaceChildren(h("div", { class: "empty-icon", "aria-hidden": "true" }, pane.search ? "🔍" : trash ? "🗑️" : "📂"), h("h2", {}, title), h("p", {}, text));
+  part(pane, "head").hidden = state.settings.view !== "details" || entries.length === 0;
+  updateHeaderSort(pane);
+  syncSelection(pane);
 }
 
-function updateHeaderSort() {
-  document.querySelectorAll("#list-head [data-sort]").forEach((b) => {
+function updateHeaderSort(pane) {
+  const head = part(pane, "head");
+  head.querySelectorAll("[data-sort]").forEach((b) => {
     const active = b.dataset.sort === state.settings.sortBy;
     b.setAttribute("aria-sort", active ? (state.settings.sortDir === "asc" ? "ascending" : "descending") : "none");
     b.dataset.arrow = active ? (state.settings.sortDir === "asc" ? "▲" : "▼") : "";
   });
-  const where = $("#list-head .h-where");
-  where.hidden = !(state.search || inTrash());
-  where.textContent = inTrash() ? "Was in" : "Folder";
+  const where = head.querySelector(".h-where");
+  where.hidden = !(pane.search || inTrash(pane));
+  where.textContent = inTrash(pane) ? "Was in" : "Folder";
 }
 
 /** Updates selected/focused marks without redrawing everything. */
-export function syncSelection() {
-  const container = list();
+export function syncSelection(pane = left) {
+  const container = list(pane);
+  if (!container) return;
+  const { rows } = viewOf(pane);
   for (const [key, row] of rows) {
-    const selected = state.selection.has(key);
+    const selected = pane.selection.has(key);
     row.classList.toggle("selected", selected);
     row.setAttribute("aria-selected", String(selected));
-    row.classList.toggle("focused", key === state.focusKey);
+    row.classList.toggle("focused", key === pane.focusKey);
   }
-  const focused = state.focusKey ? rows.get(state.focusKey) : null;
+  const focused = pane.focusKey ? rows.get(pane.focusKey) : null;
   if (focused) {
     container.setAttribute("aria-activedescendant", focused.id);
-    focused.scrollIntoView({ block: "nearest" });
+    focused.scrollIntoView?.({ block: "nearest" });
   } else container.removeAttribute("aria-activedescendant");
-  const count = state.selection.size;
-  document.body.dataset.selected = String(count);
-  const status = $("#status-left");
-  const total = visibleEntries().length;
-  const base = inTrash() ? `${total} in the Recycle Bin` : state.search ? `${total} search result${total === 1 ? "" : "s"}${state.search.truncated ? " (stopped early)" : ""}` : summarizeCount(state.total, total);
-  status.textContent = count ? `${describeSelection(selectedEntries())} · ${base}` : base;
+  const count = pane.selection.size;
+  if (pane.side === "left") document.body.dataset.selected = String(count);
+  const total = visibleEntries(pane).length;
+  const base = inTrash(pane) ? `${total} in the Recycle Bin` : pane.search ? `${total} search result${total === 1 ? "" : "s"}${pane.search.truncated ? " (stopped early)" : ""}` : summarizeCount(pane.total, total);
+  part(pane, "status").textContent = count ? `${describeSelection(selectedEntries(pane))} · ${base}` : base;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Inline rename
 // ---------------------------------------------------------------------------------------------------------------
 
-export function beginRename(key) {
-  const entries = visibleEntries();
+export function beginRename(key, pane = left) {
+  const view = viewOf(pane);
+  if (view.renaming?.key === key) return;
+  const entries = visibleEntries(pane);
   const index = entries.findIndex((e) => e.path === key);
-  if (index < 0 || inTrash()) return;
-  if (index >= state.shown) {
-    state.shown = index + 1;
-    renderList();
+  if (index < 0 || inTrash(pane)) return;
+  if (index >= pane.shown) {
+    pane.shown = index + 1;
+    renderList(pane);
   }
-  const row = rows.get(key);
+  const row = view.rows.get(key);
   if (!row) return;
   const entry = entries[index];
   const label = row.querySelector(".name-text");
@@ -130,26 +157,26 @@ export function beginRename(key) {
   label.replaceWith(input);
   row.draggable = false;
   row.classList.add("renaming");
-  renaming = { key, input };
+  view.renaming = { key, input };
   input.focus();
   const dot = entry.isDir ? -1 : entry.name.lastIndexOf(".");
   input.setSelectionRange(0, dot > 0 ? dot : entry.name.length);
-  row.scrollIntoView({ block: "nearest" });
+  row.scrollIntoView?.({ block: "nearest" });
   let finished = false;
   const finish = async (commit) => {
     if (finished) return;
     const next = input.value.trim();
     if (!commit || next === entry.name || next === "") {
       finished = true;
-      renaming = null;
-      renderList();
-      list().focus();
+      view.renaming = null;
+      renderList(pane);
+      list(pane).focus();
       return;
     }
     try {
       finished = true;
-      await commitRename(key, next);
-      list().focus();
+      await commitRename(key, next, pane);
+      list(pane).focus();
     } catch (err) {
       finished = false;
       toast(err instanceof ApiError ? err.message : "That name can't be used.", { kind: "error" });
@@ -161,50 +188,59 @@ export function beginRename(key) {
     if (e.key === "Enter") { e.preventDefault(); finish(true); }
     else if (e.key === "Escape") { e.preventDefault(); finish(false); }
   });
-  input.addEventListener("blur", () => setTimeout(() => !finished && renaming && finish(true), 80));
+  input.addEventListener("blur", () => setTimeout(() => !finished && view.renaming && finish(true), 80));
   input.addEventListener("click", (e) => e.stopPropagation());
   input.addEventListener("dblclick", (e) => e.stopPropagation());
 }
 
-export const isRenaming = () => renaming !== null;
+/** True while a name is being typed in either list (or in the given one). */
+export const isRenaming = (pane = null) => (pane ? viewOf(pane).renaming !== null : [...views.values()].some((v) => v.renaming !== null));
 
 // ---------------------------------------------------------------------------------------------------------------
 // Mouse
 // ---------------------------------------------------------------------------------------------------------------
 
 const rowOf = (target) => (target instanceof Element ? target.closest(".row") : null);
-const entryOf = (row) => visibleEntries().find((e) => e.path === row.dataset.key);
 
-export function wireList() {
-  const container = list();
-  const wrap = $("#list-wrap");
+/** Hooks one list up to the mouse: select, open, right-click, drag and drop, and the column headings. */
+export function wirePane(pane) {
+  const container = list(pane);
+  const wrap = part(pane, "wrap");
+  const entryOf = (row) => visibleEntries(pane).find((e) => e.path === row.dataset.key);
+  const mine = () => setActivePane(pane.side);
 
   container.addEventListener("click", (e) => {
     const row = rowOf(e.target);
     if (!row) return;
     const key = row.dataset.key;
-    if (isModifier(e, state.platform)) toggleKey(key);
-    else if (e.shiftKey) selectRangeTo(key);
-    else selectOnly(key);
+    mine();
+    if (isModifier(e, state.platform)) toggleKey(key, pane);
+    else if (e.shiftKey) selectRangeTo(key, pane);
+    else selectOnly(key, pane);
   });
 
   wrap.addEventListener("click", (e) => {
-    if (e.target === wrap || e.target === container || e.target.closest("#empty")) clearSelection();
+    if (e.target === wrap || e.target === container || e.target.closest(`#${pane.ids.empty}`)) {
+      mine();
+      clearSelection(pane);
+    }
   });
 
   container.addEventListener("dblclick", (e) => {
     const row = rowOf(e.target);
     if (!row) return;
     const entry = entryOf(row);
+    mine();
     if (entry) openEntry(entry);
   });
 
   wrap.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     const row = rowOf(e.target);
+    mine();
     if (row) {
-      if (!state.selection.has(row.dataset.key)) selectOnly(row.dataset.key);
-      showEntryMenu(selectedEntries(), { x: e.clientX, y: e.clientY });
+      if (!pane.selection.has(row.dataset.key)) selectOnly(row.dataset.key, pane);
+      showEntryMenu(selectedEntries(pane), { x: e.clientX, y: e.clientY });
     } else {
       showBackgroundMenu({ x: e.clientX, y: e.clientY });
     }
@@ -213,9 +249,9 @@ export function wireList() {
   // Drag and drop
   container.addEventListener("dragstart", (e) => {
     const row = rowOf(e.target);
-    if (!row || renaming) return e.preventDefault();
-    if (!state.selection.has(row.dataset.key)) selectOnly(row.dataset.key);
-    const items = selectedEntries();
+    if (!row || isRenaming(pane)) return e.preventDefault();
+    if (!pane.selection.has(row.dataset.key)) selectOnly(row.dataset.key, pane);
+    const items = selectedEntries(pane);
     startDrag(e, items.map((x) => x.path), items.map((x) => x.name).join("\n"));
     row.classList.add("drag-source");
   });
@@ -245,31 +281,35 @@ export function wireList() {
     endDrag();
     await dropOnto(row.dataset.key, paths, copy);
   });
-  attachDropTarget(wrap, { getPath: () => (state.location.kind === "folder" && !state.search ? state.location.path : null) });
+  attachDropTarget(wrap, { getPath: () => (isFolderView(pane) ? pane.location.path : null) });
 
-  // Sorting by clicking the column headings
-  document.querySelectorAll("#list-head [data-sort]").forEach((b) => b.addEventListener("click", () => {
+  // Sorting by clicking the column headings (one setting, so both lists follow it)
+  part(pane, "head").querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => {
     const by = b.dataset.sort;
     const dir = state.settings.sortBy === by && state.settings.sortDir === "asc" ? "desc" : "asc";
     saveSettings({ sortBy: by, sortDir: dir });
   }));
+}
 
+export function wireList() {
+  wirePane(left);
   on("view", () => {
     state.shown = 0;
     renderList();
   });
-  on("selection", syncSelection);
-  on("clipboard", renderList);
-  on("rename-request", (key) => setTimeout(() => beginRename(key), 0));
+  on("selection", () => syncSelection(left));
+  on("clipboard", () => renderList(left));
+  on("rename-request", ({ key, pane }) => setTimeout(() => beginRename(key, pane), 0));
 }
 
 /** Entries per visual line in the icons view, so Up/Down can move by a whole line. */
-export function iconsPerLine() {
+export function iconsPerLine(pane = left) {
   if (state.settings.view !== "icons") return 1;
-  const first = [...rows.values()][0];
+  const rows = [...viewOf(pane).rows.values()];
+  const first = rows[0];
   if (!first) return 1;
   let n = 0;
-  for (const row of rows.values()) {
+  for (const row of rows) {
     if (row.offsetTop !== first.offsetTop) break;
     n++;
   }

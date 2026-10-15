@@ -27,7 +27,10 @@ import {
 import { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 import { watchParentProcess } from "../src/parentWatch";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./sqlite_studio_crud.ts";
+import { SAMPLES_STYLE, SAMPLES_SCRIPT_SQLITE } from "../src/db/samples/ui.ts";
 import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, MACRO_SCRIPT } from "./sqlite_studio_macros.ts";
+import { STUDIO_SHARED_STYLE, STUDIO_SHARED_SCRIPT } from "../src/shared/studioShared.ts";
+import { STUDIO_STAGING_STYLE, studioStagingScript } from "../src/shared/studioStaging.ts";
 
 export interface SqliteStudioOptions {
   fullscreen?: boolean;
@@ -1883,7 +1886,10 @@ function buildSqliteHtml(): string {
       transform: scale(1.2);
     }
 ${CRUD_STYLE}
+${SAMPLES_STYLE}
 ${MACRO_STYLE}
+${STUDIO_SHARED_STYLE}
+${STUDIO_STAGING_STYLE}
   </style>
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
@@ -1928,7 +1934,7 @@ ${MACRO_STYLE}
       </select>
       <button class="btn btn-primary" onclick="openDatabaseDialog()" title="Browse, pick, or load SQLite database">📂 Open / Browse DB...</button>
       <button class="btn" onclick="runEditorQuery()">⚡ Run Query</button>
-      <button class="btn" onclick="seedDatabase()">🌱 Seed Sample DB</button>
+      <button class="btn" onclick="openSampleDatabases()" title="Choose from production-style sample databases (synthetic data)">🌱 Seed Sample DB</button>
       <button class="btn" onclick="vacuumDatabase()">🧹 Vacuum DB</button>
       <button class="btn" onclick="checkIntegrity()">🛡️ Integrity Check</button>
       <button class="btn" id="btnDbBackupDump" onclick="openDatabaseDumpModal()" title="1-Click SQLite Database Backup & SQL Dump Generator">💾 DB Backup / Dump</button>
@@ -2031,9 +2037,10 @@ ${MACRO_STYLE}
               <button class="btn" onclick="explainCurrentQuery()">🔍 Explain Plan</button>
               <button class="btn" onclick="openCodeGenFromEditor()" title="Translate this SQL to Python / Bun / V using native SQLite">🧬 Code</button>
               <button class="btn" onclick="clearEditor()">🧹 Clear</button>
-              <button class="btn" onclick="exportResults('csv')">📋 Export CSV</button>
-              <button class="btn" onclick="exportResults('json')">💾 Export JSON</button>
-              <button class="btn" onclick="exportResults('sql')">📝 Export SQL</button>
+              <button class="btn" id="btnCreateViewFromQuery" onclick="StudioViews.openFromEditor('sqlEditor')" title="Create a view from this query (or from the selected text)">🧱 Create view</button>
+              <button class="btn" id="btnExportCsv" onclick="exportResults('csv')">📋 Export CSV</button>
+              <button class="btn" id="btnExportJson" onclick="exportResults('json')">💾 Export JSON</button>
+              <button class="btn" id="btnExportSql" onclick="exportResults('sql')">📝 Export SQL</button>
             </div>
             <div style="font-size: 11px; color: var(--text-dim);" id="resultSummary">0 rows returned</div>
           </div>
@@ -2410,6 +2417,52 @@ ${MACRO_STYLE}
     let gridPageSize = 25;
     let gridSortCol = "";
     let gridSortDir = "ASC";
+
+    // Show / hide columns of the data grid (shared Columns control, see src/shared/studioColumns.ts)
+    function gridColumnMeta() {
+      const objs = currentSchema ? [...(currentSchema.tables || []), ...(currentSchema.views || [])] : [];
+      return StudioCols.metaFromTable(objs.find(t => t.name === activeTable));
+    }
+    function gridIsQuery() { return !!(window.crud && window.crud.source === "query"); }
+    function gridShownOnly(columns) { const have = columns || []; return studioGridCols.state().visible.filter(c => have.includes(c)); }
+    function gridLeadCols() { return document.querySelectorAll("#gridHeaderRow th:not([data-col])").length; }
+    function gridVisibleColumns(columns) {
+      return studioGridCols.visible(columns, { kind: gridIsQuery() || !activeTable ? "query" : "table", meta: gridIsQuery() ? {} : gridColumnMeta() });
+    }
+    window.studioColsInit = function () { window.studioGridCols = StudioCols.create({
+      studio: "sqlite",
+      id: "grid",
+      getDb: () => (currentSchema && currentSchema.dbPath) || (currentKpis && currentKpis.dbPath) || "",
+      getTable: () => activeTable,
+      buttonHost: () => { const b = document.getElementById("btnToggleTotals"); return b && b.parentNode; },
+      stripBefore: "gridTableContainer",
+      rerender: () => { renderDataGrid(currentGridColumns, currentGridRows, true, currentGridRows.length); if (typeof crudSyncSelection === "function") crudSyncSelection(); },
+      activeFilters: () => Object.keys(activeColumnFilters),
+      sortState: () => ({ col: gridSortCol, dir: gridSortDir }),
+      canSort: () => !gridIsQuery() && !!activeTable,
+      sort: (col, dir) => { gridSortCol = col; gridSortDir = dir; fetchTableData(); },
+      clearSort: () => { gridSortCol = ""; gridSortDir = "ASC"; fetchTableData(); },
+      exportButtons: ["btnAccessReport", "btnExportCsv", "btnExportJson", "btnExportSql"],
+    }); };
+    window.studioViewsInit = function () {
+      StudioViews.configure({
+        dialect: "sqlite",
+        editorId: "sqlEditor",
+        getViewNames: () => ((currentSchema && currentSchema.views) || []).map(v => v.name),
+        afterChange: async (e) => {
+          await refreshAll();
+          if (e.kind === "drop") {
+            if (activeTable === e.name) { activeTable = ""; const first = ((currentSchema && currentSchema.tables) || [])[0]; if (first) await selectTable(first.name); }
+            showToast("Dropped view " + e.name);
+            logAudit("[DDL] Dropped VIEW: " + e.name);
+          } else {
+            showToast((e.kind === "edit" ? "Updated view " : "Created view ") + e.name);
+            logAudit("[DDL] " + (e.kind === "edit" ? "Replaced" : "Created") + " VIEW: " + e.name);
+            await selectTable(e.name);
+          }
+        },
+      });
+    };
     let activeTab = "grid";
     let queryDesignerState = {
       activeView: "design",
@@ -2849,6 +2902,7 @@ ${MACRO_STYLE}
       const tbody = document.getElementById("gridBody");
       thead.innerHTML = "";
       tbody.innerHTML = "";
+      columns = gridVisibleColumns(columns);
 
       if (columns.length === 0) {
         thead.innerHTML = "<th>Result</th>";
@@ -2873,6 +2927,7 @@ ${MACRO_STYLE}
           }
           fetchTableData();
         };
+        studioGridCols.decorate(th, col);
         thead.appendChild(th);
       });
 
@@ -2989,6 +3044,7 @@ ${MACRO_STYLE}
         foot.innerHTML = "";
         return;
       }
+      columns = gridShownOnly(columns);
 
       const stats = {};
       columns.forEach(c => {
@@ -3035,7 +3091,8 @@ ${MACRO_STYLE}
         return "<td><span style='font-size:10px; color:var(--text-dim);'>Count: " + (s?.count ?? rows.length) + "</span></td>";
       }).join('');
 
-      foot.innerHTML = "<tr><td style='color:var(--cyan); font-weight:800; text-align:center;'>Total: " + total.toLocaleString() + "</td>" + cellsHtml + "</tr>";
+      const lead = gridLeadCols();
+      foot.innerHTML = "<tr><td" + (lead > 1 ? " colspan='" + lead + "'" : "") + " style='color:var(--cyan); font-weight:800; text-align:center;'>Total: " + total.toLocaleString() + "</td>" + cellsHtml + "</tr>";
     }
 
     function toggleQuickFilterBar() {
@@ -3071,7 +3128,8 @@ ${MACRO_STYLE}
         return;
       }
       filterRow.style.display = "table-row";
-      filterRow.innerHTML = (columns || []).map(col => {
+      const lead = gridLeadCols();
+      filterRow.innerHTML = (lead ? '<th colspan="' + lead + '" style="text-align:center; color:var(--cyan);" title="Quick filter row">⚡</th>' : '') + gridShownOnly(columns).map(col => {
         const currentVal = activeColumnFilters[col] || "";
         const safeCol = String(col || "").replace(/"/g, '&quot;');
         const safeVal = String(currentVal || "").replace(/"/g, '&quot;');
@@ -3144,6 +3202,7 @@ ${MACRO_STYLE}
         const tbl = currentSchema.tables.find(t => t.name === activeTable);
         if (tbl && tbl.columns) columns = tbl.columns.map(c => c.name);
       }
+      columns = studioGridCols.exportColumns(columns);
 
       const dateStr = new Date().toLocaleString();
       const dbName = document.getElementById("kpiDbName")?.textContent || ":memory:";
@@ -5125,10 +5184,10 @@ ${MACRO_STYLE}
       }
 
       const defaultName = "Query_" + (((queryDesignerState.savedQueries || []).length) + 1);
-      const name = prompt("Save query in database (Access Query Name):", defaultName);
+      const name = await studioPrompt("Name for this saved query:", defaultName, { title: "Save query in database" });
       if (!name || !name.trim()) return;
       const cleanName = name.trim();
-      const desc = prompt("Optional description / purpose for this query:", "") || "";
+      const desc = (await studioPrompt("Optional description / purpose for this query:", "", { title: "Query description", okLabel: "Save" })) || "";
 
       // Capture QBE visual designer state so reopening can reconstruct visual diagram
       const designerStateJson = JSON.stringify({
@@ -5186,29 +5245,7 @@ ${MACRO_STYLE}
       }
 
       const defaultViewName = "v_" + (queryDesignerState.selectedTables && queryDesignerState.selectedTables[0] ? queryDesignerState.selectedTables[0] : "custom") + "_view";
-      const viewName = prompt("Save query as a permanent SQL VIEW (enter view name):", defaultViewName);
-      if (!viewName) return;
-
-      const sanitized = viewName.trim().replace(/[^a-zA-Z0-9_]/g, "");
-      if (!sanitized) {
-        showToast("Invalid view name. Use letters, numbers, and underscores.");
-        return;
-      }
-
-      const ddl = "CREATE VIEW IF NOT EXISTS " + sanitized + " AS " + querySql + ";";
-      try {
-        const res = await apiRequest('/api/query', { sql: ddl });
-        if (res && res.error) {
-          showToast("Error creating view: " + res.error);
-        } else {
-          showToast("View " + sanitized + " created successfully!");
-          logAudit("[DDL] Created VIEW: " + sanitized);
-          await refreshAll();
-          selectTable(sanitized);
-        }
-      } catch (err) {
-        showToast("Failed to create view: " + (err.message || String(err)));
-      }
+      StudioViews.openNew({ select: querySql, name: defaultViewName });
     }
 
     function loadSavedDesignerQuery(index) {
@@ -5440,7 +5477,7 @@ ${MACRO_STYLE}
               <button class="qbe-view-btn \${queryDesignerState.activeView === 'datasheet' ? 'active' : ''}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
             </div>
             <div class="qbe-divider"></div>
-            <button class="btn btn-sm qbe-btn-run" onclick="runDesignerQuery()" title="Run query and view Datasheet">! Run</button>
+            <button class="btn btn-sm qbe-btn-run" id="btnDesignerRun" onclick="runDesignerActive()" aria-keyshortcuts="Control+Enter F5" title="Run query and view Datasheet (Ctrl/⌘+Enter or F5)">! Run\${window.StudioShortcuts ? StudioShortcuts.runHint() : ''}</button>
             <button class="qbe-btn-toggle \${queryDesignerState.showTotals ? 'active' : ''}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
             <button class="qbe-btn-toggle \${queryDesignerState.distinct ? 'active' : ''}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
             <span style="font-size: 11px; color: var(--text-dim); margin-left: 2px;">Top:</span>
@@ -6074,7 +6111,7 @@ ${MACRO_STYLE}
       const res = await apiRequest('/api/export', {
         format,
         tableName: activeTable || "query_results",
-        rows: currentGridRows,
+        rows: studioGridCols.exportRows(currentGridRows, currentGridColumns),
       });
 
       if (res && res.success) {
@@ -6323,7 +6360,14 @@ ${MACRO_STYLE}
     });
   </script>
   <script>
+${STUDIO_SHARED_SCRIPT}
+${studioStagingScript("sqlite")}
+  </script>
+  <script>
 ${CRUD_SCRIPT}
+  </script>
+  <script>
+${SAMPLES_SCRIPT_SQLITE}
   </script>
   <script>
 ${MACRO_SCRIPT}

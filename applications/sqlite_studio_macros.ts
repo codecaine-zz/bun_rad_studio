@@ -3956,8 +3956,8 @@ function openMacroMsgBox(opts) {
     msgBoxResolve = resolve;
     const modal = document.getElementById("macroMsgBoxModal");
     if (!modal) {
-      alert((opts.title ? opts.title + "\\n\\n" : "") + opts.message);
-      return resolve(true);
+      studioAlert((opts.title ? opts.title + "\\n\\n" : "") + opts.message).then(() => resolve(true));
+      return;
     }
 
     document.getElementById("msgBoxTitle").textContent = opts.title || "Microsoft Access";
@@ -3998,8 +3998,10 @@ function macroDialog(opts) {
   return new Promise((resolve) => {
     const modal = document.getElementById("macroDialogModal");
     if (!modal) {
-      if (opts.input !== undefined && opts.input !== null) return resolve(window.prompt(opts.message || "", opts.input));
-      return resolve(opts.hideCancel ? true : window.confirm(opts.message || ""));
+      if (opts.input !== undefined && opts.input !== null) { studioPrompt(opts.message || "", opts.input, { title: opts.title }).then(resolve); return; }
+      if (opts.hideCancel) { studioAlert(opts.message || "", { title: opts.title }).then(() => resolve(true)); return; }
+      studioConfirm(opts.message || "", { title: opts.title }).then(resolve);
+      return;
     }
     if (macroDlgResolve) macroDialogClose(false);
     macroDlgResolve = resolve;

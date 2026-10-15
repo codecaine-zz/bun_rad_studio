@@ -9,6 +9,8 @@
 
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
+import { sqliteStaging } from "../src/db/staging/mount";
+import { viewApi } from "../src/shared/studioViews";
 import { Database } from "bun:sqlite";
 import { resolve, basename } from "path";
 import { existsSync, statSync, writeFileSync, readdirSync, mkdirSync } from "fs";
@@ -36,6 +38,7 @@ import {
   macroToVba,
 } from "./sqlite_studio_macros.ts";
 import { handleCodegenRequest } from "./studio_codegen.ts";
+import { sqliteSampleApi } from "../src/db/samples/wiring";
 
 export type { MacroAction, MacroDefinition, MacroExecutionResult, MacroStepExecutionLog, SavedQueryDefinition };
 
@@ -43,6 +46,8 @@ export interface ServerOptions {
   port?: number;
   host?: string;
   initialDbPath?: string;
+  /** Folder for new sample database files (default: ~/bun_rad_samples, or BUNRAD_SAMPLE_DIR). */
+  sampleDir?: string;
 }
 
 export interface TableColumnMeta {
@@ -421,6 +426,27 @@ export class SqliteManager {
       totalIndices,
       totalRows,
     };
+  }
+
+  /** Create / check / edit / drop a view (see src/shared/studioViews.ts). */
+  public async viewOp(op: "check" | "create" | "definition" | "drop", body: any) {
+    const db = this.db;
+    const run = async (s: string) => db.query(s).all() as any[];
+    const res = await viewApi(op, body, {
+      dialect: "sqlite",
+      run,
+      tx: async (fn: (r: typeof run) => Promise<void>) => {
+        db.run("BEGIN");
+        try { await fn(run); db.run("COMMIT"); } catch (e) { try { db.run("ROLLBACK"); } catch {} throw e; }
+      },
+      rollbackProbe: async (fn: (r: typeof run) => Promise<void>) => {
+        db.run("BEGIN");
+        try { await fn(run); } finally { try { db.run("ROLLBACK"); } catch {} }
+      },
+      describe: async (sel: string) => [...db.query(sel).columnNames],
+    });
+    if (res.success && (op === "create" || op === "drop")) this.logAudit(op === "drop" ? "DROP_VIEW" : "CREATE_VIEW", String(body.name), String(res.ddl || "").replace(/\s+/g, " ").slice(0, 150));
+    return res;
   }
 
   public query(sql: string, params: any[] = []): {
@@ -2152,6 +2178,8 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
   const port = options.port ?? 0;
   const hostname = options.host ?? "127.0.0.1";
   const manager = new SqliteManager(options.initialDbPath || ":memory:");
+  const staging = sqliteStaging(manager);
+  const samples = sqliteSampleApi(manager, options.sampleDir ? () => options.sampleDir as string : undefined);
 
   const server = Bun.serve({
     port,
@@ -2165,6 +2193,10 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
         const __workbench = await (await getSharedWorkbench("SQLite Studio · Workbench")).handle(req);
         if (__workbench) return __workbench;
+      }
+      if (url.pathname.startsWith("/api/staging/")) {
+        const __staging = await staging.handle(req);
+        if (__staging) return __staging;
       }
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
@@ -2204,6 +2236,17 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
           const body = (await req.json()) as { sql: string; params?: any[] };
           const result = manager.query(body.sql, body.params || []);
           return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 4b. Views: check / create / definition / drop (src/shared/studioViews.ts)
+      const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(url.pathname);
+      if (viewMatch && req.method === "POST") {
+        try {
+          const result = await manager.viewOp(viewMatch[1] as any, await req.json());
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -2553,6 +2596,10 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }
       }
+
+      // Sample databases catalog (src/db/samples)
+      const __samples = await samples.handle(req, url, corsHeaders);
+      if (__samples) return __samples;
 
       // 9. Seed Dataset
       if (url.pathname === "/api/seed" && req.method === "POST") {

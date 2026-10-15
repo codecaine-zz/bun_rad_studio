@@ -168,13 +168,53 @@ MySQL Studio Pro features 11 dedicated enterprise workstation tabs:
   - `📥 Import Wizard`: Import rows from CSV or JSON format with preview and batch insertion.
   - `📤 Export Wizard`: Export table data or query results to CSV, JSON, or SQL INSERT scripts.
 
+#### Creating, editing and dropping views
+
+The **＋ Create view** button on the sidebar **Views** header, **🧱 Create view** beside the SQL editor (it takes the selected text, or the whole editor), **Save as View** in the Visual Query Designer and **👁️ New View** all open one dialog: name (validated as you type, quoted with backticks), the `SELECT` query (editable), an optional column list, **Replace if it exists** (`CREATE OR REPLACE VIEW`), **Algorithm** (`UNDEFINED`/`MERGE`/`TEMPTABLE`), **SQL security** (`DEFINER`/`INVOKER`) and a read-only **DDL preview**. MySQL has no `CREATE VIEW IF NOT EXISTS`, so that clause is never generated (older builds produced it and the statement always failed). **Check query** runs the query with `LIMIT 0` and looks for a name collision, creating nothing, and explains errors in plain words; errors stay inside the dialog. On success the tree refreshes, the view opens, a toast appears and the audit log gets an entry. Right-click a view for **Edit view definition…** (read back from `information_schema.views`, saved with `CREATE OR REPLACE VIEW`) or **Drop view…** (asks first). A table can never be overwritten by this dialog, and only one `SELECT`/`WITH`/`VALUES` statement is accepted.
+
+Every prompt and confirmation of the studio (save connection profile, add enum value, terminate process, save designer query …) now uses an in-page dialog: the browser's native `prompt()`/`confirm()` do nothing in the desktop window. Enter confirms, Esc closes only the dialog.
+
+#### The datasheet works like Microsoft Access
+
+Every data grid (a table opened from the sidebar, and query results) behaves like an Access datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
+
+| What | How |
+| :--- | :--- |
+| **Hide / Unhide Fields** | The **Columns** button (badge `9 of 14`), the **▾** on a header, a right-click on a header, or the strip *N hidden columns · Show all · Unhide Fields…* open one checklist: a checkbox per field (type and PK/FK/IDX marks, alias and real name), a filter box, **Select all**, **Clear**, **Only keys**. At least one field always stays visible. Ctrl/Cmd+click and Shift+click on headers select several columns; **Hide Fields (n selected)** hides them together. |
+| **Column width** | Drag the right edge of a header (cursor `col-resize`, a guide line follows, 48–900 px, mouse, touch and pen). **Double-click** the edge to fit the content (header plus the first 150 rows, capped at 480 px). Keyboard: focus a header and press **Alt+←/→** (10 px, Shift = 40 px), or **Field Width…** in the header menu (number box, **Standard Width**, **Best Fit**). **Fit all columns** and **Reset widths** are in the header menu and in *Datasheet layout*. The header, filter bar, totals row and body share one column grid, so they stay aligned. |
+| **Column alias (caption)** | **Rename Field…** (header menu or the ✎ in the field list) gives a column a *display name*: it shows in the header (dotted underline, tooltip = real name), in the Hide / Unhide list (alias and real name) and can be cleared with **Use real name**. It never touches the database, SQL, sorting or the generated statements, which always use the real name. *Use display names (aliases) in copy/export* (off by default, shown in the list) puts the aliases in the header of copied/exported data. |
+| **Reorder** | Drag a header onto another one (a bar shows where it lands), or **Move left / Move right** in the header menu. Copy and export follow the grid order. |
+| **Freeze columns** | **Freeze columns up to here** keeps that column and everything left of it (plus the checkbox and `#` gutter) in place while you scroll sideways; **Unfreeze all columns** releases them. |
+| **Filter** | **Filter…** in the header menu: a condition (equals, contains, begins/ends with, greater/less than, between, is empty, is not empty) or a checklist of the distinct values with a search box. It filters the rows of the page that is showing (the database query is not changed); a header mark and the strip *N filters: x of y rows on this page* show it, **Clear all filters** removes them. *Filter by selection* (right-click a cell) and the **Filter Bar** keep working as before. |
+| **Sort** | **Sort A → Z / Z → A / Clear sort** in the header menu (as before, a plain click on a header sorts; SQLite and MySQL sort on the server, the PostgreSQL grid has no header sort). |
+| **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row colour**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
+
+Not like Access: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (Access selects the column) so Ctrl/Cmd+click and Shift+click select columns.
+
+#### Focus mode: use the whole window for one section
+
+Every major section has a **⤢ Focus** button in its header: the tab bar (acts on the current tab), the sidebar object tree, the SQL editor, the data grid toolbar, the Visual Query Designer ribbon, and the header of each other tab (schema, macros, plan, audit and so on). **Alt+Enter** (Option+Enter on a Mac) focuses the section under the cursor and leaves focus mode again; a double-click on a section's header toggles it too. In focus mode the application header, KPI strip, tab bar, sidebar and footer are hidden and the section fills the window. A slim bar stays at the top with the section name, an **Editor / Both / Results** switch (where a section has an editor and a result: the SQL editor, the data grid) and an **✕ Exit focus** button that is always there.
+
+Focus only hides the other regions: the grid's columns, widths, scroll position and selection and the editor's unsaved text are untouched, and grids, the designer canvas and diagrams re-fit to the larger area. Each tab remembers its own last focus state (also after a reload). It never uses the browser full-screen API (the window's own full-screen toggle is the separate **F11** / **Ctrl+Cmd+F**), and **Esc is not used**, because it belongs to open dialogs, menus and popovers. The shortcut appears in the **⌨ Shortcuts** list.
+
+#### Showing and hiding columns
+
+Every data grid (a table opened from the sidebar, and the result of a query) has a **Columns** button in its toolbar. It shows how many columns are visible (`9 of 14` when some are hidden, the plain count when all are shown).
+
+- **Pick columns**: click **Columns** (or focus it and press Enter / ↓). A popover lists every column with its type and **PK** / **FK** / **IDX** marks. Tick or untick a column to show or hide it at once. Tables with more than 8 columns get a filter box. **Show all**, **Hide all**, **Only keys** (primary key, foreign key and indexed columns) and **Reset to default** act on the whole list, or only on the matches while a filter is typed. One column always stays visible (the primary key, otherwise the first column).
+- **Hide from the header**: each column header has a ▾ button; right-click the header (or press Shift+F10 / the Menu key on a focused header) for the same menu: **Sort ascending / descending**, **Hide column**, **Hide other columns**, **Show all columns**, **Choose columns…**.
+- **Nothing is lost silently**: while columns are hidden a strip above the grid says `N hidden columns`, lists the first ones as chips (click a chip to bring that column back), and offers **Show all** and **Choose columns…**. It also warns when a quick filter or the sort order uses a column you have hidden.
+- **Remembered**: the choice is saved in this browser per database and table (query results: per set of result columns) and comes back after a reload. **Reset to default** forgets it. Hidden columns only change what is drawn; sorting, filtering, selection, inline editing, **Add / Edit row** (which always lists every column) and keyboard use are unaffected.
+- **Copy and export follow what you see**: **Copy**, **Export** (grid dialog and the Export CSV / JSON / SQL buttons) and **Report** use the visible columns only; the buttons' tooltips and the Export dialog say so. Tick **Include hidden columns when copying or exporting** in the Columns popover to include every column. The JSON Inspector tab always shows the raw rows.
+- **Keyboard**: Tab to **Columns**; in the popover ↑ / ↓ / Home / End move between columns, Space toggles, Tab stays inside, **Esc closes only the popover** and returns focus to the button.
+
 ### 2. ⚡ SQL Query IDE & 1-Click Database Backup
 - **1-Click Database Backup & SQL Dump (`💾 DB Backup / Dump`)**:
   - High-performance SQL dump generator producing standard MySQL recovery scripts.
   - 3 dump modes: **Complete (Schema DDL + Table Data)**, **Schema Only (DDL, Indexes, Keys, Views)**, or **Data Only (INSERT Statements)**.
   - Table selection checklist to backup specific tables or the entire database.
   - Live syntax-styled SQL preview with **`📋 Copy SQL`**, **`📥 Download .sql`**, and **`🚀 Open in SQL IDE`**.
-- Syntax-highlighted query editor with keyboard shortcuts (**Cmd+Enter** or **Ctrl+Enter** to execute).
+- Syntax-highlighted query editor with keyboard shortcuts (**Cmd+Enter** or **Ctrl+Enter** to execute). In the **Visual Query Designer**, **Cmd/Ctrl+Enter** or **F5** runs the designer query (Design/Datasheet view) or the SQL as written (SQL view), also while the cursor is in one of its fields; the **! Run** button shows the shortcut and the page never reloads. **Cmd/Ctrl+/** or **F1** (or the **⌨ Shortcuts** button) lists every shortcut.
 - 11 Curated MySQL-specific SQL presets covering Multi-table joins, Customer lifetime spend, Sales by category, Inventory alerts, and Audit trails.
 - Tabular output with execution latency and row counts; export results to CSV, JSON, and SQL.
 
@@ -260,6 +300,24 @@ A visual action matrix (reorder ▲/▼, per-step conditions, Action Catalog, Si
 - **Storage**: macros and saved queries are stored as JSON per connection under `~/.bun_rad_studio/macros/` (override with `STUDIO_MACRO_STORE_DIR`) — nothing is created inside your database. Saved queries from the Visual Query Designer appear under **👁️ Saved Queries** and can be used by `OpenQuery` / `MakeTable`.
 
 ---
+
+## 🌱 Sample Databases
+
+**🌱 Seed Sample DB** opens **Sample databases**: eleven production-style synthetic databases (Medicare Part D formulary builder, hospital, claims, banking ledger, e-commerce, SaaS billing, HR, warehouse, airline, issue tracker, IoT) at Small / Medium / Large size. Each is created in a **new database** (default `sample_<id>`; a taken name is refused and existing databases are never touched) using `JSON` and generated columns, `COMMENT` clauses on every table and column, triggers and indexes, with a progress bar and **Cancel** (a cancelled or failed sample is dropped again). Then **Open it** switches the studio to it. The **Example queries** panel lets you choose one read-only query (or all) and **Put in the SQL editor** (switches to the sample first so table names resolve) or **Run it** inside the dialog. See [Sample databases](../databases/sample-datasets.md).
+
+---
+
+## Import with staging
+
+**📥 Import with staging** (button in the header) is the careful way to bring incoming records into a MySQL / MariaDB database: the rows are copied into a **staging table** first, checked there, and only then **promoted** into your real table in one transaction — with an **Undo this import** button. It is a five-step wizard (*Source → Map → Load to staging → Check → Review & promote*) with plain-words messages and one main button per step.
+
+- **Source:** drop or pick a CSV, TSV, semicolon/pipe-separated text, JSON list or JSON Lines file (or paste text). Encoding (UTF-8, UTF-16, Latin-1), separator, quotes and header row are detected and editable, with a live preview. Excel files are not read (use *Save As → CSV UTF-8*). Big files are streamed, never loaded whole (limits: 2 GB, 5,000,000 rows).
+- **Map:** pick the target table (or **Create a new table from this data**); columns are matched by name and synonym, with suggested clean-ups (trim, empty → NULL, dates, numbers like `1.234,56`, yes/no) and your own checks. The mapping is remembered per table.
+- **Load to staging:** the staging table is `stg_<table>_<yyyymmdd>_<hhmm>` in the same database, all columns `TEXT` plus `_stg_*` bookkeeping columns. Your table is not touched. Cancel rolls everything back.
+- **Check:** types, sizes, required columns, repeats in the file, rows that already exist (new / same / changed), foreign keys, unique collisions, your own rules and the table's own CHECK rules. Fix a cell in place, skip rows, clean a whole column, download the rejects as CSV, check again.
+- **Review & promote:** add new only, upsert, update only, add everything, or append; a dry run with exact counts, a before/after sample, the exact SQL and a test run that is rolled back; then one transaction. In MySQL an import **without a key column** cannot be undone (MySQL has no `RETURNING`), and creating a table cannot be rehearsed because MySQL commits DDL at once.
+
+Full guide, naming convention, safety notes and limitations: [Import with staging](../databases/staging-import.md). The File Manager can open this wizard for a connection or for a data file ([File Manager: Databases](43_file_manager.md#databases-databases-tab)).
 
 ## 📡 RESTful HTTP API Reference
 

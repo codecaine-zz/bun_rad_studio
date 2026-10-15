@@ -2,7 +2,7 @@
 // right-click menu and Enter on a .radenc file do. The dialogs themselves are in vaultEncrypt.js and vaultDecrypt.js.
 import { toast } from "./menus.js";
 import { selectedEntries } from "./selection.js";
-import { inTrash } from "./state.js";
+import { inTrash } from "./pane.js";
 import { extensionOf } from "./util.js";
 import { openDecryptDialog } from "./vaultDecrypt.js";
 import { openEncryptDialog } from "./vaultEncrypt.js";

@@ -7,6 +7,7 @@ import { join } from "path";
 import type { ConnectionProfile } from "../../db/profiles";
 import type { FmContext, FmHandler } from "./fmCore";
 import { effectiveFor, isObject, profileFor } from "./fmDbCommon";
+import { grantImport, importAsk, newStagingToken, rememberStagingToken, stagingEnv } from "./fmDbImport";
 import { ENGINES, OTHER_ENV, STUDIO_ENV, isEngine, type DbEngine } from "./fmDbModel";
 import { buildLaunch, type Resolved } from "./fmDbResolve";
 import { checkSqlitePath, dbState } from "./fmDbState";
@@ -82,12 +83,18 @@ async function startStudio(ctx: FmContext, b: Record<string, any>, already?: { w
   const st = dbState(ctx);
   const p = await prepare(ctx, b);
   const writes = already ? already.writesConfirmed : confirmWrites(p, b.confirmWrites);
+  const ask = await importAsk(ctx, b);
   const found = st.studios.find(p.key);
-  if (found) return { studio: found, frame: `/app/dbstudio/${found.id}/`, reused: true };
+  if (found) {
+    await grantImport(found, ask);
+    return { studio: found, frame: `/app/dbstudio/${found.id}/`, reused: true };
+  }
   const command = st.hooks.studioCommand(p.engine);
   if (!command) throw new FmError("NOT_AVAILABLE", `${ENGINES[p.engine].studioName} isn't part of this copy of the program, so it can't be opened here.`);
   const files = neutralDir(ctx);
   const launch = buildLaunch(p.resolved, { baseEnv: st.hooks.env(), parentPid: st.hooks.pid, filesDir: files });
+  const stagingToken = newStagingToken();
+  Object.assign(launch.env, stagingEnv(stagingToken, ask, p.writesNeeded));
   const info = await st.studios.start({
     engine: p.engine,
     key: p.key,
@@ -100,6 +107,7 @@ async function startStudio(ctx: FmContext, b: Record<string, any>, already?: { w
     secrets: secretsFor(ctx, p),
     writesConfirmed: writes,
   });
+  rememberStagingToken(info.id, stagingToken);
   st.sources.set(info.id, { engine: p.engine, profileId: p.profile?.id ?? null, path: p.path, writesConfirmed: writes });
   if (p.profile) st.store.markUsed(p.profile.id);
   return { studio: info, frame: info.state === "running" ? `/app/dbstudio/${info.id}/` : null, reused: false };
@@ -163,6 +171,8 @@ export const studioOperations: Record<string, FmHandler> = {
     const launch = buildLaunch(p.resolved, { baseEnv: st.hooks.env(), parentPid: st.hooks.pid, filesDir: files });
     // The window is a program of its own: it must not stop when the File Manager does.
     delete launch.env.STUDIO_PARENT_PID;
+    // A window is a program of its own: it gets what to open through its environment, and no secret (nobody can send it a file later).
+    Object.assign(launch.env, stagingEnv("", await importAsk(ctx, b), p.writesNeeded));
     const v = p.resolved.values;
     let argv: string[] = [];
     if (p.engine === "sqlite") argv = [v.path ?? ":memory:"];

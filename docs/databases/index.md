@@ -71,5 +71,7 @@ Full detail: [coverage matrix](../documentation-maintenance/coverage-matrix.md).
 ## See also
 
 - [Database Workbench guide](workbench.md)
+- [Sample databases](sample-datasets.md)
+- [Import with staging](staging-import.md)
 - [Database tests](../testing/database-tests.md)
 - [Legacy per-studio guides (unverified)](../userguides/README.md)

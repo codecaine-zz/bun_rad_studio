@@ -49,7 +49,7 @@ describe("New SQLite database", () => {
       expect(denied.status).toBe(401);
       const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-fm-token": "tok" }, body: JSON.stringify({ parent: work }) });
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = (await res.json()) as { path: string };
       expect(body.path).toMatch(/New database( \(\d+\))?\.sqlite$/);
       expect(readFileSync(body.path).subarray(0, 15).toString()).toBe("SQLite format 3");
     } finally {

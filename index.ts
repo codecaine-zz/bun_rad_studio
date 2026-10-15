@@ -485,6 +485,8 @@ export function getWindowShortcutsScript(): string {
 (function() {
     // Disable default right-click context menu across desktop windows to prevent inspect/reload from breaking desktop apps
     window.addEventListener("contextmenu", function(e) {
+        // Pages can opt a region into their own right-click menus (data-allow-contextmenu); the native menu stays off
+        if (e.target && e.target.closest && e.target.closest("[data-allow-contextmenu]")) { e.preventDefault(); return; }
         e.preventDefault();
         e.stopPropagation();
         return false;

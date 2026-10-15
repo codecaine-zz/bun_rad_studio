@@ -367,11 +367,13 @@ export function crudClientMain() {
     updateToolbar();
   };
 
-  window.renderDataGrid = function (columns, rows) {
+  window.renderDataGrid = function (columns, rows, updateFilter, totalCount) {
     const thead = $("gridHeaderRow");
     const tbody = $("gridBody");
     thead.innerHTML = "";
     tbody.innerHTML = "";
+    const allColumns = columns;
+    columns = gridVisibleColumns(allColumns);
     const meta = crud.source === "table" ? tableMeta(activeTable) : null;
     const colInfo = {};
     if (meta) meta.columns.forEach((c) => (colInfo[c.name] = c));
@@ -409,8 +411,12 @@ export function crudClientMain() {
         else { gridSortCol = col; gridSortDir = "ASC"; }
         fetchTableData();
       };
+      studioGridCols.decorate(th, col);
       thead.appendChild(th);
     });
+
+    if (updateFilter !== false) renderFilterBar(allColumns);
+    updateAccessTotalsRow(rows, allColumns, crud.source === "table" ? crud.totalRows : rows.length);
 
     if (rows.length === 0) {
       const colspan = columns.length + (editable ? 2 : 1);
@@ -473,6 +479,7 @@ export function crudClientMain() {
     if (all) all.checked = currentGridRows.length > 0 && crud.sel.size === currentGridRows.length;
     updateToolbar();
   }
+  window.crudSyncSelection = syncSelection;
 
   function rowMenuItems(idx, col) {
     const items = [];
@@ -555,8 +562,10 @@ export function crudClientMain() {
 
   function copyRows(idxList) {
     const rows = idxList.map((i) => currentGridRows[i]);
-    const text = buildDelimited(currentGridColumns, rows, "\t", true);
-    copyText(text).then(() => showToast("Copied " + rows.length + " row(s) — paste into Excel / Sheets"));
+    const cols = studioGridCols.exportColumns(currentGridColumns);
+    const text = buildDelimited(cols, rows, "\t", true);
+    const note = cols.length < currentGridColumns.length ? " (" + cols.length + " of " + currentGridColumns.length + " columns)" : "";
+    copyText(text).then(() => showToast("Copied " + rows.length + " row(s)" + note + " — paste into Excel / Sheets"));
   }
 
   // -------------------------------------------------------------------------------------------
@@ -1098,13 +1107,14 @@ export function crudClientMain() {
       items.push({ icon: "📥", label: "Import data into…", onclick: () => openImportWizard({ table: name }) });
     }
     items.push({ icon: "📤", label: "Export…", onclick: async () => { if (activeTable !== name) await selectTable(name); openExportDialog(name); } });
+    if (isView) items.push({ icon: "✏️", label: "Edit view definition…", onclick: () => StudioViews.openEdit(name) });
     items.push({ icon: "📋", label: "Copy name", onclick: () => copyText(name).then(() => showToast("Copied")) });
     if (!isView) {
       items.push("-");
       items.push({ icon: "✏️", label: "Rename…", onclick: () => renameTable(name) });
       items.push({ icon: "🧹", label: "Empty table…", danger: true, onclick: () => emptyTable(name) });
     }
-    items.push({ icon: "🗑️", label: isView ? "Delete view…" : "Delete table…", danger: true, onclick: () => dropObject(isView ? "view" : "table", name) });
+    items.push({ icon: "🗑️", label: isView ? "Drop view…" : "Delete table…", danger: true, onclick: () => (isView ? StudioViews.drop(name) : dropObject("table", name)) });
     return items;
   }
   window.crudTableMenuItems = tableMenuItems;
@@ -1245,10 +1255,14 @@ export function crudClientMain() {
       chips[k] = h("div", { class: "crud-chip" + (k === fmt ? " active" : ""), onclick: () => { fmt = k; Object.keys(chips).forEach((x) => chips[x].classList.toggle("active", x === k)); } }, label);
       chipRow.appendChild(chips[k]);
     });
+    const gridScoped = !isTable || name === activeTable;
+    const pickCols = (cols) => (gridScoped ? studioGridCols.exportColumns(cols) : cols);
+    const project = (cols, rows) => rows.map((r) => { const o = {}; cols.forEach((c) => { o[c] = r[c]; }); return o; });
+    const scopeNote = gridScoped && studioGridCols.state().hidden.length ? " Columns: " + studioGridCols.exportLabel() + " (change in the Columns picker)." : "";
     const m = openModal({
       title: "📤 Export " + (isTable ? "table '" + name + "'" : "current result"), small: true,
       body: h("div", { class: "crud-body" },
-        h("div", { class: "crud-info" }, isTable ? "Exports every row of the table (not just the current page)." : "Exports the current query result."),
+        h("div", { class: "crud-info" }, (isTable ? "Exports every row of the table (not just the current page)." : "Exports the current query result.") + scopeNote),
         chipRow,
         h("label", { class: "crud-row" }, optHeader, "Include header row (CSV / TSV)"),
         h("label", { class: "crud-row" }, optDdl, "Include CREATE TABLE statement (SQL)")),
@@ -1259,9 +1273,11 @@ export function crudClientMain() {
         if (!r.success) { m.error(r.error); return null; }
         let ddl = "";
         if (fmt === "sql" && optDdl.checked) { const d = await call("/api/schema/details", { table: name }); ddl = (d && d.sql) || ""; }
-        return { cols: r.columns, rows: r.rows, ddl };
+        const cols = pickCols(r.columns);
+        return { cols, rows: project(cols, r.rows), ddl };
       }
-      return { cols: currentGridColumns, rows: currentGridRows, ddl: "" };
+      const cols = pickCols(currentGridColumns);
+      return { cols, rows: project(cols, currentGridRows), ddl: "" };
     };
     m.setButtons([
       btn("Cancel", () => m.close()),

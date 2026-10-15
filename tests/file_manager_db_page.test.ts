@@ -763,6 +763,67 @@ describe("shortcuts that open a database in a window or the browser", () => {
   });
 });
 
+describe("right-click shortcuts to the database studios and the other tools", () => {
+  const labels = () => [...doc.querySelectorAll(".menu .menu-item .menu-label")].map((e: any) => e.textContent);
+  const choose = (label: string) => click([...doc.querySelectorAll(".menu .menu-item")].find((b: any) => b.querySelector(".menu-label").textContent === label));
+  const stopAll = async () => void (await Promise.all(((await call("db/studio/list")).studios as any[]).map((st) => call("db/studio/stop", { id: st.id }))));
+
+  test("the menu of empty space lists the four studios, the graveyard and 'Open a tool…', which lists every tool by group", async () => {
+    const contextmenu = await import("../resources/file_manager/ui/contextmenu.js");
+    closeAll();
+    contextmenu.showBackgroundMenu({ x: 5, y: 5 });
+    expect(labels()).toEqual(expect.arrayContaining(["Open SQLite Studio", "Open MySQL Studio", "Open PostgreSQL Studio", "Open Redis Studio", "Open Graveyard", "Open a tool…"]));
+    for (const el of doc.querySelectorAll(".menu .menu-item")) if (el.textContent.includes("Studio") || el.textContent.includes("tool")) expect(el.getAttribute("title").length, el.textContent).toBeGreaterThan(30);
+    choose("Open a tool…");
+    await until(() => labels().includes("Databases"), "the list of tools");
+    expect(labels()).toEqual(expect.arrayContaining(["Databases", "Open MySQL Studio", "Open Redis Studio"]));
+    expect(doc.querySelectorAll(".menu .menu-header").length).toBeGreaterThan(1);
+    expect(doc.querySelector(".menu")?.getAttribute("aria-label")).toBe("Open a tool");
+    for (const el of doc.querySelectorAll(".menu .menu-item")) expect(el.getAttribute("title")?.length ?? 0, el.textContent).toBeGreaterThan(5);
+    power.closePower();
+    choose("Databases");
+    await until(() => power.activePowerTab() === "databases" && power.powerIsOpen(), "the Databases tool");
+    closeAll();
+    contextmenu.showEntryMenu([{ name: "x.txt", path: join(root, "x.txt"), isDir: false, size: 1, mtimeMs: 1 }], { x: 5, y: 5 });
+    expect(labels()).toContain("Open a tool…");
+    closeAll();
+  });
+
+  test("'Open Redis Studio' adds the first connection when there is none, opens the only one, and offers a choice when there are several", async () => {
+    const contextmenu = await import("../resources/file_manager/ui/contextmenu.js");
+    const mine = async () => ((await call("db/overview")).profiles as any[]).filter((x) => x.engine === "redis");
+    // no environment detection in the way: what is saved here is all there is
+    await call("db/detect/settings", { auto: false, autoSave: false });
+    for (const p of await mine()) await call("db/profile/delete", { id: p.id, confirm: true });
+    expect(await mine()).toEqual([]);
+    const open = async () => {
+      closeAll();
+      contextmenu.showBackgroundMenu({ x: 5, y: 5 });
+      choose("Open Redis Studio");
+    };
+    await open();
+    await until(() => top()?.querySelector(".dialog-title")?.textContent.includes("Redis"), "the form to add a Redis connection");
+    expect(toasts()).toContain("No Redis connection yet");
+    closeAll();
+    await call("db/profile/save", { profile: { engine: "redis", name: "Shortcut cache", host: "cache.example.com" } });
+    await open();
+    const end = Date.now() + 20_000;
+    while (Date.now() < end && !((await call("db/studio/list")).studios as any[]).some((st) => st.title.includes("Shortcut cache"))) await sleep(100);
+    expect(((await call("db/studio/list")).studios as any[]).some((st) => st.title.includes("Shortcut cache"))).toBe(true);
+    await stopAll();
+    await call("db/profile/save", { profile: { engine: "redis", name: "Shortcut queue", host: "queue.example.com" } });
+    await open();
+    await until(() => rows().length === 2 && rows().every((n) => n.startsWith("Shortcut")), "the list narrowed to Redis connections");
+    expect(toasts()).toContain("You have 2 Redis connections");
+    expect(pane().querySelector(".db-filter").value).toBe("Redis");
+    expect(((await call("db/studio/list")).studios as any[]).filter((st) => st.title.includes("Shortcut") && ["starting", "running"].includes(st.state)).length).toBe(0);
+    for (const p of await mine()) await call("db/profile/delete", { id: p.id, confirm: true });
+    await call("db/detect/settings", { auto: true, autoSave: false });
+    setValue(pane().querySelector(".db-filter"), "");
+    await openTab();
+  });
+});
+
 describe("the whole tab", () => {
   test("no 'null', 'undefined' or '[object' text, every control is named, and no secret is anywhere in the page", async () => {
     await openTab();

@@ -6,15 +6,15 @@ import { confirmBox } from "./dialogs.js";
 import { showFavoritesMenu } from "./favorites.js";
 import { showHelp, showProperties, showSettings } from "./extras.js";
 import { showMoreInfo } from "./fileinfo.js";
-import { $ } from "./dom.js";
 import { openPower } from "./power.js";
 import { menuIsOpen } from "./menus.js";
-import { canGoUp, clearSearch, goBack, goForward, goUp, refresh, saveSettings } from "./nav.js";
+import { canGoUpIn, clearSearch, goBack, goForward, goUpIn, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
 import { clearSelection, focusIndex, focusedIndex, selectAll, selectedEntries, toggleKey } from "./selection.js";
 import { editAddress, focusSearch } from "./toolbar.js";
 import { iconsPerLine, isRenaming } from "./list.js";
-import { emit, inTrash, state } from "./state.js";
+import { activePane, currentPath } from "./pane.js";
+import { emit, state } from "./state.js";
 import { isModifier, typeaheadFind } from "./util.js";
 import { visibleEntries } from "./nav.js";
 
@@ -22,16 +22,18 @@ let typed = "";
 let typedTimer = 0;
 
 function pageSize() {
-  const list = $("#list");
+  const pane = activePane();
+  const list = document.getElementById(pane.ids.list);
   const row = list.querySelector(".row");
   if (!row) return 10;
   const lines = Math.max(1, Math.floor(list.parentElement.clientHeight / Math.max(20, row.offsetHeight)));
-  return lines * iconsPerLine();
+  return lines * iconsPerLine(pane);
 }
 
 function openFocused() {
-  const entries = visibleEntries();
-  const focused = entries.find((e) => e.path === state.focusKey) ?? selectedEntries()[0];
+  const pane = activePane();
+  const entries = visibleEntries(pane);
+  const focused = entries.find((e) => e.path === pane.focusKey) ?? selectedEntries()[0];
   if (!focused) return;
   const selected = selectedEntries();
   if (selected.length > 1 && selected.every((e) => !e.isDir) && selected.length <= 5) selected.forEach((e) => ops.openEntry(e));
@@ -39,19 +41,22 @@ function openFocused() {
 }
 
 function showMenuForSelection() {
+  const pane = activePane();
   const items = selectedEntries();
-  const row = state.focusKey ? $("#list").querySelector(`[data-key="${CSS.escape(state.focusKey)}"]`) : null;
-  const rect = (row ?? $("#list")).getBoundingClientRect();
+  const list = document.getElementById(pane.ids.list);
+  const row = pane.focusKey ? list.querySelector(`[data-key="${CSS.escape(pane.focusKey)}"]`) : null;
+  const rect = (row ?? list).getBoundingClientRect();
   const point = { x: rect.left + 40, y: rect.top + Math.min(rect.height, 30) };
   if (items.length) showEntryMenu(items, point);
   else showBackgroundMenu(point);
 }
 
 function navigate(e, key) {
-  const perLine = iconsPerLine();
-  const i = focusedIndex();
-  const count = visibleEntries().length;
-  const opts = { extend: e.shiftKey, keepSelection: isModifier(e, state.platform) && !e.shiftKey };
+  const pane = activePane();
+  const perLine = iconsPerLine(pane);
+  const i = focusedIndex(pane);
+  const count = visibleEntries(pane).length;
+  const opts = { extend: e.shiftKey, keepSelection: isModifier(e, state.platform) && !e.shiftKey, pane };
   let target = null;
   if (key === "ArrowDown") target = i < 0 ? 0 : i + perLine;
   else if (key === "ArrowUp") target = i < 0 ? 0 : i - perLine;
@@ -78,7 +83,7 @@ function editInCode() {
   const one = picked.length === 1 ? picked[0] : null;
   if (one && !one.isDir) return looksLikeText(one.name) ? openInCode(one.path) : ops.openEntry(one);
   if (one) return openFolderInCode(one.path);
-  if (state.location.kind === "folder" && state.location.path) openFolderInCode(state.location.path);
+  if (currentPath()) openFolderInCode(currentPath());
 }
 
 export function wireKeys() {
@@ -100,13 +105,13 @@ export function wireKeys() {
     if (key === "F1" || (key === "?" && !mod)) { stop(); return showHelp(); }
     if (key === "F5" || (mod && lower === "r")) { stop(); return void refresh(); }
     if (key === "F2") { stop(); return void ops.renameSelection(); }
-    if (e.altKey && e.shiftKey && key === "Enter") { stop(); const items = selectedEntries(); return void showMoreInfo(items.length ? items.map((x) => x.path) : [state.location.path]); }
-    if (e.altKey && key === "Enter") { stop(); const items = selectedEntries(); return void showProperties(items.length ? items.map((x) => x.path) : [state.location.path]); }
+    if (e.altKey && e.shiftKey && key === "Enter") { stop(); const items = selectedEntries(); return void showMoreInfo(items.length ? items.map((x) => x.path) : [currentPath()]); }
+    if (e.altKey && key === "Enter") { stop(); const items = selectedEntries(); return void showProperties(items.length ? items.map((x) => x.path) : [currentPath()]); }
 
     // A focused button, tab or radio is used with Enter and Space, so leave those keys to it.
     if ((key === "Enter" || key === " ") && target instanceof Element && target.closest("button, [role=tab], [role=radio], a[href]")) return;
-    // The other panes (tools, Home, the Dual view's second list, the view switcher) have their own keys; the list shortcuts below are for the file list.
-    if (target instanceof Element && target.closest("#power-panel, #home, #dual-pane, #viewbar, #splitter")) {
+    // The other panes (tools, Home, the Dual view's buttons, the view switcher) have their own keys; the list shortcuts below are for the file lists.
+    if (target instanceof Element && target.closest("#power-panel, #home, #dual-pane, #viewbar, #splitter") && !target.closest("#dual-list")) {
       if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
       if (mod && key === ",") { stop(); return showSettings(); }
       return;
@@ -116,9 +121,9 @@ export function wireKeys() {
     if (e.altKey && !e.shiftKey && !mod && (key === "Delete" || (mac && key === "Backspace"))) { stop(); return void ops.burySelection(); }
 
     // Going places
-    if ((e.altKey && key === "ArrowLeft") || (mac && mod && key === "[")) { stop(); return void goBack(); }
-    if ((e.altKey && key === "ArrowRight") || (mac && mod && key === "]")) { stop(); return void goForward(); }
-    if ((e.altKey && key === "ArrowUp") || (mac && mod && key === "ArrowUp") || (key === "Backspace" && !mod)) { stop(); return void (canGoUp() || inTrash() ? goUp() : null); }
+    if ((e.altKey && key === "ArrowLeft") || (mac && mod && key === "[")) { stop(); return void (activePane().side === "left" ? goBack() : null); }
+    if ((e.altKey && key === "ArrowRight") || (mac && mod && key === "]")) { stop(); return void (activePane().side === "left" ? goForward() : null); }
+    if ((e.altKey && key === "ArrowUp") || (mac && mod && key === "ArrowUp") || (key === "Backspace" && !mod)) { stop(); return void (canGoUpIn(activePane()) ? goUpIn(activePane()) : null); }
     if (mod && lower === "l") { stop(); return editAddress(); }
     if (e.altKey && lower === "d" && !mac) { stop(); return editAddress(); }
     if (mod && e.shiftKey && lower === "f") { stop(); return openPower("find"); }
@@ -130,12 +135,12 @@ export function wireKeys() {
     if (mod && lower === "a") { stop(); return selectAll(); }
     if (key === "Enter") { stop(); return openFocused(); }
     if (key === "Escape") {
-      if (state.search) clearSearch();
+      if (activePane().search) clearSearch();
       else clearSelection();
       return;
     }
     if (key === "ContextMenu" || (e.shiftKey && key === "F10")) { stop(); return showMenuForSelection(); }
-    if (key === " " && mod && state.focusKey) { stop(); return toggleKey(state.focusKey); }
+    if (key === " " && mod && activePane().focusKey) { stop(); return toggleKey(activePane().focusKey); }
     if (key === " ") return stop();
 
     // Changing things
@@ -168,8 +173,8 @@ export function wireKeys() {
       typed += key;
       clearTimeout(typedTimer);
       typedTimer = setTimeout(() => (typed = ""), 800);
-      const entries = visibleEntries();
-      const hit = typeaheadFind(entries, typed, focusedIndex());
+      const pane = activePane();
+      const hit = typeaheadFind(visibleEntries(pane), typed, focusedIndex(pane));
       if (hit >= 0) focusIndex(hit);
       stop();
     }

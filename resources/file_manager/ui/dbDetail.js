@@ -8,6 +8,7 @@ import { renderTestResult, showEditor } from "./dbEditor.js";
 import { showEngineSettings } from "./dbSettings.js";
 import { db, engineInfo, environmentBadge, errorText, loadOverview, passwordWords, selectedProfile, summaryOf, studiosFor } from "./dbState.js";
 import { openShortcut } from "./dbShortcuts.js";
+import { importButton } from "./dbStaging.js";
 import { openStudio } from "./dbStudio.js";
 import { toast } from "./menus.js";
 import { emit } from "./state.js";
@@ -73,7 +74,7 @@ export function renderDetail(box) {
     emit("db-overview");
   };
   const buttons = h("div", { class: "pw-row db-actions" },
-    openBtn, windowBtn, browserBtn, testBtn,
+    openBtn, windowBtn, browserBtn, importButton(p), testBtn,
     act("Edit…", "Change this connection", async () => { if (await showEditor({ profile: p })) await changed(); }),
     act("Duplicate…", "Make a copy of this connection", async () => {
       const choice = await chooseCopy(p);

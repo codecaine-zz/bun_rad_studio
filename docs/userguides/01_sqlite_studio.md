@@ -82,7 +82,7 @@ await studio.run();
 ### 2. Connection & Database Management Panel
 - **Database File Path Input**: Accepts `:memory:` (for temporary in-ram experiments) or absolute/relative file paths (e.g. `./data/production.sqlite`).
 - **🔌 Connect / Switch DB Button**: Safely disconnects the current handle and mounts the target database file with `PRAGMA journal_mode = WAL` enabled.
-- **🌱 Seed 50 Test Records Button**: Instantly provisions a mock schema (`users` and `transactions` tables) and populates 50 realistic relational rows for testing.
+- **🌱 Seed Sample DB Button**: Opens **Sample databases**, a catalog of eleven production-style synthetic databases (Medicare Part D formulary builder, hospital, claims, banking ledger, e-commerce and more). Each is created as a **new `.sqlite` file** (an existing file is never overwritten) or added to the open database when no name clashes, with a progress bar, then **Open it**. The **Example queries** panel lets you pick one read-only query (or all) and put it in the SQL editor or run it in the dialog. See [Sample databases](../databases/sample-datasets.md).
 - **📋 DDL Schema Button**: Scans `sqlite_master` and renders complete, syntax-highlighted `CREATE TABLE` and `CREATE INDEX` statements.
 
 ### 3. SQL Query Editor & Diagnostic Bar
@@ -95,6 +95,40 @@ await studio.run();
 - **Execution Telemetry Pill**: Displays exact row count returned and execution latency down to fractional milliseconds (e.g., `42 rows • 0.38ms`).
 - **Dynamic Table Grid**: Interactive data grid displaying column headers, numeric alignment, null indicator badges, and scrollable rows.
 - **Error Diagnostic Banner**: Displays descriptive SQLite error codes, line numbers, and constraint explanations if a query fails.
+
+#### The datasheet works like Microsoft Access
+
+Every data grid (a table opened from the sidebar, and query results) behaves like an Access datasheet, the same way in the three studios. Everything below is remembered **per table** (or per result shape for queries) in this browser, together with the hidden columns, and **Reset to default** in the *Hide / Unhide Fields* list forgets it all.
+
+| What | How |
+| :--- | :--- |
+| **Hide / Unhide Fields** | The **Columns** button (badge `9 of 14`), the **▾** on a header, a right-click on a header, or the strip *N hidden columns · Show all · Unhide Fields…* open one checklist: a checkbox per field (type and PK/FK/IDX marks, alias and real name), a filter box, **Select all**, **Clear**, **Only keys**. At least one field always stays visible. Ctrl/Cmd+click and Shift+click on headers select several columns; **Hide Fields (n selected)** hides them together. |
+| **Column width** | Drag the right edge of a header (cursor `col-resize`, a guide line follows, 48–900 px, mouse, touch and pen). **Double-click** the edge to fit the content (header plus the first 150 rows, capped at 480 px). Keyboard: focus a header and press **Alt+←/→** (10 px, Shift = 40 px), or **Field Width…** in the header menu (number box, **Standard Width**, **Best Fit**). **Fit all columns** and **Reset widths** are in the header menu and in *Datasheet layout*. The header, filter bar, totals row and body share one column grid, so they stay aligned. |
+| **Column alias (caption)** | **Rename Field…** (header menu or the ✎ in the field list) gives a column a *display name*: it shows in the header (dotted underline, tooltip = real name), in the Hide / Unhide list (alias and real name) and can be cleared with **Use real name**. It never touches the database, SQL, sorting or the generated statements, which always use the real name. *Use display names (aliases) in copy/export* (off by default, shown in the list) puts the aliases in the header of copied/exported data. |
+| **Reorder** | Drag a header onto another one (a bar shows where it lands), or **Move left / Move right** in the header menu. Copy and export follow the grid order. |
+| **Freeze columns** | **Freeze columns up to here** keeps that column and everything left of it (plus the checkbox and `#` gutter) in place while you scroll sideways; **Unfreeze all columns** releases them. |
+| **Filter** | **Filter…** in the header menu: a condition (equals, contains, begins/ends with, greater/less than, between, is empty, is not empty) or a checklist of the distinct values with a search box. It filters the rows of the page that is showing (the database query is not changed); a header mark and the strip *N filters: x of y rows on this page* show it, **Clear all filters** removes them. *Filter by selection* (right-click a cell) and the **Filter Bar** keep working as before. |
+| **Sort** | **Sort A → Z / Z → A / Clear sort** in the header menu (as before, a plain click on a header sorts; SQLite and MySQL sort on the server, the PostgreSQL grid has no header sort). |
+| **Formatting** | *Datasheet layout* in the field list: **Row height** (compact / normal / spacious), **Font size**, **Alternate row colour**. **Reset layout** returns widths, order, frozen columns and formatting to default and keeps hidden columns and display names. |
+
+Not like Access: the per-column totals functions (Sum, Avg, Count, Min, Max) are not in this release (the **Totals** row keeps its existing behaviour), filters work on the loaded page rather than on the whole table, *Save as SQL alias* is not offered, and a plain click on a header still sorts (Access selects the column) so Ctrl/Cmd+click and Shift+click select columns.
+
+#### Focus mode: use the whole window for one section
+
+Every major section has a **⤢ Focus** button in its header: the tab bar (acts on the current tab), the sidebar object tree, the SQL editor, the data grid toolbar, the Visual Query Designer ribbon, and the header of each other tab (schema, macros, plan, audit and so on). **Alt+Enter** (Option+Enter on a Mac) focuses the section under the cursor and leaves focus mode again; a double-click on a section's header toggles it too. In focus mode the application header, KPI strip, tab bar, sidebar and footer are hidden and the section fills the window. A slim bar stays at the top with the section name, an **Editor / Both / Results** switch (where a section has an editor and a result: the SQL editor, the data grid) and an **✕ Exit focus** button that is always there.
+
+Focus only hides the other regions: the grid's columns, widths, scroll position and selection and the editor's unsaved text are untouched, and grids, the designer canvas and diagrams re-fit to the larger area. Each tab remembers its own last focus state (also after a reload). It never uses the browser full-screen API (the window's own full-screen toggle is the separate **F11** / **Ctrl+Cmd+F**), and **Esc is not used**, because it belongs to open dialogs, menus and popovers. The shortcut appears in the **⌨ Shortcuts** list.
+
+#### Showing and hiding columns
+
+Every data grid (a table opened from the sidebar, and the result of a query) has a **Columns** button in its toolbar. It shows how many columns are visible (`9 of 14` when some are hidden, the plain count when all are shown).
+
+- **Pick columns**: click **Columns** (or focus it and press Enter / ↓). A popover lists every column with its type and **PK** / **FK** / **IDX** marks. Tick or untick a column to show or hide it at once. Tables with more than 8 columns get a filter box. **Show all**, **Hide all**, **Only keys** (primary key, foreign key and indexed columns) and **Reset to default** act on the whole list, or only on the matches while a filter is typed. One column always stays visible (the primary key, otherwise the first column).
+- **Hide from the header**: each column header has a ▾ button; right-click the header (or press Shift+F10 / the Menu key on a focused header) for the same menu: **Sort ascending / descending**, **Hide column**, **Hide other columns**, **Show all columns**, **Choose columns…**.
+- **Nothing is lost silently**: while columns are hidden a strip above the grid says `N hidden columns`, lists the first ones as chips (click a chip to bring that column back), and offers **Show all** and **Choose columns…**. It also warns when a quick filter or the sort order uses a column you have hidden.
+- **Remembered**: the choice is saved in this browser per database and table (query results: per set of result columns) and comes back after a reload. **Reset to default** forgets it. Hidden columns only change what is drawn; sorting, filtering, selection, inline editing, **Add / Edit row** (which always lists every column) and keyboard use are unaffected.
+- **Copy and export follow what you see**: **Copy**, **Export** (grid dialog and the Export CSV / JSON / SQL buttons) and **Report** use the visible columns only; the buttons' tooltips and the Export dialog say so. Tick **Include hidden columns when copying or exporting** in the Columns popover to include every column. The JSON Inspector tab always shows the raw rows.
+- **Keyboard**: Tab to **Columns**; in the popover ↑ / ↓ / Home / End move between columns, Space toggles, Tab stays inside, **Esc closes only the popover** and returns focus to the button.
 
 ### 5. Enterprise Data Export Suite
 > The grid toolbar's **📤 Export** dialog (CSV, TSV, JSON, JSON Lines, SQL, Markdown — whole table, copy or save) supersedes these buttons; see *Visual Data Management* below.
@@ -254,8 +288,14 @@ SQLite Studio Pro works like Microsoft Access: you can create tables, add/edit/d
 - **➕ New Table** (header or sidebar) opens the **Table Designer**: name the table, add columns with a friendly type picker (INTEGER, TEXT, REAL, BOOLEAN, DATE, DATETIME, BLOB, JSON…), and set **PK**, **Auto #**, **Required**, **Unique**, a **Default value** (e.g. `0`, `CURRENT_TIMESTAMP`) and **Link to table** (foreign key with on-delete behaviour). Quick-add chips insert common columns (`id`, `created_at`…). A live **SQL preview** shows the generated `CREATE TABLE`.
 - **🛠️ Design Table** on an existing table lets you rename it, rename/add/remove/reorder columns and change types or constraints. The table is rebuilt safely inside a transaction: data is copied, indexes and triggers are restored. Removed columns lose their data. *CHECK constraints, multi-column UNIQUE and multi-column foreign keys can't be represented and are dropped — the designer warns you first.*
 - **Sidebar ⋯ menu** (hover a table, or right-click it): Open, Add row, Design, Add column, New index, Import into, Export, Copy name, Rename, Empty table, Delete.
-- **👁️ New View**: save a SELECT as a view (pre-filled from the SQL editor).
+- **👁️ New View** and **＋ Create view**: open the Create view dialog (see below).
 - **Schema Designer & DDL tab** adds management cards: Manage table, **Indexes** (create/drop), **Relationships**, **Triggers**.
+
+#### Creating, editing and dropping views
+
+Four entry points open the same dialog: the **＋ Create view** button on the sidebar **Views** header, **🧱 Create view** beside the SQL editor (it takes the selected text, or the whole editor), **Save as View** in the Visual Query Designer, and **👁️ New View**. The dialog has a name (checked as you type), the `SELECT` query (editable), an optional column list, **Replace if it exists** (SQLite has no `CREATE OR REPLACE VIEW`, so this is a drop and create in one transaction that is rolled back if the new query is refused), **Only if it does not exist yet** (`IF NOT EXISTS`), and a read-only **DDL preview** with the name quoted for SQLite. **Check query** runs the statement inside a transaction that is always rolled back and explains problems in plain words, so nothing is created. Errors stay inside the dialog. On success the tree refreshes, the new view opens and the action is written to the audit log. Right-click a view for **Edit view definition…** (the same dialog, filled from the stored definition) or **Drop view…** (asks first). Only one `SELECT`/`WITH`/`VALUES` statement is accepted, so a name or query cannot smuggle in a second statement.
+
+All the studios' prompts and confirmations (save query name, delete record, macro prompts and so on) now use in-page dialogs: the browser's native `prompt()`/`confirm()`/`alert()` do nothing in the desktop window, so they were silently dead before. Enter confirms, Esc closes only the dialog, Tab stays inside it.
 
 ### Import Wizard (📥 Import)
 1. **Choose data**: *Browse files…* (system dialog), drag & drop a file, **📋 Paste from clipboard**, or paste straight into the box (cells copied from Excel / Google Sheets / a web table work). Pressing `Cmd/Ctrl+V` on the grid also opens the wizard with the clipboard.
@@ -265,6 +305,18 @@ SQLite Studio Pro works like Microsoft Access: you can create tables, add/edit/d
 - Imports run in **one transaction**: any error rolls everything back and nothing is imported.
 - **SQL scripts** (`.sql` dumps, pasted `INSERT`s) run all-or-nothing as a single transaction.
 - Excel `.xlsx` files are not read directly — copy the cells, or *Save As → CSV*.
+
+### Import with staging
+
+**📥 Import with staging** (button in the header) is the careful way to bring incoming records into a SQLite database: the rows are copied into a **staging table** first, checked there, and only then **promoted** into your real table in one transaction — with an **Undo this import** button. It is a five-step wizard (*Source → Map → Load to staging → Check → Review & promote*) with plain-words messages and one main button per step.
+
+- **Source:** drop or pick a CSV, TSV, semicolon/pipe-separated text, JSON list or JSON Lines file (or paste text). Encoding (UTF-8, UTF-16, Latin-1), separator, quotes and header row are detected and editable, with a live preview. Excel files are not read (use *Save As → CSV UTF-8*). Big files are streamed, never loaded whole (limits: 2 GB, 5,000,000 rows).
+- **Map:** pick the target table (or **Create a new table from this data**); columns are matched by name and synonym, with suggested clean-ups (trim, empty → NULL, dates, numbers like `1.234,56`, yes/no) and your own checks. The mapping is remembered per table.
+- **Load to staging:** the staging table is `stg_<table>_<yyyymmdd>_<hhmm>` in the same database file (use **Staging area** to list and drop them), all columns `TEXT` plus `_stg_*` bookkeeping columns. Your table is not touched. Cancel rolls everything back.
+- **Check:** types, sizes, required columns, repeats in the file, rows that already exist (new / same / changed), foreign keys, unique collisions, your own rules and the table's own CHECK rules. Fix a cell in place, skip rows, clean a whole column, download the rejects as CSV, check again.
+- **Review & promote:** add new only, upsert, update only, add everything, or append; a dry run with exact counts, a before/after sample, the exact SQL and a test run that is rolled back; then one transaction. On the studio's own in-memory demo database a cancelled load drops the new staging table instead of rolling back.
+
+Full guide, naming convention, safety notes and limitations: [Import with staging](../databases/staging-import.md). The File Manager can open this wizard for a connection or for a data file ([File Manager: Databases](43_file_manager.md#databases-databases-tab)).
 
 ### Export & 1-Click Database Backup
 - **📤 Export** exports the *whole* open table (not only the visible page), or the current query result, as **CSV, TSV, JSON, JSON Lines, SQL INSERTs (optionally with `CREATE TABLE`) or Markdown**. Choose **Copy to clipboard** or **Save file**.
@@ -456,6 +508,9 @@ bun test tests/sqlite_studio_macros.test.ts tests/sqlite_studio_e2e.test.ts test
 | Shortcut | Context | Action |
 | :--- | :--- | :--- |
 | **Cmd + Enter** / **Ctrl + Enter** | SQL Editor | Execute active query |
+| **Cmd/Ctrl + Enter** or **F5** | Visual Query Designer (also inside its fields) | Run the query: Design/Datasheet view runs the query, SQL view runs the SQL as written. The page does not reload, and the SQL console's own run does not fire. The **! Run** button shows the shortcut. (Ctrl/Cmd+R is not used: it reloads the page.) |
+| **Alt + Enter** (Option+Enter on a Mac) | Anywhere in a section | Focus that section so it fills the window / leave focus mode (Esc is not used; **F11** is the window's own full-screen toggle) |
+| **Cmd/Ctrl + /** or **F1** | Everywhere | Open the **⌨ Shortcuts** list (also the **⌨ Shortcuts** button in the header and footer) |
 | **Cmd + E** / **Ctrl + E** | SQL Editor | Run Explain Query Plan |
 | **Cmd + L** / **Ctrl + L** | SQL Editor | Clear query input and results |
 | **Cmd + S** / **Ctrl + S** | Window | Save workspace state & layout |

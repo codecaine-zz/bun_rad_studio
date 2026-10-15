@@ -6,12 +6,13 @@ import { ApiError } from "./api.js";
 import { detected, refreshDetect, renderBanner, renderDetectSettings } from "./dbDetect.js";
 import { renderDetail } from "./dbDetail.js";
 import { showEditor } from "./dbEditor.js";
+import { showSampleDialog } from "./dbSample.js";
 import { showEnvFileImport, showEnvImport, showPasteUrl } from "./dbImport.js";
 import { renderList } from "./dbList.js";
 import { openShortcut } from "./dbShortcuts.js";
 import { db, loadOverview, profileById } from "./dbState.js";
 import { hideStudios, mountStudioArea, openStudio, openStudios, showStudioById } from "./dbStudio.js";
-import { showMenu } from "./menus.js";
+import { showMenu, toast } from "./menus.js";
 import { registerPowerTab } from "./power.js";
 import { on } from "./state.js";
 
@@ -27,8 +28,9 @@ function mount(root) {
   const pasteBtn = h("button", { type: "button", class: "pw-btn", title: "Paste a mysql://, postgres://, redis:// or sqlite: address to fill in the form" }, "Paste address…");
   const envBtn = h("button", { type: "button", class: "pw-btn", title: "Look for connections in this program's environment variables and .env files" }, "Import from environment…");
   const fileBtn = h("button", { type: "button", class: "pw-btn", title: "Import database settings from a .env file you choose" }, "Import .env file…");
+  const sampleBtn = h("button", { type: "button", class: "pw-btn", title: "Create a new SQLite file with one of the built-in synthetic sample databases (Medicare formulary builder, hospital, banking and more)" }, "New sample database…");
   const search = h("input", { type: "search", class: "text-input db-filter", placeholder: "Filter connections", "aria-label": "Filter connections by name, folder, tag or server", autocomplete: "off" });
-  const toolbar = h("div", { class: "pw-row db-toolbar", role: "toolbar", "aria-label": "Database connections" }, addBtn, pasteBtn, envBtn, fileBtn, search);
+  const toolbar = h("div", { class: "pw-row db-toolbar", role: "toolbar", "aria-label": "Database connections" }, addBtn, sampleBtn, pasteBtn, envBtn, fileBtn, search);
   const found = h("section", { class: "db-found", "aria-label": "Found in your environment", hidden: true });
   const detectBox = h("div", { class: "db-detect" });
   const strip = h("div", { class: "db-strip", role: "group", "aria-label": "Open studios", hidden: true });
@@ -41,6 +43,23 @@ function mount(root) {
   mountStudioArea(studios);
 
   const drawList = () => renderList(listBox, { filter, open: (p) => openStudio({ profileId: p.id }), shortcut: (p) => openShortcut(p) });
+
+  /** "Open MySQL Studio" from a right-click menu: the one saved connection of that kind, a list to choose from, or the form to add the first. */
+  const openEngine = async (engine) => {
+    const label = db.engines.find((e) => e.id === engine)?.label ?? engine;
+    const mine = db.profiles.filter((p) => p.engine === engine).sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || (Date.parse(b.lastUsedAt ?? "") || 0) - (Date.parse(a.lastUsedAt ?? "") || 0));
+    if (mine.length === 1) return void (await openStudio({ profileId: mine[0].id }));
+    if (mine.length > 1) {
+      filter = label;
+      search.value = label;
+      db.selectedId = mine[0].id;
+      renderAll();
+      toast(`You have ${mine.length} ${label} connections. Choose one, then press Enter or “Open in …”.`, { kind: "info" });
+      return;
+    }
+    toast(`No ${label} connection yet. Add one to open its studio.`, { kind: "info" });
+    await choose(await showEditor({ engine }));
+  };
 
   const choose = async (profile) => {
     if (!profile) return;
@@ -56,6 +75,13 @@ function mount(root) {
     );
   });
   pasteBtn.addEventListener("click", async () => choose(await showPasteUrl()));
+  sampleBtn.addEventListener("click", async () => {
+    const made = await showSampleDialog();
+    if (!made) return;
+    toast(`Created ${made.path}${made.profile ? " and saved it as a connection." : "."}`, { kind: "info" });
+    await choose(made.profile ?? null);
+    if (!made.profile) await loadOverview();
+  });
   envBtn.addEventListener("click", async () => {
     await showEnvImport({ chooseFile: () => showEnvFileImport() });
     await loadOverview();
@@ -133,7 +159,8 @@ function mount(root) {
       }
       if (opts.select && profileById(opts.select)) db.selectedId = opts.select;
       renderAll();
-      if (opts.sqlitePath) await openStudio({ engine: "sqlite", path: opts.sqlitePath });
+      if (opts.engine) await openEngine(opts.engine);
+      else if (opts.sqlitePath) await openStudio({ engine: "sqlite", path: opts.sqlitePath });
       else if (opts.profileId) await openStudio({ profileId: opts.profileId });
       else if (root.dataset.view === "list") listBox.querySelector(".db-row[tabindex='0']")?.focus({ preventScroll: true });
     },

@@ -10,6 +10,8 @@
 
 import { guardLocalRequest, writeClipboardSync } from "../src/localGuard";
 import { getSharedWorkbench } from "../src/db/workbench_shared";
+import { postgresStaging } from "../src/db/staging/mount";
+import { viewApi } from "../src/shared/studioViews";
 import { quoteIdent } from "../src/db/quote";
 import { SQL } from "bun";
 import { resolve, basename } from "path";
@@ -17,6 +19,7 @@ import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs
 import { homedir } from "os";
 import { generatePostgresStudioHtml } from "./postgres_studio.ts";
 import { MacroStore, handleMacroRoute, type MacroAdapter, type MacroQueryResult } from "./studio_macros_server.ts";
+import { postgresSampleApi } from "../src/db/samples/wiring";
 
 /** Quote a PostgreSQL identifier (doubles embedded quotes). Never splice names into SQL without it. */
 const pgq = (name: unknown): string => quoteIdent("postgres", String(name ?? ""));
@@ -839,9 +842,11 @@ export class PostgresManager {
           rowCount = Math.max(0, Number(cntRes?.[0]?.rc || 0));
         } catch {}
 
-        if (rowCount <= 0 && isTable) {
+        // reltuples is only the planner's estimate: it is stale after bulk loads and deletes, so a table that was emptied can
+        // still show rows and a new one can show none. Count the small and medium tables for real.
+        if (isTable && rowCount <= 100000) {
           try {
-            const exactRes = await this.sql_conn.unsafe(`SELECT count(*) as rc FROM ${pgq(schema)}.${pgq(tname)};`);
+            const exactRes = await this.sql_conn.unsafe(`SELECT count(*) as rc FROM (SELECT 1 FROM ${pgq(schema)}.${pgq(tname)} LIMIT 100001) AS t;`);
             rowCount = Number(exactRes?.[0]?.rc || 0);
           } catch {}
         }
@@ -1168,6 +1173,33 @@ export class PostgresManager {
         return Array.from(rows as any[]).map((r) => String(r.table_name));
       },
     };
+  }
+
+  /** Create / check / edit / drop a view (see src/shared/studioViews.ts). PostgreSQL DDL is transactional. */
+  public async viewOp(op: "check" | "create" | "definition" | "drop", body: any) {
+    const run = async (s: string) => {
+      const r = await this.sql_conn.unsafe(s);
+      return (Array.isArray(r) ? r : []) as any[];
+    };
+    const ROLLBACK = new Error("rollback probe");
+    const res = await viewApi(op, body, {
+      dialect: "postgres",
+      schema: this.activeSchema || "public",
+      run,
+      tx: async (fn: (r: typeof run) => Promise<void>) => {
+        await this.sql_conn.begin(async (tx: any) => { await fn(async (s: string) => { const r = await tx.unsafe(s); return (Array.isArray(r) ? r : []) as any[]; }); });
+      },
+      rollbackProbe: async (fn: (r: typeof run) => Promise<void>) => {
+        try {
+          await this.sql_conn.begin(async (tx: any) => {
+            await fn(async (s: string) => { const r = await tx.unsafe(s); return (Array.isArray(r) ? r : []) as any[]; });
+            throw ROLLBACK;
+          });
+        } catch (e) { if (e !== ROLLBACK) throw e; }
+      },
+    });
+    if (res.success && (op === "create" || op === "drop")) await this.logAudit(op === "drop" ? "DROP_VIEW" : "CREATE_VIEW", String(body.name), String(res.ddl || "").replace(/\s+/g, " ").slice(0, 150));
+    return res;
   }
 
   public async query(sqlText: string, params: any[] = []): Promise<{
@@ -2711,6 +2743,8 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
   const port = options.port ?? 0;
   const hostname = options.host ?? "127.0.0.1";
   const manager = new PostgresManager(options.initialDbPath || "", options.config);
+  const staging = postgresStaging(manager);
+  const samples = postgresSampleApi(manager);
   if (options.initialSchema) {
     manager.setSchema(options.initialSchema).catch(() => {});
   }
@@ -2727,6 +2761,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
         const __workbench = await (await getSharedWorkbench("PostgreSQL Studio · Workbench")).handle(req);
         if (__workbench) return __workbench;
+      }
+      if (url.pathname.startsWith("/api/staging/")) {
+        const __staging = await staging.handle(req);
+        if (__staging) return __staging;
       }
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
@@ -2806,6 +2844,17 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           }
           const result = await manager.query(body.sql, body.params || []);
           return Response.json(result, { headers: corsHeaders });
+        } catch (err: any) {
+          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+        }
+      }
+
+      // 4a. Views: check / create / definition / drop (src/shared/studioViews.ts)
+      const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(url.pathname);
+      if (viewMatch && req.method === "POST") {
+        try {
+          const result = await manager.viewOp(viewMatch[1] as any, await req.json());
+          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
@@ -2976,6 +3025,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
         }
       }
+
+      // Sample databases catalog (src/db/samples)
+      const __samples = await samples.handle(req, url, corsHeaders);
+      if (__samples) return __samples;
 
       // 9. Starter Dataset Seeding
       if ((url.pathname === "/api/seed-sample" || url.pathname === "/api/seed") && (req.method === "POST" || req.method === "GET")) {
