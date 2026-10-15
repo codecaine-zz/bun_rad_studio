@@ -714,7 +714,10 @@ function Resolve-CatalogItem {
 function Launch-Item {
     param([PSCustomObject]$Item, [string[]]$Arguments)
 
-    if (-not $Item) { return }
+    if (-not $Item -or -not $Item.RelativePath) {
+        Write-Host "[!] Nothing to launch: no app was selected." -ForegroundColor Red
+        return
+    }
 
     Write-Host ""
     Write-Host "==> Launching $($Item.Icon) $($Item.DisplayName) ($($Item.Type))..." -ForegroundColor Cyan
@@ -1005,15 +1008,15 @@ function Show-CliMenu {
 
 # Explicit GUI launcher flag
 if ($Gui) {
-    $target = $allCatalog | Where-Object { $_.Id -eq 'launcher_studio' }
-    Launch-Item $target $ExtraArgs
+    $guiItem = $allCatalog | Where-Object { $_.Id -eq 'launcher_studio' }
+    Launch-Item $guiItem $ExtraArgs
     exit 0
 }
 
 # Explicit CLI launcher flag
 if ($Cli) {
-    $target = $allCatalog | Where-Object { $_.Id -eq 'launcher_cli' }
-    Launch-Item $target $ExtraArgs
+    $cliItem = $allCatalog | Where-Object { $_.Id -eq 'launcher_cli' }
+    Launch-Item $cliItem $ExtraArgs
     exit 0
 }
 
