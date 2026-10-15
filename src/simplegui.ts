@@ -5,7 +5,21 @@ import { FX_THEMES, FX_THEME_KEYS, FX_THEME_ALIASES, fxCssVars as buildFxCssVars
 import { fxCss } from "./shared/fxCss";
 import { FX_POINTER_SOURCE } from "./shared/fxPointer";
 import { buildSemanticPalette, overridesForTheme, semanticCssVars, type SemanticOverrides, type SemanticPalette } from "./shared/themeSemantic";
-import { generatePreviewHtml, setAlwaysOnTopNative, toggleFullscreenNative, setFullscreenNative, isFullscreenNative, setWindowPositionNative, minimizeWindowNative, hideAppNative, closeWindowNative, attachWindowShortcuts, getScreenDimensions } from "../index.ts";
+import { generatePreviewHtml, setAlwaysOnTopNative as nativeSetAlwaysOnTop, toggleFullscreenNative as nativeToggleFullscreen, setFullscreenNative as nativeSetFullscreen, isFullscreenNative as nativeIsFullscreen, setWindowPositionNative as nativeSetWindowPosition, minimizeWindowNative as nativeMinimize, hideAppNative as nativeHideApp, closeWindowNative, attachWindowShortcuts as nativeAttachShortcuts, getScreenDimensions } from "../index.ts";
+
+/**
+ * A window can be hosted inside a web page (see simplegui_host.ts) instead of opening its own native window. Such a
+ * "webview" has no window handle, and these helpers must never touch the host program's windows or quit it.
+ */
+const isHosted = (wv: any): boolean => !!wv && wv.isHosted === true;
+const setAlwaysOnTopNative = (wv: any, ...a: [boolean]) => (isHosted(wv) ? undefined : nativeSetAlwaysOnTop(wv, ...a));
+const toggleFullscreenNative = (wv: any) => (isHosted(wv) ? undefined : nativeToggleFullscreen(wv));
+const setFullscreenNative = (wv: any, ...a: [boolean?]) => (isHosted(wv) ? undefined : nativeSetFullscreen(wv, ...a));
+const isFullscreenNative = (wv: any): boolean => (isHosted(wv) ? false : nativeIsFullscreen(wv));
+const setWindowPositionNative = (wv: any, ...a: [any, number?, number?]) => (isHosted(wv) ? undefined : nativeSetWindowPosition(wv, ...a));
+const minimizeWindowNative = (wv: any) => (isHosted(wv) ? undefined : nativeMinimize(wv));
+const hideAppNative = (wv: any) => (isHosted(wv) ? undefined : nativeHideApp(wv));
+const attachWindowShortcuts = (wv: any, ...a: [any?]) => (isHosted(wv) ? undefined : nativeAttachShortcuts(wv, ...a));
 import { Sys } from "./simplecli/sys/index.ts";
 import * as fs from "fs";
 import * as path from "path";
@@ -876,6 +890,8 @@ export class SimpleWindow {
     private controlIdCounter: Record<string, number> = {};
     private webview: Webview | null = null;
     private isWindowRunning = false;
+    /** Set by hostInBrowser(): makes show() build a web-page-backed "webview" instead of a native window. */
+    private hostedFactory: (() => unknown) | null = null;
     public formValuesStore: Record<string, any> = {};
     public eventHandlersMap: Map<string, EventCallback> = new Map();
     private promptResolversMap: Map<string, (val: any) => void> = new Map();
@@ -6051,6 +6067,16 @@ export class SimpleWindow {
         return this.webview;
     }
 
+    /** Show this window inside a web page instead of a native window (see simplegui_host.ts). Call before show(). */
+    public hostInBrowser(factory: () => unknown): this {
+        this.hostedFactory = factory;
+        return this;
+    }
+
+    public isHostedInBrowser(): boolean {
+        return this.hostedFactory !== null;
+    }
+
     public run(): void {
         this.show();
     }
@@ -6067,7 +6093,7 @@ export class SimpleWindow {
         }
 
         const html = this.generateHtml();
-        this.webview = new Webview();
+        this.webview = this.hostedFactory ? (this.hostedFactory() as unknown as Webview) : new Webview();
         this.webview.title = this.title;
         this.webview.size = { width: this.width, height: this.height, hint: SizeHint.NONE };
         if (this.fullscreen) {
@@ -6275,6 +6301,9 @@ export class SimpleWindow {
 
         // Set HTML content AFTER binding all IPC endpoints
         this.webview.setHTML(html);
+
+        // A hosted window lives in a web page: nothing blocks here and the program keeps running when it closes.
+        if (this.hostedFactory) return;
 
         this.webview.run();
         this.isWindowRunning = false;
@@ -7450,7 +7479,7 @@ export class SimpleWindow {
     public exit(code = 0): void {
         this.isWindowRunning = false;
         this.handleClose();
-        process.exit(code);
+        if (!this.hostedFactory) process.exit(code);
     }
 
     public exitApp(code = 0): void {
@@ -8885,8 +8914,9 @@ export class SimpleWindow {
             this.saveAppFormStateOr();
         }
         this.isWindowRunning = false;
+        const hosted = this.hostedFactory !== null;
         this.webview = null;
-        forceExit(0);
+        if (!hosted) forceExit(0);
     }
 
     // =========================================================================

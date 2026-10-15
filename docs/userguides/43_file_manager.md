@@ -21,6 +21,8 @@ Added on 14 October 2026; the record of what was checked is [D-045](../documenta
 - [Live server and PHP server (Serve tab)](#live-server-and-php-server-serve-tab)
 - [Databases (Databases tab)](#databases-databases-tab)
 - [Subdomains (Subfinder)](#subdomains-subfinder)
+- [Downloads (fast, resumable)](#downloads-fast-resumable)
+- [API Studio, App Bundler and Env Studio](#api-studio-app-bundler-and-env-studio)
 - [Files that aren't what their name says](#files-that-arent-what-their-name-says)
 - [More info and metadata](#more-info-and-metadata)
 - [Tools built on Bun's own utilities](#tools-built-on-buns-own-utilities)
@@ -500,6 +502,36 @@ Every request identifies itself as the File Manager, all lookups and connections
 
 **For developers.** Operations: `subdomains/info`, `subdomains/start`, `subdomains/status`, `subdomains/results`, `subdomains/cancel`, `subdomains/export`, `subdomains/report`, `subdomains/open`, `subdomains/history`, `subdomains/history/clear`, all behind the session token and the loopback checks. The engine lives in `src/features/subfinder/` (`subfinderEngine.ts`, `subfinderNames.ts`, `subfinderSources.ts`, `subfinderNet.ts`, `subfinderProgram.ts`); the server side is `fmSubdomains*.ts`. Tests replace fetch, DNS, HTTP, TCP and the clock through `context.subdomains` and never use the network.
 
+## Downloads (fast, resumable)
+
+**Find & more → Downloads** (⬇️, in the Network group) downloads files from the web faster than a browser, and keeps going after a pause, a lost connection or a restart.
+
+**How it is fast.** It asks the server about the file first (one tiny request), then, when the server allows it, cuts the file into pieces and fetches several pieces **at the same time over separate connections** (8 by default, up to 32). A fast connection simply takes more pieces, so one slow connection doesn't hold the rest back. The pieces are written straight into the right place in a `name.part` file, which is renamed when the last byte is in.
+
+**Add downloads.** Paste one or more web addresses (one per line; lines starting with `#` are ignored) and press **Download**. **Check the file** shows the name, the size and whether the server can be split and resumed, without downloading anything. Optional: a folder, a name to save as, a **checksum** (`sha256:…`, or md5, sha1, sha512, checked when the file is finished) and request **headers** (a login cookie, a referer, an authorisation token: they stay on this computer and are never shown again in the list). `https://user:password@host/file` addresses work.
+
+**Pause, resume, queue.** Each row has Pause, Resume (or Try again after a problem), Show, and Remove. Progress is saved next to the file (`name.part` and `name.dlstate`), so a download you paused, or that was running when the File Manager closed, shows as **Paused** next time and **Resume** carries on from where it stopped. Before it continues, the server's file is checked against what was saved (size and ETag): a file that changed is fetched afresh instead of being stitched together from two versions. A few files download at once (3 by default); the rest wait their turn. **Pause all**, **Resume all** and **Clear finished** work on the whole list.
+
+**When things go wrong.** A dropped connection is retried, with growing waits (6 tries per piece by default); a busy server's `Retry-After` is respected. Servers that can't send pieces are downloaded in one stream, and resumed with `Range` when they allow it. A file that arrives with the wrong checksum is kept, marked as a problem, and says so. Out of disk space is reported before the download starts.
+
+**Settings.** *Files at once*, *Connections per file*, a **speed limit** shared by everything (so a big download can't use all your internet), and the download folder (the **Downloads** folder in your home folder unless changed).
+
+**Limits.** Only `http://` and `https://` addresses (not FTP or torrents). It doesn't open a browser, so a link that needs you to click through a web page or log in with a form needs the cookie pasted into **Headers**. Names the server asks for are cleaned (no folders, no characters a system can't store); a name that already exists gets ` (1)`, ` (2)` … rather than overwriting.
+
+## API Studio, App Bundler and Env Studio
+
+Three more of the project's apps run inside the File Manager, as tools in **Find & more**:
+
+| Tool | Where | What it is for |
+|---|---|---|
+| 🛰️ **API** | Network group | **API Studio**: send HTTP and REST requests, import a cURL command, set headers, a body and variables, benchmark an endpoint, and export the response. |
+| 📦 **Bundler** | Files and text group | **App Bundler**: bundle a Bun project into one file, a standalone program, or a macOS `.app`. |
+| 🔑 **Env** | Security group | **Env Studio**: edit `.env` files, find duplicates and mistakes, compare with an example file, and keep secret-looking values masked. |
+
+They are the same programs that open their own window when you run them alone (`bun run applications/api_studio.ts` and so on); here each one starts the first time you open its tab and is shown in a frame, so nothing needs installing. **Restart** closes a tool and starts it fresh; it also stops when the File Manager closes. The tools run on this computer: the API Studio sends its requests from here, and the Env Studio never sends a value anywhere.
+
+**How they are kept apart.** Like the Calculator, each tool's page is served on the *other* spelling of this address (`127.0.0.1` ↔ `localhost`), which a browser treats as a separate site, so a tool can't read the File Manager's page or its secret token. Starting a tool needs the File Manager's token, and the tool's page and its connection need a secret that only that run of that tool has; an old one stops working when the tool is restarted.
+
 ## Files that aren't what their name says
 
 A file's name can lie. `invoice.pdf` can really be a Windows program, `photo.jpg` can really be a PNG or a zip, and `report.pdf.exe` or a name with a hidden right-to-left character can hide what it ends in. The File Manager reads the first few hundred bytes of the files you can see and puts a small badge after the name when the contents don't match:
@@ -645,6 +677,7 @@ Most windows and tools show information in blocks: a group in *Properties* or *M
 | The Rip graveyard (shared with Rip Studio) | `~/.local/share/rip/graveyard/`, or the folder in the `GRAVEYARD` environment variable |
 | Dev tab snapshots of code statistics (up to 50) | `~/.bun_rad_studio/file_manager_dev_snapshots.json` (readable only by you) |
 | Database connections (SQLite, MySQL / MariaDB, PostgreSQL; the same file the Database Workbench uses) and Redis connections | `~/.bun_rad_studio/connections.json` and `connections_redis.json` (readable only by you; **no passwords**: those are in your computer's keychain) |
+| Downloads: the list, the settings, and the progress of unfinished ones | `~/.bun_rad_studio/file_manager_downloads.json` (readable only by you); next to each unfinished file, `name.part` and `name.dlstate` |
 | Databases settings: engine defaults, environment switches, detection choices, which connection came from where | `~/.bun_rad_studio/file_manager_databases.json` (readable only by you) |
 | Files a studio writes (exports, uploads) | `~/.bun_rad_studio/db_studios/files/` (the folder studios run in) |
 

@@ -38,6 +38,9 @@ import { secretsOperations } from "./fmSecretsOps";
 import { graveyardOperations } from "./fmGraveyardOps";
 import { databaseOperations } from "./fmDbOps";
 import { studioFrameResponse } from "./fmDbFrame";
+import { hostedPageResponse, hostedSessionFor, hostedStudioOperations } from "./fmHostedStudios";
+import { downloadOperations } from "./fmDownloadOps";
+import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
 import { listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
@@ -169,6 +172,13 @@ function embeddedCsp(app: EmbeddedApp, host: string): string {
 }
 
 const EMBED_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", svg: "image/svg+xml", json: "application/json; charset=utf-8", png: "image/png", gif: "image/gif", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", woff2: "font/woff2", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg" };
+
+/** A WebSocket that carries one hosted tool's page <-> program messages (see fmHostedStudios.ts). */
+interface HostedSocketData {
+  kind: "hosted";
+  session: HostedSession;
+  peer?: HostedPeer;
+}
 
 interface TerminalSocketData {
   cwd: string;
@@ -350,6 +360,10 @@ Object.assign(operations, secretsOperations, databaseOperations, graveyardOperat
 
 // The window's size and position preference (window/get, window/set, window/reset).
 Object.assign(operations, windowOperations);
+// The API Studio, App Bundler and Env Studio, hosted in a frame.
+Object.assign(operations, hostedStudioOperations);
+// Fast, resumable downloads split over several connections.
+Object.assign(operations, downloadOperations);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -413,12 +427,17 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
     return new Response(Bun.file(file), { headers });
   }
 
-  const server = Bun.serve<TerminalSocketData>({
+  const server = Bun.serve<TerminalSocketData | HostedSocketData>({
     port: options.port ?? 0,
     hostname: options.host ?? "127.0.0.1",
     maxRequestBodySize: MAX_BODY_BYTES + 1024,
     websocket: {
       open(ws) {
+        if ("kind" in ws.data) {
+          ws.data.peer = { send: (text) => void ws.send(text) };
+          ws.data.session.attach(ws.data.peer);
+          return;
+        }
         const { cwd, cols, rows } = ws.data;
         const send = (message: object) => { try { ws.send(JSON.stringify(message)); } catch {} };
         try {
@@ -467,6 +486,10 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         }
       },
       message(ws, message) {
+        if ("kind" in ws.data) {
+          if (typeof message === "string" && ws.data.peer) void ws.data.session.handleMessage(ws.data.peer, message);
+          return;
+        }
         if (typeof message !== "string" || message.length > MAX_INPUT_BYTES) return;
         let m: any;
         try {
@@ -475,16 +498,22 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           return;
         }
         if (!m || typeof m !== "object") return;
+        const term = ws.data as TerminalSocketData;
         if (m.type === "input" && typeof m.data === "string") {
-          ws.data.session?.write(m.data);
+          term.session?.write(m.data);
           // A command was run: look soon, and again once it has had time to change folder.
-          if (/[\r\n]/.test(m.data)) for (const ms of [120, 450, 1200]) setTimeout(() => ws.data.watch?.check(), ms).unref?.();
+          if (/[\r\n]/.test(m.data)) for (const ms of [120, 450, 1200]) setTimeout(() => term.watch?.check(), ms).unref?.();
         }
-        else if (m.type === "resize") ws.data.session?.resize(clampSize(m.cols, 80, 2, 500), clampSize(m.rows, 24, 1, 200));
+        else if (m.type === "resize") term.session?.resize(clampSize(m.cols, 80, 2, 500), clampSize(m.rows, 24, 1, 200));
       },
       close(ws) {
-        ws.data.watch?.stop();
-        ws.data.session?.close();
+        if ("kind" in ws.data) {
+          if (ws.data.peer) ws.data.session.detach(ws.data.peer);
+          return;
+        }
+        const term = ws.data as TerminalSocketData;
+        term.watch?.stop();
+        term.session?.close();
       },
     },
     async fetch(req, srv) {
@@ -498,6 +527,18 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         const embedded = /^\/app\/([a-z]+)\/(.*)$/.exec(path);
         if (embedded) {
           if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: secureHeaders() });
+          if (embedded[1] === "hosted" || embedded[1] === "hostedws") {
+            // A tool's frame and its socket: only on the other loopback spelling, and only with that tool's secret.
+            if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
+            const id = embedded[2]!.replace(/\/$/, "");
+            const secret = url.searchParams.get("s");
+            if (embedded[1] === "hosted") return hostedPageResponse(ctx, id, secret, url.host, alternateOrigin(url.host), secureHeaders);
+            if (req.headers.get("origin") !== `http://${url.host}`) return new Response("Forbidden", { status: 403, headers: secureHeaders() });
+            const session = hostedSessionFor(ctx, id, secret);
+            if (!session) return new Response("Not Found", { status: 404, headers: secureHeaders() });
+            if (srv.upgrade(req, { data: { kind: "hosted", session } satisfies HostedSocketData })) return undefined;
+            return new Response("This address only accepts a WebSocket.", { status: 426, headers: secureHeaders() });
+          }
           if (embedded[1] === "dbstudio") {
             // Only on the other loopback spelling, like the other embedded apps: the File Manager's own origin never serves a studio frame.
             if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });

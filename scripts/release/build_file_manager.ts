@@ -6,6 +6,8 @@
  *   bun run release:file-manager                         every download (needs the internet the first time, to fetch each Bun runtime)
  *   bun run release:file-manager -- --targets macos-arm64,windows-x64
  *   bun run release:file-manager -- --list
+ *   bun run release:file-manager -- --page-only --base-url https://github.com/<you>/<repo>/releases/download/v1.0.0/
+ *                                                      rewrite only index.html so its buttons point at where the zips are hosted
  *
  * Output, in release/file-manager/:
  *   Codecaine-File-Manager-v<version>-<platform>.zip   one per platform
@@ -257,15 +259,16 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
   return out;
 }
 
-export function downloadPage(rows: Array<{ d: Download; file: string; bytes: number }>): string {
-  const data = rows.map((r) => ({ id: r.d.id, os: r.d.os, arch: r.d.arch, label: r.d.label, hint: r.d.hint, older: !!r.d.older, file: r.file, size: mb(r.bytes) }));
+export function downloadPage(rows: Array<{ d: Download; file: string; bytes: number }>, baseUrl = ""): string {
+  const base = baseUrl && !baseUrl.endsWith("/") ? `${baseUrl}/` : baseUrl;
+  const data = rows.map((r) => ({ id: r.d.id, os: r.d.os, arch: r.d.arch, label: r.d.label, hint: r.d.hint, older: !!r.d.older, file: base + r.file, size: mb(r.bytes) }));
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
   const card = (os: "macos" | "windows" | "linux", title: string, icon: string, note: string) => {
     const list = rows.filter((r) => r.d.os === os);
     const main = list.filter((r) => !r.d.older);
     const old = list.filter((r) => r.d.older);
     const btn = (r: (typeof rows)[number], primary: boolean) =>
-      `<a class="btn${primary ? "" : " ghost"}" data-id="${r.d.id}" href="${esc(r.file)}" download><span class="b-top">${esc(r.d.label)}</span><span class="b-sub">${esc(r.d.hint)}</span><span class="b-size">.zip · ${mb(r.bytes)}</span></a>`;
+      `<a class="btn${primary ? "" : " ghost"}" data-id="${r.d.id}" href="${esc(base + r.file)}" download><span class="b-top">${esc(r.d.label)}</span><span class="b-sub">${esc(r.d.hint)}</span><span class="b-size">.zip · ${mb(r.bytes)}</span></a>`;
     return `<section class="card" id="${os}"><div class="icon">${icon}</div><h2>${title}</h2><p class="note">${note}</p>${main.map((r) => btn(r, true)).join("")}${old.length ? `<details><summary>Older computers</summary>${old.map((r) => btn(r, false)).join("")}</details>` : ""}</section>`;
   };
   return `<!DOCTYPE html>
@@ -335,22 +338,33 @@ const FILES = ${JSON.stringify(data)};
 `;
 }
 
-export function parseArgs(argv: string[]): { ids: string[] | null; list: boolean } {
+export function parseArgs(argv: string[]): { ids: string[] | null; list: boolean; baseUrl: string; pageOnly: boolean } {
   let ids: string[] | null = null;
   let list = false;
+  let baseUrl = "";
+  let pageOnly = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--targets") ids = (argv[++i] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     else if (a === "--list") list = true;
-    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --list`);
+    else if (a === "--base-url") baseUrl = argv[++i] ?? "";
+    else if (a === "--page-only") pageOnly = true;
+    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --list  --base-url <url the zips are hosted at>  --page-only`);
   }
-  return { ids, list };
+  return { ids, list, baseUrl, pageOnly };
 }
 
 async function main() {
-  const { ids, list } = parseArgs(process.argv.slice(2));
+  const { ids, list, baseUrl, pageOnly } = parseArgs(process.argv.slice(2));
   if (list) {
     for (const d of DOWNLOADS) console.log(`${d.id.padEnd(22)} ${d.label.padEnd(22)} ${d.hint}`);
+    return;
+  }
+  if (pageOnly) {
+    mkdirSync(OUT_DIR, { recursive: true });
+    const have = DOWNLOADS.filter((d) => existsSync(join(OUT_DIR, zipName(d)))).map((d) => ({ d, file: zipName(d), bytes: statSync(join(OUT_DIR, zipName(d))).size }));
+    writeFileSync(join(OUT_DIR, "index.html"), downloadPage(have, baseUrl));
+    log("🌐", `index.html rewritten for ${have.length} downloads${baseUrl ? ` hosted at ${baseUrl}` : ""}`);
     return;
   }
   let chosen = DOWNLOADS;
@@ -388,7 +402,7 @@ async function main() {
 
   // The page and checksums always describe every zip that is present, not only the ones built this time.
   const present = DOWNLOADS.filter((d) => existsSync(join(OUT_DIR, zipName(d)))).map((d) => ({ d, file: zipName(d), bytes: statSync(join(OUT_DIR, zipName(d))).size }));
-  writeFileSync(join(OUT_DIR, "index.html"), downloadPage(present));
+  writeFileSync(join(OUT_DIR, "index.html"), downloadPage(present, baseUrl));
   const sums: string[] = [];
   for (const r of present) sums.push(`${await sha256File(join(OUT_DIR, r.file))}  ${r.file}`);
   writeFileSync(join(OUT_DIR, "SHA256SUMS.txt"), sums.join("\n") + "\n");

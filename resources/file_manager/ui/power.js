@@ -20,7 +20,7 @@ let host = null;
 const groupOf = (t) => (GROUPS.some(([g]) => g === t.group) ? t.group : DEFAULT_GROUP[t.id] ?? "more");
 
 /** The tools in the order the tab strip shows them within a group; a tool not listed comes after these. */
-const TOOL_ORDER = ["find", "sd", "code", "dev", "watch", "serve", "crypto", "vault", "ip", "net", "subs", "calc", "timer", "databases"];
+const TOOL_ORDER = ["find", "sd", "code", "dev", "bundler", "watch", "serve", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "databases"];
 
 /** The tabs in the order they are shown: grouped, then in a steady order within a group. */
 function orderedTabs() {

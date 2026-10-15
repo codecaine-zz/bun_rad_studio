@@ -36,6 +36,8 @@ import "./code.js";
 import "./dev.js";
 import "./graveyard.js";
 import "./databases.js";
+import "./hostedStudios.js";
+import "./downloads.js";
 import "./themeEditor.js";
 import { startQuietDetect } from "./dbDetect.js";
 import { wireTerminal } from "./terminal.js";

@@ -1,0 +1,41 @@
+/* Styles of the Downloads tool. Prefix every class with .dl- to stay out of the way of the other tools. */
+.dl-urls { width: 100%; resize: vertical; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; box-sizing: border-box; }
+.dl-headers { width: 100%; resize: vertical; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; box-sizing: border-box; margin-top: 6px; }
+.dl-folder { flex: 1 1 22rem; min-width: 10rem; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
+.dl-name, .dl-checksum { flex: 1 1 14rem; min-width: 8rem; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
+.dl-select, .dl-number { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
+.dl-number { width: 6rem; }
+.dl-field { display: inline-flex; flex-direction: column; gap: 2px; font-size: 0.85em; color: var(--muted, inherit); }
+.dl-field.dl-grow { flex: 1 1 18rem; }
+.dl-inline { display: inline-flex; gap: 6px; }
+.dl-check { display: inline-flex; align-items: center; gap: 4px; }
+.dl-options { align-items: flex-end; }
+.dl-more > summary, .dl-settings > summary { cursor: pointer; }
+.dl-info { margin: 0; min-height: 1.3em; }
+.dl-bar { align-items: center; }
+.dl-bar > h3 { margin: 0 8px 0 0; }
+.dl-summary { margin-left: auto; }
+.dl-empty { margin: 0; }
+.dl-list { display: flex; flex-direction: column; gap: 8px; }
+.dl-row { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); display: flex; flex-direction: column; gap: 5px; }
+.dl-row[data-state="done"] { border-color: var(--success, #2e8b57); }
+.dl-row[data-state="error"] { border-color: var(--danger, #c0392b); }
+.dl-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.dl-name-text { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
+.dl-chip { flex: none; font-size: 0.78em; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); }
+.dl-row[data-state="downloading"] .dl-chip { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.dl-row[data-state="done"] .dl-chip { background: var(--success, #2e8b57); color: #fff; border-color: transparent; }
+.dl-row[data-state="error"] .dl-chip { background: var(--danger, #c0392b); color: #fff; border-color: transparent; }
+.dl-track { height: 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); overflow: hidden; }
+.dl-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.45s linear; }
+.dl-row[data-state="done"] .dl-bar-fill { background: var(--success, #2e8b57); }
+.dl-row[data-state="paused"] .dl-bar-fill { opacity: 0.5; }
+.dl-track.dl-unknown .dl-bar-fill { animation: dl-slide 1.4s ease-in-out infinite alternate; transition: none; width: 30%; }
+@keyframes dl-slide { from { margin-left: 0; } to { margin-left: 70%; } }
+.dl-bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; }
+.dl-stats { font-variant-numeric: tabular-nums; font-size: 0.9em; }
+.dl-buttons { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.dl-btn { padding: 3px 10px; font-size: 0.9em; }
+.dl-note { font-size: 0.85em; opacity: 0.85; }
+.dl-note.dl-problem { color: var(--danger-text, inherit); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .dl-bar-fill { transition: none; } .dl-track.dl-unknown .dl-bar-fill { animation: none; } }
