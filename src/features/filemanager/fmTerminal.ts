@@ -7,7 +7,7 @@
  * protected folders, confirmations) applies inside it. The server therefore only opens one for a request that
  * carries the session token, and limits how many are open at once.
  */
-import { existsSync, promises as fsp, statSync } from "fs";
+import { existsSync, promises as fsp, realpathSync, statSync } from "fs";
 import { win32, resolve } from "path";
 import type { FmContext } from "./fmCore";
 import { childEnv } from "./fmTools";
@@ -71,6 +71,8 @@ export async function shellFolder(platform: FmContext["platform"], pid: number):
 
 export interface TerminalSession {
   readonly pid: number;
+  /** Last filesystem folder reported by Windows PowerShell's prompt. */
+  readonly cwd?: string;
   write(data: string): void;
   resize(cols: number, rows: number): void;
   /** Ends the shell: hangs up first, and forces it to stop if it ignores that. */
@@ -85,6 +87,43 @@ export interface OpenTerminalOptions {
   onExit: (code: number | null) => void;
 }
 
+/** Removes our prompt metadata without losing other terminal output, even across pipe chunk boundaries. */
+export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string) => void) {
+  const prefix = "\x1b]777;file-manager-cwd;";
+  let pending = "";
+  return {
+    write(text: string) {
+      pending += text;
+      while (pending) {
+        const start = pending.indexOf(prefix);
+        if (start < 0) {
+          let keep = Math.min(prefix.length - 1, pending.length);
+          while (keep > 0 && !prefix.startsWith(pending.slice(-keep))) keep--;
+          const visible = pending.slice(0, pending.length - keep);
+          if (visible) onData(visible);
+          pending = pending.slice(pending.length - keep);
+          return;
+        }
+        if (start > 0) { onData(pending.slice(0, start)); pending = pending.slice(start); }
+        const end = pending.indexOf("\x07", prefix.length);
+        if (end < 0) {
+          if (pending.length <= 32768) return;
+          onData(pending);
+          pending = "";
+          return;
+        }
+        const encoded = pending.slice(prefix.length, end);
+        pending = pending.slice(end + 1);
+        if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) continue;
+        const path = Buffer.from(encoded, "base64").toString("utf8");
+        if (path.length > 4096 || /[\x00-\x1f\x7f]/.test(path) || !/^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)/.test(path)) continue;
+        onFolder(path);
+      }
+    },
+    flush() { if (pending) onData(pending); pending = ""; },
+  };
+}
+
 function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): TerminalSession {
   const shell = pickShell("win32");
   const proc = Bun.spawn([
@@ -93,14 +132,31 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): Term
     "-Shell", shell, "-WorkingDirectory", options.cwd, "-Columns", String(options.cols), "-Rows", String(options.rows),
   ], { cwd: options.cwd, env: childEnv(ctx), stdin: "pipe", stdout: "pipe", stderr: "pipe" });
   let closed = false;
+  let cwd = realpathSync.native(options.cwd);
+  const outputParser = windowsTerminalOutput(options.onData, (path) => {
+    try {
+      if (statSync(path).isDirectory()) cwd = realpathSync.native(path);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") {
+        options.onData(`\r\nCouldn't follow the terminal folder: ${error instanceof Error ? error.message : String(error)}\r\n`);
+      }
+    }
+  });
   const pump = async (stream: ReadableStream<Uint8Array>, error = false) => {
     const decoder = new TextDecoder();
     for await (const chunk of stream) {
       const text = decoder.decode(chunk, { stream: true });
-      if (!closed && text) options.onData(error ? `\r\n${text}` : text);
+      if (!closed && text) {
+        if (error) options.onData(`\r\n${text}`);
+        else outputParser.write(text);
+      }
     }
     const rest = decoder.decode();
-    if (!closed && rest) options.onData(rest);
+    if (!closed) {
+      if (rest) { if (error) options.onData(rest); else outputParser.write(rest); }
+      if (!error) outputParser.flush();
+    }
   };
   const fail = (error: unknown) => {
     if (closed) return;
@@ -123,6 +179,7 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions): Term
   });
   const session: TerminalSession = {
     pid: proc.pid,
+    get cwd() { return cwd; },
     write: (data) => send(`I:${Buffer.from(data, "utf8").toString("base64")}`),
     resize: (cols, rows) => send(`R:${cols}:${rows}`),
     close() {
@@ -165,6 +222,7 @@ export function createTerminalHub(limit = MAX_TERMINALS): TerminalHub {
         });
         const session: TerminalSession = {
           ...windows,
+          get cwd() { return windows.cwd; },
           close() { sessions.delete(session); windows.close(); },
         };
         sessions.add(session);

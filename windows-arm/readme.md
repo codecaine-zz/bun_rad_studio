@@ -46,7 +46,10 @@ terminal package. The first terminal takes a moment to compile its small local
 bridge using Windows PowerShell's built-in C# compiler. Hiding the panel keeps the
 shell running; Restart replaces it, and closing the app ends its terminal sessions.
 Commands run with your user permissions and bypass the File Manager's Recycle Bin
-and confirmations. Automatic **Follow terminal** folder tracking remains macOS/Linux-only.
+and confirmations. **Follow terminal** also works on Windows: when PowerShell returns
+to its prompt after `cd`, `Set-Location`, `Push-Location` or `Pop-Location`, the file
+list follows its filesystem folder. Untick it to keep browsing independently.
+Registry and other non-filesystem PowerShell providers do not change the file list.
 
 In **Convert > Helper programs**, **Download** opens the program's official website
 in your default browser. Windows installs use WinGet when available; manual commands

@@ -255,10 +255,6 @@ export function wireTerminal() {
     }
   });
   const follow = $("#terminal-follow");
-  if (state.platform === "win32") {
-    follow.disabled = true;
-    follow.parentElement.title = "Following shell folder changes is currently supported on macOS and Linux only.";
-  }
   follow.checked = state.settings.terminalFollow !== false;
   follow.addEventListener("change", () => {
     saveSettings({ terminalFollow: follow.checked });

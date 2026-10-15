@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
-import { clampSize, createTerminalHub, pickShell, shellFolder, terminalSupported } from "../src/features/filemanager/fmTerminal";
+import { clampSize, createTerminalHub, pickShell, shellFolder, terminalSupported, windowsTerminalOutput } from "../src/features/filemanager/fmTerminal";
 
 // POSIX shell commands stay separate from the Windows ConPTY tests below.
 const posix = process.platform !== "win32";
@@ -63,6 +63,39 @@ function connect(query: Record<string, string>, origin = base): Promise<Client> 
 }
 
 describe("terminal helpers", () => {
+  test("Windows folder metadata survives every chunk boundary without hiding normal output", () => {
+    const path = "C:\\Users\\it's a folder # % \u03bb";
+    const marker = `\x1b]777;file-manager-cwd;${Buffer.from(path).toString("base64")}\x07`;
+    const text = `before\x1b[31m${marker}after`;
+    for (let cut = 0; cut <= text.length; cut++) {
+      let output = "";
+      const folders: string[] = [];
+      const parser = windowsTerminalOutput((s) => output += s, (p) => folders.push(p));
+      parser.write(text.slice(0, cut));
+      parser.write(text.slice(cut));
+      parser.flush();
+      expect(output).toBe("before\x1b[31mafter");
+      expect(folders).toEqual([path]);
+    }
+  });
+
+  test("Windows folder metadata refuses invalid paths and bounds incomplete messages", () => {
+    let output = "";
+    const folders: string[] = [];
+    const parser = windowsTerminalOutput((s) => output += s, (p) => folders.push(p));
+    for (const path of ["relative", "\\rooted", "C:\\bad\nfolder", `C:\\${"x".repeat(4096)}`]) {
+      parser.write(`\x1b]777;file-manager-cwd;${Buffer.from(path).toString("base64")}\x07`);
+    }
+    parser.write("\x1b]777;file-manager-cwd;invalid!\x07");
+    expect(folders).toEqual([]);
+    const long = `\x1b]777;file-manager-cwd;${"x".repeat(32768)}`;
+    parser.write(long);
+    expect(output).toBe(long);
+    parser.write("tail\x1b]");
+    parser.flush();
+    expect(output).toEndWith("tail\x1b]");
+  });
+
   test("Windows, macOS and Linux support terminals", () => {
     expect(terminalSupported("darwin")).toBe(true);
     expect(terminalSupported("linux")).toBe(true);
@@ -94,6 +127,42 @@ describe("terminal helpers", () => {
 });
 
 (posix ? describe.skip : describe)("Windows ConPTY terminal", () => {
+  test("reports cd, Push-Location and Pop-Location, but not subshells or registry providers", async () => {
+    const sub = join(work, "it's a folder # % \u03bb");
+    mkdirSync(sub, { recursive: true });
+    const c = await connect({ token: TOKEN, path: work, cols: "180" });
+    const folders = () => c.messages.filter((m) => m.type === "cwd").map((m) => m.path);
+    const waitFolder = async (path: string) => {
+      path = realpathSync.native(path);
+      const end = Date.now() + 10000;
+      while (!folders().includes(path) && Date.now() < end) await Bun.sleep(25);
+      expect(folders()).toContain(path);
+    };
+    try {
+      await c.waitFor(/PS .*work with spaces>/, 20000);
+      const quote = (path: string) => `'${path.replaceAll("'", "''")}'`;
+      c.ws.send(JSON.stringify({ type: "input", data: `cd -LiteralPath ${quote(sub)}\r` }));
+      await waitFolder(sub);
+      c.ws.send(JSON.stringify({ type: "input", data: `Push-Location -LiteralPath ${quote(home)}\r` }));
+      await waitFolder(home);
+      const count = folders().length;
+      c.ws.send(JSON.stringify({ type: "input", data: "Pop-Location\r" }));
+      const end = Date.now() + 10000;
+      while (folders().length === count && Date.now() < end) await Bun.sleep(25);
+      expect(folders().at(-1)).toBe(realpathSync.native(sub));
+      const before = folders().length;
+      c.ws.send(JSON.stringify({ type: "input", data: `powershell.exe -NoProfile -Command "Set-Location -LiteralPath '${home}'; Write-Output ('CHILD' + '_DONE')"\r` }));
+      await c.waitFor(/CHILD_DONE/);
+      c.ws.send(JSON.stringify({ type: "input", data: "Set-Location HKCU:\\; Write-Output ('REGISTRY' + '_DONE')\r" }));
+      await c.waitFor(/REGISTRY_DONE/);
+      await Bun.sleep(2800);
+      expect(folders().length).toBe(before);
+      expect(c.text()).not.toContain("file-manager-cwd;");
+      c.ws.send(JSON.stringify({ type: "input", data: `Set-Location -LiteralPath ${quote(work)}\r` }));
+      await waitFolder(work);
+    } finally { c.ws.close(); }
+  }, 45000);
+
   test("runs PowerShell in a folder with spaces, accepts Unicode, resizes and reports exit status", async () => {
     const c = await connect({ token: TOKEN, path: work, cols: "100", rows: "30" });
     try {

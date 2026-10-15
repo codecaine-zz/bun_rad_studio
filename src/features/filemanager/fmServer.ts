@@ -440,14 +440,14 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           // Tell the page whenever the shell changes folder, so the file list can follow it.
           // The shell reports real paths, so compare with the real path of where it started (a symlinked folder would otherwise look like a move).
           let last = ws.data.cwd;
-          try { last = realpathSync(ws.data.cwd); } catch {}
+          try { last = ctx.platform === "win32" ? realpathSync.native(ws.data.cwd) : realpathSync(ws.data.cwd); } catch {}
           let busy = false;
           let alive = true;
           const check = async () => {
             if (busy || !alive) return;
             busy = true;
             try {
-              const now = await shellFolder(ctx.platform, session.pid);
+              const now = session.cwd ?? await shellFolder(ctx.platform, session.pid);
               if (alive && now && now !== last) {
                 last = now;
                 send({ type: "cwd", path: now });
